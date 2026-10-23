@@ -67,11 +67,19 @@ test('Techniques preserves geometry through previews, pending saves and failed s
       dialog.locator('[aria-live="polite"]', { hasText: 'Saving selection…' }),
     ).toHaveText('Saving selection…')
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
-    expectGeometry(await geometry(dialog), supportBaseline, `${width}x${height}: Support save pending`)
+    expectGeometry(
+      await geometry(dialog),
+      supportBaseline,
+      `${width}x${height}: Support save pending`,
+    )
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
     await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
-    expectGeometry(await geometry(dialog), supportBaseline, `${width}x${height}: Support save rejected`)
+    expectGeometry(
+      await geometry(dialog),
+      supportBaseline,
+      `${width}x${height}: Support save rejected`,
+    )
     releaseSave = undefined
     const disciplineTab = dialog.getByRole('tab', { name: 'Discipline 1', exact: true })
     if (await disciplineTab.isVisible()) await disciplineTab.click()
@@ -105,9 +113,11 @@ async function geometry(dialog: Locator) {
     }
     // At phone sizes the inactive discipline gallery is intentionally display:none.
     // Measure a visible artwork tile from the selected category, including Support.
-    const art = [...node.querySelectorAll(
-      '[data-technique-art], [data-technique-category="support"] [data-av-square-media]',
-    )].find((tile) => tile.getBoundingClientRect().width > 0)
+    const art = [
+      ...node.querySelectorAll(
+        '[data-technique-art], [data-technique-category="support"] [data-av-square-media]',
+      ),
+    ].find((tile) => tile.getBoundingClientRect().width > 0)
     if (!art) throw new Error('Active Techniques artwork is missing')
     const previewImages = preview.querySelectorAll('img').length
     const artRect = rect(art)
