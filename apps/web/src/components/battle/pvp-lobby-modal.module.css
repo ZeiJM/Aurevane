@@ -856,3 +856,11 @@
     font-size: 0.73rem;
   }
 }
+
+/* In the two-column phone duel, place the crest on the actual card seam.
+   The final compact team gap is 0.55rem, not the earlier wide 3.75rem stage. */
+@media (min-width: 360px) and (max-width: 800px) {
+  .modal[data-lobby-mode='1v1'] .vs {
+    left: calc(-0.55rem / 2);
+  }
+}
