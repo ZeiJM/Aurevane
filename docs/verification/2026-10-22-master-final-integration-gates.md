@@ -84,3 +84,7 @@ Compact Nexus artifact12470701714 is26235003bytes, SHA256cafa5606c6c4bc70adba355
 Each deterministic gzip has2local test keys redacted and0JWT; full diagnostic transcripts remain. All nine frozen-D failed-job/foundation logs are now durable. There is no hosted Content migration, main merge, production deployment or roster republish.
 
 Task11 remains the sole active implementation seat for Rules/Music/World Environment. Root's coordinating/evidence updates are outside its source worktree and will reconcile only after its source freeze.
+
+## Hosted builtin history requirement confirmed
+
+Actual2026-10-23T01:15UTC read-only history query:1110immutable versions/294keys; no physicalv1 for any of the five Basics (Guard/Move/Attack:[2], HP/MP:[2,3]). Root adjudicates the inherited missing-baseline restore as a required13workflow repair under Owner14, with honest exact builtin/system provenance, no fabricated historical human rows or roster republish. See2026-10-23-master-builtin-restore-preflight.md. No Content hosted migration or data mutation. This is not closed by D's truthful warning or by tests that publish a new baseline first.
