@@ -104,13 +104,13 @@ export async function expectRefinedCockpit(page: Page) {
     'move',
     'attack',
     'guard',
+    'finish',
     '1',
     '2',
     '3',
     '4',
     expect.stringMatching(/essence|resonance/),
     'supernatural',
-    'finish',
   ])
   const scrollContainers = page.locator(
     '[data-battle-mobile-lower-panel], [data-battle-selected-skills]',
