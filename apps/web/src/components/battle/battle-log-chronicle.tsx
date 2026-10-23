@@ -287,8 +287,11 @@ export function MobileBattleChronicle({
   entries,
   playerName,
   combatantNames,
-}: ChronicleNames & { entries: readonly BattleLogEntry[] }) {
+  currentRound,
+}: ChronicleNames & { entries: readonly BattleLogEntry[]; currentRound?: number }) {
   const policy = useSkillElementalDamagePolicyVersion()
+  const recordedRound =
+    typeof currentRound === 'number' && Number.isSafeInteger(currentRound) && currentRound >= 0
   const rounds = useMemo(
     () => buildBattleChronicle(entries, { playerName, combatantNames }),
     [entries, playerName, combatantNames],
@@ -327,6 +330,18 @@ export function MobileBattleChronicle({
   }, [latestKey, selectedKey])
   return (
     <div className={styles.compactChronicle} data-battle-action-strip="true" ref={rootRef}>
+      <span
+        className={styles.compactCurrentRound}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-battle-round={recordedRound ? currentRound : 'unavailable'}
+        aria-label={
+          recordedRound ? `Current battle round ${currentRound}` : 'Current battle round unavailable'
+        }
+      >
+        R{recordedRound ? currentRound : '—'}
+      </span>
       <div className={styles.compactTrack} aria-label="Battle actions" ref={trackRef}>
         {actions.length === 0 ? (
           <span className={styles.compactEmpty}>Chronicle · Awaiting actions</span>

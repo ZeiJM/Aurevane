@@ -241,6 +241,7 @@ export function BattleLogPanel({
           </p>
         ) : (
           <MobileBattleChronicle
+            currentRound={currentRound}
             entries={entries}
             playerName={effectivePlayerName}
             combatantNames={combatantNames}
