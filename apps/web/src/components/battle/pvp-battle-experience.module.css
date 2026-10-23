@@ -723,3 +723,11 @@
     min-height: 1.9rem;
   }
 }
+
+/* Narrow desktop/tablet landscape: keep all five command-art squares at
+   their shared size by reclaiming needless horizontal gaps. */
+@media (min-width: 821px) and (max-width: 900px) {
+  .commands {
+    gap: 0.125rem;
+  }
+}

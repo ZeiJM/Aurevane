@@ -262,6 +262,7 @@ try {
         page.on('pageerror', (error) => errors.push(error.message))
         await page.goto(
           server.resolvedUrls.local[0] + `?mode=${mode}${mode === 'pvp' ? '&chat=1' : ''}`,
+          { waitUntil: 'domcontentloaded', timeout: 20000 },
         )
         const root = page.locator('main')
         await root.waitFor()

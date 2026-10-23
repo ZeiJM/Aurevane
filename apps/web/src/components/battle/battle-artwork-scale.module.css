@@ -24,7 +24,9 @@
 }
 @media (min-width: 821px) and (max-width: 880px) {
   .scale {
-    --av-cockpit-art-size: 3.125rem;
+    /* At the narrow desktop breakpoint, the first five command columns have
+       ~45px of available art space. Use one shared square for every command. */
+    --av-cockpit-art-size: 2.75rem;
   }
 }
 @media (min-width: 821px) and (max-width: 880px) and (max-height: 620px) {
