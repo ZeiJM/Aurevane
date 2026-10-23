@@ -1,410 +1,136 @@
 .root {
   display: grid;
-  gap: 1.15rem;
-  color: #ede5d1;
+  gap: 0.75rem;
+  min-width: 0;
+  color: #303b35;
 }
-
-.toolbar,
-.card,
-.empty {
-  border: 1px solid rgba(201, 166, 83, 0.28);
-  background:
-    linear-gradient(145deg, rgba(25, 24, 22, 0.97), rgba(10, 11, 12, 0.98)),
-    radial-gradient(circle at top right, rgba(201, 166, 83, 0.08), transparent 42%);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.24);
-}
-
 .toolbar {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1.2rem 1.35rem;
-}
-
-.toolbar h2,
-.rulesHeading h3,
-.card h3 {
-  margin: 0;
-  color: #f4e7bd;
-  font-family: var(--font-display, Georgia, serif);
-  font-weight: 600;
-}
-
-.toolbar p,
-.rulesHeading p,
-.cardHeading p {
-  max-width: 72ch;
-  margin: 0.35rem 0 0;
-  color: rgba(237, 229, 209, 0.68);
-  line-height: 1.55;
-}
-
-.eyebrow {
-  margin: 0 0 0.3rem !important;
-  color: #c9a653 !important;
-  font-size: 0.69rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.toolbarActions {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  flex: 0 0 auto;
-}
-
-.revision {
-  color: rgba(237, 229, 209, 0.58);
-  font-size: 0.76rem;
-}
-
-.notice {
-  margin: 0;
-  border-left: 2px solid #c9a653;
-  background: rgba(201, 166, 83, 0.09);
-  padding: 0.75rem 0.9rem;
-  color: #ead9a6;
-}
-
-.card {
-  padding: 1.05rem 1.15rem 1.2rem;
-}
-
-.cardHeading,
-.rulesHeading,
-.ruleTopline {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
 }
-
-.masterToggle,
-.ruleToggle,
-.loopNotice {
-  display: inline-flex !important;
-  flex-direction: row !important;
-  align-items: center;
-  gap: 0.55rem;
-  color: #e6d7ab;
-  white-space: nowrap;
+.root h2,
+.root h3,
+.root p {
+  margin: 0;
 }
-
-.masterToggle input,
-.ruleToggle input {
-  accent-color: #c9a653;
+.root p,
+.root small {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
-
-.trackEditor {
+.musicWorkspace {
   display: grid;
-  grid-template-columns: minmax(10rem, 0.8fr) minmax(18rem, 1.7fr) auto auto;
-  align-items: end;
-  gap: 0.8rem;
-  margin-top: 1rem;
+  grid-template-columns: minmax(14rem, 34%) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
 }
-
-.trackEditor label,
-.ruleTopline label {
+.trackLibrary,
+.card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  min-width: 0;
+  background: #d6c9af;
+  border: 1px solid #9d8865;
+  border-radius: 4px;
+}
+.pageList {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 27rem;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.root button,
+.root input,
+.root select {
+  color: #303b35;
+  background: #eee3cc;
+  border: 1px solid #9d8865;
+  border-radius: 3px;
+  padding: 0.5rem;
+  font: inherit;
+  min-width: 0;
+}
+.root button {
+  cursor: pointer;
+}
+.root button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.root button[aria-pressed='true'] {
+  color: #f8f1df;
+  background: #345b52;
+  border-color: #345b52;
+}
+.trackLibrary button {
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
+  width: 100%;
+}
+.root label {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: rgba(237, 229, 209, 0.62);
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
 }
-
-.trackEditor input[type='text'],
-.trackEditor input:not([type]),
-.ruleTopline input[type='text'],
-.ruleTopline input:not([type]) {
+.trackDetail {
+  min-width: 0;
+}
+.trackEditor {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  min-width: 0;
+}
+.wideField,
+.preview,
+.loopNotice,
+.trackEditor small,
+.trackEditor p {
+  grid-column: 1 / -1;
+}
+.trackEditor input {
   width: 100%;
+  box-sizing: border-box;
 }
-
-.trackEditor input,
-.ruleTopline input {
-  border: 1px solid rgba(201, 166, 83, 0.26);
-  border-radius: 0;
-  background: rgba(4, 5, 6, 0.72);
-  padding: 0.65rem 0.72rem;
-  color: #f5eedc;
-  font: inherit;
-}
-
-.trackEditor input:focus,
-.ruleTopline input:focus {
-  outline: 1px solid #c9a653;
-  outline-offset: 1px;
-}
-
 .uploadButton {
   position: relative;
-  display: inline-flex !important;
-  justify-content: center;
-  border: 1px solid rgba(201, 166, 83, 0.42);
-  padding: 0.65rem 0.8rem;
-  color: #ead9a6 !important;
+  padding: 0.65rem;
+  color: #f8f1df;
+  background: #345b52;
+  border: 1px solid #345b52;
   cursor: pointer;
-  text-align: center;
 }
-
 .uploadButton input {
   position: absolute;
   width: 1px;
   height: 1px;
   opacity: 0;
-  pointer-events: none;
 }
-
+.uploadButton:focus-within {
+  outline: 2px solid #345b52;
+  outline-offset: 3px;
+}
 .preview {
-  grid-column: 1 / -1;
   width: 100%;
-  height: 2.15rem;
-  margin-top: 0.15rem;
-  opacity: 0.86;
-}
-
-.rulesHeading {
-  align-items: flex-end;
-  padding: 0.4rem 0.2rem 0;
-}
-
-.rulesHeading code {
-  color: #dbc477;
-}
-
-.rules {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.empty {
-  padding: 1.4rem;
-  color: rgba(237, 229, 209, 0.62);
-  text-align: center;
-}
-
-.ruleTopline {
-  display: grid;
-  grid-template-columns: auto minmax(10rem, 0.8fr) minmax(13rem, 1.1fr) auto auto;
-  align-items: end;
-}
-
-.ruleNumber {
-  align-self: center;
-  color: rgba(201, 166, 83, 0.5);
-  font-family: var(--font-display, Georgia, serif);
-  font-size: 1.1rem;
-}
-
-.removeButton {
-  border: 0;
-  background: transparent;
-  padding: 0.65rem 0.2rem;
-  color: rgba(237, 170, 151, 0.82);
-  cursor: pointer;
-}
-
-@media (max-width: 1100px) {
-  .trackEditor {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .ruleTopline {
-    grid-template-columns: auto 1fr 1fr;
-  }
-
-  .ruleToggle,
-  .removeButton {
-    grid-column: span 1;
-  }
-}
-
-@media (max-width: 760px) {
-  .toolbar,
-  .cardHeading,
-  .rulesHeading {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .toolbarActions {
-    justify-content: space-between;
-  }
-
-  .trackEditor,
-  .ruleTopline {
-    grid-template-columns: 1fr;
-  }
-
-  .ruleNumber {
-    display: none;
-  }
-}
-
-/* Approved adventure workspace: readable stone work surfaces. */
-:global(.av-master) .root {
-  --av-text: #2d332d;
-  --av-text-muted: #535448;
-  --av-text-dim: #625e4f;
-  --av-brass-300: #69532d;
-  --av-brass-200: #6d572e;
-  --av-border: #99826366;
-  --av-border-strong: #9b8362;
-  color: #2d332d;
-}
-:global(.av-master) .card,
-:global(.av-master) .rules,
-:global(.av-master) .trackEditor,
-:global(.av-master) .ruleTopline,
-:global(.av-master) .toolbar {
-  color: #30372f;
-  background: linear-gradient(125deg, #d0c2a8, #bdad90);
-  border-color: #9d8865;
-  border-radius: 4px;
-  box-shadow: inset 0 1px #f5e6c44d;
-}
-:global(.av-master) .root :is(h2, h3, h4, label, legend, p, small, dt, dd) {
-  color: inherit;
-}
-:global(.av-master) .root :is(button, a)[data-selected='true'] {
-  color: #f1e5ce;
-  background: #345b52;
-  border-color: #437367;
-}
-:global(.av-master) .root button:disabled {
-  opacity: 0.5;
-}
-
-/* Board 19: a soundtrack collection beside its selected track and page assignments. */
-.root {
-  display: grid;
-  gap: 0.75rem;
-  color: #343c33;
-}
-.toolbar,
-.card,
-.empty {
-  color: #343c33;
-  background: var(--master-stone);
-  border-color: #a28d6b;
-  border-radius: 2px;
-  box-shadow: none;
-}
-.toolbar {
-  padding: 0.9rem 1rem;
-}
-.musicWorkspace {
-  display: grid;
-  grid-template-columns: minmax(13rem, 35%) minmax(0, 1fr);
-  gap: 0.75rem;
-  align-items: start;
-}
-.trackLibrary {
-  display: grid;
-  align-content: start;
-  gap: 0.5rem;
-  padding: 0.8rem;
-  background: #d1c2a6;
-  border: 1px solid #a28d6b;
-}
-.trackLibrary h3 {
-  margin: 0 0 0.5rem;
-  font: 500 1.5rem var(--av-font-display);
-}
-.trackLibrary > button {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr);
-  gap: 0.25rem 0.5rem;
-  padding: 0.7rem;
-  background: #e0d5bf;
-  color: #3c4437;
-  border: 1px solid #aa9673;
-  text-align: left;
-}
-.trackLibrary > button > span {
-  grid-row: 1 / span 2;
-  align-self: center;
-  font-size: 1.5rem;
-}
-.trackLibrary > button > strong {
-  font: 500 1rem var(--av-font-display);
-}
-.trackLibrary > button > small {
-  grid-column: 2;
-  overflow-wrap: anywhere;
-}
-.trackLibrary > button[aria-pressed='true'] {
-  background: #3d6460;
-  color: #f0e6d0;
-  border-color: #30534f;
-}
-.trackDetail {
-  display: grid;
-  gap: 0.7rem;
   min-width: 0;
 }
-.trackScene {
-  width: 100%;
-  height: 9rem;
-  object-fit: cover;
-  border: 1px solid #9e8866;
-}
-.card {
-  padding: 1rem;
-}
-.rules {
-  margin: 0;
-  gap: 0.7rem;
-}
-.rulesHeading {
-  align-items: start;
-}
-.trackEditor {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0.65rem;
-}
-.toolbar h2,
-.rulesHeading h3,
-.card h3 {
-  color: #3c4236;
-}
-.toolbar p,
-.rulesHeading p,
-.cardHeading p,
-.revision,
-.trackEditor label,
-.ruleTopline label,
-.masterToggle,
-.ruleToggle,
-.loopNotice {
-  color: #596053;
-}
-.preview {
-  width: 100%;
-  grid-column: 1 / -1;
-}
-@media (max-width: 900px) {
-  .musicWorkspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .trackLibrary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .trackLibrary h3 {
-    grid-column: 1 / -1;
-  }
+.notice {
+  padding: 0.75rem;
+  border-left: 3px solid #345b52;
+  background: #eee3cc;
 }
 @media (max-width: 760px) {
-  .trackLibrary {
-    grid-template-columns: minmax(0, 1fr);
-  }
+  .musicWorkspace,
   .trackEditor {
     grid-template-columns: minmax(0, 1fr);
   }
-  .toolbar {
-    flex-wrap: wrap;
+  .pageList {
+    max-height: 15rem;
   }
 }

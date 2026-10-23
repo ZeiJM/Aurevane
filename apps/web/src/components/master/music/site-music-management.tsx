@@ -1,17 +1,24 @@
 'use client'
 
 import { GameButton } from '@aurevane/ui'
-import { AurevaneImage } from '@/components/media/aurevane-image'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 
 import {
   SITE_MUSIC_UPDATED_EVENT,
+  SITE_MUSIC_PREVIEW_EVENT,
+  matchingSiteMusicOverride,
+  siteMusicOverrideMode,
+  resolveSiteMusicTrack,
+  parseSiteMusicDraft,
+  parseSiteMusicUploadMetadata,
+  type SiteMusicMode,
   type SiteMusicConfig,
   type SiteMusicRouteOverride,
   type SiteMusicTrack,
 } from '@/lib/site-music'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
 
+import { SITE_MUSIC_PAGES } from '@/lib/site-music-pages'
 import styles from './site-music-management.module.css'
 
 interface SiteMusicManagementProps {
@@ -64,6 +71,19 @@ function TrackEditor({
   onUpload(file: File): void
   uploading: boolean
 }) {
+  const [previewError, setPreviewError] = useState<{ url: string; message: string } | null>(null)
+  const previewing = useRef(false)
+  function previewState(playing: boolean) {
+    previewing.current = playing
+    window.dispatchEvent(new CustomEvent(SITE_MUSIC_PREVIEW_EVENT, { detail: playing }))
+  }
+  useEffect(
+    () => () => {
+      if (previewing.current)
+        window.dispatchEvent(new CustomEvent(SITE_MUSIC_PREVIEW_EVENT, { detail: false }))
+    },
+    [track.url],
+  )
   return (
     <div className={styles.trackEditor}>
       <label>
@@ -104,10 +124,36 @@ function TrackEditor({
       </label>
 
       {track.url ? (
-        <audio className={styles.preview} controls loop preload="metadata" src={track.url}>
+        <audio
+          key={track.url}
+          className={styles.preview}
+          aria-label="Track preview"
+          controls
+          loop
+          preload="metadata"
+          src={track.url}
+          onPlay={() => {
+            setPreviewError(null)
+            previewState(true)
+          }}
+          onPause={() => previewState(false)}
+          onEnded={() => previewState(false)}
+          onError={() => {
+            previewState(false)
+            setPreviewError({
+              url: track.url,
+              message:
+                'This audio could not be played. Check the direct media URL, file format and access permissions.',
+            })
+          }}
+        >
           Your browser cannot preview this audio source.
         </audio>
       ) : null}
+      {previewError?.url === track.url ? <p role="alert">{previewError.message}</p> : null}
+      <small>
+        Replace this track with another URL or upload (20 MB maximum). Preview before saving.
+      </small>
     </div>
   )
 }
@@ -118,10 +164,54 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
   const [saving, setSaving] = useState(false)
   const [uploadingTarget, setUploadingTarget] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [selectedTrack, setSelectedTrack] = useState('default')
-  const selectedTrackId = config.routeOverrides.some((entry) => entry.id === selectedTrack)
-    ? selectedTrack
-    : 'default'
+  const [selectedPath, setSelectedPath] = useState('global')
+  const [search, setSearch] = useState('')
+  const pages = [
+    ...SITE_MUSIC_PAGES,
+    ...config.routeOverrides
+      .filter((entry) => !SITE_MUSIC_PAGES.some((page) => page.path === entry.pathPrefix))
+      .map((entry) => ({ path: entry.pathPrefix, label: entry.label })),
+  ]
+  const selectedPage = pages.find((page) => page.path === selectedPath)
+  const selectedOverride = config.routeOverrides.find((entry) => entry.pathPrefix === selectedPath)
+  const effectiveTrack = resolveSiteMusicTrack(config, selectedPath)
+  const inherited = matchingSiteMusicOverride(config, selectedPath)
+  const mode = selectedOverride ? siteMusicOverrideMode(selectedOverride) : 'inherited'
+  function chooseMode(nextMode: SiteMusicMode) {
+    if (!selectedPage) return
+    setConfig((current) => {
+      const existing = current.routeOverrides.find((entry) => entry.pathPrefix === selectedPath)
+      const entry: SiteMusicRouteOverride = {
+        id: existing?.id ?? crypto.randomUUID(),
+        label: existing?.label ?? selectedPage.label,
+        pathPrefix: selectedPath,
+        mode: nextMode,
+        enabled: nextMode !== 'silent',
+        track: existing?.track ?? {
+          ...(resolveSiteMusicTrack(current, selectedPath) ?? current.defaultTrack),
+        },
+      }
+      return {
+        ...current,
+        routeOverrides: existing
+          ? current.routeOverrides.map((item) => (item.id === existing.id ? entry : item))
+          : [...current.routeOverrides, entry],
+      }
+    })
+  }
+  function pageStatus(path: string) {
+    const matching = matchingSiteMusicOverride(config, path)
+    const track = resolveSiteMusicTrack(config, path)
+    const origin =
+      matching?.pathPrefix === path
+        ? siteMusicOverrideMode(matching) === 'global'
+          ? 'Global'
+          : 'Page'
+        : matching
+          ? `Inherited from ${matching.pathPrefix}`
+          : 'Global'
+    return `${origin} · ${track?.label ?? 'No Music'}`
+  }
   const dirty = useMemo(
     () => JSON.stringify(config) !== JSON.stringify(savedConfig),
     [config, savedConfig],
@@ -148,6 +238,7 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
     setUploadingTarget(targetKey)
     setMessage(null)
     try {
+      parseSiteMusicUploadMetadata({ name: file.name, size: file.size, type: file.type })
       const response = await fetch('/api/master/site-music', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -186,28 +277,11 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
     }
   }
 
-  function addOverride() {
-    const id = crypto.randomUUID()
-    setSelectedTrack(id)
-    setConfig((current) => ({
-      ...current,
-      routeOverrides: [
-        ...current.routeOverrides,
-        {
-          id,
-          label: 'New page music',
-          pathPrefix: `/game/page-${current.routeOverrides.length + 1}`,
-          enabled: true,
-          track: { ...current.defaultTrack },
-        },
-      ],
-    }))
-  }
-
   async function save() {
     setSaving(true)
     setMessage(null)
     try {
+      parseSiteMusicDraft(config)
       const response = await fetch('/api/master/site-music', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -239,175 +313,176 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
     <section className={styles.root} aria-labelledby="site-music-heading">
       <div className={styles.toolbar}>
         <div>
-          <p className={styles.eyebrow}>Global soundtrack</p>
           <h2 id="site-music-heading">Site Music</h2>
-          <p>
-            Set the default soundtrack for every page, then add more-specific rules for individual
-            areas. The longest matching page path wins.
-          </p>
+          <p>Choose a global soundtrack and page exceptions. Changes apply after saving.</p>
         </div>
-        <div className={styles.toolbarActions}>
-          <span className={styles.revision}>Revision {config.revision}</span>
-          <GameButton type="button" onClick={save} disabled={saving || !dirty}>
-            {saving ? 'Publishing…' : 'Publish music'}
-          </GameButton>
-        </div>
+        <GameButton
+          type="button"
+          onClick={save}
+          disabled={saving || !dirty || uploadingTarget !== null}
+        >
+          {saving ? 'Saving…' : 'Save Changes'}
+        </GameButton>
       </div>
-
-      {message ? <p className={styles.notice}>{message}</p> : null}
-
+      {message ? (
+        <p className={styles.notice} role="status">
+          {message}
+        </p>
+      ) : null}
       <div className={styles.musicWorkspace}>
-        <nav className={styles.trackLibrary} aria-label="Music library">
-          <h3>Music Library</h3>
+        <nav className={styles.trackLibrary} aria-label="Page music">
           <button
             type="button"
-            aria-pressed={selectedTrackId === 'default'}
-            onClick={() => setSelectedTrack('default')}
+            aria-pressed={selectedPath === 'global'}
+            onClick={() => setSelectedPath('global')}
           >
-            <span aria-hidden="true">♫</span>
-            <strong>{config.defaultTrack.label || 'Default site track'}</strong>
-            <small>All pages · {config.enabled ? 'Enabled' : 'Disabled'}</small>
+            <strong>Global Music</strong>
+            <small>{config.enabled ? config.defaultTrack.label : 'No Music'}</small>
           </button>
-          {config.routeOverrides.map((entry) => (
-            <button
-              type="button"
-              key={entry.id}
-              aria-pressed={selectedTrackId === entry.id}
-              onClick={() => setSelectedTrack(entry.id)}
-            >
-              <span aria-hidden="true">♫</span>
-              <strong>{entry.label}</strong>
-              <small>
-                {entry.pathPrefix} · {entry.enabled ? 'Play track' : 'Silent'}
-              </small>
-            </button>
-          ))}
-          <GameButton type="button" variant="quiet" onClick={addOverride}>
-            Add page rule
-          </GameButton>
+          <label>
+            Search pages
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.currentTarget.value)}
+            />
+          </label>
+          <div className={styles.pageList}>
+            {pages
+              .filter((page) =>
+                `${page.label} ${page.path}`.toLowerCase().includes(search.toLowerCase()),
+              )
+              .map((page) => (
+                <button
+                  type="button"
+                  key={page.path}
+                  aria-pressed={selectedPath === page.path}
+                  onClick={() => setSelectedPath(page.path)}
+                >
+                  <strong>{page.label}</strong>
+                  <small>
+                    {page.path} · {pageStatus(page.path)}
+                  </small>
+                </button>
+              ))}
+          </div>
         </nav>
         <div className={styles.trackDetail}>
-          <AurevaneImage
-            assetId="environment.archive.interior"
-            className={styles.trackScene}
-            sizes="(max-width: 760px) 100vw, 45vw"
-          />
-          <article className={styles.card} hidden={selectedTrackId !== 'default'}>
-            <div className={styles.cardHeading}>
-              <div>
-                <h3>Default site track</h3>
-                <p>
-                  Used on signup, login, character creation, and every page without an override.
-                </p>
-              </div>
-              <label className={styles.masterToggle}>
-                <input
-                  type="checkbox"
-                  checked={config.enabled}
+          {selectedPath === 'global' ? (
+            <article className={styles.card}>
+              <h3>Global Music</h3>
+              <label>
+                Global selection
+                <select
+                  value={config.enabled ? 'custom' : 'silent'}
                   onChange={(event) =>
-                    setConfig((current) => ({ ...current, enabled: event.currentTarget.checked }))
+                    setConfig((current) => ({
+                      ...current,
+                      enabled: event.currentTarget.value === 'custom',
+                    }))
                   }
-                />
-                <span>{config.enabled ? 'Music enabled' : 'Music disabled'}</span>
+                >
+                  <option value="custom">Custom Track</option>
+                  <option value="silent">No Music</option>
+                </select>
               </label>
-            </div>
-            <TrackEditor
-              track={config.defaultTrack}
-              onChange={updateDefaultTrack}
-              onUpload={(file) => void upload(file, { kind: 'default' })}
-              uploading={uploadingTarget === 'default'}
-            />
-          </article>
-
-          <div className={styles.rulesHeading} hidden={selectedTrackId === 'default'}>
-            <div>
-              <p className={styles.eyebrow}>Route-specific soundtrack</p>
-              <h3>Page overrides</h3>
               <p>
-                Examples: <code>/</code>, <code>/game/create</code>, or <code>/game/battle</code>.
-                Disable a rule to make that area silent.
+                Used by pages set to Use Global and pages without a matching saved rule. Custom page
+                tracks still play when Global Music is silent.
               </p>
-            </div>
-            <GameButton type="button" variant="quiet" onClick={addOverride}>
-              Add page rule
-            </GameButton>
-          </div>
-
-          <div className={styles.rules}>
-            {config.routeOverrides.length === 0 ? (
-              <div className={styles.empty}>
-                No page overrides. The default track plays everywhere.
-              </div>
-            ) : null}
-            {config.routeOverrides.map((entry, index) => (
-              <article className={styles.card} key={entry.id} hidden={selectedTrackId !== entry.id}>
-                <div className={styles.ruleTopline}>
-                  <span className={styles.ruleNumber}>{String(index + 1).padStart(2, '0')}</span>
-                  <label>
-                    <span>Rule name</span>
-                    <input
-                      value={entry.label}
-                      maxLength={80}
-                      onChange={(event) =>
-                        updateOverride(entry.id, (current) => ({
-                          ...current,
-                          label: event.currentTarget.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>Page path prefix</span>
-                    <input
-                      value={entry.pathPrefix}
-                      placeholder="/game/battle"
-                      onChange={(event) =>
-                        updateOverride(entry.id, (current) => ({
-                          ...current,
-                          pathPrefix: event.currentTarget.value,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className={styles.ruleToggle}>
-                    <input
-                      type="checkbox"
-                      checked={entry.enabled}
-                      onChange={(event) =>
-                        updateOverride(entry.id, (current) => ({
-                          ...current,
-                          enabled: event.currentTarget.checked,
-                        }))
-                      }
-                    />
-                    <span>{entry.enabled ? 'Play track' : 'Silent section'}</span>
-                  </label>
+              {config.enabled ? (
+                <>
+                  <TrackEditor
+                    key="global"
+                    track={config.defaultTrack}
+                    onChange={updateDefaultTrack}
+                    onUpload={(file) => void upload(file, { kind: 'default' })}
+                    uploading={uploadingTarget === 'default'}
+                  />
                   <button
-                    className={styles.removeButton}
                     type="button"
-                    onClick={() =>
-                      setConfig((current) => ({
-                        ...current,
-                        routeOverrides: current.routeOverrides.filter(
-                          (candidate) => candidate.id !== entry.id,
-                        ),
-                      }))
-                    }
+                    onClick={() => setConfig((current) => ({ ...current, enabled: false }))}
                   >
-                    Remove
+                    Remove global track
                   </button>
-                </div>
-                <TrackEditor
-                  track={entry.track}
-                  onChange={(track) =>
-                    updateOverride(entry.id, (current) => ({ ...current, track }))
+                </>
+              ) : (
+                <p>Global Music is silent. The previous track is retained for reuse.</p>
+              )}
+            </article>
+          ) : selectedPage ? (
+            <article className={styles.card}>
+              <h3>{selectedPage.label}</h3>
+              <p>
+                {selectedPath === '/'
+                  ? 'Account entry only.'
+                  : `${selectedPath} and its child pages. A more specific page choice takes precedence.`}
+              </p>
+              <label>
+                Page music
+                <select
+                  value={mode}
+                  onChange={(event) => chooseMode(event.currentTarget.value as SiteMusicMode)}
+                >
+                  {mode === 'inherited' ? (
+                    <option value="inherited" disabled>
+                      Inherited · {inherited?.label ?? 'Global Music'}
+                    </option>
+                  ) : null}
+                  <option value="global">Use Global</option>
+                  <option value="custom">Custom Track</option>
+                  <option value="silent">No Music</option>
+                </select>
+              </label>
+              <p>Effective music: {effectiveTrack?.label ?? 'No Music'}.</p>
+              {mode === 'inherited' && inherited ? (
+                <p>
+                  Existing coverage from {inherited.pathPrefix} remains until you choose a page
+                  setting.
+                </p>
+              ) : null}
+              <button type="button" onClick={() => chooseMode('global')}>
+                Reset to Global
+              </button>
+              {selectedOverride && mode === 'custom' ? (
+                <>
+                  <TrackEditor
+                    key={selectedOverride.id}
+                    track={selectedOverride.track}
+                    onChange={(track) =>
+                      updateOverride(selectedOverride.id, (entry) => ({ ...entry, track }))
+                    }
+                    onUpload={(file) =>
+                      void upload(file, { kind: 'override', id: selectedOverride.id })
+                    }
+                    uploading={uploadingTarget === selectedOverride.id}
+                  />
+                  <button type="button" onClick={() => chooseMode('silent')}>
+                    Remove page track
+                  </button>
+                </>
+              ) : null}
+              {selectedOverride ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setConfig((current) => ({
+                      ...current,
+                      routeOverrides: current.routeOverrides.filter(
+                        (entry) => entry.id !== selectedOverride.id,
+                      ),
+                    }))
                   }
-                  onUpload={(file) => void upload(file, { kind: 'override', id: entry.id })}
-                  uploading={uploadingTarget === entry.id}
-                />
-              </article>
-            ))}
-          </div>
+                >
+                  Remove page rule and inherit
+                </button>
+              ) : null}
+              <p>
+                Use Global ignores broader page rules. Removing a page rule restores broader
+                coverage; uploaded files remain available.
+              </p>
+            </article>
+          ) : null}
         </div>
       </div>
     </section>

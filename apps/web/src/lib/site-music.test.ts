@@ -274,3 +274,87 @@ describe('site music configuration', () => {
     ).toThrow(/MP3, M4A\/AAC, OGG, WebM, or WAV/)
   })
 })
+
+describe('explicit page music choices', () => {
+  it('allows a custom page track while Global Music is silent', () => {
+    const config = createDefaultSiteMusicConfig()
+    config.enabled = false
+    config.routeOverrides = [
+      {
+        id: 'world',
+        label: 'World',
+        pathPrefix: '/game/world',
+        enabled: true,
+        track: { ...config.defaultTrack, url: '/world.mp3' },
+      },
+    ]
+    expect(resolveSiteMusicTrack(config, '/game/world')?.url).toBe('/world.mp3')
+    expect(resolveSiteMusicTrack(config, '/game/worldwide')).toBeNull()
+  })
+  it.each([true, false])(
+    'explicit Use Global bypasses a broader custom or silent rule with global enabled=%s',
+    (enabled) => {
+      for (const broaderEnabled of [true, false]) {
+        const config = createDefaultSiteMusicConfig()
+        config.enabled = enabled
+        const draft = parseSiteMusicDraft({
+          ...config,
+          routeOverrides: [
+            {
+              id: 'game',
+              label: 'Game',
+              pathPrefix: '/game',
+              enabled: broaderEnabled,
+              track: { ...config.defaultTrack, url: '/game.mp3' },
+            },
+            {
+              id: 'world',
+              label: 'World',
+              pathPrefix: '/game/world',
+              enabled: true,
+              mode: 'global',
+              track: { ...config.defaultTrack, url: '/retained-custom.mp3' },
+            },
+          ],
+        })
+        expect(draft.routeOverrides[1]).toHaveProperty('mode', 'global')
+        expect(resolveSiteMusicTrack({ ...config, ...draft }, '/game/world')?.url ?? null).toBe(
+          enabled ? config.defaultTrack.url : null,
+        )
+        expect(resolveSiteMusicTrack({ ...config, ...draft }, '/game/character')?.url ?? null).toBe(
+          broaderEnabled ? '/game.mp3' : null,
+        )
+      }
+    },
+  )
+  it('round trips explicit silence and rejects unknown modes', () => {
+    const config = createDefaultSiteMusicConfig()
+    const entry = {
+      id: 'world',
+      label: 'World',
+      pathPrefix: '/game/world',
+      enabled: true,
+      mode: 'silent',
+      track: config.defaultTrack,
+    }
+    const draft = parseSiteMusicDraft({ ...config, routeOverrides: [entry] })
+    expect(resolveSiteMusicTrack({ ...config, ...draft }, '/game/world')).toBeNull()
+    expect(() =>
+      parseSiteMusicDraft({ ...config, routeOverrides: [{ ...entry, mode: 'surprise' }] }),
+    ).toThrow(/mode/)
+  })
+})
+
+it('reports an actual playback rejection and does not report hidden-tab suppression as an error', async () => {
+  const failure = new DOMException('gesture required', 'NotAllowedError')
+  const rejected = vi.fn()
+  await expect(
+    attemptSiteMusicPlayback(() => Promise.reject(failure), false, rejected),
+  ).resolves.toBe(false)
+  expect(rejected).toHaveBeenCalledWith(failure)
+  rejected.mockClear()
+  const play = vi.fn()
+  await expect(attemptSiteMusicPlayback(play, true, rejected)).resolves.toBe(false)
+  expect(play).not.toHaveBeenCalled()
+  expect(rejected).not.toHaveBeenCalled()
+})

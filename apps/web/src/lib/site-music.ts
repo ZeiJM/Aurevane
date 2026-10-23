@@ -1,4 +1,6 @@
 export const SITE_MUSIC_UPDATED_EVENT = 'aurevane:site-music-updated'
+export const SITE_MUSIC_PREVIEW_EVENT = 'aurevane:site-music-preview'
+export type SiteMusicMode = 'global' | 'custom' | 'silent'
 
 export type SiteMusicSource = 'bundled' | 'upload' | 'url'
 
@@ -13,6 +15,8 @@ export interface SiteMusicRouteOverride {
   id: string
   label: string
   pathPrefix: string
+  /** Absent on legacy rules, whose enabled flag retains custom/silent semantics. */
+  mode?: SiteMusicMode
   enabled: boolean
   track: SiteMusicTrack
 }
@@ -58,13 +62,15 @@ export const DEFAULT_SITE_MUSIC_TRACK: SiteMusicTrack = {
 export async function attemptSiteMusicPlayback(
   play: () => Promise<void>,
   hidden: boolean,
+  onFailure?: (error: unknown) => void,
 ): Promise<boolean> {
   if (hidden) return false
 
   try {
     await play()
     return true
-  } catch {
+  } catch (error) {
+    onFailure?.(error)
     return false
   }
 }
@@ -184,7 +190,7 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
 
   const ids = new Set<string>()
   const prefixes = new Set<string>()
-  const routeOverrides = value.routeOverrides.map((entry, index) => {
+  const routeOverrides = value.routeOverrides.map<SiteMusicRouteOverride>((entry, index) => {
     if (!isRecord(entry)) throw new Error(`routeOverrides[${index}] must be an object.`)
     const id = readString(entry.id, `routeOverrides[${index}].id`, 100)
     const label = readString(entry.label, `routeOverrides[${index}].label`, 80)
@@ -193,6 +199,14 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
     )
     if (typeof entry.enabled !== 'boolean') {
       throw new Error(`routeOverrides[${index}].enabled must be a boolean.`)
+    }
+    if (
+      entry.mode !== undefined &&
+      entry.mode !== 'global' &&
+      entry.mode !== 'custom' &&
+      entry.mode !== 'silent'
+    ) {
+      throw new Error(`routeOverrides[${index}].mode is invalid.`)
     }
     if (ids.has(id)) throw new Error(`Duplicate route override id: ${id}`)
     if (prefixes.has(pathPrefix)) throw new Error(`Duplicate page path prefix: ${pathPrefix}`)
@@ -203,6 +217,7 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
       id,
       label,
       pathPrefix,
+      ...(entry.mode === undefined ? {} : { mode: entry.mode }),
       enabled: entry.enabled,
       track: parseTrack(entry.track, `routeOverrides[${index}].track`),
     }
@@ -232,19 +247,24 @@ function matchesPathPrefix(pathname: string, prefix: string): boolean {
   return pathname === prefix || pathname.startsWith(`${prefix}/`)
 }
 
+export function siteMusicOverrideMode(entry: SiteMusicRouteOverride): SiteMusicMode {
+  return entry.mode ?? (entry.enabled ? 'custom' : 'silent')
+}
+
+export function matchingSiteMusicOverride(config: SiteMusicDraft, pathname: string) {
+  return config.routeOverrides
+    .filter((entry) => matchesPathPrefix(pathname, entry.pathPrefix))
+    .toSorted((left, right) => right.pathPrefix.length - left.pathPrefix.length)[0]
+}
+
 export function resolveSiteMusicTrack(
   config: SiteMusicConfig,
   pathname: string,
 ): SiteMusicTrack | null {
-  if (!config.enabled) return null
-
-  const override = [...config.routeOverrides]
-    .filter((entry) => matchesPathPrefix(pathname, entry.pathPrefix))
-    .sort((left, right) => right.pathPrefix.length - left.pathPrefix.length)[0]
-
-  if (override && !override.enabled) return null
-
-  const track = override?.track ?? config.defaultTrack
+  const override = matchingSiteMusicOverride(config, pathname)
+  const mode = override ? siteMusicOverrideMode(override) : 'global'
+  if (mode === 'silent' || (mode === 'global' && !config.enabled)) return null
+  const track = mode === 'custom' && override ? override.track : config.defaultTrack
   // Background music stays on the same native media element at the loop boundary,
   // including older saved tracks whose optional loop setting was disabled.
   return track.loop ? track : { ...track, loop: true }
