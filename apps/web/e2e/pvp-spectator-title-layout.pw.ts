@@ -93,11 +93,16 @@ test('keeps the complete acting title clear of VS without resizing spectator art
     await expect(host!).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/, { timeout: 20_000 })
     const key = (await host!.locator('[data-pvp-spectator-key] strong').textContent())!.trim()
     await watcher!.goto(`/game/battle/spectate/${key}`)
-    const chronicleToggle = watcher!.locator('[data-battle-mobile-chronicle-toggle]')
-    await chronicleToggle.waitFor({ state: 'attached' })
+    const timeline = watcher!.locator('[data-battle-mobile-chronicle-strip]')
+    await timeline.waitFor({ state: 'attached' })
     const versus = watcher!.locator('[data-battle-versus]')
-    if (await chronicleToggle.isVisible()) await expect(versus).toBeHidden()
-    else await expect(versus).toBeVisible()
+    if (await timeline.isVisible()) {
+      await expect(timeline.locator('[data-battle-action-strip]')).toBeVisible()
+      await expect(watcher!.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+      await expect(versus).toBeHidden()
+    } else {
+      await expect(versus).toBeVisible()
+    }
     await expectCombatantIdentityColors(watcher!.locator('main[data-pvp-spectator]'))
     const response = await watcher!.request.get(`/api/pvp/spectate/${key}`)
     expect(response.ok()).toBe(true)

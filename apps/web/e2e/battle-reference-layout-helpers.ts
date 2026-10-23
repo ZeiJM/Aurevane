@@ -285,7 +285,10 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         parseFloat(getComputedStyle(document.documentElement).fontSize),
       forecast: rect('[data-battle-preview-strip]'),
       key: rect('button[aria-label="Terrain"]'),
-      cancel: rect('[data-battle-footer-actions] > button:nth-child(2)'),
+      cancel: [...element.querySelectorAll<HTMLButtonElement>('[data-battle-footer-actions] > button')]
+        .find((button) => ['Cancel Action', 'Cancel prime'].includes(button.textContent?.trim() ?? ''))!
+        .getBoundingClientRect()
+        .toJSON(),
       log: rect('[data-battle-inline-log]'),
       leftCardRoles: [
         ...element.querySelectorAll('[data-battle-side="local"] > [data-battle-combatant-card]'),

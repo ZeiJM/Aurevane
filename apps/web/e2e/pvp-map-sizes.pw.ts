@@ -150,7 +150,7 @@ for (const [size, label, width, tiles] of [
       await expect(spectator.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(tiles)
       await expectRecordedBattleRound(spectator)
       const versus = spectator.locator('[data-battle-versus]')
-      const mobile = await spectator.locator('[data-battle-mobile-chronicle-toggle]').isVisible()
+      const mobile = await spectator.locator('[data-battle-mobile-chronicle-strip]').isVisible()
       if (mobile) await expect(versus).toBeHidden()
       else await expect(versus).toBeVisible()
       const seam = await versus.evaluate((node) => {
