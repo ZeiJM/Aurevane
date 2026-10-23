@@ -1,0 +1,21 @@
+# Task 11 — Operations implementation
+
+Status: dependency checkpoint only; operational implementation follows. Not deployed. Sole implementation seat; root owns remote/native/hosted actions and combined review. Base source `ebf7feb056653653a30a04cb63d8bd75ecee0007`, tree `5b490e658e723c6259f7461ab6ace95956522d2f`.
+
+## Inherited dependency closure
+
+- I1: `content-definition-fields.tsx` excludes the unsupported Flavor line and its template helper for Basic identities. Supported description, battleText and presentation callbacks remain. All five actual Text callback flows parse and submit complete saved definitions after editing/clearing optional compact text (`basic-restore-interaction.test.tsx`). The strict engine key contract is unchanged.
+- I2: main full/compact/comparison authoring uses `contentMediaSource(..., true)`. Actual working/saved/current/comparison selections use protected authoring URLs; public route tests still require published reachability and return404 for unpublished assets. No media SQL/ACL change.
+- I3: compact preview reuses `SkillParameters`; Chronicle samples select presentation.activation before legacy battleText, with configured values. Distinctive authored strings, configured power reference6, actor/target references and legacy fallback are rendered through actual main readers for Skill/Essence. No Accuracy is exposed.
+- I4: optional Basic execution envelope and illustrative stats flow through `SkillParameters`, `SkillDetails` and `AbilityDefinitionParameters` to the existing `abilityBehaviorInformation` authority. Actual full/compact controls cover42.25% stronger-Power scaling, flat/per-traversal Move and nearest/floor recovery. Illustrative Physical100/Mystic80/Movement5/Jump2 is explicitly labelled. No native formula or balance changes.
+- M1: the actual current publication gets a reserved history row followed by the two newest other retained versions without duplicates. Retained current2/history2,73,74,75 renders2,75,74.
+- Native follow-through: `staff-focus-interaction.test.tsx` formatting corrected. Basic workspace previously inherited dark text while native buttons retained dark browser backgrounds; explicit stone controls/teal selection and stone save bar now retain readable text. Root-owned native contrast rerun remains required; no browser pass is inferred from bundle compilation.
+- M2 retained for Task13: inherited Vite native-config warning remains unsuppressed. Logs are not warning-free. The separately reported modular-reader Essence click interception remains open for Task13; no guessed popup changes or relaxed assertions.
+
+## Evidence
+
+Exact argv, timestamps, exit codes and immutable compressed raw-log SHA256 are appended to `docs/verification/task-10-reconstruction/verification.jsonl`, with `stage: Task11` and `t11-` artifacts; existing bytes/history retained. `dependency-red`:14 failed/15 passed demonstrates the omitted fields/metadata and history defects; two new reference expectations were corrected to the registered `value.0.power` (6) and existing `per traversal point` wording before implementation verification. `dependency-green1`:29 passed. `dependency-green2`:46 passed across five matched files (the command also named two nonexistent test files; they were not counted as executed). Web typecheck, affected ESLint and Prettier passed. Subsequent final reader/compile evidence follows in the ledger.
+
+No local physical/native browser, hosted mutation, publication, migration application, upstream push, merge or deployment is claimed. Final full repository check belongs Task13 under the approved brief.
+
+Dependency final follow-through: adjacent shared-reader check returned3 failures/38 passes because inherited C5 assertions required Move directly inside strong, although the accepted Tag label wraps semantic text in a span. The assertion now requires the real strong/semantic-label/text nesting; all7 affected reader cases pass. Failed receipt retained. Current-history refinement and staff interaction checks passed in that adjacent run. Final affected types/lint/format and production browser fixture compile pass. Root freshness signal before checkpoint: main unchanged `a31029c04c0ef7be9fd08092c6a70f6f086b48b6`.

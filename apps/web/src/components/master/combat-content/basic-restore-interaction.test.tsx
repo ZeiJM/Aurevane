@@ -1,6 +1,12 @@
+import { renderToStaticMarkup } from 'react-dom/server'
+import { ContentRecordPreview } from './content-record-preview'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  BASIC_SKILL_IDS,
+  parseBasicSkillDefinition,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { SUPPORT_ACTION_IDS } from '@aurevane/game-core/combat/support-actions'
 import type {
   CompleteCombatContentRecord,
@@ -31,6 +37,8 @@ vi.mock('server-only', () => ({}))
 import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
 import { CombatContentAuthoringWorkspace } from './combat-content-authoring-workspace'
 import { ContentDefinitionFields } from './content-definition-fields'
+import { AbilityPresentationEditor } from './ability-presentation-editor'
+import { AbilityText } from './ability-editor-fields'
 type Props = Record<string, unknown> & { children?: ReactNode }
 function find(
   node: ReactNode,
@@ -399,3 +407,113 @@ it('keeps the record when dependency-aware archive rejects it', async () => {
   expect(f.fields().props.value).toEqual(f.initial.current!.definition)
   expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
 })
+
+it.each(BASIC_SKILL_IDS)(
+  'keeps %s Text callbacks parse/save-valid including optional clearing',
+  async (id) => {
+    const f = fixture(id)
+    await f.click('Text')
+    const tree = () =>
+      ContentDefinitionFields(
+        f.fields().props as unknown as Parameters<typeof ContentDefinitionFields>[0],
+      )
+    expect(
+      find(tree(), (n) => n.type === AbilityText && n.props.label === 'Flavor line'),
+    ).toBeNull()
+    const description = find(tree(), (n) => n.props['aria-label'] === 'Description')!
+    ;(description.props.onChange as (event: unknown) => void)({
+      currentTarget: { value: 'Supported description retained.' },
+    })
+    const battle = find(
+      tree(),
+      (n) => n.type === AbilityText && n.props.label === 'In-battle text',
+    )!
+    ;(battle.props.onChange as (value: string) => void)('{actor} uses {ability}.')
+    const presentation = () =>
+      AbilityPresentationEditor(
+        find(tree(), (n) => n.type === AbilityPresentationEditor)!.props as unknown as Parameters<
+          typeof AbilityPresentationEditor
+        >[0],
+      )
+    const changeCompact = (value: string) =>
+      (
+        find(presentation(), (n) => n.props['aria-label'] === 'Compact battle description')!.props
+          .onChange as (event: unknown) => void
+      )({ currentTarget: { value } })
+    changeCompact('Distinct {ability} compact text.')
+    expect(() => parseBasicSkillDefinition(f.fields().props.value)).not.toThrow()
+    changeCompact('')
+    const changed = f.fields().props.value as CombatContentDefinition
+    expect(parseBasicSkillDefinition(changed)).toMatchObject({
+      description: 'Supported description retained.',
+      battleText: '{actor} uses {ability}.',
+    })
+    expect(changed).not.toHaveProperty('flavorLine')
+    expect(changed.presentation).not.toHaveProperty('compact')
+    f.reply({
+      ...f.initial,
+      revision: 10,
+      draft: { ...f.initial.draft!, definition: changed, draftVersion: 5 },
+    })
+    await f.click('Save draft')
+    expect(f.command()).toMatchObject({ action: 'save', definition: changed })
+    expect(() => parseBasicSkillDefinition(f.command().definition)).not.toThrow()
+  },
+)
+it('reserves the current history row when retained future versions are newer', async () => {
+  const seed = fixture().initial
+  hooks.cells = []
+  const version = (n: number) => ({ ...seed.current!, contentVersion: n })
+  const f = fixture('basic.guard', {
+    current: version(2),
+    history: [version(2), version(73), version(74), version(75)],
+  })
+  await f.click('History')
+  const rows = find(f.render(), (n) => n.props['aria-label'] === 'Publication history')!.props
+    .children as ReactElement[]
+  expect(rows.map((row) => row.key)).toEqual(['2', '75', '74'])
+})
+
+it.each(['working', 'saved', 'current', 'compare'])(
+  'reads finalized retained media through protected authoring in %s view',
+  (view) => {
+    const basic = defaultBasicSkills()[0]!
+    const definition = (suffix: number) => ({
+      ...basic,
+      media: {
+        ...basic.media,
+        audio: {
+          id: `11111111-1111-4111-8111-${String(suffix).padStart(12, '0')}`,
+          kind: 'audio',
+          contentType: 'audio/wav',
+          checksum: 'b'.repeat(64),
+          byteLength: 100,
+          durationMs: 1000,
+          channels: 1,
+          sampleRate: 44100,
+        },
+      },
+    })
+    const props = {
+      kind: 'skill' as const,
+      working: definition(1),
+      saved: definition(2),
+      current: definition(3),
+    }
+    const render = () => {
+      hooks.index = 0
+      return ContentRecordPreview(props)
+    }
+    ;(find(render(), (n) => n.type === 'select')!.props.onChange as (event: unknown) => void)({
+      currentTarget: { value: view },
+    })
+    const html = renderToStaticMarkup(render())
+    const expected =
+      view === 'working' ? [1] : view === 'saved' ? [2] : view === 'current' ? [3] : [1, 3]
+    for (const suffix of expected)
+      expect(html).toContain(
+        `src="/api/master/combat-content/media/11111111-1111-4111-8111-${String(suffix).padStart(12, '0')}"`,
+      )
+    expect(html).not.toContain('src="/api/content-media/')
+  },
+)

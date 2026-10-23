@@ -1,4 +1,6 @@
 .workspace {
+  color: #313b37;
+  background: var(--master-stone, #ddd3c0);
   display: grid;
   gap: 0.7rem;
   min-width: 0;
@@ -30,7 +32,13 @@
   width: 100%;
   resize: vertical;
 }
+.workspace label > span {
+  color: #313b37;
+}
 .workspace button {
+  color: #313b37;
+  background: #ded4bf;
+  border: 1px solid #9b8769;
   min-height: 2.25rem;
   white-space: normal;
 }
@@ -64,7 +72,9 @@
 }
 .list button[aria-current='true'],
 .tabs button[aria-pressed='true'] {
-  outline: 2px solid #c5ad68;
+  color: #f1e5ce;
+  background: #345b52;
+  outline: 2px solid #437367;
   outline-offset: -2px;
 }
 .editor,
@@ -81,7 +91,7 @@
   top: 0;
   z-index: 2;
   padding: 0.5rem;
-  background: #151b26;
+  background: #ded4bf;
   border: 1px solid #394354;
 }
 .status {

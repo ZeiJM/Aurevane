@@ -533,8 +533,14 @@ export function CombatContentAuthoringWorkspace({
                     </p>
                   ) : null}
                   <ol className={styles.history} aria-label="Publication history">
-                    {[...record.history]
-                      .sort((a, b) => b.contentVersion - a.contentVersion)
+                    {[
+                      ...(record.current ? [record.current] : []),
+                      ...record.history
+                        .filter(
+                          (version) => version.contentVersion !== record.current?.contentVersion,
+                        )
+                        .toSorted((a, b) => b.contentVersion - a.contentVersion),
+                    ]
                       .slice(0, 3)
                       .map((version) => (
                         <li key={version.contentVersion}>

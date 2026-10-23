@@ -5,6 +5,10 @@ import {
   type CombatTagPresentationSnapshot,
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
+import {
+  BASIC_SKILL_IDS,
+  type BasicSkillDefinition,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import {
@@ -24,7 +28,6 @@ import {
 import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { SkillDetails } from '@/components/character/skill-details'
 import { SkillParameters } from '@/components/character/skill-parameters'
-import { AbilityDefinitionParameters } from '@/components/character/ability-definition-parameters'
 import { ResonanceParameters } from '@/components/character/resonance-parameters'
 import { BattleCombatantEffects } from '@/components/battle/battle-combatant-effects'
 import { BattleLogFeed } from '@/components/battle/battle-log-feed'
@@ -72,10 +75,15 @@ function SharedPreview({
   const safe = projectPublicCombat(bindCombatTagPresentations(definition, tagPresentations))
   const body = kind === 'essence' ? objectValue(safe.skill) : safe
   const name = contentRecordName(safe)
+  const basic =
+    kind === 'skill' && (BASIC_SKILL_IDS as readonly string[]).includes(String(body.id))
+      ? (body as unknown as BasicSkillDefinition)
+      : undefined
+  const stats = basic ? { physicalPower: 100, mysticPower: 80, move: 5, jump: 2 } : undefined
   const ability = body.ability as AbilityDefinition | undefined
   const media = objectValue(body.media) as FinalizedContentMediaSlots
-  const artwork = media.artwork ? contentMediaSource(media.artwork) : null
-  const audio = media.audio ? contentMediaSource(media.audio) : null
+  const artwork = media.artwork ? contentMediaSource(media.artwork, true) : null
+  const audio = media.audio ? contentMediaSource(media.audio, true) : null
   const context = abilityPresentationContext(body, 'result')
   const outcome = context.outcomes?.includes('healing')
     ? 'healing'
@@ -109,7 +117,9 @@ function SharedPreview({
       name,
       description: String(safe.description ?? ''),
       flavor: typeof safe.flavorLine === 'string' ? safe.flavorLine : null,
-      battleText: typeof body.battleText === 'string' ? body.battleText : undefined,
+      battleText:
+        presentation?.activation ??
+        (typeof body.battleText === 'string' ? body.battleText : undefined),
       presentation: presentation
         ? { ...presentation, values: abilityPresentationValues(body) }
         : undefined,
@@ -175,16 +185,24 @@ function SharedPreview({
         <Image src={artwork} alt={`${name} artwork`} width={160} height={160} unoptimized />
       ) : null}
       {audio ? <audio src={audio} controls preload="none" aria-label={`${name} sound`} /> : null}
+      {basic ? (
+        <p>
+          Illustrative character: Physical Power 100, Mystic Power 80, Movement 5, Jump 2. Formulas
+          retain the edited Basic rules.
+        </p>
+      ) : null}
       {combat ? (
         <>
           <details open>
             <summary>Compact information</summary>
             {kind === 'resonance' ? (
               <ResonanceParameters definition={safe as unknown as AnyResonanceDefinition} />
-            ) : ability ? (
-              <AbilityDefinitionParameters definition={ability} />
             ) : (
-              <SkillParameters skill={body as unknown as MatureSkillDefinition} />
+              <SkillParameters
+                skill={body as unknown as MatureSkillDefinition}
+                basic={basic}
+                stats={stats}
+              />
             )}
           </details>
           <details>
@@ -192,7 +210,12 @@ function SharedPreview({
             {kind === 'resonance' ? (
               <ResonanceParameters definition={safe as unknown as AnyResonanceDefinition} />
             ) : (
-              <SkillDetails skill={body as unknown as MatureSkillDefinition} expanded />
+              <SkillDetails
+                skill={body as unknown as MatureSkillDefinition}
+                basic={basic}
+                stats={stats}
+                expanded
+              />
             )}
           </details>
           {statuses.length ? (

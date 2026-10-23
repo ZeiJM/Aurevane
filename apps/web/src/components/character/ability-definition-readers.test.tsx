@@ -57,7 +57,9 @@ function assertReport(html: string) {
   expect(html).toContain('11 AP / 2 MP / 1 HP')
   expect(html.replace(/<[^>]*>/gu, '')).toContain('MP [≥ 3] [Self]')
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
-  expect(html).toContain('data-compact-effect-label="true">Move</strong>')
+  expect(html).toMatch(
+    /data-compact-effect-label="true"><span[^>]*data-effect-tag-label="true">Move<\/span><\/strong>/u,
+  )
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]</span>')
   expect(html).not.toContain('71 AP')
   expect(html).not.toContain('Wrong legacy')

@@ -635,17 +635,21 @@ export function ContentDefinitionFields({
         ) : null}
         {combat ? (
           <>
-            <AbilityText
-              label="Flavor line"
-              value={text(value.flavorLine)}
-              maxLength={160}
-              onChange={(flavorLine) => set({ flavorLine })}
-            />
-            <BattleFlavorTemplateHelp
-              value={text(value.flavorLine)}
-              ability={name}
-              onChange={(flavorLine) => set({ flavorLine })}
-            />
+            {!basic ? (
+              <>
+                <AbilityText
+                  label="Flavor line"
+                  value={text(value.flavorLine)}
+                  maxLength={160}
+                  onChange={(flavorLine) => set({ flavorLine })}
+                />
+                <BattleFlavorTemplateHelp
+                  value={text(value.flavorLine)}
+                  ability={name}
+                  onChange={(flavorLine) => set({ flavorLine })}
+                />
+              </>
+            ) : null}
             {kind !== 'resonance' ? (
               <>
                 <AbilityText

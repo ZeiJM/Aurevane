@@ -155,13 +155,11 @@ it('returns focus to lookup when the opening control disappears', async () => {
   vi.stubGlobal('document', { activeElement: opener })
   vi.stubGlobal(
     'fetch',
-    vi
-      .fn()
-      .mockResolvedValue(
-        Response.json({
-          account: { userId: 'staff', email: 'staff@example.test', characters: [] },
-        }),
-      ),
+    vi.fn().mockResolvedValue(
+      Response.json({
+        account: { userId: 'staff', email: 'staff@example.test', characters: [] },
+      }),
+    ),
   )
   function render() {
     hooks.index = 0
