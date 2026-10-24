@@ -64,6 +64,35 @@ await fs.writeFile(
   resolve(fixture, 'next-dynamic.jsx'),
   `import React from 'react';export default function dynamic(loader){const Component=React.lazy(()=>loader().then(value=>({default:value})));return props=><React.Suspense fallback={null}><Component {...props}/></React.Suspense>}`,
 )
+await fs.writeFile(
+  resolve(fixture, 'reader.html'),
+  '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div id="root"></div><script type="module" src="/reader.jsx"></script></body></html>',
+)
+await fs.writeFile(
+  resolve(fixture, 'reader.jsx'),
+  `import React from 'react';
+import {createRoot} from 'react-dom/client';
+import {BattleCockpitInfoProvider, BattleCockpitInfo, BattlePreviewInfoMenu} from '@/components/battle/battle-cockpit-info';
+import {MechanicTextView} from '@/components/character/mechanic-text-view';
+import styles from '@/components/battle/battle-mobile-layout.module.css';
+import './production-styles';
+createRoot(document.getElementById('root')).render(
+  <BattleCockpitInfoProvider>
+    <main className={styles.shell} data-battle-mobile-stage="true" data-battle-keyboard-focus-root="true" tabIndex={-1} style={{height:'100dvh'}}>
+      <header>Reader regression</header>
+      <section data-unified-battle-content="true">
+        <div className={styles.lowerPanel}>
+          <div data-battle-preview-strip="true"><BattlePreviewInfoMenu /></div>
+          <BattleCockpitInfo label="About linked Skill" title="Linked Skill" consumeOutsideClick trigger="i">
+            <MechanicTextView text="Guard" parts={[{tag:'guarded',label:'Guard',explanation:'A linked Guard explanation.'}]} />
+          </BattleCockpitInfo>
+        </div>
+      </section>
+      <button data-reader-outside="true" onClick={()=>{window.outsideActions=(window.outsideActions??0)+1}}>Outside action</button>
+    </main>
+  </BattleCockpitInfoProvider>
+);`,
+)
 const server = await createServer({
   configFile: false,
   root: fixture,
@@ -250,6 +279,21 @@ async function verifyFinalFacing(page, viewport, mode) {
   const finish = deck.locator('[data-battle-command="finish"]')
   assert.equal(await page.locator('[data-battle-brand-crest]').count(), 1)
   await page.evaluate(() => document.fonts.ready)
+  const artworkFrames = await deck
+    .locator('[data-av-square-media], [aria-label="Empty selected Skill slot"]')
+    .evaluateAll((frames) =>
+      frames.map((frame) => ({
+        label: frame.getAttribute('aria-label') ?? 'Command artwork',
+        width: frame.getBoundingClientRect().width,
+        height: frame.getBoundingClientRect().height,
+      })),
+    )
+  assert.ok(artworkFrames.some((frame) => frame.label === 'Empty selected Skill slot'))
+  for (const frame of artworkFrames)
+    assert.ok(
+      Math.abs(frame.width - frame.height) <= 1,
+      `${frame.label} stays square: ${JSON.stringify(frame)}`,
+    )
   const boardBeforeReading = await page.locator('[data-board-auto-fit]').boundingBox()
   const terrain = page.getByRole('button', { name: 'Terrain', exact: true })
   await terrain.click()
@@ -278,6 +322,13 @@ async function verifyFinalFacing(page, viewport, mode) {
       'none',
       'Reading the menu cannot issue a movement command',
     )
+    await menu.getByRole('button', { name: 'About Severance / Ascension', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Severance / Ascension', exact: true }).waitFor()
+    await page.keyboard.press('Escape')
+    await page.waitForFunction(() =>
+      document.activeElement?.matches('main[data-battle-keyboard-focus-root]'),
+    )
+    await summary.click()
     await menu.getByRole('button', { name: 'About Basic Attack', exact: true }).click()
     await page.getByRole('dialog', { name: 'Basic Attack', exact: true }).waitFor()
     await page.keyboard.press('Escape')
@@ -285,6 +336,9 @@ async function verifyFinalFacing(page, viewport, mode) {
       await menu.getAttribute('open'),
       null,
       'Escape also dismisses the information menu',
+    )
+    await page.waitForFunction(() =>
+      document.activeElement?.matches('main[data-battle-keyboard-focus-root]'),
     )
     if (viewport.width === 390) {
       await summary.press('Space')
@@ -429,7 +483,56 @@ async function verifyFinalFacing(page, viewport, mode) {
   assert.equal(commits.length, 1, 'One direction gesture sends exactly one authoritative request')
   assert.equal(mode === 'pve' ? commits[0].body.facing : commits[0].body.intent.facing, 'north')
 }
+async function verifyNestedReaderDismissal() {
+  const page = await browser.newPage({
+    viewport: { width: 393, height: 851 },
+    isMobile: true,
+    hasTouch: true,
+  })
+  page.setDefaultTimeout(5000)
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.goto(server.resolvedUrls.local[0] + 'reader.html')
+  const menu = page.locator('[data-battle-preview-info]')
+  await menu.locator('summary').click()
+  await menu.getByRole('button', { name: 'About linked Skill', exact: true }).click()
+  const parent = page.getByRole('dialog', { name: 'Linked Skill', exact: true })
+  const term = parent.getByRole('button', { name: 'Explain Guard', exact: true })
+  for (const dismissal of ['Escape', 'outside']) {
+    await term.click()
+    await page.getByRole('dialog', { name: 'Guard', exact: true }).waitFor()
+    if (dismissal === 'Escape') await page.keyboard.press('Escape')
+    else await page.locator('[data-reader-outside]').dispatchEvent('click')
+    await page.waitForFunction(
+      () => document.querySelectorAll('[data-battle-info-panel]').length === 1,
+    )
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
+    assert.equal(
+      await term.evaluate((button) => button === document.activeElement),
+      true,
+      'Dismissing a linked term preserves parent-reader focus',
+    )
+    assert.notEqual(
+      await menu.getAttribute('open'),
+      null,
+      'The parent information menu remains open',
+    )
+    assert.equal(
+      await page.evaluate(() => window.outsideActions ?? 0),
+      0,
+      'Dismissing the child cannot activate the outside action',
+    )
+  }
+  await page.keyboard.press('Escape')
+  await page.waitForFunction(() => !document.querySelector('[data-battle-info-panel]'))
+  await page.waitForFunction(() =>
+    document.activeElement?.matches('main[data-battle-keyboard-focus-root]'),
+  )
+  assert.equal(await menu.getAttribute('open'), null)
+  await page.close()
+  console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
+}
 try {
+  await verifyNestedReaderDismissal()
   for (const mode of ['pve', 'pvp', 'spectator']) {
     for (const viewport of [
       { width: 1920, height: 1080 },

@@ -27,3 +27,17 @@ Owner authorized these refinements and one final production release for testing.
 - Native authenticated Playwright coverage includes the corresponding navigation, roster, technique, terrain, Chronicle, support-action and Audio flows. Exact-head CI and production deployment receipts remain the release authority.
 
 Physical-device and signed-in Owner acceptance follow the final production release; automated checks do not substitute for that testing.
+
+## Browser Smoke follow-up on a46ff15d
+
+All twelve other workflows passed. Browser Smoke run `40063742058`, job `120783032969`, completed its focused authenticated phase with 71 passed, 22 intentional project skips and five failures before the full serial suite. The five cases exposed three causes:
+
+- The desktop Terrain scale helper required an obsolete nested icon span. It now checks the same visible `▲ Terrain` label, retaining all geometry/parity assertions.
+- The empty Skill slot's fixed 2rem plus glyph imposed an intrinsic minimum height larger than mobile artwork. Its minimum height is released and glyph scales within the existing frame; the one-pixel square and equal-size assertions remain unchanged.
+- Closing mobile Skill information hid its trigger before focus restoration. The menu now returns focus to the battle after its primary reader closes, while preserving a surviving parent report's linked-term focus when only the nested explanation closes.
+
+Exercising all twelve readers also reproduced the last mobile PvP menu option behind the Chronicle strip. Menu placement now uses the actual shared content boundary and remains scrollable within its existing 14rem maximum. Toggle and resize listeners clean up on unmount.
+
+The native cockpit test retains desktop alignment and complete reader/containment/AP assertions. On mobile it explicitly verifies hidden cockpit info/hotkeys and opens all twelve readers through the preview menu. The shared fixture browser guard now covers empty squares, the final menu choice, focus restoration, and nested Escape/outside dismissal without activating underlying actions. Both original defects were reproduced in production PvE/PvP fixtures; the nested regression also fails when its child-reader guard is removed through a test-only Vite transform.
+
+Post-repair local verification passed: complete `pnpm check` (format, lint, eight package type checks, 12,363 Vitest tests, seven Node checks and production build), full shared command-feedback browser regression across PvE/PvP/spectators, all twelve native reader assertions in eight production-fixture layout/mode combinations, and discovery of all 21 entries in the four affected native suites. Independent review approved the repair after correcting nested-reader focus ownership. Current main remains `bea72528c26ad0fbc7ebfafa73f395db284fa3d2`. Fresh authenticated checks on the repair commit still gate merge and the one production deployment.

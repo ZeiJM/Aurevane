@@ -13,6 +13,8 @@ import {
 import { createPortal } from 'react-dom'
 import { BattleInfoPopover } from './battle-info-popover'
 import { BATTLE_MOBILE_LAYOUT_QUERY } from './battle-responsive-layout'
+import { restoreBattleKeyboardFocus } from './battle-keyboard-scope'
+import { battleInfoPopoverSession } from './battle-info-popover-session'
 
 const mobileQuery = BATTLE_MOBILE_LAYOUT_QUERY
 const subscribe = (listener: () => void) => {
@@ -45,8 +47,28 @@ export function BattlePreviewInfoMenu() {
     if (!context?.mobile && menuRef.current) menuRef.current.open = false
   }, [context?.mobile])
   useEffect(() => {
+    const hasChildReader = () => {
+      const reader = menuRef.current
+        ?.querySelector('[data-battle-info-trigger][aria-expanded="true"]')
+        ?.getAttribute('aria-controls')
+      return Boolean(reader && battleInfoPopoverSession.hasChild(reader))
+    }
+    const placeMenu = () => {
+      const menu = menuRef.current
+      if (!menu?.open) return
+      const options = menu.querySelector<HTMLElement>('[data-battle-preview-info-options]')
+      const content = menu.closest('[data-unified-battle-content]')?.getBoundingClientRect()
+      if (!options || !content) return
+      // Keep every choice above the real Chronicle/footer boundary, including two-row PvP.
+      options.style.bottom = `${window.innerHeight - content.bottom + 8}px`
+      options.style.maxHeight = `min(14rem, ${Math.max(32, content.height - 16)}px)`
+    }
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && menuRef.current) menuRef.current.open = false
+      const menu = menuRef.current
+      if (event.key !== 'Escape' || !menu?.open || hasChildReader()) return
+      menu.open = false
+      // Closing the menu hides the reader's trigger; restore focus after its dismissal.
+      restoreBattleKeyboardFocus()
     }
     const closeOutside = (event: MouseEvent) => {
       const menu = menuRef.current
@@ -55,16 +77,23 @@ export function BattlePreviewInfoMenu() {
         !menu?.open ||
         !target ||
         menu.contains(target) ||
-        target.closest('[data-battle-info-panel]')
+        target.closest('[data-battle-info-panel]') ||
+        hasChildReader()
       )
         return
       menu.open = false
+      restoreBattleKeyboardFocus()
       event.preventDefault()
       event.stopPropagation()
     }
+    const menu = menuRef.current
+    menu?.addEventListener('toggle', placeMenu)
+    window.addEventListener('resize', placeMenu)
     document.addEventListener('keydown', closeOnEscape, true)
     document.addEventListener('click', closeOutside, true)
     return () => {
+      menu?.removeEventListener('toggle', placeMenu)
+      window.removeEventListener('resize', placeMenu)
       document.removeEventListener('keydown', closeOnEscape, true)
       document.removeEventListener('click', closeOutside, true)
     }

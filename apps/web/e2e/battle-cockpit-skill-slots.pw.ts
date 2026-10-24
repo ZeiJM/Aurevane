@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 
 import { expectRefinedCockpit } from './refined-battle-helpers'
 
@@ -97,36 +98,50 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
   await expect(page.locator('[data-battle-secondary-actions]')).toHaveCount(0)
   const controls = page.locator('[data-battle-cockpit-controls]')
   await expect(controls).toHaveCount(12)
-  const geometry = await controls.evaluateAll((rows) =>
-    rows.map((row) => {
-      const name = row.parentElement!.querySelector(':scope > button > strong, :scope > strong')!
-      const info = row.querySelector('button')!
-      const key = row.querySelector(':scope > span')!
-      return {
-        name: name.getBoundingClientRect().toJSON(),
-        row: row.getBoundingClientRect().toJSON(),
-        info: info.getBoundingClientRect().toJSON(),
-        key: key.getBoundingClientRect().toJSON(),
-      }
-    }),
-  )
-  await testInfo.attach('cockpit-control-rows.json', {
-    body: JSON.stringify(geometry, null, 2),
-    contentType: 'application/json',
-  })
-  for (const item of geometry) {
-    expect(item.row.top, 'information row sits below the Skill name').toBeGreaterThanOrEqual(
-      item.name.bottom - 1,
+  const menu = page.locator('[data-battle-preview-info]')
+  const mobile = await menu.isVisible()
+  const readers = mobile
+    ? menu.locator('[data-battle-info-trigger]')
+    : controls.locator('[data-battle-info-trigger]')
+  await expect(readers).toHaveCount(12)
+  if (mobile) {
+    for (const control of await controls.all()) await expect(control).toBeHidden()
+    for (const hotkey of await deck.locator('[data-battle-command-hotkey]').all())
+      await expect(hotkey).toBeHidden()
+    await expect(deck.locator('[data-battle-info-trigger]')).toHaveCount(0)
+  } else {
+    const geometry = await controls.evaluateAll((rows) =>
+      rows.map((row) => {
+        const name = row.parentElement!.querySelector(':scope > button > strong, :scope > strong')!
+        const info = row.querySelector('button')!
+        const key = row.querySelector(':scope > span')!
+        return {
+          name: name.getBoundingClientRect().toJSON(),
+          row: row.getBoundingClientRect().toJSON(),
+          info: info.getBoundingClientRect().toJSON(),
+          key: key.getBoundingClientRect().toJSON(),
+        }
+      }),
     )
-    expect(item.info.right, 'information comes before the hotkey').toBeLessThanOrEqual(
-      item.key.left,
-    )
-    expect(
-      Math.abs(item.info.y + item.info.height / 2 - (item.key.y + item.key.height / 2)),
-    ).toBeLessThanOrEqual(1)
+    await testInfo.attach('cockpit-control-rows.json', {
+      body: JSON.stringify(geometry, null, 2),
+      contentType: 'application/json',
+    })
+    for (const item of geometry) {
+      expect(item.row.top, 'information row sits below the Skill name').toBeGreaterThanOrEqual(
+        item.name.bottom - 1,
+      )
+      expect(item.info.right, 'information comes before the hotkey').toBeLessThanOrEqual(
+        item.key.left,
+      )
+      expect(
+        Math.abs(item.info.y + item.info.height / 2 - (item.key.y + item.key.height / 2)),
+      ).toBeLessThanOrEqual(1)
+    }
   }
-  for (let index = 0; index < (await controls.count()); index++) {
-    const info = controls.nth(index).getByRole('button')
+  for (let index = 0; index < (await readers.count()); index++) {
+    await openBattleInfoMenu(page)
+    const info = readers.nth(index)
     await info.hover()
     await expect(page.locator('[data-battle-info-panel]')).toHaveCount(0)
     await info.click()
@@ -185,7 +200,8 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     await expect(panel).toHaveCount(0)
     await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
   }
-  await controls.first().getByRole('button').click()
+  await openBattleInfoMenu(page)
+  await readers.first().click()
   await testInfo.attach('cockpit-info-popup.png', {
     body: await page.screenshot(),
     contentType: 'image/png',
