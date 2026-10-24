@@ -791,7 +791,18 @@ try {
             }
             if (scenario === 'controlled-price' || scenario === 'controlled-move') {
               const infoMenu = page.locator('[data-battle-preview-info]')
-              if (await infoMenu.isVisible()) await gesture(infoMenu.locator('summary'))
+              if (touch) {
+                assert.equal(
+                  await infoMenu.locator('summary').count(),
+                  0,
+                  'No all-report menu remains',
+                )
+                assert.equal(
+                  await infoMenu.locator('[data-battle-info-trigger]:visible').count(),
+                  1,
+                  'Only the selected captured action exposes an information button',
+                )
+              }
               await gesture(page.getByRole('button', { name: 'About Targeting Test', exact: true }))
               const dialog = page.getByRole('dialog')
               await dialog.waitFor({ state: 'visible' })

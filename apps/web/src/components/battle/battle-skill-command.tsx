@@ -310,6 +310,7 @@ export function BattleSkillCommand({
       </button>
       <div className={styles.controls} data-battle-cockpit-controls="true">
         <BattleCockpitInfo
+          selectionKey={slot}
           label={`About ${label}`}
           title={label}
           trigger="i"

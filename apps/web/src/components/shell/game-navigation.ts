@@ -15,7 +15,7 @@ export const gameNavigation = [
   },
   {
     href: '/game/loadout',
-    label: 'Loadout',
+    label: 'Arsenal',
     detail: 'Nexus, disciplines, techniques and Items',
     symbol: '✦',
     icon: 'nexus',

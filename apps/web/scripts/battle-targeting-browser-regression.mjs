@@ -118,6 +118,12 @@ try {
       await page
         .locator('#battlefield')
         .screenshot({ path: resolve(output, `${mode}-${viewport.width}-compass-edges.png`) })
+      const mobile = await page.evaluate(
+        () =>
+          matchMedia(
+            '(max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse)',
+          ).matches,
+      )
       const badges = page.locator('[data-battle-facing-indicator="true"]')
       assert.equal(await badges.count(), 4, `${mode}: all living combatants use the shared compass`)
       const directions = []
@@ -141,10 +147,16 @@ try {
         })
         directions.push(geometry.direction)
         assert.ok(
-          geometry.badge.width >= Math.min(12, geometry.token.width * 0.3) &&
+          geometry.badge.width >= (mobile ? 8 : Math.min(12, geometry.token.width * 0.3)) &&
+            geometry.badge.height >= (mobile ? 8 : Math.min(12, geometry.token.height * 0.3)) &&
             geometry.svg.width >= 6,
-          'Badge and arrow remain readable at the character scale',
+          'Badge and arrow retain the approved responsive readability floor',
         )
+        if (mobile)
+          assert.ok(
+            geometry.badge.width <= 10.1 && geometry.badge.height <= 10.1,
+            'Mobile facing markers retain the approved compact size',
+          )
         assert.ok(
           geometry.badge.width <= geometry.token.width * 0.5 &&
             geometry.svg.width <= geometry.badge.width,

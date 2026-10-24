@@ -5,7 +5,6 @@ import {
   useContext,
   useState,
   useEffect,
-  useRef,
   useSyncExternalStore,
   type ComponentProps,
   type ReactNode,
@@ -13,106 +12,110 @@ import {
 import { createPortal } from 'react-dom'
 import { BattleInfoPopover } from './battle-info-popover'
 import { BATTLE_MOBILE_LAYOUT_QUERY } from './battle-responsive-layout'
-import { restoreBattleKeyboardFocus } from './battle-keyboard-scope'
-import { battleInfoPopoverSession } from './battle-info-popover-session'
 
-const mobileQuery = BATTLE_MOBILE_LAYOUT_QUERY
 const subscribe = (listener: () => void) => {
-  const media = window.matchMedia(mobileQuery)
+  const media = window.matchMedia(BATTLE_MOBILE_LAYOUT_QUERY)
   media.addEventListener('change', listener)
   return () => media.removeEventListener('change', listener)
 }
-const getMobile = () => window.matchMedia(mobileQuery).matches
+const getMobile = () => window.matchMedia(BATTLE_MOBILE_LAYOUT_QUERY).matches
 const getServerMobile = () => false
 const PreviewInfoContext = createContext<{
   host: HTMLDivElement | null
   setHost: (host: HTMLDivElement | null) => void
   mobile: boolean
+  selected: string | null
+  setSelected: (key: string | null) => void
 } | null>(null)
+
+function selectionKey(target: Element): string | null {
+  const reader = target.closest('[data-battle-preview-reader]')
+  if (reader) return reader.getAttribute('data-battle-preview-reader')
+  const card = target.closest(
+    '[data-command-card], [data-battle-skill-slot], [data-battle-special]',
+  )
+  if (!card) return null
+  const slot = card.getAttribute('data-battle-skill-slot')
+  return slot
+    ? `skill${slot}`
+    : (card.getAttribute('data-command-card') ??
+        (card.getAttribute('data-battle-special') === 'resonance'
+          ? 'essence'
+          : card.getAttribute('data-battle-special')))
+}
 
 export function BattleCockpitInfoProvider({ children }: { children: ReactNode }) {
   const [host, setHost] = useState<HTMLDivElement | null>(null)
+  const [selected, setSelected] = useState<string | null>(null)
   const mobile = useSyncExternalStore(subscribe, getMobile, getServerMobile)
+  useEffect(() => {
+    if (!mobile) return
+    const root = host?.closest('main')
+    if (!root) return
+    const select = (event: Event) => {
+      const target = event.target instanceof Element ? event.target : null
+      if (!target || target.closest('[data-battle-info-panel]')) return
+      // Reader dismissal consumes the gesture, so it cannot also select a command below it.
+      if (
+        document.querySelector('[data-battle-info-panel]') &&
+        !target.closest('[data-battle-preview-reader]')
+      )
+        return
+      const key = selectionKey(target)
+      if (key) setSelected(key)
+      else if (target.closest('footer')) setSelected(null)
+    }
+    const clear = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !document.querySelector('[data-battle-info-panel]'))
+        setSelected(null)
+    }
+    root.addEventListener('pointerdown', select, true)
+    root.addEventListener('click', select)
+    root.addEventListener('keydown', clear)
+    return () => {
+      root.removeEventListener('pointerdown', select, true)
+      root.removeEventListener('click', select)
+      root.removeEventListener('keydown', clear)
+    }
+  }, [host, mobile])
   return (
-    <PreviewInfoContext.Provider value={{ host, setHost, mobile }}>
+    <PreviewInfoContext.Provider value={{ host, setHost, mobile, selected, setSelected }}>
       {children}
     </PreviewInfoContext.Provider>
   )
 }
 
-export function BattlePreviewInfoMenu() {
+export function BattlePreviewInfoMenu({ actionKey = 'none' }: { actionKey?: string }) {
   const context = useContext(PreviewInfoContext)
-  const menuRef = useRef<HTMLDetailsElement>(null)
+  const { host, mobile, setSelected } = context ?? {}
   useEffect(() => {
-    if (!context?.mobile && menuRef.current) menuRef.current.open = false
-  }, [context?.mobile])
-  useEffect(() => {
-    const hasChildReader = () => {
-      const reader = menuRef.current
-        ?.querySelector('[data-battle-info-trigger][aria-expanded="true"]')
-        ?.getAttribute('aria-controls')
-      return Boolean(reader && battleInfoPopoverSession.hasChild(reader))
+    if (!mobile || !setSelected) return
+    if (actionKey.startsWith('none')) {
+      setSelected(null)
+      return
     }
-    const placeMenu = () => {
-      const menu = menuRef.current
-      if (!menu?.open) return
-      const options = menu.querySelector<HTMLElement>('[data-battle-preview-info-options]')
-      const content = menu.closest('[data-unified-battle-content]')?.getBoundingClientRect()
-      if (!options || !content) return
-      // Keep every choice above the real Chronicle/footer boundary, including two-row PvP.
-      options.style.bottom = `${window.innerHeight - content.bottom + 8}px`
-      options.style.maxHeight = `min(14rem, ${Math.max(32, content.height - 16)}px)`
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      const menu = menuRef.current
-      if (event.key !== 'Escape' || !menu?.open || hasChildReader()) return
-      menu.open = false
-      // Closing the menu hides the reader's trigger; restore focus after its dismissal.
-      restoreBattleKeyboardFocus()
-    }
-    const closeOutside = (event: MouseEvent) => {
-      const menu = menuRef.current
-      const target = event.target instanceof Element ? event.target : null
-      if (
-        !menu?.open ||
-        !target ||
-        menu.contains(target) ||
-        target.closest('[data-battle-info-panel]') ||
-        hasChildReader()
+    const active = host
+      ?.closest('main')
+      ?.querySelector(
+        '[data-battle-active="true"], [data-unified-command-deck] [aria-pressed="true"]',
       )
-        return
-      menu.open = false
-      restoreBattleKeyboardFocus()
-      event.preventDefault()
-      event.stopPropagation()
-    }
-    const menu = menuRef.current
-    menu?.addEventListener('toggle', placeMenu)
-    window.addEventListener('resize', placeMenu)
-    document.addEventListener('keydown', closeOnEscape, true)
-    document.addEventListener('click', closeOutside, true)
-    return () => {
-      menu?.removeEventListener('toggle', placeMenu)
-      window.removeEventListener('resize', placeMenu)
-      document.removeEventListener('keydown', closeOnEscape, true)
-      document.removeEventListener('click', closeOutside, true)
-    }
-  }, [])
-  return (
-    <details ref={menuRef} data-battle-preview-info="true">
-      <summary aria-label="Skill information">i</summary>
-      <div ref={context?.setHost} data-battle-preview-info-options="true" />
-    </details>
-  )
+    setSelected(active ? selectionKey(active) : null)
+  }, [actionKey, host, mobile, setSelected])
+  return <div ref={context?.setHost} data-battle-preview-info="true" />
 }
 
-/** Keep the complete existing readers available from one mobile preview menu. */
-export function BattleCockpitInfo(props: ComponentProps<typeof BattleInfoPopover>) {
+/** Keep each full report mounted for reader shortcuts; expose only the selected report on touch. */
+export function BattleCockpitInfo({
+  selectionKey: key,
+  ...props
+}: ComponentProps<typeof BattleInfoPopover> & { selectionKey: string }) {
   const context = useContext(PreviewInfoContext)
   if (context?.mobile)
     return context.host
       ? createPortal(
-          <BattleInfoPopover {...props} trigger={props.title ?? props.label} />,
+          <span data-battle-preview-reader={key} hidden={context.selected !== key}>
+            <BattleInfoPopover {...props} />
+          </span>,
           context.host,
         )
       : null

@@ -46,7 +46,10 @@ describe('closed information trigger focus', () => {
     class Trigger {
       isContentEditable = false
       closest(selector: string) {
-        return selector.includes('[data-battle-info-trigger]') ? this : null
+        return selector.includes('[data-battle-info-trigger]') ||
+          selector.includes('[data-battle-preview-info]')
+          ? this
+          : null
       }
     }
     vi.stubGlobal('document', { querySelector: () => null })

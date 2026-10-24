@@ -18,6 +18,7 @@ export function registerBattleTabCyclePrevention(
       !key.metaKey
     ) {
       // Let readers close first, then release their dormant buttons/scroll lanes.
+      const closingReader = Boolean(ownerDocument.querySelector('[data-battle-info-panel]'))
       const view = ownerDocument.defaultView
       if (restoreFrame !== undefined) view?.cancelAnimationFrame(restoreFrame)
       restoreFrame = view?.requestAnimationFrame(() => {
@@ -25,6 +26,14 @@ export function registerBattleTabCyclePrevention(
         if (ownerDocument.querySelector('[role="dialog"], dialog[open], [data-battle-info-panel]'))
           return
         const focus = ownerDocument.activeElement
+        // A contextual report restores its still-visible trigger. A later Escape releases it.
+        if (
+          closingReader &&
+          focus instanceof HTMLElement &&
+          focus.matches('[data-battle-info-trigger]') &&
+          focus.closest('[data-battle-preview-reader]:not([hidden])')
+        )
+          return
         if (
           focus instanceof HTMLElement &&
           !focus.isContentEditable &&

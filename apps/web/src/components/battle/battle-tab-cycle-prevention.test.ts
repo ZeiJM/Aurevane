@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { registerBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
 
@@ -61,5 +61,84 @@ describe('battle Tab cycle prevention', () => {
     expect(target.dispatchEvent(tab)).toBe(true)
     expect(tab.defaultPrevented).toBe(false)
     expect(observed).toEqual(['Tab'])
+  })
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+describe('Escape reader focus ownership', () => {
+  function fixture(contextual: boolean) {
+    let readerOpen = true
+    let frame: FrameRequestCallback | undefined
+    class FocusedTrigger {
+      isContentEditable = false
+      closest(selector: string) {
+        if (selector.includes('input, textarea')) return null
+        if (selector === '[data-battle-preview-reader]:not([hidden])')
+          return contextual ? this : null
+        return selector.includes('main[data-battle-concept') ? this : null
+      }
+      matches(selector: string) {
+        return selector === '[data-battle-info-trigger]'
+      }
+    }
+    vi.stubGlobal('HTMLElement', FocusedTrigger)
+    const root = { focus: vi.fn() }
+    const doc = {
+      activeElement: new FocusedTrigger(),
+      defaultView: {
+        requestAnimationFrame: (callback: FrameRequestCallback) => {
+          frame = callback
+          return 1
+        },
+        cancelAnimationFrame: vi.fn(),
+      },
+      querySelector: (selector: string) =>
+        selector.includes('main[data-battle-keyboard-focus-root')
+          ? root
+          : selector.includes('[data-battle-info-panel]') && readerOpen
+            ? {}
+            : null,
+    } as unknown as Document
+    const target = new EventTarget()
+    const cleanup = registerBattleTabCyclePrevention(target, doc)
+    return {
+      root,
+      target,
+      cleanup,
+      closeReader: () => {
+        readerOpen = false
+      },
+      flush: () => frame?.(0),
+    }
+  }
+
+  it('preserves the contextual trigger after reader dismissal and releases it on a second Escape', () => {
+    const f = fixture(true)
+    f.target.dispatchEvent(keyEvent('Escape'))
+    f.closeReader()
+    f.flush()
+    expect(f.root.focus).not.toHaveBeenCalled()
+    f.target.dispatchEvent(keyEvent('Escape'))
+    f.flush()
+    expect(f.root.focus).toHaveBeenCalledOnce()
+    f.cleanup()
+  })
+
+  it('retains desktop dormant-control release after a reader closes', () => {
+    const f = fixture(false)
+    f.target.dispatchEvent(keyEvent('Escape'))
+    f.closeReader()
+    f.flush()
+    expect(f.root.focus).toHaveBeenCalledOnce()
+    f.cleanup()
+  })
+
+  it('leaves focus owned by a parent reader when a nested reader closes', () => {
+    const f = fixture(false)
+    f.target.dispatchEvent(keyEvent('Escape'))
+    f.flush()
+    expect(f.root.focus).not.toHaveBeenCalled()
+    f.cleanup()
   })
 })
