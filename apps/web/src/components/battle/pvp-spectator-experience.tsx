@@ -1,6 +1,7 @@
 'use client'
 
 import { useBattleMobileChronicle } from './use-battle-mobile-chronicle'
+import { useDesktopBattleLayout } from './battle-responsive-layout'
 import mobileStyles from './battle-mobile-layout.module.css'
 
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
@@ -87,6 +88,9 @@ export function PvpSpectatorExperience({
 }) {
   useBattleTabCyclePrevention()
   const { chronicleOpen, lowerPanelRef } = useBattleMobileChronicle()
+  const desktopLayout = useDesktopBattleLayout()
+  const [chronicleDetailsHost, setChronicleDetailsHost] = useState<HTMLDivElement | null>(null)
+  const [chronicleDetailsOpen, setChronicleDetailsOpen] = useState(false)
   const [spectator, setSpectator] = useState(initialSpectator)
   const [participantTitles, setParticipantTitles] = useState(initialParticipantTitles)
   const [connectionNote, setConnectionNote] = useState<string | null>(null)
@@ -333,6 +337,7 @@ export function PvpSpectatorExperience({
         className={`${styles.page} ${mobileStyles.shell}`}
         data-battle-mobile-stage="true"
         data-mobile-chronicle-open={chronicleOpen}
+        data-battle-chronicle-detail-open={(chronicleDetailsOpen && !desktopLayout) || undefined}
         data-pvp-spectator="true"
         data-battle-keyboard-focus-root="true"
         tabIndex={-1}
@@ -550,6 +555,7 @@ export function PvpSpectatorExperience({
               ) : null}
             </div>
             <div className={styles.inspectDock} data-battle-command-dock="true">
+              <div ref={setChronicleDetailsHost} data-battle-cockpit-history="true" />
               <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>
                 Inspect
               </button>
@@ -588,6 +594,8 @@ export function PvpSpectatorExperience({
         <div className={mobileStyles.chronicleBar} data-battle-mobile-chronicle-strip="true">
           <BattleLogPanel
             presentation="timeline"
+            detailsHost={desktopLayout ? null : chronicleDetailsHost}
+            onDetailsOpenChange={setChronicleDetailsOpen}
             battleSessionId={battle.battleSessionId}
             battleVersion={battle.battleVersion}
             combatantNames={combatantNames}

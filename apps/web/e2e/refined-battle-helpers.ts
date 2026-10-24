@@ -77,7 +77,7 @@ export async function expectRefinedCockpit(page: Page) {
   const deck = page.getByRole('region', { name: 'Command Deck' })
   await expect(deck.locator('[data-command-card]')).toHaveCount(6)
   await expect(deck.locator('[data-battle-command="items"]')).toBeDisabled()
-  await expect(deck.locator('[data-command-card="items"]')).toContainText('Coming soon')
+  await expect(deck.locator('[data-command-card="items"]')).not.toContainText('Coming soon')
   await expect(deck.locator('[data-command-card="items"] [data-battle-command-hotkey]')).toHaveText(
     'P',
   )
