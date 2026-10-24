@@ -195,6 +195,11 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
   }
   await actions.last().click()
   const inline = (await page.locator('[data-battle-cockpit-history]').count()) > 0
+  const commandDeck = page.locator('[data-unified-command-deck]')
+  const hasCommands = (await commandDeck.count()) > 0
+  const restoredControls = hasCommands
+    ? commandDeck
+    : page.getByRole('button', { name: 'Inspect', exact: true })
   const popup = inline
     ? page.getByRole('region', { name: /Chronicle action/i })
     : strip.getByRole('dialog', { name: /Chronicle action/i })
@@ -211,7 +216,7 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
   await actions.first().click()
   await popup.getByRole('button', { name: 'Close Chronicle action' }).click()
   await popup.waitFor({ state: 'hidden' })
-  if (inline) await page.locator('[data-unified-command-deck]').waitFor({ state: 'visible' })
+  if (inline) await restoredControls.waitFor({ state: 'visible' })
   assert.equal(await page.getByRole('dialog', { name: /Chronicle action/i }).count(), 0)
   await assertFrozen('Chronicle popover interactions')
   // Appended actions extend the timeline horizontally without expanding its vertical footprint.
@@ -231,7 +236,7 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
     'Chronicle timeline height remains fixed while history grows',
   )
   await page.screenshot({ path: resolve(output, label + '-timeline.png') })
-  if (inline) {
+  if (inline && hasCommands) {
     await actions.first().click()
     await popup.waitFor({ state: 'visible' })
     await page.getByRole('button', { name: 'Terrain', exact: true }).click()
@@ -240,7 +245,9 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
     await actions.first().click()
     await popup.waitFor({ state: 'visible' })
     await popup.getByRole('button', { name: 'Close Chronicle action' }).click()
-    await page.locator('[data-unified-command-deck]').waitFor({ state: 'visible' })
+    await restoredControls.waitFor({ state: 'visible' })
+  }
+  if (inline) {
     await actions.first().click()
     await popup.waitFor({ state: 'visible' })
     await page.evaluate(() => {
@@ -257,7 +264,7 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
       window.advanceBattle()
     })
     await popup.waitFor({ state: 'hidden' })
-    if (inline) await page.locator('[data-unified-command-deck]').waitFor({ state: 'visible' })
+    await restoredControls.waitFor({ state: 'visible' })
     await assertFrozen('Failed history refresh restores cockpit')
     await page.evaluate(() => {
       window.fetch = window.savedHistoryFetch

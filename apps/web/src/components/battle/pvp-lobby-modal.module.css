@@ -879,11 +879,11 @@
   }
   .modal:not([data-lobby-mode='1v1']) .setting span,
   .modal:not([data-lobby-mode='1v1']) .seatHelp {
-    font-size: 0.68rem;
+    font-size: 0.75rem;
     line-height: 1.3;
   }
   .modal:not([data-lobby-mode='1v1']) .setting strong {
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
   }
   .modal:not([data-lobby-mode='1v1']) .teams {
     grid-template-columns: repeat(2, minmax(0, 1fr));
