@@ -518,7 +518,8 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(technique).toHaveAccessibleName(/Cooldown: [1-3] turns? remaining$/)
   await expect(technique.locator('[data-battle-cooldown-countdown]')).toHaveText(/^[1-3]$/)
   await expect(moveAction).not.toHaveAttribute('data-battle-active', 'true')
-  await expect(commandContext).toContainText('Choose your action')
+  await expect(commandContext).toContainText('Your turn')
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
 
   // Space opens the visible final-facing controls without ending on the first press.
   await page.keyboard.press('Space')

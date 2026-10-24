@@ -270,7 +270,7 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   await expect(first).toBeFocused()
   await list.getByRole('button').last().click()
   const lastDialog = page.getByRole('dialog', { name: 'Adventurer 60', exact: true })
-  await expect(lastDialog.getByText('Never seen', { exact: true })).toBeVisible()
+  await expect(lastDialog.getByText('No recorded activity', { exact: true })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(lastDialog).toHaveCount(0)
   await hero.getByRole('combobox', { name: 'Class', exact: true }).selectOption('aetherist')

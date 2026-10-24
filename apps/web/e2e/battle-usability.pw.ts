@@ -215,7 +215,8 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   )
   await page.keyboard.press('Escape')
   await expect(combatantDetails).toHaveCount(0)
-  await expect(commandContext).toContainText('Choose your action')
+  await expect(commandContext).toContainText('Your turn')
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
   await expect(page.locator('main[data-unified-battle="true"]')).toHaveAttribute(
     'data-battle-action-mode',
     'none',
