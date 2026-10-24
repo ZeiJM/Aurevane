@@ -154,7 +154,7 @@
   min-width: 0;
   overflow-wrap: anywhere;
   white-space: normal;
-  font: 650 0.875rem/1.4 var(--av-font-display);
+  font: 650 0.875rem/1.2 var(--av-font-display);
 }
 .content :global([data-battle-command-dock]) {
   grid-area: cockpit;

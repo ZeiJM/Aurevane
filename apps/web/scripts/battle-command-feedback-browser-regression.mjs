@@ -271,6 +271,39 @@ async function verifyTabRestoredAfterUnmount(page) {
     'Shift+Tab cycles normally after leaving the mounted battle',
   )
 }
+async function verifyWrappedPreviewParity() {
+  const rows = []
+  for (const mode of ['pve', 'pvp']) {
+    const page = await browser.newPage({ viewport: { width: 1366, height: 768 } })
+    await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}`)
+    const title = page.locator('[data-battle-instruction-title]')
+    await title.waitFor()
+    await page.evaluate(() => document.fonts.ready)
+    if (mode === 'pvp')
+      await title.evaluate((e) => {
+        e.textContent = 'Opponent’s Turn'
+        e.style.maxWidth = '5rem'
+      })
+    rows.push(
+      await title.evaluate((e) => ({
+        mode: e.closest('main').dataset.battleKind,
+        preview: e.closest('[data-battle-preview-strip]').getBoundingClientRect().height,
+        board: document.querySelector('#battlefield').getBoundingClientRect().height,
+        lines: e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight),
+      })),
+    )
+    await page.close()
+  }
+  assert.ok(
+    rows[1].lines >= 1.9 && rows[1].lines <= 2.1,
+    `Parity probe uses a two-line turn title: ${JSON.stringify(rows)}`,
+  )
+  assert.ok(
+    Math.abs(rows[0].preview - rows[1].preview) <= 1.5 &&
+      Math.abs(rows[0].board - rows[1].board) <= 1.5,
+    `A wrapped turn title preserves PvE/PvP preview and battlefield geometry: ${JSON.stringify(rows)}`,
+  )
+}
 async function verifyFinalFacing(page, viewport, mode) {
   if (viewport.width < 821 || viewport.height < 500) {
     const arrows = await page
@@ -394,10 +427,38 @@ async function verifyFinalFacing(page, viewport, mode) {
       )
       await page.keyboard.press('Escape')
       await panel.waitFor({ state: 'hidden' })
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      )
+      assert.equal(
+        await info.evaluate((button) => document.activeElement === button),
+        true,
+        `Closing ${key} restores focus to its contextual information button: ${await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 350))}`,
+      )
     }
     await page.locator('main').focus()
     await page.keyboard.press('Escape')
     assert.equal(await host.locator('[data-battle-info-trigger]:visible').count(), 0)
+    await openBattleInfoMenu(page, 'About Inspect')
+    await host.getByRole('button', { name: 'About Inspect', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Inspect', exact: true }).waitFor()
+    const attackReader = host.getByRole('button', {
+      name: 'About Basic Attack',
+      exact: true,
+      includeHidden: true,
+    })
+    await attackReader.evaluate((button) => button.click())
+    await page.getByRole('dialog', { name: 'Basic Attack', exact: true }).waitFor()
+    await page.keyboard.press('Escape')
+    await page.locator('[data-battle-info-panel]').waitFor({ state: 'hidden' })
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    )
+    assert.equal(
+      await attackReader.evaluate((button) => button === document.activeElement),
+      true,
+      'Replacing the reader also restores the current contextual trigger',
+    )
     const attack = deck.locator('[data-battle-command="attack"]')
     await attack.click()
     await host.getByRole('button', { name: 'About Basic Attack', exact: true }).click()
@@ -628,6 +689,7 @@ async function verifyNestedReaderDismissal() {
   console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
 }
 try {
+  await verifyWrappedPreviewParity()
   await verifyNestedReaderDismissal()
   for (const mode of ['pve', 'pvp', 'spectator']) {
     for (const viewport of [

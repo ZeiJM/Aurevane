@@ -314,7 +314,10 @@ try {
           }
         })
 
-        assert.ok(box.width >= 55, `${mode}/${viewport.width} VS is prominent: ${box.width}`)
+        assert.ok(
+          box.width >= (viewport.width > 800 ? 144 : 56),
+          `${mode}/${viewport.width} VS is prominent: ${box.width}`,
+        )
         const wrapped = current.top >= previous.bottom - 1
         const expectedX = wrapped
           ? current.x + current.width / 2

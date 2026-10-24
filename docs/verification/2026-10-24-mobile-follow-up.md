@@ -48,11 +48,31 @@ The first PR #977 head `00ff9e90972779148d1ab70d244493a7ad034cc7` completed five
 - Controlled Combat `40093301916` waited for the removed preview-menu summary. Its captured-action cases now open the current contextual information button directly and assert that exactly one button is visible and no all-report menu remains. Captured costs/effects, readiness, commands and authority assertions are retained.
 - Browser Smoke `40093301907` required the former marker minimum in its early production targeting probe. Actual mobile badge/SVG dimensions were 8.125px/6.125px. The guard now enforces the approved 8–10px mobile range using the actual responsive query, retains the 6px SVG floor, and retains desktop size, containment, direction, identity and noninteractive checks.
 
-This follow-up changes only tests and this receipt. Application source is unchanged from `00ff9e9`. No retry was launched on the failed head.
+The `61414251` follow-up changed only tests and this receipt. Application source at that head was unchanged from `00ff9e9`. No retry was launched on the failed head.
 
 Fresh local verification passed: all 76 production targeting cases, all 57 canonical Controlled cases, seven Hall sizes, twenty lobby combinations and four Profile/switcher sizes, including the new centered-and-below cycle assertion. Scoped formatting/lint and web typecheck passed. Independent read-only review found no actionable issues and no further stale expectations in the targeted script/native scan. Authenticated native browser cases still require fresh GitHub results.
 
 Evidence: `/tmp/av-followup-targeting-red.log`, `/tmp/av-followup-targeting-green.log`, `/tmp/av-followup-controlled-green.log`, `/tmp/av-followup-profile-green.log`, `/tmp/av-followup-checks.log`, `/tmp/av-followup-lint-final.log`, `/tmp/av-followup-format-final.log`.
+
+## Browser Smoke follow-up on 61414251
+
+Head `61414251bb24a06cfe6f28bd8cc2e42ed29226c9` completed eight workflows successfully. Browser Smoke `40115047499`, job `120934488959`, completed with six failures in its focused authenticated phase: 70 passed and 22 intentional project skips. The full serial suite was not reached. The failures were not World timing failures and no retry was launched.
+
+Three causes were diagnosed and reproduced before repair, preserving all six native assertions:
+
+- The adaptive preview's 14px/1.4 title made a two-line PvP turn title consume 47.6px, while a one-line PvE title retained the 44px row. Native battlefield height drift was 3.6px; the production fixture reproduced preview 44/47.5625 and battlefield 449.921875/446.359375. Using the existing 1.2 title line-height allows both normal title lines to fit within the same 44px minimum while retaining wrapping and growth for larger text. The new parity guard retains the native 1.5px tolerance and all glyph containment checks.
+- The lobby override had reduced desktop VS from its existing 144px minimum to 112px. The override now preserves 9rem/144px desktop artwork and the enlarged 56px phone artwork. Both permanent/native size requirements and seam/containment/identity checks remain enforced.
+- A window-capture Escape handler in the Tab-cycle guard queued root focus after the information reader had already restored its contextual trigger. The production fixture reproduced the active battle root after closing Items, and the new unit guard failed on the same delayed overwrite. The handler now preserves a restored contextual trigger only when Escape began with an open reader. A later Escape still releases it; desktop dormant controls and nested-reader ownership retain their behavior.
+
+Permanent production checks now verify the exact contextual trigger after every report dismissal and after programmatic replacement of Inspect with Basic Attack, plus wrapped-title parity and the desktop/mobile lobby size floors. New unit cases cover first/second Escape, desktop release and retained parent readers.
+
+Focused final verification passed PvE/PvP at native 412×839 and 844×390, all twelve reports, keyboard reselection, nested dismissal, final facing and wrapped-title parity. The complete Hall/lobby/Profile fixture passed seven Hall sizes, twenty lobby combinations and four Profile/switcher sizes. The 47 adjacent keyboard/reader unit checks passed. Read-only review found no Critical/Important issues.
+
+Formatting, lint and all eight package typechecks passed. The first local umbrella run completed the other core package tests and 204 database tests, then a database fork exited; the host recorded an OOM kill. No database source changed. The unfinished six-case database file and full web tests are being verified separately with bounded workers; final results are recorded in PR #977's validation description before release. The umbrella command is not reported as a clean exit.
+
+Shared browser coverage passed across all playable viewports, including the strict contextual focus and reader-replacement checks, and the targeted spectator viewports. The initial combined run timed out only while capturing a screenshot during the concurrent resource-heavy tests. Its remaining PvP/spectator cases passed in a separate run; only local artifact capture had a longer deadline, with all gameplay/layout assertions unchanged. Permanent capture/assertion deadlines are unchanged. The native authenticated six-case rerun remains required on the new GitHub head.
+
+Evidence: `/tmp/av-focus-614-red.log`, `/tmp/av-parity-614-red.log`, `/tmp/av-escape-614-unit-red.log`, `/tmp/av-focus-parity-green.log`, `/tmp/av-smoke614-unit-green.log`, `/tmp/av-smoke614-lobby-green.log`, `/tmp/av-smoke614-browser-green.log`, `/tmp/av-smoke614-check.log`, `/tmp/av-smoke614-browser-remaining.log`, `/tmp/av-smoke614-db-bounded.log`, `/tmp/av-smoke614-web-bounded.log`. Downloaded native evidence is retained at `/tmp/aurevane-smoke-61414251.zip`; selected traces are extracted under `/tmp/av-smoke614-evidence`.
 
 ## Release constraints
 
