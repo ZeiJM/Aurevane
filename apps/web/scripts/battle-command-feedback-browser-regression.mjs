@@ -128,11 +128,267 @@ const browser = await chromium.launch({
   headless: true,
 })
 const errors = []
+async function verifyCooldownAlignment() {
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 320, height: 640 },
+    { width: 844, height: 390 },
+  ]) {
+    const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+    await page.goto(server.resolvedUrls.local[0] + '?mode=pvp&cooldownOverlay=1')
+    const countdown = page.locator('[data-battle-cooldown-countdown]').first()
+    await countdown.waitFor()
+    const geometry = await countdown.evaluate((el) => {
+      const a = el.parentElement.getBoundingClientRect(),
+        b = el.getBoundingClientRect()
+      return {
+        dx: Math.abs(a.x + a.width / 2 - b.x - b.width / 2),
+        dy: Math.abs(a.y + a.height / 2 - b.y - b.height / 2),
+      }
+    })
+    assert.ok(
+      geometry.dx <= 1 && geometry.dy <= 1,
+      `Mobile cooldown centres within actual artwork at ${viewport.width}: ${JSON.stringify(geometry)}`,
+    )
+    await page.close()
+  }
+}
+async function verifyTurnCues() {
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 390, height: 844 },
+  ]) {
+    const page = await browser.newPage({
+      viewport,
+      isMobile: viewport.width < 821,
+      hasTouch: viewport.width < 821,
+    })
+    await page.goto(server.resolvedUrls.local[0] + '?mode=pvp')
+    const status = page.locator('[data-battle-preview-strip]')
+    assert.equal(await status.getAttribute('data-battle-turn-state'), 'yours')
+    const ownColour = await page
+      .locator('[data-battle-instruction-title]')
+      .evaluate((el) => getComputedStyle(el).color)
+    await page.evaluate(() => window.advanceBattle('enemy-one'))
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-battle-preview-strip]').dataset.battleTurnState === 'waiting',
+    )
+    assert.match(await page.locator('[data-battle-instruction-title]').innerText(), /^Waiting for /)
+    assert.notEqual(
+      await page
+        .locator('[data-battle-instruction-title]')
+        .evaluate((el) => getComputedStyle(el).color),
+      ownColour,
+      'Turn text has distinct readable ownership colours',
+    )
+    await page.evaluate(() => window.advanceBattle('character:player'))
+    await page.waitForFunction(
+      () =>
+        document.querySelector('[data-battle-preview-strip]').dataset.battleTurnState === 'yours',
+    )
+    await page.close()
+  }
+}
+async function verifyLogHistory() {
+  for (const mode of ['pve', 'pvp']) {
+    const page = await browser.newPage({
+      viewport: { width: 320, height: 640 },
+      isMobile: true,
+      hasTouch: true,
+    })
+    await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}`)
+    await page.locator('[data-battle-current-round-toggle]').waitFor()
+    await page.evaluate(() => {
+      const original = window.fetch
+      window.fetch = async (url, options) => {
+        const response = await original(url, options)
+        if (!String(url).endsWith('/events')) return response
+        return Response.json({
+          battleLog: {
+            entries: Array.from({ length: 50 }, (_, i) => ({
+              battleVersion: i + 1,
+              eventIndex: 0,
+              occurredAt: '2026-10-24T00:00:00Z',
+              round: Math.floor(i / 10) + 1,
+              turnNumber: i + 1,
+              actorCombatantId: 'character:player',
+              targetCombatantId: 'enemy-one',
+              actionId: 'fixture.history',
+              actionLabel: 'Recorded Skill',
+              eventType: 'combat_action_used',
+              kind: 'offense',
+              message: '',
+              messageTemplate: '',
+              templateValues: {},
+              facts: [],
+              headline: 'Recorded Skill',
+              tone: 'neutral',
+            })),
+          },
+        })
+      }
+      window.fixtureBattle.snapshot.tactical.battle.round = 5
+      window.advanceBattle('character:player')
+    })
+    const toggle = page.locator('[data-battle-current-round-toggle]')
+    await toggle.click()
+    const workspace = page.locator('[data-battle-mobile-log-workspace]')
+    const older = workspace.locator('[data-chronicle-round="2"] button').first()
+    await older.click()
+    assert.equal(await older.getAttribute('aria-expanded'), 'true')
+    const requests = await page.evaluate(
+      () => window.calls.filter((c) => c.path.endsWith('/events')).length,
+    )
+    await toggle.click()
+    await toggle.click()
+    assert.equal(
+      await older.getAttribute('aria-expanded'),
+      'true',
+      'Closing/reopening log preserves deliberate round expansion',
+    )
+    assert.equal(
+      await page.evaluate(() => window.calls.filter((c) => c.path.endsWith('/events')).length),
+      requests,
+      'Log toggles reuse the mounted history reader without duplicate fetching',
+    )
+    await page.setViewportSize({ width: 1024, height: 768 })
+    await page
+      .locator('main')
+      .evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      )
+    await page.setViewportSize({ width: 320, height: 640 })
+    await workspace.waitFor({ state: 'visible' })
+    assert.equal(
+      await older.getAttribute('aria-expanded'),
+      'true',
+      'History survives desktop/mobile rotation',
+    )
+    await page.locator('main').focus()
+    await page.keyboard.press('KeyL')
+    await workspace.waitFor({ state: 'hidden' })
+    await page.keyboard.press('KeyL')
+    await workspace.waitFor({ state: 'visible' })
+    assert.equal(
+      await older.getAttribute('aria-expanded'),
+      'true',
+      'The existing log shortcut toggles the retained reader',
+    )
+    await page.close()
+  }
+}
+async function verifyMobileWorkspace(page, mode) {
+  const root = page.locator('main')
+  const mobile = await root.evaluate(
+    () =>
+      matchMedia(
+        '(max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse)',
+      ).matches,
+  )
+  if (!mobile || mode === 'spectator') return
+  const board = await page.locator('#battlefield').boundingBox()
+  const toggle = page.locator('[data-battle-current-round-toggle]')
+  await toggle.click()
+  await page.locator('[data-battle-mobile-log-workspace]').waitFor({ state: 'visible' })
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'true')
+  await page.keyboard.press('KeyA')
+  assert.equal(
+    await page.evaluate(
+      () =>
+        window.calls.filter(
+          (call) => call.method === 'POST' && /\/(commit|intents|final-turn)$/.test(call.path),
+        ).length,
+    ),
+    0,
+    'Reading the log cannot issue a combat command',
+  )
+  await toggle.click()
+  await page.locator('[data-battle-mobile-log-workspace]').waitFor({ state: 'hidden' })
+  const after = await page.locator('#battlefield').boundingBox()
+  assert.ok(
+    Math.abs(board.height - after.height) <= 1 && Math.abs(board.y - after.y) <= 1,
+    'Log toggle retains battlefield geometry',
+  )
+  if (mode === 'pvp') {
+    const geometry = await page.locator('main > footer').evaluate((footer) => {
+      const controls = [...footer.querySelectorAll('button')].filter(
+        (b) => b.getClientRects().length,
+      )
+      const boxes = controls.map((b) => b.getBoundingClientRect())
+      const bounds = footer.getBoundingClientRect()
+      return {
+        height: bounds.height,
+        tops: boxes.map((b) => b.top),
+        bottoms: boxes.map((b) => b.bottom),
+        contained: boxes.every((b) => b.left >= bounds.left && b.right <= bounds.right + 1),
+        gaps: boxes
+          .sort((a, b) => a.left - b.left)
+          .slice(1)
+          .map((b, i) => b.left - boxes[i].right),
+      }
+    })
+    assert.ok(
+      geometry.height <= 48,
+      `Single-row footer retains its compact height: ${JSON.stringify(geometry)}`,
+    )
+    assert.ok(
+      Math.max(...geometry.tops) - Math.min(...geometry.tops) <= 2,
+      'All footer controls share one row',
+    )
+    assert.equal(geometry.contained, true, 'All footer controls remain reachable')
+    assert.ok(
+      geometry.gaps.every((g) => g >= 2),
+      `Footer controls have real gaps: ${JSON.stringify(geometry)}`,
+    )
+  }
+  const countdowns = page.locator('[data-battle-cooldown-countdown]')
+  for (const countdown of await countdowns.all()) {
+    if (!(await countdown.isVisible())) continue
+    const geometry = await countdown.evaluate((el) => {
+      const a = el.parentElement.getBoundingClientRect(),
+        b = el.getBoundingClientRect()
+      return {
+        dx: Math.abs(a.x + a.width / 2 - b.x - b.width / 2),
+        dy: Math.abs(a.y + a.height / 2 - b.y - b.height / 2),
+      }
+    })
+    assert.ok(
+      geometry.dx <= 1 && geometry.dy <= 1,
+      `Cooldown centres within its actual artwork: ${JSON.stringify(geometry)}`,
+    )
+  }
+}
 async function verifyChatComposer(page) {
   await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
   const panel = page.locator('#pvp-battle-chat-panel[data-open]')
   await panel.waitFor({ state: 'visible' })
   await panel.getByText('A local fixture message for checking battle chat layout.').waitFor()
+  assert.equal(
+    await panel.getByRole('tab', { name: 'Battle Log', exact: true }).count(),
+    0,
+    'Chat contains actual messages, never a log tab',
+  )
+  const mobile = await page
+    .locator('main')
+    .evaluate(
+      () =>
+        matchMedia(
+          '(max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse)',
+        ).matches,
+    )
+  if (mobile) {
+    assert.equal(
+      await panel.locator('..').getAttribute('data-battle-mobile-chat-host'),
+      'true',
+      'Chat occupies the shared lower workspace',
+    )
+    assert.equal(
+      await panel.getByRole('button', { name: 'Close battle communication' }).isVisible(),
+      false,
+      'The mobile footer toggle replaces the close X',
+    )
+  }
   const read = () =>
     panel.evaluate((element) => {
       const input = element.querySelector('input[aria-label="Battle chat message"]')
@@ -171,6 +427,15 @@ async function verifyChatComposer(page) {
     assert.equal(geometry.noHorizontalOverflow, true, 'Chat controls do not overflow horizontally')
   }
   await page.screenshot({ path: resolve(output, `chat-composer-${page.viewportSize().width}.png`) })
+  await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+  await panel.waitFor({ state: 'hidden' })
+  await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+  await panel.waitFor({ state: 'visible' })
+  assert.equal(
+    await panel.getByRole('textbox', { name: 'Battle chat message' }).inputValue(),
+    'Local fixture text',
+    'Unsent chat survives toggling',
+  )
   await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
   await panel.waitFor({ state: 'hidden' })
 }
@@ -691,7 +956,11 @@ async function verifyNestedReaderDismissal() {
 try {
   await verifyWrappedPreviewParity()
   await verifyNestedReaderDismissal()
+  await verifyCooldownAlignment()
+  await verifyTurnCues()
+  await verifyLogHistory()
   for (const mode of ['pve', 'pvp', 'spectator']) {
+    if (process.env.AV_FEEDBACK_MODE && process.env.AV_FEEDBACK_MODE !== mode) continue
     for (const viewport of [
       { width: 1920, height: 1080 },
       { width: 1366, height: 768 },
@@ -701,9 +970,12 @@ try {
       { width: 320, height: 640 },
       { width: 844, height: 390 },
     ]) {
+      if (process.env.AV_FEEDBACK_WIDTH && Number(process.env.AV_FEEDBACK_WIDTH) !== viewport.width)
+        continue
       for (const gesture of mode === 'spectator'
         ? ['tab-focus']
         : ['final-facing', 'move-pointer', 'move-direction', 'attack-pointer']) {
+        if (process.env.AV_FEEDBACK_GESTURE && process.env.AV_FEEDBACK_GESTURE !== gesture) continue
         if (viewport.height < 500 && gesture !== 'final-facing') continue
         const captureFlames =
           mode === 'pve' && viewport.width === 1366 && gesture === 'move-pointer'
@@ -722,6 +994,7 @@ try {
         const root = page.locator('main')
         await root.waitFor()
         if (gesture === 'final-facing') {
+          await verifyMobileWorkspace(page, mode)
           if (viewport.width < 821 || viewport.height < 500) {
             await root.focus()
             await page.keyboard.press('Digit9')

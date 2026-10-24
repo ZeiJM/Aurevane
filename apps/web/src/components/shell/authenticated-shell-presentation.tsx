@@ -9,7 +9,7 @@ import { AccountMenu } from './account-menu'
 import { SiteHeader } from './site-header'
 import { GameRail, type GameRailProps } from './game-rail'
 import { MobileShellInsets } from './mobile-shell-insets'
-import { OnlinePresenceLink } from './online-presence-link'
+import { OnlinePresenceHeartbeat, OnlinePresenceLink } from './online-presence-link'
 import styles from './authenticated-game-shell.module.css'
 
 const worldBackdrop = getImageAsset('ui.foundation.vista')
@@ -21,7 +21,7 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
   backHref?: '/game' | '/game/character'
   backLabel?: string
   layout?: 'standard' | 'battlefield'
-  character?: { name: string; level?: number } | null
+  character?: { id: string; name: string; level?: number } | null
   characterPortrait?: ReactNode
   railIdentity?: ReactNode
   activeBattleHref?: Route | null
@@ -64,6 +64,9 @@ export function AuthenticatedShellPresentation({
         data-av-session-restricted={Boolean(activeSessionHref) || undefined}
       >
         <PvpBattleKeyInputAssist />
+        {character ? (
+          <OnlinePresenceHeartbeat key={character.id} characterId={character.id} />
+        ) : null}
         {layout === 'standard' ? <MobileShellInsets /> : null}
         <a className="skip-link" href="#game-main">
           Skip to game content
@@ -105,7 +108,15 @@ export function AuthenticatedShellPresentation({
                     </div>
                   ) : null
                 }
-                presence={<OnlinePresenceLink className={styles.accountOnline} />}
+                presence={
+                  character ? (
+                    <OnlinePresenceLink
+                      key={character.id}
+                      characterId={character.id}
+                      className={styles.accountOnline}
+                    />
+                  ) : null
+                }
               />
             </>
           }

@@ -176,7 +176,14 @@
   font-size: 0.67rem;
   font-weight: 700;
   white-space: nowrap;
-  pointer-events: none;
+  cursor: pointer;
+}
+.compactCurrentRound:focus-visible {
+  outline: 2px solid #fff1bd;
+  outline-offset: -3px;
+}
+.compactCurrentRound > i {
+  font: normal 0.7rem/0.85 var(--av-font-mono);
 }
 .compactTrack {
   box-sizing: border-box;

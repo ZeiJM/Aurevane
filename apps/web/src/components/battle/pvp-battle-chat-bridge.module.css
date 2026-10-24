@@ -274,3 +274,36 @@
   width: 1.7rem;
   height: 1.7rem;
 }
+
+/* Mobile uses the measured lower battle workspace; desktop keeps its existing window. */
+.panel[data-mobile-workspace] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+.panel[data-mobile-workspace] > .panelTop,
+.panel[data-mobile-workspace] > .resizeGrip {
+  display: none;
+}
+
+/* Reserve a real spectator cell instead of overlapping Terrain at narrow desktop widths. */
+@media (min-width: 821px) {
+  :global(main[data-pvp-battle='true'] > footer) {
+    grid-template-columns: minmax(0, 1fr) auto auto max-content;
+  }
+  .footerPresence {
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    grid-column: 3;
+    grid-row: 1;
+  }
+}

@@ -777,3 +777,13 @@
   color: #332b22;
   font: 500 0.8125rem/1.35 var(--av-font-body);
 }
+
+/* Turn ownership is explicit and stays inside the existing preview geometry. */
+.content :global([data-battle-preview-strip][data-battle-turn-state='yours']) > strong {
+  color: #15513a;
+  text-shadow: 0 0 0.45rem #43b57c38;
+}
+.content :global([data-battle-preview-strip][data-battle-turn-state='waiting']) > strong {
+  color: #842c28;
+  text-shadow: 0 0 0.45rem #ce4a4233;
+}

@@ -41,7 +41,8 @@ describe('online users directory helpers', () => {
   it('reports elapsed presence time in minutes', () => {
     const now = Date.parse('2026-09-05T16:00:00.000Z')
     expect(formatLastSeenAt('2026-09-05T15:33:00.000Z', now)).toBe('Last seen 27 min ago')
-    expect(formatLastSeenAt(null, now)).toBe('Never seen')
+    expect(formatLastSeenAt(null, now)).toBe('No recorded activity')
+    expect(formatLastSeenAt('invalid', now)).toBe('No recorded activity')
   })
 
   it('sorts recorded heartbeats while keeping never-seen characters last', () => {

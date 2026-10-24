@@ -47,6 +47,7 @@ vi.mock('./game-rail', () => ({
   GameRail: () => createElement('aside', { 'data-testid': 'game-rail' }, 'Rail'),
 }))
 vi.mock('./online-presence-link', () => ({
+  OnlinePresenceHeartbeat: () => null,
   OnlinePresenceLink: () => createElement('a', { href: '/game/online' }, 'Online Users'),
 }))
 
@@ -59,7 +60,7 @@ describe('authenticated shell presentation', () => {
         backHref="/game"
         backLabel="Back to game"
         sessionLabel="Passive Training"
-        character={{ name: 'Aster' }}
+        character={{ id: 'character-1', name: 'Aster' }}
       >
         <section>Page content</section>
       </AuthenticatedShellPresentation>,
@@ -86,7 +87,7 @@ describe('authenticated shell presentation', () => {
     const markup = renderToStaticMarkup(
       <AuthenticatedShellPresentation
         sessionLabel="Battle Hall"
-        character={{ name: 'Aster', level: 12 }}
+        character={{ id: 'character-1', name: 'Aster', level: 12 }}
         characterPortrait={<span data-testid="portrait">portrait</span>}
       >
         <section>Page content</section>

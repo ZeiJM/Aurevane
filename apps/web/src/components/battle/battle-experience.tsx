@@ -3,7 +3,7 @@
 import { BattleCockpitInfoProvider, BattlePreviewInfoMenu } from './battle-cockpit-info'
 
 import { BATTLE_MOBILE_LAYOUT_QUERY, useDesktopBattleLayout } from './battle-responsive-layout'
-import { useBattleMobileChronicle } from './use-battle-mobile-chronicle'
+import { useBattleMobileWorkspace } from './use-battle-mobile-workspace'
 import mobileStyles from './battle-mobile-layout.module.css'
 
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
@@ -380,9 +380,14 @@ function BattleExperienceContent({
   runtime: BattleRuntime
 }) {
   const router = useRouter()
-  const { chronicleOpen, lowerPanelRef } = useBattleMobileChronicle()
+  const lowerPanelRef = useRef<HTMLDivElement>(null)
+  const [mobileWorkspace, setMobileWorkspace] = useBattleMobileWorkspace(
+    initialBattle.battleSessionId,
+  )
+  const chronicleOpen = mobileWorkspace === 'log'
   const [terrainView, setTerrainView] = useState(false)
   const [terrainKind, setTerrainKind] = useState<BattleTerrainKeyKind | null>(null)
+  const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   useEffect(() => {
     if (!terrainView) return
     const dismiss = (event: KeyboardEvent) => {
@@ -396,13 +401,87 @@ function BattleExperienceContent({
   }, [terrainView])
   const [battle, setBattleState] = useState(initialBattle)
   const desktopLayout = useDesktopBattleLayout()
+  const mobileReading = !desktopLayout && mobileWorkspace !== 'actions'
+  useLayoutEffect(() => {
+    const toggleLog = () => {
+      if (!window.matchMedia(BATTLE_MOBILE_LAYOUT_QUERY).matches) return
+      setTerrainView(false)
+      setMobileWorkspace(mobileWorkspace === 'log' ? 'actions' : 'log')
+    }
+    const dismiss = (event: KeyboardEvent) => {
+      if (
+        !mobileReading ||
+        event.defaultPrevented ||
+        event.repeat ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      )
+        return
+      if (
+        document.querySelector(
+          '[data-battle-info-panel], dialog[open], [role="dialog"][aria-modal="true"]',
+        )
+      )
+        return
+      const target = event.target instanceof HTMLElement ? event.target : null
+      const textEntry = target?.isContentEditable || target?.closest('input, textarea, select')
+      const nativeActivation =
+        (event.code === 'Space' || event.code === 'Enter') &&
+        target?.closest('button, summary, a, [role="button"]')
+      const logShortcut =
+        mobileWorkspace === 'log' &&
+        !textEntry &&
+        !nativeActivation &&
+        event.code === bindings.combatLog.code &&
+        event.shiftKey === bindings.combatLog.shift
+      if (event.key !== 'Escape' && !logShortcut) return
+      event.preventDefault()
+      event.stopPropagation()
+      setMobileWorkspace('actions')
+      restoreBattleKeyboardFocus()
+    }
+    window.addEventListener('aurevane:battle-log-toggle', toggleLog)
+    document.addEventListener('keydown', dismiss)
+    return () => {
+      window.removeEventListener('aurevane:battle-log-toggle', toggleLog)
+      document.removeEventListener('keydown', dismiss)
+    }
+  }, [
+    bindings.combatLog.code,
+    bindings.combatLog.shift,
+    mobileReading,
+    mobileWorkspace,
+    setMobileWorkspace,
+  ])
   const [chronicleDetailsHost, setChronicleDetailsHost] = useState<HTMLDivElement | null>(null)
   const [chronicleDetailsOpen, setChronicleDetailsOpen] = useState(false)
   const [chronicleDetailsEpoch, setChronicleDetailsEpoch] = useState(0)
-  const handleChronicleDetailsOpen = useCallback((open: boolean) => {
-    setChronicleDetailsOpen(open)
-    if (open) setTerrainView(false)
-  }, [])
+  useEffect(() => {
+    const changeWorkspace = (event: Event) => {
+      const detail = (event as CustomEvent<{ battleSessionId: string; workspace: string }>).detail
+      if (
+        detail?.battleSessionId !== initialBattle.battleSessionId ||
+        detail.workspace === 'actions'
+      )
+        return
+      setTerrainView(false)
+      setChronicleDetailsEpoch((epoch) => epoch + 1)
+    }
+    window.addEventListener('aurevane:battle-mobile-workspace-change', changeWorkspace)
+    return () =>
+      window.removeEventListener('aurevane:battle-mobile-workspace-change', changeWorkspace)
+  }, [initialBattle.battleSessionId])
+  const handleChronicleDetailsOpen = useCallback(
+    (open: boolean) => {
+      setChronicleDetailsOpen(open)
+      if (open) {
+        setTerrainView(false)
+        setMobileWorkspace('actions')
+      }
+    },
+    [setMobileWorkspace],
+  )
   const [mode, setMode] = useState<Mode>('none')
   const [infoSelectionVersion, setInfoSelectionVersion] = useState(0)
   const [path, setPath] = useState<BattleGridPosition[]>([])
@@ -431,7 +510,6 @@ function BattleExperienceContent({
   const [inspectedEnemyUnitId, setInspectedEnemyUnitId] = useState<string | null>(null)
   const [allyInspection, setAllyInspection] = useState<BattleAllyInspection | null>(null)
   const [inspectedTile, setInspectedTile] = useState<BattleGridPosition | null>(null)
-  const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const executionLock = useRef(false)
   const [executionPending, setExecutionPending] = useState(false)
   useEffect(() => {
@@ -2687,25 +2765,27 @@ function BattleExperienceContent({
   } as CSSProperties
 
   const contextTitle =
-    mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
-      ? selectedParticipant.name
-      : !localTurn && battleState.lifecycle === 'active'
-        ? `${activeName}’s Turn`
-        : mode === 'none'
-          ? 'Choose your action'
-          : mode === 'finish'
-            ? 'Choose final facing'
-            : mode === 'recover'
-              ? selectedHealName
-              : mode === 'attack'
-                ? selectedAttack.label
-                : mode === 'guard'
-                  ? selectedDefense.label
-                  : mode === 'move'
-                    ? flatMoveMode
-                      ? (basicMove?.name ?? 'Move')
-                      : `Move · up to ${maximumMoveDistance} tiles`
-                    : 'Inspect'
+    battleState.lifecycle !== 'active'
+      ? resultLabel()
+      : mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
+        ? selectedParticipant.name
+        : !localTurn && battleState.lifecycle === 'active'
+          ? `Waiting for ${activeName}`
+          : mode === 'none'
+            ? 'Your turn'
+            : mode === 'finish'
+              ? 'Choose final facing'
+              : mode === 'recover'
+                ? selectedHealName
+                : mode === 'attack'
+                  ? selectedAttack.label
+                  : mode === 'guard'
+                    ? selectedDefense.label
+                    : mode === 'move'
+                      ? flatMoveMode
+                        ? (basicMove?.name ?? 'Move')
+                        : `Move · up to ${maximumMoveDistance} tiles`
+                      : 'Inspect'
   const characterInspection =
     (mode === 'move' && !flatMoveMode) || choosingActionMovement
       ? `Range: ${movementGuideRange} tiles · ${notice}`
@@ -2742,6 +2822,7 @@ function BattleExperienceContent({
         className={`${styles.shell} ${mobileStyles.shell}`}
         data-battle-mobile-stage="true"
         data-mobile-chronicle-open={chronicleOpen}
+        data-battle-mobile-workspace={!desktopLayout ? mobileWorkspace : undefined}
         data-battle-terrain-view={terrainView || undefined}
         data-battle-chronicle-detail-open={(chronicleDetailsOpen && !desktopLayout) || undefined}
         data-unified-battle="true"
@@ -2983,6 +3064,11 @@ function BattleExperienceContent({
 
           <section
             id="battlefield"
+            onClickCapture={(event) => {
+              if (!mobileReading) return
+              event.preventDefault()
+              event.stopPropagation()
+            }}
             onPointerLeave={() => {
               if (
                 (targetSpec?.geometryVersion === 2 || targetSpec?.geometryVersion === 3) &&
@@ -3230,9 +3316,16 @@ function BattleExperienceContent({
             className={mobileStyles.lowerPanel}
             data-battle-mobile-lower-panel="true"
           >
-            <section data-battle-preview-strip="true" aria-label="Target forecast">
+            <div data-battle-mobile-chat-host="true" />
+            <section
+              data-battle-preview-strip="true"
+              aria-label="Target forecast"
+              data-battle-turn-state={
+                battleState.lifecycle !== 'active' ? 'complete' : localTurn ? 'yours' : 'waiting'
+              }
+            >
               <BattlePreviewInfoMenu
-                actionKey={`${terrainView ? 'none' : mode}:${activeTechnique?.id ?? ''}:${infoSelectionVersion}`}
+                actionKey={`${terrainView || mobileReading ? 'none' : mode}:${activeTechnique?.id ?? ''}:${infoSelectionVersion}`}
               />
               <strong data-battle-instruction-title="true">
                 {terrainView ? (terrainPreview?.name ?? 'Terrain') : contextTitle}
@@ -3322,10 +3415,10 @@ function BattleExperienceContent({
                 data-unified-command-deck="true"
                 style={{
                   ...COCKPIT_ORNAMENT_STYLE,
-                  visibility: terrainView ? 'hidden' : undefined,
+                  visibility: terrainView || mobileReading ? 'hidden' : undefined,
                 }}
-                aria-hidden={terrainView || undefined}
-                inert={terrainView}
+                aria-hidden={terrainView || mobileReading || undefined}
+                inert={terrainView || mobileReading}
               >
                 <div className={styles.commands} data-battle-command-group="true">
                   <BattleSkillCommand
@@ -3501,6 +3594,7 @@ function BattleExperienceContent({
             <aside
               data-battle-side="selected"
               id="battle-mobile-chronicle"
+              data-battle-mobile-log-workspace="true"
               data-battle-flow-log-target="true"
               aria-label="Battle Chronicle"
             >
@@ -3524,6 +3618,12 @@ function BattleExperienceContent({
 
         <div className={mobileStyles.chronicleBar} data-battle-mobile-chronicle-strip="true">
           <BattleLogPanel
+            logOpen={chronicleOpen}
+            onToggleLog={() => {
+              setTerrainView(false)
+              setChronicleDetailsEpoch((epoch) => epoch + 1)
+              setMobileWorkspace(chronicleOpen ? 'actions' : 'log')
+            }}
             presentation="timeline"
             detailsHost={desktopLayout ? null : chronicleDetailsHost}
             onDetailsOpenChange={handleChronicleDetailsOpen}
@@ -3547,7 +3647,12 @@ function BattleExperienceContent({
           data-battle-mobile-footer="true"
         >
           {capabilities.chat ? (
-            <button type="button" className={styles.chatButton} aria-expanded="false">
+            <button
+              type="button"
+              className={styles.chatButton}
+              data-battle-chat-toggle="true"
+              aria-expanded="false"
+            >
               Chat
             </button>
           ) : null}
@@ -3556,6 +3661,7 @@ function BattleExperienceContent({
               type="button"
               className={styles.battleKey}
               data-pvp-spectator-key="true"
+              aria-label={`Copy battle key ${viewModel.battleKey}`}
               onClick={() => void copyBattleKey()}
             >
               <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
@@ -3610,6 +3716,7 @@ function BattleExperienceContent({
               aria-pressed={terrainView}
               aria-label={terrainView ? 'Back to Actions' : 'Terrain'}
               onClick={() => {
+                setMobileWorkspace('actions')
                 if (!terrainView) setChronicleDetailsEpoch((epoch) => epoch + 1)
                 setTerrainView((current) => !current)
               }}
@@ -3625,12 +3732,23 @@ function BattleExperienceContent({
                 onClick={commitSelected}
                 disabled={planningDisabled || executionPending || !draftTargets.length}
               >
-                Confirm [{draftTargets.length}/{maximumSelections}]
+                <span data-battle-full-label="true">
+                  Confirm [{draftTargets.length}/{maximumSelections}]
+                </span>
+                <span data-battle-compact-label="true" aria-hidden="true">
+                  ✓{draftTargets.length}/{maximumSelections}
+                </span>
               </button>
             ) : null}
             <button
               type="button"
               className={styles.cancelAction}
+              aria-label={
+                currentDescriptor.controlled?.canCancel && !planningDisabled
+                  ? 'Cancel prime'
+                  : 'Cancel Action'
+              }
+              data-battle-cancel-action="true"
               onClick={() => {
                 if (
                   !planningDisabled &&
@@ -3651,9 +3769,14 @@ function BattleExperienceContent({
               }}
               disabled={commitPending}
             >
-              {currentDescriptor.controlled?.canCancel && !planningDisabled
-                ? 'Cancel prime'
-                : 'Cancel Action'}
+              <span data-battle-full-label="true">
+                {currentDescriptor.controlled?.canCancel && !planningDisabled
+                  ? 'Cancel prime'
+                  : 'Cancel Action'}
+              </span>
+              <span data-battle-compact-label="true" aria-hidden="true">
+                Cancel
+              </span>
             </button>
             {runtime.kind === 'pve' ? (
               <button

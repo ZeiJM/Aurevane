@@ -182,9 +182,7 @@ async function loadPublicCharacterPresentationMaps(characterIds: readonly string
 }
 
 export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('list_online_characters_v1')
-  if (error || !Array.isArray(data)) throw unavailable()
+  const data = await loadPresenceRows('list_online_characters_v1')
 
   const base = parseOnlineCharacters(data)
   if (base.length === 0) return base
@@ -212,17 +210,16 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
 }
 
 export async function listCharacterPresenceDirectory(): Promise<CharacterPresenceDirectoryEntry[]> {
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('list_character_presence_directory_v1')
-  if (error || !Array.isArray(data)) throw unavailable()
+  const data = await loadPresenceRows('list_character_presence_directory_v1')
 
   const base: CharacterPresenceDirectoryEntry[] = []
-  for (const row of data) {
+  for (const candidate of data) {
+    if (!candidate || typeof candidate !== 'object') continue
+    const row = candidate as Record<string, unknown>
     if (
-      row &&
-      typeof row === 'object' &&
       typeof row.character_id === 'string' &&
       typeof row.character_name === 'string' &&
+      typeof row.character_level === 'number' &&
       Number.isSafeInteger(row.character_level) &&
       (row.last_seen_at === null || typeof row.last_seen_at === 'string') &&
       typeof row.is_online === 'boolean'
@@ -260,6 +257,32 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
       imageUrl: imageMap.get(row.characterId) ?? null,
     }
   })
+}
+
+async function loadPresenceRows(
+  procedure: 'list_online_characters_v1' | 'list_character_presence_directory_v1',
+): Promise<unknown[]> {
+  const supabase = createSupabaseAdminClient()
+  const rows: unknown[] = []
+  const pageSize = 500
+  let afterId: string | null = null
+
+  // Page the primary RPC as well as its identity hydration. Immutable UUID ordering avoids
+  // missing/duplicating characters when live heartbeat timestamps change between requests.
+  while (true) {
+    const query = supabase.rpc(procedure).order('character_id', { ascending: true }).limit(pageSize)
+    if (afterId !== null) query.gt('character_id', afterId)
+    const { data, error } = await query
+    if (error || !Array.isArray(data)) throw unavailable()
+    rows.push(...data)
+    if (data.length < pageSize) return rows
+
+    const lastRow: unknown = data.at(-1)
+    if (!lastRow || typeof lastRow !== 'object' || !('character_id' in lastRow)) throw unavailable()
+    const nextId = lastRow.character_id
+    if (typeof nextId !== 'string' || (afterId !== null && nextId <= afterId)) throw unavailable()
+    afterId = nextId
+  }
 }
 
 function unavailable(): AurevaneError {
