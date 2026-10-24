@@ -31,7 +31,7 @@ Lobby selectors account for existing duel-specific rules. Side-by-side formation
 
 - Full shared production-component browser regression passed across PvE/PvP at 1920, 1366, 1024, 821, 390, 320 and 844-landscape, plus spectator desktop/mobile cases. Existing movement, attack, pending/repeat, terrain, artwork, keyboard and single-submit checks remain intact.
 - Focused final native-helper/selection probe passed PvE/PvP at 320px, including all twelve reports, actual native helper selection, same-action keyboard reselection, cancellation, nested reader dismissal and final facing. The clipping correction separately passed both playable modes at 844×390.
-- Battle Hall production fixture passed seven existing sizes; lobby production fixture passed sixteen mode/viewport combinations (1v1, 2v2, 3v3, 1v1v1 × 1440, 390, 320, 844-landscape). Profile/switcher rendering passed at 1440, 390 and 320.
+- Battle Hall production fixture passed seven existing sizes; lobby production fixture passed twenty mode/viewport combinations (1v1, 2v2, 3v3, 1v1v1 × 1440, 1366, 390, 320, 844-landscape). Profile/switcher rendering passed at 1440, 1366, 390 and 320.
 - Formatting, lint, all eight package typechecks, 12,363 Vitest tests and seven Node checks passed. Production build passed after the local dependency-path repair described below.
 - Native Playwright discovery found 642 cases in 94 files. Native authenticated suites require GitHub CI; local Docker is unavailable. Their relevant selectors, contextual-reader helpers, focus expectations and explicitly changed mobile marker sizes are updated.
 - Read-only independent review found no remaining Critical or Important production issues. Its stale native 12px expectation finding was corrected without removing containment, direction, meter or authority assertions.
@@ -39,6 +39,20 @@ Lobby selectors account for existing duel-specific rules. Side-by-side formation
 The initial recovered-workspace build could not resolve Next.js because temporary dependency symlinks escaped Turbopack's workspace root. Dependencies were copied into the isolated checkout; no application or deployment configuration was changed to repair this environment issue.
 
 Logs: `/tmp/av-recover-check.log`, `/tmp/av-recover-build.log`, `/tmp/av-recover-types-final.log`, `/tmp/av-recover-full.log`, `/tmp/av-recover-nativehelper.log`, `/tmp/av-recover-landscape.log`, `/tmp/av-recover-lobbies-final.log`, `/tmp/av-recover-native-list.log`.
+
+## CI expectation follow-up
+
+The first PR #977 head `00ff9e90972779148d1ab70d244493a7ad034cc7` completed five workflows successfully and failed four on three stale test contracts:
+
+- Desktop Page Fit `40093301910` and Desktop Experience `40093301908` both expected the cycle value beside the label. The native guard now requires it centered below the label at every tested breakpoint, matching the approved presentation.
+- Controlled Combat `40093301916` waited for the removed preview-menu summary. Its captured-action cases now open the current contextual information button directly and assert that exactly one button is visible and no all-report menu remains. Captured costs/effects, readiness, commands and authority assertions are retained.
+- Browser Smoke `40093301907` required the former marker minimum in its early production targeting probe. Actual mobile badge/SVG dimensions were 8.125px/6.125px. The guard now enforces the approved 8–10px mobile range using the actual responsive query, retains the 6px SVG floor, and retains desktop size, containment, direction, identity and noninteractive checks.
+
+This follow-up changes only tests and this receipt. Application source is unchanged from `00ff9e9`. No retry was launched on the failed head.
+
+Fresh local verification passed: all 76 production targeting cases, all 57 canonical Controlled cases, seven Hall sizes, twenty lobby combinations and four Profile/switcher sizes, including the new centered-and-below cycle assertion. Scoped formatting/lint and web typecheck passed. Independent read-only review found no actionable issues and no further stale expectations in the targeted script/native scan. Authenticated native browser cases still require fresh GitHub results.
+
+Evidence: `/tmp/av-followup-targeting-red.log`, `/tmp/av-followup-targeting-green.log`, `/tmp/av-followup-controlled-green.log`, `/tmp/av-followup-profile-green.log`, `/tmp/av-followup-checks.log`, `/tmp/av-followup-lint-final.log`, `/tmp/av-followup-format-final.log`.
 
 ## Release constraints
 

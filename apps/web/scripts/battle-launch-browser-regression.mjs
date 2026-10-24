@@ -283,6 +283,7 @@ try {
   for (const mode of ['1v1', '2v2', '3v3', '1v1v1']) {
     for (const viewport of [
       { width: 1440, height: 900 },
+      { width: 1366, height: 768 },
       { width: 390, height: 844 },
       { width: 320, height: 640 },
       { width: 844, height: 390 },
@@ -339,6 +340,7 @@ try {
   }
   for (const viewport of [
     { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
     { width: 390, height: 844 },
     { width: 320, height: 640 },
   ]) {
@@ -354,10 +356,15 @@ try {
     const centers = await fact.evaluate((e) => {
       const label = e.querySelector('small').getBoundingClientRect()
       const value = e.querySelector('strong').getBoundingClientRect()
-      return { label: label.x + label.width / 2, value: value.x + value.width / 2 }
+      return {
+        label: label.x + label.width / 2,
+        value: value.x + value.width / 2,
+        labelBottom: label.bottom,
+        valueTop: value.top,
+      }
     })
     assert.ok(
-      Math.abs(centers.label - centers.value) <= 1,
+      Math.abs(centers.label - centers.value) <= 1 && centers.valueTop >= centers.labelBottom - 1,
       `Cycle is centered under its label: ${JSON.stringify(centers)}`,
     )
     await page.screenshot({ path: resolve(output, `profile-arsenal-${viewport.width}.png`) })

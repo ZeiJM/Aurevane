@@ -29,16 +29,10 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
   const cycleValue = await rekindling.locator('strong').boundingBox()
   expect(cycleLabel).not.toBeNull()
   expect(cycleValue).not.toBeNull()
-  if (testInfo.project.name === 'mobile-chromium') {
-    expect(
-      Math.abs(cycleLabel!.x + cycleLabel!.width / 2 - cycleValue!.x - cycleValue!.width / 2),
-    ).toBeLessThanOrEqual(1)
-  } else {
-    expect(cycleValue!.x).toBeGreaterThan(cycleLabel!.x + cycleLabel!.width)
-    expect(
-      Math.abs(cycleLabel!.y + cycleLabel!.height - cycleValue!.y - cycleValue!.height),
-    ).toBeLessThanOrEqual(5)
-  }
+  expect(
+    Math.abs(cycleLabel!.x + cycleLabel!.width / 2 - cycleValue!.x - cycleValue!.width / 2),
+  ).toBeLessThanOrEqual(1)
+  expect(cycleValue!.y).toBeGreaterThanOrEqual(cycleLabel!.y + cycleLabel!.height - 1)
   await rekindling.click()
   const detailPopover = page.getByTestId('profile-detail-popover')
   await expect(detailPopover).toBeVisible()
