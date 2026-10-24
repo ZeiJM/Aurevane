@@ -781,8 +781,8 @@
   }
   .shell[data-battle-mobile-stage='true']
     :global(#battlefield [data-battle-facing-indicator='true']) {
-    width: min(34cqw, 0.7rem) !important;
-    height: min(34cqw, 0.7rem) !important;
+    width: clamp(12px, 34cqw, 14px) !important;
+    height: clamp(12px, 34cqw, 14px) !important;
     padding: 0 !important;
     font-size: min(27cqw, 0.6rem) !important;
   }

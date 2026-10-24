@@ -269,6 +269,36 @@ async function verifyTabRestoredAfterUnmount(page) {
   )
 }
 async function verifyFinalFacing(page, viewport, mode) {
+  if (viewport.width < 821 || viewport.height < 500) {
+    const arrows = await page
+      .locator('#battlefield [data-battle-facing-indicator="true"]')
+      .evaluateAll((elements) =>
+        elements.map((arrow) => {
+          const bounds = arrow.getBoundingClientRect()
+          const tile = arrow.parentElement.getBoundingClientRect()
+          return {
+            width: bounds.width,
+            height: bounds.height,
+            left: bounds.left - tile.left,
+            top: bounds.top - tile.top,
+            right: bounds.right - tile.right,
+            bottom: bounds.bottom - tile.bottom,
+          }
+        }),
+      )
+    assert.ok(arrows.length > 0, 'Production fixture contains facing markers')
+    for (const arrow of arrows) {
+      assert.ok(
+        arrow.width >= 12 && arrow.height >= 12,
+        `Mobile facing markers retain their 12px readability floor: ${JSON.stringify(arrow)}`,
+      )
+      assert.ok(
+        arrow.left >= 1 && arrow.left <= 3 && arrow.top >= -1 && arrow.top <= 3,
+        'Facing markers remain at the tile corner',
+      )
+      assert.ok(arrow.right <= 1 && arrow.bottom <= 1, 'Facing markers remain inside their tile')
+    }
+  }
   const mobile = await page.evaluate(
     () =>
       matchMedia(
