@@ -41,7 +41,7 @@ describe('shared game rail', () => {
       ['/game/character', 'Profile'],
       ['/game/loadout', 'Loadout'],
       ['/game/world', 'World'],
-      ['/game/battle', 'Battle'],
+      ['/game/battle', 'Arena'],
       ['/game/training', 'Training'],
     ]
     const positions = destinations.map(([href, label]) => {

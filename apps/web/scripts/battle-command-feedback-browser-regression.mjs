@@ -239,24 +239,218 @@ async function verifyTabRestoredAfterUnmount(page) {
     'Shift+Tab cycles normally after leaving the mounted battle',
   )
 }
+async function verifyFinalFacing(page, viewport, mode) {
+  const mobile = await page.evaluate(
+    () =>
+      matchMedia(
+        '(max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse)',
+      ).matches,
+  )
+  const deck = page.locator('[data-unified-command-deck]')
+  const finish = deck.locator('[data-battle-command="finish"]')
+  assert.equal(await page.locator('[data-battle-brand-crest]').count(), 1)
+  await page.evaluate(() => document.fonts.ready)
+  const boardBeforeReading = await page.locator('[data-board-auto-fit]').boundingBox()
+  const terrain = page.getByRole('button', { name: 'Terrain', exact: true })
+  await terrain.click()
+  const picker = page.locator('[data-terrain-preview-picker]')
+  assert.equal(await picker.getByRole('button').count(), 6)
+  await picker.getByRole('button', { name: 'Neutral ground', exact: true }).click()
+  assert.match(
+    await page.locator('[data-battle-terrain-description]').innerText(),
+    /Normal ground costs/,
+  )
+  await page.getByRole('button', { name: 'Back to Actions', exact: true }).click()
+  assert.deepEqual(
+    await page.locator('[data-board-auto-fit]').boundingBox(),
+    boardBeforeReading,
+    'Terrain preserves the battlefield geometry',
+  )
+  if (mobile) {
+    const menu = page.locator('[data-battle-preview-info]')
+    const summary = menu.locator('summary')
+    await summary.focus()
+    await summary.press('Space')
+    assert.notEqual(await menu.getAttribute('open'), null)
+    await page.keyboard.press('KeyW')
+    assert.equal(
+      await page.locator('main[data-unified-battle]').getAttribute('data-battle-action-mode'),
+      'none',
+      'Reading the menu cannot issue a movement command',
+    )
+    await menu.getByRole('button', { name: 'About Basic Attack', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Basic Attack', exact: true }).waitFor()
+    await page.keyboard.press('Escape')
+    assert.equal(
+      await menu.getAttribute('open'),
+      null,
+      'Escape also dismisses the information menu',
+    )
+    if (viewport.width === 390) {
+      await summary.press('Space')
+      await page.setViewportSize({ width: 1366, height: 768 })
+      await page.waitForFunction(() => !document.querySelector('[data-battle-preview-info]').open)
+      await page.locator('main[data-unified-battle]').focus()
+      await page.keyboard.press('KeyI')
+      assert.equal(
+        await page.locator('main[data-unified-battle]').getAttribute('data-battle-action-mode'),
+        'inspect',
+        'Desktop shortcuts work after closing the hidden touch menu',
+      )
+      await page.keyboard.press('Escape')
+      await page.setViewportSize(viewport)
+      await page.evaluate(
+        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+      )
+    }
+    assert.equal(
+      await page.evaluate(
+        () => window.calls.filter((row) => /\/(commit|intents|final-turn)$/.test(row.path)).length,
+      ),
+      0,
+      'Information menu submits no commands',
+    )
+  }
+  const geometry = await deck.evaluate((element) => {
+    const bounds = element.getBoundingClientRect()
+    const cards = [
+      ...element.querySelectorAll(
+        '[data-command-card], [data-battle-skill-slot], [data-battle-special]',
+      ),
+    ]
+      .map((card) => ({
+        id:
+          card.getAttribute('data-command-card') ??
+          card.getAttribute('data-battle-skill-slot') ??
+          card.getAttribute('data-battle-special'),
+        rect: card.querySelector('[data-av-square-media], :scope > span').getBoundingClientRect(),
+      }))
+      .sort((a, b) => a.rect.y - b.rect.y || a.rect.x - b.rect.x)
+    const captions = [
+      ...element.querySelectorAll('[data-battle-selected-skills] article > small'),
+    ].filter((caption) => caption.getBoundingClientRect().height > 0)
+    return {
+      order: cards.map((card) => card.id),
+      gaps: cards.slice(1).map((card, i) => card.rect.x - cards[i].rect.right),
+      captionsFit: captions.every((caption) => {
+        const range = document.createRange()
+        range.selectNodeContents(caption)
+        const text = range.getBoundingClientRect()
+        const box = caption.getBoundingClientRect()
+        return (
+          text.bottom <= box.bottom + 1 &&
+          text.bottom <= bounds.bottom - 1 &&
+          caption.scrollWidth <= caption.clientWidth + 1
+        )
+      }),
+      captionGlyphsFit: captions.every((caption) => {
+        const range = document.createRange()
+        range.selectNodeContents(caption)
+        return range.getBoundingClientRect().bottom <= caption.getBoundingClientRect().bottom + 1
+      }),
+      headerHeight: document.querySelector('[data-unified-battle-header]').getBoundingClientRect()
+        .height,
+      headerTextFits: [...document.querySelectorAll('[data-unified-battle-header] strong')].every(
+        (label) => {
+          const range = document.createRange()
+          range.selectNodeContents(label)
+          return range.getBoundingClientRect().bottom <= label.getBoundingClientRect().bottom + 1
+        },
+      ),
+    }
+  })
+  assert.equal(
+    mobile ? geometry.captionGlyphsFit : geometry.captionsFit,
+    true,
+    'Discipline captions retain full glyph height; desktop labels fit the cockpit',
+  )
+  assert.equal(geometry.headerTextFits, true, 'Header text has room for its full glyph height')
+  if (!mobile) {
+    assert.equal(
+      geometry.order.at(-1),
+      'finish',
+      'Desktop End Turn follows every Skill and special slot',
+    )
+    assert.ok(
+      Math.max(...geometry.gaps) - Math.min(...geometry.gaps) <= 1,
+      `Every desktop artwork gap is equal: ${JSON.stringify(geometry.gaps)}`,
+    )
+    assert.ok(geometry.headerHeight <= 56, `Desktop header stays compact: ${geometry.headerHeight}`)
+  } else {
+    assert.deepEqual(geometry.order.slice(0, 6), [
+      'items',
+      'inspect',
+      'move',
+      'attack',
+      'guard',
+      'finish',
+    ])
+  }
+  const boardBefore = await page.locator('[data-board-auto-fit]').boundingBox()
+  if (mobile) await finish.tap()
+  else await finish.click()
+  const facing = page
+    .locator('[data-battle-preview-strip]')
+    .getByRole('group', { name: 'Choose final facing', exact: true })
+  await facing.waitFor({ state: 'visible' })
+  assert.equal(
+    await deck.locator('[data-unified-facing-pad], button[aria-label^="Face "]').count(),
+    0,
+    'No duplicate cockpit direction controls',
+  )
+  assert.equal(await facing.getByRole('button').count(), 4)
+  assert.equal(
+    await page.evaluate(
+      () => window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path)).length,
+    ),
+    0,
+    'Opening End Turn never submits',
+  )
+  const north = facing.getByRole('button', { name: 'Face north', exact: true })
+  const color = await north.evaluate((button) =>
+    getComputedStyle(button).backgroundColor.match(/\d+/g).slice(0, 3).map(Number),
+  )
+  assert.ok(
+    color[0] > color[1] * 1.5 && color[0] > color[2] * 1.5,
+    'Preview direction buttons are red',
+  )
+  const boardAfter = await page.locator('[data-board-auto-fit]').boundingBox()
+  assert.deepEqual(boardAfter, boardBefore, 'Opening facing never resizes the battlefield')
+  await page.screenshot({
+    path: resolve(output, `${mode}-${viewport.width}-final-facing.png`),
+    fullPage: true,
+  })
+  if (mobile) await north.tap()
+  else await north.click()
+  await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+  const commits = await page.evaluate(() =>
+    window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path)),
+  )
+  assert.equal(commits.length, 1, 'One direction gesture sends exactly one authoritative request')
+  assert.equal(mode === 'pve' ? commits[0].body.facing : commits[0].body.intent.facing, 'north')
+}
 try {
   for (const mode of ['pve', 'pvp', 'spectator']) {
     for (const viewport of [
+      { width: 1920, height: 1080 },
       { width: 1366, height: 768 },
       { width: 1024, height: 768 },
       { width: 821, height: 768 },
       { width: 390, height: 844 },
+      { width: 320, height: 640 },
+      { width: 844, height: 390 },
     ]) {
       for (const gesture of mode === 'spectator'
         ? ['tab-focus']
-        : ['move-pointer', 'move-direction', 'attack-pointer']) {
+        : ['final-facing', 'move-pointer', 'move-direction', 'attack-pointer']) {
+        if (viewport.height < 500 && gesture !== 'final-facing') continue
         const captureFlames =
           mode === 'pve' && viewport.width === 1366 && gesture === 'move-pointer'
         const page = await browser.newPage({
           viewport,
           ...(captureFlames ? { recordVideo: { dir: output, size: viewport } } : {}),
-          isMobile: viewport.width < 821,
-          hasTouch: viewport.width < 821,
+          isMobile: viewport.width < 821 || viewport.height < 500,
+          hasTouch: viewport.width < 821 || viewport.height < 500,
         })
         page.setDefaultTimeout(5000)
         page.on('pageerror', (error) => errors.push(error.message))
@@ -266,6 +460,33 @@ try {
         )
         const root = page.locator('main')
         await root.waitFor()
+        if (gesture === 'final-facing') {
+          if (viewport.width < 821 || viewport.height < 500) {
+            await root.focus()
+            await page.keyboard.press('Digit9')
+            const reader = page.locator('[data-battle-info-panel]')
+            await reader.waitFor({ state: 'visible' })
+            assert.match(await reader.innerText(), /Severance \/ Ascension/)
+            assert.equal(
+              await page.evaluate(
+                () =>
+                  window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path))
+                    .length,
+              ),
+              0,
+              'A mobile hardware reader shortcut never submits a command',
+            )
+            await page.keyboard.press('Escape')
+            await reader.waitFor({ state: 'hidden' })
+            await page.keyboard.press('Escape')
+          }
+          await verifyFinalFacing(page, viewport, mode)
+          await page.close()
+          console.log(
+            `${mode} ${viewport.width}: cockpit spacing, captions, header and preview-only final facing passed`,
+          )
+          continue
+        }
         if (mode === 'pvp' && gesture === 'move-pointer') await verifyChatComposer(page)
         if (captureFlames) {
           // Record the actual shared emblem for visual review through a full slow glow cycle.
@@ -312,22 +533,23 @@ try {
             expected,
             frames: frames.map(({ width, height }) => ({ width, height })),
             overflows: document.documentElement.scrollWidth > innerWidth,
-            itemsCaptionFits:
-              itemsCaption.scrollWidth <= itemsCaption.clientWidth + 1 &&
-              itemsCaption.getBoundingClientRect().bottom <=
-                deck.getBoundingClientRect().bottom + 1,
+            itemsCaptionRemoved: itemsCaption === null,
             footerGap:
               document.querySelector('[data-unified-battle-footer]').getBoundingClientRect().top -
               deck.getBoundingClientRect().bottom,
           }
         })
         assert.equal(geometry.overflows, false, 'Items introduces no horizontal page overflow')
-        assert.equal(geometry.itemsCaptionFits, true, 'Coming soon stays fully inside the cockpit')
+        assert.equal(
+          geometry.itemsCaptionRemoved,
+          true,
+          'Coming soon no longer takes cockpit space',
+        )
         if (viewport.width >= 821)
           assert.ok(geometry.footerGap >= 4, 'Cockpit keeps a visible inset above the footer')
         for (const frame of geometry.frames) {
           assert.ok(
-            Math.abs(frame.width - geometry.expected) <= 1,
+            frame.width <= geometry.expected + 1 && frame.width >= Math.min(24, geometry.expected),
             'Cockpit artwork preserves its existing shared size',
           )
           assert.ok(Math.abs(frame.width - frame.height) <= 1, 'Every artwork frame stays square')

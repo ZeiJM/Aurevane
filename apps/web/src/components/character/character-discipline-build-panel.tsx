@@ -937,7 +937,13 @@ export function CharacterDisciplineBuildPanel({
                       </p>
                     ) : null}
                     {message ? (
-                      <p className={styles.status} role="status">
+                      <p
+                        className={styles.status}
+                        role="status"
+                        data-discipline-commit-success={
+                          message === 'Discipline changes committed.' || undefined
+                        }
+                      >
                         {message}
                       </p>
                     ) : null}

@@ -75,12 +75,13 @@ describe('PvP desktop battle layout authority', () => {
     expect(mobileCss).not.toContain('width: 8.4rem')
   })
 
-  it('keeps live terrain help in the shared footer toggle', () => {
+  it('keeps live terrain help in the shared cockpit and preview', () => {
     const experience = readLocalFile('battle-experience.tsx')
     const presentationPolish = readLocalFile('battle-terrain-presentation-polish.tsx')
     expect(experience).not.toContain('aria-label="Terrain legend"')
     expect(experience).not.toContain('<BattleMapKey />')
-    expect(experience).toContain('<BattleTerrainToggle snapshot={battle.snapshot} />')
+    expect(experience).toContain('data-battle-terrain-description="true"')
+    expect(experience).toContain('onSelect={(terrain) => setTerrainKind(terrain.kind)}')
     expect(presentationPolish).toContain('syncLegendTerminology(battlefield)')
     expect(presentationPolish).toContain("[aria-label='Terrain legend'] > span")
     expect(presentationPolish).not.toContain("document.createElement('div')")

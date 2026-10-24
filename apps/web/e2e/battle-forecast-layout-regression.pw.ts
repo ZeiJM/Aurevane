@@ -1,3 +1,4 @@
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -674,6 +675,7 @@ async function exerciseForecast(
         ).toBeVisible()
         await check(`${name}-ready`)
         await expectNoSkillPreviewMetadata(preview)
+        await openBattleInfoMenu(page)
         const informationTrigger = page.getByRole('button', { name: `About ${name}`, exact: true })
         await informationTrigger.click()
         const parameters = page.getByRole('dialog', { name, exact: true })

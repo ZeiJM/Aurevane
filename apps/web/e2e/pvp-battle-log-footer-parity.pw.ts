@@ -54,7 +54,7 @@ test('keeps the fixed mobile Chronicle and battlefield steady through scrolling 
   await expect(actions.last()).toBeInViewport()
   expect(await measure()).toEqual(before)
   await actions.last().click()
-  const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+  const details = page.getByRole('region', { name: /Chronicle action:/i })
   await expect(details).toBeVisible()
   await expect(details).toContainText('20 damage')
   await expect(details).not.toContainText('rollBasisPoints')

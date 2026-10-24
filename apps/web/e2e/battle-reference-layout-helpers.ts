@@ -500,7 +500,7 @@ export async function expectBattleFlowKeepsBoardSize(page: Page) {
       const action = timeline.getByRole('button', { name: /Show Chronicle details/i }).last()
       if (await action.count()) {
         await action.click()
-        await expect(mobile.getByRole('dialog', { name: /Chronicle action:/i })).toBeVisible()
+        await expect(page.getByRole('region', { name: /Chronicle action:/i })).toBeVisible()
         await page.keyboard.press('Escape')
       }
       const after = await sizes()

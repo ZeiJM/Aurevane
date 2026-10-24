@@ -11,13 +11,17 @@ function openSurface(selector: string) {
 }
 afterEach(() => vi.unstubAllGlobals())
 describe('combat shortcuts while reading', () => {
-  it.each(['[role="dialog"][aria-modal="true"]', 'dialog[open]', '[data-battle-info-panel]'])(
-    'blocks actions with %s open even when focus stays on the battlefield',
-    (surface) => {
-      openSurface(surface)
-      expect(isBattleShortcutBlocked(null)).toBe(true)
-    },
-  )
+  it.each([
+    '[role="dialog"][aria-modal="true"]',
+    'dialog[open]',
+    '[data-battle-info-panel]',
+    '[data-battle-preview-info][open]',
+    '[data-battle-chronicle-detail-open]',
+    '[data-battle-terrain-view]',
+  ])('blocks actions with %s open even when focus stays on the battlefield', (surface) => {
+    openSurface(surface)
+    expect(isBattleShortcutBlocked(null)).toBe(true)
+  })
 })
 
 describe('closed information trigger focus', () => {

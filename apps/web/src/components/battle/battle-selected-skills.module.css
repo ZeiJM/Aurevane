@@ -20,11 +20,12 @@
 .future {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-content: start;
   grid-template-rows:
     var(--av-cockpit-art-size) minmax(var(--battle-command-name-height), max-content)
-    1.125rem auto;
+    minmax(1.125rem, max-content) auto;
   gap: var(--battle-command-gap);
   padding-top: 1px;
   min-width: 0;
@@ -85,7 +86,8 @@
 .skill > small,
 .special > small,
 .future small {
-  font: 500 0.6875rem/1.15 var(--av-font-body);
+  font: 500 0.6875rem/1.4 var(--av-font-body);
+  padding-bottom: 2px;
   color: #67543d;
   max-width: 100%;
   overflow: hidden;
@@ -141,7 +143,7 @@
   display: grid;
   grid-template-rows:
     var(--av-cockpit-art-size) minmax(var(--battle-command-name-height), max-content)
-    1.125rem auto;
+    minmax(1.125rem, max-content) auto;
   justify-items: center;
   gap: var(--battle-command-gap);
   padding: 1px 0 0;
@@ -291,6 +293,10 @@
   .future > small {
     grid-row: 4;
     align-self: start;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+    text-overflow: clip;
   }
   .copied {
     position: relative;

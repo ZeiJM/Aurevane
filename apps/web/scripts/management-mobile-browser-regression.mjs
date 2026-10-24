@@ -202,9 +202,14 @@ try {
         await dialog.getByRole('button', { name: 'Edit Secondary Discipline', exact: true }).click()
         await dialog.getByRole('button', { name: 'Remove Secondary Discipline' }).click()
         await page
-          .getByRole('status')
+          .getByRole('status', { includeHidden: true })
           .filter({ hasText: 'Discipline changes committed.' })
-          .waitFor()
+          .waitFor({ state: 'attached' })
+        assert.equal(
+          await dialog.getByText('Discipline changes committed.', { exact: true }).isVisible(),
+          false,
+          'Mobile successful saves do not add a status bar',
+        )
         assert.match(
           await dialog
             .getByRole('button', { name: 'Edit Secondary Discipline', exact: true })
@@ -241,16 +246,46 @@ try {
             'mobile choices should use compact art: ' + JSON.stringify(before),
           )
           assert.ok(
-            before.preview.height >= height * 0.42,
+            before.preview.height >= (landscapePhone ? 88 : height * 0.42),
             'frozen preview needs more room: ' + JSON.stringify(before),
           )
           assert.ok(before.list.bottom <= before.preview.y + 1, 'chooser must not overlap preview')
+          const previewPane = dialog.getByTestId('technique-preview')
+          const reader = previewPane.locator('[data-technique-preview-details]')
+          const fixedActions = previewPane.locator('[data-technique-preview-actions]')
+          assert.equal(await reader.count(), 1, 'Only the details own preview scrolling')
+          const primaryCard = dialog
+            .locator('[data-technique-category="primary"] [data-technique-card]')
+            .first()
+          const cardSize = await primaryCard.boundingBox()
+          const centered = await primaryCard.evaluate((card) => {
+            const box = card.getBoundingClientRect(),
+              art = card.querySelector('img').getBoundingClientRect(),
+              name = card.querySelector('strong').getBoundingClientRect()
+            return {
+              x: Math.abs(art.x + art.width / 2 - box.x - box.width / 2),
+              y: Math.abs((art.y + name.bottom) / 2 - box.y - box.height / 2),
+            }
+          })
+          assert.ok(
+            centered.x <= 1 && centered.y <= 3,
+            'Skill artwork and name form a centered group: ' + JSON.stringify(centered),
+          )
+          const actionBefore = await fixedActions.boundingBox()
+          await reader.evaluate((node) => (node.scrollTop = node.scrollHeight))
+          const actionAfter = await fixedActions.boundingBox()
+          const readerBox = await reader.boundingBox()
+          assert.deepEqual(actionAfter, actionBefore, 'Scrolling details never moves Equip')
+          assert.ok(
+            readerBox.y + readerBox.height <= actionAfter.y + 1,
+            'Details end before the fixed action boundary',
+          )
           const equip = dialog.getByRole('button', { name: 'Equip technique', exact: true })
           await equip.click()
           await dialog.getByRole('button', { name: 'Remove from loadout', exact: true }).waitFor()
           assert.equal(await page.evaluate(() => window.calls.length), 1)
           const rail = dialog.getByTestId('technique-preview')
-          await rail.evaluate((n) => (n.scrollTop = n.scrollHeight))
+          await reader.evaluate((n) => (n.scrollTop = n.scrollHeight))
           await dialog.getByRole('button', { name: 'Remove from loadout', exact: true }).click()
           await equip.waitFor()
           assert.equal(await page.evaluate(() => window.calls.length), 2)
@@ -258,6 +293,20 @@ try {
           if (await supportTab.isVisible()) {
             await supportTab.click()
             assert.equal(await supportTab.getAttribute('aria-selected'), 'true')
+          }
+          const supportCells = dialog.locator('[data-support-action-group] [role="radiogroup"] > *')
+          assert.equal(
+            await supportCells.count(),
+            8,
+            'Support retains the same eight visible grid positions',
+          )
+          for (const cell of await supportCells.all()) {
+            const size = await cell.boundingBox()
+            assert.ok(
+              Math.abs(size.width - cardSize.width) <= 1 &&
+                Math.abs(size.height - cardSize.height) <= 1,
+              'Support cells match Discipline cell sizes: ' + JSON.stringify({ size, cardSize }),
+            )
           }
           await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).click()
           const useSupport = dialog.getByRole('button', { name: 'Use as Support Action' })

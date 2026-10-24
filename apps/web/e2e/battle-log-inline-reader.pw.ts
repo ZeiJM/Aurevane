@@ -103,7 +103,7 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     const before = await readBoardGeometry(board)
     const frameBefore = await readMobileFrame(page)
     await actions.first().click()
-    const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+    const details = page.getByRole('region', { name: /Chronicle action:/i })
     await expect(details).toBeVisible()
     await expect(details).toContainText(characterName)
     await expect(details).toContainText('1 damage')

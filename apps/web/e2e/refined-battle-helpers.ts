@@ -91,12 +91,26 @@ export async function expectRefinedCockpit(page: Page) {
       ...element.querySelectorAll(
         '[data-command-card], [data-battle-skill-slot], [data-battle-special]',
       ),
-    ].map(
-      (node) =>
-        node.getAttribute('data-command-card') ??
-        node.getAttribute('data-battle-skill-slot') ??
-        node.getAttribute('data-battle-special'),
-    ),
+    ]
+      .sort((a, b) =>
+        !window.matchMedia(
+          '(max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse)',
+        ).matches
+          ? a.getBoundingClientRect().x - b.getBoundingClientRect().x
+          : 0,
+      )
+      .map(
+        (node) =>
+          node.getAttribute('data-command-card') ??
+          node.getAttribute('data-battle-skill-slot') ??
+          node.getAttribute('data-battle-special'),
+      ),
+  )
+  const desktop = await page.evaluate(
+    () =>
+      !window.matchMedia(
+        '(max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse)',
+      ).matches,
   )
   expect(order).toEqual([
     'items',
@@ -104,13 +118,14 @@ export async function expectRefinedCockpit(page: Page) {
     'move',
     'attack',
     'guard',
-    'finish',
+    ...(!desktop ? ['finish'] : []),
     '1',
     '2',
     '3',
     '4',
     expect.stringMatching(/essence|resonance/),
     'supernatural',
+    ...(desktop ? ['finish'] : []),
   ])
   const scrollContainers = page.locator(
     '[data-battle-mobile-lower-panel], [data-battle-selected-skills]',

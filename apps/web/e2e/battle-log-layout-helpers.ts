@@ -9,7 +9,7 @@ export async function setBattleChronicleOpen(page: Page, open: boolean) {
     await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
     if (!open) {
       await page.keyboard.press('Escape')
-      await expect(timeline.getByRole('dialog', { name: /Chronicle action:/i })).toHaveCount(0)
+      await expect(page.getByRole('region', { name: /Chronicle action:/i })).toHaveCount(0)
     }
   } else if (open) {
     await expect(page.locator('[data-battle-inline-log] [data-battle-chronicle]')).toBeVisible()
@@ -71,7 +71,7 @@ export async function expectReadableBattleLog(
     const before = await geometry()
     if (await action.count()) {
       await action.click()
-      const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+      const details = page.getByRole('region', { name: /Chronicle action:/i })
       await expect(details).toBeVisible()
       await expect(details).not.toContainText('rollBasisPoints')
       await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)

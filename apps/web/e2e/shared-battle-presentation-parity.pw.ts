@@ -390,7 +390,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
         .last()
       await expect(guardAction).toBeVisible()
       await guardAction.click()
-      const details = timeline.getByRole('dialog', { name: /Chronicle action:/i })
+      const details = activePage.getByRole('region', { name: /Chronicle action:/i })
       await expect(details).toBeVisible()
       await expect(details).toContainText('Guard')
       await expect(details).toContainText(activeName)

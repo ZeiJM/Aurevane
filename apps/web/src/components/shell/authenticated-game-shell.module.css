@@ -999,7 +999,7 @@
   .worldFrame .shell .masthead {
     height: 2.9rem !important;
     grid-template-columns: auto minmax(0, 1fr) auto !important;
-    grid-template-rows: 2.9rem !important;
+    grid-template-rows: minmax(0, 1fr) !important;
     padding-block: 0.25rem !important;
     gap: 0.3rem !important;
   }
@@ -1027,7 +1027,7 @@
   }
   .worldFrame .shell .masthead :global(.brand) {
     align-self: center;
-    margin-top: -0.2rem;
+    margin-top: 0;
     line-height: 1;
   }
   .worldFrame .shell .mastheadUtility {

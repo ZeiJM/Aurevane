@@ -8,7 +8,7 @@ import {
   type CombatKeybindMap,
 } from '@aurevane/validation/player/combat-controls'
 import { ResonanceParameters } from '../character/resonance-parameters'
-import { BattleInfoPopover } from './battle-info-popover'
+import { BattleCockpitInfo } from './battle-cockpit-info'
 import { battleCooldownLabel } from './battle-action-cooldown'
 import { BattleSkillCooldown } from './battle-skill-cooldown'
 import { BattleControlledReady } from './battle-controlled-ready'
@@ -35,15 +35,18 @@ function disciplineName(id: string): string {
 function SkillControls({
   title,
   hotkey,
+  shortcutAction,
   children,
 }: {
   title: string
   hotkey: string
+  shortcutAction: string
   children: ReactNode
 }) {
   return (
     <div className={styles.controls} data-battle-cockpit-controls="true">
-      <BattleInfoPopover
+      <BattleCockpitInfo
+        shortcutAction={shortcutAction}
         label={`About ${title}`}
         title={title}
         trigger="i"
@@ -51,7 +54,7 @@ function SkillControls({
         className={styles.infoTrigger}
       >
         {children}
-      </BattleInfoPopover>
+      </BattleCockpitInfo>
       <span className={styles.number}>{hotkey}</span>
     </div>
   )
@@ -207,7 +210,11 @@ export function BattleSelectedSkills({
                     </span>
                     <strong>{skill.name}</strong>
                   </button>
-                  <SkillControls title={skill.name} hotkey={hotkey}>
+                  <SkillControls
+                    title={skill.name}
+                    hotkey={hotkey}
+                    shortcutAction={`skill${index + 1}`}
+                  >
                     <BattleSkillParameters
                       skill={skill}
                       costLabel={payment?.costLabel}
@@ -226,7 +233,11 @@ export function BattleSelectedSkills({
                     +
                   </span>
                   <strong>Empty</strong>
-                  <SkillControls title={`selected Skill slot ${index + 1}`} hotkey={hotkey}>
+                  <SkillControls
+                    title={`selected Skill slot ${index + 1}`}
+                    hotkey={hotkey}
+                    shortcutAction={`skill${index + 1}`}
+                  >
                     <p>No Skill is equipped in this committed battle slot.</p>
                   </SkillControls>
                 </>
@@ -273,6 +284,7 @@ export function BattleSelectedSkills({
             </button>
             <SkillControls
               title={runtime.essence.name}
+              shortcutAction="essence"
               hotkey={formatCombatKeybind(bindings.essence)}
             >
               <p>{runtime.essence.description}</p>
@@ -335,6 +347,7 @@ export function BattleSelectedSkills({
             )}
             <SkillControls
               title={runtime.resonance.name}
+              shortcutAction="essence"
               hotkey={formatCombatKeybind(bindings.essence)}
             >
               {!runtime.resonance.definition ? <p>{runtime.resonance.description}</p> : null}
@@ -353,6 +366,7 @@ export function BattleSelectedSkills({
             <strong>Essence / Resonance</strong>
             <SkillControls
               title="Essence / Resonance"
+              shortcutAction="essence"
               hotkey={formatCombatKeybind(bindings.essence)}
             >
               <p>No Essence or Resonance is equipped in this battle.</p>
@@ -368,6 +382,7 @@ export function BattleSelectedSkills({
         <strong>Severance / Ascension</strong>
         <SkillControls
           title="Severance / Ascension"
+          shortcutAction="supernatural"
           hotkey={formatCombatKeybind(bindings.supernatural)}
         >
           <p>This supernatural path is coming soon. No combat ability is equipped here yet.</p>

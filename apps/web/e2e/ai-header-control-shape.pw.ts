@@ -26,7 +26,7 @@ test('keeps contextual terrain help in the side key and Victory Conditions in th
 
   const battleHallLink = page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle/ })
+    .getByRole('link', { name: /Arena/ })
   await battleHallLink.focus()
   await battleHallLink.press('Enter')
 

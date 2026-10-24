@@ -35,7 +35,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battleHallLink = page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle/ })
+    .getByRole('link', { name: /Arena/ })
   await battleHallLink.focus()
   await expect(battleHallLink).toBeFocused()
   await battleHallLink.press('Enter')
@@ -92,7 +92,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const attackButton = commandDeck.locator('button[data-battle-command="attack"]')
   const guardButton = commandDeck.locator('button[data-battle-command="guard"]')
   const finishButton = commandDeck.getByRole('button', { name: /^End Turn,/ })
-  const facingPad = commandDeck.locator('[data-unified-facing-pad="true"]')
+  const facingPad = commandContext.getByRole('group', { name: 'Choose final facing', exact: true })
   const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
   const apRemaining = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
@@ -283,7 +283,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     const guardAction = strip.getByRole('button', { name: /Guard.*Show Chronicle details/i }).last()
     await expect(guardAction).toBeVisible()
     await guardAction.click()
-    const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+    const details = page.getByRole('region', { name: /Chronicle action:/i })
     await expect(details).toBeVisible()
     await expect(details).toContainText(characterName)
     await expect(details).toContainText('Guard')

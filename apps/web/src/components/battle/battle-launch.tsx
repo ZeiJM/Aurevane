@@ -491,7 +491,7 @@ export function BattleLaunch({
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
             <div className={styles.arenaControlRow}>
               <label>
-                <span>Arena</span>
+                <span>Field</span>
                 <select
                   aria-label="AI sparring arena"
                   value={arenaId}

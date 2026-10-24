@@ -23,7 +23,7 @@ export const gameNavigation = [
   { href: '/game/world', label: 'World', detail: 'Explore the world', symbol: '✥', icon: 'world' },
   {
     href: '/game/battle',
-    label: 'Battle',
+    label: 'Arena',
     detail: 'Battle Hall, direct PvP and spectation',
     symbol: '⚔',
     icon: 'battle',
