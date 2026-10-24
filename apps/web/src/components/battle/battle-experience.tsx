@@ -71,6 +71,7 @@ import { battleRangePreviewIntents } from './battle-range-previews'
 import { requestBattlePreview } from './battle-preview-request'
 import { BattleChronicleHeading } from './battle-chronicle-heading'
 import { BattleTerrainToggle } from './battle-terrain-toggle'
+import { BattleMapKey } from './battle-map-key'
 import { BattleInfoPopover } from './battle-info-popover'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
@@ -372,7 +373,8 @@ function BattleExperienceContent({
   runtime: BattleRuntime
 }) {
   const router = useRouter()
-  const { chronicleOpen, lowerPanelRef, toggleChronicle } = useBattleMobileChronicle()
+  const { chronicleOpen, lowerPanelRef } = useBattleMobileChronicle()
+  const [terrainView, setTerrainView] = useState(false)
   const [battle, setBattleState] = useState(initialBattle)
   const [mode, setMode] = useState<Mode>('none')
   const [path, setPath] = useState<BattleGridPosition[]>([])
@@ -2757,6 +2759,9 @@ function BattleExperienceContent({
                 />
               ) : null}
             </div>
+            <span className={styles.mobileCrest} aria-label="Aurevane" role="img">
+              A
+            </span>
           </div>
 
           <div data-battle-header-utilities="true">
@@ -3177,248 +3182,287 @@ function BattleExperienceContent({
           >
             <section data-battle-preview-strip="true" aria-label="Target forecast">
               <strong data-battle-instruction-title="true">{contextTitle}</strong>
-              <BattleActionPreview
-                aimSource={targetAim.aimSource}
-                preview={
-                  preview?.battleVersion === battle.battleVersion &&
-                  (preview.preview.kind !== 'action' || selectedActionPreview)
-                    ? preview.preview
-                    : null
-                }
-                pending={previewPending}
-                rangePreviews={rangePreviews}
-                rangePreviewsPending={rangePreviewsPending}
-                rangePreviewActionId={rangePreviewActionId}
-                skill={activeTechnique}
-                targetTile={
-                  previewTargetPosition
-                    ? tactical.tiles.find((tile) =>
-                        positionsEqual(tile.position, previewTargetPosition),
-                      )
-                    : undefined
-                }
-                targetOverlay={
-                  previewTargetPosition
-                    ? terrainOverlayAt(battle.snapshot, previewTargetPosition)?.kind
-                    : undefined
-                }
-                participants={Array.from(viewModel.participantByCombatant.values())}
-                notice={contextDescription}
-              />
+              {mode === 'finish' ? (
+                <div className={styles.previewFacing} role="group" aria-label="Choose final facing">
+                  <span>Choose facing</span>
+                  {(['north', 'south', 'west', 'east'] as const).map((facing) => (
+                    <button
+                      type="button"
+                      key={facing}
+                      aria-label={`Face ${facing}`}
+                      disabled={
+                        planningDisabled ||
+                        ((battle.snapshot.elementalDamagePolicyVersion === 1 ||
+                          battle.snapshot.elementalDamagePolicyVersion === 2) &&
+                          !!localCombatantId &&
+                          hasGameplayTag(
+                            battle.snapshot,
+                            localCombatantId,
+                            'Frozen',
+                            PV1F_COMBAT_CONTENT,
+                          ) &&
+                          facing !== localPlacement?.facing)
+                      }
+                      onClick={() => void commitValue({ kind: 'face', facing })}
+                    >
+                      {facingGlyph(facing)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <BattleActionPreview
+                  aimSource={targetAim.aimSource}
+                  preview={
+                    preview?.battleVersion === battle.battleVersion &&
+                    (preview.preview.kind !== 'action' || selectedActionPreview)
+                      ? preview.preview
+                      : null
+                  }
+                  pending={previewPending}
+                  rangePreviews={rangePreviews}
+                  rangePreviewsPending={rangePreviewsPending}
+                  rangePreviewActionId={rangePreviewActionId}
+                  skill={activeTechnique}
+                  targetTile={
+                    previewTargetPosition
+                      ? tactical.tiles.find((tile) =>
+                          positionsEqual(tile.position, previewTargetPosition),
+                        )
+                      : undefined
+                  }
+                  targetOverlay={
+                    previewTargetPosition
+                      ? terrainOverlayAt(battle.snapshot, previewTargetPosition)?.kind
+                      : undefined
+                  }
+                  participants={Array.from(viewModel.participantByCombatant.values())}
+                  notice={contextDescription}
+                />
+              )}
             </section>
             <div data-battle-command-dock="true">
-              <section
-                className={styles.commandDeck}
-                aria-label="Command Deck"
-                data-unified-command-deck="true"
-                style={COCKPIT_ORNAMENT_STYLE}
-              >
-                <div className={styles.commands} data-battle-command-group="true">
-                  <BattleSkillCommand
-                    characterStats={characterStats}
-                    slot="items"
-                    hotkey={formatCombatKeybind(bindings.items)}
-                    label="Items"
-                    cost="Coming soon"
-                    artworkSrc={BATTLE_MISSING_ARTWORK}
-                    active={false}
-                    disabled
-                    onActivate={() => {}}
-                  >
-                    <small data-battle-items-locked="true">Coming soon</small>
-                  </BattleSkillCommand>
-                  <BattleSkillCommand
-                    characterStats={characterStats}
-                    slot="inspect"
-                    hotkey={formatCombatKeybind(bindings.inspect)}
-                    label="Inspect"
-                    cost="Free"
-                    artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
-                    active={mode === 'inspect'}
-                    disabled={false}
-                    onActivate={() => chooseMode('inspect')}
-                  />
-                  <BattleSkillCommand
-                    characterStats={characterStats}
-                    slot="move"
-                    hotkey={formatCombatKeybind(bindings.move)}
-                    label={basicMove?.name ?? 'Move'}
-                    cost={battleBasicCostLabel(
-                      basicMove,
-                      `${MOVE_COST_PER_TERRAIN_POINT} AP`,
-                      basicBehaviorId('basic.move'),
-                    )}
-                    basicAction={basicMove}
-                    behaviorId={basicBehaviorId('basic.move')}
-                    primeAvailable={canPrimeAction('basic.move')}
-                    controlledAvailability={controlledAvailabilityForAction('basic.move')}
-                    controlledReady={controlledReadyActionId === 'basic.move'}
-                    cooldownTurns={cooldowns['basic.move'] ?? 0}
-                    artworkSrc={
-                      basicMove?.iconKey
-                        ? battleSkillArtwork('basic.move', basicMove.iconKey)
-                        : BATTLE_COMMAND_ARTWORK.move
-                    }
-                    active={mode === 'move'}
-                    disabled={
-                      planningDisabled ||
-                      (!canPrimeAction('basic.move') &&
-                        !controlledAvailabilityForAction('basic.move').chooseAction &&
-                        ((reachablePaths.size === 0 &&
-                          !basicMove?.behaviors.some((behavior) => behavior.move?.conditional)) ||
-                          !canAffordBattleBasicAction(
-                            basicMove,
-                            {
-                              ap: actionEconomy,
-                              mp: localCombatant?.mp ?? 0,
-                              hp: localCombatant?.hp ?? 0,
-                            },
-                            basicBehaviorId('basic.move'),
-                          )))
-                    }
-                    onActivate={() => chooseMode('move')}
-                  />
-                  <BattleSkillCommand
-                    characterStats={characterStats}
-                    slot="attack"
-                    hotkey={formatCombatKeybind(bindings.basicAttack)}
-                    label={attackLabel}
-                    cost={battleBasicCostLabel(
-                      basicAttack,
-                      `${ATTACK_COST} AP`,
-                      basicBehaviorId(BASIC_ATTACK_ID),
-                    )}
-                    basicAction={basicAttack}
-                    behaviorId={basicBehaviorId(BASIC_ATTACK_ID)}
-                    primeAvailable={canPrimeAction(BASIC_ATTACK_ID)}
-                    controlledAvailability={controlledAvailabilityForAction(BASIC_ATTACK_ID)}
-                    controlledReady={controlledReadyActionId === BASIC_ATTACK_ID}
-                    cooldownTurns={cooldowns[BASIC_ATTACK_ID] ?? 0}
-                    artworkSrc={battleSkillArtwork(BASIC_ATTACK_ID, basicAttack?.iconKey)}
-                    active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
-                    disabled={
-                      planningDisabled ||
-                      (!canPrimeAction(BASIC_ATTACK_ID) &&
-                        !controlledAvailabilityForAction(BASIC_ATTACK_ID).chooseAction &&
-                        (basicAttack === undefined
-                          ? actionEconomy < ATTACK_COST
-                          : !canAffordBattleBasicAction(
-                              basicAttack,
-                              {
-                                ap: actionEconomy,
-                                mp: localCombatant?.mp ?? 0,
-                                hp: localCombatant?.hp ?? 0,
-                              },
-                              basicBehaviorId(BASIC_ATTACK_ID),
-                            )))
-                    }
-                    onActivate={() => chooseMode('attack')}
-                  />
-                  <BattleSkillCommand
-                    characterStats={characterStats}
-                    slot="guard"
-                    hotkey={formatCombatKeybind(bindings.guard)}
-                    label={supportLabel}
-                    cost={battleBasicCostLabel(
-                      basicSupport,
-                      `${supportCost} AP`,
-                      basicBehaviorId(supportActionId),
-                    )}
-                    basicAction={basicSupport}
-                    behaviorId={basicBehaviorId(supportActionId)}
-                    primeAvailable={canPrimeAction(supportActionId)}
-                    controlledAvailability={controlledAvailabilityForAction(supportActionId)}
-                    controlledReady={controlledReadyActionId === supportActionId}
-                    artworkSrc={battleSkillArtwork(supportActionId, basicSupport?.iconKey)}
-                    active={
-                      (mode === 'attack' || mode === 'guard' || mode === 'recover') &&
-                      currentActionId === supportActionId
-                    }
-                    disabled={
-                      planningDisabled ||
-                      (!canPrimeAction(supportActionId) &&
-                        !controlledAvailabilityForAction(supportActionId).chooseAction &&
-                        (basicSupport === undefined
-                          ? actionEconomy < supportCost
-                          : !canAffordBattleBasicAction(
-                              basicSupport,
-                              {
-                                ap: actionEconomy,
-                                mp: localCombatant?.mp ?? 0,
-                                hp: localCombatant?.hp ?? 0,
-                              },
-                              basicBehaviorId(supportActionId),
-                            )))
-                    }
-                    cooldownTurns={cooldowns[supportActionId] ?? 0}
-                    onActivate={() => chooseMode('guard')}
-                  />
-                </div>
-                <BattleSelectedSkills
-                  runtime={runtime}
-                  activeId={activeTechnique?.id}
-                  disabled={planningDisabled}
-                  actionEconomy={actionEconomy}
-                  actorId={localCombatantId}
-                  manualActionTargets={manualActionTargets}
-                  resources={{ mp: localCombatant?.mp ?? 0, hp: localCombatant?.hp ?? 0 }}
-                  selectedBehavior={selectedBehavior}
-                  cooldowns={cooldowns}
-                  primeAvailableIds={primeAvailableIds}
-                  readyActionId={controlledReadyActionId}
-                  bindings={bindings}
-                  onSelect={selectAction}
-                />
-                <BattleSkillCommand
-                  characterStats={characterStats}
-                  slot="finish"
-                  hotkey={formatCombatKeybind(bindings.endTurn)}
-                  label="End Turn"
-                  cost="Choose facing"
-                  artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
-                  active={mode === 'finish'}
-                  disabled={planningDisabled}
-                  onActivate={() => {
-                    if (mode === 'finish' && localPlacement)
-                      void commitValue({ kind: 'face', facing: localPlacement.facing })
-                    else chooseMode('finish')
-                  }}
+              {terrainView ? (
+                <div
+                  className={mobileStyles.terrainWorkspace}
+                  aria-label="Battle terrain information"
                 >
-                  {mode === 'finish' ? (
-                    <div
-                      className={styles.facingRow}
-                      data-open="true"
-                      data-unified-facing-pad="true"
-                      role="group"
-                      aria-label="Final facing"
+                  <BattleMapKey snapshot={battle.snapshot} compact />
+                </div>
+              ) : (
+                <section
+                  className={styles.commandDeck}
+                  aria-label="Command Deck"
+                  data-unified-command-deck="true"
+                  style={COCKPIT_ORNAMENT_STYLE}
+                >
+                  <div className={styles.commands} data-battle-command-group="true">
+                    <BattleSkillCommand
+                      characterStats={characterStats}
+                      slot="items"
+                      hotkey={formatCombatKeybind(bindings.items)}
+                      label="Items"
+                      cost="Coming soon"
+                      artworkSrc={BATTLE_MISSING_ARTWORK}
+                      active={false}
+                      disabled
+                      onActivate={() => {}}
                     >
-                      {(['north', 'west', 'east', 'south'] as const).map((facing) => (
-                        <button
-                          type="button"
-                          key={facing}
-                          onClick={() => void commitValue({ kind: 'face', facing })}
-                          aria-label={`Face ${facing}`}
-                          disabled={
-                            planningDisabled ||
-                            ((battle.snapshot.elementalDamagePolicyVersion === 1 ||
-                              battle.snapshot.elementalDamagePolicyVersion === 2) &&
-                              !!localCombatantId &&
-                              hasGameplayTag(
-                                battle.snapshot,
-                                localCombatantId,
-                                'Frozen',
-                                PV1F_COMBAT_CONTENT,
-                              ) &&
-                              facing !== localPlacement?.facing)
-                          }
+                      <small data-battle-items-locked="true">Coming soon</small>
+                    </BattleSkillCommand>
+                    <BattleSkillCommand
+                      characterStats={characterStats}
+                      slot="inspect"
+                      hotkey={formatCombatKeybind(bindings.inspect)}
+                      label="Inspect"
+                      cost="Free"
+                      artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
+                      active={mode === 'inspect'}
+                      disabled={false}
+                      onActivate={() => chooseMode('inspect')}
+                    />
+                    <BattleSkillCommand
+                      characterStats={characterStats}
+                      slot="move"
+                      hotkey={formatCombatKeybind(bindings.move)}
+                      label={basicMove?.name ?? 'Move'}
+                      cost={battleBasicCostLabel(
+                        basicMove,
+                        `${MOVE_COST_PER_TERRAIN_POINT} AP`,
+                        basicBehaviorId('basic.move'),
+                      )}
+                      basicAction={basicMove}
+                      behaviorId={basicBehaviorId('basic.move')}
+                      primeAvailable={canPrimeAction('basic.move')}
+                      controlledAvailability={controlledAvailabilityForAction('basic.move')}
+                      controlledReady={controlledReadyActionId === 'basic.move'}
+                      cooldownTurns={cooldowns['basic.move'] ?? 0}
+                      artworkSrc={
+                        basicMove?.iconKey
+                          ? battleSkillArtwork('basic.move', basicMove.iconKey)
+                          : BATTLE_COMMAND_ARTWORK.move
+                      }
+                      active={mode === 'move'}
+                      disabled={
+                        planningDisabled ||
+                        (!canPrimeAction('basic.move') &&
+                          !controlledAvailabilityForAction('basic.move').chooseAction &&
+                          ((reachablePaths.size === 0 &&
+                            !basicMove?.behaviors.some((behavior) => behavior.move?.conditional)) ||
+                            !canAffordBattleBasicAction(
+                              basicMove,
+                              {
+                                ap: actionEconomy,
+                                mp: localCombatant?.mp ?? 0,
+                                hp: localCombatant?.hp ?? 0,
+                              },
+                              basicBehaviorId('basic.move'),
+                            )))
+                      }
+                      onActivate={() => chooseMode('move')}
+                    />
+                    <BattleSkillCommand
+                      characterStats={characterStats}
+                      slot="attack"
+                      hotkey={formatCombatKeybind(bindings.basicAttack)}
+                      label={attackLabel}
+                      cost={battleBasicCostLabel(
+                        basicAttack,
+                        `${ATTACK_COST} AP`,
+                        basicBehaviorId(BASIC_ATTACK_ID),
+                      )}
+                      basicAction={basicAttack}
+                      behaviorId={basicBehaviorId(BASIC_ATTACK_ID)}
+                      primeAvailable={canPrimeAction(BASIC_ATTACK_ID)}
+                      controlledAvailability={controlledAvailabilityForAction(BASIC_ATTACK_ID)}
+                      controlledReady={controlledReadyActionId === BASIC_ATTACK_ID}
+                      cooldownTurns={cooldowns[BASIC_ATTACK_ID] ?? 0}
+                      artworkSrc={battleSkillArtwork(BASIC_ATTACK_ID, basicAttack?.iconKey)}
+                      active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
+                      disabled={
+                        planningDisabled ||
+                        (!canPrimeAction(BASIC_ATTACK_ID) &&
+                          !controlledAvailabilityForAction(BASIC_ATTACK_ID).chooseAction &&
+                          (basicAttack === undefined
+                            ? actionEconomy < ATTACK_COST
+                            : !canAffordBattleBasicAction(
+                                basicAttack,
+                                {
+                                  ap: actionEconomy,
+                                  mp: localCombatant?.mp ?? 0,
+                                  hp: localCombatant?.hp ?? 0,
+                                },
+                                basicBehaviorId(BASIC_ATTACK_ID),
+                              )))
+                      }
+                      onActivate={() => chooseMode('attack')}
+                    />
+                    <BattleSkillCommand
+                      characterStats={characterStats}
+                      slot="guard"
+                      hotkey={formatCombatKeybind(bindings.guard)}
+                      label={supportLabel}
+                      cost={battleBasicCostLabel(
+                        basicSupport,
+                        `${supportCost} AP`,
+                        basicBehaviorId(supportActionId),
+                      )}
+                      basicAction={basicSupport}
+                      behaviorId={basicBehaviorId(supportActionId)}
+                      primeAvailable={canPrimeAction(supportActionId)}
+                      controlledAvailability={controlledAvailabilityForAction(supportActionId)}
+                      controlledReady={controlledReadyActionId === supportActionId}
+                      artworkSrc={battleSkillArtwork(supportActionId, basicSupport?.iconKey)}
+                      active={
+                        (mode === 'attack' || mode === 'guard' || mode === 'recover') &&
+                        currentActionId === supportActionId
+                      }
+                      disabled={
+                        planningDisabled ||
+                        (!canPrimeAction(supportActionId) &&
+                          !controlledAvailabilityForAction(supportActionId).chooseAction &&
+                          (basicSupport === undefined
+                            ? actionEconomy < supportCost
+                            : !canAffordBattleBasicAction(
+                                basicSupport,
+                                {
+                                  ap: actionEconomy,
+                                  mp: localCombatant?.mp ?? 0,
+                                  hp: localCombatant?.hp ?? 0,
+                                },
+                                basicBehaviorId(supportActionId),
+                              )))
+                      }
+                      cooldownTurns={cooldowns[supportActionId] ?? 0}
+                      onActivate={() => chooseMode('guard')}
+                    />
+                    <BattleSkillCommand
+                      characterStats={characterStats}
+                      slot="finish"
+                      hotkey={formatCombatKeybind(bindings.endTurn)}
+                      label="End Turn"
+                      cost="Choose facing"
+                      artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
+                      active={mode === 'finish'}
+                      disabled={planningDisabled}
+                      onActivate={() => {
+                        if (mode === 'finish' && localPlacement)
+                          void commitValue({ kind: 'face', facing: localPlacement.facing })
+                        else chooseMode('finish')
+                      }}
+                    >
+                      {mode === 'finish' ? (
+                        <div
+                          className={styles.facingRow}
+                          data-open="true"
+                          data-unified-facing-pad="true"
+                          role="group"
+                          aria-label="End Turn facing shortcuts"
                         >
-                          {facingGlyph(facing)}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </BattleSkillCommand>
-              </section>
+                          {(['north', 'south', 'west', 'east'] as const).map((facing) => (
+                            <button
+                              type="button"
+                              key={facing}
+                              onClick={() => void commitValue({ kind: 'face', facing })}
+                              aria-label={`End Turn: Face ${facing}`}
+                              tabIndex={-1}
+                              disabled={
+                                planningDisabled ||
+                                ((battle.snapshot.elementalDamagePolicyVersion === 1 ||
+                                  battle.snapshot.elementalDamagePolicyVersion === 2) &&
+                                  !!localCombatantId &&
+                                  hasGameplayTag(
+                                    battle.snapshot,
+                                    localCombatantId,
+                                    'Frozen',
+                                    PV1F_COMBAT_CONTENT,
+                                  ) &&
+                                  facing !== localPlacement?.facing)
+                              }
+                            >
+                              {facingGlyph(facing)}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </BattleSkillCommand>
+                  </div>
+                  <BattleSelectedSkills
+                    runtime={runtime}
+                    activeId={activeTechnique?.id}
+                    disabled={planningDisabled}
+                    actionEconomy={actionEconomy}
+                    actorId={localCombatantId}
+                    manualActionTargets={manualActionTargets}
+                    resources={{ mp: localCombatant?.mp ?? 0, hp: localCombatant?.hp ?? 0 }}
+                    selectedBehavior={selectedBehavior}
+                    cooldowns={cooldowns}
+                    primeAvailableIds={primeAvailableIds}
+                    readyActionId={controlledReadyActionId}
+                    bindings={bindings}
+                    onSelect={selectAction}
+                  />
+                </section>
+              )}
             </div>
             <aside
               data-battle-side="selected"
@@ -3444,21 +3488,27 @@ function BattleExperienceContent({
           </div>
         </section>
 
+        <div className={mobileStyles.chronicleBar} data-battle-mobile-chronicle-strip="true">
+          <BattleLogPanel
+            presentation="timeline"
+            battleSessionId={battle.battleSessionId}
+            battleVersion={battle.battleVersion}
+            currentRound={battleState.round}
+            playerName={runtime.playerName}
+            combatantNames={Object.fromEntries(
+              Array.from(viewModel.participantByCombatant.values()).map((participant) => [
+                participant.combatantId,
+                participant.name,
+              ]),
+            )}
+          />
+        </div>
+
         <footer
           className={styles.footer}
           data-unified-battle-footer="true"
           data-battle-mobile-footer="true"
         >
-          <button
-            type="button"
-            className={mobileStyles.chronicleToggle}
-            data-battle-mobile-chronicle-toggle="true"
-            aria-expanded={chronicleOpen}
-            aria-controls="battle-mobile-chronicle"
-            onClick={toggleChronicle}
-          >
-            Chronicle
-          </button>
           {capabilities.chat ? (
             <button type="button" className={styles.chatButton} aria-expanded="false">
               Chat
@@ -3517,7 +3567,18 @@ function BattleExperienceContent({
               </label>
             ) : null}
 
-            <BattleTerrainToggle snapshot={battle.snapshot} />
+            <span className={mobileStyles.desktopTerrainControl}>
+              <BattleTerrainToggle snapshot={battle.snapshot} />
+            </span>
+            <button
+              type="button"
+              className={mobileStyles.mobileTerrainControl}
+              aria-pressed={terrainView}
+              aria-label={terrainView ? 'Back to Actions' : 'Terrain'}
+              onClick={() => setTerrainView((current) => !current)}
+            >
+              {terrainView ? 'Back to Actions' : '▲ Terrain'}
+            </button>
             {(['attack', 'guard', 'recover'].includes(mode) || flatMoveMode) &&
             maximumSelections > 1 ? (
               <button

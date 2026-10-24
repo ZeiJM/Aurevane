@@ -7,24 +7,16 @@ import {
 } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { commitGesture } from './refined-battle-helpers'
-import {
-  battleChronicleScrollRegion,
-  expectReadableBattleLog,
-  setBattleChronicleOpen,
-} from './battle-log-layout-helpers'
+import { expectReadableBattleLog } from './battle-log-layout-helpers'
 import { recordedChronicleAction } from './battle-log-chronicle-fixtures'
 
-test('actual battle-log geometry ignores mobile scrolling but rejects a reader resize', async ({
+test('keeps the fixed mobile Chronicle and battlefield steady through scrolling and details', async ({
   page,
 }, testInfo) => {
   test.slow()
   await page.setViewportSize({ width: 390, height: 844 })
   const identity = uniqueIdentity('ScrollLog')
-  await provisionAccountAndEnterCharacter({
-    page,
-    ...identity,
-    password: 'AurevaneTest!42',
-  })
+  await provisionAccountAndEnterCharacter({ page, ...identity, password: 'AurevaneTest!42' })
   const entries = Array.from({ length: 20 }, (_, index) =>
     recordedChronicleAction(index + 1),
   ).flat()
@@ -35,33 +27,53 @@ test('actual battle-log geometry ignores mobile scrolling but rejects a reader r
   await page.goto('/game/battle')
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
-  await setBattleChronicleOpen(page, true)
-  const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
-  await expect(reader.locator('[data-chronicle-action]')).toHaveCount(20)
-  await expectReadableBattleLog(page, testInfo, 'actual-mobile-scroll')
-  const scroller = await battleChronicleScrollRegion(page, reader)
-  expect(
-    await scroller.evaluate((element) => element.scrollHeight - element.clientHeight),
-  ).toBeGreaterThan(0)
-  await scroller.evaluate(async (element) => {
-    element.scrollTop = element.scrollHeight
-    await new Promise<void>((resolve) =>
-      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  const mobile = page.locator('[data-battle-mobile-chronicle-strip]')
+  await expect(mobile).toBeVisible()
+  const strip = mobile.locator('[data-battle-action-strip]')
+  const track = strip.locator('[aria-label="Battle actions"]')
+  const actions = track.getByRole('button', { name: /Show Chronicle details/i })
+  await expect(actions).toHaveCount(20)
+  await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+  const measure = () =>
+    page.evaluate(() =>
+      [
+        '[data-board-auto-fit]',
+        '[data-battle-mobile-chronicle-strip]',
+        '[data-battle-mobile-footer]',
+      ].map((selector) => {
+        const element = document.querySelector(selector)
+        if (!element) throw new Error('Missing battle region: ' + selector)
+        const rect = element.getBoundingClientRect()
+        return [selector, rect.x, rect.y, rect.width, rect.height]
+      }),
     )
-    element.addEventListener(
-      'scroll',
-      () => {
-        const log = element.matches('[data-battle-mobile-lower-panel]')
-          ? element.querySelector<HTMLElement>('[data-battle-inline-log]')!
-          : element.closest<HTMLElement>('[data-battle-inline-log]')!
-        log.style.height = `${log.getBoundingClientRect().height + 40}px`
-      },
-      { once: true },
-    )
+  const before = await measure()
+  await track.evaluate((element) => {
+    element.scrollLeft = element.scrollWidth
   })
-  await expect(expectReadableBattleLog(page, testInfo, 'reader-resize')).rejects.toThrow(
-    /stays fixed while reading the chronicle/,
-  )
+  await expect(actions.last()).toBeInViewport()
+  expect(await measure()).toEqual(before)
+  await actions.last().click()
+  const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+  await expect(details).toBeVisible()
+  await expect(details).toContainText('20 damage')
+  await expect(details).not.toContainText('rollBasisPoints')
+  expect(await measure()).toEqual(before)
+  await details.getByRole('button', { name: 'Close Chronicle action' }).click()
+  await expect(details).toHaveCount(0)
+  // Prove the geometry assertion rejects a real, forbidden resize.
+  await mobile.evaluate((element) => {
+    ;(element as HTMLElement).style.height = '6rem'
+  })
+  expect(await measure()).not.toEqual(before)
+  await mobile.evaluate((element) => {
+    ;(element as HTMLElement).style.removeProperty('height')
+  })
+  expect(await measure()).toEqual(before)
+  await testInfo.attach('mobile-chronicle-geometry', {
+    body: JSON.stringify({ before, after: await measure() }, null, 2),
+    contentType: 'application/json',
+  })
 })
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {

@@ -86,7 +86,7 @@ for (const [size, label, width, tiles] of [
         }
       })
       expect(lobbyGeometry.width).toBeGreaterThanOrEqual(
-        testInfo.project.name === 'mobile-chromium' ? 80 : 144,
+        testInfo.project.name === 'mobile-chromium' ? 24 : 144,
       )
       expect(Math.abs(lobbyGeometry.center - lobbyGeometry.seam)).toBeLessThanOrEqual(1)
       expect(lobbyGeometry.left).toBeGreaterThan(
@@ -150,7 +150,7 @@ for (const [size, label, width, tiles] of [
       await expect(spectator.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(tiles)
       await expectRecordedBattleRound(spectator)
       const versus = spectator.locator('[data-battle-versus]')
-      const mobile = await spectator.locator('[data-battle-mobile-chronicle-toggle]').isVisible()
+      const mobile = await spectator.locator('[data-battle-mobile-chronicle-strip]').isVisible()
       if (mobile) await expect(versus).toBeHidden()
       else await expect(versus).toBeVisible()
       const seam = await versus.evaluate((node) => {

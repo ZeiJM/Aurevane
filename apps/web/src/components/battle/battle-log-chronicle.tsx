@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import Image from 'next/image'
 import { useSkillElementalDamagePolicyVersion } from '../character/skill-effect-timing-context'
 import { statusPotencyDescription } from '@/lib/status-potency-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
@@ -19,6 +20,7 @@ import {
   chronicleMissingResult,
 } from './battle-log-chronicle-text'
 import styles from './battle-log-chronicle.module.css'
+import { battleSkillArtwork, BATTLE_COMMAND_ARTWORK } from './battle-skill-presentation'
 
 function chronicleScrollPort(reader: HTMLDivElement): HTMLElement {
   const lower = reader.closest<HTMLElement>('[data-battle-mobile-lower-panel]')
@@ -276,6 +278,133 @@ export function BattleLogChronicle({
           )
         })
       )}
+    </div>
+  )
+}
+
+/** Compact mobile timeline. Details use the exact ChronicleTechnique desktop renderer. */
+export function MobileBattleChronicle({
+  entries,
+  playerName,
+  combatantNames,
+  currentRound,
+}: ChronicleNames & { entries: readonly BattleLogEntry[]; currentRound?: number }) {
+  const policy = useSkillElementalDamagePolicyVersion()
+  const recordedRound =
+    typeof currentRound === 'number' && Number.isSafeInteger(currentRound) && currentRound >= 0
+  const rounds = useMemo(
+    () => buildBattleChronicle(entries, { playerName, combatantNames }),
+    [entries, playerName, combatantNames],
+  )
+  const actions = useMemo(
+    () =>
+      rounds.flatMap((round) =>
+        round.actors.flatMap((actor) =>
+          actor.actions.map((action) => ({ round: round.round, actorName: actor.name, action })),
+        ),
+      ),
+    [rounds],
+  )
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const latestKey = actions.at(-1)?.action.key
+  const selected = actions.find((item) => item.action.key === selectedKey)
+  useEffect(() => {
+    if (!selectedKey) return
+    function closeOutside(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setSelectedKey(null)
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setSelectedKey(null)
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closeOutside)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [selectedKey])
+  useEffect(() => {
+    if (!selectedKey && trackRef.current) trackRef.current.scrollLeft = trackRef.current.scrollWidth
+  }, [latestKey, selectedKey])
+  return (
+    <div className={styles.compactChronicle} data-battle-action-strip="true" ref={rootRef}>
+      <span
+        className={styles.compactCurrentRound}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        data-battle-round={recordedRound ? currentRound : 'unavailable'}
+        aria-label={
+          recordedRound
+            ? `Current battle round ${currentRound}`
+            : 'Current battle round unavailable'
+        }
+      >
+        R{recordedRound ? currentRound : '—'}
+      </span>
+      <div className={styles.compactTrack} aria-label="Battle actions" ref={trackRef}>
+        {actions.length === 0 ? (
+          <span className={styles.compactEmpty}>Chronicle · Awaiting actions</span>
+        ) : null}
+        {actions.map((item, index) => (
+          <div className={styles.compactItem} key={item.action.key}>
+            {index === 0 || actions[index - 1]?.round !== item.round ? (
+              <span className={styles.compactRound}>R{item.round}</span>
+            ) : null}
+            <button
+              type="button"
+              className={styles.compactAction}
+              aria-label={`Round ${item.round}, ${item.actorName}: ${chronicleActionTitle(item.action) || item.action.title || item.action.family}. Show Chronicle details`}
+              aria-expanded={selectedKey === item.action.key}
+              onClick={() =>
+                setSelectedKey((key) => (key === item.action.key ? null : item.action.key))
+              }
+            >
+              <Image
+                unoptimized
+                width={32}
+                height={32}
+                alt=""
+                src={
+                  item.action.contentId
+                    ? battleSkillArtwork(item.action.contentId)
+                    : item.action.family === 'movement'
+                      ? BATTLE_COMMAND_ARTWORK.move
+                      : BATTLE_COMMAND_ARTWORK.inspect
+                }
+              />
+            </button>
+          </div>
+        ))}
+      </div>
+      {selected ? (
+        <div
+          className={styles.compactPopup}
+          role="dialog"
+          aria-modal="false"
+          aria-label={`Chronicle action: ${selected.actorName}`}
+        >
+          <header className={styles.compactPopupHeader}>
+            <strong>
+              Round {selected.round} · {selected.actorName}
+            </strong>
+            <button
+              type="button"
+              aria-label="Close Chronicle action"
+              onClick={() => setSelectedKey(null)}
+            >
+              ×
+            </button>
+          </header>
+          <ChronicleTechnique
+            action={selected.action}
+            actorName={selected.actorName}
+            elementalDamagePolicyVersion={policy}
+          />
+        </div>
+      ) : null}
     </div>
   )
 }

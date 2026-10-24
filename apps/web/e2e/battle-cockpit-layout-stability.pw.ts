@@ -65,7 +65,7 @@ async function expectInlineFacingPad(page: Page, closedHeight: number) {
   if (!cardBox) return
   expect(Math.abs(cardBox.height - closedHeight)).toBeLessThanOrEqual(1)
   for (const facing of ['north', 'west', 'east', 'south']) {
-    const button = facingPad.getByRole('button', { name: `Face ${facing}`, exact: true })
+    const button = facingPad.getByRole('button', { name: `End Turn: Face ${facing}`, exact: true })
     await expect(button).toBeVisible()
     const buttonBox = await button.boundingBox()
     expect(buttonBox).not.toBeNull()
@@ -253,7 +253,7 @@ test('mobile End Turn opens facing controls and commits a single tapped directio
   await page.waitForTimeout(200)
   expect(finalTurnRequests).toBe(0)
 
-  const northGuide = facingPad.getByRole('button', { name: 'Face north', exact: true })
+  const northGuide = facingPad.getByRole('button', { name: 'End Turn: Face north', exact: true })
   const finalTurnResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&

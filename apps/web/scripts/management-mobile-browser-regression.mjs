@@ -254,6 +254,11 @@ try {
           await dialog.getByRole('button', { name: 'Remove from loadout', exact: true }).click()
           await equip.waitFor()
           assert.equal(await page.evaluate(() => window.calls.length), 2)
+          const supportTab = dialog.getByRole('tab', { name: 'Support', exact: true })
+          if (await supportTab.isVisible()) {
+            await supportTab.click()
+            assert.equal(await supportTab.getAttribute('aria-selected'), 'true')
+          }
           await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).click()
           const useSupport = dialog.getByRole('button', { name: 'Use as Support Action' })
           await useSupport.waitFor()
@@ -263,13 +268,19 @@ try {
           assert.equal(await page.evaluate(() => window.calls.length), 3)
         } else {
           await dialog.getByRole('checkbox').first().click()
-          await page
-            .getByRole('status')
-            .filter({ hasText: 'Techniques saved automatically.' })
-            .waitFor()
+          await page.waitForFunction(() => window.calls.length === 1)
+          assert.equal(
+            await dialog.getByRole('status').innerText(),
+            '',
+            'Successful equip must not show a bottom notification',
+          )
           await dialog.getByRole('button', { name: 'Clear Selections' }).click()
-          await page.getByRole('status').filter({ hasText: 'Selections cleared.' }).waitFor()
-          assert.equal(await page.evaluate(() => window.calls.length), 2)
+          await page.waitForFunction(() => window.calls.length === 2)
+          assert.equal(
+            await dialog.getByRole('status').innerText(),
+            '',
+            'Successful clear must not show a bottom notification',
+          )
         }
       }
       checks.push({ panel, width, height, ...before })

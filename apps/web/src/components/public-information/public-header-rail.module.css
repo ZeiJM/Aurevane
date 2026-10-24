@@ -140,3 +140,17 @@
     padding-left: 0.35rem;
   }
 }
+
+/* Shared mobile header: align the Account control in both roster and game mastheads. */
+@media (max-width: 760px) {
+  .masthead .utility {
+    align-self: center;
+    height: 100%;
+    align-items: center;
+  }
+  .masthead .utility :global(button[aria-haspopup]) {
+    align-self: center;
+    border-width: 1px;
+    margin: 0;
+  }
+}

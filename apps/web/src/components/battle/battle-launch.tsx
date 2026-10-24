@@ -607,9 +607,6 @@ export function BattleLaunch({
                       <strong>{recordDisplayName(id, record.name)}</strong>
                       <small>{record.purpose}</small>
                     </span>
-                    <span className={styles.modeArrow} aria-hidden="true">
-                      ›
-                    </span>
                     <span className={styles.modeRecommendation}>
                       <small>{recommendation[0]}</small>
                       <b>{recommendation[1]}</b>

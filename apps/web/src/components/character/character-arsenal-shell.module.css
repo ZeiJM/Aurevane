@@ -570,3 +570,25 @@
     font-size: 1rem;
   }
 }
+
+/* Match the existing Discipline Skills star only on mobile. */
+.mobileSupportStar {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobileSupportStar {
+    display: inline;
+    color: #9a783d;
+    font-size: 0.95rem;
+  }
+}
+
+/* Pseudo-element is mobile-only and will not create a hidden desktop text node. */
+@media (max-width: 760px) {
+  .supportSummary .sectionHeading > div::before {
+    content: '✦';
+    color: #9a783d;
+    font-size: 0.86rem;
+    margin-right: 0.42rem;
+  }
+}

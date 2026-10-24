@@ -1,4 +1,3 @@
-import { setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { expect, test } from '@playwright/test'
 import {
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
@@ -273,25 +272,47 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
-  await setBattleChronicleOpen(page, true)
-  const inlineLog = page.locator('[data-battle-inline-log]')
-  const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
-  await expect(battleLog).toBeVisible()
-  await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
-  await expect(battleLog).toContainText(characterName)
-  await expect(battleLog).toContainText('Guard')
-  await expect(battleLog).not.toContainText('moved')
-  await expect(battleLog).not.toContainText('rollBasisPoints')
-  await expect(inlineLog.locator(':scope > header')).toHaveCount(0)
-  await expect(inlineLog.getByRole('button', { name: /Switch to/ })).toHaveCount(0)
+  // The mobile Chronicle is a permanent action strip, not the removed footer toggle.
+  // Validate its real action popup; desktop retains the full inline text reader.
+  const mobileChronicle = page.locator('[data-battle-mobile-chronicle-strip]')
   const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
-  await battleLog.focus()
-  await page.keyboard.press('Space')
-  await page.keyboard.press('KeyW')
-  await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
-  await expect(battleLog).toBeVisible()
-
-  await setBattleChronicleOpen(page, false)
+  if (await mobileChronicle.isVisible()) {
+    const strip = mobileChronicle.locator('[data-battle-action-strip]')
+    await expect(strip).toBeVisible()
+    await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+    const guardAction = strip.getByRole('button', { name: /Guard.*Show Chronicle details/i }).last()
+    await expect(guardAction).toBeVisible()
+    await guardAction.click()
+    const details = strip.getByRole('dialog', { name: /Chronicle action:/i })
+    await expect(details).toBeVisible()
+    await expect(details).toContainText(characterName)
+    await expect(details).toContainText('Guard')
+    await expect(details).not.toContainText('moved')
+    await expect(details).not.toContainText('rollBasisPoints')
+    await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
+    await details.getByRole('button', { name: 'Close Chronicle action' }).focus()
+    await page.keyboard.press('KeyW')
+    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+    await page.keyboard.press('Escape')
+    await expect(details).toHaveCount(0)
+    await expect(guardAction).toHaveAttribute('aria-expanded', 'false')
+  } else {
+    const inlineLog = page.locator('[data-battle-inline-log]')
+    const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
+    await expect(battleLog).toBeVisible()
+    await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
+    await expect(battleLog).toContainText(characterName)
+    await expect(battleLog).toContainText('Guard')
+    await expect(battleLog).not.toContainText('moved')
+    await expect(battleLog).not.toContainText('rollBasisPoints')
+    await expect(inlineLog.locator(':scope > header')).toHaveCount(0)
+    await expect(inlineLog.getByRole('button', { name: /Switch to/ })).toHaveCount(0)
+    await battleLog.focus()
+    await page.keyboard.press('Space')
+    await page.keyboard.press('KeyW')
+    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+    await expect(battleLog).toBeVisible()
+  }
 
   // Missing informational forecasts must not hide eligible targets or gate a deliberate cast.
   await page.route('**/api/battles/*/preview', (route) => route.abort())

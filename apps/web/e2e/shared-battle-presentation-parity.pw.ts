@@ -383,11 +383,25 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
     )
     await setBattleChronicleOpen(activePage, true)
-    await expect(
-      activeRoot
-        .locator('[data-battle-inline-log]')
-        .getByRole('region', { name: 'Battle chronicle', exact: true }),
-    ).toContainText('Guard')
+    if (mobile) {
+      const timeline = activeRoot.locator('[data-battle-mobile-chronicle-strip]')
+      const guardAction = timeline
+        .getByRole('button', { name: /Guard.*Show Chronicle details/i })
+        .last()
+      await expect(guardAction).toBeVisible()
+      await guardAction.click()
+      const details = timeline.getByRole('dialog', { name: /Chronicle action:/i })
+      await expect(details).toBeVisible()
+      await expect(details).toContainText('Guard')
+      await expect(details).toContainText(activeName)
+      await details.getByRole('button', { name: 'Close Chronicle action' }).click()
+    } else {
+      await expect(
+        activeRoot
+          .locator('[data-battle-inline-log]')
+          .getByRole('region', { name: 'Battle chronicle', exact: true }),
+      ).toContainText('Guard')
+    }
     await expectReadableBattleLog(activePage, testInfo, mobile ? 'pvp-mobile-log' : 'pvp-log')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])

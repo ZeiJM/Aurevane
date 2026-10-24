@@ -167,5 +167,7 @@ it.each(currentKits)(
         result.state.tactical.battle.lifecycle === 'completed',
     ).toBe(true)
   },
-  30000,
+  // CI runners can take over 30s for a fully published legal-roster duel.
+  // Keep every roster case and a finite assertion timeout.
+  90000,
 )

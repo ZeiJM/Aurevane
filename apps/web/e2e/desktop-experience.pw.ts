@@ -673,15 +673,26 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         ).toBeGreaterThanOrEqual(4.5)
         expect(item.size, `${item.text}: minimum label size`).toBeGreaterThanOrEqual(11)
       }
-      for (const card of await dialog.getByTestId('learned-skill-list').locator('article').all()) {
-        for (const tag of await card.locator('small').all()) {
-          await expect(tag).toHaveCSS('font-size', '11px')
+      // On phones, category tabs deliberately hide the two inactive skill libraries.
+      const skillLibrary = dialog.getByTestId('learned-skill-list')
+      const tabs =
+        width <= 820 ? ['Discipline 1', ...(mixed ? ['Discipline 2'] : []), 'Support'] : [null]
+      for (const category of tabs) {
+        if (category) {
+          const tab = dialog.getByRole('tab', { name: category, exact: true })
+          await tab.click()
+          await expect(tab).toHaveAttribute('aria-selected', 'true')
         }
-        const title = await card.locator('label strong').boundingBox()
-        await expect(card.locator('[data-favorite-technique-star]')).toHaveCount(0)
-        expect(title).not.toBeNull()
-        expect(title!.x).toBeGreaterThanOrEqual(0)
-        expect(title!.width).toBeGreaterThan(0)
+        for (const card of await skillLibrary.locator('article:visible').all()) {
+          for (const tag of await card.locator('small:visible').all()) {
+            await expect(tag).toHaveCSS('font-size', '11px')
+          }
+          const title = await card.locator('label strong').boundingBox()
+          await expect(card.locator('[data-favorite-technique-star]')).toHaveCount(0)
+          expect(title).not.toBeNull()
+          expect(title!.x).toBeGreaterThanOrEqual(0)
+          expect(title!.width).toBeGreaterThan(0)
+        }
       }
       await testInfo.attach(`skills-${width}-${mixed ? 'mixed' : 'pure'}`, {
         body: await page.screenshot(),

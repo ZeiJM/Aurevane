@@ -78,7 +78,7 @@ export async function expectBattleChronicleGutterGeometry(page: Page, requireGro
 export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
   const root = page.locator('main[data-unified-battle="true"]')
   await expect(root.locator(':scope > header')).not.toContainText('Battle Hall ·')
-  const mobile = await page.locator('[data-battle-mobile-chronicle-toggle]').isVisible()
+  const mobile = await page.locator('[data-battle-mobile-chronicle-strip]').isVisible()
   const geometry = await root.evaluate((element) => {
     const header = element.querySelector('[data-unified-battle-header]')!.getBoundingClientRect()
     const economy = element.querySelector('[data-unified-battle-economy]')!.getBoundingClientRect()
@@ -187,18 +187,18 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       }
     }
   }
-  for (const frame of [
+  for (const [index, frame] of [
     ...geometry.standards,
     ...geometry.selected.map((item) => item.frame),
     ...geometry.empty,
-  ]) {
+  ].entries()) {
     expect(
       Math.abs(frame.width - frame.height),
       'command and selected artwork stay square',
     ).toBeLessThanOrEqual(1)
     expect(
       Math.abs(frame.width - baseline.width),
-      'standard commands match authored selected artwork width',
+      `standard commands match authored selected artwork width (frame ${index + 1}: ${frame.width}px vs ${baseline.width}px at ${geometry.width}px)`,
     ).toBeLessThanOrEqual(1)
     expect(
       Math.abs(frame.height - baseline.height),
@@ -227,7 +227,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   })
   await expectBattleHeaderAndArtworkGeometry(page)
   await expectBattleChronicleGutterGeometry(page)
-  if (await page.locator('[data-battle-mobile-chronicle-toggle]').isVisible()) {
+  if (await page.locator('[data-battle-mobile-chronicle-strip]').isVisible()) {
     const mobile = await root.evaluate((element) => {
       const rect = (selector: string) =>
         element.querySelector(selector)!.getBoundingClientRect().toJSON()
@@ -285,7 +285,14 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         parseFloat(getComputedStyle(document.documentElement).fontSize),
       forecast: rect('[data-battle-preview-strip]'),
       key: rect('button[aria-label="Terrain"]'),
-      cancel: rect('[data-battle-footer-actions] > button:nth-child(2)'),
+      cancel: [
+        ...element.querySelectorAll<HTMLButtonElement>('[data-battle-footer-actions] > button'),
+      ]
+        .find((button) =>
+          ['Cancel Action', 'Cancel prime'].includes(button.textContent?.trim() ?? ''),
+        )!
+        .getBoundingClientRect()
+        .toJSON(),
       log: rect('[data-battle-inline-log]'),
       leftCardRoles: [
         ...element.querySelectorAll('[data-battle-side="local"] > [data-battle-combatant-card]'),
@@ -482,17 +489,38 @@ export async function expectBattleFlowKeepsBoardSize(page: Page) {
   const sizes = async () => ({ board: await board.boundingBox(), deck: await deck.boundingBox() })
   const before = await sizes()
   await setBattleChronicleOpen(page, true)
-  const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
-  const scroller = await battleChronicleScrollRegion(page, reader)
-  await expect(reader).toBeVisible()
-  await reader.focus()
-  for (const key of ['Home', 'End']) {
-    await scroller.press(key)
-    const after = await sizes()
-    expect(after.board).toEqual(before.board)
-    for (const region of ['board', 'deck'] as const) {
-      expect(after[region]?.width).toBe(before[region]?.width)
-      expect(after[region]?.height).toBe(before[region]?.height)
+  const mobile = page.locator('[data-battle-mobile-chronicle-strip]')
+  if (await mobile.isVisible()) {
+    const timeline = mobile.locator('[aria-label="Battle actions"]')
+    await expect(timeline).toBeVisible()
+    for (const position of ['start', 'end'] as const) {
+      await timeline.evaluate((element, edge) => {
+        element.scrollLeft = edge === 'start' ? 0 : element.scrollWidth
+      }, position)
+      const action = timeline.getByRole('button', { name: /Show Chronicle details/i }).last()
+      if (await action.count()) {
+        await action.click()
+        await expect(mobile.getByRole('dialog', { name: /Chronicle action:/i })).toBeVisible()
+        await page.keyboard.press('Escape')
+      }
+      const after = await sizes()
+      expect(after.board).toEqual(before.board)
+      expect(after.deck?.width).toBe(before.deck?.width)
+      expect(after.deck?.height).toBe(before.deck?.height)
+    }
+  } else {
+    const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
+    const scroller = await battleChronicleScrollRegion(page, reader)
+    await expect(reader).toBeVisible()
+    await reader.focus()
+    for (const key of ['Home', 'End']) {
+      await scroller.press(key)
+      const after = await sizes()
+      expect(after.board).toEqual(before.board)
+      for (const region of ['board', 'deck'] as const) {
+        expect(after[region]?.width).toBe(before[region]?.width)
+        expect(after[region]?.height).toBe(before[region]?.height)
+      }
     }
   }
   await setBattleChronicleOpen(page, false)
