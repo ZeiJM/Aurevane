@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { verifyMasterOverviewLayout } from './master-overview-layout'
 
 // Real signed-in local authority/UI harness. No product fixture route or hosted writes.
 function sql(query: string): string {
@@ -68,6 +69,7 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     sql(
       `insert into app_private.master_panel_role_assignments(user_id,role) values('${ownerId}','game-owner')`,
     )
+    await verifyMasterOverviewLayout(page, info)
     await page.goto('/master/staff')
     await expect(page.getByRole('heading', { name: 'Staff & Access', exact: true })).toBeVisible()
     await expect(
