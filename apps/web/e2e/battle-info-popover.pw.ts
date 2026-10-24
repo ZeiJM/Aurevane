@@ -1,3 +1,4 @@
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 import { expect, test, type Page } from '@playwright/test'
 
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
@@ -86,7 +87,9 @@ test('shared compact readers retain complete reports and consume the first armed
     await expect(ap).toHaveAttribute('aria-valuenow', String(beforeAP))
     expect(commits).toHaveLength(0)
   }
+  await openBattleInfoMenu(page)
   const inspect = page.getByRole('button', { name: 'About Inspect', exact: true })
+  await openBattleInfoMenu(page)
   const attack = page.getByRole('button', { name: 'About Basic Attack', exact: true })
   await inspect.click()
   await expect(panels).toHaveCount(1)
@@ -118,6 +121,7 @@ test('shared compact readers retain complete reports and consume the first armed
   await page.keyboard.press('Digit3')
   const ownTile = page.getByRole('button', { name: /occupied by Reader / })
   for (const label of ['About Guard', 'About selected Skill slot 1']) {
+    await openBattleInfoMenu(page)
     await page.getByRole('button', { name: label, exact: true }).click()
     await expect(panels).toHaveCount(1)
     await page.keyboard.press('Digit3')

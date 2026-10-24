@@ -140,7 +140,16 @@ try {
           }
         })
         directions.push(geometry.direction)
-        assert.ok(geometry.badge.width >= 12 && geometry.svg.width >= 6, 'Readable badge and arrow')
+        assert.ok(
+          geometry.badge.width >= Math.min(12, geometry.token.width * 0.3) &&
+            geometry.svg.width >= 6,
+          'Badge and arrow remain readable at the character scale',
+        )
+        assert.ok(
+          geometry.badge.width <= geometry.token.width * 0.5 &&
+            geometry.svg.width <= geometry.badge.width,
+          'Facing never overpowers its character portrait',
+        )
         assert.equal(geometry.pointer, 'none')
         assert.equal(geometry.radius, '50%')
         assert.equal(geometry.color, geometry.identity)

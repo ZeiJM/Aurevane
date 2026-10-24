@@ -7,7 +7,7 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed } from './battle-log-feed'
 import { BattleLogPanel } from './battle-log-panel'
-import { BattleLogChronicle } from './battle-log-chronicle'
+import { BattleLogChronicle, MobileBattleChronicle } from './battle-log-chronicle'
 import { buildBattleChronicle } from './battle-log-chronicle-model'
 
 const actor = 'character:zei'
@@ -870,4 +870,22 @@ it('keeps Chronicle elemental explanations pinned in standalone completed battle
   } finally {
     popup.mockRestore()
   }
+})
+
+describe('mobile Chronicle artwork identity', () => {
+  it.each([
+    ['basic.attack.unarmed.basic', '/media/skills/basic-attack-fist.webp'],
+    ['basic.guard', '/media/skills/guard.webp'],
+    ['basic.recover', '/media/skills/hp-recovery.webp'],
+    ['basic.recover.mp', '/media/skills/mp-recovery.svg'],
+    ['battle.lowered-guard.apply', '/media/skills/defenseless.svg'],
+    ['unknown.event', '/media/skills/chronicle-event.svg'],
+  ])('uses recorded %s artwork without enriched skill context', (actionId, source) => {
+    const entries = [entry(1, 0, 'combat_action_used', { actionId, actionContext: undefined })]
+    const markup = renderToStaticMarkup(
+      <MobileBattleChronicle entries={entries} currentRound={1} />,
+    )
+    expect(markup).toContain(`src="${source}"`)
+    expect(markup).not.toContain('/media/skills/inspect.webp')
+  })
 })

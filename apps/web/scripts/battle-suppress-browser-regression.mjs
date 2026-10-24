@@ -152,7 +152,7 @@ try {
             .first()
           await action.waitFor({ state: 'visible' })
           await action.click()
-          const details = timeline.getByRole('dialog', { name: /Chronicle action:/i })
+          const details = page.getByRole('region', { name: /Chronicle action:/i })
           await details.waitFor({ state: 'visible' })
           await details.getByRole('button', { name: 'Explain Suppress', exact: true }).click()
         } else {
@@ -185,8 +185,8 @@ try {
         })
         await page.keyboard.press('Escape')
         if (mobileTimeline) {
-          await timeline
-            .getByRole('dialog', { name: /Chronicle action:/i })
+          await page
+            .getByRole('region', { name: /Chronicle action:/i })
             .waitFor({ state: 'hidden' })
         }
         chronicleCases++

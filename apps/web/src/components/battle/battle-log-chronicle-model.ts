@@ -22,6 +22,7 @@ export interface ChronicleAction {
   title: string
   family: ChronicleFamily
   contentId: string | null
+  sourceActionId?: string | null
   contentVersion: number | null
   flavorTemplate: string | null
   narrator?: NonNullable<BattleLogEntry['actionContext']>['narrator']
@@ -268,6 +269,7 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
       : (entry.actionContext?.name ?? entry.actionLabel ?? entry.headline),
     family: family(entry),
     contentId: entry.actionContext?.contentId ?? entry.actionContext?.skillId ?? null,
+    sourceActionId: entry.actionId,
     contentVersion: entry.actionContext?.contentVersion ?? null,
     flavorTemplate:
       loweredGuard && entry.eventType === 'combat_action_used'

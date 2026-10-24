@@ -386,9 +386,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
         {canMoveSeats ? (
           <p className={styles.seatHelp}>
-            Click your occupied seat to step out of formation. Click an open seat to rejoin; while
-            seated, clicking another occupied seat swaps positions. Any seat change clears every
-            Ready state.
+            Tap your seat to leave formation, an open seat to join, or another player to swap. Seat
+            changes reset everyone’s Ready state.
           </p>
         ) : null}
 

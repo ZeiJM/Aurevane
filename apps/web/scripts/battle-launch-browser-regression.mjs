@@ -99,6 +99,17 @@ try {
     const enemies = page.getByLabel('AI sparring enemies')
     await allies.waitFor()
     await page.evaluate(() => document.fonts.ready)
+    assert.equal(
+      await page.getByLabel('AI sparring arena').locator('..').locator('span').innerText(),
+      'Field',
+    )
+    const choices = page.locator('[data-hall-workspace="ai"] button[data-selected]')
+    assert.equal(await choices.count(), 1)
+    assert.equal(
+      await choices.evaluate((element) => getComputedStyle(element).backgroundColor),
+      'rgb(40, 86, 83)',
+      'Selected Sparring choice uses a distinct teal highlight',
+    )
     const geometry = await allies.evaluate((element) => {
       const arena = document.querySelector('[aria-label="AI sparring arena"]')
       const fieldset = element.closest('fieldset')

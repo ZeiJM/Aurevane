@@ -106,8 +106,10 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   await expect(root).toBeFocused()
 
   await page.keyboard.press('Space')
-  await expect(root.locator('[data-unified-facing-pad="true"]')).toBeVisible()
-  await expect(root.locator('[data-unified-facing-pad="true"] button')).toHaveCount(4)
+  await expect(root.getByRole('group', { name: 'Choose final facing', exact: true })).toBeVisible()
+  await expect(
+    root.getByRole('group', { name: 'Choose final facing', exact: true }).getByRole('button'),
+  ).toHaveCount(4)
 
   if (testRepeat) {
     await page.evaluate(() => {

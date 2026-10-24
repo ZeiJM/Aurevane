@@ -99,7 +99,7 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
     'href',
     '/game/character',
   )
-  await expect(navigation.getByRole('link', { name: 'Battle', exact: true })).toHaveAttribute(
+  await expect(navigation.getByRole('link', { name: 'Arena', exact: true })).toHaveAttribute(
     'href',
     '/game/battle',
   )

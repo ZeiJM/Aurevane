@@ -962,3 +962,9 @@
     letter-spacing: 0;
   }
 }
+
+@media (max-width: 760px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .status[data-discipline-commit-success] {
+    display: none;
+  }
+}

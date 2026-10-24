@@ -1,11 +1,10 @@
 'use client'
 
-import { frozenGroundDescription } from '@aurevane/game-core/combat/terrain-overlays'
-
 import { BattleInfoPopover } from './battle-info-popover'
 import {
   BATTLE_TERRAIN_KEY_DETAILS,
   presentBattleTerrainKeys,
+  presentBattleTerrainKey,
   type BattleTerrainKeyKind,
   type BattleTerrainKeySnapshot,
 } from './battle-terrain-key-presentation'
@@ -14,9 +13,18 @@ import styles from './battle-map-key.module.css'
 export function BattleMapKey({
   snapshot,
   compact = false,
+  onSelect,
+  selectedKind,
 }: {
   snapshot: BattleTerrainKeySnapshot
   compact?: boolean
+  onSelect?: (terrain: {
+    kind: BattleTerrainKeyKind
+    name: string
+    description: string
+    active: boolean
+  }) => void
+  selectedKind?: BattleTerrainKeyKind
 }) {
   const activeKeys = new Set(presentBattleTerrainKeys(snapshot))
   const terrainKeys = Object.keys(BATTLE_TERRAIN_KEY_DETAILS) as BattleTerrainKeyKind[]
@@ -26,20 +34,15 @@ export function BattleMapKey({
       className={`${styles.inline}${compact ? ` ${styles.compact}` : ''}`}
       aria-label="Terrain Key"
       data-battle-terrain-key="true"
+      data-terrain-preview-picker={Boolean(onSelect) || undefined}
     >
       <header>
         <strong>Terrain Key</strong>
       </header>
       <div className={styles.samples}>
         {terrainKeys.map((kind) => {
-          const terrain =
-            kind === 'frozen'
-              ? {
-                  ...BATTLE_TERRAIN_KEY_DETAILS.frozen,
-                  description: `${frozenGroundDescription(snapshot.frozenGroundPolicyVersion ?? null)} Preserves base terrain and expires after 2 round boundaries.`,
-                }
-              : BATTLE_TERRAIN_KEY_DETAILS[kind]
           const active = activeKeys.has(kind)
+          const terrain = presentBattleTerrainKey(snapshot, kind, active)
           const sample = (
             <>
               <i data-key={kind} data-terrain-active={active} aria-hidden="true">
@@ -51,6 +54,21 @@ export function BattleMapKey({
               </small>
             </>
           )
+          if (onSelect)
+            return (
+              <button
+                key={kind}
+                type="button"
+                className={styles.sample}
+                aria-label={terrain.name}
+                aria-pressed={selectedKind === kind}
+                onClick={() =>
+                  onSelect({ kind, name: terrain.name, description: terrain.description, active })
+                }
+              >
+                {sample}
+              </button>
+            )
           if (compact) {
             return (
               <details key={kind} className={styles.entry} name="battle-terrain-help">

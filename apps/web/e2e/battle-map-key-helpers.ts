@@ -16,10 +16,13 @@ export async function expectTerrainKey(page: Page) {
     await expect(workspace).toBeVisible()
     const terrainKey = workspace.getByRole('region', { name: 'Terrain Key', exact: true })
     await expect(terrainKey).toBeVisible()
-    await expect(terrainKey.locator('summary')).toHaveCount(6)
-    const neutral = terrainKey.locator('summary[aria-label="Neutral ground"]')
+    await expect(terrainKey.getByRole('button')).toHaveCount(6)
+    const neutral = terrainKey.getByRole('button', { name: 'Neutral ground', exact: true })
     await neutral.click()
-    await expect(neutral.locator('..').locator('p')).toBeVisible()
+    await expect(neutral).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('[data-battle-terrain-description]')).toContainText(
+      'Normal ground costs',
+    )
     expect(await board.boundingBox()).toEqual(originalBoard)
     await back.click()
     await expect(toggle).toHaveAttribute('aria-pressed', 'false')

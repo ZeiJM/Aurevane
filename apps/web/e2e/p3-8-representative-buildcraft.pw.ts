@@ -1,3 +1,4 @@
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
 import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 import { expect, test, type Locator, type Page } from '@playwright/test'
@@ -273,7 +274,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await techniquesDialog.getByRole('button', { name: 'Close' }).click()
   await page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: 'Battle', exact: true })
+    .getByRole('link', { name: 'Arena', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
@@ -293,7 +294,8 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   if (testInfo.project.name === 'desktop-chromium') {
     // Reports remain readable on a locked battle route even in a short landscape viewport.
     const priorViewport = page.viewportSize()!
-    await commandDeck.getByRole('button', { name: "About Mercy's Edge", exact: true }).click()
+    await openBattleInfoMenu(page)
+    await page.getByRole('button', { name: "About Mercy's Edge", exact: true }).click()
     const report = page.getByRole('dialog', { name: "Mercy's Edge", exact: true })
     await page.setViewportSize({ width: 844, height: 400 })
     // Give the compact report a clear fit margin, independent of fractional font metrics.
@@ -365,7 +367,8 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   ).toHaveCount(0)
   await expect(forecast).not.toContainText('Success 100%')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
-  const informationTrigger = commandDeck.getByRole('button', { name: 'About Barrier', exact: true })
+  await openBattleInfoMenu(page)
+  const informationTrigger = page.getByRole('button', { name: 'About Barrier', exact: true })
   await informationTrigger.click()
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
   await expect(skillDetails).toBeVisible()
@@ -519,7 +522,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
   // Space opens the visible final-facing controls without ending on the first press.
   await page.keyboard.press('Space')
-  const legacyFacingRow = page.locator('[data-unified-facing-pad="true"]')
-  await expect(legacyFacingRow).toHaveAttribute('data-open', 'true')
-  await expect(legacyFacingRow).toBeVisible()
+  const facing = page
+    .locator('[data-battle-preview-strip]')
+    .getByRole('group', { name: 'Choose final facing', exact: true })
+  await expect(facing).toBeVisible()
+  await expect(facing.getByRole('button')).toHaveCount(4)
+  await expect(page.locator('[data-unified-facing-pad]')).toHaveCount(0)
 })

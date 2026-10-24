@@ -53,7 +53,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
   ).toBeVisible()
   await page.evaluate(() => document.fonts.ready)
   const terrainButton = footer.getByRole('button', { name: 'Terrain', exact: true })
-  await expect(terrainButton.locator(':scope > span[aria-hidden="true"]')).toHaveText('▲')
+  await expect(terrainButton).toHaveText('▲ Terrain')
   await expect(terrainButton).not.toHaveAttribute('data-a2-chat-label')
   console.log(
     'terrain-control-style',

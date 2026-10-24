@@ -10,7 +10,9 @@
   padding: 0.3rem;
 }
 .portrait {
-  display: block;
+  display: grid;
+  place-items: center;
+  container-type: size;
   width: min(100%, var(--av-navigation-portrait-size, 10.3125rem));
   margin-inline: auto;
   aspect-ratio: 1;
@@ -25,13 +27,15 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 }
 .fallback {
   display: grid;
   width: 100%;
   height: 100%;
   place-items: center;
-  font: 600 3rem/1 var(--av-font-display);
+  font: 600 min(3rem, 70cqh)/1 var(--av-font-display);
+  text-align: center;
 }
 .identity {
   display: flex;
