@@ -359,6 +359,134 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('does not collect timing records or query stage clocks without diagnostic opt-in', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const s = scene(true)
+    try {
+      clock.mockClear()
+      s.frame(40)
+      // The existing frame-duration measurement has only its start/end reads.
+      expect(clock).toHaveBeenCalledTimes(2)
+      expect(s.canvas.dataset.renderTiming).toBeUndefined()
+      expect(s.canvas.dataset.renderDiagnostics).toBeUndefined()
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('reports opt-in frame work at the real paint boundary without replacing the RAF clock', () => {
+    let now = 0
+    const clock = vi.spyOn(performance, 'now').mockImplementation(() => now)
+    const base = projectWorld(newWorldState(), [], 1000)
+    const view = {
+      ...base,
+      atlas: undefined,
+      scenery: undefined,
+      sectors: [
+        {
+          ...base.sectors[0]!,
+          charted: false,
+          landmarks: [],
+          buildings: [],
+          cells: base.sectors[0]!.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+        },
+      ],
+    }
+    const s = scene(true, view)
+    const context = s.identityCanvas.getContext('2d')!
+    const drawText = context.fillText.bind(context)
+    const identities = vi.spyOn(context, 'fillText').mockImplementation((...args) => {
+      if (args[0] === 'You') now += 11
+      drawText(...args)
+    })
+    const create = document.createElement.bind(document)
+    const layers = vi.spyOn(document, 'createElement').mockImplementation((...args) => {
+      now += 7
+      return create(...args)
+    })
+    try {
+      s.canvas.dataset.renderDiagnostics = 'timing'
+      now = 100
+      s.frame(40)
+      expect(s.canvas.dataset.frameNow).toBe('40')
+      expect(s.canvas.dataset.renderTiming).toBeDefined()
+      const cold = JSON.parse(s.canvas.dataset.renderTiming!)
+      expect(cold).toMatchObject({
+        frameAt: 40,
+        startedAt: 100,
+        groundBuilds: 1,
+        groundBuildMs: 7,
+        groundResamples: 0,
+        groundResampleMs: 0,
+        prepareMs: 0,
+        terrainMs: 7,
+        sceneryMs: 0,
+        atmosphereMs: 0,
+        identityMs: 11,
+        completedAt: 118,
+        updates: 0,
+        updateMs: 0,
+        terrainIndexes: 0,
+        terrainIndexMs: 0,
+      })
+      now = 140
+      s.renderer.update(view)
+      s.frame(80)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
+        frameAt: 80,
+        startedAt: 140,
+        groundBuilds: 0,
+        groundBuildMs: 0,
+        terrainMs: 0,
+        updates: 1,
+        terrainIndexes: 0,
+      })
+      const build = biomes.buildBiomeTransitions
+      const indexing = vi.spyOn(biomes, 'buildBiomeTransitions').mockImplementation((...args) => {
+        now += 19
+        return build(...args)
+      })
+      s.renderer.update({
+        ...view,
+        sectors: view.sectors.map((sector) => ({
+          ...sector,
+          cells: sector.cells.map((cell, i) => (i ? cell : { ...cell, terrain: '#' })),
+        })),
+      })
+      s.frame(120)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
+        frameAt: 120,
+        startedAt: 159,
+        updates: 1,
+        updateMs: 19,
+        terrainIndexes: 1,
+        terrainIndexMs: 19,
+        groundBuilds: 1,
+        groundBuildMs: 7,
+      })
+      indexing.mockRestore()
+      s.renderer.settings({ animate: false, zoom: 1, paused: true })
+      const paused = s.canvas.dataset.renderTiming
+      now = 1000
+      s.frame(1000)
+      expect(s.canvas.dataset.renderTiming).toBe(paused)
+      s.renderer.settings({ animate: false, zoom: 1, paused: false })
+      s.frame(1000)
+      expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({ updates: 0, updateMs: 0 })
+      delete s.canvas.dataset.renderDiagnostics
+      s.renderer.update(view)
+      s.frame(1040)
+      expect(s.canvas.dataset.renderTiming).toBeUndefined()
+    } finally {
+      layers.mockRestore()
+      identities.mockRestore()
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.restoreAllMocks()
+      vi.unstubAllGlobals()
+    }
+  })
   it('reveals late scenery sheets without repainting unchanged terrain layers', () => {
     const s = scene(true)
     s.frame(40)
@@ -2069,6 +2197,37 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.frames.size).toBe(0)
     s.renderer.settings({ animate: true, zoom: 1, paused: false })
     expect(s.frames.size).toBe(1)
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('an offline retained fixture consumes its ground click until the fixture leaves the scene', () => {
+    const s = scene()
+    const destination = { sectorId: 'verdant-expanse', x: 8, y: 4 }
+    s.renderer.update({
+      ...s.view,
+      players: [
+        {
+          characterId: 'old-fixture',
+          name: 'Previous repeat',
+          level: 1,
+          portraitRef: '',
+          imageUrl: '/old-fixture.webp',
+          online: false,
+          attackable: false,
+          position: destination,
+        },
+      ],
+    })
+    s.frame(40)
+    s.event('pointerdown', 563.2, 384.48)
+    s.event('pointerup', 563.2, 384.48)
+    expect(s.selectPlayer).toHaveBeenCalledWith('old-fixture')
+    expect(s.select).not.toHaveBeenCalled()
+    s.renderer.update({ ...s.view, players: [] })
+    s.frame(80)
+    s.event('pointerdown', 563.2, 384.48)
+    s.event('pointerup', 563.2, 384.48)
+    expect(s.select).toHaveBeenCalledExactlyOnceWith(destination)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })

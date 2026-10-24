@@ -404,6 +404,12 @@ export function createMapRenderer(
   const ctx = context
   const identityContext = identityCanvas?.getContext('2d')
   const personContext = identityContext ?? ctx
+  // Opt-in numeric profiling for native timing investigations; normal rendering
+  // does not collect stage timings or publish diagnostic records.
+  let timing: Record<string, number> | null = null
+  let pendingTiming: Record<string, number> | null = null
+  let callbackStarted = 0
+  const timingEnabled = () => canvas.dataset.renderDiagnostics === 'timing'
   let paintedIdentity: (string | number | boolean | null)[] | null = null
   let view = initial,
     width = 0,
@@ -575,6 +581,7 @@ export function createMapRenderer(
       tile
     const previous = cache.get(sector.id)
     if (previous?.key === key) return previous.ground
+    const buildStarted = timing ? performance.now() : 0
     const layer = document.createElement('canvas')
     layer.width = Math.ceil(GRID_WIDTH * tile * groundScale)
     layer.height = Math.ceil(GRID_HEIGHT * tile * groundScale)
@@ -861,6 +868,10 @@ export function createMapRenderer(
     }
     cache.set(sector.id, { key, scale: groundScale, ground: layer, surfaces, pixels })
     cachedPixels += pixels
+    if (timing) {
+      timing.groundBuilds!++
+      timing.groundBuildMs! += performance.now() - buildStarted
+    }
     return layer
   }
   function fitCachedGround() {
@@ -871,6 +882,7 @@ export function createMapRenderer(
     for (const entry of cache.values()) {
       if (entry.scale <= groundScale) continue
       const resample = (source: HTMLCanvasElement, width: number, height: number) => {
+        const resampleStarted = timing ? performance.now() : 0
         const target = document.createElement('canvas')
         target.width = Math.ceil(width * groundScale)
         target.height = Math.ceil(height * groundScale)
@@ -878,6 +890,10 @@ export function createMapRenderer(
         context.imageSmoothingEnabled = true
         context.imageSmoothingQuality = 'high'
         context.drawImage(source, 0, 0, target.width, target.height)
+        if (timing) {
+          timing.groundResamples!++
+          timing.groundResampleMs! += performance.now() - resampleStarted
+        }
         return target
       }
       const ground = resample(entry.ground, GRID_WIDTH * tile, GRID_HEIGHT * tile)
@@ -914,6 +930,27 @@ export function createMapRenderer(
     const start = performance.now(),
       sample = motion.sample(now),
       delta = Math.min(sample.moving && !wasMoving ? 16 : 64, now - last || 16)
+    timing = timingEnabled()
+      ? {
+          updates: 0,
+          updateMs: 0,
+          peerUpdateMs: 0,
+          lastPeerUpdateAt: 0,
+          terrainIndexes: 0,
+          terrainIndexMs: 0,
+          ...pendingTiming,
+          frameAt: now,
+          startedAt: start,
+          callbackDelayMs: callbackStarted - now,
+          groundBuilds: 0,
+          groundBuildMs: 0,
+          groundResamples: 0,
+          groundResampleMs: 0,
+        }
+      : null
+    pendingTiming = null
+    if (!timing && canvas.dataset.renderTiming !== undefined) delete canvas.dataset.renderTiming
+    let phaseAt = start
     last = now
     camera = {
       x: camera.x + (sample.point.x - camera.x) * (1 - Math.exp(-delta / 90)),
@@ -973,6 +1010,11 @@ export function createMapRenderer(
     groundScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
     visibleGroundIds = new Set(visible.map((sector) => sector.id))
     fitCachedGround()
+    if (timing) {
+      const ended = performance.now()
+      timing.prepareMs = ended - phaseAt
+      phaseAt = ended
+    }
     const scenery: Scenery[] = []
     const addScenery = (item: Scenery) => {
       const p = screen(item)
@@ -1176,6 +1218,11 @@ export function createMapRenderer(
             paintLavaMotion(ctx, tile, now, liquidWorldX, origin.y + cell.y)
             ctx.restore()
           }
+    }
+    if (timing) {
+      const ended = performance.now()
+      timing.terrainMs = ended - phaseAt
+      phaseAt = ended
     }
     // Wildlife shares depth with scenery. Wandering never changes collision or authority.
     const animals: {
@@ -1541,6 +1588,11 @@ export function createMapRenderer(
         ctx.fillText(landmark.name, p.x, p.y + 40)
       }
     }
+    if (timing) {
+      const ended = performance.now()
+      timing.sceneryMs = ended - phaseAt
+      phaseAt = ended
+    }
     // Time changes light gradually. Night never removes the ability to read terrain.
     const hour = view.environment.minuteOfDay / 60,
       night = Math.max(0, Math.cos(((hour - 1) * Math.PI) / 12)) * 0.24
@@ -1638,6 +1690,11 @@ export function createMapRenderer(
     canvas.dataset.wildlife = String(wildlifeCount)
     canvas.dataset.wildlifeWalking = String(wildlifeWalking)
     canvas.dataset.coastEdges = String(coastEdges)
+    if (timing) {
+      const ended = performance.now()
+      timing.atmosphereMs = ended - phaseAt
+      phaseAt = ended
+    }
     // Identity is interface: weather and nighttime tint scenery, not portraits
     // or nameplates. Retain the gray identity cue for travellers behind foliage.
     const identity: (string | number | boolean | null)[] = [
@@ -1730,7 +1787,13 @@ export function createMapRenderer(
       }
       paintedIdentity = identity
     }
-    frameTimes.push(performance.now() - start)
+    const ended = performance.now()
+    if (timing) {
+      timing.identityMs = ended - phaseAt
+      timing.completedAt = ended
+      canvas.dataset.renderTiming = JSON.stringify(timing)
+    }
+    frameTimes.push(ended - start)
     if (frameTimes.length > 120) frameTimes.shift()
     if (++drawn % 60 === 0) {
       const sorted = [...frameTimes].sort((a, b) => a - b)
@@ -1746,6 +1809,7 @@ export function createMapRenderer(
   function loop(now: number) {
     frame = 0
     if (disposed || paused || document.visibilityState !== 'visible') return
+    if (timingEnabled()) callbackStarted = performance.now()
     const sample = motion.sample(now),
       remoteMoving = remoteMotion.moving(now),
       settling = sample.point.x !== camera.x || sample.point.y !== camera.y,
@@ -1986,12 +2050,35 @@ export function createMapRenderer(
   media.addEventListener('change', onReduced)
   return {
     update(next: WorldView) {
+      const profiling = timingEnabled()
+      const started = profiling ? performance.now() : 0
       const terrain = worldRenderTerrain(next, renderSectors)
       const terrainChanged = terrain !== renderSectors || next.atlas !== view.atlas
       renderSectors = terrain
       view = next
-      remoteMotion.update(next, performance.now(), camera)
+      const peerStarted = performance.now()
+      remoteMotion.update(next, peerStarted, camera)
+      const indexStarted = profiling ? performance.now() : 0
       if (terrainChanged) indexTerrain()
+      if (profiling) {
+        const ended = performance.now()
+        pendingTiming ??= {
+          updates: 0,
+          updateMs: 0,
+          peerUpdateMs: 0,
+          lastPeerUpdateAt: 0,
+          terrainIndexes: 0,
+          terrainIndexMs: 0,
+        }
+        pendingTiming.updates!++
+        pendingTiming.updateMs! += ended - started
+        pendingTiming.peerUpdateMs! += indexStarted - peerStarted
+        pendingTiming.lastPeerUpdateAt = peerStarted
+        if (terrainChanged) {
+          pendingTiming.terrainIndexes!++
+          pendingTiming.terrainIndexMs! += ended - indexStarted
+        }
+      }
       requestDraw()
     },
     settings(value: { animate: boolean; zoom: number; paused?: boolean; zoomLocked?: boolean }) {
