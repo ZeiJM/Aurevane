@@ -99,7 +99,7 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
   const controls = page.locator('[data-battle-cockpit-controls]')
   await expect(controls).toHaveCount(12)
   const menu = page.locator('[data-battle-preview-info]')
-  const mobile = await menu.isVisible()
+  const mobile = (await menu.evaluate((element) => getComputedStyle(element).display)) !== 'none'
   const readers = mobile
     ? menu.locator('[data-battle-info-trigger]')
     : controls.locator('[data-battle-info-trigger]')
@@ -140,7 +140,7 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     }
   }
   for (let index = 0; index < (await readers.count()); index++) {
-    await openBattleInfoMenu(page)
+    await openBattleInfoMenu(page, (await readers.nth(index).getAttribute('aria-label'))!)
     const info = readers.nth(index)
     await info.hover()
     await expect(page.locator('[data-battle-info-panel]')).toHaveCount(0)
@@ -198,9 +198,11 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
     }
     await page.keyboard.press('Escape')
     await expect(panel).toHaveCount(0)
-    await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
+    await expect(
+      mobile ? info : page.locator('main[data-battle-keyboard-focus-root="true"]'),
+    ).toBeFocused()
   }
-  await openBattleInfoMenu(page)
+  await openBattleInfoMenu(page, (await readers.first().getAttribute('aria-label'))!)
   await readers.first().click()
   await testInfo.attach('cockpit-info-popup.png', {
     body: await page.screenshot(),

@@ -294,7 +294,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   if (testInfo.project.name === 'desktop-chromium') {
     // Reports remain readable on a locked battle route even in a short landscape viewport.
     const priorViewport = page.viewportSize()!
-    await openBattleInfoMenu(page)
+    await openBattleInfoMenu(page, "About Mercy's Edge")
     await page.getByRole('button', { name: "About Mercy's Edge", exact: true }).click()
     const report = page.getByRole('dialog', { name: "Mercy's Edge", exact: true })
     await page.setViewportSize({ width: 844, height: 400 })
@@ -367,7 +367,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   ).toHaveCount(0)
   await expect(forecast).not.toContainText('Success 100%')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
-  await openBattleInfoMenu(page)
+  await openBattleInfoMenu(page, 'About Barrier')
   const informationTrigger = page.getByRole('button', { name: 'About Barrier', exact: true })
   await informationTrigger.click()
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })

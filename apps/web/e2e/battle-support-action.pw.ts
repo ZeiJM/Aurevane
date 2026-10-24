@@ -338,7 +338,7 @@ for (const [supportActionId, label, cost] of [
       ),
     )
     expect(commits).toBe(0)
-    await openBattleInfoMenu(page)
+    await openBattleInfoMenu(page, `About ${label}`)
     await root.getByRole('button', { name: `About ${label}`, exact: true }).click()
     await expect(page.locator('[data-battle-info-panel]')).toBeVisible()
     await page.keyboard.press('KeyG')
@@ -415,7 +415,7 @@ for (const [supportActionId, label, cost] of [
         await page.keyboard.press('KeyR')
         await page.keyboard.press('KeyR')
       }
-      await openBattleInfoMenu(page)
+      await openBattleInfoMenu(page, `About ${label}`)
       const information = root.getByRole('button', { name: `About ${label}`, exact: true })
       await expect(information).toBeEnabled()
       await information.click()
@@ -554,7 +554,7 @@ test('a Support Action preview arriving while a reading panel is open cannot com
   await page.keyboard.press('KeyG')
   await firstPreview
   await expect(root.locator('[data-battle-command="guard"]')).toHaveAttribute('data-active', 'true')
-  await openBattleInfoMenu(page)
+  await openBattleInfoMenu(page, 'About MP Recovery')
   await root.getByRole('button', { name: 'About MP Recovery', exact: true }).click()
   await expect(page.locator('[data-battle-info-panel]')).toBeVisible()
   await page.keyboard.press('KeyG')

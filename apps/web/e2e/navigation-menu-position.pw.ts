@@ -29,7 +29,7 @@ test('game navigation stays in the primary rail without a redundant footer trigg
   const primaryNavigation = page.getByRole('navigation', { name: 'Primary game navigation' })
   await expect(primaryNavigation.getByRole('link', { name: 'Profile', exact: true })).toBeVisible()
   await expect(primaryNavigation.getByRole('link', { name: 'Items', exact: true })).toHaveCount(0)
-  await expect(primaryNavigation.getByRole('link', { name: 'Loadout', exact: true })).toBeVisible()
+  await expect(primaryNavigation.getByRole('link', { name: 'Arsenal', exact: true })).toBeVisible()
   await expect(primaryNavigation.getByRole('link', { name: /^Arena/ })).toBeVisible()
   await expect(primaryNavigation.getByRole('link', { name: /^Training/ })).toBeVisible()
   await expect(primaryNavigation.getByRole('button', { name: 'Items', exact: true })).toHaveCount(0)

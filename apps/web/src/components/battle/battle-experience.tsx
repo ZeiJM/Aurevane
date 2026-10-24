@@ -404,6 +404,7 @@ function BattleExperienceContent({
     if (open) setTerrainView(false)
   }, [])
   const [mode, setMode] = useState<Mode>('none')
+  const [infoSelectionVersion, setInfoSelectionVersion] = useState(0)
   const [path, setPath] = useState<BattleGridPosition[]>([])
   const pathRef = useRef<BattleGridPosition[]>([])
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
@@ -472,6 +473,7 @@ function BattleExperienceContent({
     mounted.current = true
     return () => {
       mounted.current = false
+      setInfoSelectionVersion((version) => version + 1)
       previewSequence.current += 1
       readyPreview.current = null
       inFlightPreview.current = null
@@ -983,6 +985,7 @@ function BattleExperienceContent({
 
   const clearPlanning = useCallback(
     (nextMode: Mode = 'none') => {
+      setInfoSelectionVersion((version) => version + 1)
       previewSequence.current += 1
       readyPreview.current = null
       inFlightPreview.current = null
@@ -1678,6 +1681,7 @@ function BattleExperienceContent({
       setExecutionPending(true)
       previewController.current?.abort()
       previewController.current = null
+      setInfoSelectionVersion((version) => version + 1)
       previewSequence.current += 1
       readyPreview.current = null
       inFlightPreview.current = null
@@ -2466,8 +2470,6 @@ function BattleExperienceContent({
           {
             openInfo: (selector) => {
               const trigger = document.querySelector<HTMLButtonElement>(selector)
-              const menu = trigger?.closest<HTMLDetailsElement>('[data-battle-preview-info]')
-              if (menu) menu.open = true
               trigger?.click()
             },
             activate: (actionId, category) => {
@@ -2770,12 +2772,14 @@ function BattleExperienceContent({
             data-active={localTurn || undefined}
             data-unified-battle-economy="true"
           >
-            <span
-              className={`brand__crest ${styles.battleCrest}`}
-              role="img"
-              aria-label="Aurevane"
-              data-battle-brand-crest="true"
-            />
+            {!desktopLayout ? (
+              <span
+                className={`brand__crest ${styles.battleCrest}`}
+                role="img"
+                aria-label="Aurevane"
+                data-battle-brand-crest="true"
+              />
+            ) : null}
             <div className={styles.economyCopy}>
               <span data-battle-turn-clock-slot="true" />
               <span>Action Economy</span>
@@ -3227,7 +3231,9 @@ function BattleExperienceContent({
             data-battle-mobile-lower-panel="true"
           >
             <section data-battle-preview-strip="true" aria-label="Target forecast">
-              <BattlePreviewInfoMenu />
+              <BattlePreviewInfoMenu
+                actionKey={`${terrainView ? 'none' : mode}:${activeTechnique?.id ?? ''}:${infoSelectionVersion}`}
+              />
               <strong data-battle-instruction-title="true">
                 {terrainView ? (terrainPreview?.name ?? 'Terrain') : contextTitle}
               </strong>

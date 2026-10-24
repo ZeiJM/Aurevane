@@ -87,10 +87,13 @@ test('shared compact readers retain complete reports and consume the first armed
     await expect(ap).toHaveAttribute('aria-valuenow', String(beforeAP))
     expect(commits).toHaveLength(0)
   }
-  await openBattleInfoMenu(page)
+  await openBattleInfoMenu(page, 'About Inspect')
   const inspect = page.getByRole('button', { name: 'About Inspect', exact: true })
-  await openBattleInfoMenu(page)
-  const attack = page.getByRole('button', { name: 'About Basic Attack', exact: true })
+  const attack = page.getByRole('button', {
+    name: 'About Basic Attack',
+    exact: true,
+    includeHidden: true,
+  })
   await inspect.click()
   await expect(panels).toHaveCount(1)
   await expect(panels).toHaveAttribute('aria-label', 'Inspect')
@@ -115,13 +118,15 @@ test('shared compact readers retain complete reports and consume the first armed
   await expectUnchangedBattle()
   await page.keyboard.press('Escape')
   await expect(panels).toHaveCount(0)
-  await expect(root).toBeFocused()
+  await expect(
+    (await page.locator('[data-battle-preview-info]').isVisible()) ? attack : root,
+  ).toBeFocused()
 
   await root.focus()
   await page.keyboard.press('Digit3')
   const ownTile = page.getByRole('button', { name: /occupied by Reader / })
   for (const label of ['About Guard', 'About selected Skill slot 1']) {
-    await openBattleInfoMenu(page)
+    await openBattleInfoMenu(page, label)
     await page.getByRole('button', { name: label, exact: true }).click()
     await expect(panels).toHaveCount(1)
     await page.keyboard.press('Digit3')

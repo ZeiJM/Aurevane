@@ -310,7 +310,7 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   await expect(page.getByText('Current Path', { exact: true })).toBeVisible()
   await page.goto('/game/loadout')
   await expect(page).toHaveURL(/\/game\/nexus$/)
-  const loadoutTabs = page.getByRole('navigation', { name: 'Loadout sections' })
+  const loadoutTabs = page.getByRole('navigation', { name: 'Arsenal sections' })
   await expect(loadoutTabs.getByRole('link', { name: 'Nexus', exact: true })).toHaveAttribute(
     'href',
     '/game/nexus',
