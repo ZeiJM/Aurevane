@@ -91,7 +91,7 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
     exact: true,
   })
   await expect(navigation.getByRole('link', { name: 'Items', exact: true })).toHaveCount(0)
-  await expect(navigation.getByRole('link', { name: 'Loadout', exact: true })).toHaveAttribute(
+  await expect(navigation.getByRole('link', { name: 'Arsenal', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
   )

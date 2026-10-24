@@ -2,60 +2,48 @@
 
 ## Status and source
 
-Owner-approved work in progress. This remote checkpoint records requirements and recovery details only; application changes are still uncommitted in the workspace and are NOT published or live.
+Implemented on `agent/mobile-battle-space-20261024`, based on production PR #975 merge `89a730a1b2df0e7fadcdaf4a566166e0e266ce64` (tree `7f4dbb3b9ce5a9270bf490787533f472d1f414c0`). GitHub's authenticated browser checks remain required before release. This follow-up has not been merged or deployed.
 
-Base: production PR #975 merge `89a730a1b2df0e7fadcdaf4a566166e0e266ce64`, tree `7f4dbb3b9ce5a9270bf490787533f472d1f414c0`.
-Local branch: `agent/mobile-battle-space-20261024`.
-Working tree: `/workspace/scratch/716e81302a24/Aurevane-mobile`.
-The execution environment disconnected during verification. Recover and inspect the working tree before making new edits. Do not claim it is lost, complete, passing, committed or deployed without fresh evidence.
+## Owner-approved changes
 
-## Complete Owner-approved scope
+- Mobile battle: add crest/AP spacing, compact Victory Conditions, shorten character summaries, enlarge cockpit artwork and tighten its rows/captions.
+- Reduce mobile token facing markers to a tile-relative 8–10px. This explicit Owner request supersedes the prior 12px mobile minimum. Desktop minimum, tile containment, corner placement and noninteractive direction markers remain guarded.
+- Show one preview information button after cockpit selection. It opens that selection's full report directly. Keep every existing report, disabled/passive/empty-slot reading, hardware-reader shortcuts, nested dismissal, focus restoration and command guards.
+- Enlarge lobby VS and position it on the actual formation seam for duels, larger teams and wrapped third factions. Remove lobby-only Chat and allocate the remaining action row to Leave/Ready.
+- Center the Profile Rekindling Cycle number below its label.
+- Rename navigation Loadout to **Arsenal**; retain URLs, saved-loadout APIs and the Nexus/Items switcher. Remove the duplicate page heading above that switcher.
+- Remove the AP crest from desktop battle markup, retaining mobile presentation.
+- Keep complete preview text visible, including final-facing controls and longer desktop instructions.
 
-1. Mobile battle header: shorten the AP bar from its left edge to add space after the crest; make Victory Conditions more compact.
-2. Shorter mobile character summaries, allocating more room to the battlefield.
-3. Smaller facing markers on battlefield tokens. This explicitly supersedes the previous mobile 12px minimum. Preserve visible direction, relative tile scale, containment and noninteractive behavior.
-4. Preview information button appears only after cockpit selection and opens that selection's complete report directly. No menu of all reports. Preserve passive/disabled/empty-slot information without executing unavailable commands, hardware-reader shortcuts, nested-reader dismissal and command guards.
-5. Larger mobile cockpit artwork; tighter rows, smaller captions where useful; remove excess blank space.
-6. Larger, integrated lobby VS on the seam between formations, including more-than-two-player and three-team lobbies. Handle a wrapped third team explicitly.
-7. Remove lobby Chat button and associated lobby-only panel; retain battle/site chat.
-8. Center the Profile Rekindling Cycle number below its label (Owner called it resonance cycle; screenshot identifies Rekindling Cycle).
-9. Remove duplicate Nexus/Items headings above the section switcher on both routes; retain the two switchable buttons.
-10. Rename navigation Loadout to Arsenal (assistant's stated design choice, subject to any later Owner correction); keep route URLs and saved-loadout APIs unchanged.
-11. Desktop battle only: remove the extra crest next to AP, retaining it on mobile and reclaiming its grid space.
-12. Fix vertically clipped text at the bottom of the battle preview, specifically the desktop final-facing state in the last screenshot.
+## Implementation and diagnosis
 
-## Implementation already present locally — inspect before relying on this
+The contextual information provider delegates selection at the shared battle root. It exposes one keyed reader while keeping all twelve existing reports mounted for shortcuts. It does not submit gameplay commands. The current action/version synchronizes keyboard selection, including selecting the same action after reading an empty slot. Open readers retain their input ownership; closed information triggers allow deliberate combat shortcuts again.
 
-- `battle-cockpit-info.tsx`: replaces the details/menu with one preview host. All readers remain mounted in hidden keyed wrappers; only the selected wrapper is visible. A delegated pointer/click listener on the battle root selects a slot without mutating gameplay; disabled/empty slots can be inspected. Visible wrappers use display:contents to avoid intercepting their own information button.
-- `BattleCockpitInfo` requires selectionKey. Basic commands use slot; selected Skill controls use shortcutAction. `BattlePreviewInfoMenu` receives an actionKey from mode, active technique and infoSelectionVersion. clearPlanning increments the version, allowing explicit same-action keyboard reselection to update the contextual report.
-- Closed preview-host focus no longer blocks combat shortcuts in `battle-keyboard-scope.ts`; open reports, native Enter/Space activation and other reading surfaces still retain their guards.
-- Mobile CSS: crest/AP gap, compact Victory Conditions, 8–10px tile-relative facing markers, artwork based on clamp(1.5rem,min(11vw,7dvh),3.25rem), tighter content rows and shorter character rails.
-- Small-phone reproduction found that the enlarged cockpit could center content beyond its allocated track. Latest fix uses align-content:start and lower-panel minimum calc(2 * artwork + 8rem), with explicit preview border-box/scroll containment.
-- Lobby Chat markup/import/state and dead panel CSS removed; VS positioned relative to each teamWrap seam. Wrapped third faction spans the next row with a top-center VS; a narrow-screen specificity correction is included.
-- Profile cycle CSS, Arsenal navigation label, switcher-only LoadoutHeader, and affected unit/native test expectations changed.
-- Native information-menu helper now selects one card via pointer-down then releases outside, auditing reports without submitting gameplay commands. Actual tap/select/i/Escape interactions are separately covered by production fixtures.
+Desktop crest removal uses the existing responsive layout hook rather than competing with the global brand display rule. The desktop economy copy becomes the actual first child, preserving the shared header authority's compact geometry.
 
-## Verification and known outstanding work
+A permanent text-range guard reproduced real clipping at 844×390: final-facing glyphs extended to y171.421875 while the preview ended at y168.375. The short landscape override allocated only 3rem for two content rows plus padding. Its preview now uses the same 4.2rem budget as portrait. Desktop retains a 2.75rem minimum and can grow for wrapped or larger instruction text instead of cropping the last line. The regression checks complete text glyphs, all four controls, unchanged normal facing/terrain board geometry and exactly one authoritative facing request.
 
-- Before implementation, the permanent production-fixture guard reproduced the idle information-menu mismatch (1 visible control versus expected 0).
-- Initial production browser probe passed PvE/PvP/spectator at390/320 portrait and844 landscape; later review found keyboard edge cases, since repaired.
-- Read-only independent review identified stale keyboard info, blocked shortcuts after dismissal, and wrapped-third-team VS placement. All were addressed; final review after the later naming/desktop/preview changes remains needed.
-- After the small-phone track correction, a focused copy of the permanent shared guard PASSED all PvE/PvP320 scenarios: all12 contextual reports, nested readers, action keyboard synchronization, explicit same-action reselection, cancellation, final facing, movement/attack gestures and single-submit guards.
-- Lobby production fixture passed seven existing Hall sizes and16 lobby mode/viewport combinations before the last three-team320 layout refinement. Inspect `/tmp/av-mobile-lobby-evidence` and rerun affected lobby cases after final CSS.
-- A full local gate ran once while further Owner requests arrived. Formatting/lint/types passed on its earlier snapshot; tests found3 failures: one negative assertion still forbidding Arsenal (corrected), plus two tab-label expectations during the mid-run rename. No final full-gate success exists; build was not reached.
-- Latest desktop crest attempt FAILED the existing compact-header assertion: header85.34375px versus <=56px. The CSS-only display:none conflicts with the global brand display rule and header child-placement assumptions. Planned but NOT confirmed applied: conditionally render the crest with existing useDesktopBattleLayout; desktop economy uses one column; retain mobile override. Update the fixture crest assertion to mobile?1:0. Verify all desktop widths, not just1366.
-- New permanent preview text-range containment assertion was added after final-facing screenshot capture, but the desktop header failure prevented reaching it. Reproduce the actual clipped preview before choosing a fix. Inspect shared preview grid row2.75rem in battle-approved-layout.module.css, previewFacing dimensions, and any injected instruction text. Preserve complete content and board/control boundaries.
-- Temporary Profile/header rendering probe `apps/web/scripts/.profile-check.mjs` needs a next/link mock alias; its first run failed because real Next link expects process. Planned mock addition was in the interrupted command and is NOT confirmed applied. No rendered Profile verification is claimed yet.
-- Temporary focused runner `apps/web/scripts/.focused-mobile.mjs` must be removed before publication. Refresh it from the permanent script for diagnostics; do not commit scratch probes.
-- Current logs: `/tmp/av-mobile-polish-red.log`, `/tmp/av-mobile-polish-focused.log`, `/tmp/av-mobile-polish-browser.log`, `/tmp/av-mobile-polish-lobby.log`, `/tmp/av-mobile-polish-check.log`, `/tmp/av-profile-check.log`, `/tmp/av-preview-red.log`.
+The Profile rendering guard also reproduced the desktop cycle copy being laid out horizontally: a later media rule used flex. The cycle copy explicitly uses a centered grid while the other identity facts retain their layout.
 
-## Resume and publication
+Lobby selectors account for existing duel-specific rules. Side-by-side formations center VS on their horizontal seam; a stacked duel or wrapped third faction centers it in the vertical gap. Short landscape lobbies retain bounded scrolling and visible action controls.
 
-1. Recover workspace, inspect git status/diff and actual fresh main. The final interrupted shell call may not have executed at all.
-2. Complete desktop crest and preview clipping fixes; verify Profile and Arsenal header.
-3. Run affected rendered flows, all changed native test discovery/type checks, formatting/lint and final quality verification. Update tests to the explicitly approved UI contract without removing gameplay/authority/containment assertions.
-4. Update this document with actual final evidence, inspect the diff, review and publish source to this same branch with expected-head protection. The remote branch currently contains only this checkpoint; avoid overwriting it blindly.
-5. No preview/staging deployments. Git deployment lock stays false for all branches. No migrations, catalogue publication or production data/configuration changes. PR #933 stays separate/unmerged; its timing acceptance remains unresolved.
-6. PR #976 separately contains the Owner-approved change-scoped testing policy; it is still unmerged and its CI optimization checklist is not implemented. Do not silently bypass configured gates.
+## Verification
 
-The previous production release remains READY at https://aurevane.vercel.app, deployment `dpl_EytuTsQeu1YDZHzitYaZUEtvyjHW`. That release's monitor was disabled after success. No new worker or deployment has been created for this follow-up batch.
+- Full shared production-component browser regression passed across PvE/PvP at 1920, 1366, 1024, 821, 390, 320 and 844-landscape, plus spectator desktop/mobile cases. Existing movement, attack, pending/repeat, terrain, artwork, keyboard and single-submit checks remain intact.
+- Focused final native-helper/selection probe passed PvE/PvP at 320px, including all twelve reports, actual native helper selection, same-action keyboard reselection, cancellation, nested reader dismissal and final facing. The clipping correction separately passed both playable modes at 844×390.
+- Battle Hall production fixture passed seven existing sizes; lobby production fixture passed sixteen mode/viewport combinations (1v1, 2v2, 3v3, 1v1v1 × 1440, 390, 320, 844-landscape). Profile/switcher rendering passed at 1440, 390 and 320.
+- Formatting, lint, all eight package typechecks, 12,363 Vitest tests and seven Node checks passed. Production build passed after the local dependency-path repair described below.
+- Native Playwright discovery found 642 cases in 94 files. Native authenticated suites require GitHub CI; local Docker is unavailable. Their relevant selectors, contextual-reader helpers, focus expectations and explicitly changed mobile marker sizes are updated.
+- Read-only independent review found no remaining Critical or Important production issues. Its stale native 12px expectation finding was corrected without removing containment, direction, meter or authority assertions.
+
+The initial recovered-workspace build could not resolve Next.js because temporary dependency symlinks escaped Turbopack's workspace root. Dependencies were copied into the isolated checkout; no application or deployment configuration was changed to repair this environment issue.
+
+Logs: `/tmp/av-recover-check.log`, `/tmp/av-recover-build.log`, `/tmp/av-recover-types-final.log`, `/tmp/av-recover-full.log`, `/tmp/av-recover-nativehelper.log`, `/tmp/av-recover-landscape.log`, `/tmp/av-recover-lobbies-final.log`, `/tmp/av-recover-native-list.log`.
+
+## Release constraints
+
+No preview/staging deployments. `apps/web/vercel.json` retains `git.deploymentEnabled["**"] = false`. No gameplay, migrations, catalogue publication, production data, environment or unrelated World/Master/Staff changes. PR #933 stays separate and unmerged; its timing acceptance is unresolved. Human signed-in/physical-device/multiplayer acceptance remains open.
+
+Refresh actual main and branch heads before publication/merge. Required configured checks must pass on the final source. Production deployment remains a separate Owner-controlled step. The previous production release at https://aurevane.vercel.app remains unchanged.
+
+PR #976 separately records the Owner-approved change-scoped verification policy. It remains unmerged; its CI optimization checklist has not been implemented and does not bypass configured gates.

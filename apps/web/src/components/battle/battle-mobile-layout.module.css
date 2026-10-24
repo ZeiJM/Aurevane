@@ -781,10 +781,10 @@
   }
   .shell[data-battle-mobile-stage='true']
     :global(#battlefield [data-battle-facing-indicator='true']) {
-    width: clamp(12px, 34cqw, 14px) !important;
-    height: clamp(12px, 34cqw, 14px) !important;
+    width: clamp(8px, 22cqw, 10px) !important;
+    height: clamp(8px, 22cqw, 10px) !important;
     padding: 0 !important;
-    font-size: min(27cqw, 0.6rem) !important;
+    font-size: min(20cqw, 0.5rem) !important;
   }
   .shell[data-battle-mobile-stage='true'] :global([data-unified-command-deck]) {
     --av-cockpit-art-size: clamp(1.7rem, 9vw, 2.7rem);
@@ -793,9 +793,9 @@
     --battle-command-gap: 1px;
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    gap: 0.18rem;
-    align-content: stretch;
+    grid-template-rows: repeat(2, max-content);
+    gap: 0.4rem 0.12rem;
+    align-content: start;
   }
   .shell[data-battle-mobile-stage='true'] :global([data-battle-command-group]),
   .shell[data-battle-mobile-stage='true'] :global([data-battle-selected-skills]),
@@ -837,7 +837,9 @@
   }
   .shell[data-battle-mobile-stage='true'] .lowerPanel > :global([data-battle-preview-strip]) {
     padding-right: 2.5rem;
-    overflow: visible;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
   .shell[data-battle-mobile-stage='true'] :global([data-battle-preview-info]) {
     display: block;
@@ -846,41 +848,25 @@
     right: 0.25rem;
     z-index: 20;
   }
-  .shell[data-battle-mobile-stage='true'] :global([data-battle-preview-info] summary) {
+  .shell[data-battle-mobile-stage='true'] :global([data-battle-preview-reader][hidden]) {
+    display: none;
+  }
+  .shell[data-battle-mobile-stage='true'] :global([data-battle-preview-reader]:not([hidden])) {
+    display: contents;
+  }
+  .shell[data-battle-mobile-stage='true'] :global([data-battle-preview-info] button) {
     display: grid;
     place-items: center;
     width: 2rem;
     height: 2rem;
+    min-height: 2rem;
+    padding: 0;
     border: 1px solid #a48750;
     border-radius: 50%;
     background: #544224;
     color: #fff1d2;
     font-weight: 700;
     cursor: pointer;
-    list-style: none;
-  }
-  .shell[data-battle-mobile-stage='true'] :global([data-battle-preview-info-options]) {
-    position: fixed;
-    right: 0.5rem;
-    bottom: calc(var(--av-footer-rail-height, 2.5rem) + 3.5rem);
-    width: min(16rem, calc(100vw - 2rem));
-    max-height: 14rem;
-    padding: 0.3rem;
-    overflow-y: auto;
-    background: #14252f;
-    border: 1px solid #a48750;
-    box-shadow: 0 0.4rem 1rem #0009;
-  }
-  .shell[data-battle-mobile-stage='true'] :global([data-battle-preview-info-options] button) {
-    display: block;
-    width: 100%;
-    height: auto;
-    min-height: 2rem;
-    padding: 0.3rem;
-    text-align: left;
-    color: #f5e6c7;
-    background: #223b45;
-    border-radius: 0;
   }
 }
 
@@ -911,12 +897,12 @@
 
 @media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
   .shell[data-battle-mobile-stage='true'] {
-    --av-touch-cockpit-art-size: clamp(1.25rem, min(7.5vw, 5dvh), 2.6rem);
+    --av-touch-cockpit-art-size: clamp(1.5rem, min(11vw, 7dvh), 3.25rem);
   }
   .shell[data-battle-mobile-stage='true'] > section:global([data-unified-battle-content]) {
     grid-template-rows: auto minmax(0, 1fr) minmax(
         calc(2 * var(--av-touch-cockpit-art-size) + 8rem),
-        1fr
+        0.75fr
       );
   }
   .shell[data-battle-mobile-stage='true'] :global([data-unified-command-deck]) {
@@ -960,17 +946,35 @@
     grid-template-rows: auto minmax(0, 1fr);
   }
   .shell[data-battle-mobile-stage='true'] .lowerPanel {
-    grid-template-rows: 3rem minmax(0, 1fr);
+    grid-template-rows: 4.2rem minmax(0, 1fr);
   }
   .shell[data-battle-mobile-stage='true'] .lowerPanel > :global([data-battle-preview-strip]) {
-    height: 3rem;
-    min-height: 3rem;
-    max-height: 3rem;
+    height: 4.2rem;
+    min-height: 4.2rem;
+    max-height: 4.2rem;
   }
 }
 
 @media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
   .shell[data-battle-mobile-stage='true'] :global([data-unified-command-deck] article > small) {
+    display: none;
+  }
+}
+
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .shell[data-battle-mobile-stage='true'] :global([data-unified-battle-economy]) {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    column-gap: 0.65rem;
+  }
+  .shell[data-battle-mobile-stage='true'] :global([data-unified-battle-economy]) > div {
+    grid-column: 2;
+  }
+  .shell[data-battle-mobile-stage='true'] :global([data-battle-shared-header-action='victory']) {
+    padding-inline: 0.35rem !important;
+    font-size: 0.65rem !important;
+    min-width: 0 !important;
+  }
+  .shell[data-battle-chronicle-detail-open] :global([data-battle-preview-info]) {
     display: none;
   }
 }

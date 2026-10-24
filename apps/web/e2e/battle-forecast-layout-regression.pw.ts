@@ -675,7 +675,7 @@ async function exerciseForecast(
         ).toBeVisible()
         await check(`${name}-ready`)
         await expectNoSkillPreviewMetadata(preview)
-        await openBattleInfoMenu(page)
+        await openBattleInfoMenu(page, `About ${name}`)
         const informationTrigger = page.getByRole('button', { name: `About ${name}`, exact: true })
         await informationTrigger.click()
         const parameters = page.getByRole('dialog', { name, exact: true })
@@ -691,7 +691,11 @@ async function exerciseForecast(
         expect(commits).toBe(0)
         await page.keyboard.press('Escape')
         await expect(parameters).toHaveCount(0)
-        await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
+        await expect(
+          (await page.locator('[data-battle-preview-info]').isVisible())
+            ? informationTrigger
+            : page.locator('main[data-battle-keyboard-focus-root="true"]'),
+        ).toBeFocused()
         await expectInlineSkillForecast(
           page,
           `frostweaver.${name.toLowerCase().replaceAll(' ', '-')}`,

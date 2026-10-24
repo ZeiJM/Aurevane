@@ -46,6 +46,7 @@ function SkillControls({
   return (
     <div className={styles.controls} data-battle-cockpit-controls="true">
       <BattleCockpitInfo
+        selectionKey={shortcutAction}
         shortcutAction={shortcutAction}
         label={`About ${title}`}
         title={title}

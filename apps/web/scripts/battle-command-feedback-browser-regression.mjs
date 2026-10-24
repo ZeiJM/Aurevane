@@ -16,6 +16,9 @@ const { chromium } = require(
 )
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
+const { openBattleInfoMenu } = await import(
+  pathToFileURL(resolve(web, 'e2e/battle-info-menu-helpers.ts'))
+)
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'battle-command-feedback-'))
 const output = process.env.AV_COMMAND_FEEDBACK_EVIDENCE_DIR || resolve(fixture, 'evidence')
 await fs.mkdir(output, { recursive: true })
@@ -83,7 +86,7 @@ createRoot(document.getElementById('root')).render(
       <section data-unified-battle-content="true">
         <div className={styles.lowerPanel}>
           <div data-battle-preview-strip="true"><BattlePreviewInfoMenu /></div>
-          <BattleCockpitInfo label="About linked Skill" title="Linked Skill" consumeOutsideClick trigger="i">
+          <BattleCockpitInfo selectionKey="attack" label="About linked Skill" title="Linked Skill" consumeOutsideClick trigger="i">
             <MechanicTextView text="Guard" parts={[{tag:'guarded',label:'Guard',explanation:'A linked Guard explanation.'}]} />
           </BattleCockpitInfo>
         </div>
@@ -289,8 +292,8 @@ async function verifyFinalFacing(page, viewport, mode) {
     assert.ok(arrows.length > 0, 'Production fixture contains facing markers')
     for (const arrow of arrows) {
       assert.ok(
-        arrow.width >= 12 && arrow.height >= 12,
-        `Mobile facing markers retain their 12px readability floor: ${JSON.stringify(arrow)}`,
+        arrow.width >= 8 && arrow.height >= 8 && arrow.width <= 10.1 && arrow.height <= 10.1,
+        `Mobile facing markers retain the approved 8–10px tile-relative size: ${JSON.stringify(arrow)}`,
       )
       assert.ok(
         arrow.left >= 1 && arrow.left <= 3 && arrow.top >= -1 && arrow.top <= 3,
@@ -307,7 +310,7 @@ async function verifyFinalFacing(page, viewport, mode) {
   )
   const deck = page.locator('[data-unified-command-deck]')
   const finish = deck.locator('[data-battle-command="finish"]')
-  assert.equal(await page.locator('[data-battle-brand-crest]').count(), 1)
+  assert.equal(await page.locator('[data-battle-brand-crest]').count(), mobile ? 1 : 0)
   await page.evaluate(() => document.fonts.ready)
   const artworkFrames = await deck
     .locator('[data-av-square-media], [aria-label="Empty selected Skill slot"]')
@@ -324,6 +327,14 @@ async function verifyFinalFacing(page, viewport, mode) {
       Math.abs(frame.width - frame.height) <= 1,
       `${frame.label} stays square: ${JSON.stringify(frame)}`,
     )
+  if (mobile && viewport.height > 500) {
+    assert.ok(
+      Math.min(...artworkFrames.map((frame) => frame.width)) >= 34,
+      'Portrait phone cockpit artwork is enlarged',
+    )
+    const rails = await page.locator('[data-battle-side="local"]').boundingBox()
+    assert.ok(rails.height <= 80, `Character rails stay compact: ${rails.height}`)
+  }
   const boardBeforeReading = await page.locator('[data-board-auto-fit]').boundingBox()
   const terrain = page.getByRole('button', { name: 'Terrain', exact: true })
   await terrain.click()
@@ -341,58 +352,71 @@ async function verifyFinalFacing(page, viewport, mode) {
     'Terrain preserves the battlefield geometry',
   )
   if (mobile) {
-    const menu = page.locator('[data-battle-preview-info]')
-    const summary = menu.locator('summary')
-    await summary.focus()
-    await summary.press('Space')
-    assert.notEqual(await menu.getAttribute('open'), null)
-    await page.keyboard.press('KeyW')
+    const host = page.locator('[data-battle-preview-info]')
+    assert.equal(await host.locator('summary').count(), 0, 'No all-report menu remains')
     assert.equal(
-      await page.locator('main[data-unified-battle]').getAttribute('data-battle-action-mode'),
-      'none',
-      'Reading the menu cannot issue a movement command',
+      await host.locator('[data-battle-info-trigger]:visible').count(),
+      0,
+      'Idle preview has no information button',
     )
-    await menu.getByRole('button', { name: 'About Severance / Ascension', exact: true }).click()
-    await page.getByRole('dialog', { name: 'Severance / Ascension', exact: true }).waitFor()
-    await page.keyboard.press('Escape')
-    await page.waitForFunction(() =>
-      document.activeElement?.matches('main[data-battle-keyboard-focus-root]'),
-    )
-    await summary.click()
-    await menu.getByRole('button', { name: 'About Basic Attack', exact: true }).click()
-    await page.getByRole('dialog', { name: 'Basic Attack', exact: true }).waitFor()
-    await page.keyboard.press('Escape')
-    assert.equal(
-      await menu.getAttribute('open'),
-      null,
-      'Escape also dismisses the information menu',
-    )
-    await page.waitForFunction(() =>
-      document.activeElement?.matches('main[data-battle-keyboard-focus-root]'),
-    )
-    if (viewport.width === 390) {
-      await summary.press('Space')
-      await page.setViewportSize({ width: 1366, height: 768 })
-      await page.waitForFunction(() => !document.querySelector('[data-battle-preview-info]').open)
-      await page.locator('main[data-unified-battle]').focus()
-      await page.keyboard.press('KeyI')
+    const readers = host.locator('[data-battle-preview-reader]')
+    assert.equal(await readers.count(), 12, 'Every complete report remains available')
+    for (const wrapper of await readers.all()) {
+      const key = await wrapper.getAttribute('data-battle-preview-reader')
+      const selector = key.startsWith('skill')
+        ? `[data-battle-skill-slot="${key.slice(5)}"]`
+        : key === 'essence'
+          ? '[data-battle-special="essence"], [data-battle-special="resonance"]'
+          : key === 'supernatural'
+            ? '[data-battle-special="supernatural"]'
+            : `[data-command-card="${key}"]`
+      const box = await deck.locator(selector).boundingBox()
+      // Select even disabled/passive slots without activating an available gameplay command.
+      await page.mouse.move(box.x + box.width / 2, box.y + Math.min(10, box.height / 2))
+      await page.mouse.down()
+      await page.mouse.move(2, 2)
+      await page.mouse.up()
+      const info = wrapper.locator('[data-battle-info-trigger]')
+      await info.waitFor({ state: 'visible' })
+      assert.equal(await host.locator('[data-battle-info-trigger]:visible').count(), 1)
+      await info.click()
+      const panel = page.locator('[data-battle-info-panel]')
+      await panel.waitFor()
+      assert.match(
+        await panel.innerText(),
+        /Parameters|Skill|Inspect|Items|Turn|Ascension|Resonance/,
+      )
+      await page.keyboard.press('KeyW')
       assert.equal(
-        await page.locator('main[data-unified-battle]').getAttribute('data-battle-action-mode'),
-        'inspect',
-        'Desktop shortcuts work after closing the hidden touch menu',
+        await page.locator('main').getAttribute('data-battle-action-mode'),
+        'none',
+        'Reading cannot issue a movement command',
       )
       await page.keyboard.press('Escape')
-      await page.setViewportSize(viewport)
-      await page.evaluate(
-        () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
-      )
+      await panel.waitFor({ state: 'hidden' })
     }
+    await page.locator('main').focus()
+    await page.keyboard.press('Escape')
+    assert.equal(await host.locator('[data-battle-info-trigger]:visible').count(), 0)
+    const attack = deck.locator('[data-battle-command="attack"]')
+    await attack.click()
+    await host.getByRole('button', { name: 'About Basic Attack', exact: true }).click()
+    await page.getByRole('dialog', { name: 'Basic Attack', exact: true }).waitFor()
+    await page.keyboard.press('Escape')
+    await openBattleInfoMenu(page, 'About selected Skill slot 4')
+    await host.getByRole('button', { name: 'About selected Skill slot 4', exact: true }).waitFor()
+    await page.keyboard.press('Digit2')
+    await host.getByRole('button', { name: 'About Basic Attack', exact: true }).waitFor()
+    await page.keyboard.press('Digit3')
+    await host.getByRole('button', { name: 'About Guard', exact: true }).waitFor()
+    await page.keyboard.press('Escape')
+    assert.equal(await host.locator('[data-battle-info-trigger]:visible').count(), 0)
     assert.equal(
       await page.evaluate(
         () => window.calls.filter((row) => /\/(commit|intents|final-turn)$/.test(row.path)).length,
       ),
       0,
-      'Information menu submits no commands',
+      'Reading and selection submit no authoritative command',
     )
   }
   const geometry = await deck.evaluate((element) => {
@@ -504,6 +528,56 @@ async function verifyFinalFacing(page, viewport, mode) {
     path: resolve(output, `${mode}-${viewport.width}-final-facing.png`),
     fullPage: true,
   })
+  // A long instruction and larger text must grow the desktop strip rather than crop its last line.
+  if (!mobile) {
+    const title = page.locator('[data-battle-instruction-title]')
+    const original = await title.innerText()
+    await title.evaluate((e) => {
+      e.textContent = 'Choose the final facing for your combatant'
+      e.style.fontSize = '24px'
+    })
+    const textFits = await title.evaluate((e) => {
+      const range = document.createRange()
+      range.selectNodeContents(e)
+      const text = range.getBoundingClientRect()
+      const strip = e.closest('[data-battle-preview-strip]').getBoundingClientRect()
+      return (
+        text.top >= strip.top + 1 &&
+        text.bottom <= strip.bottom - 1 &&
+        text.right <= e.getBoundingClientRect().right + 1
+      )
+    })
+    assert.equal(
+      textFits,
+      true,
+      'Long larger instruction text remains fully readable within the preview',
+    )
+    await title.evaluate((e, text) => {
+      e.textContent = text
+      e.style.fontSize = ''
+    }, original)
+  }
+  const clippedText = await page.locator('[data-battle-preview-strip]').evaluate((strip) => {
+    const bounds = strip.getBoundingClientRect()
+    const walker = document.createTreeWalker(strip, NodeFilter.SHOW_TEXT)
+    const clipped = []
+    while (walker.nextNode()) {
+      const node = walker.currentNode
+      if (!node.textContent.trim() || !node.parentElement.checkVisibility()) continue
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      for (const rect of range.getClientRects())
+        if (rect.top < bounds.top + 1 || rect.bottom > bounds.bottom - 1)
+          clipped.push({
+            text: node.textContent,
+            top: rect.top,
+            bottom: rect.bottom,
+            bounds: bounds.toJSON(),
+          })
+    }
+    return clipped
+  })
+  assert.deepEqual(clippedText, [], 'Final-facing preview retains every visible text glyph')
   if (mobile) await north.tap()
   else await north.click()
   await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
@@ -523,8 +597,7 @@ async function verifyNestedReaderDismissal() {
   page.on('pageerror', (error) => errors.push(error.message))
   await page.goto(server.resolvedUrls.local[0] + 'reader.html')
   const menu = page.locator('[data-battle-preview-info]')
-  await menu.locator('summary').click()
-  await menu.getByRole('button', { name: 'About linked Skill', exact: true }).click()
+  await menu.locator('[data-battle-info-trigger]').evaluate((button) => button.click())
   const parent = page.getByRole('dialog', { name: 'Linked Skill', exact: true })
   const term = parent.getByRole('button', { name: 'Explain Guard', exact: true })
   for (const dismissal of ['Escape', 'outside']) {
@@ -541,11 +614,6 @@ async function verifyNestedReaderDismissal() {
       true,
       'Dismissing a linked term preserves parent-reader focus',
     )
-    assert.notEqual(
-      await menu.getAttribute('open'),
-      null,
-      'The parent information menu remains open',
-    )
     assert.equal(
       await page.evaluate(() => window.outsideActions ?? 0),
       0,
@@ -554,10 +622,8 @@ async function verifyNestedReaderDismissal() {
   }
   await page.keyboard.press('Escape')
   await page.waitForFunction(() => !document.querySelector('[data-battle-info-panel]'))
-  await page.waitForFunction(() =>
-    document.activeElement?.matches('main[data-battle-keyboard-focus-root]'),
-  )
-  assert.equal(await menu.getAttribute('open'), null)
+  await page.waitForFunction(() => document.activeElement?.matches('[data-battle-info-trigger]'))
+  assert.equal(await menu.locator('[data-battle-info-trigger]:visible').count(), 1)
   await page.close()
   console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
 }
