@@ -135,7 +135,9 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
         )
         if (!tab) throw new Error('No disposable Master tab found')
         if (factor !== undefined) {
-          await chromeApi.tabs.setZoomSettings(tab.id, { mode: 'automatic', scope: 'per-tab' })
+          // Per-tab zoom resets on navigation, including Site Music's persistence reload.
+          // This origin is local and its browser profile is disposable.
+          await chromeApi.tabs.setZoomSettings(tab.id, { mode: 'automatic', scope: 'per-origin' })
           await chromeApi.tabs.setZoom(tab.id, factor)
         }
         return chromeApi.tabs.getZoom(tab.id)
@@ -159,11 +161,21 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
     const zoomed = await metrics()
     expect(zoomed.innerWidth).toBeGreaterThan(baseline.innerWidth * 0.4)
     expect(zoomed.cssZoom).toBe('1')
+    // Prove reload persistence before exercising any authenticated control at 200%.
+    await page.reload()
+    expect(await setZoom()).toBe(2)
+    await expect
+      .poll(async () => (await metrics()).innerWidth)
+      .toBeLessThan(baseline.innerWidth * 0.6)
+    const reloaded = await metrics()
+    expect(reloaded.innerWidth).toBeGreaterThan(baseline.innerWidth * 0.4)
+    expect(reloaded.cssZoom).toBe('1')
     await info.attach('actual-browser-zoom.json', {
       body: JSON.stringify({
         browser: context.browser()?.version(),
         baseline,
         zoomed,
+        reloaded,
         readback: 2,
       }),
       contentType: 'application/json',
