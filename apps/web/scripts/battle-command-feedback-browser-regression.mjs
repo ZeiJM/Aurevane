@@ -1026,6 +1026,69 @@ async function verifyTabRestoredAfterUnmount(page) {
     'Shift+Tab cycles normally after leaving the mounted battle',
   )
 }
+async function verifyMobilePreviewReadability() {
+  for (const mode of ['pve', 'pvp']) {
+    for (const viewport of [
+      { width: 320, height: 640 },
+      { width: 390, height: 844 },
+    ]) {
+      const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+      page.setDefaultTimeout(5000)
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}`)
+      await page.locator('[data-board-auto-fit]').waitFor()
+      await page.evaluate(() => document.fonts.ready)
+      const board = page.locator('[data-board-auto-fit]')
+      const before = await board.boundingBox()
+      await page.locator('button[data-command-slot="guard"]').click()
+      const preview = page.locator('[data-battle-preview-strip]')
+      const outcomes = preview.locator(
+        '[data-battle-range-forecast] > span:last-child, [data-battle-preview-chip]',
+      )
+      await outcomes.first().waitFor({ state: 'visible' })
+      const sizes = await outcomes.evaluateAll((elements) =>
+        elements.map((element) => parseFloat(getComputedStyle(element).fontSize)),
+      )
+      assert.ok(
+        sizes.every((size) => size >= 12),
+        `${mode} ${viewport.width}: mobile preview outcomes retain the 12px readability floor: ${sizes}`,
+      )
+      const clipped = await preview.evaluate((strip) => {
+        const bounds = strip.getBoundingClientRect()
+        const walker = document.createTreeWalker(strip, NodeFilter.SHOW_TEXT)
+        const result = []
+        while (walker.nextNode()) {
+          const node = walker.currentNode
+          if (!node.textContent.trim() || !node.parentElement.checkVisibility()) continue
+          const range = document.createRange()
+          range.selectNodeContents(node)
+          if (
+            [...range.getClientRects()].some(
+              (rect) =>
+                rect.top < bounds.top - 1 ||
+                rect.bottom > bounds.bottom + 1 ||
+                rect.left < bounds.left - 1 ||
+                rect.right > bounds.right + 1,
+            )
+          )
+            result.push(node.textContent)
+        }
+        return result
+      })
+      assert.deepEqual(clipped, [], 'Readable preview outcomes fit the shorter preview')
+      assert.deepEqual(await board.boundingBox(), before, 'Previewing Guard preserves the board')
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path)).length,
+        ),
+        0,
+        'Previewing Guard never submits a command',
+      )
+      await page.close()
+      console.log(`${mode} ${viewport.width}: readable Guard outcomes fit the compact preview`)
+    }
+  }
+}
 async function verifyWrappedPreviewParity() {
   const rows = []
   for (const mode of ['pve', 'pvp']) {
@@ -1454,6 +1517,7 @@ try {
   await verifyExpandedMobileLog()
   await verifyDesktopChatBounds()
   await verifyTerrainTurnStability()
+  await verifyMobilePreviewReadability()
   await verifyWrappedPreviewParity()
   await verifyNestedReaderDismissal()
   await verifyCooldownAlignment()

@@ -1151,6 +1151,6 @@
     :global(
       [data-battle-preview-strip] [data-battle-preview-lane='outcomes'] :is(strong, span, small, p)
     ) {
-    font-size: 0.6875rem !important;
+    font-size: 0.75rem !important;
   }
 }
