@@ -132,7 +132,24 @@ window.fetch = async (input, options) => {
         },
       })
     if (body.operation === 'schedule')
-      return Response.json({ scheduled: { runId: run.runId, stateVersion: 1 } })
+      return Response.json({
+        scheduled:
+          body.eventKey === 'event.stale'
+            ? { runId: '44444444-4444-4444-8444-444444444444', stateVersion: 7 }
+            : { runId: run.runId, stateVersion: 1 },
+      })
+    if (body.operation === 'cancel-scheduled') {
+      if (
+        body.runId !== '44444444-4444-4444-8444-444444444444' ||
+        body.expectedStateVersion !== 7 ||
+        !body.confirmed
+      )
+        return Response.json(
+          { error: { message: 'Wrong Event cancellation target or confirmation.' } },
+          { status: 409 },
+        )
+      return Response.json({ transition: { lifecycleStatus: 'cancelled' } })
+    }
   }
   if (body.operation === 'list') return Response.json({ runs: [run] })
   if (body.operation === 'read')

@@ -122,6 +122,97 @@ try {
       if (viewport.width === 390) await button.tap()
       else await button.click()
     }
+    // Event identity owns every approval, preview and scheduled-run handle.
+    const confirmation = page.getByLabel('Confirm publication or schedule for this audience')
+    const unschedule = page.getByRole('button', { name: 'Unschedule', exact: true })
+    const requestPreview = async () => {
+      await choose('Preview')
+      await page
+        .locator('#event-controls')
+        .getByRole('button', { name: 'Preview', exact: true })
+        .click()
+      await expect(page.getByRole('article', { name: 'Event preview' })).toBeVisible()
+    }
+    const scheduleCurrent = async (prefix) => {
+      await choose('Schedule')
+      await page.getByLabel('Start', { exact: true }).fill('2026-12-01T12:00')
+      await page.getByLabel('End', { exact: true }).fill('2026-12-01T16:00')
+      await confirmation.check()
+      await page
+        .locator('#event-controls')
+        .getByRole('button', { name: 'Schedule', exact: true })
+        .click()
+      await page.getByText(new RegExp(`Scheduled run ${prefix}`)).waitFor()
+    }
+    for (const replacement of ['approval-only', 'saved', 'new', 'manual']) {
+      await page.getByLabel('Saved events').selectOption('event.ready')
+      await page.getByText('Loaded published v3.', { exact: true }).waitFor()
+      await requestPreview()
+      if (replacement === 'manual') {
+        await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+        await page.getByText('Draft v1 saved.', { exact: true }).waitFor()
+      }
+      if (replacement !== 'approval-only') await scheduleCurrent('22222222')
+      await choose('Schedule')
+      await confirmation.check()
+      if (replacement === 'new') {
+        await page.getByRole('button', { name: 'New Event', exact: true }).click()
+        await expect(page.getByLabel('Event key', { exact: true })).toHaveValue('event.new-event')
+      } else if (replacement === 'manual') {
+        await page.getByLabel('Event key', { exact: true }).fill('event.manual-copy')
+      } else {
+        await page.getByLabel('Saved events').selectOption('event.stale')
+        await page.getByText('Loaded draft v2.', { exact: true }).waitFor()
+        await expect(page.getByLabel('Event key', { exact: true })).toHaveValue('event.stale')
+      }
+      await expect(confirmation).not.toBeChecked()
+      await expect(unschedule).toBeDisabled()
+      await confirmation.check()
+      await expect(unschedule).toBeDisabled()
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.__eventRequests.filter((r) => r.body.operation === 'cancel-scheduled').length,
+        ),
+        0,
+      )
+      await choose('Preview')
+      await expect(page.getByRole('article', { name: 'Event preview' })).toHaveCount(0)
+      if (replacement === 'manual' || replacement === 'new') {
+        await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+        await page.getByText('Draft v1 saved.', { exact: true }).waitFor()
+        const save = await page.evaluate(
+          () => window.__eventRequests.filter((r) => r.body.operation === 'save-draft').at(-1).body,
+        )
+        assert.equal(
+          save.definition.eventKey,
+          replacement === 'manual' ? 'event.manual-copy' : 'event.new-event',
+        )
+        assert.equal(save.baseVersion, null)
+        assert.equal(save.expectedDraftVersion, null)
+      }
+    }
+    // A fresh B action must use B's own handle/version and fresh approval.
+    await page.getByLabel('Saved events').selectOption('event.stale')
+    await page.getByText('Loaded draft v2.', { exact: true }).waitFor()
+    await scheduleCurrent('44444444')
+    await expect(confirmation).not.toBeChecked()
+    await expect(unschedule).toBeDisabled()
+    await confirmation.check()
+    await unschedule.click()
+    await page.getByText('Scheduled run is now cancelled.', { exact: true }).waitFor()
+    assert.deepEqual(
+      await page.evaluate(() =>
+        window.__eventRequests
+          .filter((r) => r.body.operation === 'cancel-scheduled')
+          .map((r) => ({
+            runId: r.body.runId,
+            state: r.body.expectedStateVersion,
+            confirmed: r.body.confirmed,
+          })),
+      ),
+      [{ runId: '44444444-4444-4444-8444-444444444444', state: 7, confirmed: true }],
+    )
     await page.getByLabel('Saved events').selectOption('event.stale')
     await page.getByText('Loaded draft v2.', { exact: true }).waitFor()
     await choose('Schedule')
@@ -138,6 +229,53 @@ try {
       ),
       2,
     )
+    await page.getByLabel('Saved events').selectOption('event.ready')
+    await page.getByText('Loaded published v3.', { exact: true }).waitFor()
+    await choose('Setup')
+    await expect(page.getByRole('combobox', { name: 'Region audience', exact: true })).toHaveValue(
+      'verdant-expanse',
+    )
+    await expect(
+      page
+        .getByRole('combobox', { name: 'Region audience', exact: true })
+        .locator('option:checked'),
+    ).toHaveText('Verdant Expanse')
+    await expect(page.getByText(/Audience: Region · Verdant Expanse/)).toBeVisible()
+    await page
+      .getByRole('combobox', { name: 'Region audience', exact: true })
+      .selectOption('frostmere')
+    await expect(page.getByText(/Audience: Region · Frostmere/)).toBeVisible()
+    await requestPreview()
+    assert.equal(
+      await page.evaluate(
+        () =>
+          window.__eventRequests.filter((r) => r.body.operation === 'preview').at(-1).body
+            .definition.scope.key,
+      ),
+      'frostmere',
+    )
+    await choose('Setup')
+    for (const kind of ['node', 'cohort']) {
+      await page.getByRole('combobox', { name: 'Scope', exact: true }).selectOption(kind)
+      await expect(
+        page.getByRole('combobox', { name: 'Region audience', exact: true }),
+      ).toHaveCount(0)
+      const custom = page.getByLabel(`Custom ${kind} reference (unresolved)`, { exact: true })
+      await expect(custom).toHaveValue('')
+      assert.equal(await custom.getAttribute('list'), null)
+      await custom.fill(`${kind}.custom`)
+      await expect(
+        page.getByText(
+          `No ${kind} catalogue or audience-membership resolver is available here. This custom draft reference does not verify an audience or add gameplay execution.`,
+        ),
+      ).toBeVisible()
+      await expect(
+        page.getByText(new RegExp(`Audience: Unresolved ${kind} · ${kind}\.custom`)),
+      ).toBeVisible()
+    }
+    await page.getByRole('combobox', { name: 'Scope', exact: true }).selectOption('global')
+    await expect(page.getByLabel(/Custom .* reference/)).toHaveCount(0)
+    await expect(page.getByText(/Audience: All players/)).toBeVisible()
     await page.getByLabel('Saved events').selectOption('event.ready')
     await page.getByText('Loaded published v3.', { exact: true }).waitFor()
     await choose('Setup')
@@ -215,6 +353,9 @@ try {
         )
       }
     }
+    await expect(
+      page.getByText('Region · Verdant Expanse · 0 participants', { exact: true }),
+    ).toBeVisible()
     await page
       .getByRole('navigation', { name: 'Live Event workspace' })
       .getByRole('button', { name: 'Rewards', exact: true })
@@ -253,7 +394,7 @@ try {
       fullPage: true,
     })
     console.log(
-      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
+      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
     )
     await page.close()
   }

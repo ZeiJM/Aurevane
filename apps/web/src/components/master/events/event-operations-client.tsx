@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import styles from './event-operations.module.css'
+import { eventAudienceLabel } from './event-audience'
 
 interface RunSummary {
   title?: string
@@ -146,6 +147,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         run.eventKey,
         run.runId,
         run.lifecycleStatus,
+        eventAudienceLabel(run.scopeType, run.scopeKey),
         run.scopeKey ?? run.scopeType,
       ]
         .join(' ')
@@ -360,7 +362,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               <span className={styles.runIdentity}>
                 <strong>{run.title ?? run.eventKey}</strong>
                 <small>
-                  {run.scopeKey ?? run.scopeType} · {run.participantCount ?? 0} participants
+                  {eventAudienceLabel(run.scopeType, run.scopeKey)} · {run.participantCount ?? 0}{' '}
+                  participants
                 </small>
                 <small>{when(run.scheduledStartAt ?? run.startedAt)}</small>
               </span>
@@ -415,8 +418,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                 <div>
                   <span>Scope</span>
                   <strong>
-                    {dashboard.run.scopeType}
-                    {dashboard.run.scopeKey ? ` · ${dashboard.run.scopeKey}` : ''}
+                    {eventAudienceLabel(dashboard.run.scopeType, dashboard.run.scopeKey)}
                   </strong>
                 </div>
                 <div>

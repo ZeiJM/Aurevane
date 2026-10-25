@@ -7,6 +7,7 @@ import type {
   EventWorkspaceCatalogue,
 } from '@/server/master/event-authoring-service'
 import { eventRuntimeBlockers } from './event-runtime-support'
+import { eventAudienceLabel } from './event-audience'
 import { WORLD_REGIONS } from '@/world/catalog'
 
 import {
@@ -46,6 +47,7 @@ interface WorkspaceResponse {
 }
 
 interface ScheduledRun {
+  eventKey: string
   runId: string
   stateVersion: number
 }
@@ -68,7 +70,7 @@ const initialDefinition: PersistentEventDefinition = {
   summary: 'Describe the player-facing purpose of this event.',
   internalNotes: '',
   family: 'regional-event',
-  scope: { type: 'region', key: 'region.frostmere' },
+  scope: { type: 'region', key: 'frostmere' },
   phases: [blankPhase(0)],
   rewardPackageRefs: [],
   aftermathRefs: [],
@@ -172,6 +174,24 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     [definition.scope.type, canUseGlobalScope],
   )
 
+  function clearEventActions() {
+    setProductionConfirmed(false)
+    setPreviewResult(null)
+    setScheduledRun(null)
+    setScheduleStart('')
+    setScheduleEnd('')
+  }
+
+  function replaceEventIdentity(next: PersistentEventDefinition) {
+    clearEventActions()
+    setDefinition(next)
+    setBaseVersion(null)
+    setDraftVersion(null)
+    setVersions([])
+    setSelectedPhaseId(next.phases[0]!.id)
+    setDetails('')
+  }
+
   function patchDefinition(patch: Partial<PersistentEventDefinition>) {
     setDefinition((current) => ({ ...current, ...patch }))
     setProductionConfirmed(false)
@@ -228,14 +248,12 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
   }
 
   async function loadWorkspace(eventKey = definition.eventKey) {
+    clearEventActions()
     await run('Loading authoritative Event workspace…', async () => {
       const payload = await post({ operation: 'load', eventKey })
       const workspace = payload.workspace as unknown as WorkspaceResponse
       const chosen = workspace.draft?.definition ?? workspace.current?.definition
-      if (chosen) {
-        setDefinition(chosen)
-        setSelectedPhaseId(chosen.phases[0]!.id)
-      }
+      replaceEventIdentity(chosen ?? { ...definition, eventKey })
       setBaseVersion(
         workspace.draft
           ? workspace.draft.baseVersion
@@ -336,15 +354,15 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
 
         confirmed: productionConfirmed,
       })
-      const scheduled = payload.scheduled as ScheduledRun
-      setScheduledRun(scheduled)
+      const scheduled = payload.scheduled as Omit<ScheduledRun, 'eventKey'>
+      setScheduledRun({ ...scheduled, eventKey: definition.eventKey })
       setProductionConfirmed(false)
       setMessage(`Scheduled run ${scheduled.runId}.`)
     })
   }
 
   async function unschedule() {
-    if (!scheduledRun) return
+    if (!scheduledRun || scheduledRun.eventKey !== definition.eventKey) return
     await run('Cancelling scheduled Event Run…', async () => {
       const payload = await post({
         operation: 'cancel-scheduled',
@@ -363,13 +381,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
 
   function startNewDefinition() {
     const next = structuredClone(initialDefinition)
-    setDefinition(next)
-    setBaseVersion(null)
-    setDraftVersion(null)
-    setVersions([])
-    setSelectedPhaseId(next.phases[0]!.id)
-    setScheduledRun(null)
-    setProductionConfirmed(false)
+    replaceEventIdentity(next)
     setMessage('New Event workspace ready.')
     setDetails('')
   }
@@ -394,11 +406,8 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             <input
               value={definition.eventKey}
               onChange={(event) => {
-                patchDefinition({ eventKey: event.target.value })
-                setBaseVersion(null)
-                setDraftVersion(null)
-                setVersions([])
-                setProductionConfirmed(false)
+                replaceEventIdentity({ ...definition, eventKey: event.target.value })
+                setMessage('Event identity changed. Load its history or save a new draft.')
               }}
             />
           </label>
@@ -415,7 +424,11 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               <option value="">Choose an event</option>
               {catalogue.events.map((entry) => (
                 <option key={entry.eventKey} value={entry.eventKey}>
-                  {entry.title} · {entry.draftVersion ? 'Draft' : 'Published'} · {entry.scope.type}
+                  {entry.title} · {entry.draftVersion ? 'Draft' : 'Published'} ·{' '}
+                  {eventAudienceLabel(
+                    entry.scope.type,
+                    entry.scope.type === 'global' ? null : entry.scope.key,
+                  )}
                 </option>
               ))}
             </select>
@@ -500,9 +513,10 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           </nav>
           <p className={styles.notice}>
             Audience:{' '}
-            {definition.scope.type === 'global'
-              ? 'All players'
-              : `${definition.scope.type} · ${definition.scope.key}`}
+            {eventAudienceLabel(
+              definition.scope.type,
+              definition.scope.type === 'global' ? null : definition.scope.key,
+            )}
             . World guidance navigates without awarding progress. Contribution and reward recipes
             stay in drafts until a live producer is available. Draft changes never alter pinned live
             runs.
@@ -578,7 +592,9 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                   const type = event.target.value as EventScope['type']
                   patchDefinition({
                     scope:
-                      type === 'global' ? { type: 'global' } : { type, key: 'region.frostmere' },
+                      type === 'global'
+                        ? { type: 'global' }
+                        : { type, key: type === 'region' ? WORLD_REGIONS[0]!.id : '' },
                   })
                 }}
               >
@@ -588,27 +604,52 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                 <option value="cohort">cohort</option>
               </select>
             </label>
-            {definition.scope.type !== 'global' ? (
+            {definition.scope.type === 'region' ? (
               <label>
-                Scope / audience reference
-                <input
-                  list="event-region-refs"
+                Region audience
+                <select
                   value={definition.scope.key}
                   onChange={(event) =>
-                    patchDefinition({
-                      scope: { type: definition.scope.type, key: event.target.value } as EventScope,
-                    })
+                    patchDefinition({ scope: { type: 'region', key: event.target.value } })
                   }
-                />
+                >
+                  {!WORLD_REGIONS.some(
+                    (region) => region.id === (definition.scope as { key: string }).key,
+                  ) ? (
+                    <option value={definition.scope.key}>
+                      Unresolved region reference · {definition.scope.key}
+                    </option>
+                  ) : null}
+                  {WORLD_REGIONS.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
               </label>
+            ) : definition.scope.type === 'node' || definition.scope.type === 'cohort' ? (
+              <div className={styles.wideField}>
+                <label>
+                  Custom {definition.scope.type} reference (unresolved)
+                  <input
+                    value={definition.scope.key}
+                    onChange={(event) =>
+                      patchDefinition({
+                        scope: {
+                          type: definition.scope.type,
+                          key: event.target.value,
+                        } as EventScope,
+                      })
+                    }
+                  />
+                </label>
+                <p>
+                  No {definition.scope.type} catalogue or audience-membership resolver is available
+                  here. This custom draft reference does not verify an audience or add gameplay
+                  execution.
+                </p>
+              </div>
             ) : null}
-            <datalist id="event-region-refs">
-              {WORLD_REGIONS.map((region) => (
-                <option key={region.id} value={region.id}>
-                  {region.name}
-                </option>
-              ))}
-            </datalist>
             <label className={styles.wideField}>
               Summary
               <textarea
@@ -914,8 +955,12 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                     {previewResult.selectedPhase.transitionType} transition
                   </p>
                   <p>
-                    {previewResult.phaseCount} phases · {previewResult.scope.type} audience ·{' '}
-                    {previewResult.rewardPackageRefs.length} reward packages
+                    {previewResult.phaseCount} phases ·{' '}
+                    {eventAudienceLabel(
+                      previewResult.scope.type,
+                      previewResult.scope.type === 'global' ? null : previewResult.scope.key,
+                    )}{' '}
+                    · {previewResult.rewardPackageRefs.length} reward packages
                   </p>
                   <p>
                     Definition preview only. No run, participation, effect or reward was created.
@@ -1049,7 +1094,12 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                 <button
                   type="button"
                   onClick={unschedule}
-                  disabled={busy || !scheduledRun || !productionActionReady}
+                  disabled={
+                    busy ||
+                    !scheduledRun ||
+                    scheduledRun.eventKey !== definition.eventKey ||
+                    !productionActionReady
+                  }
                 >
                   Unschedule
                 </button>
