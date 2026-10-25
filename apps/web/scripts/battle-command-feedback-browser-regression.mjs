@@ -292,6 +292,206 @@ async function verifyTurnCues() {
     await page.close()
   }
 }
+async function verifyChronicleArtworkDecoding() {
+  const page = await browser.newPage()
+  await page.goto(server.resolvedUrls.local[0])
+  const dimensions = await page.evaluate(async () =>
+    Promise.all(
+      ['defenseless', 'mp-recovery', 'chronicle-event'].map(async (name) => {
+        const image = new Image()
+        image.src = `/media/skills/${name}-dark-fantasy-v1.webp`
+        await image.decode()
+        return [image.naturalWidth, image.naturalHeight]
+      }),
+    ),
+  )
+  assert.deepEqual(dimensions, [
+    [768, 768],
+    [768, 768],
+    [768, 768],
+  ])
+  await page.close()
+}
+async function verifyExpandedMobileLog() {
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    for (const viewport of [
+      { width: 320, height: 640 },
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+    ]) {
+      const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+      page.on('pageerror', (error) => errors.push(error.message))
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&chat=1&suppress=pending`)
+      const board = page.locator('[data-board-auto-fit]')
+      await board.waitFor()
+      await page.evaluate(async () => {
+        await document.fonts.ready
+      })
+      const before = await board.boundingBox()
+      const footerBefore = await page.locator('main > footer').boundingBox()
+      const toggle = page.locator('[data-battle-current-round-toggle]')
+      await toggle.click()
+      const workspace = page.locator('#battle-mobile-chronicle')
+      await workspace.waitFor({ state: 'visible' })
+      await workspace.locator('[data-chronicle-round="1"]').waitFor()
+      assert.equal(
+        await workspace.locator('[data-battle-chronicle-heading]').isVisible(),
+        false,
+        'Mobile log starts directly with recorded rounds without the dark desktop heading',
+      )
+      assert.equal(
+        await page.locator('[aria-label="Battle actions"]').isVisible(),
+        false,
+        'The picture timeline is hidden while the full mobile log uses its space',
+      )
+      const painted = await workspace.evaluate((el) => {
+        const f = document.querySelector('main > footer').getBoundingClientRect()
+        const r = el.getBoundingClientRect()
+        return el.contains(document.elementFromPoint(r.x + 12, f.top - 12))
+      })
+      assert.equal(
+        painted,
+        true,
+        'The expanded log is actually painted and interactive down to the footer',
+      )
+      const bounds = await workspace.boundingBox()
+      const footer = await page.locator('main > footer').boundingBox()
+      assert.ok(
+        Math.abs(bounds.y + bounds.height - footer.y) <= 2,
+        `The full log reaches the footer: ${mode} ${viewport.width} ${JSON.stringify({ bounds, footer })}`,
+      )
+      assert.deepEqual(await board.boundingBox(), before, 'The open log retains the battlefield')
+      assert.deepEqual(footer, footerBefore, 'The footer does not grow or move')
+      const button = await toggle.boundingBox()
+      assert.ok(
+        button.y >= bounds.y && button.y + button.height <= footer.y,
+        'The return toggle stays in the expanded reader space',
+      )
+      await page.screenshot({ path: resolve(output, `expanded-log-${mode}-${viewport.width}.png`) })
+      await toggle.click()
+      assert.equal(await page.locator('[aria-label="Battle actions"]').isVisible(), true)
+      assert.deepEqual(
+        await board.boundingBox(),
+        before,
+        'Returning restores the exact battlefield',
+      )
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.calls.filter(
+              (c) => c.method === 'POST' && /\/(commit|intents|final-turn)$/.test(c.path),
+            ).length,
+        ),
+        0,
+      )
+      await page.close()
+    }
+  }
+  console.log(
+    'Expanded mobile logs hide duplicate chrome, reach the footer and preserve board/toggle',
+  )
+}
+async function verifyDesktopChatBounds() {
+  for (const viewport of [
+    { width: 1536, height: 614 },
+    { width: 1366, height: 768 },
+    { width: 1024, height: 576 },
+    { width: 821, height: 768 },
+  ]) {
+    const page = await browser.newPage({ viewport })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(server.resolvedUrls.local[0] + '?mode=pvp&chat=1')
+    // The component fixture omits the external site chrome. Supply its actual obstruction.
+    await page.evaluate(() => {
+      const frame = document.createElement('div')
+      frame.dataset.battleRouteFrame = 'true'
+      const header = document.createElement('header')
+      header.textContent = 'Site navigation'
+      header.style.cssText =
+        'position:fixed;inset:0 0 auto;height:64px;z-index:99999;background:#17232b'
+      frame.append(header)
+      document.body.append(frame)
+    })
+    await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+    const panel = page.locator('#pvp-battle-chat-panel[data-open]')
+    await panel.waitFor({ state: 'visible' })
+    const input = panel.getByRole('textbox', { name: 'Battle chat message' })
+    await input.fill('Keep this draft while dragging')
+    const header = panel.locator(':scope > div').first()
+    async function assertHeaderReachable() {
+      const fit = await header.evaluate((el) => {
+        const r = el.getBoundingClientRect()
+        const chrome = [
+          ...document.querySelectorAll(
+            '[data-battle-route-frame] > header, main[data-pvp-battle="true"] > header',
+          ),
+        ]
+          .filter((h) => h.getClientRects().length)
+          .map((h) => h.getBoundingClientRect().bottom)
+        const p = el.parentElement.getBoundingClientRect()
+        return {
+          top: r.top,
+          min: Math.max(0, ...chrome) + 4,
+          left: p.left,
+          right: p.right,
+          bottom: p.bottom,
+          width: innerWidth,
+          height: innerHeight,
+          hit: el.contains(document.elementFromPoint(r.x + 12, r.y + 12)),
+        }
+      })
+      assert.ok(
+        fit.top >= fit.min - 1,
+        `Chat drag header stays below chrome: ${JSON.stringify(fit)}`,
+      )
+      assert.ok(fit.left >= 3 && fit.right <= fit.width - 3 && fit.bottom <= fit.height - 3)
+      assert.equal(fit.hit, true, 'The visible header remains hit-testable for another drag')
+    }
+    async function dragTo(x, y) {
+      const b = await header.boundingBox()
+      await page.mouse.move(b.x + 12, b.y + 12)
+      await page.mouse.down()
+      await page.mouse.move(x, y, { steps: 3 })
+      await page.mouse.up()
+      await assertHeaderReachable()
+    }
+    await assertHeaderReachable()
+    await page.locator('[data-battle-route-frame] > header').evaluate((el) => {
+      el.style.height = '80px'
+    })
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    )
+    await assertHeaderReachable()
+    await dragTo(-100, -100)
+    await dragTo(viewport.width + 200, viewport.height + 200)
+    await dragTo(viewport.width / 2, -100)
+    await page.setViewportSize({ width: 1024, height: 540 })
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    )
+    await assertHeaderReachable()
+    await dragTo(300, -100)
+    assert.equal(await input.inputValue(), 'Keep this draft while dragging')
+    await page.screenshot({ path: resolve(output, `chat-bounds-${viewport.width}.png`) })
+    await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+    await panel.waitFor({ state: 'hidden' })
+    await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+    assert.equal(await input.inputValue(), 'Keep this draft while dragging')
+    await assertHeaderReachable()
+    assert.equal(
+      await page.evaluate(
+        () =>
+          window.calls.filter(
+            (c) => c.method === 'POST' && /\/(commit|intents|final-turn)$/.test(c.path),
+          ).length,
+      ),
+      0,
+    )
+    await page.close()
+  }
+  console.log('Desktop chat drag header stays visible below chrome at every edge and after resize')
+}
 async function verifyLogHistory() {
   for (const mode of ['pve', 'pvp']) {
     const page = await browser.newPage({
@@ -308,7 +508,7 @@ async function verifyLogHistory() {
         if (!String(url).endsWith('/events')) return response
         return Response.json({
           battleLog: {
-            entries: Array.from({ length: 50 }, (_, i) => ({
+            entries: Array.from({ length: window.historyCount ?? 50 }, (_, i) => ({
               battleVersion: i + 1,
               eventIndex: 0,
               occurredAt: '2026-10-24T00:00:00Z',
@@ -339,9 +539,38 @@ async function verifyLogHistory() {
     const older = workspace.locator('[data-chronicle-round="2"] button').first()
     await older.click()
     assert.equal(await older.getAttribute('aria-expanded'), 'true')
+    await page.evaluate(() => {
+      window.historyCount = 55
+      window.fixtureBattle.snapshot.tactical.battle.round = 6
+      window.advanceBattle('character:player')
+    })
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll('[data-battle-mobile-log-workspace] [data-chronicle-action]')
+          .length === 55,
+    )
+    await toggle.click()
+    const latest = page.locator('[aria-label="Battle actions"] button').last()
+    const latestBox = await latest.boundingBox()
+    const trackBox = await page.locator('[aria-label="Battle actions"]').boundingBox()
+    assert.ok(
+      latestBox.x >= trackBox.x && latestBox.x + latestBox.width <= trackBox.x + trackBox.width + 1,
+      'The picture timeline follows new actions received while full log was open',
+    )
+    await toggle.click()
     const requests = await page.evaluate(
       () => window.calls.filter((c) => c.path.endsWith('/events')).length,
     )
+    await workspace.evaluate((el) => {
+      el.scrollTop = el.scrollHeight
+    })
+    const last = await workspace.locator('[data-chronicle-action]').last().boundingBox()
+    const footer = await page.locator('main > footer').boundingBox()
+    assert.ok(
+      last.y + last.height <= footer.y - 30,
+      'The final log entry can scroll clear of the return toggle',
+    )
+
     await toggle.click()
     await toggle.click()
     assert.equal(
@@ -1056,6 +1285,9 @@ async function verifyNestedReaderDismissal() {
   console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
 }
 try {
+  await verifyChronicleArtworkDecoding()
+  await verifyExpandedMobileLog()
+  await verifyDesktopChatBounds()
   await verifyTerrainTurnStability()
   await verifyWrappedPreviewParity()
   await verifyNestedReaderDismissal()
