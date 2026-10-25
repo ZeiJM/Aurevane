@@ -350,10 +350,16 @@ export function MobileBattleChronicle({
     }
   }, [selectedKey, detailsHost])
   useEffect(() => {
-    if (!selectedKey && trackRef.current) trackRef.current.scrollLeft = trackRef.current.scrollWidth
-  }, [latestKey, selectedKey])
+    if (!selectedKey && !logOpen && trackRef.current)
+      trackRef.current.scrollLeft = trackRef.current.scrollWidth
+  }, [latestKey, selectedKey, logOpen])
   return (
-    <div className={styles.compactChronicle} data-battle-action-strip="true" ref={rootRef}>
+    <div
+      className={styles.compactChronicle}
+      data-battle-action-strip="true"
+      data-battle-log-open={logOpen || undefined}
+      ref={rootRef}
+    >
       <button
         type="button"
         className={styles.compactCurrentRound}

@@ -337,6 +337,7 @@ export function PvpSpectatorExperience({
         className={`${styles.page} ${mobileStyles.shell}`}
         data-battle-mobile-stage="true"
         data-mobile-chronicle-open={chronicleOpen}
+        data-battle-mobile-workspace={chronicleOpen ? 'log' : 'actions'}
         data-battle-chronicle-detail-open={(chronicleDetailsOpen && !desktopLayout) || undefined}
         data-pvp-spectator="true"
         data-battle-keyboard-focus-root="true"
@@ -576,6 +577,7 @@ export function PvpSpectatorExperience({
             <aside
               className={styles.selectedSide}
               id="battle-mobile-chronicle"
+              data-battle-mobile-log-workspace="true"
               data-battle-side="selected"
               aria-label="Battle Chronicle"
             >

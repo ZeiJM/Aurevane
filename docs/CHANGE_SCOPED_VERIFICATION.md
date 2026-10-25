@@ -83,6 +83,6 @@ Commands and evidence: `node --test .github/scripts/*verification*.test.mjs`; `n
 
 ## 8. Current release boundary
 
-PR #975's historical all-13 gate is not changed retroactively. PR #979's already-running UI checks and source remain intact. The CI implementation itself receives full fallback because it changes workflows and selection logic; no app deployment is needed. PR #933 stays separate and unmerged; passing an ordinary run does not resolve its timing acceptance. Tested-tree/source verification and the one-final-production/no-preview rule remain.
+PR #975's historical all-13 gate is not changed retroactively. PR #979 is merged and live as main `14df01a2`; its tested source is retained. PR #976's final candidate includes the Owner's subsequent mobile Chronicle/rail spacing refinements, verified through the shared battle authorities. The CI implementation itself receives full fallback because it changes workflows and selection logic; no app deployment is needed. PR #933 stays separate and unmerged; passing an ordinary run does not resolve its timing acceptance. Tested-tree/source verification and the one-final-production/no-preview rule remain.
 
 Until PR #976 merges, existing main workflows remain active. A reviewed implementation on a PR is not a claim of completed rollout or a passing hosted run.

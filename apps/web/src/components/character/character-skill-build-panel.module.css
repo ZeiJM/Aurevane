@@ -1621,3 +1621,8 @@
     height: 1.6rem;
   }
 }
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .equipHint[data-technique-capacity-note] {
+    display: none;
+  }
+}

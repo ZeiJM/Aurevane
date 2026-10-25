@@ -1,6 +1,6 @@
 # Change-scoped CI implementation
 
-Status: implementation prepared for [PR #976](https://github.com/ZeiJM/Aurevane/pull/976), reconciled with main `0af25cf982172aa870edef5ec08ed5b5e4ad4ba6`; rollout requires hosted CI and merge. PR #979's source/checks are untouched. This changes CI policy, not the application release, hosted configuration, data or deployment lock.
+Status: implementation prepared for [PR #976](https://github.com/ZeiJM/Aurevane/pull/976), reconciled with main `14df01a2c42d4cb36bd6c99d21372a1c51084164`; rollout requires hosted CI and merge. PR #979 is the verified live baseline; its source is retained. The final candidate also contains the subsequent Owner-requested mobile Chronicle/rail refinements, documented in `2026-10-25-mobile-log-rail-spacing.md`. The CI portion changes verification policy; the separate mobile CSS refinements require their own final production release after all configured gates pass. Hosted configuration, data and the deployment lock remain unchanged.
 
 ## Coverage and duplication audit
 

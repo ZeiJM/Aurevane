@@ -292,6 +292,365 @@ async function verifyTurnCues() {
     await page.close()
   }
 }
+async function verifyChronicleArtworkDecoding() {
+  const page = await browser.newPage()
+  await page.goto(server.resolvedUrls.local[0])
+  const dimensions = await page.evaluate(async () =>
+    Promise.all(
+      ['defenseless', 'mp-recovery', 'chronicle-event'].map(async (name) => {
+        const image = new Image()
+        image.src = `/media/skills/${name}-dark-fantasy-v1.webp`
+        await image.decode()
+        return [image.naturalWidth, image.naturalHeight]
+      }),
+    ),
+  )
+  assert.deepEqual(dimensions, [
+    [768, 768],
+    [768, 768],
+    [768, 768],
+  ])
+  await page.close()
+}
+async function verifyExpandedMobileLog() {
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    for (const viewport of [
+      { width: 320, height: 640 },
+      { width: 390, height: 844 },
+      { width: 844, height: 390 },
+    ]) {
+      const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+      page.on('pageerror', (error) => errors.push(error.message))
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&chat=1&suppress=pending`)
+      const board = page.locator('[data-board-auto-fit]')
+      await board.waitFor()
+      await page.evaluate(async () => {
+        await document.fonts.ready
+      })
+      const before = await board.boundingBox()
+      const footerBefore = await page.locator('main > footer').boundingBox()
+      const preview = page.locator('[data-battle-preview-strip]')
+      const previewBefore = await preview.boundingBox()
+      const toggle = page.locator('[data-battle-current-round-toggle]')
+      await toggle.click()
+      const workspace = page.locator('#battle-mobile-chronicle')
+      await workspace.waitFor({ state: 'visible' })
+      await workspace.locator('[data-chronicle-round="1"]').waitFor()
+      assert.equal(
+        await workspace.locator('[data-battle-chronicle-heading]').isVisible(),
+        false,
+        'Mobile log starts directly with recorded rounds without the dark desktop heading',
+      )
+      assert.equal(
+        await page.locator('[aria-label="Battle actions"]').isVisible(),
+        false,
+        'The picture timeline is hidden while the full mobile log uses its space',
+      )
+      const painted = await workspace.evaluate((el) => {
+        const f = document.querySelector('main > footer').getBoundingClientRect()
+        const r = el.getBoundingClientRect()
+        return el.contains(document.elementFromPoint(r.x + 12, f.top - 12))
+      })
+      assert.equal(
+        painted,
+        true,
+        'The expanded log is actually painted and interactive down to the footer',
+      )
+      const bounds = await workspace.boundingBox()
+      assert.equal(await preview.isVisible(), false, 'The full mobile log owns the preview space')
+      assert.ok(
+        Math.abs(bounds.y - previewBefore.y) <= 1,
+        'The full log begins at the former preview top, gaining its entire height',
+      )
+      const footer = await page.locator('main > footer').boundingBox()
+      assert.ok(
+        Math.abs(bounds.y + bounds.height - footer.y) <= 2,
+        `The full log reaches the footer: ${mode} ${viewport.width} ${JSON.stringify({ bounds, footer })}`,
+      )
+      assert.deepEqual(await board.boundingBox(), before, 'The open log retains the battlefield')
+      assert.deepEqual(footer, footerBefore, 'The footer does not grow or move')
+      const button = await toggle.boundingBox()
+      assert.ok(
+        button.y >= bounds.y && button.y + button.height <= footer.y,
+        'The return toggle stays in the expanded reader space',
+      )
+      await page.screenshot({ path: resolve(output, `expanded-log-${mode}-${viewport.width}.png`) })
+      await toggle.click()
+      assert.equal(
+        await preview.isVisible(),
+        true,
+        'Closing the log restores turn/selection feedback',
+      )
+      assert.deepEqual(await preview.boundingBox(), previewBefore)
+      assert.equal(await page.locator('[aria-label="Battle actions"]').isVisible(), true)
+      assert.deepEqual(
+        await board.boundingBox(),
+        before,
+        'Returning restores the exact battlefield',
+      )
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.calls.filter(
+              (c) => c.method === 'POST' && /\/(commit|intents|final-turn)$/.test(c.path),
+            ).length,
+        ),
+        0,
+      )
+      await page.close()
+    }
+  }
+  console.log(
+    'Expanded mobile logs hide duplicate chrome, reach the footer and preserve board/toggle',
+  )
+}
+async function verifyMobileRailSpacing() {
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    for (const viewport of [
+      { width: 320, height: 640, mapSize: 'small' },
+      { width: 390, height: 844, mapSize: 'small' },
+      { width: 390, height: 844, mapSize: 'medium' },
+      { width: 390, height: 844, mapSize: 'large' },
+    ]) {
+      const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+      await page.goto(
+        server.resolvedUrls.local[0] + `?mode=${mode}&suppress=active&mapSize=${viewport.mapSize}`,
+      )
+      const card = page
+        .locator('[data-battle-combatant-card]')
+        .filter({ has: page.locator('[data-effect-timing="active"]') })
+        .first()
+      const icon = card.locator('section button').first()
+      await icon.waitFor()
+      await page.evaluate(() => document.fonts.ready)
+      const preview = page.locator('[data-battle-preview-strip]')
+      const root = page.locator('main')
+      await root.evaluate((el) => el.style.setProperty('--av-mobile-effect-space', '0px'))
+      const boardBefore = await page.locator('[data-board-auto-fit]').boundingBox()
+      const fieldBefore = await page.locator('#battlefield').boundingBox()
+      const footerBefore = await page.locator('main > footer').boundingBox()
+      const previewBefore = await preview.boundingBox()
+      await root.evaluate((el) => el.style.removeProperty('--av-mobile-effect-space'))
+      const boardAfter = await page.locator('[data-board-auto-fit]').boundingBox()
+      const fieldAfter = await page.locator('#battlefield').boundingBox()
+      const previewAfter = await preview.boundingBox()
+      assert.ok(
+        Math.abs(boardAfter.width - boardBefore.width) <= 1 &&
+          Math.abs(boardAfter.height - boardBefore.height) <= 1 &&
+          Math.abs(fieldAfter.height - fieldBefore.height) <= 1,
+        'Rail spacing preserves the complete battlefield allocation, including small maps',
+      )
+      assert.ok(
+        Math.abs(previewBefore.height - previewAfter.height - 6.4) <= 1,
+        'The rail gain comes from the preview height',
+      )
+      assert.deepEqual(await page.locator('main > footer').boundingBox(), footerBefore)
+      const fit = await icon.evaluate((button) => {
+        const r = button.getBoundingClientRect(),
+          card = button.closest('[data-battle-combatant-card]'),
+          section = button.closest('section'),
+          rail = card.getBoundingClientRect(),
+          bars = card.querySelector('[data-resource="mp"]').getBoundingClientRect()
+        return {
+          topGap: r.top - bars.bottom,
+          bottomGap: rail.bottom - r.bottom,
+          paddingTop: parseFloat(getComputedStyle(section).paddingTop),
+          paddingBottom: parseFloat(getComputedStyle(section).paddingBottom),
+          hit: button.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)),
+        }
+      })
+      assert.ok(
+        fit.paddingTop >= 3 && fit.paddingBottom >= 3 && fit.topGap >= 3 && fit.bottomGap >= 3,
+        `Effects have breathing room within the mobile rail: ${mode} ${viewport.width} ${JSON.stringify(fit)}`,
+      )
+      assert.equal(fit.hit, true, 'Active effect icons remain visible and interactive')
+      await page.screenshot({
+        path: resolve(output, `rail-spacing-${mode}-${viewport.width}-${viewport.mapSize}.png`),
+      })
+      await page.close()
+    }
+  }
+}
+async function verifyChronicleUniformity() {
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    const page = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    })
+    await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&suppress=active`)
+    const toggle = page.locator('[data-battle-current-round-toggle]')
+    const toggleStyle = (el) => {
+      const c = getComputedStyle(el),
+        r = el.getBoundingClientRect()
+      return {
+        display: c.display,
+        width: r.width,
+        height: r.height,
+        background: c.backgroundImage,
+        radius: c.borderRadius,
+        text: el.innerText,
+      }
+    }
+    const pictureStyle = await toggle.evaluate(toggleStyle)
+    await toggle.click()
+    const workspace = page.locator('#battle-mobile-chronicle')
+    await workspace.waitFor({ state: 'visible' })
+    const traditionalStyle = await toggle.evaluate(toggleStyle)
+    assert.deepEqual(
+      traditionalStyle,
+      pictureStyle,
+      'Both Chronicle modes use the same stacked gold round toggle',
+    )
+    const typography = (el) => {
+      const t = el.querySelector('[data-chronicle-action]')
+      return [t.querySelector('h4'), ...t.querySelectorAll('p')].map((n) => ({
+        size: getComputedStyle(n).fontSize,
+        lineHeight: getComputedStyle(n).lineHeight,
+      }))
+    }
+    const traditionalText = await workspace.evaluate(typography)
+    await toggle.click()
+    await page
+      .getByRole('button', { name: /Show Chronicle details/ })
+      .first()
+      .click()
+    const details = page.getByRole('region', { name: /Chronicle action:/ })
+    await details.waitFor({ state: 'visible' })
+    assert.deepEqual(
+      await details.evaluate(typography),
+      traditionalText,
+      'Picture action breakdowns share traditional-log mobile typography',
+    )
+    const contrast = await details
+      .locator('[data-outcome-tone="harm"], [data-outcome-tone="damage"], [class*="recipient"]')
+      .evaluateAll((elements) => {
+        const luminance = (color) => {
+          const channels = color
+            .match(/[\d.]+/g)
+            .slice(0, 3)
+            .map(Number)
+            .map((n) => {
+              const v = n / 255
+              return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+            })
+          return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        }
+        return elements.map((el) => {
+          const a = luminance(getComputedStyle(el).color),
+            b = luminance(getComputedStyle(el.closest('[role="region"]')).backgroundColor)
+          return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+        })
+      })
+    assert.ok(
+      contrast.length >= 2 && contrast.every((value) => value >= 4.5),
+      'Reduced outcome and recipient text remain readable against the dark action-detail panel',
+    )
+    await page.screenshot({ path: resolve(output, `chronicle-uniformity-${mode}.png`) })
+    await page.close()
+  }
+}
+async function verifyDesktopChatBounds() {
+  for (const viewport of [
+    { width: 1536, height: 614 },
+    { width: 1366, height: 768 },
+    { width: 1024, height: 576 },
+    { width: 821, height: 768 },
+  ]) {
+    const page = await browser.newPage({ viewport })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(server.resolvedUrls.local[0] + '?mode=pvp&chat=1')
+    // The component fixture omits the external site chrome. Supply its actual obstruction.
+    await page.evaluate(() => {
+      const frame = document.createElement('div')
+      frame.dataset.battleRouteFrame = 'true'
+      const header = document.createElement('header')
+      header.textContent = 'Site navigation'
+      header.style.cssText =
+        'position:fixed;inset:0 0 auto;height:64px;z-index:99999;background:#17232b'
+      frame.append(header)
+      document.body.append(frame)
+    })
+    await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+    const panel = page.locator('#pvp-battle-chat-panel[data-open]')
+    await panel.waitFor({ state: 'visible' })
+    const input = panel.getByRole('textbox', { name: 'Battle chat message' })
+    await input.fill('Keep this draft while dragging')
+    const header = panel.locator(':scope > div').first()
+    async function assertHeaderReachable() {
+      const fit = await header.evaluate((el) => {
+        const r = el.getBoundingClientRect()
+        const chrome = [
+          ...document.querySelectorAll(
+            '[data-battle-route-frame] > header, main[data-pvp-battle="true"] > header',
+          ),
+        ]
+          .filter((h) => h.getClientRects().length)
+          .map((h) => h.getBoundingClientRect().bottom)
+        const p = el.parentElement.getBoundingClientRect()
+        return {
+          top: r.top,
+          min: Math.max(0, ...chrome) + 4,
+          left: p.left,
+          right: p.right,
+          bottom: p.bottom,
+          width: innerWidth,
+          height: innerHeight,
+          hit: el.contains(document.elementFromPoint(r.x + 12, r.y + 12)),
+        }
+      })
+      assert.ok(
+        fit.top >= fit.min - 1,
+        `Chat drag header stays below chrome: ${JSON.stringify(fit)}`,
+      )
+      assert.ok(fit.left >= 3 && fit.right <= fit.width - 3 && fit.bottom <= fit.height - 3)
+      assert.equal(fit.hit, true, 'The visible header remains hit-testable for another drag')
+    }
+    async function dragTo(x, y) {
+      const b = await header.boundingBox()
+      await page.mouse.move(b.x + 12, b.y + 12)
+      await page.mouse.down()
+      await page.mouse.move(x, y, { steps: 3 })
+      await page.mouse.up()
+      await assertHeaderReachable()
+    }
+    await assertHeaderReachable()
+    await page.locator('[data-battle-route-frame] > header').evaluate((el) => {
+      el.style.height = '80px'
+    })
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    )
+    await assertHeaderReachable()
+    await dragTo(-100, -100)
+    await dragTo(viewport.width + 200, viewport.height + 200)
+    await dragTo(viewport.width / 2, -100)
+    await page.setViewportSize({ width: 1024, height: 540 })
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))),
+    )
+    await assertHeaderReachable()
+    await dragTo(300, -100)
+    assert.equal(await input.inputValue(), 'Keep this draft while dragging')
+    await page.screenshot({ path: resolve(output, `chat-bounds-${viewport.width}.png`) })
+    await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+    await panel.waitFor({ state: 'hidden' })
+    await page.locator('main > footer button').filter({ hasText: /^Chat/ }).click()
+    assert.equal(await input.inputValue(), 'Keep this draft while dragging')
+    await assertHeaderReachable()
+    assert.equal(
+      await page.evaluate(
+        () =>
+          window.calls.filter(
+            (c) => c.method === 'POST' && /\/(commit|intents|final-turn)$/.test(c.path),
+          ).length,
+      ),
+      0,
+    )
+    await page.close()
+  }
+  console.log('Desktop chat drag header stays visible below chrome at every edge and after resize')
+}
 async function verifyLogHistory() {
   for (const mode of ['pve', 'pvp']) {
     const page = await browser.newPage({
@@ -308,7 +667,7 @@ async function verifyLogHistory() {
         if (!String(url).endsWith('/events')) return response
         return Response.json({
           battleLog: {
-            entries: Array.from({ length: 50 }, (_, i) => ({
+            entries: Array.from({ length: window.historyCount ?? 50 }, (_, i) => ({
               battleVersion: i + 1,
               eventIndex: 0,
               occurredAt: '2026-10-24T00:00:00Z',
@@ -339,9 +698,38 @@ async function verifyLogHistory() {
     const older = workspace.locator('[data-chronicle-round="2"] button').first()
     await older.click()
     assert.equal(await older.getAttribute('aria-expanded'), 'true')
+    await page.evaluate(() => {
+      window.historyCount = 55
+      window.fixtureBattle.snapshot.tactical.battle.round = 6
+      window.advanceBattle('character:player')
+    })
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll('[data-battle-mobile-log-workspace] [data-chronicle-action]')
+          .length === 55,
+    )
+    await toggle.click()
+    const latest = page.locator('[aria-label="Battle actions"] button').last()
+    const latestBox = await latest.boundingBox()
+    const trackBox = await page.locator('[aria-label="Battle actions"]').boundingBox()
+    assert.ok(
+      latestBox.x >= trackBox.x && latestBox.x + latestBox.width <= trackBox.x + trackBox.width + 1,
+      'The picture timeline follows new actions received while full log was open',
+    )
+    await toggle.click()
     const requests = await page.evaluate(
       () => window.calls.filter((c) => c.path.endsWith('/events')).length,
     )
+    await workspace.evaluate((el) => {
+      el.scrollTop = el.scrollHeight
+    })
+    const last = await workspace.locator('[data-chronicle-action]').last().boundingBox()
+    const footer = await page.locator('main > footer').boundingBox()
+    assert.ok(
+      last.y + last.height <= footer.y - 30,
+      'The final log entry can scroll clear of the return toggle',
+    )
+
     await toggle.click()
     await toggle.click()
     assert.equal(
@@ -733,7 +1121,11 @@ async function verifyFinalFacing(page, viewport, mode) {
       'Portrait phone cockpit artwork is enlarged',
     )
     const rails = await page.locator('[data-battle-side="local"]').boundingBox()
-    assert.ok(rails.height <= 80, `Character rails stay compact: ${rails.height}`)
+    // Owner-approved effect padding adds exactly 0.4rem to the former rail budget.
+    assert.ok(
+      rails.height <= 86.4,
+      `Character rails retain their bounded effect spacing: ${rails.height}`,
+    )
   }
   const boardBeforeReading = await page.locator('[data-board-auto-fit]').boundingBox()
   const terrain = page.getByRole('button', { name: 'Terrain', exact: true })
@@ -1056,6 +1448,11 @@ async function verifyNestedReaderDismissal() {
   console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
 }
 try {
+  await verifyChronicleArtworkDecoding()
+  await verifyMobileRailSpacing()
+  await verifyChronicleUniformity()
+  await verifyExpandedMobileLog()
+  await verifyDesktopChatBounds()
   await verifyTerrainTurnStability()
   await verifyWrappedPreviewParity()
   await verifyNestedReaderDismissal()

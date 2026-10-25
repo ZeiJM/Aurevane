@@ -881,7 +881,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                 : 'Equip technique'}
                             </button>
                             {equipBlockedReason(focusedSkill) ? (
-                              <small className={styles.equipHint}>
+                              <small
+                                className={styles.equipHint}
+                                data-technique-capacity-note={
+                                  selectedIds.length >= capacity || undefined
+                                }
+                              >
                                 {equipBlockedReason(focusedSkill)}
                               </small>
                             ) : null}

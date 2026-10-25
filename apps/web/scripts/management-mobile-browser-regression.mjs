@@ -37,13 +37,14 @@ import {createRoot} from 'react-dom/client';
 import {CharacterSkillBuildPanel} from '@/components/character/character-skill-build-panel';
 import {latestEnabledMatureSkills} from '@aurevane/game-core/combat/mature-skills';
 import './production-styles';
+const full = new URLSearchParams(location.search).has('full');
 const learned = latestEnabledMatureSkills().filter(d=>['vanguard','lifebinder'].includes(d.sourceDisciplineId)).map(definition=>({definition,activeSource:true,learnedAt:'earned'}));
 window.calls=[];
 window.fetch=async (url,options)=>{
  const payload=JSON.parse(options.body); window.calls.push(payload);
  return new Response(JSON.stringify({context:{build:{buildVersion:2,supportActionId:payload.supportActionId??'basic.guard'},disciplineSkills:{capacity:4,learnedSkills:learned,equippedSkills:(payload.skillIds??[]).map((id,slotIndex)=>({definition:learned.find(e=>e.definition.id===id).definition,slotIndex,equippedAt:'now'}))}}}));
 };
-createRoot(document.getElementById('root')).render(<CharacterSkillBuildPanel characterId="character-a" initialBuildVersion={1} primaryDiscipline={{id:'vanguard',name:'Vanguard'}} secondaryDiscipline={{id:'lifebinder',name:'Lifebinder'}} initialCapacity={4} initialLearnedSkills={learned} initialEquippedSkills={[]} initialResonance={null} initialEssence={null}/>);
+createRoot(document.getElementById('root')).render(<CharacterSkillBuildPanel characterId="character-a" initialBuildVersion={1} primaryDiscipline={{id:'vanguard',name:'Vanguard'}} secondaryDiscipline={{id:'lifebinder',name:'Lifebinder'}} initialCapacity={4} initialLearnedSkills={learned} initialEquippedSkills={full ? ['vanguard','lifebinder'].flatMap(source=>learned.filter(s=>s.definition.sourceDisciplineId===source).slice(0,2)).map((s,slotIndex)=>({definition:s.definition,slotIndex,equippedAt:'earned'})) : []} initialResonance={null} initialEssence={null}/>);
 `,
 )
 
@@ -335,6 +336,36 @@ try {
       checks.push({ panel, width, height, ...before })
     }
     await context.close()
+  }
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(server.resolvedUrls.local[0] + '?profilePanel=techniques&full=1')
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('tab', { name: 'Discipline 2', exact: true }).click()
+    await dialog
+      .locator('[data-technique-category="secondary"] [data-technique-card]')
+      .nth(2)
+      .click()
+    const equip = dialog.getByRole('button', { name: 'Equip technique', exact: true })
+    assert.equal(await equip.isDisabled(), true, 'Full capacity still prevents equipping')
+    assert.equal(
+      await dialog
+        .getByText('Your technique slots are full. Remove one first.', { exact: true })
+        .isVisible(),
+      false,
+    )
+    assert.match(await dialog.getByTestId('skill-capacity').innerText(), /4 \/ 4 selected/i)
+    assert.equal(
+      await page.evaluate(() => window.calls.length),
+      0,
+      'Reading a full loadout issues no save',
+    )
+    await page.screenshot({ path: resolve(output, `techniques-full-${viewport.width}.png`) })
+    await page.close()
   }
   assert.deepEqual(errors, [])
   await fs.writeFile(

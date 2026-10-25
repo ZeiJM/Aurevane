@@ -12,8 +12,8 @@
 
 ## Global constraints
 
-- Preserve PR #979's running checks and source; PR #933 remains separate/unmerged.
-- No test assertion/timeout/retry reductions, new schedules, production/data/env changes or Vercel deployments.
+- Preserve PR #979's verified live source as baseline; PR #933 remains separate/unmerged.
+- No test assertion/timeout/retry reductions, new schedules, production/data/env changes or Vercel previews. CI-only changes do not deploy; the appended Owner-requested mobile UI refinements require one final production release after configured gates and exact tested-tree merge verification.
 - All unknown/shared/backend/dependency/CI changes use full coverage; API uncertainty cannot authorize reuse.
 - Keep required result names and fail closed when a planner or selected execution fails.
 
@@ -52,4 +52,6 @@ Files: `.github/workflows/ci.yml`, `.github/workflows/desktop-page-fit.yml`, `do
 - [x] Validate workflow/YAML gate and trigger contracts, run Node tests and actual browser discovery, review the final diff independently and fix any material finding with regression coverage.
 - [x] Update policy/checklist with actual implementation, conservative limits and measured selection counts.
 - [x] Prepare the protected PR #976 update against refreshed main, with final local verification and independent-review fixes.
-- [ ] Rollout gate: hosted full-fallback CI must pass and PR #976 must merge. Verify CI starts after publication, then pause continuous monitoring; no app deployment.
+- [ ] Rollout gate: hosted full-fallback CI must pass and PR #976 must merge. Verify CI starts after publication, then pause continuous monitoring. The combined mobile UI follow-up requires one final production release after these gates.
+
+Current candidate extension: the Owner subsequently requested mobile log/preview takeover, preview-funded effect-rail spacing with battlefield preservation, matching gold toggles and matching reduced action-breakdown type. Scope and focused/final evidence: `docs/verification/2026-10-25-mobile-log-rail-spacing.md`. These are composed on the live PR #979 baseline with the unchanged reviewed CI implementation so the final bootstrap candidate is validated once.

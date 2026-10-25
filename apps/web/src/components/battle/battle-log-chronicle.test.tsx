@@ -937,9 +937,9 @@ describe('mobile Chronicle artwork identity', () => {
     ['basic.attack.unarmed.basic', '/media/skills/basic-attack-fist.webp'],
     ['basic.guard', '/media/skills/guard.webp'],
     ['basic.recover', '/media/skills/hp-recovery.webp'],
-    ['basic.recover.mp', '/media/skills/mp-recovery.svg'],
-    ['battle.lowered-guard.apply', '/media/skills/defenseless.svg'],
-    ['unknown.event', '/media/skills/chronicle-event.svg'],
+    ['basic.recover.mp', '/media/skills/mp-recovery-dark-fantasy-v1.webp'],
+    ['battle.lowered-guard.apply', '/media/skills/defenseless-dark-fantasy-v1.webp'],
+    ['unknown.event', '/media/skills/chronicle-event-dark-fantasy-v1.webp'],
   ])('uses recorded %s artwork without enriched skill context', (actionId, source) => {
     const entries = [entry(1, 0, 'combat_action_used', { actionId, actionContext: undefined })]
     const markup = renderToStaticMarkup(
