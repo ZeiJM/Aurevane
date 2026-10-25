@@ -52,9 +52,9 @@ test('roaming pages preserve one authenticated shell while Battle Hall refreshes
   const rail = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
 
   await expect(rail.getByRole('link', { name: 'Items', exact: true })).toHaveCount(0)
-  await rail.getByRole('link', { name: 'Loadout', exact: true }).click()
+  await rail.getByRole('link', { name: 'Arsenal', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/nexus$/)
-  const loadoutTabs = page.getByRole('navigation', { name: 'Loadout sections' })
+  const loadoutTabs = page.getByRole('navigation', { name: 'Arsenal sections' })
   await expect(loadoutTabs.getByRole('link', { name: 'Nexus', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
@@ -79,7 +79,7 @@ test('roaming pages preserve one authenticated shell while Battle Hall refreshes
   await expect(page.locator('[data-world-workspace]')).toBeVisible()
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(true)
 
-  await rail.getByRole('link', { name: /Battle/ }).click()
+  await rail.getByRole('link', { name: /Arena/ }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   expect(await rememberedShellIsCurrent(page, '__roamingShell')).toBe(false)
 

@@ -720,13 +720,17 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
   const navigationGate = new Promise<void>((resolve) => {
     releaseNavigation = resolve
   })
+  let presenceRequests = 0
   await page.route('**/api/presence', async (route) => {
+    if (route.request().method() === 'POST') presenceRequests += 1
     await presenceGate
     await route.fulfill({ json: { count: 7 } }).catch(() => undefined)
   })
   try {
     await page.goto('/game/character')
     await expect(page.locator('[data-profile-workspace]')).toBeVisible()
+    await expect(page.getByRole('menu', { name: 'Account menu' })).toBeHidden()
+    await expect.poll(() => presenceRequests).toBe(1)
     await page.getByRole('button', { name: 'Account', exact: true }).click()
     const accountMenu = page.getByRole('menu', { name: 'Account menu' })
     await expect(accountMenu.getByText('Welcome back, Experience Navigator.')).toBeVisible()
@@ -741,7 +745,7 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
     })
     await page
       .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-      .getByRole('link', { name: /Battle/ })
+      .getByRole('link', { name: /Arena/ })
       .click()
     releaseNavigation()
     await expect(page).toHaveURL(/\/game\/battle$/)
@@ -754,6 +758,7 @@ test('supplementary presence never blocks primary rail navigation', async ({ pag
     const finalAccountMenu = page.getByRole('menu', { name: 'Account menu' })
     await expect(finalAccountMenu.getByText('Welcome back, Experience Navigator.')).toBeVisible()
     await expect(finalAccountMenu.getByRole('link', { name: /Online Users/ })).toContainText('7')
+    expect(presenceRequests).toBe(1)
   } finally {
     releaseNavigation()
     releasePresence()

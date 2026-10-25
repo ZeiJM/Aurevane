@@ -201,3 +201,21 @@
     min-height: 2.75rem;
   }
 }
+
+@media (max-width: 760px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  :global(.av-audio-inline) .heading h2 {
+    font-size: 1.1rem;
+  }
+  :global(.av-audio-inline) .channel {
+    grid-template-columns: minmax(5.5rem, 0.45fr) minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  :global(.av-audio-inline) .mix {
+    gap: 0.1rem;
+  }
+  :global(.av-audio-inline) .actions button {
+    min-height: 2.75rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
+  }
+}

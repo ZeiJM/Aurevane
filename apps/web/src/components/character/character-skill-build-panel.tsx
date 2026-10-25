@@ -475,6 +475,20 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
               </article>
             )
           })}
+          {Array.from(
+            { length: TECHNIQUES_PER_DISCIPLINE - SUPPORT_ACTION_IDS.length },
+            (_, index) => (
+              <div
+                key={`support-empty-${index}`}
+                className={`${styles.lockedSkill} ${styles.supportEmpty}`}
+                data-support-action-empty="true"
+                aria-hidden="true"
+              >
+                <span>◇</span>
+                <strong>Empty</strong>
+              </div>
+            ),
+          )}
         </div>
       </section>
     )
@@ -722,7 +736,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     data-av-surface="ink"
                     data-testid="technique-preview"
                   >
-                    <section className={styles.selectedTechnique}>
+                    <section
+                      className={styles.selectedTechnique}
+                      data-technique-preview-details="true"
+                    >
                       <span>
                         {focusedSupportActionId ? 'Support Action Preview' : 'Technique Preview'}
                       </span>
@@ -751,21 +768,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             id={focusedSupportActionId}
                             className={styles.effectExplanations}
                           />
-                          {coarsePointer ? (
-                            <button
-                              type="button"
-                              className={styles.equipAction}
-                              data-equipped={
-                                supportActionId === focusedSupportActionId || undefined
-                              }
-                              disabled={pending || supportActionId === focusedSupportActionId}
-                              onClick={() => void commitSupportAction(focusedSupportActionId)}
-                            >
-                              {supportActionId === focusedSupportActionId
-                                ? '✓ Current Support Action'
-                                : 'Use as Support Action'}
-                            </button>
-                          ) : null}
                         </>
                       ) : focusedSkill ? (
                         <>
@@ -840,37 +842,53 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </ul>
                             </>
                           )}
-                          {coarsePointer ? (
-                            <>
-                              <button
-                                type="button"
-                                className={styles.equipAction}
-                                data-equipped={
-                                  selectedIds.includes(focusedSkill.definition.id) || undefined
-                                }
-                                disabled={
-                                  pending ||
-                                  equipBlockedReason(focusedSkill) !== null ||
-                                  !focusedSkill.activeSource
-                                }
-                                onClick={() => toggleAndCommit(focusedSkill)}
-                              >
-                                {selectedIds.includes(focusedSkill.definition.id)
-                                  ? 'Remove from loadout'
-                                  : 'Equip technique'}
-                              </button>
-                              {equipBlockedReason(focusedSkill) ? (
-                                <small className={styles.equipHint}>
-                                  {equipBlockedReason(focusedSkill)}
-                                </small>
-                              ) : null}
-                            </>
-                          ) : null}
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>
                       )}
                     </section>
+                    {coarsePointer && (focusedSupportActionId || focusedSkill) ? (
+                      <div className={styles.previewActions} data-technique-preview-actions="true">
+                        {focusedSupportActionId ? (
+                          <button
+                            type="button"
+                            className={styles.equipAction}
+                            data-equipped={supportActionId === focusedSupportActionId || undefined}
+                            disabled={pending || supportActionId === focusedSupportActionId}
+                            onClick={() => void commitSupportAction(focusedSupportActionId)}
+                          >
+                            {supportActionId === focusedSupportActionId
+                              ? '✓ Current Support Action'
+                              : 'Use as Support Action'}
+                          </button>
+                        ) : focusedSkill ? (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.equipAction}
+                              data-equipped={
+                                selectedIds.includes(focusedSkill.definition.id) || undefined
+                              }
+                              disabled={
+                                pending ||
+                                equipBlockedReason(focusedSkill) !== null ||
+                                !focusedSkill.activeSource
+                              }
+                              onClick={() => toggleAndCommit(focusedSkill)}
+                            >
+                              {selectedIds.includes(focusedSkill.definition.id)
+                                ? 'Remove from loadout'
+                                : 'Equip technique'}
+                            </button>
+                            {equipBlockedReason(focusedSkill) ? (
+                              <small className={styles.equipHint}>
+                                {equipBlockedReason(focusedSkill)}
+                              </small>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </aside>
                 </div>
 

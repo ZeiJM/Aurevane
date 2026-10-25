@@ -95,14 +95,16 @@ export function AccountMenu({
               {characterPortrait}
             </div>
           ) : null}
-          <Link
-            href="/game/settings/audio"
-            prefetch={false}
-            role="menuitem"
-            onClick={() => setOpen(false)}
-          >
-            Audio
-          </Link>
+          {pathname !== '/game/settings/audio' ? (
+            <Link
+              href="/game/settings/audio"
+              prefetch={false}
+              role="menuitem"
+              onClick={() => setOpen(false)}
+            >
+              Audio
+            </Link>
+          ) : null}
           {pathname !== '/game/settings/controls' ? (
             <Link
               href="/game/settings/controls"

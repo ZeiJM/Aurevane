@@ -790,6 +790,19 @@ try {
               assert.match(await command.getAttribute('aria-label'), /11 AP \/ 2 MP \/ 1 HP/)
             }
             if (scenario === 'controlled-price' || scenario === 'controlled-move') {
+              const infoMenu = page.locator('[data-battle-preview-info]')
+              if (touch) {
+                assert.equal(
+                  await infoMenu.locator('summary').count(),
+                  0,
+                  'No all-report menu remains',
+                )
+                assert.equal(
+                  await infoMenu.locator('[data-battle-info-trigger]:visible').count(),
+                  1,
+                  'Only the selected captured action exposes an information button',
+                )
+              }
               await gesture(page.getByRole('button', { name: 'About Targeting Test', exact: true }))
               const dialog = page.getByRole('dialog')
               await dialog.waitFor({ state: 'visible' })

@@ -24,7 +24,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 
-import { BattleInfoPopover } from './battle-info-popover'
+import { BattleCockpitInfo } from './battle-cockpit-info'
 import { restoreBattleKeyboardFocus } from './battle-keyboard-scope'
 import { battleCooldownLabel } from './battle-action-cooldown'
 import { BattleSkillCooldown } from './battle-skill-cooldown'
@@ -309,7 +309,8 @@ export function BattleSkillCommand({
         <strong>{label}</strong>
       </button>
       <div className={styles.controls} data-battle-cockpit-controls="true">
-        <BattleInfoPopover
+        <BattleCockpitInfo
+          selectionKey={slot}
           label={`About ${label}`}
           title={label}
           trigger="i"
@@ -405,13 +406,13 @@ export function BattleSkillCommand({
                     : null}
             </p>
           )}
-        </BattleInfoPopover>
+        </BattleCockpitInfo>
         <span className={styles.hotkey} data-battle-command-hotkey="true">
           {hotkey}
         </span>
       </div>
 
-      {slot === 'finish' || children ? (
+      {children ? (
         <div className={styles.extraControls} data-battle-command-extra-controls="true">
           {children}
         </div>

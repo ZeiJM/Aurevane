@@ -148,7 +148,16 @@ async function verifyMobileChatFooter(page, viewport, label) {
       const footer = document.querySelector('main[data-pvp-battle] > footer')
       if (!panel || !footer || panel.hasAttribute('data-desktop')) return false
       const bounds = panel.getBoundingClientRect()
-      return bounds.bottom <= footer.getBoundingClientRect().top - 4 && bounds.top >= 0
+      const lower = document
+        .querySelector('[data-battle-mobile-lower-panel]')
+        .getBoundingClientRect()
+      return (
+        bounds.bottom <= footer.getBoundingClientRect().top - 4 &&
+        bounds.top >= 0 &&
+        Math.abs(bounds.top - lower.top) <= 1 &&
+        Math.abs(bounds.bottom - lower.bottom) <= 1 &&
+        Math.abs(bounds.width - lower.width) <= 1
+      )
     })
     return page
       .locator('main[data-pvp-battle] > footer')
@@ -157,20 +166,37 @@ async function verifyMobileChatFooter(page, viewport, label) {
   await chat.click()
   await panel.waitFor({ state: 'visible' })
   const initialFooterHeight = await expectAboveFooter()
+  assert.equal(initialFooterHeight, 44, 'Mobile PvP retains its original single-row footer height')
+  assert.equal(
+    await panel.getByRole('tab', { name: 'Battle Log', exact: true }).count(),
+    0,
+    'Chat contains messages instead of a log tab',
+  )
+  const composer = panel.getByRole('textbox', { name: 'Battle chat message' })
+  await composer.fill('Draft survives rotation and toggling')
   await page.screenshot({ path: resolve(output, `${label}-chat.png`) })
   const rotated = viewport.height < 500 ? { width: 390, height: 844 } : { width: 844, height: 390 }
   await page.setViewportSize(rotated)
   const resizedFooterHeight = await expectAboveFooter()
-  assert.notEqual(
+  assert.equal(
     resizedFooterHeight,
     initialFooterHeight,
-    'Chat follows the actual footer when rotation changes its height',
+    'Rotation retains the single-row footer while Chat fills the lower workspace',
   )
+  assert.equal(await composer.inputValue(), 'Draft survives rotation and toggling')
   await chat.click()
   await panel.waitFor({ state: 'hidden' })
   await chat.click()
   await panel.waitFor({ state: 'visible' })
-  await panel.getByRole('button', { name: 'Close battle communication', exact: true }).click()
+  assert.equal(await composer.inputValue(), 'Draft survives rotation and toggling')
+  assert.equal(
+    await panel
+      .getByRole('button', { name: 'Close battle communication', exact: true })
+      .isVisible(),
+    false,
+    'Mobile Chat uses the footer toggle instead of a close X',
+  )
+  await chat.click()
   await panel.waitFor({ state: 'hidden' })
   await page.setViewportSize(viewport)
   await page.evaluate(async () => {
@@ -194,17 +220,30 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
       assert.deepEqual(current[key], frozen[key], context + ': preserved ' + key)
   }
   await actions.last().click()
-  const popup = strip.getByRole('dialog', { name: /Chronicle action/i })
+  const inline = (await page.locator('[data-battle-cockpit-history]').count()) > 0
+  const commandDeck = page.locator('[data-unified-command-deck]')
+  const hasCommands = (await commandDeck.count()) > 0
+  const restoredControls = hasCommands
+    ? commandDeck
+    : page.getByRole('button', { name: 'Inspect', exact: true })
+  const popup = inline
+    ? page.getByRole('region', { name: /Chronicle action/i })
+    : strip.getByRole('dialog', { name: /Chronicle action/i })
   await popup.waitFor({ state: 'visible' })
-  assert.equal(await popup.count(), 1, 'Only one Chronicle detail popup opens')
+  assert.equal(await popup.count(), 1, 'One Chronicle reader replaces the cockpit')
   await actions.first().click()
-  assert.equal(await popup.count(), 1, 'Selecting another action replaces the open popup')
+  assert.equal(await popup.count(), 1, 'Selecting another action replaces the cockpit reader')
   await page.keyboard.press('Escape')
   await popup.waitFor({ state: 'hidden' })
   await actions.first().click()
   await popup.waitFor({ state: 'visible' })
-  await page.mouse.click(3, 3)
+  await actions.first().click()
   await popup.waitFor({ state: 'hidden' })
+  await actions.first().click()
+  await popup.getByRole('button', { name: 'Close Chronicle action' }).click()
+  await popup.waitFor({ state: 'hidden' })
+  if (inline) await restoredControls.waitFor({ state: 'visible' })
+  assert.equal(await page.getByRole('dialog', { name: /Chronicle action/i }).count(), 0)
   await assertFrozen('Chronicle popover interactions')
   // Appended actions extend the timeline horizontally without expanding its vertical footprint.
   await page.evaluate(() => {
@@ -223,6 +262,42 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
     'Chronicle timeline height remains fixed while history grows',
   )
   await page.screenshot({ path: resolve(output, label + '-timeline.png') })
+  if (inline && hasCommands) {
+    await actions.first().click()
+    await popup.waitFor({ state: 'visible' })
+    await page.getByRole('button', { name: 'Terrain', exact: true }).click()
+    await page.locator('[data-terrain-preview-picker]').waitFor({ state: 'visible' })
+    await popup.waitFor({ state: 'hidden' })
+    await actions.first().click()
+    await popup.waitFor({ state: 'visible' })
+    await popup.getByRole('button', { name: 'Close Chronicle action' }).click()
+    await restoredControls.waitFor({ state: 'visible' })
+  }
+  if (inline) {
+    await actions.first().click()
+    await popup.waitFor({ state: 'visible' })
+    await page.evaluate(() => {
+      window.savedHistoryFetch = window.fetch
+      window.fetch = (url, options) =>
+        String(url).endsWith('/events')
+          ? Promise.resolve(
+              Response.json(
+                { error: { message: 'History temporarily unavailable' } },
+                { status: 503 },
+              ),
+            )
+          : window.savedHistoryFetch(url, options)
+      window.advanceBattle()
+    })
+    await popup.waitFor({ state: 'hidden' })
+    await restoredControls.waitFor({ state: 'visible' })
+    await assertFrozen('Failed history refresh restores cockpit')
+    await page.evaluate(() => {
+      window.fetch = window.savedHistoryFetch
+      window.advanceBattle()
+    })
+    await actions.first().waitFor({ state: 'visible' })
+  }
 }
 
 async function verifyMobileGuardFrame(page, geometry, label) {

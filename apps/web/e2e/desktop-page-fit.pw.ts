@@ -240,7 +240,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
   await page.setViewportSize({ width: 1366, height: 768 })
   await page
     .getByRole('navigation', { name: 'Primary game navigation' })
-    .getByRole('link', { name: 'Loadout', exact: true })
+    .getByRole('link', { name: 'Arsenal', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/nexus$/)
   await expectLoadoutFits(page, 'Nexus 1366x768')
@@ -255,7 +255,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(dialog).toHaveCount(0)
   }
   await page.goto('/game/loadout/items')
-  await expect(page.getByRole('heading', { name: 'Items', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Items', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: 'Arsenal sections' })).toBeVisible()
   await expectLoadoutFits(page, 'Items 1366x768')
 })
 

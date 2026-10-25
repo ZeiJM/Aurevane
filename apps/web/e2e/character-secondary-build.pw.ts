@@ -135,7 +135,9 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(preview).toContainText('Selected Secondary')
   await expect(preview).toContainText('Aetherist')
 
-  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
+  await expect(page.locator('[data-discipline-commit-success]')).toContainText(
+    'Discipline changes committed.',
+  )
   await expect(launcher).toHaveText(/Manage Disciplines/)
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
@@ -146,7 +148,9 @@ test('Nexus equips a mastered Secondary with independent attunement authority', 
   await expect(preview).toContainText('Selected Primary')
   await expect(preview).toContainText('Lifebinder')
 
-  await expect(page.getByRole('status')).toContainText('Discipline changes committed.')
+  await expect(page.locator('[data-discipline-commit-success]')).toContainText(
+    'Discipline changes committed.',
+  )
   await expect(primaryDisciplineChip).toHaveText('Lifebinder')
   expect(disciplineWrites).toEqual(['PUT', 'PUT'])
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')

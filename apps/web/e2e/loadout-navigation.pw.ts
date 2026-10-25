@@ -15,10 +15,10 @@ test('Loadout opens Nexus and its Hall-style sections switch directly to Items a
   })
   await page
     .getByRole('navigation', { name: 'Primary game navigation' })
-    .getByRole('link', { name: 'Loadout', exact: true })
+    .getByRole('link', { name: 'Arsenal', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/nexus$/)
-  const tabs = page.getByRole('navigation', { name: 'Loadout sections' })
+  const tabs = page.getByRole('navigation', { name: 'Arsenal sections' })
   await expect(tabs.getByRole('link', { name: 'Nexus', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
@@ -34,7 +34,7 @@ test('Loadout opens Nexus and its Hall-style sections switch directly to Items a
   await expect(
     page
       .getByRole('navigation', { name: 'Primary game navigation' })
-      .getByRole('link', { name: 'Loadout', exact: true }),
+      .getByRole('link', { name: 'Arsenal', exact: true }),
   ).toHaveAttribute('aria-current', 'page')
   await expect(page.getByText('Coming Soon', { exact: true })).toBeVisible()
   const slots = page.getByLabel('Future equipment slots')

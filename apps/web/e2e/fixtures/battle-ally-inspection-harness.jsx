@@ -9,6 +9,7 @@ import {
   combatCanonicalModifierRootFacts,
   combatModifierCompatibilityFacts,
 } from '@aurevane/game-core/combat/combat-modifier-compatibility'
+import { pv1fCooldownForMatureSkill } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import { DEFAULT_COMBAT_KEYBINDS } from '@aurevane/validation/player/combat-controls'
 import { setTerrainOverlay } from '@aurevane/game-core/combat/terrain-overlays'
@@ -19,6 +20,7 @@ import { BattleExperience } from '@/components/battle/battle-experience'
 import { BattlefieldPresentationBundle } from '@/components/battle/battlefield-presentation-bundle'
 import { AudioProvider } from '@/components/audio/audio-provider'
 import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experience'
+import { PvpBattleQualityControls } from '@/components/battle/pvp-battle-quality-controls'
 import { PvpBattleChatBridge } from '@/components/battle/pvp-battle-chat-bridge'
 import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battle-combatant-inspect'
 import { MobileBattleCombatantPopup } from '@/components/battle/mobile-battle-combatant-popup'
@@ -281,10 +283,12 @@ if (groundPreset) {
   }
 }
 
+const participantNames = ['Zei', 'Ally 1', 'Recruit 1', 'Recruit 2']
+const turnName = new URLSearchParams(location.search).get('turnName')
 const participants = ids.map((id, index) => ({
   combatantId: id,
   characterId: id,
-  characterName: ['Zei', 'Ally 1', 'Recruit 1', 'Recruit 2'][index],
+  characterName: index === 2 && turnName ? turnName : participantNames[index],
   characterLevel: 1,
   portraitRef: 'portrait.adventure.male-01',
   profileImageUrl: null,
@@ -1042,12 +1046,37 @@ const fixtureControls = {
     ? { nextTarget: { code: 'KeyN', shift: false } }
     : {}),
 }
+if (new URLSearchParams(location.search).has('cooldownOverlay')) {
+  const skill = runtime.techniques[0]
+  const cooldown = pv1fCooldownForMatureSkill(skill.definition, mode)
+  if (!cooldown) throw new Error('Fixture Skill needs a real cooldown')
+  initialBattle.snapshot.tactical.battle.combatants[0].temporaryResources.push({
+    key: `p3.skill-cooldown.${cooldown.key}`,
+    current: 2,
+    maximum: 2,
+  })
+}
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
+  if (path.endsWith('/turn-clock'))
+    return Response.json({
+      tick: {
+        clock: {
+          active: false,
+          turnNumber: null,
+          combatantId: null,
+          deadlineAt: null,
+          expired: false,
+          turnTimerSeconds: null,
+        },
+        battle: null,
+        timedOut: false,
+      },
+    })
   if (canonicalCase && (path.endsWith('/preview') || /\/(commit|intents)$/.test(path))) {
     const intent = body.intent
     const input = {
@@ -1445,7 +1474,14 @@ else
         <BattleInteractionLifecycleProvider>
           <BattleExperience initialBattle={initialBattle} runtime={runtime} />
           {mode === 'pvp' && new URLSearchParams(location.search).has('chat') ? (
-            <PvpBattleChatBridge battleSessionId="fixture" metadata={metadata} />
+            <>
+              <PvpBattleChatBridge battleSessionId="fixture" metadata={metadata} />
+              <PvpBattleQualityControls
+                battleSessionId="fixture"
+                initialBattle={initialBattle}
+                metadata={metadata}
+              />
+            </>
           ) : null}
           <DesktopBattleCombatantInspect
             battleSessionId="fixture"

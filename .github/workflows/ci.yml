@@ -2,27 +2,9 @@ name: CI
 
 on:
   pull_request:
-    paths-ignore:
-      - 'apps/web/vercel.json'
-      - 'docs/**'
-      - 'README.md'
-      - 'TASKS.md'
-      - 'AGENTS.md'
-      - 'apps/web/DEPLOYMENT.md'
-      - 'content/art-requests/**'
-      - 'content/audio-requests/**'
   push:
-    branches:
-      - main
-    paths-ignore:
-      - 'apps/web/vercel.json'
-      - 'docs/**'
-      - 'README.md'
-      - 'TASKS.md'
-      - 'AGENTS.md'
-      - 'apps/web/DEPLOYMENT.md'
-      - 'content/art-requests/**'
-      - 'content/audio-requests/**'
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -32,14 +14,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  verification-plan:
+    name: Select CI coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      execute: ${{ steps.plan.outputs.execute }}
+      battle: ${{ steps.plan.outputs.battle }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - uses: ./.github/actions/verification-plan
+        id: plan
+        with:
+          workflow: ci.yml
+
   quality:
-    name: Quality gates
+    needs: verification-plan
+    if: ${{ needs.verification-plan.outputs.execute == 'true' }}
+    name: Execute Quality gates
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -69,6 +77,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Check CI selection scripts and workflow formatting
+        run: |
+          pnpm exec prettier --check .github/scripts/*verification*.mjs .github/actions/verification-plan/action.yml .github/workflows/ci.yml .github/workflows/browser-smoke.yml .github/workflows/desktop-page-fit.yml
+          pnpm exec eslint .github/scripts/*verification*.mjs --global process --global console --global fetch --global AbortSignal
+
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level=high
 
@@ -93,13 +106,17 @@ jobs:
         run: git diff --exit-code
 
   database:
-    name: Database foundation
+    needs: verification-plan
+    if: ${{ needs.verification-plan.outputs.execute == 'true' }}
+    name: Execute Database foundation
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -356,3 +373,52 @@ jobs:
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup
+
+  quality-result:
+    name: Quality gates
+    if: ${{ always() }}
+    needs: [verification-plan, quality]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Require selected verification or verified reuse
+        env:
+          AV_PROOF_OUTPUT: /tmp/verification-proof.json
+          AV_WORKFLOW_FILE: ci.yml
+          AV_PLAN_RESULT: ${{ needs.verification-plan.result }}
+          AV_VERIFICATION_PLAN: ${{ needs.verification-plan.outputs.plan }}
+          AV_EXECUTION_RESULTS: '["${{ needs.quality.result }}"]'
+        run: node .github/scripts/verification-plan.mjs gate
+
+      - name: Save exact tested-source receipt
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-proof-ci.yml-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/verification-proof.json
+          if-no-files-found: error
+          retention-days: 2
+
+  database-result:
+    name: Database foundation
+    if: ${{ always() }}
+    needs: [verification-plan, database]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Require selected verification or verified reuse
+        env:
+          AV_PLAN_RESULT: ${{ needs.verification-plan.result }}
+          AV_VERIFICATION_PLAN: ${{ needs.verification-plan.outputs.plan }}
+          AV_EXECUTION_RESULTS: '["${{ needs.database.result }}"]'
+        run: node .github/scripts/verification-plan.mjs gate

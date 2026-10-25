@@ -62,7 +62,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
   for (const [label, destination] of [
     ['Haven', '/game/haven'],
     ['Profile', '/game/character'],
-    ['Loadout', '/game/nexus'],
+    ['Arsenal', '/game/nexus'],
     ['Haven', '/game/haven'],
   ]) {
     await navigation.getByRole('link', { name: label, exact: true }).click()
@@ -199,7 +199,7 @@ test('ordinary desktop shell fits its identity and every navigation control with
   for (const width of [390, 360]) {
     await page.setViewportSize({ width, height: 844 })
     const nav = page.getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    for (const label of ['Haven', 'Profile', 'Loadout', 'World', 'Battle', 'Training']) {
+    for (const label of ['Haven', 'Profile', 'Arsenal', 'World', 'Arena', 'Training']) {
       await expect(nav.getByRole('link', { name: label, exact: true })).toBeInViewport()
     }
     await expect(

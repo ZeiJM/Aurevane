@@ -25,7 +25,9 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
 async function expectStableCompactDesktopCockpit(page: Page) {
   const deck = page.locator('section[aria-label="Command Deck"]')
   const commands = deck.locator('[data-command-card]')
-  const facingPad = deck.locator('[data-unified-facing-pad="true"]')
+  const facingPad = page
+    .locator('[data-battle-preview-strip]')
+    .getByRole('group', { name: 'Choose final facing', exact: true })
 
   await expect(deck).toBeVisible()
   await expect(commands).toHaveCount(6)
@@ -50,30 +52,36 @@ async function expectStableCompactDesktopCockpit(page: Page) {
     (card) => card.getBoundingClientRect().height,
   )
   await deck.getByRole('button', { name: /^End Turn,/ }).click()
-  await expectInlineFacingPad(page, closedFinishHeight)
+  await expectPreviewFacingPad(page, closedFinishHeight)
   await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
   await expect(facingPad).toBeHidden()
 }
 
-async function expectInlineFacingPad(page: Page, closedHeight: number) {
+async function expectPreviewFacingPad(page: Page, closedHeight: number) {
   const finishCard = page.locator('[data-command-card="finish"]')
-  const facingPad = finishCard.locator('[data-unified-facing-pad="true"]')
+  const facingPad = page
+    .locator('[data-battle-preview-strip]')
+    .getByRole('group', { name: 'Choose final facing', exact: true })
   await expect(facingPad).toBeVisible()
   await expect(facingPad.getByRole('button')).toHaveCount(4)
   const cardBox = await finishCard.boundingBox()
   expect(cardBox).not.toBeNull()
   if (!cardBox) return
   expect(Math.abs(cardBox.height - closedHeight)).toBeLessThanOrEqual(1)
+  await expect(page.locator('[data-unified-facing-pad]')).toHaveCount(0)
+  const previewBox = await page.locator('[data-battle-preview-strip]').boundingBox()
+  expect(previewBox).not.toBeNull()
+  if (!previewBox) return
   for (const facing of ['north', 'west', 'east', 'south']) {
-    const button = facingPad.getByRole('button', { name: `End Turn: Face ${facing}`, exact: true })
+    const button = facingPad.getByRole('button', { name: `Face ${facing}`, exact: true })
     await expect(button).toBeVisible()
     const buttonBox = await button.boundingBox()
     expect(buttonBox).not.toBeNull()
     if (!buttonBox) continue
-    expect(buttonBox.x).toBeGreaterThanOrEqual(cardBox.x)
-    expect(buttonBox.y).toBeGreaterThanOrEqual(cardBox.y)
-    expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(cardBox.x + cardBox.width)
-    expect(buttonBox.y + buttonBox.height).toBeLessThanOrEqual(cardBox.y + cardBox.height)
+    expect(buttonBox.x).toBeGreaterThanOrEqual(previewBox.x)
+    expect(buttonBox.y).toBeGreaterThanOrEqual(previewBox.y)
+    expect(buttonBox.x + buttonBox.width).toBeLessThanOrEqual(previewBox.x + previewBox.width)
+    expect(buttonBox.y + buttonBox.height).toBeLessThanOrEqual(previewBox.y + previewBox.height)
   }
 }
 
@@ -199,7 +207,9 @@ test('mobile End Turn opens facing controls and commits a single tapped directio
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
   const deck = page.locator('section[aria-label="Command Deck"]')
-  const facingPad = deck.locator('[data-unified-facing-pad="true"]')
+  const facingPad = page
+    .locator('[data-battle-preview-strip]')
+    .getByRole('group', { name: 'Choose final facing', exact: true })
   const finishTurn = deck.getByRole('button', { name: /^End Turn,/ })
   const facingGuides = facingPad.getByRole('button')
   const tokenArrows = page.locator('#battlefield [data-battle-facing-indicator="true"]')
@@ -248,12 +258,12 @@ test('mobile End Turn opens facing controls and commits a single tapped directio
     .locator('[data-command-card="finish"]')
     .evaluate((card) => card.getBoundingClientRect().height)
   await finishTurn.tap()
-  await expectInlineFacingPad(page, closedFinishHeight)
+  await expectPreviewFacingPad(page, closedFinishHeight)
   await expect(facingGuides).toHaveCount(4)
   await page.waitForTimeout(200)
   expect(finalTurnRequests).toBe(0)
 
-  const northGuide = facingPad.getByRole('button', { name: 'End Turn: Face north', exact: true })
+  const northGuide = facingPad.getByRole('button', { name: 'Face north', exact: true })
   const finalTurnResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&

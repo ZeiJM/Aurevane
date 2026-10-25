@@ -1,0 +1,32 @@
+name: Verification plan
+description: Select conservative coverage and verify identical-tree PR reuse on main.
+inputs:
+  workflow:
+    description: Workflow filename whose exact successful PR run may be reused.
+    required: true
+outputs:
+  plan:
+    description: Versioned immutable-source JSON plan.
+    value: ${{ steps.selection.outputs.plan }}
+  execute:
+    description: Whether the workflow must execute its selected checks.
+    value: ${{ steps.selection.outputs.execute }}
+  battle:
+    description: Whether production-component battle checks are selected.
+    value: ${{ steps.selection.outputs.battle }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+    - name: Verify selection and gate regressions
+      shell: bash
+      run: node --test .github/scripts/*verification*.test.mjs
+    - name: Select verification coverage
+      id: selection
+      shell: bash
+      env:
+        AV_WORKFLOW_FILE: ${{ inputs.workflow }}
+        AV_GITHUB_TOKEN: ${{ github.token }}
+      run: node .github/scripts/verification-plan.mjs

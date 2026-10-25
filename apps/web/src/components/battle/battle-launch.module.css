@@ -454,9 +454,16 @@
 }
 
 .modePicker > button[data-selected] {
-  border-color: rgba(165, 126, 51, 0.62);
-  background: rgba(249, 244, 228, 0.94);
-  box-shadow: inset 0 0 0 1px rgba(188, 147, 69, 0.1);
+  border-color: #dbb96d;
+  color: #fff2d6;
+  background: #285653;
+  box-shadow: inset 0 0 0 2px #dbb96d;
+}
+.modePicker > button[data-selected] .modeCopy strong {
+  color: #fff2d6;
+}
+.modePicker > button[data-selected] .modeCopy small {
+  color: #e0ede6;
 }
 
 .modeIcon {

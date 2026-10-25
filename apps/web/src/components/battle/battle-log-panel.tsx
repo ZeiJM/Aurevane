@@ -14,6 +14,11 @@ interface BattleLogPanelProps {
   battleSessionId: string
   battleVersion?: number
   currentRound?: number
+  resetEpoch?: number
+  detailsHost?: HTMLElement | null
+  onDetailsOpenChange?: (open: boolean) => void
+  onToggleLog?: () => void
+  logOpen?: boolean
   open?: boolean
   onClose?: () => void
   playerName?: string
@@ -138,6 +143,11 @@ export function BattleLogPanel({
   dockOnDesktop = false,
   recentTurnCount,
   presentation = 'floating',
+  detailsHost,
+  resetEpoch,
+  onDetailsOpenChange,
+  onToggleLog,
+  logOpen,
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
   const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
@@ -241,6 +251,11 @@ export function BattleLogPanel({
           </p>
         ) : (
           <MobileBattleChronicle
+            onToggleLog={onToggleLog}
+            logOpen={logOpen}
+            detailsHost={detailsHost}
+            resetEpoch={resetEpoch}
+            onDetailsOpenChange={onDetailsOpenChange}
             currentRound={currentRound}
             entries={entries}
             playerName={effectivePlayerName}

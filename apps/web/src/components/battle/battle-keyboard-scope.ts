@@ -12,7 +12,7 @@ export function isBattleShortcutBlocked(target: EventTarget | null, code?: strin
   // Inspect owns keyboard input even when focus remains on the tile that opened it.
   if (
     document.querySelector(
-      '[data-desktop-battle-inspect="true"], [data-pvp-inspect-popup="true"], [data-mobile-battle-popup], [role="dialog"][aria-modal="true"], dialog[open], [data-battle-info-panel]',
+      '[data-desktop-battle-inspect="true"], [data-pvp-inspect-popup="true"], [data-mobile-battle-popup], [role="dialog"][aria-modal="true"], dialog[open], [data-battle-info-panel], [data-battle-preview-info][open], [data-battle-chronicle-detail-open], [data-battle-terrain-view], [data-battle-mobile-workspace="chat"], [data-battle-mobile-workspace="log"]',
     )
   )
     return true

@@ -21,8 +21,8 @@ it.each(['opponent turn', 'completed battle', 'execution in flight'])(
     expect(routeBattleAbilityShortcut('skill1', context, { openInfo, activate })).toBe(true)
     expect(routeBattleAbilityShortcut('essence', context, { openInfo, activate })).toBe(true)
     expect(openInfo.mock.calls).toEqual([
-      ['[data-battle-skill-slot="1"] [data-battle-info-trigger]'],
-      ['[data-battle-special] [data-battle-info-trigger]'],
+      ['[data-battle-reader-shortcut="skill1"]'],
+      ['[data-battle-reader-shortcut="essence"]'],
     ])
     expect(activate).not.toHaveBeenCalled()
   },
@@ -40,9 +40,7 @@ it('keeps active ability commands blocked while allowing supernatural informatio
   routeBattleAbilityShortcut('essence', context, { openInfo, activate })
   routeBattleAbilityShortcut('supernatural', context, { openInfo, activate })
   expect(activate).not.toHaveBeenCalled()
-  expect(openInfo).toHaveBeenCalledExactlyOnceWith(
-    '[data-battle-special="supernatural"] [data-battle-info-trigger]',
-  )
+  expect(openInfo).toHaveBeenCalledExactlyOnceWith('[data-battle-reader-shortcut="supernatural"]')
 })
 
 it('routes enabled casts through the existing command callback with their actual category', () => {

@@ -81,6 +81,7 @@ describe('portrait loading in the authenticated shell', () => {
     expect(settled).toBe(false)
     resolveIdentity({ imageUrl } as Awaited<ReturnType<typeof loadCharacterIdentityRailContext>>)
     const shell = await pendingShell
+    expect(shell.props.character).toMatchObject({ id: 'character-1', name: 'Zei' })
     for (const portrait of [shell.props.characterPortrait, shell.props.railIdentity]) {
       const markup = renderToStaticMarkup(portrait as ReactElement)
       expect(markup).toContain(imageUrl)

@@ -25,6 +25,9 @@ test('Audio has real playback controls and loops without refreshing the game', a
   await page.goto('/game/settings/audio')
   await expect(page.getByRole('heading', { name: 'Volume settings', exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Now playing', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  await expect(page.getByRole('menuitem', { name: 'Audio', exact: true })).toHaveCount(0)
+  await page.keyboard.press('Escape')
   if (info.project.name !== 'mobile-chromium') {
     const centered = await page.locator('[data-audio-workspace]').evaluate((workspace) => {
       const scene = workspace.closest('[data-settings-scene]')!
@@ -125,11 +128,9 @@ test('Audio has real playback controls and loops without refreshing the game', a
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
   ).toBeLessThanOrEqual(1)
-  if (info.project.name !== 'mobile-chromium') {
-    expect(
-      await page
-        .locator('#game-main')
-        .evaluate((element) => element.scrollHeight - element.clientHeight),
-    ).toBeLessThanOrEqual(1)
-  }
+  expect(
+    await page
+      .locator('#game-main')
+      .evaluate((element) => element.scrollHeight - element.clientHeight),
+  ).toBeLessThanOrEqual(1)
 })

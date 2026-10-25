@@ -39,9 +39,9 @@ describe('shared game rail', () => {
     const destinations = [
       ['/game/haven', 'Haven'],
       ['/game/character', 'Profile'],
-      ['/game/loadout', 'Loadout'],
+      ['/game/loadout', 'Arsenal'],
       ['/game/world', 'World'],
-      ['/game/battle', 'Battle'],
+      ['/game/battle', 'Arena'],
       ['/game/training', 'Training'],
     ]
     const positions = destinations.map(([href, label]) => {
@@ -50,7 +50,7 @@ describe('shared game rail', () => {
       return markup.indexOf(`href="${href}"`)
     })
     expect(positions).toEqual([...positions].sort((a, b) => a - b))
-    expect(markup).not.toContain('aria-label="Arsenal"')
+    expect(markup).not.toContain('aria-label="Loadout"')
     expect(markup).not.toContain('href="/game/nexus"')
     expect(markup).toContain('aria-current="page"')
   })

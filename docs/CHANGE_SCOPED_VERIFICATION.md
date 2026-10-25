@@ -17,14 +17,14 @@ Select coverage from dependencies and risk, not just filenames or the size of th
 
 ## 2. Verification tiers
 
-| Change | Development checks | Final verification |
-| --- | --- | --- |
-| Documentation only | Diff, content accuracy, referenced paths/links and applicable Markdown checks | Documentation checks; no gameplay/browser suite solely for prose |
-| Isolated copy, image or local spacing | Applicable format/lint/types; affected asset loading, readability, containment and responsive states | Core smoke plus affected desktop/mobile checks |
-| Shared shell, global styles or reusable UI | Above plus representative consumers, navigation, focus and accessibility | Expand across affected screens, breakpoints and modes |
-| Battle controls or shared combat presentation | Relevant unit/integration and rendered interaction regressions | PvE/PvP/spectator coverage where shared, single-submit/input guards, AP/authority and historical readers as affected |
-| Movement, combat rules, auth, persistence, dependencies or build configuration | Focused reproduction plus relevant negative, concurrent, retry and authority cases | Broader integration/regression coverage; full suite when impact is broad or uncertain |
-| Large batch spanning systems | Focused checks per repair; combine stable repairs before final validation | Full applicable release suite on the final candidate |
+| Change                                                                         | Development checks                                                                                   | Final verification                                                                                                   |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Documentation only                                                             | Diff, content accuracy, referenced paths/links and applicable Markdown checks                        | Documentation checks; no gameplay/browser suite solely for prose                                                     |
+| Isolated copy, image or local spacing                                          | Applicable format/lint/types; affected asset loading, readability, containment and responsive states | Core smoke plus affected desktop/mobile checks                                                                       |
+| Shared shell, global styles or reusable UI                                     | Above plus representative consumers, navigation, focus and accessibility                             | Expand across affected screens, breakpoints and modes                                                                |
+| Battle controls or shared combat presentation                                  | Relevant unit/integration and rendered interaction regressions                                       | PvE/PvP/spectator coverage where shared, single-submit/input guards, AP/authority and historical readers as affected |
+| Movement, combat rules, auth, persistence, dependencies or build configuration | Focused reproduction plus relevant negative, concurrent, retry and authority cases                   | Broader integration/regression coverage; full suite when impact is broad or uncertain                                |
+| Large batch spanning systems                                                   | Focused checks per repair; combine stable repairs before final validation                            | Full applicable release suite on the final candidate                                                                 |
 
 Examples: isolated Audio spacing can omit detailed World travel and combat simulations from its development loop. A global CSS change cannot assume those screens are unaffected. A text change that changes targeting semantics or overflows a shared control needs more than a spelling check.
 
@@ -32,7 +32,7 @@ Examples: isolated Audio spacing can omit detailed World travel and combat simul
 
 For application changes, retain a short essential suite proving that the app opens, sign-in/session entry works, core navigation works, and a basic battle can load and accept one legal command. Add affected-feature checks separately. Keep server rejection/authority checks where the changed path can mutate state.
 
-This is the target CI structure, not a claim that the current Browser Smoke workflow is already small. Inspect existing test commands and select actual cases before claiming this tier passes.
+The implementation in PR #976 selects the existing `account-entry`, `loadout-navigation`, and `battle-move-preview-polish` specifications, plus the new public-image decoder. These retain entry/session persistence, real navigation, server-committed movement, AP/position persistence and image loading. It uses the unchanged desktop/laptop/mobile projects. The selection becomes active after the CI implementation merges; it does not retroactively alter already-running release jobs.
 
 ## 4. Development loop and release gate
 
@@ -53,18 +53,36 @@ This is the target CI structure, not a claim that the current Browser Smoke work
 - Never loosen thresholds, add sleeps, skip a case or delete an assertion solely to unblock release. Any quarantine requires an explicit tracked defect, bounded scope, replacement protection and a resolution condition; it is not automatic permission to merge.
 - A retry passing does not prove an unresolved intermittent defect is fixed.
 
-## 6. CI improvement implementation plan
+## 6. Implemented CI selection
 
-- [ ] Inventory current workflows, selected tests, overlap, duration and shared mutable fixtures; distinguish configured project skips from failures.
-- [ ] Define the actual core smoke selection and affected-feature groups from existing tests. Keep a conservative full-suite fallback for shared/unmapped changes.
-- [ ] Remove duplicate executions only after proving equivalent assertions, browser/project/state coverage and setup assumptions remain covered elsewhere.
-- [ ] Separate independent test groups into jobs where fixtures and database state permit isolation. Measure runner contention before increasing parallelism.
-- [ ] Validate selection against representative local-only, shared-style, battle-control, movement/auth and docs-only diffs. Verify required-check reporting for skipped paths so merges do not hang or pass without intended coverage.
-- [ ] Preserve full regression runs for broad release candidates and run periodic full-suite validation under a separately configured schedule. Creating or changing that schedule requires its own explicit task.
-- [ ] Compare observed durations and failures before/after. Report measured results; do not promise an unverified turnaround time.
+Browser Smoke plans before installing dependencies or starting a disposable database. Known local Audio/public-information changes select core plus their feature cases. Existing battle presentation and explicitly mapped character panels select combined battle/character coverage, production-component guards and the existing Edge input cases. Skill raster artwork selects core plus actual image decoding. Unknown file types, new executable paths, runtime deletions, global/shell/auth/presence/World/server/gameplay/persistence/dependency/build/CI changes and unrelated multi-system batches require the full suite. Shared identity/portrait/session and skill-detail readers used by Master, Manual or server code are outside the local panel allowlist. Public presentation accepts TSX/module CSS; unknown configuration and server routes use full coverage. Missing diff data broadens coverage; invalid paths or missing core specifications fail planning.
 
-## 7. Current release boundary
+Full mode retains every native specification, all three Chromium projects, the independent repeat-two authoring/authority gate and the existing Edge cases. The former focused battle and password/training phases are already contained in that same full suite under the same local build/catalogue/configuration. A real Playwright discovery audit proves all 107 removed preliminary case/project invocations remain in the full set. No gameplay assertion, configured project skip, timeout, retry count or World timing threshold changed.
 
-PR #975 keeps its existing all-13 exact-head workflow requirement, tested-tree merge verification and one final production/no-preview requirement. Do not push this policy onto that active release branch just to record it, restart its retry, or weaken its gates. PR #933 stays separate and unmerged; a passing retry does not resolve its timing acceptance.
+Measured discovery counts on the implementation:
 
-The policy and CI implementation checklist are separate: saving this document does not claim the workflow changes above are implemented.
+| Example                       | Selected native entries | Additional checks                                     |
+| ----------------------------- | ----------------------: | ----------------------------------------------------- |
+| Documentation                 |                       0 | Planner/self-tests and explicit required results      |
+| Skill raster artwork          |                      21 | Real changed-image decoding within core               |
+| Isolated Audio workspace      |                      24 | Core plus Audio                                       |
+| Battle/character presentation |                     351 | Existing component guards and Edge                    |
+| Shared/unknown changes        |                     645 | Existing component guards, authority repeats and Edge |
+
+The full set is the previous 642 entries plus three project entries for the new image decoder. These are discovery counts, not claimed execution times or a claim that intentionally skipped project cases ran. Existing specialized workflows keep their paths, environments and authority checks. Browser runs remain serial because they share the local database; no unmeasured concurrency increase or new periodic schedule is introduced. `workflow_dispatch` on Browser Smoke runs the full suite for a final/broad candidate. A `ci:full` label can only broaden the next PR-triggered plan; adding the label alone does not start a run.
+
+Central CI still owns full application quality and database authority for application changes. Desktop page fit omits its identical PR format/lint/types/unit invocations, since central CI runs those same commands against the same immutable event SHA; its manual dispatch retains all standalone quality steps. Other specialist overlap is retained where fixtures, policy/entitlement flags or authority coverage differ.
+
+## 7. Reuse and required-check reporting
+
+Browser Smoke and central CI always report their existing required result names, including documentation-only changes. The final result requires successful planning and successful selected execution. Unexpected skipped, failed, cancelled or missing execution fails the result. An intentionally omitted execution must be an explicit documentation-only plan or a verified reuse proof; unrun full coverage is never labelled as executed.
+
+On a main push, reuse requires an actual merged PR association, exact merge/head commit and equal trees, the same workflow's most recently updated attempt on that exact head, successful completion and evidence within 24 hours. A rerun of an older run ID can invalidate a newer-created success. The successful PR final gate uploads a small receipt bound to its actual checked-out SHA/tree, repository, PR number, workflow, run and attempt. Main reads the matching receipt and requires its tested tree to equal the merge tree; workflow `head_sha` alone is insufficient. Missing/expired/wrong-attempt receipts and incomplete API counts force full execution. Download/extraction sizes and time are bounded, and ZIP entries are streamed without filesystem extraction. The proof is also bound to the final main gate's actual checked-out SHA/tree. Different source, direct pushes, stale/failed/in-progress evidence, truncated or malformed API data and read failures run the full checks instead. GitHub access is read-only and limited to the planner job, with bounded requests. No production credentials are involved.
+
+Commands and evidence: `node --test .github/scripts/*verification*.test.mjs`; `node .github/scripts/audit-browser-verification.mjs <pre-change-SHA> <output.json>`. Implementation/review/validation receipt: [2026-10-25 change-scoped CI](verification/2026-10-25-change-scoped-ci.md). Observed hosted durations must be measured after rollout before promising a turnaround time.
+
+## 8. Current release boundary
+
+PR #975's historical all-13 gate is not changed retroactively. PR #979's already-running UI checks and source remain intact. The CI implementation itself receives full fallback because it changes workflows and selection logic; no app deployment is needed. PR #933 stays separate and unmerged; passing an ordinary run does not resolve its timing acceptance. Tested-tree/source verification and the one-final-production/no-preview rule remain.
+
+Until PR #976 merges, existing main workflows remain active. A reviewed implementation on a PR is not a claim of completed rollout or a passing hosted run.

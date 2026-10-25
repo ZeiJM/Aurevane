@@ -285,14 +285,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         parseFloat(getComputedStyle(document.documentElement).fontSize),
       forecast: rect('[data-battle-preview-strip]'),
       key: rect('button[aria-label="Terrain"]'),
-      cancel: [
-        ...element.querySelectorAll<HTMLButtonElement>('[data-battle-footer-actions] > button'),
-      ]
-        .find((button) =>
-          ['Cancel Action', 'Cancel prime'].includes(button.textContent?.trim() ?? ''),
-        )!
-        .getBoundingClientRect()
-        .toJSON(),
+      cancel: rect('[data-battle-cancel-action]'),
       log: rect('[data-battle-inline-log]'),
       leftCardRoles: [
         ...element.querySelectorAll('[data-battle-side="local"] > [data-battle-combatant-card]'),
@@ -500,7 +493,7 @@ export async function expectBattleFlowKeepsBoardSize(page: Page) {
       const action = timeline.getByRole('button', { name: /Show Chronicle details/i }).last()
       if (await action.count()) {
         await action.click()
-        await expect(mobile.getByRole('dialog', { name: /Chronicle action:/i })).toBeVisible()
+        await expect(page.getByRole('region', { name: /Chronicle action:/i })).toBeVisible()
         await page.keyboard.press('Escape')
       }
       const after = await sizes()

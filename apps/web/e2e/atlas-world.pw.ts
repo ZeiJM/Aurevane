@@ -12,6 +12,7 @@ import { verifyWorldPresentation, registerWorldInputCases } from './world-presen
 import { verifyWorldScenePresence, verifyWorldInstantActions } from './world-presence-case'
 import { sectorMapOrigin, wrappedMapX } from '../src/world/topology'
 import { projectMapPoint } from '../src/components/world/map-projection'
+import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { registerWorldLandscapeCases } from './world-landscape-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
@@ -1319,6 +1320,7 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
       cachedSectors: Number(el.dataset.cachedSectors),
       cachedPixels: Number(el.dataset.cachedPixels),
       visibleScenery: Number(el.dataset.visibleScenery),
+      detailedScenery: Number(el.dataset.detailedScenery),
       waterCells: Number(el.dataset.waterCells),
       canvasPixels: (el as HTMLCanvasElement).width * (el as HTMLCanvasElement).height,
       identityPixels: (() => {
@@ -1349,7 +1351,38 @@ test('a synthetic population of 100 has bounded rendering at high DPI and lower 
     })
   }
   expect(metrics.cachedPixels).toBeLessThanOrEqual(8_000_000)
-  expect(metrics.visibleScenery).toBeLessThanOrEqual(180)
+  expect(metrics.detailedScenery).toBeLessThanOrEqual(180)
+  // Sprite existence follows supplied visible terrain, independently of the
+  // optional-detail budget. Dense desktop/phone walking fixtures separately
+  // assert each actual tree draw; this workload must retain its visible bodies.
+  const renderedViewport = await canvas.evaluate((el) => ({
+    width: el.clientWidth,
+    height: el.clientHeight,
+    tile: Number(el.dataset.tileSize),
+    camera: { x: Number(el.dataset.cameraX), y: Number(el.dataset.cameraY) },
+  }))
+  const visibleTerrainBodies = worldRenderTerrain(await world(page)).flatMap((sector) => {
+    const origin = sectorMapOrigin(sector, renderedViewport.camera.x)
+    return sector.cells.filter((cell) => {
+      if (cell.terrain !== 't' && cell.terrain !== '#') return false
+      const point = projectMapPoint(
+        { x: origin.x + cell.x + 0.5, y: origin.y + cell.y + (cell.terrain === '#' ? 0.5 : 0.75) },
+        renderedViewport.camera,
+        { x: 0, y: 0 },
+        renderedViewport.tile,
+        renderedViewport.width,
+        renderedViewport.height,
+      )
+      return (
+        point.x > 20 &&
+        point.x < renderedViewport.width - 20 &&
+        point.y > 60 &&
+        point.y < renderedViewport.height - 20
+      )
+    })
+  }).length
+  expect(visibleTerrainBodies).toBeGreaterThan(0)
+  expect(metrics.visibleScenery).toBeGreaterThanOrEqual(visibleTerrainBodies)
   expect(metrics.waterCells).toBeLessThanOrEqual(60)
   expect(metrics.frameP95Ms).toBeLessThan(80)
   await capture(page, info, 'synthetic-100-mobile')

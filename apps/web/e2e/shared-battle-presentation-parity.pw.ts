@@ -1,3 +1,4 @@
+import { BATTLE_MOBILE_LAYOUT_QUERY } from '../src/components/battle/battle-responsive-layout'
 import { expectCombatantIdentityColors } from './battle-identity-color-helpers'
 import { expect, test, type Page } from '@playwright/test'
 
@@ -38,6 +39,10 @@ async function expectSharedHeader(root: ReturnType<Page['locator']>) {
 }
 
 async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
+  const mobile = await root.evaluate(
+    (_element, query) => matchMedia(query).matches,
+    BATTLE_MOBILE_LAYOUT_QUERY,
+  )
   const occupied = root.locator('#battlefield button[aria-label*="occupied by"]')
   const count = await occupied.count()
   expect(count).toBeGreaterThan(0)
@@ -134,8 +139,12 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
 
     expect(geometry.arrowTop).toBeGreaterThanOrEqual(geometry.tileTop - 1)
     // Facing is pinned to the tile's top-left corner, independent of portrait/meter geometry.
-    expect(geometry.arrowWidth).toBeGreaterThanOrEqual(12)
-    expect(geometry.arrowHeight).toBeGreaterThanOrEqual(12)
+    expect(geometry.arrowWidth).toBeGreaterThanOrEqual(mobile ? 8 : 12)
+    expect(geometry.arrowHeight).toBeGreaterThanOrEqual(mobile ? 8 : 12)
+    if (mobile) {
+      expect(geometry.arrowWidth).toBeLessThanOrEqual(10.1)
+      expect(geometry.arrowHeight).toBeLessThanOrEqual(10.1)
+    }
     expect(geometry.arrowTop - geometry.tileTop).toBeLessThanOrEqual(3)
     expect(geometry.arrowLeft - geometry.tileLeft).toBeGreaterThanOrEqual(1)
     expect(geometry.arrowLeft - geometry.tileLeft).toBeLessThanOrEqual(3)
@@ -390,7 +399,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
         .last()
       await expect(guardAction).toBeVisible()
       await guardAction.click()
-      const details = timeline.getByRole('dialog', { name: /Chronicle action:/i })
+      const details = activePage.getByRole('region', { name: /Chronicle action:/i })
       await expect(details).toBeVisible()
       await expect(details).toContainText('Guard')
       await expect(details).toContainText(activeName)

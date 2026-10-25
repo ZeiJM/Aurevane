@@ -177,7 +177,7 @@ test('Techniques saves one Support Action separately from four Discipline Skills
       'Support name aligns with Discipline names',
     ).toBeLessThanOrEqual(1)
     await expect(support).toContainText('MP Recovery')
-    const selector = page.getByRole('navigation', { name: 'Loadout sections' })
+    const selector = page.getByRole('navigation', { name: 'Arsenal sections' })
     const nexusPosition = (await selector.boundingBox())!
     await selector.getByRole('link', { name: 'Items', exact: true }).click()
     await expect(selector.getByRole('link', { name: 'Items', exact: true })).toHaveAttribute(

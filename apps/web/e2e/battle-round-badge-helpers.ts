@@ -4,7 +4,7 @@ import type { BattleSessionView } from '../src/server/battle/battle-session-serv
 /**
  * Assert that the currently displayed round matches a fresh, authoritative battle snapshot.
  * Desktop uses the permanent Chronicle heading; mobile uses the fixed action timeline's
- * pinned round badge (the old expandable Chronicle toggle was intentionally removed).
+ * pinned round badge, which toggles the lower log. The old footer toggle stays removed.
  */
 export async function expectRecordedBattleRound(page: Page): Promise<number> {
   const pathname = new URL(page.url()).pathname
@@ -30,7 +30,16 @@ export async function expectRecordedBattleRound(page: Page): Promise<number> {
   await expect(badge).toBeVisible()
   await expect(page.locator('[data-battle-preview-strip] [data-battle-round]')).toHaveCount(0)
   await expect(badge).toHaveAttribute('data-battle-round', String(round))
-  await expect(badge).toHaveAttribute('aria-label', `Current battle round ${round}`)
+  if (mobile) {
+    await expect(badge).toHaveAttribute('data-battle-current-round-toggle', 'true')
+    const expanded = await badge.getAttribute('aria-expanded')
+    expect(expanded).toMatch(/^(true|false)$/)
+    const label = `Current battle round ${round}. ${expanded === 'true' ? 'Hide' : 'Show'} battle log`
+    await expect(badge).toHaveAttribute('aria-label', label)
+    await expect(surface.getByRole('button', { name: label, exact: true })).toBeEnabled()
+  } else {
+    await expect(badge).toHaveAttribute('aria-label', `Current battle round ${round}`)
+  }
   const geometry = await badge.evaluate((element) => {
     const box = element.getBoundingClientRect()
     const container = element.closest(
@@ -48,6 +57,6 @@ export async function expectRecordedBattleRound(page: Page): Promise<number> {
     }
   })
   expect(geometry.contained).toBe(true)
-  expect(geometry.pointerEvents).toBe('none')
+  expect(geometry.pointerEvents).toBe(mobile ? 'auto' : 'none')
   return round
 }

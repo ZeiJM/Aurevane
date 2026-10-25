@@ -7,12 +7,24 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed } from './battle-log-feed'
 import { BattleLogPanel } from './battle-log-panel'
-import { BattleLogChronicle } from './battle-log-chronicle'
+import { BattleLogChronicle, MobileBattleChronicle } from './battle-log-chronicle'
 import { buildBattleChronicle } from './battle-log-chronicle-model'
 
 const actor = 'character:zei'
 const enemy = 'recruit:weon'
 const names = { [actor]: 'Zei', [enemy]: 'Weon', 'recruit:other': 'Weon' }
+
+it('makes the current-round badge an explicit log toggle without replacing the action timeline', () => {
+  const html = renderToStaticMarkup(
+    <MobileBattleChronicle entries={[]} currentRound={5} logOpen onToggleLog={() => {}} />,
+  )
+  expect(html).toMatch(/<button[^>]*data-battle-current-round-toggle="true"/)
+  expect(html).toContain('aria-expanded="true"')
+  expect(html).toContain('Hide battle log')
+  expect(html).toContain('Round 5')
+  expect(html).toContain('aria-label="Battle actions"')
+  expect(html).toContain('data-battle-log-toggle-icon="true"')
+})
 
 function entry(
   battleVersion: number,
@@ -63,6 +75,54 @@ function render(entries: readonly BattleLogEntry[]) {
 }
 
 describe('approved Battle Chronicle', () => {
+  it.each(['essence', 'resonance'] as const)(
+    'renders recorded %s damage, recovery and status outcomes through the shared Skill reader',
+    (specialFamily) => {
+      const id = `${specialFamily}.recorded-fixture`
+      const origin = { family: specialFamily, contentId: id, contentVersion: 2 }
+      const entries = [
+        entry(1, 0, specialFamily === 'resonance' ? 'resonance_activated' : 'combat_action_used', {
+          actionId: id,
+          actionContext: {
+            skillId: id,
+            contentId: id,
+            contentVersion: 2,
+            family: specialFamily,
+            name: 'Recorded special',
+            description: 'Captured effects.',
+            flavor: null,
+          },
+        }),
+        entry(1, 1, 'damage_applied', {
+          actionId: id,
+          effectOrigin: origin,
+          templateValues: { amount: '24' },
+        }),
+        entry(1, 2, 'resource_changed', {
+          actionId: id,
+          effectOrigin: origin,
+          targetCombatantId: actor,
+          templateValues: { amount: '3', direction: 'gained', resource: 'MP' },
+        }),
+        entry(1, 3, 'status_applied', {
+          actionId: id,
+          effectOrigin: origin,
+          templateValues: { status: 'Slow', statusId: 'slow' },
+          facts: [{ label: '2 rounds', tone: 'neutral' }],
+        }),
+      ]
+      const before = JSON.stringify(entries)
+      const html = render(entries)
+      expect(html).toContain(`data-chronicle-family="${specialFamily}"`)
+      expect(html).toContain('24 damage')
+      expect(html).toContain('+3 MP')
+      expect(html).toContain('aria-label="Explain Slow"')
+      expect(html).toContain('Slow, 2 rounds')
+      expect(html).toContain('to Weon')
+      expect(html).not.toContain('Action recorded; no effect result available.')
+      expect(JSON.stringify(entries)).toBe(before)
+    },
+  )
   it('orders actor groups by recorded turns despite earlier delayed effect attribution', () => {
     const entries = [
       entry(1, 0, 'status_applied'),
@@ -870,4 +930,22 @@ it('keeps Chronicle elemental explanations pinned in standalone completed battle
   } finally {
     popup.mockRestore()
   }
+})
+
+describe('mobile Chronicle artwork identity', () => {
+  it.each([
+    ['basic.attack.unarmed.basic', '/media/skills/basic-attack-fist.webp'],
+    ['basic.guard', '/media/skills/guard.webp'],
+    ['basic.recover', '/media/skills/hp-recovery.webp'],
+    ['basic.recover.mp', '/media/skills/mp-recovery.svg'],
+    ['battle.lowered-guard.apply', '/media/skills/defenseless.svg'],
+    ['unknown.event', '/media/skills/chronicle-event.svg'],
+  ])('uses recorded %s artwork without enriched skill context', (actionId, source) => {
+    const entries = [entry(1, 0, 'combat_action_used', { actionId, actionContext: undefined })]
+    const markup = renderToStaticMarkup(
+      <MobileBattleChronicle entries={entries} currentRound={1} />,
+    )
+    expect(markup).toContain(`src="${source}"`)
+    expect(markup).not.toContain('/media/skills/inspect.webp')
+  })
 })

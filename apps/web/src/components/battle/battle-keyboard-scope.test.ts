@@ -11,13 +11,19 @@ function openSurface(selector: string) {
 }
 afterEach(() => vi.unstubAllGlobals())
 describe('combat shortcuts while reading', () => {
-  it.each(['[role="dialog"][aria-modal="true"]', 'dialog[open]', '[data-battle-info-panel]'])(
-    'blocks actions with %s open even when focus stays on the battlefield',
-    (surface) => {
-      openSurface(surface)
-      expect(isBattleShortcutBlocked(null)).toBe(true)
-    },
-  )
+  it.each([
+    '[role="dialog"][aria-modal="true"]',
+    'dialog[open]',
+    '[data-battle-info-panel]',
+    '[data-battle-preview-info][open]',
+    '[data-battle-chronicle-detail-open]',
+    '[data-battle-terrain-view]',
+    '[data-battle-mobile-workspace="chat"]',
+    '[data-battle-mobile-workspace="log"]',
+  ])('blocks actions with %s open even when focus stays on the battlefield', (surface) => {
+    openSurface(surface)
+    expect(isBattleShortcutBlocked(null)).toBe(true)
+  })
 })
 
 describe('closed information trigger focus', () => {
@@ -42,7 +48,10 @@ describe('closed information trigger focus', () => {
     class Trigger {
       isContentEditable = false
       closest(selector: string) {
-        return selector.includes('[data-battle-info-trigger]') ? this : null
+        return selector.includes('[data-battle-info-trigger]') ||
+          selector.includes('[data-battle-preview-info]')
+          ? this
+          : null
       }
     }
     vi.stubGlobal('document', { querySelector: () => null })

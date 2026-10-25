@@ -2,6 +2,7 @@ import type { TacticalBattleState } from '@aurevane/game-core/combat/board'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 import {
   COMBAT_TERRAIN_OVERLAY_DETAILS,
+  frozenGroundDescription,
   type CombatTerrainOverlay,
 } from '@aurevane/game-core/combat/terrain-overlays'
 
@@ -81,4 +82,21 @@ export function presentBattleTerrainKeys(
   return (Object.keys(BATTLE_TERRAIN_KEY_DETAILS) as BattleTerrainKeyKind[]).filter((kind) =>
     present.has(kind),
   )
+}
+
+export function presentBattleTerrainKey(
+  snapshot: BattleTerrainKeySnapshot,
+  kind: BattleTerrainKeyKind,
+  active = presentBattleTerrainKeys(snapshot).includes(kind),
+) {
+  const terrain = BATTLE_TERRAIN_KEY_DETAILS[kind]
+  return {
+    ...terrain,
+    kind,
+    active,
+    description:
+      kind === 'frozen'
+        ? `${frozenGroundDescription(snapshot.frozenGroundPolicyVersion ?? null)} Preserves base terrain and expires after 2 round boundaries.`
+        : terrain.description,
+  }
 }

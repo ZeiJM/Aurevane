@@ -48,17 +48,27 @@ for (const longName of [false, true]) {
           background: getComputedStyle(node).backgroundColor,
         }
       })
-    // Phones use a deliberately compact one-row in-game masthead, so only typography and colour
-    // must match the public header there; desktop also keeps identical geometry.
-    const comparable = async () => {
-      const { height, crestWidth, ...appearance } = await headerAppearance()
-      return info.project.name === 'mobile-chromium'
-        ? appearance
-        : { height, crestWidth, ...appearance }
+    const comparable = headerAppearance
+    const expectCenteredAccount = async () => {
+      const header = page.locator('[data-av-site-header]')
+      const geometry = await header.evaluate((element) => {
+        const bar = element.getBoundingClientRect()
+        const account = element
+          .querySelector('button[aria-haspopup="menu"]')!
+          .getBoundingClientRect()
+        return {
+          height: bar.height,
+          offset: Math.abs(account.y + account.height / 2 - bar.y - bar.height / 2),
+        }
+      })
+      expect(geometry.offset).toBeLessThanOrEqual(1)
+      if (info.project.name === 'mobile-chromium') expect(geometry.height).toBeLessThanOrEqual(48)
     }
+    await expectCenteredAccount()
     const inGameHeader = await comparable()
     await page.goto('/game')
     expect(await comparable()).toEqual(inGameHeader)
+    await expectCenteredAccount()
     await expect(page.getByRole('navigation', { name: 'Public information' })).toBeVisible()
     await expect(
       page.locator('[data-av-site-header] a').filter({ hasText: 'News' }),

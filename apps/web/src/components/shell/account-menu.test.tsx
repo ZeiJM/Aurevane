@@ -6,7 +6,7 @@ vi.mock('react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react')>()
   return { ...actual, useState: vi.fn(actual.useState) }
 })
-vi.mock('next/navigation', () => ({ usePathname: () => '/game/character' }))
+vi.mock('next/navigation', () => ({ usePathname: vi.fn(() => '/game/character') }))
 vi.mock('next/link', () => ({
   default: ({ children, ...props }: React.ComponentProps<'a'>) =>
     createElement('a', props, children),
@@ -15,8 +15,12 @@ vi.mock('@/components/audio/audio-settings-menu', () => ({
   AudioSettingsMenu: () => createElement('button', { 'aria-label': 'Audio settings' }, 'Audio'),
 }))
 import { AccountMenu } from './account-menu'
+import { usePathname } from 'next/navigation'
 
-afterEach(() => vi.clearAllMocks())
+afterEach(() => {
+  vi.clearAllMocks()
+  vi.mocked(usePathname).mockReturnValue('/game/character')
+})
 describe('Account settings destinations', () => {
   it('opens Audio as a page link alongside Titles and Controls', () => {
     vi.mocked(useState).mockImplementationOnce(() => [true, vi.fn()])
@@ -43,4 +47,12 @@ describe('Account settings destinations', () => {
     expect(markup.indexOf('Online Users 3')).toBeLessThan(markup.indexOf('data-portrait'))
     expect(markup.indexOf('data-portrait')).toBeGreaterThan(markup.indexOf('Welcome back'))
   })
+})
+
+it('omits Audio while already on the Audio page', () => {
+  vi.mocked(usePathname).mockReturnValue('/game/settings/audio')
+  vi.mocked(useState).mockImplementationOnce(() => [true, vi.fn()])
+  const markup = renderToStaticMarkup(createElement(AccountMenu))
+  expect(markup).not.toContain('href="/game/settings/audio"')
+  expect(markup).toContain('href="/game/settings/controls"')
 })

@@ -799,3 +799,10 @@
     white-space: nowrap;
   }
 }
+
+.identityFact .cycleCopy {
+  display: grid;
+  gap: 0.08rem;
+  justify-items: center;
+  text-align: center;
+}

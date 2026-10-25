@@ -15,7 +15,7 @@ export const gameNavigation = [
   },
   {
     href: '/game/loadout',
-    label: 'Loadout',
+    label: 'Arsenal',
     detail: 'Nexus, disciplines, techniques and Items',
     symbol: '✦',
     icon: 'nexus',
@@ -23,7 +23,7 @@ export const gameNavigation = [
   { href: '/game/world', label: 'World', detail: 'Explore the world', symbol: '✥', icon: 'world' },
   {
     href: '/game/battle',
-    label: 'Battle',
+    label: 'Arena',
     detail: 'Battle Hall, direct PvP and spectation',
     symbol: '⚔',
     icon: 'battle',

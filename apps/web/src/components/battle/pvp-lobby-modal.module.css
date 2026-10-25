@@ -480,7 +480,7 @@
   }
   .actions {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.25fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr);
     gap: 0.4rem;
   }
   .footer > div button {
@@ -745,23 +745,6 @@
   }
 }
 
-.lobbyChatPanel {
-  display: flex;
-  flex: none;
-  order: -1;
-  width: 100%;
-  height: min(40vh, 320px);
-  min-height: 220px;
-  overflow: hidden;
-  border: 1px solid #a38c60;
-  border-radius: 0.5rem;
-  background: #0b1620;
-}
-.lobbyChatPanel > * {
-  flex: 1;
-  min-width: 0;
-}
-
 /* Responsive lobby stage: compact settings, balanced teams and always-visible controls. */
 @media (max-width: 800px) {
   .modal {
@@ -862,5 +845,109 @@
 @media (min-width: 360px) and (max-width: 800px) {
   .modal[data-lobby-mode='1v1'] .vs {
     left: calc(-0.55rem / 2);
+  }
+}
+
+/* Larger mobile formations share the width and retain the fixed action row. */
+@media (max-width: 800px) {
+  .modal:not([data-lobby-mode='1v1']) .body {
+    align-content: start;
+  }
+  .modal:not([data-lobby-mode='1v1']) .settings {
+    gap: 0.25rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) .setting {
+    padding: 0.3rem;
+    gap: 0.1rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) .setting span,
+  .modal:not([data-lobby-mode='1v1']) .seatHelp {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+  .modal:not([data-lobby-mode='1v1']) .setting strong {
+    font-size: 0.8125rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) .teams {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .modal:not([data-lobby-mode='1v1']) .teamHeading {
+    flex-direction: column;
+    align-items: start;
+  }
+  .modal:not([data-lobby-mode='1v1']) .seats {
+    gap: 0.25rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) :is(.filledSeat, .emptySeat) {
+    min-height: 3.1rem;
+    padding: 0.25rem;
+    gap: 0.15rem 0.3rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) .filledSeat {
+    grid-template-columns: 2.25rem minmax(0, 1fr);
+  }
+  .modal:not([data-lobby-mode='1v1']) .portraitFrame {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) :is(.filledSeat, .emptySeat) strong {
+    font-size: 0.78rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) .filledSeat :is(small, span) {
+    font-size: 0.6rem;
+    line-height: 1.2;
+  }
+  .modal:not([data-lobby-mode='1v1']) .emptySeat {
+    grid-template-columns: 1rem minmax(0, 1fr);
+  }
+  .modal:not([data-lobby-mode='1v1']) .emptySeat > div {
+    grid-row: 1;
+    font-size: 1rem;
+  }
+  .modal:not([data-lobby-mode='1v1']) .emptySeat small {
+    display: none;
+  }
+}
+
+/* Each emblem belongs to the seam next to its own formation. */
+.modal[data-lobby-mode] .teams {
+  --lobby-team-gap: 3rem;
+  gap: var(--lobby-team-gap);
+}
+.modal[data-lobby-mode] .vs {
+  top: 50%;
+  left: calc(var(--lobby-team-gap) / -2);
+  width: 9rem;
+  height: 4.5rem;
+  transform: translate(-50%, -50%);
+}
+@media (max-width: 800px) {
+  .modal[data-lobby-mode] .teams {
+    --lobby-team-gap: 0.75rem;
+    gap: var(--lobby-team-gap);
+  }
+  .modal[data-lobby-mode] .vs {
+    width: 3.5rem;
+    height: 1.75rem;
+  }
+  .modal .teams[data-team-count='3'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: 2rem;
+  }
+  .modal .teams[data-team-count='3'] > .teamWrap:last-child {
+    grid-column: 1 / -1;
+  }
+  .modal .teams[data-team-count='3'] > .teamWrap:last-child .vs {
+    top: -1rem;
+    left: 50%;
+  }
+}
+@media (max-width: 359px) {
+  .modal[data-lobby-mode='1v1'] .teams {
+    row-gap: 2rem;
+  }
+  .modal[data-lobby-mode='1v1'] .vs {
+    top: -1rem;
+    left: 50%;
   }
 }

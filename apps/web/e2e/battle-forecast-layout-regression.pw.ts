@@ -1,3 +1,4 @@
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -227,11 +228,7 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
         ),
       })),
       terrainToggle: rect(root.querySelector('button[aria-label="Terrain"]')),
-      cancel: rect(
-        Array.from(root.querySelectorAll('[data-battle-footer-actions] > button')).find((node) =>
-          ['Cancel Action', 'Cancel prime'].includes(node.textContent?.trim() ?? ''),
-        ) ?? null,
-      ),
+      cancel: rect(root.querySelector('[data-battle-cancel-action]')),
       footer: rect(root.querySelector('footer')),
       commandContents: [
         ...root.querySelectorAll(
@@ -386,6 +383,8 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     ).toBeLessThanOrEqual(1)
   }
   expect(geometry.terrainToggle).not.toBeNull()
+  expect(geometry.cancel).not.toBeNull()
+  contained(geometry.cancel!, geometry.footer!)
   contained(geometry.terrainToggle!, geometry.footer!)
   expect(geometry.terrainToggle!.x + geometry.terrainToggle!.width).toBeLessThanOrEqual(
     geometry.cancel!.x + 1,
@@ -674,6 +673,7 @@ async function exerciseForecast(
         ).toBeVisible()
         await check(`${name}-ready`)
         await expectNoSkillPreviewMetadata(preview)
+        await openBattleInfoMenu(page, `About ${name}`)
         const informationTrigger = page.getByRole('button', { name: `About ${name}`, exact: true })
         await informationTrigger.click()
         const parameters = page.getByRole('dialog', { name, exact: true })
@@ -689,7 +689,11 @@ async function exerciseForecast(
         expect(commits).toBe(0)
         await page.keyboard.press('Escape')
         await expect(parameters).toHaveCount(0)
-        await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
+        await expect(
+          (await page.locator('[data-battle-preview-info]').isVisible())
+            ? informationTrigger
+            : page.locator('main[data-battle-keyboard-focus-root="true"]'),
+        ).toBeFocused()
         await expectInlineSkillForecast(
           page,
           `frostweaver.${name.toLowerCase().replaceAll(' ', '-')}`,
