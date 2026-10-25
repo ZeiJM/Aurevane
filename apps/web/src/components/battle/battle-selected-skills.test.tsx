@@ -15,6 +15,7 @@ vi.mock('./battle-info-popover', () => ({
 }))
 
 import { BattleSelectedSkills } from './battle-selected-skills'
+import { battleNoncastAbilityInspection } from './battle-captured-action-cost'
 import type { BattleRuntime } from './battle-runtime'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { abilityBehaviorInformation } from '../character/ability-detail-presentation'
@@ -498,10 +499,11 @@ it('keeps Ongoing equipped Skills visible without advertising a paid cast', asyn
       disabled={false}
       actionEconomy={100}
       onSelect={vi.fn()}
+      onInspect={vi.fn()}
     />,
   )
   expect(markup).toContain('data-battle-noncast="ongoing"')
-  expect(markup).toMatch(/aria-label="Selected Forceful Strike, Ongoing"[^>]*disabled/)
+  expect(markup).not.toMatch(/aria-label="Selected Forceful Strike, Ongoing"[^>]*disabled/)
   expect(markup).not.toContain('Selected Forceful Strike, 15 AP')
   expect(markup).toContain('About Forceful Strike')
 })
@@ -544,9 +546,10 @@ it('keeps noncast Essences informational with their true activation label', asyn
       disabled={false}
       actionEconomy={100}
       onSelect={vi.fn()}
+      onInspect={vi.fn()}
     />,
   )
-  expect(markup).toMatch(/aria-label="Forceful Strike, Essence, Ongoing"[^>]*disabled/)
+  expect(markup).not.toMatch(/aria-label="Forceful Strike, Essence, Ongoing"[^>]*disabled/)
   expect(markup).not.toContain('Forceful Strike, Essence, 15 AP')
 })
 
@@ -572,4 +575,73 @@ it('labels a passive or activated Resonance without a redundant Automatic suffix
   )
   expect(html).toContain('>Resonance</small>')
   expect(html).not.toMatch(/Resonance · (Automatic|Passive|Ongoing)/)
+})
+
+it('lets passive Resonance artwork be inspected during a waiting turn without advertising a cast', async () => {
+  const { resolveResonanceForPair } = await import('@aurevane/game-core/combat/resonance')
+  const definition = resolveResonanceForPair('chronist', 'tidecaller')!
+  const html = renderToStaticMarkup(
+    <BattleSelectedSkills
+      runtime={{
+        ...runtime,
+        resonance: {
+          id: definition.id,
+          contentVersion: definition.contentVersion,
+          name: definition.name,
+          description: definition.description,
+          definition,
+        },
+      }}
+      disabled
+      actionEconomy={0}
+      onSelect={vi.fn()}
+      onInspect={vi.fn()}
+      activeId={definition.id}
+    />,
+  )
+  expect(html).toContain(`aria-label="${definition.name}, Resonance, inspect`)
+  expect(html).toMatch(/aria-pressed="true"/)
+  expect(html).not.toMatch(/aria-label="[^"]+, Resonance, inspect[^"]*"[^>]*disabled/)
+  expect(html).not.toContain('ready to release')
+})
+
+it('limits read-only selection to an owned noncast ability or an unavailable Resonance', async () => {
+  const manual = { ...runtime, techniques: [technique] }
+  expect(battleNoncastAbilityInspection(manual, [], 'actor', technique.id)).toBeNull()
+  expect(battleNoncastAbilityInspection(manual, [], 'actor', 'other-player-passive')).toBeNull()
+  const { resolveResonanceForPair } = await import('@aurevane/game-core/combat/resonance')
+  const group = defaultBasicSkills()[0]!.ability.behaviors[0]!
+  const definition = {
+    ...resolveResonanceForPair('wildwarden', 'edgedancer')!,
+    ability: { schemaVersion: 1 as const, behaviors: [group] },
+  }
+  const chosen = {
+    ...runtime,
+    resonance: {
+      id: definition.id,
+      contentVersion: definition.contentVersion,
+      name: definition.name,
+      description: definition.description,
+      definition,
+    },
+  }
+  expect(battleNoncastAbilityInspection(chosen, [], 'actor', definition.id)).toMatchObject({
+    type: 'Resonance',
+    caption: expect.stringContaining('Unavailable'),
+  })
+  expect(
+    battleNoncastAbilityInspection(
+      chosen,
+      [
+        {
+          ownerCombatantId: 'actor',
+          actionId: definition.id,
+          behaviorId: group.id,
+          target: group.targeting!,
+        },
+      ],
+      'actor',
+      definition.id,
+    ),
+  ).toBeNull()
 })

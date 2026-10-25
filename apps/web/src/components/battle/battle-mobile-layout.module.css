@@ -1000,6 +1000,9 @@
   .shell[data-battle-mobile-stage='true'] > footer > :global([data-battle-footer-actions]) {
     display: contents !important;
   }
+  .shell[data-battle-mobile-stage='true'][data-battle-kind='pve'] > footer {
+    justify-content: flex-end;
+  }
   .shell[data-battle-mobile-stage='true'] > footer button {
     flex: 0 0 auto;
     min-width: 0;

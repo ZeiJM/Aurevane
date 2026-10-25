@@ -47,6 +47,7 @@ import { createPv1fTemporaryResources } from '@aurevane/game-core/combat/pv1f-ac
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { SkillDetails } from '@/components/character/skill-details'
 import { BattleSkillParameters } from '@/components/battle/battle-skill-parameters'
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
@@ -343,6 +344,57 @@ const runtime = {
   })),
   essence: null,
   copiedSkills: [],
+}
+if (new URLSearchParams(location.search).get('passivePreview') === '1') {
+  const skill = runtime.techniques[2]
+  const group = defaultBasicSkills()[0].ability.behaviors[0]
+  runtime.techniques[2] = {
+    ...skill,
+    definition: {
+      ...skill.definition,
+      ability: {
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...group,
+            activation: 'ongoing',
+            mode: 'modifier',
+            classification: 'utility',
+            attackFamily: undefined,
+            costs: [],
+            cooldown: null,
+            targeting: null,
+            effects: [
+              {
+                id: 'passive-bonus',
+                payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11000 },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  }
+  const definition = resolveResonanceForPair('chronist', 'tidecaller')
+  runtime.resonance = {
+    id: definition.id,
+    contentVersion: definition.contentVersion,
+    name: definition.name,
+    description: definition.description,
+    definition,
+  }
+  if (new URLSearchParams(location.search).get('passiveEssence') === '1') {
+    const essence = resolveEssenceForBuild('aetherist', null)
+    runtime.essence = {
+      ...runtime.techniques[2],
+      id: essence.skill.id,
+      name: essence.name,
+      iconKey: essence.skill.media.iconKey,
+      description: essence.description,
+      definition: { ...essence.skill, ability: runtime.techniques[2].definition.ability },
+    }
+    runtime.resonance = null
+  }
 }
 if (targetingCase) {
   // Current percentage attacks use the same explicit policy as newly started battles.
