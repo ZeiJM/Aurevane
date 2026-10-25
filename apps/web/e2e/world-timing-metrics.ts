@@ -10,7 +10,7 @@ export interface PeerMotionSample {
   identityRatio: number
 }
 
-// Positions are sampled on the renderer's RAF clock. fillText's wall clock
+// Positions are sampled on the renderer's animation clock. fillText's wall clock
 // also includes callback delay and painting, which can change between frames.
 // Two native-pixel rounding stages per axis bound the nameplate projection
 // error; elapsed time permits only the fastest authored legal walking speed.

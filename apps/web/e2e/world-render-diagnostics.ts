@@ -7,6 +7,7 @@ export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
   const records: Record<string, number>[] = []
   const fields = [
     'frameAt',
+    'rafAt',
     'startedAt',
     'callbackDelayMs',
     'completedAt',
@@ -52,5 +53,44 @@ export function installWorldRenderTiming(element: HTMLElement | SVGElement) {
         // Missing or incomplete diagnostics must never interrupt real painting.
       }
     })
+  }
+}
+
+/** Serialized by Playwright; all samples use this frame's camera and projection. */
+export function installWorldPeerDrawCapture(
+  element: HTMLElement | SVGElement,
+  options: {
+    name: string
+    sampleKey: 'testRemoteDraws' | 'testMovingObserverDraws'
+    limit: number
+  },
+) {
+  const canvas = element as HTMLCanvasElement
+  const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
+  const context = identity.getContext('2d')!
+  const original = context.fillText.bind(context)
+  const samples: Record<string, number>[] = []
+  context.fillText = (text, x, y, maxWidth) => {
+    if (text === options.name) {
+      const tile = Number(canvas.dataset.tileSize)
+      const east = (x - identity.clientWidth / 2) / (tile * 0.85)
+      const north = (y - identity.clientHeight / 2) / (tile * 0.44)
+      // The nameplate offset is fixed; it cancels between same-projection draws.
+      samples.push({
+        at: performance.now(),
+        frameAt: Number(canvas.dataset.frameNow),
+        paintingMs: performance.now() - Number(canvas.dataset.frameStarted),
+        tileSize: tile,
+        identityRatio: identity.width / identity.clientWidth,
+        screenX: x,
+        screenY: y,
+        x: Number(canvas.dataset.cameraX) + (east + north) / 2,
+        y: Number(canvas.dataset.cameraY) + (north - east) / 2,
+      })
+      if (samples.length > options.limit) samples.shift()
+      canvas.dataset[options.sampleKey] = JSON.stringify(samples)
+    }
+    if (maxWidth === undefined) original(text, x, y)
+    else original(text, x, y, maxWidth)
   }
 }

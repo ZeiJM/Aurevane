@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { projectWorld } from '@/server/world/world-service'
 import { newWorldState } from '@/world/travel'
@@ -314,6 +314,15 @@ function scene(reduced = false, initial?: WorldView) {
   }
 }
 describe('native map input and bounded lifecycle', () => {
+  // The fake RAF timestamps use a zero epoch. Keep the ordinary callback clock
+  // on that epoch; tests for delayed callbacks explicitly advance this clock.
+  beforeEach(() => {
+    vi.spyOn(performance, 'now').mockReturnValue(0)
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('submits clicks on visible public ground beyond the peer scene without inventing a preview route', () => {
     const s = scene(true)
     Object.assign(s.canvas, { clientWidth: 1296, clientHeight: 944 })
@@ -365,8 +374,8 @@ describe('native map input and bounded lifecycle', () => {
     try {
       clock.mockClear()
       s.frame(40)
-      // The existing frame-duration measurement has only its start/end reads.
-      expect(clock).toHaveBeenCalledTimes(2)
+      // Animation samples share the callback clock; drawing also measures start/end.
+      expect(clock).toHaveBeenCalledTimes(3)
       expect(s.canvas.dataset.renderTiming).toBeUndefined()
       expect(s.canvas.dataset.renderDiagnostics).toBeUndefined()
     } finally {
@@ -375,7 +384,7 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     }
   })
-  it('reports opt-in frame work at the real paint boundary without replacing the RAF clock', () => {
+  it('reports callback-clock frame work while retaining the scheduled RAF timestamp', () => {
     let now = 0
     const clock = vi.spyOn(performance, 'now').mockImplementation(() => now)
     const base = projectWorld(newWorldState(), [], 1000)
@@ -409,11 +418,13 @@ describe('native map input and bounded lifecycle', () => {
       s.canvas.dataset.renderDiagnostics = 'timing'
       now = 100
       s.frame(40)
-      expect(s.canvas.dataset.frameNow).toBe('40')
+      expect(s.canvas.dataset.frameNow).toBe('100')
       expect(s.canvas.dataset.renderTiming).toBeDefined()
       const cold = JSON.parse(s.canvas.dataset.renderTiming!)
       expect(cold).toMatchObject({
-        frameAt: 40,
+        frameAt: 100,
+        rafAt: 40,
+        callbackDelayMs: 60,
         startedAt: 100,
         groundBuilds: 1,
         groundBuildMs: 7,
@@ -434,7 +445,9 @@ describe('native map input and bounded lifecycle', () => {
       s.renderer.update(view)
       s.frame(80)
       expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
-        frameAt: 80,
+        frameAt: 140,
+        rafAt: 80,
+        callbackDelayMs: 60,
         startedAt: 140,
         groundBuilds: 0,
         groundBuildMs: 0,
@@ -456,7 +469,9 @@ describe('native map input and bounded lifecycle', () => {
       })
       s.frame(120)
       expect(JSON.parse(s.canvas.dataset.renderTiming!)).toMatchObject({
-        frameAt: 120,
+        frameAt: 159,
+        rafAt: 120,
+        callbackDelayMs: 39,
         startedAt: 159,
         updates: 1,
         updateMs: 19,
@@ -864,6 +879,70 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('renders late RAF callbacks on the same monotonic clock as intervening peer receipts', () => {
+    const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+    const base = projectWorld(newWorldState(), [], 1000)
+    const position = { ...base.position, x: 1, y: 1 }
+    const route = [2, 3, 4].map((x) => ({ position: { ...position, x }, durationMs: 200 }))
+    const peer = {
+      characterId: 'clock-peer',
+      name: 'Clock Peer',
+      level: 1,
+      portraitRef: '',
+      imageUrl: '/clock-peer.png',
+      online: true,
+      attackable: false,
+      position,
+      movement: { version: 1, serverNow: 1000, nextStepAt: 1200, route },
+    }
+    const view = {
+      ...base,
+      atlas: undefined,
+      scenery: [],
+      sectors: base.sectors.map((sector) => ({
+        ...sector,
+        cells: sector.cells.map((cell) => ({ ...cell, terrain: '.', walkable: true })),
+      })),
+      players: [peer],
+    }
+    const s = scene(true, view)
+    const anchor = () =>
+      s.draws
+        .filter((draw) => draw.src === '/clock-peer.png')
+        .at(-1)!
+        .args.at(-4)!
+    try {
+      s.renderer.settings({ animate: false, zoom: 1 })
+      clock.mockReturnValue(100)
+      s.frame(100)
+      const before = anchor()
+      clock.mockReturnValue(160)
+      s.renderer.update({
+        ...view,
+        players: [
+          {
+            ...peer,
+            position: { ...position, x: 2 },
+            movement: { version: 2, serverNow: 1250, nextStepAt: 1400, route: route.slice(1) },
+          },
+        ],
+      })
+      // The browser's scheduled RAF stamp predates a receipt already processed.
+      clock.mockReturnValue(170)
+      s.frame(116.7)
+      expect(Math.abs((anchor() - before) / (64 * 0.85) - 0.35)).toBeLessThan(0.02)
+      expect(s.canvas.dataset.frameNow).toBe('170')
+      const first = anchor()
+      clock.mockReturnValue(186.7)
+      s.frame(133.4)
+      expect(Math.abs((anchor() - first) / (64 * 0.85) - 0.0835)).toBeLessThan(0.02)
+      expect(view.players[0]!.position).toEqual(position)
+    } finally {
+      s.renderer.dispose()
+      clock.mockRestore()
+      vi.unstubAllGlobals()
+    }
+  })
   it('keeps held motion advancing while the next key timer is dispatched late', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     const clock = vi.spyOn(performance, 'now').mockReturnValue(0)

@@ -932,7 +932,7 @@ export function createMapRenderer(
     }
     return image.complete && image.naturalWidth ? image : null
   }
-  function draw(now: number) {
+  function draw(now: number, rafAt: number) {
     hitTargets = []
     const start = performance.now(),
       sample = motion.sample(now),
@@ -947,8 +947,9 @@ export function createMapRenderer(
           terrainIndexMs: 0,
           ...pendingTiming,
           frameAt: now,
+          rafAt,
           startedAt: start,
-          callbackDelayMs: callbackStarted - now,
+          callbackDelayMs: callbackStarted - rafAt,
           groundBuilds: 0,
           groundBuildMs: 0,
           groundResamples: 0,
@@ -1834,10 +1835,15 @@ export function createMapRenderer(
       canvas.dataset.visiblePlayers = String(view.players.length + 1)
     }
   }
-  function loop(now: number) {
+  function loop(rafAt: number) {
     frame = 0
     if (disposed || paused || document.visibilityState !== 'visible') return
-    if (timingEnabled()) callbackStarted = performance.now()
+    // A delayed RAF stamp can predate a receipt already applied on performance.now().
+    // Sample every visual at callback entry on that same monotonic clock, retaining
+    // the scheduled stamp separately for diagnostics. Never sample before a receipt.
+    const callbackAt = performance.now(),
+      now = Math.max(rafAt, callbackAt)
+    if (timingEnabled()) callbackStarted = callbackAt
     if (rasterZoomAt !== null && now >= rasterZoomAt) {
       rasterTile = tile
       rasterZoomAt = null
@@ -1860,7 +1866,7 @@ export function createMapRenderer(
       (wasRemoteMoving && !remoteMoving) ||
       now - last >= interval - 1
     ) {
-      draw(now)
+      draw(now, rafAt)
       dirty = false
     }
     wasMoving = sample.moving

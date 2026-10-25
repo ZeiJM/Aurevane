@@ -1,4 +1,4 @@
-import { installWorldRenderTiming } from './world-render-diagnostics'
+import { installWorldRenderTiming, installWorldPeerDrawCapture } from './world-render-diagnostics'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import {
   measurePeerMotionStep,
@@ -377,25 +377,11 @@ export async function verifyWorldScenePresence(
     await openMapSettings(page)
     await page.getByRole('checkbox', { name: 'Ambient animation', exact: true }).uncheck()
     await closeMapSettings(page)
-    await canvas.evaluate(
-      (el, name) => {
-        const ctx = document
-            .querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!
-            .getContext('2d')!,
-          original = ctx.fillText.bind(ctx)
-        const samples: { at: number; x: number; y: number }[] = []
-        ctx.fillText = (text, x, y, maxWidth) => {
-          if (text === name) {
-            samples.push({ at: performance.now(), x, y })
-            if (samples.length > 300) samples.shift()
-            el.dataset.testRemoteDraws = JSON.stringify(samples)
-          }
-          if (maxWidth === undefined) original(text, x, y)
-          else original(text, x, y, maxWidth)
-        }
-      },
-      scene.players.find((p) => p.characterId === id)!.name,
-    )
+    await canvas.evaluate(installWorldPeerDrawCapture, {
+      name: scene.players.find((p) => p.characterId === id)!.name,
+      sampleKey: 'testRemoteDraws' as const,
+      limit: 300,
+    })
     await other.goto('/game/world')
     let blockedFallbackReads = 0
     const blockedRead = page.waitForRequest(
@@ -490,22 +476,33 @@ export async function verifyWorldScenePresence(
         })
         .toEqual(destination)
       expect((await world(page)).position).toEqual({ sectorId: 'atlas:58:28', x: 12, y: 4 })
+      await expect
+        .poll(
+          async () => {
+            const draws = JSON.parse(
+              (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
+            ) as { x: number }[]
+            return draws.length ? draws.at(-1)!.x - draws[0]!.x : 0
+          },
+          { timeout: 5000 },
+        )
+        .toBeGreaterThan(3.4)
       const remoteSamples = JSON.parse(
         (await canvas.getAttribute('data-test-remote-draws')) ?? '[]',
-      ) as { at: number; x: number; y: number }[]
-      const remoteDeltas = remoteSamples.slice(1).map((sample, index) => ({
-        ms: sample.at - remoteSamples[index]!.at,
-        x: sample.x - remoteSamples[index]!.x,
-        y: sample.y - remoteSamples[index]!.y,
-      }))
+      ) as PeerMotionSample[]
+      const remoteDeltas = remoteSamples
+        .slice(1)
+        .map((sample, index) => measurePeerMotionStep(remoteSamples[index]!, sample))
       const tile = Number(await canvas.getAttribute('data-tile-size'))
       expect(remoteDeltas.length).toBeGreaterThan(8)
       for (const delta of remoteDeltas) {
-        expect(delta.x).toBeGreaterThanOrEqual(0)
-        expect(delta.y).toBeGreaterThanOrEqual(0)
-        expect(delta.x).toBeLessThan(tile * 0.85)
-        expect(delta.y).toBeLessThan(tile * 0.44)
+        expect(delta.deltaX).toBeGreaterThanOrEqual(-delta.projectionError)
+        expect(Math.abs(delta.deltaY)).toBeLessThanOrEqual(delta.projectionError)
+        expect(delta.deltaX).toBeLessThan(delta.maximumDeltaX)
       }
+      // The idle observer sees the actual four-tile route, not merely camera movement.
+      expect(remoteSamples.at(-1)!.x - remoteSamples[0]!.x).toBeGreaterThan(3.4)
+      expect(remoteSamples.at(-1)!.x - remoteSamples[0]!.x).toBeLessThan(4.6)
       const motionPath = info.outputPath('world-live-peer-interpolation.json')
       await writeFile(motionPath, JSON.stringify({ remoteSamples, remoteDeltas, tile }))
       await info.attach('world-live-peer-interpolation', {
@@ -527,10 +524,7 @@ export async function verifyWorldScenePresence(
       const peerName = (await world(observer.page)).players.find(
         (peer) => peer.characterId === observer.peerId,
       )!.name
-      await observer.page.locator('canvas[data-world-stage]').evaluate((el, name) => {
-        const identity = document.querySelector<HTMLCanvasElement>('canvas[data-world-identity]')!,
-          ctx = identity.getContext('2d')!,
-          original = ctx.fillText.bind(ctx)
+      await observer.page.locator('canvas[data-world-stage]').evaluate((el) => {
         const longTasks: { at: number; durationMs: number }[] = []
         const tasks = new PerformanceObserver((entries) => {
           for (const entry of entries.getEntries())
@@ -539,37 +533,14 @@ export async function verifyWorldScenePresence(
           el.dataset.testMovingObserverLongTasks = JSON.stringify(longTasks)
         })
         tasks.observe({ type: 'longtask' })
-        const samples: {
-          at: number
-          frameAt: number
-          paintingMs: number
-          tileSize: number
-          identityRatio: number
-          x: number
-          y: number
-        }[] = []
-        ctx.fillText = (text, x, y, maxWidth) => {
-          if (text === name) {
-            const tile = Number(el.dataset.tileSize),
-              east = (x - identity.clientWidth / 2) / (tile * 0.85),
-              north = (y - identity.clientHeight / 2) / (tile * 0.44)
-            // The fixed label offset cancels when comparing consecutive draws.
-            samples.push({
-              at: performance.now(),
-              frameAt: Number(el.dataset.frameNow),
-              paintingMs: performance.now() - Number(el.dataset.frameStarted),
-              tileSize: tile,
-              identityRatio: identity.width / identity.clientWidth,
-              x: Number(el.dataset.cameraX) + (east + north) / 2,
-              y: Number(el.dataset.cameraY) + (north - east) / 2,
-            })
-            if (samples.length > 1500) samples.shift()
-            el.dataset.testMovingObserverDraws = JSON.stringify(samples)
-          }
-          if (maxWidth === undefined) original(text, x, y)
-          else original(text, x, y, maxWidth)
-        }
-      }, peerName)
+      })
+      await observer.page
+        .locator('canvas[data-world-stage]')
+        .evaluate(installWorldPeerDrawCapture, {
+          name: peerName,
+          sampleKey: 'testMovingObserverDraws' as const,
+          limit: 1500,
+        })
     }
     const ownerDestination = { sectorId: 'atlas:59:28', x: 3, y: 4 },
       peerDestination = { sectorId: 'atlas:59:28', x: 7, y: 4 }
