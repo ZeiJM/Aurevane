@@ -1,0 +1,24 @@
+{
+  "candidate": "77f8e0c0474f22274bbb09adbcb68ccd7bb84800",
+  "job": 121255045107,
+  "decodedBytes": 354888,
+  "decodedSha256": "8c49367233e6d9eea0b8d86af1fc3e1982e9994c2eb2e77365f80f5f3a858af5",
+  "gzipBytes": 46166,
+  "gzipSha256": "6f7223f64a870978b890761cf449bc614fb5c01eef424a57685794bc1c42cc35",
+  "matrix": {
+    "success": 17,
+    "failure": 3,
+    "running": 0
+  },
+  "repeatedAuthority": {
+    "passed": 12,
+    "failed": 4
+  },
+  "fullChromiumExecuted": false,
+  "edgeExecuted": false,
+  "artifact": {
+    "id": 12610461605,
+    "bytes": 117346878,
+    "sha256": "0aa26ed20aebe80474686d41cea473ce0b91a7f667bacca242074cc6c55c4c1a"
+  }
+}

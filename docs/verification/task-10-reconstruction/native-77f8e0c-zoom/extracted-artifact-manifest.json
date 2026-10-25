@@ -1,0 +1,31 @@
+{
+  "artifact": 12610461605,
+  "artifactSha256": "0aa26ed20aebe80474686d41cea473ce0b91a7f667bacca242074cc6c55c4c1a",
+  "candidate": "77f8e0c0474f22274bbb09adbcb68ccd7bb84800",
+  "files": [
+    {
+      "path": "/workspace/scratch/e5db2ba73c1a/native-77f8e0c-zoom/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium-repeat1/error-context.md",
+      "archivePath": "tmp/master-full-integration-review/repeated-authoring-and-authority/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium-repeat1/error-context.md",
+      "bytes": 8678,
+      "sha256": "1b2e81df6ce4406e311fe926a9963eb323a5bceafb4e6e665606b72b071b1f43"
+    },
+    {
+      "path": "/workspace/scratch/e5db2ba73c1a/native-77f8e0c-zoom/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium-repeat1/trace.zip",
+      "archivePath": "tmp/master-full-integration-review/repeated-authoring-and-authority/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium-repeat1/trace.zip",
+      "bytes": 14956351,
+      "sha256": "5137e8cbce8a8b409e13b0cadb493942117d570aa8a4d1e22dabf6c55a5e8b38"
+    },
+    {
+      "path": "/workspace/scratch/e5db2ba73c1a/native-77f8e0c-zoom/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium/error-context.md",
+      "archivePath": "tmp/master-full-integration-review/repeated-authoring-and-authority/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium/error-context.md",
+      "bytes": 8678,
+      "sha256": "1b2e81df6ce4406e311fe926a9963eb323a5bceafb4e6e665606b72b071b1f43"
+    },
+    {
+      "path": "/workspace/scratch/e5db2ba73c1a/native-77f8e0c-zoom/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium/trace.zip",
+      "archivePath": "tmp/master-full-integration-review/repeated-authoring-and-authority/master-complete-layout.pw.-6c939--actual-browser-200-percent-desktop-chromium/trace.zip",
+      "bytes": 15240456,
+      "sha256": "3e410319f16e7082b359afaf1a2e196b13a231def500251e29c52b033350790c"
+    }
+  ]
+}
