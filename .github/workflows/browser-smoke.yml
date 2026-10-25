@@ -104,6 +104,12 @@ jobs:
           AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
         run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
 
+      - name: Verify immediate System original restore through actual mutation responses
+        env:
+          AV_BASIC_ORIGINAL_RPC_ACCEPTANCE: '1'
+          AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/basic-original-rpc-review
+        run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+
       - name: Verify percentage Skill Essence and rail readers across modes
         env:
           AV_PERCENTAGE_DOT_EVIDENCE_DIR: /tmp/battle-percentage-dot-review
@@ -357,6 +363,14 @@ jobs:
         with:
           name: skill-parameter-palette-review
           path: /tmp/skill-parameter-palette-review
+          retention-days: 7
+
+      - name: Save actual store original restore evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: basic-original-rpc-review
+          path: /tmp/basic-original-rpc-review
           retention-days: 7
 
       - name: Save elevated rail effect evidence

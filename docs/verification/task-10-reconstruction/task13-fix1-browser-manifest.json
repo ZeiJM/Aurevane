@@ -1,0 +1,397 @@
+[
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-actual-red/failure-state.json",
+    "bytes": 1867,
+    "sha256": "74c5f9129d25e3b30dce21f9971b3e592a2a1ced353e39f54320d7f5905b58f7"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-actual-red/failure.html",
+    "bytes": 289758,
+    "sha256": "c46d94c7daabeb1b2ef3cf722b5bf8e5cb0ec1ded1b64d48d65c088bf324f091"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-actual-red/failure.json",
+    "bytes": 328,
+    "sha256": "54ae0fcf410e8df203ae86efe051f4d389506d108d020c70f26596edd7300c92"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-actual-red/failure.png",
+    "bytes": 411526,
+    "sha256": "8e12974dc91f93c58230427b2ad552e86fc7c7eee0fcd4357449fa31efd61d25"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-1366.json",
+    "bytes": 69183,
+    "sha256": "84e6ba31c156e14d79fe515806072423aede81aff315d90da66c01e2d9f16f9c"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-1440.json",
+    "bytes": 69181,
+    "sha256": "0a8240168641c3f6a031e1f669017448aeff08c677f0f421353292e9ddec079f"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-390.json",
+    "bytes": 69177,
+    "sha256": "bf32a401e0ccd5d666471dd87fb70e7aa6a15d6a3abb1836efb92395bb46b85b"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-720.json",
+    "bytes": 69182,
+    "sha256": "6575c7774a256cf964b9ca490bd13b07d441cd099efc2084a4b410cf2905cc47"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.guard-1366.png",
+    "bytes": 687957,
+    "sha256": "d703c74c51b7d81e7022e39c092aa14ff10879c1276beb18b883a450b5033327"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.guard-1440.png",
+    "bytes": 704534,
+    "sha256": "d04428c910b8a5415c07bab7cfd89e2a89d9cfdbe65f719dfd58d4af839783ab"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.guard-390.png",
+    "bytes": 322988,
+    "sha256": "f11685509e6ce8b4d4760114bbdf2cd0cfb4b19d4d4595e98369660d7cc34393"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.guard-720.png",
+    "bytes": 496531,
+    "sha256": "2ea5cfa9af0ed38d8692a5b2b83674c4c608386c7130e7c338afb1d63cf2fc94"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.move-1366.png",
+    "bytes": 706379,
+    "sha256": "73cce07ec49f3139676a4fd6ef9882a8a0cbb7a319e1b7eb830ffc23395b9cc4"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.move-1440.png",
+    "bytes": 719276,
+    "sha256": "71f1468d0fb050f20cf8dfe06d8aaa439750aab4fe3f9db830a93540b06047f5"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.move-390.png",
+    "bytes": 329388,
+    "sha256": "902f7bd9c8ec3c45dcf7c69bfc6c1fca98ae23e9e1464829d959f44a75145248"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.move-720.png",
+    "bytes": 501893,
+    "sha256": "d9bb5d8449f5fe160f41bd99ed1f2f9633cd3d780c1d1376aa4aa35c8762e99c"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover-1366.png",
+    "bytes": 839797,
+    "sha256": "03709c1633c9902a3b548f9996381cc9d1d008a355f0f1189d2eb9e8e7cc1c8a"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover-1440.png",
+    "bytes": 850698,
+    "sha256": "15c9c0a5a17d23352ce5189b350359b976676e617cb70d7c08cd63fe5e6230d1"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover-390.png",
+    "bytes": 357148,
+    "sha256": "51049c10cc7b6e09ef79cfeb389e7dfdc04ca3022a3c1015bdde88df8bac1dd6"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover-720.png",
+    "bytes": 543363,
+    "sha256": "8ee95c5f9758725935c25710938150e8ca244007a2757d6277cda598dbee88e6"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover.mp-1366.png",
+    "bytes": 841714,
+    "sha256": "cfe7c617ba4b2e00e5cd15275f7a26b8be80a4aa85ac0449c0ac193070ef3fec"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover.mp-1440.png",
+    "bytes": 853225,
+    "sha256": "70d2760ba4c0d6ce9532a6d2d4063604ad466bfb98836d15329a6eac99e2d6ce"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover.mp-390.png",
+    "bytes": 359350,
+    "sha256": "1c44a8cef18363b5ef72f9abd09b267dfc2b715c8d80ed9c8d32f6388eb94a20"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-basic.recover.mp-720.png",
+    "bytes": 544856,
+    "sha256": "f3a242d82172b29bb0437b5f18ea847ecb64f7f6335f10a9867f5b1739457f5f"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-unarmed.basic-1366.png",
+    "bytes": 724985,
+    "sha256": "94411af1e57a3198b6289c10bc58b6f65dd7900ee1f025193022c42b44a4c3b7"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-unarmed.basic-1440.png",
+    "bytes": 741663,
+    "sha256": "8a9c6b5a27fa94cd4c76dcb2208a996d46d1beea1f95a3862c3cdb6842ee4bf6"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-unarmed.basic-390.png",
+    "bytes": 337005,
+    "sha256": "47a2ba2825bdf1c4320458e809729a6cf85cf0b6a68954aef80421f735820c64"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/original-rpc-unarmed.basic-720.png",
+    "bytes": 510966,
+    "sha256": "52187b97956cf37a506e745f20155d1b32a3e603ce4d4ebfb5873d7f84944014"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green-initial/results.json",
+    "bytes": 1509,
+    "sha256": "15db4f5362b02006d186fdcc4d6c7fd338541c1329e8a63094c8d251d92af70f"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-1366.json",
+    "bytes": 69181,
+    "sha256": "6a8f71a08a90e74e1cfd05ccf22087cb41967942dd1f8485fcfa3471fdedae92"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-1440.json",
+    "bytes": 69178,
+    "sha256": "79c951be93681d1343fa166c3b5b34f2032b8208f25c52452636ccaae07f23e4"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-390.json",
+    "bytes": 69178,
+    "sha256": "8d513ae201f26bae7dbced899849928b3910394f174601b9999fa4fbfb6fec4b"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-720.json",
+    "bytes": 69177,
+    "sha256": "40e039fa3927e748b298804fa8d1431a34ee876548942ae1b4af4177fbc82f23"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.guard-1366.png",
+    "bytes": 688117,
+    "sha256": "867193ef235224651d44ef26e8a3d78f40fb83567d3f136a8387c3014da0f3f9"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.guard-1440.png",
+    "bytes": 704940,
+    "sha256": "d95ac1bae90c7b959363e725e04e1da8e3bb5d2f8e9268e502dc782074bb520a"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.guard-390.png",
+    "bytes": 323469,
+    "sha256": "3bb0a359bacd634c7861f93427b334d811c694940bdcf9ffc5ddcdd10b67dc12"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.guard-720.png",
+    "bytes": 496813,
+    "sha256": "0f65940efa730584b995e526cf131e16b580319ff35c4313d18434e161c855a7"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.move-1366.png",
+    "bytes": 706199,
+    "sha256": "01b870c19b8c6f56b6f9020e0b21fc65b2ff88affc486420e1b3338ecacea371"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.move-1440.png",
+    "bytes": 719697,
+    "sha256": "c26bac6edf60e6a56a5fb6836f2d41932ed8145a502f176e572dfca0e7b59479"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.move-390.png",
+    "bytes": 329630,
+    "sha256": "830e067967796ca1d7be31534c2d11c9d64a99c24378c1c5bedb7746fab7d2f4"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.move-720.png",
+    "bytes": 502309,
+    "sha256": "98b9286fa15a989532692eb8bfda5cd9f56ac536f5d108fdfc7daf62463585e1"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover-1366.png",
+    "bytes": 839670,
+    "sha256": "b16bcabecfebe299720d6ee105dc993ba2d4a74059c99b3b1977112a3190c2e0"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover-1440.png",
+    "bytes": 851152,
+    "sha256": "4df7fc1dd48c9ed2fdf64c62185150d509225f8a46249bbcad13a7ceab91ddfe"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover-390.png",
+    "bytes": 357159,
+    "sha256": "19443f153de531ccd0303daa8daf058cd716027df5615985fa2339428acd3c59"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover-720.png",
+    "bytes": 544078,
+    "sha256": "125d619809cfc6402866b703aaf9f2fd78b6cfb7fa3e38f22046b2bee3a30428"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover.mp-1366.png",
+    "bytes": 841483,
+    "sha256": "d8d5403626faf3db3dfc551a2c2bdaf54878954286774530336a413c955dd7c8"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover.mp-1440.png",
+    "bytes": 853974,
+    "sha256": "b871910a411ec3f79d1031e40622fe26ee3bcaf491d98fab0298b5ddce20d5b1"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover.mp-390.png",
+    "bytes": 358751,
+    "sha256": "b539d97919361b331d1ef2ddac52b19ad4c65c2b235b41716e6e383c41ebb850"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-basic.recover.mp-720.png",
+    "bytes": 545130,
+    "sha256": "dbf863cfc7fcefe79a8d4854aebfce56a80e6877bdf967062230705670564425"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-unarmed.basic-1366.png",
+    "bytes": 725345,
+    "sha256": "90fba9d914215ad5e67801dcba7d87feca98136b780ac6b196578a663b092b4c"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-unarmed.basic-1440.png",
+    "bytes": 742049,
+    "sha256": "73cd3f548da444b7c8afa424c8244d311023a2b6fe38bbe865213f62900b21ba"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-unarmed.basic-390.png",
+    "bytes": 337117,
+    "sha256": "6304bbca792c885a17be2ab1dbb7ea27d46daef95d87ee33b2daeefacee801f1"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/original-rpc-unarmed.basic-720.png",
+    "bytes": 511098,
+    "sha256": "cbe6e325db4c08fb2becd32323b23065c3e5b3f66d61082527539cd3c2e9aa7c"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-original-green/results.json",
+    "bytes": 1809,
+    "sha256": "bda8d5b94dafdff897061af401a10f171c3b9f1f2dabf34c12f8ec37482bfb9b"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-1366.json",
+    "bytes": 125239,
+    "sha256": "8086dc3f01659b2a0151b418a4b233d43a21b9c9cfaf07a70d87d8459b31200b"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-1440.json",
+    "bytes": 125239,
+    "sha256": "9fbebc8111114521f01d4939006fc36f79a6a2ba20f23b80e2778bd190be88ab"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-390.json",
+    "bytes": 125239,
+    "sha256": "d7cf8a76ccbbef91a2fcc19e1c8da224a486c1a355c7a0b58153098f08364829"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-720.json",
+    "bytes": 125239,
+    "sha256": "03d008a4f130d6c51f1a6011de601cf97c81aa27800f45bfcfd6248e0f92abbe"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.guard-1366.png",
+    "bytes": 448662,
+    "sha256": "f9af91b309e6eea1b93db79c44a1b8e2288e41d7b72b92cd0fc217d95907f42a"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.guard-1440.png",
+    "bytes": 538323,
+    "sha256": "3c463c043dc55066113f8ac5a4e22c63d58cf983a45df40daa34c99e1b58e030"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.guard-390.png",
+    "bytes": 186991,
+    "sha256": "19e27d7afe8448ebcb928e188388938714c345a3c4bf12f39a4dacd012d989f2"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.guard-720.png",
+    "bytes": 162526,
+    "sha256": "0df018feea4d90abfeffa100adcf0d2ab34c052d3958150a1fd4c565e414dbf9"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.move-1366.png",
+    "bytes": 455527,
+    "sha256": "eec94edff198ec271838a8f882ec01614fc1d031a4ffc8657b26015b68824e6f"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.move-1440.png",
+    "bytes": 545487,
+    "sha256": "f10dc07c87bd191c6318bfe2177d72166445f911a45b1a6860f6175c9ddc8146"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.move-390.png",
+    "bytes": 186283,
+    "sha256": "0e09a4c52ccc33b83a08ed99e8af60dacb5304fc9bcc13b36a5d99016bb5c6c2"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.move-720.png",
+    "bytes": 162770,
+    "sha256": "273192d416e1947d224d9c99144d54a7bd2cdb5527ce645884be7c8f00b37fbe"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover-1366.png",
+    "bytes": 445590,
+    "sha256": "7557bf217c5f50ee4242c0e24052d46639560220a527a5494028618bcce7e974"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover-1440.png",
+    "bytes": 533477,
+    "sha256": "fa35602c78ce5ffce4989cc943f2046f5d94551b245fc3517b3c69240ceeb2f7"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover-390.png",
+    "bytes": 184364,
+    "sha256": "8402db7054dfb729586a4abcb3c003ccaa7ed988af1ca080ae0787a3a54c5317"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover-720.png",
+    "bytes": 161020,
+    "sha256": "9a00cdb1197c6349ff886328a20dfa02b30595d5b5d5a0dba7e2ae7b9513133b"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover.mp-1366.png",
+    "bytes": 445709,
+    "sha256": "d34a78d2b22d1d6eb85058933bcbd94c509a1a16d97bd235d8ea73ba883960be"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover.mp-1440.png",
+    "bytes": 533822,
+    "sha256": "3a8d24b9ca1633bd2651fd1509ccb73263decdd47b3d6ab89c39847e63fc3c56"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover.mp-390.png",
+    "bytes": 185121,
+    "sha256": "ef14b241e3f3728b027da38c5867766d747f9c842416b62587ce259c9f6ebe11"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-basic.recover.mp-720.png",
+    "bytes": 161082,
+    "sha256": "5a5f70999ab5146436de3263866210695981dd0a263611c4b34c2d935552ce72"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-unarmed.basic-1366.png",
+    "bytes": 454497,
+    "sha256": "03911d9735138183cbbd68a00f3cb967ebaa5b33ac2739a04a5181362a014a9f"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-unarmed.basic-1440.png",
+    "bytes": 545138,
+    "sha256": "8eb3bc557dc83c24618b953bad74f7bc28a4d192c547a785b5950ee5c0b33c03"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-unarmed.basic-390.png",
+    "bytes": 186918,
+    "sha256": "18504f39e6a243647a6ed335b1e94d94cfe62f2da095b46ce42c5874714a2b61"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/basic-service-restore-unarmed.basic-720.png",
+    "bytes": 162439,
+    "sha256": "ebde6cc4ce0d3965aa0883921201cb153982334b4a65169896545d17e154b076"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix1-existing-service/results.json",
+    "bytes": 1633,
+    "sha256": "16441255a2d38362824ebfe3751fb1b8eb8b92007d2f2388e527cd959117f05a"
+  }
+]

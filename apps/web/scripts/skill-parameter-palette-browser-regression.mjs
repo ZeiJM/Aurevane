@@ -16,7 +16,9 @@ const { chromium } = require(
 )
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
-const basicServiceAcceptance = process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1'
+const originalRpcAcceptance = process.env.AV_BASIC_ORIGINAL_RPC_ACCEPTANCE === '1'
+const basicServiceAcceptance =
+  process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' || originalRpcAcceptance
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'skill-parameter-palette-'))
 const output =
   process.env.AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR ||
@@ -88,6 +90,7 @@ async function handleBasicRequest(request, response, next) {
   try {
     let result
     if (url.pathname === '/__basic-acceptance/reset') {
+      await basicFixture?.close?.()
       basicFixture = await createBasicEditorServiceFixture()
       result = Response.json({ reset: true })
     } else if (url.pathname === '/__basic-acceptance/options')
@@ -167,9 +170,30 @@ if (process.env.AV_SKILL_PARAMETER_PALETTE_COMPILE_ONLY === '1') {
   process.exit(0)
 }
 const server = await createServer(config)
+// The SQL-backed server fixture uses Node package resolution for React cache().
+// Client aliases are only for the browser bundle; inlining its CJS entry in SSR
+// would fail before any production store or editor behavior runs.
+const sqlFixtureServer = originalRpcAcceptance
+  ? await createServer({
+      ...config,
+      plugins: [],
+      resolve: {
+        alias: Object.fromEntries(
+          Object.entries(config.resolve.alias).filter(
+            ([name]) => name !== 'react' && name !== 'react-dom',
+          ),
+        ),
+      },
+    })
+  : undefined
 if (basicServiceAcceptance) {
-  ;({ createBasicEditorServiceFixture } = await server.ssrLoadModule(
-    resolve(web, 'e2e/fixtures/basic-editor-service.ts'),
+  ;({ createBasicEditorServiceFixture } = await (sqlFixtureServer ?? server).ssrLoadModule(
+    resolve(
+      web,
+      originalRpcAcceptance
+        ? 'e2e/fixtures/basic-original-rpc-service.ts'
+        : 'e2e/fixtures/basic-editor-service.ts',
+    ),
   ))
   basicFixture = await createBasicEditorServiceFixture()
 
@@ -197,6 +221,7 @@ if (basicServiceAcceptance) {
     console.log(
       'Actual Basic HTTP handler/service probe passed: five v3 records and physical v2 Guard restore.',
     )
+    await sqlFixtureServer?.close()
     await server.close()
     await fs.rm(fixture, { recursive: true, force: true })
     process.exit(0)
@@ -930,6 +955,74 @@ async function verifyCanonicalEditor(page, viewport) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.deepEqual(await page.evaluate(() => window.requests), [])
 }
+async function verifyOriginalRpcRestore(page, viewport) {
+  await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
+    waitUntil: 'networkidle',
+  })
+  const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+  const inspect = async () =>
+    (await page.request.get(`${server.resolvedUrls.local[0]}__basic-acceptance/inspect`)).json()
+  const originals = (await inspect()).originals
+  const activate = async (label) => {
+    const control = editor.getByRole('button', { name: label, exact: true })
+    if (viewport.width < 720) await control.tap()
+    else {
+      await control.focus()
+      await page.keyboard.press('Enter')
+    }
+  }
+  for (const original of originals) {
+    await editor.locator(`[data-content-key="${original.id}"]`).click()
+    await editor
+      .locator(`[data-content-key="${original.id}"][aria-current="true"]:not(:disabled)`)
+      .waitFor()
+    const before = (await inspect()).requests.length
+    await editor
+      .getByLabel('Name', { exact: true })
+      .fill(`${original.name} original restore regression`)
+    await activate('Save draft')
+    await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
+    await activate('History')
+    await editor
+      .getByRole('button', { name: 'Restore System original v1 to draft', exact: true })
+      .waitFor()
+    await activate('Publish saved draft')
+    await editor.getByText('Published the saved complete record.', { exact: true }).waitFor()
+    await activate('History')
+    await activate('Restore System original v1 to draft')
+    await editor
+      .getByText('System original restored to a saved draft. Preview and publish when ready.', {
+        exact: true,
+      })
+      .waitFor()
+    await activate('History')
+    await editor
+      .getByRole('button', { name: 'Restore System original v1 to draft', exact: true })
+      .waitFor()
+    const result = await inspect(),
+      record = result.records.find((row) => row.contentKey === original.id)
+    assert.deepEqual(record.draft.definition, original)
+    assert.equal(record.draft.restoredSource, 'builtin')
+    assert.equal(record.builtinRestoreVersion, 1)
+    assert.deepEqual(
+      result.requests
+        .slice(before)
+        .map((row) => row.command.action)
+        .filter((action) => action !== 'list'),
+      ['save', 'publish', 'restore'],
+    )
+    await page.screenshot({
+      path: resolve(output, `original-rpc-${original.id}-${viewport.width}.png`),
+      fullPage: true,
+    })
+  }
+  const result = await inspect()
+  await fs.writeFile(
+    resolve(output, `original-rpc-${viewport.width}.json`),
+    JSON.stringify(result, null, 2),
+  )
+}
 async function verifyBasicServiceRestore(page, viewport) {
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
@@ -1060,16 +1153,21 @@ try {
       browserErrors.push(error.message)
     })
     if (basicServiceAcceptance) {
-      await verifyBasicServiceRestore(page, viewport)
+      if (originalRpcAcceptance) await verifyOriginalRpcRestore(page, viewport)
+      else await verifyBasicServiceRestore(page, viewport)
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
         status: 'passed',
         basics: 5,
-        transport: 'actual local handler/service/repository/preview/publication',
+        browser: browser.version(),
+        transport: originalRpcAcceptance
+          ? 'actual handler/service/RPC store/production migration SQL'
+          : 'actual local handler/service/repository/preview/publication',
         input: viewport.width < 720 ? 'touch' : 'keyboard',
-        scope:
-          'Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim.',
+        scope: originalRpcAcceptance
+          ? 'Production editor and exact SQL-backed mutation responses with a controlled local Owner identity and PGlite transport; no hosted authentication, physical contention or browser zoom claim.'
+          : 'Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim.',
       })
       await page.close()
       continue
@@ -1486,7 +1584,9 @@ try {
   ])
   throw error
 } finally {
+  await basicFixture?.close?.()
   await browser.close()
+  await sqlFixtureServer?.close()
   await server.close()
   await fs.rm(fixture, { recursive: true, force: true })
 }

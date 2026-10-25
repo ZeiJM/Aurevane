@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { chromium, expect, test } from '@playwright/test'
+import { exerciseMasterAtBrowserZoom } from './master-zoom-workflows'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import {
   acquirePlayersFixtureOwner,
@@ -87,18 +88,21 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
   })
   let owner: FixtureOwner | undefined
   try {
-    const account = await provisionAccountAndEnterCharacter({
-      page,
+    const identity = {
       email: `master-fit-${randomUUID()}@example.test`,
-      password: 'Disposable-Master-layout-2026!',
       characterName: `Master ${randomUUID()
         .replace(/[^a-z]/g, '')
         .slice(0, 8)}`,
+    }
+    const account = await provisionAccountAndEnterCharacter({
+      page,
+      ...identity,
+      password: 'Disposable-Master-layout-2026!',
     })
     owner = await acquirePlayersFixtureOwner(sql, account.userId)
     await page.goto('/master/combat-content')
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
-    const setZoom = async (factor: number) =>
+    const setZoom = async (factor?: number) =>
       worker.evaluate(async (factor) => {
         // Chrome's extension API performs real browser zoom. No CSS, CDP page-scale,
         // viewport emulation or device scale factor is used as zoom evidence.
@@ -120,8 +124,10 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
             /^http:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(t.url) && t.url.includes('/master/'),
         )
         if (!tab) throw new Error('No disposable Master tab found')
-        await chromeApi.tabs.setZoomSettings(tab.id, { mode: 'automatic', scope: 'per-tab' })
-        await chromeApi.tabs.setZoom(tab.id, factor)
+        if (factor !== undefined) {
+          await chromeApi.tabs.setZoomSettings(tab.id, { mode: 'automatic', scope: 'per-tab' })
+          await chromeApi.tabs.setZoom(tab.id, factor)
+        }
         return chromeApi.tabs.getZoom(tab.id)
       }, factor)
     const metrics = () =>
@@ -190,8 +196,12 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
             page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
           )
           .toBe(true)
-        await page.keyboard.press('Tab')
-        expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true)
+        if (factor === 2)
+          await exerciseMasterAtBrowserZoom(page, route, identity, info, () => setZoom())
+        else {
+          await page.keyboard.press('Tab')
+          expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true)
+        }
         await page.screenshot({
           path: info.outputPath(`master-layout-${name}-${route.split('/').at(-1)}.png`),
           fullPage: true,

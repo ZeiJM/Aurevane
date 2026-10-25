@@ -325,8 +325,10 @@ it.each(defaultBasicSkills())(
       definition: edited,
     })
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    expect(saved.body.record.builtinRestoreVersion).toBe(1)
     const first = await publish(saved.body.record)
     expect(first.status, JSON.stringify(first.body)).toBe(200)
+    expect(first.body.record.builtinRestoreVersion).toBe(1)
     const source = new RpcPublishedCombatContentSource(session.rpc)
     const resolver = createCombatContentResolver(source)
     const oldDefinition = await resolver.resolvePinnedBasicSkillDefinition!(original.id, 2)
@@ -368,6 +370,7 @@ it.each(defaultBasicSkills())(
     session.selected = selected
     const restored = await command(restore)
     expect(restored.status, JSON.stringify(restored.body)).toBe(200)
+    expect(restored.body.record.builtinRestoreVersion).toBe(1)
     expect(restored.body.record.current).toEqual(first.body.record.current)
     expect(restored.body.record.history).toEqual(first.body.record.history)
     expect(restored.body.record.draft).toMatchObject({

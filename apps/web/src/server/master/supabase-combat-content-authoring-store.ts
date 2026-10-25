@@ -309,6 +309,22 @@ function mapRpcError(error: RpcError, target?: PublicationTarget): never {
   )
 }
 
+/** The capability is derived from this server's exact executable sources, never RPC/client fields. */
+function withBuiltinRestoreCapability(
+  record: CompleteCombatContentRecord,
+): CompleteCombatContentRecord {
+  if (
+    record.builtin &&
+    exactBuiltinCombatContentDefinition(
+      record.contentKind,
+      record.contentKey,
+      record.builtin.contentVersion,
+    )
+  )
+    return { ...record, builtinRestoreVersion: record.builtin.contentVersion }
+  return { ...record, builtinRestoreVersion: undefined }
+}
+
 export class RpcCombatContentAuthoringStore implements CombatContentAuthoringStore {
   readonly #rpc: CombatAuthoringRpc
   readonly #actorUserId: string
@@ -345,16 +361,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     })
     if (error) mapRpcError(error)
     if (data === null) return null
-    let record = parseCompleteCombatContentRecord(data)
-    if (
-      record.builtin &&
-      exactBuiltinCombatContentDefinition(
-        record.contentKind,
-        record.contentKey,
-        record.builtin.contentVersion,
-      )
-    )
-      record = { ...record, builtinRestoreVersion: record.builtin.contentVersion }
+    const record = withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
     if (record.builtin && !record.current && record.lifecycle !== 'archived') {
       let definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
       if (record.contentKind === 'discipline') {
@@ -513,7 +520,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       p_command: persistedCommand,
     })
     if (error) mapRpcError(error)
-    return parseCompleteCombatContentRecord(data)
+    return withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
   }
   async publishSaved(
     record: Pick<CompleteCombatContentRecord, 'contentKey'>,
@@ -558,7 +565,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     })
     if (error)
       mapRpcError(error, { contentKey: saved.contentKey, definition: saved.draft.definition })
-    return parseCompleteCombatContentRecord(data)
+    return withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
   }
 
   async findDraft(contentKey: string): Promise<CombatContentDraftRecord | null> {

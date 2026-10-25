@@ -1,0 +1,2388 @@
+{
+  "requests": [
+    {
+      "operation": "record",
+      "command": {
+        "action": "read",
+        "contentKey": "basic.move"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "save",
+        "contentKey": "basic.move",
+        "expectedRevision": 1,
+        "definition": {
+          "schemaVersion": 1,
+          "id": "basic.move",
+          "contentVersion": 1,
+          "enabled": true,
+          "name": "Move original restore regression",
+          "description": "Walk through legal terrain within your remaining Movement.",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "iconKey": null,
+            "audioCueKey": null,
+            "vfxKey": null
+          },
+          "execution": {
+            "kind": "basic-move",
+            "costBasis": "per-terrain-point"
+          },
+          "ability": {
+            "schemaVersion": 1,
+            "behaviors": [
+              {
+                "id": "use",
+                "activation": "manual",
+                "mode": "action",
+                "classification": "utility",
+                "costs": [
+                  {
+                    "resource": "ap",
+                    "amount": 20
+                  }
+                ],
+                "cooldown": null,
+                "requirements": null,
+                "targeting": {
+                  "geometryVersion": 3,
+                  "kind": "self",
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "minimumRange": 0,
+                  "maximumRange": 0,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null,
+                  "maximumSelections": 1
+                },
+                "effects": [
+                  {
+                    "id": "move",
+                    "timing": "instant",
+                    "payload": {
+                      "type": "move",
+                      "recipient": "actor",
+                      "maximumTiles": 20
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "publish",
+        "contentKey": "basic.move",
+        "expectedDraftVersion": 1,
+        "expectedBaseVersion": null
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "restore",
+        "contentKey": "basic.move",
+        "expectedRevision": 3,
+        "sourceVersion": 1,
+        "sourceKind": "builtin"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "read",
+        "contentKey": "unarmed.basic"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "save",
+        "contentKey": "unarmed.basic",
+        "expectedRevision": 1,
+        "definition": {
+          "schemaVersion": 1,
+          "id": "unarmed.basic",
+          "contentVersion": 1,
+          "enabled": true,
+          "name": "Basic Attack original restore regression",
+          "description": "Strike using your higher Physical or Mystic Attack.",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "iconKey": null,
+            "audioCueKey": null,
+            "vfxKey": null
+          },
+          "execution": {
+            "kind": "basic-attack",
+            "scalingBasisPoints": 1500
+          },
+          "ability": {
+            "schemaVersion": 1,
+            "behaviors": [
+              {
+                "id": "use",
+                "activation": "manual",
+                "mode": "action",
+                "classification": "attack",
+                "costs": [
+                  {
+                    "resource": "ap",
+                    "amount": 30
+                  }
+                ],
+                "cooldown": null,
+                "requirements": null,
+                "targeting": {
+                  "geometryVersion": 3,
+                  "kind": "unit",
+                  "teamPolicy": "enemy",
+                  "friendlyFire": "enemies-only",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "enemy"
+                  ],
+                  "minimumRange": 1,
+                  "maximumRange": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": 1,
+                  "maximumSelections": 1
+                },
+                "effects": [
+                  {
+                    "id": "hit",
+                    "payload": {
+                      "type": "damage",
+                      "recipient": "primary-unit",
+                      "amount": 6,
+                      "facingModifiersBasisPoints": {
+                        "front": 10000,
+                        "side": 11000,
+                        "rear": 12500
+                      }
+                    }
+                  }
+                ],
+                "attackFamily": "physical"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "publish",
+        "contentKey": "unarmed.basic",
+        "expectedDraftVersion": 1,
+        "expectedBaseVersion": null
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "restore",
+        "contentKey": "unarmed.basic",
+        "expectedRevision": 3,
+        "sourceVersion": 1,
+        "sourceKind": "builtin"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "read",
+        "contentKey": "basic.guard"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "save",
+        "contentKey": "basic.guard",
+        "expectedRevision": 1,
+        "definition": {
+          "schemaVersion": 1,
+          "id": "basic.guard",
+          "contentVersion": 1,
+          "enabled": true,
+          "name": "Guard original restore regression",
+          "description": "Protect yourself with Guarded.",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "iconKey": null,
+            "audioCueKey": null,
+            "vfxKey": null
+          },
+          "execution": {
+            "kind": "basic-action"
+          },
+          "ability": {
+            "schemaVersion": 1,
+            "behaviors": [
+              {
+                "id": "use",
+                "activation": "manual",
+                "mode": "action",
+                "classification": "utility",
+                "costs": [
+                  {
+                    "resource": "ap",
+                    "amount": 30
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.guard",
+                  "ownerTurns": 2
+                },
+                "requirements": null,
+                "targeting": {
+                  "geometryVersion": 3,
+                  "kind": "self",
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "minimumRange": 0,
+                  "maximumRange": 0,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null,
+                  "maximumSelections": 1
+                },
+                "effects": [
+                  {
+                    "id": "guard",
+                    "payload": {
+                      "type": "apply-status",
+                      "recipient": "actor",
+                      "statusId": "guarded",
+                      "stacks": 1,
+                      "durationTurns": 2
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "publish",
+        "contentKey": "basic.guard",
+        "expectedDraftVersion": 1,
+        "expectedBaseVersion": null
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "restore",
+        "contentKey": "basic.guard",
+        "expectedRevision": 3,
+        "sourceVersion": 1,
+        "sourceKind": "builtin"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "read",
+        "contentKey": "basic.recover"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "save",
+        "contentKey": "basic.recover",
+        "expectedRevision": 1,
+        "definition": {
+          "schemaVersion": 1,
+          "id": "basic.recover",
+          "contentVersion": 1,
+          "enabled": true,
+          "name": "HP Recovery original restore regression",
+          "description": "Recover a percentage of your maximum HP.",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "iconKey": null,
+            "audioCueKey": null,
+            "vfxKey": null
+          },
+          "execution": {
+            "kind": "basic-action",
+            "recoveryRounding": "nearest"
+          },
+          "ability": {
+            "schemaVersion": 1,
+            "behaviors": [
+              {
+                "id": "use",
+                "activation": "manual",
+                "mode": "action",
+                "classification": "recovery",
+                "costs": [
+                  {
+                    "resource": "ap",
+                    "amount": 50
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.recovery",
+                  "ownerTurns": 2
+                },
+                "requirements": {
+                  "kind": "resource-state",
+                  "subject": "owner",
+                  "resource": "hp",
+                  "comparison": "at-most",
+                  "basisPoints": 9999
+                },
+                "targeting": {
+                  "geometryVersion": 3,
+                  "kind": "self",
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "minimumRange": 0,
+                  "maximumRange": 0,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null,
+                  "maximumSelections": 1
+                },
+                "effects": [
+                  {
+                    "id": "recovery",
+                    "payload": {
+                      "type": "percentage-recovery",
+                      "recipient": "actor",
+                      "resource": "hp",
+                      "percentageBasisPoints": 1000
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "publish",
+        "contentKey": "basic.recover",
+        "expectedDraftVersion": 1,
+        "expectedBaseVersion": null
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "restore",
+        "contentKey": "basic.recover",
+        "expectedRevision": 3,
+        "sourceVersion": 1,
+        "sourceKind": "builtin"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "read",
+        "contentKey": "basic.recover.mp"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "save",
+        "contentKey": "basic.recover.mp",
+        "expectedRevision": 1,
+        "definition": {
+          "schemaVersion": 1,
+          "id": "basic.recover.mp",
+          "contentVersion": 1,
+          "enabled": true,
+          "name": "MP Recovery original restore regression",
+          "description": "Recover a percentage of your maximum MP.",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "iconKey": null,
+            "audioCueKey": null,
+            "vfxKey": null
+          },
+          "execution": {
+            "kind": "basic-action",
+            "recoveryRounding": "nearest"
+          },
+          "ability": {
+            "schemaVersion": 1,
+            "behaviors": [
+              {
+                "id": "use",
+                "activation": "manual",
+                "mode": "action",
+                "classification": "recovery",
+                "costs": [
+                  {
+                    "resource": "ap",
+                    "amount": 50
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.recovery",
+                  "ownerTurns": 2
+                },
+                "requirements": {
+                  "kind": "resource-state",
+                  "subject": "owner",
+                  "resource": "mp",
+                  "comparison": "at-most",
+                  "basisPoints": 9999
+                },
+                "targeting": {
+                  "geometryVersion": 3,
+                  "kind": "self",
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "minimumRange": 0,
+                  "maximumRange": 0,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null,
+                  "maximumSelections": 1
+                },
+                "effects": [
+                  {
+                    "id": "recovery",
+                    "payload": {
+                      "type": "percentage-recovery",
+                      "recipient": "actor",
+                      "resource": "mp",
+                      "percentageBasisPoints": 1000
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "publish",
+        "contentKey": "basic.recover.mp",
+        "expectedDraftVersion": 1,
+        "expectedBaseVersion": null
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "restore",
+        "contentKey": "basic.recover.mp",
+        "expectedRevision": 3,
+        "sourceVersion": 1,
+        "sourceKind": "builtin"
+      }
+    },
+    {
+      "operation": "record",
+      "command": {
+        "action": "list",
+        "kind": "skill",
+        "category": "basic",
+        "search": "",
+        "sort": "name-asc",
+        "limit": 20
+      }
+    }
+  ],
+  "originals": [
+    {
+      "schemaVersion": 1,
+      "id": "basic.move",
+      "contentVersion": 1,
+      "enabled": true,
+      "name": "Move",
+      "description": "Walk through legal terrain within your remaining Movement.",
+      "tags": [
+        "basic"
+      ],
+      "media": {
+        "iconKey": null,
+        "audioCueKey": null,
+        "vfxKey": null
+      },
+      "execution": {
+        "kind": "basic-move",
+        "costBasis": "per-terrain-point"
+      },
+      "ability": {
+        "schemaVersion": 1,
+        "behaviors": [
+          {
+            "id": "use",
+            "activation": "manual",
+            "mode": "action",
+            "classification": "utility",
+            "costs": [
+              {
+                "resource": "ap",
+                "amount": 20
+              }
+            ],
+            "cooldown": null,
+            "requirements": null,
+            "targeting": {
+              "geometryVersion": 3,
+              "kind": "self",
+              "teamPolicy": "self",
+              "friendlyFire": "allies-only",
+              "shape": {
+                "kind": "single"
+              },
+              "categories": [
+                "self"
+              ],
+              "minimumRange": 0,
+              "maximumRange": 0,
+              "requiresLineOfSight": false,
+              "maximumElevationDifference": null,
+              "maximumSelections": 1
+            },
+            "effects": [
+              {
+                "id": "move",
+                "timing": "instant",
+                "payload": {
+                  "type": "move",
+                  "recipient": "actor",
+                  "maximumTiles": 20
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "unarmed.basic",
+      "contentVersion": 1,
+      "enabled": true,
+      "name": "Basic Attack",
+      "description": "Strike using your higher Physical or Mystic Attack.",
+      "tags": [
+        "basic"
+      ],
+      "media": {
+        "iconKey": null,
+        "audioCueKey": null,
+        "vfxKey": null
+      },
+      "execution": {
+        "kind": "basic-attack",
+        "scalingBasisPoints": 1500
+      },
+      "ability": {
+        "schemaVersion": 1,
+        "behaviors": [
+          {
+            "id": "use",
+            "activation": "manual",
+            "mode": "action",
+            "classification": "attack",
+            "costs": [
+              {
+                "resource": "ap",
+                "amount": 30
+              }
+            ],
+            "cooldown": null,
+            "requirements": null,
+            "targeting": {
+              "geometryVersion": 3,
+              "kind": "unit",
+              "teamPolicy": "enemy",
+              "friendlyFire": "enemies-only",
+              "shape": {
+                "kind": "single"
+              },
+              "categories": [
+                "enemy"
+              ],
+              "minimumRange": 1,
+              "maximumRange": 1,
+              "requiresLineOfSight": false,
+              "maximumElevationDifference": 1,
+              "maximumSelections": 1
+            },
+            "effects": [
+              {
+                "id": "hit",
+                "payload": {
+                  "type": "damage",
+                  "recipient": "primary-unit",
+                  "amount": 6,
+                  "facingModifiersBasisPoints": {
+                    "front": 10000,
+                    "side": 11000,
+                    "rear": 12500
+                  }
+                }
+              }
+            ],
+            "attackFamily": "physical"
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "basic.guard",
+      "contentVersion": 1,
+      "enabled": true,
+      "name": "Guard",
+      "description": "Protect yourself with Guarded.",
+      "tags": [
+        "basic"
+      ],
+      "media": {
+        "iconKey": null,
+        "audioCueKey": null,
+        "vfxKey": null
+      },
+      "execution": {
+        "kind": "basic-action"
+      },
+      "ability": {
+        "schemaVersion": 1,
+        "behaviors": [
+          {
+            "id": "use",
+            "activation": "manual",
+            "mode": "action",
+            "classification": "utility",
+            "costs": [
+              {
+                "resource": "ap",
+                "amount": 30
+              }
+            ],
+            "cooldown": {
+              "key": "basic.guard",
+              "ownerTurns": 2
+            },
+            "requirements": null,
+            "targeting": {
+              "geometryVersion": 3,
+              "kind": "self",
+              "teamPolicy": "self",
+              "friendlyFire": "allies-only",
+              "shape": {
+                "kind": "single"
+              },
+              "categories": [
+                "self"
+              ],
+              "minimumRange": 0,
+              "maximumRange": 0,
+              "requiresLineOfSight": false,
+              "maximumElevationDifference": null,
+              "maximumSelections": 1
+            },
+            "effects": [
+              {
+                "id": "guard",
+                "payload": {
+                  "type": "apply-status",
+                  "recipient": "actor",
+                  "statusId": "guarded",
+                  "stacks": 1,
+                  "durationTurns": 2
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "basic.recover",
+      "contentVersion": 1,
+      "enabled": true,
+      "name": "HP Recovery",
+      "description": "Recover a percentage of your maximum HP.",
+      "tags": [
+        "basic"
+      ],
+      "media": {
+        "iconKey": null,
+        "audioCueKey": null,
+        "vfxKey": null
+      },
+      "execution": {
+        "kind": "basic-action",
+        "recoveryRounding": "nearest"
+      },
+      "ability": {
+        "schemaVersion": 1,
+        "behaviors": [
+          {
+            "id": "use",
+            "activation": "manual",
+            "mode": "action",
+            "classification": "recovery",
+            "costs": [
+              {
+                "resource": "ap",
+                "amount": 50
+              }
+            ],
+            "cooldown": {
+              "key": "basic.recovery",
+              "ownerTurns": 2
+            },
+            "requirements": {
+              "kind": "resource-state",
+              "subject": "owner",
+              "resource": "hp",
+              "comparison": "at-most",
+              "basisPoints": 9999
+            },
+            "targeting": {
+              "geometryVersion": 3,
+              "kind": "self",
+              "teamPolicy": "self",
+              "friendlyFire": "allies-only",
+              "shape": {
+                "kind": "single"
+              },
+              "categories": [
+                "self"
+              ],
+              "minimumRange": 0,
+              "maximumRange": 0,
+              "requiresLineOfSight": false,
+              "maximumElevationDifference": null,
+              "maximumSelections": 1
+            },
+            "effects": [
+              {
+                "id": "recovery",
+                "payload": {
+                  "type": "percentage-recovery",
+                  "recipient": "actor",
+                  "resource": "hp",
+                  "percentageBasisPoints": 1000
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "id": "basic.recover.mp",
+      "contentVersion": 1,
+      "enabled": true,
+      "name": "MP Recovery",
+      "description": "Recover a percentage of your maximum MP.",
+      "tags": [
+        "basic"
+      ],
+      "media": {
+        "iconKey": null,
+        "audioCueKey": null,
+        "vfxKey": null
+      },
+      "execution": {
+        "kind": "basic-action",
+        "recoveryRounding": "nearest"
+      },
+      "ability": {
+        "schemaVersion": 1,
+        "behaviors": [
+          {
+            "id": "use",
+            "activation": "manual",
+            "mode": "action",
+            "classification": "recovery",
+            "costs": [
+              {
+                "resource": "ap",
+                "amount": 50
+              }
+            ],
+            "cooldown": {
+              "key": "basic.recovery",
+              "ownerTurns": 2
+            },
+            "requirements": {
+              "kind": "resource-state",
+              "subject": "owner",
+              "resource": "mp",
+              "comparison": "at-most",
+              "basisPoints": 9999
+            },
+            "targeting": {
+              "geometryVersion": 3,
+              "kind": "self",
+              "teamPolicy": "self",
+              "friendlyFire": "allies-only",
+              "shape": {
+                "kind": "single"
+              },
+              "categories": [
+                "self"
+              ],
+              "minimumRange": 0,
+              "maximumRange": 0,
+              "requiresLineOfSight": false,
+              "maximumElevationDifference": null,
+              "maximumSelections": 1
+            },
+            "effects": [
+              {
+                "id": "recovery",
+                "payload": {
+                  "type": "percentage-recovery",
+                  "recipient": "actor",
+                  "resource": "mp",
+                  "percentageBasisPoints": 1000
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "records": [
+    {
+      "draft": {
+        "updatedAt": "2026-10-25T17:24:15.575+08:00",
+        "updatedBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.move",
+          "name": "Move",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 20,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "move",
+                    "timing": "instant",
+                    "payload": {
+                      "type": "move",
+                      "recipient": "actor",
+                      "maximumTiles": 20
+                    }
+                  }
+                ],
+                "cooldown": null,
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": null,
+                "classification": "utility"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-move",
+            "costBasis": "per-terrain-point"
+          },
+          "description": "Walk through legal terrain within your remaining Movement.",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "restoredBy": "00000000-0000-4000-8000-000000000001",
+        "baseVersion": 2,
+        "draftVersion": 2,
+        "restoredFrom": 1,
+        "restoredSource": "builtin"
+      },
+      "links": [],
+      "usedBy": [],
+      "builtin": {
+        "name": "Move",
+        "contentVersion": 1
+      },
+      "current": {
+        "authoredAt": "2026-10-25T17:24:15.418+08:00",
+        "authoredBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.move",
+          "name": "Move original restore regression",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 20,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "move",
+                    "timing": "instant",
+                    "payload": {
+                      "type": "move",
+                      "recipient": "actor",
+                      "maximumTiles": 20
+                    }
+                  }
+                ],
+                "cooldown": null,
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": null,
+                "classification": "utility"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-move",
+            "costBasis": "per-terrain-point"
+          },
+          "description": "Walk through legal terrain within your remaining Movement.",
+          "schemaVersion": 1,
+          "contentVersion": 2
+        },
+        "restoredBy": null,
+        "publishedAt": "2026-10-25T17:24:15.519+08:00",
+        "publishedBy": "00000000-0000-4000-8000-000000000001",
+        "restoredFrom": null,
+        "contentVersion": 2,
+        "restoredSource": null
+      },
+      "history": [
+        {
+          "authoredAt": "2026-10-25T17:24:15.418+08:00",
+          "authoredBy": "00000000-0000-4000-8000-000000000001",
+          "definition": {
+            "id": "basic.move",
+            "name": "Move original restore regression",
+            "tags": [
+              "basic"
+            ],
+            "media": {
+              "vfxKey": null,
+              "iconKey": null,
+              "audioCueKey": null
+            },
+            "ability": {
+              "behaviors": [
+                {
+                  "id": "use",
+                  "mode": "action",
+                  "costs": [
+                    {
+                      "amount": 20,
+                      "resource": "ap"
+                    }
+                  ],
+                  "effects": [
+                    {
+                      "id": "move",
+                      "timing": "instant",
+                      "payload": {
+                        "type": "move",
+                        "recipient": "actor",
+                        "maximumTiles": 20
+                      }
+                    }
+                  ],
+                  "cooldown": null,
+                  "targeting": {
+                    "kind": "self",
+                    "shape": {
+                      "kind": "single"
+                    },
+                    "categories": [
+                      "self"
+                    ],
+                    "teamPolicy": "self",
+                    "friendlyFire": "allies-only",
+                    "maximumRange": 0,
+                    "minimumRange": 0,
+                    "geometryVersion": 3,
+                    "maximumSelections": 1,
+                    "requiresLineOfSight": false,
+                    "maximumElevationDifference": null
+                  },
+                  "activation": "manual",
+                  "requirements": null,
+                  "classification": "utility"
+                }
+              ],
+              "schemaVersion": 1
+            },
+            "enabled": true,
+            "execution": {
+              "kind": "basic-move",
+              "costBasis": "per-terrain-point"
+            },
+            "description": "Walk through legal terrain within your remaining Movement.",
+            "schemaVersion": 1,
+            "contentVersion": 2
+          },
+          "restoredBy": null,
+          "publishedAt": "2026-10-25T17:24:15.519+08:00",
+          "publishedBy": "00000000-0000-4000-8000-000000000001",
+          "restoredFrom": null,
+          "contentVersion": 2,
+          "restoredSource": null
+        }
+      ],
+      "revision": 4,
+      "createdAt": null,
+      "createdBy": null,
+      "lifecycle": "active",
+      "contentKey": "basic.move",
+      "contentKind": "skill",
+      "versionFloor": 2,
+      "usedByTruncated": false,
+      "builtinRestoreVersion": 1
+    },
+    {
+      "draft": {
+        "updatedAt": "2026-10-25T17:24:16.118+08:00",
+        "updatedBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "unarmed.basic",
+          "name": "Basic Attack",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 30,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "hit",
+                    "payload": {
+                      "type": "damage",
+                      "amount": 6,
+                      "recipient": "primary-unit",
+                      "facingModifiersBasisPoints": {
+                        "rear": 12500,
+                        "side": 11000,
+                        "front": 10000
+                      }
+                    }
+                  }
+                ],
+                "cooldown": null,
+                "targeting": {
+                  "kind": "unit",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "enemy"
+                  ],
+                  "teamPolicy": "enemy",
+                  "friendlyFire": "enemies-only",
+                  "maximumRange": 1,
+                  "minimumRange": 1,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": 1
+                },
+                "activation": "manual",
+                "attackFamily": "physical",
+                "requirements": null,
+                "classification": "attack"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-attack",
+            "scalingBasisPoints": 1500
+          },
+          "description": "Strike using your higher Physical or Mystic Attack.",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "restoredBy": "00000000-0000-4000-8000-000000000001",
+        "baseVersion": 2,
+        "draftVersion": 2,
+        "restoredFrom": 1,
+        "restoredSource": "builtin"
+      },
+      "links": [],
+      "usedBy": [],
+      "builtin": {
+        "name": "Basic Attack",
+        "contentVersion": 1
+      },
+      "current": {
+        "authoredAt": "2026-10-25T17:24:15.948+08:00",
+        "authoredBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "unarmed.basic",
+          "name": "Basic Attack original restore regression",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 30,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "hit",
+                    "payload": {
+                      "type": "damage",
+                      "amount": 6,
+                      "recipient": "primary-unit",
+                      "facingModifiersBasisPoints": {
+                        "rear": 12500,
+                        "side": 11000,
+                        "front": 10000
+                      }
+                    }
+                  }
+                ],
+                "cooldown": null,
+                "targeting": {
+                  "kind": "unit",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "enemy"
+                  ],
+                  "teamPolicy": "enemy",
+                  "friendlyFire": "enemies-only",
+                  "maximumRange": 1,
+                  "minimumRange": 1,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": 1
+                },
+                "activation": "manual",
+                "attackFamily": "physical",
+                "requirements": null,
+                "classification": "attack"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-attack",
+            "scalingBasisPoints": 1500
+          },
+          "description": "Strike using your higher Physical or Mystic Attack.",
+          "schemaVersion": 1,
+          "contentVersion": 2
+        },
+        "restoredBy": null,
+        "publishedAt": "2026-10-25T17:24:16.064+08:00",
+        "publishedBy": "00000000-0000-4000-8000-000000000001",
+        "restoredFrom": null,
+        "contentVersion": 2,
+        "restoredSource": null
+      },
+      "history": [
+        {
+          "authoredAt": "2026-10-25T17:24:15.948+08:00",
+          "authoredBy": "00000000-0000-4000-8000-000000000001",
+          "definition": {
+            "id": "unarmed.basic",
+            "name": "Basic Attack original restore regression",
+            "tags": [
+              "basic"
+            ],
+            "media": {
+              "vfxKey": null,
+              "iconKey": null,
+              "audioCueKey": null
+            },
+            "ability": {
+              "behaviors": [
+                {
+                  "id": "use",
+                  "mode": "action",
+                  "costs": [
+                    {
+                      "amount": 30,
+                      "resource": "ap"
+                    }
+                  ],
+                  "effects": [
+                    {
+                      "id": "hit",
+                      "payload": {
+                        "type": "damage",
+                        "amount": 6,
+                        "recipient": "primary-unit",
+                        "facingModifiersBasisPoints": {
+                          "rear": 12500,
+                          "side": 11000,
+                          "front": 10000
+                        }
+                      }
+                    }
+                  ],
+                  "cooldown": null,
+                  "targeting": {
+                    "kind": "unit",
+                    "shape": {
+                      "kind": "single"
+                    },
+                    "categories": [
+                      "enemy"
+                    ],
+                    "teamPolicy": "enemy",
+                    "friendlyFire": "enemies-only",
+                    "maximumRange": 1,
+                    "minimumRange": 1,
+                    "geometryVersion": 3,
+                    "maximumSelections": 1,
+                    "requiresLineOfSight": false,
+                    "maximumElevationDifference": 1
+                  },
+                  "activation": "manual",
+                  "attackFamily": "physical",
+                  "requirements": null,
+                  "classification": "attack"
+                }
+              ],
+              "schemaVersion": 1
+            },
+            "enabled": true,
+            "execution": {
+              "kind": "basic-attack",
+              "scalingBasisPoints": 1500
+            },
+            "description": "Strike using your higher Physical or Mystic Attack.",
+            "schemaVersion": 1,
+            "contentVersion": 2
+          },
+          "restoredBy": null,
+          "publishedAt": "2026-10-25T17:24:16.064+08:00",
+          "publishedBy": "00000000-0000-4000-8000-000000000001",
+          "restoredFrom": null,
+          "contentVersion": 2,
+          "restoredSource": null
+        }
+      ],
+      "revision": 4,
+      "createdAt": null,
+      "createdBy": null,
+      "lifecycle": "active",
+      "contentKey": "unarmed.basic",
+      "contentKind": "skill",
+      "versionFloor": 2,
+      "usedByTruncated": false,
+      "builtinRestoreVersion": 1
+    },
+    {
+      "draft": {
+        "updatedAt": "2026-10-25T17:24:16.646+08:00",
+        "updatedBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.guard",
+          "name": "Guard",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 30,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "guard",
+                    "payload": {
+                      "type": "apply-status",
+                      "stacks": 1,
+                      "statusId": "guarded",
+                      "recipient": "actor",
+                      "durationTurns": 2
+                    }
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.guard",
+                  "ownerTurns": 2
+                },
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": null,
+                "classification": "utility"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-action"
+          },
+          "description": "Protect yourself with Guarded.",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "restoredBy": "00000000-0000-4000-8000-000000000001",
+        "baseVersion": 2,
+        "draftVersion": 2,
+        "restoredFrom": 1,
+        "restoredSource": "builtin"
+      },
+      "links": [],
+      "usedBy": [],
+      "builtin": {
+        "name": "Guard",
+        "contentVersion": 1
+      },
+      "current": {
+        "authoredAt": "2026-10-25T17:24:16.488+08:00",
+        "authoredBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.guard",
+          "name": "Guard original restore regression",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 30,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "guard",
+                    "payload": {
+                      "type": "apply-status",
+                      "stacks": 1,
+                      "statusId": "guarded",
+                      "recipient": "actor",
+                      "durationTurns": 2
+                    }
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.guard",
+                  "ownerTurns": 2
+                },
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": null,
+                "classification": "utility"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-action"
+          },
+          "description": "Protect yourself with Guarded.",
+          "schemaVersion": 1,
+          "contentVersion": 2
+        },
+        "restoredBy": null,
+        "publishedAt": "2026-10-25T17:24:16.598+08:00",
+        "publishedBy": "00000000-0000-4000-8000-000000000001",
+        "restoredFrom": null,
+        "contentVersion": 2,
+        "restoredSource": null
+      },
+      "history": [
+        {
+          "authoredAt": "2026-10-25T17:24:16.488+08:00",
+          "authoredBy": "00000000-0000-4000-8000-000000000001",
+          "definition": {
+            "id": "basic.guard",
+            "name": "Guard original restore regression",
+            "tags": [
+              "basic"
+            ],
+            "media": {
+              "vfxKey": null,
+              "iconKey": null,
+              "audioCueKey": null
+            },
+            "ability": {
+              "behaviors": [
+                {
+                  "id": "use",
+                  "mode": "action",
+                  "costs": [
+                    {
+                      "amount": 30,
+                      "resource": "ap"
+                    }
+                  ],
+                  "effects": [
+                    {
+                      "id": "guard",
+                      "payload": {
+                        "type": "apply-status",
+                        "stacks": 1,
+                        "statusId": "guarded",
+                        "recipient": "actor",
+                        "durationTurns": 2
+                      }
+                    }
+                  ],
+                  "cooldown": {
+                    "key": "basic.guard",
+                    "ownerTurns": 2
+                  },
+                  "targeting": {
+                    "kind": "self",
+                    "shape": {
+                      "kind": "single"
+                    },
+                    "categories": [
+                      "self"
+                    ],
+                    "teamPolicy": "self",
+                    "friendlyFire": "allies-only",
+                    "maximumRange": 0,
+                    "minimumRange": 0,
+                    "geometryVersion": 3,
+                    "maximumSelections": 1,
+                    "requiresLineOfSight": false,
+                    "maximumElevationDifference": null
+                  },
+                  "activation": "manual",
+                  "requirements": null,
+                  "classification": "utility"
+                }
+              ],
+              "schemaVersion": 1
+            },
+            "enabled": true,
+            "execution": {
+              "kind": "basic-action"
+            },
+            "description": "Protect yourself with Guarded.",
+            "schemaVersion": 1,
+            "contentVersion": 2
+          },
+          "restoredBy": null,
+          "publishedAt": "2026-10-25T17:24:16.598+08:00",
+          "publishedBy": "00000000-0000-4000-8000-000000000001",
+          "restoredFrom": null,
+          "contentVersion": 2,
+          "restoredSource": null
+        }
+      ],
+      "revision": 4,
+      "createdAt": null,
+      "createdBy": null,
+      "lifecycle": "active",
+      "contentKey": "basic.guard",
+      "contentKind": "skill",
+      "versionFloor": 2,
+      "usedByTruncated": false,
+      "builtinRestoreVersion": 1
+    },
+    {
+      "draft": {
+        "updatedAt": "2026-10-25T17:24:17.16+08:00",
+        "updatedBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.recover",
+          "name": "HP Recovery",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 50,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "recovery",
+                    "payload": {
+                      "type": "percentage-recovery",
+                      "resource": "hp",
+                      "recipient": "actor",
+                      "percentageBasisPoints": 1000
+                    }
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.recovery",
+                  "ownerTurns": 2
+                },
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": {
+                  "kind": "resource-state",
+                  "subject": "owner",
+                  "resource": "hp",
+                  "comparison": "at-most",
+                  "basisPoints": 9999
+                },
+                "classification": "recovery"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-action",
+            "recoveryRounding": "nearest"
+          },
+          "description": "Recover a percentage of your maximum HP.",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "restoredBy": "00000000-0000-4000-8000-000000000001",
+        "baseVersion": 2,
+        "draftVersion": 2,
+        "restoredFrom": 1,
+        "restoredSource": "builtin"
+      },
+      "links": [],
+      "usedBy": [],
+      "builtin": {
+        "name": "HP Recovery",
+        "contentVersion": 1
+      },
+      "current": {
+        "authoredAt": "2026-10-25T17:24:17.011+08:00",
+        "authoredBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.recover",
+          "name": "HP Recovery original restore regression",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 50,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "recovery",
+                    "payload": {
+                      "type": "percentage-recovery",
+                      "resource": "hp",
+                      "recipient": "actor",
+                      "percentageBasisPoints": 1000
+                    }
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.recovery",
+                  "ownerTurns": 2
+                },
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": {
+                  "kind": "resource-state",
+                  "subject": "owner",
+                  "resource": "hp",
+                  "comparison": "at-most",
+                  "basisPoints": 9999
+                },
+                "classification": "recovery"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-action",
+            "recoveryRounding": "nearest"
+          },
+          "description": "Recover a percentage of your maximum HP.",
+          "schemaVersion": 1,
+          "contentVersion": 2
+        },
+        "restoredBy": null,
+        "publishedAt": "2026-10-25T17:24:17.107+08:00",
+        "publishedBy": "00000000-0000-4000-8000-000000000001",
+        "restoredFrom": null,
+        "contentVersion": 2,
+        "restoredSource": null
+      },
+      "history": [
+        {
+          "authoredAt": "2026-10-25T17:24:17.011+08:00",
+          "authoredBy": "00000000-0000-4000-8000-000000000001",
+          "definition": {
+            "id": "basic.recover",
+            "name": "HP Recovery original restore regression",
+            "tags": [
+              "basic"
+            ],
+            "media": {
+              "vfxKey": null,
+              "iconKey": null,
+              "audioCueKey": null
+            },
+            "ability": {
+              "behaviors": [
+                {
+                  "id": "use",
+                  "mode": "action",
+                  "costs": [
+                    {
+                      "amount": 50,
+                      "resource": "ap"
+                    }
+                  ],
+                  "effects": [
+                    {
+                      "id": "recovery",
+                      "payload": {
+                        "type": "percentage-recovery",
+                        "resource": "hp",
+                        "recipient": "actor",
+                        "percentageBasisPoints": 1000
+                      }
+                    }
+                  ],
+                  "cooldown": {
+                    "key": "basic.recovery",
+                    "ownerTurns": 2
+                  },
+                  "targeting": {
+                    "kind": "self",
+                    "shape": {
+                      "kind": "single"
+                    },
+                    "categories": [
+                      "self"
+                    ],
+                    "teamPolicy": "self",
+                    "friendlyFire": "allies-only",
+                    "maximumRange": 0,
+                    "minimumRange": 0,
+                    "geometryVersion": 3,
+                    "maximumSelections": 1,
+                    "requiresLineOfSight": false,
+                    "maximumElevationDifference": null
+                  },
+                  "activation": "manual",
+                  "requirements": {
+                    "kind": "resource-state",
+                    "subject": "owner",
+                    "resource": "hp",
+                    "comparison": "at-most",
+                    "basisPoints": 9999
+                  },
+                  "classification": "recovery"
+                }
+              ],
+              "schemaVersion": 1
+            },
+            "enabled": true,
+            "execution": {
+              "kind": "basic-action",
+              "recoveryRounding": "nearest"
+            },
+            "description": "Recover a percentage of your maximum HP.",
+            "schemaVersion": 1,
+            "contentVersion": 2
+          },
+          "restoredBy": null,
+          "publishedAt": "2026-10-25T17:24:17.107+08:00",
+          "publishedBy": "00000000-0000-4000-8000-000000000001",
+          "restoredFrom": null,
+          "contentVersion": 2,
+          "restoredSource": null
+        }
+      ],
+      "revision": 4,
+      "createdAt": null,
+      "createdBy": null,
+      "lifecycle": "active",
+      "contentKey": "basic.recover",
+      "contentKind": "skill",
+      "versionFloor": 2,
+      "usedByTruncated": false,
+      "builtinRestoreVersion": 1
+    },
+    {
+      "draft": {
+        "updatedAt": "2026-10-25T17:24:17.672+08:00",
+        "updatedBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.recover.mp",
+          "name": "MP Recovery",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 50,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "recovery",
+                    "payload": {
+                      "type": "percentage-recovery",
+                      "resource": "mp",
+                      "recipient": "actor",
+                      "percentageBasisPoints": 1000
+                    }
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.recovery",
+                  "ownerTurns": 2
+                },
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": {
+                  "kind": "resource-state",
+                  "subject": "owner",
+                  "resource": "mp",
+                  "comparison": "at-most",
+                  "basisPoints": 9999
+                },
+                "classification": "recovery"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-action",
+            "recoveryRounding": "nearest"
+          },
+          "description": "Recover a percentage of your maximum MP.",
+          "schemaVersion": 1,
+          "contentVersion": 1
+        },
+        "restoredBy": "00000000-0000-4000-8000-000000000001",
+        "baseVersion": 2,
+        "draftVersion": 2,
+        "restoredFrom": 1,
+        "restoredSource": "builtin"
+      },
+      "links": [],
+      "usedBy": [],
+      "builtin": {
+        "name": "MP Recovery",
+        "contentVersion": 1
+      },
+      "current": {
+        "authoredAt": "2026-10-25T17:24:17.517+08:00",
+        "authoredBy": "00000000-0000-4000-8000-000000000001",
+        "definition": {
+          "id": "basic.recover.mp",
+          "name": "MP Recovery original restore regression",
+          "tags": [
+            "basic"
+          ],
+          "media": {
+            "vfxKey": null,
+            "iconKey": null,
+            "audioCueKey": null
+          },
+          "ability": {
+            "behaviors": [
+              {
+                "id": "use",
+                "mode": "action",
+                "costs": [
+                  {
+                    "amount": 50,
+                    "resource": "ap"
+                  }
+                ],
+                "effects": [
+                  {
+                    "id": "recovery",
+                    "payload": {
+                      "type": "percentage-recovery",
+                      "resource": "mp",
+                      "recipient": "actor",
+                      "percentageBasisPoints": 1000
+                    }
+                  }
+                ],
+                "cooldown": {
+                  "key": "basic.recovery",
+                  "ownerTurns": 2
+                },
+                "targeting": {
+                  "kind": "self",
+                  "shape": {
+                    "kind": "single"
+                  },
+                  "categories": [
+                    "self"
+                  ],
+                  "teamPolicy": "self",
+                  "friendlyFire": "allies-only",
+                  "maximumRange": 0,
+                  "minimumRange": 0,
+                  "geometryVersion": 3,
+                  "maximumSelections": 1,
+                  "requiresLineOfSight": false,
+                  "maximumElevationDifference": null
+                },
+                "activation": "manual",
+                "requirements": {
+                  "kind": "resource-state",
+                  "subject": "owner",
+                  "resource": "mp",
+                  "comparison": "at-most",
+                  "basisPoints": 9999
+                },
+                "classification": "recovery"
+              }
+            ],
+            "schemaVersion": 1
+          },
+          "enabled": true,
+          "execution": {
+            "kind": "basic-action",
+            "recoveryRounding": "nearest"
+          },
+          "description": "Recover a percentage of your maximum MP.",
+          "schemaVersion": 1,
+          "contentVersion": 2
+        },
+        "restoredBy": null,
+        "publishedAt": "2026-10-25T17:24:17.618+08:00",
+        "publishedBy": "00000000-0000-4000-8000-000000000001",
+        "restoredFrom": null,
+        "contentVersion": 2,
+        "restoredSource": null
+      },
+      "history": [
+        {
+          "authoredAt": "2026-10-25T17:24:17.517+08:00",
+          "authoredBy": "00000000-0000-4000-8000-000000000001",
+          "definition": {
+            "id": "basic.recover.mp",
+            "name": "MP Recovery original restore regression",
+            "tags": [
+              "basic"
+            ],
+            "media": {
+              "vfxKey": null,
+              "iconKey": null,
+              "audioCueKey": null
+            },
+            "ability": {
+              "behaviors": [
+                {
+                  "id": "use",
+                  "mode": "action",
+                  "costs": [
+                    {
+                      "amount": 50,
+                      "resource": "ap"
+                    }
+                  ],
+                  "effects": [
+                    {
+                      "id": "recovery",
+                      "payload": {
+                        "type": "percentage-recovery",
+                        "resource": "mp",
+                        "recipient": "actor",
+                        "percentageBasisPoints": 1000
+                      }
+                    }
+                  ],
+                  "cooldown": {
+                    "key": "basic.recovery",
+                    "ownerTurns": 2
+                  },
+                  "targeting": {
+                    "kind": "self",
+                    "shape": {
+                      "kind": "single"
+                    },
+                    "categories": [
+                      "self"
+                    ],
+                    "teamPolicy": "self",
+                    "friendlyFire": "allies-only",
+                    "maximumRange": 0,
+                    "minimumRange": 0,
+                    "geometryVersion": 3,
+                    "maximumSelections": 1,
+                    "requiresLineOfSight": false,
+                    "maximumElevationDifference": null
+                  },
+                  "activation": "manual",
+                  "requirements": {
+                    "kind": "resource-state",
+                    "subject": "owner",
+                    "resource": "mp",
+                    "comparison": "at-most",
+                    "basisPoints": 9999
+                  },
+                  "classification": "recovery"
+                }
+              ],
+              "schemaVersion": 1
+            },
+            "enabled": true,
+            "execution": {
+              "kind": "basic-action",
+              "recoveryRounding": "nearest"
+            },
+            "description": "Recover a percentage of your maximum MP.",
+            "schemaVersion": 1,
+            "contentVersion": 2
+          },
+          "restoredBy": null,
+          "publishedAt": "2026-10-25T17:24:17.618+08:00",
+          "publishedBy": "00000000-0000-4000-8000-000000000001",
+          "restoredFrom": null,
+          "contentVersion": 2,
+          "restoredSource": null
+        }
+      ],
+      "revision": 4,
+      "createdAt": null,
+      "createdBy": null,
+      "lifecycle": "active",
+      "contentKey": "basic.recover.mp",
+      "contentKind": "skill",
+      "versionFloor": 2,
+      "usedByTruncated": false,
+      "builtinRestoreVersion": 1
+    }
+  ]
+}
