@@ -1,0 +1,24 @@
+{
+  "candidate": "77f8e0c0474f22274bbb09adbcb68ccd7bb84800",
+  "synthetic": "7bd3eecee02a1fe1cca23ba440961c75630b968e",
+  "tree": "86061009e6b98f486013fc1c0d2928abc8ab6ab2",
+  "collectionIncomplete": true,
+  "logs": [
+    {
+      "job": 121254970094,
+      "decodedBytes": 89259,
+      "decodedSha256": "1ad9a6bc4c0e64eb99f2e7a7e71fcc1974e9d680ff2e656b1c49d5fa727c0105",
+      "gzipBytes": 18208,
+      "gzipSha256": "cdb4e8ede82c59b0137c0462be768102bd50a3f5677ebc0e6886dbdaa490373f",
+      "gzipPath": "/workspace/scratch/e5db2ba73c1a/native-77f8e0c-job-121254970094.log.gz"
+    },
+    {
+      "job": 121254970762,
+      "decodedBytes": 88474,
+      "decodedSha256": "02dabdfba6af1221492ff35230d14e18c20e0064d5090fdb2a84386129b53576",
+      "gzipBytes": 17649,
+      "gzipSha256": "2004063d01f30a719504eb4228207045936c23310791e9c85784b42b996cfc10",
+      "gzipPath": "/workspace/scratch/e5db2ba73c1a/native-77f8e0c-job-121254970762.log.gz"
+    }
+  ]
+}
