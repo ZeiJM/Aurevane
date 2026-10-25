@@ -61,6 +61,34 @@ function lockWindowToCurrentRect(panel: HTMLElement) {
   return rect
 }
 
+function desktopChatHeaders(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      '[data-battle-route-frame] > header, main[data-pvp-battle="true"] > header',
+    ),
+  ).filter((header) => header.getClientRects().length > 0)
+}
+
+function fitDesktopChatWindow(
+  panel: HTMLElement,
+  rect: { left: number; top: number; width: number; height: number },
+) {
+  const minimumTop = Math.max(
+    VIEWPORT_MARGIN,
+    ...desktopChatHeaders().map(
+      (header) => header.getBoundingClientRect().bottom + VIEWPORT_MARGIN,
+    ),
+  )
+  const width = Math.min(rect.width, window.innerWidth - 2 * VIEWPORT_MARGIN)
+  const height = Math.min(rect.height, window.innerHeight - minimumTop - VIEWPORT_MARGIN)
+  panel.style.width = `${width}px`
+  panel.style.height = `${height}px`
+  panel.style.left = `${Math.max(VIEWPORT_MARGIN, Math.min(window.innerWidth - width - VIEWPORT_MARGIN, rect.left))}px`
+  panel.style.top = `${Math.max(minimumTop, Math.min(window.innerHeight - height - VIEWPORT_MARGIN, rect.top))}px`
+  panel.style.right = 'auto'
+  panel.style.bottom = 'auto'
+}
+
 function SpectatorFooterControl({
   spectatorCount,
   spectators,
@@ -187,6 +215,20 @@ export function PvpBattleChatBridge({
     }
   }, [desktop, footerTarget])
 
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    if (!desktop || !panelOpen || !panel) return
+    const fit = () => fitDesktopChatWindow(panel, panel.getBoundingClientRect())
+    fit()
+    const observer = new ResizeObserver(fit)
+    for (const header of desktopChatHeaders()) observer.observe(header)
+    window.addEventListener('resize', fit)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', fit)
+    }
+  }, [desktop, panelOpen])
+
   useEffect(() => {
     let attachedChat: HTMLButtonElement | null = null
     let attachedLog: HTMLButtonElement | null = null
@@ -302,22 +344,12 @@ export function PvpBattleChatBridge({
     const startY = event.clientY
 
     function move(moveEvent: PointerEvent) {
-      const left = Math.max(
-        VIEWPORT_MARGIN,
-        Math.min(
-          window.innerWidth - rect.width - VIEWPORT_MARGIN,
-          rect.left + moveEvent.clientX - startX,
-        ),
-      )
-      const top = Math.max(
-        VIEWPORT_MARGIN,
-        Math.min(
-          window.innerHeight - rect.height - VIEWPORT_MARGIN,
-          rect.top + moveEvent.clientY - startY,
-        ),
-      )
-      panelElement.style.left = `${left}px`
-      panelElement.style.top = `${top}px`
+      fitDesktopChatWindow(panelElement, {
+        width: rect.width,
+        height: rect.height,
+        left: rect.left + moveEvent.clientX - startX,
+        top: rect.top + moveEvent.clientY - startY,
+      })
     }
 
     const finish = () => {
