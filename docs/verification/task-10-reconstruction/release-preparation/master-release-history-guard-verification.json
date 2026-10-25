@@ -1,0 +1,30 @@
+{
+  "verifiedAt": "2026-10-25T18:23:07.022Z",
+  "engine": "PGlite 0.5.8; local preflight verification only",
+  "receipts": [
+    {
+      "name": "exact history accepted",
+      "passed": true,
+      "expectedRejection": null,
+      "actualRejection": null
+    },
+    {
+      "name": "added history rejected",
+      "passed": true,
+      "expectedRejection": "MASTER_HISTORY_COUNT_CHANGED",
+      "actualRejection": "MASTER_HISTORY_COUNT_CHANGED"
+    },
+    {
+      "name": "rewritten history rejected",
+      "passed": true,
+      "expectedRejection": "MASTER_HISTORY_CONTENT_CHANGED",
+      "actualRejection": "MASTER_HISTORY_CONTENT_CHANGED"
+    },
+    {
+      "name": "alias body mismatch rejected after fresh hash",
+      "passed": true,
+      "expectedRejection": "MASTER_LEGACY_ALIAS_CHANGED",
+      "actualRejection": "MASTER_LEGACY_ALIAS_CHANGED"
+    }
+  ]
+}
