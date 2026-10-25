@@ -283,10 +283,12 @@ if (groundPreset) {
   }
 }
 
+const participantNames = ['Zei', 'Ally 1', 'Recruit 1', 'Recruit 2']
+const turnName = new URLSearchParams(location.search).get('turnName')
 const participants = ids.map((id, index) => ({
   combatantId: id,
   characterId: id,
-  characterName: ['Zei', 'Ally 1', 'Recruit 1', 'Recruit 2'][index],
+  characterName: index === 2 && turnName ? turnName : participantNames[index],
   characterLevel: 1,
   portraitRef: 'portrait.adventure.male-01',
   profileImageUrl: null,

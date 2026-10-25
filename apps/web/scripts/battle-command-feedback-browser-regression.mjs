@@ -19,6 +19,9 @@ const root = resolve(web, '../..')
 const { openBattleInfoMenu } = await import(
   pathToFileURL(resolve(web, 'e2e/battle-info-menu-helpers.ts'))
 )
+const { expectTerrainKey } = await import(
+  pathToFileURL(resolve(web, 'e2e/battle-map-key-helpers.ts'))
+)
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'battle-command-feedback-'))
 const output = process.env.AV_COMMAND_FEEDBACK_EVIDENCE_DIR || resolve(fixture, 'evidence')
 await fs.mkdir(output, { recursive: true })
@@ -152,6 +155,105 @@ async function verifyCooldownAlignment() {
     )
     await page.close()
   }
+}
+async function verifyTerrainTurnStability() {
+  const viewports = [
+    { width: 1536, height: 614 },
+    { width: 1366, height: 768 },
+    { width: 1024, height: 576 },
+    { width: 821, height: 768 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]
+  for (const mode of ['pvp', 'pve']) {
+    const names =
+      mode === 'pvp' ? ['TerrainGuest ABCDEFG', 'W'.repeat(24), '界'.repeat(24)] : ['Recruit']
+    for (const name of names)
+      for (const viewport of viewports) {
+        const mobile = viewport.width < 821 || (viewport.width <= 980 && viewport.height < 500)
+        const page = await browser.newPage({ viewport, hasTouch: mobile, isMobile: mobile })
+        page.setDefaultTimeout(5000)
+        page.on('pageerror', (error) => errors.push(error.message))
+        await page.goto(
+          server.resolvedUrls.local[0] +
+            `?mode=${mode}&chat=1&turnName=${encodeURIComponent(name)}`,
+        )
+        await page.locator('[data-board-auto-fit]').waitFor()
+        await page.evaluate(async () => {
+          await document.fonts.ready
+          await Promise.all([...document.images].map((image) => image.decode().catch(() => {})))
+          window.advanceBattle('enemy-one')
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          )
+        })
+        const status = page.locator('[data-battle-preview-strip]')
+        assert.equal(await status.getAttribute('data-battle-turn-state'), 'waiting')
+        const title = await page.locator('[data-battle-instruction-title]').innerText()
+        if (mode === 'pvp') assert.equal(title, `Waiting for ${name}`)
+        else assert.match(title, /^Waiting for Recruit(?: \d+)?$/)
+        const board = page.locator('[data-board-auto-fit]')
+        const before = await board.boundingBox()
+        if (!mobile)
+          assert.equal(
+            (await status.boundingBox()).height,
+            44,
+            'The full waiting title fits the existing preview row',
+          )
+        const clipped = await page
+          .locator('[data-battle-instruction-title]')
+          .evaluate((element) => {
+            const caption = element.getBoundingClientRect()
+            const strip = element.closest('[data-battle-preview-strip]').getBoundingClientRect()
+            const range = document.createRange()
+            range.selectNodeContents(element)
+            return [...range.getClientRects()].some(
+              (rect) =>
+                rect.left < caption.left - 1 ||
+                rect.right > caption.right + 1 ||
+                rect.top < strip.top + 1 ||
+                rect.bottom > strip.bottom - 1,
+            )
+          })
+        assert.equal(
+          clipped,
+          false,
+          `The complete turn caption stays readable: ${mode} ${name} ${viewport.width}x${viewport.height}`,
+        )
+        if (mode === 'pvp' && name === 'TerrainGuest ABCDEFG' && viewport.width === 1536)
+          await page.screenshot({ path: resolve(output, 'pvp-waiting-turn-1536.png') })
+        await expectTerrainKey(page)
+        assert.deepEqual(
+          await board.boundingBox(),
+          before,
+          'Terrain and Back preserve the waiting-turn battlefield',
+        )
+        await page.evaluate(async () => {
+          window.advanceBattle('character:player')
+          await new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          )
+        })
+        assert.deepEqual(
+          await board.boundingBox(),
+          before,
+          'Turn handoff preserves battlefield geometry',
+        )
+        assert.equal(
+          await page.evaluate(
+            () =>
+              window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path))
+                .length,
+          ),
+          0,
+          'Reading Terrain does not issue combat commands',
+        )
+        await page.close()
+      }
+  }
+  console.log(
+    'Waiting-turn captions, Terrain and handoff keep the board fixed across modes and legal long names',
+  )
 }
 async function verifyTurnCues() {
   for (const viewport of [
@@ -954,6 +1056,7 @@ async function verifyNestedReaderDismissal() {
   console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
 }
 try {
+  await verifyTerrainTurnStability()
   await verifyWrappedPreviewParity()
   await verifyNestedReaderDismissal()
   await verifyCooldownAlignment()
