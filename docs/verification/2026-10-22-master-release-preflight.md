@@ -21,3 +21,15 @@ Current gate: full B review finds three Important retained-read/error-transport 
 ## Subsequent state update
 
 The preceding B-fix4 paragraph is a historical preflight snapshot. B/C source gates are now accepted; Task10 repair count5/5 remains. D implements its remaining complete Game Content workflow, first source checkpoint4a82036d1f97a243201555ef83fffe386beaba32 backed exactly as remote4a4e1e0a1f5e9e93a85e5ec9b17298d249c15d32/tree30f0a3f7dcac2411473b977294e8ad542365724e. C5 native18workflows completed10success/8failure; actual DB foundation passes, whole quality/browser residuals are preserved in the final-integration gate inventory. Task11/12 and final integration/review/reconciliation/release remain held behind dependencies. The separately prepared task-13-brief.md is a future integration handoff, not an unlocked implementation. Production is unchanged and no Content migrations have been applied. Owner authorization remains sufficient for the completed release.
+
+## Frozen-D and active11 update — 2026-10-23
+
+D final source7c02f72/tree08c84b1 is cap-disposed at Task10 repair5/5 with required I1–I4/M1 dependency repairs routed into11. The first11 source checkpoint local7f33a513/tree3c8ee319 maps exactly to remote7b153f99; focused dependency controls pass, combined11 review/native remain pending. Rules/Music/World Environment implementation is active;12 and13 remain. Final frozen-D native18complete:10success/8failure, exact diagnostics in2026-10-23-master-native-d.md. This is not a ready-to-release branch.
+
+Source-only inventory frozen-d-migration-inventory.json records15 added Content migrations relative to current maina31029c, with original identity/bytes/SHA256/Git blob. It is not the final11/12/13 manifest or proof of hosted absence/application. Extend from final accepted source and reconcile actual hosted history before applying anything. Existing Players20261020181057 remains already applied; do not reapply. No Content migration has been applied by this continuation.
+
+Fresh PR972 read at2026-10-23T01:07Z confirms mainbasea31029c04c0ef7be9fd08092c6a70f6f086b48b6 unchanged, frozenDhead7c02f72ad9046c77b023b494e0453124769da326 draft/mergeable. Main/production/hosted must still be read afresh at final release. No main merge, deployment or roster republish.
+
+## Baseline superseded by deployed combat/mobile release
+
+Actualdirectfetchmainb5ec15945168b0d3ceabeffb735b3f21cbb57d2a supersedes PRmetadataa310. Direct04:16UTCproductionread: READYdpl_2y76PUwvM4adpL8grUKVd5qLA7mK/source8591a2186f39d5017bc8b0366a2afbe31021f119; hostedread-onlycounts1240history/294current/0drafts. Preserve130newResonanceversions and latest approved independentMove/readiness/mobilecontracts. Rootprevious1110counts/privatecataloguepayload are historical. Frozen11sourceapproved but mainreconciliation/nativebootstrapfix1active; no Task11completion or Masterrelease. Detail2026-10-23-master-task11-native-main-followthrough.md. Futurefreshness uses actualdirectfetch, not historicalPRbase_sha. No Mastermigration/publication/deployment.

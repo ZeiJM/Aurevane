@@ -1,0 +1,15 @@
+{
+  "queriedAt": "2026-10-23T04:16Z",
+  "project": "luazfeupwfgnilohfsya",
+  "mode": "read-only transaction; rollback; aggregate counts only",
+  "counts": {
+    "drafts": 0,
+    "currentKinds": {
+      "skill": 141,
+      "essence": 17,
+      "resonance": 136
+    },
+    "currentPointers": 294,
+    "immutableVersions": 1240
+  }
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "label": "discipline",
+    "job_id": 120174258189,
+    "file": "d-native-discipline-120174258189.log.gz",
+    "bytes": 17069,
+    "sha256": "10b62e55799c46c69b966207a813fde0e0433cb258b43b2e2e57578d138242b8",
+    "raw_bytes": 84382,
+    "redacted_keys": 2,
+    "redacted_jwts": 0
+  },
+  {
+    "label": "startup",
+    "job_id": 120174258392,
+    "file": "d-native-startup-120174258392.log.gz",
+    "bytes": 17300,
+    "sha256": "9c2c667d7f939ceb70f7939f24be66760bb1257929674ad200c6ddd6e22764b1",
+    "raw_bytes": 83088,
+    "redacted_keys": 2,
+    "redacted_jwts": 0
+  },
+  {
+    "label": "buildcraft",
+    "job_id": 120174258312,
+    "file": "d-native-buildcraft-120174258312.log.gz",
+    "bytes": 25726,
+    "sha256": "4eacfb22689432f5fd6f9906e9e2ddb19653470a3fb0a790c0ac217957777566",
+    "raw_bytes": 137199,
+    "redacted_keys": 2,
+    "redacted_jwts": 0
+  },
+  {
+    "label": "desktop-fit",
+    "job_id": 120174258478,
+    "file": "d-native-desktop-fit-120174258478.log.gz",
+    "bytes": 76788,
+    "sha256": "ad130ea1a72448e544cd07948b26e09b81eeff0d296e44dec13e67a5fb22740d",
+    "raw_bytes": 510935,
+    "redacted_keys": 2,
+    "redacted_jwts": 0
+  },
+  {
+    "label": "ui",
+    "job_id": 120174258662,
+    "file": "d-native-ui-120174258662.log.gz",
+    "bytes": 31474,
+    "sha256": "82eaaf4c8edb63d746689938bf49d4f1a51fb362b425235d2975ae2b16753c96",
+    "raw_bytes": 167700,
+    "redacted_keys": 2,
+    "redacted_jwts": 0
+  }
+]

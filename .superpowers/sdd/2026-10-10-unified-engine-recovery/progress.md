@@ -253,3 +253,63 @@ Task10 Stage D combined review at local09dfba93b341a9081c7c54ce3d169c6d70e6c178:
 Task10: complete (source commits through09dfba9,5 findings parked with explicit cap rulings: I1–I4 REQUIRED first dependency repairs in Task11 and M1 carried alongside; inherited M2 deferred). This is cap disposition, NOT clean spec/quality approval, NOT native/hosted/whole-Master acceptance, and NOT a waiver. Task11 consumes these required repairs before building its operational pages. Later Task11 combined review must verdict I1–I4/M1 closed as well as its own scope. Final13 still closes native/browser/whole-chain/history/hosted gaps, including builtin exact-read versus unrecorded restore boundary.
 
 C source after final repair5 was approved at local773ada1250a4362ee893d1839533a8c61bfa31e7/remote22ea8d3165eda578a6ce01ffe4dfcf6fe1f3d044. Exact C Core Database foundation39869428471/job120139805970 passed. Frozen D source local09dfba93/remote7c02f72ad9046c77b023b494e0453124769da326 is now on draft PR972 solely for native validation; all18 new workflows started, including CI39879830994 and reader39879831037/browser39879831056/layout39879831085. It remains unaccepted for merge/live release. Main freshlya31029c and deployment lock blob b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f remains locked. No production deployment or Content migration.
+
+
+## Root hosted history adjudication — 2026-10-23T01:15UTC
+
+Actual read-only query confirms1110immutable versions/294keys, Basic Guard/Move/Attack onlyv2 and HP/MPv2,v3, no physicalv1 for any. Supabase read-only connector works; no hosted mutation, migration or browser fallback. Exact sanitized inventory and full rationale: docs/verification/2026-10-23-master-builtin-restore-preflight.md.
+
+Task13: Ruling: The inherited builtin restore boundary is a real Owner section14 gap, confirmed on actual hosted history. Task13 must implement the smallest authoritative restore-to-draft path for exact available builtin baseline definitions, including all five Basicv1 originals, with honest system/source provenance and full hidden/text/media configuration. Do not synthesize historical human publication rows, republish the roster, reset catalogue pointers or weaken exact-version guards. Existing stored histories and all deeper pins remain unchanged. Why: after first editing a live builtin, the operator must be able to restore its original supported snapshot; a warning that it is unavailable does not finish that workflow. Cost if wrong: an additional bounded restore interface/migration and focused/physical tests, reversible before release; no gameplay balance change is authorized.
+
+Task10 remains cap5/5; no additional D wave, no11/12 scope expansion. Final history acceptance/release remains held on actual closure.
+
+Task11 Rules/World checkpoint localb50fb4404a750bc5fbf9cbf3df8ace94627e4d24 maps exactly to remote0868dc5edd4a481b9e632afd6ac4f6f31455355a/treea9fc4c2b9af0f7a324b5a6706ce0d51bf9fb6b5e. Root verified all59blob IDs/tree,21new gzip SHA/decode/zero keys-JWT and unchanged339268byte ledger prefix (new357436bytes). New operational migration20261023010443 is source/PGlite tested, not hosted/physical applied. Music continues in the sole11seat; no partial operational acceptance, PR advance or deployment.
+
+
+## Task11 frozen source gate and first follow-through — 2026-10-23
+
+# Task11 frozen review, native startup and concurrent release reconciliation
+
+Frozen Task11 local20ec2d04973136c314043ce7973ea719ec3ed709 maps exactly to remote0c346614f3f228d2307f3c8b74782d58568e4d02/tree610f1ebaf072cd69df3ba3c259f9307d3d73d403. Root verified38finalchanged blobs and fetched zero diff; across full stage56newgzip SHA/decode/zero keys-JWT, all440priortrackedgzip unchanged, exact330347byte ledger prefix retained through371335bytes and deployment lockb8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f unchanged.
+
+One combined full-stage review ebf7feb..20ec returns SPECcompliant/QUALITYApproved,0Critical/0Important/1inheritedMinor. I1–I4/M1 closed from actual source/tests. Seven cannot-verify groups remain explicit in stage-11-review-20261023.md, including browser/200%, physical real Owner authority, originalCLIcreation receipt, liveWorldcadence, deployedroutes/storage, cross-task histories and actualmainreconciliation. This is a bounded frozen source verdict, not completion or deployment approval.
+
+## Native first broken boundary
+
+Root ran the unchanged standalone operational browser script twice; neither run reached UI acceptance:
+- Default pinned shell1234 is not installed. Exit1 before browser launch.
+- A transparent external executable-only override selects installed shell1194, actualChromium141.0.7390.37. Browser launches, then Vite fails importing server-only from the client fixture; first CombatRules heading times out30000ms. No UI/World/Music/playback/layout assertion ran. Do not increase timeout or blanket-shim server-only.
+- Full immutable gzip sources: task11-native-20ec.log.gz531bytes/SHA2566cdf02053df39e305ff0aaa7af47187f1f1a218b4a1536463d14679fa4d69801; task11-native-20ec-shell1194.log.gz672bytes/SHA2569ac882b01cd7556ad36574e44fd274147aa0aa68d43e252ccd5911d90d7450ea.
+- Root previously attempted full Chromium for actual zoom; process-singleton socket creation is prohibited. Installed older headless shell DOES launch for bounded rendering/interaction; this corrects any broad reading of the earlier environment note. Full-browser/extension actual200% and exact pinned nativeCI remain distinct and pending.
+- Original commands/provenance were given verbatim to the implementer; start/completion timestamps were not separately captured and must not be manufactured. Original migrationCLIhelp/new stdout is absent from the resumed seat's retained receipts. Preserve that procedural evidence gap; do not regenerate/retimestamp a replacement migration to pretend original proof.
+
+## Main/production/hosted changed before the next stage
+
+Root's03:59freshness signal used PR972 base_sha metadata, which remaineda31029c while the actual main branch advanced. A direct git fetch proves b5ec15945168b0d3ceabeffb735b3f21cbb57d2a, comprising PR971 source (tested8df97448f6490af23a837b98e18b7aa7b5b7e7a9, merge8591a2186f39d5017bc8b0366a2afbe31021f119) and PR973 verified release record. This corrects the earlier freshness observation; it does not erase the actual focused source results.
+
+Ruling: direct git fetch/actual branch tip establishes future main freshness, not a PR's historical base_sha — the stale metadata missed an already released94path change — cost if wrong: an extra read-only fetch; avoids overwriting current approved behavior.
+
+Direct authenticated Vercel canonical read at04:16UTC confirms READY productiondpl_2y76PUwvM4adpL8grUKVd5qLA7mK/source8591a2186f39d5017bc8b0366a2afbe31021f119. Direct read-only Supabase transaction at04:16 confirms current294/history1240/drafts0, with141Skills/17Essences/136Resonances. The approved other release appended130Resonanceversions, retained all1110priorversions and158unrelated current definitions. Prior1110counts and privatecurrentcatalogue798946bytes are historical; they are not the final baseline. No Master migration/publication/deployment occurred.
+
+Preserve the new approved independent SkillMove/ordinarywalking behavior, requirements-met passive readiness and target legality, side-by-sideDisciplines, image-freeTechniquepreview (chooser art retained), compact existingHall sections, fixedframe/mobileChronicle/Chat and exact newly published currentdefinitions/history. Read the new main release handoff. Do not publish the roster again or substitute an earlier source/payload.
+
+An immutable merge-tree preview changed no checkout/index/HEAD. It identifies3text conflicts: battle-experience.tsx, character-skill-build-panel.module.css and character-skill-build-panel.tsx. Automatic overlaps include browserfixtures, ability-detail-presentation and coreabilitycommand/definition/AP; their contracts also require focused reconciliation.
+
+## Scoped follow-through
+
+Task11 fix round1/5 is dispatched to the SAME sole implementer, with full requirements in task-11-fix1-main-native-brief.md. Task10 cap remains5/5. The source review's main/native limitations are not waived; Task11 completion and Task12 remain held. Ruling: delegate this one bounded LOCAL native fixture's RED/GREEN to the same sole implementer with transparent installed-shell selection — the actual reachable fixture boundary needs source diagnosis and runtime follow-through in one repair wave, while pinned nativeCI/hosted/remote source stay root-owned — cost if wrong: a bounded additional local fixture run, no production side effect.
+
+Merge actualmain retaining ancestry, preserve both newer approved release and Mastercurrent/pinned contracts, repair the actual fixture/client boundary, run affected existing tests/types/lint/format and actual bounded operational rendering/playback, then freeze for one scoped combined re-review20ec..newHEAD. No fullpnpmcheck repeated here;13still owns final full gate. Root will back up the exact mergedtree with the actualmain parent so the remote ancestry also records integration.
+
+No main merge, Master hostedmigration, Master catalogue publication or Master production deployment is authorized by this status report. Owner's existing authorization covers the finished verified release; no repeat routine permission loop.
+
+
+## October25 workspace recovery
+Workspace was pruned, old agents gone. Local a570a873/treefa39085 and its image artifacts were never fully committed remotely; GitHub confirms no a570 commit. Previous partial upload object manifest is also gone. Do not claim exact recovery or reuse missing screenshots/logs. Reproduce only the lost bounded repair described below, preserving the recoverable ledger371335byte prefix and prior artifacts. Original reviewer scoped follow-up failed from platform usage limit, so NO scoped approval exists. A new independent scoped reviewer will follow the recovered fix.
+
+Ruling: recreate only lost unbacked Task11 fix1 against recovered reviewed source and latest actual main, recording fresh receipts and exact new identities, rather than relabeling historical results or restarting completed Tasks. Why: required source object is unavailable after workspace pruning. Cost if wrong: bounded repair verification repeats; original scope/cap/history stay explicit.
+
+Latest actual main direct fetched on October25 is14df01a2c42d4cb36bd6c99d21372a1c51084164. Main advanced174paths since old b5ec, including approved mobile/desktop battle UI, chat/Chronicle, activity heartbeat, World rendering and regression helpers. Read current main applicable AGENTS and concise verification docs for touched boundaries; preserve all newer Owner work. Another workspace has unrelated uncommitted mobile changes: NEVER touch it. Only this isolated worktree is yours. Merge latest actual main retaining ancestry (not old b5ec only), resolve Master versus released current/pinned/private media and layout contracts, inspect automatic overlaps. Do not redo or broadly review unchanged main work. Latest lock may legitimately change with approved main; preserve latest actual lock, deployment lock and source. Root supplies fresh fetch before final freeze.
+
+
+Task11 round1/5 recovery dispatched from restored0c346614 plus coordinator2c78729; completed source stages are not reimplemented. Scoped review and Tasks12/13 remain pending.
