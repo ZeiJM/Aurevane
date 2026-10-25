@@ -73,12 +73,17 @@ for order in claim-first emergency-first; do
   # Idempotent repeated stop cannot replay transitions/rewards. Archive cannot reopen claims.
   query "$(stop_sql "$run" "$stop_key")" >"$receipt_dir/$order-stop-repeat.log"
   test "$(query "select state_version from app_private.event_runs where id='$run'")" = 4
+  # The real cron sweep is also a late caller: emergency termination stays closed.
+  query "select * from app_private.recover_due_event_runs_v1(100)" >"$receipt_dir/$order-late-recovery.log"
+  test "$(query "select lifecycle_status||':'||state_version from app_private.event_runs where id='$run'")" = emergency-stopped:4
   query "set role service_role; select * from public.operate_event_run_v2('$owner',null::uuid,'$run',4,gen_random_uuid(),'archive',null,true);" >"$receipt_dir/$order-archive.log"
   if test "$order" = emergency-first; then
     if query "$(claim_sql "$claim" "$(query 'select gen_random_uuid()')")" >"$receipt_dir/archived-late.log" 2>&1; then exit 1; fi
     grep -Fq EVENT_REWARD_EXECUTION_RUN_NOT_TERMINAL "$receipt_dir/archived-late.log"
   fi
   test "$(query "select terminal_status from app_private.event_run_chronicle_entries where run_id='$run'")" = emergency-stopped
+  query "select * from app_private.recover_due_event_runs_v1(100)" >"$receipt_dir/$order-archived-recovery.log"
+  test "$(query "select lifecycle_status||':'||state_version from app_private.event_runs where id='$run'")" = archived:5
   echo "$order: real lock wait and settlement outcome verified"
 done
 
