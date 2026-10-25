@@ -1,0 +1,12 @@
+{
+  "scope": "Environment only; no Aurevane acceptance",
+  "browser": "153.0.8010.0",
+  "launch": "success",
+  "extensionServiceWorker": "not observed within10000ms",
+  "actualZoom200Proven": false,
+  "logSHA256": "280142cdbdd7068bac37627c9ef5d9993b4e91ca4fa5b0476a80890d7399b4ad",
+  "sources": [
+    "https://playwright.dev/docs/chrome-extensions",
+    "https://developer.chrome.com/docs/extensions/reference/api/tabs"
+  ]
+}

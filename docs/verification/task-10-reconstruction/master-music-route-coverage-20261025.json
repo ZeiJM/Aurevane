@@ -1,0 +1,179 @@
+{
+  "sourceHead": "a4ed235e6ba045072b89ac85f506a7263ba80662",
+  "families": 31,
+  "pageFiles": 34,
+  "uncovered": 0,
+  "method": "Immutable page.tsx inventory; route groups removed; root exact and longest slash-boundary family; source coverage only, no hosted/storage/permission claim",
+  "pages": [
+    {
+      "source": "apps/web/src/app/auth/recovery/page.tsx",
+      "routePattern": "/auth/recovery",
+      "matchingFamily": "/auth/recovery"
+    },
+    {
+      "source": "apps/web/src/app/auth/reset-password/page.tsx",
+      "routePattern": "/auth/reset-password",
+      "matchingFamily": "/auth/reset-password"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/account/titles/page.tsx",
+      "routePattern": "/game/account/titles",
+      "matchingFamily": "/game/account/titles"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/arsenal/page.tsx",
+      "routePattern": "/game/arsenal",
+      "matchingFamily": "/game/arsenal"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/character/page.tsx",
+      "routePattern": "/game/character",
+      "matchingFamily": "/game/character"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/haven/page.tsx",
+      "routePattern": "/game/haven",
+      "matchingFamily": "/game/haven"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/loadout/items/page.tsx",
+      "routePattern": "/game/loadout/items",
+      "matchingFamily": "/game/loadout/items"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/loadout/page.tsx",
+      "routePattern": "/game/loadout",
+      "matchingFamily": "/game/loadout"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/nexus/page.tsx",
+      "routePattern": "/game/nexus",
+      "matchingFamily": "/game/nexus"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/online/page.tsx",
+      "routePattern": "/game/online",
+      "matchingFamily": "/game/online"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/settings/audio/page.tsx",
+      "routePattern": "/game/settings/audio",
+      "matchingFamily": "/game/settings/audio"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/settings/controls/page.tsx",
+      "routePattern": "/game/settings/controls",
+      "matchingFamily": "/game/settings/controls"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/training/page.tsx",
+      "routePattern": "/game/training",
+      "matchingFamily": "/game/training"
+    },
+    {
+      "source": "apps/web/src/app/game/(roaming)/world/page.tsx",
+      "routePattern": "/game/world",
+      "matchingFamily": "/game/world"
+    },
+    {
+      "source": "apps/web/src/app/game/battle/[battleSessionId]/page.tsx",
+      "routePattern": "/game/battle/[battleSessionId]",
+      "matchingFamily": "/game/battle"
+    },
+    {
+      "source": "apps/web/src/app/game/battle/page.tsx",
+      "routePattern": "/game/battle",
+      "matchingFamily": "/game/battle"
+    },
+    {
+      "source": "apps/web/src/app/game/battle/spectate/[battleKey]/page.tsx",
+      "routePattern": "/game/battle/spectate/[battleKey]",
+      "matchingFamily": "/game/battle/spectate"
+    },
+    {
+      "source": "apps/web/src/app/game/create/[slot]/page.tsx",
+      "routePattern": "/game/create/[slot]",
+      "matchingFamily": "/game/create"
+    },
+    {
+      "source": "apps/web/src/app/game/page.tsx",
+      "routePattern": "/game",
+      "matchingFamily": "/game"
+    },
+    {
+      "source": "apps/web/src/app/manual/[slug]/page.tsx",
+      "routePattern": "/manual/[slug]",
+      "matchingFamily": "/manual"
+    },
+    {
+      "source": "apps/web/src/app/manual/page.tsx",
+      "routePattern": "/manual",
+      "matchingFamily": "/manual"
+    },
+    {
+      "source": "apps/web/src/app/master/combat-content/page.tsx",
+      "routePattern": "/master/combat-content",
+      "matchingFamily": "/master/combat-content"
+    },
+    {
+      "source": "apps/web/src/app/master/combat-timing/page.tsx",
+      "routePattern": "/master/combat-timing",
+      "matchingFamily": "/master/combat-timing"
+    },
+    {
+      "source": "apps/web/src/app/master/events/live/page.tsx",
+      "routePattern": "/master/events/live",
+      "matchingFamily": "/master/events/live"
+    },
+    {
+      "source": "apps/web/src/app/master/events/page.tsx",
+      "routePattern": "/master/events",
+      "matchingFamily": "/master/events"
+    },
+    {
+      "source": "apps/web/src/app/master/music/page.tsx",
+      "routePattern": "/master/music",
+      "matchingFamily": "/master/music"
+    },
+    {
+      "source": "apps/web/src/app/master/page.tsx",
+      "routePattern": "/master",
+      "matchingFamily": "/master"
+    },
+    {
+      "source": "apps/web/src/app/master/players/page.tsx",
+      "routePattern": "/master/players",
+      "matchingFamily": "/master/players"
+    },
+    {
+      "source": "apps/web/src/app/master/staff/page.tsx",
+      "routePattern": "/master/staff",
+      "matchingFamily": "/master/staff"
+    },
+    {
+      "source": "apps/web/src/app/master/world-environment/page.tsx",
+      "routePattern": "/master/world-environment",
+      "matchingFamily": "/master/world-environment"
+    },
+    {
+      "source": "apps/web/src/app/news/[slug]/page.tsx",
+      "routePattern": "/news/[slug]",
+      "matchingFamily": "/news"
+    },
+    {
+      "source": "apps/web/src/app/news/page.tsx",
+      "routePattern": "/news",
+      "matchingFamily": "/news"
+    },
+    {
+      "source": "apps/web/src/app/page.tsx",
+      "routePattern": "/",
+      "matchingFamily": "/"
+    },
+    {
+      "source": "apps/web/src/app/rules/page.tsx",
+      "routePattern": "/rules",
+      "matchingFamily": "/rules"
+    }
+  ]
+}
