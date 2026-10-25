@@ -1,6 +1,10 @@
 import { installWorldRenderTiming } from './world-render-diagnostics'
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
-import { measurePeerMotionStep, observeWorldMovement } from './world-timing-metrics'
+import {
+  measurePeerMotionStep,
+  observeWorldMovement,
+  type PeerMotionSample,
+} from './world-timing-metrics'
 import {
   cleanupWorldPresenceFixtures,
   matchesWorldWalk,
@@ -539,6 +543,8 @@ export async function verifyWorldScenePresence(
           at: number
           frameAt: number
           paintingMs: number
+          tileSize: number
+          identityRatio: number
           x: number
           y: number
         }[] = []
@@ -552,6 +558,8 @@ export async function verifyWorldScenePresence(
               at: performance.now(),
               frameAt: Number(el.dataset.frameNow),
               paintingMs: performance.now() - Number(el.dataset.frameStarted),
+              tileSize: tile,
+              identityRatio: identity.width / identity.clientWidth,
               x: Number(el.dataset.cameraX) + (east + north) / 2,
               y: Number(el.dataset.cameraY) + (north - east) / 2,
             })
@@ -590,7 +598,7 @@ export async function verifyWorldScenePresence(
           (await observer.page
             .locator('canvas[data-world-stage]')
             .getAttribute('data-test-moving-observer-draws')) ?? '[]',
-        ) as { at: number; x: number; y: number }[]
+        ) as PeerMotionSample[]
         const motionSteps = samples
           .slice(1)
           .map((sample, i) => measurePeerMotionStep(samples[i]!, sample))
@@ -638,8 +646,12 @@ export async function verifyWorldScenePresence(
           ).toBeGreaterThan(-0.1)
           expect(
             step.deltaX,
-            `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms sample gap; ${longTasks.length} observed long tasks`,
+            `peer ${index}, step ${stepIndex}: ${step.elapsedMs.toFixed(1)}ms animation / ${step.paintElapsedMs.toFixed(1)}ms paint gap; ${longTasks.length} observed long tasks`,
           ).toBeLessThan(step.maximumDeltaX)
+          expect(
+            Math.abs(step.deltaY),
+            `peer ${index}, step ${stepIndex}: eastward approved route stays on its row`,
+          ).toBeLessThanOrEqual(step.projectionError)
         }
       }
     })

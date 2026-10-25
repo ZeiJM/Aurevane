@@ -42,6 +42,29 @@ const step = (x: number, y = 1, durationMs = 200) => ({
 })
 
 describe('approved remote movement clocks', () => {
+  it('advances legal elapsed motion across a delayed frame without introducing a receipt-time snap', () => {
+    const motion = new WorldPlayerMotion(view(approved(1, [step(2), step(3), step(4)])), 0)
+    expect(motion.sample('remote', 0)).toEqual({ x: 1.5, y: 1.5 })
+    expect(motion.sample('remote', 200)).toEqual({ x: 2.5, y: 1.5 })
+    // A 233.3ms gap covers more than one legal 200ms tile; it is not a 16ms snap.
+    expect(motion.sample('remote', 433.3)!.x).toBeCloseTo(3.6665)
+    const beforeReceipt = motion.sample('remote', 433.3)
+    const receipt = view(approved(3, [step(4)], 1450, 1600, 2))
+    motion.update(receipt, 433.3)
+    expect(motion.sample('remote', 433.3)).toEqual(beforeReceipt)
+    let previous = beforeReceipt!
+    for (const at of [450, 466.7, 483.4, 500.1, 516.8, 533.5, 550.2, 566.9, 583.6, 600.3]) {
+      const current = motion.sample('remote', at)!
+      expect(current.x - previous.x).toBeGreaterThanOrEqual(0)
+      expect(current.x - previous.x).toBeLessThan(0.084)
+      expect(current.y).toBe(1.5)
+      previous = current
+    }
+    expect(previous).toEqual({ x: 4.5, y: 1.5 })
+    // Reading the visual track does not move the confirmed server position.
+    expect(receipt.players[0]!.position).toEqual({ sectorId: 'a', x: 3, y: 1 })
+  })
+
   it('starts a newly approved route from its already presented standing pose without skipping late steps', () => {
     const motion = new WorldPlayerMotion(view(approved(1, [], 1000, null, 1)), 0)
     const before = motion.sample('remote', 70)
