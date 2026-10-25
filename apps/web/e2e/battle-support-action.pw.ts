@@ -120,13 +120,18 @@ for (const supportActionId of ['basic.recover', 'basic.recover.mp'] as const) {
       .getByRole('dialog', { name: 'Complete the tactical fundamentals' })
       .getByRole('button', { name: 'Continue training' })
       .click()
+    // Recruit may own the opening turn. Focusing a disabled practice button is a no-op.
+    const root = page.locator('main[data-unified-battle="true"]')
+    await expect(root).toHaveAttribute('data-local-turn', 'true')
+    const practice = page.getByRole('button', { name: 'Practice Guard, 30 AP', exact: true })
+    await expect(practice).toBeEnabled()
     const before = await readBattle(page)
     const actor = before.snapshot.tactical.battle.combatants.find(
       (unit) => unit.id === `character:${characterId}`,
     )!
     expect(actor.mp).toBe(actor.maxMp)
-    const practice = page.getByRole('button', { name: 'Practice Guard, 30 AP', exact: true })
     await practice.focus()
+    await expect(practice).toBeFocused()
     await page.keyboard.down('Enter')
     await expect(targetForecast(page)).toContainText('Success 100%')
     await expect(targetForecast(page)).toContainText('Guard')
