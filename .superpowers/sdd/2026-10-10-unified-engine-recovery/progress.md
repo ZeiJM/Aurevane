@@ -313,3 +313,8 @@ Latest actual main direct fetched on October25 is14df01a2c42d4cb36bd6c99d21372a1
 
 
 Task11 round1/5 recovery dispatched from restored0c346614 plus coordinator2c78729; completed source stages are not reimplemented. Scoped review and Tasks12/13 remain pending.
+
+
+Task11: fix round1/5 (native bootstrap addressed, fresh-main ancestry reconciled,9local operational browser cases pass;1new Important remains: recovery-I1 mobile shared-Skill artwork obscures names/eligibility labels; source0c346614..b2af6e4, exact remoteccd34aff/tree6dd1935). Full scoped SPECnotcompliant/QUALITYchangesrequired report and reproducible observational evidence archived in docs/verification/task-10-reconstruction/stage-11-recovery-review-20261025.md and t11-recovery-review-*; stdout artifact is a faithful later transcription, not contemporaneous redirected receipt. Root read complete report, inspected actual screenshot and confirmed new integration breakage. Existing full-stage dependency I1–I4/M1 remain closed. Inherited ViteMinor and all final13native/physical/hosted/real200%/history gates remain binding; no Task12 start or scoped approval.
+
+Task11: fix round2/5 dispatched to SAME sole recovery implementer for recovery-I1only. Preserve latest mobile tabs/image-free lower preview, all actual eligibility selections/save/CAS, touch/keyboard access and readable identity/control. Task10 cap5/5 remains. Cover actual populated multi-grant mobile component with meaningful geometry/paint controls; no forced clicks, assertion weakening or whole-check repetition. Root will back up exact corrected source and route same reviewer scoped rereview.

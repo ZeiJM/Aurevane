@@ -1,0 +1,28 @@
+{
+  "queriedAt": "2026-10-25T06:16:30Z",
+  "actualMain": "14df01a2c42d4cb36bd6c99d21372a1c51084164",
+  "production": {
+    "id": "dpl_AGMCADJnwvC2AU5swtEfkxgSDvgN",
+    "state": "READY",
+    "source": "14df01a2c42d4cb36bd6c99d21372a1c51084164"
+  },
+  "hosted": {
+    "project": "luazfeupwfgnilohfsya",
+    "mode": "BEGIN READ ONLY; aggregate SELECT; ROLLBACK",
+    "immutableVersions": 1240,
+    "currentPointers": 294,
+    "drafts": 0,
+    "latestAppliedMigration": "20261020181057_master_players_recovery",
+    "contentAndOperationsMigrationsApplied": false
+  },
+  "recovery": {
+    "acceptedSourceRemote": "0c346614f3f228d2307f3c8b74782d58568e4d02",
+    "lostUnbackedLocal": "a570a873cb11bfb2f04c32e847a017ae464e28fe",
+    "missingObjectConfirmed": true,
+    "restoredCoordinator": "2c78729d277d26139bcbcc2debb9001607cfe88b",
+    "newRemoteCheckpoint": "04587a60728a465b63ac6facdcfe4b40e574595c",
+    "newExactTree": "c13fbea10afad2742129594b67600007804401a5",
+    "recoveryBranch": "agent/master-resume-20261025"
+  },
+  "scope": "Read-only production/hosted preflight; no Master source merge, migration, publication or deployment"
+}

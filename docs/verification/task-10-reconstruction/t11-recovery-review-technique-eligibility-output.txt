@@ -1,0 +1,149 @@
+browser 153.0.8010.0
+{
+  "grid": {
+    "top": 180.8125,
+    "bottom": 419.421875,
+    "left": 15.390625,
+    "right": 374.609375,
+    "height": 238.609375
+  },
+  "overflow": "hidden",
+  "cards": [
+    {
+      "card": {
+        "top": 180.8125,
+        "bottom": 298.359375,
+        "left": 15.390625,
+        "right": 102.546875,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 251.453125,
+        "bottom": 295.453125,
+        "left": 18.296875,
+        "right": 99.640625,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Forceful Strike\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    },
+    {
+      "card": {
+        "top": 180.8125,
+        "bottom": 298.359375,
+        "left": 106.0625,
+        "right": 193.234375,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 251.453125,
+        "bottom": 295.453125,
+        "left": 108.96875,
+        "right": 190.328125,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Cleave\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    },
+    {
+      "card": {
+        "top": 180.8125,
+        "bottom": 298.359375,
+        "left": 196.75,
+        "right": 283.921875,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 251.453125,
+        "bottom": 295.453125,
+        "left": 199.65625,
+        "right": 281.015625,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Guard Break\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    },
+    {
+      "card": {
+        "top": 180.8125,
+        "bottom": 298.359375,
+        "left": 287.4375,
+        "right": 374.609375,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 251.453125,
+        "bottom": 295.453125,
+        "left": 290.34375,
+        "right": 371.703125,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Brace\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    },
+    {
+      "card": {
+        "top": 301.875,
+        "bottom": 419.421875,
+        "left": 15.390625,
+        "right": 102.546875,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 372.515625,
+        "bottom": 416.515625,
+        "left": 18.296875,
+        "right": 99.640625,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Rally\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    },
+    {
+      "card": {
+        "top": 301.875,
+        "bottom": 419.421875,
+        "left": 106.0625,
+        "right": 193.234375,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 372.515625,
+        "bottom": 416.515625,
+        "left": 108.96875,
+        "right": 190.328125,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Shield Bash\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    },
+    {
+      "card": {
+        "top": 301.875,
+        "bottom": 419.421875,
+        "left": 196.75,
+        "right": 283.921875,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 372.515625,
+        "bottom": 416.515625,
+        "left": 199.65625,
+        "right": 281.015625,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Second Wind\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    },
+    {
+      "card": {
+        "top": 301.875,
+        "bottom": 419.421875,
+        "left": 287.4375,
+        "right": 374.609375,
+        "height": 117.546875
+      },
+      "select": {
+        "top": 372.515625,
+        "bottom": 416.515625,
+        "left": 290.34375,
+        "right": 371.703125,
+        "height": 44.0
+      },
+      "hit": "<select aria-label=\"Eligible Discipline for Sweeping Strike\"><option value=\"\" disabled=\"\">Choose Discipline</option><option value=\"vanguard\">Vanguard — Earned</option><option value=\"lifebinder\">Lifebinder — Earned</option></select>"
+    }
+  ]
+}
