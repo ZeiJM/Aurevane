@@ -131,6 +131,223 @@ const browser = await chromium.launch({
   headless: true,
 })
 const errors = []
+async function verifyMobileFooterParity() {
+  for (const viewport of [
+    { width: 320, height: 640 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    const rows = []
+    for (const mode of ['pve', 'pvp']) {
+      const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&chat=1`)
+      await page.locator('[data-board-auto-fit]').waitFor()
+      await page.evaluate(() => document.fonts.ready)
+      rows.push(
+        await page.locator('[data-battle-footer-actions]').evaluate((host) => {
+          const names = ['Terrain', 'Cancel', 'Surrender']
+          return {
+            footer: host.closest('footer').getBoundingClientRect().toJSON(),
+            buttons: names.map((name) => {
+              const b = [...host.querySelectorAll('button')].find((b) =>
+                b.textContent.includes(name),
+              )
+              const r = b.getBoundingClientRect()
+              return { name, x: r.x, y: r.y, width: r.width, height: r.height }
+            }),
+          }
+        }),
+      )
+      await page.close()
+    }
+    for (let i = 0; i < 3; i++)
+      for (const key of ['x', 'y', 'width', 'height'])
+        assert.ok(
+          Math.abs(rows[0].buttons[i][key] - rows[1].buttons[i][key]) <= 1,
+          `AI/PvP mobile ${viewport.width} footer ${rows[0].buttons[i].name} ${key}: ${JSON.stringify(rows)}`,
+        )
+    for (const key of ['y', 'height'])
+      assert.ok(
+        Math.abs(rows[0].footer[key] - rows[1].footer[key]) <= 1,
+        `AI/PvP ${viewport.width} compact footer ${key}`,
+      )
+  }
+  console.log('Mobile AI footer matches the existing PvP trailing control group')
+}
+async function verifyPassiveInspection() {
+  for (const mode of ['pve', 'pvp'])
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+      { width: 320, height: 640 },
+      { width: 844, height: 390 },
+    ]) {
+      const mobile = viewport.width < 821 || viewport.height < 500
+      const page = await browser.newPage({ viewport, isMobile: mobile, hasTouch: mobile })
+      page.setDefaultTimeout(5000)
+      page.on('pageerror', (e) => errors.push(e.message))
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&passivePreview=1`)
+      const root = page.locator('main')
+      await root.waitFor()
+      await page.evaluate(() => {
+        const original = window.fetch
+        window.passivePreviewWaiters = []
+        window.fetch = async (...args) => {
+          const response = await original(...args)
+          if (String(args[0]).endsWith('/preview'))
+            await new Promise((resolve) => window.passivePreviewWaiters.push(resolve))
+          return response
+        }
+        window.releasePassiveForecast = () =>
+          window.passivePreviewWaiters.splice(0).forEach((resolve) => resolve())
+      })
+      const passive = page.locator('[data-battle-skill-slot="3"] button[aria-pressed]')
+      assert.equal(
+        await passive.isEnabled(),
+        true,
+        'Passive artwork can be selected for inspection',
+      )
+      await page.locator('button[data-command-slot="attack"]').click()
+      await page.waitForFunction(() => window.passivePreviewWaiters.length > 0)
+      const forecastCount = await page.evaluate(
+        () => window.calls.filter((call) => call.path.endsWith('/preview')).length,
+      )
+      await passive.click()
+      assert.equal(await root.getAttribute('data-battle-action-mode'), 'none')
+      assert.equal(await passive.getAttribute('aria-pressed'), 'true')
+      assert.match(await page.locator('[data-battle-preview-strip]').innerText(), /Steady Footing/)
+      assert.match(await page.locator('[data-battle-preview-strip]').innerText(), /Passive Skill/)
+      assert.equal(await page.locator('#battlefield [data-reachable]').count(), 0)
+      await page.evaluate(() => window.releasePassiveForecast())
+      await page.locator('#battlefield button[data-terrain]').first().click()
+      await root.focus()
+      await page.keyboard.press('Enter')
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path)).length,
+        ),
+        0,
+        'Passive inspection never submits a battle command',
+      )
+      assert.equal(
+        await page.evaluate(
+          () => window.calls.filter((call) => call.path.endsWith('/preview')).length,
+        ),
+        forecastCount,
+        'Passive inspection never requests a manual forecast',
+      )
+      for (const [card, title, type] of [
+        ['[data-battle-skill-slot="3"]', 'Steady Footing', 'Passive Skill'],
+        ['[data-battle-special="resonance"]', null, 'Passive Resonance'],
+      ]) {
+        const button = page.locator(card + ' button[aria-pressed]')
+        await button.click()
+        const name = title ?? (await button.locator('strong').innerText())
+        const preview = page.locator('[data-battle-preview-strip]')
+        assert.ok((await preview.innerText()).includes(name))
+        assert.ok((await preview.innerText()).includes(type))
+        const clipped = await preview.evaluate((strip) => {
+          const bounds = strip.getBoundingClientRect(),
+            walker = document.createTreeWalker(strip, NodeFilter.SHOW_TEXT),
+            result = []
+          while (walker.nextNode()) {
+            const node = walker.currentNode
+            if (!node.textContent.trim() || !node.parentElement.checkVisibility()) continue
+            const range = document.createRange()
+            range.selectNodeContents(node)
+            if (
+              [...range.getClientRects()].some(
+                (rect) =>
+                  rect.top < bounds.top - 1 ||
+                  rect.bottom > bounds.bottom + 1 ||
+                  rect.left < bounds.left - 1 ||
+                  rect.right > bounds.right + 1,
+              )
+            )
+              result.push(node.textContent)
+          }
+          return result
+        })
+        assert.deepEqual(clipped, [], 'Passive name and type fit the existing preview')
+        const host = mobile ? preview : page.locator(card)
+        await host.getByRole('button', { name: `About ${name}`, exact: true }).click()
+        const reader = page.getByRole('dialog', { name, exact: true })
+        await reader.waitFor()
+        assert.match(await reader.innerText(), /Effects/)
+        if (mobile)
+          assert.equal(await preview.locator('[data-battle-info-trigger]:visible').count(), 1)
+        await page.keyboard.press('Escape')
+        await reader.waitFor({ state: 'hidden' })
+      }
+      await page.locator('button[data-command-slot="attack"]').click()
+      assert.equal(await root.getAttribute('data-battle-action-mode'), 'attack')
+      assert.doesNotMatch(
+        await page.locator('[data-battle-preview-strip]').innerText(),
+        /Passive (Skill|Resonance)/,
+        'Selecting an active action clears passive inspection',
+      )
+      assert.equal(await passive.getAttribute('aria-pressed'), 'false')
+      await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
+      assert.equal(await root.getAttribute('data-battle-action-mode'), 'none')
+      await page.evaluate(() => window.advanceBattle('enemy-one'))
+      await page.waitForFunction(
+        () => !document.querySelector('main').hasAttribute('data-local-turn'),
+      )
+      await passive.click()
+      assert.ok(
+        (await page.locator('[data-battle-preview-strip]').innerText()).includes('Steady Footing'),
+      )
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path)).length,
+        ),
+        0,
+      )
+      await page.close()
+      console.log(
+        `${mode} ${viewport.width}: passive preview/readers never arm targeting or submit, including waiting turns`,
+      )
+    }
+}
+async function verifyPassiveEssenceInspection() {
+  for (const mode of ['pve', 'pvp'])
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+    ]) {
+      const mobile = viewport.width < 821
+      const page = await browser.newPage({ viewport, isMobile: mobile, hasTouch: mobile })
+      page.setDefaultTimeout(5000)
+      await page.goto(
+        server.resolvedUrls.local[0] + `?mode=${mode}&passivePreview=1&passiveEssence=1`,
+      )
+      const card = page.locator('[data-battle-special="essence"]'),
+        button = card.locator('button[aria-pressed]')
+      await button.click()
+      const preview = page.locator('[data-battle-preview-strip]'),
+        name = await button.locator('strong').innerText()
+      assert.ok((await preview.innerText()).includes(name))
+      assert.match(await preview.innerText(), /Passive Essence/)
+      await (mobile ? preview : card)
+        .getByRole('button', { name: `About ${name}`, exact: true })
+        .click()
+      const reader = page.getByRole('dialog', { name, exact: true })
+      await reader.waitFor()
+      assert.match(await reader.innerText(), /Effects/)
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.calls.filter((call) => /\/(commit|intents|final-turn|preview)$/.test(call.path))
+              .length,
+        ),
+        0,
+      )
+      await page.close()
+    }
+  console.log('Passive Essences use the same read-only selection and contextual effects reader')
+}
 async function verifyCooldownAlignment() {
   for (const viewport of [
     { width: 390, height: 844 },
@@ -1511,6 +1728,9 @@ async function verifyNestedReaderDismissal() {
   console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
 }
 try {
+  await verifyMobileFooterParity()
+  await verifyPassiveInspection()
+  await verifyPassiveEssenceInspection()
   await verifyChronicleArtworkDecoding()
   await verifyMobileRailSpacing()
   await verifyChronicleUniformity()

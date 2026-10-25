@@ -75,6 +75,7 @@ export function BattleSelectedSkills({
   primeAvailableIds = [],
   readyActionId,
   onSelect,
+  onInspect,
   bindings = DEFAULT_COMBAT_KEYBINDS,
 }: {
   runtime: BattleRuntime
@@ -90,6 +91,7 @@ export function BattleSelectedSkills({
   readyActionId?: string
   bindings?: CombatKeybindMap
   onSelect: (skillId: string, category: 'attack' | 'defense' | 'heal') => void
+  onInspect?: (skillId: string) => void
 }) {
   const actionCost = (skill: BattleSkillForecastPresentation) =>
     battleCapturedActionCost(
@@ -190,9 +192,13 @@ export function BattleSelectedSkills({
                     data-battle-skill-hotkey={hotkey}
                     aria-label={`Selected ${skill.name}, ${castMode?.canCast === false ? castMode.label : `${payment?.chooseAction ? 'choose another action' : primeAvailable ? 'prime without payment' : payment!.costLabel}${battleCooldownLabel(cooldownTurns)}${payment?.controlledSpent && !payment.chooseAction ? ', already used this battle' : ''}${payment?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}`}
                     aria-pressed={activeId === skill.id}
-                    disabled={actionDisabled}
+                    disabled={castMode?.canCast === false && onInspect ? false : actionDisabled}
                     data-battle-cooldown-active={cooldownTurns > 0 || undefined}
-                    onClick={() => onSelect(skill.id, skill.category)}
+                    onClick={() =>
+                      castMode?.canCast === false
+                        ? onInspect?.(skill.id)
+                        : onSelect(skill.id, skill.category)
+                    }
                   >
                     <span
                       className={styles.artworkFrame}
@@ -259,9 +265,13 @@ export function BattleSelectedSkills({
               type="button"
               aria-label={`${runtime.essence.name}, Essence, ${essenceMode?.canCast === false ? essenceMode.label : `${essenceCost?.chooseAction ? 'choose another action' : essencePrime ? 'prime without payment' : essenceCost!.costLabel}${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}${essenceCost?.controlledSpent && !essenceCost.chooseAction ? ', already used this battle' : ''}${essenceCost?.controlledPrimed ? ', primed' : ''}${essenceReady ? ', ready to release' : ''}`}`}
               aria-pressed={activeId === runtime.essence.id}
-              disabled={essenceDisabled}
+              disabled={essenceMode?.canCast === false && onInspect ? false : essenceDisabled}
               data-battle-cooldown-active={(cooldowns[runtime.essence.id] ?? 0) > 0 || undefined}
-              onClick={() => onSelect(runtime.essence!.id, 'attack')}
+              onClick={() =>
+                essenceMode?.canCast === false
+                  ? onInspect?.(runtime.essence!.id)
+                  : onSelect(runtime.essence!.id, 'attack')
+              }
             >
               <span
                 className={styles.artworkFrame}
@@ -328,6 +338,26 @@ export function BattleSelectedSkills({
                   <BattleControlledReady
                     ready={resonanceReady}
                     primed={resonanceCost?.controlledPrimed}
+                  />
+                </span>
+                <strong>{runtime.resonance.name}</strong>
+              </button>
+            ) : onInspect ? (
+              <button
+                className={styles.specialAction}
+                type="button"
+                aria-label={`${runtime.resonance.name}, Resonance, inspect`}
+                aria-pressed={activeId === runtime.resonance.id}
+                disabled={!onInspect}
+                onClick={() => onInspect?.(runtime.resonance!.id)}
+              >
+                <span className={styles.artworkFrame} data-av-square-media="true">
+                  <Image
+                    src={battleResonanceArtwork(runtime.resonance.id)}
+                    width={192}
+                    height={192}
+                    alt=""
+                    unoptimized
                   />
                 </span>
                 <strong>{runtime.resonance.name}</strong>

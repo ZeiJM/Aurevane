@@ -28,6 +28,50 @@ export function battleSkillCastMode(skill: { definition?: { ability?: PublicAbil
   }
 }
 
+/** Read-only owned selection; this never returns a cast descriptor or an intent. */
+export function battleNoncastAbilityInspection(
+  runtime: BattleRuntime,
+  captures: readonly BattleCapturedActionTarget[],
+  actorId: string | null,
+  id: string,
+) {
+  const skill =
+    runtime.techniques?.find((item) => item.id === id) ??
+    (runtime.essence?.id === id ? runtime.essence : undefined)
+  if (skill) {
+    const mode = battleSkillCastMode(skill)
+    if (mode.canCast) return null
+    const kind = runtime.essence?.id === id ? 'Essence' : 'Skill'
+    const type = `${mode.kind === 'modifier' ? 'Modifier' : mode.kind === 'unavailable' ? 'Unavailable' : 'Passive'} ${kind}`
+    return {
+      id,
+      name: skill.name,
+      type,
+      caption: `${type} · ${mode.label}`,
+    }
+  }
+  const resonance = runtime.resonance
+  if (
+    !resonance ||
+    runtime.essence ||
+    resonance.id !== id ||
+    battleCapturedSpecialAction(runtime, captures, actorId)
+  )
+    return null
+  const mode = battleSkillCastMode(resonance)
+  const unavailableManual = resonance.definition?.ability?.behaviors.some(
+    (group) => group.activation === 'manual' && group.mode === 'action',
+  )
+  const type = unavailableManual ? 'Resonance' : 'Passive Resonance'
+  const activation = unavailableManual ? 'Unavailable' : mode.canCast ? 'Automatic' : mode.label
+  return {
+    id,
+    name: resonance.name,
+    type,
+    caption: `${type} · ${activation}`,
+  }
+}
+
 /** Resonance actions come only from the controlled owner's authoritative Manual references. */
 export function battleCapturedSpecialAction(
   runtime: BattleRuntime,

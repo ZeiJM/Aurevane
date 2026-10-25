@@ -19,6 +19,7 @@ import {
   battleCapturedControlledAvailability,
   battleCapturedSpecialAction,
   battleSkillCastMode,
+  battleNoncastAbilityInspection,
 } from './battle-captured-action-cost'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
@@ -483,6 +484,7 @@ function BattleExperienceContent({
     [setMobileWorkspace],
   )
   const [mode, setMode] = useState<Mode>('none')
+  const [inspectedAbilityId, setInspectedAbilityId] = useState<string | null>(null)
   const [infoSelectionVersion, setInfoSelectionVersion] = useState(0)
   const [path, setPath] = useState<BattleGridPosition[]>([])
   const pathRef = useRef<BattleGridPosition[]>([])
@@ -1064,6 +1066,7 @@ function BattleExperienceContent({
   const clearPlanning = useCallback(
     (nextMode: Mode = 'none') => {
       setInfoSelectionVersion((version) => version + 1)
+      setInspectedAbilityId(null)
       previewSequence.current += 1
       readyPreview.current = null
       inFlightPreview.current = null
@@ -1923,6 +1926,18 @@ function BattleExperienceContent({
     ],
   )
 
+  const inspectAbility = useCallback(
+    (id: string) => {
+      if (!battleNoncastAbilityInspection(runtime, manualActionTargets, localCombatantId, id))
+        return
+      clearPlanning()
+      replaceModifierDraft(null)
+      setSelectedBehavior(null)
+      setInspectedAbilityId(id)
+    },
+    [runtime, manualActionTargets, localCombatantId, clearPlanning, replaceModifierDraft],
+  )
+
   const selectAction = useCallback(
     (skillId: string, category: 'attack' | 'defense' | 'heal') => {
       const equipped =
@@ -2764,8 +2779,17 @@ function BattleExperienceContent({
     aspectRatio: `${tactical.width} / ${tactical.height}`,
   } as CSSProperties
 
+  const inspectedAbility = inspectedAbilityId
+    ? battleNoncastAbilityInspection(
+        runtime,
+        manualActionTargets,
+        localCombatantId,
+        inspectedAbilityId,
+      )
+    : null
   const contextTitle =
-    battleState.lifecycle !== 'active'
+    inspectedAbility?.name ??
+    (battleState.lifecycle !== 'active'
       ? resultLabel()
       : mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
         ? selectedParticipant.name
@@ -2785,7 +2809,7 @@ function BattleExperienceContent({
                       ? flatMoveMode
                         ? (basicMove?.name ?? 'Move')
                         : `Move · up to ${maximumMoveDistance} tiles`
-                      : 'Inspect'
+                      : 'Inspect')
   const characterInspection =
     (mode === 'move' && !flatMoveMode) || choosingActionMovement
       ? `Range: ${movementGuideRange} tiles · ${notice}`
@@ -3325,7 +3349,7 @@ function BattleExperienceContent({
               }
             >
               <BattlePreviewInfoMenu
-                actionKey={`${terrainView || mobileReading ? 'none' : mode}:${activeTechnique?.id ?? ''}:${infoSelectionVersion}`}
+                actionKey={`${terrainView || mobileReading ? 'none' : inspectedAbility ? 'passive' : mode}:${inspectedAbility?.id ?? activeTechnique?.id ?? ''}:${infoSelectionVersion}`}
               />
               <strong data-battle-instruction-title="true">
                 {terrainView ? (terrainPreview?.name ?? 'Terrain') : contextTitle}
@@ -3336,6 +3360,8 @@ function BattleExperienceContent({
                     ? `${terrainPreview.active ? 'Active' : 'Inactive'} · ${terrainPreview.description}`
                     : 'Choose a terrain below to read its effects.'}
                 </p>
+              ) : inspectedAbility ? (
+                <p data-battle-instruction-description="true">{inspectedAbility.caption}</p>
               ) : mode === 'finish' ? (
                 <div className={styles.previewFacing} role="group" aria-label="Choose final facing">
                   <span>Choose facing</span>
@@ -3576,7 +3602,7 @@ function BattleExperienceContent({
                 </div>
                 <BattleSelectedSkills
                   runtime={runtime}
-                  activeId={activeTechnique?.id}
+                  activeId={inspectedAbility?.id ?? activeTechnique?.id}
                   disabled={planningDisabled}
                   actionEconomy={actionEconomy}
                   actorId={localCombatantId}
@@ -3588,6 +3614,7 @@ function BattleExperienceContent({
                   readyActionId={controlledReadyActionId}
                   bindings={bindings}
                   onSelect={selectAction}
+                  onInspect={inspectAbility}
                 />
               </section>
             </div>
