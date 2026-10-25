@@ -1,6 +1,6 @@
 # Task 13 — complete Master integration
 
-Status: implementation checkpoint before the single full repository check and combined integration review. Source/local evidence is distinguished below from native physical, authenticated, hosted and human acceptance. No hosted writes, roster publication, remote mutation, merge or deployment were performed by this implementation seat.
+Status: source implementation complete; the single full repository check passed. Frozen for the combined integration review and root-owned native acceptance. Source/local evidence is distinguished below from native physical, authenticated, hosted and human acceptance. No hosted writes, roster publication, remote mutation, merge or deployment were performed by this implementation seat.
 
 ## Scope and source
 
@@ -89,3 +89,27 @@ Root owns remote backup, exact-head native workflows, combined integration revie
 Root's actual direct main fetch at **2026-10-25T08:35:19Z** remains `14df01a2c42d4cb36bd6c99d21372a1c51084164`. Final focused source receipts: `final-integration-focused` **85/85** across seven Web files; `final-native-sql-source` **39/39** actual all-migration lifecycle cases; `final-updated-types`, `final-updated-lint` and `all-native-shell-syntax` exit0. `final-paper-browser` passes the modular/Basic flow; `final-full-palette-browser` passes the complete unchanged interaction branches with both actual gradient-endpoint checks and approved orange on the real paper preview. Representative 1366 Nexus and final MP Recovery screenshots were inspected; their actual metrics/screenshots are retained. The earlier contrast green-labelled attempts remain failed receipts, including the intentionally strengthened gradient RED; no failed observation is retrospectively removed.
 
 `task13-browser-artifact-manifest.json` inventories actual local browser artifacts by size/SHA. `checkpoint-integrity` verifies original ledger prefix, every Task13 raw/gzip pair, all accepted old artifacts/migrations, absence of JWT-shaped evidence and main ancestry. The `final-native-syntax` earlier command invoked `bash -n` with multiple script arguments and therefore only checked the first script; `all-native-shell-syntax` explicitly loops every script and is the covering shell result. Primed screenshot output initially used an unrecognized environment variable and landed in the script's default directory; its actual files were copied unchanged into the retained Task13 Primed directory. The receipt remains the exact original command.
+
+
+## Final full quality result and evidence freeze
+
+The first and only full check ran on **3918afd6a16a89d4852588299d98d870d95e296a**, tree **bd79bbadb966cb24cde541f23025b8a69c82233c**, from **2026-10-25T08:40:35.978088Z** through **08:48:18.920809Z**, exit **0**. The command was `corepack pnpm check` with a temporary PATH shim that invokes `corepack pnpm` for nested commands too; its printed version is **11.17.0**. The ambient executable used for earlier focused `pnpm` commands is **11.25.0**, not the pinned full-check runner. This distinction does not change the lockfile/dependencies and is retained honestly in the command record.
+
+| Full check component | Result |
+| --- | --- |
+| Repository format | Passed |
+| Web/worker and all-package lint | Passed |
+| All-package types | 8 successful tasks; 6 unchanged cached results, web/worker executed |
+| Game core | 5663 tests / 201 files passed |
+| Database | 331 tests / 30 files passed |
+| Web | 6797 tests / 438 files, plus 7 Node tests passed |
+| Validation | 106 tests / 9 files passed |
+| Audio | 17 tests / 3 files passed |
+| Realtime / Worker | 3 / 2 tests passed |
+| Production build | Both configured build tasks passed, including every Master route |
+
+Full raw log: `docs/verification/task-10-reconstruction/task13-full-pnpm-check.log.gz`; raw SHA256 **efd9322fb438e9933848ec64bca392f12c12c58b002e5de3ed57e0d262219937**; gzip SHA256 **896693fa16426ef2b433dae2d3007459ffde08dce5052e9870e5d355a311954e**. No Vite/config warning or other warning diagnostic was emitted; a passing Node test's title contains the word “warning” and is not a diagnostic. No warning filter was added.
+
+The complete final palette browser covers 1366×768 and 390×844; the independent service-backed Basic fixture covers1366,1440,390,720. Native all-route acceptance supplies the remaining authenticated/real200 matrix, without claiming it ran here. Root backed up3918 with remote **b11d1042932dcb3f78834172b86f7fa00d36584c**, the exact same tree, and independently verified all537 checkpoint entries/unique payload hashes and the original ledger prefix. Checkpoint integrity's59 count is before its own receipt; root's60 count includes that receipt. The full check appends the61st Task13 receipt. Final integrity adds one more receipt and changes only evidence/report files; product source remains exactly3918.
+
+Remaining release gates are explicit: combined source review; actual full native PostgreSQL media/Tag/original both-order/rollback/ACL gate and corrected P34/startup/staged fixtures; all configured pinned native browser workflows including full authenticated Master, repeated uploads, live World natural cadence and true200; final hosted current/exact-history/player-fact/advisor reconciliation; independent whole-branch review; then root-authorized application/deployment and runtime confirmation. Human gameplay/device/multiplayer/load acceptance is not inferred. The branch remains undeployed and no current roster/player state was mutated by this task.
