@@ -93,3 +93,13 @@
     overflow: visible;
   }
 }
+
+/* Keyboard focus and scrollIntoView must reserve the existing mobile dock, even
+ * when a control already falls inside the visual viewport behind that dock. */
+@media (max-width: 760px) {
+  .workspace :is(a, button, input, select, textarea, summary) {
+    scroll-margin-block-end: calc(
+      var(--av-mobile-dock-height, 3.25rem + env(safe-area-inset-bottom)) + 0.25rem
+    );
+  }
+}

@@ -2,7 +2,7 @@
 // Run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
-import { createRequire } from 'node:module'
+import { createRequire, stripTypeScriptTypes } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -16,10 +16,14 @@ const { chromium } = require(
 )
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
+const shellReachabilityOnly = process.env.AV_MASTER_SHELL_REACHABILITY_ONLY === '1'
 const editorIdentityOnly = process.env.AV_MASTER_EDITOR_IDENTITY_ONLY === '1'
 const originalRpcAcceptance = process.env.AV_BASIC_ORIGINAL_RPC_ACCEPTANCE === '1'
 const basicServiceAcceptance =
-  process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' || originalRpcAcceptance || editorIdentityOnly
+  process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' ||
+  originalRpcAcceptance ||
+  editorIdentityOnly ||
+  shellReachabilityOnly
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'skill-parameter-palette-'))
 const output =
   process.env.AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR ||
@@ -65,6 +69,10 @@ await fs.writeFile(
 await fs.writeFile(
   resolve(fixture, 'next-dynamic.jsx'),
   `import React from 'react';export default function dynamic(loader){const Component=React.lazy(()=>loader().then(value=>({default:value})));return props=><React.Suspense fallback={null}><Component {...props}/></React.Suspense>}`,
+)
+await fs.writeFile(
+  resolve(fixture, 'shell.jsx'),
+  `import React from 'react';import {AuthenticatedShellPresentation} from '@/components/shell/authenticated-shell-presentation';export function AuthenticatedShellFrame({children}){return <AuthenticatedShellPresentation masterPanelHref="/master">{children}</AuthenticatedShellPresentation>}`,
 )
 await fs.writeFile(resolve(fixture, 'server-only.js'), 'export {}')
 await fs.writeFile(
@@ -132,6 +140,7 @@ const config = {
   publicDir: resolve(web, 'public'),
   resolve: {
     alias: {
+      '@/components/shell/authenticated-game-shell': resolve(fixture, 'shell.jsx'),
       ...(basicServiceAcceptance
         ? {
             '@/server/auth/actor': resolve(fixture, 'auth-boundary.js'),
@@ -169,6 +178,25 @@ if (process.env.AV_SKILL_PARAMETER_PALETTE_COMPILE_ONLY === '1') {
     await fs.rm(fixture, { recursive: true, force: true })
   }
   process.exit(0)
+}
+// Reuse the exact native control/activate bodies, including tab order, hit testing,
+// ancestor clipping and visible focus. This local fixture does not simulate zoom.
+let nativeMasterControls
+if (shellReachabilityOnly) {
+  const source = await fs.readFile(resolve(web, 'e2e/master-zoom-workflows.ts'), 'utf8')
+  const start = source.indexOf('  async function control(')
+  const end = source.indexOf('  async function state(', start)
+  assert.ok(start >= 0 && end > start, 'Native control/activate source boundaries must exist')
+  const moduleSource = `import playwright from ${JSON.stringify(pathToFileURL(require.resolve('@playwright/test')).href)};
+const { expect } = playwright;
+export function nativeMasterControls(page, info, evidence, slug) {
+${source.slice(start, end)}
+return { control, activate };
+}`
+  const modulePath = resolve(fixture, 'native-master-controls.mjs')
+  await fs.writeFile(modulePath, stripTypeScriptTypes(moduleSource))
+  ;({ nativeMasterControls } = await import(pathToFileURL(modulePath).href))
+  await fs.writeFile(resolve(output, 'native-controls-source.ts.txt'), moduleSource)
 }
 const server = await createServer(config)
 // The SQL-backed server fixture uses Node package resolution for React cache().
@@ -1138,8 +1166,18 @@ async function verifyBasicServiceRestore(page, viewport) {
 }
 try {
   for (const viewport of [
+    ...(shellReachabilityOnly
+      ? [
+          { width: 683, height: 340 },
+          { width: 683, height: 384 },
+          { width: 720, height: 450 },
+          { width: 390, height: 422 },
+          { width: 320, height: 370 },
+          { width: 1440, height: 900 },
+        ]
+      : []),
     { width: 1366, height: 768 },
-    ...(basicServiceAcceptance && !editorIdentityOnly
+    ...(basicServiceAcceptance && !editorIdentityOnly && !shellReachabilityOnly
       ? [
           { width: 1440, height: 900 },
           { width: 720, height: 450 },
@@ -1147,44 +1185,143 @@ try {
       : []),
     { width: 390, height: 844 },
   ]) {
-    const page = await browser.newPage({ viewport, hasTouch: viewport.width < 720 })
+    const page = await browser.newPage({
+      viewport,
+      hasTouch: shellReachabilityOnly ? viewport.width === 390 : viewport.width < 720,
+    })
     const errors = []
     page.on('pageerror', (error) => {
       errors.push(error.message)
       browserErrors.push(error.message)
     })
+    if (shellReachabilityOnly) {
+      await page.goto(
+        `${server.resolvedUrls.local[0]}?surface=basic-editor&shell=true&basicService=1`,
+      )
+      await page.getByRole('navigation', { name: 'Master Panel navigation' }).waitFor()
+      await page.getByLabel('Content category', { exact: true }).selectOption('basic')
+      await page.getByLabel('Search content', { exact: true }).fill('no-matching-zoom-content')
+      const nativeEvidence = []
+      const native = nativeMasterControls(
+        page,
+        {
+          outputPath: (name) =>
+            resolve(output, `local-${viewport.width}-${viewport.height}-${name}`),
+          attach: async (name, { body }) =>
+            fs.writeFile(
+              resolve(output, `local-${viewport.width}-${viewport.height}-${name}`),
+              body,
+            ),
+        },
+        nativeEvidence,
+        'combat-content',
+      )
+      const targets = [
+        page.getByRole('button', { name: 'Search', exact: true }),
+        page.getByLabel('Name', { exact: true }),
+        page.getByRole('button', { name: 'History', exact: true }),
+      ]
+      for (const [index, target] of targets.entries()) {
+        if (index === 1) await page.locator('[data-content-key="unarmed.basic"]').click()
+        if (index === 1) {
+          await target.fill(await target.inputValue())
+          await native.control(target, 'name')
+        } else await native.activate(target, index === 0 ? 'search-empty' : 'history')
+        await fs.writeFile(
+          resolve(output, `native-controls-${viewport.width}-${viewport.height}.json`),
+          JSON.stringify(nativeEvidence, null, 2),
+        )
+        const measured = await target.evaluate((element) => {
+          const rect = element.getBoundingClientRect(),
+            dock = document.querySelector('[data-av-game-rail]'),
+            dockRect = dock.getBoundingClientRect()
+          const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+          return {
+            target: element.tagName,
+            text: element.textContent,
+            rect: rect.toJSON(),
+            dock: dockRect.toJSON(),
+            hit: hit?.tagName,
+            hitDock: !!hit?.closest('[data-av-game-rail]'),
+            unobscured: hit === element || element.contains(hit),
+            width: innerWidth,
+            height: innerHeight,
+            rootScrollWidth: document.documentElement.scrollWidth,
+            cssZoom: getComputedStyle(document.documentElement).zoom,
+            focusVisible: element.matches(':focus-visible'),
+          }
+        })
+        evidence.push({ viewport, index, ...measured })
+        await fs.writeFile(
+          resolve(output, 'master-shell-reachability.json'),
+          JSON.stringify(evidence, null, 2),
+        )
+        await page.screenshot({
+          path: resolve(output, `master-shell-${viewport.width}-${viewport.height}-${index}.png`),
+        })
+        if (viewport.width <= 760)
+          assert.ok(
+            measured.rect.bottom <= measured.dock.top,
+            'The complete Master control must remain above the persistent dock',
+          )
+        assert.equal(
+          measured.unobscured,
+          true,
+          `Actual Master control ${index} must clear the persistent dock`,
+        )
+        assert.equal(measured.cssZoom, '1')
+        assert.ok(
+          measured.rect.left >= -1 &&
+            measured.rect.right <= measured.width + 1 &&
+            measured.rect.top >= -1 &&
+            measured.rect.bottom <= measured.height + 1,
+        )
+        assert.ok(measured.rootScrollWidth <= measured.width + 1)
+      }
+      assert.deepEqual(errors, [])
+      await page.close()
+      continue
+    }
     if (editorIdentityOnly) {
-      await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`)
+      await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`)
       const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
       await editor.locator('[data-content-key="unarmed.basic"]').click()
       await editor.locator('[data-content-key="unarmed.basic"][aria-current="true"]').waitFor()
-      const name = await editor.getByRole('textbox', { name: 'Name', exact: true }).inputValue()
-      const heading = editor.getByRole('heading', { name, level: 2, exact: true })
-      await heading.waitFor()
-      await openNativeSample(editor)
-      await editor.getByRole('button', { name: 'Run native sample', exact: true }).click()
-      const chronicle = editor
-        .getByTestId('battle-log-feed')
-        .getByRole('heading', { name, level: 4, exact: true })
-      await chronicle.waitFor()
-      assert.equal(
-        await page.getByRole('heading', { name, exact: true }).count(),
-        2,
-        'Legacy broad identity is ambiguous with the real sample Chronicle',
-      )
-      assert.equal(await editor.getByRole('heading', { name, level: 2, exact: true }).count(), 1)
-      assert.equal(await chronicle.isVisible(), true)
-      await page.screenshot({
-        path: resolve(output, `editor-identity-${viewport.width}.png`),
-        fullPage: true,
-      })
-      evidence.push({
-        viewport,
-        name,
-        legacyHeadingCount: 2,
-        selectedEditorHeadingCount: 1,
-        chronicleVisible: true,
-      })
+      const initialName = await editor
+        .getByRole('textbox', { name: 'Name', exact: true })
+        .inputValue()
+      for (const name of [initialName, 'Gash', 'Flame Burst']) {
+        await editor.getByRole('textbox', { name: 'Name', exact: true }).fill(name)
+        const heading = editor.getByRole('heading', { name, level: 2, exact: true })
+        await heading.waitFor()
+        await openNativeSample(editor)
+        await editor.getByRole('button', { name: 'Run native sample', exact: true }).click()
+        const chronicle = editor
+          .getByTestId('battle-log-feed')
+          .getByRole('heading', { name, level: 4, exact: true })
+        await chronicle.waitFor()
+        assert.equal(
+          await page.getByRole('heading', { name, exact: true }).count(),
+          2,
+          'Legacy broad identity is ambiguous with the real sample Chronicle',
+        )
+        assert.equal(await editor.getByRole('heading', { name, level: 2, exact: true }).count(), 1)
+        assert.equal(await chronicle.isVisible(), true)
+        await page.screenshot({
+          path: resolve(
+            output,
+            `editor-identity-${viewport.width}-${name.toLowerCase().replaceAll(' ', '-')}.png`,
+          ),
+          fullPage: true,
+        })
+        evidence.push({
+          viewport,
+          name,
+          legacyHeadingCount: 2,
+          selectedEditorHeadingCount: 1,
+          chronicleVisible: true,
+        })
+      }
       assert.deepEqual(errors, [])
       await page.close()
       continue
@@ -1590,7 +1727,7 @@ try {
   }
   await fs.writeFile(resolve(output, 'results.json'), JSON.stringify(evidence, null, 2))
   console.log(
-    `${editorIdentityOnly ? 'Mounted editor identity and retained sample Chronicle' : 'Skill parameter family/palette browser'} regression passed. Evidence: ${output}`,
+    `${shellReachabilityOnly ? 'Mounted Master shell control reachability' : editorIdentityOnly ? 'Mounted editor identity and retained sample Chronicle' : 'Skill parameter family/palette browser'} regression passed. Evidence: ${output}`,
   )
 } catch (error) {
   const failedPage = browser

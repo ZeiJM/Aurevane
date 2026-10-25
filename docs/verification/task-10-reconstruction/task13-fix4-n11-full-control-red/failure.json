@@ -1,0 +1,43 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: The complete Master control must remain above the persistent dock",
+  "browserErrors": [],
+  "evidence": [
+    {
+      "viewport": {
+        "width": 683,
+        "height": 340
+      },
+      "index": 0,
+      "target": "BUTTON",
+      "text": "Search",
+      "rect": {
+        "x": 24.1875,
+        "y": 299.734375,
+        "width": 57.96875,
+        "height": 40,
+        "top": 299.734375,
+        "right": 82.15625,
+        "bottom": 339.734375,
+        "left": 24.1875
+      },
+      "dock": {
+        "x": 0,
+        "y": 289.40625,
+        "width": 668,
+        "height": 50.59375,
+        "top": 289.40625,
+        "right": 668,
+        "bottom": 340,
+        "left": 0
+      },
+      "hit": "SPAN",
+      "hitDock": true,
+      "unobscured": false,
+      "width": 683,
+      "height": 340,
+      "rootScrollWidth": 668,
+      "cssZoom": "1",
+      "focusVisible": true
+    }
+  ]
+}

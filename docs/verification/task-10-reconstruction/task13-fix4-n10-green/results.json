@@ -1,0 +1,62 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "name": "Current Basic Attack",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "name": "Gash",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "name": "Flame Burst",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "name": "Current Basic Attack",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "name": "Gash",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "name": "Flame Burst",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  }
+]

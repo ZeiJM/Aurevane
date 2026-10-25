@@ -1,0 +1,61 @@
+[
+  {
+    "label": "search-empty",
+    "left": 24.1875,
+    "right": 82.15625,
+    "top": 287.734375,
+    "bottom": 327.734375,
+    "width": 683,
+    "height": 384,
+    "unobscured": true,
+    "hitElement": "BUTTON",
+    "hitWithinPrimaryDock": false,
+    "clippedBy": []
+  },
+  {
+    "label": "search-empty",
+    "focus": {
+      "visible": true,
+      "outline": "solid",
+      "width": 2,
+      "color": "rgb(50, 127, 119)",
+      "shadow": "none"
+    }
+  },
+  {
+    "label": "name",
+    "left": 46.96875,
+    "right": 621.03125,
+    "top": 284.046875,
+    "bottom": 328.046875,
+    "width": 683,
+    "height": 384,
+    "unobscured": true,
+    "hitElement": "INPUT",
+    "hitWithinPrimaryDock": false,
+    "clippedBy": []
+  },
+  {
+    "label": "history",
+    "left": 230.15625,
+    "right": 289.6875,
+    "top": 169.53125,
+    "bottom": 209.53125,
+    "width": 683,
+    "height": 384,
+    "unobscured": true,
+    "hitElement": "BUTTON",
+    "hitWithinPrimaryDock": false,
+    "clippedBy": []
+  },
+  {
+    "label": "history",
+    "focus": {
+      "visible": true,
+      "outline": "solid",
+      "width": 2,
+      "color": "rgb(50, 127, 119)",
+      "shadow": "none"
+    }
+  }
+]

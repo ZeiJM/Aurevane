@@ -373,13 +373,16 @@ async function selectContentRecord(page: Page, key: string, category = 'skill'):
   await page.locator(`[data-content-key="${key}"]`).click()
   await expect(page.getByRole('button', { name: 'Save draft', exact: true })).toBeEnabled()
 }
-async function selectAuthoringSkill(page: Page): Promise<void> {
-  await selectContentRecord(page, SKILL_ID)
+async function expectSelectedContentHeading(page: Page, name: string): Promise<void> {
   const heading = page
     .getByRole('region', { name: 'Game Content workspace', exact: true })
-    .getByRole('heading', { name: 'Forceful Strike', level: 2, exact: true })
+    .getByRole('heading', { name, level: 2, exact: true })
   await expect(heading).toHaveCount(1)
   await expect(heading).toBeVisible()
+}
+async function selectAuthoringSkill(page: Page): Promise<void> {
+  await selectContentRecord(page, SKILL_ID)
+  await expectSelectedContentHeading(page, 'Forceful Strike')
 }
 async function publishSaved(page: Page): Promise<unknown> {
   await runMasterOperation(page, 'save', 'Save draft')
@@ -591,7 +594,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       await page.goto('/master/combat-content')
       const selectGash = async () => {
         await selectContentRecord(page, 'ravager.gash')
-        await expect(page.getByRole('heading', { name: 'Gash', exact: true })).toBeVisible()
+        await expectSelectedContentHeading(page, 'Gash')
       }
       await selectGash()
       const gashBaseline = await publishSaved(page)
@@ -646,7 +649,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       await page.goto('/master/combat-content')
       const selectFlame = async () => {
         await selectContentRecord(page, 'cinderweaver.flame-burst')
-        await expect(page.getByRole('heading', { name: 'Flame Burst', exact: true })).toBeVisible()
+        await expectSelectedContentHeading(page, 'Flame Burst')
       }
       await selectFlame()
       const flameBaseline = await publishSaved(page)

@@ -1,0 +1,25 @@
+[
+  {
+    "label": "search-empty",
+    "left": 24.1875,
+    "right": 82.15625,
+    "top": 287.734375,
+    "bottom": 327.734375,
+    "width": 683,
+    "height": 384,
+    "unobscured": true,
+    "hitElement": "BUTTON",
+    "hitWithinPrimaryDock": false,
+    "clippedBy": []
+  },
+  {
+    "label": "search-empty",
+    "focus": {
+      "visible": true,
+      "outline": "solid",
+      "width": 2,
+      "color": "rgb(50, 127, 119)",
+      "shadow": "none"
+    }
+  }
+]

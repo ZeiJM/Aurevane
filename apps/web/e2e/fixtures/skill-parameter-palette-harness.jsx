@@ -31,6 +31,8 @@ import { createTechniquesManualArticle } from '@/content/techniques-manual'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { ContentDefinitionFields } from '@/components/master/combat-content/content-definition-fields'
 import { ContentNativeSample } from '@/components/master/combat-content/content-native-sample'
+import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
+import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
 import masterTheme from '@/components/master/master-panel-shell.module.css'
@@ -437,27 +439,55 @@ function SelectedPreviewEditor() {
 }
 
 function BasicEditor() {
+  const content = (
+    <>
+      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
+        <CombatContentAuthoringWorkspace
+          categories={
+            query.get('shell') === 'true'
+              ? COMBAT_CONTENT_CATEGORIES.map((entry) => entry.editor)
+              : [
+                  {
+                    category: 'basic',
+                    storedKind: 'skill',
+                    label: 'Basic',
+                    group: 'Skills',
+                    defaultDefinition: null,
+                    publicationBlocker: null,
+                  },
+                ]
+          }
+          initialRecord={query.get('shell') === 'true' ? null : basicOptions[0]}
+          initialPage={basicPage}
+        />
+      </SkillEffectTimingProvider>
+    </>
+  )
+  if (query.get('shell') === 'true')
+    return (
+      <MasterPanelShell
+        access={{
+          roles: ['game-owner'],
+          effectiveCapabilities: [
+            'content.combat.author',
+            'staff.manage',
+            'events.author',
+            'events.operate',
+          ],
+        }}
+        activeSection="combat"
+        title="Game Content"
+        description="Create, preview and publish complete content records."
+      >
+        {content}
+      </MasterPanelShell>
+    )
   return (
     <main
       className={`av-master ${masterTheme.workspace}`}
       style={{ display: 'block', height: 'auto', padding: 12 }}
     >
-      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
-        <CombatContentAuthoringWorkspace
-          categories={[
-            {
-              category: 'basic',
-              storedKind: 'skill',
-              label: 'Basic',
-              group: 'Skills',
-              defaultDefinition: null,
-              publicationBlocker: null,
-            },
-          ]}
-          initialRecord={basicOptions[0]}
-          initialPage={basicPage}
-        />
-      </SkillEffectTimingProvider>
+      {content}
     </main>
   )
 }

@@ -44,16 +44,26 @@ export async function exerciseMasterAtBrowserZoom(
         width: innerWidth,
         height: innerHeight,
         unobscured: hit === element || element.contains(hit),
+        hitElement: hit?.tagName ?? null,
+        hitWithinPrimaryDock: !!hit?.closest('[data-av-game-rail]'),
         clippedBy,
       }
     })
-    expect(measured.left, label).toBeGreaterThanOrEqual(-1)
-    expect(measured.right, label).toBeLessThanOrEqual(measured.width + 1)
-    expect(measured.top, label).toBeGreaterThanOrEqual(-1)
-    expect(measured.bottom, label).toBeLessThanOrEqual(measured.height + 1)
-    expect(measured.unobscured, label).toBe(true)
-    expect(measured.clippedBy, label).toEqual([])
     evidence.push({ label, ...measured })
+    try {
+      expect(measured.left, label).toBeGreaterThanOrEqual(-1)
+      expect(measured.right, label).toBeLessThanOrEqual(measured.width + 1)
+      expect(measured.top, label).toBeGreaterThanOrEqual(-1)
+      expect(measured.bottom, label).toBeLessThanOrEqual(measured.height + 1)
+      expect(measured.unobscured, label).toBe(true)
+      expect(measured.clippedBy, label).toEqual([])
+    } catch (error) {
+      await info.attach(`master-real200-${slug}-${label}-failure.json`, {
+        body: JSON.stringify(evidence),
+        contentType: 'application/json',
+      })
+      throw error
+    }
   }
   async function activate(target: Locator, label: string) {
     await expect(target).toBeEnabled()
