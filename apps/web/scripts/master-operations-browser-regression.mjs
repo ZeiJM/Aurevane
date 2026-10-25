@@ -13,6 +13,7 @@ const { createServer, build } = await import(
 const { chromium } = require(
   require.resolve('playwright', { paths: [require.resolve('@playwright/test')] }),
 )
+const worldEnvironmentOnly = process.env.AV_MASTER_WORLD_CONTROLS_ONLY === '1'
 const playersReaderOnly = process.env.AV_MASTER_PLAYERS_READER_ONLY === '1'
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
@@ -120,7 +121,7 @@ try {
   for (const viewport of [
     { width: 1366, height: 768, zoom: 1 },
     { width: 390, height: 844, zoom: 1 },
-    ...(playersReaderOnly ? [] : [{ width: 1366, height: 768, zoom: 1.5 }]),
+    ...(playersReaderOnly || worldEnvironmentOnly ? [] : [{ width: 1366, height: 768, zoom: 1.5 }]),
   ]) {
     const page = await browser.newPage({ viewport })
     const errors = []
@@ -128,8 +129,13 @@ try {
       errors.push(String(error))
       console.error('Operational browser error:', String(error))
     })
-    for (const view of playersReaderOnly ? ['players'] : ['rules', 'world', 'music', 'players']) {
-      if (view === 'world') await page.clock.install({ time: new Date('2026-10-23T00:00:00Z') })
+    for (const view of playersReaderOnly
+      ? ['players']
+      : worldEnvironmentOnly
+        ? ['world']
+        : ['rules', 'world', 'music', 'players']) {
+      if (view === 'world' && !worldEnvironmentOnly)
+        await page.clock.install({ time: new Date('2026-10-23T00:00:00Z') })
       await page.goto(`${origin}?view=${view}`)
       await page.locator('body').evaluate((body, zoom) => {
         body.style.zoom = zoom
@@ -229,21 +235,32 @@ try {
         await page.locator('summary').filter({ hasText: '1 current definitions' }).click()
         await page.getByText('Fixture Strike', { exact: false }).first().waitFor()
       } else if (view === 'world') {
-        await page.getByLabel('Day length (real minutes)').fill('120')
-        await page.getByLabel('Weather selection').selectOption('storm')
-        await page.getByLabel('Forced weather duration (minutes)').fill('37')
+        await page.getByLabel('Day length (real minutes)').fill(worldEnvironmentOnly ? '1' : '120')
+        assert.equal(
+          await page.getByLabel('Weather selection', { exact: true }).count(),
+          0,
+          'Legacy exact label includes select option text',
+        )
+        const weather = page.getByRole('combobox', { name: 'Weather selection', exact: true })
+        assert.equal(await weather.count(), 1)
+        await weather.selectOption(worldEnvironmentOnly ? 'rain' : 'storm')
+        await page
+          .getByLabel('Forced weather duration (minutes)')
+          .fill(worldEnvironmentOnly ? '1' : '37')
         await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
         await page.getByRole('status').filter({ hasText: 'saved' }).waitFor()
         const body = await page.evaluate(() => window.__operationsRequests.at(-1).body)
-        assert.equal(body.change.dayLengthMinutes, 120)
-        assert.equal(body.change.durationMinutes, 37)
+        assert.equal(body.change.dayLengthMinutes, worldEnvironmentOnly ? 1 : 120)
+        assert.equal(body.change.durationMinutes, worldEnvironmentOnly ? 1 : 37)
         assert.equal('reason' in body, false)
         await page.getByTestId('world-environment-current').filter({ hasText: 'forced' }).waitFor()
-        await page.clock.fastForward(37 * 60_000 + 1000)
-        await page
-          .getByTestId('world-environment-current')
-          .filter({ hasText: 'ordinary weather' })
-          .waitFor()
+        if (!worldEnvironmentOnly) {
+          await page.clock.fastForward(37 * 60_000 + 1000)
+          await page
+            .getByTestId('world-environment-current')
+            .filter({ hasText: 'ordinary weather' })
+            .waitFor()
+        }
       } else {
         await page.getByLabel('Global selection').selectOption('silent')
         await page.getByLabel('Search pages').fill('world')
@@ -308,9 +325,11 @@ try {
     JSON.stringify(playerEvidence, null, 2),
   )
   console.log(
-    playersReaderOnly
-      ? 'Real nested Master shell/Players reader regression passed.'
-      : 'Master operational desktop/mobile/150% controls, native playback and nested Players reader passed.',
+    worldEnvironmentOnly
+      ? 'Mounted World save controls passed; no live cadence or expiry claim.'
+      : playersReaderOnly
+        ? 'Real nested Master shell/Players reader regression passed.'
+        : 'Master operational desktop/mobile/150% controls, native playback and nested Players reader passed.',
   )
 } finally {
   await browser.close()

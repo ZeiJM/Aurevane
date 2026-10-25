@@ -73,6 +73,13 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
     channel: 'chromium',
     headless: true,
     viewport: null,
+    // Explicit keys prevent Playwright Test from inheriting Desktop Chrome or
+    // mobile project emulation into this native-window context.
+    deviceScaleFactor: undefined,
+    userAgent: undefined,
+    isMobile: false,
+    hasTouch: false,
+    ignoreDefaultArgs: ['--disable-extensions'],
     baseURL,
     args: [
       `--disable-extensions-except=${extension}`,

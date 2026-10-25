@@ -65,6 +65,9 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
   })
   let owner: FixtureOwner | undefined
   let original: WorldEnvironmentSettings | undefined
+  let attemptedSave = false
+  let failure: unknown
+  let stage = 'provision'
   const receipts: WorldView[] = []
   const observed: {
     at: string
@@ -96,29 +99,36 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     expect(before.ok()).toBe(true)
     original = (await before.json()).settings
     expect(original!.weatherOverride).toBeNull()
+    stage = 'configure-environment'
     await page.goto('/master/world-environment')
     await page.getByLabel('Day length (real minutes)', { exact: true }).fill('1')
     await page.getByLabel('Freeze the clock at a time of day').uncheck()
     await page.getByLabel('Shift world time (minutes, −1440 to 1440)').fill('0')
-    await page.getByLabel('Weather selection', { exact: true }).selectOption('rain')
+    await page
+      .getByRole('combobox', { name: 'Weather selection', exact: true })
+      .selectOption('rain')
     await page.getByLabel('Forced weather duration (minutes)').fill('1')
     const saved = page.waitForResponse(
       (r) =>
         new URL(r.url()).pathname === '/api/master/world-environment' &&
         r.request().method() === 'POST',
     )
+    stage = 'save-environment'
+    attemptedSave = true
     await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
     const savedResponse = await saved
     expect(savedResponse.ok()).toBe(true)
     const settings: WorldEnvironmentSettings = (await savedResponse.json()).settings
     expect(settings.dayLengthMinutes).toBe(1)
     expect(settings.weatherOverrideUntil).toBeGreaterThan(Date.now() + 50000)
+    stage = 'open-world'
     await page.goto('/game/world')
     await expect(page.locator('[data-world-workspace]')).toBeVisible()
     const details = page.getByRole('button', { name: 'Details', exact: true })
     if (await details.isVisible()) await details.click()
     const canvas = page.locator('canvas[data-world-stage]').first()
     await expect(canvas).toBeVisible()
+    stage = 'observe-natural-cycle-and-expiry'
     // Only naturally scheduled authoritative refreshes are used. No page reload,
     // forced refresh, synthetic clock, database expiry rewrite or manual polling API.
     await expect
@@ -161,6 +171,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
         { timeout: 95000, intervals: [2000] },
       )
       .toBe(true)
+    stage = 'verify-observed-paint'
     expect(receipts.length).toBeGreaterThan(2)
     const paints = new Set(observed.map((row) => row.nightPaint).filter(Boolean))
     expect(paints.size).toBeGreaterThan(1)
@@ -177,9 +188,24 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
       fullPage: true,
     })
     expect(errors).toEqual([])
+  } catch (error) {
+    failure = error
+    throw error
   } finally {
+    await info.attach('world-cadence-stage.json', {
+      body: JSON.stringify({
+        stage,
+        attemptedSave,
+        failure: failure instanceof Error ? failure.message : null,
+        observed,
+        refreshes: receipts.map((v) => ({ serverNow: v.serverNow, environment: v.environment })),
+        errors,
+      }),
+      contentType: 'application/json',
+    })
+    const cleanupErrors: unknown[] = []
     try {
-      if (owner && original) {
+      if (owner && original && attemptedSave) {
         const current = await page.request.get('/api/master/world-environment')
         const response = await page.request.post('/api/master/world-environment', {
           data: {
@@ -195,8 +221,21 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
         })
         expect(response.ok()).toBe(true)
       }
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError)
     } finally {
-      if (owner) await releasePlayersFixtureOwner(sql, owner)
+      try {
+        if (owner) await releasePlayersFixtureOwner(sql, owner)
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError)
+      }
+    }
+    if (cleanupErrors.length) {
+      await info.attach('world-cadence-cleanup-error.txt', {
+        body: cleanupErrors.map(String).join('\n'),
+        contentType: 'text/plain',
+      })
+      if (!failure) throw new AggregateError(cleanupErrors, 'World cadence fixture cleanup failed')
     }
   }
 })

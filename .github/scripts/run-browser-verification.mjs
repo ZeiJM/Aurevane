@@ -93,7 +93,7 @@ export function preserveEvidence(
   for (const entry of readdirSync(root, { withFileTypes: true }))
     if (
       entry.isDirectory() &&
-      /^(master-complete-layout|master-world-environment-cadence)/.test(entry.name)
+      /^(master-complete-layout|master-world-environment-)/.test(entry.name)
     ) {
       const destination = resolve(master, phase, entry.name)
       mkdirSync(destination, { recursive: true })

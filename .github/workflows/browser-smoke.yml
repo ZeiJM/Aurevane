@@ -370,7 +370,7 @@ jobs:
           path: |
             /tmp/master-full-integration-review
             apps/web/test-results/master-complete-layout*/
-            apps/web/test-results/master-world-environment-cadence*/
+            apps/web/test-results/master-world-environment-*/
             /tmp/master-operations-review
             /tmp/technique-eligibility-review
             /tmp/event-workspace-review

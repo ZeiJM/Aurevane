@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process'
+import { resolve } from 'node:path'
+import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
 
 import { expect, test, type Page, type Response } from '@playwright/test'
 
@@ -373,7 +375,11 @@ async function selectContentRecord(page: Page, key: string, category = 'skill'):
 }
 async function selectAuthoringSkill(page: Page): Promise<void> {
   await selectContentRecord(page, SKILL_ID)
-  await expect(page.getByRole('heading', { name: 'Forceful Strike', exact: true })).toBeVisible()
+  const heading = page
+    .getByRole('region', { name: 'Game Content workspace', exact: true })
+    .getByRole('heading', { name: 'Forceful Strike', level: 2, exact: true })
+  await expect(heading).toHaveCount(1)
+  await expect(heading).toBeVisible()
 }
 async function publishSaved(page: Page): Promise<unknown> {
   await runMasterOperation(page, 'save', 'Save draft')
@@ -1048,7 +1054,14 @@ test('all five independent Basic originals restore through the mounted complete 
   page,
 }, testInfo) => {
   test.setTimeout(120_000)
-  const { defaultBasicSkills } = await import('@aurevane/game-core/combat/combat-basic-actions')
+  // Use the same executable-source transport as the native SQL lifecycle proof.
+  // Playwright's test loader must not compile core's ESM package as CommonJS.
+  const originals: BasicSkillDefinition[] = JSON.parse(
+    execFileSync(process.execPath, [resolve('scripts/master-originals-fixture.mjs')], {
+      encoding: 'utf8',
+    }),
+  )
+  expect(originals).toHaveLength(5)
   expect(['localhost', '127.0.0.1']).toContain(
     new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname,
   )
@@ -1065,7 +1078,7 @@ test('all five independent Basic originals restore through the mounted complete 
   try {
     grantLocalMasterOperator(email)
     await page.goto('/master/combat-content')
-    for (const original of defaultBasicSkills()) {
+    for (const original of originals) {
       await selectContentRecord(page, original.id, 'basic')
       // Start with a real saved edit/publication, with any prior publications retained.
       await page.getByRole('button', { name: 'Text', exact: true }).click()

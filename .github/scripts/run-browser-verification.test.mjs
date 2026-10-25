@@ -122,6 +122,8 @@ test('Master zoom and natural World evidence retain JSON, traces and screenshots
       for (const spec of [
         'master-complete-layout-desktop',
         'master-world-environment-cadence-desktop',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium-repeat1',
       ]) {
         const directory = join(results, spec, 'attachments')
         mkdirSync(directory, { recursive: true })
@@ -135,6 +137,8 @@ test('Master zoom and natural World evidence retain JSON, traces and screenshots
       for (const spec of [
         'master-complete-layout-desktop',
         'master-world-environment-cadence-desktop',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium-repeat1',
       ])
         for (const name of ['metrics.json', 'trace.zip', 'master-state.png'])
           assert.equal(

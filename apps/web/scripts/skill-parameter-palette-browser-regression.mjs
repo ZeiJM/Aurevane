@@ -16,9 +16,10 @@ const { chromium } = require(
 )
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
+const editorIdentityOnly = process.env.AV_MASTER_EDITOR_IDENTITY_ONLY === '1'
 const originalRpcAcceptance = process.env.AV_BASIC_ORIGINAL_RPC_ACCEPTANCE === '1'
 const basicServiceAcceptance =
-  process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' || originalRpcAcceptance
+  process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' || originalRpcAcceptance || editorIdentityOnly
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'skill-parameter-palette-'))
 const output =
   process.env.AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR ||
@@ -1138,7 +1139,7 @@ async function verifyBasicServiceRestore(page, viewport) {
 try {
   for (const viewport of [
     { width: 1366, height: 768 },
-    ...(basicServiceAcceptance
+    ...(basicServiceAcceptance && !editorIdentityOnly
       ? [
           { width: 1440, height: 900 },
           { width: 720, height: 450 },
@@ -1152,6 +1153,42 @@ try {
       errors.push(error.message)
       browserErrors.push(error.message)
     })
+    if (editorIdentityOnly) {
+      await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`)
+      const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+      await editor.locator('[data-content-key="unarmed.basic"]').click()
+      await editor.locator('[data-content-key="unarmed.basic"][aria-current="true"]').waitFor()
+      const name = await editor.getByRole('textbox', { name: 'Name', exact: true }).inputValue()
+      const heading = editor.getByRole('heading', { name, level: 2, exact: true })
+      await heading.waitFor()
+      await openNativeSample(editor)
+      await editor.getByRole('button', { name: 'Run native sample', exact: true }).click()
+      const chronicle = editor
+        .getByTestId('battle-log-feed')
+        .getByRole('heading', { name, level: 4, exact: true })
+      await chronicle.waitFor()
+      assert.equal(
+        await page.getByRole('heading', { name, exact: true }).count(),
+        2,
+        'Legacy broad identity is ambiguous with the real sample Chronicle',
+      )
+      assert.equal(await editor.getByRole('heading', { name, level: 2, exact: true }).count(), 1)
+      assert.equal(await chronicle.isVisible(), true)
+      await page.screenshot({
+        path: resolve(output, `editor-identity-${viewport.width}.png`),
+        fullPage: true,
+      })
+      evidence.push({
+        viewport,
+        name,
+        legacyHeadingCount: 2,
+        selectedEditorHeadingCount: 1,
+        chronicleVisible: true,
+      })
+      assert.deepEqual(errors, [])
+      await page.close()
+      continue
+    }
     if (basicServiceAcceptance) {
       if (originalRpcAcceptance) await verifyOriginalRpcRestore(page, viewport)
       else await verifyBasicServiceRestore(page, viewport)
@@ -1552,7 +1589,9 @@ try {
     await page.close()
   }
   await fs.writeFile(resolve(output, 'results.json'), JSON.stringify(evidence, null, 2))
-  console.log(`Skill parameter family/palette browser regression passed. Evidence: ${output}`)
+  console.log(
+    `${editorIdentityOnly ? 'Mounted editor identity and retained sample Chronicle' : 'Skill parameter family/palette browser'} regression passed. Evidence: ${output}`,
+  )
 } catch (error) {
   const failedPage = browser
     .contexts()
