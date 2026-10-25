@@ -348,6 +348,11 @@ function multiplyRepeatedRatio(
   count: number,
 ): [bigint, bigint] {
   if (multiplier === 10_000 || numerator === 0n) return [numerator, denominator]
+  // A nonzero, nonneutral reduced ratio has a term >= 2. At this count,
+  // exponentiation must construct a factor with > 65,536 bits, so reject
+  // before spending time on large GCDs that cannot produce a valid result.
+  if (multiplier !== 0 && count >= 65_536)
+    throw new RangeError('Combined effect arithmetic exceeds exact calculation capacity.')
   const gcd = (a: bigint, b: bigint): bigint => {
     while (b !== 0n) [a, b] = [b, a % b]
     return a

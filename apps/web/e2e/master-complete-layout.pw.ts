@@ -95,6 +95,9 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
   })
   let owner: FixtureOwner | undefined
   try {
+    const favicon = await context.request.get('/favicon.ico')
+    expect(favicon.status()).toBe(200)
+    expect(favicon.headers()['content-type']).toMatch(/^image\/(?:x-icon|vnd\.microsoft\.icon)/)
     const identity = {
       email: `master-fit-${randomUUID()}@example.test`,
       characterName: `Master ${randomUUID()

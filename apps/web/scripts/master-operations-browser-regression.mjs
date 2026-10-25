@@ -234,6 +234,30 @@ try {
         await page.getByLabel('Sort effect tags').selectOption('timing-desc')
         await page.locator('summary').filter({ hasText: '1 current definitions' }).click()
         await page.getByText('Fixture Strike', { exact: false }).first().waitFor()
+        const elevation = page.getByRole('form', { name: 'Elevation chances', exact: true })
+        const chance = (level) =>
+          elevation.getByLabel(`Elevation level ${level} chance (%)`, { exact: true })
+        const save = elevation.getByRole('button', { name: 'Save Changes', exact: true })
+        await chance(1).fill('0')
+        await chance(2).fill('0')
+        await chance(3).fill('99')
+        assert.equal(await save.isDisabled(), true)
+        await chance(3).fill('100')
+        await save.click()
+        await elevation
+          .getByRole('status')
+          .filter({ hasText: 'Elevation changes saved.' })
+          .waitFor()
+        const request = await page.evaluate(() => window.__operationsRequests.at(-1))
+        assert.equal(request.path, '/api/master/combat-elevation')
+        assert.deepEqual(request.body, {
+          policy: {
+            version: 1,
+            level1BasisPoints: 0,
+            level2BasisPoints: 0,
+            level3BasisPoints: 10000,
+          },
+        })
       } else if (view === 'world') {
         await page.getByLabel('Day length (real minutes)').fill(worldEnvironmentOnly ? '1' : '120')
         assert.equal(

@@ -219,6 +219,23 @@ export async function exerciseMasterAtBrowserZoom(
     await expect(button('Save Changes')).toBeEnabled()
     await control(mode, 'page-music-mode')
     await state('dirty-page-rule', page.getByRole('region', { name: 'Site Music' }))
+    const savedResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/master/site-music',
+    )
+    await activate(button('Save Changes'), 'save-page-rule')
+    expect((await savedResponse).status()).toBe(200)
+    await page.reload()
+    await activate(
+      page
+        .getByRole('navigation', { name: 'Page music' })
+        .getByRole('button')
+        .filter({ has: page.locator('strong', { hasText: /^World$/ }) }),
+      'reload-world-music',
+    )
+    await expect(mode).toHaveValue(changedMode)
+    await state('persisted-page-rule', page.getByRole('region', { name: 'Site Music' }))
     await activate(button('Reset to Global'), 'reset-page-rule')
     await expect(mode).toHaveValue('global')
   } else if (route === '/master/staff') {

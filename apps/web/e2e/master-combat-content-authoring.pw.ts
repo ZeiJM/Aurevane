@@ -806,16 +806,16 @@ test('Master combat authoring publishes versioned content, pins battles, and res
         editor.getByLabel(`Elevation level ${level} chance (%)`, { exact: true }),
       )
       const original = await Promise.all(fields.map((field) => field.inputValue()))
-      const versionText = await editor.getByRole('heading').innerText()
-      const originalVersion = Number(versionText.match(/v(\d+)/)?.[1])
+      const originalVersion = Number(
+        queryLocalDatabase(
+          'select max(version) from app_private.battlefield_elevation_policy_versions;',
+        ),
+      )
       expect(positiveInteger(originalVersion)).toBe(true)
-      const submit = editor.getByRole('button', { name: 'Publish elevation chances', exact: true })
+      const submit = editor.getByRole('button', { name: 'Save Changes', exact: true })
       await fields[0].fill('0')
       await fields[1].fill('0')
       await fields[2].fill('99')
-      await editor
-        .getByLabel('Elevation change reason', { exact: true })
-        .fill('Browser elevation publication')
       await expect(submit).toBeDisabled()
       await fields[2].fill('100')
       await expect(submit).toBeEnabled()
@@ -843,13 +843,12 @@ test('Master combat authoring publishes versioned content, pins battles, and res
             level2BasisPoints: 0,
             level3BasisPoints: 10000,
           },
-          reason: 'Stale tab',
         },
       })
       expect(stale.status()).toBe(409)
       expect(
         queryLocalDatabase(
-          `select count(*) from app_private.battlefield_elevation_policy_versions where version = ${publishedBody.policy.version} and published_by is not null and reason = 'Browser elevation publication';`,
+          `select count(*) from app_private.battlefield_elevation_policy_versions where version = ${publishedBody.policy.version} and published_by = (select id from auth.users where email = '${escapeSqlLiteral(email)}');`,
         ),
       ).toBe('1')
       const oldReloaded = await readBattle(page, oldIdentity.battleSessionId)
@@ -881,9 +880,6 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       await surrenderBattle(page, newIdentity.battleSessionId, newIdentity.battleVersion)
       await page.goto('/master/combat-timing')
       for (let index = 0; index < 3; index++) await fields[index]!.fill(original[index]!)
-      await editor
-        .getByLabel('Elevation change reason', { exact: true })
-        .fill('Restore baseline after browser verification')
       const restoreResponse = page.waitForResponse(
         (response) =>
           response.request().method() === 'POST' &&
