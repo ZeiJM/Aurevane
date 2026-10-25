@@ -418,6 +418,8 @@ export function createMapRenderer(
     identityRatio = 1,
     groundScale = 1,
     tile = 64,
+    rasterTile = 64,
+    rasterZoomAt: number | null = null,
     zoom = 1,
     disposed = false,
     frame = 0,
@@ -542,6 +544,8 @@ export function createMapRenderer(
       paintedIdentity = null
     }
     tile = (width < 600 ? 48 : 64) * zoom
+    rasterTile = tile
+    rasterZoomAt = null
     clearCache()
     requestDraw()
   }
@@ -567,6 +571,9 @@ export function createMapRenderer(
     return null
   }
   const ground = (sector: WorldSectorView) => {
+    // Projection follows every gesture; cached material keeps its resolution
+    // until the gesture settles, then repaints once at the final scale.
+    const tile = rasterTile
     const key =
       terrainKeys.get(sector.id) +
       ':' +
@@ -878,7 +885,7 @@ export function createMapRenderer(
     // Density may fall when more terrain enters the camera. Reuse the painted
     // content rather than rerunning all shore/biome geometry. Do not upscale it
     // again at every visibility threshold: that churn also degrades the image.
-    // Zoom, resize, loaded art and actual terrain changes still rebuild normally.
+    // Zoom settles once; resize, loaded art and terrain changes still rebuild.
     for (const entry of cache.values()) {
       if (entry.scale <= groundScale) continue
       const resample = (source: HTMLCanvasElement, width: number, height: number) => {
@@ -896,12 +903,12 @@ export function createMapRenderer(
         }
         return target
       }
-      const ground = resample(entry.ground, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+      const ground = resample(entry.ground, GRID_WIDTH * rasterTile, GRID_HEIGHT * rasterTile)
       const surfaces = new Map<string, LiquidSurface>()
       for (const [id, surface] of entry.surfaces)
         surfaces.set(id, {
           ...surface,
-          canvas: resample(surface.canvas, surface.width * tile, surface.height * tile),
+          canvas: resample(surface.canvas, surface.width * rasterTile, surface.height * rasterTile),
         })
       const pixels =
         ground.width * ground.height +
@@ -1004,8 +1011,8 @@ export function createMapRenderer(
             0,
           ),
         ) *
-          tile *
-          tile),
+          rasterTile *
+          rasterTile),
     )
     groundScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
     visibleGroundIds = new Set(visible.map((sector) => sector.id))
@@ -1019,7 +1026,6 @@ export function createMapRenderer(
     const addScenery = (item: Scenery) => {
       const p = screen(item)
       if (
-        scenery.length < 180 &&
         p.x + item.width / 2 > 0 &&
         p.x - item.width / 2 < width &&
         p.y + item.height * (1 - (item.anchorY ?? 1)) > 0 &&
@@ -1414,6 +1420,7 @@ export function createMapRenderer(
         )
       }
     }
+    let detailedScenery = 0
     for (const object of objects) {
       if (object.type === 'animal') {
         const p = screen(object.point)
@@ -1422,6 +1429,26 @@ export function createMapRenderer(
       }
       const item = object.item,
         p = screen({ x: item.x, y: item.y })
+      // Every supplied, viewport-clipped body remains visible. Spend the
+      // detail budget on larger sprites; small/overflow sprites need only one
+      // cropped draw, without per-object shadows, transforms or canopy sway.
+      const detailed = tile >= 32 && detailedScenery < 180
+      if (detailed) detailedScenery++
+      if (!detailed && !item.underpass && !item.mirror) {
+        sprite(
+          ctx,
+          item.image,
+          item.index,
+          item.columns,
+          item.rows,
+          p.x - item.width * (item.anchorX ?? 0.5),
+          p.y - item.height * (item.anchorY ?? 1),
+          item.width,
+          item.height,
+          item.source,
+        )
+        continue
+      }
       ctx.save()
       if (item.rock) {
         ctx.save()
@@ -1801,6 +1828,7 @@ export function createMapRenderer(
       canvas.dataset.cachedSectors = String(cache.size)
       canvas.dataset.cachedPixels = String(cachedPixels)
       canvas.dataset.visibleScenery = String(scenery.length)
+      canvas.dataset.detailedScenery = String(detailedScenery)
       canvas.dataset.waterCells = String(waterCells)
       canvas.dataset.renderFrames = String(drawn)
       canvas.dataset.visiblePlayers = String(view.players.length + 1)
@@ -1810,6 +1838,12 @@ export function createMapRenderer(
     frame = 0
     if (disposed || paused || document.visibilityState !== 'visible') return
     if (timingEnabled()) callbackStarted = performance.now()
+    if (rasterZoomAt !== null && now >= rasterZoomAt) {
+      rasterTile = tile
+      rasterZoomAt = null
+      clearCache()
+      dirty = true
+    }
     const sample = motion.sample(now),
       remoteMoving = remoteMotion.moving(now),
       settling = sample.point.x !== camera.x || sample.point.y !== camera.y,
@@ -1836,6 +1870,7 @@ export function createMapRenderer(
       remoteMoving ||
       sample.point.x !== camera.x ||
       sample.point.y !== camera.y ||
+      rasterZoomAt !== null ||
       (animate && !reduced)
     )
       frame = requestAnimationFrame(loop)
@@ -1867,13 +1902,19 @@ export function createMapRenderer(
     const [a, b] = [...pointers.values()]
     return a && b ? Math.hypot(a.x - b.x, a.y - b.y) : 0
   }
+  const applyZoom = (next: number) => {
+    zoom = next
+    tile = (width < 600 ? 48 : 64) * zoom
+    if (!cache.size) {
+      rasterTile = tile
+      rasterZoomAt = null
+    } else rasterZoomAt = performance.now() + 120
+    requestDraw()
+  }
   const changeZoom = (next: number) => {
     next = clampWorldZoom(Math.round(next * 100) / 100)
     if (zoomLocked || next === zoom) return
-    zoom = next
-    tile = (width < 600 ? 48 : 64) * zoom
-    clearCache()
-    requestDraw()
+    applyZoom(next)
     onZoom(zoom)
   }
   const wheel = (event: WheelEvent) => {
@@ -2090,10 +2131,7 @@ export function createMapRenderer(
         cancelAnimationFrame(frame)
         frame = 0
       }
-      if (zoom !== value.zoom) {
-        zoom = value.zoom
-        resize()
-      }
+      if (zoom !== value.zoom) applyZoom(value.zoom)
       requestDraw()
     },
     dispose() {

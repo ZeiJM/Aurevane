@@ -24,8 +24,9 @@ import styles from './battle-log-chronicle.module.css'
 import { chronicleActionArtwork } from './battle-chronicle-artwork'
 
 function chronicleScrollPort(reader: HTMLDivElement): HTMLElement {
+  const workspace = reader.closest<HTMLElement>('[data-battle-mobile-log-workspace]')
   const lower = reader.closest<HTMLElement>('[data-battle-mobile-lower-panel]')
-  return lower && getComputedStyle(lower).display !== 'contents' ? lower : reader
+  return lower && getComputedStyle(lower).display !== 'contents' ? (workspace ?? lower) : reader
 }
 
 function ChronicleTechnique({
@@ -162,6 +163,7 @@ export function BattleLogChronicle({
     const reader = scrollRef.current
     if (!reader) return
     const lower = reader.closest<HTMLElement>('[data-battle-mobile-lower-panel]')
+    const workspace = reader.closest<HTMLElement>('[data-battle-mobile-log-workspace]')
     const onScroll = (event: Event) => {
       const port = chronicleScrollPort(reader)
       if (event.currentTarget !== port || reader.getClientRects().length === 0) return
@@ -172,9 +174,11 @@ export function BattleLogChronicle({
     // Both ports stay subscribed so rotation can change the scroll owner without a remount.
     reader.addEventListener('scroll', onScroll, { passive: true })
     lower?.addEventListener('scroll', onScroll, { passive: true })
+    workspace?.addEventListener('scroll', onScroll, { passive: true })
     return () => {
       reader.removeEventListener('scroll', onScroll)
       lower?.removeEventListener('scroll', onScroll)
+      workspace?.removeEventListener('scroll', onScroll)
     }
   }, [rememberReadingPosition])
 
@@ -292,12 +296,16 @@ export function MobileBattleChronicle({
   detailsHost,
   resetEpoch = 0,
   onDetailsOpenChange,
+  onToggleLog,
+  logOpen = false,
 }: ChronicleNames & {
   entries: readonly BattleLogEntry[]
   currentRound?: number
   resetEpoch?: number
   detailsHost?: HTMLElement | null
   onDetailsOpenChange?: (open: boolean) => void
+  onToggleLog?: () => void
+  logOpen?: boolean
 }) {
   const policy = useSkillElementalDamagePolicyVersion()
   const recordedRound =
@@ -346,21 +354,26 @@ export function MobileBattleChronicle({
   }, [latestKey, selectedKey])
   return (
     <div className={styles.compactChronicle} data-battle-action-strip="true" ref={rootRef}>
-      <span
+      <button
+        type="button"
         className={styles.compactCurrentRound}
-        role="status"
-        aria-live="polite"
-        aria-atomic="true"
+        data-battle-current-round-toggle="true"
+        aria-expanded={logOpen}
+        onClick={onToggleLog}
+        disabled={!onToggleLog}
         data-battle-round={recordedRound ? currentRound : 'unavailable'}
         aria-label={
           recordedRound
-            ? `Current battle round ${currentRound}`
+            ? `Current battle round ${currentRound}. ${logOpen ? 'Hide' : 'Show'} battle log`
             : 'Current battle round unavailable'
         }
       >
         <span aria-hidden="true">Current:</span>
         <b aria-hidden="true">Round {recordedRound ? currentRound : '—'}</b>
-      </span>
+        <i aria-hidden="true" data-battle-log-toggle-icon="true">
+          ⟳
+        </i>
+      </button>
       <div className={styles.compactTrack} aria-label="Battle actions" ref={trackRef}>
         {actions.length === 0 ? (
           <span className={styles.compactEmpty}>Chronicle · Awaiting actions</span>

@@ -87,7 +87,7 @@ export function PvpSpectatorExperience({
   initialParticipantTitles: Record<string, string | null>
 }) {
   useBattleTabCyclePrevention()
-  const { chronicleOpen, lowerPanelRef } = useBattleMobileChronicle()
+  const { chronicleOpen, lowerPanelRef, toggleChronicle } = useBattleMobileChronicle()
   const desktopLayout = useDesktopBattleLayout()
   const [chronicleDetailsHost, setChronicleDetailsHost] = useState<HTMLDivElement | null>(null)
   const [chronicleDetailsOpen, setChronicleDetailsOpen] = useState(false)
@@ -593,6 +593,8 @@ export function PvpSpectatorExperience({
         </section>
         <div className={mobileStyles.chronicleBar} data-battle-mobile-chronicle-strip="true">
           <BattleLogPanel
+            onToggleLog={toggleChronicle}
+            logOpen={chronicleOpen}
             presentation="timeline"
             detailsHost={desktopLayout ? null : chronicleDetailsHost}
             onDetailsOpenChange={setChronicleDetailsOpen}

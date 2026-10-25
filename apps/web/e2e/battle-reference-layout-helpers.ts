@@ -285,14 +285,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         parseFloat(getComputedStyle(document.documentElement).fontSize),
       forecast: rect('[data-battle-preview-strip]'),
       key: rect('button[aria-label="Terrain"]'),
-      cancel: [
-        ...element.querySelectorAll<HTMLButtonElement>('[data-battle-footer-actions] > button'),
-      ]
-        .find((button) =>
-          ['Cancel Action', 'Cancel prime'].includes(button.textContent?.trim() ?? ''),
-        )!
-        .getBoundingClientRect()
-        .toJSON(),
+      cancel: rect('[data-battle-cancel-action]'),
       log: rect('[data-battle-inline-log]'),
       leftCardRoles: [
         ...element.querySelectorAll('[data-battle-side="local"] > [data-battle-combatant-card]'),

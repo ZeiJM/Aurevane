@@ -110,7 +110,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
-  await expect(commandContext).toContainText('Choose your action')
+  await expect(commandContext).toContainText('Your turn')
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
   const fittedBoard = battlefield.locator('[data-board-auto-fit="9x7"]')
   await expect(fittedBoard).toHaveCount(1)
@@ -202,7 +203,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await finishCurrentTurn(finishButton, testInfo.project.name)
 
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
-  await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
+  await expect(commandContext).toContainText('Your turn', { timeout: 15_000 })
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
   await expect(facingPad).toBeHidden()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
@@ -223,7 +225,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   )
   await finishCurrentTurn(finishButton, testInfo.project.name)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
-  await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
+  await expect(commandContext).toContainText('Your turn', { timeout: 15_000 })
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
 
   if (testInfo.project.name === 'mobile-chromium') {
     // End Turn leaves the earlier row clipped by the sticky economy header.

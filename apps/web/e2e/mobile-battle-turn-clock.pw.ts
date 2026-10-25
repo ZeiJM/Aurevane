@@ -40,7 +40,11 @@ test('keeps the authoritative mobile PvE turn clock in the shared economy header
   // Recruit Initiative can grant the opening turn; the shared title is not turn ownership.
   await expect(root).toHaveAttribute('data-local-turn', 'true', { timeout: 15000 })
   await expect(root.getByRole('button', { name: /^End Turn,/ })).toBeEnabled({ timeout: 15000 })
-  await expect(title).toHaveText(/^Choose your action$/i)
+  await expect(title).toHaveText(/^Your turn$/i)
+  await expect(root.locator('[data-battle-preview-strip]')).toHaveAttribute(
+    'data-battle-turn-state',
+    'yours',
+  )
   await expect(timer).toBeVisible()
   // The independent clock reports the committed handoff on its five-second watchdog.
   await expect(timer).toHaveText(/^\d+s$/, { timeout: 15000 })

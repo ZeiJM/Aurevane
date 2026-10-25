@@ -32,7 +32,7 @@ describe('Public character profile', () => {
     expect(markup).toContain('>Aetherist</span>')
     expect(markup).not.toContain('Primary ·')
     expect(markup).not.toContain('Secondary ·')
-    expect(markup).toContain('Never seen')
+    expect(markup).toContain('No recorded activity')
     expect(markup).not.toContain('Close public character profile')
     expect(markup).not.toContain('Public profiles intentionally omit')
     expect(markup).not.toContain('Send Direct Message')

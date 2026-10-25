@@ -777,3 +777,32 @@
   color: #332b22;
   font: 500 0.8125rem/1.35 var(--av-font-body);
 }
+
+/* Turn ownership is explicit and stays inside the existing preview geometry. */
+.content :global([data-battle-preview-strip][data-battle-turn-state='yours']) > strong {
+  color: #15513a;
+  text-shadow: 0 0 0.45rem #43b57c38;
+}
+.content :global([data-battle-preview-strip][data-battle-turn-state='waiting']) > strong {
+  color: #842c28;
+  text-shadow: 0 0 0.45rem #ce4a4233;
+}
+
+/* A waiting caption can include a full 24-code-point character name. Keep it in two
+   readable lines without taking height from the board; Terrain keeps its wider description.
+   This is the desktop complement of BATTLE_MOBILE_LAYOUT_QUERY. */
+@media (min-width: 821px) and (not (pointer: coarse)),
+  (min-width: 981px),
+  (min-width: 821px) and (min-height: 501px) {
+  .shell:not([data-battle-terrain-view])
+    .content
+    :global([data-battle-preview-strip][data-battle-turn-state='waiting']) {
+    grid-template-columns: minmax(5rem, 14rem) minmax(0, 1fr);
+  }
+  .shell:not([data-battle-terrain-view])
+    .content
+    :global([data-battle-preview-strip][data-battle-turn-state='waiting'])
+    > strong {
+    word-break: break-all;
+  }
+}

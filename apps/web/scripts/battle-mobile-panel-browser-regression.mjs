@@ -148,7 +148,16 @@ async function verifyMobileChatFooter(page, viewport, label) {
       const footer = document.querySelector('main[data-pvp-battle] > footer')
       if (!panel || !footer || panel.hasAttribute('data-desktop')) return false
       const bounds = panel.getBoundingClientRect()
-      return bounds.bottom <= footer.getBoundingClientRect().top - 4 && bounds.top >= 0
+      const lower = document
+        .querySelector('[data-battle-mobile-lower-panel]')
+        .getBoundingClientRect()
+      return (
+        bounds.bottom <= footer.getBoundingClientRect().top - 4 &&
+        bounds.top >= 0 &&
+        Math.abs(bounds.top - lower.top) <= 1 &&
+        Math.abs(bounds.bottom - lower.bottom) <= 1 &&
+        Math.abs(bounds.width - lower.width) <= 1
+      )
     })
     return page
       .locator('main[data-pvp-battle] > footer')
@@ -157,20 +166,37 @@ async function verifyMobileChatFooter(page, viewport, label) {
   await chat.click()
   await panel.waitFor({ state: 'visible' })
   const initialFooterHeight = await expectAboveFooter()
+  assert.equal(initialFooterHeight, 44, 'Mobile PvP retains its original single-row footer height')
+  assert.equal(
+    await panel.getByRole('tab', { name: 'Battle Log', exact: true }).count(),
+    0,
+    'Chat contains messages instead of a log tab',
+  )
+  const composer = panel.getByRole('textbox', { name: 'Battle chat message' })
+  await composer.fill('Draft survives rotation and toggling')
   await page.screenshot({ path: resolve(output, `${label}-chat.png`) })
   const rotated = viewport.height < 500 ? { width: 390, height: 844 } : { width: 844, height: 390 }
   await page.setViewportSize(rotated)
   const resizedFooterHeight = await expectAboveFooter()
-  assert.notEqual(
+  assert.equal(
     resizedFooterHeight,
     initialFooterHeight,
-    'Chat follows the actual footer when rotation changes its height',
+    'Rotation retains the single-row footer while Chat fills the lower workspace',
   )
+  assert.equal(await composer.inputValue(), 'Draft survives rotation and toggling')
   await chat.click()
   await panel.waitFor({ state: 'hidden' })
   await chat.click()
   await panel.waitFor({ state: 'visible' })
-  await panel.getByRole('button', { name: 'Close battle communication', exact: true }).click()
+  assert.equal(await composer.inputValue(), 'Draft survives rotation and toggling')
+  assert.equal(
+    await panel
+      .getByRole('button', { name: 'Close battle communication', exact: true })
+      .isVisible(),
+    false,
+    'Mobile Chat uses the footer toggle instead of a close X',
+  )
+  await chat.click()
   await panel.waitFor({ state: 'hidden' })
   await page.setViewportSize(viewport)
   await page.evaluate(async () => {

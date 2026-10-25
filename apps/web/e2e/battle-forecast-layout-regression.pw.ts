@@ -228,11 +228,7 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
         ),
       })),
       terrainToggle: rect(root.querySelector('button[aria-label="Terrain"]')),
-      cancel: rect(
-        Array.from(root.querySelectorAll('[data-battle-footer-actions] > button')).find((node) =>
-          ['Cancel Action', 'Cancel prime'].includes(node.textContent?.trim() ?? ''),
-        ) ?? null,
-      ),
+      cancel: rect(root.querySelector('[data-battle-cancel-action]')),
       footer: rect(root.querySelector('footer')),
       commandContents: [
         ...root.querySelectorAll(
@@ -387,6 +383,8 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     ).toBeLessThanOrEqual(1)
   }
   expect(geometry.terrainToggle).not.toBeNull()
+  expect(geometry.cancel).not.toBeNull()
+  contained(geometry.cancel!, geometry.footer!)
   contained(geometry.terrainToggle!, geometry.footer!)
   expect(geometry.terrainToggle!.x + geometry.terrainToggle!.width).toBeLessThanOrEqual(
     geometry.cancel!.x + 1,
