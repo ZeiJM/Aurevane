@@ -1,0 +1,19 @@
+{
+  "project": "luazfeupwfgnilohfsya",
+  "scope": "Read-only pre-Master hosted security baseline; no settings/DDL changed",
+  "groups": {
+    "INFO:rls_enabled_no_policy": 64,
+    "WARN:function_search_path_mutable": 1,
+    "WARN:authenticated_security_definer_function_executable": 1,
+    "WARN:auth_leaked_password_protection": 1
+  },
+  "total": 67,
+  "notes": {
+    "counting": "Advisor response groups nested findings/count; four categories contain67notices, not fourindividualnotices",
+    "privateRLS": "64pre-existing INFO no-policy tables; protected server-only paths stay denied to browser roles",
+    "chatPair": "Pre-existing app_private.chat_pair_v1(uuid,uuid), SECURITY INVOKER, nullsearch_path; anon/authenticated/service_role EXECUTE allfalse; anon/auth private-schemaUSAGEfalse",
+    "worldScene": "Pre-existing intended authenticated boolean SECURITY DEFINER realtime receive-policy helper; fixed pg_catalog/app_private/public search_path, anonEXECUTEfalse, documented2026-10-13-world-live-presence.md",
+    "password": "Pre-existing leaked-password-protection disabled; documentedpriorreleasebaseline, no Authconfigurationchange in this task",
+    "release": "Compare final advisors and permissions; do not suppress by granting broad tablepolicies or revoking required realtime receive API"
+  }
+}
