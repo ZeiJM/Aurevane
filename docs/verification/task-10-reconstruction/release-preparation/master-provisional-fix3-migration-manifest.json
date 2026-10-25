@@ -1,0 +1,193 @@
+{
+  "status": "provisional-not-for-execution",
+  "source": "db163dbfa581347e24acb367cd0c75c2b8972312",
+  "tree": "59d3b70c4e238c10edb2db103636d0356e4d959b",
+  "observedHostedHistoryRows": 141,
+  "priorAliasesExactBytesAndSHA": [
+    {
+      "sourceVersion": "20261010210515",
+      "hostedVersion": "20261014045202",
+      "name": "captured_ability_startup_events",
+      "bytes": 10077,
+      "sha256": "00764e9c2caaf9cccf8fb3855373cb395dbeb01c98ccbd1f81a9c4f2a1b26f39"
+    },
+    {
+      "sourceVersion": "20261012135027",
+      "hostedVersion": "20261012144305",
+      "name": "world_scene_players",
+      "bytes": 3271,
+      "sha256": "52240aefa1cfaf08b93addcf08ef927136a51c8870b32d58e96d18c920498063"
+    },
+    {
+      "sourceVersion": "20261013131048",
+      "hostedVersion": "20261013171017",
+      "name": "world_live_presence",
+      "bytes": 10507,
+      "sha256": "cadba7621ff07528e6ec3cfa484d9c644f50468a4d1e1717fd4726b5372a56f5"
+    },
+    {
+      "sourceVersion": "20261014024323",
+      "hostedVersion": "20261014045207",
+      "name": "world_captured_ability_startup",
+      "bytes": 1791,
+      "sha256": "8584820738ea5f42fb32a1a8f85735b5b3a96a42d87cc6a4e1f35236a2980a69"
+    }
+  ],
+  "alreadyApplied": {
+    "selectedStaff": "20261019003429",
+    "players": {
+      "version": "20261020181057",
+      "sha256": "d003119d4a24a26b4f810a2d1d9ca35ef0fe3d80fe7f568abbed1e5ee8832599"
+    }
+  },
+  "pendingOriginals": [
+    {
+      "name": "combat_content_complete_records",
+      "version": "20261020200612",
+      "path": "supabase/migrations/20261020200612_combat_content_complete_records.sql",
+      "bytes": 24041,
+      "sha256": "4bf330137084e1785b694873ef734789752931b4ddcd32c424f14f81c740431c",
+      "blob": "59ecf60920f2486e1678d9eaf2006ea5b38657cb"
+    },
+    {
+      "name": "combat_content_admission_guards",
+      "version": "20261020201044",
+      "path": "supabase/migrations/20261020201044_combat_content_admission_guards.sql",
+      "bytes": 4879,
+      "sha256": "8488d810152dcae7558bb979633530777a12e71609d39bd25861c0677f3ea305",
+      "blob": "2f21bf8403f2dd3d6526943cadd052ee6cd63d44"
+    },
+    {
+      "name": "combat_content_typed_record_writes",
+      "version": "20261020201807",
+      "path": "supabase/migrations/20261020201807_combat_content_typed_record_writes.sql",
+      "bytes": 8333,
+      "sha256": "6a49a73174a6c1d213c201f2457607a1aca074b0b6627c024f1167fef6eb8744",
+      "blob": "6de55b3f24367a48aecfb1fa5fdb6f2ac64bf4cc"
+    },
+    {
+      "name": "retire_unsafe_combat_content_mutations",
+      "version": "20261020202415",
+      "path": "supabase/migrations/20261020202415_retire_unsafe_combat_content_mutations.sql",
+      "bytes": 2122,
+      "sha256": "c770d4b6bc629e59ce5e930ecbd154f9e63037834752dad96a5d550a859b38da",
+      "blob": "389803165dc178c0ccf778e557dc552e6466e1ef"
+    },
+    {
+      "name": "combat_content_record_boundaries",
+      "version": "20261020204712",
+      "path": "supabase/migrations/20261020204712_combat_content_record_boundaries.sql",
+      "bytes": 11628,
+      "sha256": "48c1d85c7581b7527a515f08115e97b16881f7f9377b5fdacc48d048d329e938",
+      "blob": "58eaa82abc5b7f8117bc6e9141d1b2e20f338b2d"
+    },
+    {
+      "name": "combat_content_builtin_identity_index",
+      "version": "20261020204946",
+      "path": "supabase/migrations/20261020204946_combat_content_builtin_identity_index.sql",
+      "bytes": 51752,
+      "sha256": "6e2a6aeda91657a167ae86679394759dcaf16d6071fefc4820e7e075cf96c0c8",
+      "blob": "5f39369765cb1e661ec4740396b8f150b97fd692"
+    },
+    {
+      "name": "combat_content_reference_index",
+      "version": "20261020205631",
+      "path": "supabase/migrations/20261020205631_combat_content_reference_index.sql",
+      "bytes": 28885,
+      "sha256": "5b19fb19a96f07208397130ed08a8ee22302d8a3ab753de11ceb4a862575d33c",
+      "blob": "09dfbe3ac30085a5155a60c9305107ad0dd024d4"
+    },
+    {
+      "name": "combat_content_restore_reference_boundaries",
+      "version": "20261020211441",
+      "path": "supabase/migrations/20261020211441_combat_content_restore_reference_boundaries.sql",
+      "bytes": 1071,
+      "sha256": "1e36a556400fab3f3d5549dee0415d3986430456d9b73cc720d8ef302a83b4dd",
+      "blob": "0a4da378aa0e6526382568775234a0e76a43a806"
+    },
+    {
+      "name": "published_discipline_producers",
+      "version": "20261020222401",
+      "path": "supabase/migrations/20261020222401_published_discipline_producers.sql",
+      "bytes": 35283,
+      "sha256": "5a57733cf83452ae1f7f53c4f0a532dcf85b7ea5f1fe5dd5254435ebe574a62c",
+      "blob": "d3332d9797bb66d9a13b2e4e2fd0ab28554098a8"
+    },
+    {
+      "name": "discipline_skill_earned_provenance",
+      "version": "20261020225734",
+      "path": "supabase/migrations/20261020225734_discipline_skill_earned_provenance.sql",
+      "bytes": 24923,
+      "sha256": "77a1496541827bb741bf0f853d44ed2b685bca89821176a9f3ae920b83b4de08",
+      "blob": "ebfb694134fedc364dfc9176f64ad91dc8bfb931"
+    },
+    {
+      "name": "discipline_consumer_admission",
+      "version": "20261022200753",
+      "path": "supabase/migrations/20261022200753_discipline_consumer_admission.sql",
+      "bytes": 22391,
+      "sha256": "3f9cdff227993d986c5c9f20aafc3c0bd69f0052db2b2ec2e983700844386c22",
+      "blob": "7ea9cc06a51bfda100c79b8cc5db2c713d760f3e"
+    },
+    {
+      "name": "finalized_combat_content_media",
+      "version": "20261022214821",
+      "path": "supabase/migrations/20261022214821_finalized_combat_content_media.sql",
+      "bytes": 10826,
+      "sha256": "24a6c98460ed5d130ceeac3db4e18d327d3b7d834020e8c37a6d280926733088",
+      "blob": "6614a8a1dddb0a3f5ce1a1cf25bf8d924deae748"
+    },
+    {
+      "name": "canonical_tag_presentation",
+      "version": "20261022221218",
+      "path": "supabase/migrations/20261022221218_canonical_tag_presentation.sql",
+      "bytes": 5331,
+      "sha256": "ee575f76013830ff6d2c99a2476646d1be479473b1070d60ccab9ae1f3bdbb7e",
+      "blob": "c43970ca8464b093f39a2b64a8dcf726c9e98b4a"
+    },
+    {
+      "name": "retained_tag_draft_envelopes",
+      "version": "20261022225712",
+      "path": "supabase/migrations/20261022225712_retained_tag_draft_envelopes.sql",
+      "bytes": 1728,
+      "sha256": "674e24cc981a43cb052b55f37bba1a81dc9d87378e5309095895529966875312",
+      "blob": "0a17d511a92b28c04a5055b4b2aeb995c539a87f"
+    },
+    {
+      "name": "master_content_sorted_browse",
+      "version": "20261022233500",
+      "path": "supabase/migrations/20261022233500_master_content_sorted_browse.sql",
+      "bytes": 5137,
+      "sha256": "d5c02d17cfd68b7f013c6ab6a53f576414d57e578abcf63cf451a0db23f25a87",
+      "blob": "e0616bee79719ea6d10fc35ed07b8bcb74bc77a8"
+    },
+    {
+      "name": "master_operational_rules_and_world_cycle",
+      "version": "20261023010443",
+      "path": "supabase/migrations/20261023010443_master_operational_rules_and_world_cycle.sql",
+      "bytes": 8112,
+      "sha256": "d10e97d2b6e0eb17f713cbc1d609ba20f91639e68891ed8505ca8075b2c53c4b",
+      "blob": "55597531a119532711b6b56a3f95f949f143038a"
+    },
+    {
+      "name": "event_workspace_lifecycle_safety",
+      "version": "20261025064638",
+      "path": "supabase/migrations/20261025064638_event_workspace_lifecycle_safety.sql",
+      "bytes": 10959,
+      "sha256": "fd55f49ebe7ee469879a2eb8e599dafe1936f1593417cf9c789ad001920e5b9c",
+      "blob": "3d9354c7fcd7e13bc135e2e3d3bc1ca5d8fabb3e"
+    },
+    {
+      "version": "20261025080018",
+      "name": "combat_content_builtin_restore_source",
+      "path": "supabase/migrations/20261025080018_combat_content_builtin_restore_source.sql",
+      "bytes": 5472,
+      "sha256": "9295194ee91494f5bfc9b676145d6cf7bc05edf0d6e8d11f6547348d38a0e2fb",
+      "blob": "bf2f25b2363eaa2db83c0979500ece0cc34c2fe0"
+    }
+  ],
+  "rules": "Preserve original source identities/SHA; exclude already-applied Staff/Players and all four byte-exact history aliases; no history repair/reapply/roster publish; rebuild from final accepted source and fresh hosted history before any apply",
+  "note": "Original hashes rechecked against backed intermediate fix3 source; final source acceptance and fresh hosted reconciliation still required.",
+  "observedHostedHistorySha256": "bcdb945d2e444469fbc8c4c9a7c369feb3df24c288ec5f53824af82004d4786a",
+  "historyObservation": "Previously captured read-only baseline; must refresh before acceptance or execution."
+}

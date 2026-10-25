@@ -1,0 +1,54 @@
+{
+  "verifiedAt": "2026-10-25T18:19:40.398Z",
+  "engine": "PGlite 0.5.8; local guard verification only",
+  "receipts": [
+    {
+      "name": "unchanged",
+      "passed": true,
+      "expectedRejection": null,
+      "actualRejection": null
+    },
+    {
+      "name": "allowed logical new-column backfill",
+      "passed": true,
+      "expectedRejection": null,
+      "actualRejection": null
+    },
+    {
+      "name": "logical old fact mutation",
+      "passed": true,
+      "expectedRejection": "MASTER_PROTECTED_FACTS_CHANGED",
+      "actualRejection": "MASTER_PROTECTED_FACTS_CHANGED: combat_content_versions"
+    },
+    {
+      "name": "physical old fact mutation",
+      "passed": true,
+      "expectedRejection": "MASTER_PROTECTED_FACTS_CHANGED",
+      "actualRejection": "MASTER_PROTECTED_FACTS_CHANGED: player_facts"
+    },
+    {
+      "name": "physical no-op write",
+      "passed": true,
+      "expectedRejection": "MASTER_PROTECTED_FACTS_CHANGED",
+      "actualRejection": "MASTER_PROTECTED_FACTS_CHANGED: player_facts"
+    },
+    {
+      "name": "physical truncate and reinsert",
+      "passed": true,
+      "expectedRejection": "MASTER_PROTECTED_TABLE_REWRITTEN",
+      "actualRejection": "MASTER_PROTECTED_TABLE_REWRITTEN: player_facts"
+    },
+    {
+      "name": "logical old type mutation",
+      "passed": true,
+      "expectedRejection": "MASTER_OLD_COLUMN_TYPE_CHANGED",
+      "actualRejection": "MASTER_OLD_COLUMN_TYPE_CHANGED: combat_content_versions"
+    },
+    {
+      "name": "old table replacement",
+      "passed": true,
+      "expectedRejection": "MASTER_TABLE_IDENTITY_CHANGED",
+      "actualRejection": "MASTER_TABLE_IDENTITY_CHANGED: player_facts"
+    }
+  ]
+}
