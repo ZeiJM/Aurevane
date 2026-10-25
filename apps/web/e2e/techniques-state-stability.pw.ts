@@ -48,32 +48,55 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     const baseline = await geometry(dialog)
     for (const input of await dialog.locator('[data-technique-card] input').all()) {
       await input.focus()
-      expectGeometry(await geometry(dialog), baseline)
+      expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Skill preview focus`)
     }
     for (const input of await dialog.getByRole('radio').all()) {
       await input.focus()
-      expectGeometry(await geometry(dialog), baseline)
+      expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support preview focus`)
       await expect(dialog.getByTestId('technique-preview').locator('dl > div')).toHaveCount(10)
     }
     releaseSave = undefined
+    const supportTab = dialog.getByRole('tab', { name: 'Support', exact: true })
+    if (await supportTab.isVisible()) await supportTab.click()
+    // Tab selection changes the visible gallery on phones; measure that active pane.
+    const supportBaseline = await geometry(dialog)
     await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
-    await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()
+    // Compact Techniques hides its old footer at phone widths; assert the pending
+    // live-region state without requiring a visible bottom notification.
+    await expect(
+      dialog.locator('[aria-live="polite"]', { hasText: 'Saving selection…' }),
+    ).toHaveText('Saving selection…')
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(
+      await geometry(dialog),
+      supportBaseline,
+      `${width}x${height}: Support save pending`,
+    )
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
     await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(
+      await geometry(dialog),
+      supportBaseline,
+      `${width}x${height}: Support save rejected`,
+    )
     releaseSave = undefined
+    const disciplineTab = dialog.getByRole('tab', { name: 'Discipline 1', exact: true })
+    if (await disciplineTab.isVisible()) await disciplineTab.click()
+    const skillBaseline = await geometry(dialog)
     const skill = dialog.locator('[data-technique-card] input:not(:disabled)').first()
     await skill.check()
-    await expect(dialog.getByText('Saving selection…', { exact: true })).toBeVisible()
+    // Compact Techniques hides its old footer at phone widths; assert the pending
+    // live-region state without requiring a visible bottom notification.
+    await expect(
+      dialog.locator('[aria-live="polite"]', { hasText: 'Saving selection…' }),
+    ).toHaveText('Saving selection…')
     await expect.poll(() => Boolean(releaseSave)).toBe(true)
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(await geometry(dialog), skillBaseline, `${width}x${height}: Skill save pending`)
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
     await expect(skill).not.toBeChecked()
-    expectGeometry(await geometry(dialog), baseline)
+    expectGeometry(await geometry(dialog), skillBaseline, `${width}x${height}: Skill save rejected`)
     expect(
       await dialog.evaluate((node) => node.scrollWidth - node.clientWidth),
     ).toBeLessThanOrEqual(1)
@@ -88,10 +111,17 @@ async function geometry(dialog: Locator) {
       const r = element.getBoundingClientRect()
       return [r.x, r.y, r.width, r.height]
     }
-    const art = node.querySelector('[data-technique-art]')!
-    const previewArt = preview.querySelector('[data-av-square-media]')!
+    // At phone sizes the inactive discipline gallery is intentionally display:none.
+    // Measure a visible artwork tile from the selected category, including Support.
+    const art = [
+      ...node.querySelectorAll(
+        '[data-technique-art], [data-technique-category="support"] [data-av-square-media]',
+      ),
+    ].find((tile) => tile.getBoundingClientRect().width > 0)
+    if (!art) throw new Error('Active Techniques artwork is missing')
+    const previewImages = preview.querySelectorAll('img').length
     const artRect = rect(art)
-    const previewRect = rect(previewArt)
+    const previewRect = rect(preview)
     // Mobile focus scrolls the gallery; compare positions within its content by adding back the
     // scroll offset of every scrolling ancestor between the element and the dialog.
     const scrolled = (element: Element) => {
@@ -102,17 +132,13 @@ async function geometry(dialog: Locator) {
       return total
     }
     artRect[1] += scrolled(art)
-    previewRect[1] += scrolled(previewArt)
-    if (innerWidth <= 820) {
-      // On phones the preview is a bottom sheet whose height follows its content, so measure the
-      // art inside the sheet rather than against the page.
-      previewRect[1] -= preview.getBoundingClientRect().y
-    }
+    previewRect[1] += scrolled(preview)
     return {
       dialog: rect(node),
       workspace: rect(workspace),
       art: artRect,
-      previewArt: previewRect,
+      preview: previewRect,
+      previewImages,
     }
   })
 }
@@ -120,12 +146,14 @@ async function geometry(dialog: Locator) {
 function expectGeometry(
   actual: Awaited<ReturnType<typeof geometry>>,
   expected: Awaited<ReturnType<typeof geometry>>,
+  context: string,
 ) {
-  for (const key of ['dialog', 'workspace', 'art', 'previewArt'] as const) {
+  expect(actual.previewImages, `${context}: preview does not duplicate chooser artwork`).toBe(0)
+  for (const key of ['dialog', 'workspace', 'art', 'preview'] as const) {
     actual[key].forEach((value, index) =>
       expect(
         Math.abs(value - expected[key][index]),
-        `${key} dimension ${index} remains stable`,
+        `${context}: ${key} dimension ${index} remains stable`,
       ).toBeLessThanOrEqual(1),
     )
   }

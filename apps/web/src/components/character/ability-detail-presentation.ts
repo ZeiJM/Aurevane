@@ -331,7 +331,10 @@ function effectPresentation(
       duration: null,
       timing: 'Instant',
     }
-    description = 'Move to the chosen Ground within your remaining Movement and Jump.'
+    description =
+      basic?.execution.kind === 'basic-move'
+        ? 'Move to the chosen Ground within your remaining Movement and Jump.'
+        : 'Move to the chosen Ground within this Skill’s Move distance and Jump, independent of ordinary walking.'
   } else if (payload.type === 'damage-bonus') {
     parts = {
       label: 'Damage Up',

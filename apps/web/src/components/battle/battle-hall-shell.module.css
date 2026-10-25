@@ -10,8 +10,7 @@
   height: 100%;
 }
 @media (max-width: 760px) {
-  .layout,
-  .layout > :nth-child(2) {
-    height: auto;
+  .layout {
+    grid-template-rows: minmax(0, 1fr);
   }
 }

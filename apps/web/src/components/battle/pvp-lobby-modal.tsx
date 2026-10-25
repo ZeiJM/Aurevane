@@ -13,8 +13,6 @@ import type { PvpLobbyMemberView, PvpLobbyView } from '@/server/battle/pvp-lobby
 
 import { pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
 
-import { ChatPanel } from '@/components/social/chat/chat-panel'
-
 import styles from './pvp-lobby-modal.module.css'
 
 interface PvpLobbyModalProps {
@@ -85,7 +83,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   const startLock = useRef(false)
   const lobbyMutationGeneration = useRef(0)
   const lobbyMutationPending = useRef(false)
-  const [chatOpen, setChatOpen] = useState(false)
   const localMember = useMemo(
     () => lobby.members.find((member) => member.characterId === localCharacterId) ?? null,
     [lobby.members, localCharacterId],
@@ -386,9 +383,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
         {canMoveSeats ? (
           <p className={styles.seatHelp}>
-            Click your occupied seat to step out of formation. Click an open seat to rejoin; while
-            seated, clicking another occupied seat swaps positions. Any seat change clears every
-            Ready state.
+            Tap your seat to leave formation, an open seat to join, or another player to swap. Seat
+            changes reset everyone’s Ready state.
           </p>
         ) : null}
 
@@ -505,14 +501,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         ) : null}
       </div>
       <footer className={styles.footer}>
-        {chatOpen ? (
-          <div className={styles.lobbyChatPanel}>
-            <ChatPanel
-              selfName={localMember?.characterName ?? ''}
-              lockedChannel={`lobby:${lobby.lobbyId}`}
-            />
-          </div>
-        ) : null}
         <div>
           <span>
             {lobby.readyToStart
@@ -528,14 +516,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           ) : null}
         </div>
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.lobbyChat}
-            aria-expanded={chatOpen}
-            onClick={() => setChatOpen((open) => !open)}
-          >
-            {chatOpen ? 'Hide Chat' : 'Chat'}
-          </button>
           <button
             type="button"
             className={styles.leave}

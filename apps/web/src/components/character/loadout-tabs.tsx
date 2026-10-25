@@ -4,7 +4,7 @@ import styles from './loadout-tabs.module.css'
 
 export function LoadoutTabs({ active }: { active: 'nexus' | 'items' }) {
   return (
-    <nav className={styles.tabs} aria-label="Loadout sections" data-loadout-tabs="true">
+    <nav className={styles.tabs} aria-label="Arsenal sections" data-loadout-tabs="true">
       <Link
         href="/game/nexus"
         data-loadout-section="nexus"

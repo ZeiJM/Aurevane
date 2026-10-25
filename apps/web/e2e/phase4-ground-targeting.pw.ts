@@ -1,3 +1,4 @@
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 import { expect, test, type Page, type Response, type Route, type TestInfo } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
@@ -181,6 +182,7 @@ async function castOnEmptyGround(
   const actorBefore = before.snapshot.tactical.battle.combatants.find(
     (row) => row.id === actor.combatantId,
   )!
+  await openBattleInfoMenu(page, 'About Chilling Mist')
   await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
   const details = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
   for (const label of ['Ground', 'Frozen Ground', 'Slow', '45 AP'])
@@ -256,6 +258,7 @@ async function castOnEmptyGround(
   expect(commits).toHaveLength(0)
   expect(audioRequests).toHaveLength(0)
   expect(await read()).toEqual(before)
+  await openBattleInfoMenu(page, 'About Chilling Mist')
   await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
   const forecast = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
   await expect(forecast).toBeVisible()

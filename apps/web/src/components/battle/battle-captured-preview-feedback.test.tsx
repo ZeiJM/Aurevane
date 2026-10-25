@@ -235,7 +235,7 @@ function fixture(
   const render = () => {
     hooks.index = 0
     const wrapper = BattleExperience({ initialBattle: view, runtime })
-    const content = wrapper.props.children
+    const content = wrapper.props.children.props.children
     return content.type(content.props)
   }
   const notice = () => {
@@ -272,6 +272,26 @@ function fixture(
   }
 }
 for (const mode of ['pve', 'pvp'] as const) {
+  it(mode + ' opens final facing only in the preview without duplicate cockpit arrows', () => {
+    const input = fixture('basic.guard', mode)
+    input.begin('finish')
+    const tree = input.render()
+    const deck = find(tree, (node) => node.props['data-unified-command-deck'] === 'true')!
+    const finish = find(
+      deck,
+      (node) => node.type === BattleSkillCommand && node.props.slot === 'finish',
+    )!
+    expect(finish.props.children).toBeUndefined()
+    const preview = find(tree, (node) => node.props['data-battle-preview-strip'] === 'true')!
+    const facing = find(preview, (node) => node.props['aria-label'] === 'Choose final facing')!
+    expect(facing).not.toBeNull()
+    for (const direction of ['north', 'south', 'west', 'east']) {
+      expect(
+        find(facing, (node) => node.props['aria-label'] === `Face ${direction}`),
+      ).not.toBeNull()
+    }
+    expect(input.commit).not.toHaveBeenCalled()
+  })
   it.each(['basic.guard', 'basic.recover', 'basic.recover.mp'] as const)(
     mode + ' feedback uses the captured %s name without restoring stock cost or effect claims',
     async (support) => {

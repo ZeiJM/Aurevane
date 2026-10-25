@@ -31,6 +31,10 @@ export interface CombatNativeExecutionHooks {
   readonly getGuard: () => CombatTriggerGuard
   readonly setGuard: (guard: CombatTriggerGuard) => void
   readonly settleOutcomes?: (transition: CombatResolutionTransition) => CombatResolutionTransition
+  readonly settleMovementReadiness?: (
+    transition: CombatResolutionTransition,
+    reservedAp?: { readonly combatantId: string; readonly amount: number },
+  ) => CombatResolutionTransition
   readonly prepareIncoming?: (state: CombatEncounterState) => CombatResolutionTransition
 }
 export function observeCombatNativeMutation<Transition extends CombatResolutionTransition>(

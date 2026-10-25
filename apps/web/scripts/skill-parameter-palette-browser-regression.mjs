@@ -424,8 +424,19 @@ async function verifyModularManual(page, viewport) {
     assert.ok(detail.includes('Line of Sight:'))
     assert.ok(detail.includes('Requirements:'))
   }
-  assert.ok(text.includes('Move to the chosen Ground within your remaining Movement and Jump.'))
+  assert.ok(
+    text.includes(
+      'Move to the chosen Ground within this Skill’s Move distance and Jump, independent of ordinary walking.',
+    ),
+    'Attached Move explains its independent allowance',
+  )
   assert.ok((await basics.innerText()).includes('Cost: 21 AP per traversal point'))
+  assert.ok(
+    (await basics.innerText()).includes(
+      'Move to the chosen Ground within your remaining Movement and Jump.',
+    ),
+    'Basic Move retains the ordinary walking allowance',
+  )
   await basics.locator('details').first().scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `modular-manual-basics-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))

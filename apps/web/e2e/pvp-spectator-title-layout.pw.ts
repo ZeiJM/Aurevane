@@ -93,7 +93,16 @@ test('keeps the complete acting title clear of VS without resizing spectator art
     await expect(host!).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/, { timeout: 20_000 })
     const key = (await host!.locator('[data-pvp-spectator-key] strong').textContent())!.trim()
     await watcher!.goto(`/game/battle/spectate/${key}`)
-    await expect(watcher!.locator('[data-battle-versus]')).toBeVisible()
+    const timeline = watcher!.locator('[data-battle-mobile-chronicle-strip]')
+    await timeline.waitFor({ state: 'attached' })
+    const versus = watcher!.locator('[data-battle-versus]')
+    if (await timeline.isVisible()) {
+      await expect(timeline.locator('[data-battle-action-strip]')).toBeVisible()
+      await expect(watcher!.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+      await expect(versus).toBeHidden()
+    } else {
+      await expect(versus).toBeVisible()
+    }
     await expectCombatantIdentityColors(watcher!.locator('main[data-pvp-spectator]'))
     const response = await watcher!.request.get(`/api/pvp/spectate/${key}`)
     expect(response.ok()).toBe(true)
@@ -155,6 +164,9 @@ test('keeps the complete acting title clear of VS without resizing spectator art
             .querySelector('[data-battle-preview-strip]')!
             .getBoundingClientRect()
           const versus = document.querySelector('[data-battle-versus]')!.getBoundingClientRect()
+          const railBottom = document
+            .querySelector('[data-battle-side="local"]')!
+            .getBoundingClientRect().bottom
           const range = document.createRange()
           range.selectNodeContents(node)
           const text = [...range.getClientRects()].map((line) => line.toJSON())
@@ -162,6 +174,13 @@ test('keeps the complete acting title clear of VS without resizing spectator art
             title: title.toJSON(),
             preview: preview.toJSON(),
             versus: versus.toJSON(),
+            versusVisible: versus.width > 0 && versus.height > 0,
+            railBottom,
+            railCards: [
+              ...document.querySelectorAll(
+                '[data-battle-side="local"] > [data-battle-combatant-card]',
+              ),
+            ].map((card) => card.getBoundingClientRect().toJSON()),
             text,
             label: node.getAttribute('aria-label'),
             scrollWidth: document.documentElement.scrollWidth,
@@ -169,9 +188,21 @@ test('keeps the complete acting title clear of VS without resizing spectator art
           }
         })
         expect(geometry.label).toBe(`${active.characterName} title`)
-        expect(geometry.title.top, 'title is separated from the VS seam').toBeGreaterThanOrEqual(
-          geometry.versus.bottom,
-        )
+        if (geometry.versusVisible) {
+          expect(geometry.title.top, 'title is separated from the VS seam').toBeGreaterThanOrEqual(
+            geometry.versus.bottom,
+          )
+        } else {
+          expect(geometry.railCards).toHaveLength(2)
+          expect(
+            Math.abs(geometry.railCards[0].top - geometry.railCards[1].top),
+          ).toBeLessThanOrEqual(1)
+          expect(geometry.railCards[0].right).toBeLessThanOrEqual(geometry.railCards[1].left)
+          expect(
+            geometry.title.top,
+            'title stays below the frozen side-by-side summaries',
+          ).toBeGreaterThanOrEqual(geometry.railBottom)
+        }
         for (const line of geometry.text) {
           expect(line.left).toBeGreaterThanOrEqual(geometry.preview.left - 1)
           expect(line.right).toBeLessThanOrEqual(geometry.preview.right + 1)

@@ -262,6 +262,11 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     const pve = await host.request.get(`/api/battles/${pveId}`)
     expect(pve.ok()).toBe(true)
     expect(JSON.stringify(await pve.json())).not.toContain('sourceHash')
+    // An opening Recruit activation can commit several versions. Review recovery only
+    // after that authoritative activation returns control to the player.
+    const hostBattle = host.locator('main[data-unified-battle]')
+    await expect(hostBattle).toHaveAttribute('data-local-turn', 'true')
+    await expect(hostBattle).not.toHaveAttribute('aria-busy', 'true')
     await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
     await owner.getByRole('button', { name: 'Review encounter recovery', exact: true }).click()
     await owner
@@ -271,7 +276,17 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       })
       .check()
     await capture('pve-confirmation')
+    const recovered = owner.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/master/players' &&
+        response.request().postDataJSON().operation === 'recover',
+    )
     await owner.getByRole('button', { name: 'End encounter without rewards', exact: true }).click()
+    const recoveryResponse = await recovered
+    const recoveryResult = await recoveryResponse.json()
+    expect(recoveryResponse.status(), JSON.stringify(recoveryResult)).toBe(200)
+    expect(recoveryResult).toMatchObject({ outcome: 'NoContest', rewards: 'NoRewards' })
     await expect(host).toHaveURL(/\/game\/battle$/, { timeout: 10000 })
     expect(sql(`select xp from public.characters where id='${characterId}'`)).toBe('1')
     expect((await host.request.post(`/api/battles/${pveId}/mastery`)).ok()).toBe(false)

@@ -47,6 +47,7 @@ export function BattleInfoPopover({
   panelWidth,
   portalHost,
   effectTrigger = false,
+  shortcutAction,
 }: {
   label: string
   description?: string
@@ -65,6 +66,7 @@ export function BattleInfoPopover({
   panelWidth?: number
   portalHost?: RefObject<HTMLElement | null>
   effectTrigger?: boolean
+  shortcutAction?: string
 }) {
   const id = useId()
   const containingReader = useContext(ReaderOwnerContext)
@@ -276,6 +278,7 @@ export function BattleInfoPopover({
         type="button"
         className={className ?? styles.trigger}
         data-battle-info-trigger="true"
+        data-battle-reader-shortcut={shortcutAction}
         data-battle-live-effect-trigger={effectTrigger ? 'true' : undefined}
         aria-keyshortcuts={effectTrigger ? 'Control+Alt+E' : undefined}
         data-combat-tag-reference-trigger={referenceTrigger ? 'true' : undefined}

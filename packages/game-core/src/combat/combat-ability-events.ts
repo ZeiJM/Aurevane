@@ -8,7 +8,10 @@ import type {
   CombatContentCatalog,
   CombatResolutionTransition,
 } from './actions'
-import type { CombatAbilityCommandInput } from './combat-ability-command'
+import {
+  prepareCombatAbilityCommand,
+  type CombatAbilityCommandInput,
+} from './combat-ability-command'
 import { combatAbilitySubject } from './combat-behavior-runtime'
 import { evaluateAutomaticRequirementTrigger } from './combat-requirements'
 import {
@@ -180,8 +183,23 @@ export function resolveAutomaticAbilitySelection(
 export interface CombatAbilityEventSession {
   guard: CombatTriggerGuard
   mutationOrdinal: number
+  reservedAp?: { readonly combatantId: string; readonly amount: number }
   readonly dispatched: Set<string>
   readonly actionUsage: Map<string, Set<string>>
+}
+/** Keep unpaid walking costs unavailable throughout synchronous child command settlement. */
+export function withCombatAbilityApReservation<Value>(
+  session: CombatAbilityEventSession,
+  reservation: CombatAbilityEventSession['reservedAp'],
+  settle: () => Value,
+): Value {
+  const previous = session.reservedAp
+  session.reservedAp = reservation ?? previous
+  try {
+    return settle()
+  } finally {
+    session.reservedAp = previous
+  }
 }
 const sessions = new WeakSet<CombatAbilityEventSession>()
 const frames = new WeakMap<CombatAbilityEventFrame, CombatAbilityEventSession>()
@@ -190,6 +208,7 @@ interface AutomaticImpulse {
   readonly behavior: AbilityBehavior
   readonly requirementsContext: AbilityRequirementContext
   readonly event?: CombatAbilityEventFrame['events'][number]
+  readonly selectionFrame?: CombatAbilityEventFrame
 }
 const impulses = new WeakMap<CombatAbilityEventFrame, readonly AutomaticImpulse[]>()
 function captureAutomaticImpulses(
@@ -204,6 +223,34 @@ function captureAutomaticImpulses(
     if (!after.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId)) continue
     for (const behavior of source.definition.behaviors) {
       if (behavior.activation !== 'automatic' || behavior.mode !== 'action') continue
+      if (behavior.automaticTrigger === 'requirements-met') {
+        // Readiness is retried after real mutations. Admission owns costs, cooldowns,
+        // limits and geometry; an out-of-range attempt must not consume readiness.
+        if (frame.events.length && !frame.events.some((event) => event.phase === 'after')) continue
+        const subjects = frame.subjects
+          .filter((row) => (row.after.resources?.hp ?? 0) > 0)
+          .sort((a, b) =>
+            a.combatantId < b.combatantId ? -1 : a.combatantId > b.combatantId ? 1 : 0,
+          )
+        for (const subject of subjects) {
+          const selectionFrame = detached({
+            ...frame,
+            selectedCombatantId: subject.combatantId,
+            selectedCombatantIds: [subject.combatantId],
+            affectedCombatantIds: [subject.combatantId],
+          })
+          const requirementsContext = combatAbilityFrameRequirements(
+            selectionFrame,
+            source.ownerCombatantId,
+          )
+          if (
+            evaluateAutomaticRequirementTrigger(behavior.requirements, requirementsContext, false)
+              .holds
+          )
+            candidates.push(detached({ source, behavior, requirementsContext, selectionFrame }))
+        }
+        continue
+      }
       const requirement = automaticAbilityExecutionRequirements(behavior)
       const context = combatAbilityFrameRequirements(frame, source.ownerCombatantId)
       const stateTruth = evaluateAutomaticRequirementTrigger(requirement, context, true).stateTruth
@@ -417,13 +464,23 @@ export function processCombatAbilityEvent(
   session: CombatAbilityEventSession,
   depth: number,
   executeAutomatic: (input: CombatAbilityCommandInput) => CombatResolutionTransition,
+  options: {
+    readonly readinessOnly?: boolean
+  } = {},
 ): CombatResolutionTransition {
   assertCombatAbilityEventSession(session, context)
   if (frames.get(frame) !== session) throw new TypeError('invalid-automatic-event-frame')
   let next = state
   const events: CombatResolutionTransition['events'][number][] = []
   const candidates = impulses.get(frame) ?? []
-  for (const { source, behavior, requirementsContext, event: matching } of candidates) {
+  for (const {
+    source,
+    behavior,
+    requirementsContext,
+    event: matching,
+    selectionFrame,
+  } of candidates) {
+    if (options.readinessOnly && behavior.automaticTrigger !== 'requirements-met') continue
     if (
       next.tactical.battle.lifecycle !== 'active' ||
       !next.abilityRuntime?.activeSourceIds.includes(source.sourceInstanceId) ||
@@ -432,9 +489,14 @@ export function processCombatAbilityEvent(
       )
     )
       continue
-    const key = JSON.stringify([frame.id, source.sourceInstanceId, behavior.id])
+    const readiness = behavior.automaticTrigger === 'requirements-met'
+    const key = JSON.stringify([
+      readiness ? 'readiness' : frame.id,
+      source.sourceInstanceId,
+      behavior.id,
+    ])
     if (session.dispatched.has(key)) continue
-    session.dispatched.add(key)
+    if (!readiness) session.dispatched.add(key)
     const usageKey = JSON.stringify([
       state.tactical.battle.battleId,
       source.sourceInstanceId,
@@ -443,16 +505,14 @@ export function processCombatAbilityEvent(
       source.contentVersion,
       behavior.id,
     ])
-    if (
-      !consumeCombatTrigger(session.guard, {
-        instanceId: JSON.stringify([usageKey, frame.id]),
-        depth: depth + 1,
-      }).accepted
+    const selection = resolveAutomaticAbilitySelection(
+      next,
+      source,
+      behavior,
+      selectionFrame ?? frame,
     )
-      continue
-    const selection = resolveAutomaticAbilitySelection(next, source, behavior, frame)
     if ('suppression' in selection) continue
-    const child = executeAutomatic({
+    const childInput: CombatAbilityCommandInput = {
       state: next,
       actorId: source.ownerCombatantId,
       root: { kind: 'canonical', source, behaviorId: behavior.id },
@@ -476,12 +536,43 @@ export function processCombatAbilityEvent(
         phase: matching?.phase ?? 'after',
         depth: depth + 1,
         triggeringCombatantId: frame.triggeringCombatantId,
-        requirementsContext,
+        requirementsContext: readiness
+          ? {
+              ...requirementsContext,
+              owner: combatAbilitySubject(next, source.ownerCombatantId),
+              selected: combatAbilitySubject(next, selectionFrame?.selectedCombatantId),
+              affected: combatAbilitySubject(next, selectionFrame?.selectedCombatantId),
+            }
+          : requirementsContext,
       },
       eventSession: session,
       eventDepth: depth + 1,
-    })
+    }
+    // Unavailable targets must not exhaust the shared trigger-chain budget.
+    if (readiness) {
+      const quote = prepareCombatAbilityCommand(childInput)
+      if (!quote.evaluation.legal) continue
+      if (
+        behavior.requirements &&
+        'subject' in behavior.requirements &&
+        behavior.requirements.subject === 'selected' &&
+        !quote.evaluation.affectedCombatantIds.includes(selectionFrame!.selectedCombatantId!)
+      )
+        continue
+    }
+    if (
+      !consumeCombatTrigger(session.guard, {
+        instanceId: JSON.stringify([usageKey, frame.id, selectionFrame?.selectedCombatantId]),
+        depth: depth + 1,
+      }).accepted
+    )
+      continue
+    // Hold the reentrancy guard through native child mutations, even without an authored limit.
+    if (readiness) session.dispatched.add(key)
+    const child = executeAutomatic(childInput)
     next = child.state
+    if (readiness && !child.events.some((event) => event.event === 'combat_action_used'))
+      session.dispatched.delete(key)
     events.push(...child.events)
     if (child.resolution) {
       session.guard = child.resolution.triggerGuard

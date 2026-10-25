@@ -37,6 +37,7 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
   const dialog = page.getByRole('dialog', { name: 'Techniques' })
   const preview = dialog.getByTestId('technique-preview')
   await expect(preview).toBeVisible()
+  await expect(preview.locator('img')).toHaveCount(0)
 
   for (const viewport of [
     { width: 1440, height: 900 },

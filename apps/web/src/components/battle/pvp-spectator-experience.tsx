@@ -1,5 +1,9 @@
 'use client'
 
+import { useBattleMobileChronicle } from './use-battle-mobile-chronicle'
+import { useDesktopBattleLayout } from './battle-responsive-layout'
+import mobileStyles from './battle-mobile-layout.module.css'
+
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
 import { spectatorLinkEnded } from './battle-recovery-navigation'
 import { BattleFacingIndicator } from './battle-facing-indicator'
@@ -83,6 +87,10 @@ export function PvpSpectatorExperience({
   initialParticipantTitles: Record<string, string | null>
 }) {
   useBattleTabCyclePrevention()
+  const { chronicleOpen, lowerPanelRef, toggleChronicle } = useBattleMobileChronicle()
+  const desktopLayout = useDesktopBattleLayout()
+  const [chronicleDetailsHost, setChronicleDetailsHost] = useState<HTMLDivElement | null>(null)
+  const [chronicleDetailsOpen, setChronicleDetailsOpen] = useState(false)
   const [spectator, setSpectator] = useState(initialSpectator)
   const [participantTitles, setParticipantTitles] = useState(initialParticipantTitles)
   const [connectionNote, setConnectionNote] = useState<string | null>(null)
@@ -155,6 +163,7 @@ export function PvpSpectatorExperience({
     gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
     '--battle-columns': tactical.width,
+    '--battle-rows': tactical.height,
   } as CSSProperties
 
   const teamSummaries = Array.from({ length: teamCount }, (_, teamIndex) => {
@@ -325,7 +334,11 @@ export function PvpSpectatorExperience({
         aria-description={BATTLE_EFFECT_KEYBOARD_HELP}
         data-battle-concept="true"
         data-battle-layout="refined"
-        className={styles.page}
+        className={`${styles.page} ${mobileStyles.shell}`}
+        data-battle-mobile-stage="true"
+        data-mobile-chronicle-open={chronicleOpen}
+        data-battle-mobile-workspace={chronicleOpen ? 'log' : 'actions'}
+        data-battle-chronicle-detail-open={(chronicleDetailsOpen && !desktopLayout) || undefined}
         data-pvp-spectator="true"
         data-battle-keyboard-focus-root="true"
         tabIndex={-1}
@@ -525,52 +538,78 @@ export function PvpSpectatorExperience({
             </div>
           </section>
 
-          <aside
-            className={styles.selectedSide}
-            data-battle-side="selected"
-            aria-label="Battle Chronicle"
+          <div
+            ref={lowerPanelRef}
+            className={mobileStyles.lowerPanel}
+            data-battle-mobile-lower-panel="true"
           >
-            <BattleChronicleHeading round={battleState.round} />
-            <BattleLogPanel
-              presentation="inline"
-              battleSessionId={battle.battleSessionId}
-              battleVersion={battle.battleVersion}
-              combatantNames={combatantNames}
-              currentRound={battleState.round}
-              recentTurnCount={2}
-            />
-          </aside>
-          <div className={styles.preview} data-battle-preview-strip="true">
-            <div data-battle-spectator-preview-content="true">{inspectContext()}</div>
-            {activeParticipant && participantTitles[activeParticipant.characterId] ? (
-              <small
-                className={styles.actorTitle}
-                role="note"
-                aria-label={`${activeParticipant.characterName} title`}
-              >
-                {participantTitles[activeParticipant.characterId]}
-              </small>
-            ) : null}
-          </div>
-          <div className={styles.inspectDock} data-battle-command-dock="true">
-            <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>
-              Inspect
-            </button>
-            <span>Read-only battlefield · Select a character to view its current state.</span>
-            <div className={styles.terrainControl}>
-              <BattleTerrainToggle snapshot={battle.snapshot} />
+            <div className={styles.preview} data-battle-preview-strip="true">
+              <div data-battle-spectator-preview-content="true">{inspectContext()}</div>
+              {activeParticipant && participantTitles[activeParticipant.characterId] ? (
+                <small
+                  className={styles.actorTitle}
+                  role="note"
+                  aria-label={`${activeParticipant.characterName} title`}
+                >
+                  {participantTitles[activeParticipant.characterId]}
+                </small>
+              ) : null}
             </div>
-            <details className={styles.chatDock}>
-              <summary>Battle Chat</summary>
-              <PvpBattleChat
+            <div className={styles.inspectDock} data-battle-command-dock="true">
+              <div ref={setChronicleDetailsHost} data-battle-cockpit-history="true" />
+              <button type="button" aria-pressed={inspectMode} onClick={toggleInspect}>
+                Inspect
+              </button>
+              <span>Read-only battlefield · Select a character to view its current state.</span>
+              <div className={styles.terrainControl}>
+                <BattleTerrainToggle snapshot={battle.snapshot} />
+              </div>
+              <details className={styles.chatDock}>
+                <summary>Battle Chat</summary>
+                <PvpBattleChat
+                  battleSessionId={battle.battleSessionId}
+                  readOnly={false}
+                  combatantNames={combatantNames}
+                  className={styles.comms}
+                />
+              </details>
+            </div>
+            <aside
+              className={styles.selectedSide}
+              id="battle-mobile-chronicle"
+              data-battle-mobile-log-workspace="true"
+              data-battle-side="selected"
+              aria-label="Battle Chronicle"
+            >
+              <BattleChronicleHeading round={battleState.round} />
+              <BattleLogPanel
+                presentation="inline"
                 battleSessionId={battle.battleSessionId}
-                readOnly={false}
+                battleVersion={battle.battleVersion}
                 combatantNames={combatantNames}
-                className={styles.comms}
+                currentRound={battleState.round}
+                recentTurnCount={2}
               />
-            </details>
+            </aside>
           </div>
         </section>
+        <div className={mobileStyles.chronicleBar} data-battle-mobile-chronicle-strip="true">
+          <BattleLogPanel
+            onToggleLog={toggleChronicle}
+            logOpen={chronicleOpen}
+            presentation="timeline"
+            detailsHost={desktopLayout ? null : chronicleDetailsHost}
+            onDetailsOpenChange={setChronicleDetailsOpen}
+            battleSessionId={battle.battleSessionId}
+            battleVersion={battle.battleVersion}
+            combatantNames={combatantNames}
+            currentRound={battleState.round}
+            recentTurnCount={2}
+          />
+        </div>
+        <footer className={mobileStyles.spectatorFooter} data-battle-mobile-footer="true">
+          <span>Live · Read-only</span>
+        </footer>
       </main>
       <DesktopBattleCombatantInspect
         battleSessionId={battle.battleSessionId}

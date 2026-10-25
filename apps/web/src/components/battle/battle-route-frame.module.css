@@ -22,8 +22,59 @@
   overflow: auto;
   overscroll-behavior: contain;
 }
-@media (max-width: 760px) {
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
   .frame {
-    --battle-chrome-height: 5.3rem;
+    --battle-chrome-height: 3rem;
+  }
+  .frame > .header {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+    grid-template-rows: 1fr;
+    height: 3rem;
+    min-height: 3rem !important;
+    padding: 0.25rem 0.4rem !important;
+  }
+  .header :global(.brand__wordmark) {
+    display: none;
+  }
+  .header > nav {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+  }
+  .header > nav a {
+    padding-inline: 0.4rem;
+  }
+  .header > div:last-child {
+    grid-column: 3;
+    grid-row: 1;
+    padding-left: 0.3rem;
+  }
+  .field {
+    overflow: clip;
+  }
+}
+
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  /* The battle owns the viewport; the sitewide reserved document scrollbar must not crop it. */
+  :global(html):has(.frame),
+  :global(body):has(.frame) {
+    min-width: 0;
+    overflow: hidden;
+    scrollbar-gutter: auto;
+  }
+}
+
+/* Mobile battles reclaim the external Account header's entire height. */
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  .frame {
+    --battle-chrome-height: 0px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .frame > .header {
+    display: none !important;
+  }
+  .frame > .field {
+    grid-row: 1;
+    overflow: clip;
   }
 }

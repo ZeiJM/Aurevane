@@ -22,7 +22,9 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # Typecheck, full unit tests, browser system dependencies and Supabase E2E
+    # exceed 20 minutes on uncached GitHub runners. Preserve all validations.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

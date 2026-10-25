@@ -35,7 +35,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battleHallLink = page
     .getByRole('navigation', { name: 'Primary game navigation', exact: true })
-    .getByRole('link', { name: /Battle/ })
+    .getByRole('link', { name: /Arena/ })
   await battleHallLink.focus()
   await expect(battleHallLink).toBeFocused()
   await battleHallLink.press('Enter')
@@ -87,13 +87,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const commandContext = page.locator('[data-battle-preview-strip]')
-  const initialRound = await expectRecordedBattleRound(page)
   const inspectButton = commandDeck.getByRole('button', { name: /^Inspect,/ })
   const moveButton = commandDeck.getByRole('button', { name: /^Move,/ })
   const attackButton = commandDeck.locator('button[data-battle-command="attack"]')
   const guardButton = commandDeck.locator('button[data-battle-command="guard"]')
   const finishButton = commandDeck.getByRole('button', { name: /^End Turn,/ })
-  const facingPad = commandDeck.locator('[data-unified-facing-pad="true"]')
+  const facingPad = commandContext.getByRole('group', { name: 'Choose final facing', exact: true })
   const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
   const apRemaining = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
@@ -101,13 +100,18 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toBeVisible()
   await page.getByRole('button', { name: 'Continue training' }).click()
+  await expect(
+    page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
+  ).toHaveCount(0)
+  const initialRound = await expectRecordedBattleRound(page)
 
   await expect(battlefield).toBeVisible()
   await expect(commandDeck).toBeVisible()
   await expect(criteriaButton).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
-  await expect(commandContext).toContainText('Choose your action')
+  await expect(commandContext).toContainText('Your turn')
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
   const fittedBoard = battlefield.locator('[data-board-auto-fit="9x7"]')
   await expect(fittedBoard).toHaveCount(1)
@@ -199,13 +203,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await finishCurrentTurn(finishButton, testInfo.project.name)
 
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
-  await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
+  await expect(commandContext).toContainText('Your turn', { timeout: 15_000 })
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
   await expect(facingPad).toBeHidden()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
-  expect(await expectRecordedBattleRound(page)).toBeGreaterThan(initialRound)
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toHaveCount(0)
+  expect(await expectRecordedBattleRound(page)).toBeGreaterThan(initialRound)
 
   // Guided Fundamentals uses the full 9x7 Duel Yard. Traverse a second movement turn toward
   // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
@@ -220,7 +225,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   )
   await finishCurrentTurn(finishButton, testInfo.project.name)
   await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
-  await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
+  await expect(commandContext).toContainText('Your turn', { timeout: 15_000 })
+  await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
 
   if (testInfo.project.name === 'mobile-chromium') {
     // End Turn leaves the earlier row clipped by the sticky economy header.
@@ -269,22 +275,47 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
-  const inlineLog = page.locator('[data-battle-inline-log]')
-  const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
-  await expect(battleLog).toBeVisible()
-  await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
-  await expect(battleLog).toContainText(characterName)
-  await expect(battleLog).toContainText('Guard')
-  await expect(battleLog).not.toContainText('moved')
-  await expect(battleLog).not.toContainText('rollBasisPoints')
-  await expect(inlineLog.locator(':scope > header')).toHaveCount(0)
-  await expect(inlineLog.getByRole('button', { name: /Switch to/ })).toHaveCount(0)
+  // The mobile Chronicle is a permanent action strip, not the removed footer toggle.
+  // Validate its real action popup; desktop retains the full inline text reader.
+  const mobileChronicle = page.locator('[data-battle-mobile-chronicle-strip]')
   const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
-  await battleLog.focus()
-  await page.keyboard.press('Space')
-  await page.keyboard.press('KeyW')
-  await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
-  await expect(battleLog).toBeVisible()
+  if (await mobileChronicle.isVisible()) {
+    const strip = mobileChronicle.locator('[data-battle-action-strip]')
+    await expect(strip).toBeVisible()
+    await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+    const guardAction = strip.getByRole('button', { name: /Guard.*Show Chronicle details/i }).last()
+    await expect(guardAction).toBeVisible()
+    await guardAction.click()
+    const details = page.getByRole('region', { name: /Chronicle action:/i })
+    await expect(details).toBeVisible()
+    await expect(details).toContainText(characterName)
+    await expect(details).toContainText('Guard')
+    await expect(details).not.toContainText('moved')
+    await expect(details).not.toContainText('rollBasisPoints')
+    await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
+    await details.getByRole('button', { name: 'Close Chronicle action' }).focus()
+    await page.keyboard.press('KeyW')
+    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+    await page.keyboard.press('Escape')
+    await expect(details).toHaveCount(0)
+    await expect(guardAction).toHaveAttribute('aria-expanded', 'false')
+  } else {
+    const inlineLog = page.locator('[data-battle-inline-log]')
+    const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
+    await expect(battleLog).toBeVisible()
+    await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
+    await expect(battleLog).toContainText(characterName)
+    await expect(battleLog).toContainText('Guard')
+    await expect(battleLog).not.toContainText('moved')
+    await expect(battleLog).not.toContainText('rollBasisPoints')
+    await expect(inlineLog.locator(':scope > header')).toHaveCount(0)
+    await expect(inlineLog.getByRole('button', { name: /Switch to/ })).toHaveCount(0)
+    await battleLog.focus()
+    await page.keyboard.press('Space')
+    await page.keyboard.press('KeyW')
+    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+    await expect(battleLog).toBeVisible()
+  }
 
   // Missing informational forecasts must not hide eligible targets or gate a deliberate cast.
   await page.route('**/api/battles/*/preview', (route) => route.abort())

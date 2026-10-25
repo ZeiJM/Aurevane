@@ -440,7 +440,7 @@
 
 .modePicker > button {
   display: grid;
-  grid-template-columns: 2.35rem minmax(0, 1fr) auto minmax(7rem, 0.24fr);
+  grid-template-columns: 2.35rem minmax(0, 1fr) minmax(7rem, 0.24fr);
   min-width: 0;
   min-height: 4.05rem;
   gap: 0.66rem;
@@ -454,9 +454,16 @@
 }
 
 .modePicker > button[data-selected] {
-  border-color: rgba(165, 126, 51, 0.62);
-  background: rgba(249, 244, 228, 0.94);
-  box-shadow: inset 0 0 0 1px rgba(188, 147, 69, 0.1);
+  border-color: #dbb96d;
+  color: #fff2d6;
+  background: #285653;
+  box-shadow: inset 0 0 0 2px #dbb96d;
+}
+.modePicker > button[data-selected] .modeCopy strong {
+  color: #fff2d6;
+}
+.modePicker > button[data-selected] .modeCopy small {
+  color: #e0ede6;
 }
 
 .modeIcon {
@@ -2048,5 +2055,308 @@
   }
   .workspace[data-hall-workspace='spectate'] .readOnlyNote > div {
     gap: 0.1rem;
+  }
+}
+
+/* The phone Hall uses the space between the shared header and navigation dock.
+   Its four existing workspaces scroll internally only when their content needs it. */
+@media (max-width: 760px) {
+  .page {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 0.4rem;
+    padding: 0.45rem;
+    overflow: hidden;
+  }
+
+  .page .heading {
+    min-height: 0;
+    padding: 0.15rem 0.3rem;
+  }
+
+  .page .headingCopy {
+    gap: 0.4rem;
+  }
+
+  .page .heading h1 {
+    margin: 0;
+    font-size: 1.65rem;
+    line-height: 1.1;
+  }
+
+  .page .heading .eyebrow {
+    display: none;
+  }
+
+  .page .heading small {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  .page .pageIcon {
+    font-size: 1.4rem;
+  }
+
+  .page .categoryGrid {
+    gap: 0.2rem;
+  }
+
+  .page .categoryGrid button {
+    min-height: 44px;
+    padding: 0.25rem 0.1rem;
+    gap: 0.1rem;
+  }
+
+  .page .categoryGrid strong {
+    font-size: 0.6875rem;
+    line-height: 1.1;
+  }
+
+  .page .workspaceGrid {
+    height: 100%;
+    min-height: 0;
+    align-self: stretch;
+    overflow: hidden;
+  }
+
+  .page .workspace {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.4rem;
+    padding: 0.5rem;
+    overflow: hidden;
+  }
+
+  .page .workspaceHeading h2 {
+    font-size: 1.125rem;
+  }
+
+  .page .workspaceBody {
+    min-height: 0;
+    height: 100%;
+    gap: 0.4rem;
+    overflow: auto;
+    scrollbar-gutter: auto;
+  }
+
+  .page .workspace[data-hall-workspace='ai'] .workspaceBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+  }
+
+  .page .workspace[data-hall-workspace='ai'] :is(.arenaControlRow, .modePicker, .selectedPanel) {
+    grid-column: auto;
+    grid-row: auto;
+    width: 100%;
+    gap: 0.35rem;
+  }
+
+  .page .workspace[data-hall-workspace='ai'] .arenaControlRow {
+    --arena-label-width: 2.75rem;
+    --arena-control-gap: 0.3rem;
+  }
+
+  .page .participants {
+    padding: 0.1rem 0.35rem 0.3rem;
+  }
+
+  .page .participants > div {
+    gap: 0.4rem;
+  }
+
+  .page .participants label {
+    gap: 0.1rem;
+  }
+
+  .page .modePicker > button {
+    min-height: 44px;
+    padding: 0.4rem;
+    gap: 0.4rem;
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  }
+
+  .page .modeIcon {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.875rem;
+  }
+
+  .page .modeCopy strong {
+    font-size: 0.875rem;
+    line-height: 1.15;
+  }
+
+  .page .modeCopy small {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  /* The selected card already carries this exact purpose sentence. */
+  .page .selectedPanel .recordPurpose {
+    display: none;
+  }
+
+  .page .panelActions .primaryAction {
+    width: 100%;
+    font-size: 0.875rem;
+  }
+
+  .page :is(.pvpStage, .pvpContent) {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .page .pvpContent {
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .page .pvpChoice {
+    min-height: 6rem;
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .page .pvpChoice strong {
+    font-size: 0.9375rem;
+  }
+
+  .page .pvpChoice small {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  .page .workspace[data-hall-workspace='spectate'] {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .page .spectateVista {
+    height: clamp(4rem, 15dvh, 7rem);
+  }
+
+  .page .readOnlyNote {
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .page .readOnlyNote > span {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .page .readOnlyNote :is(strong, p) {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  .page :global(.av-matchmaking) {
+    min-height: 0;
+    padding: 0.75rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .page :global(.av-matchmaking-sigil) {
+    width: 3rem;
+    height: 3rem;
+    margin: 0.8rem auto;
+    font-size: 1.6rem;
+  }
+
+  .page :global(.av-matchmaking) h2 {
+    margin-block: 0.5rem;
+    font-size: 1.4rem;
+  }
+
+  .page :global(.av-matchmaking) p {
+    margin-block: 0.6rem;
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+}
+
+/* The create/join dialogs float in the available mobile viewport, never dock to the footer. */
+@media (max-width: 760px) {
+  .pvpDialogBackdrop {
+    display: grid;
+    place-items: center;
+    padding: max(0.65rem, env(safe-area-inset-top)) 0.6rem max(0.65rem, env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+  .pvpDialog,
+  .pvpDialog[data-pvp-dialog='join'] {
+    position: relative;
+    inset: auto;
+    width: min(100%, 29rem);
+    max-height: calc(100dvh - 2rem - env(safe-area-inset-bottom));
+    margin: 0 auto;
+    align-self: center;
+    overflow: hidden;
+    border-radius: 0.55rem;
+  }
+  .pvpDialogBody {
+    overflow-y: auto;
+  }
+}
+
+/* Sparring Yard protects Enter Battle from vertical page scrolling. */
+@media (max-width: 760px) {
+  .page[data-hall-concept] {
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
+    overflow: hidden;
+  }
+  .page .heading {
+    min-height: 0;
+    padding-block: 0.18rem;
+  }
+  .page .workspace {
+    min-height: 0;
+    gap: 0.22rem;
+    padding: 0.3rem;
+  }
+  .page .workspaceHeading {
+    min-height: 0;
+    padding-block: 0.16rem;
+  }
+  .page .workspace[data-hall-workspace='ai'] .workspaceBody {
+    min-height: 0;
+    overflow: hidden;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0.25rem;
+    padding: 0.1rem;
+  }
+  .page .workspace[data-hall-workspace='ai'] .modePicker {
+    min-height: 0;
+    gap: 0.25rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .page .modePicker > button {
+    min-height: 2.85rem;
+    padding: 0.22rem 0.35rem;
+    gap: 0.25rem;
+  }
+  .page .modeCopy small {
+    font-size: 0.7rem;
+    line-height: 1.1;
+  }
+  .page .modeCopy strong {
+    font-size: 0.78rem;
+  }
+  .page .selectedPanel {
+    min-height: 0;
+    padding: 0.2rem 0.35rem;
+  }
+  .page .panelActions .primaryAction {
+    min-height: 2.5rem;
+    padding: 0.35rem;
   }
 }

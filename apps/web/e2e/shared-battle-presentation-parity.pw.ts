@@ -1,3 +1,4 @@
+import { BATTLE_MOBILE_LAYOUT_QUERY } from '../src/components/battle/battle-responsive-layout'
 import { expectCombatantIdentityColors } from './battle-identity-color-helpers'
 import { expect, test, type Page } from '@playwright/test'
 
@@ -12,7 +13,7 @@ import {
   expectBattlePreviewFits,
   expectBattleHeaderAndArtworkGeometry,
 } from './battle-reference-layout-helpers'
-import { expectReadableBattleLog } from './battle-log-layout-helpers'
+import { expectReadableBattleLog, setBattleChronicleOpen } from './battle-log-layout-helpers'
 
 const SHARED_HEADER =
   /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
@@ -38,6 +39,10 @@ async function expectSharedHeader(root: ReturnType<Page['locator']>) {
 }
 
 async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
+  const mobile = await root.evaluate(
+    (_element, query) => matchMedia(query).matches,
+    BATTLE_MOBILE_LAYOUT_QUERY,
+  )
   const occupied = root.locator('#battlefield button[aria-label*="occupied by"]')
   const count = await occupied.count()
   expect(count).toBeGreaterThan(0)
@@ -134,8 +139,12 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
 
     expect(geometry.arrowTop).toBeGreaterThanOrEqual(geometry.tileTop - 1)
     // Facing is pinned to the tile's top-left corner, independent of portrait/meter geometry.
-    expect(geometry.arrowWidth).toBeGreaterThanOrEqual(12)
-    expect(geometry.arrowHeight).toBeGreaterThanOrEqual(12)
+    expect(geometry.arrowWidth).toBeGreaterThanOrEqual(mobile ? 8 : 12)
+    expect(geometry.arrowHeight).toBeGreaterThanOrEqual(mobile ? 8 : 12)
+    if (mobile) {
+      expect(geometry.arrowWidth).toBeLessThanOrEqual(10.1)
+      expect(geometry.arrowHeight).toBeLessThanOrEqual(10.1)
+    }
     expect(geometry.arrowTop - geometry.tileTop).toBeLessThanOrEqual(3)
     expect(geometry.arrowLeft - geometry.tileLeft).toBeGreaterThanOrEqual(1)
     expect(geometry.arrowLeft - geometry.tileLeft).toBeLessThanOrEqual(3)
@@ -382,11 +391,26 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
       activePage,
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
     )
-    await expect(
-      activeRoot
-        .locator('[data-battle-inline-log]')
-        .getByRole('region', { name: 'Battle chronicle', exact: true }),
-    ).toContainText('Guard')
+    await setBattleChronicleOpen(activePage, true)
+    if (mobile) {
+      const timeline = activeRoot.locator('[data-battle-mobile-chronicle-strip]')
+      const guardAction = timeline
+        .getByRole('button', { name: /Guard.*Show Chronicle details/i })
+        .last()
+      await expect(guardAction).toBeVisible()
+      await guardAction.click()
+      const details = activePage.getByRole('region', { name: /Chronicle action:/i })
+      await expect(details).toBeVisible()
+      await expect(details).toContainText('Guard')
+      await expect(details).toContainText(activeName)
+      await details.getByRole('button', { name: 'Close Chronicle action' }).click()
+    } else {
+      await expect(
+        activeRoot
+          .locator('[data-battle-inline-log]')
+          .getByRole('region', { name: 'Battle chronicle', exact: true }),
+      ).toContainText('Guard')
+    }
     await expectReadableBattleLog(activePage, testInfo, mobile ? 'pvp-mobile-log' : 'pvp-log')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])

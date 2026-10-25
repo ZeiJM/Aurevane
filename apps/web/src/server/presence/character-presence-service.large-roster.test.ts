@@ -20,20 +20,54 @@ const roster = Array.from({ length: 1001 }, (_, index) => ({
   last_seen_at: '2026-10-05T18:00:00Z',
   is_online: true,
 }))
+let failSubsequentPage = false
 
 beforeEach(() => {
   vi.clearAllMocks()
-  rpc.mockImplementation(async (name: string, args?: { p_character_ids: string[] }) => ({
-    error: null,
-    data:
-      name === 'get_character_public_active_disciplines_v1'
-        ? args!.p_character_ids.slice(0, 1000).map((id) => ({
-            character_id: id,
-            primary_discipline_id: 'vanguard',
-            secondary_discipline_id: 'lifebinder',
-          }))
-        : roster,
-  }))
+  failSubsequentPage = false
+  rpc.mockImplementation((name: string, args?: { p_character_ids: string[] }) => {
+    if (name === 'get_character_public_active_disciplines_v1') {
+      return Promise.resolve({
+        error: null,
+        data: args!.p_character_ids.slice(0, 1000).map((id) => ({
+          character_id: id,
+          primary_discipline_id: 'vanguard',
+          secondary_discipline_id: 'lifebinder',
+        })),
+      })
+    }
+    let after: string | null = null
+    let pageSize = 1000
+    let ordered = false
+    const query = {
+      order: (column: string, options: { ascending: boolean }) => {
+        if (column !== 'character_id' || !options.ascending)
+          throw new Error('Unstable roster order')
+        ordered = true
+        return query
+      },
+      gt: (column: string, value: string) => {
+        if (column !== 'character_id') throw new Error('Wrong roster cursor')
+        after = value
+        return query
+      },
+      limit: (limit: number) => {
+        pageSize = Math.min(limit, 1000)
+        return query
+      },
+      then: (
+        resolve: (value: { data: typeof roster | null; error: { code: string } | null }) => unknown,
+      ) =>
+        Promise.resolve({
+          error: failSubsequentPage && after !== null ? { code: '503' } : null,
+          // A gateway caps the primary RPC independently of later identity hydration.
+          data: (ordered ? roster : [...roster].reverse())
+            .filter((row) => after === null || row.character_id > after)
+            .slice(0, pageSize),
+        }).then(resolve),
+    }
+    return query
+  })
   from.mockImplementation(() => ({
     select: (columns: string) => ({
       in: async (_column: string, ids: string[]) => {
@@ -79,6 +113,17 @@ describe('large public character rosters', () => {
         })
         expect(row).not.toHaveProperty('user_id')
       }
+    },
+  )
+
+  it.each([
+    ['online', listOnlineCharacters],
+    ['directory', listCharacterPresenceDirectory],
+  ] as const)(
+    'does not publish a partial %s roster when a later page fails',
+    async (_view, list) => {
+      failSubsequentPage = true
+      await expect(list()).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
     },
   )
 })

@@ -94,6 +94,22 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     const guestRoot = guest.locator("main[data-unified-battle='true'][data-battle-kind='pvp']")
     await expect(hostRoot).toBeVisible()
     await expect(guestRoot).toBeVisible()
+    for (const root of [hostRoot, guestRoot]) {
+      await expect(root.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+      const timeline = root.locator('[data-battle-mobile-chronicle-strip]')
+      await expect(timeline).toBeVisible()
+      await expect(timeline.locator('[data-battle-action-strip]')).toBeVisible()
+      await expect(timeline.locator('[data-battle-round]')).toHaveAttribute(
+        'aria-label',
+        /^Current battle round/,
+      )
+      const cards = await root
+        .locator('[data-battle-side="local"] > [data-battle-combatant-card]')
+        .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()))
+      expect(cards).toHaveLength(2)
+      expect(Math.abs(cards[0].top - cards[1].top)).toBeLessThanOrEqual(1)
+      expect(cards[0].right).toBeLessThanOrEqual(cards[1].left)
+    }
 
     const hostHasTurn = (await hostRoot.getAttribute('data-local-turn')) === 'true'
     const activePage = hostHasTurn ? host : guest
@@ -130,12 +146,14 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
 
     await expectRefinedCockpit(activePage)
     const documentFits = await activePage.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth + 1,
+      () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
     )
     expect(documentFits).toBe(true)
     await expect(activeRoot.locator('[data-battle-combatant-card="local"]')).toBeVisible()
     await expect(activeRoot.locator('[data-battle-combatant-card="selected"]')).toBeVisible()
     await expectBattleFlowKeepsBoardSize(hostHasTurn ? host : guest)
+    await expect(activeRoot.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
+    await expect(activeRoot.locator('[data-battle-mobile-chronicle-strip]')).toBeVisible()
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }

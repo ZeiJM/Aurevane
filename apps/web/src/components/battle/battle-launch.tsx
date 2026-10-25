@@ -491,7 +491,7 @@ export function BattleLaunch({
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
             <div className={styles.arenaControlRow}>
               <label>
-                <span>Arena</span>
+                <span>Field</span>
                 <select
                   aria-label="AI sparring arena"
                   value={arenaId}
@@ -606,9 +606,6 @@ export function BattleLaunch({
                     <span className={styles.modeCopy}>
                       <strong>{recordDisplayName(id, record.name)}</strong>
                       <small>{record.purpose}</small>
-                    </span>
-                    <span className={styles.modeArrow} aria-hidden="true">
-                      ›
                     </span>
                     <span className={styles.modeRecommendation}>
                       <small>{recommendation[0]}</small>

@@ -518,6 +518,7 @@
   }
   .shell .submit {
     min-height: 3.25rem;
+    scroll-margin-block: 0.5rem;
   }
   .footer {
     min-height: 2.75rem;

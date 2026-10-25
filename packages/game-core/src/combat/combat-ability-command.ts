@@ -90,6 +90,7 @@ import {
   automaticAbilityEventSupported,
   type AutomaticAbilityEventType,
   processCombatAbilityEvent,
+  withCombatAbilityApReservation,
   type CombatAbilityEventSession,
   type CombatAbilityEventFrame,
 } from './combat-ability-events'
@@ -334,16 +335,21 @@ export function aggregateCombatAbilityCosts(
     .map((resource) => ({ resource, amount: totals[resource] }))
 }
 export function combatAbilityCostIssues(
-  input: Pick<CombatAbilityCommandInput, 'state' | 'actorId'>,
+  input: Pick<CombatAbilityCommandInput, 'state' | 'actorId' | 'eventSession'>,
   costs: AbilityBehavior['costs'],
 ): CombatActionEvaluation['issues'] {
   const actor = input.state.tactical.battle.combatants.find((row) => row.id === input.actorId)
+  const availableAp =
+    actor?.temporaryResources.find((row) => row.key === 'pv1f.action-economy')?.current ?? 0
+  const reservedAp =
+    input.eventSession?.reservedAp?.combatantId === input.actorId
+      ? input.eventSession.reservedAp.amount
+      : 0
   return costs
     .filter(
       (cost) =>
         (cost.resource === 'ap'
-          ? (actor?.temporaryResources.find((row) => row.key === 'pv1f.action-economy')?.current ??
-            0)
+          ? availableAp - reservedAp
           : cost.resource === 'hp'
             ? Math.max(0, (actor?.hp ?? 0) - 1)
             : (actor?.mp ?? 0)) < cost.amount,
@@ -464,7 +470,15 @@ export function prepareCombatAbilityCommand(
   void _cooldown
   action = { ...prepaid, cost: { ...action.cost, mp: 0 } }
   const moveEffect = participant.behavior?.effects.find((effect) => effect.payload.type === 'move')
-  const movement = moveEffect ? prepareCombatMove(input, moveEffect) : undefined
+  const movement = moveEffect
+    ? prepareCombatMove(
+        {
+          ...input,
+          independentAllowance: participant.source?.basic?.id !== 'basic.move',
+        },
+        moveEffect,
+      )
+    : undefined
   const evaluationState = movement?.projectedState ?? input.state
   const geometry = evaluateCombatAction(
     evaluationState,
@@ -869,6 +883,7 @@ export function commitCombatAbilityCommand(
       ? {
           path: prepared.movement.path,
           maximumTiles: prepared.movement.maximumTiles,
+          independentAllowance: prepared.movement.independentAllowance,
         }
       : undefined,
     prepared.returnAnchor,
@@ -973,7 +988,28 @@ export function commitCombatAbilityCommand(
       },
     }
   }
+  let movementReadinessCursor = 0
   const nativeHooks: CombatNativeExecutionHooks = {
+    settleMovementReadiness: (transition, reservedAp) =>
+      withCombatAbilityApReservation(session, reservedAp, () => {
+        let state = transition.state
+        const events = [...transition.events]
+        while (movementReadinessCursor < outcomeQueue.length) {
+          const out = processCombatAbilityEvent(
+            state,
+            outcomeQueue[movementReadinessCursor++]!,
+            input.content,
+            context,
+            session,
+            depth,
+            executeAutomatic,
+            { readinessOnly: true },
+          )
+          state = out.state
+          events.push(...out.events)
+        }
+        return { state, events }
+      }),
     commandFacts: (actionId) =>
       actionId === prepared.action.id
         ? {
@@ -1026,6 +1062,7 @@ export function commitCombatAbilityCommand(
       input.content,
       {
         maximumTiles: prepared.movement.maximumTiles,
+        independentAllowance: prepared.movement.independentAllowance,
         committed: committedExecution,
         nativeHooks,
         actionId: prepared.action.id,
@@ -1184,12 +1221,36 @@ export function createCombatNativeAbilityRuntime(
   const context = combatAbilityCommandContext(state, source)
   const session = createCombatAbilityEventSession(context.triggerGuard, state)
   const queue: CombatAbilityEventFrame[] = []
+  let movementReadinessCursor = 0
   const identity = JSON.stringify([
     'native-boundary',
     state.tactical.battle.battleId,
     state.tactical.battle.turnNumber,
   ])
   const hooks: CombatNativeExecutionHooks = {
+    settleMovementReadiness: (transition, reservedAp) =>
+      withCombatAbilityApReservation(session, reservedAp, () => {
+        let state = transition.state
+        const events = [...transition.events]
+        while (movementReadinessCursor < queue.length) {
+          const out = processCombatAbilityEvent(
+            state,
+            queue[movementReadinessCursor++]!,
+            content,
+            context,
+            session,
+            0,
+            (child) =>
+              prepareCombatAbilityCommand(child).evaluation.legal
+                ? commitCombatAbilityCommand(child)
+                : { state: child.state, events: [] },
+            { readinessOnly: true },
+          )
+          state = out.state
+          events.push(...out.events)
+        }
+        return { state, events }
+      }),
     getGuard: () => session.guard,
     setGuard: (guard) => {
       session.guard = guard

@@ -1,13 +1,20 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from 'react'
 import { createPortal } from 'react-dom'
 
 import type { PvpSpectatorPresenceView } from '@/server/battle/pvp-battle-communication-service'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 
 import { useDesktopBattleLayout } from './battle-responsive-layout'
-import { useBattleSessionUiBoolean } from './battle-session-ui-state'
+import { useBattleMobileWorkspace } from './use-battle-mobile-workspace'
 import { PvpBattleChat } from './pvp-battle-chat'
 import styles from './pvp-battle-chat-bridge.module.css'
 
@@ -52,6 +59,34 @@ function lockWindowToCurrentRect(panel: HTMLElement) {
   panel.style.right = 'auto'
   panel.style.bottom = 'auto'
   return rect
+}
+
+function desktopChatHeaders(): HTMLElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>(
+      '[data-battle-route-frame] > header, main[data-pvp-battle="true"] > header',
+    ),
+  ).filter((header) => header.getClientRects().length > 0)
+}
+
+function fitDesktopChatWindow(
+  panel: HTMLElement,
+  rect: { left: number; top: number; width: number; height: number },
+) {
+  const minimumTop = Math.max(
+    VIEWPORT_MARGIN,
+    ...desktopChatHeaders().map(
+      (header) => header.getBoundingClientRect().bottom + VIEWPORT_MARGIN,
+    ),
+  )
+  const width = Math.min(rect.width, window.innerWidth - 2 * VIEWPORT_MARGIN)
+  const height = Math.min(rect.height, window.innerHeight - minimumTop - VIEWPORT_MARGIN)
+  panel.style.width = `${width}px`
+  panel.style.height = `${height}px`
+  panel.style.left = `${Math.max(VIEWPORT_MARGIN, Math.min(window.innerWidth - width - VIEWPORT_MARGIN, rect.left))}px`
+  panel.style.top = `${Math.max(minimumTop, Math.min(window.innerHeight - height - VIEWPORT_MARGIN, rect.top))}px`
+  panel.style.right = 'auto'
+  panel.style.bottom = 'auto'
 }
 
 function SpectatorFooterControl({
@@ -113,20 +148,15 @@ export function PvpBattleChatBridge({
   metadata: PvpBattleMetadata
 }) {
   const [open, setOpen] = useState(false)
-  const [requestedTab, setRequestedTab] = useState<'chat' | 'log'>('chat')
   const [unread, setUnread] = useState(0)
   const desktop = useDesktopBattleLayout()
-  const [battleLogOpen, setBattleLogOpen] = useBattleSessionUiBoolean(
-    battleSessionId,
-    'battleLogOpen',
-  )
-  const mobileBattleLogOpen = battleLogOpen && !desktop
-  const panelOpen = open || mobileBattleLogOpen
-  const effectiveRequestedTab = mobileBattleLogOpen ? 'log' : requestedTab
+  const [mobileWorkspace, setMobileWorkspace] = useBattleMobileWorkspace(battleSessionId)
+  const panelOpen = desktop ? open : mobileWorkspace === 'chat'
   const [spectatorCount, setSpectatorCount] = useState(0)
   const [spectators, setSpectators] = useState<PvpSpectatorPresenceView[]>([])
   const [footerTarget, setFooterTarget] = useState<HTMLElement | null>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const [mobileTarget, setMobileTarget] = useState<HTMLElement | null>(null)
   const combatantNames = useMemo(
     () =>
       Object.fromEntries(
@@ -140,7 +170,10 @@ export function PvpBattleChatBridge({
 
   useEffect(() => {
     let frame = 0
-    const locate = () => setFooterTarget((current) => findFooter() ?? current)
+    const locate = () => {
+      setFooterTarget((current) => findFooter() ?? current)
+      setMobileTarget(battleRoot().querySelector<HTMLElement>('[data-battle-mobile-chat-host]'))
+    }
     const schedule = () => {
       window.cancelAnimationFrame(frame)
       frame = window.requestAnimationFrame(locate)
@@ -154,6 +187,48 @@ export function PvpBattleChatBridge({
     }
   }, [])
 
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    if (!panel) return
+    if (desktop) {
+      panel.style.removeProperty('--battle-chat-footer-offset')
+      return
+    }
+    // A desktop window may have been dragged before rotating into the mobile layout.
+    for (const property of ['left', 'top', 'right', 'bottom', 'width', 'height'])
+      panel.style.removeProperty(property)
+    if (!footerTarget) return
+
+    const fitAboveFooter = () => {
+      panel.style.setProperty(
+        '--battle-chat-footer-offset',
+        `${Math.max(0, window.innerHeight - footerTarget.getBoundingClientRect().top)}px`,
+      )
+    }
+    fitAboveFooter()
+    const observer = new ResizeObserver(fitAboveFooter)
+    observer.observe(footerTarget)
+    window.addEventListener('resize', fitAboveFooter)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', fitAboveFooter)
+    }
+  }, [desktop, footerTarget])
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current
+    if (!desktop || !panelOpen || !panel) return
+    const fit = () => fitDesktopChatWindow(panel, panel.getBoundingClientRect())
+    fit()
+    const observer = new ResizeObserver(fit)
+    for (const header of desktopChatHeaders()) observer.observe(header)
+    window.addEventListener('resize', fit)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', fit)
+    }
+  }, [desktop, panelOpen])
+
   useEffect(() => {
     let attachedChat: HTMLButtonElement | null = null
     let attachedLog: HTMLButtonElement | null = null
@@ -162,20 +237,17 @@ export function PvpBattleChatBridge({
     const openChat = (event: Event) => {
       event.preventDefault()
       event.stopPropagation()
-      setBattleLogOpen(false)
-      setRequestedTab('chat')
+
       setUnread(0)
-      setOpen(effectiveRequestedTab === 'chat' ? !panelOpen : true)
+      if (desktop) setOpen((value) => !value)
+      else setMobileWorkspace(panelOpen ? 'actions' : 'chat')
     }
 
     const openLog = (event: Event) => {
       if (desktop) return
       event.preventDefault()
       event.stopPropagation()
-      const nextOpen = !(panelOpen && effectiveRequestedTab === 'log')
-      setRequestedTab('log')
-      setOpen(false)
-      setBattleLogOpen(nextOpen)
+      setMobileWorkspace(mobileWorkspace === 'log' ? 'actions' : 'log')
     }
 
     const sync = () => {
@@ -212,18 +284,12 @@ export function PvpBattleChatBridge({
           badge?.remove()
           badge = null
         }
-        chatButton.setAttribute(
-          'aria-expanded',
-          panelOpen && effectiveRequestedTab === 'chat' ? 'true' : 'false',
-        )
+        chatButton.setAttribute('aria-expanded', panelOpen ? 'true' : 'false')
         chatButton.dataset.hasUnread = unread > 0 ? 'true' : ''
       }
 
       if (!desktop && logButton) {
-        logButton.setAttribute(
-          'aria-expanded',
-          panelOpen && effectiveRequestedTab === 'log' ? 'true' : 'false',
-        )
+        logButton.setAttribute('aria-expanded', mobileWorkspace === 'log' ? 'true' : 'false')
       }
     }
 
@@ -236,7 +302,7 @@ export function PvpBattleChatBridge({
       attachedLog?.removeEventListener('click', openLog, true)
       badge?.remove()
     }
-  }, [desktop, effectiveRequestedTab, panelOpen, setBattleLogOpen, unread])
+  }, [desktop, mobileWorkspace, panelOpen, setMobileWorkspace, unread])
 
   useEffect(() => {
     if (!desktop || panelOpen) return
@@ -264,14 +330,7 @@ export function PvpBattleChatBridge({
 
   const closePanel = () => {
     setOpen(false)
-    setBattleLogOpen(false)
-  }
-
-  const selectRequestedTab = (tab: 'chat' | 'log') => {
-    setRequestedTab(tab)
-    if (desktop) return
-    setOpen(tab === 'chat')
-    setBattleLogOpen(tab === 'log')
+    setMobileWorkspace('actions')
   }
 
   function beginDrag(event: ReactPointerEvent<HTMLElement>) {
@@ -285,22 +344,12 @@ export function PvpBattleChatBridge({
     const startY = event.clientY
 
     function move(moveEvent: PointerEvent) {
-      const left = Math.max(
-        VIEWPORT_MARGIN,
-        Math.min(
-          window.innerWidth - rect.width - VIEWPORT_MARGIN,
-          rect.left + moveEvent.clientX - startX,
-        ),
-      )
-      const top = Math.max(
-        VIEWPORT_MARGIN,
-        Math.min(
-          window.innerHeight - rect.height - VIEWPORT_MARGIN,
-          rect.top + moveEvent.clientY - startY,
-        ),
-      )
-      panelElement.style.left = `${left}px`
-      panelElement.style.top = `${top}px`
+      fitDesktopChatWindow(panelElement, {
+        width: rect.width,
+        height: rect.height,
+        left: rect.left + moveEvent.clientX - startX,
+        top: rect.top + moveEvent.clientY - startY,
+      })
     }
 
     const finish = () => {
@@ -341,53 +390,56 @@ export function PvpBattleChatBridge({
     window.addEventListener('pointercancel', finish)
   }
 
-  return (
-    <>
-      <div
-        ref={panelRef}
-        id="pvp-battle-chat-panel"
-        className={styles.panel}
-        data-open={panelOpen || undefined}
-        data-desktop={desktop || undefined}
-        aria-hidden={!panelOpen}
-      >
-        <div className={styles.panelTop} onPointerDown={beginDrag}>
-          <div>
-            <strong>Battle Chat</strong>
-            <small>{desktop ? 'Drag header · resize corner' : 'Shared battle communication'}</small>
-          </div>
-          <button
-            type="button"
-            className={styles.closeButton}
-            onClick={closePanel}
-            aria-label="Close battle communication"
-          >
-            ×
-          </button>
+  const panel = (
+    <div
+      ref={panelRef}
+      id="pvp-battle-chat-panel"
+      className={styles.panel}
+      data-open={panelOpen || undefined}
+      data-desktop={desktop || undefined}
+      data-mobile-workspace={!desktop || undefined}
+      aria-hidden={!panelOpen}
+    >
+      <div className={styles.panelTop} onPointerDown={beginDrag}>
+        <div>
+          <strong>Battle Chat</strong>
+          <small>{desktop ? 'Drag header · resize corner' : 'Shared battle communication'}</small>
         </div>
-        <PvpBattleChat
-          battleSessionId={battleSessionId}
-          readOnly={false}
-          open={panelOpen}
-          localCharacterId={metadata.localCharacterId}
-          showBattleLog={!desktop}
-          showSpectatorPresence={false}
-          requestedTab={desktop ? 'chat' : effectiveRequestedTab}
-          onRequestedTabChange={selectRequestedTab}
-          onUnreadChange={setUnread}
-          onSpectatorCountChange={setSpectatorCount}
-          onSpectatorsChange={setSpectators}
-          combatantNames={combatantNames}
-        />
         <button
           type="button"
-          className={styles.resizeGrip}
-          aria-label="Resize battle chat"
-          onPointerDown={beginResize}
+          className={styles.closeButton}
+          onClick={closePanel}
+          aria-label="Close battle communication"
         >
-          <span aria-hidden="true">⌟</span>
+          ×
         </button>
       </div>
+      <PvpBattleChat
+        battleSessionId={battleSessionId}
+        readOnly={false}
+        open={panelOpen}
+        localCharacterId={metadata.localCharacterId}
+        showBattleLog={false}
+        showSpectatorPresence={false}
+        requestedTab="chat"
+        onUnreadChange={setUnread}
+        onSpectatorCountChange={setSpectatorCount}
+        onSpectatorsChange={setSpectators}
+        combatantNames={combatantNames}
+      />
+      <button
+        type="button"
+        className={styles.resizeGrip}
+        aria-label="Resize battle chat"
+        onPointerDown={beginResize}
+      >
+        <span aria-hidden="true">⌟</span>
+      </button>
+    </div>
+  )
+  return (
+    <>
+      {mobileTarget ? createPortal(panel, mobileTarget) : null}
       {footerTarget
         ? createPortal(
             <SpectatorFooterControl spectatorCount={spectatorCount} spectators={spectators} />,

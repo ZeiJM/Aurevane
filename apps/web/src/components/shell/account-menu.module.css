@@ -1,4 +1,6 @@
 .root {
+  display: flex;
+  align-items: center;
   position: relative;
   z-index: 900;
 }
@@ -148,5 +150,13 @@
 @media (max-width: 760px) {
   .characterGreeting > div:first-child > span {
     font-size: 0.6875rem !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .trigger {
+    border-width: 1px;
+    padding: 0.46rem 0.62rem;
+    min-height: 2.4rem;
   }
 }

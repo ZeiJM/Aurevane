@@ -398,9 +398,18 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         .getByRole('combobox', { name: 'Group activation', exact: true })
         .selectOption('automatic')
       const activation = group.getByRole('combobox', { name: 'Automatic activation', exact: true })
-      await expect(activation).toHaveValue('condition-entry')
+      await expect(activation).toHaveValue('requirements-met')
+      await save()
+      assert.equal((await snapshot()).saved.behaviors[0].automaticTrigger, 'requirements-met')
+      assert.deepEqual((await snapshot()).validationIssues, [])
       assert.ok((await activation.locator('option').allTextContents()).includes('Damage Taken'))
       await activation.selectOption('damage-taken')
+      const automaticTarget = group.getByRole('combobox', {
+        name: 'Automatic target subject',
+        exact: true,
+      })
+      await expect(automaticTarget).toHaveValue('selected')
+      await automaticTarget.selectOption('triggering')
       await tag.selectOption('burn')
       await target.selectOption('triggering')
       await group.getByRole('checkbox', { name: 'Once per action', exact: true }).check()

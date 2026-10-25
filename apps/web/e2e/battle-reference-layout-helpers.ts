@@ -1,3 +1,4 @@
+import { battleChronicleScrollRegion, setBattleChronicleOpen } from './battle-log-layout-helpers'
 import { expect, type Page, type TestInfo } from '@playwright/test'
 import { expectRefinedCockpit, targetForecast } from './refined-battle-helpers'
 
@@ -77,6 +78,7 @@ export async function expectBattleChronicleGutterGeometry(page: Page, requireGro
 export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
   const root = page.locator('main[data-unified-battle="true"]')
   await expect(root.locator(':scope > header')).not.toContainText('Battle Hall ·')
+  const mobile = await page.locator('[data-battle-mobile-chronicle-strip]').isVisible()
   const geometry = await root.evaluate((element) => {
     const header = element.querySelector('[data-unified-battle-header]')!.getBoundingClientRect()
     const economy = element.querySelector('[data-unified-battle-economy]')!.getBoundingClientRect()
@@ -128,7 +130,7 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       width: innerWidth,
     }
   })
-  if (geometry.width > 820) {
+  if (!mobile) {
     expect(
       Math.abs(
         geometry.economy.x +
@@ -156,10 +158,13 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
   const baseline = geometry.selected[0]!.frame
   expect(baseline.width).toBeGreaterThan(0)
   for (const card of geometry.cards) {
-    expect(
-      Math.abs(card.portrait.width - baseline.width),
-      'combatant portraits match cockpit artwork',
-    ).toBeLessThanOrEqual(1)
+    if (!mobile)
+      expect(
+        Math.abs(card.portrait.width - baseline.width),
+        'combatant portraits match cockpit artwork',
+      ).toBeLessThanOrEqual(1)
+    expect(Math.abs(card.portrait.width - card.portrait.height)).toBeLessThanOrEqual(1)
+    expect(card.portrait.width).toBeGreaterThan(0)
     const [hp, mp] = card.resources
     expect(hp!.track.width, 'resource tracks stay visible').toBeGreaterThan(0)
     expect(
@@ -182,18 +187,18 @@ export async function expectBattleHeaderAndArtworkGeometry(page: Page) {
       }
     }
   }
-  for (const frame of [
+  for (const [index, frame] of [
     ...geometry.standards,
     ...geometry.selected.map((item) => item.frame),
     ...geometry.empty,
-  ]) {
+  ].entries()) {
     expect(
       Math.abs(frame.width - frame.height),
       'command and selected artwork stay square',
     ).toBeLessThanOrEqual(1)
     expect(
       Math.abs(frame.width - baseline.width),
-      'standard commands match authored selected artwork width',
+      `standard commands match authored selected artwork width (frame ${index + 1}: ${frame.width}px vs ${baseline.width}px at ${geometry.width}px)`,
     ).toBeLessThanOrEqual(1)
     expect(
       Math.abs(frame.height - baseline.height),
@@ -222,6 +227,44 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   })
   await expectBattleHeaderAndArtworkGeometry(page)
   await expectBattleChronicleGutterGeometry(page)
+  if (await page.locator('[data-battle-mobile-chronicle-strip]').isVisible()) {
+    const mobile = await root.evaluate((element) => {
+      const rect = (selector: string) =>
+        element.querySelector(selector)!.getBoundingClientRect().toJSON()
+      return {
+        board: rect('[data-board-auto-fit]'),
+        field: rect('#battlefield'),
+        lower: rect('[data-battle-mobile-lower-panel]'),
+        footer: rect('[data-battle-mobile-footer]'),
+        cards: [
+          ...element.querySelectorAll('[data-battle-side="local"] > [data-battle-combatant-card]'),
+        ].map((card) => card.getBoundingClientRect().toJSON()),
+        width: document.documentElement.clientWidth,
+        height: innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+      }
+    })
+    expect(mobile.cards).toHaveLength(2)
+    expect(Math.abs(mobile.cards[0].top - mobile.cards[1].top)).toBeLessThanOrEqual(1)
+    expect(mobile.cards[0].right).toBeLessThanOrEqual(mobile.cards[1].left)
+    for (const rect of [...mobile.cards, mobile.board, mobile.lower, mobile.footer]) {
+      expect(rect.left).toBeGreaterThanOrEqual(-1)
+      expect(rect.right).toBeLessThanOrEqual(mobile.width + 1)
+      expect(rect.top).toBeGreaterThanOrEqual(-1)
+      expect(rect.bottom).toBeLessThanOrEqual(mobile.height + 1)
+    }
+    expect(mobile.board.left).toBeGreaterThanOrEqual(mobile.field.left - 1)
+    expect(mobile.board.right).toBeLessThanOrEqual(mobile.field.right + 1)
+    expect(mobile.board.bottom).toBeLessThanOrEqual(mobile.field.bottom + 1)
+    expect(mobile.lower.height).toBeGreaterThanOrEqual(99)
+    expect(mobile.scrollWidth).toBeLessThanOrEqual(mobile.width + 1)
+    expect(mobile.scrollHeight).toBeLessThanOrEqual(mobile.height + 1)
+    await expect(root.locator('[data-battle-versus]')).toBeHidden()
+    await expectBattlePreviewFits(page)
+    await testInfo.attach(label, { body: await page.screenshot(), contentType: 'image/png' })
+    return
+  }
   const geometry = await root.evaluate((element) => {
     const rect = (selector: string) =>
       element.querySelector(selector)!.getBoundingClientRect().toJSON()
@@ -242,7 +285,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
         parseFloat(getComputedStyle(document.documentElement).fontSize),
       forecast: rect('[data-battle-preview-strip]'),
       key: rect('button[aria-label="Terrain"]'),
-      cancel: rect('[data-battle-footer-actions] > button:nth-child(2)'),
+      cancel: rect('[data-battle-cancel-action]'),
       log: rect('[data-battle-inline-log]'),
       leftCardRoles: [
         ...element.querySelectorAll('[data-battle-side="local"] > [data-battle-combatant-card]'),
@@ -438,17 +481,42 @@ export async function expectBattleFlowKeepsBoardSize(page: Page) {
   const deck = page.locator('[data-unified-command-deck]')
   const sizes = async () => ({ board: await board.boundingBox(), deck: await deck.boundingBox() })
   const before = await sizes()
-  const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
-  await expect(reader).toBeVisible()
-  await reader.focus()
-  for (const key of ['Home', 'End']) {
-    await reader.press(key)
-    const after = await sizes()
-    for (const region of ['board', 'deck'] as const) {
-      expect(after[region]?.width).toBe(before[region]?.width)
-      expect(after[region]?.height).toBe(before[region]?.height)
+  await setBattleChronicleOpen(page, true)
+  const mobile = page.locator('[data-battle-mobile-chronicle-strip]')
+  if (await mobile.isVisible()) {
+    const timeline = mobile.locator('[aria-label="Battle actions"]')
+    await expect(timeline).toBeVisible()
+    for (const position of ['start', 'end'] as const) {
+      await timeline.evaluate((element, edge) => {
+        element.scrollLeft = edge === 'start' ? 0 : element.scrollWidth
+      }, position)
+      const action = timeline.getByRole('button', { name: /Show Chronicle details/i }).last()
+      if (await action.count()) {
+        await action.click()
+        await expect(page.getByRole('region', { name: /Chronicle action:/i })).toBeVisible()
+        await page.keyboard.press('Escape')
+      }
+      const after = await sizes()
+      expect(after.board).toEqual(before.board)
+      expect(after.deck?.width).toBe(before.deck?.width)
+      expect(after.deck?.height).toBe(before.deck?.height)
+    }
+  } else {
+    const reader = page.locator('[data-battle-inline-log] [data-battle-chronicle]')
+    const scroller = await battleChronicleScrollRegion(page, reader)
+    await expect(reader).toBeVisible()
+    await reader.focus()
+    for (const key of ['Home', 'End']) {
+      await scroller.press(key)
+      const after = await sizes()
+      expect(after.board).toEqual(before.board)
+      for (const region of ['board', 'deck'] as const) {
+        expect(after[region]?.width).toBe(before[region]?.width)
+        expect(after[region]?.height).toBe(before[region]?.height)
+      }
     }
   }
+  await setBattleChronicleOpen(page, false)
 }
 
 export async function expectBattlePreviewFits(page: Page) {

@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed } from './battle-log-feed'
+import { MobileBattleChronicle } from './battle-log-chronicle'
 import { useBattlePlayerName } from './battle-runtime-context'
 import styles from './battle-log-panel.module.css'
 
@@ -13,13 +14,18 @@ interface BattleLogPanelProps {
   battleSessionId: string
   battleVersion?: number
   currentRound?: number
+  resetEpoch?: number
+  detailsHost?: HTMLElement | null
+  onDetailsOpenChange?: (open: boolean) => void
+  onToggleLog?: () => void
+  logOpen?: boolean
   open?: boolean
   onClose?: () => void
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
   dockOnDesktop?: boolean
   recentTurnCount?: number
-  presentation?: 'floating' | 'inline'
+  presentation?: 'floating' | 'inline' | 'timeline'
 }
 
 interface BattleLogResponse {
@@ -137,12 +143,20 @@ export function BattleLogPanel({
   dockOnDesktop = false,
   recentTurnCount,
   presentation = 'floating',
+  detailsHost,
+  resetEpoch,
+  onDetailsOpenChange,
+  onToggleLog,
+  logOpen,
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
   const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
   const controlled = open !== undefined
   const [internalOpen, setInternalOpen] = useState(false)
-  const visible = presentation === 'inline' || (controlled ? Boolean(open) : internalOpen)
+  const visible =
+    presentation === 'inline' ||
+    presentation === 'timeline' ||
+    (controlled ? Boolean(open) : internalOpen)
   const [log, setLog] = useState<BattleLogView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -225,6 +239,31 @@ export function BattleLogPanel({
   }, [controlled])
 
   const entries = log?.entries ?? []
+
+  if (presentation === 'timeline')
+    return (
+      <div data-battle-compact-log="true" className={styles.compactInline}>
+        {loading && entries.length === 0 ? (
+          <p className={styles.empty}>Reading battle history…</p>
+        ) : error ? (
+          <p className={styles.empty} role="status">
+            {error}
+          </p>
+        ) : (
+          <MobileBattleChronicle
+            onToggleLog={onToggleLog}
+            logOpen={logOpen}
+            detailsHost={detailsHost}
+            resetEpoch={resetEpoch}
+            onDetailsOpenChange={onDetailsOpenChange}
+            currentRound={currentRound}
+            entries={entries}
+            playerName={effectivePlayerName}
+            combatantNames={combatantNames}
+          />
+        )}
+      </div>
+    )
 
   if (presentation === 'inline')
     return (

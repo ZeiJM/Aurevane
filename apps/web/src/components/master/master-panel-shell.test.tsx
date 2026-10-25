@@ -2,7 +2,6 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { MasterPanelAccess } from '@/server/master/staff-access'
-vi.mock('server-only', () => ({}))
 vi.mock('@/components/shell/authenticated-game-shell', () => ({
   AuthenticatedShellFrame: ({ children }: { children: React.ReactNode }) =>
     createElement('main', null, children),
@@ -36,6 +35,26 @@ describe('Master workspace composition', () => {
     expect(render(['content-staff'])).not.toContain('href="/master/combat-timing"')
     expect(render(['game-owner'])).toContain('href="/master/world-environment"')
     expect(render(['content-staff'])).not.toContain('href="/master/world-environment"')
+  })
+  it('does not grant navigation from an Owner label without supplied capabilities', () => {
+    const markup = renderToStaticMarkup(
+      <MasterPanelShell
+        access={{ ...access, roles: ['game-owner'], effectiveCapabilities: [] }}
+        activeSection="combat"
+        title="Master"
+        description="Review"
+      >
+        <p>Content</p>
+      </MasterPanelShell>,
+    )
+    for (const href of [
+      '/master/combat-content',
+      '/master/combat-timing',
+      '/master/world-environment',
+      '/master/staff',
+      '/master/music',
+    ])
+      expect(markup).not.toContain(`href="${href}"`)
   })
   it('keeps authorized workspaces reachable and guards staff and event navigation', () => {
     const markup = renderToStaticMarkup(

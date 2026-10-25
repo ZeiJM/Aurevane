@@ -1,5 +1,8 @@
 import 'server-only'
 
+import { hasMasterPanelCapability } from '@/lib/master-panel-access'
+export { hasMasterPanelCapability } from '@/lib/master-panel-access'
+
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export const MASTER_PANEL_ROLES = [
@@ -213,13 +216,6 @@ export function effectiveMasterPanelCapabilities(
   }
   for (const capability of specialCapabilities) capabilities.add(capability)
   return [...capabilities]
-}
-
-export function hasMasterPanelCapability(
-  access: MasterPanelAccess,
-  capability: MasterPanelCapability,
-): boolean {
-  return access.effectiveCapabilities.includes(capability)
 }
 
 function toAccess(record: MasterPanelAccessRecord): MasterPanelAccess {

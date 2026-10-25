@@ -202,6 +202,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [coarsePointer, setCoarsePointer] = useState(false)
+  const [activeMobileTab, setActiveMobileTab] = useState<'primary' | 'secondary' | 'support'>(
+    'primary',
+  )
   const refreshOnCloseRef = useRef(false)
   const [eligibility, setEligibility] = useState<Record<string, string>>(
     equippedEligibility(initialEquippedSkills),
@@ -345,11 +348,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     return [...selectedIds, id]
   }
 
-  async function commitSelection(
-    nextIds: string[],
-    successMessage = 'Techniques saved automatically.',
-    nextEligibility = eligibility,
-  ) {
+  async function commitSelection(nextIds: string[], nextEligibility = eligibility) {
     if (
       pendingRef.current ||
       (sameSelection(nextIds, selectedIds) &&
@@ -410,7 +409,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
       setCommittedEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
       refreshOnCloseRef.current = true
-      setMessage(successMessage)
+      setMessage(null)
     } catch {
       setSelectedIds(committedIds)
       setEligibility(committedEligibility)
@@ -482,7 +481,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
       setCommittedEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
       refreshOnCloseRef.current = true
-      setMessage('Support Action saved for battle slot 3.')
+      setMessage(null)
     } catch {
       setSupportActionId(committedSupportActionId)
       refreshOnCloseRef.current = true
@@ -495,7 +494,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
 
   function renderSupportActions() {
     return (
-      <section className={styles.techniqueGroup} data-support-action-group="true">
+      <section
+        className={styles.techniqueGroup}
+        data-mobile-active={activeMobileTab === 'support' ? 'true' : 'false'}
+        data-technique-category="support"
+        data-support-action-group="true"
+      >
         <header>
           <div>
             <span aria-hidden="true">✦</span>
@@ -554,6 +558,20 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
               </article>
             )
           })}
+          {Array.from(
+            { length: TECHNIQUES_PER_DISCIPLINE - SUPPORT_ACTION_IDS.length },
+            (_, index) => (
+              <div
+                key={`support-empty-${index}`}
+                className={`${styles.lockedSkill} ${styles.supportEmpty}`}
+                data-support-action-empty="true"
+                aria-hidden="true"
+              >
+                <span>◇</span>
+                <strong>Empty</strong>
+              </div>
+            ),
+          )}
         </div>
       </section>
     )
@@ -569,7 +587,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       <section
         className={styles.techniqueGroup}
         data-technique-group="true"
+        data-technique-category={secondary ? 'secondary' : 'primary'}
         data-locked={locked ? 'true' : 'false'}
+        data-mobile-active={
+          activeMobileTab === (secondary ? 'secondary' : 'primary') ? 'true' : 'false'
+        }
       >
         <header>
           <div>
@@ -691,8 +713,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                         value={selectedEligibility(entry) ?? ''}
                         onChange={(event) => {
                           const next = { ...eligibility, [entry.definition.id]: event.target.value }
-                          if (selected)
-                            void commitSelection(selectedIds, 'Eligible Discipline saved.', next)
+                          if (selected) void commitSelection(selectedIds, next)
                           else setEligibility(next)
                         }}
                       >
@@ -787,7 +808,50 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     className={styles.techniqueArea}
                     aria-label="Available Techniques"
                     data-testid="learned-skill-list"
+                    data-technique-tab={activeMobileTab}
                   >
+                    <nav
+                      className={styles.mobileTechniqueTabs}
+                      role="tablist"
+                      aria-label="Technique categories"
+                    >
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'primary'}
+                        onClick={() => {
+                          setActiveMobileTab('primary')
+                          setFocusedSupportActionId(null)
+                          setFocusedSkillId(primarySkills[0]?.definition.id ?? null)
+                        }}
+                      >
+                        Discipline 1
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'secondary'}
+                        disabled={!secondaryDiscipline}
+                        onClick={() => {
+                          setActiveMobileTab('secondary')
+                          setFocusedSupportActionId(null)
+                          setFocusedSkillId(secondarySkills[0]?.definition.id ?? null)
+                        }}
+                      >
+                        Discipline 2
+                      </button>
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={activeMobileTab === 'support'}
+                        onClick={() => {
+                          setActiveMobileTab('support')
+                          setFocusedSupportActionId(supportActionId)
+                        }}
+                      >
+                        Support
+                      </button>
+                    </nav>
                     {renderTechniqueGroup(primaryDiscipline, primarySkills, false)}
                     {renderTechniqueGroup(secondaryDiscipline, secondarySkills, true)}
                     {renderSupportActions()}
@@ -798,26 +862,16 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     data-av-surface="ink"
                     data-testid="technique-preview"
                   >
-                    <section className={styles.selectedTechnique}>
+                    <section
+                      className={styles.selectedTechnique}
+                      data-technique-preview-details="true"
+                    >
                       <span>
                         {focusedSupportActionId ? 'Support Action Preview' : 'Technique Preview'}
                       </span>
                       {focusedSupportActionId ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
-                            <span
-                              className={styles.detailArt}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                            >
-                              <Image
-                                src={battleSkillArtwork(focusedSupportActionId)}
-                                width={192}
-                                height={192}
-                                unoptimized
-                                alt=""
-                              />
-                            </span>
                             <div>
                               <strong>{pv1fSkillByActionId(focusedSupportActionId)!.name}</strong>
                               <small>One Support Action, separate from Discipline Skills.</small>
@@ -840,41 +894,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                             id={focusedSupportActionId}
                             className={styles.effectExplanations}
                           />
-                          {coarsePointer ? (
-                            <button
-                              type="button"
-                              className={styles.equipAction}
-                              data-equipped={
-                                supportActionId === focusedSupportActionId || undefined
-                              }
-                              disabled={pending || supportActionId === focusedSupportActionId}
-                              onClick={() => void commitSupportAction(focusedSupportActionId)}
-                            >
-                              {supportActionId === focusedSupportActionId
-                                ? '✓ Current Support Action'
-                                : 'Use as Support Action'}
-                            </button>
-                          ) : null}
                         </>
                       ) : focusedSkill ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
-                            <span
-                              className={styles.detailArt}
-                              data-av-square-media="true"
-                              data-av-square-media-fit="contain"
-                            >
-                              <Image
-                                src={battleSkillArtwork(
-                                  focusedSkill.definition.id,
-                                  contentArtworkKey(focusedSkill.definition.media),
-                                )}
-                                width={192}
-                                height={192}
-                                unoptimized
-                                alt=""
-                              />
-                            </span>
                             <div>
                               <strong>{skillDisplayName(focusedSkill.definition)}</strong>
                               <small>
@@ -945,45 +968,67 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               </ul>
                             </>
                           )}
-                          {coarsePointer ? (
-                            <>
-                              <button
-                                type="button"
-                                className={styles.equipAction}
-                                data-equipped={
-                                  selectedIds.includes(focusedSkill.definition.id) || undefined
-                                }
-                                disabled={
-                                  pending ||
-                                  equipBlockedReason(focusedSkill) !== null ||
-                                  !focusedSkill.activeSource
-                                }
-                                onClick={() => toggleAndCommit(focusedSkill)}
-                              >
-                                {selectedIds.includes(focusedSkill.definition.id)
-                                  ? 'Remove from loadout'
-                                  : 'Equip technique'}
-                              </button>
-                              {equipBlockedReason(focusedSkill) ? (
-                                <small className={styles.equipHint}>
-                                  {equipBlockedReason(focusedSkill)}
-                                </small>
-                              ) : null}
-                            </>
-                          ) : null}
                         </>
                       ) : (
                         <p>No Technique is available for this build.</p>
                       )}
                     </section>
+                    {coarsePointer && (focusedSupportActionId || focusedSkill) ? (
+                      <div className={styles.previewActions} data-technique-preview-actions="true">
+                        {focusedSupportActionId ? (
+                          <button
+                            type="button"
+                            className={styles.equipAction}
+                            data-equipped={supportActionId === focusedSupportActionId || undefined}
+                            disabled={pending || supportActionId === focusedSupportActionId}
+                            onClick={() => void commitSupportAction(focusedSupportActionId)}
+                          >
+                            {supportActionId === focusedSupportActionId
+                              ? '✓ Current Support Action'
+                              : 'Use as Support Action'}
+                          </button>
+                        ) : focusedSkill ? (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.equipAction}
+                              data-equipped={
+                                selectedIds.includes(focusedSkill.definition.id) || undefined
+                              }
+                              disabled={
+                                pending ||
+                                equipBlockedReason(focusedSkill) !== null ||
+                                !focusedSkill.activeSource
+                              }
+                              onClick={() => toggleAndCommit(focusedSkill)}
+                            >
+                              {selectedIds.includes(focusedSkill.definition.id)
+                                ? 'Remove from loadout'
+                                : 'Equip technique'}
+                            </button>
+                            {equipBlockedReason(focusedSkill) ? (
+                              <small
+                                className={styles.equipHint}
+                                data-technique-capacity-note={
+                                  selectedIds.length >= capacity || undefined
+                                }
+                              >
+                                {equipBlockedReason(focusedSkill)}
+                              </small>
+                            ) : null}
+                          </>
+                        ) : null}
+                      </div>
+                    ) : null}
                   </aside>
                 </div>
 
+                {/* Desktop retains bulk clearing; phone tabs use the full height for the editor. */}
                 <footer className={styles.actions}>
                   <button
                     type="button"
                     className={styles.secondaryAction}
-                    onClick={() => void commitSelection([], 'Selections cleared.')}
+                    onClick={() => void commitSelection([])}
                     disabled={pending || selectedIds.length === 0}
                   >
                     ↻ Clear Selections

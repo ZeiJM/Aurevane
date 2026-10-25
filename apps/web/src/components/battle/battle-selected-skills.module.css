@@ -20,11 +20,12 @@
 .future {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-content: start;
   grid-template-rows:
     var(--av-cockpit-art-size) minmax(var(--battle-command-name-height), max-content)
-    1.125rem auto;
+    minmax(1.125rem, max-content) auto;
   gap: var(--battle-command-gap);
   padding-top: 1px;
   min-width: 0;
@@ -85,7 +86,8 @@
 .skill > small,
 .special > small,
 .future small {
-  font: 500 0.6875rem/1.15 var(--av-font-body);
+  font: 500 0.6875rem/1.4 var(--av-font-body);
+  padding-bottom: 2px;
   color: #67543d;
   max-width: 100%;
   overflow: hidden;
@@ -141,7 +143,7 @@
   display: grid;
   grid-template-rows:
     var(--av-cockpit-art-size) minmax(var(--battle-command-name-height), max-content)
-    1.125rem auto;
+    minmax(1.125rem, max-content) auto;
   justify-items: center;
   gap: var(--battle-command-gap);
   padding: 1px 0 0;
@@ -152,6 +154,7 @@
   color: #566b4c;
 }
 .emptyArt {
+  min-height: 0;
   display: grid;
   place-items: center;
   width: min(100%, var(--av-cockpit-art-size));
@@ -161,7 +164,7 @@
   border: 1px solid #a48750;
   box-shadow: inset 0 0 0 2px #ddc28b55;
   color: #9b917c;
-  font: 300 2rem/1 var(--av-font-body);
+  font: 300 min(2rem, calc(var(--av-cockpit-art-size) * 0.8)) / 1 var(--av-font-body);
   background: #b9ae9555;
 }
 .empty strong {
@@ -291,6 +294,10 @@
   .future > small {
     grid-row: 4;
     align-self: start;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    overflow: visible;
+    text-overflow: clip;
   }
   .copied {
     position: relative;

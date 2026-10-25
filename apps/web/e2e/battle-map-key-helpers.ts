@@ -4,6 +4,33 @@ export async function expectTerrainKey(page: Page) {
   const toggle = page.getByRole('button', { name: 'Terrain', exact: true })
   const key = page.getByRole('region', { name: 'Terrain Key', exact: true })
   await expect(toggle).toBeVisible()
+  if (await toggle.getAttribute('aria-pressed')) {
+    // On mobile Terrain replaces the cockpit; the desktop floating popover is absent.
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    const board = page.locator('[data-board-auto-fit]')
+    const originalBoard = await board.boundingBox()
+    await toggle.click()
+    const back = page.getByRole('button', { name: 'Back to Actions', exact: true })
+    await expect(back).toHaveAttribute('aria-pressed', 'true')
+    const workspace = page.getByLabel('Battle terrain information')
+    await expect(workspace).toBeVisible()
+    const terrainKey = workspace.getByRole('region', { name: 'Terrain Key', exact: true })
+    await expect(terrainKey).toBeVisible()
+    await expect(terrainKey.getByRole('button')).toHaveCount(6)
+    const neutral = terrainKey.getByRole('button', { name: 'Neutral ground', exact: true })
+    await neutral.click()
+    await expect(neutral).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('[data-battle-terrain-description]')).toContainText(
+      'Normal ground costs',
+    )
+    expect(await board.boundingBox()).toEqual(originalBoard)
+    await back.click()
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    await expect(workspace).toHaveCount(0)
+    await expect(page.getByRole('region', { name: 'Command Deck' })).toBeVisible()
+    expect(await board.boundingBox()).toEqual(originalBoard)
+    return
+  }
   await expect(toggle).toHaveAttribute('aria-expanded', 'false')
   await expect(key).toHaveCount(0)
   await toggle.scrollIntoViewIfNeeded()
@@ -135,7 +162,7 @@ export async function expectTerrainKey(page: Page) {
   }
   await page.keyboard.press('Escape')
   await expect(overlay).toHaveCount(0)
-  await expect(toggle).toBeFocused()
+  await expect(page.locator('main[data-battle-keyboard-focus-root="true"]')).toBeFocused()
   await expect(toggle).toHaveAttribute('aria-expanded', 'false')
   await toggle.click()
   await page.locator('main > header').click({ position: { x: 5, y: 5 } })

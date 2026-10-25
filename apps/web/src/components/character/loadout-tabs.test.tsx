@@ -9,10 +9,10 @@ vi.mock('next/link', () => ({
 
 import { LoadoutTabs } from './loadout-tabs'
 
-describe('Loadout sections', () => {
+describe('Arsenal sections', () => {
   it.each(['nexus', 'items'] as const)('offers both destinations and selects only %s', (active) => {
     const markup = renderToStaticMarkup(<LoadoutTabs active={active} />)
-    expect(markup).toContain('aria-label="Loadout sections"')
+    expect(markup).toContain('aria-label="Arsenal sections"')
     expect(markup).toContain('href="/game/nexus"')
     expect(markup).toContain('href="/game/loadout/items"')
     expect(markup.match(/aria-current="page"/g)).toHaveLength(1)

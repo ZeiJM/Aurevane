@@ -93,7 +93,7 @@ export interface MovementPathPreview {
 }
 
 /** Legacy board callers use terrain weight; the AP action economy spends MOVE per entered tile. */
-export type MovementAllowanceCostMode = 'terrain-weight' | 'entered-tiles'
+export type MovementAllowanceCostMode = 'terrain-weight' | 'entered-tiles' | 'skill-entered-tiles'
 
 export type FacingRelation = 'front' | 'side' | 'rear'
 
@@ -260,14 +260,18 @@ export function evaluateCurrentMovementPath(
         break
       }
 
-      cost += allowanceCostMode === 'entered-tiles' ? 1 : traversalCost
+      cost += allowanceCostMode === 'terrain-weight' ? traversalCost : 1
       if (!Number.isSafeInteger(cost)) {
         throw new RangeError('Movement path cost exceeded the safe integer range.')
       }
     }
   }
 
-  if (issues.length === 0 && cost > turn.movementRemaining) {
+  if (
+    issues.length === 0 &&
+    allowanceCostMode !== 'skill-entered-tiles' &&
+    cost > turn.movementRemaining
+  ) {
     issues.push({
       code: 'movement-budget-exceeded',
       stepIndex: copiedPath.length - 1,
@@ -282,7 +286,10 @@ export function evaluateCurrentMovementPath(
     cost,
     destination: { ...fallbackDestination },
     movementRemainingBefore: turn.movementRemaining,
-    movementRemainingAfter: Math.max(0, turn.movementRemaining - cost),
+    movementRemainingAfter:
+      allowanceCostMode === 'skill-entered-tiles'
+        ? turn.movementRemaining
+        : Math.max(0, turn.movementRemaining - cost),
     issues,
   }
 }
@@ -324,7 +331,10 @@ export function moveCurrentCombatant(
   }
 
   const placement = getPlacement(state, preview.combatantId)
-  const movement = spendMovement(state.battle, preview.cost)
+  const movement =
+    allowanceCostMode === 'skill-entered-tiles'
+      ? { state: state.battle, events: [] }
+      : spendMovement(state.battle, preview.cost)
   const placements = state.placements.map((candidate) =>
     candidate.combatantId === placement.combatantId
       ? { ...candidate, position: { ...preview.destination } }

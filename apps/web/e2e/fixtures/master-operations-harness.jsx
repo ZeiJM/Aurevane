@@ -7,6 +7,7 @@ import { BattlefieldElevationEditor } from '@/components/master/combat-content/b
 import { WorldEnvironmentEditor } from '@/components/master/world-environment/world-environment-editor'
 import { SiteMusicManagement } from '@/components/master/music/site-music-management'
 import { AudioProvider } from '@/components/audio/audio-provider'
+import { SettingsScene } from '@/components/settings/settings-scene'
 import { AudioWorkspace } from '@/components/audio/audio-workspace'
 import { createDefaultSiteMusicConfig, parseSiteMusicDraft } from '@/lib/site-music'
 import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
@@ -116,7 +117,13 @@ function App() {
           <SiteMusicManagement initialConfig={savedMusic} />
         )}
       </MasterPanelShell>
-      {view === 'music' ? <AudioWorkspace /> : null}
+      {view === 'music' ? (
+        <main id="game-main">
+          <SettingsScene title="Audio" description="Adjust the sounds of your journey.">
+            <AudioWorkspace />
+          </SettingsScene>
+        </main>
+      ) : null}
     </AudioProvider>
   )
 }

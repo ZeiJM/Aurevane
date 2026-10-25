@@ -397,8 +397,10 @@ export function CharacterDisciplineBuildPanel({
     }
   }, [open, synchronizeCommittedBuild])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open || !mounted) return
+    // Move focus before the modal is painted. A reopened dialog must receive
+    // Escape immediately, even if its launcher was activated with Enter.
     dialogRef.current?.focus()
     const trigger = triggerRef.current
     return () => {
@@ -507,22 +509,38 @@ export function CharacterDisciplineBuildPanel({
     setSlotChosen(true)
   }
 
-  function setPanelOpen(nextOpen: boolean) {
-    if (!nextOpen && (requestRef.current || refreshingProfile)) return
-    if (!nextOpen) {
-      setLastChange(null)
-      setMessage(null)
+  const setPanelOpen = useCallback(
+    (nextOpen: boolean) => {
+      if (!nextOpen && (requestRef.current || refreshingProfile)) return
+      if (!nextOpen) {
+        setLastChange(null)
+        setMessage(null)
+      }
+      const params = new URLSearchParams(searchParams.toString())
+      if (nextOpen) {
+        params.set(PROFILE_PANEL_QUERY, DISCIPLINES_PANEL)
+      } else if (params.get(PROFILE_PANEL_QUERY) === DISCIPLINES_PANEL) {
+        params.delete(PROFILE_PANEL_QUERY)
+      }
+      const query = params.toString()
+      const href = query ? `${pathname}?${query}` : pathname
+      window.history.replaceState(null, '', href)
+    },
+    [pathname, refreshingProfile, searchParams],
+  )
+
+  useEffect(() => {
+    if (!open) return
+    // Fallback for the brief route/portal focus transition after reopening.
+    // Inner dialogs handle Escape themselves; avoid processing it twice.
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      event.preventDefault()
+      setPanelOpen(false)
     }
-    const params = new URLSearchParams(searchParams.toString())
-    if (nextOpen) {
-      params.set(PROFILE_PANEL_QUERY, DISCIPLINES_PANEL)
-    } else if (params.get(PROFILE_PANEL_QUERY) === DISCIPLINES_PANEL) {
-      params.delete(PROFILE_PANEL_QUERY)
-    }
-    const query = params.toString()
-    const href = query ? `${pathname}?${query}` : pathname
-    window.history.replaceState(null, '', href)
-  }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [open, setPanelOpen])
 
   const currentPrimaryCandidate = primaryOptions.find(
     (option) => option.definition.id === current.definition.id,
@@ -976,7 +994,13 @@ export function CharacterDisciplineBuildPanel({
                       </p>
                     ) : null}
                     {message ? (
-                      <p className={styles.status} role="status">
+                      <p
+                        className={styles.status}
+                        role="status"
+                        data-discipline-commit-success={
+                          message === 'Discipline changes committed.' || undefined
+                        }
+                      >
                         {message}
                       </p>
                     ) : null}

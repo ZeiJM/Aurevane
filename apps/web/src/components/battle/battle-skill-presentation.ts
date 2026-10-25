@@ -63,7 +63,7 @@ const ACTION_ARTWORK = new Map<string, string>([
   [PV1F_BASIC_ATTACK_ID, '/media/skills/basic-attack-fist.webp'],
   [PV1F_GUARD_ACTION_ID, '/media/skills/guard.webp'],
   [PV1F_RECOVER_ACTION_ID, '/media/skills/hp-recovery.webp'],
-  [PV1F_MP_RECOVER_ACTION_ID, '/media/skills/mp-recovery.svg'],
+  [PV1F_MP_RECOVER_ACTION_ID, '/media/skills/mp-recovery-dark-fantasy-v1.webp'],
 ])
 
 export function battleSkillArtwork(actionId: string, iconKey?: string | null): string {

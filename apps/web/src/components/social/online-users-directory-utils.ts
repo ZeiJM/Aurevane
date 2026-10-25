@@ -72,7 +72,7 @@ function lastSeenMillis(value: string | null): number | null {
 
 export function formatLastSeenAt(lastSeenAt: string | null, nowMs: number): string {
   const seenMs = lastSeenMillis(lastSeenAt)
-  if (seenMs === null) return 'Never seen'
+  if (seenMs === null) return 'No recorded activity'
 
   const minutes = Math.max(0, Math.floor((nowMs - seenMs) / 60_000))
   return `Last seen ${minutes.toLocaleString('en-US')} min ago`
@@ -86,7 +86,7 @@ export function compareLastSeenAt(
   const leftMs = lastSeenMillis(left)
   const rightMs = lastSeenMillis(right)
 
-  // Characters with no recorded heartbeat always belong at the end of the roster.
+  // Unknown activity always belongs at the end of the roster.
   if (leftMs === null && rightMs === null) return 0
   if (leftMs === null) return 1
   if (rightMs === null) return -1

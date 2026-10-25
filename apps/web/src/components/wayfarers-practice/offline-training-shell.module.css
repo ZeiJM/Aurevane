@@ -94,3 +94,36 @@
     font-size: 2.1rem;
   }
 }
+
+/* Recover top space for every training state without clipping the action row. */
+@media (max-width: 760px) {
+  .layout {
+    min-height: 0;
+    height: 100%;
+  }
+  .sheet {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 0.4rem 0.6rem;
+    gap: 0.35rem;
+  }
+  .hero {
+    min-height: 0;
+    height: auto;
+  }
+  .heroCopy h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 5vw, 1.8rem);
+    line-height: 1.05;
+  }
+  .heroCopy p {
+    font-size: 0.78rem;
+    line-height: 1.15;
+  }
+  .workspace {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}

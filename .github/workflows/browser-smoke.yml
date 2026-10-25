@@ -202,6 +202,7 @@ jobs:
             e2e/battle-move-preview-polish.pw.ts e2e/battle-self-action-quick-commit.pw.ts e2e/battle-self-skill-hotkey.pw.ts \
             e2e/battle-terrain-control-parity.pw.ts e2e/refined-battle-execution.pw.ts e2e/battle-info-popover.pw.ts \
             e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts e2e/technique-preview-layout.pw.ts \
+            e2e/techniques-state-stability.pw.ts e2e/battle-log-inline-reader.pw.ts \
             e2e/shell-viewport-fit.pw.ts \
             --project=desktop-chromium --project=mobile-chromium || focused_status=$?
 
@@ -227,6 +228,20 @@ jobs:
             e2e/battle-self-action-quick-commit.pw.ts \
             e2e/battle-recovery-hotkey.pw.ts e2e/battle-support-action.pw.ts e2e/techniques-support-action.pw.ts \
             --config=playwright.edge.config.ts --output=test-results-edge
+
+      - name: Save Technique and Chronicle failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: technique-chronicle-failure-diagnostics
+          path: |
+            apps/web/test-results/techniques-state-stability*/**/*.md
+            apps/web/test-results/techniques-state-stability*/**/*.json
+            apps/web/test-results/techniques-state-stability*/**/test-failed*.png
+            apps/web/test-results/battle-log-inline-reader*/**/*.md
+            apps/web/test-results/battle-log-inline-reader*/**/*.json
+            apps/web/test-results/battle-log-inline-reader*/**/test-failed*.png
+          retention-days: 7
 
       - name: Save focused battle rail evidence
         if: always()

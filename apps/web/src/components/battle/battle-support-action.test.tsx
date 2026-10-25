@@ -78,7 +78,7 @@ describe('pinned battle Support Action slot', () => {
   it.each([
     ['basic.guard', 'Guard', '30 AP', '/media/skills/guard.webp'],
     ['basic.recover', 'HP Recovery', '50 AP', '/media/skills/hp-recovery.webp'],
-    ['basic.recover.mp', 'MP Recovery', '50 AP', '/media/skills/mp-recovery.svg'],
+    ['basic.recover.mp', 'MP Recovery', '50 AP', '/media/skills/mp-recovery-dark-fantasy-v1.webp'],
   ])('renders %s in the existing slot 3', (id, label, cost, artwork) => {
     const markup = slotMarkup(id)
     expect(markup).toContain(`aria-label="${label}, ${cost}"`)

@@ -71,37 +71,24 @@ it('keeps free Controlled preparation selectable on cooldown and draws light onl
 })
 
 describe('Battle Technique command information', () => {
-  it('keeps facing controls inside End Turn with a reserved controls row', () => {
-    const props = {
-      slot: 'finish' as const,
-      hotkey: 'Space',
-      label: 'End Turn',
-      cost: 'Choose facing',
-      artworkSrc: '/media/skills/finish-turn.webp',
-      active: false,
-      disabled: false,
-      onActivate: () => undefined,
-    }
-    const closed = renderToStaticMarkup(createElement(BattleSkillCommand, props))
-    const open = renderToStaticMarkup(
-      createElement(
-        BattleSkillCommand,
-        { ...props, active: true },
-        createElement(
-          'div',
-          { 'data-unified-facing-pad': 'true' },
-          ...['north', 'west', 'east', 'south'].map((facing) =>
-            createElement('button', { key: facing, 'aria-label': `Face ${facing}` }, '↑'),
-          ),
-        ),
-      ),
-    )
-    expect(closed).toContain('data-battle-command-extra-controls="true"')
-    expect(open).toMatch(
-      /data-command-card="finish"[\s\S]*data-battle-command-extra-controls="true"[\s\S]*data-unified-facing-pad="true"[\s\S]*<\/article>$/,
-    )
-    for (const facing of ['north', 'west', 'east', 'south']) {
-      expect(open).toContain(`aria-label="Face ${facing}"`)
+  it('keeps End Turn compact without an empty facing-control row', () => {
+    for (const active of [false, true]) {
+      const markup = renderToStaticMarkup(
+        createElement(BattleSkillCommand, {
+          slot: 'finish',
+          hotkey: 'Space',
+          label: 'End Turn',
+          cost: 'Choose facing',
+          artworkSrc: '/media/skills/finish-turn.webp',
+          active,
+          disabled: false,
+          onActivate: () => undefined,
+        }),
+      )
+      expect(markup).toContain('aria-label="End Turn, Choose facing"')
+      expect(markup).toContain('data-battle-command-hotkey="true">Space')
+      expect(markup).not.toContain('data-battle-command-extra-controls')
+      expect(markup).not.toContain('data-unified-facing-pad')
     }
   })
   it.each(['inspect', 'move', 'attack', 'guard', 'finish'] as const)(

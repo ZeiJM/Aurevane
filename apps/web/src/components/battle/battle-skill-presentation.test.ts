@@ -48,7 +48,9 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork(PV1F_BASIC_ATTACK_ID)).toBe('/media/skills/basic-attack-fist.webp')
     expect(battleSkillArtwork(PV1F_GUARD_ACTION_ID)).toBe('/media/skills/guard.webp')
     expect(battleSkillArtwork(PV1F_RECOVER_ACTION_ID)).toBe('/media/skills/hp-recovery.webp')
-    expect(battleSkillArtwork(PV1F_MP_RECOVER_ACTION_ID)).toBe('/media/skills/mp-recovery.svg')
+    expect(battleSkillArtwork(PV1F_MP_RECOVER_ACTION_ID)).toBe(
+      '/media/skills/mp-recovery-dark-fantasy-v1.webp',
+    )
   })
 
   it('lets a published Skill media hook replace artwork without changing the action id', () => {
@@ -232,6 +234,6 @@ it('resolves exact finalized artwork identity through the gated immutable media 
     `/api/content-media/${id}`,
   )
   expect(battleSkillArtwork('basic.recover.mp', 'content-media.https://evil.test')).toBe(
-    '/media/skills/mp-recovery.svg',
+    '/media/skills/mp-recovery-dark-fantasy-v1.webp',
   )
 })

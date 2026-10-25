@@ -18,15 +18,6 @@ describe('authenticated navigation performance contracts', () => {
     expect(accountMenu).toContain("fetch('/api/master/access'")
   })
 
-  it('shares presence heartbeats across client-side route remounts', () => {
-    const presence = source('src/components/shell/online-presence-link.tsx')
-
-    expect(presence).toContain('sharedHeartbeat')
-    expect(presence).toContain('lastHeartbeatAt')
-    expect(presence).toContain('HEARTBEAT_INTERVAL_MS')
-    expect(presence).not.toContain('new AbortController()')
-  })
-
   it('overlaps current Skill resolution with the remaining Character and Nexus reads', () => {
     for (const path of [
       'src/app/game/(roaming)/character/page.tsx',

@@ -2,11 +2,8 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
-import {
-  hasMasterPanelCapability,
-  type MasterPanelAccess,
-  type MasterPanelCapability,
-} from '@/server/master/staff-access'
+import { hasMasterPanelCapability } from '@/lib/master-panel-access'
+import type { MasterPanelAccess, MasterPanelCapability } from '@/server/master/staff-access'
 
 import styles from './master-panel-shell.module.css'
 

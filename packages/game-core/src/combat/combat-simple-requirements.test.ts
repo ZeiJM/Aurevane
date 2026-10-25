@@ -201,7 +201,9 @@ describe('finite simple Requirements', () => {
       ['displaced', 'combatant_displaced', owner, enemy],
       ['rewound', 'combatant_rewound', owner, owner],
     ] as const
-    expect(cases).toHaveLength(SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.length)
+    expect(cases).toHaveLength(
+      SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.filter(({ id }) => id !== 'requirements-met').length,
+    )
     for (const [automaticTrigger, type, triggering, affected] of cases) {
       const behavior = source({
         activation: 'automatic',

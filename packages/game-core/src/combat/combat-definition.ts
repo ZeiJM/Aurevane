@@ -328,7 +328,8 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       )
     if (
       candidate.automaticTrigger !== undefined &&
-      (candidate.requirementMode !== 'simple' ||
+      ((candidate.requirementMode !== 'simple' &&
+        candidate.automaticTrigger !== 'requirements-met') ||
         candidate.activation !== 'automatic' ||
         candidate.mode !== 'action' ||
         !SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.some(({ id }) => id === candidate.automaticTrigger))
@@ -356,9 +357,11 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       validateAbilityRequirements(candidate.requirements).length === 0
     ) {
       const requirement = candidate.requirements as RequirementNode | null
+      const readiness = candidate.automaticTrigger === 'requirements-met'
       if (
         hasUnanchoredAutomaticStateRequirement(requirement) &&
-        !(candidate.requirementMode === 'simple' && candidate.automaticTrigger !== undefined)
+        !(candidate.requirementMode === 'simple' && candidate.automaticTrigger !== undefined) &&
+        candidate.automaticTrigger !== 'requirements-met'
       )
         issue(
           `${path}.requirements`,
@@ -367,6 +370,15 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       function checkEvents(node: RequirementNode): void {
         if (node.kind === 'all' || node.kind === 'any') node.children.forEach(checkEvents)
+        else if (
+          readiness &&
+          ['event', 'action', 'resource-threshold-crossing', 'resource-change'].includes(node.kind)
+        )
+          issue(
+            `${path}.requirements`,
+            'invalid-requirement',
+            'Readiness requires current state predicates; event pulses use their authored event activation.',
+          )
         else if (
           node.kind === 'event' &&
           !automaticAbilityEventSupported(node.eventType, node.phase)

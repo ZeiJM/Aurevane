@@ -1,3 +1,4 @@
+import { openBattleInfoMenu } from './battle-info-menu-helpers'
 import { execFileSync } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
@@ -227,7 +228,7 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
         ),
       })),
       terrainToggle: rect(root.querySelector('button[aria-label="Terrain"]')),
-      cancel: rect(root.querySelector('[data-battle-footer-actions] > button:nth-child(2)')),
+      cancel: rect(root.querySelector('[data-battle-cancel-action]')),
       footer: rect(root.querySelector('footer')),
       commandContents: [
         ...root.querySelectorAll(
@@ -260,6 +261,7 @@ async function capture(page: Page, testInfo: TestInfo, label: string) {
       board: rect(root.querySelector('[data-board-auto-fit]')),
       strip: rect(root.querySelector('[data-battle-preview-strip]')),
       preview: rect(preview),
+      finalFacing: rect(root.querySelector('[aria-label="Choose final facing"]')),
       lanes: [...root.querySelectorAll<HTMLElement>('[data-battle-preview-lane]')]
         .filter((lane) => lane.offsetWidth > 0)
         .map((lane) => ({
@@ -381,6 +383,8 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     ).toBeLessThanOrEqual(1)
   }
   expect(geometry.terrainToggle).not.toBeNull()
+  expect(geometry.cancel).not.toBeNull()
+  contained(geometry.cancel!, geometry.footer!)
   contained(geometry.terrainToggle!, geometry.footer!)
   expect(geometry.terrainToggle!.x + geometry.terrainToggle!.width).toBeLessThanOrEqual(
     geometry.cancel!.x + 1,
@@ -413,38 +417,47 @@ function expectStable(geometry: Awaited<ReturnType<typeof capture>>, baseline: R
     expect(Math.abs(token.token!.width - token.token!.height)).toBeLessThanOrEqual(1)
     for (const portrait of token.portraits) contained(portrait!, token.token!)
   }
-  const visibleLaneTop = Math.min(...geometry.lanes.map((lane) => lane.rect!.y))
-  const visibleLaneBottom = Math.max(
-    ...geometry.lanes.map((lane) => lane.rect!.y + lane.rect!.height),
-  )
-  expect(
-    Math.abs(
-      (visibleLaneTop + visibleLaneBottom) / 2 -
-        (geometry.preview!.y + geometry.preview!.height / 2),
-    ),
-    'the preview text lanes are vertically centered',
-  ).toBeLessThanOrEqual(1)
-  for (const lane of geometry.lanes) {
-    contained(lane.rect!, geometry.preview!)
-    expect(lane.overflowX).toBe('visible')
-    expect(lane.scrollWidth).toBeLessThanOrEqual(lane.clientWidth + 1)
-    expect(lane.scrollHeight).toBeLessThanOrEqual(lane.clientHeight + 1)
-    for (const chip of lane.chips) {
-      expect(chip.rect!.y).toBeGreaterThanOrEqual(lane.rect!.y - 1)
-      expect(chip.rect!.y + chip.rect!.height).toBeLessThanOrEqual(
-        lane.rect!.y + lane.rect!.height + 1,
-      )
+  if (!geometry.preview) {
+    // During End Turn the fixed preview area intentionally becomes the facing picker.
+    // It must occupy the same reserved area without moving the board or cockpit.
+    expect(geometry.finalFacing, 'final facing replaces the action preview').not.toBeNull()
+    contained(geometry.finalFacing!, geometry.strip!)
+    expect(geometry.lanes).toHaveLength(0)
+    expect(geometry.inlineTargets).toHaveLength(0)
+  } else {
+    const visibleLaneTop = Math.min(...geometry.lanes.map((lane) => lane.rect!.y))
+    const visibleLaneBottom = Math.max(
+      ...geometry.lanes.map((lane) => lane.rect!.y + lane.rect!.height),
+    )
+    expect(
+      Math.abs(
+        (visibleLaneTop + visibleLaneBottom) / 2 -
+          (geometry.preview!.y + geometry.preview!.height / 2),
+      ),
+      'the preview text lanes are vertically centered',
+    ).toBeLessThanOrEqual(1)
+    for (const lane of geometry.lanes) {
+      contained(lane.rect!, geometry.preview!)
+      expect(lane.overflowX).toBe('visible')
+      expect(lane.scrollWidth).toBeLessThanOrEqual(lane.clientWidth + 1)
+      expect(lane.scrollHeight).toBeLessThanOrEqual(lane.clientHeight + 1)
+      for (const chip of lane.chips) {
+        expect(chip.rect!.y).toBeGreaterThanOrEqual(lane.rect!.y - 1)
+        expect(chip.rect!.y + chip.rect!.height).toBeLessThanOrEqual(
+          lane.rect!.y + lane.rect!.height + 1,
+        )
+      }
     }
-  }
-  for (const target of geometry.inlineTargets) {
-    contained(target.rect!, geometry.preview!)
-    contained(target.portrait!, target.rect!)
-    contained(target.name!, target.rect!)
-    contained(target.result!, target.rect!)
-    expect(target.portrait!.width, 'forecast portrait spans both text lines').toBeCloseTo(32, 0)
-    expect(target.portrait!.height).toBeCloseTo(32, 0)
-    expect(target.portrait!.x + target.portrait!.width).toBeLessThanOrEqual(target.name!.x + 1)
-    expect(target.name!.y + target.name!.height).toBeLessThanOrEqual(target.result!.y + 1)
+    for (const target of geometry.inlineTargets) {
+      contained(target.rect!, geometry.preview!)
+      contained(target.portrait!, target.rect!)
+      contained(target.name!, target.rect!)
+      contained(target.result!, target.rect!)
+      expect(target.portrait!.width, 'forecast portrait spans both text lines').toBeCloseTo(32, 0)
+      expect(target.portrait!.height).toBeCloseTo(32, 0)
+      expect(target.portrait!.x + target.portrait!.width).toBeLessThanOrEqual(target.name!.x + 1)
+      expect(target.name!.y + target.name!.height).toBeLessThanOrEqual(target.result!.y + 1)
+    }
   }
   expect(geometry.readingTriggers, 'forecasts have no popup controls').toHaveLength(0)
   for (const dialog of geometry.dialogs)
@@ -660,6 +673,7 @@ async function exerciseForecast(
         ).toBeVisible()
         await check(`${name}-ready`)
         await expectNoSkillPreviewMetadata(preview)
+        await openBattleInfoMenu(page, `About ${name}`)
         const informationTrigger = page.getByRole('button', { name: `About ${name}`, exact: true })
         await informationTrigger.click()
         const parameters = page.getByRole('dialog', { name, exact: true })
@@ -675,7 +689,11 @@ async function exerciseForecast(
         expect(commits).toBe(0)
         await page.keyboard.press('Escape')
         await expect(parameters).toHaveCount(0)
-        await expect(informationTrigger).toBeFocused()
+        await expect(
+          (await page.locator('[data-battle-preview-info]').isVisible())
+            ? informationTrigger
+            : page.locator('main[data-battle-keyboard-focus-root="true"]'),
+        ).toBeFocused()
         await expectInlineSkillForecast(
           page,
           `frostweaver.${name.toLowerCase().replaceAll(' ', '-')}`,

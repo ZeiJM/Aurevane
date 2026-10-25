@@ -11,6 +11,7 @@ export interface CommittedCombatExecution {
   readonly [committedExecutionBrand]: true
 }
 export interface CommittedCombatMovement {
+  readonly independentAllowance?: boolean
   readonly path: readonly GridPosition[]
   readonly maximumTiles: number
 }

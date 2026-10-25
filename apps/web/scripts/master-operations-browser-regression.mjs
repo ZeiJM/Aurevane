@@ -58,7 +58,7 @@ await fs.writeFile(
 )
 await fs.writeFile(
   resolve(fixture, 'shell.jsx'),
-  `import React from 'react';export function AuthenticatedShellFrame({children}){return <main style={{height:'90vh',minHeight:0}}>{children}</main>}`,
+  `import React from 'react';export function AuthenticatedShellFrame({children}){return <main style={{height:'90vh',minHeight:0,overflow:'auto'}}>{children}</main>}`,
 )
 await fs.writeFile(
   resolve(fixture, 'supabase.js'),
@@ -102,7 +102,14 @@ if (process.env.AV_MASTER_OPERATIONS_COMPILE_ONLY === '1') {
 }
 const server = await createServer(config)
 await server.listen()
-const browser = await chromium.launch({ headless: true })
+const executablePath = process.env.AV_MASTER_OPERATIONS_BROWSER_EXECUTABLE
+const browser = await chromium.launch({
+  headless: true,
+  ...(executablePath ? { executablePath } : {}),
+})
+console.log(
+  `Operational browser: ${browser.version()}; executable: ${executablePath || chromium.executablePath()}`,
+)
 try {
   const origin = server.resolvedUrls.local[0]
   for (const viewport of [
@@ -112,7 +119,10 @@ try {
   ]) {
     const page = await browser.newPage({ viewport })
     const errors = []
-    page.on('pageerror', (error) => errors.push(String(error)))
+    page.on('pageerror', (error) => {
+      errors.push(String(error))
+      console.error('Operational browser error:', String(error))
+    })
     for (const view of ['rules', 'world', 'music']) {
       if (view === 'world') await page.clock.install({ time: new Date('2026-10-23T00:00:00Z') })
       await page.goto(`${origin}?view=${view}`)
@@ -161,7 +171,7 @@ try {
         await page.getByLabel('Global selection').selectOption('silent')
         await page.getByLabel('Search pages').fill('world')
         await page.getByRole('button', { name: /^World \/game\/world/ }).click()
-        await page.getByLabel('Page music', { exact: true }).selectOption('custom')
+        await page.getByRole('combobox', { name: 'Page music', exact: true }).selectOption('custom')
         await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
         await page.getByRole('status').filter({ hasText: 'published' }).waitFor()
         await page.getByRole('button', { name: 'Visit World', exact: true }).click()
@@ -176,7 +186,7 @@ try {
         assert.equal(await player.evaluate((element) => element.loop), true)
         await page.getByLabel('Search pages').fill('Character')
         await page.getByRole('button', { name: /^Character \/game\/character/ }).click()
-        await page.getByLabel('Page music', { exact: true }).selectOption('custom')
+        await page.getByRole('combobox', { name: 'Page music', exact: true }).selectOption('custom')
         await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
         await page.waitForFunction(
           () => document.querySelector('[data-testid="site-music-player"]').duration > 0,
@@ -207,6 +217,7 @@ try {
           () => !document.querySelector('[data-testid="site-music-player"]').getAttribute('src'),
         )
       }
+      console.log(`Passed ${view}: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}`)
       await page.screenshot({
         path: resolve(output, `${view}-${viewport.width}-${viewport.zoom}.png`),
         fullPage: true,

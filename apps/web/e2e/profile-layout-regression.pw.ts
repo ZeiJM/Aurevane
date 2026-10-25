@@ -310,7 +310,7 @@ test('approved Profile and Haven keep the frame fixed and complete controls reac
   await expect(page.getByText('Current Path', { exact: true })).toBeVisible()
   await page.goto('/game/loadout')
   await expect(page).toHaveURL(/\/game\/nexus$/)
-  const loadoutTabs = page.getByRole('navigation', { name: 'Loadout sections' })
+  const loadoutTabs = page.getByRole('navigation', { name: 'Arsenal sections' })
   await expect(loadoutTabs.getByRole('link', { name: 'Nexus', exact: true })).toHaveAttribute(
     'href',
     '/game/nexus',
@@ -394,6 +394,18 @@ test('a populated hybrid loadout keeps all four Techniques and management action
   )
   for (let index = 0; index < 4; index += 1) {
     const choice = choices.nth(index)
+    const category = await choice.evaluate((input) =>
+      input.closest('[data-technique-category]')?.getAttribute('data-technique-category'),
+    )
+    const tabName =
+      category === 'primary' ? 'Discipline 1' : category === 'secondary' ? 'Discipline 2' : null
+    if (tabName) {
+      const tab = techniques.getByRole('tab', { name: tabName, exact: true })
+      if (await tab.isVisible()) {
+        await tab.click()
+        await expect(tab).toHaveAttribute('aria-selected', 'true')
+      }
+    }
     if (await choice.isChecked()) continue
     const skillsSaved = page.waitForResponse(
       (response) =>

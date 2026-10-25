@@ -24,7 +24,7 @@ export function routeBattleAbilityShortcut(
     const slot = Number(action.slice(-1))
     const skill = context.techniques?.[slot - 1]
     if (skill && !battleSkillCastMode(skill).canCast)
-      controls.openInfo(`[data-battle-skill-slot="${slot}"] [data-battle-info-trigger]`)
+      controls.openInfo(`[data-battle-reader-shortcut="skill${slot}"]`)
     else if (skill && !context.commandsDisabled) controls.activate(skill.id, skill.category)
     return true
   }
@@ -32,11 +32,11 @@ export function routeBattleAbilityShortcut(
     if (context.special) {
       if (!context.commandsDisabled)
         controls.activate(context.special.skill.id, context.special.category)
-    } else controls.openInfo('[data-battle-special] [data-battle-info-trigger]')
+    } else controls.openInfo('[data-battle-reader-shortcut="essence"]')
     return true
   }
   if (action === 'supernatural') {
-    controls.openInfo('[data-battle-special="supernatural"] [data-battle-info-trigger]')
+    controls.openInfo('[data-battle-reader-shortcut="supernatural"]')
     return true
   }
   return false

@@ -30,3 +30,5 @@ Owner modular correction — October18: **LIVE for testing** through PR #936, me
 📌 **Built ≠ deployed ≠ accepted.** Early-delivered features count, but don't close later phases.
 
 📚 [Full plan](ROADMAP_DETAILED_2026-10-13.md) · [Audit](ROADMAP_AUDIT_2026-10-13.md)
+
+UI audit continuation remains pending release; scope and validation: [UI audit refinements](verification/2026-10-24-ui-audit-refinements.md). No phase closure or gameplay-rule changes.

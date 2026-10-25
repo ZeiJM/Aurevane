@@ -140,8 +140,26 @@ try {
         )
         await page.screenshot({ path: resolve(output, `${mode}-${viewport.width}-${phase}.png`) })
         await page.keyboard.press('Escape')
-        const chronicle = page.locator('[data-battle-chronicle]')
-        await chronicle.getByRole('button', { name: 'Explain Suppress', exact: true }).click()
+        const timeline = page.locator('[data-battle-mobile-chronicle-strip]')
+        const mobileTimeline = await timeline.isVisible()
+        if (mobileTimeline) {
+          // The mobile Chronicle is a fixed action strip; tapping the recorded
+          // action opens the full details without expanding or moving the battlefield.
+          const action = timeline
+            .getByRole('button', {
+              name: /Suppress.*Show Chronicle details/i,
+            })
+            .first()
+          await action.waitFor({ state: 'visible' })
+          await action.click()
+          const details = page.getByRole('region', { name: /Chronicle action:/i })
+          await details.waitFor({ state: 'visible' })
+          await details.getByRole('button', { name: 'Explain Suppress', exact: true }).click()
+        } else {
+          const chronicle = page.locator('[data-battle-chronicle]')
+          await chronicle.waitFor({ state: 'visible' })
+          await chronicle.getByRole('button', { name: 'Explain Suppress', exact: true }).click()
+        }
         const explanation = page.getByRole('dialog', { name: 'Suppress', exact: true })
         const recordedPercent = phase === 'pending' ? '25.34' : '100'
         assert.ok(
@@ -165,6 +183,12 @@ try {
         await page.screenshot({
           path: resolve(output, `${mode}-${viewport.width}-${phase}-chronicle.png`),
         })
+        await page.keyboard.press('Escape')
+        if (mobileTimeline) {
+          await page
+            .getByRole('region', { name: /Chronicle action:/i })
+            .waitFor({ state: 'hidden' })
+        }
         chronicleCases++
         cases++
         await page.close()

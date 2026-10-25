@@ -1,5 +1,3 @@
-import { Kicker } from '@aurevane/ui'
-
 import {
   CharacterIdentityCard,
   type CharacterIdentityCardProps,
@@ -35,7 +33,6 @@ export function OfflineTrainingShell({
           />
           <span className={styles.heroWash} aria-hidden="true" />
           <header className={styles.heroCopy}>
-            <Kicker marker="◇">Discipline in stillness</Kicker>
             <h1>Passive Training</h1>
             <p>Even in silence, you grow.</p>
           </header>

@@ -10,6 +10,20 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 test.use({ trace: 'on' })
 
 async function setTechnique(page: Page, card: Locator, checked = true): Promise<void> {
+  const category = await card
+    .locator('xpath=ancestor::section[@data-technique-category][1]')
+    .getAttribute('data-technique-category')
+  const categoryTab =
+    category === 'primary' ? 'Discipline 1' : category === 'secondary' ? 'Discipline 2' : null
+  if (categoryTab) {
+    const tab = page
+      .getByRole('dialog', { name: 'Techniques', exact: true })
+      .getByRole('tab', { name: categoryTab, exact: true })
+    if (await tab.isVisible()) {
+      await tab.click()
+      await expect(tab).toHaveAttribute('aria-selected', 'true')
+    }
+  }
   const checkbox = card.getByRole('checkbox')
   if ((await checkbox.isChecked()) === checked) return
 
@@ -311,7 +325,9 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
   await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
   await expect(page.getByLabel('AI sparring arena')).toHaveValue('terraced-yard')
-  await expect(page.getByText(/50 Mastery XP/).last()).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Mastery Trial/ }).getByText(/50 Mastery XP/),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")

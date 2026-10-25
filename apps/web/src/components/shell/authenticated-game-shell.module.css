@@ -999,7 +999,7 @@
   .worldFrame .shell .masthead {
     height: 2.9rem !important;
     grid-template-columns: auto minmax(0, 1fr) auto !important;
-    grid-template-rows: 2.9rem !important;
+    grid-template-rows: minmax(0, 1fr) !important;
     padding-block: 0.25rem !important;
     gap: 0.3rem !important;
   }
@@ -1027,7 +1027,7 @@
   }
   .worldFrame .shell .masthead :global(.brand) {
     align-self: center;
-    margin-top: -0.2rem;
+    margin-top: 0;
     line-height: 1;
   }
   .worldFrame .shell .mastheadUtility {
@@ -1069,6 +1069,22 @@
   color: var(--av-teal-bright);
 }
 
+/* Battle Hall fills the phone viewport above the existing navigation dock. */
+@media (max-width: 760px) {
+  .worldFrame .shell:has([data-battle-hall-workspace]) {
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .shell:has([data-battle-hall-workspace]) .main {
+    min-height: 0;
+    overflow: hidden;
+    padding: 0.35rem;
+  }
+}
+
 /* mobile type floor */
 @media (max-width: 760px) {
   .activeBattleLink,
@@ -1077,5 +1093,13 @@
   .shell:has([data-world-workspace]) .railLink,
   .shell .railLink {
     font-size: 0.6875rem !important;
+  }
+}
+
+/* A selected mobile dock slot is framed by matching top and bottom azure rules. */
+@media (max-width: 760px) {
+  .railLink[aria-current='page'] {
+    border-top-color: var(--av-teal-bright);
+    border-bottom: 2px solid var(--av-teal-bright);
   }
 }

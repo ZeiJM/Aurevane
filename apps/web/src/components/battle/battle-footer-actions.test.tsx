@@ -71,6 +71,8 @@ it.each(['pve', 'pvp'] as const)(
     expect(footer).toBeTruthy()
     expect(footer).not.toContain('Modifiers')
     expect(footer).toContain('Terrain')
+    expect(html).toContain('data-battle-turn-state="yours"')
+    expect(html).toContain('data-battle-instruction-title="true">Your turn')
     expect(footer).toContain('Cancel Action')
     if (kind === 'pve') expect(footer).toContain('Surrender')
     expect(JSON.stringify(battle)).toBe(before)

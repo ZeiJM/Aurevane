@@ -258,7 +258,7 @@ describe('actual legal Fieldcraft wounded escape / included Move cost / opposing
       })
       expect(readPv1fActionEconomy(escaped.state, actor!.actorId)!.current).toBe(60)
       expect(escaped.state.tactical.battle.currentTurn!.movementRemaining).toBe(
-        ready.tactical.battle.currentTurn!.movementRemaining - 2,
+        ready.tactical.battle.currentTurn!.movementRemaining,
       )
       expect(
         escaped.state.tactical.placements.find((row) => row.combatantId === actor!.actorId)!
