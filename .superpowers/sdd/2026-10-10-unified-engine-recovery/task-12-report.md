@@ -95,3 +95,46 @@ Two PostgreSQL connections run claim-first and emergency-first transactions. The
 ## Handoff
 
 Supported-source implementation is complete and frozen for root review. Honest draft-only and executor limitations are above. There are no worker-owned hosted actions or permission questions left pending. Final commit after `92fabb68f` is report/evidence only; root is to back it up with the final native test delta and perform the one combined review.
+
+## Fix round 1/5 — I1 identity safety and M1 audience references
+
+Same sole implementer `master_events_12`; no helpers. Read the full archived combined review at `docs/verification/task-10-reconstruction/stage-12-review-20261025.md` and the root's bounded `task-12-fix1-selection-brief.md`. Reviewed product BASE is `dd62fd6aaa9579e3df145abc2dba524835123f4f`; resumed HEAD `679490414a430acf0f78578259b9a69bb7d2159f` includes root's coordinator/review docs only. Root's fresh direct actual-main fetch at `2026-10-25T07:46:37Z` confirms unchanged `14df01a2c42d4cb36bd6c99d21372a1c51084164`.
+
+Fix source checkpoint: **`dd120821f1083e8df2df2349a24b0aff25091270`**, tree **`7ef42f22d055e4bfe876984d2418c9f5b74cb7f2`**. The subsequent freeze commit contains this report addition and verification artifacts only.
+
+### I1 correction
+
+A shared event-identity replacement path now clears production confirmation, preview, scheduled-run handle, schedule time inputs, publication/draft versions and history before replacing the loaded identity. Saved-event loads invoke this path and then install only the loaded event's actual version context, including the original stale draft base. New Event and manual key changes use the same path; manual key changes can retain draft content as a copy but cannot retain the old event's write tokens. Starting a load immediately clears old action approval/handles even if the load later fails.
+
+Scheduled handles also carry their owning event key in client state. Both the Unschedule affordance and command guard require the owner key to match the displayed definition. Freshly scheduling B still enables its deliberate cancellation after a new confirmation using B's returned run ID and version. No server contract, authority, SQL, reward/kernel or native gate change was made.
+
+### M1 correction
+
+The region control is now a real select showing names from the existing `WORLD_REGIONS` catalogue while preserving canonical values internally. The new draft default uses canonical `frostmere`; persisted unknown keys are not silently remapped and appear as an explicitly unresolved option. A shared display helper uses known region names in saved-event options, the authoring audience summary, preview and live-run scope/participation summaries; live search also accepts the readable name.
+
+Node/cohort scope changes create an empty custom reference input rather than carrying or suggesting a region key. The input is labelled unresolved and explains that no node/cohort catalogue or audience-membership resolver is available here, and that the custom draft reference does not verify an audience or add gameplay execution. Global scope has no reference input and displays All players. No reference data, resolver, executor or backend membership rule was invented. Existing production capability/runtime guards remain unchanged.
+
+### Covering RED/GREEN and exact-source verification
+
+The permanent regression extends the existing real production-component fixture/script; it does not replace the existing workflows. Before the source fix, `fix1-identity-red` failed on the actual checked confirmation surviving A→B (exit 1). After I1, `fix1-identity-green` passed all three layouts. The added M1 test then failed against the original raw-key input in `fix1-audience-red` (exit 1). Two subsequent attempts exposed exact `getByLabel` selector mismatches for wrapped select labels; tests now use exact accessible combobox roles/names. Assertions, timeouts and workflow coverage were retained. Both failures and their screenshots remain archived; a log filename containing “green” does not override its recorded exit status.
+
+The expanded browser workflow covers:
+
+- Confirmation-only A→B and scheduled A→B, New Event and manual key replacement; confirmation must clear, prior preview must disappear, and Unschedule must remain disabled even after another confirmation. No prior-event cancellation request can be emitted by those controls.
+- Manual identity replacement after A has both a publication version and a newly saved draft version; New/manual save payloads must use their new keys with null base/draft tokens.
+- A fresh B schedule followed by deliberate cancellation: exact B run `44444444-4444-4444-8444-444444444444`, state version 7, and a fresh true confirmation; the fixture rejects incorrect targets/versions. This is HTTP-boundary proof, not physical cancellation proof.
+- The pre-existing draft-base-2 publication assertion, no-side-effect preview, unsupported-reference blocker, save/schedule, live state-version sequence 1–6, keyboard/touch, no reasons/public fingerprints, 44px section controls and no horizontal overflow remain.
+- Known Region select value/visible label, readable audience and live participation summary; selecting Frostmere sends canonical `frostmere` in the preview definition. Node/cohort controls contain no region datalist, start empty and show unresolved-reference limits; global scope removes custom inputs.
+
+Exact committed-source checks at `dd120821f` all exited 0:
+
+| Receipt label            | Command / result                                                                                                                                                                                                                                                                                                                                      |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fix1-committed-browser` | `env AV_EVENT_WORKSPACE_BROWSER_EXECUTABLE=/tmp/av-chromium-current/chromium AV_EVENT_WORKSPACE_EVIDENCE_DIR=docs/verification/task-10-reconstruction/task12-fix1-committed node apps/web/scripts/event-workspace-browser-regression.mjs` — all three complete layouts passed on Chromium 153.0.8010.0: 1366×768, 390×844 touch, 1366×768 CSS zoom 2. |
+| `fix1-committed-types`   | `corepack pnpm --filter @aurevane/web exec tsc --noEmit` — exit 0.                                                                                                                                                                                                                                                                                    |
+| `fix1-committed-lint`    | Package-config ESLint on the two clients, shared audience helper, existing fixture and browser script with `--max-warnings=0` — exit 0; complete argv in ledger.                                                                                                                                                                                      |
+| `fix1-committed-format`  | Prettier check on those five files — exit 0; complete argv in ledger.                                                                                                                                                                                                                                                                                 |
+
+Inspected the updated desktop authoring, mobile live run and CSS-zoom preview screenshots; known names are visible in the selected control and summaries. No force-clicks, skips, increased timeouts or assertion weakening were introduced. No unaffected SQL/counterfactual/native/full-check repeat was performed for this UI-only repair. The earlier 53 tests remain earlier Task 12 evidence, not claimed as newly rerun here.
+
+All original **455879 ledger bytes** and every prior artifact are preserved, with new immutable raw-gzip receipts appended under `fix1-*`; each records exact argv/start/end/exit/source HEAD/tree/raw SHA/gzip SHA. `fix1-evidence-integrity` records prefix/hash checks, unchanged backend/kernel/native paths, raw-gzip verification and updated screenshot hashes. Physical SQL, authenticated application, pinned browser/true browser 200%/device, hosted and Task 13 gates remain open exactly as before. No unrelated State V7 cleanup was included. Freeze this bounded delta for the same combined reviewer; root owns backup and review acceptance.
