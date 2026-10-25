@@ -1,4 +1,5 @@
 import 'server-only'
+import { createHash } from 'node:crypto'
 
 import {
   validatePersistentEventDefinition,
@@ -71,7 +72,19 @@ export interface EventDefinitionPreview {
   readonly aftermathRefs: readonly string[]
 }
 
+export interface EventWorkspaceCatalogue {
+  events: Array<{
+    eventKey: string
+    title: string
+    scope: PersistentEventDefinition['scope']
+    draftVersion: number | null
+    publishedVersion: number | null
+  }>
+  rewards: Array<{ key: string; label: string; budget: string }>
+}
+
 export interface EventAuthoringStore {
+  readCatalogue(): Promise<EventWorkspaceCatalogue>
   readDraft(eventKey: string): Promise<EventDefinitionDraftRecord | null>
   saveDraft(input: {
     eventKey: string
@@ -86,7 +99,7 @@ export interface EventAuthoringStore {
     definition: PersistentEventDefinition
     expectedBaseVersion: number | null
     correlationKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventDefinitionVersionRecord>
   schedule(input: {
@@ -95,19 +108,20 @@ export interface EventAuthoringStore {
     requestFingerprint: string
     scheduledStartAt: string
     scheduledEndAt: string | null
-    reason: string
+
     confirmed: boolean
   }): Promise<ScheduledEventRunRecord>
   cancelScheduled(input: {
     runId: string
     expectedStateVersion: number
     idempotencyKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventRunTransitionRecord>
 }
 
 export interface EventAuthoringService {
+  readCatalogue(actorUserId: string): Promise<EventWorkspaceCatalogue>
   requireAuthor(actorUserId: string): Promise<MasterPanelAccess>
   validateDefinition(definition: unknown): EventDefinitionValidationResult
   previewDefinition(input: {
@@ -132,17 +146,16 @@ export interface EventAuthoringService {
     definition: unknown
     expectedBaseVersion: number | null
     correlationKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventDefinitionVersionRecord>
   schedule(input: {
     actorUserId: string
     eventKey: string
     idempotencyKey: string
-    requestFingerprint: string
     scheduledStartAt: string
     scheduledEndAt: string | null
-    reason: string
+
     confirmed: boolean
   }): Promise<ScheduledEventRunRecord>
   cancelScheduled(input: {
@@ -150,7 +163,7 @@ export interface EventAuthoringService {
     runId: string
     expectedStateVersion: number
     idempotencyKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventRunTransitionRecord>
 }
@@ -256,16 +269,6 @@ function positiveInteger(value: number, field: string): number {
   return value
 }
 
-function requiredReason(value: string): string {
-  if (value.trim() !== value || value.length < 3 || value.length > 240) {
-    throw new AurevaneError(
-      'INVALID_REQUEST',
-      'Event operation reasons must be 3–240 characters with no outer whitespace.',
-    )
-  }
-  return value
-}
-
 function requiredConfirmation(value: boolean): true {
   if (value !== true) {
     throw new AurevaneError(
@@ -301,6 +304,10 @@ export function createEventAuthoringService({
   return {
     requireAuthor,
     validateDefinition,
+    async readCatalogue(actorUserId) {
+      await requireAuthor(actorUserId)
+      return store.readCatalogue()
+    },
 
     async previewDefinition(input) {
       await requireAuthor(input.actorUserId)
@@ -373,7 +380,7 @@ export function createEventAuthoringService({
         definition: structuredClone(input.definition),
         expectedBaseVersion: input.expectedBaseVersion,
         correlationKey: requiredUuid(input.correlationKey, 'correlationKey'),
-        reason: requiredReason(input.reason),
+
         confirmed: requiredConfirmation(input.confirmed),
       })
     },
@@ -382,9 +389,6 @@ export function createEventAuthoringService({
       const access = await staffAccess.requireCapability(input.actorUserId, 'events.operate')
       stableIdentity(input.eventKey, 'eventKey')
       requiredUuid(input.idempotencyKey, 'idempotencyKey')
-      if (!input.requestFingerprint || input.requestFingerprint.length > 160) {
-        throw new AurevaneError('INVALID_REQUEST', 'requestFingerprint must be 1–160 characters.')
-      }
       const start = validTimestamp(input.scheduledStartAt, 'scheduledStartAt')
       const end = input.scheduledEndAt
         ? validTimestamp(input.scheduledEndAt, 'scheduledEndAt')
@@ -404,10 +408,12 @@ export function createEventAuthoringService({
       return store.schedule({
         eventKey: input.eventKey,
         idempotencyKey: input.idempotencyKey,
-        requestFingerprint: input.requestFingerprint,
+        requestFingerprint: createHash('sha256')
+          .update(JSON.stringify([input.eventKey, start, end]))
+          .digest('hex'),
         scheduledStartAt: start,
         scheduledEndAt: end,
-        reason: requiredReason(input.reason),
+
         confirmed: requiredConfirmation(input.confirmed),
       })
     },
@@ -419,7 +425,7 @@ export function createEventAuthoringService({
         runId: requiredUuid(input.runId, 'runId'),
         expectedStateVersion: input.expectedStateVersion,
         idempotencyKey: requiredUuid(input.idempotencyKey, 'idempotencyKey'),
-        reason: requiredReason(input.reason),
+
         confirmed: requiredConfirmation(input.confirmed),
       })
     },

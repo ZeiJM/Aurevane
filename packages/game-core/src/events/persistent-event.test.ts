@@ -96,6 +96,7 @@ describe('persistent event definition', () => {
     expect(() => assertEventRunTransition('paused', 'resolving')).not.toThrow()
     expect(() => assertEventRunTransition('resolving', 'ended')).not.toThrow()
     expect(() => assertEventRunTransition('ended', 'archived')).not.toThrow()
+    expect(() => assertEventRunTransition('ended', 'emergency-stopped')).not.toThrow()
     expect(() => assertEventRunTransition('archived', 'live')).toThrow(/cannot transition/i)
   })
 })

@@ -1255,3 +1255,15 @@
     position: static;
   }
 }
+
+.operations [hidden] {
+  display: none;
+}
+.workspaceTabs button {
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+.workspaceTabs button[aria-pressed='true'] {
+  border-bottom: 2px solid currentColor;
+}

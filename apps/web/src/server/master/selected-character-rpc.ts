@@ -23,6 +23,7 @@ const SELECTED_ACTOR_RPCS = new Set([
   'save_combat_content_draft_v1',
   'publish_combat_content_v3',
   'set_combat_content_publication_v2',
+  'read_event_workspace_catalogue_v1',
   'read_event_definition_draft_v1',
   'save_event_definition_draft_v1',
   'list_event_definition_versions_v1',

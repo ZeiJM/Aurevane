@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import styles from './event-operations.module.css'
 
@@ -23,6 +23,7 @@ interface Dashboard {
   run: {
     runId: string
     eventKey: string
+    title?: string
     definitionVersionId: string
     lifecycleStatus: string
     stateVersion: number
@@ -119,11 +120,12 @@ function when(value: string | null): string {
 }
 
 export function EventOperationsClient({ canEmergencyStop }: Props) {
+  const dashboardRequest = useRef(0)
+  const [tab, setTab] = useState('Overview')
   const [runs, setRuns] = useState<RunSummary[]>([])
   const [selectedRunId, setSelectedRunId] = useState('')
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [message, setMessage] = useState('Loading Event operations…')
-  const [operationReason, setOperationReason] = useState('')
   const [operationConfirmed, setOperationConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [runQuery, setRunQuery] = useState('')
@@ -144,11 +146,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     )
   }, [runQuery, runs])
 
-  const operationReady =
-    operationConfirmed &&
-    operationReason.length >= 3 &&
-    operationReason.length <= 240 &&
-    operationReason.trim() === operationReason
+  const operationReady = operationConfirmed
 
   async function loadRuns(preferredRunId?: string) {
     const payload = await post({ operation: 'list' })
@@ -170,7 +168,9 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
 
   async function loadDashboard(runId = selectedRunId) {
     if (!runId) return
+    const request = ++dashboardRequest.current
     const payload = await post({ operation: 'read', runId })
+    if (request !== dashboardRequest.current) return
     setDashboard(payload.dashboard as Dashboard)
     setMessage('Live Event state refreshed.')
   }
@@ -224,7 +224,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         expectedStateVersion: dashboard.run.stateVersion,
         idempotencyKey: crypto.randomUUID(),
         command,
-        reason: operationReason,
+
         confirmed: operationConfirmed,
       },
       `${label} completed.`,
@@ -239,7 +239,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         runId: dashboard.run.runId,
         expectedStateVersion: dashboard.run.stateVersion,
         idempotencyKey: crypto.randomUUID(),
-        reason: operationReason,
+
         confirmed: operationConfirmed,
       },
       'Event phase advanced.',
@@ -255,10 +255,10 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         phaseId,
         effectOrdinal,
         completionKey: crypto.randomUUID(),
-        reason: operationReason,
+
         confirmed: operationConfirmed,
       },
-      'Cleanup requirement completed.',
+      'Cleanup acknowledgement recorded; no domain effect was executed.',
     )
   }
 
@@ -309,7 +309,11 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             onChange={(event) => {
               const runId = event.target.value
               setSelectedRunId(runId)
-              void loadDashboard(runId)
+              setDashboard(null)
+              setOperationConfirmed(false)
+              void loadDashboard(runId).catch((error: unknown) =>
+                setMessage(error instanceof Error ? error.message : 'Unable to load this run.'),
+              )
             }}
             disabled={busy || runs.length === 0}
           >
@@ -330,7 +334,11 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               data-selected={run.runId === selectedRunId || undefined}
               onClick={() => {
                 setSelectedRunId(run.runId)
-                void loadDashboard(run.runId)
+                setDashboard(null)
+                setOperationConfirmed(false)
+                void loadDashboard(run.runId).catch((error: unknown) =>
+                  setMessage(error instanceof Error ? error.message : 'Unable to load this run.'),
+                )
               }}
             >
               <span className={styles.runGlyph} aria-hidden="true">
@@ -363,7 +371,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
               <div className={styles.runHeaderIdentity}>
                 <p className={styles.eyebrow}>Authoritative Event Run</p>
-                <h2>{dashboard.run.eventKey}</h2>
+                <h2>{dashboard.run.title ?? dashboard.run.eventKey}</h2>
                 <p>
                   <code>{dashboard.run.runId.slice(0, 12)}</code>
                   <span data-status={dashboard.run.lifecycleStatus}>
@@ -376,14 +384,23 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             </header>
 
             <nav className={styles.workspaceTabs} aria-label="Live Event workspace">
-              <a href="#event-overview">Overview</a>
-              <a href="#event-phases">Objectives</a>
-              <a href="#event-participants">Participants</a>
-              <a href="#event-cleanup">Cleanup</a>
-              <a href="#event-rewards">Rewards</a>
+              {['Overview', 'Phases', 'Participants', 'Rewards', 'Closure'].map((name) => (
+                <button
+                  type="button"
+                  key={name}
+                  aria-pressed={tab === name}
+                  onClick={() => setTab(name)}
+                >
+                  {name}
+                </button>
+              ))}
             </nav>
 
-            <section className={styles.overviewPanel} id="event-overview">
+            <section
+              className={styles.overviewPanel}
+              id="event-overview"
+              hidden={tab !== 'Overview'}
+            >
               <div className={styles.overviewFacts}>
                 <div>
                   <span>Scope</span>
@@ -434,7 +451,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-phases">
+            <section className={styles.card} id="event-phases" hidden={tab !== 'Phases'}>
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Run progress</p>
@@ -468,7 +485,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Typed runtime</p>
-                  <h2>Active effects</h2>
+                  <h2>Referenced effects</h2>
                 </div>
                 <span>{dashboard.activeEffects.length}</span>
               </div>
@@ -484,7 +501,11 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-participants">
+            <section
+              className={styles.card}
+              id="event-participants"
+              hidden={tab !== 'Participants'}
+            >
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Participation</p>
@@ -509,7 +530,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-rewards">
+            <section className={styles.card} id="event-rewards" hidden={tab !== 'Rewards'}>
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Rewards</p>
@@ -534,7 +555,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-cleanup">
+            <section className={styles.card} id="event-cleanup" hidden={tab !== 'Closure'}>
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Closure</p>
@@ -558,7 +579,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                         onClick={() => void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)}
                         disabled={busy || !operationReady}
                       >
-                        Confirm cleanup completed
+                        Record manual cleanup acknowledgement
                       </button>
                     ) : (
                       <small>{when(cleanup.completedAt)}</small>
@@ -568,7 +589,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            {dashboard.chronicle ? (
+            {dashboard.chronicle && tab === 'Closure' ? (
               <section className={styles.card}>
                 <div className={styles.cardHeading}>
                   <div>
@@ -601,11 +622,11 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             </div>
             <div>
               <strong>{dashboard?.activeEffects.length ?? 0}</strong>
-              <span>Active effects</span>
+              <span>Referenced effects</span>
             </div>
             <div>
               <strong>
-                {dashboard?.phases.filter((phase) => phase.status === 'active').length ?? 0}
+                {dashboard?.phases.filter((phase) => phase.status === 'live').length ?? 0}
               </strong>
               <span>Active phases</span>
             </div>
@@ -621,27 +642,26 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             <h2>Safe operator actions</h2>
             <span>Confirmed</span>
           </div>
-          <label className={styles.approvalField}>
-            Operation reason
-            <textarea
-              value={operationReason}
-              maxLength={240}
-              onChange={(event) => {
-                setOperationReason(event.target.value)
-                setOperationConfirmed(false)
-              }}
-              placeholder="Why is this live Event operation being performed?"
-            />
-          </label>
           <label className={styles.approvalCheck}>
             <input
               type="checkbox"
               checked={operationConfirmed}
               onChange={(event) => setOperationConfirmed(event.target.checked)}
             />
-            Confirm live operation
+            Confirm the live action below
           </label>
 
+          <p>
+            Pause freezes elapsed phase clocks and rejects new contributions. Absolute deadlines
+            stay fixed. Stop closes contributions and enters resolving; End permits eligible XP
+            claims. Emergency stop cancels pending progress and any still-unexecuted settlement,
+            including after End. Successful claims stay awarded. Existing successful receipts and XP
+            remain. These actions cannot undo granted XP.
+          </p>
+          <p>
+            Times: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Operator and time are
+            recorded automatically.
+          </p>
           <div className={styles.actionRow}>
             {status === 'scheduled' ? (
               <button
@@ -704,7 +724,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                 End run
               </button>
             ) : null}
-            {['scheduled', 'live', 'paused', 'resolving'].includes(status) && canEmergencyStop ? (
+            {['scheduled', 'live', 'paused', 'resolving', 'ended'].includes(status) &&
+            canEmergencyStop ? (
               <button
                 type="button"
                 className={styles.danger}
@@ -726,14 +747,16 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
           </div>
           {cleanupPending ? (
             <p className={styles.notice}>
-              Archive is blocked until every pinned typed cleanup requirement is confirmed.
+              Archive is blocked until each historical cleanup requirement is acknowledged.
+              Acknowledgement records an operator check; it executes no domain effect. New
+              definitions with unsupported effects cannot publish.
             </p>
           ) : null}
         </section>
 
         <section className={styles.dockCard}>
           <div className={styles.dockHeading}>
-            <h2>Cleanup status</h2>
+            <h2>Cleanup acknowledgements</h2>
             <span>{dashboard?.run.cleanupStatus ?? '—'}</span>
           </div>
           <dl className={styles.compactFacts}>

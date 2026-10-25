@@ -131,7 +131,7 @@ export interface EventOperationsStore {
     expectedStateVersion: number
     idempotencyKey: string
     command: EventOperationCommand
-    reason: string
+
     confirmed: boolean
   }): Promise<EventRunMutationRecord>
   advancePhase(input: {
@@ -139,7 +139,7 @@ export interface EventOperationsStore {
     runId: string
     expectedStateVersion: number
     idempotencyKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventPhaseAdvanceRecord>
   completeCleanup(input: {
@@ -148,7 +148,7 @@ export interface EventOperationsStore {
     phaseId: string
     effectOrdinal: number
     completionKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventCleanupCompletionRecord>
 }
@@ -163,7 +163,7 @@ export interface EventOperationsService {
     expectedStateVersion: number
     idempotencyKey: string
     command: EventOperationCommand
-    reason: string
+
     confirmed: boolean
   }): Promise<EventRunMutationRecord>
   advancePhase(input: {
@@ -171,7 +171,7 @@ export interface EventOperationsService {
     runId: string
     expectedStateVersion: number
     idempotencyKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventPhaseAdvanceRecord>
   completeCleanup(input: {
@@ -180,7 +180,7 @@ export interface EventOperationsService {
     phaseId: string
     effectOrdinal: number
     completionKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventCleanupCompletionRecord>
 }
@@ -204,16 +204,6 @@ function positiveInteger(value: number, field: string): number {
 function nonNegativeInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new AurevaneError('INVALID_REQUEST', `${field} must be a non-negative integer.`)
-  }
-  return value
-}
-
-function reason(value: string, field: string): string {
-  if (value.trim() !== value || value.length < 3 || value.length > 240) {
-    throw new AurevaneError(
-      'INVALID_REQUEST',
-      `${field} must be 3–240 characters with no outer whitespace.`,
-    )
   }
   return value
 }
@@ -273,7 +263,7 @@ export function createEventOperationsService(input: {
         ),
         idempotencyKey: uuid(operation.idempotencyKey, 'idempotencyKey'),
         command: operationCommand,
-        reason: reason(operation.reason, 'reason'),
+
         confirmed: confirmed(operation.confirmed),
       })
     },
@@ -288,7 +278,7 @@ export function createEventOperationsService(input: {
           'expectedStateVersion',
         ),
         idempotencyKey: uuid(operation.idempotencyKey, 'idempotencyKey'),
-        reason: reason(operation.reason, 'reason'),
+
         confirmed: confirmed(operation.confirmed),
       })
     },
@@ -308,7 +298,7 @@ export function createEventOperationsService(input: {
         phaseId: operation.phaseId,
         effectOrdinal: nonNegativeInteger(operation.effectOrdinal, 'effectOrdinal'),
         completionKey: uuid(operation.completionKey, 'completionKey'),
-        reason: reason(operation.reason, 'reason'),
+
         confirmed: confirmed(operation.confirmed),
       })
     },

@@ -127,7 +127,7 @@ const EVENT_RUN_TRANSITIONS: Readonly<Record<EventRunStatus, readonly EventRunSt
   live: ['paused', 'resolving', 'emergency-stopped'],
   paused: ['live', 'resolving', 'emergency-stopped'],
   resolving: ['ended', 'emergency-stopped'],
-  ended: ['archived'],
+  ended: ['archived', 'emergency-stopped'],
   archived: [],
   cancelled: ['archived'],
   'emergency-stopped': ['archived'],

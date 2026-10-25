@@ -975,3 +975,41 @@
     position: static;
   }
 }
+
+.builder [hidden] {
+  display: none;
+}
+.workspaceTabs button {
+  font: inherit;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+}
+.workspaceTabs button[aria-pressed='true'] {
+  color: var(--color-gold, #ddbd78);
+  border-bottom: 2px solid currentColor;
+}
+
+/* One collection and one focused editor, shared by both entry routes. */
+.builder {
+  grid-template-columns: minmax(12rem, 22%) minmax(0, 1fr);
+}
+.builderWorkspace {
+  grid-column: auto;
+}
+.controlCard {
+  position: static;
+  grid-column: auto;
+  padding: 0.75rem;
+}
+.workspaceTabs {
+  flex-wrap: wrap;
+}
+@media (max-width: 1000px) {
+  .builder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .eventNavigator,
+  .builderWorkspace {
+    grid-column: 1;
+  }
+}

@@ -1,7 +1,13 @@
 'use client'
 import { EventNavigationFields } from '@/components/world/event-navigation-fields'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type {
+  EventDefinitionPreview,
+  EventWorkspaceCatalogue,
+} from '@/server/master/event-authoring-service'
+import { eventRuntimeBlockers } from './event-runtime-support'
+import { WORLD_REGIONS } from '@/world/catalog'
 
 import {
   EVENT_EFFECT_TYPES,
@@ -120,6 +126,9 @@ function objective(index: number): EventObjectiveDefinition {
 }
 
 export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
+  const [tab, setTab] = useState('Setup')
+  const [catalogue, setCatalogue] = useState<EventWorkspaceCatalogue>({ events: [], rewards: [] })
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const [definition, setDefinition] = useState<PersistentEventDefinition>(initialDefinition)
   const [baseVersion, setBaseVersion] = useState<number | null>(null)
   const [draftVersion, setDraftVersion] = useState<number | null>(null)
@@ -128,21 +137,32 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
   const [testClock, setTestClock] = useState('2026-09-19T12:00')
   const [scheduleStart, setScheduleStart] = useState('')
   const [scheduleEnd, setScheduleEnd] = useState('')
-  const [productionReason, setProductionReason] = useState('')
   const [productionConfirmed, setProductionConfirmed] = useState(false)
   const [scheduledRun, setScheduledRun] = useState<ScheduledRun | null>(null)
   const [message, setMessage] = useState('Ready.')
   const [details, setDetails] = useState('')
+  const [previewResult, setPreviewResult] = useState<EventDefinitionPreview | null>(null)
   const [busy, setBusy] = useState(false)
+  const blockers = eventRuntimeBlockers(definition)
+  useEffect(() => {
+    let active = true
+    void post({ operation: 'catalogue' })
+      .then((payload) => {
+        if (active) setCatalogue(payload.catalogue as unknown as EventWorkspaceCatalogue)
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setMessage(error instanceof Error ? error.message : 'Unable to load event references.')
+      })
+    return () => {
+      active = false
+    }
+  }, [])
 
   const selectedPhase =
     definition.phases.find((phase) => phase.id === selectedPhaseId) ?? definition.phases[0]
 
-  const productionActionReady =
-    productionConfirmed &&
-    productionReason.length >= 3 &&
-    productionReason.length <= 240 &&
-    productionReason.trim() === productionReason
+  const productionActionReady = productionConfirmed
 
   const globalWarning = useMemo(
     () =>
@@ -154,6 +174,8 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
 
   function patchDefinition(patch: Partial<PersistentEventDefinition>) {
     setDefinition((current) => ({ ...current, ...patch }))
+    setProductionConfirmed(false)
+    setPreviewResult(null)
   }
 
   function patchPhase(index: number, patch: Partial<PersistentEventPhaseDefinition>) {
@@ -205,16 +227,20 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     }
   }
 
-  async function loadWorkspace() {
+  async function loadWorkspace(eventKey = definition.eventKey) {
     await run('Loading authoritative Event workspace…', async () => {
-      const payload = await post({ operation: 'load', eventKey: definition.eventKey })
+      const payload = await post({ operation: 'load', eventKey })
       const workspace = payload.workspace as unknown as WorkspaceResponse
       const chosen = workspace.draft?.definition ?? workspace.current?.definition
       if (chosen) {
         setDefinition(chosen)
         setSelectedPhaseId(chosen.phases[0]!.id)
       }
-      setBaseVersion(workspace.current?.definitionVersion ?? null)
+      setBaseVersion(
+        workspace.draft
+          ? workspace.draft.baseVersion
+          : (workspace.current?.definitionVersion ?? null),
+      )
       setDraftVersion(workspace.draft?.draftVersion ?? null)
       setVersions(workspace.versions ?? [])
       setMessage(
@@ -248,7 +274,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         testClock: testClock ? new Date(testClock).toISOString() : undefined,
       })
       setMessage('Preview ready. No Event Run was created.')
-      setDetails(JSON.stringify(payload.preview, null, 2))
+      setPreviewResult(payload.preview as unknown as EventDefinitionPreview)
     })
   }
 
@@ -279,7 +305,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         definition,
         expectedBaseVersion: baseVersion,
         correlationKey: crypto.randomUUID(),
-        reason: productionReason,
+
         confirmed: productionConfirmed,
       })
       const published = payload.published as {
@@ -304,10 +330,10 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         operation: 'schedule',
         eventKey: definition.eventKey,
         idempotencyKey,
-        requestFingerprint: `schedule:${definition.eventKey}:${startIso}:${endIso ?? 'open'}`,
+
         scheduledStartAt: startIso,
         scheduledEndAt: endIso,
-        reason: productionReason,
+
         confirmed: productionConfirmed,
       })
       const scheduled = payload.scheduled as ScheduledRun
@@ -325,7 +351,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         runId: scheduledRun.runId,
         expectedStateVersion: scheduledRun.stateVersion,
         idempotencyKey: crypto.randomUUID(),
-        reason: productionReason,
+
         confirmed: productionConfirmed,
       })
       const transition = payload.transition as { lifecycleStatus: string }
@@ -343,7 +369,6 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
     setVersions([])
     setSelectedPhaseId(next.phases[0]!.id)
     setScheduledRun(null)
-    setProductionReason('')
     setProductionConfirmed(false)
     setMessage('New Event workspace ready.')
     setDetails('')
@@ -367,12 +392,35 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           Event key
           <input
             value={definition.eventKey}
-            onChange={(event) => patchDefinition({ eventKey: event.target.value })}
+            onChange={(event) => {
+              patchDefinition({ eventKey: event.target.value })
+              setBaseVersion(null)
+              setDraftVersion(null)
+              setVersions([])
+              setProductionConfirmed(false)
+            }}
           />
         </label>
 
+        <label>
+          Saved events
+          <select
+            value=""
+            disabled={busy}
+            onChange={(event) => {
+              if (event.target.value) void loadWorkspace(event.target.value)
+            }}
+          >
+            <option value="">Choose an event</option>
+            {catalogue.events.map((entry) => (
+              <option key={entry.eventKey} value={entry.eventKey}>
+                {entry.title} · {entry.draftVersion ? 'Draft' : 'Published'} · {entry.scope.type}
+              </option>
+            ))}
+          </select>
+        </label>
         <div className={styles.navigatorActions}>
-          <button type="button" onClick={loadWorkspace} disabled={busy}>
+          <button type="button" onClick={() => void loadWorkspace()} disabled={busy}>
             Load
           </button>
           <button type="button" onClick={startNewDefinition} disabled={busy}>
@@ -437,13 +485,39 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           </div>
         </header>
 
-        <nav className={styles.workspaceTabs} aria-label="Event Builder workspace">
-          <a href="#event-details">Details</a>
-          <a href="#event-phases">Phases</a>
-          <a href="#event-phases">Objectives</a>
-          <a href="#event-phases">Effects</a>
-          <a href="#event-controls">Schedule</a>
+        <nav className={styles.workspaceTabs} aria-label="Event authoring sections">
+          {['Setup', 'Phases', 'Rewards', 'Preview', 'Schedule'].map((name) => (
+            <button
+              key={name}
+              type="button"
+              aria-pressed={tab === name}
+              onClick={() => setTab(name)}
+            >
+              {name}
+            </button>
+          ))}
         </nav>
+        <p className={styles.notice}>
+          Audience:{' '}
+          {definition.scope.type === 'global'
+            ? 'All players'
+            : `${definition.scope.type} · ${definition.scope.key}`}
+          . World guidance navigates without awarding progress. Contribution and reward recipes stay
+          in drafts until a live producer is available. Draft changes never alter pinned live runs.
+        </p>
+        {blockers.length ? (
+          <details className={styles.notice}>
+            <summary>
+              Production unavailable · {blockers.length} unsupported reference
+              {blockers.length === 1 ? '' : 's'}
+            </summary>
+            <ul>
+              {blockers.map((blocker, index) => (
+                <li key={index}>{blocker}</li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
 
         {!canPublish ? (
           <p className={styles.notice}>
@@ -452,7 +526,11 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
         ) : null}
         {globalWarning ? <p className={styles.notice}>{globalWarning}</p> : null}
 
-        <section className={`${styles.card} ${styles.primaryCard}`} id="event-details">
+        <section
+          className={`${styles.card} ${styles.primaryCard}`}
+          id="event-details"
+          hidden={tab !== 'Setup'}
+        >
           <div className={styles.sectionHeading}>
             <div>
               <p className={styles.eyebrow}>Details</p>
@@ -508,8 +586,9 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           </label>
           {definition.scope.type !== 'global' ? (
             <label>
-              Scope key
+              Scope / audience reference
               <input
+                list="event-region-refs"
                 value={definition.scope.key}
                 onChange={(event) =>
                   patchDefinition({
@@ -519,6 +598,13 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               />
             </label>
           ) : null}
+          <datalist id="event-region-refs">
+            {WORLD_REGIONS.map((region) => (
+              <option key={region.id} value={region.id}>
+                {region.name}
+              </option>
+            ))}
+          </datalist>
           <label className={styles.wideField}>
             Summary
             <textarea
@@ -535,7 +621,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           </label>
         </section>
 
-        <section className={styles.phases} id="event-phases">
+        <section className={styles.phases} id="event-phases" hidden={tab !== 'Phases'}>
           <div className={styles.sectionHeading}>
             <div>
               <p className={styles.eyebrow}>Composition</p>
@@ -795,6 +881,169 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           ))}
         </section>
 
+        <div className={styles.controlCard} id="event-controls">
+          <button type="button" onClick={saveDraft} disabled={busy}>
+            Save draft
+          </button>
+          <p>Actor and time are recorded automatically.</p>
+          <section className={styles.dockSection} hidden={tab !== 'Preview'}>
+            <p className={styles.eyebrow}>Preview &amp; testing</p>
+            <div className={styles.dockActions}>
+              <button type="button" onClick={validate} disabled={busy}>
+                Validate
+              </button>
+              <button type="button" onClick={preview} disabled={busy}>
+                Preview
+              </button>
+            </div>
+            {previewResult ? (
+              <article aria-label="Event preview">
+                <h3>{previewResult.title}</h3>
+                <p>
+                  {previewResult.selectedPhase.name} · {previewResult.selectedPhase.objectiveCount}{' '}
+                  objectives · {previewResult.selectedPhase.transitionType} transition
+                </p>
+                <p>
+                  {previewResult.phaseCount} phases · {previewResult.scope.type} audience ·{' '}
+                  {previewResult.rewardPackageRefs.length} reward packages
+                </p>
+                <p>Definition preview only. No run, participation, effect or reward was created.</p>
+              </article>
+            ) : null}
+            <label>
+              Preview phase
+              <select
+                value={selectedPhase?.id}
+                onChange={(event) => setSelectedPhaseId(event.target.value)}
+              >
+                {definition.phases.map((phase) => (
+                  <option key={phase.id} value={phase.id}>
+                    {phase.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Test clock · {timezone}
+              <input
+                type="datetime-local"
+                value={testClock}
+                onChange={(event) => setTestClock(event.target.value)}
+              />
+            </label>
+          </section>
+
+          <section className={styles.dockSection} hidden={tab !== 'Rewards'}>
+            <p className={styles.eyebrow}>References</p>
+            <label>
+              Reward packages
+              <select
+                multiple
+                value={[...definition.rewardPackageRefs]}
+                onChange={(event) =>
+                  patchDefinition({
+                    rewardPackageRefs: Array.from(
+                      event.currentTarget.selectedOptions,
+                      (option) => option.value,
+                    ),
+                  })
+                }
+              >
+                {definition.rewardPackageRefs
+                  .filter((key) => !catalogue.rewards.some((reward) => reward.key === key))
+                  .map((key) => (
+                    <option key={key} value={key}>
+                      {key} · unavailable
+                    </option>
+                  ))}
+                {catalogue.rewards.map((reward) => (
+                  <option key={reward.key} value={reward.key}>
+                    {reward.label} · {reward.key}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <p>
+              Only immutable, budget-approved Character XP packages execute. A trusted service must
+              record participation and reserve eligible claims after the run ends. No reward is
+              earned by navigating or previewing.
+            </p>
+            <label>
+              Aftermath refs
+              <input
+                value={csv(definition.aftermathRefs)}
+                onChange={(event) =>
+                  patchDefinition({ aftermathRefs: parseCsv(event.target.value) })
+                }
+                placeholder="aftermath.event-result"
+              />
+            </label>
+          </section>
+
+          <section className={styles.dockSection} hidden={tab !== 'Schedule'}>
+            <p className={styles.eyebrow}>Publication</p>
+            <div className={styles.publicationState}>
+              <span>{publicationState}</span>
+              <strong>{baseVersion === null ? 'Not published' : `v${baseVersion}`}</strong>
+            </div>
+            <label className={styles.checkbox}>
+              <input
+                type="checkbox"
+                checked={productionConfirmed}
+                onChange={(event) => setProductionConfirmed(event.target.checked)}
+              />
+              Confirm publication or schedule for this audience
+            </label>
+            <button
+              type="button"
+              className={styles.primaryAction}
+              onClick={publish}
+              disabled={busy || !canPublish || !productionActionReady || blockers.length > 0}
+            >
+              Publish
+            </button>
+          </section>
+
+          <section className={styles.dockSection} hidden={tab !== 'Schedule'}>
+            <p className={styles.eyebrow}>Schedule · {timezone}</p>
+            <p>
+              Times use your displayed timezone. Absolute end and scheduled phase deadlines remain
+              fixed during a pause; elapsed phase clocks freeze.
+            </p>
+            <label>
+              Start
+              <input
+                type="datetime-local"
+                value={scheduleStart}
+                onChange={(event) => setScheduleStart(event.target.value)}
+              />
+            </label>
+            <label>
+              End
+              <input
+                type="datetime-local"
+                value={scheduleEnd}
+                onChange={(event) => setScheduleEnd(event.target.value)}
+              />
+            </label>
+            <div className={styles.inlineActions}>
+              <button
+                type="button"
+                onClick={schedule}
+                disabled={busy || baseVersion === null || !productionActionReady}
+              >
+                Schedule
+              </button>
+              <button
+                type="button"
+                onClick={unschedule}
+                disabled={busy || !scheduledRun || !productionActionReady}
+              >
+                Unschedule
+              </button>
+            </div>
+          </section>
+        </div>
         <section className={styles.status}>
           <strong>{message}</strong>
           {details ? <pre>{details}</pre> : null}
@@ -810,138 +1059,6 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           ) : null}
         </section>
       </div>
-
-      <aside className={styles.controlCard} id="event-controls">
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>Preview &amp; testing</p>
-          <div className={styles.dockActions}>
-            <button type="button" onClick={validate} disabled={busy}>
-              Validate
-            </button>
-            <button type="button" onClick={preview} disabled={busy}>
-              Preview
-            </button>
-            <button type="button" onClick={saveDraft} disabled={busy}>
-              Save draft
-            </button>
-          </div>
-          <label>
-            Preview phase
-            <select
-              value={selectedPhase?.id}
-              onChange={(event) => setSelectedPhaseId(event.target.value)}
-            >
-              {definition.phases.map((phase) => (
-                <option key={phase.id} value={phase.id}>
-                  {phase.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Test clock
-            <input
-              type="datetime-local"
-              value={testClock}
-              onChange={(event) => setTestClock(event.target.value)}
-            />
-          </label>
-        </section>
-
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>References</p>
-          <label>
-            Reward Package refs
-            <input
-              value={csv(definition.rewardPackageRefs)}
-              onChange={(event) =>
-                patchDefinition({ rewardPackageRefs: parseCsv(event.target.value) })
-              }
-              placeholder="reward.event-xp"
-            />
-          </label>
-          <label>
-            Aftermath refs
-            <input
-              value={csv(definition.aftermathRefs)}
-              onChange={(event) => patchDefinition({ aftermathRefs: parseCsv(event.target.value) })}
-              placeholder="aftermath.event-result"
-            />
-          </label>
-        </section>
-
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>Publication</p>
-          <div className={styles.publicationState}>
-            <span>{publicationState}</span>
-            <strong>{baseVersion === null ? 'Not published' : `v${baseVersion}`}</strong>
-          </div>
-          <label>
-            Production action reason
-            <textarea
-              value={productionReason}
-              maxLength={240}
-              onChange={(event) => {
-                setProductionReason(event.target.value)
-                setProductionConfirmed(false)
-              }}
-              placeholder="Why is this Production action being performed?"
-            />
-          </label>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={productionConfirmed}
-              onChange={(event) => setProductionConfirmed(event.target.checked)}
-            />
-            Confirm Production action
-          </label>
-          <button
-            type="button"
-            className={styles.primaryAction}
-            onClick={publish}
-            disabled={busy || !canPublish || !productionActionReady}
-          >
-            Publish
-          </button>
-        </section>
-
-        <section className={styles.dockSection}>
-          <p className={styles.eyebrow}>Schedule</p>
-          <label>
-            Start
-            <input
-              type="datetime-local"
-              value={scheduleStart}
-              onChange={(event) => setScheduleStart(event.target.value)}
-            />
-          </label>
-          <label>
-            End
-            <input
-              type="datetime-local"
-              value={scheduleEnd}
-              onChange={(event) => setScheduleEnd(event.target.value)}
-            />
-          </label>
-          <div className={styles.inlineActions}>
-            <button
-              type="button"
-              onClick={schedule}
-              disabled={busy || baseVersion === null || !productionActionReady}
-            >
-              Schedule
-            </button>
-            <button
-              type="button"
-              onClick={unschedule}
-              disabled={busy || !scheduledRun || !productionActionReady}
-            >
-              Unschedule
-            </button>
-          </div>
-        </section>
-      </aside>
     </section>
   )
 }

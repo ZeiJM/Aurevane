@@ -223,7 +223,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
         p_command: input.command,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
@@ -238,7 +238,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
@@ -254,7 +254,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
         p_phase_id: input.phaseId,
         p_effect_ordinal: input.effectOrdinal,
         p_completion_key: input.completionKey,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
