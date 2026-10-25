@@ -1,0 +1,30 @@
+{
+  "sourceArtifactId": 12607743594,
+  "sourceArtifactSha256": "57d39af254ed52f73d74ae5c9ab3e2416e98e76b1ee39a423e81fc6f083adaa0",
+  "files": [
+    {
+      "file": "techniques-pure-1366x768-metrics.json",
+      "bytes": 44269,
+      "sha256": "5e288a37ce11911c9a66262015d438da0d8404de2345d818707be09ad9db033e",
+      "traceSha1": "fafc2545330b6adbe781a9259a52ace5239d4e59"
+    },
+    {
+      "file": "techniques-pure-1366x768-screenshot.png",
+      "bytes": 596252,
+      "sha256": "39ca92799d67eeade1cc3eaf1fe633954dbe9acf97eb5bd1f181af1881ec96a6",
+      "traceSha1": "5d83b9cb654cce0b558ee01419784e540c6fc06a"
+    },
+    {
+      "file": "techniques-pure-1536x614-metrics.json",
+      "bytes": 44007,
+      "sha256": "1b942c432b9ae36ff8d127937a2d591efd056335b0d2707b4c70bff57df6a1a9",
+      "traceSha1": "6280608be361012ad885ce2dfbbcb26488eb133a"
+    },
+    {
+      "file": "techniques-pure-1536x614-screenshot.png",
+      "bytes": 536144,
+      "sha256": "77c98b476b2a19f0789affbddd005193854b5e1146a0115c23f8c2758fc828bc",
+      "traceSha1": "d25551443403065b40f25f218971ff3bf8d1e3e4"
+    }
+  ]
+}

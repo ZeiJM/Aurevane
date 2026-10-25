@@ -86,17 +86,27 @@ console.log(
   `Technique eligibility browser: ${browser.version()}; executable: ${process.env.AV_CHROMIUM_EXECUTABLE || chromium.executablePath()}`,
 )
 try {
-  for (const [width, height] of [
-    [1366, 768],
-    [1440, 900],
+  for (const [build, width, height] of [
+    ['pure', 1280, 720],
+    ['pure', 1366, 768],
+    ['pure', 1536, 614],
+    ['pure', 1920, 1080],
+    ['mixed', 1366, 768],
+    ['mixed', 1440, 900],
   ]) {
     const page = await browser.newPage({ viewport: { width, height } })
     page.on('pageerror', (error) => errors.push(error.message))
-    await page.goto(server.resolvedUrls.local[0] + '?profilePanel=techniques')
+    await page.goto(
+      server.resolvedUrls.local[0] +
+        '?profilePanel=techniques' +
+        (build === 'pure' ? '&pure=1' : ''),
+    )
     await page.getByRole('dialog').waitFor()
     await page.evaluate(async () => {
       await document.fonts.ready
     })
+    for (const card of await page.locator('[data-technique-card]:has(input)').all())
+      await card.hover()
     const metrics = await page.evaluate(() => {
       const box = (e) => {
         const r = e.getBoundingClientRect()
@@ -119,6 +129,7 @@ try {
         width: innerWidth,
         height: innerHeight,
         dialog: box(dialog),
+        overflow: overflow(dialog),
         groups: groups.map((g) => ({
           box: box(g),
           overflow: overflow(g),
@@ -133,12 +144,16 @@ try {
         })),
       }
     })
-    await page.screenshot({ path: resolve(output, `${width}-${height}.png`) })
-    await fs.writeFile(resolve(output, `${width}-${height}.json`), JSON.stringify(metrics, null, 2))
+    await page.screenshot({ path: resolve(output, `${build}-${width}-${height}.png`) })
+    await fs.writeFile(
+      resolve(output, `${build}-${width}-${height}.json`),
+      JSON.stringify(metrics, null, 2),
+    )
+    assert.deepEqual(metrics.overflow, { x: 0, y: 0 }, `${build}: ${JSON.stringify(metrics)}`)
     assert.equal(metrics.groups.length, 2)
     for (const group of metrics.groups) {
       assert.equal(group.cards.length, 8)
-      assert.ok(group.overflow.x <= 1 && group.overflow.y <= 1, JSON.stringify(group.overflow))
+      assert.deepEqual(group.overflow, { x: 0, y: 0 })
       assert.ok(
         Math.max(...group.cards.map((c) => c.box.y)) -
           Math.min(...group.cards.map((c) => c.box.y)) <=
@@ -148,18 +163,22 @@ try {
         assert.ok(Math.abs(card.art.width - metrics.groups[0].cards[0].art.width) <= 1)
         assert.ok(Math.abs(card.art.width - card.art.height) <= 1)
         assert.ok(card.art.width >= 64, `readable art ${card.art.width}`)
+        assert.ok(card.art.y >= card.box.y - 1 && card.art.bottom <= card.box.bottom + 1)
         assert.ok(
           card.box.bottom <= metrics.dialog.bottom && card.box.right <= metrics.dialog.right,
         )
-        assert.ok(card.overflow.x <= 1 && card.overflow.y <= 1, JSON.stringify(card.overflow))
+        assert.deepEqual(card.overflow, { x: 0, y: 0 })
         for (const c of card.contents)
           assert.ok(
-            c.right <= card.box.right + 1 && c.bottom <= card.box.bottom + 1,
+            c.x >= card.box.x - 1 &&
+              c.y >= card.box.y - 1 &&
+              c.right <= card.box.right + 1 &&
+              c.bottom <= card.box.bottom + 1,
             JSON.stringify({ card: card.box, c }),
           )
       }
     }
-    checks.push({ width, height })
+    checks.push({ build, width, height })
     await page.close()
   }
   assert.deepEqual(errors, [])

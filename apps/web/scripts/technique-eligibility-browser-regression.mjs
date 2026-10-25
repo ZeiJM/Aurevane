@@ -190,7 +190,14 @@ try {
     async function choose(index, grant) {
       const card = cards.nth(index)
       await card.getByRole('combobox').selectOption(grant)
-      await card.getByRole('checkbox').tap()
+      assert.equal(
+        await card.locator('label').count(),
+        2,
+        'Identity and eligibility both remain labelled',
+      )
+      const identity = card.locator('label:has(input[type="checkbox"])')
+      assert.equal(await identity.count(), 1, 'The actual selection label is unique')
+      await identity.tap()
       assert.equal(await primary.getAttribute('aria-selected'), 'true')
       await preview.getByText(await card.locator('strong').innerText(), { exact: true }).waitFor()
     }

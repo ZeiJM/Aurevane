@@ -61,8 +61,12 @@ select is((select count(*)::integer from app_private.pvp_lobbies where owner_use
 select is((select count(*)::integer from app_private.battle_sessions where owner_user_id='82000000-0000-4000-8000-000000000001'),0,'failed startup leaves no battle');
 select ok((select bool_and(state->>'version'='1' and jsonb_array_length(state->'route')=1) from app_private.character_world_state where character_id in ('82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012')),'failed startup restores both routes and versions');
 
-select throws_ok($$select public.start_world_encounter_v2('82000000-0000-4000-8000-000000000001','82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012',1,1,jsonb_set(final,'{buildAuthority,combatants,0,sourceHash}','"stale"'),builds,start,events,journal) from startup_input$$,'40001','PLAYER_PREPARATION_STALE','stale committed source still rejects the whole admission');
+-- Admission validates the prepared start snapshot before settling startup effects.
+-- A stale preparation must carry the same stale authority into both snapshots.
+select throws_ok($$select public.start_world_encounter_v2('82000000-0000-4000-8000-000000000001','82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012',1,1,jsonb_set(final,'{buildAuthority,combatants,0,sourceHash}','"stale"'),builds,jsonb_set(start,'{buildAuthority,combatants,0,sourceHash}','"stale"'),events,journal) from startup_input$$,'40001','PLAYER_PREPARATION_STALE','stale committed source still rejects the whole admission');
 select is((select count(*)::integer from app_private.battle_sessions where owner_user_id='82000000-0000-4000-8000-000000000001'),0,'stale preparation leaves no battle');
+select is((select count(*)::integer from app_private.pvp_lobbies where owner_user_id='82000000-0000-4000-8000-000000000001'),0,'stale preparation leaves no lobby');
+select ok((select bool_and(state->>'version'='1' and jsonb_array_length(state->'route')=1) from app_private.character_world_state where character_id in ('82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012')),'stale preparation restores both routes and versions');
 
 create temporary table startup_result as select
 (public.start_world_encounter_v2('82000000-0000-4000-8000-000000000001','82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012',1,1,final,builds,start,events,journal)->>'battleSessionId')::uuid id from startup_input;

@@ -240,6 +240,11 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const mixedCapacity = page.getByTestId('skill-capacity')
+  // Current mixed builds retain up to three selections from either eligibility source.
+  await expect(mixedCapacity).toContainText('3 / 4 selected')
+  await expect(skillRow(page, 'Brace').getByRole('checkbox')).toBeChecked()
+  await expect(skillRow(page, 'Shield Bash').getByRole('checkbox')).not.toBeChecked()
+  await setSkill(page, 'Brace', false)
   await expect(mixedCapacity).toContainText('2 / 4 selected')
 
   await setSkill(page, 'Mending Light', true)

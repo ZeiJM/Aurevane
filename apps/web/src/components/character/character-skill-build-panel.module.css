@@ -1690,8 +1690,15 @@
   }
 }
 
-/* Keep the eight-column desktop gallery readable with the actual eligibility selector. */
-@media (min-width: 821px) {
+/* Preserve desktop artwork without overriding the compact touch-landscape chooser. */
+@media (min-width: 981px),
+  (min-width: 821px) and (min-height: 501px),
+  (min-width: 821px) and (pointer: fine) {
+  /* A locked Secondary has no eligibility control. Reserve that space for the
+     Primary's real controls while retaining both eight-card rows and Support. */
+  .techniqueArea:has(> [data-technique-group][data-locked='true']) {
+    grid-template-rows: minmax(0, 1.6fr) minmax(0, 1fr) max-content;
+  }
   .skill,
   .lockedSkill,
   .supportGrid .skill {

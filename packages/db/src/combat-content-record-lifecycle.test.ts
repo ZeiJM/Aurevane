@@ -18,7 +18,17 @@ interface TestRecord {
   history: { contentVersion: number }[]
 }
 let db: PGlite
+let originals: string
 beforeAll(async () => {
+  // Executable fixture compilation is setup, shared with the native SQL proof.
+  const fixtureStarted = performance.now()
+  originals = execFileSync(
+    'node',
+    [resolve(root, '../../apps/web/scripts/master-originals-fixture.mjs')],
+    { encoding: 'utf8' },
+  )
+  process.stdout.write(`Task13 fixture acquisition ms: ${performance.now() - fixtureStarted}\n`)
+
   db = await PGlite.create()
   // Only Supabase's platform identity and unavailable scheduler are fixtures.
   // Every Aurevane table, authorization function, producer and finalizer is real migration SQL.
@@ -1204,11 +1214,7 @@ it('restores an available system baseline to draft without fabricating a publica
 
 it('executes the native finalized media and Tag lifecycle proof unchanged on the migration chain', async () => {
   await db.query("select set_config('task13.owner',$1,true)", [owner])
-  const originals = execFileSync(
-    'node',
-    [resolve(root, '../../apps/web/scripts/master-originals-fixture.mjs')],
-    { encoding: 'utf8' },
-  )
+  const proofStarted = performance.now()
   await db.query("select set_config('task13.originals',$1,true)", [originals])
   await db.exec(
     readFileSync(
@@ -1216,4 +1222,66 @@ it('executes the native finalized media and Tag lifecycle proof unchanged on the
       'utf8',
     ),
   )
+  process.stdout.write(`Task13 shared SQL proof ms: ${performance.now() - proofStarted}\n`)
+})
+
+it('executes every native P35 SQL query and its exact shell assertions on actual migrations', async () => {
+  const script = readFileSync(
+    resolve(root, '../../.github/scripts/verify-p35-resonance.sh'),
+    'utf8',
+  )
+  let characterId = ''
+  const checked = new Set<string>()
+  const assertions = new Map(
+    [...script.matchAll(/test "\$(\w+)" = '([^']*)'/g)].map((m) => [m[1], m[2]]),
+  )
+  for (const match of script.matchAll(/psql[^\n]+-(?:Atqc|c) "([\s\S]*?)"/g)) {
+    const sql = match[1]!
+      .replaceAll('$user_id', owner)
+      .replaceAll('$character_id', characterId)
+      .replace('set role service_role;', '')
+      .replaceAll('\\$', '$')
+    const results = await db.exec(sql)
+    const rows = results.flatMap((result) => result.rows)
+    if (!characterId) characterId = String(Object.values(rows[0]!)[0])
+    const prefix = script.slice(0, match.index)
+    const variable = [...prefix.matchAll(/(\w+)="\$\(docker/g)].at(-1)?.[1]
+    const assertion = variable ? assertions.get(variable) : undefined
+    if (rows.length && assertion !== undefined && variable) {
+      expect(String(Object.values(rows[0]!)[0]), variable).toBe(assertion)
+      checked.add(variable)
+    }
+  }
+  expect([...checked].sort()).toEqual([...assertions.keys()].sort())
+})
+
+it('runs native captured startup rejection and rollback assertions on all migrations', async () => {
+  // PGlite lacks the pgTAP extension. These assertion adapters raise on any
+  // mismatch; every fixture, admission call and authority query stays unchanged.
+  await db.exec(`create schema if not exists extensions;
+    create function extensions.no_plan() returns void language sql as 'select';
+    create function extensions.finish() returns void language sql as 'select';
+    create function extensions.ok(actual boolean, label text) returns void language plpgsql as $$ begin
+      if actual is distinct from true then raise exception 'pgTAP assertion: %',label; end if;
+    end $$;
+    create function extensions.is(actual integer, expected integer, label text) returns void language plpgsql as $$ begin
+      perform extensions.ok(actual is not distinct from expected,label || ': actual ' || actual || ', expected ' || expected);
+    end $$;
+    create function extensions.throws_ok(statement text, expected_code text, expected_message text, label text) returns void language plpgsql as $$
+    declare caught boolean := false; code text; message text;
+    begin
+      begin execute statement;
+      exception when others then
+        caught := true; get stacked diagnostics code = returned_sqlstate, message = message_text;
+        if code is distinct from expected_code or message is distinct from expected_message then
+          raise exception 'pgTAP exception assertion: %; actual % %, expected % %',label,code,message,expected_code,expected_message;
+        end if;
+      end;
+      if not caught then raise exception 'pgTAP exception assertion: %; no exception',label; end if;
+    end $$;`)
+  const proof = readFileSync(resolve(root, '../tests/captured_ability_startup.sql'), 'utf8')
+    .replace('begin;', '')
+    .replace('create extension if not exists pgtap with schema extensions;', '')
+    .replace('rollback;', '')
+  await db.exec(proof)
 })

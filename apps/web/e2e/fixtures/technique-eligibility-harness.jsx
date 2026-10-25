@@ -4,6 +4,7 @@ import { CharacterSkillBuildPanel } from '@/components/character/character-skill
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import './production-styles'
 
+const pure = new URLSearchParams(location.search).has('pure')
 const learned = latestEnabledMatureSkills()
   .filter((definition) => definition.sourceDisciplineId === 'vanguard')
   .map((definition, index) => ({
@@ -13,11 +14,13 @@ const learned = latestEnabledMatureSkills()
         : definition,
     activeSource: true,
     learnedAt: '2026-10-20T00:00:00Z',
-    eligibilityGrants: ['vanguard', 'lifebinder'].map((eligibilityDisciplineId) => ({
-      eligibilityDisciplineId,
-      activeSource: true,
-      earnedAt: '2026-10-20T00:00:00Z',
-    })),
+    eligibilityGrants: (pure ? ['vanguard'] : ['vanguard', 'lifebinder']).map(
+      (eligibilityDisciplineId) => ({
+        eligibilityDisciplineId,
+        activeSource: true,
+        earnedAt: '2026-10-20T00:00:00Z',
+      }),
+    ),
   }))
 window.calls = []
 window.fixtureSkills = learned.map(({ definition }) => ({
@@ -59,7 +62,7 @@ createRoot(document.getElementById('root')).render(
     characterId="character-a"
     initialBuildVersion={1}
     primaryDiscipline={{ id: 'vanguard', name: 'Vanguard' }}
-    secondaryDiscipline={{ id: 'lifebinder', name: 'Lifebinder' }}
+    secondaryDiscipline={pure ? null : { id: 'lifebinder', name: 'Lifebinder' }}
     initialCapacity={4}
     initialLearnedSkills={learned}
     initialEquippedSkills={[]}

@@ -118,7 +118,7 @@ test('mobile Techniques select and save on the first tap', async ({ page }, test
   const dialog = await openTechniques(page)
   const forceful = skillCard(page, 'Forceful Strike')
   const checkbox = forceful.getByRole('checkbox')
-  const label = forceful.locator('label')
+  const label = forceful.locator('label:has(input[type="checkbox"])')
   const before = await checkbox.isChecked()
 
   const saved = page.waitForResponse(

@@ -38,7 +38,7 @@ async function setTechnique(page: Page, card: Locator, checked = true): Promise<
 
   if (coarsePointer) {
     // Touch taps only preview a technique; the sticky action commits the change.
-    await card.locator('label').click()
+    await card.locator('label:has(input[type="checkbox"])').click()
     await page
       .getByRole('button', {
         name: checked ? 'Equip technique' : 'Remove from loadout',
