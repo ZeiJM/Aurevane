@@ -262,3 +262,46 @@ it('publishes a complete saved Discipline through the shared descriptor and reje
   await expect(store.publishSaved(saved, 4, null)).rejects.toThrow(/complete|prerequisite/i)
   expect(rpc).not.toHaveBeenCalledWith('publish_saved_combat_content_v1', expect.anything())
 })
+
+it('restores the exact system Basic baseline without accepting a caller definition or inventing history', async () => {
+  const { defaultBasicSkills } = await import('@aurevane/game-core/combat/combat-basic-actions')
+  for (const original of defaultBasicSkills()) {
+    const source = {
+      ...record,
+      contentKey: original.id,
+      builtin: { contentVersion: 1, name: original.name },
+      current: {
+        contentVersion: 3,
+        definition: { ...original, contentVersion: 3, name: 'Edited' },
+        publishedBy: 'publisher',
+        publishedAt: '2026-10-25T00:00:00Z',
+        authoredBy: 'author',
+        authoredAt: '2026-10-25T00:00:00Z',
+        restoredFrom: null,
+        restoredBy: null,
+      },
+      draft: null,
+    }
+    const rpc = vi.fn(async () => ({ data: source, error: null }))
+    const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+    await store.writeRecord(original.id, {
+      action: 'restore',
+      expectedRevision: 2,
+      sourceVersion: 1,
+      sourceKind: 'builtin',
+    })
+    expect(rpc).toHaveBeenCalledWith(
+      'write_combat_content_record_v1',
+      expect.objectContaining({
+        p_command: {
+          action: 'restore',
+          expectedRevision: 2,
+          sourceVersion: 1,
+          sourceKind: 'builtin',
+          sourceDefinition: original,
+        },
+      }),
+    )
+    expect((await store.readRecord(original.id))?.builtinRestoreVersion).toBe(1)
+  }
+})

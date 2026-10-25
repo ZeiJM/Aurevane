@@ -56,7 +56,10 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
         !string(d.updatedBy) ||
         !string(d.updatedAt) ||
         (d.restoredFrom !== null && !integer(d.restoredFrom)) ||
-        (d.restoredBy !== null && !string(d.restoredBy))
+        (d.restoredBy !== null && !string(d.restoredBy)) ||
+        (d.restoredSource !== undefined &&
+          d.restoredSource !== null &&
+          d.restoredSource !== 'builtin')
       )
         throw new TypeError('Invalid draft.')
       definition(d.definition)
@@ -72,6 +75,12 @@ export function parseCompleteCombatContentRecord(value: unknown): CompleteCombat
       for (const field of ['authoredBy', 'authoredAt', 'restoredBy'])
         if (v[field] !== null && !string(v[field]))
           throw new TypeError('Invalid version attribution.')
+      if (
+        v.restoredSource !== undefined &&
+        v.restoredSource !== null &&
+        v.restoredSource !== 'builtin'
+      )
+        throw new TypeError('Invalid restore source.')
       if (v.restoredFrom !== null && !integer(v.restoredFrom))
         throw new TypeError('Invalid restore attribution.')
       definition(v.definition)

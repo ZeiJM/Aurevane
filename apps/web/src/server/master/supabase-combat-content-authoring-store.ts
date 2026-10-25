@@ -30,7 +30,10 @@ import {
   RpcPublishedCombatContentSource,
   resolveCombatContentCatalogueSnapshot,
 } from '@/server/combat/combat-content-resolver'
-import { builtinCombatContentDefinition } from './combat-content-builtin-index'
+import {
+  builtinCombatContentDefinition,
+  exactBuiltinCombatContentDefinition,
+} from './combat-content-builtin-index'
 import { builtinCombatContentVersionFloor } from './combat-content-version-floor'
 
 import type {
@@ -342,7 +345,16 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     })
     if (error) mapRpcError(error)
     if (data === null) return null
-    const record = parseCompleteCombatContentRecord(data)
+    let record = parseCompleteCombatContentRecord(data)
+    if (
+      record.builtin &&
+      exactBuiltinCombatContentDefinition(
+        record.contentKind,
+        record.contentKey,
+        record.builtin.contentVersion,
+      )
+    )
+      record = { ...record, builtinRestoreVersion: record.builtin.contentVersion }
     if (record.builtin && !record.current && record.lifecycle !== 'archived') {
       let definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
       if (record.contentKind === 'discipline') {
@@ -475,10 +487,30 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
         // The mutation below still receives the caller's original expectedRevision.
       }
     }
+    let persistedCommand: CompleteCombatContentWrite & {
+      sourceDefinition?: CombatContentDefinition
+    } = command
+    if (command.action === 'restore' && command.sourceKind === 'builtin') {
+      const source = await this.readRecord(contentKey)
+      const definition =
+        source?.builtin?.contentVersion === command.sourceVersion
+          ? exactBuiltinCombatContentDefinition(
+              source.contentKind,
+              contentKey,
+              command.sourceVersion,
+            )
+          : null
+      if (!definition)
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'That system baseline is unavailable. Choose an available restore source.',
+        )
+      persistedCommand = { ...command, sourceDefinition: definition }
+    }
     const { data, error } = await this.#rpc('write_combat_content_record_v1', {
       p_actor_user_id: this.#actorUserId,
       p_content_key: contentKey,
-      p_command: command,
+      p_command: persistedCommand,
     })
     if (error) mapRpcError(error)
     return parseCompleteCombatContentRecord(data)

@@ -1,7 +1,10 @@
 import 'server-only'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
-import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
+import {
+  latestEnabledMatureSkills,
+  resolveMatureSkillVersion,
+} from '@aurevane/game-core/combat/mature-skills'
 import {
   currentEssenceDefinitions,
   resolveEssenceForBuild,
@@ -79,4 +82,29 @@ export function builtinCombatContentDefinition(
     (row) => row.contentKind === kind && row.contentKey === key,
   )
   return row ? (structuredClone(row.definition) as unknown as CombatContentDefinition) : null
+}
+
+/** Resolve only executable system snapshots, never a mutable publication or caller body. */
+export function exactBuiltinCombatContentDefinition(
+  kind: CombatContentKind,
+  key: string,
+  version: number,
+): CombatContentDefinition | null {
+  const current = builtinCombatContentDefinition(kind, key)
+  if (!current) return null
+  let definition: unknown = current.contentVersion === version ? current : null
+  if (kind === 'skill' && !definition) definition = resolveMatureSkillVersion(key, version)
+  if (kind === 'essence')
+    definition = resolveEssenceForBuild(String(current.sourceDisciplineId), null, version)
+  if (kind === 'resonance' && Array.isArray(current.disciplinePair))
+    definition = resolveResonanceForPair(
+      current.disciplinePair[0],
+      current.disciplinePair[1],
+      version,
+    )
+  if (!definition || typeof definition !== 'object') return null
+  const value = definition as CombatContentDefinition
+  if (value.contentVersion !== version || (kind === 'essence' ? value.essenceId : value.id) !== key)
+    return null
+  return structuredClone(value)
 }

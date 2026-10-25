@@ -120,7 +120,7 @@ begin
     assert not has_function_privilege('service_role',signature,'execute'), 'Retired API service denial: '||signature;
     assert not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'Retired API browser denial: '||signature;
   end loop;
-  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1']) loop
+  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1','read_event_workspace_catalogue_v1','list_event_workspace_runs_v1']) loop
     checked := checked+1;
     assert not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Explicit actor browser denial: '||proc.proname;
     if proc.nspname='app_private' then
@@ -131,6 +131,19 @@ begin
     end if;
   end loop;
   assert checked=33, 'Complete explicit actor ACL inventory';
+  -- Event workspace readers are new selected-actor APIs, not legacy overloads.
+  if to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is not null then
+    foreach signature in array array['public.read_event_workspace_catalogue_v1(uuid,uuid)','public.list_event_workspace_runs_v1(uuid,uuid)'] loop
+      assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Event workspace reader ACL';
+    end loop;
+    foreach signature in array array['select public.read_event_workspace_catalogue_v1($1,$2)','select public.list_event_workspace_runs_v1($1,$2)'] loop
+      begin execute signature using staff_id,character_id; raise exception 'EXPECTED revoked Event reader denial';
+      exception when insufficient_privilege then assert sqlerrm='EVENT_STAFF_REQUIRED'; end;
+      begin execute signature using staff_id,null::uuid; raise exception 'EXPECTED missing Event selected actor denial';
+      exception when insufficient_privilege then assert sqlerrm='EVENT_STAFF_REQUIRED'; end;
+      execute signature using owner_id,null::uuid;
+    end loop;
+  end if;
   -- Task9 adds independent Owner-only operations with no legacy overload.
   if to_regprocedure('public.read_master_player_v1(uuid,uuid,uuid)') is not null then
     checked:=0;
@@ -181,7 +194,7 @@ begin
       assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Stage B ordinary service RPC ACL: '||signature;
     end loop;
 
-    assert (select count(*)=41+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Original33 + Players4 + Content4 actor inventory';
+    assert (select count(*)=41+case when to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Original33 + Players4 + Content4 actor inventory';
     foreach signature in array array[
       'select public.read_combat_content_record_v1($1,$2,''native.staff.skill'')',
       'select public.list_combat_content_records_v1($1,$2,null,null,null,null,20)',

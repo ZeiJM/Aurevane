@@ -517,3 +517,30 @@ it.each(['working', 'saved', 'current', 'compare'])(
     expect(html).not.toContain('src="/api/content-media/')
   },
 )
+
+it.each(BASIC_SKILL_IDS)(
+  'offers %s original as a separate System source and sends only intent',
+  async (id) => {
+    const f = fixture(id, { builtin: { contentVersion: 1, name: id }, builtinRestoreVersion: 1 })
+    await f.click('History')
+    f.reply({
+      ...f.initial,
+      revision: 10,
+      draft: {
+        ...f.initial.draft!,
+        restoredFrom: 1,
+        restoredSource: 'builtin',
+        restoredBy: 'owner',
+      },
+    })
+    await f.click('Restore System original v1 to draft')
+    expect(f.command()).toEqual({
+      action: 'restore',
+      contentKey: id,
+      expectedRevision: 9,
+      sourceVersion: 1,
+      sourceKind: 'builtin',
+    })
+    expect(f.command()).not.toHaveProperty('definition')
+  },
+)

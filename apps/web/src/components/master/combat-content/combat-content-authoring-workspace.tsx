@@ -522,14 +522,38 @@ export function CombatContentAuthoringWorkspace({
               {tab === 'History' && record ? (
                 <>
                   <h3>Published history</h3>
-                  {record.builtin &&
-                  !record.history.some(
-                    (version) => version.contentVersion === record.builtin!.contentVersion,
-                  ) ? (
+                  {record.builtinRestoreVersion ? (
+                    <section aria-label="System original">
+                      <strong>System original · v{record.builtinRestoreVersion}</strong>
+                      <p>
+                        Built-in source snapshot. Restoring saves a draft; publication creates a new
+                        version.
+                      </p>
+                      <button
+                        disabled={busy || dirty || readOnly}
+                        onClick={() =>
+                          void mutate(
+                            {
+                              action: 'restore',
+                              contentKey: record.contentKey,
+                              expectedRevision: record.revision,
+                              sourceVersion: record.builtinRestoreVersion,
+                              sourceKind: 'builtin',
+                            },
+                            'System original restored to a saved draft. Preview and publish when ready.',
+                          )
+                        }
+                      >
+                        {`Restore System original v${record.builtinRestoreVersion} to draft`}
+                      </button>
+                    </section>
+                  ) : record.builtin &&
+                    !record.history.some(
+                      (version) => version.contentVersion === record.builtin!.contentVersion,
+                    ) ? (
                     <p>
-                      Only recorded publications are restore points. Built-in v
-                      {record.builtin.contentVersion} is available to exact-version readers, but is
-                      not a recorded publication in this history.
+                      The indexed built-in source is unavailable for restoration on this server.
+                      Recorded publications remain available below.
                     </p>
                   ) : null}
                   <ol className={styles.history} aria-label="Publication history">
@@ -551,14 +575,20 @@ export function CombatContentAuthoringWorkspace({
                               : ''}
                           </strong>
                           <p>
-                            Authored by {version.authoredBy ?? 'Unknown'} {version.authoredAt ?? ''}
+                            Authored by{' '}
+                            {version.restoredSource === 'builtin'
+                              ? 'System'
+                              : (version.authoredBy ?? 'Unknown')}{' '}
+                            {version.authoredAt ?? ''}
                           </p>
                           <p>
                             Published by {version.publishedBy} {version.publishedAt}
                           </p>
                           {version.restoredFrom ? (
                             <p>
-                              Restored from v{version.restoredFrom} by {version.restoredBy}
+                              Restored from{' '}
+                              {version.restoredSource === 'builtin' ? 'System original ' : ''}v
+                              {version.restoredFrom} by {version.restoredBy}
                             </p>
                           ) : null}
                           <button

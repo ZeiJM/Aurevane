@@ -332,6 +332,7 @@ export interface CompleteCombatContentVersion {
   readonly publishedAt: string
   readonly authoredBy: string | null
   readonly authoredAt: string | null
+  readonly restoredSource?: 'builtin' | null
   readonly restoredFrom: number | null
   readonly restoredBy: string | null
 }
@@ -352,12 +353,15 @@ export interface CompleteCombatContentRecord {
   readonly builtin?: { readonly contentVersion: number; readonly name: string } | null
   /** Resolved from the existing executable catalogue only for a nonarchived baseline. */
   readonly builtinDefinition?: CombatContentDefinition
+  /** Exact available system source; distinct from a human publication row. */
+  readonly builtinRestoreVersion?: number
   readonly draft: {
     readonly definition: CombatContentDefinition
     readonly draftVersion: number
     readonly baseVersion: number | null
     readonly updatedBy: string
     readonly updatedAt: string
+    readonly restoredSource?: 'builtin' | null
     readonly restoredFrom: number | null
     readonly restoredBy: string | null
   } | null
@@ -396,6 +400,7 @@ export type CompleteCombatContentWrite =
       readonly action: 'restore'
       readonly expectedRevision: number
       readonly sourceVersion: number
+      readonly sourceKind?: 'builtin'
     }
   | { readonly action: 'archive'; readonly expectedRevision: number }
   | {

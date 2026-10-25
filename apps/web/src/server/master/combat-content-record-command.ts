@@ -62,7 +62,7 @@ export function createCombatContentRecordCommand(
       create: ['requestId', 'contentKind', 'definition', 'parentKey', 'expectedParentRevision'],
       duplicate: ['requestId', 'sourceKey', 'expectedSourceRevision'],
       save: ['contentKey', 'expectedRevision', 'definition'],
-      restore: ['contentKey', 'expectedRevision', 'sourceVersion'],
+      restore: ['contentKey', 'expectedRevision', 'sourceVersion', 'sourceKind'],
       archive: ['contentKey', 'expectedRevision'],
       link: ['contentKey', 'expectedRevision', 'requestId', 'childKey'],
       unlink: ['contentKey', 'expectedRevision', 'requestId', 'childKey'],
@@ -217,14 +217,18 @@ export function createCombatContentRecordCommand(
     const expectedRevision = revision(input.expectedRevision)
     if (action === 'archive')
       return { record: await store.writeRecord(contentKey, { action, expectedRevision }) }
-    if (action === 'restore')
+    if (action === 'restore') {
+      if (input.sourceKind !== undefined && input.sourceKind !== 'builtin')
+        invalid('Choose an available restore source.')
       return {
         record: await store.writeRecord(contentKey, {
           action,
           expectedRevision,
           sourceVersion: revision(input.sourceVersion),
+          ...(input.sourceKind === 'builtin' ? { sourceKind: 'builtin' as const } : {}),
         }),
       }
+    }
     if (action === 'link' || action === 'unlink')
       return {
         record: await store.writeRecord(contentKey, {
