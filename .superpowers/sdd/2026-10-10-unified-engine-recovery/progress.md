@@ -388,3 +388,6 @@ Task 13: fix round 3/5 (N1–N7 addressed at source, 0 Critical/Important open; 
 Task 13: minor (deferred M2): local transport evidence retains color/sandbox diagnostics; keep raw logs and classify at final triage; no polish rerun.
 
 Task 13: fix round4/5 opened on candidate77f8e0c (native PvP admission and P36 Essence failures; complete matrix feedback pending). Fresh higher-capability implementer per SDD escalation; no cap reset, no final-review wave consumed.
+
+Task 13: fix round4/5 (N8, N9, masked P38, N10, N11 addressed; 0 Critical/Important open; commits a38acb7..929fb7c, scoped review a2f57de approved). Fresh exact-head configured native acceptance remains pending; no hosted or production change.
+Task 13: minor (deferred M3): stripTypeScriptTypes emits an ExperimentalWarning in the new local probe; retain/disclose it, no polish rerun; M1/M2 remain deferred for final triage.
