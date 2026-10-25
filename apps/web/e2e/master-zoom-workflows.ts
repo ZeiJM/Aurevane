@@ -1,5 +1,12 @@
 import { expect, type Locator, type Page, type TestInfo } from '@playwright/test'
 
+/** Resolve the protected-facts card used by the authenticated zoom workflow. */
+export function protectedPlayerReader(page: Page): Locator {
+  return page
+    .getByRole('button', { name: 'Refresh player', exact: true })
+    .locator('xpath=ancestor::section[1]')
+}
+
 /** Actual authenticated controls. Call only inside the extension-verified 200% session. */
 export async function exerciseMasterAtBrowserZoom(
   page: Page,
@@ -225,7 +232,8 @@ export async function exerciseMasterAtBrowserZoom(
     await search.fill(identity.characterName)
     await activate(button('Find players'), 'player-search')
     await activate(button(`Inspect ${identity.characterName}`), 'inspect-player')
-    const reader = page.locator('section').filter({ has: button('Refresh player') })
+    const reader = protectedPlayerReader(page)
+    await expect(reader).toHaveCount(1)
     await expect(reader).toContainText('Identity and account access are protected.')
     await state('protected-player-reader', reader)
     await activate(button('Refresh player'), 'refresh-player')

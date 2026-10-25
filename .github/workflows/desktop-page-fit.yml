@@ -22,8 +22,8 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    # Typecheck, full unit tests, browser system dependencies and Supabase E2E
-    # exceed 20 minutes on uncached GitHub runners. Preserve all validations.
+    # PRs use central CI for identical source-quality checks. Manual dispatch
+    # retains standalone quality; native fit always uses its own isolated stack.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -33,14 +33,16 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
       - name: Check page source formatting without modifying it
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: pnpm exec prettier --check apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css apps/web/src/app/layout.tsx apps/web/e2e/desktop-page-fit.pw.ts apps/web/e2e/a1-layout-fit.pw.ts
       - name: Lint
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: pnpm lint
       - name: Typecheck
-        if: ${{ !cancelled() }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: pnpm typecheck
       - name: Unit tests
-        if: ${{ !cancelled() }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: pnpm test
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
         if: ${{ !cancelled() }}

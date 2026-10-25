@@ -1,6 +1,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { usePathname } from 'next/navigation'
+import { PlayersWorkspace } from '@/components/master/players-workspace'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { CombatEffectTimingEditor } from '@/components/master/combat-content/combat-effect-timing-editor'
 import { BattlefieldElevationEditor } from '@/components/master/combat-content/battlefield-elevation-editor'
@@ -14,6 +15,36 @@ import { DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import './production-styles'
 
+// Player facts are a local transport fixture; both nested sections are real components.
+const player = {
+  characterId: 'fixture-player',
+  name: 'Reader Target',
+  portraitRef: 'portrait',
+  verifiedEmail: 'reader@example.test',
+  fingerprint: 'f'.repeat(64),
+  deletionPending: false,
+  facts: {
+    level: 1,
+    xp: 0,
+    cycle: 1,
+    attributes: { might: 12, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+    build: {
+      buildVersion: 1,
+      primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+      secondary: null,
+      disciplineSkills: [],
+      supportActionId: 'basic.guard',
+      extensions: { resonance: null, essence: null },
+    },
+  },
+  calculated: { maxHp: 100, maxMp: 30, personalPointPool: 5 },
+  disciplines: [],
+  learnedSkills: [],
+  savedLoadouts: [],
+  world: null,
+  training: null,
+  battle: null,
+}
 const nativeFetch = window.fetch.bind(window)
 const config = createDefaultSiteMusicConfig()
 config.routeOverrides = [
@@ -37,6 +68,24 @@ window.fetch = async (input, options) => {
     return nativeFetch(input, options)
   const body = JSON.parse(options.body)
   window.__operationsRequests.push({ path: input, body })
+  if (input === '/api/master/players') {
+    if (body.operation === 'search')
+      return Response.json({
+        players: [
+          {
+            characterId: player.characterId,
+            name: player.name,
+            level: 1,
+            slotIndex: 0,
+            verifiedEmail: player.verifiedEmail,
+            deletionPending: false,
+          },
+        ],
+      })
+    if (body.operation === 'read' && body.characterId === player.characterId)
+      return Response.json({ player })
+    throw new Error('Unexpected Players fixture request')
+  }
   if (input === '/api/master/site-music') {
     savedMusic = {
       ...savedMusic,
@@ -89,14 +138,28 @@ function App() {
       <MasterPanelShell
         access={access}
         activeSection={
-          view === 'rules' ? 'combat-timing' : view === 'world' ? 'world-environment' : 'music'
+          view === 'players'
+            ? 'players'
+            : view === 'rules'
+              ? 'combat-timing'
+              : view === 'world'
+                ? 'world-environment'
+                : 'music'
         }
         title={
-          view === 'rules' ? 'Combat Rules' : view === 'world' ? 'World Environment' : 'Site Music'
+          view === 'players'
+            ? 'Players'
+            : view === 'rules'
+              ? 'Combat Rules'
+              : view === 'world'
+                ? 'World Environment'
+                : 'Site Music'
         }
         description="Operational browser fixture"
       >
-        {view === 'rules' ? (
+        {view === 'players' ? (
+          <PlayersWorkspace />
+        ) : view === 'rules' ? (
           <>
             <CombatEffectTimingEditor
               initialPolicy={defaultCombatEffectTimingPolicy()}

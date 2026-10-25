@@ -13,6 +13,7 @@ const { createServer, build } = await import(
 const { chromium } = require(
   require.resolve('playwright', { paths: [require.resolve('@playwright/test')] }),
 )
+const playersReaderOnly = process.env.AV_MASTER_PLAYERS_READER_ONLY === '1'
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'master-operations-'))
@@ -112,10 +113,14 @@ console.log(
 )
 try {
   const origin = server.resolvedUrls.local[0]
+  const { protectedPlayerReader } = await server.ssrLoadModule(
+    resolve(web, 'e2e/master-zoom-workflows.ts'),
+  )
+  const playerEvidence = []
   for (const viewport of [
     { width: 1366, height: 768, zoom: 1 },
     { width: 390, height: 844, zoom: 1 },
-    { width: 1366, height: 768, zoom: 1.5 },
+    ...(playersReaderOnly ? [] : [{ width: 1366, height: 768, zoom: 1.5 }]),
   ]) {
     const page = await browser.newPage({ viewport })
     const errors = []
@@ -123,7 +128,7 @@ try {
       errors.push(String(error))
       console.error('Operational browser error:', String(error))
     })
-    for (const view of ['rules', 'world', 'music']) {
+    for (const view of playersReaderOnly ? ['players'] : ['rules', 'world', 'music', 'players']) {
       if (view === 'world') await page.clock.install({ time: new Date('2026-10-23T00:00:00Z') })
       await page.goto(`${origin}?view=${view}`)
       await page.locator('body').evaluate((body, zoom) => {
@@ -132,11 +137,13 @@ try {
       await page
         .getByRole('heading', {
           name:
-            view === 'rules'
-              ? 'Combat Rules'
-              : view === 'world'
-                ? 'World Environment'
-                : 'Site Music',
+            view === 'players'
+              ? 'Players'
+              : view === 'rules'
+                ? 'Combat Rules'
+                : view === 'world'
+                  ? 'World Environment'
+                  : 'Site Music',
           exact: true,
         })
         .first()
@@ -146,7 +153,77 @@ try {
         `${view} horizontal overflow`,
       )
       assert.equal(await page.getByText(/Revision \d|Policy version|Reason for/).count(), 0)
-      if (view === 'rules') {
+      if (view === 'players') {
+        await page.getByLabel('Character name', { exact: true }).fill('Reader Target')
+        await page.getByRole('button', { name: 'Find players', exact: true }).click()
+        await page.getByRole('button', { name: 'Inspect Reader Target', exact: true }).click()
+        const refresh = page.getByRole('button', { name: 'Refresh player', exact: true })
+        await refresh.waitFor()
+        assert.equal(await refresh.count(), 1)
+        // The real outer MasterPanelShell and nested PlayersWorkspace card both match.
+        const broadMatches = await page.locator('section').filter({ has: refresh }).count()
+        assert.equal(broadMatches, 2)
+        const reader = protectedPlayerReader(page)
+        const count = await reader.count()
+        await page.screenshot({
+          path: resolve(output, `players-nesting-${viewport.width}-${viewport.zoom}.png`),
+          fullPage: true,
+        })
+        await fs.writeFile(
+          resolve(output, `players-nesting-${viewport.width}-${viewport.zoom}.json`),
+          JSON.stringify(
+            {
+              browser: browser.version(),
+              viewport,
+              broadMatches,
+              readerCount: count,
+              scope:
+                'Actual MasterPanelShell and PlayersWorkspace, controlled HTTP/identity/shell-frame fixture; ordinary local browser, not authenticated native or genuine zoom evidence.',
+            },
+            null,
+            2,
+          ),
+        )
+        assert.equal(
+          count,
+          1,
+          'Protected facts must resolve one actual card, not the outer Master shell',
+        )
+        assert.equal(await reader.getAttribute('data-testid'), null)
+        assert.equal(
+          await reader
+            .locator('xpath=ancestor::section[@data-testid="master-panel-shell"]')
+            .count(),
+          1,
+        )
+        assert.equal(
+          await reader.getByRole('navigation', { name: 'Master Panel navigation' }).count(),
+          0,
+        )
+        assert.equal(
+          await reader.getByRole('heading', { name: 'Find a player', exact: true }).count(),
+          0,
+        )
+        assert.equal(
+          await reader.getByRole('heading', { name: 'Reader Target', exact: true }).count(),
+          1,
+        )
+        assert.match(await reader.innerText(), /Identity and account access are protected\./)
+        assert.equal(await reader.isVisible(), true)
+        const geometry = await reader.evaluate((element) => ({
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+        }))
+        assert.ok(geometry.scrollWidth <= geometry.clientWidth + 1)
+        await refresh.focus()
+        await page.keyboard.press('Enter')
+        await page.waitForFunction(
+          () =>
+            window.__operationsRequests.filter((row) => row.body.operation === 'read').length === 2,
+        )
+        assert.equal(await protectedPlayerReader(page).count(), 1)
+        playerEvidence.push({ viewport, broadMatches, readerCount: count, geometry })
+      } else if (view === 'rules') {
         await page.getByLabel('Search effect tags').fill('damage')
         await page.getByLabel('Sort effect tags').selectOption('timing-desc')
         await page.locator('summary').filter({ hasText: '1 current definitions' }).click()
@@ -226,7 +303,15 @@ try {
     assert.deepEqual(errors, [])
     await page.close()
   }
-  console.log('Master operational desktop/mobile/150% controls and native playback passed.')
+  await fs.writeFile(
+    resolve(output, 'players-reader-results.json'),
+    JSON.stringify(playerEvidence, null, 2),
+  )
+  console.log(
+    playersReaderOnly
+      ? 'Real nested Master shell/Players reader regression passed.'
+      : 'Master operational desktop/mobile/150% controls, native playback and nested Players reader passed.',
+  )
 } finally {
   await browser.close()
   await server.close()

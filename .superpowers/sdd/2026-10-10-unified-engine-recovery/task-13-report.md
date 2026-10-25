@@ -166,3 +166,46 @@ The inaccurate Nexus sentence is corrected to **two separate eight-Skill Primary
 The full dispatch ledger prefix is523653 bytes, SHA256 `585fd11298d5748492bf821a13977883a67e74ce9446038189dc111c222058e8`; the original470454-byte prefix and all earlier artifacts/migrations remain immutable. The final integrity receipt verifies both prefixes, all old verification artifact bytes against the dispatch commit, every Task13 raw/gzip receipt and all new browser artifact hashes, and scans the new textual evidence for JWTs. Root still owns physical/native execution, final whole-branch review, hosted reconciliation/application and authorized release.
 
 Final coherence also retains the original one-Tab assertion for each non200 route, and uses the named Page music **combobox** to distinguish it from the identically named navigation landmark. `fix1-format` and `fix1-zoom-preserved-matrix` pass changed-source formatting, zero-warning lint and final native layout discovery. Integrity confirms2171 old verification/migration files unchanged and79 new browser artifacts with zero token matches. The final integrity count is85 Task13 receipts /23 fix1 receipts **before** its own appended row,86 /24 including that row. These totals do not convert failed bootstrap attempts or native discovery into passing runtime evidence.
+
+## SAME Task13 fix round 2 — recovered F1 and released-main reconciliation
+
+Recovery baseline `e14337e4dc44c8d1abdad5849371bb76bdc2bc0d`, tree `c8998240fc9ac981082be890140f05b2a310b8f5`. Workspace maintenance removed the unbacked `7b900300` patch and its nine artifacts. That lost handoff is **not available evidence**. This section records a bounded recreation with new commands, times, files and hashes; it is the same fix round2, not a new repair/review cycle. I1 remains accepted and unchanged; M1 remains deferred.
+
+The verification map followed the recovery brief and approved `docs/CHANGE_SCOPED_VERIFICATION.md`: real nested Players regression; changed-source types/lint/format; planner/runner self-tests and real discovery; affected World renderer/motion/receipt-clock tests for semantic merge overlap. The unchanged65 I1 tests and all-five browser matrices were excluded because their implementation and boundaries did not change. Final full applicable repository, physical/native/authenticated/pinned/actual200/World/media gates remain Root's release responsibility on the final candidate.
+
+### F1 recreation with fresh evidence
+
+`protectedPlayerReader(page)` anchors the exact Refresh player control to its nearest ancestor section. The genuine200 workflow explicitly requires count1 before the existing protected-text and state/geometry assertions. No first-match fallback, skipped state, zoom substitution or timeout change was introduced. The real MasterPanelShell/PlayersWorkspace nesting is exercised through the existing operational harness, with its disclosed HTTP/identity/authenticated-frame boundaries. The same exported locator is used by both regression and native200.
+
+Fresh RED reproduces2 matches for the broad selector. GREEN passes at1366×768 and390×844, proves the reader's Master-shell ancestor, excludes navigation/search, includes the target heading/protected facts and retains uniqueness after keyboard Refresh. Reader width/scrollWidth are1321/1321 and345/345 respectively. All nine fresh screenshots/measurements are inventoried in `task13-fix2-recovery-browser-manifest.json` (1576930 bytes); the390px GREEN screenshot was inspected. The case executes by default in the existing operational CI guard. The focused `AV_MASTER_PLAYERS_READER_ONLY=1` run does not repeat unrelated operation matrices.
+
+Dependencies were freshly installed with the frozen lockfile using pnpm11.17.0/Node24.22.1, without dependency changes. A fresh pinned Chromium151 install still failed with invalid/truncated archive responses. A new `@sparticuz/chromium@153.0.0` package was obtained outside the repository and its binary freshly decoded; actual browser version is153.0.8010.0. The environment receipt records package and binary SHA256, and confirms Docker/psql unavailable. These local ordinary-browser results establish F1's actual DOM boundary, not authenticated native or genuine200 execution. No missing old binary or artifacts were reused or claimed.
+
+### Actual main ancestry and CI reconciliation
+
+Released main `ff4467ed7284b7c2497caf4df6dff6669043ca39` (PR976) is merged with ancestry. Root's final actual fetch at2026-10-25T17:12:27Z confirms it remains current. The policy docs and applicable AGENTS change were read before reconciliation. The single textual conflict in Browser Smoke is resolved to main's selected runner: retired preliminary password/training/focused-battle invocations are not reintroduced.
+
+The existing full-mode repeat-two authority group now retains Task13's complete Master and natural World cadence specifications alongside authoring/media/all-five originals, selected Staff authority, Players recovery and terrain-priced keyboard movement. Full Chromium remains unfiltered across all three existing projects, followed by the existing Edge cases. Master operational/eligibility/Event/Nexus and SQL-backed Original component guards execute under the existing component selection flag, which is true for this full candidate. No planner failure, required result or source-tree proof is bypassed.
+
+Before each native phase can clear results, the runner preserves complete Master/World directories—including JSON, traces and screenshots—under distinct phase directories. Edge uses its own result directory and cannot relabel prior Chromium captures as Edge evidence. Regression tests demonstrate both native phases survive output clearing without overwriting each other. Existing uploads include these directories. The automatic `ci.yml` merge retains the Event emergency settlement lock-order/rollback gate; no other central-CI semantics differ from main. The automatic renderer-test merge retains both main's current renderer/receipt-clock behavior and the earlier Task13 environment-tint case.
+
+The wiring audit confirms all28 non-overlap paths among main's33 changed paths are byte-identical to released main. The five inspected integration overlaps are the two workflows, runner and runner tests, and additive renderer test. All released mobile Chronicle/rail CSS, World production renderer and receipt-clock diagnostics are preserved. There is no product implementation or migration change in this recovery beyond the already approved incoming main source.
+
+### Fresh covering results
+
+| Receipt (all prefixed `fix2-recovery-`) | Actual result |
+| --- | --- |
+| `f1-red` / `f1-green` | Real nesting count2 RED, unique protected card count1 GREEN at1366/390 on freshly obtained Chromium153 |
+| `runner-red` | Two failures reproduce missing Master/World repeated cases and lost JSON/trace evidence |
+| `planner-runner-green` | All55 Node planner/runner regressions pass; invalid plans, source/reuse checks and required-gate semantics retained |
+| `runner-final` | All7 runner tests plus configured lint/format pass after separating Edge evidence output |
+| `world-overlap` | All206 tests /4 affected renderer, motion, timing and diagnostic files pass |
+| `selection-audit` | Real discovery:660 full case/project entries; all98 old focused and9 old password/training entries remain in full; targeted Audio/artwork/battle selection unchanged |
+| `wiring-audit-final` | This candidate selects full/components; exactly3 native phases;16 authority case/project entries with desktop repeatEach2 configuration; all6 required authority specs and both Master artifact paths retained |
+| `final-types` / `final-source-checks` | Fresh full web typecheck and changed-source zero-warning lint/format pass |
+
+Discovery is source collection, not execution. The16 authority entries are not represented as32 executed repeats: Playwright's JSON lists the tests once and records repeatEach2 in project configuration. Initial audit attempts incorrectly expected a per-test repeat index and filtered config project list; those collector failures are retained and corrected against the actual JSON shape. An initial ad-hoc CI-script lint invocation omitted main's configured Node globals; its failure is retained, and the final check uses the exact main CI global declarations. No source lint suppression was added. Failed installation/audit attempts remain failures, including the intermediate green-labelled audit attempt.
+
+Every fresh command has actual UTC timestamps, exit and raw/gzip SHA256 in the append-only ledger. The original470454-byte prefix and all recovered dispatch artifacts/migrations remain unchanged. New `task13-fix2-recovery-*` artifacts are independent of the lost patch. The final recovery integrity receipt verifies those boundaries, all Task13 logs, the nine new browser artifacts and absence of JWT-shaped evidence. Root will immediately back up the frozen merge and route the same scoped reviewer before authentication/release work.
+
+Final recovery integrity verified2277 unchanged old verification/migration files. The102 Task13 /16 recovery receipt counts precede its own append; the frozen ledger includes103 /17. Dispatch prefix545321 bytes has SHA256 `0ccd1448a9fab7ce92335e4662485038f6e1a5ce9e52a9a71c1488eb98c76f1b`.

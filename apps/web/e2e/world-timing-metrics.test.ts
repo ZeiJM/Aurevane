@@ -2,35 +2,90 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { measurePeerMotionStep, observeWorldMovement } from './world-timing-metrics'
 
+const pose = (frameAt: number, x: number, at = frameAt + 40, y = 0) => ({
+  frameAt,
+  at,
+  x,
+  y,
+  tileSize: 64,
+  identityRatio: 1,
+})
+
 describe('World peer sample timing', () => {
-  it('retains the original 0.75-tile budget at a nominal frame', () => {
-    const step = measurePeerMotionStep({ at: 0, x: 0 }, { at: 16, x: 0.8 })
-    expect(step.maximumDeltaX).toBe(0.75)
-    expect(step.deltaX).toBeGreaterThanOrEqual(step.maximumDeltaX)
-  })
-
-  it('measures progress against elapsed time on delayed samples', () => {
-    const step = measurePeerMotionStep({ at: 0, x: 0 }, { at: 24, x: 0.88 })
+  it('accepts the captured legal walk across a 233.3ms animation gap despite unequal paint delays', () => {
+    const step = measurePeerMotionStep(
+      pose(6419.9, 773.1580596734188, 6529.5, 257.32783255347596),
+      pose(6653.2, 774.2389772086101, 6698.3, 257.33054812834223),
+    )
+    expect(step.elapsedMs).toBeCloseTo(233.3)
+    expect(step.paintElapsedMs).toBeCloseTo(168.8)
     expect(step.deltaX).toBeLessThan(step.maximumDeltaX)
+    expect(Math.abs(step.deltaY)).toBeLessThan(step.projectionError)
   })
 
-  it('rejects a one-tile snap, even after a long render gap', () => {
-    const step = measurePeerMotionStep({ at: 0, x: 0 }, { at: 200, x: 1 })
-    expect(step.maximumDeltaX).toBe(0.95)
+  it('does not grant extra movement when only paint work takes longer', () => {
+    const step = measurePeerMotionStep(pose(0, 0, 1), pose(16, 1, 300))
+    expect(step.elapsedMs).toBe(16)
     expect(step.deltaX).toBeGreaterThanOrEqual(step.maximumDeltaX)
   })
 
-  it('does not grant extra movement for non-increasing timestamps', () => {
-    expect(measurePeerMotionStep({ at: 10, x: 0 }, { at: 10, x: 0.5 }).maximumDeltaX).toBe(0.75)
+  it.each([0.2, 0.75, 0.95, 1, 2])('rejects a %s-tile snap at normal animation cadence', (x) => {
+    const step = measurePeerMotionStep(pose(0, 0), pose(16, x))
+    expect(step.maximumDeltaX).toBeLessThan(0.14)
+    expect(step.deltaX).toBeGreaterThanOrEqual(step.maximumDeltaX)
   })
 
   it.each([
-    [188.3, 1.0138500632847354],
-    [192.7, 0.9694809741440622],
-  ])('retains the original failed run violation at %ims and %s tiles', (at, x) => {
-    const step = measurePeerMotionStep({ at: 0, x: 0 }, { at, x })
-    expect(step.maximumDeltaX).toBe(0.95)
+    [100, 1],
+    [200, 1.2],
+    [233.3, 1.3],
+    [1000, 6],
+  ])('rejects movement faster than the approved route after %sms (%s tiles)', (elapsed, x) => {
+    const step = measurePeerMotionStep(pose(0, 0), pose(elapsed, x))
     expect(step.deltaX).toBeGreaterThanOrEqual(step.maximumDeltaX)
+  })
+
+  it('accepts one full approved step over 200ms without calling elapsed movement a snap', () => {
+    const step = measurePeerMotionStep(pose(0, 0), pose(200, 1))
+    expect(step.deltaX).toBeLessThan(step.maximumDeltaX)
+    // Long-gap approval is bounded by speed, not an arbitrarily enlarged frame cap.
+    expect(step.maximumDeltaX).toBeLessThan(1.06)
+  })
+
+  it('bounds pixel projection error by the actual tile scale and native identity density', () => {
+    const normal = measurePeerMotionStep(pose(0, 0), pose(16, 0.08))
+    const dense = measurePeerMotionStep(
+      { ...pose(0, 0), identityRatio: 2 },
+      { ...pose(16, 0.08), identityRatio: 2 },
+    )
+    const zoomed = measurePeerMotionStep(
+      { ...pose(0, 0), tileSize: 32 },
+      { ...pose(16, 0.08), tileSize: 32 },
+    )
+    expect(normal.projectionError).toBeGreaterThan(0.05)
+    expect(normal.projectionError).toBeLessThan(0.054)
+    expect(dense.projectionError).toBeCloseTo(normal.projectionError / 2)
+    expect(zoomed.projectionError).toBeCloseTo(normal.projectionError * 2)
+    expect(normal.deltaX).toBeLessThan(normal.maximumDeltaX)
+  })
+
+  it.each([
+    { frameAt: undefined },
+    { frameAt: NaN },
+    { frameAt: Infinity },
+    { frameAt: 0 },
+    { frameAt: -1 },
+    { at: 1 },
+    { x: NaN },
+    { y: Infinity },
+    { tileSize: 0 },
+    { identityRatio: 0 },
+    { tileSize: 32 },
+    { identityRatio: 2 },
+  ])('fails closed on invalid or non-increasing sample data: %j', (patch) => {
+    expect(() =>
+      measurePeerMotionStep(pose(0, 0), { ...pose(16, 0.08), ...patch } as ReturnType<typeof pose>),
+    ).toThrow()
   })
 })
 
