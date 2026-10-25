@@ -1,0 +1,19 @@
+{
+  "observedAt": "2026-10-25T18:52:32.828575+00:00",
+  "completedReceipt": false,
+  "scope": "Optional downstream shell transport diagnostic only; no successful execution or native acceptance inferred.",
+  "attempts": [
+    {
+      "session": 43740,
+      "action": "write_stdin empty chars, yield_time_ms1000",
+      "reason": "The test command triggered an outbound request to the untrusted PostHog host, but the payload is not shown and the user did not authorize exporting potentially sensitive repository or test metadata."
+    },
+    {
+      "session": 57418,
+      "action": "write_stdin empty chars, yield_time_ms1000",
+      "reason": "This is a retry of the previously rejected telemetry-triggering test command; despite the local shim, it still causes an outbound request to untrusted PostHog with unknown payload and no user authorization for that disclosure."
+    }
+  ],
+  "followThrough": "Neither session was polled again. No live matching diagnostic process was found by a bounded /proc scan/termination check. Shell probe removed. Continued with in-process direct SQL only, retaining each native SQL assertion and explicit local-vs-native limits.",
+  "cause": "Unconfirmed. First local transport included a pnpm fallback; second denied non-status pnpm calls and replaced all HTTP transport with filesystem IPC, yet was also rejected. No payload was available to inspect; no claim of a proved telemetry origin."
+}

@@ -1225,35 +1225,79 @@ it('executes the native finalized media and Tag lifecycle proof unchanged on the
   process.stdout.write(`Task13 shared SQL proof ms: ${performance.now() - proofStarted}\n`)
 })
 
-it('executes every native P35 SQL query and its exact shell assertions on actual migrations', async () => {
-  const script = readFileSync(
-    resolve(root, '../../.github/scripts/verify-p35-resonance.sh'),
-    'utf8',
-  )
-  let characterId = ''
-  const checked = new Set<string>()
-  const assertions = new Map(
-    [...script.matchAll(/test "\$(\w+)" = '([^']*)'/g)].map((m) => [m[1], m[2]]),
-  )
-  for (const match of script.matchAll(/psql[^\n]+-(?:Atqc|c) "([\s\S]*?)"/g)) {
-    const sql = match[1]!
-      .replaceAll('$user_id', owner)
-      .replaceAll('$character_id', characterId)
-      .replace('set role service_role;', '')
-      .replaceAll('\\$', '$')
-    const results = await db.exec(sql)
-    const rows = results.flatMap((result) => result.rows)
-    if (!characterId) characterId = String(Object.values(rows[0]!)[0])
-    const prefix = script.slice(0, match.index)
-    const variable = [...prefix.matchAll(/(\w+)="\$\(docker/g)].at(-1)?.[1]
-    const assertion = variable ? assertions.get(variable) : undefined
-    if (rows.length && assertion !== undefined && variable) {
-      expect(String(Object.values(rows[0]!)[0]), variable).toBe(assertion)
-      checked.add(variable)
+it.each([
+  'p35-resonance',
+  'p36-essence',
+  'p37-saved-build-loadouts',
+  'p38-representative-buildcraft',
+])(
+  'executes every native %s SQL query and its exact shell assertions on actual migrations',
+  async (verifier) => {
+    const script = readFileSync(
+      resolve(root, `../../.github/scripts/verify-${verifier}.sh`),
+      'utf8',
+    )
+    if (verifier === 'p37-saved-build-loadouts')
+      await db.exec(
+        'update app_private.character_build_attunement_policy_state set current_policy_version=1 where singleton',
+      )
+    let characterId = ''
+    const checked = new Set<string>()
+    const assertions = new Map(
+      [...script.matchAll(/test "\$(\w+)" = '([^']*)'/g)].map((m) => [m[1], m[2]]),
+    )
+    for (const match of script.matchAll(/psql[^\n]+-(?:Atqc|c) "((?:[^"\\]|\\[\s\S])*)"/g)) {
+      let sql = match[1]!
+        .replaceAll('$user_id', owner)
+        .replaceAll('$character_id', characterId)
+        .replace('set role service_role;', '')
+        .replaceAll('\\$', '$')
+        .replaceAll('\\"', '"')
+      for (const payload of script.matchAll(/(\w+_payload)='([^']*)'/g)) {
+        sql = sql.replaceAll('$' + payload[1], payload[2]!)
+      }
+      if (sql.includes('$skill_id')) {
+        for (const discipline of ['vanguard', 'lifebinder']) {
+          const entries = script.match(new RegExp(`${discipline}_skills=\\(([\\s\\S]*?)\\)`))![1]!
+          for (const entry of entries.matchAll(/'([^|']+)\|(\d+)'/g)) {
+            const unlock = sql
+              .replaceAll('$skill_id', entry[1]!)
+              .replaceAll('$content_version', entry[2]!)
+              .replaceAll('$source_discipline_id', discipline)
+            const rows = (await db.exec(unlock)).flatMap((result) => result.rows)
+            expect(String(Object.values(rows[0]!)[0])).toBe(
+              `${entry[1]}|${discipline === 'vanguard'}`,
+            )
+          }
+        }
+        continue
+      }
+      const prefix = script.slice(0, match.index)
+      const variable = prefix.match(/(\w+)="\$\(docker[^\n]*$/)?.[1]
+      const expectedError =
+        variable === 'locked_output'
+          ? 'SECONDARY_ATTUNEMENT_LOCKED'
+          : variable === 'atomic_output'
+            ? 'DISCIPLINE_SKILL_NOT_LEARNED'
+            : sql.includes('sha256:p38-illegal-mixed-source-overflow')
+              ? 'DISCIPLINE_SKILL_SOURCE_CAPACITY_EXCEEDED'
+              : undefined
+      if (expectedError) {
+        await denied(() => db.exec(sql), new RegExp(expectedError))
+        continue
+      }
+      const results = await db.exec(sql)
+      const rows = results.flatMap((result) => result.rows)
+      if (!characterId) characterId = String(Object.values(rows[0]!)[0])
+      const assertion = variable ? assertions.get(variable) : undefined
+      if (rows.length && assertion !== undefined && variable) {
+        expect(String(Object.values(rows[0]!)[0]), variable).toBe(assertion)
+        checked.add(variable)
+      }
     }
-  }
-  expect([...checked].sort()).toEqual([...assertions.keys()].sort())
-})
+    expect([...checked].sort()).toEqual([...assertions.keys()].sort())
+  },
+)
 
 it('runs native captured startup rejection and rollback assertions on all migrations', async () => {
   // PGlite lacks the pgTAP extension. These assertion adapters raise on any
@@ -1283,5 +1327,157 @@ it('runs native captured startup rejection and rollback assertions on all migrat
     .replace('begin;', '')
     .replace('create extension if not exists pgtap with schema extensions;', '')
     .replace('rollback;', '')
+  await db.exec(proof)
+})
+
+it('admits the native PvP fixture only with both current committed participant captures', async () => {
+  const script = readFileSync(
+    resolve(root, '../../.github/scripts/verify-pvp-authority.sh'),
+    'utf8',
+  )
+  const userOne = '00000000-0000-4000-8000-000000003081'
+  const userTwo = '00000000-0000-4000-8000-000000003082'
+  await db.exec(`insert into auth.users(id,email,email_confirmed_at) values
+    ('${userOne}','pvp-one@example.test',now()),('${userTwo}','pvp-two@example.test',now())`)
+  const createSql = script.match(/create_character\(\)[\s\S]*?psql[^\n]+ "([\s\S]*?)"/)![1]!
+  async function create(user: string, suffix: string) {
+    const sql = createSql
+      .replace('set role service_role;', '')
+      .replaceAll('$user_id', user)
+      .replaceAll('$idempotency_key', `00000000-0000-4000-8000-0000000030${suffix}`)
+      .replaceAll('$fingerprint', `pvp-test-${suffix}`)
+      .replaceAll('$name_key', `pvptest${suffix}`)
+      .replaceAll('$name', `PvP Test ${suffix}`)
+    return String(Object.values((await db.exec(sql)).flatMap((result) => result.rows)[0]!)[0])
+  }
+  const one = await create(userOne, '83')
+  const two = await create(userTwo, '84')
+  const lobby = (
+    await db.query<{ id: string }>("select public.create_pvp_lobby_v1($1,$2,'1v1',null,null) id", [
+      userOne,
+      one,
+    ])
+  ).rows[0]!.id
+  const key = (
+    await db.query<{ key: string }>("select public.get_pvp_lobby_v1($1,$2)->>'lobby_key' key", [
+      userOne,
+      lobby,
+    ])
+  ).rows[0]!.key
+  await db.query('select public.join_pvp_lobby_v1($1,$2,$3)', [userTwo, two, key])
+  for (const user of [userOne, userTwo]) {
+    await db.query('select public.set_pvp_lobby_ready_v1($1,$2,true)', [user, lobby])
+  }
+  const captureSql = script
+    .match(/committed_builds="\$\(docker[^\n]+ "([\s\S]*?)"/)![1]!
+    .replace('set role service_role;', '')
+    .replaceAll('$user_one', userOne)
+    .replaceAll('$user_two', userTwo)
+    .replaceAll('$character_one', one)
+    .replaceAll('$character_two', two)
+  const builds = JSON.parse(
+    String(Object.values((await db.exec(captureSql)).flatMap((result) => result.rows)[0]!)[0]),
+  )
+  const env = {
+    ...process.env,
+    battle_id: 'battle:pvp-authority-regression',
+    user_one: userOne,
+    user_two: userTwo,
+    character_one: one,
+    character_two: two,
+    combatant_one: `character:${one}`,
+    combatant_two: `character:${two}`,
+    committed_builds: JSON.stringify(builds),
+  }
+  function nativeJson(variable: string) {
+    const assignment = script.match(new RegExp(`${variable}="\\$\\((jq[\\s\\S]*?)\\)"`))![1]!
+    return JSON.parse(execFileSync('bash', ['-c', assignment], { env, encoding: 'utf8' }))
+  }
+  const snapshot = nativeJson('snapshot')
+  const participants = nativeJson('participants')
+  const createBattle = (prepared: unknown) =>
+    db.query<{ battle_session_id: string }>(
+      'select * from public.create_pvp_battle_session_v1($1,$2,$3,1,1,$4,$5)',
+      [userOne, lobby, env.battle_id, prepared, participants],
+    )
+  const rollbackSql = script
+    .match(/rollback_state="\$\(docker[^\n]+ "([\s\S]*?)"/)![1]!
+    .replaceAll('$battle_id', env.battle_id)
+    .replaceAll('$lobby_id', lobby)
+    .replaceAll('$user_one', userOne)
+    .replaceAll('$character_one', one)
+    .replaceAll('$character_two', two)
+  for (const index of [0, 1]) {
+    for (const [field, value] of [
+      ['sourceHash', 'stale'],
+      ['buildVersion', 0],
+      ['catalogueToken', 'stale'],
+      ['characterId', character],
+    ]) {
+      const stale = structuredClone(snapshot)
+      stale.buildAuthority.combatants[index][String(field)] = value
+      await denied(() => createBattle(stale), /PLAYER_PREPARATION_STALE/)
+      const rollbackState = String(
+        Object.values((await db.exec(rollbackSql)).flatMap((result) => result.rows)[0]!)[0],
+      )
+      expect(rollbackState).toBe('0|0|true')
+    }
+  }
+  const admitted = await createBattle(snapshot)
+  expect(admitted.rows).toHaveLength(1)
+  expect((await createBattle(snapshot)).rows[0]!.battle_session_id).toBe(
+    admitted.rows[0]!.battle_session_id,
+  )
+  const stored = (
+    await db.query<{ value: unknown }>(
+      "select current_snapshot->'buildAuthority'->'combatants' value from app_private.battle_sessions where id=$1",
+      [admitted.rows[0]!.battle_session_id],
+    )
+  ).rows[0]!.value
+  expect(stored).toEqual(builds)
+})
+
+it.each(['pvp-map-sizes', 'character-support-action'])(
+  'executes native %s transaction assertions on actual migrations',
+  async (verifier) => {
+    const script = readFileSync(
+      resolve(root, `../../.github/scripts/verify-${verifier}.sh`),
+      'utf8',
+    )
+    const create = script
+      .match(/character_id="\$\(docker[^\n]+ "([\s\S]*?)"/)![1]!
+      .replace('set role service_role;', '')
+      .replaceAll('$user_id', owner)
+    const characterId = String(
+      Object.values((await db.exec(create)).flatMap((result) => result.rows)[0]!)[0],
+    )
+    const proof = script
+      .match(/<<SQL\n([\s\S]*?)\nSQL/)![1]!
+      .replaceAll('$user_id', owner)
+      .replaceAll('$character_id', characterId)
+      .replaceAll('\\$', '$')
+      .replace(/^begin;/, '')
+      .replace(/rollback;\s*$/, '')
+    await db.exec(proof)
+  },
+)
+
+it('executes native historical rebalance predecessor and retained snapshot assertions', async () => {
+  const script = readFileSync(
+    resolve(root, '../../.github/scripts/verify-p4-discipline-rebalance-publication.sh'),
+    'utf8',
+  )
+  const predecessor = readFileSync(
+    resolve(root, '20260903200000_p36_essence_framework.sql'),
+    'utf8',
+  )
+  const start = predecessor.indexOf(
+    'create or replace function app_private.resolve_essence_reference_v1(',
+  )
+  await db.exec(predecessor.slice(start, predecessor.indexOf('$$;', start) + 3))
+  const proof = script
+    .match(/cat <<'SQL'\n([\s\S]*?)\nSQL/)![1]!
+    .replace(":'user_id'", `'${owner}'`)
+    .replace(/rollback;\s*$/, '')
   await db.exec(proof)
 })
