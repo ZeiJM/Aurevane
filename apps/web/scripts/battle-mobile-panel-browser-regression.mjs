@@ -43,18 +43,6 @@ await fs.writeFile(
       window.restoreCanonicalBattle = () => {`,
     )
     .replace(
-      'width: 9,',
-      'width: Number(new URLSearchParams(location.search).get("columns")) || 9,',
-    )
-    .replace(
-      'length: 63',
-      'length: (Number(new URLSearchParams(location.search).get("columns")) || 9) * 7',
-    )
-    .replace(
-      'x: i % 9, y: Math.floor(i / 9)',
-      'x: i % (Number(new URLSearchParams(location.search).get("columns")) || 9), y: Math.floor(i / (Number(new URLSearchParams(location.search).get("columns")) || 9))',
-    )
-    .replace(
       'entries: suppressChronicleEntries',
       'entries: Array.from({ length: window.fixtureLogCount ?? 24 }, (_, index) => suppressChronicleEntries.map(entry => ({ ...entry, battleVersion: index + 1 }))).flat()',
     )

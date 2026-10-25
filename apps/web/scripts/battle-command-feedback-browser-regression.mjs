@@ -329,6 +329,8 @@ async function verifyExpandedMobileLog() {
       })
       const before = await board.boundingBox()
       const footerBefore = await page.locator('main > footer').boundingBox()
+      const preview = page.locator('[data-battle-preview-strip]')
+      const previewBefore = await preview.boundingBox()
       const toggle = page.locator('[data-battle-current-round-toggle]')
       await toggle.click()
       const workspace = page.locator('#battle-mobile-chronicle')
@@ -355,6 +357,11 @@ async function verifyExpandedMobileLog() {
         'The expanded log is actually painted and interactive down to the footer',
       )
       const bounds = await workspace.boundingBox()
+      assert.equal(await preview.isVisible(), false, 'The full mobile log owns the preview space')
+      assert.ok(
+        Math.abs(bounds.y - previewBefore.y) <= 1,
+        'The full log begins at the former preview top, gaining its entire height',
+      )
       const footer = await page.locator('main > footer').boundingBox()
       assert.ok(
         Math.abs(bounds.y + bounds.height - footer.y) <= 2,
@@ -369,6 +376,12 @@ async function verifyExpandedMobileLog() {
       )
       await page.screenshot({ path: resolve(output, `expanded-log-${mode}-${viewport.width}.png`) })
       await toggle.click()
+      assert.equal(
+        await preview.isVisible(),
+        true,
+        'Closing the log restores turn/selection feedback',
+      )
+      assert.deepEqual(await preview.boundingBox(), previewBefore)
       assert.equal(await page.locator('[aria-label="Battle actions"]').isVisible(), true)
       assert.deepEqual(
         await board.boundingBox(),
@@ -390,6 +403,152 @@ async function verifyExpandedMobileLog() {
   console.log(
     'Expanded mobile logs hide duplicate chrome, reach the footer and preserve board/toggle',
   )
+}
+async function verifyMobileRailSpacing() {
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    for (const viewport of [
+      { width: 320, height: 640, mapSize: 'small' },
+      { width: 390, height: 844, mapSize: 'small' },
+      { width: 390, height: 844, mapSize: 'medium' },
+      { width: 390, height: 844, mapSize: 'large' },
+    ]) {
+      const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+      await page.goto(
+        server.resolvedUrls.local[0] + `?mode=${mode}&suppress=active&mapSize=${viewport.mapSize}`,
+      )
+      const card = page
+        .locator('[data-battle-combatant-card]')
+        .filter({ has: page.locator('[data-effect-timing="active"]') })
+        .first()
+      const icon = card.locator('section button').first()
+      await icon.waitFor()
+      await page.evaluate(() => document.fonts.ready)
+      const preview = page.locator('[data-battle-preview-strip]')
+      const root = page.locator('main')
+      await root.evaluate((el) => el.style.setProperty('--av-mobile-effect-space', '0px'))
+      const boardBefore = await page.locator('[data-board-auto-fit]').boundingBox()
+      const fieldBefore = await page.locator('#battlefield').boundingBox()
+      const footerBefore = await page.locator('main > footer').boundingBox()
+      const previewBefore = await preview.boundingBox()
+      await root.evaluate((el) => el.style.removeProperty('--av-mobile-effect-space'))
+      const boardAfter = await page.locator('[data-board-auto-fit]').boundingBox()
+      const fieldAfter = await page.locator('#battlefield').boundingBox()
+      const previewAfter = await preview.boundingBox()
+      assert.ok(
+        Math.abs(boardAfter.width - boardBefore.width) <= 1 &&
+          Math.abs(boardAfter.height - boardBefore.height) <= 1 &&
+          Math.abs(fieldAfter.height - fieldBefore.height) <= 1,
+        'Rail spacing preserves the complete battlefield allocation, including small maps',
+      )
+      assert.ok(
+        Math.abs(previewBefore.height - previewAfter.height - 6.4) <= 1,
+        'The rail gain comes from the preview height',
+      )
+      assert.deepEqual(await page.locator('main > footer').boundingBox(), footerBefore)
+      const fit = await icon.evaluate((button) => {
+        const r = button.getBoundingClientRect(),
+          card = button.closest('[data-battle-combatant-card]'),
+          section = button.closest('section'),
+          rail = card.getBoundingClientRect(),
+          bars = card.querySelector('[data-resource="mp"]').getBoundingClientRect()
+        return {
+          topGap: r.top - bars.bottom,
+          bottomGap: rail.bottom - r.bottom,
+          paddingTop: parseFloat(getComputedStyle(section).paddingTop),
+          paddingBottom: parseFloat(getComputedStyle(section).paddingBottom),
+          hit: button.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)),
+        }
+      })
+      assert.ok(
+        fit.paddingTop >= 3 && fit.paddingBottom >= 3 && fit.topGap >= 3 && fit.bottomGap >= 3,
+        `Effects have breathing room within the mobile rail: ${mode} ${viewport.width} ${JSON.stringify(fit)}`,
+      )
+      assert.equal(fit.hit, true, 'Active effect icons remain visible and interactive')
+      await page.screenshot({
+        path: resolve(output, `rail-spacing-${mode}-${viewport.width}-${viewport.mapSize}.png`),
+      })
+      await page.close()
+    }
+  }
+}
+async function verifyChronicleUniformity() {
+  for (const mode of ['pve', 'pvp', 'spectator']) {
+    const page = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    })
+    await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&suppress=active`)
+    const toggle = page.locator('[data-battle-current-round-toggle]')
+    const toggleStyle = (el) => {
+      const c = getComputedStyle(el),
+        r = el.getBoundingClientRect()
+      return {
+        display: c.display,
+        width: r.width,
+        height: r.height,
+        background: c.backgroundImage,
+        radius: c.borderRadius,
+        text: el.innerText,
+      }
+    }
+    const pictureStyle = await toggle.evaluate(toggleStyle)
+    await toggle.click()
+    const workspace = page.locator('#battle-mobile-chronicle')
+    await workspace.waitFor({ state: 'visible' })
+    const traditionalStyle = await toggle.evaluate(toggleStyle)
+    assert.deepEqual(
+      traditionalStyle,
+      pictureStyle,
+      'Both Chronicle modes use the same stacked gold round toggle',
+    )
+    const typography = (el) => {
+      const t = el.querySelector('[data-chronicle-action]')
+      return [t.querySelector('h4'), ...t.querySelectorAll('p')].map((n) => ({
+        size: getComputedStyle(n).fontSize,
+        lineHeight: getComputedStyle(n).lineHeight,
+      }))
+    }
+    const traditionalText = await workspace.evaluate(typography)
+    await toggle.click()
+    await page
+      .getByRole('button', { name: /Show Chronicle details/ })
+      .first()
+      .click()
+    const details = page.getByRole('region', { name: /Chronicle action:/ })
+    await details.waitFor({ state: 'visible' })
+    assert.deepEqual(
+      await details.evaluate(typography),
+      traditionalText,
+      'Picture action breakdowns share traditional-log mobile typography',
+    )
+    const contrast = await details
+      .locator('[data-outcome-tone="harm"], [data-outcome-tone="damage"], [class*="recipient"]')
+      .evaluateAll((elements) => {
+        const luminance = (color) => {
+          const channels = color
+            .match(/[\d.]+/g)
+            .slice(0, 3)
+            .map(Number)
+            .map((n) => {
+              const v = n / 255
+              return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+            })
+          return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
+        }
+        return elements.map((el) => {
+          const a = luminance(getComputedStyle(el).color),
+            b = luminance(getComputedStyle(el.closest('[role="region"]')).backgroundColor)
+          return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+        })
+      })
+    assert.ok(
+      contrast.length >= 2 && contrast.every((value) => value >= 4.5),
+      'Reduced outcome and recipient text remain readable against the dark action-detail panel',
+    )
+    await page.screenshot({ path: resolve(output, `chronicle-uniformity-${mode}.png`) })
+    await page.close()
+  }
 }
 async function verifyDesktopChatBounds() {
   for (const viewport of [
@@ -867,6 +1026,69 @@ async function verifyTabRestoredAfterUnmount(page) {
     'Shift+Tab cycles normally after leaving the mounted battle',
   )
 }
+async function verifyMobilePreviewReadability() {
+  for (const mode of ['pve', 'pvp']) {
+    for (const viewport of [
+      { width: 320, height: 640 },
+      { width: 390, height: 844 },
+    ]) {
+      const page = await browser.newPage({ viewport, isMobile: true, hasTouch: true })
+      page.setDefaultTimeout(5000)
+      await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}`)
+      await page.locator('[data-board-auto-fit]').waitFor()
+      await page.evaluate(() => document.fonts.ready)
+      const board = page.locator('[data-board-auto-fit]')
+      const before = await board.boundingBox()
+      await page.locator('button[data-command-slot="guard"]').click()
+      const preview = page.locator('[data-battle-preview-strip]')
+      const outcomes = preview.locator(
+        '[data-battle-range-forecast] > span:last-child, [data-battle-preview-chip]',
+      )
+      await outcomes.first().waitFor({ state: 'visible' })
+      const sizes = await outcomes.evaluateAll((elements) =>
+        elements.map((element) => parseFloat(getComputedStyle(element).fontSize)),
+      )
+      assert.ok(
+        sizes.every((size) => size >= 12),
+        `${mode} ${viewport.width}: mobile preview outcomes retain the 12px readability floor: ${sizes}`,
+      )
+      const clipped = await preview.evaluate((strip) => {
+        const bounds = strip.getBoundingClientRect()
+        const walker = document.createTreeWalker(strip, NodeFilter.SHOW_TEXT)
+        const result = []
+        while (walker.nextNode()) {
+          const node = walker.currentNode
+          if (!node.textContent.trim() || !node.parentElement.checkVisibility()) continue
+          const range = document.createRange()
+          range.selectNodeContents(node)
+          if (
+            [...range.getClientRects()].some(
+              (rect) =>
+                rect.top < bounds.top - 1 ||
+                rect.bottom > bounds.bottom + 1 ||
+                rect.left < bounds.left - 1 ||
+                rect.right > bounds.right + 1,
+            )
+          )
+            result.push(node.textContent)
+        }
+        return result
+      })
+      assert.deepEqual(clipped, [], 'Readable preview outcomes fit the shorter preview')
+      assert.deepEqual(await board.boundingBox(), before, 'Previewing Guard preserves the board')
+      assert.equal(
+        await page.evaluate(
+          () =>
+            window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path)).length,
+        ),
+        0,
+        'Previewing Guard never submits a command',
+      )
+      await page.close()
+      console.log(`${mode} ${viewport.width}: readable Guard outcomes fit the compact preview`)
+    }
+  }
+}
 async function verifyWrappedPreviewParity() {
   const rows = []
   for (const mode of ['pve', 'pvp']) {
@@ -962,7 +1184,11 @@ async function verifyFinalFacing(page, viewport, mode) {
       'Portrait phone cockpit artwork is enlarged',
     )
     const rails = await page.locator('[data-battle-side="local"]').boundingBox()
-    assert.ok(rails.height <= 80, `Character rails stay compact: ${rails.height}`)
+    // Owner-approved effect padding adds exactly 0.4rem to the former rail budget.
+    assert.ok(
+      rails.height <= 86.4,
+      `Character rails retain their bounded effect spacing: ${rails.height}`,
+    )
   }
   const boardBeforeReading = await page.locator('[data-board-auto-fit]').boundingBox()
   const terrain = page.getByRole('button', { name: 'Terrain', exact: true })
@@ -1286,9 +1512,12 @@ async function verifyNestedReaderDismissal() {
 }
 try {
   await verifyChronicleArtworkDecoding()
+  await verifyMobileRailSpacing()
+  await verifyChronicleUniformity()
   await verifyExpandedMobileLog()
   await verifyDesktopChatBounds()
   await verifyTerrainTurnStability()
+  await verifyMobilePreviewReadability()
   await verifyWrappedPreviewParity()
   await verifyNestedReaderDismissal()
   await verifyCooldownAlignment()

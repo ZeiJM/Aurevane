@@ -102,7 +102,7 @@ Preferred sequence:
 3. make the smallest root-cause change;
 4. run the focused test;
 5. run adjacent tests for the shared subsystem;
-6. run the full quality gate before declaring completion.
+6. run the final verification selected under `docs/CHANGE_SCOPED_VERIFICATION.md`, including the full quality gate for broad or uncertain impact; configured required checks remain mandatory.
 
 Regression tests should cover both:
 
@@ -182,7 +182,7 @@ If `origin/main` advanced while the chat was working:
 2. identify overlapping files, shared services, schemas, state machines, styles, or tests;
 3. reconcile the task with current `main`;
 4. rerun targeted tests;
-5. rerun the full required quality gate.
+5. rerun affected verification and the required final gate under `docs/CHANGE_SCOPED_VERIFICATION.md`; retain every configured required check.
 
 If there is meaningful overlap, **do not push the stale version first and fix it later**.
 
@@ -192,7 +192,7 @@ This final freshness gate is mandatory even when the code change itself is small
 
 ## 8. Required verification before completion
 
-At minimum, use the checks appropriate to the changed scope. The repository-wide quality gate is:
+Select checks before implementation using `docs/CHANGE_SCOPED_VERIFICATION.md`. Record affected/shared behavior, focused and adjacent coverage, justified exclusions and final gates. Documentation-only changes need documentation validation; broad or uncertain changes need the full applicable suite. Do not repeat the full suite after each small edit, and do not bypass configured required checks. The repository-wide quality gate is:
 
 ```bash
 pnpm check

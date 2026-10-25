@@ -177,13 +177,20 @@ const pending = createPendingBattle({
     temporaryResources: createPv1fTemporaryResources(50),
   })),
 })
+const fixtureMapParameters = new URLSearchParams(location.search)
+const fixtureColumns = Number(fixtureMapParameters.get('columns'))
+const [fixtureMapWidth, fixtureMapHeight] = [9, 12, 15].includes(fixtureColumns)
+  ? [fixtureColumns, 7]
+  : ({ small: [9, 7], medium: [12, 7], large: [13, 9] }[fixtureMapParameters.get('mapSize')] ?? [
+      9, 7,
+    ])
 const tactical = createTacticalBattleState({
   battle: startBattle(pending).state,
-  width: 9,
-  height: 7,
+  width: fixtureMapWidth,
+  height: fixtureMapHeight,
   terrains: [{ id: 'open-ground', traversalCost: 1 }],
-  tiles: Array.from({ length: 63 }, (_, i) => ({
-    position: { x: i % 9, y: Math.floor(i / 9) },
+  tiles: Array.from({ length: fixtureMapWidth * fixtureMapHeight }, (_, i) => ({
+    position: { x: i % fixtureMapWidth, y: Math.floor(i / fixtureMapWidth) },
     terrainId: 'open-ground',
     elevation: 0,
   })),

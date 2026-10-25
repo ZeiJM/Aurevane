@@ -1,22 +1,49 @@
-// Test-only per-frame interpolation budget. Normal frames retain the existing
-// 0.75 tile bound. Delayed drawing may cover more elapsed interpolation time,
-// but even a delayed draw cannot justify teleporting by an entire tile.
-const NOMINAL_FRAME_MS = 1000 / 60
-const NORMAL_FRAME_LIMIT = 0.75
-const TELEPORT_LIMIT = 0.95
+import { STEP_MS } from '../src/world/catalog'
+import { MAP_X, MAP_Y } from '../src/components/world/map-projection'
 
-export function measurePeerMotionStep(
-  previous: { at: number; x: number },
-  current: { at: number; x: number },
-) {
-  const elapsedMs = current.at - previous.at
+export interface PeerMotionSample {
+  at: number
+  frameAt: number
+  x: number
+  y: number
+  tileSize: number
+  identityRatio: number
+}
+
+// Positions are sampled on the renderer's animation clock. fillText's wall clock
+// also includes callback delay and painting, which can change between frames.
+// Two native-pixel rounding stages per axis bound the nameplate projection
+// error; elapsed time permits only the fastest authored legal walking speed.
+export function measurePeerMotionStep(previous: PeerMotionSample, current: PeerMotionSample) {
+  for (const sample of [previous, current]) {
+    if (
+      !['at', 'frameAt', 'x', 'y', 'tileSize', 'identityRatio'].every((key) =>
+        Number.isFinite(sample[key as keyof PeerMotionSample]),
+      ) ||
+      sample.frameAt < 0 ||
+      sample.at < sample.frameAt ||
+      sample.tileSize <= 0 ||
+      sample.identityRatio <= 0
+    )
+      throw new Error('Invalid peer motion sample')
+  }
+  const elapsedMs = current.frameAt - previous.frameAt
+  const paintElapsedMs = current.at - previous.at
+  if (
+    elapsedMs <= 0 ||
+    paintElapsedMs <= 0 ||
+    previous.tileSize !== current.tileSize ||
+    previous.identityRatio !== current.identityRatio
+  )
+    throw new Error('Peer motion requires increasing clocks and a stable projection')
+  const projectionError = (1 / MAP_X + 1 / MAP_Y) / (current.tileSize * current.identityRatio)
   return {
     elapsedMs,
+    paintElapsedMs,
     deltaX: current.x - previous.x,
-    maximumDeltaX: Math.min(
-      TELEPORT_LIMIT,
-      NORMAL_FRAME_LIMIT * Math.max(1, elapsedMs / NOMINAL_FRAME_MS),
-    ),
+    deltaY: current.y - previous.y,
+    projectionError,
+    maximumDeltaX: elapsedMs / STEP_MS + projectionError,
   }
 }
 
