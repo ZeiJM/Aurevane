@@ -1201,3 +1201,19 @@ it('restores an available system baseline to draft without fabricating a publica
   })
   expect(edited.draft).toMatchObject({ restoredFrom: null, restoredSource: null })
 })
+
+it('executes the native finalized media and Tag lifecycle proof unchanged on the migration chain', async () => {
+  await db.query("select set_config('task13.owner',$1,true)", [owner])
+  const originals = execFileSync(
+    'node',
+    [resolve(root, '../../apps/web/scripts/master-originals-fixture.mjs')],
+    { encoding: 'utf8' },
+  )
+  await db.query("select set_config('task13.originals',$1,true)", [originals])
+  await db.exec(
+    readFileSync(
+      resolve(root, '../../.github/scripts/verify-master-content-lifecycle.sql'),
+      'utf8',
+    ),
+  )
+})

@@ -357,10 +357,10 @@ describe('exact proposed roster through legal earned-loadout save and battle adm
       ).rejects.toMatchObject({
         code: 'INVALID_REQUEST',
         message: {
-          unlearned: 'Only learned Discipline Skills may be equipped.',
+          unlearned: 'Only learned Skills eligible for an active Discipline may be equipped.',
           duplicate: 'A Discipline Technique may only be tagged once.',
           fifth: 'That build may tag at most 4 Discipline Techniques.',
-          inactive: 'That Technique does not come from an active Discipline.',
+          inactive: 'Only learned Skills eligible for an active Discipline may be equipped.',
           'four-from-one-mixed-source':
             'A mixed build may tag at most 3 Techniques from the Secondary Discipline.',
         }[invalid],

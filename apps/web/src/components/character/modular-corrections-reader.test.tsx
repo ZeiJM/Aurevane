@@ -49,7 +49,9 @@ it('renders a shared effect tag as bold text in a compact Resonance-style summar
   const html = renderToStaticMarkup(
     <CompactEffectSummary parts={{ label: 'Haste', magnitude: '10', duration: null }} />,
   )
-  expect(html).toMatch(/<strong[^>]*data-compact-effect-label="true"[^>]*>Haste<\/strong>/)
+  expect(html).toMatch(
+    /<strong[^>]*data-compact-effect-label="true"[^>]*><span[^>]*data-effect-tag-label="true"[^>]*>Haste<\/span><\/strong>/,
+  )
 })
 
 it.each([

@@ -1,0 +1,16 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "status": "passed"
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "status": "passed"
+  }
+]

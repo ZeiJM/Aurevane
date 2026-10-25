@@ -1,0 +1,5 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Basic contrast below 4.5: {\"color\":\"rgb(121, 85, 28)\",\"backgrounds\":[\"rgb(221, 211, 192)\",\"rgb(194, 178, 149)\"]}",
+  "browserErrors": [],
+  "evidence": []
+}

@@ -12,6 +12,9 @@ vi.mock('@/server/combat/combat-content-resolver', async (original) => ({
   ...(await original<object>()),
   createServerCombatContentResolver: () => ({ resolveCurrentCatalogue: source.read }),
 }))
+vi.mock('@/server/character/published-discipline-catalogue', () => ({
+  loadPublishedDisciplineAtlas: vi.fn(async () => []),
+}))
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NOT_FOUND')

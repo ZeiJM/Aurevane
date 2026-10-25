@@ -443,14 +443,19 @@ async function verifyModularManual(page, viewport) {
 }
 async function assertBasicContrast(locator, minimum = 4.5) {
   const colors = await locator.evaluate((element) => {
-    const style = getComputedStyle(element)
-    let background = style.backgroundColor
-    let parent = element.parentElement
-    while ((background === 'rgba(0, 0, 0, 0)' || background === 'transparent') && parent) {
-      background = getComputedStyle(parent).backgroundColor
-      parent = parent.parentElement
+    const color = getComputedStyle(element).color
+    let surface = element
+    while (surface) {
+      const style = getComputedStyle(surface)
+      const gradient = style.backgroundImage.includes('gradient(')
+        ? [...style.backgroundImage.matchAll(/rgba?\([^)]+\)/g)].map((match) => match[0])
+        : []
+      if (gradient.length) return { color, backgrounds: gradient }
+      if (style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent')
+        return { color, backgrounds: [style.backgroundColor] }
+      surface = surface.parentElement
     }
-    return { color: style.color, background }
+    throw new Error('No rendered background for contrast measurement')
   })
   const luminance = (css) => {
     const channels = css
@@ -463,19 +468,17 @@ async function assertBasicContrast(locator, minimum = 4.5) {
       })
     return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
   }
-  const [light, dark] = [luminance(colors.color), luminance(colors.background)].sort(
-    (a, b) => b - a,
-  )
-  assert.ok(
-    (light + 0.05) / (dark + 0.05) >= minimum,
-    `Basic contrast below ${minimum}: ${JSON.stringify(colors)}`,
-  )
+  for (const background of colors.backgrounds) {
+    const [light, dark] = [luminance(colors.color), luminance(background)].sort((a, b) => b - a)
+    assert.ok(
+      (light + 0.05) / (dark + 0.05) >= minimum,
+      `Basic contrast below ${minimum}: ${JSON.stringify(colors)}`,
+    )
+  }
 }
 
 async function openNativeSample(scope) {
-  const details = scope
-    .locator('details')
-    .filter({ has: scope.locator('summary').filter({ hasText: /^Native sample$/ }) })
+  const details = scope.locator('details:has(> summary:text-is("Native sample"))')
   if ((await details.getAttribute('open')) === null) await details.locator('summary').click()
 }
 async function verifyBasicEditor(page, viewport) {
@@ -483,7 +486,12 @@ async function verifyBasicEditor(page, viewport) {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const selector = { selectOption: (id) => editor.locator(`[data-content-key="${id}"]`).click() }
+  const selector = {
+    selectOption: async (id) => {
+      await editor.locator(`[data-content-key="${id}"]`).click()
+      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
+    },
+  }
   await assertBasicContrast(editor.locator('[data-content-key][aria-current="true"]'))
   await assertBasicContrast(editor.getByLabel('Name', { exact: true }))
   await assertBasicContrast(
@@ -610,6 +618,11 @@ async function verifyBasicEditor(page, viewport) {
       .locator('[data-compact-effect-label]')
       .first(),
   )
+  for (const trigger of await editor
+    .getByRole('complementary', { name: 'Content previews' })
+    .locator('button[data-combat-tag-reference-trigger]')
+    .all())
+    await assertBasicContrast(trigger)
   await assertBasicContrast(editor.getByRole('button', { name: 'Save draft', exact: true }))
   await page.screenshot({ path: resolve(output, `basic-editor-recovery-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
@@ -621,7 +634,12 @@ async function verifyBasicPublication(page, viewport) {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const select = { selectOption: (id) => editor.locator(`[data-content-key="${id}"]`).click() }
+  const select = {
+    selectOption: async (id) => {
+      await editor.locator(`[data-content-key="${id}"]`).click()
+      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
+    },
+  }
   const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
   const button = (name) => editor.getByRole('button', { name, exact: true })
   for (const id of [
@@ -918,7 +936,12 @@ async function verifyBasicServiceRestore(page, viewport) {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const select = { selectOption: (id) => editor.locator(`[data-content-key="${id}"]`).click() }
+  const select = {
+    selectOption: async (id) => {
+      await editor.locator(`[data-content-key="${id}"]`).click()
+      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
+    },
+  }
   await editor.waitFor({ state: 'visible' })
   const activate = async (locator) => {
     if (viewport.width < 720) await locator.tap()

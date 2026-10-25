@@ -1649,7 +1649,7 @@
 }
 @media (min-width: 821px) and (min-height: 601px) {
   .skill[data-has-eligibility='true'] {
-    --av-gameplay-art-size: max(1rem, min(var(--av-cockpit-art-size), calc(100cqb - 8rem)));
+    --av-gameplay-art-size: 4rem;
   }
 }
 
@@ -1687,5 +1687,17 @@
   }
   .skill[data-has-eligibility='true'] > .eligibility select {
     min-height: 2.75rem;
+  }
+}
+
+/* Keep the eight-column desktop gallery readable with the actual eligibility selector. */
+@media (min-width: 821px) {
+  .skill,
+  .lockedSkill,
+  .supportGrid .skill {
+    --av-gameplay-art-size: 4rem;
+  }
+  .skill .eligibility {
+    color: #f0e5d3;
   }
 }

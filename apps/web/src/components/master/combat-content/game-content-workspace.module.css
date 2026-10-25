@@ -1,6 +1,7 @@
 .workspace {
   color: #313b37;
-  background: var(--master-stone, #ddd3c0);
+  background: #ddd3c0;
+  background-image: var(--master-stone, none);
   display: grid;
   gap: 0.7rem;
   min-width: 0;
@@ -151,4 +152,35 @@
   .list {
     grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr));
   }
+}
+
+/* Shared public readers use their light-surface palette inside the Master preview. */
+.preview
+  :is(
+    [data-effect-tag-label],
+    [data-compact-effect-label],
+    [data-compact-effect-magnitude],
+    [data-compact-effect-duration]
+  ):not([role='dialog'] *) {
+  color: #79551c;
+}
+.preview [data-compact-effect-timing]:not([role='dialog'] *) {
+  color: #17675e;
+}
+.preview [data-skill-attack-family='physical']:not([role='dialog'] *) {
+  color: #874b25;
+}
+.preview [data-skill-attack-family='mystic']:not([role='dialog'] *) {
+  color: #6e3f86;
+}
+
+.preview button[data-combat-tag-reference-trigger],
+.preview button[data-combat-tag-reference-trigger] :is(strong, span) {
+  color: #79551c;
+}
+
+/* Preserve the approved public paper palette on a readable paper surface. */
+.preview {
+  background: #eee5d3;
+  padding: 0.6rem;
 }

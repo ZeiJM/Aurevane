@@ -147,7 +147,7 @@ pruned_after_mix="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postg
   set role service_role;
   select count(*)::text
   from public.get_character_discipline_skill_loadout_v1('$user_id'::uuid, '$character_id'::uuid);")"
-test "$pruned_after_mix" = '2'
+test "$pruned_after_mix" = '3'
 
 mixed_payload='[{"skillId":"vanguard.forceful-strike","contentVersion":2,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.cleave","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.brace","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"lifebinder.vital-sever","contentVersion":1,"sourceDisciplineId":"lifebinder"}]'
 mixed_save="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "

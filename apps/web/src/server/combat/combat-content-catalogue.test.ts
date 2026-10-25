@@ -356,7 +356,7 @@ it.each(['discipline', 'tag', 'ascension', 'severence'])(
   async (kind) => {
     const common = {
       schemaVersion: 1,
-      id: `future.${kind}`,
+      id: kind === 'tag' ? 'tag.damage' : `future.${kind}`,
       contentVersion: 1,
       name: 'Draft intent',
       description: 'A meaningful supported intent.',

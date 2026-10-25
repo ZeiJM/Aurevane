@@ -287,3 +287,162 @@ it('missing selection and revoked live capability reject canonical writes and re
     ).rows,
   ).toEqual([{ n: 0 }])
 })
+
+import {
+  defaultBasicSkills,
+  parseBasicSkillDefinition,
+  captureBasicSkillSources,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import { SUPPORT_ACTION_IDS } from '@aurevane/game-core/combat/support-actions'
+import {
+  createCombatContentResolver,
+  RpcPublishedCombatContentSource,
+} from '@/server/combat/combat-content-resolver'
+import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
+  executePv1fAction,
+  executePv1fMovement,
+  preparePv1fTurnEconomy,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { reattachStatDrivenCombatBridge } from '@aurevane/game-core/combat/stat-driven-combat'
+import { percentageDotEncounter } from '../../../../../packages/game-core/src/combat/combat-percentage-dots.test-utils'
+import { projectBattleSnapshot } from '@/server/battle/battle-session-service'
+import { deriveParticipantBattleViewerEntitlement } from '@/server/battle/battle-viewer-entitlement'
+
+it.each(defaultBasicSkills())(
+  'complete API → SQL System original → publication → $id execution and reader preserves old captures',
+  async (original) => {
+    const initial = (await command({ action: 'read', contentKey: original.id })).body.record
+    expect(initial.history).toEqual([])
+    expect(initial.builtinRestoreVersion).toBe(1)
+    const edited = structuredClone(original)
+    Object.assign(edited, { name: 'Edited original', description: 'A complete edited record.' })
+    Object.assign(edited.ability.behaviors[0]!, { costs: [{ resource: 'ap', amount: 29 }] })
+    const saved = await command({
+      action: 'save',
+      contentKey: original.id,
+      expectedRevision: initial.revision,
+      definition: edited,
+    })
+    expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+    const first = await publish(saved.body.record)
+    expect(first.status, JSON.stringify(first.body)).toBe(200)
+    const source = new RpcPublishedCombatContentSource(session.rpc)
+    const resolver = createCombatContentResolver(source)
+    const oldDefinition = await resolver.resolvePinnedBasicSkillDefinition!(original.id, 2)
+    expect(oldDefinition?.name).toBe('Edited original')
+    const support = SUPPORT_ACTION_IDS.find((id) => id === original.id) ?? 'basic.guard'
+    const capture = (definition: typeof original) => {
+      const state = preparePv1fTurnEconomy(percentageDotEncounter())
+      Object.assign(
+        state.tactical.battle.combatants.find((c) => c.id === 'actor')!,
+        { hp: 800, mp: 5 },
+      )
+      return reattachStatDrivenCombatBridge(
+        reconcileCombatAbilitySources(
+          state,
+          captureBasicSkillSources({
+            ownerCombatantId: 'actor',
+            supportActionId: support,
+            definitions: defaultBasicSkills().map((d) => (d.id === definition.id ? definition : d)),
+          }),
+        ),
+        state.statBridge,
+      )
+    }
+    const old = capture(oldDefinition!)
+    const oldBytes = JSON.stringify(old)
+    const restore = {
+      action: 'restore',
+      contentKey: original.id,
+      expectedRevision: first.body.record.revision,
+      sourceVersion: 1,
+      sourceKind: 'builtin',
+    }
+    expect(
+      (await command({ ...restore, sourceDefinition: { ...original, name: 'Forged' } })).status,
+    ).toBe(400)
+    expect((await command({ ...restore, sourceVersion: 999 })).status).toBe(400)
+    session.selected = null
+    expect((await command(restore)).status).toBe(403)
+    session.selected = selected
+    const restored = await command(restore)
+    expect(restored.status, JSON.stringify(restored.body)).toBe(200)
+    expect(restored.body.record.current).toEqual(first.body.record.current)
+    expect(restored.body.record.history).toEqual(first.body.record.history)
+    expect(restored.body.record.draft).toMatchObject({
+      definition: original,
+      baseVersion: 2,
+      restoredFrom: 1,
+      restoredSource: 'builtin',
+    })
+    expect((await command(restore)).status).toBe(409)
+    const published = await publish(restored.body.record)
+    expect(published.status, JSON.stringify(published.body)).toBe(200)
+    expect(published.body.record.current).toMatchObject({
+      contentVersion: 3,
+      restoredFrom: 1,
+      restoredSource: 'builtin',
+      authoredBy: null,
+      authoredAt: null,
+      restoredBy: session.userId,
+    })
+    expect(published.body.record.history.map((v) => v.contentVersion)).toEqual([3, 2])
+    const catalogue = await resolver.resolveCurrentCatalogue!()
+    const definition = parseBasicSkillDefinition(
+      catalogue.entries.find((e) => e.contentKey === original.id)!.definition,
+    )
+    expect(definition).toEqual({ ...original, contentVersion: 3 })
+    const fresh = capture(definition)
+    const execute = (state: typeof fresh) =>
+      original.id === 'basic.move'
+        ? executePv1fMovement(state, [
+            { x: 1, y: 1 },
+            { x: 1, y: 0 },
+          ])
+        : executePv1fAction(
+            state,
+            original.id === 'unarmed.basic' ? 'basic.attack.unarmed.basic' : original.id,
+            original.id === 'unarmed.basic'
+              ? { kind: 'unit', combatantId: 'enemy' }
+              : { kind: 'self' },
+          )
+    const result = execute(fresh)
+    const actor = result.state.tactical.battle.combatants.find((c) => c.id === 'actor')!
+    const price = original.ability.behaviors[0]!.costs.find((c) => c.resource === 'ap')!.amount
+    expect(actor.temporaryResources!.find((r) => r.key === 'pv1f.action-economy')!.current).toBe(
+      100 - price,
+    )
+    if (original.id === 'basic.move')
+      expect(
+        result.state.tactical.placements.find((c) => c.combatantId === 'actor')!.position,
+      ).toEqual({ x: 1, y: 0 })
+    if (original.id === 'unarmed.basic')
+      expect(
+        result.state.tactical.battle.combatants.find((c) => c.id === 'enemy')!.hp,
+      ).toBeLessThan(1000)
+    if (original.id === 'basic.guard')
+      expect(
+        result.state.statusState
+          .find((c) => c.combatantId === 'actor')!
+          .statuses.some((s) => s.statusId === 'guarded'),
+      ).toBe(true)
+    if (original.id === 'basic.recover') expect(actor.hp).toBeGreaterThan(800)
+    if (original.id === 'basic.recover.mp') expect(actor.mp).toBeGreaterThan(5)
+    const view = projectBattleSnapshot(
+      result.state,
+      deriveParticipantBattleViewerEntitlement(result.state.tactical.battle.combatants, ['actor']),
+    )
+    expect(view.basicActions).toHaveLength(3)
+    expect(view.basicActions!.some((a) => a.name === original.name && a.contentVersion === 3)).toBe(
+      true,
+    )
+    expect(JSON.stringify(view.basicActions)).not.toMatch(
+      /chanceBasisPoints|accuracyMode|sourceInstanceId/,
+    )
+    expect(JSON.stringify(old)).toBe(oldBytes)
+    expect((await resolver.resolvePinnedBasicSkillDefinition!(original.id, 2))!.name).toBe(
+      'Edited original',
+    )
+  },
+)

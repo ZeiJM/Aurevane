@@ -1043,3 +1043,75 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
     )
   }
 })
+
+test('all five independent Basic originals restore through the mounted complete editor and real saved publication', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(120_000)
+  const { defaultBasicSkills } = await import('@aurevane/game-core/combat/combat-basic-actions')
+  expect(['localhost', '127.0.0.1']).toContain(
+    new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname,
+  )
+  const email = `master-original-${crypto.randomUUID()}@example.test`
+  await provisionAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Disposable-originals-2026!',
+    characterName: `Original ${crypto
+      .randomUUID()
+      .replace(/[^a-z]/g, '')
+      .slice(0, 9)}`,
+  })
+  try {
+    grantLocalMasterOperator(email)
+    await page.goto('/master/combat-content')
+    for (const original of defaultBasicSkills()) {
+      await selectContentRecord(page, original.id, 'basic')
+      // Start with a real saved edit/publication, with any prior publications retained.
+      await page.getByRole('button', { name: 'Text', exact: true }).click()
+      const name = page.getByRole('textbox', { name: 'Name', exact: true })
+      await name.fill(`${original.name} integration edit`)
+      const edited = await publishSaved(page)
+      const version = publishedVersion(edited)
+      const physicalBefore = queryLocalDatabase(
+        `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(original.id)}';`,
+      )
+      await page.getByRole('button', { name: 'History', exact: true }).click()
+      const restored = await runMasterOperation(
+        page,
+        'restore',
+        'Restore System original v1 to draft',
+      )
+      expect(
+        isRecord(restored) && isRecord(restored.record) && isRecord(restored.record.draft),
+      ).toBe(true)
+      if (!isRecord(restored) || !isRecord(restored.record) || !isRecord(restored.record.draft))
+        throw new Error('Missing complete draft')
+      expect(restored.record.draft.definition).toEqual(original)
+      expect(restored.record.draft.restoredSource).toBe('builtin')
+      expect(
+        queryLocalDatabase(
+          `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(original.id)}';`,
+        ),
+      ).toBe(physicalBefore)
+      const published = await runMasterOperation(page, 'publish', 'Publish saved draft')
+      expect(publishedVersion(published)).toBeGreaterThan(version)
+      expect(publishedSnapshot(published)).toMatchObject({
+        restoredFrom: 1,
+        restoredSource: 'builtin',
+        authoredBy: null,
+        authoredAt: null,
+      })
+      await page.getByRole('button', { name: 'History', exact: true }).click()
+      await expect(page.getByLabel('Publication history')).toContainText('Authored by System')
+      await page.screenshot({
+        path: testInfo.outputPath(`master-original-${original.id}.png`),
+        fullPage: true,
+      })
+    }
+  } finally {
+    queryLocalDatabase(
+      `update app_private.master_panel_role_assignments set enabled=false where user_id=(select id from auth.users where email='${escapeSqlLiteral(email)}') and role='game-owner';`,
+    )
+  }
+})

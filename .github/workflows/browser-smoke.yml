@@ -66,6 +66,18 @@ jobs:
           printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
           pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
 
+      - name: Verify complete Master operational components
+        env:
+          AV_MASTER_OPERATIONS_EVIDENCE_DIR: /tmp/master-operations-review
+          AV_TECHNIQUE_ELIGIBILITY_EVIDENCE_DIR: /tmp/technique-eligibility-review
+          AV_EVENT_WORKSPACE_EVIDENCE_DIR: /tmp/event-workspace-review
+          AV_NEXUS_DESKTOP_EVIDENCE_DIR: /tmp/nexus-desktop-review
+        run: |
+          node apps/web/scripts/master-operations-browser-regression.mjs
+          node apps/web/scripts/technique-eligibility-browser-regression.mjs
+          node apps/web/scripts/event-workspace-browser-regression.mjs
+          node apps/web/scripts/nexus-desktop-integration-regression.mjs
+
       - name: Verify shared ally inspection and multi-target previews
         env:
           AV_ALLY_INSPECTION_EVIDENCE_DIR: /tmp/battle-ally-inspection-review
@@ -161,8 +173,10 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web exec playwright test \
-            e2e/master-combat-content-authoring.pw.ts e2e/staff-selected-character-access.pw.ts e2e/master-players-recovery.pw.ts e2e/battle-wasd-backtracking.pw.ts \
+            e2e/master-complete-layout.pw.ts e2e/master-world-environment-cadence.pw.ts e2e/master-combat-content-authoring.pw.ts e2e/staff-selected-character-access.pw.ts e2e/master-players-recovery.pw.ts e2e/battle-wasd-backtracking.pw.ts \
             --project=desktop-chromium --repeat-each=2
+          mkdir -p /tmp/master-full-integration-review
+          find apps/web/test-results -maxdepth 1 -type d \( -name 'master-complete-layout*' -o -name 'master-world-environment-cadence*' \) -exec cp -R '{}' /tmp/master-full-integration-review/ \;
           mkdir -p /tmp/combat-master-release-review
           find apps/web/test-results \( -name 'master-*.png' -o -name 'staff-*.png' -o -name 'battle-ground-*.png' \) \
             -exec cp '{}' /tmp/combat-master-release-review/ \;
@@ -379,6 +393,21 @@ jobs:
             apps/web/test-results/atlas-world.pw.ts-*/error-context.md
             apps/web/test-results/atlas-world.pw.ts-*/test-failed-*.png
             apps/web/test-results/atlas-world.pw.ts-*/attachments/world-*.json
+          retention-days: 7
+
+      - name: Save complete Master operational evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-integration-operational-evidence
+          path: |
+            /tmp/master-full-integration-review
+            apps/web/test-results/master-complete-layout*/
+            apps/web/test-results/master-world-environment-cadence*/
+            /tmp/master-operations-review
+            /tmp/technique-eligibility-review
+            /tmp/event-workspace-review
+            /tmp/nexus-desktop-review
           retention-days: 7
 
       - name: Save browser evidence

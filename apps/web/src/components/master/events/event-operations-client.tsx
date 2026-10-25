@@ -329,7 +329,12 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
           >
             {runs.map((run) => (
               <option key={run.runId} value={run.runId}>
-                {run.title ?? run.eventKey} · {run.lifecycleStatus} · {run.runId.slice(0, 8)}
+                {run.title ?? run.eventKey} · {run.lifecycleStatus} ·{' '}
+                {new Date(run.scheduledStartAt ?? run.startedAt ?? run.updatedAt).toLocaleString(
+                  undefined,
+                  { timeZone: 'UTC' },
+                )}{' '}
+                UTC
               </option>
             ))}
           </select>
@@ -385,12 +390,14 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               <div className={styles.runHeaderIdentity}>
                 <p className={styles.eyebrow}>Authoritative Event Run</p>
                 <h2>{dashboard.run.title ?? dashboard.run.eventKey}</h2>
+                <details>
+                  <summary>Run identity</summary>
+                  <code>{dashboard.run.runId}</code>
+                </details>
                 <p>
-                  <code>{dashboard.run.runId.slice(0, 12)}</code>
                   <span data-status={dashboard.run.lifecycleStatus}>
                     {dashboard.run.lifecycleStatus}
                   </span>
-                  <span>State v{dashboard.run.stateVersion}</span>
                 </p>
               </div>
               <strong className={styles.workspaceMessage}>{message}</strong>
@@ -799,10 +806,6 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             <div>
               <dt>Claims</dt>
               <dd>{dashboard?.claims.length ?? 0}</dd>
-            </div>
-            <div>
-              <dt>State version</dt>
-              <dd>{dashboard?.run.stateVersion ?? '—'}</dd>
             </div>
           </dl>
         </section>

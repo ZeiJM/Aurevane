@@ -555,13 +555,16 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               </div>
             </div>
 
-            <label>
-              Template key
-              <input
-                value={definition.templateKey}
-                onChange={(event) => patchDefinition({ templateKey: event.target.value })}
-              />
-            </label>
+            <details>
+              <summary>Template identity</summary>
+              <label>
+                Template key
+                <input
+                  value={definition.templateKey}
+                  onChange={(event) => patchDefinition({ templateKey: event.target.value })}
+                />
+              </label>
+            </details>
             <label>
               Family
               <select

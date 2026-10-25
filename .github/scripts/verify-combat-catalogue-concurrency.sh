@@ -26,10 +26,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
+originals_json="$(node apps/web/scripts/master-originals-fixture.mjs)"
+
+# The all-migration local regression executes this exact SQL too. Native execution
+# proves real PostgreSQL bytes, current metadata, deep history and forged/CAS denials.
+{ printf '%s\n' 'begin;' "select set_config('task13.owner','$owner_id',true);" "select set_config('task13.originals', :'originals', true);"; cat .github/scripts/verify-master-content-lifecycle.sql; printf '%s\n' 'rollback;'; } | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -v originals="$originals_json" -U postgres -d postgres
+
 # Snapshot all persisted combat authoring state, including immutable history and
 # drafts. A losing writer must not even delete an existing draft.
 state_expression="jsonb_build_object(
   'catalogue',public.read_combat_content_catalogue_v1(),
+  'publications',(select coalesce(jsonb_agg(to_jsonb(p) order by content_key),'[]') from app_private.combat_content_publications p),
+  'media',(select coalesce(jsonb_agg(to_jsonb(m) order by id),'[]') from app_private.combat_content_media m),
+  'mediaReferences',(select coalesce(jsonb_agg(to_jsonb(m) order by to_jsonb(m)::text),'[]') from app_private.combat_content_media_versions m),
   'versions',(select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v),
   'drafts',(select coalesce(jsonb_agg(to_jsonb(d) order by content_key),'[]') from app_private.combat_content_drafts d),
   'records',(select coalesce(jsonb_agg(to_jsonb(r) order by content_key),'[]') from app_private.combat_content_records r),
@@ -81,7 +90,7 @@ race() {
   before_state="$(sql "select $state_expression;")"
   mkfifo "$race_tmp/$label-input"
   exec {holder_input}<>"$race_tmp/$label-input"
-  docker exec -i -e PGAPPNAME="$holder_app" "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -v actor="$owner_id" -v token="$catalogue_token" -U postgres -d postgres \
+  docker exec -i -e PGAPPNAME="$holder_app" "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -v actor="$owner_id" -v token="$catalogue_token" -v originals="$originals_json" -U postgres -d postgres \
     <"$race_tmp/$label-input" >"$race_tmp/$label-holder.log" 2>&1 &
   holder_pid=$!
   cat >&"$holder_input" <<SQL
@@ -98,7 +107,7 @@ SQL
   elif [[ "$label" == b-*-catalogue-first ]]; then
     test "$(sql "select exists(select 1 from pg_stat_activity a join pg_locks l on l.pid=a.pid where a.application_name='$holder_app' and l.locktype='advisory' and l.mode='ExclusiveLock' and l.granted);")" = t
   fi
-  docker exec -i -e PGAPPNAME="$writer_app" "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -v actor="$owner_id" -v token="$catalogue_token" -U postgres -d postgres \
+  docker exec -i -e PGAPPNAME="$writer_app" "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -v actor="$owner_id" -v token="$catalogue_token" -v originals="$originals_json" -U postgres -d postgres \
     >"$race_tmp/$label-writer.log" 2>&1 <<SQL &
 begin;
 \\set VERBOSITY verbose
@@ -203,3 +212,36 @@ for guarded_table in character_skill_unlocks character_build_discipline_skills c
   race "b-$guarded_table-producer-first" "$actual_producer" "$archive_b" rollback '' blocking
 done
 echo 'Stage B all seven actual guard tables: both physical catalogue/producer lock orders and whole-transaction rollback PASS.'
+
+# Tag publication uses the same catalogue lock as complete Skill publication.
+# Observe both real blocking orders; the losing writer retains its entire draft.
+test "$(sql "select count(*) from app_private.combat_content_records where content_key='tag.damage';")" = 0
+sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,'tag.damage',jsonb_build_object('action','create','requestId',gen_random_uuid(),'contentKind','tag','definition','{\"schemaVersion\":1,\"id\":\"tag.damage\",\"contentVersion\":1,\"tagId\":\"damage\",\"name\":\"Impact\",\"description\":\"Relative power.\",\"explanation\":\"Damage uses power.\",\"sortOrder\":0,\"enabled\":true,\"media\":{}}'::jsonb));" >/dev/null
+tag_publish="select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',1,null,:'token',null);"
+loser_publish="select public.publish_saved_combat_content_v1(:'actor',null,'ci.catalogue-loser',1,null,:'token',5);"
+race tag-before-skill "$tag_publish" "$loser_publish"
+sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,'tag.damage',jsonb_build_object('action','save','expectedRevision',2,'definition',public.read_combat_content_record_v1('$owner_id',null,'tag.damage')#>'{current,definition}'));" >/dev/null
+tag_publish="select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',2,1,:'token',null);"
+race skill-before-tag "$loser_publish" "$tag_publish"
+race tag-rollback "$tag_publish" "$timing" rollback ''
+echo 'Media/Tag lifecycle, pointer attribution, both actual Tag/Skill lock orders and whole rollback PASS.'
+
+# Exact source-defined Basic original restore participates in both lock orders.
+original_guard="(select value from jsonb_array_elements(:'originals'::jsonb) where value->>'id'='basic.guard')"
+# The command below is transported through psql variables, not interpolated SQL JSON.
+printf '%s\n' "set role service_role; select public.write_combat_content_record_v1(:'actor',null,'basic.guard',jsonb_build_object('action','save','expectedRevision',public.read_combat_content_record_v1(:'actor',null,'basic.guard')->'revision','definition',$original_guard));" | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -v actor="$owner_id" -v originals="$originals_json" -U postgres -d postgres >/dev/null
+original_restore() {
+  local revision
+  revision="$(sql "select revision from app_private.combat_content_records where content_key='basic.guard';")"
+  printf "select public.write_combat_content_record_v1(:'actor',null,'basic.guard',jsonb_build_object('action','restore','expectedRevision',%s,'sourceVersion',1,'sourceKind','builtin','sourceDefinition',%s));" "$revision" "$original_guard"
+}
+original_publish() {
+  local version base
+  version="$(sql "select draft_version from app_private.combat_content_drafts where content_key='basic.guard';")"
+  base="$(sql "select coalesce(base_version::text,'null') from app_private.combat_content_drafts where content_key='basic.guard';")"
+  printf "select public.publish_saved_combat_content_v1(:'actor',null,'basic.guard',%s,%s,:'token',1);" "$version" "$base"
+}
+race original-before-publication "$(original_restore)" "$(original_publish)"
+race publication-before-original "$(original_publish)" "$(original_restore)" commit COMBAT_CONTENT_RECORD_CONFLICT
+race original-rollback "$(original_restore)" "$timing" rollback ''
+echo 'System-original restore: both physical restore/publication lock orders and whole rollback PASS.'

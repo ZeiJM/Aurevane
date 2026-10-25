@@ -706,7 +706,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   </label>
                   {entry.eligibilityGrants ? (
                     <label className={styles.eligibility}>
-                      Eligible Discipline
+                      Eligible
                       <select
                         aria-label={`Eligible Discipline for ${label}`}
                         disabled={pending}
