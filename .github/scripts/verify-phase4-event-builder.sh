@@ -85,33 +85,21 @@ definition_sql() {
           'objectives',jsonb_build_array(
             jsonb_build_object(
               'id','community',
-              'type','community-threshold',
+              'type','discover',
+              'worldNavigation',jsonb_build_object('sectorId','verdant-expanse','x',12,'y',4,'autoPath',true,'guidance','exact'),
               'referenceKey','objective.p413-community',
               'target',10
             )
           ),
-          'effects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',true
-            )
-          ),
-          'cleanupEffects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',false
-            )
-          ),
+          'effects',jsonb_build_array(),
+          'cleanupEffects',jsonb_build_array(),
           'transition',jsonb_build_object(
-            'type','objective-threshold',
-            'objectiveId','community'
+            'type','manual'
           )
         )
       ),
-      'rewardPackageRefs',jsonb_build_array('$reward_ref'),
-      'aftermathRefs',jsonb_build_array('aftermath.p413-ci')
+      'rewardPackageRefs',case when '$reward_ref'='reward.p413-missing' then jsonb_build_array('$reward_ref') else jsonb_build_array() end,
+      'aftermathRefs',jsonb_build_array()
     )"
   else
     printf "%s" "jsonb_build_object(
@@ -131,33 +119,21 @@ definition_sql() {
           'objectives',jsonb_build_array(
             jsonb_build_object(
               'id','community',
-              'type','community-threshold',
+              'type','discover',
+              'worldNavigation',jsonb_build_object('sectorId','verdant-expanse','x',12,'y',4,'autoPath',true,'guidance','exact'),
               'referenceKey','objective.p413-community',
               'target',10
             )
           ),
-          'effects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',true
-            )
-          ),
-          'cleanupEffects',jsonb_build_array(
-            jsonb_build_object(
-              'type','world-pulse',
-              'referenceKey','announcement.p413-live',
-              'enabled',false
-            )
-          ),
+          'effects',jsonb_build_array(),
+          'cleanupEffects',jsonb_build_array(),
           'transition',jsonb_build_object(
-            'type','objective-threshold',
-            'objectiveId','community'
+            'type','manual'
           )
         )
       ),
-      'rewardPackageRefs',jsonb_build_array('$reward_ref'),
-      'aftermathRefs',jsonb_build_array('aftermath.p413-ci')
+      'rewardPackageRefs',case when '$reward_ref'='reward.p413-missing' then jsonb_build_array('$reward_ref') else jsonb_build_array() end,
+      'aftermathRefs',jsonb_build_array()
     )"
   fi
 }
@@ -228,22 +204,16 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'EVENT_ACTION_CONFIRMATION_REQUIRED' /tmp/p413-confirmation.err
 
-if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+# Explanation-free action still records automatic actor/result attribution; rollback
+# keeps this probe independent of the subsequent publication/CAS/idempotency assertions.
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  begin;
   set role service_role;
-  select * from public.publish_event_definition_v2(
-    '$staff_id'::uuid,
-    '$staff_character_id'::uuid,
-    'event.p413-ci',
-    $regional_definition,
-    null,
-    '00000000-0000-4000-8000-000000004303'::uuid,
-    'x',
-    true
-  );" >/tmp/p413-reason.out 2>/tmp/p413-reason.err; then
-  echo 'Expected Event publication without a valid reason to fail.' >&2
-  exit 1
-fi
-grep -Fq 'EVENT_ACTION_REASON_REQUIRED' /tmp/p413-reason.err
+  select * from public.publish_event_definition_v2('$staff_id'::uuid,'$staff_character_id'::uuid,'event.p413-ci',$regional_definition,null,'00000000-0000-4000-8000-000000004303'::uuid,null,true);
+  reset role;
+  do \$\$ begin if not exists(select 1 from app_private.event_authoring_audit where correlation_key='00000000-0000-4000-8000-000000004303' and actor_user_id='$staff_id' and reason is null) then raise exception 'Missing reason-free attributed receipt'; end if; end; \$\$;
+  rollback;
+" >/dev/null
 
 missing_reward_definition="$(definition_sql 'event.p413-missing-reward' 'region' 'region.frostmere' 'reward.p413-missing')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "

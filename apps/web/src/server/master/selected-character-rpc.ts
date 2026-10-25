@@ -31,6 +31,7 @@ const SELECTED_ACTOR_RPCS = new Set([
   'schedule_event_run_v2',
   'cancel_scheduled_event_run_v2',
   'list_event_operation_runs_v1',
+  'list_event_workspace_runs_v1',
   'read_event_operation_dashboard_v1',
   'operate_event_run_v2',
   'advance_event_run_phase_v2',

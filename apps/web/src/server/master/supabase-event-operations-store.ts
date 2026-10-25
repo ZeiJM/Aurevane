@@ -122,6 +122,11 @@ function parseRunSummary(row: JsonObject): EventOperationRunSummary | null {
   }
 
   return {
+    title: text(row.title) ?? eventKey,
+    participantCount:
+      Number.isSafeInteger(row.participant_count) && Number(row.participant_count) >= 0
+        ? Number(row.participant_count)
+        : 0,
     runId,
     eventKey,
     lifecycleStatus,
@@ -187,7 +192,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
     async listRuns(actorUserId) {
       const supabase = createSupabaseAdminClient()
       const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
-      const { data, error } = await rpc('list_event_operation_runs_v1', {
+      const { data, error } = await rpc('list_event_workspace_runs_v1', {
         p_actor_user_id: actorUserId,
       })
       if (error) mapRpcError(error)

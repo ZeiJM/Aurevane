@@ -139,9 +139,21 @@ begin
       left join app_private.event_definition_versions v on v.id=p.version_id
       order by coalesce(d.updated_at,p.updated_at) desc limit 200
     ) x),'[]'::jsonb),
-    'rewards',coalesce((select jsonb_agg(jsonb_build_object('key',p.reward_package_ref,'label',p.amount::text||' Character XP · v'||p.package_version::text,'budget',p.budget_ref) order by p.reward_package_ref) from app_private.event_reward_packages p),'[]'::jsonb));
+    'rewards',coalesce((select jsonb_agg(jsonb_build_object('key',p.reward_package_ref,'label',p.amount::text||' Character XP · v'||p.package_version::text,'budget',p.budget_ref) order by p.reward_package_ref) from (select * from app_private.event_reward_packages order by reward_package_ref limit 200) p),'[]'::jsonb));
 end; $$;
 revoke all on function public.read_event_workspace_catalogue_v1(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.read_event_workspace_catalogue_v1(uuid,uuid) to service_role;
+
+create function public.list_event_workspace_runs_v1(p_actor_user_id uuid,p_actor_character_id uuid)
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select coalesce(jsonb_agg(to_jsonb(summary) || jsonb_build_object('title',definition.definition->>'title',
+    'participant_count',(select count(*) from app_private.event_participants participant where participant.run_id=summary.run_id))
+    order by case when summary.lifecycle_status='archived' then 1 else 0 end,summary.updated_at desc,summary.run_id),'[]'::jsonb)
+  from public.list_event_operation_runs_v1(p_actor_user_id,p_actor_character_id) summary
+  join app_private.event_runs run on run.id=summary.run_id
+  join app_private.event_definition_versions definition on definition.id=run.definition_version_id;
+$$;
+revoke all on function public.list_event_workspace_runs_v1(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.list_event_workspace_runs_v1(uuid,uuid) to service_role;
 
 commit;

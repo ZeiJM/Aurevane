@@ -1267,3 +1267,40 @@
 .workspaceTabs button[aria-pressed='true'] {
   border-bottom: 2px solid currentColor;
 }
+
+:global(.av-master) nav.workspaceTabs[aria-label] {
+  position: static;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+:global(.av-master) .workspaceTabs button {
+  min-height: 2.75rem;
+  color: #30372f;
+  background: #d9cbb3;
+  border: 1px solid #9d8865;
+  border-radius: 2px;
+  font-size: 0.8rem;
+}
+:global(.av-master) .workspaceTabs button[aria-pressed='true'] {
+  color: #f1e5ce;
+  background: #345b52;
+  border-color: #437367;
+}
+.runHeaderIdentity h2,
+.runIdentity strong,
+.runIdentity small {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.actionHelp {
+  margin: 0.6rem 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.metricGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:global(.av-master) .runRow[data-selected='true'] :is(strong, small) {
+  color: #f1e5ce;
+}

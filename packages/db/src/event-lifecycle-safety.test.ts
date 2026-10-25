@@ -15,13 +15,12 @@ async function database() {
     create schema auth; create schema app_private;
     create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
     create table public.player_profiles(user_id uuid primary key);
-    create table public.characters(id uuid primary key,user_id uuid,name text);
+    create table public.characters(id uuid primary key,user_id uuid,name text,xp bigint not null default 0,level smallint not null default 1,progression_cycle integer not null default 1,cycle_started_at timestamptz not null default now());
     create table app_private.character_deletion_requests(character_id uuid primary key);
-    create table app_private.character_xp_grants(id uuid primary key);
     create table app_private.idempotency_records(actor_key text,command_name text,idempotency_key uuid,request_fingerprint text,result jsonb,primary key(actor_key,command_name,idempotency_key));
     insert into auth.users values('${actor}','owner@example.com',now());
     insert into public.player_profiles values('${actor}');
-    insert into public.characters values('${actor}','${actor}','Owner');
+    insert into public.characters(id,user_id,name) values('${actor}','${actor}','Owner');
     `)
   for (const name of [
     '20260917213000_combat_content_authoring.sql',
@@ -45,6 +44,7 @@ async function database() {
   ])
     await db.exec(sql(name))
   for (const name of [
+    '20260816190000_character_progression.sql',
     '20260918233000_phase5_persistent_event_kernel.sql',
     '20260919043000_phase5_event_participation_ledger.sql',
     '20260919050000_phase4_event_reward_execution.sql',
@@ -176,7 +176,7 @@ it('selected_vs_global_emergency_authority uses the current linked character in 
   const staff = '66666666-6666-4666-8666-666666666666',
     chosen = '77777777-7777-4777-8777-777777777777',
     alternate = '88888888-8888-4888-8888-888888888888'
-  await db.exec(`insert into auth.users values('${staff}','staff@example.com',now()); insert into public.characters values('${chosen}','${staff}','Chosen'),('${alternate}','${staff}','Alternate');
+  await db.exec(`insert into auth.users values('${staff}','staff@example.com',now()); insert into public.characters(id,user_id,name) values('${chosen}','${staff}','Chosen'),('${alternate}','${staff}','Alternate');
     insert into app_private.master_panel_character_access(character_id,user_id,roles,special_capabilities,updated_by) values('${chosen}','${staff}',array['event-staff'],array['events.emergency_stop'],'${actor}');`)
   const operate = (character: string) =>
     db.query(
@@ -186,6 +186,21 @@ it('selected_vs_global_emergency_authority uses the current linked character in 
   await db.exec('savepoint expected_rejection')
   await expect(operate(alternate)).rejects.toThrow('EVENT_STAFF_REQUIRED')
   await db.exec('rollback to savepoint expected_rejection')
+  await db.exec(
+    `update app_private.event_runs set scope_type='global',scope_key=null where id='${run}'`,
+  )
+  await db.exec('savepoint global_denied')
+  await expect(operate(chosen)).rejects.toThrow('EVENT_GLOBAL_SCOPE_CAPABILITY_REQUIRED')
+  await db.exec('rollback to savepoint global_denied')
+  await db.exec(
+    `update app_private.master_panel_character_access set special_capabilities=array['events.global_scope'] where character_id='${chosen}'`,
+  )
+  await db.exec('savepoint emergency_denied')
+  await expect(operate(chosen)).rejects.toThrow('EVENT_EMERGENCY_STOP_CAPABILITY_REQUIRED')
+  await db.exec('rollback to savepoint emergency_denied')
+  await db.exec(
+    `update app_private.master_panel_character_access set special_capabilities=array['events.global_scope','events.emergency_stop'] where character_id='${chosen}'`,
+  )
   await expect(operate(chosen)).resolves.toMatchObject({
     rows: [{ lifecycle_status: 'emergency-stopped' }],
   })
@@ -208,4 +223,239 @@ it('emergency stop closes pending settlement after end, with complete transactio
       )
     ).rows,
   ).toEqual([{ lifecycle_status: 'ended', state_version: 3 }])
+})
+
+it('draft_live_concurrency: stale draft/publication writes reject without changing pinned runs', async () => {
+  const eventKey = 'event.authoring'
+  const definition = {
+    schemaVersion: 1,
+    eventKey,
+    templateKey: 'template.navigation',
+    contentVersion: 1,
+    title: 'Watchtower gathering',
+    summary: 'A guided World meeting.',
+    internalNotes: '',
+    family: 'regional-event',
+    scope: { type: 'region', key: 'verdant-expanse' },
+    phases: [
+      {
+        id: 'watch',
+        name: 'Watch',
+        objectives: [
+          {
+            id: 'visit',
+            type: 'discover',
+            referenceKey: 'objective.watchtower',
+            target: 1,
+            worldNavigation: {
+              sectorId: 'verdant-expanse',
+              x: 12,
+              y: 4,
+              autoPath: true,
+              guidance: 'exact',
+            },
+          },
+        ],
+        effects: [],
+        cleanupEffects: [],
+        transition: { type: 'elapsed', afterSeconds: 600 },
+      },
+    ],
+    rewardPackageRefs: [],
+    aftermathRefs: [],
+  }
+  await db.query(
+    'select * from public.save_event_definition_draft_v1($1,null::uuid,$2,$3::jsonb,null,null)',
+    [actor, eventKey, definition],
+  )
+  const publish = (base: number | null, title: string) =>
+    db.query(
+      'select * from public.publish_event_definition_v2($1,null::uuid,$2,$3::jsonb,$4,gen_random_uuid(),null,true)',
+      [actor, eventKey, { ...definition, title }, base],
+    )
+  await publish(null, 'First title')
+  const scheduled = await db.query<{ run_id: string }>(
+    "select * from public.schedule_event_run_v2($1,null::uuid,$2,gen_random_uuid(),'schedule:fixture',clock_timestamp()+interval '1 hour',clock_timestamp()+interval '2 hours',null,true)",
+    [actor, eventKey],
+  )
+  await publish(1, 'Second title')
+  await db.exec('savepoint stale')
+  await expect(publish(1, 'Stale title')).rejects.toThrow('EVENT_PUBLISH_BASE_VERSION_CONFLICT')
+  await db.exec('rollback to savepoint stale')
+  const pinned = await db.query<{ title: string }>(
+    "select d.definition->>'title' title from app_private.event_runs r join app_private.event_definition_versions d on d.id=r.definition_version_id where r.id=$1",
+    [scheduled.rows[0]!.run_id],
+  )
+  expect(pinned.rows).toEqual([{ title: 'First title' }])
+  const summaries = await db.query<{
+    runs: Array<{ run_id: string; title: string; participant_count: number }>
+  }>('select public.list_event_workspace_runs_v1($1,null::uuid) runs', [actor])
+  expect(
+    summaries.rows[0]!.runs.find((entry) => entry.run_id === scheduled.rows[0]!.run_id),
+  ).toMatchObject({ title: 'First title', participant_count: 0 })
+  const catalogue = await db.query<{
+    catalogue: {
+      events: Array<{ eventKey: string; publishedVersion: number }>
+      rewards: Array<{ key: string; label: string }>
+    }
+  }>('select public.read_event_workspace_catalogue_v1($1,null::uuid) catalogue', [actor])
+  expect(catalogue.rows[0]!.catalogue.events).toContainEqual(
+    expect.objectContaining({ eventKey, publishedVersion: 2 }),
+  )
+  expect(catalogue.rows[0]!.catalogue.rewards).toContainEqual(
+    expect.objectContaining({ key: 'reward.safety', label: '25 Character XP · v1' }),
+  )
+
+  await db.exec('savepoint stale_draft')
+  await expect(
+    db.query(
+      'select * from public.save_event_definition_draft_v1($1,null::uuid,$2,$3::jsonb,2,1)',
+      [actor, eventKey, definition],
+    ),
+  ).rejects.toThrow('EVENT_DRAFT_VERSION_CONFLICT')
+  await db.exec('rollback to savepoint stale_draft')
+  expect(
+    (
+      await db.query(
+        'select count(*) n from app_private.event_authoring_audit where event_key=$1',
+        [eventKey],
+      )
+    ).rows,
+  ).toEqual([{ n: 3 }])
+})
+it('specific missing-producer blockers preserve clock/navigation and supported historical reward definitions', async () => {
+  const check = (definition: unknown) =>
+    db.query('select app_private.assert_event_runtime_supported_v1($1::jsonb)', [definition])
+  await expect(
+    check({
+      phases: [
+        {
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+          transition: { type: 'elapsed', afterSeconds: 60 },
+        },
+      ],
+      rewardPackageRefs: [],
+      aftermathRefs: [],
+    }),
+  ).resolves.toBeDefined()
+  for (const [definition, message] of [
+    [
+      { phases: [{ objectives: [{ id: 'community', type: 'community-threshold' }] }] },
+      'EVENT_OBJECTIVE_EXECUTOR_UNAVAILABLE',
+    ],
+    [{ phases: [], rewardPackageRefs: ['reward.safety'] }, 'EVENT_REWARD_PRODUCER_UNAVAILABLE'],
+    [{ phases: [], aftermathRefs: ['aftermath.unknown'] }, 'EVENT_AFTERMATH_EXECUTOR_UNAVAILABLE'],
+  ] as const) {
+    await db.exec('savepoint rejected_recipe')
+    await expect(check(definition)).rejects.toThrow(message)
+    await db.exec('rollback to savepoint rejected_recipe')
+  }
+  expect(
+    (
+      await db.query(
+        "select amount from app_private.event_reward_packages where reward_package_ref='reward.safety'",
+      )
+    ).rows,
+  ).toEqual([{ amount: 25 }])
+})
+
+async function readyClaim() {
+  await db.query(
+    "select * from public.record_event_contribution_v1('system:fixture',gen_random_uuid(),'contribution',$1,$2,$2,'first','objective','test','source:claim',1,'{\"fixture\":true}')",
+    [run, actor],
+  )
+  await transition('resolving', 1)
+  await transition('ended', 2)
+  return (
+    await db.query<{ reservation_id: string }>(
+      "select * from public.reserve_event_reward_claim_v1('system:fixture',gen_random_uuid(),'reserve',$1,$2,$2,'reward.safety','{\"fixture\":true}')",
+      [run, actor],
+    )
+  ).rows[0]!.reservation_id
+}
+const executeClaim = (claim: string, key = '99999999-9999-4999-8999-999999999999') =>
+  db.query("select * from public.execute_event_reward_claim_v1($1,$2,'claim','system:fixture')", [
+    claim,
+    key,
+  ])
+it('repeat_receipt_no_reward_replay: claim-first keeps real awarded XP after emergency stop and archive', async () => {
+  await db.query(
+    "select * from public.grant_character_xp_v1($1,gen_random_uuid(),'unrelated','system:other','gameplay','other:progress','other.progress',7)",
+    [actor],
+  )
+  const unrelated = (await db.query('select * from app_private.character_xp_grants')).rows
+  const claim = await readyClaim()
+  await expect(executeClaim(claim)).resolves.toMatchObject({
+    rows: [{ applied_amount: 25, replayed: false }],
+  })
+  const ended = (await db.query('select ended_at from app_private.event_runs where id=$1', [run]))
+    .rows
+  await transition('emergency-stopped', 3)
+  await transition('archived', 4)
+  await expect(executeClaim(claim)).resolves.toMatchObject({
+    rows: [{ applied_amount: 25, replayed: true }],
+  })
+  await expect(executeClaim(claim, '99999999-9999-4999-8999-999999999998')).resolves.toMatchObject({
+    rows: [{ applied_amount: 25, claim_deduplicated: true }],
+  })
+  expect(
+    (await db.query('select xp,name from public.characters where id=$1', [actor])).rows,
+  ).toEqual([{ xp: 32, name: 'Owner' }])
+  expect(
+    (
+      await db.query(
+        "select * from app_private.character_xp_grants where reason_tag='other.progress'",
+      )
+    ).rows,
+  ).toEqual(unrelated)
+  expect(
+    (await db.query('select ended_at from app_private.event_runs where id=$1', [run])).rows,
+  ).toEqual(ended)
+  expect(
+    (await db.query('select count(*) n from app_private.event_reward_claim_executions')).rows,
+  ).toEqual([{ n: 1 }])
+})
+it('emergency-first cancels a genuine reserved claim, including after archive, without deleting its reservation', async () => {
+  const claim = await readyClaim()
+  await transition('emergency-stopped', 3)
+  await transition('archived', 4)
+  await db.exec('savepoint late_claim')
+  await expect(executeClaim(claim)).rejects.toThrow('EVENT_REWARD_EXECUTION_RUN_NOT_TERMINAL')
+  await db.exec('rollback to savepoint late_claim')
+  expect((await db.query('select xp from public.characters where id=$1', [actor])).rows).toEqual([
+    { xp: 0 },
+  ])
+  expect(
+    (await db.query('select count(*) n from app_private.event_reward_claim_reservations')).rows,
+  ).toEqual([{ n: 1 }])
+  expect(
+    (await db.query('select count(*) n from app_private.event_reward_claim_executions')).rows,
+  ).toEqual([{ n: 0 }])
+})
+it('unrelated_progress_preserved: whole real grant + cancellation rollback leaves every affected ledger exact', async () => {
+  const claim = await readyClaim()
+  const snapshot = async () => {
+    const result = []
+    for (const table of [
+      'public.characters',
+      'app_private.event_runs',
+      'app_private.event_run_transitions',
+      'app_private.event_reward_claim_reservations',
+      'app_private.event_reward_claim_executions',
+      'app_private.character_xp_grants',
+      'app_private.idempotency_records',
+    ])
+      result.push(
+        (await db.query(`select to_jsonb(t) row from ${table} t order by to_jsonb(t)::text`)).rows,
+      )
+    return result
+  }
+  const before = await snapshot()
+  await db.exec('savepoint atomic_grant_stop')
+  await executeClaim(claim)
+  await transition('emergency-stopped', 3)
+  await db.exec('rollback to savepoint atomic_grant_stop')
+  expect(await snapshot()).toEqual(before)
 })

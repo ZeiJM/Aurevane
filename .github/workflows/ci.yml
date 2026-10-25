@@ -168,6 +168,9 @@ jobs:
       - name: Verify Phase 4 Event recovery
         run: bash .github/scripts/verify-phase4-event-recovery.sh
 
+      - name: Verify Event emergency settlement lock orders and rollback
+        run: bash .github/scripts/verify-event-lifecycle-safety.sh
+
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh
 

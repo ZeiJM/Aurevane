@@ -17,6 +17,8 @@ export const EVENT_OPERATION_COMMANDS = [
 export type EventOperationCommand = (typeof EVENT_OPERATION_COMMANDS)[number]
 
 export interface EventOperationRunSummary {
+  readonly title?: string
+  readonly participantCount?: number
   readonly runId: string
   readonly eventKey: string
   readonly lifecycleStatus: string

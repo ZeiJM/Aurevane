@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import styles from './event-operations.module.css'
 
 interface RunSummary {
+  title?: string
+  participantCount?: number
   runId: string
   eventKey: string
   lifecycleStatus: string
@@ -139,7 +141,13 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     const query = runQuery.trim().toLowerCase()
     if (!query) return runs
     return runs.filter((run) =>
-      [run.eventKey, run.runId, run.lifecycleStatus, run.scopeKey ?? run.scopeType]
+      [
+        run.title ?? run.eventKey,
+        run.eventKey,
+        run.runId,
+        run.lifecycleStatus,
+        run.scopeKey ?? run.scopeType,
+      ]
         .join(' ')
         .toLowerCase()
         .includes(query),
@@ -319,7 +327,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
           >
             {runs.map((run) => (
               <option key={run.runId} value={run.runId}>
-                {run.eventKey} · {run.lifecycleStatus} · {run.runId.slice(0, 8)}
+                {run.title ?? run.eventKey} · {run.lifecycleStatus} · {run.runId.slice(0, 8)}
               </option>
             ))}
           </select>
@@ -331,6 +339,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               type="button"
               key={run.runId}
               className={styles.runRow}
+              disabled={busy}
               data-selected={run.runId === selectedRunId || undefined}
               onClick={() => {
                 setSelectedRunId(run.runId)
@@ -349,10 +358,11 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                     : '✧'}
               </span>
               <span className={styles.runIdentity}>
-                <strong>{run.eventKey}</strong>
+                <strong>{run.title ?? run.eventKey}</strong>
                 <small>
-                  {run.runId.slice(0, 8)} · {when(run.scheduledStartAt ?? run.startedAt)}
+                  {run.scopeKey ?? run.scopeType} · {run.participantCount ?? 0} participants
                 </small>
+                <small>{when(run.scheduledStartAt ?? run.startedAt)}</small>
               </span>
               <span className={styles.runStatus} data-status={run.lifecycleStatus}>
                 {run.lifecycleStatus}
@@ -481,15 +491,19 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card}>
+            <section className={styles.card} hidden={tab !== 'Overview'}>
               <div className={styles.cardHeading}>
                 <div>
-                  <p className={styles.eyebrow}>Typed runtime</p>
+                  <p className={styles.eyebrow}>Definition references</p>
                   <h2>Referenced effects</h2>
                 </div>
                 <span>{dashboard.activeEffects.length}</span>
               </div>
-              {dashboard.activeEffects.length === 0 ? <p>No active effect references.</p> : null}
+              {dashboard.activeEffects.length === 0 ? (
+                <p>No effect references.</p>
+              ) : (
+                <p>Historical references only. No gameplay effect executor is installed.</p>
+              )}
               <div className={styles.itemList}>
                 {dashboard.activeEffects.map((effect, index) => (
                   <div key={`${effect.referenceKey ?? 'effect'}-${index}`}>
@@ -544,8 +558,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   <div key={claim.reservationId}>
                     <strong>{claim.rewardPackageRef}</strong>
                     <span>
-                      {claim.executed ? 'executed' : 'reserved'} · character{' '}
-                      {claim.characterId.slice(0, 8)}
+                      {claim.executed ? `executed · ${claim.appliedAmount ?? 0} XP` : 'reserved'} ·
+                      character {claim.characterId.slice(0, 8)}
                     </span>
                     <small>
                       {claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}
@@ -651,17 +665,26 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             Confirm the live action below
           </label>
 
-          <p>
-            Pause freezes elapsed phase clocks and rejects new contributions. Absolute deadlines
-            stay fixed. Stop closes contributions and enters resolving; End permits eligible XP
-            claims. Emergency stop cancels pending progress and any still-unexecuted settlement,
-            including after End. Successful claims stay awarded. Existing successful receipts and XP
-            remain. These actions cannot undo granted XP.
+          <p className={styles.actionHelp}>
+            {status === 'ended'
+              ? 'Emergency stop cancels still-unexecuted claims. Completed awards remain. Archive preserves the Chronicle.'
+              : status === 'paused'
+                ? 'Elapsed phase clocks are frozen. Resume continues them; absolute deadlines stay fixed.'
+                : status === 'resolving'
+                  ? 'New contributions are closed. End permits eligible historical claims; emergency stop blocks them.'
+                  : status === 'live'
+                    ? 'Pause freezes elapsed clocks and new contributions. Stop closes contributions and enters resolving.'
+                    : 'Completed receipts and XP remain unchanged. Terminal actions cannot be undone.'}
           </p>
-          <p>
-            Times: {Intl.DateTimeFormat().resolvedOptions().timeZone}. Operator and time are
-            recorded automatically.
-          </p>
+          <details className={styles.actionHelp}>
+            <summary>Timing &amp; attribution</summary>
+            <p>
+              Times use {Intl.DateTimeFormat().resolvedOptions().timeZone}. Absolute end and
+              scheduled phase deadlines stay fixed during pauses. Actor, action and time are
+              recorded automatically. Cleanup acknowledgements record an operator check; they
+              execute no domain effects.
+            </p>
+          </details>
           <div className={styles.actionRow}>
             {status === 'scheduled' ? (
               <button
