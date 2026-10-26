@@ -15,6 +15,7 @@ type SiteMusicRow = {
   enabled: boolean
   default_track: unknown
   route_overrides: unknown
+  song_library?: unknown
   revision: number | string
   updated_at: string
 }
@@ -25,6 +26,7 @@ function parseRow(row: SiteMusicRow): SiteMusicConfig {
     enabled: row.enabled,
     defaultTrack: row.default_track,
     routeOverrides: row.route_overrides,
+    songLibrary: row.song_library,
     revision,
     updatedAt: row.updated_at,
   })
@@ -37,7 +39,7 @@ export async function readSiteMusicConfig(options?: {
     const client = createSupabaseAdminClient()
     const { data, error } = await client
       .from('site_music_configuration')
-      .select('enabled, default_track, route_overrides, revision, updated_at')
+      .select('enabled, default_track, route_overrides, song_library, revision, updated_at')
       .eq('singleton_id', true)
       .maybeSingle()
 
@@ -60,6 +62,12 @@ export async function saveSiteMusicConfig(input: {
   expectedRevision: number
   config: SiteMusicDraft
 }): Promise<SiteMusicConfig> {
+  if (input.config.songLibrary === undefined) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Refresh Site Music before saving; the complete song library is required.',
+    )
+  }
   const config = parseSiteMusicDraft(input.config)
   if (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1) {
     throw new AurevaneError('INVALID_REQUEST', 'expectedRevision must be a positive integer.')
@@ -73,13 +81,14 @@ export async function saveSiteMusicConfig(input: {
       enabled: config.enabled,
       default_track: config.defaultTrack,
       route_overrides: config.routeOverrides,
+      song_library: config.songLibrary,
       revision: nextRevision,
       updated_by: input.actorUserId,
       updated_at: new Date().toISOString(),
     })
     .eq('singleton_id', true)
     .eq('revision', input.expectedRevision)
-    .select('enabled, default_track, route_overrides, revision, updated_at')
+    .select('enabled, default_track, route_overrides, song_library, revision, updated_at')
     .maybeSingle()
 
   if (error) {

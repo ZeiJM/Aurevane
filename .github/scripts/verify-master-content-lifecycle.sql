@@ -57,7 +57,7 @@ begin
  begin
   perform public.publish_saved_combat_content_v1(actor,null,'ci.master.media-tag',(saved#>>'{draft,draftVersion}')::bigint,first_version,stale_token,null);
   raise exception 'EXPECTED stale current token denial';
- exception when serialization_failure then assert sqlerrm='COMBAT_CONTENT_CATALOGUE_CONFLICT'; end;
+ exception when sqlstate 'PT409' then assert sqlerrm='COMBAT_CONTENT_CATALOGUE_CONFLICT'; end;
  assert public.read_combat_content_record_v1(actor,null,'ci.master.media-tag')=saved, 'Failed publication preserves exact draft and current metadata';
  for n in 1..4 loop
   saved:=public.write_combat_content_record_v1(actor,null,'ci.master.media-tag',jsonb_build_object('action','save','expectedRevision',saved->'revision','definition',jsonb_set(definition,'{media}','{}')));

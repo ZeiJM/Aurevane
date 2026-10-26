@@ -84,7 +84,7 @@ it.each([false, true])(
   },
 )
 
-it('shows one shared Skill with explicit active eligibility choices and truthful testing access', () => {
+it('shows one shared Skill without an eligibility label or source dropdown', () => {
   hooks.state = 0
   hooks.touch = false
   vi.stubGlobal('document', { body: {} })
@@ -124,10 +124,9 @@ it('shows one shared Skill with explicit active eligibility choices and truthful
         initialEssence={null}
       />,
     )
-    expect(html).toContain('aria-label="Eligible Discipline for Mending Light"')
-    expect(html).toContain('value="aetherist" selected=""')
-    expect(html).toContain('Vanguard — Available (unearned)')
-    expect(html).toContain('Aetherist — Earned')
+    expect(html).not.toContain('Eligible')
+    expect(html).not.toContain('Choose Discipline')
+    expect(html).not.toContain('<select')
     expect(html.match(/data-selected="true"/g) ?? []).toHaveLength(2) // one Skill plus Guard
   } finally {
     vi.unstubAllGlobals()

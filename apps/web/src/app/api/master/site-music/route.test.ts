@@ -43,6 +43,7 @@ it('requires existing management capability before save or upload', async () => 
 })
 it('saves the explicit mode unchanged with internal CAS and creates validated durable upload tickets', async () => {
   const config = createDefaultSiteMusicConfig()
+  config.songLibrary = [config.defaultTrack]
   config.routeOverrides = [
     {
       id: 'world',
@@ -62,6 +63,7 @@ it('saves the explicit mode unchanged with internal CAS and creates validated du
       enabled: true,
       defaultTrack: config.defaultTrack,
       routeOverrides: config.routeOverrides,
+      songLibrary: [config.defaultTrack],
     },
   })
   api.signed.mockImplementation(async (path: string) => ({
@@ -85,4 +87,19 @@ it('saves the explicit mode unchanged with internal CAS and creates validated du
   ])
     expect((await request({ operation: 'create-upload', file })).status).toBe(400)
   expect(api.signed).toHaveBeenCalledTimes(1)
+})
+
+it('rejects legacy saves that omit the song library before they can replace stored unused songs', async () => {
+  const config = createDefaultSiteMusicConfig()
+  api.save.mockResolvedValue({
+    ...config,
+    songLibrary: [
+      config.defaultTrack,
+      { ...config.defaultTrack, label: 'Unused saved song', url: '/unused.mp3' },
+    ],
+  })
+  const response = await request({ operation: 'save', expectedRevision: 1, config })
+  expect(response.status).toBe(400)
+  expect((await response.json()).error.message).toMatch(/refresh.*library/i)
+  expect(api.save).not.toHaveBeenCalled()
 })

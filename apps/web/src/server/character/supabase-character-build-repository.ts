@@ -1,3 +1,5 @@
+import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-media'
+import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
 import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
 import 'server-only'
 import { createServerCombatContentResolver } from '../combat/combat-content-resolver'
@@ -47,8 +49,24 @@ function parseStatOffsets(value: unknown): Readonly<Partial<Record<DerivedStatId
   return result
 }
 
+function parsePresentationMedia(value: unknown): DisciplinePresentationMedia | undefined | null {
+  if (value === undefined) return undefined
+  if (
+    !isRecord(value) ||
+    Object.keys(value).some((key) => !['artworkId', 'artwork'].includes(key)) ||
+    (value.artworkId !== undefined &&
+      (typeof value.artworkId !== 'string' || !value.artworkId.trim())) ||
+    (value.artwork !== undefined &&
+      (!isFinalizedContentMedia(value.artwork) || value.artwork.kind !== 'image'))
+  )
+    return null
+  return structuredClone(value) as DisciplinePresentationMedia
+}
+
 function parseCatalogEntry(row: unknown): DisciplineCatalogEntry | null {
   if (!isRecord(row)) return null
+  const media = parsePresentationMedia(row.media)
+  if (media === null) return null
   const definitionVersion = integer(row.definition_version)
   const profileVersion = integer(row.profile_version)
   const statOffsets = parseStatOffsets(row.stat_offsets)
@@ -67,6 +85,7 @@ function parseCatalogEntry(row: unknown): DisciplineCatalogEntry | null {
     return null
   }
   const definition = {
+    ...(media ? { media } : {}),
     id: row.discipline_id,
     definitionVersion,
     name: row.name,
@@ -99,6 +118,9 @@ function parseCatalogEntry(row: unknown): DisciplineCatalogEntry | null {
 
 function parseActiveBuild(row: unknown): CharacterActiveBuildRecord | null {
   if (!isRecord(row)) return null
+  const primaryMedia = parsePresentationMedia(row.primary_media)
+  const secondaryMedia = parsePresentationMedia(row.secondary_media)
+  if (primaryMedia === null || secondaryMedia === null) return null
   const schemaVersion = integer(row.schema_version)
   const buildVersion = integer(row.build_version)
   const primaryDefinitionVersion = integer(row.primary_definition_version)
@@ -133,6 +155,7 @@ function parseActiveBuild(row: unknown): CharacterActiveBuildRecord | null {
   }
 
   const primaryDefinition = {
+    ...(primaryMedia ? { media: primaryMedia } : {}),
     id: row.primary_discipline_id,
     definitionVersion: primaryDefinitionVersion,
     name: row.primary_name,
@@ -184,6 +207,7 @@ function parseActiveBuild(row: unknown): CharacterActiveBuildRecord | null {
 
   const secondaryDefinition = hasSecondary
     ? {
+        ...(secondaryMedia ? { media: secondaryMedia } : {}),
         id: secondaryId as string,
         definitionVersion: secondaryVersion as number,
         name: secondaryName as string,

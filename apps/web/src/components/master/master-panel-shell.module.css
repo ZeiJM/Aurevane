@@ -71,11 +71,19 @@
 .content {
   min-width: 0;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   padding: 0.8rem;
   background: var(--master-stone);
+}
+:where(.content) > * {
+  min-height: 0;
+  max-height: 100%;
+  flex: 1 1 auto;
+  overflow: auto;
 }
 .workspace :is(input, select, textarea) {
   border-radius: 2px;
@@ -90,6 +98,10 @@
     height: auto;
   }
   .content {
+    overflow: visible;
+  }
+  :where(.content) > * {
+    max-height: none;
     overflow: visible;
   }
 }

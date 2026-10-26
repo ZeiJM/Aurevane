@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import type {
   AuthoredDiscipline,
@@ -31,9 +31,12 @@ import { ResonanceMechanicsFields } from './resonance-mechanics-fields'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import styles from './game-content-workspace.module.css'
+import { phase4DisciplineSigil } from '@/components/battle/phase4-combat-art'
+import { MasterHelp } from '../master-help'
 import { contentRecordName, contentRecordCommand } from './content-record-workflow'
 
-export type ContentEditorTab = 'Parameters' | 'Text' | 'Media' | 'History'
+export type ContentEditorTab =
+  'Parameters' | 'Skills' | 'Resonances' | 'Text' | 'Media' | 'History' | 'Identity & Relations'
 export interface ContentReference {
   contentKey: string
   name: string
@@ -86,8 +89,16 @@ export function ContentReferenceSelect({
     [busy, setBusy] = useState(false),
     [error, setError] = useState('')
   const [appliedQuery, setAppliedQuery] = useState('')
-  const entries = [...choices.filter((row) => row.contentKind === kind), ...results].filter(
-    (row, index, rows) => rows.findIndex((other) => other.contentKey === row.contentKey) === index,
+  const entries = useMemo(
+    () => [
+      ...new Map(
+        [...choices.filter((row) => row.contentKind === kind), ...results].map((row) => [
+          row.contentKey,
+          row,
+        ]),
+      ).values(),
+    ],
+    [choices, kind, results],
   )
   async function search(after?: string) {
     setBusy(true)
@@ -218,6 +229,13 @@ function UnlockFields({
         label={`Unlock rule${depth ? ` ${depth}` : ''}`}
         value={value.kind}
         options={['always', 'mastery', 'rekindling', 'all', 'unavailable'] as const}
+        optionLabels={{
+          always: 'No requirements',
+          mastery: 'Discipline mastery',
+          rekindling: 'Rekindling count',
+          all: 'Meet all requirements',
+          unavailable: 'Unavailable',
+        }}
         onChange={(kind) =>
           onChange(
             kind === 'mastery'
@@ -310,10 +328,12 @@ function UnlockFields({
   )
 }
 function DisciplineFields({
+  section = 'Parameters',
   value,
   onChange,
   choices,
 }: {
+  section?: ContentEditorTab
   value: AuthoredDiscipline
   onChange(value: AuthoredDiscipline): void
   choices: readonly ContentReference[]
@@ -326,168 +346,195 @@ function DisciplineFields({
   }
   return (
     <>
-      <fieldset>
-        <legend>Core and eligibility</legend>
-        <p>Core bases total 31. Choose 2–3 focus attributes.</p>
-        <div className={styles.fields}>
-          {Object.entries(value.core).map(([key, amount]) => (
-            <div key={key}>
-              <AbilityNumber
-                label={`${key} base`}
-                value={amount}
-                min={1}
-                max={26}
-                onChange={(next) => onChange({ ...value, core: { ...value.core, [key]: next } })}
-              />
-              <Toggle
-                label={`${key} focus`}
-                value={value.focus.includes(key)}
-                onChange={(enabled) =>
+      {section === 'Parameters' ? (
+        <>
+          <fieldset>
+            <legend>Core attributes and availability</legend>
+            <MasterHelp label="Core attributes">
+              Core bases total 31. Choose 2–3 focus attributes.
+            </MasterHelp>
+            <div className={styles.fields}>
+              {Object.entries(value.core).map(([key, amount]) => (
+                <div key={key}>
+                  <AbilityNumber
+                    label={`${key} base`}
+                    value={amount}
+                    min={1}
+                    max={26}
+                    onChange={(next) =>
+                      onChange({ ...value, core: { ...value.core, [key]: next } })
+                    }
+                  />
+                  <Toggle
+                    label={`${key} focus`}
+                    value={value.focus.includes(key)}
+                    onChange={(enabled) =>
+                      onChange({
+                        ...value,
+                        focus: enabled
+                          ? [...value.focus, key]
+                          : value.focus.filter((old) => old !== key),
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+            <Toggle
+              label="Available as Primary"
+              value={value.enabledForPrimary}
+              onChange={(enabledForPrimary) => onChange({ ...value, enabledForPrimary })}
+            />
+            <Toggle
+              label="Available as Secondary"
+              value={value.enabledForSecondary}
+              onChange={(enabledForSecondary) => onChange({ ...value, enabledForSecondary })}
+            />
+          </fieldset>
+          <UnlockFields
+            value={value.unlock}
+            choices={choices.filter((row) => row.contentKey !== value.id)}
+            onChange={(unlock) => onChange({ ...value, unlock })}
+          />
+          <fieldset>
+            <legend>Progression and public presentation</legend>
+            <AbilitySelect
+              label="Discipline family"
+              value={atlas.family}
+              options={['foundation', 'martial', 'hybrid', 'mage', 'support'] as const}
+              onChange={(family) => onChange({ ...value, atlas: { ...atlas, family } })}
+            />
+            <AbilitySelect
+              label="Progression band"
+              value={atlas.band}
+              options={
+                [
+                  'foundation',
+                  'first-journey',
+                  'rekindling-1',
+                  'rekindling-2',
+                  'rekindling-3',
+                ] as const
+              }
+              onChange={(band) => onChange({ ...value, atlas: { ...atlas, band } })}
+            />
+            <p>Public disclosure: Open. Secret discovery is unavailable.</p>
+            <div className={styles.fields}>
+              {Object.entries(atlas.power).map(([key, amount]) => (
+                <AbilityNumber
+                  key={key}
+                  label={`${key} presentation`}
+                  min={1}
+                  max={5}
+                  value={amount}
+                  onChange={(next) =>
+                    onChange({
+                      ...value,
+                      atlas: { ...atlas, power: { ...atlas.power, [key]: next } },
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </fieldset>
+        </>
+      ) : null}
+      {section === 'Skills' ? (
+        <fieldset>
+          <legend>Skill mastery requirements</legend>
+          {value.linkedSkills.map((skillId) => (
+            <AbilityNumber
+              key={skillId}
+              label={`Mastery stage for ${choices.find((row) => row.contentKey === skillId)?.name ?? skillId}`}
+              min={1}
+              max={5}
+              value={value.skillStages?.find((row) => row.skillId === skillId)?.minimumStage ?? 1}
+              onChange={(minimumStage) =>
+                onChange({
+                  ...value,
+                  skillStages: value.linkedSkills.map((id) => ({
+                    skillId: id,
+                    minimumStage:
+                      id === skillId
+                        ? (minimumStage as 1 | 2 | 3 | 4 | 5)
+                        : (value.skillStages?.find((row) => row.skillId === id)?.minimumStage ?? 1),
+                  })),
+                })
+              }
+            />
+          ))}
+        </fieldset>
+      ) : null}
+      {section === 'Resonances' ? (
+        <fieldset>
+          <legend>Essence and Resonances</legend>
+          <ContentReferenceSelect
+            label="Pure Discipline Essence"
+            kind="essence"
+            optional
+            value={value.essenceId ?? ''}
+            choices={choices}
+            onChange={(essenceId) => onChange({ ...value, essenceId: essenceId || null })}
+          />
+          {(value.resonanceSelections ?? []).map((pair, index) => (
+            <div className={styles.pairRow} key={index}>
+              <ContentReferenceSelect
+                label={`Partner Discipline ${index + 1}`}
+                kind="discipline"
+                value={pair.withDisciplineId}
+                choices={choices.filter((row) => row.contentKey !== value.id)}
+                onChange={(withDisciplineId) =>
                   onChange({
                     ...value,
-                    focus: enabled
-                      ? [...value.focus, key]
-                      : value.focus.filter((old) => old !== key),
+                    resonanceSelections: value.resonanceSelections!.map((old, i) =>
+                      i === index ? { ...pair, withDisciplineId } : old,
+                    ),
                   })
                 }
               />
+              <ContentReferenceSelect
+                label={`Pair Resonance ${index + 1}`}
+                kind="resonance"
+                value={pair.resonanceId}
+                choices={choices}
+                onChange={(resonanceId) =>
+                  onChange({
+                    ...value,
+                    resonanceSelections: value.resonanceSelections!.map((old, i) =>
+                      i === index ? { ...pair, resonanceId } : old,
+                    ),
+                  })
+                }
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  onChange({
+                    ...value,
+                    resonanceSelections: value.resonanceSelections!.filter((_, i) => i !== index),
+                  })
+                }
+              >
+                Remove pair {index + 1}
+              </button>
             </div>
           ))}
-        </div>
-        <Toggle
-          label="Available as Primary"
-          value={value.enabledForPrimary}
-          onChange={(enabledForPrimary) => onChange({ ...value, enabledForPrimary })}
-        />
-        <Toggle
-          label="Available as Secondary"
-          value={value.enabledForSecondary}
-          onChange={(enabledForSecondary) => onChange({ ...value, enabledForSecondary })}
-        />
-      </fieldset>
-      <UnlockFields
-        value={value.unlock}
-        choices={choices.filter((row) => row.contentKey !== value.id)}
-        onChange={(unlock) => onChange({ ...value, unlock })}
-      />
-      <fieldset>
-        <legend>Progression and public presentation</legend>
-        <AbilitySelect
-          label="Discipline family"
-          value={atlas.family}
-          options={['foundation', 'martial', 'hybrid', 'mage', 'support'] as const}
-          onChange={(family) => onChange({ ...value, atlas: { ...atlas, family } })}
-        />
-        <AbilitySelect
-          label="Progression band"
-          value={atlas.band}
-          options={
-            ['foundation', 'first-journey', 'rekindling-1', 'rekindling-2', 'rekindling-3'] as const
-          }
-          onChange={(band) => onChange({ ...value, atlas: { ...atlas, band } })}
-        />
-        <p>Public disclosure: Open. Secret discovery is unavailable.</p>
-        <div className={styles.fields}>
-          {Object.entries(atlas.power).map(([key, amount]) => (
-            <AbilityNumber
-              key={key}
-              label={`${key} presentation`}
-              min={1}
-              max={5}
-              value={amount}
-              onChange={(next) =>
-                onChange({ ...value, atlas: { ...atlas, power: { ...atlas.power, [key]: next } } })
-              }
-            />
-          ))}
-        </div>
-        {value.linkedSkills.map((skillId) => (
-          <AbilityNumber
-            key={skillId}
-            label={`Mastery stage for ${choices.find((row) => row.contentKey === skillId)?.name ?? skillId}`}
-            min={1}
-            max={5}
-            value={value.skillStages?.find((row) => row.skillId === skillId)?.minimumStage ?? 1}
-            onChange={(minimumStage) =>
+          <button
+            type="button"
+            onClick={() =>
               onChange({
                 ...value,
-                skillStages: value.linkedSkills.map((id) => ({
-                  skillId: id,
-                  minimumStage:
-                    id === skillId
-                      ? (minimumStage as 1 | 2 | 3 | 4 | 5)
-                      : (value.skillStages?.find((row) => row.skillId === id)?.minimumStage ?? 1),
-                })),
+                resonanceSelections: [
+                  ...(value.resonanceSelections ?? []),
+                  { withDisciplineId: '', resonanceId: '' },
+                ],
               })
             }
-          />
-        ))}
-        <ContentReferenceSelect
-          label="Pure Discipline Essence"
-          kind="essence"
-          optional
-          value={value.essenceId ?? ''}
-          choices={choices}
-          onChange={(essenceId) => onChange({ ...value, essenceId: essenceId || null })}
-        />
-        {(value.resonanceSelections ?? []).map((pair, index) => (
-          <div className={styles.fields} key={index}>
-            <ContentReferenceSelect
-              label={`Partner Discipline ${index + 1}`}
-              kind="discipline"
-              value={pair.withDisciplineId}
-              choices={choices.filter((row) => row.contentKey !== value.id)}
-              onChange={(withDisciplineId) =>
-                onChange({
-                  ...value,
-                  resonanceSelections: value.resonanceSelections!.map((old, i) =>
-                    i === index ? { ...pair, withDisciplineId } : old,
-                  ),
-                })
-              }
-            />
-            <ContentReferenceSelect
-              label={`Pair Resonance ${index + 1}`}
-              kind="resonance"
-              value={pair.resonanceId}
-              choices={choices}
-              onChange={(resonanceId) =>
-                onChange({
-                  ...value,
-                  resonanceSelections: value.resonanceSelections!.map((old, i) =>
-                    i === index ? { ...pair, resonanceId } : old,
-                  ),
-                })
-              }
-            />
-            <button
-              type="button"
-              onClick={() =>
-                onChange({
-                  ...value,
-                  resonanceSelections: value.resonanceSelections!.filter((_, i) => i !== index),
-                })
-              }
-            >
-              Remove pair {index + 1}
-            </button>
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() =>
-            onChange({
-              ...value,
-              resonanceSelections: [
-                ...(value.resonanceSelections ?? []),
-                { withDisciplineId: '', resonanceId: '' },
-              ],
-            })
-          }
-        >
-          Add Resonance relationship
-        </button>
-      </fieldset>
+          >
+            Add Resonance relationship
+          </button>
+        </fieldset>
+      ) : null}
     </>
   )
 }
@@ -589,6 +636,7 @@ export function ContentDefinitionFields({
       return <p>Media has no supported use for this category.</p>
     return combat ? (
       <SkillMediaEditor
+        contentId={String(body.id ?? value.id ?? value.essenceId)}
         value={body.media as MatureSkillDefinition['media']}
         onChange={(media) => setBody({ ...body, media })}
       />
@@ -675,6 +723,15 @@ export function ContentDefinitionFields({
         ) : null}
       </>
     )
+  if (kind === 'discipline' && (tab === 'Skills' || tab === 'Resonances'))
+    return (
+      <DisciplineFields
+        section={tab}
+        value={value as unknown as AuthoredDiscipline}
+        choices={choices}
+        onChange={(next) => onChange(asDefinition(next))}
+      />
+    )
   if (tab !== 'Parameters') return null
   if (kind === 'effect-profile')
     return (
@@ -730,6 +787,29 @@ export function ContentDefinitionFields({
           />
         ) : null}
       </fieldset>
+      {kind !== 'status' && kind !== 'tag' ? (
+        <details className={styles.mediaSection} open={kind === 'discipline'}>
+          <summary>Artwork{combat ? ' and sound' : ''}</summary>
+          {combat ? (
+            <SkillMediaEditor
+              contentId={String(body.id ?? value.id ?? value.essenceId)}
+              value={body.media as MatureSkillDefinition['media']}
+              onChange={(media) => setBody({ ...body, media })}
+            />
+          ) : (
+            <FinalizedMediaEditor
+              value={objectValue(value.media)}
+              allowAudio={false}
+              fallbackArtwork={
+                kind === 'discipline'
+                  ? (phase4DisciplineSigil(String(value.id)) ?? undefined)
+                  : undefined
+              }
+              onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
+            />
+          )}
+        </details>
+      ) : null}
       {kind === 'status' ? (
         <fieldset>
           <legend>Status mechanics</legend>
@@ -984,16 +1064,6 @@ export function ContentDefinitionFields({
             )
           })()
         : null}
-      <JsonSettings
-        label="Complete compatibility settings"
-        value={value}
-        onChange={(next) => {
-          const parsed = objectValue(next)
-          if (parsed.id !== value.id || parsed.essenceId !== value.essenceId)
-            throw new Error('Stable identity cannot change.')
-          onChange(parsed)
-        }}
-      />
     </>
   )
 }

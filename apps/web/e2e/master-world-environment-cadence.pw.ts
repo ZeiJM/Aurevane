@@ -102,6 +102,9 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     stage = 'configure-environment'
     await page.goto('/master/world-environment')
     await page.getByLabel('Day length (real minutes)', { exact: true }).fill('1')
+    await page
+      .getByLabel('Automatic weather roll interval (real minutes)', { exact: true })
+      .fill('1')
     await page.getByLabel('Freeze the clock at a time of day').uncheck()
     await page.getByLabel('Shift world time (minutes, −1440 to 1440)').fill('0')
     await page
@@ -120,6 +123,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     expect(savedResponse.ok()).toBe(true)
     const settings: WorldEnvironmentSettings = (await savedResponse.json()).settings
     expect(settings.dayLengthMinutes).toBe(1)
+    expect(settings.weatherRollMinutes).toBe(1)
     expect(settings.weatherOverrideUntil).toBeGreaterThan(Date.now() + 50000)
     stage = 'open-world'
     await page.goto('/game/world')
@@ -212,6 +216,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
             expectedVersion: (await current.json()).settings.version,
             change: {
               dayLengthMinutes: original.dayLengthMinutes ?? 1440,
+              weatherRollMinutes: original.weatherRollMinutes ?? 360,
               timeOffsetMinutes: original.timeOffsetMinutes,
               frozenMinuteOfDay: original.frozenMinuteOfDay,
               weather: null,

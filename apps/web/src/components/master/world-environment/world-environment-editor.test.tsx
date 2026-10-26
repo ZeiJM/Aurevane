@@ -28,3 +28,23 @@ it('shows real cycle controls and regional weather without reasons or history/ve
   expect(html).toContain('type="number"')
   expect(html).toContain('value="120"')
 })
+
+it('separates automatic roll cadence and shows local expiry with remaining time', () => {
+  const now = Date.UTC(2026, 9, 26, 12)
+  const html = renderToStaticMarkup(
+    <WorldEnvironmentEditor
+      initialNowMs={now}
+      initialSettings={{
+        ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS,
+        weatherRollMinutes: 15,
+        weatherOverride: 'rain',
+        weatherOverrideUntil: now + 37 * 60_000,
+      }}
+    />,
+  )
+  expect(html).toContain('Automatic weather roll interval (real minutes)')
+  expect(html).toContain('value="15"')
+  expect(html).toContain('37 min remaining')
+  expect(html).toContain('local time')
+  expect(html).not.toContain('2026-10-26T')
+})

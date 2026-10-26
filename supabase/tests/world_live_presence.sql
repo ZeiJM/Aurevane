@@ -145,7 +145,7 @@ select ok((select s.state->>'version'='3' and s.state->'route'='[]'::jsonb and s
 select throws_ok($$select public.commit_world_state_v1(
   '81000000-0000-4000-8000-000000000002','81000000-0000-4000-8000-000000000012',2,
   '81000000-0000-4000-8000-000000000093','stop',(select state from world_storage_stop),'stale-storage-test'
-)$$,'40001','WORLD_STALE_VERSION','large history does not bypass the version check');
+)$$,'PT409','WORLD_STALE_VERSION','large history does not bypass the version check');
 select throws_ok($$select public.commit_world_state_v1(
   '81000000-0000-4000-8000-000000000001','81000000-0000-4000-8000-000000000012',3,
   '81000000-0000-4000-8000-000000000094','stop',(select state from world_storage_stop),'foreign-storage-test'

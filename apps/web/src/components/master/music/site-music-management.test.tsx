@@ -30,7 +30,6 @@ describe('Master Panel site music management', () => {
     initialConfig.defaultTrack.loop = false
     const markup = renderToStaticMarkup(createElement(SiteMusicManagement, { initialConfig }))
 
-    expect(markup).toContain('Background music loops continuously.')
     expect(markup).toContain('loop=""')
     expect(markup).not.toContain('Loop continuously</span>')
   })

@@ -103,7 +103,7 @@ function DisciplineCard({ discipline }: { discipline: DisciplineAtlasEntry }) {
     >
       <header>
         <span className={styles.sigil} aria-hidden="true">
-          <FoundationDisciplineSigil disciplineId={discipline.id} />
+          <FoundationDisciplineSigil disciplineId={discipline.id} media={discipline.media} />
         </span>
         <div>
           <span className={styles.family}>{discipline.family}</span>

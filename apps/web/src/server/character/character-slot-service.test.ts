@@ -181,3 +181,63 @@ describe('roster equipped discipline projection', () => {
     expect(await findPlayableOwnedCharacterById(userId, characterId)).toBeNull()
   })
 })
+
+import { createSupabaseCharacterBuildRepository } from './supabase-character-build-repository'
+const currentArtwork = {
+  id: '00000000-0000-4000-8000-000000000097',
+  kind: 'image',
+  contentType: 'image/png',
+  checksum: 'a'.repeat(64),
+  byteLength: 64,
+  width: 96,
+  height: 96,
+  sourceWidth: 120,
+  sourceHeight: 120,
+  crop: { x: 12, y: 12, size: 96 },
+}
+it('current active and catalogue readers preserve exact finalized artwork metadata without changing mechanical pins', async () => {
+  responses({
+    ...buildRow(true),
+    primary_media: { artwork: currentArtwork },
+    secondary_media: { artwork: currentArtwork },
+  })
+  const repository = createSupabaseCharacterBuildRepository()
+  const active = await repository.findActiveBuild(userId, characterId)
+  expect(active?.primaryDefinition.media).toEqual({ artwork: currentArtwork })
+  expect(active?.secondaryDefinition?.media).toEqual({ artwork: currentArtwork })
+  expect(active?.primaryDefinition.definitionVersion).toBe(1)
+  expect(active?.primaryProfile.profileVersion).toBe(1)
+  const row = buildRow()
+  rpc.mockResolvedValue({
+    data: [
+      {
+        discipline_id: row.primary_discipline_id,
+        definition_version: 1,
+        profile_version: 1,
+        name: row.primary_name,
+        summary: row.primary_summary,
+        enabled_for_primary: true,
+        enabled_for_secondary: true,
+        stat_offsets: {},
+        mastered_at: null,
+        core_base_attributes: row.core_base_attributes,
+        focus_attributes: row.focus_attributes,
+        off_focus_cap: 40,
+        media: { artwork: currentArtwork },
+      },
+    ],
+    error: null,
+  })
+  expect((await repository.listDisciplines(userId, characterId))[0]?.definition.media).toEqual({
+    artwork: currentArtwork,
+  })
+})
+it('current active reader rejects forged artwork metadata rather than emitting an arbitrary image URL', async () => {
+  responses({
+    ...buildRow(),
+    primary_media: { artwork: { ...currentArtwork, id: 'https://external.invalid/image.png' } },
+  })
+  await expect(
+    createSupabaseCharacterBuildRepository().findActiveBuild(userId, characterId),
+  ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+})

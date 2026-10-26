@@ -47,6 +47,11 @@ beforeAll(async () => {
   await db.exec(sql('20260918233000_phase5_persistent_event_kernel.sql'))
   await db.exec(
     sql('20260919051500_phase4_event_terminal_cleanup.sql').match(
+      /alter table app_private.event_runs[\s\S]*?\n {2}\);/,
+    )![0],
+  )
+  await db.exec(
+    sql('20260919051500_phase4_event_terminal_cleanup.sql').match(
       /create table app_private.event_run_cleanup_requirements[\s\S]*?\n\);/,
     )![0],
   )
@@ -61,6 +66,10 @@ beforeAll(async () => {
     name.endsWith('_selected_character_staff_access.sql'),
   )
   if (migration && existsSync(resolve(root, migration))) await db.exec(sql(migration))
+  const defaultsMigration = readdirSync(root).find((name) =>
+    name.endsWith('_master_panel_role_defaults.sql'),
+  )
+  if (defaultsMigration) await db.exec(sql(defaultsMigration))
 }, 30000)
 afterAll(async () => {
   await db?.close()
@@ -340,7 +349,7 @@ it('all explicit actor overload ACLs reject browser execution and preserve prede
       `select n.nspname schema,p.proname name,pg_get_function_identity_arguments(p.oid) identity,has_function_privilege('anon',p.oid,'execute') anon,has_function_privilege('authenticated',p.oid,'execute') authenticated,has_function_privilege('service_role',p.oid,'execute') service from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)`,
     )
   ).rows
-  expect(functions.length).toBe(33)
+  expect(functions.length).toBe(35)
   for (const fn of functions) {
     expect(fn.anon, fn.name).toBe(false)
     expect(fn.authenticated, fn.name).toBe(false)
@@ -518,4 +527,160 @@ it('every explicit protected RPC rechecks selected character capability before r
       fn.identity,
     ).rejects.toMatchObject({ code: '42501' })
   }
+})
+
+it('Owner defaults CAS changes immediately authorize and withdraw actual draft operations for existing selected role holders', async () => {
+  await db.query('update auth.users set email_confirmed_at=now() where id=$1', [staff])
+  await assign(['moderator'], ['content.story_copy'])
+  const readDefaults = async () =>
+    (
+      await db.query<{ defaults: { revision: number; roles: Record<string, string[]> } }>(
+        'select public.read_master_panel_role_defaults_v1($1) defaults',
+        [owner],
+      )
+    ).rows[0]!.defaults
+  const original = await readDefaults()
+  const roles = { ...original.roles, moderator: ['master.access', 'content.combat.author'] }
+  const save = (actor: string, revision: number, value: unknown) =>
+    db.query('select public.save_master_panel_role_defaults_v1($1,$2,$3::jsonb) defaults', [
+      actor,
+      revision,
+      JSON.stringify(value),
+    ])
+  await expect(save(staff, original.revision, roles)).rejects.toThrow(/OWNER_REQUIRED/)
+  await expect(
+    db.query('select public.read_master_panel_role_defaults_v1($1)', [staff]),
+  ).rejects.toThrow(/OWNER_REQUIRED/)
+  await expect(
+    db.query('select * from public.read_combat_content_draft_v1($1,$2,$3)', [
+      staff,
+      chosen,
+      'staff.skill',
+    ]),
+  ).rejects.toThrow(/REQUIRED/)
+  await save(owner, original.revision, roles)
+  await expect(save(owner, original.revision, original.roles)).rejects.toThrow(/VERSION_CONFLICT/)
+  expect((await readDefaults()).roles.moderator).toEqual(roles.moderator)
+  await db.query(
+    'select * from public.save_combat_content_draft_v1($1,$2,$3,$4,$5::jsonb,null,null)',
+    [staff, chosen, 'defaults.skill', 'skill', JSON.stringify({ id: 'defaults.skill' })],
+  )
+  expect(
+    (await db.query('select * from public.read_master_panel_operator_v1($1,$2)', [staff, chosen]))
+      .rows,
+  ).toHaveLength(1)
+  await expect(
+    db.query('select * from public.read_combat_content_draft_v1($1,$2,$3)', [
+      staff,
+      alternate,
+      'defaults.skill',
+    ]),
+  ).rejects.toThrow(/REQUIRED/)
+  for (const invalid of [
+    { ...roles, moderator: ['staff.manage'] },
+    { ...roles, moderator: ['content.combat.author', 'content.combat.author'] },
+    { ...roles, 'game-owner': ['staff.manage'] },
+    { ...roles, moderator: ['invented'] },
+  ]) {
+    await expect(save(owner, original.revision + 1, invalid)).rejects.toThrow(/INVALID/)
+  }
+  await save(owner, original.revision + 1, original.roles)
+  await expect(
+    db.query('select * from public.read_combat_content_draft_v1($1,$2,$3)', [
+      staff,
+      chosen,
+      'defaults.skill',
+    ]),
+  ).rejects.toThrow(/REQUIRED/)
+  const access = (
+    await db.query<{ effective_capabilities: string[] }>(
+      'select * from public.read_master_panel_access_v2($1,$2)',
+      [staff, chosen],
+    )
+  ).rows[0]!
+  expect(access.effective_capabilities).toContain('content.story_copy')
+  expect(access.effective_capabilities).not.toContain('staff.manage')
+  expect(
+    (await db.query('select * from public.read_master_panel_operator_v1($1,$2)', [staff, chosen]))
+      .rows,
+  ).toHaveLength(0)
+  await assign(['moderator'], [], null, false)
+  expect(
+    (await db.query('select * from public.read_master_panel_access_v2($1,$2)', [staff, chosen]))
+      .rows,
+  ).toEqual([])
+})
+it('role defaults tables and RPCs deny direct browser/service table writes and browser forgery', async () => {
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    for (const privilege of ['SELECT', 'INSERT', 'UPDATE', 'DELETE']) {
+      expect(
+        (
+          await db.query<{ allowed: boolean }>(
+            "select has_table_privilege($1,'app_private.master_panel_role_defaults',$2) allowed",
+            [role, privilege],
+          )
+        ).rows[0]!.allowed,
+      ).toBe(false)
+    }
+  }
+  for (const signature of [
+    'read_master_panel_role_defaults_v1(uuid)',
+    'save_master_panel_role_defaults_v1(uuid,bigint,jsonb)',
+    'read_master_panel_access_v2(uuid,uuid)',
+  ]) {
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      expect(
+        (
+          await db.query<{ allowed: boolean }>(
+            "select has_function_privilege($1,$2,'execute') allowed",
+            [role, 'public.' + signature],
+          )
+        ).rows[0]!.allowed,
+      ).toBe(role === 'service_role')
+    }
+  }
+})
+it('role defaults separate live event authoring and operation gates without changing scheduling authority', async () => {
+  await assign(['event-staff'])
+  const original = (
+    await db.query<{ defaults: { revision: number; roles: Record<string, string[]> } }>(
+      'select public.read_master_panel_role_defaults_v1($1) defaults',
+      [owner],
+    )
+  ).rows[0]!.defaults
+  const save = (revision: number, capabilities: string[]) =>
+    db.query('select public.save_master_panel_role_defaults_v1($1,$2,$3::jsonb)', [
+      owner,
+      revision,
+      JSON.stringify({ ...original.roles, 'event-staff': capabilities }),
+    ])
+  await save(original.revision, ['master.access', 'events.author'])
+  await expect(
+    db.query('select * from public.list_event_operation_runs_v1($1,$2)', [staff, chosen]),
+  ).rejects.toThrow(/REQUIRED/)
+  await db.query('select * from public.read_event_definition_draft_v1($1,$2,$3)', [
+    staff,
+    chosen,
+    'event.defaults',
+  ])
+  // Scheduling remains an authoring operation. It checks scope without requiring live-operations authority.
+  await db.query('select app_private.assert_event_operational_scope_v1($1,$2,$3)', [
+    staff,
+    chosen,
+    'region',
+  ])
+  await save(original.revision + 1, ['master.access', 'events.operate'])
+  await db.query('select * from public.list_event_operation_runs_v1($1,$2)', [staff, chosen])
+  await expect(
+    db.query('select * from public.read_event_definition_draft_v1($1,$2,$3)', [
+      staff,
+      chosen,
+      'event.defaults',
+    ]),
+  ).rejects.toThrow(/REQUIRED/)
+  await db.query('select public.save_master_panel_role_defaults_v1($1,$2,$3::jsonb)', [
+    owner,
+    original.revision + 2,
+    JSON.stringify(original.roles),
+  ])
 })

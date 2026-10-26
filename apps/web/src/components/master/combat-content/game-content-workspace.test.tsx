@@ -45,10 +45,12 @@ it.each(SUPPORT_ACTION_IDS)(
       },
     }
     const html = renderToStaticMarkup(<CombatContentAuthoringWorkspace {...props} />)
-    expect(html).toContain('Save draft')
-    expect(html).toContain('Publish saved draft')
+    expect(html).toContain('Commit Now')
+    expect(html).not.toContain('Publish saved draft')
+    expect(html).not.toContain('aria-label="Content previews"')
     expect(html).toContain('Parameters')
     expect(html).toContain('History')
+    expect(html).toContain('Identity &amp; Relations')
     expect(html).toContain('New')
     expect(html).toContain(definition.name)
     expect(html).not.toContain('Confirm rollback')

@@ -31,12 +31,14 @@ export async function publishBattlefieldElevationPolicy(input: {
   } catch {
     throw new AurevaneError(
       'INVALID_REQUEST',
-      'Elevation chances must total exactly 100%, with at most two decimal places.',
+      'Each elevation chance must be between 0 and 100%, with at most two decimal places.',
     )
   }
   const { version, ...chances } = policy
   const { data, error } = await createSupabaseAdminClient().rpc(
-    'publish_battlefield_elevation_policy_v2',
+    policy.model === 'independent-highest'
+      ? 'publish_battlefield_elevation_policy_v3'
+      : 'publish_battlefield_elevation_policy_v2',
     {
       p_actor_user_id: input.actorUserId,
       p_expected_version: version,

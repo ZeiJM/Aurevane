@@ -239,7 +239,10 @@ export function CharacterArsenalShell({
           <div className={styles.disciplinePair}>
             <article className={styles.disciplineCard} data-slot="primary">
               <span className={styles.disciplineSigil}>
-                <FoundationDisciplineSigil disciplineId={disciplineBuild.current.definition.id} />
+                <FoundationDisciplineSigil
+                  disciplineId={disciplineBuild.current.definition.id}
+                  media={disciplineBuild.current.definition.media}
+                />
               </span>
               <div>
                 <span>Primary Discipline</span>
@@ -253,7 +256,10 @@ export function CharacterArsenalShell({
             {disciplineBuild.currentSecondary ? (
               <article className={styles.disciplineCard} data-slot="secondary">
                 <span className={styles.disciplineSigil}>
-                  <FoundationDisciplineSigil disciplineId={disciplineBuild.currentSecondary.id} />
+                  <FoundationDisciplineSigil
+                    disciplineId={disciplineBuild.currentSecondary.id}
+                    media={disciplineBuild.currentSecondary.media}
+                  />
                 </span>
                 <div>
                   <span>Secondary Discipline</span>

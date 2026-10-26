@@ -1,4 +1,5 @@
 import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+import { isDeepStrictEqual } from 'node:util'
 import { parseNoncombatContentDefinition } from '@aurevane/game-core/content/authored-content'
 import type {
   CombatContentListPage,
@@ -522,6 +523,65 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     if (error) mapRpcError(error)
     return withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
   }
+  /** Save and publish under one database transaction; a rejected publication saves nothing. */
+  async commitRecord(
+    contentKey: string,
+    expectedRevision: number,
+    definition: CombatContentDefinition,
+  ): Promise<CompleteCombatContentRecord> {
+    const record = await this.readRecord(contentKey)
+    if (!record || record.revision !== expectedRevision)
+      throw new AurevaneError(
+        'STALE_VERSION',
+        'This content changed. Refresh before committing again.',
+      )
+    const descriptor = combatContentCategory(record.contentKind, contentKey)!
+    const parsed = descriptor.parseAuthoring(definition)
+    if (!record.draft && record.current) {
+      const comparable: Record<string, unknown> = {
+        ...parsed,
+        contentVersion: record.current.contentVersion,
+      }
+      if (record.contentKind === 'essence' && isObject(comparable.skill))
+        comparable.skill = { ...comparable.skill, contentVersion: record.current.contentVersion }
+      if (isDeepStrictEqual(comparable, record.current.definition)) return record
+    }
+    const token = await this.#validatePublication(contentKey, record.contentKind, {
+      id: 'prospective',
+      contentKey,
+      contentKind: record.contentKind,
+      contentVersion: Number(parsed.contentVersion ?? 1),
+      definition: parsed,
+      publishedBy: this.#actorUserId,
+      publishedAt: 'prospective',
+    })
+    const { data, error } = await this.#rpc('commit_combat_content_record_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: contentKey,
+      p_expected_revision: expectedRevision,
+      p_definition: parsed,
+      p_expected_catalogue_token: token,
+      p_version_floor:
+        Math.max(
+          record.versionFloor,
+          builtinCombatContentVersionFloor(record.contentKind, contentKey) ?? 0,
+        ) || null,
+    })
+    if (error) mapRpcError(error, { contentKey, definition: parsed })
+    const committed = withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
+    if (
+      committed.contentKey !== contentKey ||
+      committed.draft ||
+      !committed.current ||
+      committed.revision <= expectedRevision
+    )
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'The committed publication could not be verified. Refresh saved state before retrying.',
+      )
+    return committed
+  }
+
   async publishSaved(
     record: Pick<CompleteCombatContentRecord, 'contentKey'>,
     expectedDraftVersion: number,

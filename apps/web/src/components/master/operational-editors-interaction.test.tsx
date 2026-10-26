@@ -49,7 +49,9 @@ const control = (tree: ReactNode, label: string) =>
       (node) =>
         node.type === 'label' &&
         Array.isArray(node.props.children) &&
-        node.props.children[0] === label,
+        node.props.children
+          .filter((child) => typeof child === 'string' || typeof child === 'number')
+          .join('') === label,
     ).props.children,
     (node) => ['select', 'input'].includes(String(node.type)),
   )
@@ -111,7 +113,9 @@ it('saves elevation without reason while retaining the exact concurrency version
   await (
     find(render(), (node) => node.type === 'form').props.onSubmit as (e: unknown) => Promise<void>
   )({ preventDefault() {} })
-  expect(JSON.parse(request.mock.calls[0]![1].body)).toEqual({ policy })
+  expect(JSON.parse(request.mock.calls[0]![1].body)).toEqual({
+    policy: { ...policy, model: 'independent-highest' },
+  })
 })
 it('submits manual weather minutes and cycle without reason or history and preserves keep-current choice', async () => {
   const settings = { ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS, version: 4 }
@@ -125,6 +129,7 @@ it('submits manual weather minutes and cycle without reason or history and prese
     WorldEnvironmentEditor({ initialSettings: settings, initialNowMs: 0 }),
   )
   change(control(render(), 'Day length (real minutes)'), '120')
+  change(control(render(), 'Automatic weather roll interval (real minutes)'), '15')
   change(control(render(), 'Weather selection'), 'storm')
   change(control(render(), 'Forced weather duration (minutes)'), '37')
   const submit = () =>
@@ -136,6 +141,7 @@ it('submits manual weather minutes and cycle without reason or history and prese
     expectedVersion: 4,
     change: {
       dayLengthMinutes: 120,
+      weatherRollMinutes: 15,
       timeOffsetMinutes: 0,
       frozenMinuteOfDay: null,
       weather: 'storm',
@@ -149,4 +155,41 @@ it('submits manual weather minutes and cycle without reason or history and prese
   change(control(render(), 'Forced weather duration (minutes)'), '0')
   await submit()
   expect(request).toHaveBeenCalledTimes(2)
+})
+
+it('submits independent elevation chances without a total and retains edits after stale failure', async () => {
+  const policy = {
+    version: 7,
+    level1BasisPoints: 6000,
+    level2BasisPoints: 3000,
+    level3BasisPoints: 1000,
+  }
+  const request = vi
+    .fn()
+    .mockResolvedValue(
+      Response.json(
+        { error: { message: 'Refresh elevation settings before saving again.' } },
+        { status: 409 },
+      ),
+    )
+  vi.stubGlobal('fetch', request)
+  const render = renderWith(() => BattlefieldElevationEditor({ initialPolicy: policy }))
+  for (const level of [1, 2, 3])
+    change(control(render(), `Elevation level ${level} chance (%)`), '100')
+  await (
+    find(render(), (node) => node.type === 'form').props.onSubmit as (e: unknown) => Promise<void>
+  )({ preventDefault() {} })
+  expect(JSON.parse(request.mock.calls[0]![1].body)).toEqual({
+    policy: {
+      version: 7,
+      model: 'independent-highest',
+      level1BasisPoints: 10000,
+      level2BasisPoints: 10000,
+      level3BasisPoints: 10000,
+    },
+  })
+  expect(control(render(), 'Elevation level 1 chance (%)').props.value).toBe('100')
+  expect(find(render(), (node) => node.props.role === 'status').props.children).toContain(
+    'Refresh elevation settings',
+  )
 })

@@ -13,13 +13,15 @@ import {
 import { FinalizedMediaEditor } from './finalized-media-editor'
 
 import styles from './combat-content-editor.module.css'
+import { phase4SkillArtwork } from '@/components/battle/phase4-combat-art'
 
 export interface SkillMediaEditorProps {
+  readonly contentId?: string
   readonly value: MatureSkillMediaHooks
   readonly onChange: (value: MatureSkillMediaHooks) => void
 }
 
-export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
+export function SkillMediaEditor({ contentId, value, onChange }: SkillMediaEditorProps) {
   const icon = resolveSkillIconHook(value.iconKey)
   const audio = resolveSkillAudioCueHook(value.audioCueKey)
   const unregisteredIcon = value.iconKey && !icon ? value.iconKey : null
@@ -30,12 +32,15 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
       <legend>Media</legend>
       <FinalizedMediaEditor
         value={value}
+        fallbackArtwork={
+          icon?.previewSrc ?? (contentId ? (phase4SkillArtwork(contentId) ?? undefined) : undefined)
+        }
         onChange={(media) => onChange({ ...value, artwork: media.artwork, audio: media.audio })}
       />
 
       <div className={styles.mediaGrid}>
         <label className={styles.field}>
-          <span>Skill artwork</span>
+          <span>Built-in artwork</span>
           <select
             aria-label="Skill artwork hook"
             value={value.iconKey ?? ''}
@@ -46,7 +51,7 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
               })
             }
           >
-            <option value="">No artwork hook</option>
+            <option value="">Default artwork</option>
             {unregisteredIcon ? (
               <option value={unregisteredIcon}>Unregistered · {unregisteredIcon}</option>
             ) : null}
@@ -56,9 +61,6 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
               </option>
             ))}
           </select>
-          <small className={styles.fieldHint}>
-            Selects a stable approved artwork hook. Raw URLs and file paths are not authorable.
-          </small>
         </label>
 
         <div className={styles.mediaPreview} aria-label="Skill artwork preview">
@@ -71,7 +73,6 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
                 alt={`${icon.label} artwork preview`}
                 unoptimized
               />
-              <code>{icon.key}</code>
             </>
           ) : (
             <span>No registered artwork selected.</span>
@@ -79,7 +80,7 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
         </div>
 
         <label className={styles.field}>
-          <span>Battle audio</span>
+          <span>Built-in sound</span>
           <select
             aria-label="Skill audio hook"
             value={value.audioCueKey ?? ''}
@@ -90,7 +91,7 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
               })
             }
           >
-            <option value="">No audio hook</option>
+            <option value="">No sound</option>
             {unregisteredAudio ? (
               <option value={unregisteredAudio}>Unregistered · {unregisteredAudio}</option>
             ) : null}
@@ -105,10 +106,6 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
               </option>
             ))}
           </select>
-          <small className={styles.fieldHint}>
-            Produced cues can be reassigned now. A current reserved hook remains visible without
-            pretending an audio file exists.
-          </small>
         </label>
 
         <div className={styles.mediaAudioPreview}>
@@ -120,7 +117,6 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
                 preload="none"
                 src={audio.sampleSrc}
               />
-              <code>{audio.sampleAssetId}</code>
             </>
           ) : (
             <span>
@@ -129,16 +125,6 @@ export function SkillMediaEditor({ value, onChange }: SkillMediaEditorProps) {
                 : 'No battle audio selected.'}
             </span>
           )}
-        </div>
-
-        <div className={styles.mediaReadOnly}>
-          <span>VFX hook</span>
-          <code aria-label="VFX hook read only" data-media-hook-readonly="vfx">
-            {value.vfxKey ?? 'None'}
-          </code>
-          <small>
-            Read only for now. VFX becomes editable when the approved VFX registry/runtime exists.
-          </small>
         </div>
       </div>
     </fieldset>

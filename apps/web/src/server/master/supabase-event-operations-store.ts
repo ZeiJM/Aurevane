@@ -59,7 +59,11 @@ function unavailable(
 
 function mapRpcError(error: RpcError): never {
   const message = error.message ?? ''
-  if (error.code === '40001' || message.includes('STATE_VERSION_CONFLICT')) {
+  if (
+    error.code === '40001' ||
+    error.code === 'PT409' ||
+    message.includes('STATE_VERSION_CONFLICT')
+  ) {
     throw new AurevaneError('STALE_VERSION', 'Event state changed. Refresh and retry.', {
       cause: error,
     })

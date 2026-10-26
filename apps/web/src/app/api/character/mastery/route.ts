@@ -62,6 +62,7 @@ export async function GET() {
       }
 
       return {
+        ...(discipline.media ? { media: discipline.media } : {}),
         key: discipline.id,
         disciplineId: discipline.id,
         name: discipline.name,

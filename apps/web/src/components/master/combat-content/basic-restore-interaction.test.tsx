@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ContentRecordPreview } from './content-record-preview'
+import { ContentHistory } from './content-history'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
@@ -15,6 +16,9 @@ import type {
 const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[] }))
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
+  useMemo(factory: () => unknown) {
+    return factory()
+  },
   useState(initial: unknown) {
     const i = hooks.index++
     if (!(i in hooks.cells))
@@ -51,7 +55,13 @@ function find(
     }
   }
   if (!isValidElement<Props>(node)) return null
-  return predicate(node) ? node : find(node.props.children, predicate)
+  if (predicate(node)) return node
+  if (node.type === ContentHistory)
+    return find(
+      ContentHistory(node.props as unknown as Parameters<typeof ContentHistory>[0]),
+      predicate,
+    )
+  return find(node.props.children, predicate)
 }
 beforeEach(() => {
   hooks.index = 0
@@ -130,11 +140,7 @@ function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatCon
     const control = button(label)
     expect(control.props.disabled).not.toBe(true)
     ;(control.props.onClick as () => void)()
-    await vi.waitFor(() =>
-      expect(
-        button('Save draft')?.props.disabled ?? button('Create draft')?.props.disabled ?? false,
-      ).not.toBe(true),
-    )
+    await vi.waitFor(() => expect(button('Commit Now')?.props.disabled ?? false).not.toBe(true))
   }
   const command = () =>
     request.mock.calls
@@ -144,72 +150,44 @@ function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatCon
   return { initial, definition, request, render, button, fields, change, reply, click, command }
 }
 it.each(SUPPORT_ACTION_IDS)(
-  'saves changed %s mechanics and publishes only its exact saved revision',
+  'commits changed %s mechanics directly with the reviewed revision',
   async (id) => {
-    const f = fixture(id),
-      changed = {
-        ...f.definition,
-        ability: {
-          ...f.definition.ability,
-          behaviors: f.definition.ability.behaviors.map((row) => ({
-            ...row,
-            costs: [{ resource: 'ap' as const, amount: 29 }],
-          })),
-        },
-      }
-    f.change(changed)
-    expect(f.button('Publish saved draft').props.disabled).toBe(true)
-    const saved = {
-      ...f.initial,
-      revision: 10,
-      draft: { ...f.initial.draft!, definition: changed, draftVersion: 5 },
+    const f = fixture(id)
+    const changed = {
+      ...f.definition,
+      ability: {
+        ...f.definition.ability,
+        behaviors: f.definition.ability.behaviors.map((row) => ({
+          ...row,
+          costs: [{ resource: 'ap' as const, amount: 29 }],
+        })),
+      },
     }
-    f.reply(saved)
-    await f.click('Save draft')
-    expect(f.command()).toEqual({
-      action: 'save',
-      contentKey: id,
-      expectedRevision: 9,
-      definition: changed,
-    })
+    f.change(changed)
+    expect(f.button('Commit Now').props.disabled).toBe(false)
     f.reply({
-      ...saved,
+      ...f.initial,
       revision: 11,
       draft: null,
       current: { ...f.initial.current!, contentVersion: 6, definition: changed },
     })
-    await f.click('Publish saved draft')
+    await f.click('Commit Now')
     expect(f.command()).toEqual({
-      action: 'publish',
+      action: 'commit',
       contentKey: id,
-      expectedDraftVersion: 5,
-      expectedBaseVersion: 5,
+      expectedRevision: 9,
+      definition: changed,
     })
-    expect(f.command()).not.toHaveProperty('definition')
+    expect(
+      f.request.mock.calls.filter((call) => JSON.parse(call[1].body).command.action !== 'list'),
+    ).toHaveLength(1)
   },
 )
-it('restores the whole snapshot to a saved draft, retains the current pointer and shows only three history entries', async () => {
+it('restores the previous complete settings for review without modifying the current publication', async () => {
   const f = fixture()
   await f.click('History')
-  expect(
-    find(
-      f.render(),
-      (node) =>
-        node.type === 'button' &&
-        Array.isArray(node.props.children) &&
-        node.props.children.join('') === 'Restore version 2 to draft',
-    ),
-  ).toBeNull()
-  expect(
-    find(f.render(), (node) => node.props['aria-label'] === 'Publication history')!.props.children,
-  ).toHaveLength(3)
-  const restore = find(
-    f.render(),
-    (node) =>
-      node.type === 'button' &&
-      Array.isArray(node.props.children) &&
-      node.props.children.join('') === 'Restore version 4 to draft',
-  )!
+  expect(f.button('Restore Previous')).toBeTruthy()
+  expect(find(f.render(), (n) => n.type === 'h4' && n.props.children === 'Current')).toBeTruthy()
   const restored = {
     ...f.initial,
     revision: 10,
@@ -222,13 +200,7 @@ it('restores the whole snapshot to a saved draft, retains the current pointer an
     },
   }
   f.reply(restored)
-  ;(restore.props.onClick as () => void)()
-  await vi.waitFor(() =>
-    expect(
-      f.request.mock.calls.filter((call) => JSON.parse(call[1].body).command.action === 'restore'),
-    ).toHaveLength(1),
-  )
-  await vi.waitFor(() => expect(f.button('Save draft').props.disabled).toBe(false))
+  await f.click('Restore Previous')
   expect(f.command()).toEqual({
     action: 'restore',
     contentKey: 'basic.guard',
@@ -237,10 +209,7 @@ it('restores the whole snapshot to a saved draft, retains the current pointer an
   })
   await f.click('Parameters')
   expect(f.fields().props.value).toEqual(restored.draft.definition)
-  expect(
-    find(f.render(), (node) => node.props['aria-label'] === 'Content version state')!.props
-      .children,
-  ).toContain(' · Current v5')
+  expect(f.initial.current!.contentVersion).toBe(5)
   expect(f.initial.history).toHaveLength(4)
 })
 it('keeps newer local edits when a held save returns and uses the returned revision on the next save', async () => {
@@ -254,7 +223,7 @@ it('keeps newer local edits when a held save returns and uses the returned revis
   )
   const first = { ...f.definition, name: 'Submitted' }
   f.change(first)
-  ;(f.button('Save draft').props.onClick as () => void)()
+  ;(f.button('Commit Now').props.onClick as () => void)()
   const later = { ...first, name: 'Newer local edit' }
   f.change(later)
   release(
@@ -266,15 +235,15 @@ it('keeps newer local edits when a held save returns and uses the returned revis
       },
     }),
   )
-  await vi.waitFor(() => expect(f.button('Save draft').props.disabled).toBe(false))
+  await vi.waitFor(() => expect(f.button('Commit Now').props.disabled).toBe(false))
   expect(f.fields().props.value).toEqual(later)
-  expect(f.button('Publish saved draft').props.disabled).toBe(true)
+  expect(f.button('Commit Now').props.disabled).toBe(false)
   f.reply({
     ...f.initial,
     revision: 11,
     draft: { ...f.initial.draft!, definition: later, draftVersion: 6 },
   })
-  await f.click('Save draft')
+  await f.click('Commit Now')
   expect(f.command()).toMatchObject({ expectedRevision: 10, definition: later })
 })
 it('preserves local changes and exposes a stale revision failure without automatic overwrite', async () => {
@@ -287,11 +256,11 @@ it('preserves local changes and exposes a stale revision failure without automat
       { status: 409 },
     ),
   )
-  await f.click('Save draft')
+  await f.click('Commit Now')
   expect(f.fields().props.value).toEqual(changed)
   expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
   expect(f.request).toHaveBeenCalledTimes(1)
-  expect(f.button('Publish saved draft').props.disabled).toBe(true)
+  expect(f.button('Commit Now').props.disabled).toBe(false)
 })
 
 function disciplineFixture() {
@@ -324,13 +293,14 @@ it('retains a new unsaved definition until creation or explicit discard', async 
     find(f.render(), (node) => node.props['aria-label'] === 'Content category')!.props.disabled,
   ).toBe(true)
   expect(f.fields().props.value).toMatchObject({ name: 'Keep new work' })
-  await f.click('Discard new draft')
+  await f.click('Cancel new content')
   expect(f.fields().props.value).toEqual(f.initial.current!.definition)
   expect(f.request).not.toHaveBeenCalled()
 })
 it('creates directly within a Discipline using its revision and refreshes the matching global Skill list', async () => {
   const f = disciplineFixture()
-  await f.click('New Skill in this Discipline')
+  await f.click('Skills')
+  await f.click('Add Skill')
   const draft = f.fields().props.value as CombatContentDefinition
   expect(draft.sourceDisciplineId).toBe('discipline.original')
   const key = 'skill.11111111-1111-4111-8111-111111111111'
@@ -353,6 +323,13 @@ it('creates directly within a Discipline using its revision and refreshes the ma
     },
   }
   f.reply(created)
+  f.reply({
+    ...created,
+    lifecycle: 'active',
+    revision: 3,
+    draft: null,
+    current: { ...f.initial.current!, definition: created.draft.definition },
+  })
   f.request.mockResolvedValueOnce(
     Response.json({
       records: [
@@ -367,7 +344,7 @@ it('creates directly within a Discipline using its revision and refreshes the ma
       nextCursor: null,
     }),
   )
-  await f.click('Create draft')
+  await f.click('Commit Now')
   expect(JSON.parse(f.request.mock.calls[0]![1].body).command).toMatchObject({
     action: 'create',
     contentKind: 'skill',
@@ -398,12 +375,14 @@ it('keeps the record when dependency-aware archive rejects it', async () => {
       { status: 409 },
     ),
   )
+  await f.click('Identity & Relations')
   await f.click('Archive')
   expect(f.command()).toEqual({
     action: 'archive',
     contentKey: 'discipline.original',
     expectedRevision: 9,
   })
+  await f.click('Parameters')
   expect(f.fields().props.value).toEqual(f.initial.current!.definition)
   expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
 })
@@ -455,12 +434,12 @@ it.each(BASIC_SKILL_IDS)(
       revision: 10,
       draft: { ...f.initial.draft!, definition: changed, draftVersion: 5 },
     })
-    await f.click('Save draft')
-    expect(f.command()).toMatchObject({ action: 'save', definition: changed })
+    await f.click('Commit Now')
+    expect(f.command()).toMatchObject({ action: 'commit', definition: changed })
     expect(() => parseBasicSkillDefinition(f.command().definition)).not.toThrow()
   },
 )
-it('reserves the current history row when retained future versions are newer', async () => {
+it('shows Current and one Previous choice even when retained future versions are newer', async () => {
   const seed = fixture().initial
   hooks.cells = []
   const version = (n: number) => ({ ...seed.current!, contentVersion: n })
@@ -469,9 +448,9 @@ it('reserves the current history row when retained future versions are newer', a
     history: [version(2), version(73), version(74), version(75)],
   })
   await f.click('History')
-  const rows = find(f.render(), (n) => n.props['aria-label'] === 'Publication history')!.props
-    .children as ReactElement[]
-  expect(rows.map((row) => row.key)).toEqual(['2', '75', '74'])
+  f.reply({ ...f.initial, revision: 10 })
+  await f.click('Restore Previous')
+  expect(f.command()).toMatchObject({ sourceVersion: 75 })
 })
 
 it.each(['working', 'saved', 'current', 'compare'])(
@@ -533,7 +512,7 @@ it.each(BASIC_SKILL_IDS)(
         restoredBy: 'owner',
       },
     })
-    await f.click('Restore System original v1 to draft')
+    await f.click('Restore System original')
     expect(f.command()).toEqual({
       action: 'restore',
       contentKey: id,
@@ -544,3 +523,172 @@ it.each(BASIC_SKILL_IDS)(
     expect(f.command()).not.toHaveProperty('definition')
   },
 )
+
+it('retains the created Skill identity and inline edits after commit failure, then retries without another create or parent link', async () => {
+  const f = disciplineFixture()
+  await f.click('Skills')
+  await f.click('Add Skill')
+  const submitted = f.fields().props.value as CombatContentDefinition
+  const key = 'skill.11111111-1111-4111-8111-111111111111'
+  const created: CompleteCombatContentRecord = {
+    ...f.initial,
+    contentKey: key,
+    contentKind: 'skill',
+    lifecycle: 'draft',
+    revision: 1,
+    current: null,
+    history: [],
+    links: [],
+    draft: {
+      definition: { ...submitted, id: key },
+      draftVersion: 1,
+      baseVersion: null,
+      updatedBy: 'owner',
+      updatedAt: '2026-10-26',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  }
+  f.reply(created)
+  let rejectCommit!: (response: Response) => void
+  f.request.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        rejectCommit = resolve
+      }),
+  )
+  ;(f.button('Commit Now').props.onClick as () => void)()
+  await vi.waitFor(() => expect(rejectCommit).toBeTypeOf('function'))
+  expect(f.fields().props.value).toMatchObject({ id: key })
+  const inlineEdit = {
+    ...(f.fields().props.value as CombatContentDefinition),
+    name: 'Retain this new Skill',
+  }
+  f.change(inlineEdit)
+  rejectCommit(
+    Response.json(
+      { error: { code: 'PERSISTENCE_UNAVAILABLE', message: 'Commit storage unavailable.' } },
+      { status: 503 },
+    ),
+  )
+  await vi.waitFor(() => expect(f.button('Commit Now').props.disabled).toBe(false))
+  expect(f.fields().props.value).toEqual(inlineEdit)
+  expect(f.button('Cancel new content')).toBeNull()
+  expect(
+    JSON.stringify(find(f.render(), (node) => node.props.role === 'alert')!.props.children),
+  ).toMatch(/saved.*commit not confirmed/i)
+  f.reply({
+    ...created,
+    lifecycle: 'active',
+    revision: 3,
+    draft: null,
+    current: { ...f.initial.current!, definition: inlineEdit },
+  })
+  await f.click('Commit Now')
+  expect(f.command()).toEqual({
+    action: 'commit',
+    contentKey: key,
+    expectedRevision: 1,
+    definition: JSON.parse(JSON.stringify(inlineEdit)),
+  })
+  expect(
+    f.request.mock.calls
+      .map((call) => JSON.parse(call[1].body).command)
+      .filter((command) => command.action !== 'list')
+      .map((command) => command.action),
+  ).toEqual(['create', 'commit', 'commit'])
+})
+
+it('keeps queued edits made during creation under the returned identity when the first commit succeeds', async () => {
+  const f = disciplineFixture()
+  await f.click('New')
+  const submitted = f.fields().props.value as CombatContentDefinition
+  const key = 'discipline.11111111-1111-4111-8111-111111111111'
+  const created: CompleteCombatContentRecord = {
+    ...f.initial,
+    contentKey: key,
+    contentKind: 'discipline',
+    lifecycle: 'draft',
+    revision: 1,
+    current: null,
+    history: [],
+    links: [],
+    draft: {
+      definition: { ...submitted, id: key },
+      draftVersion: 1,
+      baseVersion: null,
+      updatedBy: 'owner',
+      updatedAt: '2026-10-26',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  }
+  let finishCreate!: (response: Response) => void
+  f.request.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        finishCreate = resolve
+      }),
+  )
+  ;(f.button('Commit Now').props.onClick as () => void)()
+  f.change({ ...submitted, name: 'Queued while creating' })
+  f.reply({
+    ...created,
+    lifecycle: 'active',
+    revision: 3,
+    draft: null,
+    current: { ...f.initial.current!, definition: created.draft!.definition },
+  })
+  finishCreate(Response.json({ record: created }))
+  await vi.waitFor(() => expect(f.button('Commit Now').props.disabled).toBe(false))
+  expect(f.fields().props.value).toMatchObject({ id: key, name: 'Queued while creating' })
+  expect(f.button('Cancel new content')).toBeNull()
+  expect(
+    JSON.stringify(find(f.render(), (node) => node.props.role === 'status')?.props.children),
+  ).toContain('newer local edits remain unsaved')
+})
+
+it('preserves a revert to the previously saved value while an earlier changed value is committing', async () => {
+  const f = fixture()
+  const original = f.fields().props.value as CombatContentDefinition
+  const submitted = { ...original, name: 'Earlier submitted change' }
+  f.change(submitted)
+  let finishCommit!: (response: Response) => void
+  f.request.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        finishCommit = resolve
+      }),
+  )
+  ;(f.button('Commit Now').props.onClick as () => void)()
+  f.change(original)
+  finishCommit(
+    Response.json({
+      record: {
+        ...f.initial,
+        revision: 10,
+        draft: null,
+        current: { ...f.initial.current!, contentVersion: 6, definition: submitted },
+      },
+    }),
+  )
+  await vi.waitFor(() => expect(f.button('Commit Now').props.disabled).toBe(false))
+  expect(f.fields().props.value).toEqual(original)
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Content version state')!.props
+      .children,
+  ).toBe('Unsaved changes')
+  f.reply({
+    ...f.initial,
+    revision: 11,
+    draft: null,
+    current: { ...f.initial.current!, contentVersion: 7, definition: original },
+  })
+  await f.click('Commit Now')
+  expect(f.command()).toEqual({
+    action: 'commit',
+    contentKey: f.initial.contentKey,
+    expectedRevision: 10,
+    definition: original,
+  })
+})

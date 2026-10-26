@@ -159,3 +159,21 @@ it('exact historical custom pins remain readable after current selection is remo
     false,
   )
 })
+it('one captured admission shares the same in-flight selection for Essence and Resonance, while fresh captures reread authority', async () => {
+  const { resolver, rpc } = fixture()
+  const first = await resolver.captureCurrentCatalogue!()
+  const [selected, absent] = await Promise.all([
+    first.resolver.resolveCurrentResonanceDefinition!('vanguard', 'lifebinder'),
+    first.resolver.resolveCurrentEssenceDefinition!('vanguard', 'lifebinder'),
+  ])
+  expect(selected).toEqual(resonance)
+  expect(absent).toBeNull()
+  expect(
+    rpc.mock.calls.filter(([name]) => name === 'read_current_discipline_selection_v1'),
+  ).toHaveLength(1)
+  const second = await resolver.captureCurrentCatalogue!()
+  await second.resolver.resolveCurrentResonanceDefinition!('vanguard', 'lifebinder')
+  expect(
+    rpc.mock.calls.filter(([name]) => name === 'read_current_discipline_selection_v1'),
+  ).toHaveLength(2)
+})

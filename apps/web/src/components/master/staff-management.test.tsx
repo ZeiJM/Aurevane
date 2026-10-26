@@ -42,9 +42,54 @@ it('keeps empty, protected Owner and unbound legacy directory states concise and
       ],
     }),
   )
-  expect(directory).toContain('Global administration · protected Owner')
+  expect(directory).toContain('Protected')
+  expect(directory).toContain('Actions')
   expect(directory).toContain('Needs binding')
   expect(directory).toContain('Bind character')
   expect(directory).not.toContain('Reason')
   expect(directory).not.toContain('Policy version')
+})
+it('shows default configuration only when the Owner supplies the protected snapshot', () => {
+  const props = {
+    staff: [],
+    roleOptions: [{ id: 'moderator', label: 'Moderator', description: 'Moderation' }],
+    capabilityOptions: [],
+  }
+  const delegated = renderToStaticMarkup(createElement(StaffManagement, props))
+  expect(delegated).not.toContain('Role defaults')
+  const owner = renderToStaticMarkup(
+    createElement(StaffManagement, {
+      ...props,
+      roleDefaults: {
+        revision: 1,
+        roles: { moderator: ['master.access'], 'content-staff': [], 'event-staff': [] },
+      },
+    }),
+  )
+  expect(owner).toContain('Role defaults')
+  expect(owner).toContain('Save role defaults')
+  expect(owner).not.toContain('aria-label="Staff management"')
+})
+it('uses one directory action that opens the selected character editor', () => {
+  const markup = renderToStaticMarkup(
+    createElement(StaffManagement, {
+      staff: [
+        {
+          userId: 'staff',
+          email: 'verified@example.test',
+          characterId: 'selected',
+          characterName: 'Chosen',
+          accessVersion: 1,
+          roles: ['moderator'],
+          specialCapabilities: [],
+          status: 'active',
+          expiresAt: null,
+        },
+      ],
+      roleOptions: [],
+      capabilityOptions: [],
+    }),
+  )
+  expect(markup).toContain('>Edit</button>')
+  expect(markup).not.toContain('>Revoke</button>')
 })

@@ -137,7 +137,7 @@ SQL
     if [ -n "$expected_error" ]; then
       test "$writer_result" -ne 0
       grep -Fq "$expected_error" "$race_tmp/$label-writer.log"
-      if [ "$expected_error" = COMBAT_CONTENT_ADMISSION_RETRY ]; then grep -Fq '40001:' "$race_tmp/$label-writer.log"; fi
+      if [ "$expected_error" = COMBAT_CONTENT_ADMISSION_RETRY ]; then grep -Fq 'PT409:' "$race_tmp/$label-writer.log"; fi
     else
       test "$writer_result" -eq 0
     fi
@@ -148,7 +148,7 @@ SQL
     if [ -n "$expected_error" ]; then
       test "$writer_result" -ne 0
       grep -Fq "$expected_error" "$race_tmp/$label-writer.log"
-      grep -Fq '40001:' "$race_tmp/$label-writer.log"
+      grep -Fq 'PT409:' "$race_tmp/$label-writer.log"
     else
       test "$writer_result" -eq 0
     fi
@@ -182,7 +182,7 @@ race archive-before-admission "$(archive_skill ci.archive-first)" "reset role; s
 race independent-shared-admission "$(grant_skill ci.shared-first)" "$(grant_skill ci.shared-second)" rollback '' immediate
 
 echo 'Combat catalogue physical PostgreSQL races: saved revision and floor, content/timing/restore cross-writer CAS, rollback and zero partial losing writes PASS.'
-echo 'Content archive/admission physical PostgreSQL races: admission-first dependency, archive-first immediate 40001, shared admissions and complete player/content rollback PASS.'
+echo 'Content archive/admission physical PostgreSQL races: admission-first dependency, archive-first immediate PT409, shared admissions and complete player/content rollback PASS.'
 
 # Stage B: each of the seven guarded tables is reached by its real mutation
 # producer. phase4_skill_catalog is the private content-import table itself.

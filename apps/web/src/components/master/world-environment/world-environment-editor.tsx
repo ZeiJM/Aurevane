@@ -3,6 +3,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   MAX_TIME_OFFSET_MINUTES,
   MAX_WORLD_DAY_MINUTES,
+  MAX_WEATHER_ROLL_MINUTES,
+  DEFAULT_WEATHER_ROLL_MINUTES,
   MAX_WEATHER_DURATION_MINUTES,
   WORLD_WEATHER,
   resolveWorldEnvironment,
@@ -11,6 +13,7 @@ import {
   type WorldEnvironmentSettings,
   type WorldWeather,
 } from '@/world/environment'
+import { MasterHelp } from '../master-help'
 import styles from './world-environment-editor.module.css'
 const weatherLabels: Record<WorldWeather, string> = {
   clear: 'Clear',
@@ -34,6 +37,9 @@ export function WorldEnvironmentEditor({
   const [settings, setSettings] = useState(initialSettings)
   const [now, setNow] = useState<number | null>(initialNowMs ?? null)
   const [dayLength, setDayLength] = useState(String(initialSettings.dayLengthMinutes ?? 1440))
+  const [weatherRoll, setWeatherRoll] = useState(
+    String(initialSettings.weatherRollMinutes ?? DEFAULT_WEATHER_ROLL_MINUTES),
+  )
   const [offset, setOffset] = useState(String(initialSettings.timeOffsetMinutes))
   const [frozen, setFrozen] = useState(initialSettings.frozenMinuteOfDay !== null)
   const [clock, setClock] = useState(worldTimeLabel(initialSettings.frozenMinuteOfDay ?? 720))
@@ -52,6 +58,7 @@ export function WorldEnvironmentEditor({
   const current = now === null ? null : resolveWorldEnvironment(now, settings)
   const offsetValue = /^-?\d{1,4}$/.test(offset) ? Number(offset) : NaN
   const dayValue = /^\d+$/.test(dayLength) ? Number(dayLength) : NaN
+  const rollValue = /^\d+$/.test(weatherRoll) ? Number(weatherRoll) : NaN
   const durationValue = /^\d+$/.test(duration) ? Number(duration) : NaN
   const forcingWeather = weather !== 'live' && weather !== 'unchanged'
   const frozenMinute = frozen ? parseClock(clock) : null
@@ -61,6 +68,9 @@ export function WorldEnvironmentEditor({
     Number.isSafeInteger(dayValue) &&
     dayValue >= 1 &&
     dayValue <= MAX_WORLD_DAY_MINUTES &&
+    Number.isSafeInteger(rollValue) &&
+    rollValue >= 1 &&
+    rollValue <= MAX_WEATHER_ROLL_MINUTES &&
     (!forcingWeather ||
       (Number.isSafeInteger(durationValue) &&
         durationValue >= 1 &&
@@ -78,6 +88,7 @@ export function WorldEnvironmentEditor({
           expectedVersion: settings.version,
           change: {
             dayLengthMinutes: dayValue,
+            weatherRollMinutes: rollValue,
             timeOffsetMinutes: offsetValue,
             frozenMinuteOfDay: frozenMinute,
             weather: weather === 'live' ? null : weather,
@@ -104,103 +115,133 @@ export function WorldEnvironmentEditor({
   }
   return (
     <form className={styles.editor} onSubmit={save} aria-label="World environment">
-      <h2>World Environment</h2>
+      <div className={styles.heading}>
+        <h2>World Environment</h2>
+        <MasterHelp label="World environment help">
+          <p>
+            One World day advances through 24 World hours. Default: 1440 real minutes (UTC). Shorter
+            cycles make daylight and darkness pass faster; changing the cycle can shift the current
+            phase.
+          </p>
+          <p>
+            Automatic weather rolls use real minutes independently of the day length. A roll may
+            keep the same weather. Default: every 360 minutes (six hours).
+          </p>
+          <p>
+            Saving a forced selection starts its duration. Expiry returns to ordinary shared
+            weather. Rain renders as snow in Frostmere; Storm renders as Snowstorm there. Keep
+            current weather preserves its original expiry.
+          </p>
+        </MasterHelp>
+      </div>
       <p data-testid="world-environment-current">
         {current
           ? `World time ${worldTimeLabel(current.minuteOfDay)} · ${worldDayPhase(current.minuteOfDay)}${current.frozen ? ' (frozen)' : ''} · ${weatherLabels[current.weather]} (${current.weatherSource === 'master' ? 'forced' : 'ordinary weather'}).`
           : 'Reading the current server time…'}
       </p>
       {settings.weatherOverrideUntil && current?.weatherSource === 'master' ? (
-        <p>Forced weather ends {new Date(settings.weatherOverrideUntil).toISOString()}.</p>
+        <p>
+          Forced weather ends{' '}
+          {new Date(settings.weatherOverrideUntil).toLocaleString(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          })}{' '}
+          (local time) · {Math.ceil((settings.weatherOverrideUntil - now!) / 60_000)} min remaining.
+        </p>
       ) : null}
-      <fieldset disabled={saving}>
-        <legend>Day / night cycle</legend>
-        <label>
-          Day length (real minutes)
-          <input
-            type="number"
-            min={1}
-            max={MAX_WORLD_DAY_MINUTES}
-            step="1"
-            required
-            value={dayLength}
-            onChange={(event) => setDayLength(event.currentTarget.value)}
-          />
-        </label>
-        <p>
-          One World day advances through 24 World hours. Default: 1440 real minutes (UTC). Shorter
-          cycles make daylight and darkness pass faster; changing the cycle can shift the current
-          phase.
-        </p>
-        <label>
-          Shift world time (minutes, −1440 to 1440)
-          <input
-            type="number"
-            min={-MAX_TIME_OFFSET_MINUTES}
-            max={MAX_TIME_OFFSET_MINUTES}
-            step="1"
-            required
-            value={offset}
-            disabled={frozen}
-            onChange={(event) => setOffset(event.currentTarget.value)}
-          />
-        </label>
-        <label>
-          <span>
+      <div className={styles.sections}>
+        <fieldset disabled={saving}>
+          <legend>Day / night cycle</legend>
+          <label>
+            Day length (real minutes)
             <input
-              type="checkbox"
-              checked={frozen}
-              onChange={(event) => setFrozen(event.currentTarget.checked)}
-            />{' '}
-            Freeze the clock at a time of day
-          </span>
-        </label>
-        <label>
-          Frozen World time
-          <input
-            type="time"
-            value={clock}
-            disabled={!frozen}
-            onChange={(event) => setClock(event.currentTarget.value)}
-          />
-        </label>
-      </fieldset>
-      <fieldset disabled={saving}>
-        <legend>Weather</legend>
-        <label>
-          Weather selection
-          <select
-            value={weather}
-            onChange={(event) => setWeather(event.currentTarget.value as typeof weather)}
-          >
-            <option value="unchanged">Keep current weather</option>
-            <option value="live">Ordinary weather (clear override)</option>
-            {WORLD_WEATHER.map((value) => (
-              <option key={value} value={value}>
-                {weatherLabels[value]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Forced weather duration (minutes)
-          <input
-            type="number"
-            min={1}
-            max={MAX_WEATHER_DURATION_MINUTES}
-            step="1"
-            required={forcingWeather}
-            disabled={!forcingWeather}
-            value={duration}
-            onChange={(event) => setDuration(event.currentTarget.value)}
-          />
-        </label>
-        <p>
-          Saving a forced selection starts this duration. Expiry returns to ordinary shared weather.
-          Rain renders as snow in Frostmere; Storm renders as Snowstorm there. Keep current weather
-          preserves its original expiry.
-        </p>
-      </fieldset>
+              type="number"
+              min={1}
+              max={MAX_WORLD_DAY_MINUTES}
+              step="1"
+              required
+              value={dayLength}
+              onChange={(event) => setDayLength(event.currentTarget.value)}
+            />
+          </label>
+
+          <label>
+            Shift world time (minutes, −1440 to 1440)
+            <input
+              type="number"
+              min={-MAX_TIME_OFFSET_MINUTES}
+              max={MAX_TIME_OFFSET_MINUTES}
+              step="1"
+              required
+              value={offset}
+              disabled={frozen}
+              onChange={(event) => setOffset(event.currentTarget.value)}
+            />
+          </label>
+          <label>
+            <span>
+              <input
+                type="checkbox"
+                checked={frozen}
+                onChange={(event) => setFrozen(event.currentTarget.checked)}
+              />{' '}
+              Freeze the clock at a time of day
+            </span>
+          </label>
+          <label>
+            Frozen World time
+            <input
+              type="time"
+              value={clock}
+              disabled={!frozen}
+              onChange={(event) => setClock(event.currentTarget.value)}
+            />
+          </label>
+        </fieldset>
+        <fieldset disabled={saving}>
+          <legend>Weather</legend>
+          <label>
+            Automatic weather roll interval (real minutes)
+            <input
+              type="number"
+              min={1}
+              max={MAX_WEATHER_ROLL_MINUTES}
+              step="1"
+              required
+              value={weatherRoll}
+              onChange={(event) => setWeatherRoll(event.currentTarget.value)}
+            />
+          </label>
+          <label>
+            Weather selection
+            <select
+              value={weather}
+              onChange={(event) => setWeather(event.currentTarget.value as typeof weather)}
+            >
+              <option value="unchanged">Keep current weather</option>
+              <option value="live">Ordinary weather (clear override)</option>
+              {WORLD_WEATHER.map((value) => (
+                <option key={value} value={value}>
+                  {weatherLabels[value]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Forced weather duration (minutes)
+            <input
+              type="number"
+              min={1}
+              max={MAX_WEATHER_DURATION_MINUTES}
+              step="1"
+              required={forcingWeather}
+              disabled={!forcingWeather}
+              value={duration}
+              onChange={(event) => setDuration(event.currentTarget.value)}
+            />
+          </label>
+        </fieldset>
+      </div>
       <button type="submit" disabled={saving || !valid}>
         {saving ? 'Saving…' : 'Save Changes'}
       </button>

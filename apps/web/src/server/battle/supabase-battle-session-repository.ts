@@ -35,7 +35,7 @@ function throwRpcError(error: { code?: string; message?: string }): never {
     )
   }
 
-  if (error.code === '40001') {
+  if (error.code === '40001' || error.code === 'PT409') {
     const match = error.message?.match(/BATTLE_VERSION_STALE:(\d+)/)
     if (match) {
       const currentVersion = Number(match[1])

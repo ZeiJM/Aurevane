@@ -2082,3 +2082,125 @@ it('publication invalidates preparation without changing pinned character Core, 
   expect(fresh.catalogueToken).not.toBe(before.catalogueToken)
   await admitTrial(await newTrialSnapshot())
 })
+it('selected published Discipline shows current text after disabling while preserving committed Core, history and player facts', async () => {
+  const artwork = (
+    await db.query<{ value: Record<string, unknown> }>(
+      'select public.finalize_combat_content_media_v1($1,null,$2,$3) value',
+      [
+        owner,
+        Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a1ZkAAAAASUVORK5CYII=',
+          'base64',
+        ),
+        {
+          kind: 'image',
+          contentType: 'image/png',
+          width: 1,
+          height: 1,
+          sourceWidth: 1,
+          sourceHeight: 1,
+          crop: { x: 0, y: 0, size: 1 },
+        },
+      ],
+    )
+  ).rows[0]!.value
+  const saved = await authoredDraft()
+  const first = await publish(authored.id, saved.draft.draftVersion, null)
+  await db.query(
+    'select * from public.change_character_disciplines_v3($1,$2,1,true,$3,false,null,$4,$5)',
+    [
+      other,
+      character,
+      authored.id,
+      '00000000-0000-4000-8000-000000000079',
+      'select-current-display',
+    ],
+  )
+  const before = (
+    await db.query('select to_jsonb(c) value from public.characters c where id=$1', [character])
+  ).rows
+  const buildBefore = (
+    await db.query(
+      'select to_jsonb(b) value from app_private.character_active_builds b where character_id=$1',
+      [character],
+    )
+  ).rows
+  const edit = await write(authored.id, {
+    action: 'save',
+    expectedRevision: first.revision,
+    definition: {
+      ...authored,
+      media: { artwork },
+      name: 'Current authored name',
+      description: 'Current authored explanation.',
+      enabled: false,
+      core: { ...authored.core, might: 10, finesse: 7 },
+    },
+  })
+  await publish(authored.id, edit.draft.draftVersion, first.current.contentVersion)
+  const active = (
+    await db.query<{ value: Record<string, unknown> }>(
+      'select public.get_character_active_build_v4($1,$2) value',
+      [other, character],
+    )
+  ).rows[0]!.value
+  expect(active).toMatchObject({
+    primary_name: 'Current authored name',
+    primary_summary: 'Current authored explanation.',
+    primary_media: { artwork },
+    primary_definition_version: first.current.contentVersion,
+    primary_profile_version: first.current.contentVersion,
+    primary_enabled_for_primary: true,
+    core_base_attributes: authored.core,
+  })
+  expect(
+    (await db.query('select to_jsonb(c) value from public.characters c where id=$1', [character]))
+      .rows,
+  ).toEqual(before)
+  expect(
+    (
+      await db.query(
+        'select to_jsonb(b) value from app_private.character_active_builds b where character_id=$1',
+        [character],
+      )
+    ).rows,
+  ).toEqual(buildBefore)
+  expect(
+    (
+      await db.query<{ value: Record<string, unknown>[] }>(
+        'select public.get_character_discipline_catalog_v3($1,$2) value',
+        [other, character],
+      )
+    ).rows[0]!.value.find((r) => r.discipline_id === authored.id),
+  ).toBeUndefined()
+  await denied(
+    () =>
+      db.query(
+        'select * from public.change_character_disciplines_v3($1,$2,2,true,$3,false,null,$4,$5)',
+        [
+          other,
+          character,
+          authored.id,
+          '00000000-0000-4000-8000-000000000078',
+          'reject-disabled-selection',
+        ],
+      ),
+    /PRIMARY_DISCIPLINE_UNAVAILABLE/,
+  )
+})
+it('current Discipline chooser includes authored artwork while preserving the published Core projection', async () => {
+  const media = { artworkId: 'discipline.foundation.vanguard-sigil' }
+  const saved = await authoredDraft({ ...authored, media })
+  const published = await publish(authored.id, saved.draft.draftVersion, null)
+  const catalogue = (
+    await db.query<{ value: Record<string, unknown>[] }>(
+      'select public.get_character_discipline_catalog_v3($1,$2) value',
+      [other, character],
+    )
+  ).rows[0]!.value
+  expect(catalogue.find((row) => row.discipline_id === authored.id)).toMatchObject({
+    media,
+    definition_version: published.current.contentVersion,
+    core_base_attributes: authored.core,
+  })
+})

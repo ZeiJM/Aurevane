@@ -61,7 +61,7 @@ beforeEach(() => {
     )
       return { data: [combatRow], error: null }
     if (name === 'read_current_event_definition_v1') return { data: [eventRow], error: null }
-    if (name === 'read_master_panel_access_v1')
+    if (name === 'read_master_panel_access_v2')
       return {
         data: [
           {
@@ -69,6 +69,17 @@ beforeEach(() => {
             access_version: 1,
             roles: state.roles,
             special_capabilities: [],
+            effective_capabilities: state.roles.includes('game-owner')
+              ? [
+                  'master.access',
+                  'staff.manage',
+                  'events.author',
+                  'events.operate',
+                  'content.combat.author',
+                ]
+              : state.roles.includes('content-staff')
+                ? ['master.access', 'content.combat.author']
+                : ['master.access', 'events.author', 'events.operate'],
           },
         ],
         error: null,
@@ -89,13 +100,13 @@ beforeEach(() => {
 it('the production Staff factory binds each RPC to the current verified selected character', async () => {
   const store = createSupabaseMasterPanelStaffAccessStore()
   await store.readAccess(state.userId)
-  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v1', {
+  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v2', {
     p_user_id: state.userId,
     p_actor_character_id: 'first',
   })
   state.characterId = 'alternate'
   await store.readAccess(state.userId)
-  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v1', {
+  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v2', {
     p_user_id: state.userId,
     p_actor_character_id: 'alternate',
   })
@@ -222,7 +233,7 @@ it('the production Staff factory preserves null selection for the SQL Owner boot
     roles: ['game-owner'],
     effectiveCapabilities: expect.arrayContaining(['staff.manage']),
   })
-  expect(state.rpc).toHaveBeenCalledExactlyOnceWith('read_master_panel_access_v1', {
+  expect(state.rpc).toHaveBeenCalledExactlyOnceWith('read_master_panel_access_v2', {
     p_user_id: 'verified-user',
     p_actor_character_id: null,
   })

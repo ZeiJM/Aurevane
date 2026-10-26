@@ -1,9 +1,6 @@
 'use client'
-import { useRef, useState } from 'react'
-import {
-  captureCombatTagPresentation,
-  type CombatTagPresentationSnapshot,
-} from '@aurevane/game-core/combat/combat-tag-registry'
+import { useMemo, useRef, useState } from 'react'
+import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import { BASIC_SKILL_IDS } from '@aurevane/game-core/combat/combat-basic-actions'
 import type {
   CombatContentDefinition,
@@ -14,6 +11,7 @@ import type {
 import type { CombatContentEditorDescriptor } from '@/server/combat/combat-content-editor-defaults'
 import {
   ContentDefinitionFields,
+  objectValue,
   type ContentEditorTab,
   type ContentReference,
 } from './content-definition-fields'
@@ -22,14 +20,10 @@ import {
   contentRecordName,
   editableDefinition,
   recordIsDirty,
-  savedPublicationCommand,
 } from './content-record-workflow'
-import { postCombatContentAuthoring } from './combat-content-client'
-import type {
-  CombatContentValidationResult,
-  CombatContentSemanticDiff,
-} from './combat-content-workflow'
-import { ContentRecordPreview } from './content-record-preview'
+import { ContentHistory } from './content-history'
+import { readableContentReference } from './content-reference-label'
+import { MasterHelp } from '../master-help'
 import styles from './game-content-workspace.module.css'
 export interface CombatContentAuthoringWorkspaceProps {
   readonly categories?: readonly CombatContentEditorDescriptor[]
@@ -48,10 +42,9 @@ export function CombatContentAuthoringWorkspace({
   initialPage = { records: [], nextCursor: null },
   initialRecord = null,
   references = [],
-  tagPresentations: initialTagPresentations = [],
 }: CombatContentAuthoringWorkspaceProps) {
-  const [tagPresentations, setTagPresentations] = useState(initialTagPresentations)
   const [record, setRecord] = useState(initialRecord)
+  const [parentKey, setParentKey] = useState<string | null>(null)
   const [definition, setDefinition] = useState<CombatContentDefinition | null>(
     initialRecord ? editableDefinition(initialRecord) : null,
   )
@@ -62,8 +55,6 @@ export function CombatContentAuthoringWorkspace({
   const [search, setSearch] = useState(''),
     [sort, setSort] = useState<CombatContentSort>('name-asc'),
     [lifecycle, setLifecycle] = useState('')
-  const [validation, setValidation] = useState<CombatContentValidationResult | null>(null),
-    [diff, setDiff] = useState<CombatContentSemanticDiff | null>(null)
   const [tab, setTab] = useState<ContentEditorTab>('Parameters'),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
@@ -78,6 +69,7 @@ export function CombatContentAuthoringWorkspace({
   const localEdits = useRef(new Map<string, CombatContentDefinition>())
   const [localDirtyKeys, setLocalDirtyKeys] = useState<Record<string, boolean>>({})
   const editRevision = useRef(0)
+  const latestEdit = useRef<CombatContentDefinition | null>(null)
   const browseRequest = useRef(0)
   const [appliedBrowse, setAppliedBrowse] = useState(
     JSON.stringify({ search: '', sort: 'name-asc', lifecycle: '' }),
@@ -88,25 +80,30 @@ export function CombatContentAuthoringWorkspace({
   )
   const dirty = !!record && !!definition && recordIsDirty(record, definition)
   const activeDefinition = newDefinition ?? definition
-  const choices = [
-    ...references,
-    ...page.records.map((row) => ({ ...row, name: row.name ?? row.contentKey })),
-    ...linkChoices,
-  ].filter(
-    (row, index, rows) => rows.findIndex((other) => other.contentKey === row.contentKey) === index,
+  const choices = useMemo(
+    () => [
+      ...new Map(
+        [
+          ...references,
+          ...page.records.map((row) => ({ ...row, name: row.name ?? row.contentKey })),
+          ...linkChoices,
+        ].map((row) => [row.contentKey, row]),
+      ).values(),
+    ],
+    [references, page.records, linkChoices],
   )
   function change(next: CombatContentDefinition) {
     editRevision.current++
-    setValidation(null)
-    setDiff(null)
+    latestEdit.current = next
     setError('')
     setNotice('')
     if (newDefinition) setNewDefinition(next)
     else {
       setDefinition(next)
       if (record) {
-        localEdits.current.set(record.contentKey, next)
-        setLocalDirtyKeys((old) => ({ ...old, [record.contentKey]: true }))
+        if (recordIsDirty(record, next)) localEdits.current.set(record.contentKey, next)
+        else localEdits.current.delete(record.contentKey)
+        setLocalDirtyKeys((old) => ({ ...old, [record.contentKey]: recordIsDirty(record, next) }))
       }
     }
   }
@@ -123,8 +120,6 @@ export function CombatContentAuthoringWorkspace({
     }
   }
   function accept(next: CompleteCombatContentRecord, keepLocal = false) {
-    setValidation(null)
-    setDiff(null)
     setRecord(next)
     setCategory(categoryOf(next))
     setNewDefinition(null)
@@ -181,24 +176,74 @@ export function CombatContentAuthoringWorkspace({
   async function mutate(command: Record<string, unknown>, message: string) {
     const revision = editRevision.current
     await work(async () => {
-      const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>(command)
-      accept(result.record, revision !== editRevision.current)
-      if (
-        result.record.contentKind === 'tag' &&
-        (command.action === 'publish' || command.action === 'archive')
-      ) {
-        const published = result.record.current?.definition
-        const next =
-          result.record.lifecycle !== 'archived' && published?.enabled !== false && published
-            ? captureCombatTagPresentation(
-                published as Parameters<typeof captureCombatTagPresentation>[0],
-              )
-            : null
-        setTagPresentations((old) => [
-          ...old.filter((row) => row.contentKey !== result.record.contentKey),
-          ...(next ? [next] : []),
-        ])
+      let result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>(command)
+      if (command.action === 'create' && result.record.draft) {
+        const created = result.record
+        const keepLocal = revision !== editRevision.current && latestEdit.current !== null
+        if (keepLocal) {
+          // Creation assigns the identity; queued edits still belong to that
+          // saved record, including an Essence's nested executable Skill.
+          const local: CombatContentDefinition = {
+            ...latestEdit.current,
+            id: created.contentKey,
+            ...(created.contentKind === 'essence'
+              ? {
+                  essenceId: created.contentKey,
+                  skill: { ...objectValue(latestEdit.current!.skill), id: created.contentKey },
+                }
+              : {}),
+          }
+          latestEdit.current = local
+          if (recordIsDirty(created, local)) localEdits.current.set(created.contentKey, local)
+          else localEdits.current.delete(created.contentKey)
+          setLocalDirtyKeys((old) => ({
+            ...old,
+            [created.contentKey]: recordIsDirty(created, local),
+          }))
+        }
+        // Adopt the durable draft before the separate commit request. A retry
+        // must commit this identity rather than create another child/parent link.
+        accept(created, keepLocal)
+        setPage({
+          records: [
+            {
+              contentKey: created.contentKey,
+              contentKind: created.contentKind,
+              lifecycle: created.lifecycle,
+              revision: created.revision,
+              name: contentRecordName(created.draft!.definition),
+            },
+          ],
+          nextCursor: null,
+        })
+        setSearch('')
+        setLifecycle('')
+        setAppliedBrowse(JSON.stringify({ search: '', sort, lifecycle: '' }))
+        try {
+          result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
+            action: 'commit',
+            contentKey: created.contentKey,
+            expectedRevision: created.revision,
+            definition: created.draft!.definition,
+          })
+        } catch (cause) {
+          throw new Error(
+            `Created item saved; commit not confirmed. Refresh saved state before retrying. ${cause instanceof Error ? cause.message : 'The commit response is unavailable.'}`,
+          )
+        }
       }
+      const newerEdits = revision !== editRevision.current
+      if (newerEdits && latestEdit.current) {
+        // A newer value may equal the old saved record, so its dirty-map entry
+        // can disappear while the request is pending. Compare it to the new
+        // response rather than using dirty-map presence as the editor value.
+        const local = latestEdit.current
+        const stillDirty = recordIsDirty(result.record, local)
+        if (stillDirty) localEdits.current.set(result.record.contentKey, local)
+        else localEdits.current.delete(result.record.contentKey)
+        setLocalDirtyKeys((old) => ({ ...old, [result.record.contentKey]: stillDirty }))
+      }
+      accept(result.record, newerEdits)
       setNotice(
         revision !== editRevision.current
           ? 'Saved earlier changes; newer local edits remain unsaved.'
@@ -244,7 +289,7 @@ export function CombatContentAuthoringWorkspace({
         definition: newDefinition,
         ...(newParent ?? {}),
       },
-      'Created a saved draft.',
+      'Content committed.',
     )
   }
   const readOnly = !!record?.authoringBlocker || record?.lifecycle === 'archived'
@@ -369,24 +414,39 @@ export function CombatContentAuthoringWorkspace({
         <div className={styles.editor}>
           {activeDefinition ? (
             <>
-              <h2>{contentRecordName(activeDefinition)}</h2>
+              <div className={styles.recordHeading}>
+                {parentKey && record?.contentKey !== parentKey ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      void read(parentKey)
+                      setParentKey(null)
+                    }}
+                  >
+                    Back to Discipline
+                  </button>
+                ) : null}
+                <h2>{contentRecordName(activeDefinition)}</h2>
+                <MasterHelp label="Committing content">
+                  Commit Now applies the complete record to the game. Existing battles keep their
+                  recorded rules.
+                </MasterHelp>
+              </div>
               <div className={`${styles.actions} ${styles.savebar}`}>
                 <span className={styles.status} role="status" aria-label="Content version state">
                   {newDefinition
-                    ? 'New draft'
+                    ? 'New content'
                     : dirty
                       ? 'Unsaved changes'
                       : record?.draft
-                        ? 'Saved draft'
-                        : 'Published'}
-                  {!newDefinition && (record?.current || record?.builtin)
-                    ? ` · Current v${record?.current?.contentVersion ?? record?.builtin?.contentVersion}`
-                    : ''}
+                        ? 'Uncommitted changes'
+                        : 'Current'}
                 </span>
                 {newDefinition ? (
                   <>
                     <button disabled={busy} onClick={() => void create()}>
-                      Create draft
+                      Commit Now
                     </button>
                     <button
                       disabled={busy}
@@ -397,110 +457,35 @@ export function CombatContentAuthoringWorkspace({
                         setNotice('New draft discarded.')
                       }}
                     >
-                      Discard new draft
+                      Cancel new content
                     </button>
                   </>
                 ) : (
                   <>
                     <button
-                      disabled={busy || readOnly}
+                      disabled={busy || readOnly || !!activeDescriptor?.publicationBlocker}
+                      title={
+                        readOnly
+                          ? (record?.authoringBlocker?.message ?? 'This content is archived.')
+                          : activeDescriptor?.publicationBlocker?.message
+                      }
                       onClick={() =>
                         void mutate(
                           {
-                            action: 'save',
+                            action: 'commit',
                             contentKey: record!.contentKey,
                             expectedRevision: record!.revision,
                             definition,
                           },
-                          'Draft saved. Publishing is separate.',
+                          'Changes committed and available to the game.',
                         )
                       }
                     >
-                      Save draft
-                    </button>
-                    <button
-                      disabled={
-                        busy ||
-                        readOnly ||
-                        dirty ||
-                        !record?.draft ||
-                        !!activeDescriptor?.publicationBlocker
-                      }
-                      onClick={() =>
-                        void mutate(
-                          savedPublicationCommand(record!, definition!),
-                          'Published the saved complete record.',
-                        )
-                      }
-                    >
-                      Publish saved draft
+                      Commit Now
                     </button>
                   </>
                 )}
               </div>
-              {!newDefinition &&
-              record &&
-              ['skill', 'essence', 'resonance'].includes(record.contentKind) ? (
-                <div className={styles.actions}>
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      void work(async () => {
-                        const revision = editRevision.current
-                        const result = await postCombatContentAuthoring<{
-                          validation: CombatContentValidationResult
-                        }>({ operation: 'validate', contentKind: record.contentKind, definition })
-                        if (revision === editRevision.current) setValidation(result.validation)
-                      })
-                    }
-                  >
-                    Validate
-                  </button>
-                  <button
-                    disabled={busy}
-                    onClick={() =>
-                      void work(async () => {
-                        const revision = editRevision.current
-                        const result = await postCombatContentAuthoring<{
-                          diff: CombatContentSemanticDiff
-                        }>({
-                          operation: 'diff',
-                          before: record.current?.definition ?? record.builtinDefinition ?? {},
-                          after: definition,
-                        })
-                        if (revision === editRevision.current) setDiff(result.diff)
-                      })
-                    }
-                  >
-                    Diff
-                  </button>
-                </div>
-              ) : null}
-              {validation ? (
-                <section
-                  aria-label="Validation issues"
-                  data-validation-state={validation.valid ? 'valid' : 'invalid'}
-                >
-                  <strong>
-                    {validation.valid ? 'Validated' : 'Resolve compatibility before publishing'}
-                  </strong>
-                  {validation.issues.map((issue, index) => (
-                    <p key={index}>
-                      {issue.path}: {issue.message}
-                    </p>
-                  ))}
-                </section>
-              ) : null}
-              {diff ? (
-                <section aria-label="Semantic diff">
-                  <h3>Semantic diff</h3>
-                  {diff.changedPaths.length ? (
-                    diff.changedPaths.map((path) => <p key={path}>{path}</p>)
-                  ) : (
-                    <p>No semantic changes.</p>
-                  )}
-                </section>
-              ) : null}
               {record?.authoringBlocker || activeDescriptor?.publicationBlocker ? (
                 <p role="note">
                   {record?.authoringBlocker?.message ??
@@ -508,7 +493,18 @@ export function CombatContentAuthoringWorkspace({
                 </p>
               ) : null}
               <div className={styles.tabs} role="group" aria-label="Editor sections">
-                {(['Parameters', 'Text', 'Media', 'History'] as const).map((section) => (
+                {(
+                  [
+                    'Parameters',
+                    ...(record?.contentKind === 'discipline' ||
+                    (newDefinition && category === 'discipline')
+                      ? (['Skills', 'Resonances'] as const)
+                      : []),
+                    'Text',
+                    'History',
+                    'Identity & Relations',
+                  ] as const
+                ).map((section) => (
                   <button
                     key={section}
                     disabled={newDefinition !== null && section === 'History'}
@@ -519,135 +515,89 @@ export function CombatContentAuthoringWorkspace({
                   </button>
                 ))}
               </div>
-              {tab === 'History' && record ? (
-                <>
-                  <h3>Published history</h3>
-                  {record.builtinRestoreVersion ? (
-                    <section aria-label="System original">
-                      <strong>System original · v{record.builtinRestoreVersion}</strong>
-                      <p>
-                        Built-in source snapshot. Restoring saves a draft; publication creates a new
-                        version.
-                      </p>
-                      <button
-                        disabled={busy || dirty || readOnly}
-                        onClick={() =>
-                          void mutate(
-                            {
-                              action: 'restore',
-                              contentKey: record.contentKey,
-                              expectedRevision: record.revision,
-                              sourceVersion: record.builtinRestoreVersion,
-                              sourceKind: 'builtin',
-                            },
-                            'System original restored to a saved draft. Preview and publish when ready.',
-                          )
-                        }
-                      >
-                        {`Restore System original v${record.builtinRestoreVersion} to draft`}
-                      </button>
-                    </section>
-                  ) : record.builtin &&
-                    !record.history.some(
-                      (version) => version.contentVersion === record.builtin!.contentVersion,
-                    ) ? (
-                    <p>
-                      The indexed built-in source is unavailable for restoration on this server.
-                      Recorded publications remain available below.
-                    </p>
-                  ) : null}
-                  <ol className={styles.history} aria-label="Publication history">
-                    {[
-                      ...(record.current ? [record.current] : []),
-                      ...record.history
-                        .filter(
-                          (version) => version.contentVersion !== record.current?.contentVersion,
-                        )
-                        .toSorted((a, b) => b.contentVersion - a.contentVersion),
-                    ]
-                      .slice(0, 3)
-                      .map((version) => (
-                        <li key={version.contentVersion}>
-                          <strong>
-                            Version {version.contentVersion}
-                            {version.contentVersion === record.current?.contentVersion
-                              ? ' · current'
-                              : ''}
-                          </strong>
-                          <p>
-                            Authored by{' '}
-                            {version.restoredSource === 'builtin'
-                              ? 'System'
-                              : (version.authoredBy ?? 'Unknown')}{' '}
-                            {version.authoredAt ?? ''}
-                          </p>
-                          <p>
-                            Published by {version.publishedBy} {version.publishedAt}
-                          </p>
-                          {version.restoredFrom ? (
-                            <p>
-                              Restored from{' '}
-                              {version.restoredSource === 'builtin' ? 'System original ' : ''}v
-                              {version.restoredFrom} by {version.restoredBy}
-                            </p>
-                          ) : null}
-                          <button
-                            disabled={busy || dirty || readOnly}
-                            onClick={() =>
-                              void mutate(
-                                {
-                                  action: 'restore',
-                                  contentKey: record.contentKey,
-                                  expectedRevision: record.revision,
-                                  sourceVersion: version.contentVersion,
-                                },
-                                `Version ${version.contentVersion} restored to a saved draft. Preview and publish when ready.`,
-                              )
-                            }
-                          >
-                            Restore version {version.contentVersion} to draft
-                          </button>
-                        </li>
-                      ))}
-                  </ol>
-                  <p>Older snapshots remain retained. Draft saves do not consume history.</p>
-                </>
-              ) : (
-                <fieldset disabled={newDefinition ? busy : readOnly}>
-                  <ContentDefinitionFields
-                    kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
-                    value={activeDefinition}
-                    tab={tab}
-                    onChange={change}
+              <div className={styles.editorBody}>
+                {tab === 'History' && record ? (
+                  <ContentHistory
+                    record={record}
+                    busy={busy}
+                    readOnly={readOnly}
+                    dirty={dirty}
                     choices={choices}
+                    onRestore={(sourceVersion, sourceKind) =>
+                      void mutate(
+                        {
+                          action: 'restore',
+                          contentKey: record.contentKey,
+                          expectedRevision: record.revision,
+                          sourceVersion,
+                          ...(sourceKind ? { sourceKind } : {}),
+                        },
+                        'Previous settings loaded. Review them, then Commit Now to apply.',
+                      )
+                    }
                   />
-                </fieldset>
-              )}
-              {!newDefinition && record ? (
-                <>
-                  <details>
-                    <summary>Identity and relationships</summary>
-                    <p>Stable identity: {record.contentKey}</p>
-                    <h4>Used by</h4>
-                    {record.usedBy.length ? (
-                      record.usedBy.map((use, index) => (
-                        <p key={`${use.kind}:${use.key}:${index}`}>
-                          {use.kind}: {use.key}
-                        </p>
-                      ))
-                    ) : (
-                      <p>No recorded references.</p>
-                    )}
-                    {record.usedByTruncated ? (
-                      <p>Additional references exist; archive still checks all dependencies.</p>
+                ) : tab === 'Identity & Relations' ? null : (
+                  <fieldset disabled={newDefinition ? busy : readOnly}>
+                    <ContentDefinitionFields
+                      kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
+                      value={activeDefinition}
+                      tab={tab}
+                      onChange={change}
+                      choices={choices}
+                    />
+                  </fieldset>
+                )}
+                {tab === 'Resonances' && record?.contentKind === 'discipline' ? (
+                  <div className={styles.relatedActions}>
+                    {(
+                      definition?.resonanceSelections as { resonanceId: string }[] | undefined
+                    )?.map(({ resonanceId }) => (
+                      <button
+                        type="button"
+                        key={resonanceId}
+                        disabled={busy}
+                        onClick={() => {
+                          setParentKey(record.contentKey)
+                          void read(resonanceId)
+                        }}
+                      >
+                        Edit {readableContentReference(resonanceId, choices, 'resonance')}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {!newDefinition && record ? (
+                  <>
+                    {tab === 'Identity & Relations' ? (
+                      <section aria-label="Identity and relationships">
+                        <h3>Used in</h3>
+                        {record.usedBy.length ? (
+                          record.usedBy.map((use, index) => (
+                            <p key={`${use.kind}:${use.key}:${index}`}>
+                              {readableContentReference(use.key, choices, use.kind)}
+                            </p>
+                          ))
+                        ) : (
+                          <p>No recorded references.</p>
+                        )}
+                        {record.usedByTruncated ? (
+                          <p>Additional references exist; archive still checks all dependencies.</p>
+                        ) : null}
+                      </section>
                     ) : null}
-                    {record.contentKind === 'discipline' ? (
+                    {record.contentKind === 'discipline' && tab === 'Skills' ? (
                       <>
-                        <h4>Linked Skills</h4>
+                        <h3>Skills in this Discipline</h3>
                         {record.links.map((key) => (
                           <p key={key}>
-                            <button disabled={busy} onClick={() => void read(key)}>
-                              {choices.find((row) => row.contentKey === key)?.name ?? key}
+                            <button
+                              disabled={busy}
+                              onClick={() => {
+                                setParentKey(record.contentKey)
+                                void read(key)
+                              }}
+                            >
+                              {readableContentReference(key, choices, 'skill')}
                             </button>
                             <button
                               disabled={busy || dirty}
@@ -734,85 +684,72 @@ export function CombatContentAuthoringWorkspace({
                             setTab('Parameters')
                           }}
                         >
-                          New Skill in this Discipline
+                          Add Skill
                         </button>
                       </>
                     ) : null}
-                  </details>
-                  <div className={styles.actions}>
-                    <button
-                      disabled={
-                        busy ||
-                        dirty ||
-                        readOnly ||
-                        category === 'basic' ||
-                        record.contentKind === 'tag'
-                      }
-                      onClick={() =>
-                        void mutate(
-                          {
-                            action: 'duplicate',
-                            sourceKey: record.contentKey,
-                            expectedSourceRevision: record.revision,
-                            requestId: crypto.randomUUID(),
-                          },
-                          'Duplicated into a new saved draft.',
-                        )
-                      }
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      disabled={busy || dirty || readOnly || category === 'basic'}
-                      onClick={() =>
-                        void mutate(
-                          {
-                            action: 'archive',
-                            contentKey: record.contentKey,
-                            expectedRevision: record.revision,
-                          },
-                          'Archived after checking dependencies.',
-                        )
-                      }
-                    >
-                      Archive
-                    </button>
-                    {dirty ? (
-                      <button
-                        disabled={busy}
-                        onClick={() => {
-                          localEdits.current.delete(record.contentKey)
-                          setLocalDirtyKeys((old) => ({ ...old, [record.contentKey]: false }))
-                          setDefinition(editableDefinition(record))
-                          setNotice('Local edits discarded.')
-                        }}
-                      >
-                        Discard local edits
-                      </button>
+                    {tab === 'Identity & Relations' ? (
+                      <div className={styles.actions}>
+                        <button
+                          disabled={
+                            busy ||
+                            dirty ||
+                            readOnly ||
+                            category === 'basic' ||
+                            record.contentKind === 'tag'
+                          }
+                          onClick={() =>
+                            void mutate(
+                              {
+                                action: 'duplicate',
+                                sourceKey: record.contentKey,
+                                expectedSourceRevision: record.revision,
+                                requestId: crypto.randomUUID(),
+                              },
+                              'Duplicated into a new saved draft.',
+                            )
+                          }
+                        >
+                          Duplicate
+                        </button>
+                        <button
+                          disabled={busy || dirty || readOnly || category === 'basic'}
+                          onClick={() =>
+                            void mutate(
+                              {
+                                action: 'archive',
+                                contentKey: record.contentKey,
+                                expectedRevision: record.revision,
+                              },
+                              'Archived after checking dependencies.',
+                            )
+                          }
+                        >
+                          Archive
+                        </button>
+                        {dirty ? (
+                          <button
+                            disabled={busy}
+                            onClick={() => {
+                              localEdits.current.delete(record.contentKey)
+                              setLocalDirtyKeys((old) => ({ ...old, [record.contentKey]: false }))
+                              setDefinition(editableDefinition(record))
+                              setNotice('Local edits discarded.')
+                            }}
+                          >
+                            Discard local edits
+                          </button>
+                        ) : null}
+                      </div>
                     ) : null}
-                  </div>
-                </>
-              ) : null}
+                  </>
+                ) : null}
+              </div>
             </>
           ) : (
             <p>Select a record or create new content.</p>
           )}
         </div>
-        <aside className={styles.preview} aria-label="Content previews">
-          {activeDefinition ? (
-            <ContentRecordPreview
-              kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
-              working={activeDefinition}
-              tagPresentations={tagPresentations}
-              saved={newDefinition ? null : (record?.draft?.definition ?? null)}
-              current={
-                newDefinition
-                  ? null
-                  : (record?.current?.definition ?? record?.builtinDefinition ?? null)
-              }
-            />
-          ) : null}
-        </aside>
       </div>
     </section>
   )

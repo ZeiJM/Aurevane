@@ -110,7 +110,10 @@ it('persists all page choices, resets explicitly over broad legacy silence, sear
   const render = renderWith(() => SiteMusicManagement({ initialConfig: config }))
   change(control(render(), 'Search pages'), 'world')
   expect(
-    all(render(), (node) => node.type === 'strong').map((node) => node.props.children),
+    all(
+      find(render(), (node) => node.props['aria-label'] === 'Page music'),
+      (node) => node.type === 'strong',
+    ).map((node) => node.props.children),
   ).toEqual(['Global Music', 'World', 'World Environment'])
   await click(pageButton(render(), 'World'))
   expect(control(render(), 'Page music').props.value).toBe('inherited')
@@ -179,4 +182,111 @@ it('uploads through the signed storage ticket and only publishes after Save Chan
   await click(button(render(), 'Save Changes'))
   expect(request).toHaveBeenCalledTimes(1)
   expect(all(render(), (node) => node.props.role === 'status')[0]?.props.children).toMatch(/HTTPS/)
+})
+
+it('saves songs for later, reloads the library, assigns songs and explicitly blocks deleting an assigned song', async () => {
+  const initialConfig = createDefaultSiteMusicConfig()
+  vi.stubGlobal('window', { dispatchEvent: vi.fn() })
+  let persisted = initialConfig
+  const request = vi.fn(async (_url: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body))
+    persisted = {
+      ...parseSiteMusicDraft(body.config),
+      revision: body.expectedRevision + 1,
+      updatedAt: null,
+    }
+    return Response.json({ config: persisted })
+  })
+  vi.stubGlobal('fetch', request)
+  let render = renderWith(() => SiteMusicManagement({ initialConfig }))
+  expect(button(render(), 'Add song')).toBeDefined()
+  await click(button(render(), 'Add song'))
+  const spare = { ...initialConfig.defaultTrack, label: 'For later', url: '/later.mp3' }
+  ;(editor(render()).props.onChange as (track: unknown) => void)(spare)
+  await click(button(render(), 'Add to library'))
+  await click(button(render(), 'Save Changes'))
+  expect(persisted.songLibrary).toContainEqual(spare)
+  expect(persisted.defaultTrack).toEqual(initialConfig.defaultTrack)
+  hooks.cells = []
+  render = renderWith(() => SiteMusicManagement({ initialConfig: persisted }))
+  await click(pageButton(render(), 'For later'))
+  expect(editor(render()).props.track).toEqual(spare)
+  await click(button(render(), 'Use for Global Music'))
+  await click(button(render(), 'Save Changes'))
+  expect(persisted.defaultTrack).toEqual(spare)
+  await click(pageButton(render(), 'For later'))
+  await click(button(render(), 'Delete song'))
+  expect(all(render(), (node) => node.props.role === 'status')[0]?.props.children).toMatch(
+    /still assigned/,
+  )
+  await click(pageButton(render(), initialConfig.defaultTrack.label))
+  await click(button(render(), 'Delete song'))
+  await click(button(render(), 'Save Changes'))
+  expect(persisted.songLibrary).toEqual([spare])
+})
+
+it('uploads a library song through storage without assigning it and includes it only after adding and saving', async () => {
+  const config = createDefaultSiteMusicConfig()
+  vi.stubGlobal('window', { dispatchEvent: vi.fn() })
+  const track = {
+    ...config.defaultTrack,
+    label: 'Stored upload',
+    url: 'https://storage.example.test/later.mp3',
+    source: 'upload',
+  }
+  const request = vi.fn(async (_url: string, init: RequestInit) => {
+    const body = JSON.parse(String(init.body))
+    return body.operation === 'create-upload'
+      ? Response.json({
+          upload: { bucket: 'site-music', path: 'later.mp3', token: 'ticket', track },
+        })
+      : Response.json({
+          config: { ...parseSiteMusicDraft(body.config), revision: 2, updatedAt: null },
+        })
+  })
+  vi.stubGlobal('fetch', request)
+  storage.upload.mockResolvedValue({ error: null })
+  const render = renderWith(() => SiteMusicManagement({ initialConfig: config }))
+  await click(button(render(), 'Add song'))
+  ;(editor(render()).props.onUpload as (file: File) => void)(
+    new File(['audio'], 'later.mp3', { type: 'audio/mpeg' }),
+  )
+  await vi.waitFor(() => expect(editor(render()).props.track).toEqual(track))
+  expect(request).toHaveBeenCalledTimes(1)
+  await click(button(render(), 'Add to library'))
+  await click(button(render(), 'Save Changes'))
+  const saved = JSON.parse(String(request.mock.calls[1]![1].body)).config
+  expect(saved.defaultTrack).toEqual(config.defaultTrack)
+  expect(saved.songLibrary).toContainEqual(track)
+})
+
+it('stores only the completed replacement URL when an assignment is edited through intermediate input values', async () => {
+  const config = createDefaultSiteMusicConfig()
+  vi.stubGlobal('window', { dispatchEvent: vi.fn() })
+  const request = vi.fn(async (_url: string, init: RequestInit) =>
+    Response.json({
+      config: {
+        ...parseSiteMusicDraft(JSON.parse(String(init.body)).config),
+        revision: 2,
+        updatedAt: null,
+      },
+    }),
+  )
+  vi.stubGlobal('fetch', request)
+  const render = renderWith(() => SiteMusicManagement({ initialConfig: config }))
+  for (const url of ['', 'h', 'https://', 'https://media.example.test/final.mp3']) {
+    ;(editor(render()).props.onChange as (track: unknown) => void)({
+      ...config.defaultTrack,
+      label: 'Replacement',
+      source: 'url',
+      url,
+    })
+  }
+  await click(button(render(), 'Save Changes'))
+  expect(request).toHaveBeenCalledTimes(1)
+  expect(
+    JSON.parse(String(request.mock.calls[0]![1].body)).config.songLibrary.map(
+      (song: { url: string }) => song.url,
+    ),
+  ).toEqual([config.defaultTrack.url, 'https://media.example.test/final.mp3'])
 })

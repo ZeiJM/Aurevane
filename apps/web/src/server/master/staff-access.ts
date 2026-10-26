@@ -118,7 +118,9 @@ export const MASTER_PANEL_SPECIAL_CAPABILITY_DETAILS = [
   description: string
 }[]
 
-const ROLE_CAPABILITIES: Readonly<Record<MasterPanelRole, readonly MasterPanelCapability[]>> = {
+export const DEFAULT_MASTER_PANEL_ROLE_CAPABILITIES: Readonly<
+  Record<MasterPanelRole, readonly MasterPanelCapability[]>
+> = {
   'game-owner': MASTER_PANEL_CAPABILITIES,
   moderator: ['master.access'],
   'content-staff': ['master.access', 'content.combat.author'],
@@ -128,6 +130,7 @@ const ROLE_CAPABILITIES: Readonly<Record<MasterPanelRole, readonly MasterPanelCa
 export interface MasterPanelAccessRecord {
   readonly userId: string
   readonly accessVersion: number
+  readonly effectiveCapabilities?: readonly MasterPanelCapability[]
   readonly roles: readonly MasterPanelRole[]
   readonly specialCapabilities: readonly MasterPanelSpecialCapability[]
 }
@@ -212,7 +215,8 @@ export function effectiveMasterPanelCapabilities(
 ): readonly MasterPanelCapability[] {
   const capabilities = new Set<MasterPanelCapability>()
   for (const role of roles) {
-    for (const capability of ROLE_CAPABILITIES[role]) capabilities.add(capability)
+    for (const capability of DEFAULT_MASTER_PANEL_ROLE_CAPABILITIES[role])
+      capabilities.add(capability)
   }
   for (const capability of specialCapabilities) capabilities.add(capability)
   return [...capabilities]
@@ -221,10 +225,9 @@ export function effectiveMasterPanelCapabilities(
 function toAccess(record: MasterPanelAccessRecord): MasterPanelAccess {
   return {
     ...record,
-    effectiveCapabilities: effectiveMasterPanelCapabilities(
-      record.roles,
-      record.specialCapabilities,
-    ),
+    effectiveCapabilities:
+      record.effectiveCapabilities ??
+      effectiveMasterPanelCapabilities(record.roles, record.specialCapabilities),
   }
 }
 
@@ -292,6 +295,73 @@ export function createMasterPanelStaffAccessService(
         )
       }
       return store.setCharacterAccess(input)
+    },
+  }
+}
+
+/** Only these capabilities may be delegated through a role default. */
+export const MASTER_PANEL_DELEGABLE_CAPABILITIES = MASTER_PANEL_CAPABILITIES.filter(
+  (capability) => capability !== 'staff.manage',
+)
+export interface MasterPanelRoleDefaults {
+  readonly revision: number
+  readonly roles: Readonly<Record<DelegatedMasterPanelRole, readonly MasterPanelCapability[]>>
+}
+export interface SaveMasterPanelRoleDefaultsInput {
+  readonly actorUserId: string
+  readonly expectedRevision: number
+  readonly roles: unknown
+}
+export interface MasterPanelRoleDefaultsStore {
+  readRoleDefaults(actorUserId: string): Promise<MasterPanelRoleDefaults>
+  saveRoleDefaults(input: SaveMasterPanelRoleDefaultsInput): Promise<MasterPanelRoleDefaults>
+}
+export function isMasterPanelRoleDefaultsRoles(
+  value: unknown,
+): value is MasterPanelRoleDefaults['roles'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  const roles = value as Record<string, unknown>
+  return (
+    Object.keys(roles).length === DELEGATED_MASTER_PANEL_ROLES.length &&
+    DELEGATED_MASTER_PANEL_ROLES.every((role) => {
+      const capabilities = roles[role]
+      return (
+        Array.isArray(capabilities) &&
+        capabilities.every((capability) =>
+          MASTER_PANEL_DELEGABLE_CAPABILITIES.includes(capability),
+        ) &&
+        new Set(capabilities).size === capabilities.length
+      )
+    })
+  )
+}
+export function createMasterPanelRoleDefaultsService(
+  accessService: MasterPanelStaffAccessService,
+  store: MasterPanelRoleDefaultsStore,
+): MasterPanelRoleDefaultsStore {
+  async function requireOwner(userId: string) {
+    const access = await accessService.readAccess(userId)
+    if (!access?.roles.includes('game-owner'))
+      throw new AurevaneError('FORBIDDEN', 'Only the Game Owner can change role defaults.')
+  }
+  return {
+    async readRoleDefaults(actorUserId) {
+      await requireOwner(actorUserId)
+      return store.readRoleDefaults(actorUserId)
+    },
+    async saveRoleDefaults(input) {
+      await requireOwner(input.actorUserId)
+      if (
+        !Number.isSafeInteger(input.expectedRevision) ||
+        input.expectedRevision < 1 ||
+        !isMasterPanelRoleDefaultsRoles(input.roles)
+      ) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'Choose permitted capabilities for each staff role.',
+        )
+      }
+      return store.saveRoleDefaults(input)
     },
   }
 }

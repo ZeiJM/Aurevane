@@ -221,9 +221,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     const choice = choices[skill.definition.id]
     return grants.some((grant) => grant.eligibilityDisciplineId === choice)
       ? choice
-      : grants.length === 1
-        ? grants[0]!.eligibilityDisciplineId
-        : undefined
+      : (
+          grants.find((grant) => grant.eligibilityDisciplineId === primaryDiscipline.id) ??
+          grants.find((grant) => grant.eligibilityDisciplineId === secondaryDiscipline?.id) ??
+          [...grants].sort((left, right) =>
+            left.eligibilityDisciplineId.localeCompare(right.eligibilityDisciplineId),
+          )[0]
+        )?.eligibilityDisciplineId
   }
 
   const visibleSkills = useMemo(
@@ -333,7 +337,34 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     )
   }
 
-  function nextSelectionFor(skill: SkillCatalogEntryView): string[] {
+  function eligibilityForSelection(skill: SkillCatalogEntryView): Record<string, string> {
+    const source = selectedEligibility(skill)
+    if (
+      selectedIds.includes(skill.definition.id) ||
+      !secondaryDiscipline ||
+      !source ||
+      selectedSourceCount(source) < MIXED_SOURCE_MAXIMUM
+    )
+      return eligibility
+    // Preserve equipped provenance. A new shared Skill may use its other active
+    // grant to satisfy the existing mixed-loadout limit without another control.
+    const alternative = activeEligibility(skill)
+      .filter((grant) => grant.eligibilityDisciplineId !== source)
+      .sort((left, right) => {
+        const rank = (id: string) =>
+          id === primaryDiscipline.id ? 0 : id === secondaryDiscipline.id ? 1 : 2
+        return (
+          rank(left.eligibilityDisciplineId) - rank(right.eligibilityDisciplineId) ||
+          left.eligibilityDisciplineId.localeCompare(right.eligibilityDisciplineId)
+        )
+      })
+      .find((grant) => selectedSourceCount(grant.eligibilityDisciplineId) < MIXED_SOURCE_MAXIMUM)
+    return alternative
+      ? { ...eligibility, [skill.definition.id]: alternative.eligibilityDisciplineId }
+      : eligibility
+  }
+
+  function nextSelectionFor(skill: SkillCatalogEntryView, choices = eligibility): string[] {
     const id = skill.definition.id
     if (selectedIds.includes(id)) {
       return selectedIds.filter((candidate) => candidate !== id)
@@ -341,7 +372,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     if (selectedIds.length >= capacity) return selectedIds
     if (
       secondaryDiscipline &&
-      selectedSourceCount(selectedEligibility(skill) ?? '') >= MIXED_SOURCE_MAXIMUM
+      selectedSourceCount(selectedEligibility(skill, choices) ?? '') >= MIXED_SOURCE_MAXIMUM
     ) {
       return selectedIds
     }
@@ -363,7 +394,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       ),
     }))
     if (eligibilitySelections.some((choice) => !choice.eligibilityDisciplineId)) {
-      setMessage('Choose the eligible Discipline for each shared Skill before saving.')
+      setMessage(
+        'A selected Technique is unavailable for your active Disciplines. Refresh Techniques.',
+      )
       return
     }
     if (!mixedSelectionValid(nextIds, nextEligibility)) {
@@ -423,11 +456,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
 
   function equipBlockedReason(skill: SkillCatalogEntryView): string | null {
     if (selectedIds.includes(skill.definition.id)) return null
-    if (!selectedEligibility(skill)) return 'Choose an eligible Discipline first.'
+    const choices = eligibilityForSelection(skill)
+    if (!selectedEligibility(skill, choices))
+      return 'This Technique is unavailable for your active Disciplines.'
     if (selectedIds.length >= capacity) return 'Your technique slots are full. Remove one first.'
     if (
       secondaryDiscipline &&
-      selectedSourceCount(selectedEligibility(skill) ?? '') >= MIXED_SOURCE_MAXIMUM
+      selectedSourceCount(selectedEligibility(skill, choices) ?? '') >= MIXED_SOURCE_MAXIMUM
     ) {
       return 'You already have the most techniques allowed from this discipline.'
     }
@@ -439,9 +474,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     setFocusedSupportActionId(null)
     setFocusedSkillId(skill.definition.id)
     setMessage(null)
-    const nextIds = nextSelectionFor(skill)
+    const choices = eligibilityForSelection(skill)
+    const nextIds = nextSelectionFor(skill, choices)
     if (sameSelection(nextIds, selectedIds)) return
-    void commitSelection(nextIds)
+    void commitSelection(nextIds, choices)
   }
 
   async function commitSupportAction(nextId: SupportActionId) {
@@ -638,7 +674,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
               }
 
               const selected = selectedIds.includes(entry.definition.id)
-              const sourceCount = selectedSourceCount(selectedEligibility(entry) ?? '')
+              const sourceCount = selectedSourceCount(
+                selectedEligibility(entry, eligibilityForSelection(entry)) ?? '',
+              )
               const disabledBySource = Boolean(
                 secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
               )
@@ -650,7 +688,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                 <article
                   className={styles.skill}
                   data-technique-card="true"
-                  data-has-eligibility={entry.eligibilityGrants ? 'true' : undefined}
                   key={`${entry.definition.id}:${entry.definition.contentVersion}`}
                   data-selected={selected ? 'true' : 'false'}
                   style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
@@ -704,42 +741,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       {skillTypeDescription(entry.definition)}
                     </span>
                   </label>
-                  {entry.eligibilityGrants ? (
-                    <label className={styles.eligibility}>
-                      Eligible
-                      <select
-                        aria-label={`Eligible Discipline for ${label}`}
-                        disabled={pending}
-                        value={selectedEligibility(entry) ?? ''}
-                        onChange={(event) => {
-                          const next = { ...eligibility, [entry.definition.id]: event.target.value }
-                          if (selected) void commitSelection(selectedIds, next)
-                          else setEligibility(next)
-                        }}
-                      >
-                        <option value="" disabled>
-                          Choose Discipline
-                        </option>
-                        {activeEligibility(entry).map((grant) => (
-                          <option
-                            key={grant.eligibilityDisciplineId}
-                            value={grant.eligibilityDisciplineId}
-                          >
-                            {grant.eligibilityDisciplineId === primaryDiscipline.id
-                              ? primaryDiscipline.name
-                              : (secondaryDiscipline?.name ??
-                                titleCase(grant.eligibilityDisciplineId))}{' '}
-                            —{' '}
-                            {grant.earnedAt
-                              ? 'Earned'
-                              : grant.earnedAt === null
-                                ? 'Available (unearned)'
-                                : 'Earned status unavailable'}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : null}
                 </article>
               )
             },

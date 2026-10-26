@@ -2,9 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import {
   createMasterPanelStaffAccessService,
+  createMasterPanelRoleDefaultsService,
   effectiveMasterPanelCapabilities,
   MASTER_PANEL_SPECIAL_CAPABILITIES,
   type MasterPanelAccessRecord,
+  type MasterPanelRoleDefaults,
   type MasterPanelStaffAccessStore,
   type SetCharacterStaffAccessInput,
 } from './staff-access'
@@ -108,4 +110,88 @@ describe('selected-character staff service', () => {
       service.setCharacterAccess({ ...input, specialCapabilities: ['staff.manage' as never] }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   })
+})
+
+it('only the protected Owner can read and CAS-save validated role defaults', async () => {
+  const { service, records } = fixture()
+  let defaults: MasterPanelRoleDefaults = {
+    revision: 1,
+    roles: {
+      moderator: ['master.access'],
+      'content-staff': ['master.access', 'content.combat.author'],
+      'event-staff': ['master.access', 'events.author', 'events.operate'],
+    },
+  }
+  const defaultsService = createMasterPanelRoleDefaultsService(service, {
+    readRoleDefaults: async () => defaults,
+    saveRoleDefaults: async (input) => {
+      if (input.expectedRevision !== defaults.revision)
+        throw Object.assign(new Error('stale'), { code: 'STALE_VERSION' })
+      defaults = {
+        revision: defaults.revision + 1,
+        roles: input.roles as MasterPanelRoleDefaults['roles'],
+      }
+      return defaults
+    },
+  })
+  expect(await defaultsService.readRoleDefaults(owner)).toMatchObject({ revision: 1 })
+  const roles = { ...defaults.roles, moderator: ['master.access', 'content.combat.author'] }
+  expect(
+    await defaultsService.saveRoleDefaults({ actorUserId: owner, expectedRevision: 1, roles }),
+  ).toMatchObject({ revision: 2 })
+  await expect(
+    defaultsService.saveRoleDefaults({ actorUserId: owner, expectedRevision: 1, roles }),
+  ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  records.set(staff, {
+    userId: staff,
+    roles: ['moderator'],
+    specialCapabilities: [],
+    accessVersion: 1,
+    effectiveCapabilities: ['master.access', 'staff.manage'],
+  })
+  await expect(defaultsService.readRoleDefaults(staff)).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  await expect(
+    defaultsService.saveRoleDefaults({ actorUserId: staff, expectedRevision: 2, roles }),
+  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  await expect(defaultsService.readRoleDefaults('no-selection')).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
+  for (const invalid of [
+    ['staff.manage'],
+    ['invented'],
+    ['events.author', 'events.author'],
+    [null],
+  ]) {
+    await expect(
+      defaultsService.saveRoleDefaults({
+        actorUserId: owner,
+        expectedRevision: 2,
+        roles: { ...roles, moderator: invalid },
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  }
+  expect(await service.requireCapability(owner, 'staff.manage')).toMatchObject({
+    roles: ['game-owner'],
+  })
+})
+it('uses current authoritative capabilities instead of the built-in role preset on every action', async () => {
+  const { service, records } = fixture()
+  records.set(staff, {
+    userId: staff,
+    roles: ['content-staff'],
+    specialCapabilities: [],
+    accessVersion: 1,
+    effectiveCapabilities: ['master.access'],
+  })
+  await expect(service.requireCapability(staff, 'content.combat.author')).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
+  records.set(staff, {
+    ...records.get(staff)!,
+    effectiveCapabilities: ['master.access', 'content.combat.author'],
+  })
+  await expect(service.requireCapability(staff, 'content.combat.author')).resolves.toMatchObject({
+    roles: ['content-staff'],
+  })
+  await expect(service.listStaff(staff)).rejects.toMatchObject({ code: 'FORBIDDEN' })
 })

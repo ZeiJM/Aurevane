@@ -8,6 +8,8 @@ export type WorldWeather = (typeof WORLD_WEATHER)[number]
 export interface WorldEnvironmentSettings {
   /** Real minutes per World day. Absent historical settings retain 24 hours. */
   dayLengthMinutes?: number
+  /** Real minutes between automatic weather rolls; absent historical settings retain six hours. */
+  weatherRollMinutes?: number
   /** Added to the in-game clock, in in-game minutes (-1440..1440). */
   timeOffsetMinutes: number
   /** When set, the clock is frozen at this minute of the in-game day (0..1439). */
@@ -33,9 +35,12 @@ export interface WorldEnvironment {
 
 export const MAX_TIME_OFFSET_MINUTES = 1440
 export const MAX_WORLD_DAY_MINUTES = 10080
+export const MAX_WEATHER_ROLL_MINUTES = 10080
+export const DEFAULT_WEATHER_ROLL_MINUTES = 360
 export const MAX_WEATHER_DURATION_MINUTES = 576000
 export const DEFAULT_WORLD_ENVIRONMENT_SETTINGS: WorldEnvironmentSettings = {
   dayLengthMinutes: 1440,
+  weatherRollMinutes: DEFAULT_WEATHER_ROLL_MINUTES,
   timeOffsetMinutes: 0,
   frozenMinuteOfDay: null,
   weatherOverride: null,
@@ -46,8 +51,6 @@ export const DEFAULT_WORLD_ENVIRONMENT_SETTINGS: WorldEnvironmentSettings = {
 /** The World clock is real UTC: one real day is one World day. */
 export const WORLD_DAY_REAL_MS = 86_400_000
 const GAME_MINUTE_MS = WORLD_DAY_REAL_MS / 1440
-/** Weather changes at most every six hours. */
-const WEATHER_BLOCK_MS = WORLD_DAY_REAL_MS / 4
 const STAY = 0.5
 const LOOKBACK_HOURS = 96 // look-back, in six-hour weather blocks
 const TRANSITIONS: Record<WorldWeather, Partial<Record<WorldWeather, number>>> = {
@@ -117,7 +120,11 @@ export function resolveWorldEnvironment(
     frozen,
     weather: overrideActive
       ? settings.weatherOverride!
-      : weatherAtHour(Math.floor(nowMs / WEATHER_BLOCK_MS)),
+      : weatherAtHour(
+          Math.floor(
+            nowMs / ((settings.weatherRollMinutes ?? DEFAULT_WEATHER_ROLL_MINUTES) * 60_000),
+          ),
+        ),
     weatherSource: overrideActive ? 'master' : 'live',
     settingsVersion: settings.version,
   }

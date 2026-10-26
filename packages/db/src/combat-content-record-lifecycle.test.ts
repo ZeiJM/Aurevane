@@ -462,11 +462,12 @@ it('restore attribution is retained in immutable history and cleared from the ne
     expectedRevision: published.revision,
     sourceVersion: published.current.contentVersion,
   })
-  const restoredPublication = await publish(
-    'content.test',
-    restored.draft.draftVersion,
-    published.current.contentVersion,
-  )
+  const restoredPublication = (
+    await db.query<{ value: TestRecord }>(
+      'select public.commit_combat_content_record_v1($1,null,$2,$3,$4,$5,$6) value',
+      [owner, 'content.test', restored.revision, restored.draft.definition, await token(), 1],
+    )
+  ).rows[0]!.value
   const edited = await write('content.test', {
     action: 'save',
     expectedRevision: restoredPublication.revision,
@@ -653,7 +654,7 @@ it('combined actor inventory includes original33 Players4 Content4 Media2 Event2
         "select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)",
       )
     ).rows,
-  ).toHaveLength(45)
+  ).toHaveLength(48)
   const helpers = (
     await db.query<{ allowed: boolean }>(
       "select has_function_privilege('service_role',p.oid,'execute') allowed from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and (p.proname like '%combat_content%' or p.proname in ('validate_noncombat_content_v1','validate_content_record_identity_v1','content_nonnegative_integer_v1','validate_content_requirement_v1','validate_content_command_v1','content_reference_targets_v1','index_content_references_v1','bound_content_links_v1')) and p.proname<>'prevent_combat_content_version_mutation_v1'",
@@ -1192,7 +1193,12 @@ it('restores an available system baseline to draft without fabricating a publica
       .rows,
   ).toEqual(pointers.rows)
   await denied(() => write(key, command), /RECORD_CONFLICT/)
-  const next = await publish(key, restored.draft.draftVersion, published.current.contentVersion, 1)
+  const next = (
+    await db.query<{ value: TestRecord }>(
+      'select public.commit_combat_content_record_v1($1,null,$2,$3,$4,$5,$6) value',
+      [owner, key, restored.revision, restored.draft.definition, await token(), 1],
+    )
+  ).rows[0]!.value
   expect(next.current).toMatchObject({
     contentVersion: 3,
     restoredFrom: 1,
@@ -1480,4 +1486,112 @@ it('executes native historical rebalance predecessor and retained snapshot asser
     .replace(":'user_id'", `'${owner}'`)
     .replace(/rollback;\s*$/, '')
   await db.exec(proof)
+})
+
+it('atomically commits edits with stale/authority rollback and no duplicate unchanged publication', async () => {
+  const created = await create()
+  const commit = (revision: number, value: unknown, actor = owner, expectedToken?: string) =>
+    db.query<{ value: TestRecord }>(
+      'select public.commit_combat_content_record_v1($1,null,$2,$3,$4,$5,$6) value',
+      [actor, created.contentKey, revision, value, expectedToken ?? '', 1],
+    )
+  const before = await record(created.contentKey)
+  await denied(
+    () => commit(before.revision, { ...definition, name: 'Denied' }, other, 'a'.repeat(32)),
+    /OPERATOR_REQUIRED/,
+  )
+  const first = (
+    await commit(before.revision, { ...definition, name: 'Committed' }, owner, await token())
+  ).rows[0]!.value
+  expect(first.current.definition.name).toBe('Committed')
+  expect(first.draft).toBeNull()
+  const counts = async () =>
+    (
+      await db.query(
+        'select count(*) count from app_private.combat_content_versions where content_key=$1',
+        [created.contentKey],
+      )
+    ).rows
+  const baseline = await counts()
+  const freshToken = await token()
+  await denied(
+    () => commit(before.revision, { ...definition, name: 'Stale' }, owner, freshToken),
+    /REVISION_CONFLICT/,
+  )
+  const unchanged = (await commit(first.revision, first.current.definition, owner, await token()))
+    .rows[0]!.value
+  expect(unchanged.revision).toBe(first.revision)
+  expect(await counts()).toEqual(baseline)
+  const current = await record(created.contentKey)
+  expect(current.current.definition.name).toBe('Committed')
+  expect(current.draft).toBeNull()
+})
+
+it('rolls back the saved draft and record when atomic publication fails', async () => {
+  const created = await create()
+  const before = await record(created.contentKey)
+  const beforeToken = await token()
+  const beforeVersions = (
+    await db.query(
+      'select id from app_private.combat_content_versions where content_key=$1 order by id',
+      [created.contentKey],
+    )
+  ).rows
+  await db.exec(`create function app_private.reject_test_publication() returns trigger
+    language plpgsql as $$ begin raise exception 'TEST_PUBLICATION_REJECTED'; end $$;
+    create trigger reject_test_publication before insert on app_private.combat_content_versions
+    for each row execute function app_private.reject_test_publication();`)
+  await denied(
+    () =>
+      db.query('select public.commit_combat_content_record_v1($1,null,$2,$3,$4,$5,$6)', [
+        owner,
+        created.contentKey,
+        before.revision,
+        { ...definition, name: 'Must roll back' },
+        beforeToken,
+        1,
+      ]),
+    /TEST_PUBLICATION_REJECTED/,
+  )
+  expect(await record(created.contentKey)).toEqual(before)
+  expect(await token()).toBe(beforeToken)
+  expect(
+    (
+      await db.query(
+        'select id from app_private.combat_content_versions where content_key=$1 order by id',
+        [created.contentKey],
+      )
+    ).rows,
+  ).toEqual(beforeVersions)
+})
+
+it('attributes a changed restored draft as new authorship through Commit Now', async () => {
+  const created = await create()
+  const published = await publish(created.contentKey, created.draft.draftVersion, null)
+  const restored = await write(created.contentKey, {
+    action: 'restore',
+    expectedRevision: published.revision,
+    sourceVersion: published.current.contentVersion,
+  })
+  const committed = (
+    await db.query<{ value: TestRecord }>(
+      'select public.commit_combat_content_record_v1($1,null,$2,$3,$4,$5,$6) value',
+      [
+        owner,
+        created.contentKey,
+        restored.revision,
+        { ...restored.draft.definition, name: 'Newly authored after restore' },
+        await token(),
+        1,
+      ],
+    )
+  ).rows[0]!.value
+  expect(committed.current).toMatchObject({
+    restoredFrom: null,
+    restoredBy: null,
+    restoredSource: null,
+    authoredBy: owner,
+    definition: { name: 'Newly authored after restore' },
+  })
+  expect(committed.draft).toBeNull()
 })

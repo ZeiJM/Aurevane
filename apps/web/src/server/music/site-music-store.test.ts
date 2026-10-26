@@ -10,7 +10,11 @@ vi.mock('@/lib/supabase/admin', () => ({
   createSupabaseAdminClient: () => ({ from: () => database }),
 }))
 import { readSiteMusicConfig, saveSiteMusicConfig } from './site-music-store'
-import { createDefaultSiteMusicConfig, resolveSiteMusicTrack } from '@/lib/site-music'
+import {
+  createDefaultSiteMusicConfig,
+  resolveSiteMusicTrack,
+  parseSiteMusicDraft,
+} from '@/lib/site-music'
 beforeEach(() => {
   vi.clearAllMocks()
   database.update.mockReturnValue(database)
@@ -36,6 +40,7 @@ it('persists explicit global choices with CAS and actor attribution and reads th
       track: { ...config.defaultTrack, url: '/old.mp3' },
     },
   ]
+  config.songLibrary = parseSiteMusicDraft(config).songLibrary
   const row = {
     enabled: true,
     default_track: config.defaultTrack,
@@ -63,4 +68,62 @@ it('persists explicit global choices with CAS and actor attribution and reads th
   await expect(
     saveSiteMusicConfig({ actorUserId: 'owner', expectedRevision: 1, config }),
   ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+})
+
+it('stores unassigned songs in the same CAS write and reads their names after reload', async () => {
+  const config = createDefaultSiteMusicConfig()
+  const spare = { ...config.defaultTrack, label: 'Evening', url: '/evening.webm' }
+  const songLibrary = [config.defaultTrack, spare]
+  database.maybeSingle.mockResolvedValue({
+    data: {
+      enabled: true,
+      default_track: config.defaultTrack,
+      route_overrides: [],
+      song_library: songLibrary,
+      revision: 2,
+      updated_at: '2026-10-26T00:00:00Z',
+    },
+    error: null,
+  })
+  const saved = await saveSiteMusicConfig({
+    actorUserId: 'owner',
+    expectedRevision: 1,
+    config: { ...config, songLibrary },
+  })
+  expect(database.update).toHaveBeenCalledWith(
+    expect.objectContaining({ song_library: songLibrary, revision: 2 }),
+  )
+  expect(saved.songLibrary).toEqual(songLibrary)
+  expect((await readSiteMusicConfig({ strict: true })).songLibrary).toEqual(songLibrary)
+  await expect(
+    saveSiteMusicConfig({
+      actorUserId: 'owner',
+      expectedRevision: 2,
+      config: { ...saved, songLibrary: [spare] },
+    }),
+  ).rejects.toThrow(/still assigned/)
+})
+
+it('retains a stored unassigned song by rejecting writes without an explicit library', async () => {
+  const config = createDefaultSiteMusicConfig()
+  const unused = { ...config.defaultTrack, label: 'Unused saved song', url: '/unused.mp3' }
+  database.maybeSingle.mockResolvedValue({
+    data: {
+      enabled: true,
+      default_track: config.defaultTrack,
+      route_overrides: [],
+      song_library: [config.defaultTrack, unused],
+      revision: 2,
+      updated_at: '2026-10-26T00:00:00Z',
+    },
+    error: null,
+  })
+  await expect(
+    saveSiteMusicConfig({ actorUserId: 'owner', expectedRevision: 2, config }),
+  ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  expect(database.update).not.toHaveBeenCalled()
+  expect((await readSiteMusicConfig({ strict: true })).songLibrary).toEqual([
+    config.defaultTrack,
+    unused,
+  ])
 })

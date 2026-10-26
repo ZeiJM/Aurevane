@@ -1,3 +1,6 @@
+import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
+import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
+import { imageAssetRegistry } from '@/media/registry'
 import { phase4DisciplineSigil } from '@/components/battle/phase4-combat-art'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
@@ -6,6 +9,7 @@ import { getFoundationDisciplineImageAsset } from '@/media/disciplines'
 
 interface FoundationDisciplineSigilProps {
   disciplineId: string
+  media?: DisciplinePresentationMedia
   className?: string
 }
 
@@ -38,9 +42,26 @@ function Frame({ className, children }: { className?: string; children: ReactNod
 
 export function FoundationDisciplineSigil({
   disciplineId,
+  media,
   className,
 }: FoundationDisciplineSigilProps) {
-  const mediaAsset = getFoundationDisciplineImageAsset(disciplineId)
+  if (media?.artwork) {
+    return (
+      <Image
+        data-gameplay-art="discipline"
+        className={className}
+        src={contentMediaSource(media.artwork)}
+        width={media.artwork.width}
+        height={media.artwork.height}
+        alt=""
+        aria-hidden="true"
+        unoptimized
+      />
+    )
+  }
+  const mediaAsset =
+    (media?.artworkId ? imageAssetRegistry.get(media.artworkId) : null) ??
+    getFoundationDisciplineImageAsset(disciplineId)
   if (
     mediaAsset?.status === 'approved' &&
     mediaAsset.src &&

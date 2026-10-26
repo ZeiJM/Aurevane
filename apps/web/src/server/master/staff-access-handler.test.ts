@@ -4,6 +4,7 @@ import { handleStaffAccessRequest } from './staff-access-handler'
 import {
   createMasterPanelStaffAccessService,
   type MasterPanelStaffAccessStore,
+  type MasterPanelRoleDefaults,
   type SetCharacterStaffAccessInput,
 } from './staff-access'
 const owner = '11111111-1111-4111-8111-111111111111',
@@ -106,4 +107,42 @@ it('rejects obsolete account-wide assignment operations', async () => {
       )
     ).status,
   ).toBe(400)
+})
+
+it('role defaults commands bind the authenticated Owner and return the saved authoritative revision', async () => {
+  const { dependencies } = fixture()
+  const defaults: MasterPanelRoleDefaults = {
+    revision: 5,
+    roles: { moderator: ['master.access'], 'content-staff': [], 'event-staff': ['events.author'] },
+  }
+  const readRoleDefaults = vi.fn(async () => defaults)
+  const saveRoleDefaults = vi.fn(async () => defaults)
+  const deps = {
+    ...dependencies,
+    createRoleDefaultsService: () => ({ readRoleDefaults, saveRoleDefaults }),
+  }
+  const read = await handleStaffAccessRequest(
+    post({ operation: 'read-role-defaults', actorUserId: staff }),
+    deps,
+  )
+  expect(read.status).toBe(200)
+  expect(readRoleDefaults).toHaveBeenCalledWith(owner)
+  const response = await handleStaffAccessRequest(
+    post({
+      operation: 'save-role-defaults',
+      actorUserId: staff,
+      actorCharacterId: 'forged',
+      expectedRevision: 4,
+      roles: defaults.roles,
+    }),
+    deps,
+  )
+  expect(response.status).toBe(200)
+  expect(response.headers.get('cache-control')).toContain('no-store')
+  expect(await response.json()).toEqual({ defaults })
+  expect(saveRoleDefaults).toHaveBeenCalledExactlyOnceWith({
+    actorUserId: owner,
+    expectedRevision: 4,
+    roles: defaults.roles,
+  })
 })

@@ -71,7 +71,7 @@ it('public Atlas carries current authored metadata and never resurrects a remove
           description: 'Authored school.',
           sortOrder: 0,
           enabled: true,
-          media: {},
+          media: { artworkId: 'discipline.foundation.vanguard-sigil' },
           core: { might: 7, finesse: 5, vitality: 5, agility: 5, intellect: 5, resolve: 4 },
           focus: ['might', 'intellect'],
           enabledForPrimary: true,
@@ -94,6 +94,7 @@ it('public Atlas carries current authored metadata and never resurrects a remove
   })
   const atlas = await loadPublishedDisciplineAtlas()
   expect(atlas.find((row) => row.id === 'new-school')).toMatchObject({
+    media: { artworkId: 'discipline.foundation.vanguard-sigil' },
     name: 'New School',
     family: 'mage',
     unlock: { kind: 'mastery', disciplineId: 'vanguard', minimumStage: 3 },

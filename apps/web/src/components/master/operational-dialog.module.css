@@ -1,0 +1,48 @@
+.dialog {
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: min(36rem, calc(100dvh - 2rem));
+  padding: 0;
+  border: 1px solid #9b8769;
+  border-radius: 0.4rem;
+  background: #eee5d4;
+  color: #313b37;
+  overflow: hidden;
+}
+.dialog::backdrop {
+  background: rgb(12 24 20 / 65%);
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #9b8769;
+}
+.heading h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.heading button {
+  flex: 0 0 auto;
+}
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.75rem 1rem;
+  line-height: 1.5;
+}
+.body ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  overflow-wrap: anywhere;
+}
+.body li + li {
+  margin-top: 0.45rem;
+}

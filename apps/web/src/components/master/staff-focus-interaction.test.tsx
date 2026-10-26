@@ -30,6 +30,7 @@ vi.mock('react', async (original) => ({
 }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 import { StaffManagement } from './staff-management'
+import type { MasterPanelRoleDefaults } from '@/server/master/staff-access'
 type Props = Record<string, unknown> & { children?: ReactNode; ref?: { current: unknown } }
 function find(
   node: ReactNode,
@@ -180,4 +181,66 @@ it('returns focus to lookup when the opening control disappears', async () => {
   render()
   expect(lookup.focus).toHaveBeenCalledOnce()
   expect(opener.focus).not.toHaveBeenCalled()
+})
+it('Owner edits role defaults, preserves a stale draft, then saves the authoritative revision', async () => {
+  const defaults: MasterPanelRoleDefaults = {
+    revision: 7,
+    roles: {
+      moderator: ['master.access'],
+      'content-staff': ['master.access', 'content.combat.author'],
+      'event-staff': ['master.access', 'events.author', 'events.operate'],
+    },
+  }
+  const props = {
+    staff: [],
+    roleOptions: [{ id: 'moderator', label: 'Moderator', description: 'Moderation' }],
+    capabilityOptions: [],
+    roleDefaults: defaults,
+  }
+  const request = vi
+    .fn()
+    .mockResolvedValueOnce(
+      Response.json(
+        { error: { message: 'Refresh role defaults before editing again.' } },
+        { status: 409 },
+      ),
+    )
+    .mockResolvedValueOnce(
+      Response.json({
+        defaults: {
+          ...defaults,
+          revision: 8,
+          roles: { ...defaults.roles, moderator: ['master.access', 'content.combat.author'] },
+        },
+      }),
+    )
+  vi.stubGlobal('fetch', request)
+  function render() {
+    hooks.index = 0
+    hooks.effects = []
+    return StaffManagement(props)
+  }
+  const button = () =>
+    find(
+      render(),
+      (node) => node.type === 'button' && node.props.children === 'Save role defaults',
+    )!
+  expect(find(render(), (node) => node.props.id === 'role-defaults-title')).not.toBeNull()
+  const permission = () =>
+    find(render(), (node) => node.type === 'input' && node.props['aria-label'] === 'Game Content')!
+  expect(permission().props.checked).toBe(false)
+  ;(permission().props.onChange as () => void)()
+  expect(permission().props.checked).toBe(true)
+  await (button().props.onClick as () => Promise<void>)()
+  expect(permission().props.checked).toBe(true)
+  expect(find(render(), (node) => node.props.role === 'alert')!.props.children).toBe(
+    'Refresh role defaults before editing again.',
+  )
+  await (button().props.onClick as () => Promise<void>)()
+  expect(JSON.parse(request.mock.calls[1]![1].body)).toMatchObject({
+    operation: 'save-role-defaults',
+    expectedRevision: 7,
+    roles: { moderator: ['master.access', 'content.combat.author'] },
+  })
+  expect(button().props.disabled).toBe(true)
 })

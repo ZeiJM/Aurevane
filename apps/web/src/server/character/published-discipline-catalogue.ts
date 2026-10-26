@@ -1,3 +1,4 @@
+import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
 import 'server-only'
 import {
   DISCIPLINE_ATLAS,
@@ -18,6 +19,7 @@ import {
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 export interface PublishedPrimaryDiscipline {
+  media?: DisciplinePresentationMedia
   id: string
   name: string
   summary: string
@@ -76,6 +78,7 @@ export async function loadPublishedPrimaryDisciplines(): Promise<PublishedPrimar
     )
       throw unavailable()
     return {
+      ...(authoredDefinition ? { media: authoredDefinition.media } : {}),
       enabledForPrimary: row.enabled_for_primary,
       enabledForSecondary: row.enabled_for_secondary,
       authoredDefinition,
@@ -99,6 +102,7 @@ export async function loadPublishedFoundations(): Promise<PublishedFoundationDis
     return row
       ? [
           {
+            ...(row.media ? { media: row.media } : {}),
             id: row.id,
             name: row.name,
             summary: row.summary,
@@ -122,6 +126,7 @@ export async function loadPublishedDisciplineAtlas(): Promise<DisciplineAtlasEnt
       const authored = row.authoredDefinition
       if (authored?.atlas && authored.unlock.kind !== 'unavailable')
         return {
+          ...(row.media ? { media: row.media } : {}),
           id: row.id,
           name: row.name,
           summary: row.summary,
@@ -137,6 +142,7 @@ export async function loadPublishedDisciplineAtlas(): Promise<DisciplineAtlasEnt
         )
       return {
         ...native,
+        ...(row.media ? { media: row.media } : {}),
         name: row.name,
         summary: row.summary,
         unlock: row.nativeUnlock,

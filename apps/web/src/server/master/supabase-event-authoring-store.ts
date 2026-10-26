@@ -148,6 +148,7 @@ function mapRpcError(error: RpcError): never {
   const message = error.message ?? ''
   if (
     error.code === '40001' ||
+    error.code === 'PT409' ||
     message.includes('EVENT_DRAFT_BASE_VERSION_CONFLICT') ||
     message.includes('EVENT_DRAFT_VERSION_CONFLICT') ||
     message.includes('EVENT_PUBLISH_BASE_VERSION_CONFLICT')

@@ -388,7 +388,6 @@ async function buildDisciplineSkillView(
     const definition = definitions.get(record.skillId)
     if (
       !definition ||
-      !definition.enabled ||
       definition.id !== record.skillId ||
       definition.sourceDisciplineId !== record.sourceDisciplineId
     ) {
@@ -775,7 +774,7 @@ export async function saveCharacterDisciplineSkills(
     const record = chosen
       ? eligible.find((record) => disciplineSkillEligibilityId(record) === chosen)
       : eligible[0]
-    if (!record || !currentLearnedById.has(skillId))
+    if (!record || !currentLearnedById.get(skillId)?.definition.enabled)
       throw new AurevaneError(
         'INVALID_REQUEST',
         'Only learned Skills eligible for an active Discipline may be equipped.',

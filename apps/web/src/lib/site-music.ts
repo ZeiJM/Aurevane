@@ -25,6 +25,8 @@ export interface SiteMusicDraft {
   enabled: boolean
   defaultTrack: SiteMusicTrack
   routeOverrides: SiteMusicRouteOverride[]
+  /** Absent only on legacy settings; assigned tracks seed the reusable library. */
+  songLibrary?: SiteMusicTrack[]
 }
 
 export interface SiteMusicConfig extends SiteMusicDraft {
@@ -223,7 +225,24 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
     }
   })
 
-  return { enabled: value.enabled, defaultTrack, routeOverrides }
+  const assigned = [defaultTrack, ...routeOverrides.map((entry) => entry.track)]
+  const libraryInput =
+    value.songLibrary === undefined
+      ? [...new Map(assigned.map((track) => [track.url, track])).values()]
+      : value.songLibrary
+  if (!Array.isArray(libraryInput) || libraryInput.length > 200) {
+    throw new Error('songLibrary must contain at most 200 songs.')
+  }
+  const songLibrary = libraryInput.map((track, index) => parseTrack(track, `songLibrary[${index}]`))
+  const urls = new Set(songLibrary.map((track) => track.url))
+  if (urls.size !== songLibrary.length)
+    throw new Error('Each library song must have a unique audio URL.')
+  if (assigned.some((track) => !urls.has(track.url))) {
+    throw new Error(
+      'This song is still assigned. Replace its global or page selections before deleting it.',
+    )
+  }
+  return { enabled: value.enabled, defaultTrack, routeOverrides, songLibrary }
 }
 
 export function parseSiteMusicConfig(value: unknown): SiteMusicConfig {
