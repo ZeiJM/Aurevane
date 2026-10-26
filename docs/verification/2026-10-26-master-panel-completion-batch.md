@@ -20,6 +20,8 @@ Read-only independent review found no new Critical/Important code defects in the
 
 ## Remaining acceptance limits
 
+CI on 4ec733b completed 18 of 19 workflows successfully. Browser Smoke's execution job ran 16 native scenarios: 10 passed and three scenarios failed on both repetitions. Its snapshots show the removed redundant Owner description and the renamed Character selector; the Staff timeout was waiting for that old selector, not a completed save. The follow-up updates those selectors to the current visible status and exact Character combobox, preserving the Owner-protection, save/revoke, layout and genuine browser zoom assertions. Local formatting, web types and the actual Staff component browser harness pass; the native signed-in SQL flows require the fresh CI run and are not claimed as passing locally.
+
 Exact-final-head required GitHub workflows, genuine browser zoom where required, compatible production rollout, canonical commit/readiness and hosted gameplay readback remain release gates. Human signed-in/physical-device testing has not been fabricated.
 
 Owner history request discrepancy remains explicit: editor exposes Current/Previous, but protected immutable published definitions remain stored for exact-version gameplay consumers and provenance. No blanket deletion of older definitions was performed or claimed.

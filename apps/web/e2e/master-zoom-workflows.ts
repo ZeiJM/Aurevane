@@ -267,7 +267,10 @@ export async function exerciseMasterAtBrowserZoom(
     await activate(button('Find identity'), 'lookup-identity')
     const editor = page.getByRole('region', { name: 'Character access' })
     await expect(editor).toContainText(identity.email)
-    await control(page.getByLabel('Linked character · choose exactly one'), 'linked-character')
+    await control(
+      editor.getByRole('combobox', { name: 'Character', exact: true }),
+      'linked-character',
+    )
     await state('identity-reader', editor)
     await activate(button('Close editor'), 'close-identity')
     await expect(editor).toHaveCount(0)

@@ -511,9 +511,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
     })
     await expect(ownerRow).toHaveCount(1)
     await expect(ownerRow.getByText('Game Owner', { exact: true }).last()).toBeVisible()
-    await expect(
-      ownerRow.getByText('Global administration · protected Owner', { exact: true }),
-    ).toBeVisible()
+    await expect(ownerRow.getByText('owner', { exact: true })).toBeVisible()
     await expect(ownerRow.getByText('Protected', { exact: true })).toBeVisible()
     await expect(ownerRow.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0)
     await expect(ownerRow.getByRole('button', { name: 'Revoke', exact: true })).toHaveCount(0)
