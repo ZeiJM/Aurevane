@@ -1635,3 +1635,106 @@ it('unchanged effect timing retains policy rows and activity while stale and una
   })
   expect((await rows()).length).toBe(before.length + 1)
 })
+
+it('successful Archive records who and what once in Activity, and transaction rollback removes the entry', async () => {
+  const saved = await create()
+  const published = await publish('content.test', saved.draft.draftVersion, null)
+  const activity = async () =>
+    (
+      await db.query(
+        'select actor,action,subject,detail from app_private.master_panel_activity order by id',
+      )
+    ).rows
+  const beforeActivity = await activity()
+  const beforeHistory = (
+    await db.query(
+      "select * from app_private.combat_content_versions where content_key='content.test' order by content_version",
+    )
+  ).rows
+  await denied(
+    () =>
+      write(
+        'content.test',
+        { action: 'archive', expectedRevision: published.revision },
+        other,
+        character,
+      ),
+    /MASTER_PANEL|CAPABILITY|OPERATOR/,
+  )
+  await denied(
+    () => write('content.test', { action: 'archive', expectedRevision: published.revision - 1 }),
+    /RECORD_CONFLICT/,
+  )
+  expect(await activity()).toEqual(beforeActivity)
+  await db.exec('savepoint before_archive')
+  const archived = await write('content.test', {
+    action: 'archive',
+    expectedRevision: published.revision,
+  })
+  expect(archived.lifecycle).toBe('archived')
+  expect(archived.current).toBeNull()
+  expect(await activity()).toEqual([
+    ...beforeActivity,
+    { actor: 'Game Owner', action: 'Archived content', subject: 'Test', detail: '' },
+  ])
+  expect(
+    (
+      await db.query(
+        "select * from app_private.combat_content_versions where content_key='content.test' order by content_version",
+      )
+    ).rows,
+  ).toEqual(beforeHistory)
+  await db.exec('rollback to savepoint before_archive')
+  expect(await activity()).toEqual(beforeActivity)
+  expect((await record('content.test')).current).toEqual(published.current)
+  const committed = await write('content.test', {
+    action: 'archive',
+    expectedRevision: published.revision,
+  })
+  const afterArchive = await activity()
+  expect(afterArchive).toHaveLength(beforeActivity.length + 1)
+  await write('content.test', { action: 'archive', expectedRevision: committed.revision })
+  expect(await activity()).toEqual(afterArchive)
+})
+
+it('Archive of an unpublished record uses its draft name in the Owner activity reader', async () => {
+  const saved = await create()
+  await write('content.test', { action: 'archive', expectedRevision: saved.revision })
+  const result = (
+    await db.query<{
+      value: { entries: { actor: string; action: string; subject: string; detail: string }[] }
+    }>('select public.read_master_panel_activity_v1($1,100,null) value', [owner])
+  ).rows[0]!.value
+  expect(result.entries).toHaveLength(1)
+  expect(result.entries[0]).toMatchObject({
+    actor: 'Game Owner',
+    action: 'Archived content',
+    subject: 'Test',
+    detail: '',
+  })
+  expect(JSON.stringify(result)).not.toContain('privateAccuracy')
+  expect(JSON.stringify(result)).not.toContain(owner)
+})
+
+it('actorless system archival does not invent a Staff activity attribution', async () => {
+  await create()
+  const before = (await db.query('select * from app_private.master_panel_activity order by id'))
+    .rows
+  await db.exec(
+    "update app_private.combat_content_records set lifecycle='archived',updated_by=null where content_key='content.test'",
+  )
+  expect(
+    (await db.query('select * from app_private.master_panel_activity order by id')).rows,
+  ).toEqual(before)
+})
+
+it('Archive activity capture remains private rather than granting direct browser or service execution', async () => {
+  const result = await db.query<{ role: string; allowed: boolean }>(
+    `select role,has_function_privilege(role,'app_private.capture_master_content_archive_activity_v1()','EXECUTE') as allowed from (values('anon'),('authenticated'),('service_role')) roles(role) order by role`,
+  )
+  expect(result.rows).toEqual([
+    { role: 'anon', allowed: false },
+    { role: 'authenticated', allowed: false },
+    { role: 'service_role', allowed: false },
+  ])
+})

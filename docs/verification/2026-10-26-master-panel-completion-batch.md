@@ -1,6 +1,6 @@
-# Master Panel consolidated candidate — local completion receipt
+# Master Panel consolidated candidate — completion evidence
 
-All requested changes remain one release candidate in PR #981. No new panel app deployment or remaining schema rollout has occurred. Canonical main stayed a759c6ea651a8e14dff0ec4cdc3bb50f7de1581a during finalization.
+Current release status: PR #981 is merged and live for Owner testing; see [the production receipt](2026-10-26-master-panel-release.md). The following preparation/repair entries are historical. Owner acceptance and the explicit deep-history discrepancy remain separate from release verification.
 
 ## Repairs completed
 
