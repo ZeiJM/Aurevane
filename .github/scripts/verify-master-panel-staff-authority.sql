@@ -79,7 +79,8 @@ begin
   begin
     perform public.set_master_panel_character_access_v2(owner_id,staff_id,character_id,array['content-staff'],array[]::text[],null,1,true);
     raise exception 'EXPECTED stale Staff CAS denial';
-  exception when sqlstate 'PT409' then assert sqlerrm='MASTER_PANEL_ACCESS_VERSION_CONFLICT'; end;
+  -- This fixture also runs against the retained pre-domain-code migration chain.
+  exception when sqlstate '40001' or sqlstate 'PT409' then assert sqlerrm='MASTER_PANEL_ACCESS_VERSION_CONFLICT'; end;
   directory := public.list_master_panel_staff_v2(owner_id);
   assert exists(select 1 from jsonb_array_elements(directory) x where x->>'characterId'=character_id::text and x->>'accessVersion'='2' and x->>'status'='active'), 'Selected directory revision';
   assert public.set_master_panel_character_access_v2(owner_id,staff_id,character_id,array['content-staff'],array['events.global_scope'],null,2,false)=3, 'Revoke';
