@@ -256,7 +256,10 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
     .getByRole('navigation', { name: 'Live Event workspace' })
     .getByRole('button', { name: 'Phases', exact: true })
     .click()
-  await expect(page.getByText('community')).toBeVisible()
+  const phases = page.locator('#event-phases').filter({
+    has: page.getByRole('heading', { name: 'Phases & objectives', exact: true }),
+  })
+  await expect(phases.getByText('community', { exact: true })).toBeVisible()
 
   await confirmOperation(page)
   await clickOperation(page, 'operate', 'Pause')
