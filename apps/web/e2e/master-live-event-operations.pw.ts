@@ -235,12 +235,22 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   await expect(page.getByLabel('Event Run').locator(`option[value="${runId}"]`)).toHaveCount(1)
   await page.getByLabel('Event Run').selectOption(runId)
 
-  await expect(page.getByText('scheduled', { exact: true }).first()).toBeVisible()
+  const runHeader = page
+    .locator('header')
+    .filter({ has: page.getByText('Authoritative Event Run', { exact: true }) })
+  const runStatus = runHeader.locator('[data-status]')
+  async function expectRunStatus(status: string) {
+    await expect(runHeader.locator('code')).toHaveText(runId)
+    await expect(runStatus).toHaveText(status)
+    await expect(runStatus).toBeVisible()
+  }
+
+  await expectRunStatus('scheduled')
   await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toHaveCount(0)
 
   await confirmOperation(page)
   await clickOperation(page, 'operate', 'Start due run')
-  await expect(page.getByText('live', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('live')
   await expect(page.getByText('announcement.browser-ops')).toBeVisible()
   await page
     .getByRole('navigation', { name: 'Live Event workspace' })
@@ -250,11 +260,11 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   await confirmOperation(page)
   await clickOperation(page, 'operate', 'Pause')
-  await expect(page.getByText('paused', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('paused')
 
   await confirmOperation(page)
   await clickOperation(page, 'operate', 'Resume')
-  await expect(page.getByText('live', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('live')
 
   grantEmergencyStop(userId)
   await page.reload()
@@ -264,7 +274,7 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
 
   await confirmOperation(page)
   await clickOperation(page, 'operate', 'Emergency stop')
-  await expect(page.getByText('emergency-stopped', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('emergency-stopped')
   await page
     .getByRole('navigation', { name: 'Live Event workspace' })
     .getByRole('button', { name: 'Closure', exact: true })
@@ -280,7 +290,7 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   await confirmOperation(page)
   await expect(page.getByRole('button', { name: 'Archive', exact: true })).toBeEnabled()
   await clickOperation(page, 'operate', 'Archive')
-  await expect(page.getByText('archived', { exact: true }).first()).toBeVisible()
+  await expectRunStatus('archived')
   await expect(page.getByRole('heading', { name: 'Chronicle snapshot' })).toBeVisible()
   await expect(page.getByText(/"terminalStatus": "emergency-stopped"/)).toBeVisible()
 })

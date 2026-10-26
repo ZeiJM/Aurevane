@@ -149,7 +149,9 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   const eventKey = `event.browser-${now}`
   await page.getByLabel('Event key').fill(eventKey)
   await page.getByRole('button', { name: 'Setup', exact: true }).click()
-  await page.getByLabel('Title').fill('Browser Event Builder Verification')
+  await page
+    .getByRole('textbox', { name: 'Title', exact: true })
+    .fill('Browser Event Builder Verification')
 
   await page
     .getByRole('navigation', { name: 'Event authoring sections' })
