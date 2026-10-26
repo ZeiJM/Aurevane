@@ -16,6 +16,7 @@ export async function exerciseMasterAtBrowserZoom(
   readZoom: () => Promise<number>,
 ) {
   const evidence: unknown[] = []
+  const expectedResourceErrors: { url: string; status: number }[] = []
   const slug = route.split('/').at(-1)!
   async function control(target: Locator, label: string) {
     await expect(target).toBeVisible()
@@ -141,7 +142,29 @@ export async function exerciseMasterAtBrowserZoom(
     await expect(button('Commit Now')).toBeEnabled()
     await control(name, 'long-title')
     await state('long-dirty', workspace)
+    const rejectedCommit = page.waitForResponse((response) => {
+      if (
+        response.request().method() !== 'POST' ||
+        new URL(response.url()).pathname !== '/api/master/combat-content'
+      )
+        return false
+      const body = response.request().postDataJSON()
+      return (
+        body?.operation === 'record' &&
+        body.command?.action === 'commit' &&
+        body.command?.contentKey === 'unarmed.basic'
+      )
+    })
     await activate(button('Commit Now'), 'commit-invalid')
+    const rejected = await rejectedCommit
+    expect(rejected.status()).toBe(400)
+    expect(await rejected.json()).toEqual({
+      error: {
+        code: 'INVALID_REQUEST',
+        message: 'Basic Attack requires a positive authored AP cost.',
+      },
+    })
+    expectedResourceErrors.push({ url: rejected.url(), status: rejected.status() })
     const validation = page.getByRole('alert').filter({ hasText: 'positive authored AP cost' })
     await expect(validation).toBeVisible()
     await expect(validation).toContainText('Your local edits are retained.')
@@ -335,4 +358,5 @@ export async function exerciseMasterAtBrowserZoom(
     body: JSON.stringify(evidence),
     contentType: 'application/json',
   })
+  return expectedResourceErrors
 }
