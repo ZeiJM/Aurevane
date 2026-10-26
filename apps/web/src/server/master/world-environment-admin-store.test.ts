@@ -79,3 +79,20 @@ it('preserves the active weather and its expiry when only clock settings change'
   expect(rpc.mock.calls[0]![1].p_settings).not.toHaveProperty('weatherOverride')
   expect(rpc.mock.calls[0]![1].p_settings).not.toHaveProperty('weatherOverrideUntilMs')
 })
+
+it('persists weather cadence separately from override duration and rejects malformed cadence', async () => {
+  rpc.mockResolvedValueOnce({ data: { ...stored, weatherRollMinutes: 5 } })
+  expect(
+    await setWorldEnvironment({ ...base, change: { ...base.change, weatherRollMinutes: 5 } }),
+  ).toMatchObject({ weatherRollMinutes: 5 })
+  expect(rpc.mock.calls[0]![1].p_settings).toMatchObject({
+    weatherRollMinutes: 5,
+    weatherOverrideUntilMs: 3_220_000,
+  })
+  rpc.mockReset()
+  for (const weatherRollMinutes of [0, 1.5, 10081, '5', null])
+    await expect(
+      setWorldEnvironment({ ...base, change: { ...base.change, weatherRollMinutes } }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  expect(rpc).not.toHaveBeenCalled()
+})

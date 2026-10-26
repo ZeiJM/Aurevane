@@ -1002,7 +1002,9 @@ it.each(['WORLD_STALE_VERSION', 'WORLD_STEP_NOT_DUE', 'WORLD_TRAINING_ACTIVE'])(
   async (message) => {
     rpc
       .mockResolvedValueOnce({ data: { ...payload(), state: attackTravelState() } })
-      .mockResolvedValueOnce({ error: { message } })
+      .mockResolvedValueOnce({
+        error: { code: message === 'WORLD_STALE_VERSION' ? 'PT409' : '22023', message },
+      })
     await expect(settleWorldAttackAuthority('owner', characterId, 1)).rejects.toMatchObject({
       code: message === 'WORLD_STALE_VERSION' ? 'STALE_VERSION' : 'INVALID_REQUEST',
     })

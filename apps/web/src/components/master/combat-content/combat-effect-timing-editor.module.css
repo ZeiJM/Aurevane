@@ -93,3 +93,30 @@
   margin: 0.4rem 0;
   padding-left: 1rem;
 }
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.editor {
+  min-height: 0;
+}
+.rules {
+  min-height: 10rem;
+  max-height: clamp(10rem, calc(100dvh - 39rem), 24rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.rules thead {
+  position: sticky;
+  top: 0;
+  background: #eee5d4;
+  z-index: 1;
+}
+@media (max-width: 40rem) {
+  .rules {
+    max-height: 55dvh;
+  }
+}

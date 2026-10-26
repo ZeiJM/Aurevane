@@ -16,6 +16,7 @@ export async function exerciseMasterAtBrowserZoom(
   readZoom: () => Promise<number>,
 ) {
   const evidence: unknown[] = []
+  const expectedResourceErrors: { url: string; status: number }[] = []
   const slug = route.split('/').at(-1)!
   async function control(target: Locator, label: string) {
     await expect(target).toBeVisible()
@@ -138,33 +139,71 @@ export async function exerciseMasterAtBrowserZoom(
     await expect(page.getByRole('status', { name: 'Content version state' })).toContainText(
       'Unsaved changes',
     )
-    await expect(button('Publish saved draft')).toBeDisabled()
+    await expect(button('Commit Now')).toBeEnabled()
     await control(name, 'long-title')
     await state('long-dirty', workspace)
-    await activate(button('Validate'), 'validate-error')
-    const validation = page.getByRole('region', { name: 'Validation issues' })
-    await expect(validation).toHaveAttribute('data-validation-state', 'invalid')
-    await expect(validation).toContainText('positive authored AP cost')
+    const rejectedCommit = page.waitForResponse((response) => {
+      if (
+        response.request().method() !== 'POST' ||
+        new URL(response.url()).pathname !== '/api/master/combat-content'
+      )
+        return false
+      const body = response.request().postDataJSON()
+      return (
+        body?.operation === 'record' &&
+        body.command?.action === 'commit' &&
+        body.command?.contentKey === 'unarmed.basic'
+      )
+    })
+    await activate(button('Commit Now'), 'commit-invalid')
+    const rejected = await rejectedCommit
+    expect(rejected.status()).toBe(400)
+    expect(await rejected.json()).toEqual({
+      error: {
+        code: 'INVALID_REQUEST',
+        message: 'Basic Attack requires a positive authored AP cost.',
+      },
+    })
+    expectedResourceErrors.push({ url: rejected.url(), status: rejected.status() })
+    const validation = page.getByRole('alert').filter({ hasText: 'positive authored AP cost' })
+    await expect(validation).toBeVisible()
+    await expect(validation).toContainText('Your local edits are retained.')
+    await expect(page.getByRole('status', { name: 'Content version state' })).toContainText(
+      'Unsaved changes',
+    )
     await validation.scrollIntoViewIfNeeded()
     await state('validation-error', workspace)
     await ap.fill(originalAP)
-    await activate(button('Save draft'), 'save-draft')
+    await activate(button('Commit Now'), 'commit-content')
     await expect(
-      page.getByText('Draft saved. Publishing is separate.', { exact: true }),
+      page.getByText('Changes committed and available to the game.', { exact: true }),
     ).toBeVisible()
-    await expect(page.getByRole('status', { name: 'Content version state' })).toContainText(
-      'Saved draft',
-    )
+    await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText('Current')
     await activate(button('History'), 'open-history')
-    await control(button('Restore System original v1 to draft'), 'original-restore')
-    await state('saved-history', workspace)
-    await activate(button('Restore System original v1 to draft'), 'restore-original')
+    const history = page.getByRole('region', { name: 'Content history', exact: true })
     await expect(
-      page.getByText('System original restored to a saved draft. Preview and publish when ready.', {
+      history.getByRole('heading', { name: 'Current and Previous', exact: true }),
+    ).toBeVisible()
+    const systemOriginal = history.locator('summary').filter({ hasText: /^System original$/ })
+    await activate(systemOriginal, 'open-system-original')
+    await control(button('Restore System original'), 'original-restore')
+    await state('saved-history', workspace)
+    await activate(button('Restore System original'), 'restore-original')
+    await expect(
+      page.getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
         exact: true,
       }),
     ).toBeVisible()
+    await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText(
+      'Uncommitted changes',
+    )
     await state('restored', workspace)
+    await activate(button('Commit Now'), 'commit-restored-original')
+    await expect(
+      page.getByText('Changes committed and available to the game.', { exact: true }),
+    ).toBeVisible()
+    await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText('Current')
+    await state('restored-current', workspace)
   } else if (route === '/master/combat-timing') {
     const form = page
       .locator('form')
@@ -176,13 +215,20 @@ export async function exerciseMasterAtBrowserZoom(
     await search.fill('')
     await expect(form.locator('tbody tr').first()).toBeVisible()
     await page.getByLabel('Sort effect tags').selectOption('timing-asc')
-    const usage = form
-      .locator('summary')
-      .filter({ hasText: /current definitions/ })
-      .first()
-    await activate(usage, 'used-by-disclosure')
-    await expect(usage.locator('..')).toHaveAttribute('open', '')
-    await state('expanded-reader', form)
+    const usage = form.getByRole('button', { name: /current definitions/ }).first()
+    await activate(usage, 'used-by-dialog')
+    const definitions = page.getByRole('dialog', { name: /definitions$/ })
+    await expect(definitions).toBeVisible()
+    await expect(definitions.getByRole('listitem').first()).toBeVisible()
+    await expect(definitions.getByRole('button', { name: /^Close / })).toBeFocused()
+    await state('expanded-reader', definitions)
+    await page.keyboard.press('Escape')
+    await expect(definitions).toBeHidden()
+    await expect(usage).toBeFocused()
+    await activate(usage, 'reopen-definitions')
+    await page.mouse.click(2, 2)
+    await expect(definitions).toBeHidden()
+    await expect(usage).toBeFocused()
     await activate(form.getByRole('button', { name: 'Save Changes', exact: true }), 'save-timing')
     await expect(form.getByRole('status')).toHaveText('Timing updated.')
   } else if (route === '/master/world-environment') {
@@ -244,7 +290,10 @@ export async function exerciseMasterAtBrowserZoom(
     await activate(button('Find identity'), 'lookup-identity')
     const editor = page.getByRole('region', { name: 'Character access' })
     await expect(editor).toContainText(identity.email)
-    await control(page.getByLabel('Linked character · choose exactly one'), 'linked-character')
+    await control(
+      editor.getByRole('combobox', { name: 'Character', exact: true }),
+      'linked-character',
+    )
     await state('identity-reader', editor)
     await activate(button('Close editor'), 'close-identity')
     await expect(editor).toHaveCount(0)
@@ -309,4 +358,5 @@ export async function exerciseMasterAtBrowserZoom(
     body: JSON.stringify(evidence),
     contentType: 'application/json',
   })
+  return expectedResourceErrors
 }

@@ -5,5 +5,8 @@ export function hasMasterPanelCapability(
   access: MasterPanelAccess,
   capability: MasterPanelCapability,
 ): boolean {
-  return access.effectiveCapabilities.includes(capability)
+  return (
+    access.effectiveCapabilities.includes(capability) &&
+    (capability !== 'staff.manage' || access.roles.includes('game-owner'))
+  )
 }

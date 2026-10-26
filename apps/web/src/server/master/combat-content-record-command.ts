@@ -62,6 +62,7 @@ export function createCombatContentRecordCommand(
       create: ['requestId', 'contentKind', 'definition', 'parentKey', 'expectedParentRevision'],
       duplicate: ['requestId', 'sourceKey', 'expectedSourceRevision'],
       save: ['contentKey', 'expectedRevision', 'definition'],
+      commit: ['contentKey', 'expectedRevision', 'definition'],
       restore: ['contentKey', 'expectedRevision', 'sourceVersion', 'sourceKind'],
       archive: ['contentKey', 'expectedRevision'],
       link: ['contentKey', 'expectedRevision', 'requestId', 'childKey'],
@@ -195,9 +196,17 @@ export function createCombatContentRecordCommand(
       }
     }
     const contentKey = key(input.contentKey)
-    if (action === 'save' || action === 'publish') {
+    if (action === 'save' || action === 'publish' || action === 'commit') {
       const record = await store.readRecord(contentKey)
       if (!record) invalid('The content record does not exist.')
+      if (action === 'commit')
+        return {
+          record: await store.commitRecord(
+            contentKey,
+            revision(input.expectedRevision),
+            validate(record.contentKind, input.definition),
+          ),
+        }
       if (action === 'publish')
         return {
           record: await store.publishSaved(

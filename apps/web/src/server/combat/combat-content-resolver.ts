@@ -619,6 +619,9 @@ export function createCombatContentResolver(
               )
               return row?.contentVersion === version ? row : null
             }
+            // Coalesce only inside this captured generation. Fresh captures always
+            // consult authority again; there is no cross-request or TTL cache.
+            const selections = new Map<string, Promise<CurrentDisciplineSelection>>()
             const frozen = createCombatContentResolver(
               {
                 readCatalogueSnapshot: async () => structuredClone(snapshot),
@@ -628,10 +631,13 @@ export function createCombatContentResolver(
                         primary: string,
                         secondary: string | null,
                       ) => {
-                        const selected = await source.readCurrentDisciplineSelection!(
-                          primary,
-                          secondary,
-                        )
+                        const key = JSON.stringify([primary, secondary])
+                        let pending = selections.get(key)
+                        if (!pending) {
+                          pending = source.readCurrentDisciplineSelection!(primary, secondary)
+                          selections.set(key, pending)
+                        }
+                        const selected = await pending
                         if (selected.catalogueToken !== snapshot.token)
                           throw new AurevaneError(
                             'STALE_VERSION',

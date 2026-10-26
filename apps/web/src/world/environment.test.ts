@@ -110,3 +110,24 @@ it('advances a configured whole world day through day and night in 120 real minu
   ).toBe(360)
   expect(noon.weather).toBe(resolveWorldEnvironment(MIDNIGHT + 60 * 60_000, base).weather)
 })
+
+it('uses a separate real-minute weather roll interval and preserves historical six-hour cadence', () => {
+  for (const now of [1_234_567, MIDNIGHT, MIDNIGHT + 359_999]) {
+    expect(resolveWorldEnvironment(now, { ...base, weatherRollMinutes: 5 }).weather).toBe(
+      weatherAtHour(Math.floor(now / (5 * 60_000))),
+    )
+    const historical = { ...base }
+    delete historical.weatherRollMinutes
+    expect(resolveWorldEnvironment(now, historical).weather).toBe(
+      weatherAtHour(Math.floor(now / BLOCK)),
+    )
+  }
+  const settings = {
+    ...base,
+    weatherRollMinutes: 5,
+    weatherOverride: 'storm' as const,
+    weatherOverrideUntil: 900_000,
+  }
+  expect(resolveWorldEnvironment(899_999, settings).weatherSource).toBe('master')
+  expect(resolveWorldEnvironment(900_000, settings).weather).toBe(weatherAtHour(3))
+})

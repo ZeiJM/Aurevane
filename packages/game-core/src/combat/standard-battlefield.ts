@@ -3,6 +3,8 @@ import type { CombatTile, GridPosition } from './board'
 
 export interface BattlefieldElevationPolicy {
   version: number
+  /** Absent on historical captures: retain weighted draws and their exact RNG stream. */
+  model?: 'independent-highest'
   level1BasisPoints: number
   level2BasisPoints: number
   level3BasisPoints: number
@@ -17,27 +19,32 @@ export function parseBattlefieldElevationPolicy(value: unknown): BattlefieldElev
     throw new RangeError('Invalid elevation policy.')
   const record = value as Record<string, unknown>
   const keys = ['version', 'level1BasisPoints', 'level2BasisPoints', 'level3BasisPoints']
+  const independent = record.model === 'independent-highest'
+  if (Object.hasOwn(record, 'model')) keys.push('model')
   if (
+    (Object.hasOwn(record, 'model') && !independent) ||
     Object.keys(record).length !== keys.length ||
     keys.some((key) => !Object.hasOwn(record, key)) ||
     !Number.isSafeInteger(record.version) ||
     (record.version as number) < 1 ||
-    keys
-      .slice(1)
-      .some(
-        (key) =>
-          !Number.isSafeInteger(record[key]) ||
-          (record[key] as number) < 0 ||
-          (record[key] as number) > 10000,
-      ) ||
-    (record.level1BasisPoints as number) +
-      (record.level2BasisPoints as number) +
-      (record.level3BasisPoints as number) !==
-      10000
+    ['level1BasisPoints', 'level2BasisPoints', 'level3BasisPoints'].some(
+      (key) =>
+        !Number.isSafeInteger(record[key]) ||
+        (record[key] as number) < 0 ||
+        (record[key] as number) > 10000,
+    ) ||
+    (!independent &&
+      (record.level1BasisPoints as number) +
+        (record.level2BasisPoints as number) +
+        (record.level3BasisPoints as number) !==
+        10000)
   )
-    throw new RangeError('Elevation chances must total exactly 100%.')
+    throw new RangeError(
+      'Each elevation chance must be between 0 and 100%; historical weighted policies must total 100%.',
+    )
   return {
     version: record.version as number,
+    ...(independent ? { model: 'independent-highest' as const } : {}),
     level1BasisPoints: record.level1BasisPoints as number,
     level2BasisPoints: record.level2BasisPoints as number,
     level3BasisPoints: record.level3BasisPoints as number,
@@ -51,6 +58,20 @@ function heightForDraw(draw: number, policy: BattlefieldElevationPolicy): number
     : roll < policy.level1BasisPoints + policy.level2BasisPoints
       ? 2
       : 3
+}
+
+function drawHeight(nextDraw: () => number, policy: BattlefieldElevationPolicy): number {
+  if (policy.model !== 'independent-highest') return heightForDraw(nextDraw(), policy)
+  // Each candidate level rolls once. Highest success wins; no success leaves ground flat.
+  let height = 0
+  for (const [index, chance] of [
+    policy.level1BasisPoints,
+    policy.level2BasisPoints,
+    policy.level3BasisPoints,
+  ].entries()) {
+    if (nextDraw() % 10000 < chance) height = index + 1
+  }
+  return height
 }
 
 type MapBias = 'less' | 'neutral' | 'more'
@@ -142,11 +163,23 @@ export function createStandardBattlefieldTiles(
   const raisedBudget =
     Math.floor((eligible.length * RAISED_RATE[input.elevationBias ?? 'neutral']) / 2000) * 2
   let raisedCount = 0
+  const nextHeight = () =>
+    drawHeight(() => {
+      const draw = advanceBattleRng(mapRng)
+      mapRng = draw.state
+      return draw.value
+    }, policy)
   for (const [first, second] of pairs) {
     if (raisedCount >= raisedBudget) break
     if (tiles[first]!.elevation || tiles[second]!.elevation) continue
-    tiles[first]!.elevation = 1
-    tiles[second]!.elevation = 1
+    const firstHeight = policy.model === 'independent-highest' ? nextHeight() : 1
+    const secondHeight = policy.model === 'independent-highest' ? nextHeight() : 1
+    // A standard raised patch needs two independently rolled raised cells.
+    // Reject incomplete patches before admission rather than flattening one
+    // member later, which could leave lone raised cells or isolated flat pockets.
+    if (!firstHeight || !secondHeight) continue
+    tiles[first]!.elevation = firstHeight
+    tiles[second]!.elevation = secondHeight
     // Jump 0 characters must retain a route through every flat tile and between all spawns.
     if (flatGroundConnected()) {
       raisedCount += 2
@@ -158,10 +191,9 @@ export function createStandardBattlefieldTiles(
 
   // Every raised tile draws independently, including adjacent tiles.
   for (const tile of tiles) {
+    if (policy.model === 'independent-highest') break
     if (tile.elevation <= 0) continue
-    const draw = advanceBattleRng(mapRng)
-    mapRng = draw.state
-    tile.elevation = heightForDraw(draw.value, policy)
+    tile.elevation = nextHeight()
   }
 
   const roughBudget = Math.floor(
@@ -183,9 +215,11 @@ export function randomizeRaisedTileHeights(
   const next = tiles.map((tile) => ({ ...tile, position: { ...tile.position } }))
   for (const tile of next) {
     if (tile.elevation <= 0) continue
-    const draw = advanceBattleRng(rng)
-    rng = draw.state
-    tile.elevation = heightForDraw(draw.value, policy)
+    tile.elevation = drawHeight(() => {
+      const draw = advanceBattleRng(rng)
+      rng = draw.state
+      return draw.value
+    }, policy)
   }
   return next
 }

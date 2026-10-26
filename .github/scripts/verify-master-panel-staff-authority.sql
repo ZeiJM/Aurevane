@@ -79,7 +79,8 @@ begin
   begin
     perform public.set_master_panel_character_access_v2(owner_id,staff_id,character_id,array['content-staff'],array[]::text[],null,1,true);
     raise exception 'EXPECTED stale Staff CAS denial';
-  exception when serialization_failure then assert sqlerrm='MASTER_PANEL_ACCESS_VERSION_CONFLICT'; end;
+  -- This fixture also runs against the retained pre-domain-code migration chain.
+  exception when sqlstate '40001' or sqlstate 'PT409' then assert sqlerrm='MASTER_PANEL_ACCESS_VERSION_CONFLICT'; end;
   directory := public.list_master_panel_staff_v2(owner_id);
   assert exists(select 1 from jsonb_array_elements(directory) x where x->>'characterId'=character_id::text and x->>'accessVersion'='2' and x->>'status'='active'), 'Selected directory revision';
   assert public.set_master_panel_character_access_v2(owner_id,staff_id,character_id,array['content-staff'],array['events.global_scope'],null,2,false)=3, 'Revoke';
@@ -120,7 +121,7 @@ begin
     assert not has_function_privilege('service_role',signature,'execute'), 'Retired API service denial: '||signature;
     assert not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'Retired API browser denial: '||signature;
   end loop;
-  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1','read_event_workspace_catalogue_v1','list_event_workspace_runs_v1']) loop
+  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1','read_event_workspace_catalogue_v1','list_event_workspace_runs_v1','commit_combat_content_record_v1']) loop
     checked := checked+1;
     assert not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Explicit actor browser denial: '||proc.proname;
     if proc.nspname='app_private' then
@@ -130,7 +131,7 @@ begin
       assert has_function_privilege('service_role',proc.oid,'execute')=has_function_privilege('service_role',proc.nspname||'.'||proc.proname||'('||predecessor||')','execute'), 'Predecessor service ACL: '||proc.proname;
     end if;
   end loop;
-  assert checked=33, 'Complete explicit actor ACL inventory';
+  assert checked=33+case when to_regprocedure('public.read_master_panel_access_v2(uuid,uuid)') is null then 0 else 2 end, 'Complete explicit actor ACL inventory';
   -- Event workspace readers are new selected-actor APIs, not legacy overloads.
   if to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is not null then
     foreach signature in array array['public.read_event_workspace_catalogue_v1(uuid,uuid)','public.list_event_workspace_runs_v1(uuid,uuid)'] loop
@@ -194,7 +195,7 @@ begin
       assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Stage B ordinary service RPC ACL: '||signature;
     end loop;
 
-    assert (select count(*)=41+case when to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Original33 + Players4 + Content4 actor inventory';
+    assert (select count(*)=41+case when to_regprocedure('public.commit_combat_content_record_v1(uuid,uuid,text,bigint,jsonb,text,integer)') is null then 0 else 1 end+case when to_regprocedure('public.read_master_panel_access_v2(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Original33 + Players4 + Content4 actor inventory';
     foreach signature in array array[
       'select public.read_combat_content_record_v1($1,$2,''native.staff.skill'')',
       'select public.list_combat_content_records_v1($1,$2,null,null,null,null,20)',
@@ -250,6 +251,11 @@ end; $$;
 -- Actual browser invocation denial, in addition to the complete catalog ACL assertions.
 set local role authenticated;
 do $$ begin
+  if to_regprocedure('public.read_master_panel_role_defaults_v1(uuid)') is not null then
+    begin perform public.read_master_panel_role_defaults_v1(current_setting('task8.owner')::uuid); raise exception 'EXPECTED role defaults browser read denial'; exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
+    begin perform public.save_master_panel_role_defaults_v1(current_setting('task8.owner')::uuid,1,'{}'::jsonb); raise exception 'EXPECTED role defaults browser forgery denial'; exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
+    begin perform public.read_master_panel_access_v2(current_setting('task8.owner')::uuid,null); raise exception 'EXPECTED authoritative capabilities browser denial'; exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
+  end if;
   if to_regprocedure('public.read_combat_content_record_v1(uuid,uuid,text)') is not null then
     begin perform public.read_combat_content_record_v1(current_setting('task8.owner')::uuid,null,'native.staff.skill'); raise exception 'EXPECTED Content read browser denial'; exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
     begin perform public.list_combat_content_records_v1(current_setting('task8.owner')::uuid,null,null,null,null,null,20); raise exception 'EXPECTED Content list browser denial'; exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
@@ -270,7 +276,8 @@ set local role service_role;
 do $$
 declare table_name text;
 begin
-  foreach table_name in array array['master_panel_character_access','master_panel_capability_grants','master_panel_access_audit'] loop
+  foreach table_name in array array['master_panel_character_access','master_panel_capability_grants','master_panel_access_audit','master_panel_role_defaults'] loop
+    if not exists(select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='app_private' and c.relname=table_name) then continue; end if;
     begin
       execute format('select 1 from app_private.%I limit 1',table_name);
       raise exception 'EXPECTED private Staff table invocation denial: %',table_name;

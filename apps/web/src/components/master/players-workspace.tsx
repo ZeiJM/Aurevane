@@ -9,6 +9,7 @@ import type {
 } from '@/master/players'
 import { PlayerCorrectionForm, PlayerCorrectionReview, playerLabel } from './player-correction-form'
 import styles from './players-workspace.module.css'
+import { MasterHelp } from './master-help'
 
 async function request<T>(body: Record<string, unknown>): Promise<T> {
   const response = await fetch('/api/master/players', {
@@ -125,7 +126,12 @@ export function PlayersWorkspace({
   return (
     <div className={styles.workspace} aria-busy={busy}>
       <section className={styles.card}>
-        <h2>Find a player</h2>
+        <h2>
+          Find a player{' '}
+          <MasterHelp label="Player search">
+            Search by character name. Viewing a player does not change their progress.
+          </MasterHelp>
+        </h2>
         <form className={styles.search} onSubmit={search}>
           <label>
             Character name
@@ -142,9 +148,6 @@ export function PlayersWorkspace({
             Find players
           </button>
         </form>
-        <p>
-          Up to 20 matches. Inspection reads existing gameplay facts without advancing activity.
-        </p>
         {results ? (
           <ul className={styles.results}>
             {results.length ? (

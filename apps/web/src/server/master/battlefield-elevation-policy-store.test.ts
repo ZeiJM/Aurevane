@@ -63,3 +63,28 @@ it.each([
     publishBattlefieldElevationPolicy({ actorUserId: 'owner', policy }),
   ).rejects.toMatchObject({ code })
 })
+
+it('publishes independent non-100 totals through the explicit current model RPC', async () => {
+  const { publishBattlefieldElevationPolicy } = await import('./battlefield-elevation-policy-store')
+  const current = {
+    ...policy,
+    model: 'independent-highest',
+    level1BasisPoints: 10000,
+    level2BasisPoints: 10000,
+    level3BasisPoints: 10000,
+  }
+  rpc.mockResolvedValueOnce({ data: { ...current, version: 2 } })
+  expect(
+    await publishBattlefieldElevationPolicy({ actorUserId: 'owner', policy: current }),
+  ).toEqual({ ...current, version: 2 })
+  expect(rpc).toHaveBeenCalledWith('publish_battlefield_elevation_policy_v3', {
+    p_actor_user_id: 'owner',
+    p_expected_version: 1,
+    p_chances: {
+      model: 'independent-highest',
+      level1BasisPoints: 10000,
+      level2BasisPoints: 10000,
+      level3BasisPoints: 10000,
+    },
+  })
+})

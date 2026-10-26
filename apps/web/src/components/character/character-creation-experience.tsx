@@ -451,6 +451,7 @@ export function CharacterCreationExperience({
                       />
                       <FoundationDisciplineSigil
                         disciplineId={discipline.id}
+                        media={discipline.media}
                         className={styles.disciplineSigil}
                       />
                       <strong>{discipline.name}</strong>
@@ -579,6 +580,7 @@ export function CharacterCreationExperience({
                 >
                   <FoundationDisciplineSigil
                     disciplineId={selectedDiscipline.id}
+                    media={selectedDiscipline.media}
                     className={styles.reviewDisciplineSigil}
                   />
                   <span>

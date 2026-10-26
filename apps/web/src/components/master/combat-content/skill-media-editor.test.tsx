@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SkillMediaEditor } from './skill-media-editor'
 
 describe('Master Panel Skill media editor', () => {
-  it('renders registered artwork preview, produced audio audition, and read-only VFX', () => {
+  it('renders registered artwork preview, produced audio audition, without unsupported VFX clutter', () => {
     const markup = renderToStaticMarkup(
       createElement(SkillMediaEditor, {
         value: {
@@ -29,9 +29,7 @@ describe('Master Panel Skill media editor', () => {
     )
     expect(markup).toContain('aria-label="Battle audio preview"')
     expect(markup).toContain('/media/audio/sfx/phase4/ironfist-action-v02-1.wav')
-    expect(markup).toContain('aria-label="VFX hook read only"')
-    expect(markup).toContain('data-media-hook-readonly="vfx"')
-    expect(markup).toContain('skill.vanguard.forceful-strike.vfx')
+    expect(markup).not.toContain('data-media-hook-readonly="vfx"')
   })
 
   it('auditions newly produced Vanguard audio instead of showing a reserved placeholder', () => {
@@ -73,10 +71,10 @@ it('offers PC upload with explicit finalization, crop and sound limits and immut
     }),
   )
   expect(markup).toContain('type="file"')
-  expect(markup).toContain('Finalize upload')
+  expect(markup).toContain('Upload file')
   expect(markup).toContain('PCM16 WAV')
   expect(markup).toContain('2 MiB')
   expect(markup).toContain('Remove uploaded artwork')
   expect(markup).toContain(`/api/master/combat-content/media/${media.id}`)
-  expect(markup).toContain('Browse finalized assets')
+  expect(markup).not.toContain('Browse finalized assets')
 })

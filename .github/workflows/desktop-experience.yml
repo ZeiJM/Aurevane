@@ -45,7 +45,12 @@ jobs:
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
-      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Install browser dependencies from the official Ubuntu mirror
+        run: |
+          # The Azure HTTP mirror stalled for almost 14 minutes and exhausted
+          # the job budget before the 75 unchanged browser cases could finish.
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
       - name: Verify rendered desktop and phone interactions
         shell: bash

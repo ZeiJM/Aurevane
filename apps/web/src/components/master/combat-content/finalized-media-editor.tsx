@@ -11,16 +11,19 @@ import {
   type FinalizedContentMediaSlots,
 } from '@aurevane/game-core/combat/content-media'
 import styles from './combat-content-editor.module.css'
+import { MasterHelp } from '../master-help'
 
 /** Reusable for independent Skills and image-only containers. No draft points at a local preview. */
 export function FinalizedMediaEditor({
   value,
   onChange,
   allowAudio = true,
+  fallbackArtwork,
 }: {
   value: FinalizedContentMediaSlots
   onChange(value: FinalizedContentMediaSlots): void
   allowAudio?: boolean
+  fallbackArtwork?: string
 }) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
@@ -28,7 +31,6 @@ export function FinalizedMediaEditor({
   const [dimensions, setDimensions] = useState({ width: 1, height: 1 })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [assets, setAssets] = useState<readonly FinalizedContentMedia[]>([])
   const canvas = useRef<HTMLCanvasElement>(null)
   const latest = useRef({ value, onChange })
   useEffect(() => {
@@ -107,29 +109,14 @@ export function FinalizedMediaEditor({
       setBusy(false)
     }
   }
-  async function browse() {
-    setError('')
-    try {
-      const response = await fetch('/api/master/combat-content/media', { cache: 'no-store' })
-      const result = await response.json()
-      if (
-        !response.ok ||
-        !Array.isArray(result.media) ||
-        !result.media.every(isFinalizedContentMedia)
-      )
-        throw new Error('Finalized assets could not be loaded.')
-      setAssets(
-        result.media.filter((asset: FinalizedContentMedia) => allowAudio || asset.kind === 'image'),
-      )
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Assets unavailable.')
-    }
-  }
   return (
     <fieldset className={styles.typedGroup} disabled={busy}>
-      <legend>Uploaded media</legend>
-      <p className={styles.fieldHint}>{CONTENT_MEDIA_GUIDANCE}</p>
-      {!allowAudio && <p>Audio is unavailable for this content category.</p>}
+      <legend>
+        Artwork and sound <MasterHelp label="Media uploads">{CONTENT_MEDIA_GUIDANCE}</MasterHelp>
+      </legend>
+      {!value.artwork && fallbackArtwork ? (
+        <Image src={fallbackArtwork} alt="Current artwork" width={144} height={144} unoptimized />
+      ) : null}
       <label className={styles.field}>
         <span>Upload from computer</span>
         <input
@@ -199,12 +186,8 @@ export function FinalizedMediaEditor({
         disabled={!file || busy || (file.type.startsWith('image/') && !preview)}
         onClick={() => void upload()}
       >
-        {busy ? 'Finalizing…' : 'Finalize upload'}
+        {busy ? 'Uploading…' : 'Upload file'}
       </button>
-      <p className={styles.fieldHint}>
-        Finalize validates and saves the file. Save the content draft to attach it; Publish makes it
-        available in new content. Replacing or removing media preserves older published versions.
-      </p>
       {value.artwork && (
         <div>
           <Image
@@ -251,31 +234,6 @@ export function FinalizedMediaEditor({
             Remove uploaded sound
           </button>
         </div>
-      )}
-      <button type="button" onClick={() => void browse()}>
-        Browse finalized assets
-      </button>
-      {assets.length > 0 && (
-        <label className={styles.field}>
-          <span>Existing finalized asset</span>
-          <select
-            value=""
-            onChange={(event) => {
-              const media = assets.find((asset) => asset.id === event.currentTarget.value)
-              if (media) choose(media)
-            }}
-          >
-            <option value="">Choose an asset</option>
-            {assets.map((asset) => (
-              <option key={asset.id} value={asset.id}>
-                {asset.kind === 'image'
-                  ? `Image ${asset.width} × ${asset.height}`
-                  : `Sound ${(asset.durationMs / 1000).toFixed(2)} s`}{' '}
-                · {asset.id.slice(0, 8)}
-              </option>
-            ))}
-          </select>
-        </label>
       )}
       {error && <p role="alert">{error}</p>}
     </fieldset>

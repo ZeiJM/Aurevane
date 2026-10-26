@@ -1,3 +1,4 @@
+import type { FinalizedContentMediaSlots } from '../combat/content-media'
 import {
   foundationDisciplineAttributePolicy,
   type DisciplineAttributePolicy,
@@ -12,7 +13,13 @@ import {
   type DerivedStatSnapshot,
 } from './derived-stats'
 
+export interface DisciplinePresentationMedia extends FinalizedContentMediaSlots {
+  readonly artworkId?: string
+}
+
 export interface DisciplineDefinition {
+  /** Current display metadata; committed mechanical versions remain independent. */
+  media?: DisciplinePresentationMedia
   id: string
   definitionVersion: number
   name: string

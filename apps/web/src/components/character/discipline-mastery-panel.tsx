@@ -1,5 +1,7 @@
 'use client'
 
+import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
+
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -35,6 +37,7 @@ interface AtlasMasteryView {
 }
 
 interface AtlasEntryView {
+  media?: DisciplinePresentationMedia
   key: string
   disciplineId: string | null
   name: string
@@ -271,7 +274,10 @@ export function DisciplineMasteryPanel({
                         <div className={styles.identity}>
                           <span className={styles.sigil} aria-hidden="true">
                             {entry.disciplineId ? (
-                              <FoundationDisciplineSigil disciplineId={entry.disciplineId} />
+                              <FoundationDisciplineSigil
+                                disciplineId={entry.disciplineId}
+                                media={entry.media}
+                              />
                             ) : (
                               '◇'
                             )}

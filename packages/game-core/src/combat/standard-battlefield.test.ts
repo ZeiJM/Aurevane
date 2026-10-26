@@ -258,3 +258,119 @@ it.each([1, 2, 3] as const)(
     expect(authored.map((tile) => tile.elevation)).toEqual([0, 1, 2, 3])
   },
 )
+
+it('rolls independent levels with highest success winning, zero successes flat, and no input mutation', () => {
+  const tiles = [0, 1, 2, 3].map((elevation, x) => ({
+    position: { x, y: 0 },
+    elevation,
+    terrainId: 'open-ground',
+  }))
+  const base = {
+    version: 2,
+    model: 'independent-highest' as const,
+    level1BasisPoints: 0,
+    level2BasisPoints: 0,
+    level3BasisPoints: 0,
+  }
+  expect(randomizeRaisedTileHeights(tiles, 12, base).map((tile) => tile.elevation)).toEqual([
+    0, 0, 0, 0,
+  ])
+  expect(
+    randomizeRaisedTileHeights(tiles, 12, {
+      ...base,
+      level1BasisPoints: 10000,
+      level2BasisPoints: 10000,
+    }).map((tile) => tile.elevation),
+  ).toEqual([0, 2, 2, 2])
+  expect(
+    randomizeRaisedTileHeights(tiles, 12, {
+      ...base,
+      level1BasisPoints: 10000,
+      level2BasisPoints: 10000,
+      level3BasisPoints: 10000,
+    }).map((tile) => tile.elevation),
+  ).toEqual([0, 3, 3, 3])
+  expect(tiles.map((tile) => tile.elevation)).toEqual([0, 1, 2, 3])
+  const input = { width: 15, height: 7, seed: 1234, spawns: [], elevationPolicy: base }
+  expect(createStandardBattlefieldTiles(input).every((tile) => tile.elevation === 0)).toBe(true)
+  expect(createStandardBattlefieldTiles(input)).toEqual(createStandardBattlefieldTiles(input))
+})
+
+it('independently rolls each chance instead of normalizing the entered percentages', () => {
+  const policy = {
+    version: 2,
+    model: 'independent-highest' as const,
+    level1BasisPoints: 5000,
+    level2BasisPoints: 5000,
+    level3BasisPoints: 5000,
+  }
+  const tiles = Array.from({ length: 1000 }, (_, x) => ({
+    position: { x, y: 0 },
+    elevation: 1,
+    terrainId: 'open-ground',
+  }))
+  const map = randomizeRaisedTileHeights(tiles, 99, policy)
+  for (const [level, probability] of [
+    [0, 0.125],
+    [1, 0.125],
+    [2, 0.25],
+    [3, 0.5],
+  ])
+    expect(map.filter((tile) => tile.elevation === level).length / map.length).toBeCloseTo(
+      probability!,
+      1,
+    )
+})
+
+it('keeps independent-roll standard patches paired and every flat route connected across seeds', () => {
+  for (const chances of [
+    [6000, 3000, 1000],
+    [500, 500, 500],
+    [0, 0, 0],
+    [10000, 10000, 10000],
+  ]) {
+    for (let seed = 1; seed <= 150; seed++) {
+      const spawns = [
+        { x: 1, y: 3 },
+        { x: 7, y: 3 },
+      ]
+      const tiles = createStandardBattlefieldTiles({
+        width: 9,
+        height: 7,
+        seed,
+        spawns,
+        elevationPolicy: {
+          version: 2,
+          model: 'independent-highest',
+          level1BasisPoints: chances[0]!,
+          level2BasisPoints: chances[1]!,
+          level3BasisPoints: chances[2]!,
+        },
+      })
+      expect(connectedGround(tiles)).toBe(true)
+      for (const raised of tiles.filter((tile) => tile.elevation > 0)) {
+        expect(
+          tiles.some(
+            (neighbor) =>
+              neighbor.elevation > 0 &&
+              Math.abs(neighbor.position.x - raised.position.x) +
+                Math.abs(neighbor.position.y - raised.position.y) ===
+                1,
+          ),
+        ).toBe(true)
+      }
+      for (const spawn of spawns) {
+        expect(
+          tiles
+            .filter(
+              (tile) =>
+                Math.abs(tile.position.x - spawn.x) + Math.abs(tile.position.y - spawn.y) <= 1,
+            )
+            .every((tile) => tile.elevation === 0),
+        ).toBe(true)
+      }
+      if (chances.every((chance) => chance === 0))
+        expect(tiles.every((tile) => tile.elevation === 0)).toBe(true)
+    }
+  }
+})

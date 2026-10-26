@@ -20,7 +20,7 @@ export function createServerMasterPlayersService() {
             'FORBIDDEN',
             'Only the Game Owner may inspect or correct players.',
           )
-        if (error.code === '40001' || error.code === '55P03')
+        if (error.code === '40001' || error.code === 'PT409' || error.code === '55P03')
           throw new AurevaneError(
             'STALE_VERSION',
             'The player or encounter changed or is busy. Refresh and review again.',

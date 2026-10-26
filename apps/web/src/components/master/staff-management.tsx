@@ -3,6 +3,12 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import styles from './staff-management.module.css'
+import { MasterHelp } from './master-help'
+import type {
+  DelegatedMasterPanelRole,
+  MasterPanelCapability,
+  MasterPanelRoleDefaults,
+} from '@/server/master/staff-access'
 
 interface Option {
   readonly id: string
@@ -26,6 +32,7 @@ interface ResolvedAccount {
   readonly characters: readonly { characterId: string; name: string; playable: boolean }[]
 }
 interface StaffManagementProps {
+  readonly roleDefaults?: MasterPanelRoleDefaults
   readonly staff: readonly StaffMember[]
   readonly roleOptions: readonly Option[]
   readonly capabilityOptions: readonly Option[]
@@ -61,7 +68,12 @@ function errorMessage(value: unknown): string {
   }
   return 'Staff & Access could not complete this request.'
 }
-export function StaffManagement({ staff, roleOptions, capabilityOptions }: StaffManagementProps) {
+export function StaffManagement({
+  staff,
+  roleOptions,
+  capabilityOptions,
+  roleDefaults,
+}: StaffManagementProps) {
   const router = useRouter(),
     editorRef = useRef<HTMLHeadingElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
@@ -79,6 +91,53 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
     [error, setError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null)
   const [previewClock, setPreviewClock] = useState(() => Date.now())
+  const [defaults, setDefaults] = useState(roleDefaults)
+  const [defaultDraft, setDefaultDraft] = useState(roleDefaults?.roles)
+  const [defaultRole, setDefaultRole] = useState<DelegatedMasterPanelRole>('moderator')
+  const defaultCapabilityOptions = [
+    { id: 'master.access', label: 'Master Panel' },
+    { id: 'content.combat.author', label: 'Game Content' },
+    { id: 'events.author', label: 'Event authoring' },
+    { id: 'events.operate', label: 'Event operations' },
+    ...capabilityOptions,
+  ]
+  const defaultsChanged = JSON.stringify(defaultDraft) !== JSON.stringify(defaults?.roles)
+  async function saveDefaults() {
+    if (!defaults || !defaultDraft || pending || !defaultsChanged) return
+    setPending(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const result = await post({
+        operation: 'save-role-defaults',
+        expectedRevision: defaults.revision,
+        roles: defaultDraft,
+      })
+      const saved = result.defaults as MasterPanelRoleDefaults
+      setDefaults(saved)
+      setDefaultDraft(saved.roles)
+      setNotice('Role defaults saved.')
+      router.refresh()
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Role defaults could not be saved.')
+    } finally {
+      setPending(false)
+    }
+  }
+  async function reloadDefaults() {
+    setPending(true)
+    setError(null)
+    try {
+      const result = await post({ operation: 'read-role-defaults' })
+      const saved = result.defaults as MasterPanelRoleDefaults
+      setDefaults(saved)
+      setDefaultDraft(saved.roles)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Role defaults are unavailable.')
+    } finally {
+      setPending(false)
+    }
+  }
   useEffect(() => {
     if (identity) editorRef.current?.focus()
   }, [identity])
@@ -194,11 +253,11 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
       ? null
       : new Date(previewClock + Number(days) * 86400000).toISOString()
   return (
-    <div className={styles.layout}>
+    <div className={`${styles.layout} ${identity || defaults ? styles.withEditor : ''}`}>
       <section className={styles.directory} aria-labelledby="staff-directory-title">
         <div className={styles.heading}>
           <h2 id="staff-directory-title">Staff directory</h2>
-          <span>{staff.length} records</span>
+          <span>{staff.length} staff</span>
         </div>
         <form
           className={styles.lookup}
@@ -233,6 +292,12 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
         )}
         {pending && <p role="status">Checking verified access…</p>}
         <div className={styles.rows}>
+          <div className={styles.columns} aria-hidden="true">
+            <span>Staff</span>
+            <span>Roles</span>
+            <span>Status</span>
+            <span>Actions</span>
+          </div>
           {staff.length === 0 && (
             <p>No staff assignments yet. Find a verified identity to assign a linked character.</p>
           )}
@@ -241,7 +306,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
               <div className={styles.identity}>
                 <strong>
                   {member.characterName ??
-                    (member.status === 'owner' ? 'Game Owner' : 'Unbound legacy account')}
+                    (member.status === 'owner' ? 'Game Owner' : 'Choose character')}
                 </strong>
                 <span title={member.email ?? undefined}>
                   {member.email ?? 'Verified identity unavailable'}
@@ -252,11 +317,11 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                   {member.roles
                     .map(
                       (role) =>
-                        roleOptions.find((option) => option.id === role)?.label ?? 'Game Owner',
+                        roleOptions.find((option) => option.id === role)?.label ??
+                        (role === 'game-owner' ? 'Game Owner' : role),
                     )
                     .join(', ')}
                 </strong>
-                <span>{scope(member.roles, member.specialCapabilities)}</span>
               </div>
               <div>
                 <strong>
@@ -280,20 +345,6 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                     >
                       {member.status === 'needs-binding' ? 'Bind character' : 'Edit'}
                     </button>
-                    {member.characterId && member.status !== 'revoked' && (
-                      <button
-                        disabled={pending}
-                        onClick={() => {
-                          void resolve(
-                            member.email ?? member.characterName ?? '',
-                            member.characterId ?? undefined,
-                          )
-                          setNotice('Review the character, confirm, then Revoke access.')
-                        }}
-                      >
-                        Revoke
-                      </button>
-                    )}
                   </>
                 )}
               </div>
@@ -301,6 +352,64 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
           ))}
         </div>
       </section>
+      {!identity && defaults && defaultDraft && (
+        <section className={styles.editor} aria-labelledby="role-defaults-title">
+          <div className={styles.heading}>
+            <h2 id="role-defaults-title">Role defaults</h2>
+            <MasterHelp label="Role defaults">
+              Changes apply immediately to existing staff with these roles. Explicit permissions
+              remain in place. Staff management, identity changes and global settings stay with the
+              Game Owner.
+            </MasterHelp>
+          </div>
+          <label htmlFor="staff-default-role">Role</label>
+          <select
+            id="staff-default-role"
+            value={defaultRole}
+            disabled={pending}
+            onChange={(event) => setDefaultRole(event.target.value as DelegatedMasterPanelRole)}
+          >
+            {roleOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <fieldset disabled={pending}>
+            <legend>Permissions</legend>
+            <div className={styles.defaultPermissions}>
+              {defaultCapabilityOptions.map((option) => (
+                <label key={option.id}>
+                  <input
+                    type="checkbox"
+                    aria-label={option.label}
+                    checked={defaultDraft[defaultRole].includes(option.id as MasterPanelCapability)}
+                    onChange={() => {
+                      const capability = option.id as MasterPanelCapability
+                      const current = defaultDraft[defaultRole]
+                      setDefaultDraft({
+                        ...defaultDraft,
+                        [defaultRole]: current.includes(capability)
+                          ? current.filter((value) => value !== capability)
+                          : [...current, capability],
+                      })
+                    }}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className={styles.actions}>
+            <button disabled={pending || !defaultsChanged} onClick={saveDefaults}>
+              Save role defaults
+            </button>
+            <button disabled={pending} onClick={reloadDefaults}>
+              Reload defaults
+            </button>
+          </div>
+        </section>
+      )}
       {identity && (
         <section className={styles.editor} aria-labelledby="staff-editor-title">
           <div className={styles.heading}>
@@ -311,10 +420,8 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
               Close editor
             </button>
           </div>
-          <p className={styles.verified}>
-            {identity.email} <span>Verified identity</span>
-          </p>
-          <label htmlFor="staff-character">Linked character · choose exactly one</label>
+          <p className={styles.verified}>{identity.email}</p>
+          <label htmlFor="staff-character">Character</label>
           <select
             id="staff-character"
             value={selected}
@@ -337,7 +444,16 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
           {selected && (
             <>
               <fieldset disabled={pending}>
-                <legend>Role presets</legend>
+                <legend>
+                  Roles{' '}
+                  <MasterHelp label="Staff roles">
+                    {roleOptions.map((option) => (
+                      <p key={option.id}>
+                        <strong>{option.label}</strong>: {option.description}
+                      </p>
+                    ))}
+                  </MasterHelp>
+                </legend>
                 <div className={styles.presets}>
                   {roleOptions.map((option) => (
                     <label key={option.id}>
@@ -348,32 +464,34 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                       />
                       <span>
                         <strong>{option.label}</strong>
-                        <small>{option.description}</small>
                       </span>
                     </label>
                   ))}
                 </div>
               </fieldset>
               <div className={styles.summary}>
-                <strong>Effective scope</strong>
-                <p>{scope(roles, caps)}</p>
-                {caps.length > 0 && (
-                  <p>
-                    {caps
-                      .map(
-                        (cap) =>
-                          capabilityOptions.find((option) => option.id === cap)?.label ?? cap,
-                      )
-                      .join(' · ')}
-                  </p>
-                )}
-                <small>
-                  Staff delegation, global settings and identity changes remain protected Game Owner
-                  powers.
-                </small>
+                <strong>Permissions</strong>
+                <p>
+                  {defaults
+                    ? [
+                        ...new Set([
+                          ...roles.flatMap(
+                            (role) => defaults.roles[role as DelegatedMasterPanelRole] ?? [],
+                          ),
+                          ...caps,
+                        ]),
+                      ]
+                        .map(
+                          (capability) =>
+                            defaultCapabilityOptions.find((option) => option.id === capability)
+                              ?.label ?? capability,
+                        )
+                        .join(' · ') || 'None'
+                    : scope(roles, caps)}
+                </p>
               </div>
               <details className={styles.additional}>
-                <summary>Additional scoped permissions</summary>
+                <summary>Additional permissions</summary>
                 <div>
                   {capabilityOptions.map((option) => (
                     <label key={option.id}>
@@ -425,14 +543,16 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                   </label>
                 )}
               </div>
-              <p className={styles.expiryPreview}>
+              <div className={styles.expiryPreview}>
                 {validDays
                   ? `Expiry on save: ${utc(preview)}`
                   : 'Enter a positive whole number of days (1–36500).'}
                 {duration === 'days' && (
-                  <small>UTC estimate; the server records the exact expiry when saved.</small>
+                  <MasterHelp label="Expiry">
+                    UTC estimate. The server records the exact expiry when saved.
+                  </MasterHelp>
                 )}
-              </p>
+              </div>
               <label className={styles.confirm}>
                 <input
                   type="checkbox"
@@ -440,10 +560,7 @@ export function StaffManagement({ staff, roleOptions, capabilityOptions }: Staff
                   disabled={pending}
                   onChange={(event) => setConfirmed(event.target.checked)}
                 />
-                <span>
-                  Confirm access change for {linked?.name}. Other linked characters receive no
-                  powers.
-                </span>
+                <span>Confirm access change for {linked?.name}.</span>
               </label>
               <div className={styles.actions}>
                 <button disabled={!canSave} onClick={() => void save(true)}>

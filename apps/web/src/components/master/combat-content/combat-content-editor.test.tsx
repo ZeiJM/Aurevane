@@ -74,7 +74,7 @@ it.each(COMBAT_CONTENT_CATEGORIES.filter((row) => row.editor.defaultDefinition))
       />,
     )
     expect(html).toContain('Name')
-    expect(html).toContain('Complete compatibility settings')
+    expect(html).not.toContain('Complete compatibility settings')
   },
 )
 

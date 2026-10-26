@@ -17,6 +17,7 @@ import {
   type SiteMusicTrack,
 } from '@/lib/site-music'
 import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import { MasterHelp } from '@/components/master/master-help'
 
 import { SITE_MUSIC_PAGES } from '@/lib/site-music-pages'
 import styles from './site-music-management.module.css'
@@ -25,7 +26,7 @@ interface SiteMusicManagementProps {
   initialConfig: SiteMusicConfig
 }
 
-type UploadTarget = { kind: 'default' } | { kind: 'override'; id: string }
+type UploadTarget = { kind: 'default' } | { kind: 'override'; id: string } | { kind: 'library' }
 
 type ApiError = {
   error?: {
@@ -43,6 +44,7 @@ interface SiteMusicUploadTicket {
 function cloneConfig(config: SiteMusicConfig): SiteMusicConfig {
   return {
     ...config,
+    songLibrary: parseSiteMusicDraft(config).songLibrary?.map((track) => ({ ...track })),
     defaultTrack: { ...config.defaultTrack },
     routeOverrides: config.routeOverrides.map((entry) => ({
       ...entry,
@@ -107,8 +109,6 @@ function TrackEditor({
         />
       </label>
 
-      <p className={styles.loopNotice}>Background music loops continuously.</p>
-
       <label className={styles.uploadButton}>
         <span>{uploading ? 'Uploading…' : 'Upload from PC'}</span>
         <input
@@ -151,9 +151,6 @@ function TrackEditor({
         </audio>
       ) : null}
       {previewError?.url === track.url ? <p role="alert">{previewError.message}</p> : null}
-      <small>
-        Replace this track with another URL or upload (20 MB maximum). Preview before saving.
-      </small>
     </div>
   )
 }
@@ -166,6 +163,11 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
   const [message, setMessage] = useState<string | null>(null)
   const [selectedPath, setSelectedPath] = useState('global')
   const [search, setSearch] = useState('')
+  const [songSearch, setSongSearch] = useState('')
+  const [librarySong, setLibrarySong] = useState<{
+    originalUrl: string | null
+    track: SiteMusicTrack
+  } | null>(null)
   const pages = [
     ...SITE_MUSIC_PAGES,
     ...config.routeOverrides
@@ -218,23 +220,96 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
   )
 
   function updateDefaultTrack(track: SiteMusicTrack) {
-    setConfig((current) => ({ ...current, defaultTrack: track }))
+    setConfig((current) => ({
+      ...current,
+      defaultTrack: track,
+    }))
   }
 
   function updateOverride(
     id: string,
     update: (entry: SiteMusicRouteOverride) => SiteMusicRouteOverride,
   ) {
+    setConfig((current) => {
+      const routeOverrides = current.routeOverrides.map((entry) =>
+        entry.id === id ? update(entry) : entry,
+      )
+      return {
+        ...current,
+        routeOverrides,
+      }
+    })
+  }
+
+  function includeSong(songs: SiteMusicTrack[], track: SiteMusicTrack) {
+    return songs.some((song) => song.url === track.url) ? songs : [...songs, { ...track }]
+  }
+
+  function assignSong(track: SiteMusicTrack) {
+    if (selectedPath === 'global') {
+      updateDefaultTrack(track)
+      setConfig((current) => ({ ...current, enabled: true }))
+    } else if (selectedPage) {
+      chooseMode('custom')
+      setConfig((current) => ({
+        ...current,
+        routeOverrides: current.routeOverrides.map((entry) =>
+          entry.pathPrefix === selectedPath ? { ...entry, track: { ...track } } : entry,
+        ),
+      }))
+    }
+    setLibrarySong(null)
+  }
+
+  function saveLibrarySong() {
+    if (!librarySong) return
+    try {
+      const { track, originalUrl } = librarySong
+      const songs = config.songLibrary ?? []
+      if (songs.some((song) => song.url === track.url && song.url !== originalUrl))
+        throw new Error('This audio URL is already in the library.')
+      const next = {
+        ...config,
+        songLibrary:
+          originalUrl === null
+            ? [...songs, track]
+            : songs.map((song) => (song.url === originalUrl ? track : song)),
+        defaultTrack: config.defaultTrack.url === originalUrl ? track : config.defaultTrack,
+        routeOverrides: config.routeOverrides.map((entry) =>
+          entry.track.url === originalUrl ? { ...entry, track } : entry,
+        ),
+      }
+      parseSiteMusicDraft(next)
+      setConfig(next)
+      setLibrarySong({ originalUrl: track.url, track })
+      setMessage('Song added to your changes. Save Changes to keep it.')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'The song could not be added.')
+    }
+  }
+
+  function deleteLibrarySong() {
+    if (!librarySong?.originalUrl) return
+    const url = librarySong.originalUrl
+    if (
+      config.defaultTrack.url === url ||
+      config.routeOverrides.some((entry) => entry.track.url === url)
+    ) {
+      setMessage(
+        'This song is still assigned. Replace its global or page selections before deleting it, including retained silent selections.',
+      )
+      return
+    }
     setConfig((current) => ({
       ...current,
-      routeOverrides: current.routeOverrides.map((entry) =>
-        entry.id === id ? update(entry) : entry,
-      ),
+      songLibrary: current.songLibrary?.filter((song) => song.url !== url),
     }))
+    setLibrarySong(null)
+    setMessage('Song removed from your changes. Save Changes to keep it.')
   }
 
   async function upload(file: File, target: UploadTarget) {
-    const targetKey = target.kind === 'default' ? 'default' : target.id
+    const targetKey = target.kind === 'override' ? target.id : target.kind
     setUploadingTarget(targetKey)
     setMessage(null)
     try {
@@ -264,12 +339,19 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
         })
       if (error) throw new Error(error.message)
 
-      if (target.kind === 'default') {
+      if (target.kind === 'library') {
+        setLibrarySong({
+          originalUrl: librarySong?.originalUrl ?? null,
+          track: payload.upload.track,
+        })
+      } else if (target.kind === 'default') {
         updateDefaultTrack(payload.upload.track)
       } else {
         updateOverride(target.id, (entry) => ({ ...entry, track: payload.upload.track }))
       }
-      setMessage(`${payload.upload.track.label} uploaded. Save changes to publish it.`)
+      setMessage(
+        `${payload.upload.track.label} uploaded. ${target.kind === 'library' ? 'Add or update the library song, then Save Changes.' : 'Save Changes to publish it.'}`,
+      )
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'The audio file could not be uploaded.')
     } finally {
@@ -281,7 +363,13 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
     setSaving(true)
     setMessage(null)
     try {
-      parseSiteMusicDraft(config)
+      // Keep unfinished URL keystrokes out of the reusable library. Only the
+      // completed selections join it at the save boundary.
+      const songLibrary = [
+        config.defaultTrack,
+        ...config.routeOverrides.map((entry) => entry.track),
+      ].reduce(includeSong, config.songLibrary ?? [])
+      parseSiteMusicDraft({ ...config, songLibrary })
       const response = await fetch('/api/master/site-music', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -292,6 +380,7 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
             enabled: config.enabled,
             defaultTrack: config.defaultTrack,
             routeOverrides: config.routeOverrides,
+            songLibrary,
           },
         }),
       })
@@ -314,7 +403,25 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
       <div className={styles.toolbar}>
         <div>
           <h2 id="site-music-heading">Site Music</h2>
-          <p>Choose a global soundtrack and page exceptions. Changes apply after saving.</p>
+          <MasterHelp label="Music guidance">
+            <p>
+              Add named songs to the library for later, then choose one for Global Music or a page.
+              Save Changes keeps the library and page selections together.
+            </p>
+            <p>
+              Use Global bypasses broader page rules. Remove a page rule to inherit them. No Music
+              retains the previous selection for reuse.
+            </p>
+            <p>
+              Upload MP3, M4A/AAC, OGG, WebM or WAV audio up to 20 MB. All background music loops.
+              Preview a song before saving.
+            </p>
+            <p>
+              Updating a library song also replaces its global and page selections. Replace all
+              selections before deleting a song. Deleting a library entry retains its stored audio
+              file.
+            </p>
+          </MasterHelp>
         </div>
         <GameButton
           type="button"
@@ -334,7 +441,10 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
           <button
             type="button"
             aria-pressed={selectedPath === 'global'}
-            onClick={() => setSelectedPath('global')}
+            onClick={() => {
+              setSelectedPath('global')
+              setLibrarySong(null)
+            }}
           >
             <strong>Global Music</strong>
             <small>{config.enabled ? config.defaultTrack.label : 'No Music'}</small>
@@ -357,7 +467,10 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
                   type="button"
                   key={page.path}
                   aria-pressed={selectedPath === page.path}
-                  onClick={() => setSelectedPath(page.path)}
+                  onClick={() => {
+                    setSelectedPath(page.path)
+                    setLibrarySong(null)
+                  }}
                 >
                   <strong>{page.label}</strong>
                   <small>
@@ -367,8 +480,83 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
               ))}
           </div>
         </nav>
+        <nav className={styles.songLibrary} aria-label="Song library">
+          <h3>Song library</h3>
+          <button
+            type="button"
+            onClick={() =>
+              setLibrarySong({
+                originalUrl: null,
+                track: { label: '', url: '', source: 'url', loop: true },
+              })
+            }
+          >
+            Add song
+          </button>
+          <label>
+            Search songs
+            <input
+              type="search"
+              value={songSearch}
+              onChange={(event) => setSongSearch(event.currentTarget.value)}
+            />
+          </label>
+          <div className={styles.songList}>
+            {(config.songLibrary ?? [])
+              .filter((song) => song.label.toLowerCase().includes(songSearch.toLowerCase()))
+              .map((song) => (
+                <button
+                  key={song.url}
+                  type="button"
+                  aria-pressed={librarySong?.originalUrl === song.url}
+                  onClick={() => setLibrarySong({ originalUrl: song.url, track: { ...song } })}
+                >
+                  <strong>{song.label}</strong>
+                  <small>{song.source}</small>
+                </button>
+              ))}
+          </div>
+        </nav>
         <div className={styles.trackDetail}>
-          {selectedPath === 'global' ? (
+          {librarySong ? (
+            <article className={styles.card}>
+              <h3>{librarySong.originalUrl ? 'Library song' : 'New song'}</h3>
+              <TrackEditor
+                key={librarySong.originalUrl ?? 'new'}
+                track={librarySong.track}
+                onChange={(track) =>
+                  setLibrarySong((current) => (current ? { ...current, track } : current))
+                }
+                onUpload={(file) => void upload(file, { kind: 'library' })}
+                uploading={uploadingTarget === 'library'}
+              />
+              <div className={styles.actions}>
+                <button type="button" disabled={uploadingTarget !== null} onClick={saveLibrarySong}>
+                  {librarySong.originalUrl ? 'Update song' : 'Add to library'}
+                </button>
+                {librarySong.originalUrl ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        assignSong(
+                          (config.songLibrary ?? []).find(
+                            (song) => song.url === librarySong.originalUrl,
+                          )!,
+                        )
+                      }
+                    >{`Use for ${selectedPage?.label ?? 'Global Music'}`}</button>
+                    <button type="button" onClick={deleteLibrarySong}>
+                      Delete song
+                    </button>
+                  </>
+                ) : null}
+                <button type="button" onClick={() => setLibrarySong(null)}>
+                  Back to assignment
+                </button>
+              </div>
+            </article>
+          ) : selectedPath === 'global' ? (
             <article className={styles.card}>
               <h3>Global Music</h3>
               <label>
@@ -386,12 +574,27 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
                   <option value="silent">No Music</option>
                 </select>
               </label>
-              <p>
-                Used by pages set to Use Global and pages without a matching saved rule. Custom page
-                tracks still play when Global Music is silent.
-              </p>
               {config.enabled ? (
                 <>
+                  <label>
+                    Library song
+                    <select
+                      value={config.defaultTrack.url}
+                      onChange={(event) =>
+                        assignSong(
+                          config.songLibrary!.find(
+                            (song) => song.url === event.currentTarget.value,
+                          )!,
+                        )
+                      }
+                    >
+                      {config.songLibrary?.map((song) => (
+                        <option key={song.url} value={song.url}>
+                          {song.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <TrackEditor
                     key="global"
                     track={config.defaultTrack}
@@ -413,11 +616,6 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
           ) : selectedPage ? (
             <article className={styles.card}>
               <h3>{selectedPage.label}</h3>
-              <p>
-                {selectedPath === '/'
-                  ? 'Account entry only.'
-                  : `${selectedPath} and its child pages. A more specific page choice takes precedence.`}
-              </p>
               <label>
                 Page music
                 <select
@@ -446,6 +644,25 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
               </button>
               {selectedOverride && mode === 'custom' ? (
                 <>
+                  <label>
+                    Library song
+                    <select
+                      value={selectedOverride.track.url}
+                      onChange={(event) =>
+                        assignSong(
+                          config.songLibrary!.find(
+                            (song) => song.url === event.currentTarget.value,
+                          )!,
+                        )
+                      }
+                    >
+                      {config.songLibrary?.map((song) => (
+                        <option key={song.url} value={song.url}>
+                          {song.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <TrackEditor
                     key={selectedOverride.id}
                     track={selectedOverride.track}
@@ -477,10 +694,6 @@ export function SiteMusicManagement({ initialConfig }: SiteMusicManagementProps)
                   Remove page rule and inherit
                 </button>
               ) : null}
-              <p>
-                Use Global ignores broader page rules. Removing a page rule restores broader
-                coverage; uploaded files remain available.
-              </p>
             </article>
           ) : null}
         </div>

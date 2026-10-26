@@ -213,70 +213,74 @@ it('starts each participant build read before its owned-character read resolves 
   )
 })
 
-it('persists current combat policies and configured heights for a new world encounter', async () => {
-  attackAuthority.mockResolvedValueOnce({
-    state: { version: 1 },
-    players: [{ characterId: 'target', attackable: true }],
-  })
-  const policy = {
-    version: 9,
-    level1BasisPoints: 0,
-    level2BasisPoints: 0,
-    level3BasisPoints: 10000,
-  }
-  let saved: BattleAuthoritativeEncounterState | undefined
-  rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
-    if (name === 'read_world_encounter_pair_v1')
-      return {
-        data: { attacker: {}, target: { version: 1 }, targetUserId: 'opponent' },
-        error: null,
-      }
-    if (name === 'read_battlefield_elevation_policy_v1') return { data: policy, error: null }
-    if (name === 'read_combat_effect_timing_policy_v1')
-      return { data: { version: 3, modes: { burn: 'instant' } }, error: null }
-    if (name === 'start_world_encounter_v1') {
-      saved = args.p_snapshot as BattleAuthoritativeEncounterState
-      return { data: { battleSessionId: 'world-battle' }, error: null }
+it.each([undefined, 'independent-highest'] as const)(
+  'persists current combat policies and configured heights (%s) for a new world encounter',
+  async (model) => {
+    attackAuthority.mockResolvedValueOnce({
+      state: { version: 1 },
+      players: [{ characterId: 'target', attackable: true }],
+    })
+    const policy = {
+      ...(model ? { model } : {}),
+      version: 9,
+      level1BasisPoints: 0,
+      level2BasisPoints: 0,
+      level3BasisPoints: 10000,
     }
-    throw new Error('Unexpected RPC ' + name)
-  })
-  expect((await attackWorldPlayer('owner', 'actor', 'target', 1)).battleSessionId).toBe(
-    'world-battle',
-  )
-  expect(saved!.battlefieldElevationPolicy).toEqual(policy)
-  expect(saved!.effectTimingPolicy).toEqual({ version: 3, modes: { burn: 'instant' } })
-  expect(saved!.percentageDotPolicyVersion).toBe(1)
-  expect(saved!.dotTriggerPolicyVersion).toBe(2)
-  expect(saved!.groundEffectPolicyVersion).toBe(1)
-  expect(saved!.effectStackingPolicyVersion).toBe(1)
-  expect(isPvpQualityEncounter(saved!)).toBe(true)
-  for (const actor of saved!.tactical.battle.combatants) {
-    expect(actor.temporaryResources.filter((r) => r.key === 'pvp.missed-turn-streak')).toEqual([
-      { key: 'pvp.missed-turn-streak', current: 0, maximum: 2 },
-    ])
-  }
-  const expired = timeoutPvpTurn(saved!)
-  expect(expired.state.tactical.battle.turnNumber).toBe(2)
-  expect(expired.state.tactical.battle.lifecycle).toBe('active')
-  expect(expired.state.tactical.battle.combatants.map((actor) => actor.hp)).toEqual(
-    saved!.tactical.battle.combatants.map((actor) => actor.hp),
-  )
-  expect(
-    expired.events.some((event) => (event as { event?: string }).event === 'battle_completed'),
-  ).toBe(false)
-  const nextExpiry = timeoutPvpTurn(expired.state)
-  expect(nextExpiry.state.tactical.battle.turnNumber).toBe(3)
-  expect(nextExpiry.state.tactical.battle.lifecycle).toBe('active')
-  const surrendered = surrenderPvpCombatant(nextExpiry.state, 'character:actor')
-  expect(surrendered.state.tactical.battle.lifecycle).toBe('completed')
-  expect(() => timeoutPvpTurn(surrendered.state)).toThrow('requires an active turn')
-  expect(saved!.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)
-  expect(
-    saved!.tactical.tiles
-      .filter((tile) => tile.elevation > 0)
-      .every((tile) => tile.elevation === 3),
-  ).toBe(true)
-})
+    let saved: BattleAuthoritativeEncounterState | undefined
+    rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+      if (name === 'read_world_encounter_pair_v1')
+        return {
+          data: { attacker: {}, target: { version: 1 }, targetUserId: 'opponent' },
+          error: null,
+        }
+      if (name === 'read_battlefield_elevation_policy_v1') return { data: policy, error: null }
+      if (name === 'read_combat_effect_timing_policy_v1')
+        return { data: { version: 3, modes: { burn: 'instant' } }, error: null }
+      if (name === 'start_world_encounter_v1') {
+        saved = args.p_snapshot as BattleAuthoritativeEncounterState
+        return { data: { battleSessionId: 'world-battle' }, error: null }
+      }
+      throw new Error('Unexpected RPC ' + name)
+    })
+    expect((await attackWorldPlayer('owner', 'actor', 'target', 1)).battleSessionId).toBe(
+      'world-battle',
+    )
+    expect(saved!.battlefieldElevationPolicy).toEqual(policy)
+    expect(saved!.effectTimingPolicy).toEqual({ version: 3, modes: { burn: 'instant' } })
+    expect(saved!.percentageDotPolicyVersion).toBe(1)
+    expect(saved!.dotTriggerPolicyVersion).toBe(2)
+    expect(saved!.groundEffectPolicyVersion).toBe(1)
+    expect(saved!.effectStackingPolicyVersion).toBe(1)
+    expect(isPvpQualityEncounter(saved!)).toBe(true)
+    for (const actor of saved!.tactical.battle.combatants) {
+      expect(actor.temporaryResources.filter((r) => r.key === 'pvp.missed-turn-streak')).toEqual([
+        { key: 'pvp.missed-turn-streak', current: 0, maximum: 2 },
+      ])
+    }
+    const expired = timeoutPvpTurn(saved!)
+    expect(expired.state.tactical.battle.turnNumber).toBe(2)
+    expect(expired.state.tactical.battle.lifecycle).toBe('active')
+    expect(expired.state.tactical.battle.combatants.map((actor) => actor.hp)).toEqual(
+      saved!.tactical.battle.combatants.map((actor) => actor.hp),
+    )
+    expect(
+      expired.events.some((event) => (event as { event?: string }).event === 'battle_completed'),
+    ).toBe(false)
+    const nextExpiry = timeoutPvpTurn(expired.state)
+    expect(nextExpiry.state.tactical.battle.turnNumber).toBe(3)
+    expect(nextExpiry.state.tactical.battle.lifecycle).toBe('active')
+    const surrendered = surrenderPvpCombatant(nextExpiry.state, 'character:actor')
+    expect(surrendered.state.tactical.battle.lifecycle).toBe('completed')
+    expect(() => timeoutPvpTurn(surrendered.state)).toThrow('requires an active turn')
+    expect(saved!.tactical.tiles.some((tile) => tile.elevation > 0)).toBe(true)
+    expect(
+      saved!.tactical.tiles
+        .filter((tile) => tile.elevation > 0)
+        .every((tile) => tile.elevation === 3),
+    ).toBe(true)
+  },
+)
 
 function successfulAttackRpc(name: string) {
   if (name === 'read_world_encounter_pair_v1')

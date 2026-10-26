@@ -89,9 +89,11 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
   })
   const page = await context.newPage()
   const errors: string[] = []
+  const resourceErrors: { text: string; url: string }[] = []
+  const expectedResourceErrors: { url: string; status: number }[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(m.text())
+    if (m.type() === 'error') resourceErrors.push({ text: m.text(), url: m.location().url })
   })
   let owner: FixtureOwner | undefined
   try {
@@ -219,7 +221,9 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
           )
           .toBe(true)
         if (factor === 2)
-          await exerciseMasterAtBrowserZoom(page, route, identity, info, () => setZoom())
+          expectedResourceErrors.push(
+            ...(await exerciseMasterAtBrowserZoom(page, route, identity, info, () => setZoom())),
+          )
         else {
           await page.keyboard.press('Tab')
           expect(await page.evaluate(() => document.activeElement !== document.body)).toBe(true)
@@ -260,6 +264,24 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
     } finally {
       await touch.close()
     }
+    // The invalid-AP journey asserts its exact HTTP 400 and validation payload.
+    // Match only that request's one browser resource diagnostic; every other
+    // console error, duplicate, status or URL still fails this gate.
+    for (const rejected of expectedResourceErrors) {
+      expect(rejected.status).toBe(400)
+      const index = resourceErrors.findIndex(
+        (error) =>
+          error.url === rejected.url &&
+          error.text ===
+            'Failed to load resource: the server responded with a status of 400 (Bad Request)',
+      )
+      expect(
+        index,
+        `Missing browser diagnostic for asserted rejection: ${rejected.url}`,
+      ).toBeGreaterThanOrEqual(0)
+      resourceErrors.splice(index, 1)
+    }
+    expect(resourceErrors).toEqual([])
     expect(errors).toEqual([])
   } finally {
     try {

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Real local Supabase producers + application routes/UI. No route mocks or hosted URL.
-test('shared Skill eligibility persists through the actual route and refresh, without earning testing access', async ({
+test('shared Skill automatic provenance persists through the actual route and refresh, without earning testing access', async ({
   page,
   baseURL,
 }, testInfo) => {
@@ -81,13 +81,7 @@ test('shared Skill eligibility persists through the actual route and refresh, wi
   )
   await page.goto('/game/nexus')
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
-  const picker = page.getByRole('combobox', {
-    name: 'Eligible Discipline for Barrier',
-    exact: true,
-  })
-  await expect(picker).toHaveCount(1)
-  await picker.selectOption('vanguard')
-  await expect(picker).toContainText('Available (unearned)')
+  await expect(page.getByRole('combobox', { name: /Eligible Discipline/ })).toHaveCount(0)
   const saved = page.waitForResponse(
     (r) =>
       new URL(r.url()).pathname === '/api/character/build/skills' && r.request().method() === 'PUT',
@@ -106,9 +100,7 @@ test('shared Skill eligibility persists through the actual route and refresh, wi
     eligibilityDisciplineId: 'vanguard',
   })
   await page.reload()
-  await expect(
-    page.getByRole('combobox', { name: 'Eligible Discipline for Barrier', exact: true }),
-  ).toHaveValue('vanguard')
+  await expect(page.getByRole('combobox', { name: /Eligible Discipline/ })).toHaveCount(0)
   await expect(page.getByRole('checkbox', { name: 'Unselect Barrier', exact: true })).toBeChecked()
   const facts = JSON.parse(
     sql(`select public.get_character_committed_build_snapshot_v2('${userId}','${characterId}')`),
@@ -121,18 +113,40 @@ test('shared Skill eligibility persists through the actual route and refresh, wi
       earnedEligibility: false,
     }),
   )
-  const changed = page.waitForResponse(
-    (r) =>
-      new URL(r.url()).pathname === '/api/character/build/skills' && r.request().method() === 'PUT',
+  // Seed an already-equipped secondary grant through the real validated authority,
+  // then prove another ordinary UI selection preserves that provenance.
+  const currentVersion = sql(
+    `select build_version from app_private.character_active_builds where character_id='${characterId}'`,
   )
-  await page
-    .getByRole('combobox', { name: 'Eligible Discipline for Barrier', exact: true })
-    .selectOption('lifebinder')
-  expect((await changed).ok()).toBe(true)
+  const secondaryLoadout = JSON.stringify([
+    {
+      skillId: skill.skill_id,
+      contentVersion: skill.content_version,
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'lifebinder',
+    },
+  ])
+  sql(
+    `select * from public.save_character_discipline_skill_loadout_v1('${userId}','${characterId}',${currentVersion},'${secondaryLoadout}'::jsonb,gen_random_uuid(),'native-retained-secondary')`,
+  )
   await page.reload()
-  await expect(
-    page.getByRole('combobox', { name: 'Eligible Discipline for Barrier', exact: true }),
-  ).toHaveValue('lifebinder')
+  const changed = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/character/build/skills' &&
+      response.request().method() === 'PUT',
+  )
+  const forceful = page.getByRole('checkbox', { name: 'Select Forceful Strike', exact: true })
+  if (await page.evaluate(() => matchMedia('(pointer: coarse)').matches)) {
+    await forceful.click()
+    await page.getByRole('button', { name: 'Equip technique', exact: true }).click()
+  } else await forceful.check()
+  const changedResponse = await changed
+  expect(changedResponse.ok()).toBe(true)
+  expect(changedResponse.request().postDataJSON().eligibilitySelections).toContainEqual({
+    skillId: skill.skill_id,
+    eligibilityDisciplineId: 'lifebinder',
+  })
+  await page.reload()
   const selected = JSON.parse(
     sql(`select public.get_character_committed_build_snapshot_v2('${userId}','${characterId}')`),
   )
@@ -143,20 +157,34 @@ test('shared Skill eligibility persists through the actual route and refresh, wi
       earnedEligibility: true,
     }),
   )
-  const restored = page.waitForResponse(
-    (r) =>
-      new URL(r.url()).pathname === '/api/character/build/skills' && r.request().method() === 'PUT',
+  const restoreVersion = sql(
+    `select build_version from app_private.character_active_builds where character_id='${characterId}'`,
   )
-  await page
-    .getByRole('combobox', { name: 'Eligible Discipline for Barrier', exact: true })
-    .selectOption('vanguard')
-  expect((await restored).ok()).toBe(true)
+  const primaryLoadout = JSON.stringify([
+    {
+      skillId: skill.skill_id,
+      contentVersion: skill.content_version,
+      sourceDisciplineId: 'lifebinder',
+      eligibilityDisciplineId: 'vanguard',
+    },
+  ])
+  sql(
+    `select * from public.save_character_discipline_skill_loadout_v1('${userId}','${characterId}',${restoreVersion},'${primaryLoadout}'::jsonb,gen_random_uuid(),'native-retained-primary')`,
+  )
   sql(
     `select app_private.grant_discipline_skill_v1('${characterId}','${skill.skill_id}',${skill.content_version},'lifebinder','vanguard','gameplay','native-earned-upgrade',true)`,
   )
   await page.reload()
-  await expect(
-    page.getByRole('combobox', { name: 'Eligible Discipline for Barrier', exact: true }),
-  ).toContainText('Earned')
+  const earned = JSON.parse(
+    sql(`select public.get_character_committed_build_snapshot_v2('${userId}','${characterId}')`),
+  )
+  expect(earned.disciplineSkills).toContainEqual(
+    expect.objectContaining({
+      skillId: skill.skill_id,
+      eligibilityDisciplineId: 'vanguard',
+      earnedEligibility: true,
+    }),
+  )
+  await expect(page.getByRole('combobox', { name: /Eligible Discipline/ })).toHaveCount(0)
   await expect(page.getByRole('checkbox', { name: 'Unselect Barrier', exact: true })).toBeChecked()
 })

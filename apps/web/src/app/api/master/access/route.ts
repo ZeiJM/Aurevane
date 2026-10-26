@@ -1,3 +1,4 @@
+import { hasMasterPanelCapability } from '@/lib/master-panel-access'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { createServerMasterPanelStaffAccessService } from '@/server/master/staff-access-server'
@@ -7,7 +8,7 @@ export async function GET() {
     const actor = await getAuthenticatedActor()
     const access = await createServerMasterPanelStaffAccessService().readAccess(actor.userId)
     return Response.json(
-      { hasAccess: access !== null },
+      { hasAccess: access !== null && hasMasterPanelCapability(access, 'master.access') },
       { status: 200, headers: { 'Cache-Control': 'private, no-store' } },
     )
   } catch (error) {

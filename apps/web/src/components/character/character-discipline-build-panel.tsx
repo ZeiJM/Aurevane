@@ -10,7 +10,10 @@ import {
   type CharacterAttributeId,
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
-import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
+import type {
+  PrimaryDisciplinePreview,
+  DisciplineDefinition,
+} from '@aurevane/game-core/character/discipline-build'
 import type { DerivedStatUnit } from '@aurevane/game-core/character/derived-stats'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -28,14 +31,7 @@ import { createPortal } from 'react-dom'
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
 import styles from './character-discipline-build-panel.module.css'
 
-interface DisciplineDefinitionView {
-  id: string
-  definitionVersion: number
-  name: string
-  summary: string
-  enabledForPrimary: boolean
-  enabledForSecondary: boolean
-}
+type DisciplineDefinitionView = DisciplineDefinition
 
 interface PrimaryOption {
   definition: DisciplineDefinitionView
@@ -161,7 +157,7 @@ function FocusBadges({
 
 interface DisciplineLibraryProps {
   options: readonly {
-    definition: Pick<DisciplineDefinitionView, 'id' | 'name'>
+    definition: Pick<DisciplineDefinitionView, 'id' | 'name' | 'media'>
     profile?: { corePolicy?: DisciplineAttributePolicy }
   }[]
   refreshPrimaryId?: string
@@ -243,7 +239,11 @@ export function DisciplineLibrary({
                 : onSelect(selectedPrimaryId, definition.id)
             }
           >
-            <FoundationDisciplineSigil disciplineId={definition.id} className={styles.cardSigil} />
+            <FoundationDisciplineSigil
+              disciplineId={definition.id}
+              media={definition.media}
+              className={styles.cardSigil}
+            />
             <span className={styles.cardCopy}>
               <strong>
                 {selectedId === definition.id ? <span aria-hidden="true">✓ </span> : null}
@@ -692,6 +692,7 @@ export function CharacterDisciplineBuildPanel({
         <span className={styles.triggerSigils} aria-hidden="true">
           <FoundationDisciplineSigil
             disciplineId={current.definition.id}
+            media={current.definition.media}
             className={styles.triggerSigil}
           />
         </span>
@@ -823,6 +824,7 @@ export function CharacterDisciplineBuildPanel({
                         >
                           <FoundationDisciplineSigil
                             disciplineId={current.definition.id}
+                            media={current.definition.media}
                             className={styles.currentSigil}
                           />
                           <div>
@@ -853,6 +855,7 @@ export function CharacterDisciplineBuildPanel({
                           >
                             <FoundationDisciplineSigil
                               disciplineId={currentSecondary.id}
+                              media={currentSecondary.media}
                               className={styles.currentSigil}
                             />
                             <div>

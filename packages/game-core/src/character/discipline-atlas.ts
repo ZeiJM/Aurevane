@@ -1,3 +1,4 @@
+import type { DisciplinePresentationMedia } from './discipline-build'
 export const DISCIPLINE_MASTERY_STAGES = {
   initiate: 1,
   practiced: 2,
@@ -33,6 +34,7 @@ export type DisciplineUnlockRule =
   | { kind: 'count-of'; count: number; rules: readonly DisciplineUnlockRule[] }
 
 export interface DisciplineAtlasEntry {
+  media?: DisciplinePresentationMedia
   id: string
   name: string
   summary: string

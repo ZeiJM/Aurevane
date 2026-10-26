@@ -23,6 +23,7 @@ it('reads stored settings', async () => {
   expect(await readWorldEnvironmentSettings()).toEqual({
     version: 4,
     dayLengthMinutes: 1440,
+    weatherRollMinutes: 360,
     timeOffsetMinutes: -30,
     frozenMinuteOfDay: 600,
     weatherOverride: 'fog',
@@ -51,4 +52,14 @@ it('reads configurable cycles and rejects malformed cycles instead of silently c
   })
   for (const dayLengthMinutes of [0, -1, 1.5, 10081, '120'])
     expect(parseWorldEnvironmentSettings({ ...base, dayLengthMinutes })).toBeNull()
+})
+
+it('parses weather cadence with historical six-hour default and strict whole-minute bounds', () => {
+  const base = { version: 1, timeOffsetMinutes: 0 }
+  expect(parseWorldEnvironmentSettings(base)).toMatchObject({ weatherRollMinutes: 360 })
+  expect(parseWorldEnvironmentSettings({ ...base, weatherRollMinutes: 5 })).toMatchObject({
+    weatherRollMinutes: 5,
+  })
+  for (const weatherRollMinutes of [0, -1, 1.5, 10081, '5', null])
+    expect(parseWorldEnvironmentSettings({ ...base, weatherRollMinutes })).toBeNull()
 })

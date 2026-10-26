@@ -7,18 +7,24 @@ import {
   isDelegatedMasterPanelRole,
   isMasterPanelSpecialCapability,
   type MasterPanelStaffAccessService,
+  type MasterPanelRoleDefaultsStore,
   type DelegatedMasterPanelRole,
   type MasterPanelSpecialCapability,
 } from './staff-access'
-import { createServerMasterPanelStaffAccessService } from './staff-access-server'
+import {
+  createServerMasterPanelStaffAccessService,
+  createServerMasterPanelRoleDefaultsService,
+} from './staff-access-server'
 
 export interface StaffAccessHandlerDependencies {
   getActor(): Promise<{ userId: string }>
   createService(): MasterPanelStaffAccessService
+  createRoleDefaultsService?(): MasterPanelRoleDefaultsStore
 }
 const defaultDependencies: StaffAccessHandlerDependencies = {
   getActor: getAuthenticatedActor,
   createService: createServerMasterPanelStaffAccessService,
+  createRoleDefaultsService: createServerMasterPanelRoleDefaultsService,
 }
 function invalid(): never {
   throw new AurevaneError(
@@ -51,6 +57,20 @@ export async function handleStaffAccessRequest(
     if (!body || typeof body !== 'object' || Array.isArray(body)) invalid()
     const input = body as Record<string, unknown>
     const headers = { 'Cache-Control': 'private, no-store' }
+    if (input.operation === 'read-role-defaults' || input.operation === 'save-role-defaults') {
+      const defaultsService = dependencies.createRoleDefaultsService?.()
+      if (!defaultsService)
+        throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Role defaults are unavailable.')
+      const defaults =
+        input.operation === 'read-role-defaults'
+          ? await defaultsService.readRoleDefaults(actor.userId)
+          : await defaultsService.saveRoleDefaults({
+              actorUserId: actor.userId,
+              expectedRevision: input.expectedRevision as number,
+              roles: input.roles,
+            })
+      return Response.json({ defaults }, { headers })
+    }
     if (input.operation === 'resolve-account') {
       if (typeof input.query !== 'string') invalid()
       return Response.json(

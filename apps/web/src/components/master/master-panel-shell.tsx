@@ -17,6 +17,7 @@ export type MasterPanelSection =
   | 'events'
   | 'live-events'
   | 'music'
+  | 'activity'
 
 interface MasterPanelShellProps {
   access: MasterPanelAccess
@@ -27,6 +28,15 @@ interface MasterPanelShellProps {
 }
 
 export const masterNavigation = [
+  {
+    id: 'activity',
+    href: '/master/activity',
+    label: 'Activity Log',
+    detail: 'Recent changes',
+    icon: '≡',
+    capability: 'staff.manage',
+    ownerOnly: true,
+  },
   {
     id: 'players',
     href: '/master/players',
@@ -105,6 +115,7 @@ export const masterNavigation = [
     | '/master/staff'
     | '/master/events'
     | '/master/events/live'
+    | '/master/activity'
   label: string
   detail: string
   icon: string
@@ -122,6 +133,7 @@ export function masterNavigationForAccess(access: MasterPanelAccess) {
     'staff',
     'music',
     'world-environment',
+    'activity',
   ]
   return masterNavigation
     .filter(
@@ -136,7 +148,6 @@ export function MasterPanelShell({
   access,
   activeSection,
   title,
-  description,
   children,
 }: MasterPanelShellProps) {
   return (
@@ -154,7 +165,6 @@ export function MasterPanelShell({
             </span>
             <h1>{title}</h1>
           </div>
-          <p>{description}</p>
         </header>
         <nav className={styles.navigation} aria-label="Master Panel navigation">
           {masterNavigationForAccess(access).map((item) => (

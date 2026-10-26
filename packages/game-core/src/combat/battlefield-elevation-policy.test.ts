@@ -34,3 +34,23 @@ it.each([
 ])('rejects malformed policy %j', (value) =>
   expect(() => parseBattlefieldElevationPolicy(value)).toThrow(),
 )
+
+it('accepts independent percentages without a total and retains explicit historical validation', () => {
+  const policy = {
+    ...defaultBattlefieldElevationPolicy(),
+    model: 'independent-highest',
+    level1BasisPoints: 0,
+    level2BasisPoints: 0,
+    level3BasisPoints: 0,
+  }
+  expect(parseBattlefieldElevationPolicy(policy)).toEqual(policy)
+  expect(
+    parseBattlefieldElevationPolicy({
+      ...policy,
+      level1BasisPoints: 10000,
+      level2BasisPoints: 10000,
+      level3BasisPoints: 10000,
+    }),
+  ).toMatchObject({ model: 'independent-highest' })
+  expect(() => parseBattlefieldElevationPolicy({ ...policy, model: 'unknown' })).toThrow()
+})

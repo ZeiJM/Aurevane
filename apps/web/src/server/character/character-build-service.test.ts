@@ -623,7 +623,7 @@ describe('published current build consumers and earned eligibility', () => {
       resolveCurrentResonanceDefinition: vi.fn(async () => null),
     }
   }
-  it.each(['missing', 'disabled', 'wrong-source', 'wrong-id'] as const)(
+  it.each(['missing', 'wrong-source', 'wrong-id'] as const)(
     'rejects %s current Skill before a save',
     async (kind) => {
       const resolver = currentResolver()
@@ -633,7 +633,7 @@ describe('published current build consumers and earned eligibility', () => {
           : {
               ...custom,
               id: kind === 'wrong-id' ? 'wrong.skill' : custom.id,
-              enabled: kind !== 'disabled',
+              enabled: true,
               sourceDisciplineId: kind === 'wrong-source' ? 'wrong' : 'lifebinder',
             },
       )
@@ -700,6 +700,55 @@ describe('published current build consumers and earned eligibility', () => {
       expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
     },
   )
+  it('disabled learned and equipped Skills remain readable, while new saves reject them without losing learned facts', async () => {
+    const contentResolver = currentResolver()
+    contentResolver.resolveCurrentSkillDefinition = vi.fn(async () => ({
+      ...custom,
+      enabled: false,
+    }))
+    const learned = { ...shared, skillId: custom.id, contentVersion: 9 }
+    const repo = repository({
+      contentResolver,
+      listLearnedSkills: vi.fn(async () => [learned]),
+      listEquippedDisciplineSkills: vi.fn(async () => [
+        { ...learned, slotIndex: 1, equippedAt: shared.learnedAt },
+      ]),
+    })
+    const view = await loadCharacterBuildContext(userId, character(), repo)
+    expect(view.disciplineSkills.learnedSkills[0]?.definition).toMatchObject({
+      id: custom.id,
+      enabled: false,
+    })
+    expect(view.disciplineSkills.equippedSkills[0]?.definition).toMatchObject({
+      id: custom.id,
+      enabled: false,
+    })
+    await expect(
+      saveCharacterDisciplineSkills(
+        userId,
+        character(),
+        {
+          expectedBuildVersion: 1,
+          skillIds: [custom.id],
+          idempotencyKey: '00000000-0000-4000-8000-000000000803',
+        },
+        repo,
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
+    await saveCharacterDisciplineSkills(
+      userId,
+      character(),
+      {
+        expectedBuildVersion: 1,
+        skillIds: [],
+        idempotencyKey: '00000000-0000-4000-8000-000000000803',
+      },
+      repo,
+    )
+    expect(repo.saveDisciplineSkills).toHaveBeenCalledWith(expect.objectContaining({ skills: [] }))
+    expect(await repo.listLearnedSkills(userId, character().id)).toEqual([learned])
+  })
   it('actual published resolver supplies custom Skills and explicit current E/R removal in the profile', async () => {
     const contentResolver = currentResolver()
     const repo = repository({

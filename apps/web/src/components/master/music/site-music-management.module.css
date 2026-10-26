@@ -1,8 +1,14 @@
 .root {
   display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 0.75rem;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
   color: #303b35;
+}
+.root:has(> .notice) {
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 .toolbar {
   display: flex;
@@ -10,6 +16,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+}
+.toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .root h2,
 .root h3,
@@ -23,11 +34,13 @@
 }
 .musicWorkspace {
   display: grid;
-  grid-template-columns: minmax(14rem, 34%) minmax(0, 1fr);
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(10rem, 0.8fr) minmax(0, 1.4fr);
   gap: 0.75rem;
-  align-items: start;
+  min-height: 0;
+  min-width: 0;
 }
 .trackLibrary,
+.songLibrary,
 .card {
   display: grid;
   gap: 0.75rem;
@@ -37,10 +50,25 @@
   border: 1px solid #9d8865;
   border-radius: 4px;
 }
-.pageList {
+.trackLibrary,
+.songLibrary {
+  min-height: 0;
+  overflow: hidden;
+}
+.trackLibrary {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+.songLibrary {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+.pageList,
+.songList {
   display: grid;
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 0.35rem;
-  max-height: 27rem;
+  min-height: 0;
+  min-width: 0;
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
@@ -51,7 +79,7 @@
   background: #eee3cc;
   border: 1px solid #9d8865;
   border-radius: 3px;
-  padding: 0.5rem;
+  padding: 0.4rem;
   font: inherit;
   min-width: 0;
 }
@@ -67,11 +95,15 @@
   background: #345b52;
   border-color: #345b52;
 }
-.trackLibrary button {
+.trackLibrary button,
+.songLibrary button {
   display: grid;
   gap: 0.25rem;
   text-align: left;
   width: 100%;
+  min-height: max-content;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .root label {
   display: grid;
@@ -80,6 +112,14 @@
 }
 .trackDetail {
   min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
 }
 .trackEditor {
   display: grid;
@@ -89,7 +129,6 @@
 }
 .wideField,
 .preview,
-.loopNotice,
 .trackEditor small,
 .trackEditor p {
   grid-column: 1 / -1;
@@ -125,12 +164,31 @@
   border-left: 3px solid #345b52;
   background: #eee3cc;
 }
-@media (max-width: 760px) {
+@media (max-width: 760px), (max-height: 550px) {
+  .root,
+  .root:has(> .notice) {
+    height: auto;
+    grid-template-rows: auto;
+  }
   .musicWorkspace,
   .trackEditor {
     grid-template-columns: minmax(0, 1fr);
   }
   .pageList {
     max-height: 15rem;
+  }
+  .songList {
+    max-height: 15rem;
+  }
+  .musicWorkspace {
+    height: auto;
+    min-height: 0;
+  }
+  .trackLibrary,
+  .songLibrary {
+    grid-template-rows: auto;
+  }
+  .trackDetail {
+    overflow: visible;
   }
 }

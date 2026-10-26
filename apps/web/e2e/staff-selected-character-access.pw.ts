@@ -81,7 +81,7 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     await page.getByRole('button', { name: 'Find identity', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Character access', exact: true })).toBeFocused()
     await page
-      .getByLabel('Linked character · choose exactly one')
+      .getByRole('combobox', { name: 'Character', exact: true })
       .selectOption({ label: `Aurelia ${suffix}` })
     await page.getByLabel('Content Staff').check()
     // The wrapping label includes option text; match the control's accessible name.

@@ -60,3 +60,18 @@ it('exposes compact search, filter, bidirectional display sort and actual Used b
   ])
     expect(markup).toContain(text)
 })
+
+it('puts affected definition names in labelled dialogs without raw identifiers', () => {
+  const html = renderToStaticMarkup(
+    <CombatEffectTimingEditor
+      initialPolicy={{ version: 8, modes: {} }}
+      usedBy={{ damage: [{ contentKey: 'unarmed.basic', name: 'Basic Attack' }] }}
+    />,
+  )
+  expect(html).toContain('aria-haspopup="dialog"')
+  expect(html).toContain('<dialog')
+  expect(html).toContain('Direct damage definitions')
+  expect(html).toContain('Basic Attack')
+  expect(html).not.toContain('unarmed.basic')
+  expect(html).not.toContain('<summary>1 current definitions')
+})

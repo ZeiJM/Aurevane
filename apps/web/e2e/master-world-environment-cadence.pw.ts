@@ -78,6 +78,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     precipitation: string | null
   }[] = []
   const errors: string[] = []
+  const pendingRender: unknown[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('response', async (response) => {
     if (new URL(response.url()).pathname === '/api/world' && response.ok()) {
@@ -102,6 +103,9 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     stage = 'configure-environment'
     await page.goto('/master/world-environment')
     await page.getByLabel('Day length (real minutes)', { exact: true }).fill('1')
+    await page
+      .getByLabel('Automatic weather roll interval (real minutes)', { exact: true })
+      .fill('1')
     await page.getByLabel('Freeze the clock at a time of day').uncheck()
     await page.getByLabel('Shift world time (minutes, −1440 to 1440)').fill('0')
     await page
@@ -120,6 +124,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     expect(savedResponse.ok()).toBe(true)
     const settings: WorldEnvironmentSettings = (await savedResponse.json()).settings
     expect(settings.dayLengthMinutes).toBe(1)
+    expect(settings.weatherRollMinutes).toBe(1)
     expect(settings.weatherOverrideUntil).toBeGreaterThan(Date.now() + 50000)
     stage = 'open-world'
     await page.goto('/game/world')
@@ -141,11 +146,36 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
           const region = 'verdant-expanse' // Newly provisioned character remains at the real starting town; no travel mutation.
           const phase = worldDayPhase(env.minuteOfDay)
           const expected = `${worldTimeLabel(env.minuteOfDay)} · ${phase} · ${regionalWeatherLabel(env.weather, region)}`
-          const text = await page.getByLabel('World conditions', { exact: true }).innerText()
-          if (text !== expected) return false // response dispatch can precede the React commit
-          const precipitation = await canvas.getAttribute('data-precipitation')
-          expect(precipitation).toBe(precipitationKind(env.weather, region) ?? 'none')
-          const nightPaint = await canvas.getAttribute('data-observed-night-paint')
+          // Read both surfaces in one browser task. A naturally scheduled response
+          // can replace the receipt/React view between separate awaited DOM reads;
+          // the renderer then paints that new view on its next animation frame.
+          const rendered = await page
+            .getByLabel('World conditions', { exact: true })
+            .evaluate((label) => {
+              const stage = document.querySelector('canvas[data-world-stage]')
+              return {
+                text: (label as HTMLElement).innerText,
+                precipitation: stage?.getAttribute('data-precipitation') ?? null,
+                nightPaint: stage?.getAttribute('data-observed-night-paint') ?? null,
+              }
+            })
+          const expectedPrecipitation = precipitationKind(env.weather, region) ?? 'none'
+          if (
+            receipts.at(-1) !== current ||
+            rendered.text !== expected ||
+            rendered.precipitation !== expectedPrecipitation
+          ) {
+            pendingRender.push({
+              at: new Date().toISOString(),
+              receiptAdvanced: receipts.at(-1) !== current,
+              expected,
+              expectedPrecipitation,
+              ...rendered,
+            })
+            if (pendingRender.length > 50) pendingRender.shift()
+            return false
+          }
+          const { text, precipitation, nightPaint } = rendered
           observed.push({
             at: new Date().toISOString(),
             phase,
@@ -179,6 +209,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
       body: JSON.stringify({
         settings,
         observed,
+        pendingRender,
         refreshes: receipts.map((v) => ({ serverNow: v.serverNow, environment: v.environment })),
       }),
       contentType: 'application/json',
@@ -198,6 +229,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
         attemptedSave,
         failure: failure instanceof Error ? failure.message : null,
         observed,
+        pendingRender,
         refreshes: receipts.map((v) => ({ serverNow: v.serverNow, environment: v.environment })),
         errors,
       }),
@@ -212,6 +244,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
             expectedVersion: (await current.json()).settings.version,
             change: {
               dayLengthMinutes: original.dayLengthMinutes ?? 1440,
+              weatherRollMinutes: original.weatherRollMinutes ?? 360,
               timeOffsetMinutes: original.timeOffsetMinutes,
               frozenMinuteOfDay: original.frozenMinuteOfDay,
               weather: null,

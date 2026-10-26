@@ -9,6 +9,8 @@ import {
   type CombatEffectTimingMode,
 } from '@aurevane/game-core/combat/combat-effect-timing'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { OperationalDialog } from '../operational-dialog'
+import { MasterHelp } from '../master-help'
 import styles from './combat-effect-timing-editor.module.css'
 
 function timingLabel(tag: string): string {
@@ -87,13 +89,26 @@ export function CombatEffectTimingEditor({
   }
   return (
     <form className={styles.editor} onSubmit={publish}>
-      <h2>Effect timing</h2>
-      <p>
-        Normal effects activate at the next global round; Delayed effects activate one round later.
-        Instant effects apply immediately. Controlled primes a compatible whole Manual action for a
-        later release. The selected timing applies to every current Skill using that tag. Existing
-        battles retain their saved rules.
-      </p>
+      <div className={styles.heading}>
+        <h2>Effect timing</h2>
+        <MasterHelp label="Effect timing help">
+          <p>
+            Normal effects activate at the next global round; Delayed effects activate one round
+            later. Instant effects apply immediately. Controlled primes a compatible whole Manual
+            action for a later release. The selected timing applies to every current Skill using
+            that tag. Existing battles retain their saved rules.
+          </p>
+          <p>
+            Display order: Instant, Normal, Delayed, Controlled. Sorting does not change execution
+            order. Used by reflects the loaded catalogue; Save Changes checks current compatibility
+            again.
+          </p>
+          <p>
+            Controlled requires a compatible Manual action. Summon and persistent Ground need
+            dedicated release targeting before they can use Controlled.
+          </p>
+        </MasterHelp>
+      </div>
       <div className={styles.controls}>
         <label>
           Search effect tags
@@ -120,75 +135,71 @@ export function CombatEffectTimingEditor({
           </select>
         </label>
       </div>
-      <p>
-        Display order: Instant, Normal, Delayed, Controlled. Sorting does not change execution
-        order. Used by reflects the loaded catalogue; Save Changes checks current compatibility
-        again.
-      </p>
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Effect tag</th>
-            <th scope="col">Timing</th>
-            <th scope="col">Used by</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((tag) => (
-            <tr key={tag}>
-              <th scope="row">
-                <label htmlFor={`timing-${tag}`}>{label(tag)}</label>
-              </th>
-              <td>
-                <select
-                  id={`timing-${tag}`}
-                  value={combatEffectTimingMode(policy, tag)}
-                  disabled={saving}
-                  onChange={(event) =>
-                    setPolicy({
-                      ...policy,
-                      modes: {
-                        ...policy.modes,
-                        [tag]: event.target.value as CombatEffectTimingMode,
-                      },
-                    })
-                  }
-                >
-                  <option value="instant">Instant</option>
-                  <option value="next-round">Normal</option>
-                  <option value="delayed">Delayed</option>
-                  <option
-                    value="controlled"
-                    disabled={!CONTROLLED_COMBAT_TIMING_TAGS.includes(tag)}
-                  >
-                    Controlled
-                  </option>
-                </select>
-              </td>
-              <td>
-                {usedBy[tag]?.length ? (
-                  <details>
-                    <summary>{usedBy[tag]!.length} current definitions</summary>
-                    <ul>
-                      {usedBy[tag]!.map((row) => (
-                        <li key={row.contentKey}>
-                          {row.name} <small>({row.contentKey})</small>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                ) : (
-                  'No current definitions'
-                )}
-              </td>
+
+      <div className={styles.rules}>
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Effect tag</th>
+              <th scope="col">Timing</th>
+              <th scope="col">Used by</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p>
-        Controlled requires a compatible Manual action. Summon and persistent Ground need dedicated
-        release targeting before they can use Controlled.
-      </p>
+          </thead>
+          <tbody>
+            {rows.map((tag) => (
+              <tr key={tag}>
+                <th scope="row">
+                  <label htmlFor={`timing-${tag}`}>{label(tag)}</label>
+                </th>
+                <td>
+                  <select
+                    id={`timing-${tag}`}
+                    value={combatEffectTimingMode(policy, tag)}
+                    disabled={saving}
+                    onChange={(event) =>
+                      setPolicy({
+                        ...policy,
+                        modes: {
+                          ...policy.modes,
+                          [tag]: event.target.value as CombatEffectTimingMode,
+                        },
+                      })
+                    }
+                  >
+                    <option value="instant">Instant</option>
+                    <option value="next-round">Normal</option>
+                    <option value="delayed">Delayed</option>
+                    <option
+                      value="controlled"
+                      disabled={!CONTROLLED_COMBAT_TIMING_TAGS.includes(tag)}
+                    >
+                      Controlled
+                    </option>
+                  </select>
+                </td>
+                <td>
+                  {usedBy[tag]?.length ? (
+                    <OperationalDialog
+                      id={`rule-definitions-${tag}`}
+                      title={`${label(tag)} definitions`}
+                      trigger={`${usedBy[tag]!.length} current definitions`}
+                    >
+                      <ul>
+                        {usedBy[tag]!.map((row) => (
+                          <li key={row.contentKey}>{row.name}</li>
+                        ))}
+                      </ul>
+                    </OperationalDialog>
+                  ) : (
+                    'No current definitions'
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <button type="submit" disabled={saving}>
         {saving ? 'Saving…' : 'Save Changes'}
       </button>

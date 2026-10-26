@@ -4,6 +4,7 @@ import {
   parseBattlefieldElevationPolicy,
   type BattlefieldElevationPolicy,
 } from '@aurevane/game-core/combat/standard-battlefield'
+import { MasterHelp } from '../master-help'
 import styles from './battlefield-elevation-editor.module.css'
 
 const fields = ['level1BasisPoints', 'level2BasisPoints', 'level3BasisPoints'] as const
@@ -23,12 +24,12 @@ export function BattlefieldElevationEditor({
   try {
     policy = parseBattlefieldElevationPolicy({
       version,
+      model: 'independent-highest',
       level1BasisPoints: bps[0],
       level2BasisPoints: bps[1],
       level3BasisPoints: bps[2],
     })
   } catch {}
-  const total = bps.reduce((sum, value) => sum + value, 0)
   async function publish(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!policy || saving) return
@@ -60,33 +61,39 @@ export function BattlefieldElevationEditor({
   }
   return (
     <form className={styles.editor} onSubmit={publish} aria-label="Elevation chances">
-      <h2>Battlefield elevation</h2>
-      <p>
-        Each raised tile independently rolls level 1, 2 or 3 using these chances. Changes apply to
-        new battles. Existing battles keep their tiles. These global map chances are separate from a
-        Skill’s Target Elevation.
-      </p>
-      {fields.map((field, index) => (
-        <label key={field}>
-          Elevation level {index + 1} chance (%)
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.01"
-            required
-            value={chances[index]}
-            disabled={saving}
-            onChange={(event) =>
-              setChances(chances.map((value, i) => (i === index ? event.target.value : value)))
-            }
-          />
-        </label>
-      ))}
-      <p>
-        Total: {Number.isFinite(total) ? `${total / 100}%` : 'Invalid'}
-        {!policy ? ' — enter chances totaling exactly 100%.' : ''}
-      </p>
+      <div className={styles.heading}>
+        <h2>Battlefield elevation</h2>
+        <MasterHelp label="Elevation help">
+          <p>
+            Each candidate raised tile rolls all three chances independently. The highest successful
+            level wins; if none succeeds, the tile stays flat. Chances do not need to total 100%.
+          </p>
+          <p>
+            Changes apply to new battles. Existing battles keep their tiles. These global map
+            chances are separate from a Skill’s Target Elevation.
+          </p>
+        </MasterHelp>
+      </div>
+      <div className={styles.chances}>
+        {fields.map((field, index) => (
+          <label key={field}>
+            Elevation level {index + 1} chance (%)
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="0.01"
+              required
+              value={chances[index]}
+              disabled={saving}
+              onChange={(event) =>
+                setChances(chances.map((value, i) => (i === index ? event.target.value : value)))
+              }
+            />
+          </label>
+        ))}
+      </div>
+
       <button type="submit" disabled={saving || !policy}>
         {saving ? 'Saving…' : 'Save Changes'}
       </button>

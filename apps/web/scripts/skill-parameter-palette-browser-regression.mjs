@@ -33,6 +33,42 @@ await fs.copyFile(
   resolve(web, 'e2e/fixtures/skill-parameter-palette-harness.jsx'),
   resolve(fixture, 'entry.jsx'),
 )
+// The editor no longer owns a Preview pane. Its former production readers remain
+// independently mounted here so Chronicle and native-sample compatibility remain tested.
+// Their retired Master preview palette is legacy coverage, not proof of live player-page contrast.
+const entryPath = resolve(fixture, 'entry.jsx')
+let entrySource = await fs.readFile(entryPath, 'utf8')
+entrySource =
+  `import { ContentRecordPreview } from '@/components/master/combat-content/content-record-preview'\nimport legacyBasicReaderTheme from '@/components/master/combat-content/basic-content-editor.module.css'\n` +
+  entrySource
+// The production editor fills a bounded Master workspace; provide that same
+// containing height instead of the retired auto-height fixture wrapper.
+const basicStart = entrySource.indexOf('function BasicEditor()')
+const basicEnd = entrySource.indexOf('const sectionStyle', basicStart)
+entrySource =
+  entrySource.slice(0, basicStart) +
+  entrySource
+    .slice(basicStart, basicEnd)
+    .replace("height: 'auto'", "height: 'calc(100dvh - 24px)'") +
+  entrySource.slice(basicEnd)
+entrySource += `
+let parityRoot
+window.renderBasicParity = definition => {
+  let host = document.querySelector('[data-basic-parity-host]')
+  if (!host) {
+    host = document.createElement('section')
+    host.setAttribute('data-basic-parity-host', '')
+    host.setAttribute('aria-label', 'Legacy Basic reader compatibility')
+    host.className = 'av-master ' + masterTheme.workspace + ' ' + legacyBasicReaderTheme.editor
+    Object.assign(host.style, {display: 'block', position: 'relative', zIndex: '1000', height: 'auto', padding: '12px', background: '#ddd3c0'})
+    document.body.append(host)
+    parityRoot = createRoot(host)
+  }
+  host.style.display = 'block'
+  parityRoot.render(<SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}><ContentRecordPreview key={JSON.stringify(definition)} kind="skill" working={definition} saved={definition} current={definition}/></SkillEffectTimingProvider>)
+}
+`
+await fs.writeFile(entryPath, entrySource)
 await fs.copyFile(
   resolve(web, 'e2e/fixtures/discipline-management-navigation.jsx'),
   resolve(fixture, 'next-mock.jsx'),
@@ -125,34 +161,55 @@ async function handleBasicRequest(request, response, next) {
   }
 }
 const config = {
-  plugins: basicServiceAcceptance
-    ? [
-        {
-          name: 'basic-service-acceptance',
-          configureServer(server) {
-            server.middlewares.use(handleBasicRequest)
-          },
-        },
-      ]
-    : [],
+  // All Basic checks now pass through the real HTTP handler, authoring service
+  // and resolver. This in-memory adapter does not claim physical SQL atomicity.
+  plugins: [
+    {
+      name: 'basic-current-commit-adapter',
+      enforce: 'pre',
+      transform(source, id) {
+        if (!id.endsWith('/e2e/fixtures/basic-editor-service.ts')) return
+        assert.ok(source.includes('  const adapter = {'))
+        return source.replace(
+          '  const adapter = {',
+          `  const adapter = {
+    async commitRecord(key: string, expectedRevision: number, definition: unknown) {
+      const fresh = await readRecord(key)
+      if (fresh.revision !== expectedRevision) throw new AurevaneError('STALE_VERSION', 'Record changed. Refresh and retry.')
+      const published = await service.publishSkill({ actorUserId, definition, expectedBaseVersion: fresh.current!.contentVersion })
+      const source = fresh.draft?.restoredFrom ? fresh.history.find(row => row.contentVersion === fresh.draft!.restoredFrom) : null
+      attribution.set(key + ':' + published.contentVersion, { authoredBy: source?.authoredBy ?? actorUserId, authoredAt: source?.authoredAt ?? published.publishedAt, restoredFrom: fresh.draft?.restoredFrom ?? null, restoredBy: fresh.draft?.restoredBy ?? null })
+      if (fresh.draft) consumed.set(key, fresh.draft.draftVersion)
+      restored.delete(key)
+      revisions.set(key, fresh.revision + 1)
+      return readRecord(key)
+    },`,
+        )
+      },
+    },
+    {
+      name: 'basic-service-acceptance',
+      configureServer(server) {
+        server.middlewares.use(handleBasicRequest)
+      },
+    },
+  ],
   configFile: false,
   root: fixture,
   publicDir: resolve(web, 'public'),
   resolve: {
     alias: {
       '@/components/shell/authenticated-game-shell': resolve(fixture, 'shell.jsx'),
-      ...(basicServiceAcceptance
-        ? {
-            '@/server/auth/actor': resolve(fixture, 'auth-boundary.js'),
-            './combat-content-authoring-server': resolve(fixture, 'authoring-boundary.js'),
-            '@/server/master/combat-content-authoring-server': resolve(
-              fixture,
-              'authoring-boundary.js',
-            ),
-            'server-only': resolve(fixture, 'server-only.js'),
-            '@aurevane/db': resolve(root, 'packages/db/src'),
-          }
-        : {}),
+      ...{
+        '@/server/auth/actor': resolve(fixture, 'auth-boundary.js'),
+        './combat-content-authoring-server': resolve(fixture, 'authoring-boundary.js'),
+        '@/server/master/combat-content-authoring-server': resolve(
+          fixture,
+          'authoring-boundary.js',
+        ),
+        'server-only': resolve(fixture, 'server-only.js'),
+        '@aurevane/db': resolve(root, 'packages/db/src'),
+      },
       '@': resolve(web, 'src'),
       '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
       '@aurevane/validation': resolve(root, 'packages/validation/src'),
@@ -215,7 +272,7 @@ const sqlFixtureServer = originalRpcAcceptance
       },
     })
   : undefined
-if (basicServiceAcceptance) {
+{
   ;({ createBasicEditorServiceFixture } = await (sqlFixtureServer ?? server).ssrLoadModule(
     resolve(
       web,
@@ -256,7 +313,6 @@ if (basicServiceAcceptance) {
     process.exit(0)
   }
 }
-if (!basicServiceAcceptance) await server.listen()
 const browser = await chromium.launch({
   ...(process.env.AV_CHROMIUM_EXECUTABLE
     ? { executablePath: process.env.AV_CHROMIUM_EXECUTABLE }
@@ -535,16 +591,106 @@ async function openNativeSample(scope) {
   const details = scope.locator('details:has(> summary:text-is("Native sample"))')
   if ((await details.getAttribute('open')) === null) await details.locator('summary').click()
 }
+const basicEndpoint = () => `${server.resolvedUrls.local[0]}api/master/combat-content`
+const inspectBasics = async (page) =>
+  (await page.request.get(`${server.resolvedUrls.local[0]}__basic-acceptance/inspect`)).json()
+async function basicApi(page, body) {
+  const response = await page.request.post(basicEndpoint(), { data: body })
+  const value = await response.json()
+  assert.equal(
+    response.ok(),
+    true,
+    `Actual Basic service ${body.operation}: ${JSON.stringify(value)}`,
+  )
+  return value
+}
+async function verifyBasicApiParity(
+  page,
+  before,
+  definition,
+  behaviorId = definition.ability.behaviors[0].id,
+) {
+  const validation = await basicApi(page, {
+    operation: 'validate',
+    contentKind: 'skill',
+    definition,
+  })
+  assert.equal(validation.validation.valid, true)
+  assert.deepEqual(validation.validation.issues, [])
+  const diff = await basicApi(page, {
+    operation: 'diff',
+    contentKind: 'skill',
+    before,
+    after: definition,
+  })
+  assert.ok(diff.diff.changedPaths.length > 0)
+  const { preview } = await basicApi(page, {
+    operation: 'preview',
+    contentKind: 'skill',
+    definition,
+    behaviorId,
+  })
+  assert.equal(preview.legal, true)
+  assert.equal(preview.behaviorId, behaviorId)
+  const group = definition.ability.behaviors.find((row) => row.id === behaviorId)
+  assert.equal(
+    preview.costs.actionEconomy,
+    group.costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+  )
+  assert.equal(preview.costs.mp ?? 0, group.costs.find((row) => row.resource === 'mp')?.amount ?? 0)
+  assert.equal(preview.costs.hp ?? 0, group.costs.find((row) => row.resource === 'hp')?.amount ?? 0)
+  return preview
+}
+async function basicParityReader(page, definition) {
+  await page.evaluate((definition) => window.renderBasicParity(definition), definition)
+  const reader = page.getByRole('region', {
+    name: 'Legacy Basic reader compatibility',
+    exact: true,
+  })
+  await reader.waitFor()
+  return reader
+}
+async function hideBasicParity(page) {
+  await page.locator('[data-basic-parity-host]').evaluateAll((hosts) =>
+    hosts.forEach((host) => {
+      host.style.display = 'none'
+    }),
+  )
+}
+async function commitBasic(editor, viewport) {
+  await hideBasicParity(editor.page())
+  const button = editor.getByRole('button', { name: 'Commit Now', exact: true })
+  if (viewport.width < 720) await button.tap()
+  else await button.click()
+}
+async function committedBasic(editor) {
+  await editor.getByText('Changes committed and available to the game.', { exact: true }).waitFor()
+  assert.equal(
+    await editor.getByRole('status', { name: 'Content version state' }).innerText(),
+    'Current',
+  )
+}
 async function verifyBasicEditor(page, viewport) {
-  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`, {
+  console.log('verifyBasicEditor', viewport.width)
+  await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
+  const initial = await inspectBasics(page)
+  const guard = initial.records.find((row) => row.id === 'basic.guard')
+  await basicApi(page, {
+    operation: 'record',
+    command: {
+      action: 'save',
+      contentKey: guard.id,
+      expectedRevision: guard.revision,
+      definition: { ...guard.current.definition, name: 'Saved Guard draft' },
+    },
+  })
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const selector = {
-    selectOption: async (id) => {
-      await editor.locator(`[data-content-key="${id}"]`).click()
-      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
-    },
+  const select = async (id) => {
+    await editor.locator(`[data-content-key="${id}"]`).click()
+    await editor.locator(`[data-content-key="${id}"][aria-current="true"]:not(:disabled)`).waitFor()
   }
   await assertBasicContrast(editor.locator('[data-content-key][aria-current="true"]'))
   await assertBasicContrast(editor.getByLabel('Name', { exact: true }))
@@ -564,11 +710,10 @@ async function verifyBasicEditor(page, viewport) {
   await editor.getByLabel('MP cost', { exact: true }).fill('2')
   await editor.getByLabel('HP cost', { exact: true }).fill('1')
   await editor.getByLabel('Move maximum tiles').fill('3')
-  await editor.getByRole('button', { name: 'Validate', exact: true }).click()
-  await editor.getByText('Validated', { exact: true }).waitFor()
-  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
-  const first = await page.evaluate(() => window.basicSavedDrafts['basic.move'])
+  await commitBasic(editor, viewport)
+  await committedBasic(editor)
+  const first = (await inspectBasics(page)).records.find((row) => row.id === 'basic.move').current
+    .definition
   assert.equal(first.execution.costBasis, 'flat')
   assert.deepEqual(first.ability.behaviors[0].costs, [
     { resource: 'ap', amount: 11 },
@@ -576,48 +721,66 @@ async function verifyBasicEditor(page, viewport) {
     { resource: 'hp', amount: 1 },
   ])
   assert.equal(first.ability.behaviors[0].effects[0].payload.maximumTiles, 3)
-  // A completed save updates CAS even when a newer edit was made while it was pending.
-  await page.evaluate(() => {
-    window.holdBasicSave = true
+  await verifyBasicApiParity(
+    page,
+    initial.records.find((row) => row.id === 'basic.move').current.definition,
+    first,
+  )
+  // Submit a real change: unchanged production commits intentionally do not advance CAS.
+  await editor.getByLabel('Name', { exact: true }).fill('Earlier submitted Move')
+  // Delay the actual accepted HTTP response, retaining a newer local edit and the new CAS revision.
+  let release, accepted
+  const held = new Promise((resolve) => {
+    accepted = resolve
   })
-  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await page.waitForFunction(() => typeof window.releaseBasicSave === 'function')
+  await page.route('**/api/master/combat-content', async (route) => {
+    const body = route.request().postDataJSON()
+    if (body.operation !== 'record' || body.command.action !== 'commit') return route.continue()
+    const response = await route.fetch()
+    accepted()
+    await new Promise((resolve) => {
+      release = resolve
+    })
+    await route.fulfill({ response })
+  })
+  await commitBasic(editor, viewport)
+  await held
   await editor.getByLabel('Name', { exact: true }).fill('Newer unsaved Move')
-  await page.evaluate(() => {
-    window.holdBasicSave = false
-    window.releaseBasicSave()
-  })
+  release()
   await editor
     .getByText('Saved earlier changes; newer local edits remain unsaved.', { exact: true })
     .waitFor()
   assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), 'Newer unsaved Move')
-  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
+  await page.unroute('**/api/master/combat-content')
+  await commitBasic(editor, viewport)
+  await committedBasic(editor)
   await editor.getByLabel('AP cost', { exact: true }).scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `basic-editor-move-${viewport.width}.png`) })
-  await selector.selectOption('unarmed.basic')
+  await select('unarmed.basic')
   await editor.getByLabel('AP cost', { exact: true }).fill('0')
-  await editor.getByRole('button', { name: 'Validate', exact: true }).click()
-  await editor.getByRole('region', { name: 'Validation issues' }).waitFor()
-  assert.ok(
-    (await editor.getByRole('region', { name: 'Validation issues' }).textContent()).includes(
-      'Basic Attack requires a positive authored AP cost.',
-    ),
+  await commitBasic(editor, viewport)
+  const invalid = editor.getByRole('alert')
+  await invalid.waitFor()
+  assert.match(await invalid.innerText(), /Basic Attack requires a positive authored AP cost/)
+  assert.match(await invalid.innerText(), /Your local edits are retained/)
+  assert.equal(
+    (await inspectBasics(page)).records.find((row) => row.id === 'unarmed.basic').current
+      .contentVersion,
+    3,
   )
   await editor.getByLabel('AP cost', { exact: true }).fill('17')
   await editor.getByLabel('Higher Power scaling (%)').fill('42.25')
-  await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
+  await commitBasic(editor, viewport)
+  await committedBasic(editor)
   assert.equal(
-    await page.evaluate(
-      () => window.basicSavedDrafts['unarmed.basic'].execution.scalingBasisPoints,
-    ),
+    (await inspectBasics(page)).records.find((row) => row.id === 'unarmed.basic').current.definition
+      .execution.scalingBasisPoints,
     4225,
   )
   await editor.getByLabel('Higher Power scaling (%)').scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `basic-editor-attack-${viewport.width}.png`) })
   for (const [index, id] of ['basic.guard', 'basic.recover', 'basic.recover.mp'].entries()) {
-    await selector.selectOption(id)
+    await select(id)
     if (id === 'basic.guard')
       assert.equal(
         await editor.getByLabel('Name', { exact: true }).inputValue(),
@@ -628,107 +791,119 @@ async function verifyBasicEditor(page, viewport) {
     await editor.getByLabel('Recovery rounding').selectOption('floor')
     if (id !== 'basic.guard')
       await editor.getByLabel('Recovery percent', { exact: true }).fill(String(21 + index))
-    await editor.getByRole('button', { name: 'Validate', exact: true }).click()
-    await editor.getByText('Validated', { exact: true }).waitFor()
-    await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-    await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
+    await commitBasic(editor, viewport)
+    await committedBasic(editor)
   }
-  await selector.selectOption('basic.move')
+  await select('basic.move')
   assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), 'Newer unsaved Move')
-  const requests = await page.evaluate(() => window.basicDraftRequests)
+  const inspection = await inspectBasics(page)
+  const commits = inspection.requests.filter(
+    (row) => row.operation === 'record' && row.command.action === 'commit',
+  )
   assert.deepEqual(
-    requests
-      .filter(
-        (row) =>
-          row.operation === 'record' &&
-          row.command.action === 'save' &&
-          row.command.contentKey === 'basic.move',
-      )
+    commits
+      .filter((row) => row.command.contentKey === 'basic.move')
       .map((row) => row.command.expectedRevision),
-    [1, 2, 3],
+    [3, 4, 5],
   )
   assert.equal(
-    requests.find(
-      (row) =>
-        row.operation === 'record' &&
-        row.command.action === 'save' &&
-        row.command.contentKey === 'basic.guard',
-    ).command.expectedRevision,
-    1,
+    commits.find((row) => row.command.contentKey === 'basic.guard').command.expectedRevision,
+    4,
   )
   assert.ok(
-    requests
-      .filter((row) => row.operation === 'record' && row.command.action === 'save')
-      .every(
-        (row) =>
-          !Object.hasOwn(row.command, 'baseVersion') && row.command.definition.contentVersion === 1,
-      ),
+    commits.every(
+      (row) =>
+        !Object.hasOwn(row.command, 'baseVersion') &&
+        Number.isSafeInteger(row.command.definition.contentVersion),
+    ),
   )
-  await selector.selectOption('basic.recover.mp')
-  await editor.getByRole('complementary', { name: 'Content previews' }).scrollIntoViewIfNeeded()
-  await assertBasicContrast(
-    editor
-      .getByRole('complementary', { name: 'Content previews' })
-      .locator('[data-compact-effect-label]')
-      .first(),
-  )
-  for (const trigger of await editor
-    .getByRole('complementary', { name: 'Content previews' })
-    .locator('button[data-combat-tag-reference-trigger]')
-    .all())
+  assert.equal(inspection.oldCapturesUnchanged, true)
+  await select('basic.recover.mp')
+  const definition = inspection.records.find((row) => row.id === 'basic.recover.mp').current
+    .definition
+  const reader = await basicParityReader(page, definition)
+  await reader.scrollIntoViewIfNeeded()
+  await assertBasicContrast(reader.locator('[data-compact-effect-label]').first())
+  for (const trigger of await reader.locator('button[data-combat-tag-reference-trigger]').all())
     await assertBasicContrast(trigger)
-  await assertBasicContrast(editor.getByRole('button', { name: 'Save draft', exact: true }))
+  await assertBasicContrast(editor.getByRole('button', { name: 'Commit Now', exact: true }))
   await page.screenshot({ path: resolve(output, `basic-editor-recovery-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.equal(await editor.getByRole('alert').count(), 0)
 }
-
 async function verifyBasicPublication(page, viewport) {
-  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`, {
+  console.log('verifyBasicPublication', viewport.width)
+  await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const select = {
-    selectOption: async (id) => {
-      await editor.locator(`[data-content-key="${id}"]`).click()
-      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
-    },
-  }
-  const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
-  const button = (name) => editor.getByRole('button', { name, exact: true })
-  for (const id of [
-    'basic.move',
-    'unarmed.basic',
-    'basic.guard',
-    'basic.recover',
-    'basic.recover.mp',
-  ]) {
-    await select.selectOption(id)
+  const ids = ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp']
+  const published = []
+  for (const id of ids) {
+    await editor.locator(`[data-content-key="${id}"]`).click()
+    await editor.locator(`[data-content-key="${id}"][aria-current="true"]:not(:disabled)`).waitFor()
+    const before = (await inspectBasics(page)).records.find((row) => row.id === id)
     await editor.getByLabel('Name', { exact: true }).fill(`Publish ${id}`)
     if (id === 'basic.move') await editor.getByLabel('Move cost basis').selectOption('flat')
     await editor.getByLabel('AP cost', { exact: true }).fill('11')
     await editor.getByLabel('MP cost', { exact: true }).fill('2')
     await editor.getByLabel('HP cost', { exact: true }).fill('1')
-    await openNativeSample(editor)
     let groupId = 'use'
     if (id === 'basic.guard') {
-      await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
+      await editor.getByRole('button', { name: 'Add behavior group', exact: true }).click()
       const group = editor.locator('[data-ability-group="group-1"]')
       await group.getByLabel('AP cost', { exact: true }).fill('17')
       await group.getByLabel('MP cost', { exact: true }).fill('3')
       await group.getByLabel('HP cost', { exact: true }).fill('2')
       groupId = 'group-1'
-      await editor.getByLabel('Preview action group', { exact: true }).selectOption(groupId)
     }
-    assert.equal(await button('Publish saved draft').isDisabled(), true)
-    await gesture(button('Save draft'))
-    await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
-    await gesture(button('Validate'))
-    await editor.getByText('Validated', { exact: true }).waitFor()
-    await gesture(button('Diff'))
-    await editor.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
-    await gesture(button('Run native sample'))
-    const preview = editor.getByRole('region', { name: 'Deterministic preview', exact: true })
+    if (id === 'basic.recover.mp') {
+      await page.route('**/api/master/combat-content', (route) => {
+        const body = route.request().postDataJSON()
+        if (body.operation === 'record' && body.command.action === 'commit')
+          return route.fulfill({
+            status: 409,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              error: {
+                code: 'STALE_VERSION',
+                message: 'Combat content changed. Refresh and retry.',
+              },
+            }),
+          })
+        return route.continue()
+      })
+      await commitBasic(editor, viewport)
+      await editor.getByRole('alert').waitFor()
+      assert.match(await editor.getByRole('alert').innerText(), /Combat content changed/)
+      assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), `Publish ${id}`)
+      assert.deepEqual(
+        (await inspectBasics(page)).records.find((row) => row.id === id),
+        before,
+      )
+      await page.unroute('**/api/master/combat-content')
+    }
+    await commitBasic(editor, viewport)
+    await committedBasic(editor)
+    const current = (await inspectBasics(page)).records.find((row) => row.id === id)
+    assert.equal(current.current.contentVersion, 4)
+    assert.equal(current.current.definition.name, `Publish ${id}`)
+    published.push(id)
+    const countBeforeReview = current.history.length
+    const actualPreview = await verifyBasicApiParity(
+      page,
+      before.current.definition,
+      current.current.definition,
+      groupId,
+    )
+    if (id === 'basic.move') assert.equal(actualPreview.movement.path.length - 1, 1)
+    const reader = await basicParityReader(page, current.current.definition)
+    await openNativeSample(reader)
+    if (groupId !== 'use')
+      await reader.getByLabel('Preview action group', { exact: true }).selectOption(groupId)
+    await reader.getByRole('button', { name: 'Run native sample', exact: true }).click()
+    const preview = reader.getByRole('region', { name: 'Deterministic preview', exact: true })
     await preview.waitFor()
     assert.match(await preview.innerText(), new RegExp(groupId))
     assert.match(
@@ -736,86 +911,37 @@ async function verifyBasicPublication(page, viewport) {
       id === 'basic.guard' ? /17 AP[\s\S]*3 MP[\s\S]*2 HP/ : /11 AP[\s\S]*2 MP[\s\S]*1 HP/,
     )
     if (id === 'basic.move') assert.match(await preview.innerText(), /1 tile/)
-    // Saving and reviewing never publish. Only the explicit saved-revision action does.
-    const beforeCancel = await page.evaluate(() => window.basicPublishedVersions.length)
     assert.equal(
-      beforeCancel,
-      ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'].indexOf(
-        id,
-      ),
+      (await inspectBasics(page)).records.find((row) => row.id === id).history.length,
+      countBeforeReview,
+      'Validation, diff and native sample never publish another version',
     )
-    if (id === 'basic.recover.mp') {
-      await page.evaluate(() => {
-        window.rejectBasicPublish = true
-      })
-      await gesture(button('Publish saved draft'))
-      await editor.getByRole('alert').waitFor()
-      assert.match(await editor.getByRole('alert').innerText(), /Combat content changed/)
-      assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), `Publish ${id}`)
-      assert.equal(await page.evaluate(() => window.basicPublishedVersions.length), beforeCancel)
-      await page.evaluate(() => {
-        window.rejectBasicPublish = false
-      })
-    }
-    if (id === 'basic.move')
-      await page.evaluate(() => {
-        window.holdBasicPublish = true
-      })
-    await gesture(button('Publish saved draft'))
-    if (id === 'basic.move') {
-      await page.waitForFunction(() => typeof window.releaseBasicPublish === 'function')
-      await editor.getByLabel('Name', { exact: true }).fill('Newer unpublished Move')
-      await page.evaluate(() => {
-        window.releaseBasicPublish()
-        window.holdBasicPublish = false
-      })
-      await editor
-        .getByText('Saved earlier changes; newer local edits remain unsaved.', {
-          exact: true,
-        })
-        .waitFor()
-      assert.equal(
-        await editor.getByLabel('Name', { exact: true }).inputValue(),
-        'Newer unpublished Move',
-      )
-      await gesture(button('Save draft'))
-      await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
-      const lastSave = await page.evaluate(() =>
-        window.basicDraftRequests
-          .filter((row) => row.operation === 'record' && row.command.action === 'save')
-          .at(-1),
-      )
-      assert.equal(lastSave.command.expectedRevision, 3)
-      assert.equal(Object.hasOwn(lastSave.command, 'definition'), true)
-    } else await editor.getByText('Published the saved complete record.', { exact: true }).waitFor()
-    assert.equal(await button('Publish saved draft').isDisabled(), id !== 'basic.move')
-    await button('History').click()
+    await hideBasicParity(page)
+    await editor.getByRole('button', { name: 'History', exact: true }).click()
+    const history = editor.getByRole('region', { name: 'Content history', exact: true })
+    await history.getByRole('heading', { name: 'Current', exact: true }).waitFor()
+    await history.getByRole('heading', { name: 'Previous', exact: true }).waitFor()
     assert.equal(await editor.getByRole('button', { name: 'Rollback', exact: true }).count(), 0)
-    assert.match(
-      await editor.getByRole('list', { name: 'Publication history' }).innerText(),
-      /Version 2[\s\S]*current/,
-    )
   }
-  const result = await page.evaluate(() => ({
-    versions: window.basicPublishedVersions,
-    requests: window.basicDraftRequests,
-    definitions: window.basicPublishedDefinitions,
-  }))
-  assert.deepEqual(
-    result.versions.map((row) => row.id),
-    ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'],
+  assert.deepEqual(published, ids)
+  const result = await inspectBasics(page)
+  assert.equal(
+    result.records.find((row) => row.id === 'basic.guard').current.definition.ability.behaviors
+      .length,
+    2,
+  )
+  assert.equal(
+    result.records.find((row) => row.id === 'basic.move').current.definition.name,
+    'Publish basic.move',
   )
   assert.ok(
     result.requests
-      .filter((row) => row.operation === 'record' && row.command.action === 'publish')
+      .filter((row) => row.operation === 'record' && row.command.action === 'commit')
       .every(
-        (row) => row.command.expectedBaseVersion === 1 && !Object.hasOwn(row.command, 'definition'),
+        (row) => row.command.expectedRevision === 3 && Object.hasOwn(row.command, 'definition'),
       ),
   )
-  assert.equal(result.definitions['basic.guard'].ability.behaviors.length, 2)
-  assert.equal(result.definitions['basic.move'].name, 'Publish basic.move')
-  assert.equal(result.definitions['basic.recover.mp'].contentVersion, 2)
-  await editor.getByRole('list', { name: 'Publication history' }).scrollIntoViewIfNeeded()
+  assert.equal(result.oldCapturesUnchanged, true)
   await page.screenshot({ path: resolve(output, `basic-publication-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.equal(await editor.getByRole('alert').count(), 0)
@@ -985,14 +1111,13 @@ async function verifyCanonicalEditor(page, viewport) {
   assert.deepEqual(await page.evaluate(() => window.requests), [])
 }
 async function verifyOriginalRpcRestore(page, viewport) {
+  console.log('verifyOriginalRpcRestore', viewport.width)
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const inspect = async () =>
-    (await page.request.get(`${server.resolvedUrls.local[0]}__basic-acceptance/inspect`)).json()
-  const originals = (await inspect()).originals
+  const originals = (await inspectBasics(page)).originals
   const activate = async (label) => {
     const control = editor.getByRole('button', { name: label, exact: true })
     if (viewport.width < 720) await control.tap()
@@ -1006,64 +1131,61 @@ async function verifyOriginalRpcRestore(page, viewport) {
     await editor
       .locator(`[data-content-key="${original.id}"][aria-current="true"]:not(:disabled)`)
       .waitFor()
-    const before = (await inspect()).requests.length
+    const before = (await inspectBasics(page)).requests.length
     await editor
       .getByLabel('Name', { exact: true })
       .fill(`${original.name} original restore regression`)
-    await activate('Save draft')
-    await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
+    await activate('Commit Now')
+    await committedBasic(editor)
     await activate('History')
     await editor
-      .getByRole('button', { name: 'Restore System original v1 to draft', exact: true })
-      .waitFor()
-    await activate('Publish saved draft')
-    await editor.getByText('Published the saved complete record.', { exact: true }).waitFor()
-    await activate('History')
-    await activate('Restore System original v1 to draft')
+      .getByRole('region', { name: 'Content history', exact: true })
+      .locator('summary')
+      .filter({ hasText: /^System original$/ })
+      .click()
+    await activate('Restore System original')
     await editor
-      .getByText('System original restored to a saved draft. Preview and publish when ready.', {
+      .getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
         exact: true,
       })
       .waitFor()
-    await activate('History')
-    await editor
-      .getByRole('button', { name: 'Restore System original v1 to draft', exact: true })
-      .waitFor()
-    const result = await inspect(),
-      record = result.records.find((row) => row.contentKey === original.id)
+    const restored = await inspectBasics(page),
+      record = restored.records.find((row) => row.contentKey === original.id)
     assert.deepEqual(record.draft.definition, original)
     assert.equal(record.draft.restoredSource, 'builtin')
     assert.equal(record.builtinRestoreVersion, 1)
+    await verifyBasicApiParity(page, record.current.definition, record.draft.definition)
+    await activate('Commit Now')
+    await committedBasic(editor)
+    const result = await inspectBasics(page),
+      current = result.records.find((row) => row.contentKey === original.id)
+    assert.deepEqual(current.current.definition, { ...original, contentVersion: 3 })
+    assert.equal(current.history.length, 2)
     assert.deepEqual(
       result.requests
         .slice(before)
+        .filter((row) => row.operation === 'record')
         .map((row) => row.command.action)
         .filter((action) => action !== 'list'),
-      ['save', 'publish', 'restore'],
+      ['commit', 'restore', 'commit'],
     )
     await page.screenshot({
       path: resolve(output, `original-rpc-${original.id}-${viewport.width}.png`),
       fullPage: true,
     })
   }
-  const result = await inspect()
   await fs.writeFile(
     resolve(output, `original-rpc-${viewport.width}.json`),
-    JSON.stringify(result, null, 2),
+    JSON.stringify(await inspectBasics(page), null, 2),
   )
 }
 async function verifyBasicServiceRestore(page, viewport) {
+  console.log('verifyBasicServiceRestore', viewport.width)
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const select = {
-    selectOption: async (id) => {
-      await editor.locator(`[data-content-key="${id}"]`).click()
-      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
-    },
-  }
   await editor.waitFor({ state: 'visible' })
   const activate = async (locator) => {
     if (viewport.width < 720) await locator.tap()
@@ -1072,8 +1194,6 @@ async function verifyBasicServiceRestore(page, viewport) {
       await page.keyboard.press('Enter')
     }
   }
-  const inspect = async () =>
-    (await page.request.get(`${server.resolvedUrls.local[0]}__basic-acceptance/inspect`)).json()
   const ids = ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp']
   assert.deepEqual(
     await editor
@@ -1082,28 +1202,34 @@ async function verifyBasicServiceRestore(page, viewport) {
     ids,
   )
   for (const id of ids) {
-    await select.selectOption(id)
-    const original = (await inspect()).records.find((row) => row.id === id)
-    const count = (await inspect()).requests.length
+    await editor.locator(`[data-content-key="${id}"]`).click()
+    await editor.locator(`[data-content-key="${id}"][aria-current="true"]:not(:disabled)`).waitFor()
+    const original = (await inspectBasics(page)).records.find((row) => row.id === id)
+    const count = (await inspectBasics(page)).requests.length
     await activate(editor.getByRole('button', { name: 'History', exact: true }))
+    const history = editor.getByRole('region', { name: 'Content history', exact: true })
+    await history
+      .locator('summary')
+      .filter({ hasText: /^Previous settings$/ })
+      .click()
     assert.equal(
-      (await inspect()).requests.length,
+      (await inspectBasics(page)).requests.length,
       count,
-      'Browsing physical history does not mutate content',
+      'Browsing and previewing saved history never mutates content',
     )
     assert.equal(
       await editor.getByRole('button', { name: 'Restore version 1 to draft', exact: true }).count(),
       0,
     )
-    await activate(editor.getByRole('button', { name: 'Restore version 2 to draft', exact: true }))
+    await activate(history.getByRole('button', { name: 'Restore Previous', exact: true }))
     await editor
-      .getByText('Version 2 restored to a saved draft. Preview and publish when ready.', {
+      .getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
         exact: true,
       })
       .waitFor()
     await activate(editor.getByRole('button', { name: 'Parameters', exact: true }))
-    const saved = await inspect()
-    const record = saved.records.find((row) => row.id === id)
+    const saved = await inspectBasics(page),
+      record = saved.records.find((row) => row.id === id)
     assert.deepEqual(record.current, original.current)
     assert.deepEqual(record.history, original.history)
     assert.equal(record.draft.baseVersion, 3)
@@ -1113,57 +1239,58 @@ async function verifyBasicServiceRestore(page, viewport) {
       await editor.getByLabel('Name', { exact: true }).inputValue(),
       record.draft.definition.name,
     )
-    const button = (name) => editor.getByRole('button', { name, exact: true })
-    assert.equal(await button('Publish saved draft').isDisabled(), false)
-    await activate(button('Validate'))
-    await editor.getByText('Validated', { exact: true }).waitFor()
-    await activate(button('Diff'))
-    await editor.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
-    const previewResponse = page.waitForResponse((response) => {
-      if (!response.url().endsWith('/api/master/combat-content')) return false
-      return response.request().postDataJSON()?.operation === 'preview'
-    })
-    await openNativeSample(editor)
-    await activate(button('Run native sample'))
-    const preview = editor.getByRole('region', { name: 'Deterministic preview', exact: true })
+    assert.equal(
+      await editor.getByRole('button', { name: 'Commit Now', exact: true }).isDisabled(),
+      false,
+    )
+    const actualPreview = await verifyBasicApiParity(
+      page,
+      record.current.definition,
+      record.draft.definition,
+    )
+    const reader = await basicParityReader(page, record.draft.definition)
+    await openNativeSample(reader)
+    await activate(reader.getByRole('button', { name: 'Run native sample', exact: true }))
+    const preview = reader.getByRole('region', { name: 'Deterministic preview', exact: true })
     await preview.waitFor()
-    const actualPreview = (await (await previewResponse).json()).preview
-    assert.equal(actualPreview.legal, true)
-    assert.equal(actualPreview.behaviorId, record.draft.definition.ability.behaviors[0].id)
     assert.match(await preview.innerText(), new RegExp(`${actualPreview.costs.actionEconomy} AP`))
-    await activate(button('Publish saved draft'))
-    await editor.getByText('Published the saved complete record.', { exact: true }).waitFor()
-    const after = await inspect()
-    const current = after.records.find((row) => row.id === id)
+    await commitBasic(editor, viewport)
+    await committedBasic(editor)
+    const after = await inspectBasics(page),
+      current = after.records.find((row) => row.id === id)
     assert.deepEqual(current.current.definition, { ...record.draft.definition, contentVersion: 4 })
     assert.deepEqual(current.history[0], original.history[0])
     assert.equal(current.history.length, 3)
     assert.equal(after.oldCapturesUnchanged, true)
     assert.deepEqual(after.oldVersions, [3, 3, 3])
     assert.equal(await editor.getByRole('button', { name: 'Rollback', exact: true }).count(), 0)
-    await activate(button('History'))
-    await editor.getByRole('list', { name: 'Publication history' }).scrollIntoViewIfNeeded()
+    await activate(editor.getByRole('button', { name: 'History', exact: true }))
+    await history.getByRole('heading', { name: 'Current', exact: true }).scrollIntoViewIfNeeded()
+    await history.getByRole('heading', { name: 'Previous', exact: true }).waitFor()
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     await page.screenshot({
       path: resolve(output, `basic-service-restore-${id}-${viewport.width}.png`),
     })
   }
-  const result = await inspect()
+  const result = await inspectBasics(page)
   assert.equal(
     result.requests.filter((row) => row.operation === 'record' && row.command.action === 'restore')
       .length,
     5,
   )
   assert.equal(
-    result.requests.filter((row) => row.operation === 'record' && row.command.action === 'publish')
+    result.requests.filter((row) => row.operation === 'record' && row.command.action === 'commit')
       .length,
     5,
   )
+  for (const operation of ['validate', 'diff', 'preview'])
+    assert.ok(result.requests.filter((row) => row.operation === operation).length >= 5)
   await fs.writeFile(
     resolve(output, `basic-service-${viewport.width}.json`),
     JSON.stringify(result, null, 2),
   )
 }
+
 try {
   for (const viewport of [
     ...(shellReachabilityOnly
@@ -1294,9 +1421,13 @@ try {
         await editor.getByRole('textbox', { name: 'Name', exact: true }).fill(name)
         const heading = editor.getByRole('heading', { name, level: 2, exact: true })
         await heading.waitFor()
-        await openNativeSample(editor)
-        await editor.getByRole('button', { name: 'Run native sample', exact: true }).click()
-        const chronicle = editor
+        const definition = (await inspectBasics(page)).records.find(
+          (row) => row.id === 'unarmed.basic',
+        ).current.definition
+        const reader = await basicParityReader(page, { ...definition, name })
+        await openNativeSample(reader)
+        await reader.getByRole('button', { name: 'Run native sample', exact: true }).click()
+        const chronicle = reader
           .getByTestId('battle-log-feed')
           .getByRole('heading', { name, level: 4, exact: true })
         await chronicle.waitFor()
@@ -1321,6 +1452,7 @@ try {
           selectedEditorHeadingCount: 1,
           chronicleVisible: true,
         })
+        await hideBasicParity(page)
       }
       assert.deepEqual(errors, [])
       await page.close()

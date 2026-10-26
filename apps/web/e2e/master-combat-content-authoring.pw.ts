@@ -109,12 +109,43 @@ function publishedMediaHooks(payload: unknown): {
   return { iconKey, audioCueKey }
 }
 
-function currentVersionFromText(value: string | null): number {
-  const match = value?.match(/Current\s*v(\d+)/)
-  const version = match ? Number(match[1]) : Number.NaN
-  if (!positiveInteger(version))
-    throw new TypeError('Master Panel did not render a current version.')
-  return version
+async function readContentRecord(page: Page, key?: string): Promise<Record<string, unknown>> {
+  const contentKey =
+    key ??
+    (await page.locator('[data-content-key][aria-current="true"]').getAttribute('data-content-key'))
+  if (!contentKey) throw new Error('No selected complete content record.')
+  const response = await page.request.post('/api/master/combat-content', {
+    data: { operation: 'record', command: { action: 'read', contentKey } },
+  })
+  expect(response.status()).toBe(200)
+  const payload: unknown = await response.json()
+  if (!isRecord(payload) || !isRecord(payload.record))
+    throw new Error('Missing authoritative complete content record.')
+  return payload.record
+}
+async function currentContentVersion(page: Page, key?: string): Promise<number> {
+  return publishedVersion({ record: await readContentRecord(page, key) })
+}
+async function verifyAuthoringServices(page: Page, before: unknown, after: unknown) {
+  // These service operations remain supported, while the editor now commits in one step.
+  const results: Record<string, Record<string, unknown>> = {}
+  for (const [operation, fields] of [
+    ['validate', { definition: after }],
+    ['diff', { before, after }],
+    ['preview', { definition: after }],
+  ] as const) {
+    const response = await page.request.post('/api/master/combat-content', {
+      data: { operation, ...fields },
+    })
+    expect(response.status()).toBe(200)
+    const payload: unknown = await response.json()
+    if (!isRecord(payload)) throw new Error('Invalid authoring service response.')
+    const value = payload[operation === 'validate' ? 'validation' : operation]
+    if (!isRecord(value)) throw new Error('Missing authoring service result.')
+    results[operation] = value
+  }
+  expect(results.validate!.valid).toBe(true)
+  return { diff: results.diff!, preview: results.preview! }
 }
 
 function escapeSqlLiteral(value: string): string {
@@ -328,7 +359,7 @@ function isMasterOperationResponse(response: Response, operation: string): boole
       operation?: unknown
       command?: { action?: unknown }
     }
-    return ['save', 'publish', 'restore'].includes(operation)
+    return ['commit', 'restore'].includes(operation)
       ? body.operation === 'record' && body.command?.action === operation
       : body.operation === operation
   } catch {
@@ -341,16 +372,7 @@ async function runMasterOperation(
   operation: string,
   buttonName: string,
 ): Promise<unknown> {
-  if (operation === 'preview') {
-    const details = page
-      .locator('details')
-      .filter({ has: page.locator('summary').filter({ hasText: /^Native sample$/ }) })
-    if ((await details.getAttribute('open')) === null) await details.locator('summary').click()
-  }
-  const button = page.getByRole('button', {
-    name: operation === 'preview' ? 'Run native sample' : buttonName,
-    exact: true,
-  })
+  const button = page.getByRole('button', { name: buttonName, exact: true })
   await expect(button).toBeEnabled()
   const pending = page.waitForResponse((response) => isMasterOperationResponse(response, operation))
   await button.click()
@@ -371,7 +393,7 @@ async function selectContentRecord(page: Page, key: string, category = 'skill'):
   await page.getByRole('button', { name: 'Search', exact: true }).click()
   expect((await pending).status()).toBe(200)
   await page.locator(`[data-content-key="${key}"]`).click()
-  await expect(page.getByRole('button', { name: 'Save draft', exact: true })).toBeEnabled()
+  await expect(page.getByRole('button', { name: 'Commit Now', exact: true })).toBeEnabled()
 }
 async function expectSelectedContentHeading(page: Page, name: string): Promise<void> {
   const heading = page
@@ -384,18 +406,47 @@ async function selectAuthoringSkill(page: Page): Promise<void> {
   await selectContentRecord(page, SKILL_ID)
   await expectSelectedContentHeading(page, 'Forceful Strike')
 }
-async function publishSaved(page: Page): Promise<unknown> {
-  await runMasterOperation(page, 'save', 'Save draft')
-  return runMasterOperation(page, 'publish', 'Publish saved draft')
+async function commitContent(page: Page): Promise<unknown> {
+  return runMasterOperation(page, 'commit', 'Commit Now')
 }
-async function restoreAndPublish(page: Page, version: number): Promise<unknown> {
-  await page.getByRole('button', { name: 'History', exact: true }).click()
-  await runMasterOperation(page, 'restore', `Restore version ${version} to draft`)
-  const before = currentVersionFromText(
-    await page.getByLabel('Content version state').textContent(),
+async function restorePreviousAndCommit(page: Page, version: number): Promise<unknown> {
+  const before = await readContentRecord(page)
+  if (
+    !isRecord(before.current) ||
+    !Array.isArray(before.history) ||
+    typeof before.contentKey !== 'string'
   )
-  const payload = await runMasterOperation(page, 'publish', 'Publish saved draft')
-  expect(publishedVersion(payload)).toBeGreaterThan(before)
+    throw new Error('Missing current/history snapshots.')
+  const previous = before.history
+    .filter(
+      (row): row is Record<string, unknown> =>
+        isRecord(row) &&
+        row.contentVersion !== (before.current as Record<string, unknown>).contentVersion,
+    )
+    .sort((a, b) => Number(b.contentVersion) - Number(a.contentVersion))[0]
+  expect(previous?.contentVersion).toBe(version)
+  const immutableHistorySql = `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(before.contentKey)}';`
+  const immutableHistory = queryLocalDatabase(immutableHistorySql)
+  await page.getByRole('button', { name: 'History', exact: true }).click()
+  const history = page.getByRole('region', { name: 'Content history', exact: true })
+  await history
+    .locator('summary')
+    .filter({ hasText: /^Previous settings$/ })
+    .click()
+  const restored = await runMasterOperation(page, 'restore', 'Restore Previous')
+  if (!isRecord(restored) || !isRecord(restored.record) || !isRecord(restored.record.draft))
+    throw new Error('Missing restored complete draft.')
+  expect(restored.record.draft.restoredFrom).toBe(version)
+  expect(restored.record.draft.definition).toEqual(previous!.definition)
+  expect(publishedVersion(restored)).toBe(publishedVersion({ record: before }))
+  expect(queryLocalDatabase(immutableHistorySql)).toBe(immutableHistory)
+  await expect(
+    page.getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
+      exact: true,
+    }),
+  ).toBeVisible()
+  const payload = await commitContent(page)
+  expect(publishedVersion(payload)).toBeGreaterThan(publishedVersion({ record: before }))
   return payload
 }
 
@@ -460,9 +511,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
     })
     await expect(ownerRow).toHaveCount(1)
     await expect(ownerRow.getByText('Game Owner', { exact: true }).last()).toBeVisible()
-    await expect(
-      ownerRow.getByText('Global administration · protected Owner', { exact: true }),
-    ).toBeVisible()
+    await expect(ownerRow.getByText('owner', { exact: true })).toBeVisible()
     await expect(ownerRow.getByText('Protected', { exact: true })).toBeVisible()
     await expect(ownerRow.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0)
     await expect(ownerRow.getByRole('button', { name: 'Revoke', exact: true })).toHaveCount(0)
@@ -475,7 +524,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
     await equipAuthoringSkill(page)
     await page.goto('/master/combat-content')
     await selectAuthoringSkill(page)
-    const baselinePublication = await publishSaved(page)
+    const baselinePublication = await commitContent(page)
 
     const oldBattlePayload = await launchRecruitBattle(page)
     const oldBattle = battleIdentity(oldBattlePayload)
@@ -486,8 +535,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
     await expect(page.getByRole('heading', { name: 'Game Content', exact: true })).toBeVisible()
     await selectAuthoringSkill(page)
 
-    const versionState = page.locator('[aria-label="Content version state"]')
-    expect(currentVersionFromText(await versionState.textContent())).toBe(oldVersion)
+    expect(await currentContentVersion(page)).toBe(oldVersion)
 
     const apInput = page.getByLabel('Action Economy (AP)')
     const originalAp = Number(await apInput.inputValue())
@@ -495,7 +543,11 @@ test('Master combat authoring publishes versioned content, pins battles, and res
     const nextAp = originalAp === 100 ? 99 : originalAp + 1
     await apInput.fill(String(nextAp))
 
-    await page.getByRole('button', { name: 'Media', exact: true }).click()
+    await page.getByRole('button', { name: 'Parameters', exact: true }).click()
+    await page
+      .locator('summary')
+      .filter({ hasText: /^Artwork and sound$/ })
+      .click()
     await page.getByLabel('Skill artwork hook').selectOption('skill.lifebinder.mend.icon')
     const artworkPreview = page.getByLabel('Skill artwork preview').locator('img')
     await expect(artworkPreview).toHaveAttribute(
@@ -511,21 +563,17 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       /ironfist-action-v02-1\.wav$/,
     )
 
-    await runMasterOperation(page, 'validate', 'Validate')
-    await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
-
-    await runMasterOperation(page, 'diff', 'Diff')
-    const diff = page.locator('section[aria-label="Semantic diff"]')
-    await expect(diff).toContainText('apCost')
-    await expect(diff).toContainText('media.iconKey')
-    await expect(diff).toContainText('media.audioCueKey')
-
-    await runMasterOperation(page, 'preview', 'Preview')
-    const preview = page.locator('section[aria-label="Deterministic preview"]')
-    await expect(preview).toContainText('Legal in fixture')
-    await expect(preview).toContainText(`${nextAp} AP`)
-
-    const publishPayload = await publishSaved(page)
+    const publishPayload = await commitContent(page)
+    const services = await verifyAuthoringServices(
+      page,
+      publishedSnapshot(baselinePublication).definition,
+      publishedSnapshot(publishPayload).definition,
+    )
+    expect(services.diff.changedPaths).toEqual(
+      expect.arrayContaining(['apCost', 'media.iconKey', 'media.audioCueKey']),
+    )
+    expect(services.preview.legal).toBe(true)
+    expect(services.preview.costs).toMatchObject({ actionEconomy: nextAp })
     const newVersion = publishedVersion(publishPayload)
     expect(newVersion).toBeGreaterThan(oldVersion)
     expect(publishedMediaHooks(publishPayload)).toEqual({
@@ -533,9 +581,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       audioCueKey: 'skill.ironfist.breakfall.audio',
     })
 
-    await expect
-      .poll(async () => currentVersionFromText(await versionState.textContent()))
-      .toBe(newVersion)
+    await expect.poll(() => currentContentVersion(page)).toBe(newVersion)
 
     const oldBattleAfterPublication = await readBattle(page, oldBattle.battleSessionId)
     expect(pinnedSkillVersion(oldBattleAfterPublication, SKILL_ID)).toBe(oldVersion)
@@ -562,21 +608,23 @@ test('Master combat authoring publishes versioned content, pins battles, and res
 
     await page.goto('/master/combat-content')
     await selectAuthoringSkill(page)
-    await expect
-      .poll(async () => currentVersionFromText(await versionState.textContent()))
-      .toBe(newVersion)
+    await expect.poll(() => currentContentVersion(page)).toBe(newVersion)
 
-    const restoredPublication = await restoreAndPublish(page, oldVersion)
+    const restoredPublication = await restorePreviousAndCommit(page, oldVersion)
     expect(publishedSnapshot(restoredPublication).definition).toEqual({
       ...(publishedSnapshot(baselinePublication).definition as Record<string, unknown>),
       contentVersion: publishedVersion(restoredPublication),
     })
-    await expect(page.getByRole('list', { name: 'Publication history' })).toContainText(
-      `Version ${newVersion}`,
-    )
-    await expect(page.getByRole('list', { name: 'Publication history' })).toContainText(
-      `Version ${oldVersion}`,
-    )
+    await expect(
+      page
+        .getByRole('region', { name: 'Content history', exact: true })
+        .getByRole('heading', { level: 4 }),
+    ).toHaveText(['Current', 'Previous'])
+    expect(
+      queryLocalDatabase(
+        `select count(*) from app_private.combat_content_versions where content_key='${escapeSqlLiteral(SKILL_ID)}' and content_version in (${newVersion},${oldVersion});`,
+      ),
+    ).toBe('2')
 
     const newBattleAfterRestore = await readBattle(page, newBattle.battleSessionId)
     expect(pinnedSkillVersion(newBattleAfterRestore, SKILL_ID)).toBe(newVersion)
@@ -597,38 +645,37 @@ test('Master combat authoring publishes versioned content, pins battles, and res
         await expectSelectedContentHeading(page, 'Gash')
       }
       await selectGash()
-      const gashBaseline = await publishSaved(page)
+      const gashBaseline = await commitContent(page)
       const oldGashVersion = publishedVersion(gashBaseline)
       const percentage = page.getByLabel('Damage per tick (% of attack damage)', { exact: true })
       const oldPercentage = await percentage.inputValue()
       await percentage.fill('12.34')
-      await runMasterOperation(page, 'validate', 'Validate')
-      await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
-      await runMasterOperation(page, 'diff', 'Diff')
-      await expect(page.locator('section[aria-label="Semantic diff"]')).toContainText('effects')
-      await runMasterOperation(page, 'preview', 'Preview')
-      const percentagePublication = await publishSaved(page)
+      const percentagePublication = await commitContent(page)
+      const percentageServices = await verifyAuthoringServices(
+        page,
+        publishedSnapshot(gashBaseline).definition,
+        publishedSnapshot(percentagePublication).definition,
+      )
+      expect(percentageServices.diff.changedPaths).toContain('effects')
       expect(publishedBleedBasisPoints(percentagePublication)).toBe(1234)
       const percentageVersion = publishedVersion(percentagePublication)
       expect(percentageVersion).toBeGreaterThan(oldGashVersion)
       await page.reload()
       await selectGash()
-      expect(currentVersionFromText(await versionState.textContent())).toBe(percentageVersion)
+      expect(await currentContentVersion(page)).toBe(percentageVersion)
       await expect(percentage).toHaveValue('12.34')
       await percentage.scrollIntoViewIfNeeded()
       if (width === 390) {
         const fieldBox = await percentage.boundingBox()
-        const reviewBox = await page
-          .getByRole('complementary', { name: 'Content previews', exact: true })
-          .boundingBox()
         expect(fieldBox).not.toBeNull()
-        expect(reviewBox).not.toBeNull()
-        expect(reviewBox!.y).toBeGreaterThanOrEqual(fieldBox!.y + fieldBox!.height)
+        await expect(
+          page.getByRole('complementary', { name: 'Content previews', exact: true }),
+        ).toHaveCount(0)
         expect(fieldBox!.x).toBeGreaterThanOrEqual(0)
         expect(fieldBox!.x + fieldBox!.width).toBeLessThanOrEqual(width)
       }
       await page.screenshot({ path: testInfo.outputPath(`master-percentage-${width}.png`) })
-      const gashRestore = await restoreAndPublish(page, oldGashVersion)
+      const gashRestore = await restorePreviousAndCommit(page, oldGashVersion)
       expect(publishedSnapshot(gashRestore).definition).toEqual({
         ...(publishedSnapshot(gashBaseline).definition as Record<string, unknown>),
         contentVersion: publishedVersion(gashRestore),
@@ -652,7 +699,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
         await expectSelectedContentHeading(page, 'Flame Burst')
       }
       await selectFlame()
-      const flameBaseline = await publishSaved(page)
+      const flameBaseline = await commitContent(page)
       const oldFlameVersion = publishedVersion(flameBaseline)
       const duration = page.getByLabel('Ground duration (rounds)', { exact: true })
       const preset = page.getByLabel('Ground animation', { exact: true })
@@ -668,20 +715,23 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       await duration.fill('4')
       await preset.selectOption('frost')
       await backlash.fill('12.34')
-      await runMasterOperation(page, 'validate', 'Validate')
-      await expect(page.locator('[data-validation-state="valid"]')).toContainText('Validated')
-      await runMasterOperation(page, 'diff', 'Diff')
-      const groundDiff = page.locator('section[aria-label="Semantic diff"]')
-      await expect(groundDiff).toContainText('groundArea.durationRounds')
-      await expect(groundDiff).not.toContainText('groundArea.timing')
-      await expect(groundDiff).toContainText('groundArea.visualPresetId')
-      // Semantic array diffs identify the effects field; publication checks exact Burn values.
-      await expect(groundDiff).toContainText('effects')
-      await runMasterOperation(page, 'preview', 'Preview')
-      await expect(page.locator('section[aria-label="Deterministic preview"]')).toContainText(
-        'Ground',
+      const publication = await commitContent(page)
+      const groundServices = await verifyAuthoringServices(
+        page,
+        publishedSnapshot(flameBaseline).definition,
+        publishedSnapshot(publication).definition,
       )
-      const publication = await publishSaved(page)
+      expect(groundServices.diff.changedPaths).toEqual(
+        expect.arrayContaining([
+          'groundArea.durationRounds',
+          'groundArea.visualPresetId',
+          'effects',
+        ]),
+      )
+      expect(groundServices.diff.changedPaths).not.toContain('groundArea.timing')
+      expect(groundServices.preview.groundAreas).toEqual(
+        expect.arrayContaining([expect.objectContaining({ visualPresetId: 'frost' })]),
+      )
       expect({ published: publishedSnapshot(publication) }).toMatchObject({
         published: {
           definition: {
@@ -696,7 +746,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       expect(flameVersion).toBeGreaterThan(oldFlameVersion)
       await page.reload()
       await selectFlame()
-      expect(currentVersionFromText(await versionState.textContent())).toBe(flameVersion)
+      expect(await currentContentVersion(page)).toBe(flameVersion)
       await expect(duration).toHaveValue('4')
       await expect(preset).toHaveValue('frost')
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
@@ -770,7 +820,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       ).toBe('0')
       await page.goto('/master/combat-content')
       await selectFlame()
-      const flameRestore = await restoreAndPublish(page, oldFlameVersion)
+      const flameRestore = await restorePreviousAndCommit(page, oldFlameVersion)
       expect(publishedSnapshot(flameRestore).definition).toEqual({
         ...(publishedSnapshot(flameBaseline).definition as Record<string, unknown>),
         contentVersion: publishedVersion(flameRestore),
@@ -816,7 +866,8 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       await fields[0].fill('0')
       await fields[1].fill('0')
       await fields[2].fill('99')
-      await expect(submit).toBeDisabled()
+      await expect(submit).toBeEnabled()
+      await expect(editor).not.toContainText('Total:')
       await fields[2].fill('100')
       await expect(submit).toBeEnabled()
       const publishedResponse = page.waitForResponse(
@@ -839,6 +890,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
         data: {
           policy: {
             version: originalVersion,
+            model: 'independent-highest',
             level1BasisPoints: 0,
             level2BasisPoints: 0,
             level3BasisPoints: 10000,
@@ -864,6 +916,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       const newSnapshot = snapshotOf(newPayload)
       expect(newSnapshot.battlefieldElevationPolicy).toEqual({
         version: publishedBody.policy.version,
+        model: 'independent-highest',
         level1BasisPoints: 0,
         level2BasisPoints: 0,
         level3BasisPoints: 10000,
@@ -928,8 +981,12 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
     grantLocalMasterOperator(email)
     await page.goto('/master/combat-content')
     await selectContentRecord(page, 'basic.guard', 'basic')
-    await page.getByRole('button', { name: 'Media', exact: true }).click()
-    const panel = page.getByRole('group', { name: 'Uploaded media', exact: true })
+    await page.getByRole('button', { name: 'Parameters', exact: true }).click()
+    await page
+      .locator('summary')
+      .filter({ hasText: /^Artwork and sound$/ })
+      .click()
+    const panel = page.getByRole('group', { name: /^Artwork and sound/ })
     const input = panel.getByLabel('Upload content media')
     // Four real RGBA pixels: selecting y=0 versus y=1 must change the final pixel/hash.
     const sharp = (await import('sharp')).default
@@ -946,7 +1003,7 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
           response.request().method() === 'POST' &&
           new URL(response.url()).pathname === '/api/master/combat-content/media',
       )
-      await panel.getByRole('button', { name: 'Finalize upload', exact: true }).click()
+      await panel.getByRole('button', { name: 'Upload file', exact: true }).click()
       const response = await pending
       expect(response.status()).toBe(200)
       return (await response.json()).media as {
@@ -1083,17 +1140,17 @@ test('all five independent Basic originals restore through the mounted complete 
       await page.getByRole('button', { name: 'Text', exact: true }).click()
       const name = page.getByRole('textbox', { name: 'Name', exact: true })
       await name.fill(`${original.name} integration edit`)
-      const edited = await publishSaved(page)
+      const edited = await commitContent(page)
       const version = publishedVersion(edited)
       const physicalBefore = queryLocalDatabase(
         `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(original.id)}';`,
       )
       await page.getByRole('button', { name: 'History', exact: true }).click()
-      const restored = await runMasterOperation(
-        page,
-        'restore',
-        'Restore System original v1 to draft',
-      )
+      await page
+        .locator('summary')
+        .filter({ hasText: /^System original$/ })
+        .click()
+      const restored = await runMasterOperation(page, 'restore', 'Restore System original')
       expect(
         isRecord(restored) && isRecord(restored.record) && isRecord(restored.record.draft),
       ).toBe(true)
@@ -1106,7 +1163,7 @@ test('all five independent Basic originals restore through the mounted complete 
           `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(original.id)}';`,
         ),
       ).toBe(physicalBefore)
-      const published = await runMasterOperation(page, 'publish', 'Publish saved draft')
+      const published = await commitContent(page)
       expect(publishedVersion(published)).toBeGreaterThan(version)
       expect(publishedSnapshot(published)).toMatchObject({
         restoredFrom: 1,
@@ -1115,7 +1172,23 @@ test('all five independent Basic originals restore through the mounted complete 
         authoredAt: null,
       })
       await page.getByRole('button', { name: 'History', exact: true }).click()
-      await expect(page.getByLabel('Publication history')).toContainText('Authored by System')
+      const currentRecord = await readContentRecord(page, original.id)
+      expect(currentRecord.current).toMatchObject({
+        authoredBy: null,
+        authoredAt: null,
+        restoredFrom: 1,
+        restoredSource: 'builtin',
+      })
+      expect(
+        queryLocalDatabase(
+          `select count(*) from app_private.combat_content_versions where content_key='${escapeSqlLiteral(original.id)}' and content_version=${version};`,
+        ),
+      ).toBe('1')
+      await expect(
+        page
+          .getByRole('region', { name: 'Content history', exact: true })
+          .getByRole('heading', { level: 4 }),
+      ).toHaveText(['Current', 'Previous'])
       await page.screenshot({
         path: testInfo.outputPath(`master-original-${original.id}.png`),
         fullPage: true,

@@ -5,7 +5,13 @@ const staff = '22222222-2222-4222-8222-222222222222'
 it('parses only canonical authoritative live access', async () => {
   const store = new RpcMasterPanelStaffAccessStore(async () => ({
     data: [
-      { user_id: staff, access_version: '2', roles: ['content-staff'], special_capabilities: [] },
+      {
+        user_id: staff,
+        access_version: '2',
+        roles: ['content-staff'],
+        special_capabilities: [],
+        effective_capabilities: ['master.access'],
+      },
     ],
     error: null,
   }))
@@ -14,6 +20,7 @@ it('parses only canonical authoritative live access', async () => {
     accessVersion: 2,
     roles: ['content-staff'],
     specialCapabilities: [],
+    effectiveCapabilities: ['master.access'],
   })
   const invalid = new RpcMasterPanelStaffAccessStore(async () => ({
     data: [
@@ -67,4 +74,58 @@ it('maps authoritative denial, stale CAS and malformed identity records safely',
   await expect(store.resolveIdentity('owner', 'Chosen')).rejects.toMatchObject({
     code: 'PERSISTENCE_UNAVAILABLE',
   })
+})
+
+it('reads and saves authoritative role defaults through Owner-only revision RPCs', async () => {
+  const defaults = {
+    revision: 3,
+    roles: { moderator: ['master.access'], 'content-staff': [], 'event-staff': ['events.author'] },
+  }
+  const rpc = vi.fn(async () => ({ data: defaults, error: null }))
+  const store = new RpcMasterPanelStaffAccessStore(rpc)
+  expect(await store.readRoleDefaults('owner')).toEqual(defaults)
+  expect(rpc).toHaveBeenLastCalledWith('read_master_panel_role_defaults_v1', {
+    p_actor_user_id: 'owner',
+  })
+  expect(
+    await store.saveRoleDefaults({
+      actorUserId: 'owner',
+      expectedRevision: 2,
+      roles: defaults.roles,
+    }),
+  ).toEqual(defaults)
+  expect(rpc).toHaveBeenLastCalledWith('save_master_panel_role_defaults_v1', {
+    p_actor_user_id: 'owner',
+    p_expected_revision: 2,
+    p_roles: defaults.roles,
+  })
+  const invalid = new RpcMasterPanelStaffAccessStore(async () => ({
+    data: { ...defaults, roles: { ...defaults.roles, moderator: ['staff.manage'] } },
+    error: null,
+  }))
+  await expect(invalid.readRoleDefaults('owner')).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+})
+it('rejects missing or noncanonical authoritative capability snapshots', async () => {
+  for (const effective of [
+    undefined,
+    ['staff.manage'],
+    ['invented'],
+    ['master.access', 'master.access'],
+  ]) {
+    const store = new RpcMasterPanelStaffAccessStore(async () => ({
+      data: [
+        {
+          user_id: staff,
+          access_version: 2,
+          roles: ['moderator'],
+          special_capabilities: [],
+          effective_capabilities: effective,
+        },
+      ],
+      error: null,
+    }))
+    await expect(store.readAccess(staff)).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+  }
 })

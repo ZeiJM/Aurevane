@@ -358,3 +358,22 @@ it('reports an actual playback rejection and does not report hidden-tab suppress
   expect(play).not.toHaveBeenCalled()
   expect(rejected).not.toHaveBeenCalled()
 })
+
+it('retains unassigned songs across parsing and preserves legacy assigned songs in the library', () => {
+  const config = createDefaultSiteMusicConfig()
+  const spare = { ...config.defaultTrack, label: 'For later', url: '/later.mp3' }
+  const saved = parseSiteMusicDraft({ ...config, songLibrary: [config.defaultTrack, spare] })
+  expect(saved.songLibrary).toEqual([config.defaultTrack, spare])
+  expect(parseSiteMusicDraft(config).songLibrary).toEqual([config.defaultTrack])
+  expect(resolveSiteMusicTrack({ ...saved, revision: 2, updatedAt: null }, '/')).toEqual(
+    config.defaultTrack,
+  )
+})
+
+it('rejects deleting an assigned song and permits removing an unassigned song', () => {
+  const config = createDefaultSiteMusicConfig()
+  expect(() => parseSiteMusicDraft({ ...config, songLibrary: [] })).toThrow(/assigned/i)
+  expect(
+    parseSiteMusicDraft({ ...config, songLibrary: [config.defaultTrack] }).songLibrary,
+  ).toEqual([config.defaultTrack])
+})

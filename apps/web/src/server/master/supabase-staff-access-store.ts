@@ -8,6 +8,10 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 import {
   isMasterPanelRole,
+  MASTER_PANEL_CAPABILITIES,
+  isMasterPanelRoleDefaultsRoles,
+  type MasterPanelRoleDefaults,
+  type SaveMasterPanelRoleDefaultsInput,
   isMasterPanelSpecialCapability,
   type SetCharacterStaffAccessInput,
   type MasterPanelAccessRecord,
@@ -59,6 +63,14 @@ function parseAccessRow(row: JsonObject, expectedUserId?: string): MasterPanelAc
   const accessVersion = positiveBigintAsNumber(row.access_version)
   const roles = parseRoles(row.roles)
   const specialCapabilities = parseSpecialCapabilities(row.special_capabilities)
+  const effectiveCapabilities = row.effective_capabilities
+  if (
+    !Array.isArray(effectiveCapabilities) ||
+    !effectiveCapabilities.every((value) => MASTER_PANEL_CAPABILITIES.includes(value)) ||
+    new Set(effectiveCapabilities).size !== effectiveCapabilities.length ||
+    (!roles?.includes('game-owner') && effectiveCapabilities.includes('staff.manage'))
+  )
+    return null
   if (
     typeof row.user_id !== 'string' ||
     (expectedUserId !== undefined && row.user_id !== expectedUserId) ||
@@ -74,7 +86,15 @@ function parseAccessRow(row: JsonObject, expectedUserId?: string): MasterPanelAc
     accessVersion,
     roles,
     specialCapabilities,
+    effectiveCapabilities,
   }
+}
+
+function parseRoleDefaults(value: unknown): MasterPanelRoleDefaults {
+  if (!isObject(value)) return invalidPayload()
+  const revision = positiveBigintAsNumber(value.revision)
+  if (!revision || !isMasterPanelRoleDefaultsRoles(value.roles)) return invalidPayload()
+  return { revision, roles: value.roles }
 }
 
 function parseStaffList(data: unknown): readonly MasterPanelStaffSummary[] {
@@ -130,7 +150,7 @@ function mapRpcError(error: RpcError): never {
       cause: error,
     })
   }
-  if (error.code === '40001')
+  if (error.code === '40001' || error.code === 'PT409')
     throw new AurevaneError('STALE_VERSION', 'Refresh Staff & Access before editing again.')
   if (
     error.code === '22023' ||
@@ -181,7 +201,7 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
   }
 
   async readAccess(userId: string): Promise<MasterPanelAccessRecord | null> {
-    const { data, error } = await this.#rpc('read_master_panel_access_v1', {
+    const { data, error } = await this.#rpc('read_master_panel_access_v2', {
       p_user_id: userId,
     })
     if (error) mapRpcError(error)
@@ -195,6 +215,25 @@ export class RpcMasterPanelStaffAccessStore implements MasterPanelStaffAccessSto
       )
     }
     return parsed
+  }
+
+  async readRoleDefaults(actorUserId: string): Promise<MasterPanelRoleDefaults> {
+    const { data, error } = await this.#rpc('read_master_panel_role_defaults_v1', {
+      p_actor_user_id: actorUserId,
+    })
+    if (error) mapRpcError(error)
+    return parseRoleDefaults(data)
+  }
+  async saveRoleDefaults(
+    input: SaveMasterPanelRoleDefaultsInput,
+  ): Promise<MasterPanelRoleDefaults> {
+    const { data, error } = await this.#rpc('save_master_panel_role_defaults_v1', {
+      p_actor_user_id: input.actorUserId,
+      p_expected_revision: input.expectedRevision,
+      p_roles: input.roles,
+    })
+    if (error) mapRpcError(error)
+    return parseRoleDefaults(data)
   }
 
   async listStaff(actorUserId: string): Promise<readonly MasterPanelStaffSummary[]> {
