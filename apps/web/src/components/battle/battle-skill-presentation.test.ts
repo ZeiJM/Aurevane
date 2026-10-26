@@ -228,3 +228,12 @@ describe('battle skill artwork presentation', () => {
     expect(battleResonanceArtwork('future.resonance')).toBe(BATTLE_MISSING_ARTWORK)
   })
 })
+it('resolves exact finalized artwork identity through the gated immutable media reader', () => {
+  const id = '00000000-0000-4000-8000-000000000012'
+  expect(battleSkillArtwork('basic.recover.mp', `content-media.${id}`)).toBe(
+    `/api/content-media/${id}`,
+  )
+  expect(battleSkillArtwork('basic.recover.mp', 'content-media.https://evil.test')).toBe(
+    '/media/skills/mp-recovery-dark-fantasy-v1.webp',
+  )
+})

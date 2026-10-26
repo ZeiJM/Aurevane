@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import {
+  skillDisplayName,
   compactSkillEffectSummaryParts,
   skillCompactRangeDescription,
   skillCooldownDescription,
@@ -696,4 +697,10 @@ it('shows both intents for current Flame Burst while preserving its captured Gro
     ).Target,
   ).toBe('Ground · Enemies only · Steam: both teams')
   expect(JSON.stringify(skill)).toBe(before)
+})
+
+it('uses an authored display name without changing the stable Skill identity', () => {
+  const original = resolveMatureSkillVersion('vanguard.forceful-strike')!
+  expect(skillDisplayName({ ...original, name: 'A chosen name' })).toBe('A chosen name')
+  expect(skillDisplayName(original)).toBe('Forceful Strike')
 })

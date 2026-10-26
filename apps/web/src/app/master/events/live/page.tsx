@@ -1,5 +1,5 @@
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
-import { EventOperationsClient } from '@/components/master/events/event-operations-client'
+import { EventWorkspaceClient } from '@/components/master/events/event-workspace-client'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 import { hasMasterPanelCapability } from '@/server/master/staff-access'
 
@@ -11,12 +11,15 @@ export default async function MasterEventOperationsPage() {
   return (
     <MasterPanelShell
       access={access}
-      activeSection="live-events"
-      title="Live Event Operations"
+      activeSection="events"
+      title="Events & Live Ops"
       description="Monitor and operate authoritative Event Runs, phases, cleanup, recovery, rewards, and Chronicle closure."
     >
-      <EventOperationsClient
+      <EventWorkspaceClient
+        canPublish={hasMasterPanelCapability(access, 'events.production_publish')}
+        canUseGlobalScope={hasMasterPanelCapability(access, 'events.global_scope')}
         canEmergencyStop={hasMasterPanelCapability(access, 'events.emergency_stop')}
+        initialView="live"
       />
     </MasterPanelShell>
   )

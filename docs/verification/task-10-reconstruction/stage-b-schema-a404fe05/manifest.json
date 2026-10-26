@@ -1,0 +1,79 @@
+{
+  "local_source": "a404fe050246a415c2ae7a6b8a86744d97cd9e11",
+  "remote_source": "670d87839bdae19fc4ba9859772b9dcc3986586f",
+  "prior_rows_unchanged": 138,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-discipline-envelope-red.log",
+      "file": "b-discipline-envelope-red.log.gz",
+      "bytes": 4618,
+      "sha256": "45ff0a51b2a2c13faa4e8f0d623931d8579b376b2689ae39a16ab34cfb4a492d",
+      "gzip_sha256": "20090cc8a2b196717d74fa7bb9eb01a4f9f44b8afd77a54b7a81ab3b433c559e",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-discipline-envelope-green.log",
+      "file": "b-discipline-envelope-green.log.gz",
+      "bytes": 3544,
+      "sha256": "a7ad32acc19f67d587be05b189a346a05efd21e2d9e630ed1caf3f6f4e0cf62a",
+      "gzip_sha256": "e9d4ebe63607c0f0da53c90e275a0d7ca64bc809caa27f3fb4fed04775f0e27d",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-migration-cli-help.log",
+      "file": "b-migration-cli-help.log.gz",
+      "bytes": 2163,
+      "sha256": "bf004e748d6c82647b41ab75cfb85551aa308d284262ffd5c2035cfc1b43e6a0",
+      "gzip_sha256": "01da70d4a2e4e40465a351fbe83a6c0652e3685da08f4f5a4a3dbda7bd4f1f7c",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-migration-create.log",
+      "file": "b-migration-create.log.gz",
+      "bytes": 169,
+      "sha256": "79a0316fdb2a1a5b61f368b3f635ca2844ea029ed69590e33e390f3b47846bd7",
+      "gzip_sha256": "40413ce07a3c3f9882abfe22f5257eb9adf22663dddc553b47600ad57841c1e1",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-discipline-sql-red.log",
+      "file": "b-discipline-sql-red.log.gz",
+      "bytes": 5573,
+      "sha256": "21e2cfe43b7d46c877b0db1f5691d7b36abddc281cc0b64b91114a662e2fdf5f",
+      "gzip_sha256": "3da148a8af31216957724333b5022a14ff7f2299e41fbe177eb96151ca3d3bc8",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-discipline-envelope-format.log",
+      "file": "b-discipline-envelope-format.log.gz",
+      "bytes": 118,
+      "sha256": "38543c453b962f0c20405c7c5dd795a5ef2f423eba81e77e8c6d2099be9c9870",
+      "gzip_sha256": "5db47e23dcb5b221722918db86b97d6acf4ef15dc75e1e3b9cd669ccc73827e4",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-discipline-envelope-types.log",
+      "file": "b-discipline-envelope-types.log.gz",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "gzip_sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-discipline-envelope-lint.log",
+      "file": "b-discipline-envelope-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-envelope-fresh-main.log",
+      "file": "b-envelope-fresh-main.log.gz",
+      "bytes": 91,
+      "sha256": "b766328fa61582906ce1c22c1cdcfe20780b9f71144a3a9d40dae3db9f5268e5",
+      "gzip_sha256": "d7543ee30ba64c29125516f87d9c354e94b0f1639b8da89db3a005625bdac6fc",
+      "exit": 0
+    }
+  ]
+}

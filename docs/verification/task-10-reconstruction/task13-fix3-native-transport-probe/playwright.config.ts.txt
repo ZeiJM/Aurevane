@@ -1,0 +1,2 @@
+import base from "/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025/apps/web/playwright.config.ts"
+export default {...base,testDir:"/tmp/task13-n7-transport",webServer:undefined,outputDir:"/tmp/task13-n7-transport/results",projects:base.projects?.filter(p=>['desktop-chromium','mobile-chromium'].includes(p.name!))}

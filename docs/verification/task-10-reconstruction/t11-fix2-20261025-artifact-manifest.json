@@ -1,0 +1,372 @@
+{
+  "preservedPrefixBytes": 388384,
+  "preservedPrefixSha256": "a618117d032563fe3bd8f50320d71a280685fc9b1ba515c50de7d98c6abdfb28",
+  "preservedTrackedEvidenceFiles": 716,
+  "verifiedReceipts": 15,
+  "artifacts": [
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-0.png",
+      "sha256": "d80ee600afc2b4b8d8a753abbc0ee73ce821cbf60884d4818df98f6e24f66662"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-1.png",
+      "sha256": "d80ee600afc2b4b8d8a753abbc0ee73ce821cbf60884d4818df98f6e24f66662"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-2.png",
+      "sha256": "45e69f79d96bfa382362455d81354aaefcfb41a58ceabbca6d74d530e71db228"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-3.png",
+      "sha256": "45e69f79d96bfa382362455d81354aaefcfb41a58ceabbca6d74d530e71db228"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-4.png",
+      "sha256": "c5dcb1e00fd9b4810c9d7a978758f222c6f32ebd7267613bcb30ec43806829d5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-5.png",
+      "sha256": "c5dcb1e00fd9b4810c9d7a978758f222c6f32ebd7267613bcb30ec43806829d5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-6.png",
+      "sha256": "d2564de58857eaac6ed8975b61e1f09afa8d371f4e3d1589d8d5582773f742a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green1/geometry-390-7.png",
+      "sha256": "d2564de58857eaac6ed8975b61e1f09afa8d371f4e3d1589d8d5582773f742a2"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-0.png",
+      "sha256": "d80ee600afc2b4b8d8a753abbc0ee73ce821cbf60884d4818df98f6e24f66662"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-1.png",
+      "sha256": "d80ee600afc2b4b8d8a753abbc0ee73ce821cbf60884d4818df98f6e24f66662"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-2.png",
+      "sha256": "45e69f79d96bfa382362455d81354aaefcfb41a58ceabbca6d74d530e71db228"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-3.png",
+      "sha256": "45e69f79d96bfa382362455d81354aaefcfb41a58ceabbca6d74d530e71db228"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-4.png",
+      "sha256": "54c54796a8db7d82118f3baf2db2869dcdb018d3f8765202c211a505a281e0ac"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-5.png",
+      "sha256": "54c54796a8db7d82118f3baf2db2869dcdb018d3f8765202c211a505a281e0ac"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-6.png",
+      "sha256": "8d0a155895b7435fe561e7a29102d54b61b32707909ddfce7daf7aeaf8b28a9a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green2/geometry-390-7.png",
+      "sha256": "8d0a155895b7435fe561e7a29102d54b61b32707909ddfce7daf7aeaf8b28a9a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-0.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-1.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-2.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-3.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-4.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-5.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-6.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green3/geometry-390-7.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/final-320.png",
+      "sha256": "367e916df94dfee9edb6f82f72fb295df4f02a3d8288449ceb27d77195a7e0bb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/final-390.png",
+      "sha256": "c6e4fd3213ac0bdf7e2bdb2209bcbc9579177577f618d70f15a58b3a592578d6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-0.png",
+      "sha256": "25665f9c9679a4a28b825fc73354da19478810fdd63e670ba6f6424c758ca479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-1.png",
+      "sha256": "25665f9c9679a4a28b825fc73354da19478810fdd63e670ba6f6424c758ca479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-2.png",
+      "sha256": "984277c0240bb171a5c8aca21a6021a1b7fc58c5c0d85067ad186454399fa034"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-3.png",
+      "sha256": "984277c0240bb171a5c8aca21a6021a1b7fc58c5c0d85067ad186454399fa034"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-4.png",
+      "sha256": "f234e6c08218a519ecd04df0fd0437b8dcffe6d673912b1fcc589367554ad85a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-5.png",
+      "sha256": "f234e6c08218a519ecd04df0fd0437b8dcffe6d673912b1fcc589367554ad85a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-6.png",
+      "sha256": "f020e86dab97f32af4d666bba02fd0a122423077174a9e4adb262b4b6a147db6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-320-7.png",
+      "sha256": "f020e86dab97f32af4d666bba02fd0a122423077174a9e4adb262b4b6a147db6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-0.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-1.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-2.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-3.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-4.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-5.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-6.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-390-7.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green4/geometry-844-0.png",
+      "sha256": "7bd228d8816dd914fb388d6b9ddf8a365ae3354ebe4ac92e225805fd54f0e702"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/final-320.png",
+      "sha256": "db648c3921466c57e3daf72913f212bef29c2da7da2e358b68703e5533beab71"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/final-390.png",
+      "sha256": "c6e4fd3213ac0bdf7e2bdb2209bcbc9579177577f618d70f15a58b3a592578d6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/final-844.png",
+      "sha256": "fe11970db5576bcaa3accde82b798c8348c95160328985011389b3f2e93f0076"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-0.png",
+      "sha256": "25665f9c9679a4a28b825fc73354da19478810fdd63e670ba6f6424c758ca479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-1.png",
+      "sha256": "25665f9c9679a4a28b825fc73354da19478810fdd63e670ba6f6424c758ca479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-2.png",
+      "sha256": "984277c0240bb171a5c8aca21a6021a1b7fc58c5c0d85067ad186454399fa034"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-3.png",
+      "sha256": "984277c0240bb171a5c8aca21a6021a1b7fc58c5c0d85067ad186454399fa034"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-4.png",
+      "sha256": "f234e6c08218a519ecd04df0fd0437b8dcffe6d673912b1fcc589367554ad85a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-5.png",
+      "sha256": "f234e6c08218a519ecd04df0fd0437b8dcffe6d673912b1fcc589367554ad85a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-6.png",
+      "sha256": "f020e86dab97f32af4d666bba02fd0a122423077174a9e4adb262b4b6a147db6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-320-7.png",
+      "sha256": "f020e86dab97f32af4d666bba02fd0a122423077174a9e4adb262b4b6a147db6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-0.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-1.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-2.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-3.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-4.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-5.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-6.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-390-7.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-0.png",
+      "sha256": "e795a68178cf0bcca705c71bbab361e33fcf8f8953f19eb9d48026610dd566a9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-1.png",
+      "sha256": "e795a68178cf0bcca705c71bbab361e33fcf8f8953f19eb9d48026610dd566a9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-2.png",
+      "sha256": "c4e37f18864e25922ece7163a90bcb1331ce823e77a42d75e2e02f41a9358a1c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-3.png",
+      "sha256": "c4e37f18864e25922ece7163a90bcb1331ce823e77a42d75e2e02f41a9358a1c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-4.png",
+      "sha256": "df92826f50328519cce8372877489b8f8e308404d4567c84a3a31d74e2bcf7db"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-5.png",
+      "sha256": "df92826f50328519cce8372877489b8f8e308404d4567c84a3a31d74e2bcf7db"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-6.png",
+      "sha256": "fc84a84f157572de83bebf4371831144455e58277f40539631aacd283d1f8b58"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/geometry-844-7.png",
+      "sha256": "fc84a84f157572de83bebf4371831144455e58277f40539631aacd283d1f8b58"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-green5/results.json",
+      "sha256": "3f22ca6f2a881b842212bbf93355ee885f6a7045b8d8f5b60cb1b3d5288a4254"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/final-320.png",
+      "sha256": "367e916df94dfee9edb6f82f72fb295df4f02a3d8288449ceb27d77195a7e0bb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/final-390.png",
+      "sha256": "7b28d38a5cee7c643b8cf439a43960b44869c5ca11674604967943282c91f132"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-0.png",
+      "sha256": "25665f9c9679a4a28b825fc73354da19478810fdd63e670ba6f6424c758ca479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-1.png",
+      "sha256": "25665f9c9679a4a28b825fc73354da19478810fdd63e670ba6f6424c758ca479"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-2.png",
+      "sha256": "984277c0240bb171a5c8aca21a6021a1b7fc58c5c0d85067ad186454399fa034"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-3.png",
+      "sha256": "984277c0240bb171a5c8aca21a6021a1b7fc58c5c0d85067ad186454399fa034"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-4.png",
+      "sha256": "f234e6c08218a519ecd04df0fd0437b8dcffe6d673912b1fcc589367554ad85a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-5.png",
+      "sha256": "f234e6c08218a519ecd04df0fd0437b8dcffe6d673912b1fcc589367554ad85a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-6.png",
+      "sha256": "f020e86dab97f32af4d666bba02fd0a122423077174a9e4adb262b4b6a147db6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-320-7.png",
+      "sha256": "f020e86dab97f32af4d666bba02fd0a122423077174a9e4adb262b4b6a147db6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-0.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-1.png",
+      "sha256": "8bc71ac9d0f2e5655eec13e4c274925006699733fddcdf3a0a70f97be3c9e21b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-2.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-3.png",
+      "sha256": "2b8c0f33aa000a302921432d0bf40a4a94f482c98264caca17cba8176eaa1b7e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-4.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-5.png",
+      "sha256": "b09e2c8163c6cc7f256c34cb174b0b12c23611ad620b5c8014249910e3519f89"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-6.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-390-7.png",
+      "sha256": "311a4689021b4be958ee1b009ccbbed99e7f9bb4a4590de05176e4763dc501c0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-landscape-diagnostic/geometry-844-0.png",
+      "sha256": "7bd228d8816dd914fb388d6b9ddf8a365ae3354ebe4ac92e225805fd54f0e702"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/t11-fix2-20261025-red/geometry-390-0.png",
+      "sha256": "892535ad857d89aa260a9e01cbb5b58d84c156e2a6ae5ecb38f268b3a32ce1ad"
+    }
+  ]
+}

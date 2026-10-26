@@ -1,0 +1,104 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/app/api/character/build/skills/route.test.ts (6 tests | 6 failed) 21ms
+   × forwards explicit selected eligibility without treating it as intrinsic source 14ms
+   × rejects malformed eligibility null before service mutation 2ms
+   × rejects malformed eligibility {} before service mutation 1ms
+   × rejects malformed eligibility null before service mutation 1ms
+   × rejects malformed eligibility {"skillId":"skill","eligibilityDisciplineId":7} before service mutation 1ms
+   × rejects malformed eligibility {"skillId":"skill"} before service mutation 1ms
+ ❯ src/components/character/character-skill-build-reconciliation.test.tsx (3 tests | 1 failed) 55ms
+   × shows one shared Skill with explicit active eligibility choices and truthful testing access 28ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/character/character-skill-build-reconciliation.test.tsx > shows one shared Skill with explicit active eligibility choices and truthful testing access
+AssertionError: expected '<div class="_root_ca476e" data-testid…' to contain 'aria-label="Eligible Discipline for M…'
+
+Expected: "aria-label="Eligible Discipline for Mending Light""
+Received: "<div class="_root_ca476e" data-testid="skill-build-panel"><button type="button" class="_trigger_ca476e" aria-haspopup="dialog" aria-label="Manage Techniques. 1 of 4 selected."><span aria-hidden="true">⚔</span><strong>Manage Techniques</strong><span aria-hidden="true">›</span></button><div class="_backdrop_ca476e" data-techniques-overlay="true" role="presentation"><section class="_dialog_ca476e" data-av-surface="moonstone" data-character-concept="editor" role="dialog" aria-modal="true" aria-labelledby="skill-build-heading"><header class="_header_ca476e"><div class="_headingCopy_ca476e"><span class="_headerIcon_ca476e" aria-hidden="true">⚔</span><div><h2 id="skill-build-heading">Techniques</h2><small class="_autoSaveNote_ca476e" data-testid="skill-capacity">Discipline Skills — 1 / 4 selected</small></div></div><button type="button" class="_close_ca476e"><span aria-hidden="true">×</span>Close</button></header><div class="_workspace_ca476e" data-technique-workspace="true"><section class="_techniqueArea_ca476e" aria-label="Available Techniques" data-testid="learned-skill-list"><section class="_techniqueGroup_ca476e" data-technique-group="true" data-locked="false"><header><div><span aria-hidden="true">✦</span><h3>Vanguard Techniques</h3></div><small>0 techniques available</small></header><div class="_skillGrid_ca476e" data-technique-grid="true"><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div></div></section><section class="_techniqueGroup_ca476e" data-technique-group="true" data-locked="false"><header><div><span aria-hidden="true">✦</span><h3>Aetherist Techniques</h3></div><small>0 techniques available</small></header><div class="_skillGrid_ca476e" data-technique-grid="true"><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div><div class="_lockedSkill_ca476e" data-technique-card="true" aria-hidden="true"><span data-technique-art="true">◇</span><strong>Unavailable</strong></div></div></section><section class="_techniqueGroup_ca476e" data-support-action-group="true"><header><div><span aria-hidden="true">✦</span><h3>Support Action</h3></div><small>Choose one · Battle slot 3</small></header><div class="_supportGrid_ca476e" role="radiogroup" aria-label="Support Action"><article class="_skill_ca476e" data-selected="true"><label><input type="radio" aria-label="Guard" name="support-action-character-1" checked=""/><span class="_skillArt_ca476e" data-av-square-media="true" data-av-square-media-fit="contain" aria-hidden="true"><span data-test-image="/media/skills/guard.webp"></span><b>✓</b></span><strong>Guard</strong><span class="_skillMeta_ca476e">Utility</span></label></article><article class="_skill_ca476e" data-selected="false"><label><input type="radio" aria-label="HP Recovery" name="support-action-character-1"/><span class="_skillArt_ca476e" data-av-square-media="true" data-av-square-media-fit="contain" aria-hidden="true"><span data-test-image="/media/skills/hp-recovery.webp"></span></span><strong>HP Recovery</strong><span class="_skillMeta_ca476e">Recovery</span></label></article><article class="_skill_ca476e" data-selected="false"><label><input type="radio" aria-label="MP Recovery" name="support-action-character-1"/><span class="_skillArt_ca476e" data-av-square-media="true" data-av-square-media-fit="contain" aria-hidden="true"><span data-test-image="/media/skills/mp-recovery.svg"></span></span><strong>MP Recovery</strong><span class="_skillMeta_ca476e">Recovery</span></label></article></div></section></section><aside class="_detailRail_ca476e" data-av-surface="ink" data-testid="technique-preview"><section class="_selectedTechnique_ca476e"><span>Technique Preview</span><div class="_selectedTechniqueHeading_ca476e"><span class="_detailArt_ca476e" data-av-square-media="true" data-av-square-media-fit="contain"><span data-test-image="/media/art/discipline-skills/lifebinder-mending-light-v01.webp"></span></span><div><strong>Mending Light</strong><small>Call on Lifebinder discipline to turn a wounded moment back toward survival.</small></div></div><dl class="_characteristics_ca476e"><div><dt>Skill Type</dt><dd>Heal</dd></div><div><dt>Cost</dt><dd>45 AP</dd></div><div><dt>Cooldown</dt><dd>None</dd></div><div><dt>Requirements</dt><dd>HP ≤ 99.99% [Self]</dd></div><div><dt>Effects</dt><dd><div class="_effectSummaryList_ca476e"><span data-compact-skill-effect="true"><strong class="_label_a58874" data-compact-effect-label="true">HP Recovery</strong> <span class="_magnitude_a58874" data-compact-effect-magnitude="true">[11%]</span> <span class="_timing_a58874" data-compact-effect-timing="true">[Instant]</span></span></div></dd></div><div><dt>Range</dt><dd>N/A</dd></div><div><dt>Target</dt><dd>Self</dd></div><div><dt>Target Method</dt><dd>Single</dd></div><div><dt>Target Elevation</dt><dd>N/A</dd></div><div><dt>Line of Sight</dt><dd>N/A</dd></div></dl><ul class="_effectExplanations_ca476e" aria-label="Effect explanations"><li><strong><span class="_label_a58874" data-effect-tag-label="true">HP Recovery</span></strong> — Restores a captured 11% of your maximum HP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.</li></ul></section></aside></div><footer class="_actions_ca476e"><button type="button" class="_secondaryAction_ca476e">↻ Clear Selections</button><span class="_saveState_ca476e" aria-live="polite"></span></footer><p class="_status_ca476e" role="status"></p></section></div></div>"
+
+ ❯ src/components/character/character-skill-build-reconciliation.test.tsx:106:18
+    104|       initialResonance={null} initialEssence={null}
+    105|     />)
+    106|     expect(html).toContain('aria-label="Eligible Discipline for Mendin…
+       |                  ^
+    107|     expect(html).toContain('value="aetherist" selected=""')
+    108|     expect(html).toContain('Vanguard — Testing access (unearned)')
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/7]⎯
+
+ FAIL  src/app/api/character/build/skills/route.test.ts > forwards explicit selected eligibility without treating it as intrinsic source
+AssertionError: expected "vi.fn()" to be called with arguments: [ 'owner', { id: 'character' }, …(2) ]
+
+Received:
+
+  1st vi.fn() call:
+
+@@ -2,16 +2,10 @@
+    "owner",
+    {
+      "id": "character",
+    },
+    {
+-     "eligibilitySelections": [
+-       {
+-         "eligibilityDisciplineId": "vanguard",
+-         "skillId": "lifebinder.mending-light",
+-       },
+-     ],
+      "expectedBuildVersion": 7,
+      "idempotencyKey": "request",
+      "skillIds": [
+        "lifebinder.mending-light",
+      ],
+
+
+Number of calls: 1
+
+ ❯ src/app/api/character/build/skills/route.test.ts:26:26
+     24|   }))
+     25|   expect(response.status).toBe(200)
+     26|   expect(authority.save).toHaveBeenCalledWith('owner', { id: 'characte…
+       |                          ^
+     27| })
+     28|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/7]⎯
+
+ FAIL  src/app/api/character/build/skills/route.test.ts > rejects malformed eligibility null before service mutation
+ FAIL  src/app/api/character/build/skills/route.test.ts > rejects malformed eligibility {} before service mutation
+ FAIL  src/app/api/character/build/skills/route.test.ts > rejects malformed eligibility null before service mutation
+ FAIL  src/app/api/character/build/skills/route.test.ts > rejects malformed eligibility {"skillId":"skill","eligibilityDisciplineId":7} before service mutation
+ FAIL  src/app/api/character/build/skills/route.test.ts > rejects malformed eligibility {"skillId":"skill"} before service mutation
+AssertionError: expected 200 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 200
+
+ ❯ src/app/api/character/build/skills/route.test.ts:33:27
+     31|     method:'PUT', body:JSON.stringify({ expectedBuildVersion:7, idempo…
+     32|   }))
+     33|   expect(response.status).toBe(400)
+       |                           ^
+     34|   expect(authority.save).not.toHaveBeenCalled()
+     35| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/7]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  7 failed | 2 passed (9)
+   Start at  13:01:19
+   Duration  1.73s (transform 1.38s, setup 0ms, import 1.68s, tests 76ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/app/api/character/build/skills/route.test.ts src/components/character/character-skill-build-reconciliation.test.tsx

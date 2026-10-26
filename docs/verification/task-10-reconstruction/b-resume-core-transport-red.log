@@ -1,0 +1,58 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts (23 tests | 1 failed | 22 skipped) 23ms
+   × actual current catalogue transports published Core bases and focus without static identity fallback 22ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/character/character-build-eligibility-transport.test.ts > actual current catalogue transports published Core bases and focus without static identity fallback
+AssertionError: expected { …(3) } to match object { corePolicy: { …(5) } }
+(3 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "corePolicy": {
+-     "attributeCaps": {
+-       "intellect": 60,
+-       "might": 40,
+-       "resolve": 60,
+-     },
+-     "baseAttributes": {
+-       "agility": 4,
+-       "finesse": 4,
+-       "intellect": 4,
+-       "might": 8,
+-       "resolve": 4,
+-       "vitality": 7,
+-     },
+    "disciplineId": "authored.discipline",
+-     "focusAttributes": [
+-       "intellect",
+-       "resolve",
+-     ],
+-     "policyVersion": 12,
+-   },
++   "profileVersion": 12,
++   "statOffsets": {},
+  }
+
+ ❯ src/server/character/character-build-eligibility-transport.test.ts:228:28
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 skipped (23)
+   Start at  13:16:58
+   Duration  3.92s (transform 2.97s, setup 0ms, import 3.55s, tests 23ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/character/character-build-eligibility-transport.test.ts -t 'catalogue transports published Core'

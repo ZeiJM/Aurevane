@@ -35,3 +35,25 @@ describe('Master Panel site music management', () => {
     expect(markup).not.toContain('Loop continuously</span>')
   })
 })
+
+it('offers actual pages, all three explicit choices and a single selected preview without revision chores', () => {
+  const initialConfig = createDefaultSiteMusicConfig()
+  initialConfig.routeOverrides = [
+    {
+      id: 'game',
+      label: 'Legacy Game',
+      pathPrefix: '/game',
+      enabled: false,
+      track: initialConfig.defaultTrack,
+    },
+  ]
+  const markup = renderToStaticMarkup(createElement(SiteMusicManagement, { initialConfig }))
+  expect(markup).toContain('Global Music')
+  expect(markup).toContain('Search pages')
+  expect(markup).toContain('World')
+  expect(markup).toContain('Character creation')
+  expect(markup).toContain('Save Changes')
+  expect(markup).not.toContain('Revision')
+  expect(markup.match(/<audio /g)).toHaveLength(1)
+  expect(markup).not.toContain('Page path prefix</span>')
+})

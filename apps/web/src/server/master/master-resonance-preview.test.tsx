@@ -8,7 +8,7 @@ import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-defini
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { createCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { CombatContentReviewPanel } from '@/components/master/combat-content/combat-content-review-panel'
-import { ResonanceContentEditor } from '@/components/master/combat-content/resonance-content-editor'
+import { ContentNativeSample } from '@/components/master/combat-content/content-native-sample'
 import { createCombatContentAuthoringService } from './combat-content-authoring-service'
 import { handleCombatContentAuthoringRequest } from './combat-content-authoring-handler'
 
@@ -138,25 +138,12 @@ for (const combatContext of ['pve', 'pvp'] as const) {
 
 it('shows the actual Resonance action selector and simulation control', () => {
   const html = renderToStaticMarkup(
-    <ResonanceContentEditor
-      resonances={[
-        {
-          id: steamfront.id,
-          label: steamfront.name,
-          disciplinePair: steamfront.disciplinePair,
-          currentVersion: steamfront.contentVersion,
-          baseVersion: steamfront.contentVersion,
-          draftVersion: null,
-          definition: steamfront,
-          history: [],
-        },
-      ]}
-    />,
+    <ContentNativeSample kind="resonance" definition={{ ...steamfront }} />,
   )
   expect(html).toContain('aria-label="Preview action group"')
   expect(html).toContain('value="quench"')
   expect(html).toContain('value="flare"')
-  expect(html).toMatch(/<button[^>]*>Preview<\/button>/)
+  expect(html).toMatch(/<button[^>]*>Run native sample<\/button>/)
 })
 
 it.each([
@@ -250,23 +237,10 @@ it('does not cast a historical sequence Resonance as an independent action', asy
   expect(response.status).toBe(400)
   expect((await response.json()).error.message).toMatch(/no Manual action group/)
   const html = renderToStaticMarkup(
-    <ResonanceContentEditor
-      resonances={[
-        {
-          id: definition.id,
-          label: definition.name,
-          disciplinePair: definition.disciplinePair,
-          currentVersion: definition.contentVersion,
-          baseVersion: definition.contentVersion,
-          draftVersion: null,
-          definition,
-          history: [],
-        },
-      ]}
-    />,
+    <ContentNativeSample kind="resonance" definition={{ ...definition }} />,
   )
-  expect(html).toContain('Historical sample references')
-  expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Preview<\/button>/)
+  expect(html).toContain('Sample setup Skill')
+  expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Run native sample<\/button>/)
   expect(JSON.stringify(definition)).toBe(before)
 })
 

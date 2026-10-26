@@ -101,6 +101,9 @@ export async function handleEventAuthoringRequest(
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
 
+    if (operation === 'catalogue')
+      return success({ catalogue: await service.readCatalogue(actor.userId) })
+
     if (operation === 'validate') {
       return success({
         validation: service.validateDefinition(requireProperty(body, 'definition')),
@@ -147,7 +150,7 @@ export async function handleEventAuthoringRequest(
           'expectedBaseVersion',
         ),
         correlationKey: requiredString(body.correlationKey, 'correlationKey'),
-        reason: requiredString(body.reason, 'reason'),
+
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ published })
@@ -158,10 +161,10 @@ export async function handleEventAuthoringRequest(
         actorUserId: actor.userId,
         eventKey: requiredString(body.eventKey, 'eventKey'),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
-        requestFingerprint: requiredString(body.requestFingerprint, 'requestFingerprint'),
+
         scheduledStartAt: requiredString(body.scheduledStartAt, 'scheduledStartAt'),
         scheduledEndAt: nullableString(requireProperty(body, 'scheduledEndAt'), 'scheduledEndAt'),
-        reason: requiredString(body.reason, 'reason'),
+
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ scheduled })
@@ -173,7 +176,7 @@ export async function handleEventAuthoringRequest(
         runId: requiredString(body.runId, 'runId'),
         expectedStateVersion: positiveInteger(body.expectedStateVersion, 'expectedStateVersion'),
         idempotencyKey: requiredString(body.idempotencyKey, 'idempotencyKey'),
-        reason: requiredString(body.reason, 'reason'),
+
         confirmed: requiredBoolean(body.confirmed, 'confirmed'),
       })
       return success({ transition })

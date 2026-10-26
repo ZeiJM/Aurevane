@@ -3,6 +3,7 @@
 import {
   CHARACTER_ATTRIBUTE_LABELS,
   foundationDisciplineAttributePolicy,
+  type DisciplineAttributePolicy,
 } from '@aurevane/game-core/character/attribute-allocation'
 import {
   CHARACTER_ATTRIBUTE_IDS,
@@ -42,6 +43,7 @@ interface PrimaryOption {
     disciplineId: string
     profileVersion: number
     statOffsets: Readonly<Record<string, number | undefined>>
+    corePolicy?: DisciplineAttributePolicy
   }
 }
 
@@ -94,6 +96,8 @@ interface BuildCommitResponse {
     current: PrimaryDisciplinePreview
     currentSecondary: DisciplineDefinitionView | null
     attributes: CharacterAttributes
+    availablePrimaries?: readonly PrimaryOption[]
+    availableSecondaries?: readonly SecondaryOption[]
     attunement: AttunementView
   }
   error?: { message?: string }
@@ -134,8 +138,14 @@ function formatDerivedValue(value: number, unit: DerivedStatUnit): string {
   return value.toLocaleString('en')
 }
 
-function FocusBadges({ disciplineId }: { disciplineId: string }) {
-  const attributes = focusAttributes(disciplineId)
+function FocusBadges({
+  disciplineId,
+  policy,
+}: {
+  disciplineId: string
+  policy?: DisciplineAttributePolicy
+}) {
+  const attributes = policy?.focusAttributes ?? focusAttributes(disciplineId)
   if (attributes.length === 0) return null
 
   return (
@@ -150,7 +160,11 @@ function FocusBadges({ disciplineId }: { disciplineId: string }) {
 }
 
 interface DisciplineLibraryProps {
-  options: readonly { definition: Pick<DisciplineDefinitionView, 'id' | 'name'> }[]
+  options: readonly {
+    definition: Pick<DisciplineDefinitionView, 'id' | 'name'>
+    profile?: { corePolicy?: DisciplineAttributePolicy }
+  }[]
+  refreshPrimaryId?: string
   selectedPrimaryId: string
   selectedSecondaryId: string
   pendingPreview: boolean
@@ -166,6 +180,7 @@ interface DisciplineLibraryProps {
 /** Library choices immediately submit the edited slot to server authority. */
 export function DisciplineLibrary({
   options,
+  refreshPrimaryId,
   selectedPrimaryId,
   selectedSecondaryId,
   pendingPreview,
@@ -177,12 +192,9 @@ export function DisciplineLibrary({
   activeSlot,
   onSelect,
 }: DisciplineLibraryProps) {
+  const busy = synchronizing || pendingPreview || pendingCommit || refreshingProfile
   const disabled =
-    synchronizing ||
-    pendingPreview ||
-    pendingCommit ||
-    refreshingProfile ||
-    (activeSlot === 'primary' ? primaryRemainingSeconds : secondaryRemainingSeconds) > 0
+    busy || (activeSlot === 'primary' ? primaryRemainingSeconds : secondaryRemainingSeconds) > 0
   const selectedId = activeSlot === 'primary' ? selectedPrimaryId : selectedSecondaryId
   return (
     <section
@@ -213,7 +225,7 @@ export function DisciplineLibrary({
         </button>
       ) : null}
       <div className={styles.rosterGrid}>
-        {options.map(({ definition }) => (
+        {options.map(({ definition, profile }) => (
           <button
             key={definition.id}
             type="button"
@@ -221,7 +233,10 @@ export function DisciplineLibrary({
             data-selected={selectedId === definition.id}
             aria-pressed={selectedId === definition.id}
             aria-label={`Select ${definition.name} as ${activeSlot === 'primary' ? 'Primary' : 'Secondary'} Discipline`}
-            disabled={disabled}
+            disabled={
+              busy ||
+              (disabled && !(activeSlot === 'primary' && definition.id === refreshPrimaryId))
+            }
             onClick={() =>
               activeSlot === 'primary'
                 ? onSelect(definition.id, selectedSecondaryId)
@@ -234,7 +249,7 @@ export function DisciplineLibrary({
                 {selectedId === definition.id ? <span aria-hidden="true">✓ </span> : null}
                 {definition.name}
               </strong>
-              <FocusBadges disciplineId={definition.id} />
+              <FocusBadges disciplineId={definition.id} policy={profile?.corePolicy} />
             </span>
           </button>
         ))}
@@ -262,6 +277,10 @@ export function CharacterDisciplineBuildPanel({
   const searchParams = useSearchParams()
   const open = searchParams.get(PROFILE_PANEL_QUERY) === DISCIPLINES_PANEL
   const [current, setCurrent] = useState(initialCurrent)
+  const [catalog, setCatalog] = useState({
+    primaries: availablePrimaries,
+    secondaries: availableSecondaries,
+  })
   const [currentSecondary, setCurrentSecondary] = useState(initialCurrentSecondary)
   const [committedAttributes, setCommittedAttributes] = useState(coreAttributes)
   const [buildVersion, setBuildVersion] = useState<number | null>(null)
@@ -341,6 +360,11 @@ export function CharacterDisciplineBuildPanel({
         return
       }
       setBuildVersion(body.context.build.buildVersion)
+      if (body.context.availablePrimaries && body.context.availableSecondaries)
+        setCatalog({
+          primaries: body.context.availablePrimaries,
+          secondaries: body.context.availableSecondaries,
+        })
       setCurrent(body.context.current)
       setCurrentSecondary(body.context.currentSecondary)
       setCommittedAttributes(body.context.attributes)
@@ -413,17 +437,17 @@ export function CharacterDisciplineBuildPanel({
   }, [open])
 
   const primaryOptions = useMemo(() => {
-    return availablePrimaries.some((entry) => entry.definition.id === current.definition.id)
-      ? availablePrimaries
-      : [{ definition: current.definition, profile: current.profile }, ...availablePrimaries]
-  }, [availablePrimaries, current])
+    return catalog.primaries.some((entry) => entry.definition.id === current.definition.id)
+      ? catalog.primaries
+      : [{ definition: current.definition, profile: current.profile }, ...catalog.primaries]
+  }, [catalog.primaries, current])
 
   const secondaryOptions = useMemo(() => {
     if (
       !currentSecondary ||
-      availableSecondaries.some((entry) => entry.definition.id === currentSecondary.id)
+      catalog.secondaries.some((entry) => entry.definition.id === currentSecondary.id)
     ) {
-      return availableSecondaries
+      return catalog.secondaries
     }
     return [
       {
@@ -431,9 +455,9 @@ export function CharacterDisciplineBuildPanel({
         profile: current.profile,
         masteredAt: 'committed',
       },
-      ...availableSecondaries,
+      ...catalog.secondaries,
     ]
-  }, [availableSecondaries, current.profile, currentSecondary])
+  }, [catalog.secondaries, current.profile, currentSecondary])
 
   const visiblePrimaryOptions = useMemo(
     () =>
@@ -518,7 +542,19 @@ export function CharacterDisciplineBuildPanel({
     return () => document.removeEventListener('keydown', closeOnEscape)
   }, [open, setPanelOpen])
 
+  const currentPrimaryCandidate = primaryOptions.find(
+    (option) => option.definition.id === current.definition.id,
+  )
+  const refreshPrimaryId =
+    currentPrimaryCandidate &&
+    (currentPrimaryCandidate.definition.definitionVersion !==
+      current.definition.definitionVersion ||
+      currentPrimaryCandidate.profile.profileVersion !== current.profile.profileVersion)
+      ? current.definition.id
+      : undefined
+
   async function applySelection(primaryDisciplineId: string, secondaryDisciplineId: string) {
+    const refreshingCurrent = activeSlot === 'primary' && primaryDisciplineId === refreshPrimaryId
     if (
       requestRef.current ||
       refreshingProfile ||
@@ -526,7 +562,8 @@ export function CharacterDisciplineBuildPanel({
       synchronizationFailed ||
       !open ||
       buildVersion === null ||
-      (activeSlot === 'primary' ? remaining.primary : remaining.secondary) > 0
+      (!refreshingCurrent &&
+        (activeSlot === 'primary' ? remaining.primary : remaining.secondary) > 0)
     )
       return
     if (secondaryDisciplineId && primaryDisciplineId === secondaryDisciplineId) {
@@ -534,6 +571,7 @@ export function CharacterDisciplineBuildPanel({
       return
     }
     if (
+      !refreshingCurrent &&
       primaryDisciplineId === current.definition.id &&
       secondaryDisciplineId === (currentSecondary?.id ?? '')
     )
@@ -588,6 +626,11 @@ export function CharacterDisciplineBuildPanel({
       }
       setBuildVersion(context.build.buildVersion)
       setCommittedAttributes(context.attributes)
+      if (context.availablePrimaries && context.availableSecondaries)
+        setCatalog({
+          primaries: context.availablePrimaries,
+          secondaries: context.availableSecondaries,
+        })
       setCurrent(context.current)
       setCurrentSecondary(context.currentSecondary)
       setRemaining({
@@ -601,7 +644,10 @@ export function CharacterDisciplineBuildPanel({
         currentAttributes: committedAttributes,
         buildVersion,
         changes: {
-          primary: current.definition.id !== context.current.definition.id,
+          primary:
+            current.definition.id !== context.current.definition.id ||
+            current.definition.definitionVersion !== context.current.definition.definitionVersion ||
+            current.profile.profileVersion !== context.current.profile.profileVersion,
           secondary: (currentSecondary?.id ?? null) !== (context.currentSecondary?.id ?? null),
         },
         attunement: context.attunement,
@@ -731,6 +777,7 @@ export function CharacterDisciplineBuildPanel({
                     options={
                       activeSlot === 'primary' ? visiblePrimaryOptions : visibleSecondaryOptions
                     }
+                    refreshPrimaryId={refreshPrimaryId}
                     selectedPrimaryId={selectedPrimaryId}
                     selectedSecondaryId={selectedSecondaryId}
                     pendingPreview={pendingPreview}
@@ -875,7 +922,17 @@ export function CharacterDisciplineBuildPanel({
                           <div>
                             <strong>{currentSlotDefinition?.name ?? 'None'}</strong>
                             {currentSlotDefinition ? (
-                              <FocusBadges disciplineId={currentSlotDefinition.id} />
+                              <FocusBadges
+                                disciplineId={currentSlotDefinition.id}
+                                policy={
+                                  activeSlot === 'primary'
+                                    ? current.profile.corePolicy
+                                    : secondaryOptions.find(
+                                        (option) =>
+                                          option.definition.id === currentSlotDefinition.id,
+                                      )?.profile.corePolicy
+                                }
+                              />
                             ) : (
                               <small>No Secondary Discipline committed.</small>
                             )}

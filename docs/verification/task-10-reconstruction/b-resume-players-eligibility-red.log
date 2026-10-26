@@ -1,0 +1,34 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/master/players-service.test.ts (13 tests | 1 failed | 12 skipped) 5ms
+   × accepts explicit selected eligibility in a Skill correction but rejects caller-earned facts 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/master/players-service.test.ts > accepts explicit selected eligibility in a Skill correction but rejects caller-earned facts
+AurevaneError: Choose supported gameplay fields and confirm the reviewed change.
+ ❯ invalid src/server/master/players-service.ts:22:9
+     20| }
+     21| function invalid(): never {
+     22|   throw new AurevaneError(
+       |         ^
+     23|     'INVALID_REQUEST',
+     24|     'Choose supported gameplay fields and confirm the reviewed change.…
+ ❯ Module.parsePlayerCorrection src/server/master/players-service.ts:81:7
+ ❯ src/server/master/players-service.test.ts:139:9
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 skipped (13)
+   Start at  13:31:06
+   Duration  863ms (transform 588ms, setup 0ms, import 705ms, tests 5ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/master/players-service.test.ts -t 'explicit selected eligibility'

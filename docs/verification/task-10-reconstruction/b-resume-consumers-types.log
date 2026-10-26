@@ -1,0 +1,7 @@
+$ next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+src/components/character/discipline-mastery-panel.tsx(294,33): error TS2657: JSX expressions must have one parent element.
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @aurevane/web@0.0.1 typecheck: `next typegen && tsc --noEmit`
+Exit status 2

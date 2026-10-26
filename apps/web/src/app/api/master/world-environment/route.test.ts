@@ -12,11 +12,17 @@ vi.mock('@/server/master/staff-access-server', () => ({
 }))
 vi.mock('@/server/master/world-environment-admin-store', () => ({
   setWorldEnvironment: setEnvironment,
-  readWorldEnvironmentHistory: readHistory,
+  readWorldEnvironmentAdminSettings: readHistory,
 }))
 import { GET, POST } from './route'
 
-const change = { timeOffsetMinutes: 60, frozenMinuteOfDay: null, weather: 'rain', duration: '1h' }
+const change = {
+  timeOffsetMinutes: 60,
+  frozenMinuteOfDay: null,
+  weather: 'rain',
+  durationMinutes: 37,
+  dayLengthMinutes: 120,
+}
 const request = (body: unknown) =>
   new Request('http://localhost/api/master/world-environment', {
     method: 'POST',
@@ -43,19 +49,19 @@ it('rejects delegated staff who are not the Game Owner', async () => {
   expect(setEnvironment).not.toHaveBeenCalled()
   expect(readHistory).not.toHaveBeenCalled()
 })
-it('passes the authenticated actor and returns private settings with history', async () => {
+it('passes the authenticated actor and returns private settings without an audit-history workflow', async () => {
   const settings = { version: 1, timeOffsetMinutes: 60 }
   setEnvironment.mockResolvedValueOnce(settings)
   readHistory.mockResolvedValueOnce([{ id: 1 }])
   const response = await POST(request({ expectedVersion: 0, change, reason: 'Owner test' }))
   expect(response.status).toBe(200)
-  expect(await response.json()).toEqual({ settings, history: [{ id: 1 }] })
+  expect(await response.json()).toEqual({ settings })
+  expect(readHistory).not.toHaveBeenCalled()
   expect(response.headers.get('Cache-Control')).toBe('private, no-store')
   expect(setEnvironment).toHaveBeenCalledWith({
     actorUserId: 'owner',
     expectedVersion: 0,
     change,
-    reason: 'Owner test',
   })
 })
 it('rejects malformed JSON and maps stale versions to a conflict', async () => {

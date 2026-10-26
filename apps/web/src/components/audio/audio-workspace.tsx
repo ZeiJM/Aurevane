@@ -34,6 +34,7 @@ export function AudioWorkspace() {
                   : 'Paused'
                 : 'The current route has no music.'}
             </p>
+            {music.error ? <p role="status">{music.error}</p> : null}
             <progress
               aria-label="Track progress"
               value={music.currentTime}

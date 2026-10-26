@@ -2,7 +2,6 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import type { MasterPanelAccess } from '@/server/master/staff-access'
-vi.mock('server-only', () => ({}))
 vi.mock('@/components/shell/authenticated-game-shell', () => ({
   AuthenticatedShellFrame: ({ children }: { children: React.ReactNode }) =>
     createElement('main', null, children),
@@ -37,6 +36,26 @@ describe('Master workspace composition', () => {
     expect(render(['game-owner'])).toContain('href="/master/world-environment"')
     expect(render(['content-staff'])).not.toContain('href="/master/world-environment"')
   })
+  it('does not grant navigation from an Owner label without supplied capabilities', () => {
+    const markup = renderToStaticMarkup(
+      <MasterPanelShell
+        access={{ ...access, roles: ['game-owner'], effectiveCapabilities: [] }}
+        activeSection="combat"
+        title="Master"
+        description="Review"
+      >
+        <p>Content</p>
+      </MasterPanelShell>,
+    )
+    for (const href of [
+      '/master/combat-content',
+      '/master/combat-timing',
+      '/master/world-environment',
+      '/master/staff',
+      '/master/music',
+    ])
+      expect(markup).not.toContain(`href="${href}"`)
+  })
   it('keeps authorized workspaces reachable and guards staff and event navigation', () => {
     const markup = renderToStaticMarkup(
       <MasterPanelShell
@@ -49,7 +68,9 @@ describe('Master workspace composition', () => {
       </MasterPanelShell>,
     )
     expect(markup).toContain('data-master-composition="combat"')
-    expect(markup).toContain('data-art="environment.archive.interior"')
+    expect(markup).not.toContain('data-art=')
+    expect(markup).not.toContain('Overview')
+    expect(markup).toContain('Game Content')
     expect(markup).toMatch(/<a[^>]*aria-current="page"[^>]*href="\/master\/combat-content"/)
     expect(markup).toContain('Publish reviewed version')
     for (const href of ['/master/staff', '/master/events', '/master/music'])

@@ -82,9 +82,23 @@ describe('unlimited independent DoT applications', () => {
         },
       ],
     }
-    expect(() => conditionalDamageMultiplier(state, 'actor', 'target', growing)).toThrow(
-      'exact calculation capacity',
-    )
+    for (const stacks of [65_536, Number.MAX_SAFE_INTEGER]) {
+      state.statusState[0]!.statuses[0]!.stacks = stacks
+      expect(() => conditionalDamageMultiplier(state, 'actor', 'target', growing)).toThrow(
+        'exact calculation capacity',
+      )
+    }
+    const zero = {
+      statuses: [
+        {
+          ...growing.statuses[0]!,
+          damageModifiers: [
+            { ...growing.statuses[0]!.damageModifiers[0]!, multiplierBasisPoints: 0 },
+          ],
+        },
+      ],
+    }
+    expect(conditionalDamageMultiplier(state, 'actor', 'target', zero)).toBe(0)
   })
   it('combines every distinct Inspired status under current policy, retaining the legacy first status rule', () => {
     const state = world()

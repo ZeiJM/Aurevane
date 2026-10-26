@@ -1,0 +1,5 @@
+Scope: 2 of 9 workspace projects
+packages/game-core typecheck$ tsc --noEmit
+packages/db typecheck$ tsc --noEmit
+packages/db typecheck: Done
+packages/game-core typecheck: Done

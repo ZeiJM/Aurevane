@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSelectedCharacterRpc } from './selected-character-rpc'
@@ -13,6 +14,7 @@ export function createServerMasterPlayersService() {
     async (name, parameters) => {
       const { data, error } = await rpc(name, parameters)
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.code === '42501')
           throw new AurevaneError(
             'FORBIDDEN',

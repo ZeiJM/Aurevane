@@ -1,3 +1,4 @@
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
@@ -79,8 +80,27 @@ async function battleBuildExtensions(
     resolvePinnedBattleResonanceDefinition(authority, combatantId, resolver),
     resolvePinnedBattleEssenceDefinition(authority, combatantId, resolver),
   ])
+  const capturedTags = <
+    T extends {
+      id: string
+      contentVersion: number
+      ability?: import('@aurevane/game-core/combat/combat-definition').AbilityDefinition
+    },
+  >(
+    definition: T,
+  ): T => {
+    const capture = battle.snapshot.tagPresentations?.find(
+      (row) =>
+        row.ownerCombatantId === combatantId &&
+        row.abilityId === definition.id &&
+        row.contentVersion === definition.contentVersion,
+    )
+    return capture && definition.ability
+      ? { ...definition, ability: { ...definition.ability, tagPresentation: capture.tags } }
+      : definition
+  }
   const essenceDefinition = resolvedEssence
-    ? { ...resolvedEssence, skill: essenceCombatSkill(resolvedEssence) }
+    ? { ...resolvedEssence, skill: capturedTags(essenceCombatSkill(resolvedEssence)) }
     : null
   const combatContext = authority?.combatContext
   const essenceOverride = combatContext
@@ -100,7 +120,7 @@ async function battleBuildExtensions(
           return null
         const override = combatContext ? definition.overrides[combatContext] : undefined
         return {
-          definition,
+          definition: capturedTags(definition),
           target: definition.target,
           id: definition.id,
           contentVersion: definition.contentVersion,
@@ -110,7 +130,7 @@ async function battleBuildExtensions(
               ? definition.id.slice(definition.id.indexOf('.') + 1)
               : definition.id,
           ),
-          iconKey: definition.media.iconKey,
+          iconKey: contentArtworkKey(definition.media),
           apCost: override?.apCost ?? definition.apCost,
           mpCost: definition.mpCost ?? 0,
           cooldownOwnerTurns:
@@ -151,7 +171,7 @@ async function battleBuildExtensions(
     techniques,
     resonance: resonanceDefinition
       ? {
-          definition: resonanceDefinition,
+          definition: capturedTags(resonanceDefinition),
           id: resonanceDefinition.id,
           contentVersion: resonanceDefinition.contentVersion,
           name: resonanceDefinition.name,
@@ -166,7 +186,7 @@ async function battleBuildExtensions(
           contentVersion: essenceDefinition.contentVersion,
           name: essenceDefinition.name,
           description: essenceDefinition.description,
-          iconKey: essenceDefinition.skill.media.iconKey,
+          iconKey: contentArtworkKey(essenceDefinition.skill.media),
           apCost: essenceOverride?.apCost ?? essenceDefinition.skill.apCost,
           mpCost: essenceDefinition.skill.mpCost ?? 0,
           targetKind: essenceDefinition.skill.target.kind,

@@ -15,7 +15,10 @@ import {
   type CombatContentCatalogue,
   type CombatContentCatalogueEntry,
 } from './combat-content-resolver'
-import { validateCombatCatalogueTiming } from './combat-catalogue-timing-compatibility'
+import {
+  combatTimingUsedBy,
+  validateCombatCatalogueTiming,
+} from './combat-catalogue-timing-compatibility'
 
 const policy: CombatEffectTimingPolicy = { version: 7, modes: { damage: 'controlled' } }
 function source(overrides: Partial<AbilityBehavior> = {}) {
@@ -39,7 +42,9 @@ function source(overrides: Partial<AbilityBehavior> = {}) {
     },
   }
 }
-function skill(ability = source().definition): CombatContentCatalogueEntry {
+function skill(
+  ability: ReturnType<typeof parseAbilityDefinition> = source().definition,
+): CombatContentCatalogueEntry {
   const definition = {
     ...structuredClone(resolveMatureSkillVersion('vanguard.forceful-strike')!),
     ability: parseAbilityDefinition(ability),
@@ -266,4 +271,17 @@ it('keeps disabled incompatible Owner entries inactive without replacing them wi
   const before = JSON.stringify(current)
   expect(validateCombatCatalogueTiming(current)).toEqual([])
   expect(JSON.stringify(current)).toBe(before)
+})
+
+it('reports actual Used-by from the same canonical timing inputs without changing execution order', () => {
+  const entry = skill(source().definition)
+  const captured = catalogue([entry, essenceEntry(source().definition)])
+  const before = JSON.stringify(captured)
+  const used = combatTimingUsedBy(captured)
+  expect(used.damage?.map((row) => row.contentKey)).toEqual(
+    expect.arrayContaining([entry.contentKey, captured.entries[1]!.contentKey]),
+  )
+  expect(JSON.stringify(captured)).toBe(before)
+  expect(used.damage).toHaveLength(2)
+  expect(validateCombatCatalogueTiming(catalogue([skill(automaticAbility())]))).toHaveLength(1)
 })

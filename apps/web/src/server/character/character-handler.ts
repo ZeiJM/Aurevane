@@ -27,6 +27,7 @@ export async function handleCharacterCreationRequest(
         actor,
         idempotencyKey: input.idempotencyKey,
         intent: input.intent,
+        expectedProfileVersion: input.expectedProfileVersion,
       },
       dependencies.repository,
     )

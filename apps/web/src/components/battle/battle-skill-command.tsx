@@ -366,6 +366,7 @@ export function BattleSkillCommand({
           {basicAction ? (
             <>
               <p>{basicAction.description}</p>
+              {basicAction.compactText ? <p>{basicAction.compactText}</p> : null}
               <ul aria-label="Effect explanations">
                 {reports.flatMap((behavior) =>
                   [...behavior.effectDescriptions, ...behavior.limits].map((description, index) => (

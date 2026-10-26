@@ -10,6 +10,9 @@ import {
 } from '@aurevane/game-core/combat/mature-skills'
 import { combatTagPayloadExplanation } from '@aurevane/game-core/combat/combat-tag-registry'
 import {
+  abilityPresentationValues,
+  abilityPresentationTextIssues,
+  renderAbilityPresentationText,
   battleFlavorTemplateIssues,
   defaultSkillBattleText,
 } from '@aurevane/game-core/combat/battle-narration'
@@ -32,6 +35,15 @@ type ContextResolver = Pick<
   | 'resolvePinnedEssenceDefinition'
   | 'resolvePinnedResonanceDefinition'
 >
+
+function contextualText(definition: {
+  presentation?: import('@aurevane/game-core/combat/battle-narration').AbilityPresentationText
+}): Pick<SkillContext, 'presentation'> {
+  if (!definition.presentation || abilityPresentationTextIssues(definition).length) return {}
+  return {
+    presentation: { ...definition.presentation, values: abilityPresentationValues(definition) },
+  }
+}
 
 function safeFlavor(flavor: string | undefined): string | null {
   return battleFlavorTemplateIssues(flavor).length === 0 ? flavor! : null
@@ -132,9 +144,15 @@ export async function attachRecordedBattleLogSkillContext(
           contentId: basic.id,
           contentVersion: basic.contentVersion,
           name: basic.name,
-          description: basic.description,
+          ...contextualText(basic),
+          description:
+            renderAbilityPresentationText(basic, 'public', { ability: basic.name }) ??
+            basic.description,
           flavor: null,
-          battleText: safeFlavor(basic.battleText) ?? '{actor} uses {ability}.',
+          battleText:
+            basic.presentation?.activation ??
+            safeFlavor(basic.battleText) ??
+            '{actor} uses {ability}.',
         },
       }
     }),
@@ -188,9 +206,16 @@ export async function attachRecordedBattleLogSkillContext(
             skillId: definition.id,
             contentVersion: definition.contentVersion,
             name: skillDisplayName(definition),
-            description: pinnedSkillDescription(definition),
+            ...contextualText(definition),
+            description:
+              renderAbilityPresentationText(definition, 'public', {
+                ability: skillDisplayName(definition),
+              }) ?? pinnedSkillDescription(definition),
             flavor: safeFlavor(definition.flavorLine),
-            battleText: safeFlavor(definition.battleText) ?? defaultSkillBattleText(definition),
+            battleText:
+              definition.presentation?.activation ??
+              safeFlavor(definition.battleText) ??
+              defaultSkillBattleText(definition),
           })
           sourceDisciplines.set(referenceKey(reference), definition.sourceDisciplineId)
         } catch {
@@ -254,6 +279,9 @@ export async function attachRecordedBattleLogSkillContext(
           ? {
               actionContext: {
                 ...entry.actionContext,
+                ...(record && typeof eventObject(record)?.triggeringActorId === 'string'
+                  ? { triggeringActorId: eventObject(record)!.triggeringActorId as string }
+                  : {}),
                 narrator: {
                   actor: { ...actorIdentity },
                   ...(targetIdentity ? { target: { ...targetIdentity } } : {}),
@@ -407,9 +435,14 @@ async function attachRecordedBuildExtensionContext(
               skillId: definition.skill.id,
               contentVersion: definition.contentVersion,
               name: definition.name,
-              description: definition.description,
+              ...contextualText(definition.skill),
+              description:
+                renderAbilityPresentationText(definition.skill, 'public', {
+                  ability: definition.name,
+                }) ?? definition.description,
               flavor: safeFlavor(definition.flavorLine),
               battleText:
+                definition.skill.presentation?.activation ??
                 safeFlavor(definition.skill.battleText) ??
                 defaultSkillBattleText(essenceCombatSkill(definition)),
             })
@@ -438,7 +471,11 @@ async function attachRecordedBuildExtensionContext(
               skillId: definition.id,
               contentVersion: definition.contentVersion,
               name: definition.name,
-              description: definition.description,
+              ...contextualText(definition),
+              description:
+                renderAbilityPresentationText(definition, 'public', { ability: definition.name }) ??
+                definition.description,
+              battleText: definition.presentation?.activation,
               flavor: safeFlavor(definition.flavorLine),
             })
           }
@@ -530,9 +567,15 @@ async function attachRecordedSummonSkillContext(
               contentId: ability.id,
               contentVersion: source.version,
               name: ability.name,
-              description: ability.description,
+              ...contextualText(ability),
+              description:
+                renderAbilityPresentationText(ability, 'public', { ability: ability.name }) ??
+                ability.description,
               flavor: null,
-              battleText: safeFlavor(ability.battleText) ?? defaultSkillBattleText(ability),
+              battleText:
+                ability.presentation?.activation ??
+                safeFlavor(ability.battleText) ??
+                defaultSkillBattleText(ability),
               narrator: { actor: { name: profile.name } },
             })
         } catch {

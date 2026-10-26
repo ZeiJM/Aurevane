@@ -37,6 +37,40 @@ function typedDefinition(kind: 'essence' | 'resonance', key: string) {
 }
 
 describe('RpcCombatContentAuthoringStore', () => {
+  it.each([
+    { builtin: { contentVersion: 1, name: 'Basic Attack' }, expected: 1 },
+    { builtin: { contentVersion: 999, name: 'Unavailable original' }, expected: undefined },
+    { builtin: null, expected: undefined },
+  ])(
+    'derives read and mutation capability from exact executable sources: $builtin',
+    async ({ builtin, expected }) => {
+      const rpc = vi.fn(() =>
+        rpcResult({
+          contentKey: 'unarmed.basic',
+          contentKind: 'skill',
+          lifecycle: 'archived',
+          revision: 3,
+          versionFloor: 1,
+          createdBy: null,
+          createdAt: null,
+          builtin,
+          builtinRestoreVersion: 777,
+          current: null,
+          draft: null,
+          history: [],
+          links: [],
+          usedBy: [],
+        }),
+      )
+      const store = new RpcCombatContentAuthoringStore(rpc, ACTOR)
+      expect((await store.readRecord('unarmed.basic'))?.builtinRestoreVersion).toBe(expected)
+      expect(
+        (await store.writeRecord('unarmed.basic', { action: 'archive', expectedRevision: 2 }))
+          .builtinRestoreVersion,
+      ).toBe(expected)
+    },
+  )
+
   it('reads the explicit enabled operator role', async () => {
     const rpc = vi.fn(() => rpcResult([{ user_id: ACTOR, role: 'owner', enabled: true }]))
     const store = new RpcCombatContentAuthoringStore(withCatalogue(rpc), ACTOR)

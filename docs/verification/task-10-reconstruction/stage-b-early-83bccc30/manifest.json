@@ -1,0 +1,63 @@
+{
+  "local_source": "83bccc30ed76ed5b3dac5c70c921ae2e15b2415c",
+  "remote_source": "e03f334b3842742bb8f9bbd8c490caff704e4585",
+  "prior_rows_unchanged": 124,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-initial-fresh-main.log",
+      "file": "b-initial-fresh-main.log.gz",
+      "bytes": 91,
+      "sha256": "b766328fa61582906ce1c22c1cdcfe20780b9f71144a3a9d40dae3db9f5268e5",
+      "gzip_sha256": "d7543ee30ba64c29125516f87d9c354e94b0f1639b8da89db3a005625bdac6fc",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-actual-producer-inventory.log",
+      "file": "b-actual-producer-inventory.log.gz",
+      "bytes": 219,
+      "sha256": "135f005b4d364c99dcf555654fa9750757b179c1ab169f758123ca895fd276ff",
+      "gzip_sha256": "d0b55069763d74553e49912713f206db7aec75c564e031e45adeba9a4bca7221",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-reference-red.log",
+      "file": "b-earned-reference-red.log.gz",
+      "bytes": 8441,
+      "sha256": "1c8755edeffc2398c8c5bdcc4dda72532f4c8b0e11eeb601cc79e21e331fdc18",
+      "gzip_sha256": "62345d9e128161a4450646698f5a1d594547b13b64746a2f94a6b6691c295b93",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-reference-green.log",
+      "file": "b-earned-reference-green.log.gz",
+      "bytes": 3282,
+      "sha256": "1ff1e68db247058d56b9f0765767fdcdb9b08a0cc39ed69046de1375455bc397",
+      "gzip_sha256": "fa179af43d4161fd45a85907c574e6be465152acb7ea6d156feae6dcd7fb592f",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-format.log",
+      "file": "b-earned-format.log.gz",
+      "bytes": 149,
+      "sha256": "b0ccdc10dd7edd00dcefaf77d310d76ff9e51fc670b4ce123e8dbade97beb9d2",
+      "gzip_sha256": "114aa6db4a39fbae54a07249a9a4a1504c1173638f5f02ed85da8ec968354f1b",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-core-types.log",
+      "file": "b-earned-core-types.log.gz",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "gzip_sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-earned-scoped-lint.log",
+      "file": "b-earned-scoped-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "status": "passed",
+    "basics": 5,
+    "transport": "actual local handler/service/repository/preview/publication",
+    "input": "keyboard",
+    "scope": "Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim."
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "status": "passed",
+    "basics": 5,
+    "transport": "actual local handler/service/repository/preview/publication",
+    "input": "keyboard",
+    "scope": "Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim."
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "status": "passed",
+    "basics": 5,
+    "transport": "actual local handler/service/repository/preview/publication",
+    "input": "keyboard",
+    "scope": "Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim."
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "status": "passed",
+    "basics": 5,
+    "transport": "actual local handler/service/repository/preview/publication",
+    "input": "touch",
+    "scope": "Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim."
+  }
+]

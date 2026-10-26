@@ -45,6 +45,13 @@ create temporary table startup_input as select
 '[{"event":"mp_spent","combatantId":"character:82000000-0000-4000-8000-000000000011","amount":1}]'::jsonb events,
 '{"schemaVersion":1,"commandVisibility":{"kind":"public"},"eventVisibilityOverrides":[]}'::jsonb journal,
 (select jsonb_object_agg(character_id::text,build_version) from app_private.character_active_builds where character_id in ('82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012')) builds;
+-- Build the same committed authority snapshot used by live preparation. Keep both
+-- startup identity/privacy controls below and let the genuine admission guard run.
+update startup_input set start = start || jsonb_build_object('buildAuthority',jsonb_build_object('combatants',(
+  select jsonb_agg(public.get_character_committed_build_snapshot_v2(c.user_id,c.id) ||
+    jsonb_build_object('combatantId','character:'||c.id::text,'characterId',c.id::text) order by c.id)
+  from public.characters c where c.id in ('82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012')
+)));
 alter table startup_input add column final jsonb;
 update startup_input set final=jsonb_set(jsonb_set(start,'{tactical,battle,combatants,0,mp}','9'::jsonb),'{capturedAbilitySources}','[]'::jsonb);
 
@@ -53,6 +60,13 @@ select throws_ok($$select public.start_world_encounter_v2('82000000-0000-4000-80
 select is((select count(*)::integer from app_private.pvp_lobbies where owner_user_id='82000000-0000-4000-8000-000000000001'),0,'failed startup leaves no lobby');
 select is((select count(*)::integer from app_private.battle_sessions where owner_user_id='82000000-0000-4000-8000-000000000001'),0,'failed startup leaves no battle');
 select ok((select bool_and(state->>'version'='1' and jsonb_array_length(state->'route')=1) from app_private.character_world_state where character_id in ('82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012')),'failed startup restores both routes and versions');
+
+-- Admission validates the prepared start snapshot before settling startup effects.
+-- A stale preparation must carry the same stale authority into both snapshots.
+select throws_ok($$select public.start_world_encounter_v2('82000000-0000-4000-8000-000000000001','82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012',1,1,jsonb_set(final,'{buildAuthority,combatants,0,sourceHash}','"stale"'),builds,jsonb_set(start,'{buildAuthority,combatants,0,sourceHash}','"stale"'),events,journal) from startup_input$$,'40001','PLAYER_PREPARATION_STALE','stale committed source still rejects the whole admission');
+select is((select count(*)::integer from app_private.battle_sessions where owner_user_id='82000000-0000-4000-8000-000000000001'),0,'stale preparation leaves no battle');
+select is((select count(*)::integer from app_private.pvp_lobbies where owner_user_id='82000000-0000-4000-8000-000000000001'),0,'stale preparation leaves no lobby');
+select ok((select bool_and(state->>'version'='1' and jsonb_array_length(state->'route')=1) from app_private.character_world_state where character_id in ('82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012')),'stale preparation restores both routes and versions');
 
 create temporary table startup_result as select
 (public.start_world_encounter_v2('82000000-0000-4000-8000-000000000001','82000000-0000-4000-8000-000000000011','82000000-0000-4000-8000-000000000012',1,1,final,builds,start,events,journal)->>'battleSessionId')::uuid id from startup_input;

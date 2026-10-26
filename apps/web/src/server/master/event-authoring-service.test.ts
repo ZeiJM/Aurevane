@@ -80,6 +80,9 @@ class StaffStore implements MasterPanelStaffAccessStore {
 }
 
 class MemoryEventStore implements EventAuthoringStore {
+  async readCatalogue() {
+    return { events: [], rewards: [] }
+  }
   draft: EventDefinitionDraftRecord | null = null
   current: EventDefinitionVersionRecord | null = null
   versions: EventDefinitionVersionRecord[] = []
@@ -129,7 +132,7 @@ class MemoryEventStore implements EventAuthoringStore {
     definition: PersistentEventDefinition
     expectedBaseVersion: number | null
     correlationKey: string
-    reason: string
+
     confirmed: boolean
   }) {
     const version = (input.expectedBaseVersion ?? 0) + 1
@@ -231,13 +234,13 @@ describe('Event Builder authoring service', () => {
         definition: definition(),
         expectedBaseVersion: null,
         correlationKey: '88888888-8888-4888-8888-888888888888',
-        reason: 'Publish verified Event definition',
+
         confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 
-  it('requires explicit confirmation and reason even when publication capability is present', async () => {
+  it('requires confirmation but no reason when publication capability is present', async () => {
     const { service } = serviceFor(
       access(EVENT_STAFF, ['event-staff'], ['events.production_publish']),
     )
@@ -248,7 +251,7 @@ describe('Event Builder authoring service', () => {
         definition: definition(),
         expectedBaseVersion: null,
         correlationKey: '88888888-8888-4888-8888-888888888881',
-        reason: 'Publish verified Event definition',
+
         confirmed: false,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
@@ -259,10 +262,10 @@ describe('Event Builder authoring service', () => {
         definition: definition(),
         expectedBaseVersion: null,
         correlationKey: '88888888-8888-4888-8888-888888888882',
-        reason: '',
+
         confirmed: true,
       }),
-    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    ).resolves.toMatchObject({ definitionVersion: 1 })
   })
 
   it('allows scoped publication with Production publish but separately gates global scope', async () => {
@@ -274,7 +277,7 @@ describe('Event Builder authoring service', () => {
         definition: definition(),
         expectedBaseVersion: null,
         correlationKey: '88888888-8888-4888-8888-888888888888',
-        reason: 'Publish verified Event definition',
+
         confirmed: true,
       }),
     ).resolves.toMatchObject({ definitionVersion: 1 })
@@ -285,7 +288,7 @@ describe('Event Builder authoring service', () => {
         definition: definition({ type: 'global' }),
         expectedBaseVersion: 1,
         correlationKey: '99999999-9999-4999-8999-999999999999',
-        reason: 'Publish verified global Event definition',
+
         confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN' })
@@ -299,7 +302,7 @@ describe('Event Builder authoring service', () => {
         definition: definition({ type: 'global' }),
         expectedBaseVersion: null,
         correlationKey: '88888888-8888-4888-8888-888888888888',
-        reason: 'Publish verified Event definition',
+
         confirmed: true,
       }),
     ).resolves.toMatchObject({ definitionVersion: 1 })
@@ -314,7 +317,7 @@ describe('Event Builder authoring service', () => {
         definition: definition({ type: 'global' }),
         expectedBaseVersion: null,
         correlationKey: '88888888-8888-4888-8888-888888888888',
-        reason: 'Publish verified Event definition',
+
         confirmed: true,
       }),
     ).resolves.toMatchObject({ definitionVersion: 1 })
@@ -328,10 +331,10 @@ describe('Event Builder authoring service', () => {
         actorUserId: EVENT_STAFF,
         eventKey: 'event.frostmere-storm',
         idempotencyKey: '55555555-5555-4555-8555-555555555555',
-        requestFingerprint: 'schedule:frostmere',
+
         scheduledStartAt: '2026-09-20T12:00:00.000Z',
         scheduledEndAt: '2026-09-20T14:00:00.000Z',
-        reason: 'Schedule verified Event run',
+
         confirmed: true,
       }),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
@@ -351,10 +354,10 @@ describe('Event Builder authoring service', () => {
         actorUserId: EVENT_STAFF,
         eventKey: 'event.frostmere-storm',
         idempotencyKey: '55555555-5555-4555-8555-555555555555',
-        requestFingerprint: 'schedule:frostmere',
+
         scheduledStartAt: '2026-09-20T12:00:00.000Z',
         scheduledEndAt: '2026-09-20T14:00:00.000Z',
-        reason: 'Schedule verified Event run',
+
         confirmed: true,
       }),
     ).resolves.toEqual(store.scheduled)
@@ -365,7 +368,7 @@ describe('Event Builder authoring service', () => {
         runId: store.scheduled.runId,
         expectedStateVersion: 1,
         idempotencyKey: '77777777-7777-4777-8777-777777777777',
-        reason: 'Schedule changed',
+
         confirmed: true,
       }),
     ).resolves.toEqual(store.cancelled)

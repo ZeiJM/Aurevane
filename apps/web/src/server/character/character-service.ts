@@ -29,6 +29,7 @@ export interface CreateBaseCharacterCommand {
   actor: AuthenticatedActor
   idempotencyKey: string
   intent: CharacterCreationIntent
+  expectedProfileVersion?: number
 }
 
 export async function loadBaseCharacter(
@@ -91,6 +92,8 @@ export async function createBaseCharacter(
     .digest('hex')
 
   const outcome = await repository.createBaseCharacter({
+    personalBonuses: command.intent.attributeBonuses,
+    expectedProfileVersion: command.expectedProfileVersion,
     actorKey: `user:${command.actor.userId}`,
     commandName: CREATE_CHARACTER_COMMAND,
     idempotencyKey: command.idempotencyKey,

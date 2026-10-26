@@ -1,0 +1,82 @@
+import playwright from "file:///workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025/node_modules/.pnpm/@playwright+test@1.62.0/node_modules/@playwright/test/index.js";
+const { expect } = playwright;
+export function nativeMasterControls(page, info, evidence, slug) {
+  async function control(target: Locator, label: string) {
+    await expect(target).toBeVisible()
+    await target.scrollIntoViewIfNeeded()
+    await expect(target).toBeInViewport({ ratio: 1 })
+    const measured = await target.evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+      const clippedBy: string[] = []
+      for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+        const css = getComputedStyle(parent),
+          box = parent.getBoundingClientRect()
+        if (
+          (/hidden|clip|auto|scroll/.test(css.overflowX) &&
+            (rect.left < box.left - 1 || rect.right > box.right + 1)) ||
+          (/hidden|clip|auto|scroll/.test(css.overflowY) &&
+            (rect.top < box.top - 1 || rect.bottom > box.bottom + 1))
+        )
+          clippedBy.push(`${parent.tagName}.${parent.className}`)
+      }
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        width: innerWidth,
+        height: innerHeight,
+        unobscured: hit === element || element.contains(hit),
+        hitElement: hit?.tagName ?? null,
+        hitWithinPrimaryDock: !!hit?.closest('[data-av-game-rail]'),
+        clippedBy,
+      }
+    })
+    evidence.push({ label, ...measured })
+    try {
+      expect(measured.left, label).toBeGreaterThanOrEqual(-1)
+      expect(measured.right, label).toBeLessThanOrEqual(measured.width + 1)
+      expect(measured.top, label).toBeGreaterThanOrEqual(-1)
+      expect(measured.bottom, label).toBeLessThanOrEqual(measured.height + 1)
+      expect(measured.unobscured, label).toBe(true)
+      expect(measured.clippedBy, label).toEqual([])
+    } catch (error) {
+      await info.attach(`master-real200-${slug}-${label}-failure.json`, {
+        body: JSON.stringify(evidence),
+        contentType: 'application/json',
+      })
+      throw error
+    }
+  }
+  async function activate(target: Locator, label: string) {
+    await expect(target).toBeEnabled()
+    await target.focus()
+    // Traverse the real tab order back into the named Master control, then activate it.
+    await page.keyboard.press('Shift+Tab')
+    await page.keyboard.press('Tab')
+    await expect(target).toBeFocused()
+    await control(target, label)
+    const focus = await target.evaluate((element) => {
+      const css = getComputedStyle(element)
+      return {
+        visible: element.matches(':focus-visible'),
+        outline: css.outlineStyle,
+        width: parseFloat(css.outlineWidth),
+        color: css.outlineColor,
+        shadow: css.boxShadow,
+      }
+    })
+    expect(focus.visible, label).toBe(true)
+    expect(
+      (focus.outline !== 'none' && focus.width > 0 && focus.color !== 'rgba(0, 0, 0, 0)') ||
+        focus.shadow !== 'none',
+      label,
+    ).toBe(true)
+    evidence.push({ label, focus })
+    await page.screenshot({ path: info.outputPath(`master-real200-${slug}-${label}-focus.png`) })
+    await page.keyboard.press('Enter')
+  }
+
+return { control, activate };
+}

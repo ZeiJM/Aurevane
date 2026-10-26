@@ -133,3 +133,19 @@ it('retries terminal recovery through durable SQL receipt even after neutral act
     }),
   )
 })
+
+it('accepts explicit selected eligibility in a Skill correction but rejects caller-earned facts', () => {
+  const skill = {
+    skillId: 'lifebinder.mend',
+    contentVersion: 5,
+    sourceDisciplineId: 'lifebinder',
+    eligibilityDisciplineId: 'vanguard',
+  }
+  expect(parsePlayerCorrection({ kind: 'skills', skills: [skill] })).toEqual({
+    kind: 'skills',
+    skills: [skill],
+  })
+  expect(() =>
+    parsePlayerCorrection({ kind: 'skills', skills: [{ ...skill, earnedEligibility: true }] }),
+  ).toThrow()
+})

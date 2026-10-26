@@ -680,6 +680,18 @@ it('attaches the server-owned environment, honouring Master settings', async () 
     weatherSource: 'master',
     settingsVersion: 3,
   })
+  environmentSettings.mockResolvedValue({
+    ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS,
+    dayLengthMinutes: 120,
+    weatherOverride: 'storm',
+    weatherOverrideUntil: 5000,
+  })
+  resetWorldReadCaches()
+  expect((await readWorld('owner', characterId)).view.environment).toMatchObject({
+    dayLengthMs: 7200000,
+    minuteOfDay: 1,
+    weatherSource: 'live',
+  })
 })
 
 it('materializes expired training once using the existing authority, without claiming rewards', async () => {

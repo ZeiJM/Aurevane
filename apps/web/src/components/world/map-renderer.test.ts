@@ -1,3 +1,4 @@
+import { resolveWorldEnvironment, DEFAULT_WORLD_ENVIRONMENT_SETTINGS } from '@/world/environment'
 import { createRequire } from 'node:module'
 import { readFile } from 'node:fs/promises'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -1278,6 +1279,24 @@ describe('native map input and bounded lifecycle', () => {
     s.listeners.get('keydown')!({ key: 'Escape', preventDefault } as unknown as Event)
     expect(s.onStop).toHaveBeenCalledOnce()
     expect(preventDefault).toHaveBeenCalledOnce()
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
+  it('consumes configured cycles in the actual map night tint without movement input', () => {
+    const s = scene()
+    const settings = { ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS, dayLengthMinutes: 120 }
+    const time = Date.UTC(2026, 9, 10)
+    const tint = (now: number) => {
+      s.rectangles.length = 0
+      s.renderer.update({ ...s.view, environment: resolveWorldEnvironment(now, settings) })
+      s.frame(40)
+      return s.rectangles.find(
+        (fill) => typeof fill.colour === 'string' && fill.colour.startsWith('rgba(16,28,50,'),
+      )?.colour
+    }
+    expect(tint(time)).toMatch(/^rgba\(16,28,50,0\.[1-9]/)
+    expect(tint(time + 60 * 60_000)).toBe('rgba(16,28,50,0)')
+    expect(tint(time + 120 * 60_000)).toMatch(/^rgba\(16,28,50,0\.[1-9]/)
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })

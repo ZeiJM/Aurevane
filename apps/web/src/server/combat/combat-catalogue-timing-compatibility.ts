@@ -1,4 +1,5 @@
 import 'server-only'
+import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import { applyAbilityTimingDefaults } from '@aurevane/game-core/combat/combat-definition'
 import {
   combatActionEffectTimingTag,
@@ -88,4 +89,61 @@ export function assertCombatCatalogueTimingCompatible(catalogue: CombatContentCa
     'INVALID_REQUEST',
     `Timing is incompatible with ${names.join(', ')}${issues.length > 5 ? ` and ${issues.length - 5} more` : ''}. Use compatible captured Manual actions or explicit timing overrides before publishing.`,
   )
+}
+
+/** Informational dependencies from the exact catalogue used by the compatibility guard. */
+export function combatTimingUsedBy(
+  catalogue: CombatContentCatalogue,
+): Record<string, { contentKey: string; name: string }[]> {
+  const used: Record<string, { contentKey: string; name: string }[]> = {}
+  for (const entry of catalogue.entries) {
+    if (
+      entry.category === 'status' ||
+      entry.category === 'effect-profile' ||
+      !entry.definition.enabled
+    )
+      continue
+    const definition =
+      entry.category === 'essence'
+        ? Object.hasOwn(entry.definition, 'ability')
+          ? { ...entry.definition.skill, ability: entry.definition.ability }
+          : entry.definition.skill
+        : entry.definition
+    const tags = new Set<string>()
+    if (definition.ability) {
+      for (const group of definition.ability.behaviors)
+        for (const effect of group.effects) {
+          if (effect.payload.type === 'move' || effect.payload.type === 'damage-bonus') continue
+          tags.add(
+            effect.payload.type === 'summon'
+              ? 'summon'
+              : currentCombatEffectTimingTag(nativeCombatTagPayload(effect.payload)),
+          )
+        }
+    } else if (entry.category === 'resonance') {
+      for (const effect of normalizedResonanceMechanics(entry.definition).resultEffects)
+        tags.add(currentCombatEffectTimingTag(effect))
+    } else if (entry.category !== 'basic') {
+      for (const context of ['pve', 'pvp'] as const) {
+        const action = toMaterializedCombatActionDefinition(
+          entry.category === 'essence' ? entry.definition.skill : entry.definition,
+          context,
+        )
+        for (const [ordinal, effect] of action.effects.entries())
+          tags.add(
+            combatActionEffectTimingTag(
+              { displacementPolicyVersion: 1 },
+              effect,
+              action.effectTimingTags?.[ordinal],
+            ),
+          )
+      }
+    }
+    for (const tag of tags)
+      (used[tag] ??= []).push({
+        contentKey: entry.contentKey,
+        name: 'name' in definition ? String(definition.name) : entry.contentKey,
+      })
+  }
+  return used
 }

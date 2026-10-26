@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url'
 import { CORE_SPECS, safePath } from './verification-plan.mjs'
 
 export const AUTHORITY_SPECS = [
+  'master-complete-layout.pw.ts',
+  'master-world-environment-cadence.pw.ts',
   'master-combat-content-authoring.pw.ts',
   'staff-selected-character-access.pw.ts',
   'master-players-recovery.pw.ts',
@@ -73,6 +75,8 @@ export function preserveEvidence(
   root = 'apps/web/test-results',
   authority = '/tmp/combat-master-release-review',
   rails = '/tmp/battle-rail-review',
+  master = '/tmp/master-full-integration-review',
+  phase = 'standalone',
 ) {
   if (!existsSync(root)) return
   mkdirSync(authority, { recursive: true })
@@ -86,6 +90,15 @@ export function preserveEvidence(
     }
   }
   visit(root)
+  for (const entry of readdirSync(root, { withFileTypes: true }))
+    if (
+      entry.isDirectory() &&
+      /^(master-complete-layout|master-world-environment-)/.test(entry.name)
+    ) {
+      const destination = resolve(master, phase, entry.name)
+      mkdirSync(destination, { recursive: true })
+      cpSync(resolve(root, entry.name), destination, { recursive: true })
+    }
   for (const entry of readdirSync(root, { withFileTypes: true }))
     if (
       entry.isDirectory() &&
@@ -122,7 +135,16 @@ function cli() {
       env: { ...process.env, AV_CHANGED_PUBLIC_IMAGES: JSON.stringify(plan.assets) },
     })
     console.log('::endgroup::')
-    preserveEvidence()
+    // Edge writes separately; do not relabel retained Chromium captures as Edge evidence.
+    preserveEvidence(
+      command.args.includes('--output=test-results-edge')
+        ? 'apps/web/test-results-edge'
+        : 'apps/web/test-results',
+      '/tmp/combat-master-release-review',
+      '/tmp/battle-rail-review',
+      '/tmp/master-full-integration-review',
+      command.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    )
     if (result.error || result.status !== 0)
       throw new Error(`${command.name} did not pass${result.signal ? ` (${result.signal})` : ''}`)
   }

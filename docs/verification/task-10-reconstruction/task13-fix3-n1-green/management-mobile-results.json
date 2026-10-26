@@ -1,0 +1,767 @@
+{
+  "checks": [
+    {
+      "panel": "disciplines",
+      "width": 390,
+      "height": 844,
+      "dialog": {
+        "x": 0,
+        "y": 33.765625,
+        "width": 390,
+        "height": 810.234375,
+        "top": 33.765625,
+        "right": 390,
+        "bottom": 844,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "primary": {
+        "x": 10.59375,
+        "y": 124.8125,
+        "width": 181.203125,
+        "height": 54.390625,
+        "top": 124.8125,
+        "right": 191.796875,
+        "bottom": 179.203125,
+        "left": 10.59375
+      },
+      "secondary": {
+        "x": 198.1875,
+        "y": 124.8125,
+        "width": 181.21875,
+        "height": 54.390625,
+        "top": 124.8125,
+        "right": 379.40625,
+        "bottom": 179.203125,
+        "left": 198.1875
+      },
+      "roster": {
+        "x": 10.59375,
+        "y": 185.59375,
+        "width": 368.8125,
+        "height": 423.859375,
+        "top": 185.59375,
+        "right": 379.40625,
+        "bottom": 609.453125,
+        "left": 10.59375
+      },
+      "rosterScroll": 237,
+      "preview": {
+        "x": 1,
+        "y": 615.84375,
+        "width": 388,
+        "height": 227.15625,
+        "top": 615.84375,
+        "right": 389,
+        "bottom": 843,
+        "left": 1
+      },
+      "summaryContainsContent": true
+    },
+    {
+      "panel": "techniques",
+      "width": 390,
+      "height": 844,
+      "dialog": {
+        "x": 0,
+        "y": 33.765625,
+        "width": 390,
+        "height": 810.234375,
+        "top": 33.765625,
+        "right": 390,
+        "bottom": 844,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "preview": {
+        "x": 5.796875,
+        "y": 432.21875,
+        "width": 378.40625,
+        "height": 373.96875,
+        "top": 432.21875,
+        "right": 384.203125,
+        "bottom": 806.1875,
+        "left": 5.796875
+      },
+      "images": 0,
+      "report": {
+        "x": 12.1875,
+        "y": 512.390625,
+        "width": 365.625,
+        "height": 263.5,
+        "top": 512.390625,
+        "right": 377.8125,
+        "bottom": 775.890625,
+        "left": 12.1875
+      },
+      "heading": {
+        "x": 12.1875,
+        "y": 454.484375,
+        "width": 365.625,
+        "height": 53.90625,
+        "top": 454.484375,
+        "right": 377.8125,
+        "bottom": 508.390625,
+        "left": 12.1875
+      },
+      "list": {
+        "x": 5.796875,
+        "y": 108.84375,
+        "width": 378.40625,
+        "height": 318.578125,
+        "top": 108.84375,
+        "right": 384.203125,
+        "bottom": 427.421875,
+        "left": 5.796875
+      },
+      "art": {
+        "x": 37.46875,
+        "y": 211.609375,
+        "width": 43,
+        "height": 43,
+        "top": 211.609375,
+        "right": 80.46875,
+        "bottom": 254.609375,
+        "left": 37.46875
+      }
+    },
+    {
+      "panel": "disciplines",
+      "width": 320,
+      "height": 740,
+      "dialog": {
+        "x": 0,
+        "y": 29.609375,
+        "width": 320,
+        "height": 710.390625,
+        "top": 29.609375,
+        "right": 320,
+        "bottom": 740,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "primary": {
+        "x": 10.59375,
+        "y": 120.65625,
+        "width": 146.203125,
+        "height": 54.390625,
+        "top": 120.65625,
+        "right": 156.796875,
+        "bottom": 175.046875,
+        "left": 10.59375
+      },
+      "secondary": {
+        "x": 163.1875,
+        "y": 120.65625,
+        "width": 146.21875,
+        "height": 54.390625,
+        "top": 120.65625,
+        "right": 309.40625,
+        "bottom": 175.046875,
+        "left": 163.1875
+      },
+      "roster": {
+        "x": 10.59375,
+        "y": 181.4375,
+        "width": 298.8125,
+        "height": 314.375,
+        "top": 181.4375,
+        "right": 309.40625,
+        "bottom": 495.8125,
+        "left": 10.59375
+      },
+      "rosterScroll": 494,
+      "preview": {
+        "x": 1,
+        "y": 502.203125,
+        "width": 318,
+        "height": 236.796875,
+        "top": 502.203125,
+        "right": 319,
+        "bottom": 739,
+        "left": 1
+      },
+      "summaryContainsContent": true
+    },
+    {
+      "panel": "techniques",
+      "width": 320,
+      "height": 740,
+      "dialog": {
+        "x": 0,
+        "y": 29.609375,
+        "width": 320,
+        "height": 710.390625,
+        "top": 29.609375,
+        "right": 320,
+        "bottom": 740,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "preview": {
+        "x": 5.796875,
+        "y": 382.125,
+        "width": 308.40625,
+        "height": 320.078125,
+        "top": 382.125,
+        "right": 314.203125,
+        "bottom": 702.203125,
+        "left": 5.796875
+      },
+      "images": 0,
+      "report": {
+        "x": 12.1875,
+        "y": 462.296875,
+        "width": 295.625,
+        "height": 263.5,
+        "top": 462.296875,
+        "right": 307.8125,
+        "bottom": 725.796875,
+        "left": 12.1875
+      },
+      "heading": {
+        "x": 12.1875,
+        "y": 404.390625,
+        "width": 295.625,
+        "height": 53.90625,
+        "top": 404.390625,
+        "right": 307.8125,
+        "bottom": 458.296875,
+        "left": 12.1875
+      },
+      "list": {
+        "x": 5.796875,
+        "y": 104.6875,
+        "width": 308.40625,
+        "height": 272.640625,
+        "top": 104.6875,
+        "right": 314.203125,
+        "bottom": 377.328125,
+        "left": 5.796875
+      },
+      "art": {
+        "x": 28.71875,
+        "y": 190.765625,
+        "width": 43,
+        "height": 43,
+        "top": 190.765625,
+        "right": 71.71875,
+        "bottom": 233.765625,
+        "left": 28.71875
+      }
+    },
+    {
+      "panel": "disciplines",
+      "width": 430,
+      "height": 932,
+      "dialog": {
+        "x": 0,
+        "y": 37.28125,
+        "width": 430,
+        "height": 894.71875,
+        "top": 37.28125,
+        "right": 430,
+        "bottom": 932,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "primary": {
+        "x": 10.59375,
+        "y": 128.328125,
+        "width": 201.203125,
+        "height": 54.390625,
+        "top": 128.328125,
+        "right": 211.796875,
+        "bottom": 182.71875,
+        "left": 10.59375
+      },
+      "secondary": {
+        "x": 218.1875,
+        "y": 128.328125,
+        "width": 201.21875,
+        "height": 54.390625,
+        "top": 128.328125,
+        "right": 419.40625,
+        "bottom": 182.71875,
+        "left": 218.1875
+      },
+      "roster": {
+        "x": 10.59375,
+        "y": 189.109375,
+        "width": 408.8125,
+        "height": 508.34375,
+        "top": 189.109375,
+        "right": 419.40625,
+        "bottom": 697.453125,
+        "left": 10.59375
+      },
+      "rosterScroll": 81,
+      "preview": {
+        "x": 1,
+        "y": 703.84375,
+        "width": 428,
+        "height": 227.15625,
+        "top": 703.84375,
+        "right": 429,
+        "bottom": 931,
+        "left": 1
+      },
+      "summaryContainsContent": true
+    },
+    {
+      "panel": "techniques",
+      "width": 430,
+      "height": 932,
+      "dialog": {
+        "x": 0,
+        "y": 37.28125,
+        "width": 430,
+        "height": 894.71875,
+        "top": 37.28125,
+        "right": 430,
+        "bottom": 932,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "preview": {
+        "x": 5.796875,
+        "y": 468.375,
+        "width": 418.40625,
+        "height": 425.828125,
+        "top": 468.375,
+        "right": 424.203125,
+        "bottom": 894.203125,
+        "left": 5.796875
+      },
+      "images": 0,
+      "report": {
+        "x": 12.1875,
+        "y": 548.546875,
+        "width": 405.625,
+        "height": 263.5,
+        "top": 548.546875,
+        "right": 417.8125,
+        "bottom": 812.046875,
+        "left": 12.1875
+      },
+      "heading": {
+        "x": 12.1875,
+        "y": 490.640625,
+        "width": 405.625,
+        "height": 53.90625,
+        "top": 490.640625,
+        "right": 417.8125,
+        "bottom": 544.546875,
+        "left": 12.1875
+      },
+      "list": {
+        "x": 5.796875,
+        "y": 100.859375,
+        "width": 418.40625,
+        "height": 362.71875,
+        "top": 100.859375,
+        "right": 424.203125,
+        "bottom": 463.578125,
+        "left": 5.796875
+      },
+      "art": {
+        "x": 42.46875,
+        "y": 214.65625,
+        "width": 43,
+        "height": 43,
+        "top": 214.65625,
+        "right": 85.46875,
+        "bottom": 257.65625,
+        "left": 42.46875
+      }
+    },
+    {
+      "panel": "disciplines",
+      "width": 760,
+      "height": 650,
+      "dialog": {
+        "x": 0,
+        "y": 26,
+        "width": 760,
+        "height": 624,
+        "top": 26,
+        "right": 760,
+        "bottom": 650,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "primary": {
+        "x": 10.59375,
+        "y": 117.046875,
+        "width": 366.203125,
+        "height": 54.390625,
+        "top": 117.046875,
+        "right": 376.796875,
+        "bottom": 171.4375,
+        "left": 10.59375
+      },
+      "secondary": {
+        "x": 383.1875,
+        "y": 117.046875,
+        "width": 366.21875,
+        "height": 54.390625,
+        "top": 117.046875,
+        "right": 749.40625,
+        "bottom": 171.4375,
+        "left": 383.1875
+      },
+      "roster": {
+        "x": 10.59375,
+        "y": 177.828125,
+        "width": 738.8125,
+        "height": 256.78125,
+        "top": 177.828125,
+        "right": 749.40625,
+        "bottom": 434.609375,
+        "left": 10.59375
+      },
+      "rosterScroll": 290,
+      "preview": {
+        "x": 1,
+        "y": 441,
+        "width": 758,
+        "height": 208,
+        "top": 441,
+        "right": 759,
+        "bottom": 649,
+        "left": 1
+      },
+      "summaryContainsContent": true
+    },
+    {
+      "panel": "techniques",
+      "width": 760,
+      "height": 650,
+      "dialog": {
+        "x": 0,
+        "y": 26,
+        "width": 760,
+        "height": 624,
+        "top": 26,
+        "right": 760,
+        "bottom": 650,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "preview": {
+        "x": 5.796875,
+        "y": 332.5625,
+        "width": 748.40625,
+        "height": 279.640625,
+        "top": 332.5625,
+        "right": 754.203125,
+        "bottom": 612.203125,
+        "left": 5.796875
+      },
+      "images": 0,
+      "report": {
+        "x": 12.1875,
+        "y": 396.484375,
+        "width": 735.625,
+        "height": 263.5,
+        "top": 396.484375,
+        "right": 747.8125,
+        "bottom": 659.984375,
+        "left": 12.1875
+      },
+      "heading": {
+        "x": 12.1875,
+        "y": 354.828125,
+        "width": 735.625,
+        "height": 37.65625,
+        "top": 354.828125,
+        "right": 747.8125,
+        "bottom": 392.484375,
+        "left": 12.1875
+      },
+      "list": {
+        "x": 5.796875,
+        "y": 89.578125,
+        "width": 748.40625,
+        "height": 238.1875,
+        "top": 89.578125,
+        "right": 754.203125,
+        "bottom": 327.765625,
+        "left": 5.796875
+      },
+      "art": {
+        "x": 83.71875,
+        "y": 170.984375,
+        "width": 43,
+        "height": 43,
+        "top": 170.984375,
+        "right": 126.71875,
+        "bottom": 213.984375,
+        "left": 83.71875
+      }
+    },
+    {
+      "panel": "disciplines",
+      "width": 844,
+      "height": 390,
+      "dialog": {
+        "x": 0,
+        "y": 15.609375,
+        "width": 844,
+        "height": 374.390625,
+        "top": 15.609375,
+        "right": 844,
+        "bottom": 390,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "primary": {
+        "x": 10.59375,
+        "y": 106.65625,
+        "width": 408.203125,
+        "height": 54.390625,
+        "top": 106.65625,
+        "right": 418.796875,
+        "bottom": 161.046875,
+        "left": 10.59375
+      },
+      "secondary": {
+        "x": 425.1875,
+        "y": 106.65625,
+        "width": 408.21875,
+        "height": 54.390625,
+        "top": 106.65625,
+        "right": 833.40625,
+        "bottom": 161.046875,
+        "left": 425.1875
+      },
+      "roster": {
+        "x": 10.59375,
+        "y": 167.4375,
+        "width": 822.8125,
+        "height": 90.375,
+        "top": 167.4375,
+        "right": 833.40625,
+        "bottom": 257.8125,
+        "left": 10.59375
+      },
+      "rosterScroll": 455,
+      "preview": {
+        "x": 1,
+        "y": 264.203125,
+        "width": 842,
+        "height": 124.796875,
+        "top": 264.203125,
+        "right": 843,
+        "bottom": 389,
+        "left": 1
+      },
+      "summaryContainsContent": true
+    },
+    {
+      "panel": "techniques",
+      "width": 844,
+      "height": 390,
+      "dialog": {
+        "x": 0,
+        "y": 15.609375,
+        "width": 844,
+        "height": 374.390625,
+        "top": 15.609375,
+        "right": 844,
+        "bottom": 390,
+        "left": 0
+      },
+      "overflow": 0,
+      "documentOverflow": 0,
+      "preview": {
+        "x": 5.796875,
+        "y": 244.90625,
+        "width": 832.40625,
+        "height": 107.296875,
+        "top": 244.90625,
+        "right": 838.203125,
+        "bottom": 352.203125,
+        "left": 5.796875
+      },
+      "images": 0,
+      "report": {
+        "x": 12.1875,
+        "y": 310.953125,
+        "width": 819.625,
+        "height": 263.5,
+        "top": 310.953125,
+        "right": 831.8125,
+        "bottom": 574.453125,
+        "left": 12.1875
+      },
+      "heading": {
+        "x": 12.1875,
+        "y": 269.296875,
+        "width": 819.625,
+        "height": 37.65625,
+        "top": 269.296875,
+        "right": 831.8125,
+        "bottom": 306.953125,
+        "left": 12.1875
+      },
+      "list": {
+        "x": 5.796875,
+        "y": 79.1875,
+        "width": 832.40625,
+        "height": 160.921875,
+        "top": 79.1875,
+        "right": 838.203125,
+        "bottom": 240.109375,
+        "left": 5.796875
+      },
+      "art": {
+        "x": 94.21875,
+        "y": 150.875,
+        "width": 43,
+        "height": 43,
+        "top": 150.875,
+        "right": 137.21875,
+        "bottom": 193.875,
+        "left": 94.21875
+      }
+    },
+    {
+      "panel": "disciplines",
+      "width": 1366,
+      "height": 768,
+      "dialog": {
+        "x": 43.5,
+        "y": 30.71875,
+        "width": 1264,
+        "height": 706.546875,
+        "top": 30.71875,
+        "right": 1307.5,
+        "bottom": 737.265625,
+        "left": 43.5
+      },
+      "overflow": 0,
+      "documentOverflow": -15,
+      "primary": {
+        "x": 397.015625,
+        "y": 153.9375,
+        "width": 436.734375,
+        "height": 105.359375,
+        "top": 153.9375,
+        "right": 833.75,
+        "bottom": 259.296875,
+        "left": 397.015625
+      },
+      "secondary": {
+        "x": 841.75,
+        "y": 153.9375,
+        "width": 436.734375,
+        "height": 105.359375,
+        "top": 153.9375,
+        "right": 1278.484375,
+        "bottom": 259.296875,
+        "left": 841.75
+      },
+      "roster": {
+        "x": 72.5,
+        "y": 132.5,
+        "width": 308.515625,
+        "height": 577.375,
+        "top": 132.5,
+        "right": 381.015625,
+        "bottom": 709.875,
+        "left": 72.5
+      },
+      "rosterScroll": 1098,
+      "preview": {
+        "x": 397.015625,
+        "y": 272.09375,
+        "width": 881.46875,
+        "height": 175.078125,
+        "top": 272.09375,
+        "right": 1278.484375,
+        "bottom": 447.171875,
+        "left": 397.015625
+      },
+      "summaryContainsContent": true
+    },
+    {
+      "panel": "techniques",
+      "width": 1366,
+      "height": 768,
+      "dialog": {
+        "x": 12.984375,
+        "y": 12,
+        "width": 1325.015625,
+        "height": 744,
+        "top": 12,
+        "right": 1338,
+        "bottom": 756,
+        "left": 12.984375
+      },
+      "overflow": 0,
+      "documentOverflow": -15,
+      "preview": {
+        "x": 805.234375,
+        "y": 85.875,
+        "width": 518.96875,
+        "height": 660.328125,
+        "top": 85.875,
+        "right": 1324.203125,
+        "bottom": 746.203125,
+        "left": 805.234375
+      },
+      "images": 0,
+      "report": {
+        "x": 815.828125,
+        "y": 175.03125,
+        "width": 482.78125,
+        "height": 218.1875,
+        "top": 175.03125,
+        "right": 1298.609375,
+        "bottom": 393.21875,
+        "left": 815.828125
+      },
+      "heading": {
+        "x": 815.828125,
+        "y": 114.265625,
+        "width": 482.78125,
+        "height": 55.96875,
+        "top": 114.265625,
+        "right": 1298.609375,
+        "bottom": 170.234375,
+        "left": 815.828125
+      },
+      "list": {
+        "x": 26.78125,
+        "y": 85.875,
+        "width": 766.9375,
+        "height": 660.328125,
+        "top": 85.875,
+        "right": 793.71875,
+        "bottom": 746.203125,
+        "left": 26.78125
+      },
+      "art": {
+        "x": 39.5625,
+        "y": 142.4375,
+        "width": 64,
+        "height": 64,
+        "top": 142.4375,
+        "right": 103.5625,
+        "bottom": 206.4375,
+        "left": 39.5625
+      }
+    }
+  ],
+  "errors": []
+}

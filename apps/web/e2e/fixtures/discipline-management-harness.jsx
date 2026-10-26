@@ -96,6 +96,8 @@ function currentContext() {
       characterId: window.contextCharacter ?? window.characterId,
       buildVersion: window.buildVersion,
     },
+    availablePrimaries: options,
+    availableSecondaries: options.map((option) => ({ ...option, masteredAt: 'fixture' })),
     current: previewFor(window.primary),
     currentSecondary: optionsFor(window.secondary),
     attunement,

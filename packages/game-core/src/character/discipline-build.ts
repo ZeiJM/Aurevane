@@ -1,3 +1,7 @@
+import {
+  foundationDisciplineAttributePolicy,
+  type DisciplineAttributePolicy,
+} from './attribute-allocation'
 import type { CharacterAttributes } from './creation'
 import {
   calculateDerivedStats,
@@ -20,6 +24,7 @@ export interface DisciplineDefinition {
 export interface PrimaryDisciplineBaseProfile {
   disciplineId: string
   profileVersion: number
+  corePolicy?: DisciplineAttributePolicy
   statOffsets: Readonly<Partial<Record<DerivedStatId, number>>>
   statCaps?: Readonly<Partial<Record<DerivedStatId, number>>>
 }
@@ -199,4 +204,11 @@ function applyBuildDerivedStatModifiers(
   }
 
   return { ...snapshot, stats }
+}
+
+/** Legacy in-memory adapters may omit Core; production reads always supply exact SQL profiles. */
+export function disciplineAttributePolicyForProfile(
+  profile: PrimaryDisciplineBaseProfile,
+): DisciplineAttributePolicy | null {
+  return profile.corePolicy ?? foundationDisciplineAttributePolicy(profile.disciplineId)
 }

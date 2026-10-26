@@ -122,6 +122,11 @@ function parseRunSummary(row: JsonObject): EventOperationRunSummary | null {
   }
 
   return {
+    title: text(row.title) ?? eventKey,
+    participantCount:
+      Number.isSafeInteger(row.participant_count) && Number(row.participant_count) >= 0
+        ? Number(row.participant_count)
+        : 0,
     runId,
     eventKey,
     lifecycleStatus,
@@ -187,7 +192,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
     async listRuns(actorUserId) {
       const supabase = createSupabaseAdminClient()
       const rpc = createSelectedCharacterRpc((name, parameters) => supabase.rpc(name, parameters))
-      const { data, error } = await rpc('list_event_operation_runs_v1', {
+      const { data, error } = await rpc('list_event_workspace_runs_v1', {
         p_actor_user_id: actorUserId,
       })
       if (error) mapRpcError(error)
@@ -223,7 +228,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
         p_command: input.command,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
@@ -238,7 +243,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
         p_run_id: input.runId,
         p_expected_state_version: input.expectedStateVersion,
         p_idempotency_key: input.idempotencyKey,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)
@@ -254,7 +259,7 @@ export function createSupabaseEventOperationsStore(): EventOperationsStore {
         p_phase_id: input.phaseId,
         p_effect_ordinal: input.effectOrdinal,
         p_completion_key: input.completionKey,
-        p_reason: input.reason,
+        p_reason: null,
         p_confirmed: input.confirmed,
       })
       if (error) mapRpcError(error)

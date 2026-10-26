@@ -72,10 +72,33 @@ export async function PUT(request: Request) {
       throw new AurevaneError('INVALID_REQUEST', 'The Discipline Skill selection is invalid.')
     }
 
+    let eligibilitySelections: { skillId: string; eligibilityDisciplineId: string }[] | undefined
+    if (Object.hasOwn(body, 'eligibilitySelections')) {
+      if (!Array.isArray(body.eligibilitySelections))
+        throw new AurevaneError('INVALID_REQUEST', 'The Skill eligibility selection is invalid.')
+      eligibilitySelections = body.eligibilitySelections.map((choice: unknown) => {
+        if (
+          !choice ||
+          typeof choice !== 'object' ||
+          Array.isArray(choice) ||
+          !('skillId' in choice) ||
+          typeof choice.skillId !== 'string' ||
+          !('eligibilityDisciplineId' in choice) ||
+          typeof choice.eligibilityDisciplineId !== 'string'
+        )
+          throw new AurevaneError('INVALID_REQUEST', 'The Skill eligibility selection is invalid.')
+        return { skillId: choice.skillId, eligibilityDisciplineId: choice.eligibilityDisciplineId }
+      })
+    }
     const context = await saveCharacterDisciplineSkills(
       actor.userId,
       character,
-      { expectedBuildVersion, idempotencyKey, skillIds },
+      {
+        expectedBuildVersion,
+        idempotencyKey,
+        skillIds,
+        ...(eligibilitySelections === undefined ? {} : { eligibilitySelections }),
+      },
       createSupabaseCharacterBuildRepository(),
     )
     return Response.json(

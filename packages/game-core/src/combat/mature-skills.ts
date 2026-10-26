@@ -1,3 +1,5 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import {
   validateAbilityDefinition,
   assertLegacyAbilityAbsent,
@@ -69,7 +71,7 @@ export interface MatureSkillContextOverride {
   readonly cooldownOwnerTurns?: number
 }
 
-export interface MatureSkillMediaHooks {
+export interface MatureSkillMediaHooks extends FinalizedContentMediaSlots {
   readonly iconKey: string | null
   readonly audioCueKey: string | null
   readonly vfxKey: string | null
@@ -84,6 +86,9 @@ export interface MatureSkillAuthoringMetadata {
 export type MatureSkillEffectDefinition = CombatEffectDefinition | CombatSummonEffect
 
 export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
+  /** Authored text overrides preserve the stable identity and historical translation refs. */
+  readonly name?: string
+  readonly description?: string
   readonly ability?: AbilityDefinition
   readonly groundArea?: CombatGroundAreaDefinition
   readonly id: string
@@ -93,6 +98,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly descriptionRef: string
   readonly flavorLine?: string
   /** Optional versioned action prose, separate from catalogue flavor. */
+  readonly presentation?: AbilityPresentationText
   readonly battleText?: string
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
@@ -1191,7 +1197,17 @@ export function latestEnabledMatureSkills(
 export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
-  const issues: string[] = []
+  const issues: string[] = [...abilityPresentationTextIssues(definition)]
+  if (
+    definition.name !== undefined &&
+    (typeof definition.name !== 'string' || !definition.name.trim() || definition.name.length > 120)
+  )
+    issues.push('name')
+  if (
+    definition.description !== undefined &&
+    (typeof definition.description !== 'string' || definition.description.length > 2000)
+  )
+    issues.push('description')
   if (Object.hasOwn(definition, 'nativeBasicAttackCommand'))
     issues.push('private-native-basic-command-not-authored')
   const canonical = Object.hasOwn(definition, 'ability')
@@ -1302,6 +1318,7 @@ export function validateMatureSkillDefinition(
     issues.push('unlockRequirement.grantId')
   }
   if (!Number.isFinite(definition.ai.baseUtility)) issues.push('ai.baseUtility')
+  issues.push(...finalizedContentMediaIssues(definition.media))
   const media = definition.media as MatureSkillMediaHooks | null | undefined
   if (!media || typeof media !== 'object') {
     issues.push('media')

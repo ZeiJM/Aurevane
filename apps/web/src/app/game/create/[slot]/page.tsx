@@ -1,3 +1,4 @@
+import { loadPublishedFoundations } from '@/server/character/published-discipline-catalogue'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -34,6 +35,9 @@ export default async function CharacterCreationPage({
   const characters = await loadCharacterSlots(actor.userId)
   if (characters.some((character) => character.slotIndex === slotIndex)) redirect('/game')
 
+  const disciplines = await loadPublishedFoundations()
+  if (disciplines.length === 0) throw new Error('No current Foundation Discipline is available.')
+
   return (
     <div className={styles.shell} data-character-creation-page="true">
       <div className={styles.world} aria-hidden="true">
@@ -52,7 +56,7 @@ export default async function CharacterCreationPage({
             <span>Slot {slotIndex + 1}</span>
             <Link href="/game">← Back to Character Select</Link>
           </div>
-          <CharacterCreationExperience slotIndex={slotIndex} />
+          <CharacterCreationExperience slotIndex={slotIndex} disciplines={disciplines} />
         </section>
       </main>
     </div>

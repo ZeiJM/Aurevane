@@ -100,7 +100,10 @@ async function runEventOperation(
   buttonName: string,
 ): Promise<Record<string, unknown>> {
   const pending = page.waitForResponse((response) => isEventOperationResponse(response, operation))
-  await page.getByRole('button', { name: buttonName, exact: true }).click()
+  const controls = ['preview', 'schedule'].includes(operation)
+    ? page.locator('#event-controls')
+    : page
+  await controls.getByRole('button', { name: buttonName, exact: true }).click()
   const response = await pending
   expect(response.status()).toBe(200)
   return (await response.json()) as Record<string, unknown>
@@ -136,24 +139,34 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   await expect(page.getByText('Event definition', { exact: true })).toBeVisible()
 
   const publishButton = page.getByRole('button', { name: 'Publish', exact: true })
+  await page
+    .getByRole('navigation', { name: 'Event authoring sections' })
+    .getByRole('button', { name: 'Schedule', exact: true })
+    .click()
   await expect(publishButton).toBeDisabled()
   await expect(page.getByText(/Production publication is disabled/)).toBeVisible()
 
   const eventKey = `event.browser-${now}`
   await page.getByLabel('Event key').fill(eventKey)
-  await page.getByLabel('Title').fill('Browser Event Builder Verification')
+  await page.getByRole('button', { name: 'Setup', exact: true }).click()
+  await page
+    .getByRole('textbox', { name: 'Title', exact: true })
+    .fill('Browser Event Builder Verification')
 
+  await page
+    .getByRole('navigation', { name: 'Event authoring sections' })
+    .getByRole('button', { name: 'Phases', exact: true })
+    .click()
   await page.getByRole('button', { name: 'Add objective', exact: true }).click()
   await expect(page.getByLabel('Objective type')).toHaveValue('community-threshold')
   await page.getByLabel('Objective reference').fill('objective.browser-community')
   await page.getByLabel('Objective target').fill('10')
 
-  const addEffects = page.getByRole('button', { name: 'Add effect', exact: true })
-  await addEffects.first().click()
-  await addEffects.last().click()
-  await expect(page.getByLabel('Effect type')).toHaveCount(2)
-  await page.getByLabel('Effect reference').first().fill('announcement.browser-live')
-  await page.getByLabel('Effect reference').last().fill('announcement.browser-live')
+  await page.getByLabel('Show this objective on the map').check()
+  await page
+    .getByRole('navigation', { name: 'Event authoring sections' })
+    .getByRole('button', { name: 'Preview', exact: true })
+    .click()
 
   await runEventOperation(page, 'validate', 'Validate')
   await expect(page.getByText('Definition is valid.')).toBeVisible()
@@ -170,38 +183,49 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   grantLocalProductionPublish(email)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
+  await page
+    .getByRole('navigation', { name: 'Event authoring sections' })
+    .getByRole('button', { name: 'Schedule', exact: true })
+    .click()
   await expect(publishButton).toBeDisabled()
 
   await page.getByLabel('Event key').fill(eventKey)
   await runEventOperation(page, 'load', 'Load')
   await expect(page.getByLabel('Event key')).toHaveValue(eventKey)
+  await page
+    .getByRole('navigation', { name: 'Event authoring sections' })
+    .getByRole('button', { name: 'Phases', exact: true })
+    .click()
   await expect(page.getByLabel('Objective reference')).toHaveValue('objective.browser-community')
 
   await page
-    .getByLabel('Production action reason')
-    .fill('Publish browser-verified Event definition')
-  await page.getByLabel('Confirm Production action').check()
+    .getByRole('navigation', { name: 'Event authoring sections' })
+    .getByRole('button', { name: 'Schedule', exact: true })
+    .click()
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
   await expect(publishButton).toBeEnabled()
 
   const published = await runEventOperation(page, 'publish', 'Publish')
   expect(published.published).toBeTruthy()
   await expect(page.getByText(/Published Event definition v\d+\./)).toBeVisible()
-  await expect(page.getByLabel('Confirm Production action')).not.toBeChecked()
+  await expect(
+    page.getByLabel('Confirm publication or schedule for this audience'),
+  ).not.toBeChecked()
 
   const start = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)
   const end = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString().slice(0, 16)
   await page.getByRole('textbox', { name: 'Start', exact: true }).fill(start)
   await page.getByRole('textbox', { name: 'End', exact: true }).fill(end)
-  await page.getByLabel('Production action reason').fill('Schedule browser-verified Event run')
-  await page.getByLabel('Confirm Production action').check()
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
 
   await runEventOperation(page, 'schedule', 'Schedule')
   await expect(page.getByText(/Scheduled run [0-9a-f-]+\./)).toBeVisible()
   expect(eventRunCount(eventKey)).toBe(runCountBeforePreview + 1)
-  await expect(page.getByLabel('Confirm Production action')).not.toBeChecked()
+  await expect(
+    page.getByLabel('Confirm publication or schedule for this audience'),
+  ).not.toBeChecked()
 
-  await page.getByLabel('Production action reason').fill('Unschedule browser-verified Event run')
-  await page.getByLabel('Confirm Production action').check()
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
   await runEventOperation(page, 'cancel-scheduled', 'Unschedule')
   await expect(page.getByText('Scheduled run is now cancelled.')).toBeVisible()
 })

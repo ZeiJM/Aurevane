@@ -1,0 +1,64 @@
+import {test,expect,chromium} from "/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025/apps/web/node_modules/@playwright/test/index.mjs"
+import {execFileSync} from 'node:child_process'
+import {mkdtemp,writeFile,rm} from 'node:fs/promises'
+import {join,resolve} from 'node:path'
+import {tmpdir} from 'node:os'
+import type {BasicSkillDefinition} from "/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025/packages/game-core/src/combat/combat-basic-actions.ts"
+test('actual all-five executable fixture through Playwright loader', async ({}, info) => {
+  const originals: BasicSkillDefinition[] = JSON.parse(
+    execFileSync(process.execPath, [resolve('scripts/master-originals-fixture.mjs')], {
+      encoding: 'utf8',
+    }),
+  )
+  expect(originals).toHaveLength(5)
+  expect(originals.map(x=>x.id)).toEqual(['basic.move','unarmed.basic','basic.guard','basic.recover','basic.recover.mp'])
+  expect(originals.every(x=>x.contentVersion===1)).toBe(true)
+  await info.attach('executable-originals.json',{body:JSON.stringify(originals),contentType:'application/json'})
+})
+test('native viewport launch overrides inherited project emulation', async ({baseURL}, info) => {
+  const directory = await mkdtemp(join(tmpdir(), 'master-real-zoom-'))
+  const extension = join(directory, 'extension')
+  const { mkdir } = await import('node:fs/promises')
+  await mkdir(extension)
+  await writeFile(
+    join(extension, 'manifest.json'),
+    JSON.stringify({
+      manifest_version: 3,
+      name: 'Disposable localhost Master zoom proof',
+      version: '1.0',
+      permissions: ['tabs'],
+      host_permissions: ['http://localhost/*', 'http://127.0.0.1/*'],
+      background: { service_worker: 'background.js' },
+    }),
+  )
+  await writeFile(
+    join(extension, 'background.js'),
+    'chrome.runtime.onInstalled.addListener(() => {});',
+  )
+  const context = await chromium.launchPersistentContext(join(directory, 'profile'), {
+    channel: 'chromium',
+    executablePath: '/tmp/task13-recovery-browser/chromium',
+    headless: true,
+    viewport: null,
+    // Explicit keys prevent Playwright Test from inheriting Desktop Chrome or
+    // mobile project emulation into this native-window context.
+    deviceScaleFactor: undefined,
+    userAgent: undefined,
+    isMobile: false,
+    hasTouch: false,
+    ignoreDefaultArgs: ['--disable-extensions'],
+    baseURL,
+    args: [
+      `--disable-extensions-except=${extension}`,
+      `--load-extension=${extension}`,
+      '--window-size=1366,768',
+    ],
+  })
+  try {
+  const page=await context.newPage()
+  await page.goto('data:text/html,<h1>Native window transport</h1>')
+  const metrics=await page.evaluate(()=>({dpr:devicePixelRatio,width:innerWidth,zoom:getComputedStyle(document.documentElement).zoom,touch:navigator.maxTouchPoints}))
+  expect(metrics.dpr).toBe(1);expect(metrics.zoom).toBe('1');expect(metrics.touch).toBe(0)
+  await info.attach('launch-transport-only.json',{body:JSON.stringify({metrics,browser:context.browser()?.version(),extensionWorkers:context.serviceWorkers().length,note:'Local Chromium153 window transport only; no extension zoom or full-channel claim'}),contentType:'application/json'})
+  } finally {await context.close();await rm(directory,{recursive:true,force:true})}
+})

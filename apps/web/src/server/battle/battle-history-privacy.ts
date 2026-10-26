@@ -621,11 +621,25 @@ export function projectBattleHistoryForViewer(
       ),
     })
   }
+  // A triggering identity is presentation only after its command is visible in this same commit.
+  const visibleActors = new Set(
+    projected.flatMap((record) => {
+      const event = objectValue(record.event)
+      return event?.event === 'combat_action_used' && typeof event.actorId === 'string'
+        ? [`${record.battleVersion}:${event.actorId}`]
+        : []
+    }),
+  )
   return projected.map((record) => {
     const visible = replacements.get(record) ?? record
     const event = objectValue(visible.event)
     if (!event) return visible
     const safeEvent = omitCombatExecutionMetadata(event)
+    if (
+      typeof safeEvent.triggeringActorId !== 'string' ||
+      !visibleActors.has(`${record.battleVersion}:${safeEvent.triggeringActorId}`)
+    )
+      Reflect.deleteProperty(safeEvent, 'triggeringActorId')
     const displayOrigin = event.effectOrigin ? verifyDisplayOrigin?.(visible) : null
     return {
       ...visible,

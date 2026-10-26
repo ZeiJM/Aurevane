@@ -1,3 +1,5 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition, CombatTargetSpec, CombatUseRequirement } from './actions'
 
@@ -18,7 +20,7 @@ export function isMaterializedCombatEffect(
 
 export type SummonAiProfile = 'standard' | 'high'
 
-export interface SummonAbilityMediaHooks {
+export interface SummonAbilityMediaHooks extends FinalizedContentMediaSlots {
   readonly iconKey: string | null
   readonly audioCueKey: string | null
   readonly vfxKey: string | null
@@ -28,6 +30,7 @@ export interface SummonAbilityDefinition {
   readonly id: string
   readonly name: string
   readonly description: string
+  readonly presentation?: AbilityPresentationText
   readonly battleText?: string
   readonly apCost: number
   readonly mpCost: number
@@ -84,6 +87,7 @@ function validAbility(ability: SummonAbilityDefinition): boolean {
     STABLE_ID_PATTERN.test(ability.id) &&
     ability.name.trim().length > 0 &&
     ability.description.trim().length > 0 &&
+    abilityPresentationTextIssues(ability).length === 0 &&
     (ability.battleText === undefined ||
       battleFlavorTemplateIssues(ability.battleText).length === 0) &&
     positiveSafeInteger(ability.apCost) &&
@@ -126,7 +130,9 @@ export function validateSummonProfileDefinition(
   if (
     profile.abilities.length < 1 ||
     profile.abilities.length > 2 ||
-    profile.abilities.some((ability) => !validAbility(ability))
+    profile.abilities.some(
+      (ability) => !validAbility(ability) || finalizedContentMediaIssues(ability.media).length > 0,
+    )
   ) {
     issues.push('abilities')
   } else if (

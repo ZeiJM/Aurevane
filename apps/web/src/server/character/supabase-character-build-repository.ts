@@ -1,4 +1,11 @@
+import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
 import 'server-only'
+import { createServerCombatContentResolver } from '../combat/combat-content-resolver'
+import {
+  isDisciplineSkillIdentity as stableId,
+  parseDisciplineSkillReference,
+} from './discipline-skill-reference-parser'
+import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import type { DerivedStatId } from '@aurevane/game-core/character/derived-stats'
 import {
@@ -67,7 +74,16 @@ function parseCatalogEntry(row: unknown): DisciplineCatalogEntry | null {
     enabledForPrimary: row.enabled_for_primary,
     enabledForSecondary: row.enabled_for_secondary,
   }
+  const corePolicy = disciplineAttributePolicyFromCore(
+    row.discipline_id,
+    profileVersion,
+    row.core_base_attributes,
+    row.focus_attributes,
+    row.off_focus_cap,
+  )
+  if (!corePolicy) return null
   const profile = {
+    corePolicy,
     disciplineId: row.discipline_id,
     profileVersion,
     statOffsets,
@@ -124,7 +140,16 @@ function parseActiveBuild(row: unknown): CharacterActiveBuildRecord | null {
     enabledForPrimary: row.primary_enabled_for_primary,
     enabledForSecondary: row.primary_enabled_for_secondary,
   }
+  const corePolicy = disciplineAttributePolicyFromCore(
+    row.primary_discipline_id,
+    primaryProfileVersion,
+    row.core_base_attributes,
+    row.focus_attributes,
+    row.off_focus_cap,
+  )
+  if (!corePolicy) return null
   const primaryProfile = {
+    corePolicy,
     disciplineId: row.primary_discipline_id,
     profileVersion: primaryProfileVersion,
     statOffsets: primaryStatOffsets,
@@ -203,6 +228,26 @@ function parseChangeResult(
   return build ? { build, replayed: row.replayed } : null
 }
 
+function provenanceKind(
+  value: unknown,
+): value is NonNullable<CharacterLearnedSkillRecord['grantSourceKind']> {
+  return (
+    value === 'system' ||
+    value === 'gameplay' ||
+    value === 'support' ||
+    value === 'owner' ||
+    value === 'migration'
+  )
+}
+
+function timestamp(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && Number.isFinite(Date.parse(value))
+}
+
+function provenanceId(value: unknown): value is string {
+  return typeof value === 'string' && value.length >= 1 && value.length <= 160
+}
+
 function parseLearnedSkill(row: unknown): CharacterLearnedSkillRecord | null {
   if (!isRecord(row)) return null
   const contentVersion = integer(row.skill_content_version)
@@ -210,7 +255,19 @@ function parseLearnedSkill(row: unknown): CharacterLearnedSkillRecord | null {
     typeof row.skill_id !== 'string' ||
     contentVersion === null ||
     typeof row.source_discipline_id !== 'string' ||
-    typeof row.learned_at !== 'string'
+    !timestamp(row.learned_at) ||
+    !stableId(row.eligibility_discipline_id) ||
+    !timestamp(row.granted_at) ||
+    !provenanceKind(row.grant_source_kind) ||
+    !provenanceId(row.grant_source_id) ||
+    !(
+      (row.earned_at === null &&
+        row.earned_source_kind === null &&
+        row.earned_source_id === null) ||
+      (timestamp(row.earned_at) &&
+        provenanceKind(row.earned_source_kind) &&
+        provenanceId(row.earned_source_id))
+    )
   ) {
     return null
   }
@@ -219,6 +276,13 @@ function parseLearnedSkill(row: unknown): CharacterLearnedSkillRecord | null {
     contentVersion,
     sourceDisciplineId: row.source_discipline_id,
     learnedAt: row.learned_at,
+    eligibilityDisciplineId: row.eligibility_discipline_id,
+    grantedAt: row.granted_at,
+    grantSourceKind: row.grant_source_kind,
+    grantSourceId: row.grant_source_id,
+    earnedAt: row.earned_at,
+    earnedSourceKind: row.earned_source_kind,
+    earnedSourceId: row.earned_source_id,
   }
 }
 
@@ -232,6 +296,7 @@ function parseEquippedSkill(row: unknown): CharacterEquippedDisciplineSkillRecor
     typeof row.skill_id !== 'string' ||
     contentVersion === null ||
     typeof row.source_discipline_id !== 'string' ||
+    !stableId(row.eligibility_discipline_id) ||
     typeof row.equipped_at !== 'string'
   ) {
     return null
@@ -242,27 +307,15 @@ function parseEquippedSkill(row: unknown): CharacterEquippedDisciplineSkillRecor
     contentVersion,
     sourceDisciplineId: row.source_discipline_id,
     equippedAt: row.equipped_at,
+    eligibilityDisciplineId: row.eligibility_discipline_id,
   }
 }
 
 function parseSnapshotSkill(value: unknown) {
   if (!isRecord(value)) return null
   const slotIndex = integer(value.slotIndex)
-  const contentVersion = integer(value.contentVersion)
-  if (
-    slotIndex === null ||
-    typeof value.skillId !== 'string' ||
-    contentVersion === null ||
-    typeof value.sourceDisciplineId !== 'string'
-  ) {
-    return null
-  }
-  return {
-    slotIndex,
-    skillId: value.skillId,
-    contentVersion,
-    sourceDisciplineId: value.sourceDisciplineId,
-  }
+  const reference = parseDisciplineSkillReference(value)
+  return slotIndex !== null && slotIndex > 0 && reference ? { slotIndex, ...reference } : null
 }
 
 function parseSnapshotResonance(
@@ -352,11 +405,25 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
   if (essence === undefined) return null
 
   if (
+    Object.hasOwn(value, 'catalogueToken') &&
+    (typeof value.catalogueToken !== 'string' || !/^[a-f0-9]{32}$/.test(value.catalogueToken))
+  )
+    return null
+  if (
+    Object.hasOwn(value, 'skillEligibilityPolicyVersion') &&
+    value.skillEligibilityPolicyVersion !== 1
+  )
+    return null
+  if (
     Object.hasOwn(value, 'sourceHash') &&
     (typeof value.sourceHash !== 'string' || !/^[a-f0-9]{64}$/u.test(value.sourceHash))
   )
     return null
   return {
+    ...(typeof value.catalogueToken === 'string' ? { catalogueToken: value.catalogueToken } : {}),
+    ...(value.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     ...(typeof value.sourceHash === 'string' ? { sourceHash: value.sourceHash } : {}),
     schemaVersion,
     buildVersion,
@@ -380,6 +447,7 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
 
 export function createSupabaseCharacterBuildRepository(): CharacterBuildRepository {
   return {
+    contentResolver: createServerCombatContentResolver(),
     async findActiveBuild(userId, characterId) {
       const supabase = createSupabaseAdminClient()
       const { data, error } = await supabase.rpc('get_character_active_build_v4', {
@@ -397,7 +465,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
 
     async listDisciplines(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_discipline_catalog_v2', {
+      const { data, error } = await supabase.rpc('get_character_discipline_catalog_v3', {
         p_user_id: userId,
         p_character_id: characterId,
       })
@@ -409,7 +477,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
 
     async listLearnedSkills(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_learned_skills_v1', {
+      const { data, error } = await supabase.rpc('get_character_learned_skills_v2', {
         p_user_id: userId,
         p_character_id: characterId,
       })
@@ -421,7 +489,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
 
     async listEquippedDisciplineSkills(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_discipline_skill_loadout_v1', {
+      const { data, error } = await supabase.rpc('get_character_discipline_skill_loadout_v2', {
         p_user_id: userId,
         p_character_id: characterId,
       })
@@ -458,6 +526,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
         p_request_fingerprint: input.requestFingerprint,
       })
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
           throw new AurevaneError(
             'STALE_VERSION',
@@ -513,6 +582,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
         },
       )
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT'))
           throw new AurevaneError(
             'STALE_VERSION',
@@ -543,11 +613,15 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
           skillId: skill.skillId,
           contentVersion: skill.contentVersion,
           sourceDisciplineId: skill.sourceDisciplineId,
+          ...(Object.hasOwn(skill, 'eligibilityDisciplineId')
+            ? { eligibilityDisciplineId: skill.eligibilityDisciplineId }
+            : {}),
         })),
         p_idempotency_key: input.idempotencyKey,
         p_request_fingerprint: input.requestFingerprint,
       })
       if (error) {
+        throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
           throw new AurevaneError(
             'STALE_VERSION',
@@ -558,6 +632,12 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
           throw new AurevaneError(
             'IDEMPOTENCY_CONFLICT',
             'That Skill build request key was already used for a different save.',
+          )
+        }
+        if (error.message.includes('DISCIPLINE_SKILL_ELIGIBILITY_REQUIRED')) {
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'Choose the eligible Discipline for each shared Skill before saving.',
           )
         }
         if (

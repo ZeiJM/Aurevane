@@ -1,3 +1,5 @@
+import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { battleActionDealsDamage } from '@/components/battle/battle-attack-path'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
@@ -210,6 +212,26 @@ export function projectBattleManualActionTargets(
 }
 
 /** A controlled owner's saved Basic display data, without private execution envelopes or accuracy. */
+/** Only viewer-owned captured presentation crosses the composed public boundary. */
+export function projectBattleTagPresentations(
+  state: StatDrivenCombatEncounterState,
+  viewer: BattleViewerEntitlement,
+) {
+  if (viewer.kind !== 'participant') return []
+  return (state.capturedAbilitySources ?? [])
+    .filter(
+      (source) =>
+        viewer.controlledCombatantIds.has(source.ownerCombatantId) &&
+        source.definition.tagPresentation,
+    )
+    .map((source) => ({
+      ownerCombatantId: source.ownerCombatantId,
+      abilityId: source.abilityId,
+      contentVersion: source.contentVersion,
+      tags: source.definition.tagPresentation!,
+    }))
+}
+
 export function projectBattleBasicActions(
   state: StatDrivenCombatEncounterState,
   viewer: BattleViewerEntitlement,
@@ -238,6 +260,7 @@ export function projectBattleBasicActions(
             freeOffensiveMove ? effectiveBasicSkillBehavior(state, source, behavior) : behavior,
             {
               basic,
+              tagPresentation: basic.ability.tagPresentation,
               timingPolicy: state.effectTimingPolicy ?? null,
               effectContext: capturedAbilityEffectContext(state),
               stats: {
@@ -285,9 +308,18 @@ export function projectBattleBasicActions(
         actionId: basic.execution.kind === 'basic-attack' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
         contentVersion: source.contentVersion,
         name: basic.name,
-        description: basic.description,
+        description:
+          renderAbilityPresentationText(basic, 'public', { ability: basic.name }) ??
+          basic.description,
+        ...(renderAbilityPresentationText(basic, 'compact', { ability: basic.name })
+          ? {
+              compactText: renderAbilityPresentationText(basic, 'compact', {
+                ability: basic.name,
+              })!,
+            }
+          : {}),
         enabled: basic.enabled,
-        iconKey: basic.media.iconKey,
+        iconKey: contentArtworkKey(basic.media),
         ...(native
           ? {
               movement: {

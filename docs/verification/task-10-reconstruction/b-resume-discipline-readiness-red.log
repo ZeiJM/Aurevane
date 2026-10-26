@@ -1,0 +1,33 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/master/combat-content-records.test.ts (11 tests | 1 failed | 10 skipped) 7ms
+   × publishes a complete saved Discipline through the shared descriptor and rejects incomplete producer metadata before write 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/master/combat-content-records.test.ts > publishes a complete saved Discipline through the shared descriptor and rejects incomplete producer metadata before write
+AurevaneError: Authored Discipline admission and Core projection are not available yet.
+ ❯ RpcCombatContentAuthoringStore.publishSaved src/server/master/supabase-combat-content-authoring-store.ts:441:13
+    439|     if (descriptor.publicationBlocker) {
+    440|       if (!descriptor.authoringBlocker) descriptor.parseAuthoring(save…
+    441|       throw new AurevaneError('INVALID_REQUEST', descriptor.publicatio…
+       |             ^
+    442|     }
+    443|     const floor = Math.max(
+ ❯ src/server/master/combat-content-records.test.ts:212:2
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 10 skipped (11)
+   Start at  13:42:05
+   Duration  1.42s (transform 908ms, setup 0ms, import 1.24s, tests 7ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/master/combat-content-records.test.ts -t 'complete saved Discipline'

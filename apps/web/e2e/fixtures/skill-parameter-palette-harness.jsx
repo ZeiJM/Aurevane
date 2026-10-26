@@ -29,8 +29,10 @@ import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas
 import { ManualArticle } from '@/components/public-information/manual-article'
 import { createTechniquesManualArticle } from '@/content/techniques-manual'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
-import { CombatContentEditor } from '@/components/master/combat-content/combat-content-editor'
-import { EssenceContentEditor } from '@/components/master/combat-content/essence-content-editor'
+import { ContentDefinitionFields } from '@/components/master/combat-content/content-definition-fields'
+import { ContentNativeSample } from '@/components/master/combat-content/content-native-sample'
+import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
+import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
 import masterTheme from '@/components/master/master-panel-shell.module.css'
@@ -146,28 +148,48 @@ window.fetch = async (url) => {
 const basicOptions = basicService
   ? await (await nativeFetch('/__basic-acceptance/options')).json()
   : defaultBasicSkills().map((definition) => ({
-      id: definition.id,
-      label: definition.name,
-      definition,
-      currentVersion: definition.contentVersion,
-      baseVersion: definition.contentVersion,
-      draftVersion: definition.id === 'basic.guard' ? 4 : null,
-      ...(definition.id === 'basic.guard'
-        ? { initialDraft: { ...definition, name: 'Saved Guard draft' } }
-        : {}),
-      history: [
-        {
-          contentVersion: definition.contentVersion,
-          source: 'static-baseline',
-          current: true,
-          publishedAt: null,
-        },
-      ],
+      contentKey: definition.id,
+      contentKind: 'skill',
+      lifecycle: 'active',
+      revision: 1,
+      versionFloor: 1,
+      createdBy: null,
+      createdAt: null,
+      builtin: { contentVersion: 1, name: definition.name },
+      builtinDefinition: definition,
+      current: null,
+      history: [],
+      links: [],
+      usedBy: [],
+      draft:
+        definition.id === 'basic.guard'
+          ? {
+              definition: { ...definition, name: 'Saved Guard draft' },
+              draftVersion: 4,
+              baseVersion: 1,
+              updatedBy: 'fixture-author',
+              updatedAt: '2026-10-23T00:00:00Z',
+              restoredFrom: null,
+              restoredBy: null,
+            }
+          : null,
     }))
+const fixtureRecords = new Map(basicOptions.map((row) => [row.contentKey, structuredClone(row)]))
+const basicPage = {
+  records: basicOptions.map((row) => ({
+    contentKey: row.contentKey,
+    contentKind: row.contentKind,
+    lifecycle: row.lifecycle,
+    revision: row.revision,
+    name: row.draft?.definition.name ?? row.current?.definition.name ?? row.builtin.name,
+  })),
+  nextCursor: null,
+}
 if (basicService) window.fetch = nativeFetch
 if (query.get('surface') === 'basic-editor' && !basicService) {
-  const versions = new Map(basicOptions.map((row) => [row.id, row.draftVersion]))
-  const currentVersions = new Map(basicOptions.map((row) => [row.id, row.currentVersion]))
+  const draftSequences = new Map(
+    basicOptions.map((row) => [row.contentKey, row.draft?.draftVersion ?? 0]),
+  )
   window.basicPublishedDefinitions = {}
   window.basicPublishedVersions = []
   window.basicDraftRequests = []
@@ -184,6 +206,109 @@ if (query.get('surface') === 'basic-editor' && !basicService) {
             JSON.stringify(body.before) === JSON.stringify(body.after) ? [] : ['ability', 'name'],
         },
       })
+    if (body.operation === 'record') {
+      const command = body.command
+      if (command.action === 'list')
+        return Response.json({
+          records: [...fixtureRecords.values()].map((row) => ({
+            contentKey: row.contentKey,
+            contentKind: row.contentKind,
+            lifecycle: row.lifecycle,
+            revision: row.revision,
+            name: row.draft?.definition.name ?? row.current?.definition.name ?? row.builtin.name,
+          })),
+          nextCursor: null,
+        })
+      const stored = fixtureRecords.get(command.contentKey)
+      if (!stored) throw new Error('Unknown fixture record')
+      if (command.action === 'read') return Response.json({ record: stored })
+      const record = structuredClone(stored)
+      const conflict = () =>
+        Response.json(
+          {
+            error: {
+              code: 'STALE_VERSION',
+              message: 'Combat content changed. Refresh the authoritative version and retry.',
+            },
+          },
+          { status: 409 },
+        )
+      if (command.action === 'save') {
+        if (command.expectedRevision !== record.revision) return conflict()
+        if (window.holdBasicSave)
+          await new Promise((resolve) => {
+            window.releaseBasicSave = resolve
+          })
+        const draftVersion = draftSequences.get(record.contentKey) + 1
+        draftSequences.set(record.contentKey, draftVersion)
+        record.draft = {
+          definition: structuredClone(command.definition),
+          draftVersion,
+          baseVersion: record.current?.contentVersion ?? record.builtin.contentVersion,
+          updatedBy: 'fixture-author',
+          updatedAt: new Date().toISOString(),
+          restoredFrom: null,
+          restoredBy: null,
+        }
+        window.basicSavedDrafts[record.contentKey] = structuredClone(command.definition)
+      } else if (command.action === 'publish') {
+        if (
+          window.rejectBasicPublish ||
+          command.expectedDraftVersion !== record.draft?.draftVersion ||
+          command.expectedBaseVersion !== record.draft?.baseVersion ||
+          command.expectedBaseVersion !==
+            (record.current?.contentVersion ?? record.builtin.contentVersion)
+        )
+          return conflict()
+        if (validateBasicSkillDefinition(record.draft.definition).length)
+          return Response.json(
+            { error: { code: 'INVALID_REQUEST', message: 'Invalid Basic definition.' } },
+            { status: 400 },
+          )
+        if (window.holdBasicPublish)
+          await new Promise((resolve) => {
+            window.releaseBasicPublish = resolve
+          })
+        const contentVersion = (record.current?.contentVersion ?? record.builtin.contentVersion) + 1
+        const definition = { ...structuredClone(record.draft.definition), contentVersion }
+        record.current = {
+          definition,
+          contentVersion,
+          authoredBy: record.draft.updatedBy,
+          authoredAt: record.draft.updatedAt,
+          publishedBy: 'fixture-author',
+          publishedAt: new Date().toISOString(),
+          restoredFrom: record.draft.restoredFrom,
+          restoredBy: record.draft.restoredBy,
+        }
+        record.history.push(record.current)
+        record.draft = null
+        window.basicPublishedDefinitions[record.contentKey] = definition
+        window.basicPublishedVersions.push({ id: record.contentKey, contentVersion })
+      } else if (command.action === 'restore') {
+        if (command.expectedRevision !== record.revision) return conflict()
+        const version = record.history.find((row) => row.contentVersion === command.sourceVersion)
+        if (!version)
+          return Response.json(
+            { error: { message: 'That recorded publication is unavailable.' } },
+            { status: 400 },
+          )
+        const draftVersion = draftSequences.get(record.contentKey) + 1
+        draftSequences.set(record.contentKey, draftVersion)
+        record.draft = {
+          definition: structuredClone(version.definition),
+          draftVersion,
+          baseVersion: record.current.contentVersion,
+          updatedBy: 'fixture-author',
+          updatedAt: new Date().toISOString(),
+          restoredFrom: version.contentVersion,
+          restoredBy: 'fixture-author',
+        }
+      } else throw new Error('Unexpected complete-record mutation')
+      record.revision++
+      fixtureRecords.set(record.contentKey, record)
+      return Response.json({ record })
+    }
     const issues = validateBasicSkillDefinition(body.definition)
     if (body.operation === 'preview') {
       const group = body.definition.ability.behaviors.find(
@@ -214,55 +339,11 @@ if (query.get('surface') === 'basic-editor' && !basicService) {
         },
       })
     }
-    if (body.operation === 'publish') {
-      const id = body.definition.id
-      if (window.rejectBasicPublish || body.expectedBaseVersion !== currentVersions.get(id))
-        return Response.json(
-          {
-            error: {
-              code: 'STALE_VERSION',
-              message: 'Combat content changed. Refresh the authoritative version and retry.',
-            },
-          },
-          { status: 409 },
-        )
-      if (issues.length)
-        return Response.json(
-          { error: { code: 'INVALID_REQUEST', message: 'Invalid Basic definition.' } },
-          { status: 400 },
-        )
-      if (window.holdBasicPublish)
-        await new Promise((resolve) => {
-          window.releaseBasicPublish = resolve
-        })
-      const contentVersion = currentVersions.get(id) + 1
-      const definition = { ...structuredClone(body.definition), contentVersion }
-      currentVersions.set(id, contentVersion)
-      window.basicPublishedDefinitions[id] = definition
-      window.basicPublishedVersions.push({ id, contentVersion })
-      return Response.json({
-        published: { definition, contentVersion, publishedAt: '2026-10-15T18:30:00.000Z' },
-      })
-    }
     if (body.operation === 'validate')
       return Response.json({
         validation: { valid: issues.length === 0, issues, derivedTags: body.definition.tags },
       })
-    if (body.operation !== 'save-draft') throw new Error('Unexpected Basic fixture operation')
-    const id = body.definition.id
-    if (body.expectedDraftVersion !== versions.get(id))
-      return Response.json(
-        { error: { code: 'DRAFT_CONFLICT', message: 'Draft changed. Refresh and retry.' } },
-        { status: 409 },
-      )
-    if (window.holdBasicSave)
-      await new Promise((resolve) => {
-        window.releaseBasicSave = resolve
-      })
-    const draftVersion = (versions.get(id) ?? 0) + 1
-    versions.set(id, draftVersion)
-    window.basicSavedDrafts[id] = structuredClone(body.definition)
-    return Response.json({ draft: { draftVersion } })
+    throw new Error('Unexpected Basic fixture operation')
   }
 }
 // The API responses below are fixture receipts. Real service/kernel evaluation is
@@ -333,51 +414,80 @@ if (query.get('surface') === 'selected-preview') {
 }
 function SelectedPreviewEditor() {
   const isEssence = query.get('kind') === 'essence'
-  const definition = isEssence
-    ? { ...essence, skill: { ...essence.skill, ability: selectableAbility } }
-    : { ...physical, ability: selectableAbility }
-  const option = {
-    id: isEssence ? definition.essenceId : definition.id,
-    sourceDisciplineId: definition.sourceDisciplineId,
-    label: isEssence ? definition.name : 'Preview Skill',
-    currentVersion: definition.contentVersion,
-    baseVersion: definition.contentVersion,
-    draftVersion: null,
-    derivedTags: [],
-    definition,
-    history: [],
-  }
+  const [definition, setDefinition] = React.useState(() =>
+    isEssence
+      ? { ...essence, skill: { ...essence.skill, ability: selectableAbility } }
+      : { ...physical, ability: selectableAbility },
+  )
   return (
     <main
       className={`av-master ${masterTheme.workspace}`}
       style={{ display: 'block', height: 'auto', padding: 12 }}
     >
       <SkillEffectTimingProvider policy={previewTimingPolicy}>
-        {isEssence ? (
-          <EssenceContentEditor essences={[option]} />
-        ) : (
-          <CombatContentEditor skills={[option]} />
-        )}
+        <ContentDefinitionFields
+          kind={isEssence ? 'essence' : 'skill'}
+          value={definition}
+          onChange={setDefinition}
+          choices={[]}
+          tab="Parameters"
+        />
+        <ContentNativeSample kind={isEssence ? 'essence' : 'skill'} definition={definition} />
       </SkillEffectTimingProvider>
     </main>
   )
 }
 
 function BasicEditor() {
+  const content = (
+    <>
+      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
+        <CombatContentAuthoringWorkspace
+          categories={
+            query.get('shell') === 'true'
+              ? COMBAT_CONTENT_CATEGORIES.map((entry) => entry.editor)
+              : [
+                  {
+                    category: 'basic',
+                    storedKind: 'skill',
+                    label: 'Basic',
+                    group: 'Skills',
+                    defaultDefinition: null,
+                    publicationBlocker: null,
+                  },
+                ]
+          }
+          initialRecord={query.get('shell') === 'true' ? null : basicOptions[0]}
+          initialPage={basicPage}
+        />
+      </SkillEffectTimingProvider>
+    </>
+  )
+  if (query.get('shell') === 'true')
+    return (
+      <MasterPanelShell
+        access={{
+          roles: ['game-owner'],
+          effectiveCapabilities: [
+            'content.combat.author',
+            'staff.manage',
+            'events.author',
+            'events.operate',
+          ],
+        }}
+        activeSection="combat"
+        title="Game Content"
+        description="Create, preview and publish complete content records."
+      >
+        {content}
+      </MasterPanelShell>
+    )
   return (
     <main
       className={`av-master ${masterTheme.workspace}`}
       style={{ display: 'block', height: 'auto', padding: 12 }}
     >
-      <SkillEffectTimingProvider policy={defaultCombatEffectTimingPolicy()}>
-        <CombatContentAuthoringWorkspace
-          basics={basicOptions}
-          skills={[]}
-          essences={[]}
-          resonances={[]}
-          initialContentType="basics"
-        />
-      </SkillEffectTimingProvider>
+      {content}
     </main>
   )
 }

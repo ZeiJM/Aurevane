@@ -54,6 +54,8 @@ test('full mode retains all default specs, repeat-two authoring authority and Ed
   const commands = browserCommands(plan(['pnpm-lock.yaml']))
   assert.equal(commands.length, 3)
   assert.deepEqual(commands[0].files, [
+    'master-complete-layout.pw.ts',
+    'master-world-environment-cadence.pw.ts',
     'master-combat-content-authoring.pw.ts',
     'staff-selected-character-access.pw.ts',
     'master-players-recovery.pw.ts',
@@ -106,6 +108,43 @@ test('authority and rail captures survive the next invocation clearing its origi
       'rail image',
     )
     assert.equal(existsSync(join(authority, 'unrelated.txt')), false)
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('Master zoom and natural World evidence retain JSON, traces and screenshots from both native phases', () => {
+  const root = mkdtempSync(join(tmpdir(), 'verification-master-evidence-'))
+  const results = join(root, 'results'),
+    master = join(root, 'master')
+  try {
+    for (const phase of ['authority', 'full']) {
+      for (const spec of [
+        'master-complete-layout-desktop',
+        'master-world-environment-cadence-desktop',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium-repeat1',
+      ]) {
+        const directory = join(results, spec, 'attachments')
+        mkdirSync(directory, { recursive: true })
+        for (const name of ['metrics.json', 'trace.zip', 'master-state.png'])
+          writeFileSync(join(directory, name), `${phase}:${spec}:${name}`)
+      }
+      preserveEvidence(results, join(root, 'authority'), join(root, 'rails'), master, phase)
+      rmSync(results, { recursive: true })
+    }
+    for (const phase of ['authority', 'full'])
+      for (const spec of [
+        'master-complete-layout-desktop',
+        'master-world-environment-cadence-desktop',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium',
+        'master-world-environment-c-f51a0--right-panel-over-real-time-desktop-chromium-repeat1',
+      ])
+        for (const name of ['metrics.json', 'trace.zip', 'master-state.png'])
+          assert.equal(
+            readFileSync(join(master, phase, spec, 'attachments', name), 'utf8'),
+            `${phase}:${spec}:${name}`,
+          )
   } finally {
     rmSync(root, { recursive: true, force: true })
   }

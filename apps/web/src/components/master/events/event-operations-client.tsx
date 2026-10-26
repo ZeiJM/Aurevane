@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import styles from './event-operations.module.css'
+import { eventAudienceLabel } from './event-audience'
 
 interface RunSummary {
+  title?: string
+  participantCount?: number
   runId: string
   eventKey: string
   lifecycleStatus: string
@@ -23,6 +26,7 @@ interface Dashboard {
   run: {
     runId: string
     eventKey: string
+    title?: string
     definitionVersionId: string
     lifecycleStatus: string
     stateVersion: number
@@ -119,11 +123,12 @@ function when(value: string | null): string {
 }
 
 export function EventOperationsClient({ canEmergencyStop }: Props) {
+  const dashboardRequest = useRef(0)
+  const [tab, setTab] = useState('Overview')
   const [runs, setRuns] = useState<RunSummary[]>([])
   const [selectedRunId, setSelectedRunId] = useState('')
   const [dashboard, setDashboard] = useState<Dashboard | null>(null)
   const [message, setMessage] = useState('Loading Event operations…')
-  const [operationReason, setOperationReason] = useState('')
   const [operationConfirmed, setOperationConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [runQuery, setRunQuery] = useState('')
@@ -137,18 +142,21 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     const query = runQuery.trim().toLowerCase()
     if (!query) return runs
     return runs.filter((run) =>
-      [run.eventKey, run.runId, run.lifecycleStatus, run.scopeKey ?? run.scopeType]
+      [
+        run.title ?? run.eventKey,
+        run.eventKey,
+        run.runId,
+        run.lifecycleStatus,
+        eventAudienceLabel(run.scopeType, run.scopeKey),
+        run.scopeKey ?? run.scopeType,
+      ]
         .join(' ')
         .toLowerCase()
         .includes(query),
     )
   }, [runQuery, runs])
 
-  const operationReady =
-    operationConfirmed &&
-    operationReason.length >= 3 &&
-    operationReason.length <= 240 &&
-    operationReason.trim() === operationReason
+  const operationReady = operationConfirmed
 
   async function loadRuns(preferredRunId?: string) {
     const payload = await post({ operation: 'list' })
@@ -170,7 +178,9 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
 
   async function loadDashboard(runId = selectedRunId) {
     if (!runId) return
+    const request = ++dashboardRequest.current
     const payload = await post({ operation: 'read', runId })
+    if (request !== dashboardRequest.current) return
     setDashboard(payload.dashboard as Dashboard)
     setMessage('Live Event state refreshed.')
   }
@@ -224,7 +234,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         expectedStateVersion: dashboard.run.stateVersion,
         idempotencyKey: crypto.randomUUID(),
         command,
-        reason: operationReason,
+
         confirmed: operationConfirmed,
       },
       `${label} completed.`,
@@ -239,7 +249,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         runId: dashboard.run.runId,
         expectedStateVersion: dashboard.run.stateVersion,
         idempotencyKey: crypto.randomUUID(),
-        reason: operationReason,
+
         confirmed: operationConfirmed,
       },
       'Event phase advanced.',
@@ -255,10 +265,10 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
         phaseId,
         effectOrdinal,
         completionKey: crypto.randomUUID(),
-        reason: operationReason,
+
         confirmed: operationConfirmed,
       },
-      'Cleanup requirement completed.',
+      'Cleanup acknowledgement recorded; no domain effect was executed.',
     )
   }
 
@@ -309,13 +319,22 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             onChange={(event) => {
               const runId = event.target.value
               setSelectedRunId(runId)
-              void loadDashboard(runId)
+              setDashboard(null)
+              setOperationConfirmed(false)
+              void loadDashboard(runId).catch((error: unknown) =>
+                setMessage(error instanceof Error ? error.message : 'Unable to load this run.'),
+              )
             }}
             disabled={busy || runs.length === 0}
           >
             {runs.map((run) => (
               <option key={run.runId} value={run.runId}>
-                {run.eventKey} · {run.lifecycleStatus} · {run.runId.slice(0, 8)}
+                {run.title ?? run.eventKey} · {run.lifecycleStatus} ·{' '}
+                {new Date(run.scheduledStartAt ?? run.startedAt ?? run.updatedAt).toLocaleString(
+                  undefined,
+                  { timeZone: 'UTC' },
+                )}{' '}
+                UTC
               </option>
             ))}
           </select>
@@ -327,10 +346,15 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               type="button"
               key={run.runId}
               className={styles.runRow}
+              disabled={busy}
               data-selected={run.runId === selectedRunId || undefined}
               onClick={() => {
                 setSelectedRunId(run.runId)
-                void loadDashboard(run.runId)
+                setDashboard(null)
+                setOperationConfirmed(false)
+                void loadDashboard(run.runId).catch((error: unknown) =>
+                  setMessage(error instanceof Error ? error.message : 'Unable to load this run.'),
+                )
               }}
             >
               <span className={styles.runGlyph} aria-hidden="true">
@@ -341,10 +365,12 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                     : '✧'}
               </span>
               <span className={styles.runIdentity}>
-                <strong>{run.eventKey}</strong>
+                <strong>{run.title ?? run.eventKey}</strong>
                 <small>
-                  {run.runId.slice(0, 8)} · {when(run.scheduledStartAt ?? run.startedAt)}
+                  {eventAudienceLabel(run.scopeType, run.scopeKey)} · {run.participantCount ?? 0}{' '}
+                  participants
                 </small>
+                <small>{when(run.scheduledStartAt ?? run.startedAt)}</small>
               </span>
               <span className={styles.runStatus} data-status={run.lifecycleStatus}>
                 {run.lifecycleStatus}
@@ -363,33 +389,43 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
               <div className={styles.runHeaderIdentity}>
                 <p className={styles.eyebrow}>Authoritative Event Run</p>
-                <h2>{dashboard.run.eventKey}</h2>
+                <h2>{dashboard.run.title ?? dashboard.run.eventKey}</h2>
+                <details>
+                  <summary>Run identity</summary>
+                  <code>{dashboard.run.runId}</code>
+                </details>
                 <p>
-                  <code>{dashboard.run.runId.slice(0, 12)}</code>
                   <span data-status={dashboard.run.lifecycleStatus}>
                     {dashboard.run.lifecycleStatus}
                   </span>
-                  <span>State v{dashboard.run.stateVersion}</span>
                 </p>
               </div>
               <strong className={styles.workspaceMessage}>{message}</strong>
             </header>
 
             <nav className={styles.workspaceTabs} aria-label="Live Event workspace">
-              <a href="#event-overview">Overview</a>
-              <a href="#event-phases">Objectives</a>
-              <a href="#event-participants">Participants</a>
-              <a href="#event-cleanup">Cleanup</a>
-              <a href="#event-rewards">Rewards</a>
+              {['Overview', 'Phases', 'Participants', 'Rewards', 'Closure'].map((name) => (
+                <button
+                  type="button"
+                  key={name}
+                  aria-pressed={tab === name}
+                  onClick={() => setTab(name)}
+                >
+                  {name}
+                </button>
+              ))}
             </nav>
 
-            <section className={styles.overviewPanel} id="event-overview">
+            <section
+              className={styles.overviewPanel}
+              id="event-overview"
+              hidden={tab !== 'Overview'}
+            >
               <div className={styles.overviewFacts}>
                 <div>
                   <span>Scope</span>
                   <strong>
-                    {dashboard.run.scopeType}
-                    {dashboard.run.scopeKey ? ` · ${dashboard.run.scopeKey}` : ''}
+                    {eventAudienceLabel(dashboard.run.scopeType, dashboard.run.scopeKey)}
                   </strong>
                 </div>
                 <div>
@@ -434,7 +470,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-phases">
+            <section className={styles.card} id="event-phases" hidden={tab !== 'Phases'}>
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Run progress</p>
@@ -464,15 +500,19 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card}>
+            <section className={styles.card} hidden={tab !== 'Overview'}>
               <div className={styles.cardHeading}>
                 <div>
-                  <p className={styles.eyebrow}>Typed runtime</p>
-                  <h2>Active effects</h2>
+                  <p className={styles.eyebrow}>Definition references</p>
+                  <h2>Referenced effects</h2>
                 </div>
                 <span>{dashboard.activeEffects.length}</span>
               </div>
-              {dashboard.activeEffects.length === 0 ? <p>No active effect references.</p> : null}
+              {dashboard.activeEffects.length === 0 ? (
+                <p>No effect references.</p>
+              ) : (
+                <p>Historical references only. No gameplay effect executor is installed.</p>
+              )}
               <div className={styles.itemList}>
                 {dashboard.activeEffects.map((effect, index) => (
                   <div key={`${effect.referenceKey ?? 'effect'}-${index}`}>
@@ -484,7 +524,11 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-participants">
+            <section
+              className={styles.card}
+              id="event-participants"
+              hidden={tab !== 'Participants'}
+            >
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Participation</p>
@@ -509,7 +553,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-rewards">
+            <section className={styles.card} id="event-rewards" hidden={tab !== 'Rewards'}>
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Rewards</p>
@@ -523,8 +567,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                   <div key={claim.reservationId}>
                     <strong>{claim.rewardPackageRef}</strong>
                     <span>
-                      {claim.executed ? 'executed' : 'reserved'} · character{' '}
-                      {claim.characterId.slice(0, 8)}
+                      {claim.executed ? `executed · ${claim.appliedAmount ?? 0} XP` : 'reserved'} ·
+                      character {claim.characterId.slice(0, 8)}
                     </span>
                     <small>
                       {claim.executedAt ? when(claim.executedAt) : when(claim.reservedAt)}
@@ -534,7 +578,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            <section className={styles.card} id="event-cleanup">
+            <section className={styles.card} id="event-cleanup" hidden={tab !== 'Closure'}>
               <div className={styles.cardHeading}>
                 <div>
                   <p className={styles.eyebrow}>Closure</p>
@@ -558,7 +602,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                         onClick={() => void completeCleanup(cleanup.phaseId, cleanup.effectOrdinal)}
                         disabled={busy || !operationReady}
                       >
-                        Confirm cleanup completed
+                        Record manual cleanup acknowledgement
                       </button>
                     ) : (
                       <small>{when(cleanup.completedAt)}</small>
@@ -568,7 +612,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
               </div>
             </section>
 
-            {dashboard.chronicle ? (
+            {dashboard.chronicle && tab === 'Closure' ? (
               <section className={styles.card}>
                 <div className={styles.cardHeading}>
                   <div>
@@ -601,11 +645,11 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             </div>
             <div>
               <strong>{dashboard?.activeEffects.length ?? 0}</strong>
-              <span>Active effects</span>
+              <span>Referenced effects</span>
             </div>
             <div>
               <strong>
-                {dashboard?.phases.filter((phase) => phase.status === 'active').length ?? 0}
+                {dashboard?.phases.filter((phase) => phase.status === 'live').length ?? 0}
               </strong>
               <span>Active phases</span>
             </div>
@@ -621,27 +665,35 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             <h2>Safe operator actions</h2>
             <span>Confirmed</span>
           </div>
-          <label className={styles.approvalField}>
-            Operation reason
-            <textarea
-              value={operationReason}
-              maxLength={240}
-              onChange={(event) => {
-                setOperationReason(event.target.value)
-                setOperationConfirmed(false)
-              }}
-              placeholder="Why is this live Event operation being performed?"
-            />
-          </label>
           <label className={styles.approvalCheck}>
             <input
               type="checkbox"
               checked={operationConfirmed}
               onChange={(event) => setOperationConfirmed(event.target.checked)}
             />
-            Confirm live operation
+            Confirm the live action below
           </label>
 
+          <p className={styles.actionHelp}>
+            {status === 'ended'
+              ? 'Emergency stop cancels still-unexecuted claims. Completed awards remain. Archive preserves the Chronicle.'
+              : status === 'paused'
+                ? 'Elapsed phase clocks are frozen. Resume continues them; absolute deadlines stay fixed.'
+                : status === 'resolving'
+                  ? 'New contributions are closed. End permits eligible historical claims; emergency stop blocks them.'
+                  : status === 'live'
+                    ? 'Pause freezes elapsed clocks and new contributions. Stop closes contributions and enters resolving.'
+                    : 'Completed receipts and XP remain unchanged. Terminal actions cannot be undone.'}
+          </p>
+          <details className={styles.actionHelp}>
+            <summary>Timing &amp; attribution</summary>
+            <p>
+              Times use {Intl.DateTimeFormat().resolvedOptions().timeZone}. Absolute end and
+              scheduled phase deadlines stay fixed during pauses. Actor, action and time are
+              recorded automatically. Cleanup acknowledgements record an operator check; they
+              execute no domain effects.
+            </p>
+          </details>
           <div className={styles.actionRow}>
             {status === 'scheduled' ? (
               <button
@@ -704,7 +756,8 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                 End run
               </button>
             ) : null}
-            {['scheduled', 'live', 'paused', 'resolving'].includes(status) && canEmergencyStop ? (
+            {['scheduled', 'live', 'paused', 'resolving', 'ended'].includes(status) &&
+            canEmergencyStop ? (
               <button
                 type="button"
                 className={styles.danger}
@@ -726,14 +779,16 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
           </div>
           {cleanupPending ? (
             <p className={styles.notice}>
-              Archive is blocked until every pinned typed cleanup requirement is confirmed.
+              Archive is blocked until each historical cleanup requirement is acknowledged.
+              Acknowledgement records an operator check; it executes no domain effect. New
+              definitions with unsupported effects cannot publish.
             </p>
           ) : null}
         </section>
 
         <section className={styles.dockCard}>
           <div className={styles.dockHeading}>
-            <h2>Cleanup status</h2>
+            <h2>Cleanup acknowledgements</h2>
             <span>{dashboard?.run.cleanupStatus ?? '—'}</span>
           </div>
           <dl className={styles.compactFacts}>
@@ -751,10 +806,6 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
             <div>
               <dt>Claims</dt>
               <dd>{dashboard?.claims.length ?? 0}</dd>
-            </div>
-            <div>
-              <dt>State version</dt>
-              <dd>{dashboard?.run.stateVersion ?? '—'}</dd>
             </div>
           </dl>
         </section>

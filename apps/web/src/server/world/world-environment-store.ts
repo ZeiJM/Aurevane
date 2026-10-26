@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import {
   DEFAULT_WORLD_ENVIRONMENT_SETTINGS,
   MAX_TIME_OFFSET_MINUTES,
+  MAX_WORLD_DAY_MINUTES,
   isWorldWeather,
   type WorldEnvironmentSettings,
 } from '@/world/environment'
@@ -11,12 +12,15 @@ import {
 export function parseWorldEnvironmentSettings(data: unknown): WorldEnvironmentSettings | null {
   if (!data || typeof data !== 'object' || Array.isArray(data)) return null
   const d = data as Record<string, unknown>
-  const int = (v: unknown) => typeof v === 'number' && Number.isSafeInteger(v)
+  const int = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v)
   if (!int(d.version) || (d.version as number) < 0) return null
   if (
     !int(d.timeOffsetMinutes) ||
     Math.abs(d.timeOffsetMinutes as number) > MAX_TIME_OFFSET_MINUTES
   )
+    return null
+  const dayLengthMinutes = d.dayLengthMinutes === undefined ? 1440 : d.dayLengthMinutes
+  if (!int(dayLengthMinutes) || dayLengthMinutes < 1 || dayLengthMinutes > MAX_WORLD_DAY_MINUTES)
     return null
   const frozen = d.frozenMinuteOfDay ?? null
   if (frozen !== null && (!int(frozen) || (frozen as number) < 0 || (frozen as number) > 1439))
@@ -27,6 +31,7 @@ export function parseWorldEnvironmentSettings(data: unknown): WorldEnvironmentSe
   if (until !== null && !int(until)) return null
   return {
     version: d.version as number,
+    dayLengthMinutes,
     timeOffsetMinutes: d.timeOffsetMinutes as number,
     frozenMinuteOfDay: frozen as number | null,
     weatherOverride: weather,

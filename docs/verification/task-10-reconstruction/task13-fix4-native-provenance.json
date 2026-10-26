@@ -1,0 +1,23 @@
+{
+  "candidateHead": "77f8e0c0474f22274bbb09adbcb68ccd7bb84800",
+  "nativeSyntheticHead": "7bd3eecee02a1fe1cca23ba440961c75630b968e",
+  "candidateTree": "86061009e6b98f486013fc1c0d2928abc8ab6ab2",
+  "logs": [
+    {
+      "job": "121254970094",
+      "source": "/workspace/scratch/e5db2ba73c1a/native-candidate-2-sanitized/job-121254970094.log",
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-native-121254970094.log.gz",
+      "bytes": 89259,
+      "rawSha256": "1ad9a6bc4c0e64eb99f2e7a7e71fcc1974e9d680ff2e656b1c49d5fa727c0105",
+      "gzipSha256": "cdb4e8ede82c59b0137c0462be768102bd50a3f5677ebc0e6886dbdaa490373f"
+    },
+    {
+      "job": "121254970762",
+      "source": "/workspace/scratch/e5db2ba73c1a/native-candidate-2-sanitized/job-121254970762.log",
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-native-121254970762.log.gz",
+      "bytes": 88474,
+      "rawSha256": "02dabdfba6af1221492ff35230d14e18c20e0064d5090fdb2a84386129b53576",
+      "gzipSha256": "2004063d01f30a719504eb4228207045936c23310791e9c85784b42b996cfc10"
+    }
+  ]
+}

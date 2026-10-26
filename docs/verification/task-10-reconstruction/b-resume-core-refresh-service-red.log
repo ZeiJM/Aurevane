@@ -1,0 +1,39 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/character/character-build-service.test.ts (37 tests | 1 failed | 36 skipped) 37ms
+   × previews an authored same-identity Core refresh without resetting personal points 36ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > previews an authored same-identity Core refresh without resetting personal points
+AssertionError: expected 1 to be 9 // Object.is equality
+
+- Expected
++ Received
+
+- 9
++ 1
+
+ ❯ src/server/character/character-build-service.test.ts:874:51
+    872|   const repo=repository({findActiveBuild:vi.fn(async()=>build(pinned))…
+    873|   const preview=await previewCharacterDisciplines(userId,character(),{…
+    874|   expect(preview.proposed.profile.profileVersion).toBe(9)
+       |                                                   ^
+    875|   expect(preview.changes.primary).toBe(true)
+    876|   // The same personal allocation gives the same derived stats as an e…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 36 skipped (37)
+   Start at  13:15:45
+   Duration  3.85s (transform 2.96s, setup 0ms, import 3.47s, tests 37ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/character/character-build-service.test.ts -t 'authored same-identity'

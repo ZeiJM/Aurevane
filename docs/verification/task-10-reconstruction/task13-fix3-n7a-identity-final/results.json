@@ -1,0 +1,22 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "name": "Basic Attack",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "name": "Basic Attack",
+    "legacyHeadingCount": 2,
+    "selectedEditorHeadingCount": 1,
+    "chronicleVisible": true
+  }
+]

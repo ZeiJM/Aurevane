@@ -6,6 +6,12 @@ import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 /** Only staff entrypoints take selected actor context. Player/history and worker RPCs do not. */
 const SELECTED_ACTOR_RPCS = new Set([
+  'finalize_combat_content_media_v1',
+  'read_combat_content_media_v1',
+  'read_combat_content_record_v1',
+  'list_combat_content_records_v1',
+  'write_combat_content_record_v1',
+  'publish_saved_combat_content_v1',
   'search_master_players_v1',
   'read_master_player_v1',
   'edit_master_player_v1',
@@ -17,6 +23,7 @@ const SELECTED_ACTOR_RPCS = new Set([
   'save_combat_content_draft_v1',
   'publish_combat_content_v3',
   'set_combat_content_publication_v2',
+  'read_event_workspace_catalogue_v1',
   'read_event_definition_draft_v1',
   'save_event_definition_draft_v1',
   'list_event_definition_versions_v1',
@@ -24,6 +31,7 @@ const SELECTED_ACTOR_RPCS = new Set([
   'schedule_event_run_v2',
   'cancel_scheduled_event_run_v2',
   'list_event_operation_runs_v1',
+  'list_event_workspace_runs_v1',
   'read_event_operation_dashboard_v1',
   'operate_event_run_v2',
   'advance_event_run_phase_v2',

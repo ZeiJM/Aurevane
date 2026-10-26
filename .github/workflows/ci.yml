@@ -151,6 +151,8 @@ jobs:
           test -n "$db_container"
           privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_schema_privilege('anon','app_private','USAGE'), has_schema_privilege('authenticated','app_private','USAGE'), has_schema_privilege('service_role','app_private','USAGE');")"
           test "$privileges" = "f|f|t"
+          music_privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_table_privilege('service_role','public.site_music_configuration','SELECT'), has_table_privilege('service_role','public.site_music_configuration','UPDATE'), has_table_privilege('service_role','public.site_music_configuration','INSERT,DELETE,TRUNCATE'), has_table_privilege('anon','public.site_music_configuration','SELECT,INSERT,UPDATE,DELETE'), has_table_privilege('authenticated','public.site_music_configuration','SELECT,INSERT,UPDATE,DELETE'), relrowsecurity from pg_class where oid = 'public.site_music_configuration'::regclass;")"
+          test "$music_privileges" = "t|t|f|f|f|t"
 
       - name: Verify Master Panel staff authority
         run: bash .github/scripts/verify-master-panel-staff-authority.sh
@@ -184,6 +186,9 @@ jobs:
 
       - name: Verify Phase 4 Event recovery
         run: bash .github/scripts/verify-phase4-event-recovery.sh
+
+      - name: Verify Event emergency settlement lock orders and rollback
+        run: bash .github/scripts/verify-event-lifecycle-safety.sh
 
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh

@@ -1,0 +1,47 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-discipline-producers.test.ts (55 tests | 1 failed | 52 skipped) 2469ms
+   × native Discipline first-edit reads real Core, prerequisites and all selected relationships without publication 13ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > native Discipline first-edit reads real Core, prerequisites and all selected relationships without publication
+AssertionError: expected { id: 'vanguard', …(16) } to match object { id: 'vanguard', …(4) }
+(12 matching properties omitted from actual)
+
+- Expected
++ Received
+
+@@ -1,10 +1,10 @@
+  {
+    "core": {
+      "might": 7,
+    },
+-   "essenceId": "essence.vanguard",
++   "essenceId": "essence.vanguard.unbroken-strike",
+    "focus": [
+      "might",
+      "vitality",
+      "resolve",
+    ],
+
+ ❯ src/combat-content-discipline-producers.test.ts:1950:15
+    1948| it('native Discipline first-edit reads real Core, prerequisites and al…
+    1949|  const view=(await db.query<{value:Record<string,unknown>}>('select pu…
+    1950|  expect(view).toMatchObject({id:'vanguard',core:{might:7},focus:['migh…
+       |               ^
+    1951|  expect(view.linkedSkills).toHaveLength(8)
+    1952|  expect(view.skillStages).toHaveLength(8)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed | 52 skipped (55)
+   Start at  13:29:39
+   Duration  3.50s (transform 704ms, setup 0ms, import 884ms, tests 2.47s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts -t 'native Discipline first-edit|master Players and Atlas|public current Core'

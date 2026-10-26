@@ -598,3 +598,318 @@ describe('Support Action build intent', () => {
     expect(saveSupportAction).not.toHaveBeenCalled()
   })
 })
+
+describe('published current build consumers and earned eligibility', () => {
+  const shared = {
+    ...learnedLifebinder,
+    eligibilityDisciplineId: 'vanguard',
+    grantedAt: '2026-10-20T00:00:00Z',
+    earnedAt: null,
+  }
+  const custom = {
+    ...resolveMatureSkillVersion(learnedLifebinder.skillId)!,
+    id: 'lifebinder.authored-aid',
+    contentVersion: 9,
+  }
+  function currentResolver() {
+    return {
+      resolveCurrentSkillDefinition: vi.fn(async (id: string) =>
+        id === custom.id ? custom : resolveMatureSkillVersion(id),
+      ),
+      resolvePinnedSkillDefinition: vi.fn(async (id: string, version: number) =>
+        id === custom.id && version === 9 ? custom : resolveMatureSkillVersion(id, version),
+      ),
+      resolveCurrentEssenceDefinition: vi.fn(async () => null),
+      resolveCurrentResonanceDefinition: vi.fn(async () => null),
+    }
+  }
+  it.each(['missing', 'disabled', 'wrong-source', 'wrong-id'] as const)(
+    'rejects %s current Skill before a save',
+    async (kind) => {
+      const resolver = currentResolver()
+      resolver.resolveCurrentSkillDefinition = vi.fn(async () =>
+        kind === 'missing'
+          ? null
+          : {
+              ...custom,
+              id: kind === 'wrong-id' ? 'wrong.skill' : custom.id,
+              enabled: kind !== 'disabled',
+              sourceDisciplineId: kind === 'wrong-source' ? 'wrong' : 'lifebinder',
+            },
+      )
+      const repo = repository({
+        contentResolver: resolver,
+        listEquippedDisciplineSkills: vi.fn(async () => []),
+        listLearnedSkills: vi.fn(async () => [
+          { ...shared, skillId: custom.id, contentVersion: 9 },
+        ]),
+      })
+      await expect(
+        saveCharacterDisciplineSkills(
+          userId,
+          character(),
+          {
+            expectedBuildVersion: 1,
+            skillIds: [custom.id],
+            idempotencyKey: '00000000-0000-4000-8000-000000000803',
+          },
+          repo,
+        ),
+      ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+      expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
+    },
+  )
+  it.each(['duplicate', 'inactive', 'forged', 'extra', 'malformed'] as const)(
+    'rejects %s selected eligibility with zero writes',
+    async (kind) => {
+      const choice = {
+        skillId: shared.skillId,
+        eligibilityDisciplineId:
+          kind === 'inactive'
+            ? 'aetherist'
+            : kind === 'forged'
+              ? 'invented'
+              : kind === 'malformed'
+                ? ''
+                : 'vanguard',
+      }
+      const repo = repository({
+        listLearnedSkills: vi.fn(async () => [
+          shared,
+          { ...shared, eligibilityDisciplineId: 'aetherist' },
+        ]),
+      })
+      await expect(
+        saveCharacterDisciplineSkills(
+          userId,
+          character(),
+          {
+            expectedBuildVersion: 1,
+            skillIds: [shared.skillId],
+            eligibilitySelections:
+              kind === 'duplicate'
+                ? [choice, choice]
+                : kind === 'extra'
+                  ? [choice, { ...choice, skillId: 'extra.skill' }]
+                  : [choice],
+            idempotencyKey: '00000000-0000-4000-8000-000000000803',
+          },
+          repo,
+        ),
+      ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+      expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
+    },
+  )
+  it('actual published resolver supplies custom Skills and explicit current E/R removal in the profile', async () => {
+    const contentResolver = currentResolver()
+    const repo = repository({
+      contentResolver,
+      listLearnedSkills: vi.fn(async () => [{ ...shared, skillId: custom.id, contentVersion: 9 }]),
+      listEquippedDisciplineSkills: vi.fn(async () => [
+        {
+          ...shared,
+          skillId: custom.id,
+          contentVersion: 9,
+          slotIndex: 1,
+          equippedAt: shared.learnedAt,
+        },
+      ]),
+    })
+    const view = await loadCharacterBuildContext(userId, character(), repo)
+    expect(view.disciplineSkills.equippedSkills[0]).toMatchObject({
+      definition: custom,
+      eligibilityDisciplineId: 'vanguard',
+    })
+    expect(view.disciplineSkills.extensions).toMatchObject({ essence: null, resonance: null })
+    expect(contentResolver.resolveCurrentEssenceDefinition).toHaveBeenCalledWith('vanguard', null)
+  })
+  it('profile groups a shared Skill once while keeping distinct earned/testing eligibility facts', async () => {
+    const repo = repository({
+      findActiveBuild: vi.fn(async () => build(vanguard, 1, lifebinder)),
+      listLearnedSkills: vi.fn(async () => [
+        shared,
+        { ...shared, eligibilityDisciplineId: 'lifebinder', earnedAt: '2026-10-20T01:00:00Z' },
+      ]),
+    })
+    const view = await loadCharacterBuildContext(userId, character(), repo)
+    expect(view.disciplineSkills.learnedSkills).toHaveLength(1)
+    expect(view.disciplineSkills.learnedSkills[0]).toMatchObject({
+      activeSource: true,
+      eligibilityGrants: [
+        { eligibilityDisciplineId: 'vanguard', earnedAt: null, activeSource: true },
+        {
+          eligibilityDisciplineId: 'lifebinder',
+          earnedAt: '2026-10-20T01:00:00Z',
+          activeSource: true,
+        },
+      ],
+    })
+  })
+  it('sole cross-Discipline eligibility reaches the real save with exact learned version and intrinsic source', async () => {
+    const repo = repository({ listLearnedSkills: vi.fn(async () => [shared]) })
+    await saveCharacterDisciplineSkills(
+      userId,
+      character(),
+      {
+        expectedBuildVersion: 1,
+        skillIds: [shared.skillId],
+        idempotencyKey: '00000000-0000-4000-8000-000000000803',
+      },
+      repo,
+    )
+    expect(repo.saveDisciplineSkills).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skills: [
+          {
+            skillId: shared.skillId,
+            contentVersion: shared.contentVersion,
+            sourceDisciplineId: 'lifebinder',
+            eligibilityDisciplineId: 'vanguard',
+          },
+        ],
+      }),
+    )
+  })
+  it('multiple active grants require an explicit choice with zero writes', async () => {
+    const repo = repository({
+      findActiveBuild: vi.fn(async () => build(vanguard, 1, lifebinder)),
+      listLearnedSkills: vi.fn(async () => [
+        shared,
+        { ...shared, eligibilityDisciplineId: 'lifebinder' },
+      ]),
+    })
+    await expect(
+      saveCharacterDisciplineSkills(
+        userId,
+        character(),
+        {
+          expectedBuildVersion: 1,
+          skillIds: [shared.skillId],
+          idempotencyKey: '00000000-0000-4000-8000-000000000803',
+        },
+        repo,
+      ),
+    ).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      publicMessage: expect.stringMatching(/choose.*Discipline/i),
+    })
+    expect(repo.saveDisciplineSkills).not.toHaveBeenCalled()
+  })
+  it('explicit eligibility can change for an already equipped Skill without changing its intrinsic pin', async () => {
+    const repo = repository({
+      findActiveBuild: vi.fn(async () => build(vanguard, 1, lifebinder)),
+      listLearnedSkills: vi.fn(async () => [
+        shared,
+        { ...shared, eligibilityDisciplineId: 'lifebinder' },
+      ]),
+      listEquippedDisciplineSkills: vi.fn(async () => [
+        { ...shared, slotIndex: 1, equippedAt: shared.learnedAt },
+      ]),
+    })
+    await saveCharacterDisciplineSkills(
+      userId,
+      character(),
+      {
+        expectedBuildVersion: 1,
+        skillIds: [shared.skillId],
+        eligibilitySelections: [{ skillId: shared.skillId, eligibilityDisciplineId: 'lifebinder' }],
+        idempotencyKey: '00000000-0000-4000-8000-000000000803',
+      },
+      repo,
+    )
+    expect(repo.saveDisciplineSkills).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skills: [
+          expect.objectContaining({
+            eligibilityDisciplineId: 'lifebinder',
+            contentVersion: shared.contentVersion,
+          }),
+        ],
+      }),
+    )
+  })
+  it('committed authored Skill pins are resolved exactly and a deliberate absent current extension is accepted', async () => {
+    const contentResolver = currentResolver()
+    const snapshot = {
+      schemaVersion: 4,
+      buildVersion: 1,
+      primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+      secondary: null,
+      disciplineSkills: [
+        {
+          skillId: custom.id,
+          contentVersion: 9,
+          sourceDisciplineId: 'lifebinder',
+          eligibilityDisciplineId: 'vanguard',
+          slotIndex: 1,
+        },
+      ],
+      extensions: {
+        essence: null,
+        resonance: null,
+        equipmentSkills: [] as never[],
+        supernatural: null,
+        prestige: null,
+      },
+    }
+    const repo = repository({
+      contentResolver,
+      loadCommittedBuildSnapshot: vi.fn(async () => snapshot),
+    })
+    expect(await loadCharacterCommittedBuildSnapshot(userId, character().id, repo)).toEqual(
+      snapshot,
+    )
+    expect(contentResolver.resolvePinnedSkillDefinition).toHaveBeenCalledWith(custom.id, 9)
+    expect(contentResolver.resolveCurrentSkillDefinition).not.toHaveBeenCalled()
+  })
+})
+
+it('previews an authored same-identity Core refresh without resetting personal points', async () => {
+  const currentPolicy = {
+    disciplineId: 'vanguard',
+    policyVersion: 1,
+    baseAttributes: { might: 8, finesse: 4, vitality: 8, agility: 4, intellect: 3, resolve: 4 },
+    focusAttributes: ['might', 'vitality'] as const,
+    attributeCaps: {
+      might: 60,
+      finesse: 40,
+      vitality: 60,
+      agility: 40,
+      intellect: 40,
+      resolve: 40,
+    },
+  }
+  const nextPolicy = {
+    ...currentPolicy,
+    policyVersion: 9,
+    baseAttributes: { ...currentPolicy.baseAttributes, might: 7, intellect: 4 },
+  }
+  const pinned = { ...vanguard, profile: { ...vanguard.profile, corePolicy: currentPolicy } }
+  const next = {
+    ...vanguard,
+    definition: { ...vanguard.definition, definitionVersion: 9 },
+    profile: { ...vanguard.profile, profileVersion: 9, corePolicy: nextPolicy },
+  }
+  const repo = repository({
+    findActiveBuild: vi.fn(async () => build(pinned)),
+    listDisciplines: vi.fn(async () => [next]),
+  })
+  const preview = await previewCharacterDisciplines(
+    userId,
+    character(),
+    { primaryDisciplineId: 'vanguard' },
+    repo,
+  )
+  expect(preview.proposed.profile.profileVersion).toBe(9)
+  expect(preview.changes.primary).toBe(true)
+  // The same personal allocation gives the same derived stats as an explicit
+  // new Core7/4 plus original Might1/Intellect0, not a reset to its new base.
+  expect(preview.proposed.derived).toEqual(
+    (await import('@aurevane/game-core/character/discipline-build')).buildPrimaryDisciplinePreview({
+      attributes: { ...character().attributes, might: 8, intellect: 4 },
+      level: character().level,
+      primaryDefinition: next.definition,
+      primaryProfile: next.profile,
+    }).derived,
+  )
+})

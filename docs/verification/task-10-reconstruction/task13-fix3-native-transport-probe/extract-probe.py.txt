@@ -1,0 +1,16 @@
+import pathlib,re,json
+root=pathlib.Path('/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261025');d=pathlib.Path('/tmp/task13-n7-transport');d.mkdir(exist_ok=True)
+original=(root/'apps/web/e2e/master-combat-content-authoring.pw.ts').read_text();block=original[original.index('  const originals: BasicSkillDefinition[]'):original.index("  expect(['localhost', '127.0.0.1']).toContain(",original.index('  const originals: BasicSkillDefinition[]'))]
+layout=(root/'apps/web/e2e/master-complete-layout.pw.ts').read_text();launch=layout[layout.index('  const directory = await mkdtemp'):layout.index('  const page = await context.newPage()')];launch=launch.replace("    channel: 'chromium',", "    channel: 'chromium',\n    executablePath: '/tmp/task13-recovery-browser/chromium',")
+header=f'''import {{test,expect,chromium}} from {json.dumps(str(root/'apps/web/node_modules/@playwright/test/index.mjs'))}
+import {{execFileSync}} from 'node:child_process'
+import {{mkdtemp,writeFile,rm}} from 'node:fs/promises'
+import {{join,resolve}} from 'node:path'
+import {{tmpdir}} from 'node:os'
+import type {{BasicSkillDefinition}} from {json.dumps(str(root/'packages/game-core/src/combat/combat-basic-actions.ts'))}
+'''
+source=header+"test('actual all-five executable fixture through Playwright loader', async ({}, info) => {\n"+block+"  expect(originals.map(x=>x.id)).toEqual(['basic.move','unarmed.basic','basic.guard','basic.recover','basic.recover.mp'])\n  expect(originals.every(x=>x.contentVersion===1)).toBe(true)\n  await info.attach('executable-originals.json',{body:JSON.stringify(originals),contentType:'application/json'})\n})\n"
+source+="test('native viewport launch overrides inherited project emulation', async ({baseURL}, info) => {\n"+launch+"  try {\n  const page=await context.newPage()\n  await page.goto('data:text/html,<h1>Native window transport</h1>')\n  const metrics=await page.evaluate(()=>({dpr:devicePixelRatio,width:innerWidth,zoom:getComputedStyle(document.documentElement).zoom,touch:navigator.maxTouchPoints}))\n  expect(metrics.dpr).toBe(1);expect(metrics.zoom).toBe('1');expect(metrics.touch).toBe(0)\n  await info.attach('launch-transport-only.json',{body:JSON.stringify({metrics,browser:context.browser()?.version(),extensionWorkers:context.serviceWorkers().length,note:'Local Chromium153 window transport only; no extension zoom or full-channel claim'}),contentType:'application/json'})\n  } finally {await context.close();await rm(directory,{recursive:true,force:true})}\n})\n"
+(d/'transport.pw.ts').write_text(source)
+(d/'playwright.config.ts').write_text(f"import base from {json.dumps(str(root/'apps/web/playwright.config.ts'))}\nexport default {{...base,testDir:{json.dumps(str(d))},webServer:undefined,outputDir:{json.dumps(str(d/'results'))},projects:base.projects?.filter(p=>['desktop-chromium','mobile-chromium'].includes(p.name!))}}\n")
+print(json.dumps(dict(probe=str(d),source='extracted actual current executable-original and persistent-context blocks',projects=2)))

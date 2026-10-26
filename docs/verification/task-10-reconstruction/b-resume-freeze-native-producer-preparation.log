@@ -1,0 +1,43 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-record-lifecycle.test.ts (36 tests | 1 failed | 35 skipped) 2682ms
+   × native Stage B schedule producers all reach real guarded writes with their prepared arguments 161ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-record-lifecycle.test.ts > native Stage B schedule producers all reach real guarded writes with their prepared arguments
+Error: Native producer for character_attribute_personal_allocations: error: CHARACTER_ATTRIBUTE_NO_CHANGE
+ ❯ src/combat-content-record-lifecycle.test.ts:1056:13
+    1054|       await db.exec(statement)
+    1055|     } catch (error) {
+    1056|       throw new Error(`Native producer for ${table}: ${String(error)}`…
+       |             ^
+    1057|     }
+    1058|     await db.exec('rollback to savepoint native_preparation; release s…
+
+Caused by: error: CHARACTER_ATTRIBUTE_NO_CHANGE
+ ❯ pe.Ue ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:17959
+ ❯ pe.tt ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:15347
+ ❯ pe.parse ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/chunk-2BOC2OMW.js:1:14021
+ ❯ N.qe ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/index.js:5:1762
+ ❯ ../../node_modules/.pnpm/@electric-sql+pglite@0.5.8/node_modules/@electric-sql/pglite/dist/index.js:5:1155
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5922000
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2616044
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2648530
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:2649134
+ ❯ null.<anonymous> wasm:/wasm/0267bb86:1:5569870
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { length: 689, severity: 'ERROR', code: '22023', detail: undefined, hint: undefined, position: undefined, internalPosition: undefined, internalQuery: undefined, where: 'PL/pgSQL function commit_character_attribute_allocation_v1(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text) line 148 at RAISE\nSQL statement "select result.replayed                     from public.commit_character_attribute_allocation_v1(\n      p_user_id, p_character_id, p_mode,\n      p_might, p_finesse, p_vitality, p_agility, p_intellect, p_resolve,\n      p_idempotency_key, p_request_fingerprint\n    ) result"\nPL/pgSQL function commit_character_attribute_allocation_v2(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text) line 172 at SQL statement', schema: undefined, table: undefined, dataType: undefined, constraint: undefined, file: 'pl_exec.c', routine: 'exec_stmt_raise', query: 'select * from public.commit_character_attribute_allocation_v2(\'00000000-0000-4000-8000-000000000002\',\'00000000-0000-4000-8000-000000000011\',\'reset\',12,4,7,4,3,6,gen_random_uuid(),\'native-b-allocation\');', params: undefined, queryOptions: undefined }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 35 skipped (36)
+   Start at  13:55:45
+   Duration  2.91s (transform 55ms, setup 0ms, import 89ms, tests 2.68s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-record-lifecycle.test.ts -t 'native Stage B schedule producers'

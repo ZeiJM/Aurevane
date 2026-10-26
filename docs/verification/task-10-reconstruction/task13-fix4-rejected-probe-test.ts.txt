@@ -1,0 +1,16 @@
+// TEMPORARY bounded same-workflow diagnostic; archive then remove.
+it('diagnoses downstream native authority scripts through real SQL', async () => {
+  const probePath = '/tmp/task13-native-shell-probe.mjs'
+  const { runNativeShell } = await import(/* @vite-ignore */ probePath)
+  const files = ['pvp-authority', 'pvp-map-sizes', 'pvp-lobby-seating', 'pvp-spectator-join', 'battle-history-privacy', 'character-support-action', 'p37-saved-build-loadouts', 'p38-representative-buildcraft', 'p4-discipline-rebalance-publication']
+  for (const file of files) {
+    await db.exec('savepoint workflow_script')
+    if (file === 'p37-saved-build-loadouts') await db.exec('update app_private.character_build_attunement_policy_state set current_policy_version=1 where singleton')
+    let script = readFileSync(resolve(root, `../../.github/scripts/verify-${file}.sh`), 'utf8')
+    if (file === 'character-support-action') script = script.slice(0, script.indexOf('# Race two independent writers'))
+    const result = await runNativeShell(db, script, resolve(root, '../..'))
+    process.stdout.write(`NATIVE-SHELL-PGLITE ${file}: exit ${result.code}\n${result.output}\n`)
+    // Preserve the authority battle for the later spectator script.
+    if (file !== 'pvp-authority' || result.code !== 0) await db.exec('rollback to savepoint workflow_script')
+  }
+}, 120000)

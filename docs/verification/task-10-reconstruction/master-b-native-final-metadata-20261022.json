@@ -1,0 +1,494 @@
+{
+  "head": "b0443d115598d140da6e6bc7182958c0a3542187",
+  "tree": "1050ff0d81d3bbafd79805e320b05d617d950720",
+  "runs": [
+    {
+      "id": 39858544485,
+      "name": "Profile Skill Build",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1501,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544485/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544485/logs",
+      "workflow_id": 349527637
+    },
+    {
+      "id": 39858544387,
+      "name": "Skill Engine",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1817,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544387/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544387/logs",
+      "workflow_id": 349515249
+    },
+    {
+      "id": 39858544390,
+      "name": "Essence Build",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2100,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544390/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544390/logs",
+      "workflow_id": 349610571
+    },
+    {
+      "id": 39858544587,
+      "name": "Resonance Build",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1930,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544587/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544587/logs",
+      "workflow_id": 349567136
+    },
+    {
+      "id": 39858544675,
+      "name": "Controlled combat browser",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 137,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544675/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544675/logs",
+      "workflow_id": 385297185
+    },
+    {
+      "id": 39858544514,
+      "name": "Foundation Security DB",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1950,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544514/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544514/logs",
+      "workflow_id": 335886015
+    },
+    {
+      "id": 39858544577,
+      "name": "Shared Build Snapshots",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1411,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544577/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544577/logs",
+      "workflow_id": 349845983
+    },
+    {
+      "id": 39858544489,
+      "name": "Modular ability readers browser",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 130,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544489/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544489/logs",
+      "workflow_id": 385594055
+    },
+    {
+      "id": 39858544386,
+      "name": "Discipline Build DB",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_number": 1695,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544386/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544386/logs",
+      "workflow_id": 349406174
+    },
+    {
+      "id": 39858544604,
+      "name": "Attribute Allocation",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1344,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544604/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544604/logs",
+      "workflow_id": 351979274
+    },
+    {
+      "id": 39858544526,
+      "name": "Battle Session DB",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_number": 1981,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544526/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544526/logs",
+      "workflow_id": 335858435
+    },
+    {
+      "id": 39858544477,
+      "name": "Desktop experience",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1937,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544477/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544477/logs",
+      "workflow_id": 355411640
+    },
+    {
+      "id": 39858544451,
+      "name": "Representative Buildcraft",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_number": 2622,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544451/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544451/logs",
+      "workflow_id": 350260916
+    },
+    {
+      "id": 39858544530,
+      "name": "Wayfarer's Practice DB",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2043,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544530/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544530/logs",
+      "workflow_id": 335807895
+    },
+    {
+      "id": 39858544534,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_number": 12998,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544534/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544534/logs",
+      "workflow_id": 335177451
+    },
+    {
+      "id": 39858544519,
+      "name": "UI layout review",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_number": 2083,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544519/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544519/logs",
+      "workflow_id": 358723765
+    },
+    {
+      "id": 39858544680,
+      "name": "Browser smoke",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_number": 6996,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544680/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544680/logs",
+      "workflow_id": 335250790
+    },
+    {
+      "id": 39858544500,
+      "name": "Desktop page fit",
+      "status": "completed",
+      "conclusion": "failure",
+      "run_number": 1747,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544500/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/39858544500/logs",
+      "workflow_id": 355392339
+    }
+  ],
+  "uiArtifacts": [
+    {
+      "id": 12462025505,
+      "name": "ui-layout-review",
+      "size_in_bytes": 401896757,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462025505",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462025505/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:42Z",
+      "expires_at": "2026-10-25T21:51:28Z",
+      "updated_at": "2026-10-22T21:51:42Z",
+      "digest": "sha256:906ef6c399f1a2cdc9d066f1cbff09597c5c45125d610bcc53624350dfbba7fa",
+      "workflow_run": {
+        "id": 39858544519,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461472253,
+      "name": "ui-layout-test-results",
+      "size_in_bytes": 27799449,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461472253",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461472253/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:44Z",
+      "expires_at": "2026-10-25T21:51:43Z",
+      "updated_at": "2026-10-22T21:51:44Z",
+      "digest": "sha256:68a302eb154ecb7f6c290c75ffe1478e79c8af031f006170a0431a8300f9576b",
+      "workflow_run": {
+        "id": 39858544519,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    }
+  ],
+  "browserArtifacts": [
+    {
+      "id": 12462200531,
+      "name": "combat-release-reader-screens",
+      "size_in_bytes": 35280138,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462200531",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462200531/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:47Z",
+      "expires_at": "2026-10-29T21:51:44Z",
+      "updated_at": "2026-10-22T21:51:47Z",
+      "digest": "sha256:5b03e527ace9cd2641c29e7ce08365a31744f07d208a95658ac67d6b4141ba12",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12462105678,
+      "name": "battle-ally-inspection-review",
+      "size_in_bytes": 9182126,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462105678",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462105678/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:28Z",
+      "expires_at": "2026-10-29T21:51:26Z",
+      "updated_at": "2026-10-22T21:51:28Z",
+      "digest": "sha256:0cdb3265240f058188c5871c6ca110334b818c137963da069e219712855e965f",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12462100733,
+      "name": "skill-parameter-palette-review",
+      "size_in_bytes": 12507125,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462100733",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12462100733/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:49Z",
+      "expires_at": "2026-10-29T21:51:47Z",
+      "updated_at": "2026-10-22T21:51:49Z",
+      "digest": "sha256:0b0a9202f13ec6f716c0c94de530ecac7800c0327da1fa83fdcd4a929f85222b",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461986028,
+      "name": "battle-targeting-review",
+      "size_in_bytes": 77236125,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461986028",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461986028/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:31Z",
+      "expires_at": "2026-10-29T21:51:29Z",
+      "updated_at": "2026-10-22T21:51:31Z",
+      "digest": "sha256:9d27889b6c82d654768e54119195775fde961979dac5b79abc79e1248f7c5fcb",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461761534,
+      "name": "battle-canonical-move-review",
+      "size_in_bytes": 19529357,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461761534",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461761534/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:36Z",
+      "expires_at": "2026-10-29T21:51:34Z",
+      "updated_at": "2026-10-22T21:51:36Z",
+      "digest": "sha256:29ff0960767e04e0dcf9384cc3df2820ac5a840986a662d45286c77fecefe9c9",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461468327,
+      "name": "battle-completion-fit-review",
+      "size_in_bytes": 27942287,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461468327",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461468327/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:53Z",
+      "expires_at": "2026-10-29T21:51:51Z",
+      "updated_at": "2026-10-22T21:51:53Z",
+      "digest": "sha256:c7f118c383c7c823b34dd764ed551ae73b46b235496d140674a99122a2de8c89",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461362312,
+      "name": "battle-elevated-rail-review",
+      "size_in_bytes": 2076029,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461362312",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461362312/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:51Z",
+      "expires_at": "2026-10-29T21:51:49Z",
+      "updated_at": "2026-10-22T21:51:51Z",
+      "digest": "sha256:b07d0241da2424466a29f4cfabdd3c10ce09df3ed8c2bae2aa7c3924e1717b6e",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461332389,
+      "name": "battle-suppress-review",
+      "size_in_bytes": 15926499,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461332389",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461332389/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:44Z",
+      "expires_at": "2026-10-29T21:51:42Z",
+      "updated_at": "2026-10-22T21:51:44Z",
+      "digest": "sha256:0f655655c90c7d9702cfd9222fcebef33153d3b69b8504c227ec9006f11f77f4",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461242612,
+      "name": "browser-smoke-evidence",
+      "size_in_bytes": 86591159,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461242612",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461242612/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:52:00Z",
+      "expires_at": "2026-10-29T21:51:57Z",
+      "updated_at": "2026-10-22T21:52:00Z",
+      "digest": "sha256:71b31231c8b823e5376681c54295c2aa11f1c7684c16a3a71ad4a0ea15af09d2",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461074497,
+      "name": "battle-percentage-dot-review",
+      "size_in_bytes": 42965142,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461074497",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461074497/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:39Z",
+      "expires_at": "2026-10-29T21:51:37Z",
+      "updated_at": "2026-10-22T21:51:39Z",
+      "digest": "sha256:c68d82a69df3c0274a35400bb43668adcfc7cfc8d20cf50d9f2b4c6cdc7e39b1",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12461053045,
+      "name": "battle-canonical-targeting-review",
+      "size_in_bytes": 8157664,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461053045",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12461053045/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:34Z",
+      "expires_at": "2026-10-29T21:51:32Z",
+      "updated_at": "2026-10-22T21:51:34Z",
+      "digest": "sha256:a9b7547091dfb7cec4253fe4fa51ec7fe97a91140ef8401e1c95d68d186f4ef2",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12460813359,
+      "name": "battle-command-feedback-review",
+      "size_in_bytes": 25824162,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12460813359",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12460813359/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:56Z",
+      "expires_at": "2026-10-29T21:51:54Z",
+      "updated_at": "2026-10-22T21:51:56Z",
+      "digest": "sha256:d113fa52b4bc234beb0539431212401a2de9e0dd5631844157cd9985bd5cb2d2",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12460783438,
+      "name": "browser-smoke-diagnostics",
+      "size_in_bytes": 65869536,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12460783438",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12460783438/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:52:03Z",
+      "expires_at": "2026-10-29T21:52:00Z",
+      "updated_at": "2026-10-22T21:52:03Z",
+      "digest": "sha256:f7282b3d1256cb394632051bcd3a958c6ea716673a8fbad8d74b3a7df45ab89a",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    },
+    {
+      "id": 12460184264,
+      "name": "battle-elemental-review",
+      "size_in_bytes": 3428321,
+      "url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12460184264",
+      "archive_download_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/artifacts/12460184264/zip",
+      "expired": false,
+      "created_at": "2026-10-22T21:51:41Z",
+      "expires_at": "2026-10-29T21:51:40Z",
+      "updated_at": "2026-10-22T21:51:41Z",
+      "digest": "sha256:edb64698280707bf076acf1d814b381dfe11b3e17644ccabc942431b31ca4863",
+      "workflow_run": {
+        "id": 39858544680,
+        "repository_id": 1335303167,
+        "head_repository_id": 1335303167,
+        "head_branch": "agent/master-complete-20261022",
+        "head_sha": "b0443d115598d140da6e6bc7182958c0a3542187"
+      }
+    }
+  ]
+}

@@ -1047,6 +1047,13 @@
   }
 }
 
+.conditions {
+  margin: 0;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  border-bottom: 1px solid #506368;
+}
 /* One baseline for World tabs whether optional counters are present or absent. */
 .tabs button {
   display: inline-flex;

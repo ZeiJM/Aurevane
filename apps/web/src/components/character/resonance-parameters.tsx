@@ -1,5 +1,7 @@
 'use client'
 
+import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
+
 import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { groupSkillEffects } from './skill-effect-groups'
 
@@ -29,12 +31,26 @@ export function ResonanceParameters({
   knownSkills?: readonly MatureSkillDefinition[]
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
+  const publicText = definition
+    ? renderAbilityPresentationText(definition, 'public', { ability: definition.name })
+    : null
+  const compactText = definition
+    ? renderAbilityPresentationText(definition, 'compact', { ability: definition.name })
+    : null
+  const presentation = (
+    <>
+      {publicText ? <p>{publicText}</p> : null}
+      {compactText ? <p>{compactText}</p> : null}
+    </>
+  )
+
   if (definition?.ability)
     return (
       <div
         className={[styles.report, className].filter(Boolean).join(' ')}
         data-resonance-parameters="true"
       >
+        {presentation}
         <AbilityDefinitionParameters definition={definition.ability} showActivationNotes={false} />
       </div>
     )
@@ -47,6 +63,7 @@ export function ResonanceParameters({
       className={[styles.report, className].filter(Boolean).join(' ')}
       data-resonance-parameters="true"
     >
+      {presentation}
       {mechanics?.setup ? (
         <p>
           Use a setup Skill from Requirements first. Your next Discipline Skill must match the

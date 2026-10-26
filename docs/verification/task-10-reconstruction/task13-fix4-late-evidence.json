@@ -1,0 +1,875 @@
+{
+  "scope": "N10/N11 safe native extracts and local probes; local fixtures are not true200 acceptance",
+  "files": [
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n10-green/editor-identity-1366-current-basic-attack.png",
+      "bytes": 1526830,
+      "sha256": "f6e1f9cec4bc817d846e81cd46f76a69b0278df64e63dd1c16359b5b1152636d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n10-green/editor-identity-1366-flame-burst.png",
+      "bytes": 1521007,
+      "sha256": "bef445766282af7ff5477cefcc0e2da13d1ebe5252950fe466a7f0e578225d75"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n10-green/editor-identity-1366-gash.png",
+      "bytes": 1517267,
+      "sha256": "f7d8f5543436f779c160ad290ce120e0bdb0351c4608793d14edd0ce8cfe7995"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n10-green/editor-identity-390-current-basic-attack.png",
+      "bytes": 791705,
+      "sha256": "691c8bad73d40ea17e8861cc0b798593ac9aed4cca5eaa7580e71ceb02cc27e0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n10-green/editor-identity-390-flame-burst.png",
+      "bytes": 786560,
+      "sha256": "6811710b8ce1f1146213d050b6146596010a1bc39b66c92509691abd2a3c133e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n10-green/editor-identity-390-gash.png",
+      "bytes": 783527,
+      "sha256": "5b670152ea97d81fb13ea4f94db0a4684596ce9078c17c6e7cb2ce22e131b0b7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n10-green/results.json",
+      "bytes": 1185,
+      "sha256": "57d577031328661dd8717378689dc79d805838137c634b0df985d453063d358f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-full-control-red/failure-state.json",
+      "bytes": 1002,
+      "sha256": "1df8d6c909f9327cff1a58a6c634cdc97ad338e781d2dd6eb876588a3d5eb434"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-full-control-red/failure.html",
+      "bytes": 322590,
+      "sha256": "a4d07662517e1ac9ef4d7a359fd2b84bca86ba6a4246ee3d8c92cef7a852c49f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-full-control-red/failure.json",
+      "bytes": 935,
+      "sha256": "d5d34a2bcc5d2051147b0da035154d65742acf688e18824a226b8aba779b8e70"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-full-control-red/failure.png",
+      "bytes": 67701,
+      "sha256": "312c3295382c9b1a52896c05c3a1c4802aaa978ebd34ae23cc5443c7045f172d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-full-control-red/master-shell-683-340-0.png",
+      "bytes": 67701,
+      "sha256": "312c3295382c9b1a52896c05c3a1c4802aaa978ebd34ae23cc5443c7045f172d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-full-control-red/master-shell-reachability.json",
+      "bytes": 706,
+      "sha256": "47f836f9a7288a9f30397a40418201a2a8b89f8272eb8d5cb4c773540a270d09"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-1366-768-0.png",
+      "bytes": 378055,
+      "sha256": "488228bc3d71a562082ab9fbd821d29de560956fb7a632b5475e3fc629c71613"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-1366-768-1.png",
+      "bytes": 310386,
+      "sha256": "1aadef938e365a920213d7a0f5e7f229fd94a05b28a67227467d94a60b0bd99b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-1366-768-2.png",
+      "bytes": 310632,
+      "sha256": "0f1a45164c3703c9b316a58da23637d0162deb13548329664705d358ef3c3846"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-320-370-0.png",
+      "bytes": 47282,
+      "sha256": "74058298496aaaa637b4b86f582ac0b6de3ac004aebad4fd56cb101e8b7da804"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-320-370-1.png",
+      "bytes": 45941,
+      "sha256": "3f10fa926c77e155b775bacd6006d5f596a39313d4d1f3272f4bc1895094a301"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-320-370-2.png",
+      "bytes": 45803,
+      "sha256": "4f96ac244780d0992302ecc0e7c28f00ee75ac7287aab9433f4535e4189b7525"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-390-422-0.png",
+      "bytes": 70430,
+      "sha256": "f8a26fd31cb216ea6a1016b51c8abf2dd758545ee7024b41e261e0b204bc436e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-390-422-1.png",
+      "bytes": 58599,
+      "sha256": "db17c2a5839eb3150ef7b6b2fce08b03520fa2c6741a3010b6df574ae2118bbd"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-390-422-2.png",
+      "bytes": 58541,
+      "sha256": "ccb9e97d7c89d2bb3f5bd9aab017511e27880b74b183c30c08b661b9c031ee28"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-390-844-0.png",
+      "bytes": 126764,
+      "sha256": "7323f1b0c84ffdb68e1b8d773b0f9e3ea73bab589d63f3c9b19a29db84b464ea"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-390-844-1.png",
+      "bytes": 134058,
+      "sha256": "dfe208496527c2c252b5e1d3c08093b5ab2d744ab95390564e64f78e586bf7b4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-390-844-2.png",
+      "bytes": 134116,
+      "sha256": "97e9195fab65a4af4c5188b246b46e0e4b5542b14f16f772a2ace177c04f950b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-683-340-0.png",
+      "bytes": 79908,
+      "sha256": "ceed32d2b8b3c57128bdc3eb5fa3dc8bc9628230d9048e6704010f86c2e4f451"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-683-340-1.png",
+      "bytes": 74349,
+      "sha256": "d03da5cfbfb3796990f7215b547532088e136a5df8f149333e5e719b019ca26d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-683-340-2.png",
+      "bytes": 74450,
+      "sha256": "2e6297d949b5a538de6b7176164d870c40e43fd29f737f81586cc3348df35664"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-683-384-0.png",
+      "bytes": 82503,
+      "sha256": "0cf50cd531919f717a102523527c4ec2c6fc5673222f1af73387da4fa2f7261a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-683-384-1.png",
+      "bytes": 83336,
+      "sha256": "fc9e63c7955a991a27e959647c27ed6c87ac96ab13aae1c718df36fd69a97443"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-683-384-2.png",
+      "bytes": 83487,
+      "sha256": "480f6fe481fa6ee8ee620cf50e774a08118d0a313d77c73e61c053d1c64f3ae8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-720-450-0.png",
+      "bytes": 117460,
+      "sha256": "b52eeefc8a03a329958941e4d3f4c051f05bfb9a1a44e5ea6fdf58ee86954808"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-720-450-1.png",
+      "bytes": 113594,
+      "sha256": "c93e12b1323bd64205ea996c6a4e5f907a8727f1a9119016e34dedf947a1d275"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-720-450-2.png",
+      "bytes": 113609,
+      "sha256": "2379eb79837db818599dbacd93e5239613a906ced8fbf46eec2686f82a4aa619"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/master-shell-reachability.json",
+      "bytes": 14753,
+      "sha256": "d7a325efc69df130b40267a0d6266fb6a37af5da074055865cbd4f4b8a365691"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-green/results.json",
+      "bytes": 14753,
+      "sha256": "d7a325efc69df130b40267a0d6266fb6a37af5da074055865cbd4f4b8a365691"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-1366-768-master-real200-combat-content-history-focus.png",
+      "bytes": 310840,
+      "sha256": "9f9b3d10c2175de5631c64536f24f3cfed3d6ba6be59464cbe9f40b36bc943b1"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-1366-768-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 378053,
+      "sha256": "836b140e1210e31afbd1e9d4437dd9c7627356a4ccb41177defb6f4e5384a359"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-1440-900-master-real200-combat-content-history-focus.png",
+      "bytes": 421053,
+      "sha256": "1ba084c258ad428ab95c6b81b34c5b0d3665d0f9b7bc37a3a65027406faa3747"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-1440-900-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 482122,
+      "sha256": "37926a5933ac861188b7f99cba048c59011e6122679ec563552d6c86aff9ddb8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-320-370-master-real200-combat-content-history-focus.png",
+      "bytes": 41370,
+      "sha256": "58415e4fcb7301b6acc85a0972eb6880ec3520ef1e43d716fb8f597d241103e0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-320-370-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 47282,
+      "sha256": "74058298496aaaa637b4b86f582ac0b6de3ac004aebad4fd56cb101e8b7da804"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-390-422-master-real200-combat-content-history-focus.png",
+      "bytes": 56558,
+      "sha256": "0b8510bb6829cb07c1f61e2d2615d22c73a8225fea2f6a63563a07573195a11f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-390-422-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 70430,
+      "sha256": "f8a26fd31cb216ea6a1016b51c8abf2dd758545ee7024b41e261e0b204bc436e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-390-844-master-real200-combat-content-history-focus.png",
+      "bytes": 111415,
+      "sha256": "adaaae0caaa939874237a6b47f500e8dfe586ffe9c8fcb2356cccfee59260097"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-390-844-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 126769,
+      "sha256": "eb32a691b1e4860263006c5bb573f5b6e7616f390995767257466ed9a4fe0995"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-683-340-master-real200-combat-content-history-focus.png",
+      "bytes": 69547,
+      "sha256": "5515d8e64aef77bbc037cf89329c58a99da041773438fd8d18c49a9f01adf525"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-683-340-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 79904,
+      "sha256": "23884c07780fc79bbfbefef367e661cb0e14c04b559885a792f937753c91cbf7"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-683-384-master-real200-combat-content-history-focus.png",
+      "bytes": 84690,
+      "sha256": "9f30f04649fd14711c43d7c08ca34b6263810a35911a3248446819976a7e81f9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-683-384-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 82506,
+      "sha256": "3a9c259fef4dd8dc8c081ae20e21e3d376a1b7c49dd951805532448e1a403a4b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-720-450-master-real200-combat-content-history-focus.png",
+      "bytes": 111515,
+      "sha256": "1f1c526a1f6f99b18dffae0b35caae1d29388999ec6cf9e53b5f551f25c3744d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/local-720-450-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 117460,
+      "sha256": "b52eeefc8a03a329958941e4d3f4c051f05bfb9a1a44e5ea6fdf58ee86954808"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-1366-768-0.png",
+      "bytes": 379028,
+      "sha256": "82716b6c66d77775f497e597ce1c13eba2276a4b912c9533bad49d9b6c2df622"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-1366-768-1.png",
+      "bytes": 309802,
+      "sha256": "9c72eea15e975e9474ce62e144f6a6105fd592d33dabf29d3704be3448d39086"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-1366-768-2.png",
+      "bytes": 368946,
+      "sha256": "a75ff6e7a9ae428eceb3442a0b1dd612c34057edf3c0b463a9c1fc385f8f556b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-1440-900-0.png",
+      "bytes": 482162,
+      "sha256": "39fb1ff0c96ba5cadccdb191651445eac24d3af70b0d5a237e286a1c584867bc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-1440-900-1.png",
+      "bytes": 420443,
+      "sha256": "7a819fd38cb70c04e68a921318a0fcac530a2ade7818d203ec080604e9666515"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-1440-900-2.png",
+      "bytes": 483592,
+      "sha256": "72fe4feb021a5fc0208e5aaaafe1eca684c127ecaeedfbfc911b94d7955a1c35"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-320-370-0.png",
+      "bytes": 47331,
+      "sha256": "5d16e09d95248c3eb971c42b0457adc8ff0e3bb1e84afb9c8a5f9c690738210d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-320-370-1.png",
+      "bytes": 41680,
+      "sha256": "eb7d047ceca33f7969e9157e891bb02856739e38e6e94f1c68b9826d3d23cf9e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-320-370-2.png",
+      "bytes": 56507,
+      "sha256": "a786f09f12acf544c436357e16ece9594ede502700fb651caeba9d56724be568"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-390-422-0.png",
+      "bytes": 70509,
+      "sha256": "a40269b2e3fb80423672ce79e7894171da3cb7f0583fa1d5fc84215789b8ca1d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-390-422-1.png",
+      "bytes": 56775,
+      "sha256": "6e60f6802dcb042871af9633cfa8734b317500130d6e6746c39fdd451e03d560"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-390-422-2.png",
+      "bytes": 76876,
+      "sha256": "c591011315cfab847309451f2f0e24f7e53c6677952769cc6667ba8180d9fd08"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-390-844-0.png",
+      "bytes": 126852,
+      "sha256": "a0fb897f057f7be62793f6dceb13b05103e3e567bff59ca0e5394f6a5c8642fd"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-390-844-1.png",
+      "bytes": 111624,
+      "sha256": "1c6a121f351ab5afd573496ee6aa11f7e088c0449e7a530a3f167c12a042067a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-390-844-2.png",
+      "bytes": 136987,
+      "sha256": "3cd263f5ecc431e66ad95f4cab8b944b90be593434630e091e7430b40e449f7b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-683-340-0.png",
+      "bytes": 79905,
+      "sha256": "acc1381d340a77743f83d75a840d2a50604c53812739a1ffbf903e0e75a6573d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-683-340-1.png",
+      "bytes": 69523,
+      "sha256": "fdc03ec6fcde624a3957399258ef0f1099cca80d10fc601998f95b9eaedfb3d4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-683-340-2.png",
+      "bytes": 99189,
+      "sha256": "70c84f693013922dc823b6dba7d12889b9724e81084f232b1ca036df6df92e1f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-683-384-0.png",
+      "bytes": 82511,
+      "sha256": "55e7c75df2d988316124bbab4cb8bbd9fd92d4073b300e6937f7491ed27b0661"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-683-384-1.png",
+      "bytes": 84758,
+      "sha256": "3dc41f722130485504402106074a15bb6501f3d20b50229af5439fe72a74b48a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-683-384-2.png",
+      "bytes": 116682,
+      "sha256": "949be3085acc7ff6657b84af35a916ef2afe591a06038fa3fb0d360c68bd6580"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-720-450-0.png",
+      "bytes": 117927,
+      "sha256": "9ea7335fde4ff8e1b1b7068444bdda04bcc6598b1d77e95cade8f927d2557734"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-720-450-1.png",
+      "bytes": 111756,
+      "sha256": "61c432a25c027c1f075c4f7970eba1e5a2af6154c1777c79cbf310d2def6a728"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-720-450-2.png",
+      "bytes": 143019,
+      "sha256": "af14393438431fb0ac69acc00a2bcd89eae995cce2ee44f134e81373ca994b6e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/master-shell-reachability.json",
+      "bytes": 16835,
+      "sha256": "ee169351342114d04f48ae9e10c7cc4506c5cc26bd6f1deb9bcbed5400b01923"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-1366-768.json",
+      "bytes": 736,
+      "sha256": "7a24aa067a6b438a62c6253b716579b604bd9b03b175b4b2e59eb8100ae61112"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-1440-900.json",
+      "bytes": 1172,
+      "sha256": "00d9d879eb096d1401a2ed564ce677586c8ec5ea759cc90cb1766865a9792b3e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-320-370.json",
+      "bytes": 1180,
+      "sha256": "51fc162566abdbc594a473bbdea377e801589cfe28e0d5cba31ed87c73cf200a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-390-422.json",
+      "bytes": 1179,
+      "sha256": "35ea250044e539c0e741346b89e802cb81393542779159244c9cc499b5ce9321"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-390-844.json",
+      "bytes": 1179,
+      "sha256": "d72ff037398ca4a99f498b545f16374407a0801a40e2898c1deb4b2424582069"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-683-340.json",
+      "bytes": 1180,
+      "sha256": "4b4b78114620b6481b0b7ff57a734052b968eefa4b5f7f8803c83522dbf3311f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-683-384.json",
+      "bytes": 1180,
+      "sha256": "5465119bb29835cb6d0c2b0c6d964088bffdadea18b22c43b0d7627b2f27528d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-720-450.json",
+      "bytes": 1175,
+      "sha256": "9ed1f05b6340a02391511bab81b33610e6cde9c2ac83677727d76325fe092b12"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/native-controls-source.ts.txt",
+      "bytes": 3395,
+      "sha256": "bbf86f127331961e0156e760badbfc8bf510746b9840c99d84b4d8d530d9266c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-final/results.json",
+      "bytes": 16835,
+      "sha256": "ee169351342114d04f48ae9e10c7cc4506c5cc26bd6f1deb9bcbed5400b01923"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-1366-768-master-real200-combat-content-history-focus.png",
+      "bytes": 310759,
+      "sha256": "4b8d323ba61ada84dd1a2e46bca2eeec718a2f54152e9f240ba2fd1ab64f9a83"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-1366-768-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 378134,
+      "sha256": "5a3fa33b53a7d8ed3feb7b78fb4a8d2931db2b4d83dfde88cfa1fc004d4aabfc"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-320-370-master-real200-combat-content-history-focus.png",
+      "bytes": 41370,
+      "sha256": "58415e4fcb7301b6acc85a0972eb6880ec3520ef1e43d716fb8f597d241103e0"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-320-370-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 47276,
+      "sha256": "05582f30dfa7748673d82ca3cdda74dff8f8e0664a09f916cc709c2aa312eeef"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-390-422-master-real200-combat-content-history-focus.png",
+      "bytes": 56558,
+      "sha256": "0b8510bb6829cb07c1f61e2d2615d22c73a8225fea2f6a63563a07573195a11f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-390-422-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 70430,
+      "sha256": "f8a26fd31cb216ea6a1016b51c8abf2dd758545ee7024b41e261e0b204bc436e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-390-844-master-real200-combat-content-history-focus.png",
+      "bytes": 111415,
+      "sha256": "adaaae0caaa939874237a6b47f500e8dfe586ffe9c8fcb2356cccfee59260097"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-390-844-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 126762,
+      "sha256": "7e2813a753ef325318dc3e1d5fdf9037cb203ed90c6a9edc7b9a92cd3773fab5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-683-340-master-real200-combat-content-history-focus.png",
+      "bytes": 69547,
+      "sha256": "5515d8e64aef77bbc037cf89329c58a99da041773438fd8d18c49a9f01adf525"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-683-340-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 79908,
+      "sha256": "ceed32d2b8b3c57128bdc3eb5fa3dc8bc9628230d9048e6704010f86c2e4f451"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-683-384-master-real200-combat-content-history-focus.png",
+      "bytes": 84690,
+      "sha256": "9f30f04649fd14711c43d7c08ca34b6263810a35911a3248446819976a7e81f9"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-683-384-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 82506,
+      "sha256": "3a9c259fef4dd8dc8c081ae20e21e3d376a1b7c49dd951805532448e1a403a4b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-720-450-master-real200-combat-content-history-focus.png",
+      "bytes": 111515,
+      "sha256": "1f1c526a1f6f99b18dffae0b35caae1d29388999ec6cf9e53b5f551f25c3744d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/local-720-450-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 117460,
+      "sha256": "b52eeefc8a03a329958941e4d3f4c051f05bfb9a1a44e5ea6fdf58ee86954808"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-1366-768-0.png",
+      "bytes": 378996,
+      "sha256": "50241f94ce850a1427657f4d2f63816c5372a714d6f34b9bff58f1d424f2f5e6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-1366-768-1.png",
+      "bytes": 309965,
+      "sha256": "c3d00c1edba28e035b406e459d07389786bccab30da6017deda8598f20268b5d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-1366-768-2.png",
+      "bytes": 369580,
+      "sha256": "a484e346e8f1c3823280f9629e97a051a96c0e9a3d4ea44110444fa542660397"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-320-370-0.png",
+      "bytes": 47331,
+      "sha256": "5d16e09d95248c3eb971c42b0457adc8ff0e3bb1e84afb9c8a5f9c690738210d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-320-370-1.png",
+      "bytes": 41680,
+      "sha256": "eb7d047ceca33f7969e9157e891bb02856739e38e6e94f1c68b9826d3d23cf9e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-320-370-2.png",
+      "bytes": 56507,
+      "sha256": "a786f09f12acf544c436357e16ece9594ede502700fb651caeba9d56724be568"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-390-422-0.png",
+      "bytes": 70509,
+      "sha256": "a40269b2e3fb80423672ce79e7894171da3cb7f0583fa1d5fc84215789b8ca1d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-390-422-1.png",
+      "bytes": 56775,
+      "sha256": "6e60f6802dcb042871af9633cfa8734b317500130d6e6746c39fdd451e03d560"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-390-422-2.png",
+      "bytes": 76876,
+      "sha256": "c591011315cfab847309451f2f0e24f7e53c6677952769cc6667ba8180d9fd08"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-390-844-0.png",
+      "bytes": 126852,
+      "sha256": "a0fb897f057f7be62793f6dceb13b05103e3e567bff59ca0e5394f6a5c8642fd"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-390-844-1.png",
+      "bytes": 111624,
+      "sha256": "1c6a121f351ab5afd573496ee6aa11f7e088c0449e7a530a3f167c12a042067a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-390-844-2.png",
+      "bytes": 136987,
+      "sha256": "3cd263f5ecc431e66ad95f4cab8b944b90be593434630e091e7430b40e449f7b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-683-340-0.png",
+      "bytes": 79905,
+      "sha256": "acc1381d340a77743f83d75a840d2a50604c53812739a1ffbf903e0e75a6573d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-683-340-1.png",
+      "bytes": 69523,
+      "sha256": "fdc03ec6fcde624a3957399258ef0f1099cca80d10fc601998f95b9eaedfb3d4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-683-340-2.png",
+      "bytes": 99189,
+      "sha256": "70c84f693013922dc823b6dba7d12889b9724e81084f232b1ca036df6df92e1f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-683-384-0.png",
+      "bytes": 82511,
+      "sha256": "55e7c75df2d988316124bbab4cb8bbd9fd92d4073b300e6937f7491ed27b0661"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-683-384-1.png",
+      "bytes": 84758,
+      "sha256": "3dc41f722130485504402106074a15bb6501f3d20b50229af5439fe72a74b48a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-683-384-2.png",
+      "bytes": 116682,
+      "sha256": "949be3085acc7ff6657b84af35a916ef2afe591a06038fa3fb0d360c68bd6580"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-720-450-0.png",
+      "bytes": 117927,
+      "sha256": "9ea7335fde4ff8e1b1b7068444bdda04bcc6598b1d77e95cade8f927d2557734"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-720-450-1.png",
+      "bytes": 111756,
+      "sha256": "61c432a25c027c1f075c4f7970eba1e5a2af6154c1777c79cbf310d2def6a728"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-720-450-2.png",
+      "bytes": 143019,
+      "sha256": "af14393438431fb0ac69acc00a2bcd89eae995cce2ee44f134e81373ca994b6e"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/master-shell-reachability.json",
+      "bytes": 14776,
+      "sha256": "b528d91dcb4d4bba3ff15b166424b2c5aeefd6f65213b649133ea734adbd57c3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-1366-768.json",
+      "bytes": 1192,
+      "sha256": "f5c393d370c1bf5f3df3e02f5456d86b142719361db1abb2a8ede7e89441611b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-320-370.json",
+      "bytes": 1180,
+      "sha256": "51fc162566abdbc594a473bbdea377e801589cfe28e0d5cba31ed87c73cf200a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-390-422.json",
+      "bytes": 1179,
+      "sha256": "35ea250044e539c0e741346b89e802cb81393542779159244c9cc499b5ce9321"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-390-844.json",
+      "bytes": 1179,
+      "sha256": "d72ff037398ca4a99f498b545f16374407a0801a40e2898c1deb4b2424582069"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-683-340.json",
+      "bytes": 1180,
+      "sha256": "4b4b78114620b6481b0b7ff57a734052b968eefa4b5f7f8803c83522dbf3311f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-683-384.json",
+      "bytes": 1180,
+      "sha256": "5465119bb29835cb6d0c2b0c6d964088bffdadea18b22c43b0d7627b2f27528d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-720-450.json",
+      "bytes": 1175,
+      "sha256": "9ed1f05b6340a02391511bab81b33610e6cde9c2ac83677727d76325fe092b12"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/native-controls-source.ts.txt",
+      "bytes": 3395,
+      "sha256": "bbf86f127331961e0156e760badbfc8bf510746b9840c99d84b4d8d530d9266c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-green/results.json",
+      "bytes": 14776,
+      "sha256": "b528d91dcb4d4bba3ff15b166424b2c5aeefd6f65213b649133ea734adbd57c3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-red/failure-state.json",
+      "bytes": 1002,
+      "sha256": "d06928f48b1665626b9b4f0b495729cf5f0693d07796ce3efb10f8e56f11c690"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-red/failure.html",
+      "bytes": 322591,
+      "sha256": "a5d1defec5e69930d0fcf1e6c48e6a7a8b23a5e8f64e5e502fdc8f9bca32414b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-red/failure.json",
+      "bytes": 169,
+      "sha256": "8ea51a53a85b0d2eb5bf7cdf29fd4fda3969ba371cdc9c77fd9d60bfa569848b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-red/failure.png",
+      "bytes": 67701,
+      "sha256": "312c3295382c9b1a52896c05c3a1c4802aaa978ebd34ae23cc5443c7045f172d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-red/local-683-340-master-real200-combat-content-search-empty-failure.json",
+      "bytes": 202,
+      "sha256": "26ddc2e6741268e7b05477fea06811ce52f74bd7a70eb3a4b94f041e69ecff9c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-controls-red/native-controls-source.ts.txt",
+      "bytes": 3395,
+      "sha256": "bbf86f127331961e0156e760badbfc8bf510746b9840c99d84b4d8d530d9266c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/failure-state.json",
+      "bytes": 1002,
+      "sha256": "66f45d6e90280370f88262f14c48dc230c0165ba3b508161b619b2ea70851697"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/failure.html",
+      "bytes": 322985,
+      "sha256": "92ce778970d743b33136b484d69550ca68ab4ccd62231c8eb4975fb1d188b233"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/failure.json",
+      "bytes": 3267,
+      "sha256": "ae4e27baa115af686b1d0803f81881d171633289c95f33fde77ad237ae10feae"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/failure.png",
+      "bytes": 82511,
+      "sha256": "55e7c75df2d988316124bbab4cb8bbd9fd92d4073b300e6937f7491ed27b0661"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/local-683-340-master-real200-combat-content-history-focus.png",
+      "bytes": 69547,
+      "sha256": "5515d8e64aef77bbc037cf89329c58a99da041773438fd8d18c49a9f01adf525"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/local-683-340-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 79907,
+      "sha256": "b6805bc9b9543f1e40ee9576a71be254770f1be0c5617581ff1df3480f2b15a5"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/local-683-384-master-real200-combat-content-search-empty-focus.png",
+      "bytes": 82506,
+      "sha256": "3a9c259fef4dd8dc8c081ae20e21e3d376a1b7c49dd951805532448e1a403a4b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/master-shell-683-340-0.png",
+      "bytes": 79905,
+      "sha256": "acc1381d340a77743f83d75a840d2a50604c53812739a1ffbf903e0e75a6573d"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/master-shell-683-340-1.png",
+      "bytes": 69523,
+      "sha256": "fdc03ec6fcde624a3957399258ef0f1099cca80d10fc601998f95b9eaedfb3d4"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/master-shell-683-340-2.png",
+      "bytes": 99189,
+      "sha256": "70c84f693013922dc823b6dba7d12889b9724e81084f232b1ca036df6df92e1f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/master-shell-683-384-0.png",
+      "bytes": 82511,
+      "sha256": "55e7c75df2d988316124bbab4cb8bbd9fd92d4073b300e6937f7491ed27b0661"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/master-shell-reachability.json",
+      "bytes": 2824,
+      "sha256": "75ab4d1a0c171bd8a516f54c03dd5b2178e6c09a24e0160f6486aa0bb3f5a03b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/native-controls-683-340.json",
+      "bytes": 1180,
+      "sha256": "4b4b78114620b6481b0b7ff57a734052b968eefa4b5f7f8803c83522dbf3311f"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/native-controls-683-384.json",
+      "bytes": 462,
+      "sha256": "42270394495329a90fa09d6f6d1fd01dac83f971c31884b871c04feeac7eb3f3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native-helper-check/native-controls-source.ts.txt",
+      "bytes": 3395,
+      "sha256": "bbf86f127331961e0156e760badbfc8bf510746b9840c99d84b4d8d530d9266c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native/diagnosis.json",
+      "bytes": 4227,
+      "sha256": "dc0f3b14e68037203bbac6d3fa7433e6e51ae5d3b5bdf2c34a38d45636a7bfbf"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native/log-provenance.json",
+      "bytes": 274,
+      "sha256": "c7fb4473a0cb119084de6a8869061da4022085e7988c47ccd3bcc80545a00644"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native/repeat-0-search-dock.jpeg",
+      "bytes": 52511,
+      "sha256": "9f674fd6a8a82e94137e77a285a09f9ca88a7859e4a47c05b6de5ea3a0e978e3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-native/repeat-1-search-dock.jpeg",
+      "bytes": 52511,
+      "sha256": "9f674fd6a8a82e94137e77a285a09f9ca88a7859e4a47c05b6de5ea3a0e978e3"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-1366-768-0.png",
+      "bytes": 307573,
+      "sha256": "a41a4c43a30ad35d3109d3c5b2f8a065f8ec9fa16706b981a31d686cc46d2c9a"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-1366-768-1.png",
+      "bytes": 307891,
+      "sha256": "71c30a8c4474cbd166ac3fe0e22fa79153ada7ce0a5262edaa83b44f8233e6b6"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-1366-768-2.png",
+      "bytes": 308006,
+      "sha256": "266538eaf0ed4a3e465b760cd4ab754372a405fae80946b9c5f0c45b40cfc628"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-1440-900-0.png",
+      "bytes": 419705,
+      "sha256": "ce639f6b2ad9b1a24f7410469c4231707d275319d88a6354f8796d08163977a8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-1440-900-1.png",
+      "bytes": 419212,
+      "sha256": "e1e5fe364776d4b4fc6353b5df1898daa2e80e32a5e5b3c63cca905f92ce0473"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-1440-900-2.png",
+      "bytes": 419979,
+      "sha256": "fb56dad56270b1a51e72b309b27c942e5c22a470c937b92a7c049014864ed43c"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-390-844-0.png",
+      "bytes": 106178,
+      "sha256": "9a9adf580df8b35c627271d4f33260b0fc3383bbe97d5d649c0037d4dd969109"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-390-844-1.png",
+      "bytes": 129849,
+      "sha256": "e9ed011a5d13cedb019d243199fe090ff6d518f23636c59aba025f05bb31bd57"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-390-844-2.png",
+      "bytes": 129667,
+      "sha256": "7a1d1ec4f9e2c547b7f06f76bec6ba21b8a21a3f9de31e33b55a78385158d7cb"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-683-340-0.png",
+      "bytes": 63417,
+      "sha256": "19d44e1458d27dbd8a99dff80e3bd4aafb27bdde28a19153ebbf0d33ae9e42d8"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-683-340-1.png",
+      "bytes": 78700,
+      "sha256": "32a2fc50be6a2e15971353006c7a1a6f0381b3a3ae0969e10b0d614ee5643273"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-683-340-2.png",
+      "bytes": 78819,
+      "sha256": "54cdd75342164a669cb78f286247c5613693c7192ff34dd33aaa176b28bc9998"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-720-450-0.png",
+      "bytes": 98618,
+      "sha256": "c9510a7363cf9019dc4cd5381721b821d26de48411c80f646eb53ae224857966"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-720-450-1.png",
+      "bytes": 107301,
+      "sha256": "abd48093d95ed36318c22d8eb53401727987373b3284574590219bdbcf0e835b"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-720-450-2.png",
+      "bytes": 107514,
+      "sha256": "f4c43512e36170f27eb8522d78bc66a3d261950337363121012224e8c5a52675"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/master-shell-reachability.json",
+      "bytes": 10443,
+      "sha256": "8c33ed7375afaa8534acd9fc955d8531d3a5cc7bdbf4d0ba4a5db003fff2c1de"
+    },
+    {
+      "path": "docs/verification/task-10-reconstruction/task13-fix4-n11-red/results.json",
+      "bytes": 12562,
+      "sha256": "d32f6ae97a85e94f949de52b1de095f6dac407a56518b75f80d177a049955fd7"
+    }
+  ]
+}

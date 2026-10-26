@@ -34,12 +34,13 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { createCombatContentResolver } from '@/server/combat/combat-content-resolver'
 import { createCombatContentAuthoringService } from '@/server/master/combat-content-authoring-service'
 import { handleCombatContentAuthoringRequest } from '@/server/master/combat-content-authoring-handler'
-import { CombatContentEditor } from './combat-content-editor'
-import { EssenceContentEditor } from './essence-content-editor'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
-import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
-import { ResonanceContentEditor } from './resonance-content-editor'
-import { CombatContentReviewPanel } from './combat-content-review-panel'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { ContentNativeSample } from './content-native-sample'
+import { CombatContentPreviewReport } from './combat-content-preview-report'
+import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
+import type { CombatContentPreviewSummary } from './combat-content-workflow'
 import { AbilityPreviewSelector, ModifierPreviewRootSelector } from './ability-preview-selector'
 type Props = Record<string, unknown> & { children?: ReactNode }
 function find(
@@ -77,509 +78,130 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllGlobals())
 function fixture(
   id = 'resonance.cinderweaver-tidecaller.linked-sequence',
-  overrides: Partial<Pick<AnyResonanceDefinition, 'enabled'>> = {},
-  nativeDefinition?: AnyResonanceDefinition,
+  native?: object,
+  kind: CombatContentKind = 'resonance',
 ) {
-  const record = nativeDefinition
-    ? { after: nativeDefinition, beforeVersion: nativeDefinition.contentVersion }
-    : records.find((r) => r.id === id)!
-  const definition = { ...record.after, ...overrides }
-  const store = new Store()
-  const resolver = createCombatContentResolver({
-    findCurrentSkill: (key) => store.findPublished(key, 'skill'),
-    findSkillVersion: async () => null,
-    findCurrentContent: (key, kind) => store.findPublished(key, kind),
-    findContentVersion: async () => null,
-  })
-  const service = createCombatContentAuthoringService({ store, resolver })
-  const requests: Record<string, unknown>[] = []
-  let release: (() => void) | undefined
-  let held = false
+  let definition = (native ??
+    records.find((row) => row.id === id)!.after) as CombatContentDefinition
+  const store = new Store(),
+    resolver = createCombatContentResolver({
+      findCurrentSkill: (key) => store.findPublished(key, 'skill'),
+      findSkillVersion: async () => null,
+      findCurrentContent: (key, contentKind) => store.findPublished(key, contentKind),
+      findContentVersion: async () => null,
+    })
+  const service = createCombatContentAuthoringService({ store, resolver }),
+    requests: Record<string, unknown>[] = []
+  let held = false,
+    release: (() => void) | undefined
   vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
     const body = JSON.parse(init.body as string)
     requests.push(body)
-    if (body.operation === 'preview' && held)
+    if (held)
       await new Promise<void>((resolve) => {
         release = resolve
       })
     return handleCombatContentAuthoringRequest(
-      new Request('https://aurevane.test/api/master/combat-content', init),
+      new Request('https://example.test/api/master/combat-content', init),
       { getActor: async () => ({ userId: owner }), createService: () => service },
     )
   })
   function render() {
     hooks.index = 0
-    return ResonanceContentEditor({
-      resonances: [
-        {
-          id: definition.id,
-          label: definition.name,
-          disciplinePair: definition.disciplinePair,
-          currentVersion: record.beforeVersion,
-          baseVersion: definition.contentVersion,
-          draftVersion: null,
-          definition,
-          initialDraft: { ...definition, flavorLine: 'Edited for preview.' },
-          history: [],
-        },
-      ],
-    })
+    return ContentNativeSample({ kind, definition })
   }
-  function panel() {
-    return find(render(), (n) => n.type === CombatContentReviewPanel)!
-      .props as unknown as Parameters<typeof CombatContentReviewPanel>[0]
-  }
-  async function run(kind: 'onValidate' | 'onDiff' | 'onPreview') {
-    panel()[kind]()
-    await vi.waitFor(() => expect(panel().busy).toBe(false))
-  }
-  function publishDisabled() {
+  function button() {
     return find(
-      CombatContentReviewPanel(panel()),
-      (n) => n.type === 'button' && n.props.children === 'Publish',
-    )!.props.disabled
+      render(),
+      (node) => node.type === 'button' && node.props.children === 'Run native sample',
+    )!
   }
-  function select(group: string) {
-    const node = find(panel().previewSelectionControl, (n) => n.type === AbilityPreviewSelector)
-    expect(node).not.toBeNull()
-    ;(node as ReactElement<{ onChange(id: string): void }>).props.onChange(group)
+  function preview() {
+    return find(render(), (node) => node.type === CombatContentPreviewReport)!.props
+      .preview as CombatContentPreviewSummary | null
+  }
+  async function run() {
+    expect(button().props.disabled).toBe(false)
+    ;(button().props.onClick as () => void)()
+    await vi.waitFor(() => expect(button().props.disabled).toBe(false))
+  }
+  function select(id: string) {
+    ;(
+      find(render(), (node) => node.type === AbilityPreviewSelector)!.props.onChange as (
+        id: string,
+      ) => void
+    )(id)
+    render()
+  }
+  function root(next: Parameters<typeof ModifierPreviewRootSelector>[0]['root']) {
+    ;(
+      find(render(), (node) => node.type === ModifierPreviewRootSelector)!.props.onChange as (
+        root: typeof next,
+      ) => void
+    )(next)
+    render()
+  }
+  function reference(label: string, value: string) {
+    ;(
+      find(render(), (node) => node.props['aria-label'] === label)!.props.onChange as (
+        event: unknown,
+      ) => void
+    )({ currentTarget: { value } })
+    render()
   }
   return {
-    definition,
-    store,
-    requests,
-    reference(label: string, skillId: string) {
-      const input = find(panel().previewSelectionControl, (n) => n.props['aria-label'] === label)
-      expect(input, label).not.toBeNull()
-      ;(input!.props.onChange as (event: unknown) => void)({ currentTarget: { value: skillId } })
-    },
     render,
-    panel,
+    requests,
+    store,
+    definition,
+    button,
+    preview,
     run,
     select,
-    publishDisabled,
-    root(next: {
-      skillId: string
-      behaviorId?: string
-      eventSample?: import('./combat-content-workflow').CombatContentEventSample
-    }) {
-      const node = find(
-        panel().previewSelectionControl,
-        (n) => n.type === ModifierPreviewRootSelector,
-      )!
-      ;(node.props.onChange as (next: { skillId: string; behaviorId?: string }) => void)(next)
-    },
-    hold: () => {
+    root,
+    reference,
+    hold() {
       held = true
     },
-    release: () => release?.(),
-  }
-}
-
-it('uses the real editor callbacks to review each group and invalidates the old group preview', async () => {
-  const f = fixture()
-  expect(f.publishDisabled()).toBe(true)
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(f.publishDisabled()).toBe(true)
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({
-    behaviorId: 'quench',
-    legal: true,
-    costs: { actionEconomy: 35, mp: 4 },
-  })
-  expect(f.publishDisabled()).toBe(false)
-  f.panel().onRequestPublish()
-  expect(f.panel().publishConfirmationOpen).toBe(true)
-  f.select('flare')
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().publishConfirmationOpen).toBe(false)
-  expect(f.publishDisabled()).toBe(true)
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({
-    behaviorId: 'flare',
-    costs: { actionEconomy: 50, mp: 6 },
-  })
-  expect(f.publishDisabled()).toBe(false)
-  expect(await f.store.findPublished(f.definition.id, 'resonance')).toBeNull()
-})
-
-it('discards an in-flight preview after the draft changes', async () => {
-  const f = fixture()
-  await f.run('onValidate')
-  await f.run('onDiff')
-  f.hold()
-  f.panel().onPreview()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(true))
-  const input = find(f.render(), (n) => n.props['aria-label'] === 'Resonance flavor line')!
-  ;(input.props.onChange as (event: unknown) => void)({
-    currentTarget: { value: 'Changed during request.' },
-  })
-  f.release()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().validation).toBeNull()
-  expect(f.publishDisabled()).toBe(true)
-})
-
-it('retains illegal native Requirements results as visible fixture information', async () => {
-  const f = fixture('resonance.aetherist-edgedancer.linked-sequence')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({ behaviorId: 'gather', legal: false })
-  expect(f.publishDisabled()).toBe(false)
-  expect(
-    find(CombatContentReviewPanel(f.panel()), (n) => n.props['aria-label'] === 'Preview issues'),
-  ).not.toBeNull()
-  expect(await f.store.findPublished(f.definition.id, 'resonance')).toBeNull()
-})
-
-it('preserves the existing review workflow for a Resonance with no Manual action', async () => {
-  const f = fixture('resonance.aetherist-farstrider.arcane-hunt')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(f.panel().previewRequired).toBe(false)
-  expect(f.publishDisabled()).toBe(false)
-  expect(f.panel().preview).toBeNull()
-  expect(await f.store.findPublished(f.definition.id, 'resonance')).toBeNull()
-})
-
-it('publishes a current reviewed text edit while reporting unmet Covert Requirements truthfully', async () => {
-  const f = fixture('resonance.shadehand-vanguard.broken-line')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(f.publishDisabled()).toBe(true)
-  await f.run('onPreview')
-  expect(f.panel().preview?.legal).toBe(false)
-  expect(f.publishDisabled()).toBe(false)
-  f.panel().onRequestPublish()
-  f.panel().onConfirmPublish()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  const saved = await f.store.findPublished(f.definition.id, 'resonance')
-  expect(saved?.definition.flavorLine).toBe('Edited for preview.')
-  expect(saved?.definition.ability).toEqual(f.definition.ability)
-})
-
-it('publishes a loaded disabled Manual draft without fabricating an enabled preview', async () => {
-  const f = fixture('resonance.cinderweaver-tidecaller.linked-sequence', { enabled: false })
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(f.panel().validation?.valid).toBe(true)
-  expect(f.publishDisabled()).toBe(false)
-  expect(f.panel().preview).toBeNull()
-  f.panel().onRequestPublish()
-  f.panel().onConfirmPublish()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  const saved = await f.store.findPublished(f.definition.id, 'resonance')
-  expect(saved?.definition.enabled).toBe(false)
-  expect(saved?.definition.flavorLine).toBe('Edited for preview.')
-})
-
-it('previews a modifier using the chosen native root and invalidates confirmation on root change', async () => {
-  const f = fixture('resonance.aetherist-farstrider.arcane-hunt')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({
-    legal: false,
-    referenceAction: { id: 'unarmed.basic' },
-  })
-  f.panel().onRequestPublish()
-  expect(f.panel().publishConfirmationOpen).toBe(true)
-  f.root({ skillId: 'farstrider.aimed-shot' })
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().publishConfirmationOpen).toBe(false)
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({
-    legal: true,
-    referenceAction: { id: 'farstrider.aimed-shot' },
-  })
-})
-
-it('discards a held modifier preview after a queued root change', async () => {
-  const f = fixture('resonance.aetherist-farstrider.arcane-hunt')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  const control = find(
-    f.panel().previewSelectionControl,
-    (n) => n.type === ModifierPreviewRootSelector,
-  )!
-  f.hold()
-  f.panel().onPreview()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(true))
-  ;(control.props.onChange as (r: { skillId: string }) => void)({
-    skillId: 'farstrider.aimed-shot',
-  })
-  f.release()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().publishConfirmationOpen).toBe(false)
-})
-
-function skillModifierFixture(
-  kind: 'skill' | 'essence',
-  disabled = false,
-  skillId = 'farstrider.keen-focus',
-) {
-  const record = records.find((r) => r.id === skillId)! as unknown as {
-    after: MatureSkillDefinition
-    beforeVersion: number
-  }
-  const skill = { ...record.after, enabled: !disabled }
-  const baseEssence = records.find(
-    (r) =>
-      'essenceId' in r.after &&
-      (r.after as unknown as EssenceDefinition).sourceDisciplineId === skill.sourceDisciplineId,
-  )! as unknown as { after: EssenceDefinition; beforeVersion: number }
-  const essence: EssenceDefinition = {
-    ...baseEssence.after,
-    ability: skill.ability,
-    skill: { ...baseEssence.after.skill, ability: skill.ability, enabled: !disabled },
-  }
-  const store = new Store()
-  const resolver = createCombatContentResolver({
-    findCurrentSkill: async () => null,
-    findSkillVersion: async () => null,
-    findCurrentContent: (id, k) => store.findPublished(id, k),
-    findContentVersion: async () => null,
-  })
-  const service = createCombatContentAuthoringService({ store, resolver })
-  const sent: Record<string, unknown>[] = []
-  vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
-    sent.push(JSON.parse(init.body as string))
-    return handleCombatContentAuthoringRequest(
-      new Request('https://aurevane.test/api/master/combat-content', init),
-      { getActor: async () => ({ userId: owner }), createService: () => service },
-    )
-  })
-  function render() {
-    hooks.index = 0
-    return kind === 'skill'
-      ? CombatContentEditor({
-          skills: [
-            {
-              id: skill.id,
-              label: skill.id,
-              sourceDisciplineId: skill.sourceDisciplineId,
-              currentVersion: record.beforeVersion,
-              baseVersion: record.beforeVersion,
-              draftVersion: null,
-              derivedTags: [],
-              definition: skill,
-              initialDraft: { ...skill, flavorLine: 'Edited modifier.' },
-              history: [],
-            },
-          ],
-        })
-      : EssenceContentEditor({
-          essences: [
-            {
-              id: essence.essenceId,
-              label: essence.name,
-              sourceDisciplineId: essence.sourceDisciplineId,
-              currentVersion: baseEssence.beforeVersion,
-              baseVersion: baseEssence.beforeVersion,
-              draftVersion: null,
-              derivedTags: [],
-              definition: essence,
-              initialDraft: { ...essence, flavorLine: 'Edited modifier.' },
-              history: [],
-            },
-          ],
-        })
-  }
-  function panel() {
-    return find(render(), (n) => n.type === CombatContentReviewPanel)!
-      .props as unknown as Parameters<typeof CombatContentReviewPanel>[0]
-  }
-  async function run(callback: 'onValidate' | 'onDiff' | 'onPreview') {
-    panel()[callback]()
-    await vi.waitFor(() => expect(panel().busy).toBe(false))
-  }
-  return {
-    panel,
-    run,
-    sent,
-    store,
-    id: kind === 'skill' ? skill.id : essence.essenceId,
-    root(next: {
-      skillId: string
-      eventSample?: import('./combat-content-workflow').CombatContentEventSample
-    }) {
-      const control = find(
-        panel().previewSelectionControl,
-        (n) => n.type === ModifierPreviewRootSelector,
-      )!
-      ;(control.props.onChange as (r: { skillId: string }) => void)(next)
+    release() {
+      release?.()
+    },
+    edit(patch: Record<string, unknown>) {
+      definition = { ...definition, ...patch }
+      render()
     },
   }
 }
-it.each(['skill', 'essence'] as const)(
-  'uses the actual %s editor, client and service for a complete modifier quote',
-  async (kind) => {
-    const f = skillModifierFixture(kind)
-    await f.run('onValidate')
-    expect(f.panel().validation?.valid).toBe(true)
-    await f.run('onDiff')
-    await f.run('onPreview')
-    expect(f.panel().preview).toMatchObject({
-      legal: false,
-      referenceAction: { id: 'unarmed.basic' },
-    })
-    expect(f.panel().requireLegalPreview).toBe(false)
-    f.root({ skillId: 'farstrider.aimed-shot' })
-    expect(f.panel().preview).toBeNull()
-    await f.run('onPreview')
-    expect(f.panel().preview).toMatchObject({
-      legal: true,
-      referenceAction: { id: 'farstrider.aimed-shot' },
-    })
-    expect(f.sent.at(-1)).toMatchObject({
-      operation: 'preview',
-      previewRootSkillId: 'farstrider.aimed-shot',
-    })
-  },
-)
-
-it.each(['skill', 'essence'] as const)(
-  'publishes a disabled %s modifier revision without an enabled simulation',
-  async (kind) => {
-    const f = skillModifierFixture(kind, true)
-    await f.run('onValidate')
-    expect(f.panel().validation?.valid).toBe(true)
-    await f.run('onDiff')
-    expect(f.panel().previewRequired).toBe(false)
-    const sent = f.sent.length
-    await f.run('onPreview')
-    expect(f.sent).toHaveLength(sent)
-    expect(f.panel().preview).toBeNull()
-    expect(
-      find(
-        CombatContentReviewPanel(f.panel()),
-        (n) => n.type === 'button' && n.props.children === 'Publish',
-      )!.props.disabled,
-    ).toBe(false)
-    f.panel().onRequestPublish()
-    f.panel().onConfirmPublish()
-    await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-    const published = await f.store.findPublished(f.id, kind)
-    expect(published?.definition.flavorLine).toBe('Edited modifier.')
-    if (kind === 'skill') expect(published?.definition.enabled).toBe(false)
-    else expect((published?.definition.skill as { enabled: boolean }).enabled).toBe(false)
-  },
-)
-it('offers an optional truthful Ongoing root preview and invalidates it on reference changes', async () => {
-  const f = fixture('resonance.aetherist-ravager.linked-sequence')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(f.panel().previewRequired).toBe(false)
-  expect(f.panel().previewOptional).toBe(true)
-  expect(f.publishDisabled()).toBe(false)
-  f.root({ skillId: 'aetherist.arc-bolt' })
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({
-    referenceAction: { id: 'aetherist.arc-bolt' },
-    modifier: { activation: 'ongoing' },
-    legal: true,
-  })
-  const rendered = JSON.stringify(CombatContentReviewPanel(f.panel()))
-  expect(rendered).toContain('Native Requirements determine which Ongoing bonuses apply')
-  expect(rendered).not.toContain('Costs and projections include the root and selected modifier.')
-  f.panel().onRequestPublish()
-  expect(f.panel().publishConfirmationOpen).toBe(true)
-  f.root({ skillId: 'farstrider.aimed-shot' })
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().publishConfirmationOpen).toBe(false)
-  expect(await f.store.findPublished(f.definition.id, 'resonance')).toBeNull()
+it('runs each actual Manual group and invalidates the old result when selection changes', async () => {
+  const f = fixture()
+  await f.run()
+  expect(f.preview()).toMatchObject({ behaviorId: 'quench', costs: { actionEconomy: 35, mp: 4 } })
+  f.select('flare')
+  expect(f.preview()).toBeNull()
+  await f.run()
+  expect(f.preview()).toMatchObject({ behaviorId: 'flare', costs: { actionEconomy: 50, mp: 6 } })
+  expect(f.requests.every((row) => row.operation === 'preview')).toBe(true)
+  expect(await f.store.findPublished(String(f.definition.id), 'resonance')).toBeNull()
 })
-
-it('samples Automatic Resonance through real callbacks without turning passive publication into a cast requirement', async () => {
-  const f = fixture('resonance.dawnshield-vanguard.linked-sequence')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(f.panel().previewRequired).toBe(false)
-  expect(f.panel().previewOptional).toBe(true)
-  expect(f.publishDisabled()).toBe(false)
-  const eventSample = {
-    referenceActor: 'owner' as const,
-    ownerHpPercent: 60,
-    ownerMpPercent: 60,
-    ownerStatus: 'none' as const,
-  }
-  f.root({ skillId: 'vanguard.forceful-strike', eventSample })
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({
-    eventSample: { ran: true, activated: true, scenario: eventSample },
-    referenceAction: { id: 'vanguard.forceful-strike' },
-  })
-  const rendered = JSON.stringify(CombatContentReviewPanel(f.panel()))
-  expect(rendered).toContain('Local event sample')
-  expect(rendered).toContain('Activated in this sample')
-  expect(rendered).not.toContain('Costs and projections include the root and selected modifier.')
-  f.panel().onRequestPublish()
-  expect(f.panel().publishConfirmationOpen).toBe(true)
-  f.root({
-    skillId: 'vanguard.forceful-strike',
-    eventSample: { ...eventSample, ownerHpPercent: 40 },
-  })
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().publishConfirmationOpen).toBe(false)
+it('discards an in-flight sample after a local definition edit', async () => {
+  const f = fixture()
+  f.hold()
+  ;(f.button().props.onClick as () => void)()
+  f.edit({ name: 'New local name' })
+  f.release()
+  await vi.waitFor(() => expect(f.button().props.disabled).toBe(false))
+  expect(f.preview()).toBeNull()
 })
-it.each(['skill', 'essence'] as const)(
-  'forwards the selected Automatic event sample from the %s editor',
-  async (kind) => {
-    const f = skillModifierFixture(kind, false, 'ironfist.counter-palm')
-    const eventSample = {
-      referenceActor: 'owner' as const,
-      ownerHpPercent: 50,
-      ownerMpPercent: 60,
-      ownerStatus: 'poison' as const,
-    }
-    f.root({ skillId: 'vanguard.forceful-strike', eventSample })
-    await f.run('onValidate')
-    await f.run('onDiff')
-    await f.run('onPreview')
-    expect(f.sent.at(-1)).toMatchObject({
-      operation: 'preview',
-      eventSample,
-      previewRootSkillId: 'vanguard.forceful-strike',
-    })
-    expect(f.panel().preview).toMatchObject({
-      eventSample: { ran: true, activated: true, scenario: eventSample },
-    })
-    expect(f.panel().requireLegalPreview).toBe(false)
-  },
-)
-it.each(['skill', 'essence'] as const)(
-  'can publish a disabled Automatic %s without trying to execute it',
-  async (kind) => {
-    const f = skillModifierFixture(kind, true, 'ironfist.counter-palm')
-    await f.run('onValidate')
-    await f.run('onDiff')
-    const before = f.sent.length
-    await f.run('onPreview')
-    expect(f.sent).toHaveLength(before)
-    expect(f.panel().previewRequired).toBe(false)
-    expect(
-      find(
-        CombatContentReviewPanel(f.panel()),
-        (n) => n.type === 'button' && n.props.children === 'Publish',
-      )!.props.disabled,
-    ).toBe(false)
-    f.panel().onRequestPublish()
-    f.panel().onConfirmPublish()
-    await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-    const published = await f.store.findPublished(f.id, kind)
-    expect(published).not.toBeNull()
-  },
-)
-
-it('renders a native Automatic cleanse outcome rather than only its payment', async () => {
+it('discards an in-flight sample after the selected group changes', async () => {
+  const f = fixture()
+  f.hold()
+  ;(f.button().props.onClick as () => void)()
+  f.select('flare')
+  f.release()
+  await vi.waitFor(() => expect(f.button().props.disabled).toBe(false))
+  expect(f.preview()).toBeNull()
+})
+it('renders genuine Automatic cleanse receipts including the removed status', async () => {
   const f = fixture('resonance.dawnshield-ironfist.linked-sequence')
   f.root({
     skillId: 'ironfist.rising-fist',
@@ -590,205 +212,89 @@ it('renders a native Automatic cleanse outcome rather than only its payment', as
       ownerStatus: 'poison',
     },
   })
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  expect(f.panel().preview?.eventSample?.ownerStatusChanges).toContainEqual({
+  await f.run()
+  expect(f.preview()?.eventSample?.ownerStatusChanges).toContainEqual({
     kind: 'removed',
     statusId: 'poison',
     name: 'Poison',
   })
-  expect(JSON.stringify(CombatContentReviewPanel(f.panel()))).toContain('Poison removed')
+  expect(renderToStaticMarkup(<CombatContentPreviewReport preview={f.preview()} />)).toContain(
+    'Poison removed',
+  )
+  expect(f.requests[0]).toMatchObject({
+    previewRootSkillId: 'ironfist.rising-fist',
+    eventSample: { ownerStatus: 'poison' },
+  })
 })
-
+it('keeps a disabled definition unsampled and does not fabricate a result', () => {
+  const f = fixture()
+  f.edit({ enabled: false })
+  expect(f.button().props.disabled).toBe(true)
+  expect(f.preview()).toBeNull()
+  expect(f.requests).toEqual([])
+})
+it.each(['skill', 'essence'] as const)(
+  'sends the selected %s ability body to the native lane',
+  async (kind) => {
+    const ability = records.find(
+      (row) => row.id === 'resonance.cinderweaver-tidecaller.linked-sequence',
+    )!.after.ability
+    const original =
+      kind === 'skill'
+        ? resolveMatureSkillVersion('vanguard.forceful-strike')!
+        : resolveEssenceForBuild('vanguard', null)!
+    const definition =
+      kind === 'skill'
+        ? { ...original, ability }
+        : {
+            ...original,
+            skill: {
+              ...(original as ReturnType<typeof resolveEssenceForBuild> & object).skill,
+              ability,
+            },
+          }
+    const f = fixture(undefined, definition, kind)
+    await f.run()
+    expect(f.preview()).toMatchObject({ behaviorId: 'quench' })
+    expect(f.requests[0]?.definition).toEqual(
+      kind === 'skill' ? definition : (definition as { skill: unknown }).skill,
+    )
+  },
+)
 const historicalSequence = resolveResonanceForPair('lifebinder', 'vanguard')!
 const historicalImmediate = resolveResonanceForPair('farstrider', 'lifebinder')!
-function historicalFixture(definition = historicalSequence) {
-  return fixture(undefined, {}, definition)
-}
-function sampleDisabled(f: ReturnType<typeof fixture>) {
-  return find(
-    CombatContentReviewPanel(f.panel()),
-    (n) => n.type === 'button' && n.props.children === 'Preview',
-  )?.props.disabled
-}
-function selectSequence(f: ReturnType<typeof fixture>) {
+it('samples historical sequence with explicit current setup and trigger references', async () => {
+  const f = fixture(undefined, historicalSequence)
+  expect(f.button().props.disabled).toBe(true)
   f.reference('Sample setup Skill', 'lifebinder.mending-light')
   f.reference('Sample trigger Skill', 'vanguard.forceful-strike')
-}
-it('samples historical sequence through real editor callbacks without imposing a publication prerequisite', async () => {
-  const f = historicalFixture()
-  expect(f.panel().previewOptional).toBe(true)
-  expect(sampleDisabled(f)).toBe(true)
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(f.publishDisabled()).toBe(false)
-  expect(sampleDisabled(f)).toBe(true)
-  selectSequence(f)
-  expect(sampleDisabled(f)).toBe(false)
-  await f.run('onPreview')
-  expect(f.requests.find((r) => r.operation === 'preview')).toMatchObject({
-    contentKind: 'resonance',
+  await f.run()
+  expect(f.preview()?.historicalSample).toBeTruthy()
+  expect(f.requests[0]).toMatchObject({
     previewSetupSkillId: 'lifebinder.mending-light',
     previewRootSkillId: 'vanguard.forceful-strike',
   })
-  expect(f.requests.find((r) => r.operation === 'preview')).not.toHaveProperty('behaviorId')
-  expect(f.panel().preview).toMatchObject({
-    historicalSample: { mode: 'sequence', sameTurnOnly: true },
-  })
-  const html = renderToStaticMarkup(<CombatContentReviewPanel {...f.panel()} />)
-  expect(html).toContain('Historical Resonance sample')
-  expect(html).toContain('Same-turn sample')
-  expect(html.replace(/<[^>]+>/g, '')).toContain('lifebinder.mending-light v')
-  expect(html.replace(/<[^>]+>/g, '')).toContain('vanguard.forceful-strike v')
-  expect(html).toContain('Local randomness')
-  expect(html).not.toContain('Deterministic preview')
-  expect(await f.store.findPublished(f.definition.id, 'resonance')).toBeNull()
+  expect(f.requests[0]).not.toHaveProperty('behaviorId')
+  f.reference('Sample trigger Skill', 'vanguard.cleave')
+  expect(f.preview()).toBeNull()
 })
-it('samples immediate history with trigger only and no fabricated setup or action group', async () => {
-  const f = historicalFixture(historicalImmediate)
-  expect(
-    find(f.panel().previewSelectionControl, (n) => n.props['aria-label'] === 'Sample setup Skill'),
-  ).toBeNull()
+it('samples immediate history with trigger only and never invents setup', async () => {
+  const f = fixture(undefined, resolveResonanceForPair('farstrider', 'lifebinder')!)
+  expect(find(f.render(), (node) => node.props['aria-label'] === 'Sample setup Skill')).toBeNull()
   f.reference('Sample trigger Skill', 'farstrider.aimed-shot')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  const sent = f.requests.find((r) => r.operation === 'preview')!
-  expect(sent.previewRootSkillId).toBe('farstrider.aimed-shot')
-  expect(sent).not.toHaveProperty('previewSetupSkillId')
-  expect(sent).not.toHaveProperty('behaviorId')
-  expect(f.panel().preview).toMatchObject({
-    historicalSample: { mode: 'immediate', steps: [expect.objectContaining({ ran: true })] },
-  })
+  await f.run()
+  expect(f.requests[0]).not.toHaveProperty('previewSetupSkillId')
+  expect(f.requests[0]).not.toHaveProperty('behaviorId')
+  expect(f.preview()?.historicalSample).toBeTruthy()
 })
-it('clears a historical sample and publish confirmation when references change, retaining validation and diff', async () => {
-  const f = historicalFixture()
-  selectSequence(f)
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  f.panel().onRequestPublish()
-  expect(f.panel().publishConfirmationOpen).toBe(true)
-  f.reference('Sample trigger Skill', 'lifebinder.mending-light')
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().publishConfirmationOpen).toBe(false)
-  expect(f.panel().validation?.valid).toBe(true)
-  expect(f.panel().diff).not.toBeNull()
-  expect(f.publishDisabled()).toBe(false)
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({ historicalSample: { activated: false } })
-})
-it('discards a historical response after the selected reference changes', async () => {
-  const f = historicalFixture()
-  selectSequence(f)
-  await f.run('onValidate')
-  await f.run('onDiff')
-  f.hold()
-  f.panel().onPreview()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(true))
-  f.reference('Sample trigger Skill', 'lifebinder.mending-light')
-  f.release()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  expect(f.panel().preview).toBeNull()
-})
-it('discards a historical response after its draft changes', async () => {
-  const f = historicalFixture()
-  selectSequence(f)
-  await f.run('onValidate')
-  await f.run('onDiff')
-  f.hold()
-  f.panel().onPreview()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(true))
-  const input = find(f.render(), (n) => n.props['aria-label'] === 'Resonance flavor line')!
-  ;(input.props.onChange as (event: unknown) => void)({
-    currentTarget: { value: 'Changed during historical sample.' },
-  })
-  f.release()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().validation).toBeNull()
-})
-it('requires setup after switching an immediate draft to sequence and sends only references for its current mode', async () => {
-  const f = historicalFixture(historicalImmediate)
-  f.reference('Sample trigger Skill', 'farstrider.aimed-shot')
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  const mode = find(f.render(), (n) => n.props['aria-label'] === 'Resonance mode')!
-  ;(mode.props.onChange as (event: unknown) => void)({ currentTarget: { value: 'sequence' } })
-  expect(f.panel().preview).toBeNull()
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(sampleDisabled(f)).toBe(true)
-  f.reference('Sample setup Skill', 'lifebinder.mending-light')
-  await f.run('onPreview')
-  expect(f.requests.filter((r) => r.operation === 'preview').at(-1)).toMatchObject({
-    previewSetupSkillId: 'lifebinder.mending-light',
-  })
-})
-it('keeps disabled historical drafts publishable after validation/diff but never executes a sample', async () => {
-  const f = historicalFixture({ ...historicalSequence, enabled: false })
-  await f.run('onValidate')
-  await f.run('onDiff')
-  expect(sampleDisabled(f)).toBe(true)
-  expect(f.publishDisabled()).toBe(false)
-  await f.run('onPreview')
-  expect(f.requests.some((r) => r.operation === 'preview')).toBe(false)
-})
-it('shows a current canonical reference rejection without substituting a native builtin', async () => {
-  const f = historicalFixture()
-  const { resolveMatureSkillVersion } = await import('@aurevane/game-core/combat/mature-skills')
-  const native = resolveMatureSkillVersion('vanguard.forceful-strike')!
-  const proposed = records.find((r) => r.id === native.id)!.after
-  await f.store.publish({
-    contentKey: native.id,
-    contentKind: 'skill',
-    definition: { ...native, ability: proposed.ability },
-    expectedBaseVersion: null,
-    versionFloor: native.contentVersion,
-    actorUserId: owner,
-  })
-  selectSequence(f)
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  expect(f.panel().preview).toBeNull()
-  expect(f.panel().errorMessage).toMatch(/native reference/i)
-  expect(f.publishDisabled()).toBe(false)
-})
-it('renders a blocked second command with its unpaid quote and permits validation/diff-only publication', async () => {
-  const f = historicalFixture()
-  const { resolveMatureSkillVersion } = await import('@aurevane/game-core/combat/mature-skills')
-  for (const [id, apCost] of [
-    ['lifebinder.mending-light', 50],
-    ['vanguard.forceful-strike', 60],
-  ] as const) {
-    const root = resolveMatureSkillVersion(id)!
-    await f.store.publish({
-      contentKey: id,
-      contentKind: 'skill',
-      definition: { ...root, apCost },
-      expectedBaseVersion: null,
-      versionFloor: root.contentVersion,
-      actorUserId: owner,
-    })
-  }
-  selectSequence(f)
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  expect(f.panel().preview).toMatchObject({
-    legal: false,
-    historicalSample: {
-      steps: [expect.objectContaining({ ran: true }), expect.objectContaining({ ran: false })],
-    },
-  })
-  const html = renderToStaticMarkup(<CombatContentReviewPanel {...f.panel()} />)
-  expect(html).toContain('Sample stopped at an unavailable command.')
-  expect(html).toContain('60 AP · 0 MP · not paid')
-  expect(html).toContain('Not enough Action Economy')
-  expect(f.publishDisabled()).toBe(false)
+it('keeps a rejected current reference visible without substituting a built-in', async () => {
+  const f = fixture(undefined, historicalSequence)
+  f.reference('Sample setup Skill', 'missing.current')
+  f.reference('Sample trigger Skill', 'vanguard.forceful-strike')
+  await f.run()
+  expect(f.preview()).toBeNull()
+  expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
+  expect(f.requests[0]?.previewSetupSkillId).toBe('missing.current')
 })
 it('renders actual native Summon addition/removal with absent resources as N/A', async () => {
   const { previewHistoricalResonanceCombatContentDefinition } =
@@ -821,8 +327,7 @@ it('renders actual native Summon addition/removal with absent resources as N/A',
     seed: 1,
   })
   expect(preview.legal).toBe(true)
-  const f = historicalFixture()
-  const html = renderToStaticMarkup(<CombatContentReviewPanel {...f.panel()} preview={preview} />)
+  const html = renderToStaticMarkup(<CombatContentPreviewReport preview={preview} />)
   expect(html).toContain('Appeared')
   expect(html).toContain('Removed')
   expect(html).toContain('N/A → 36')
@@ -838,9 +343,8 @@ it('does not label missing sample randomness information as unused', async () =>
     resolveMatureSkillVersion('farstrider.aimed-shot')!,
     { seed: 1 },
   )
-  const f = historicalFixture(historicalImmediate)
   const html = renderToStaticMarkup(
-    <CombatContentReviewPanel {...f.panel()} preview={{ ...preview, simulation: {} }} />,
+    <CombatContentPreviewReport preview={{ ...preview, simulation: {} }} />,
   )
   expect(html).toContain('Local randomness: Unavailable.')
 })

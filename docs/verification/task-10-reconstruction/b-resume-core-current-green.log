@@ -1,0 +1,122 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+ ❯ src/server/character/character-build-service.test.ts (37 tests | 6 failed) 62ms
+     × previews a legal proposed Primary without writing it 7ms
+     × rebases only the fixed Primary Core base while preserving every personal point in a combined preview 1ms
+     × rejects a projected off-focus cap violation before presenting impossible Primary stats 6ms
+     × previews a mastered Secondary without adding a second base-stat profile or starting a timer 1ms
+     × fails closed before persistence for an unmastered Secondary 2ms
+   × previews an authored same-identity Core refresh without resetting personal points 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > character build service > previews a legal proposed Primary without writing it
+ReferenceError: hasPrimaryInput is not defined
+ ❯ previewCharacterDisciplines src/server/character/character-build-service.ts:631:60
+    629|   }
+    630|
+    631|   const primary = resolvedPrimaryEntry(primaryId, context, hasPrimaryI…
+       |                                                            ^
+    632|   const secondary = resolvedSecondaryDefinition(secondaryId, context)
+    633|
+ ❯ Module.previewCharacterPrimaryDiscipline src/server/character/character-build-service.ts:689:19
+ ❯ src/server/character/character-build-service.test.ts:229:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > character build service > rebases only the fixed Primary Core base while preserving every personal point in a combined preview
+ReferenceError: hasPrimaryInput is not defined
+ ❯ Module.previewCharacterDisciplines src/server/character/character-build-service.ts:631:60
+    629|   }
+    630|
+    631|   const primary = resolvedPrimaryEntry(primaryId, context, hasPrimaryI…
+       |                                                            ^
+    632|   const secondary = resolvedSecondaryDefinition(secondaryId, context)
+    633|
+ ❯ src/server/character/character-build-service.test.ts:247:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > character build service > rejects a projected off-focus cap violation before presenting impossible Primary stats
+AssertionError: expected ReferenceError: hasPrimaryInput is not de… to match object { code: 'INVALID_REQUEST' }
+
+- Expected
++ Received
+
+- {
+-   "code": "INVALID_REQUEST",
++ ReferenceError {
++   "message": "hasPrimaryInput is not defined",
+  }
+
+ ❯ src/server/character/character-build-service.test.ts:286:6
+    284|     await expect(
+    285|       previewCharacterPrimaryDiscipline(userId, source, 'aetherist', r…
+    286|     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+       |      ^
+    287|     expect(source).toEqual(before)
+    288|     expect(repo.changeDisciplines).not.toHaveBeenCalled()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > character build service > previews a mastered Secondary without adding a second base-stat profile or starting a timer
+ReferenceError: hasPrimaryInput is not defined
+ ❯ Module.previewCharacterDisciplines src/server/character/character-build-service.ts:631:60
+    629|   }
+    630|
+    631|   const primary = resolvedPrimaryEntry(primaryId, context, hasPrimaryI…
+       |                                                            ^
+    632|   const secondary = resolvedSecondaryDefinition(secondaryId, context)
+    633|
+ ❯ src/server/character/character-build-service.test.ts:297:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > character build service > fails closed before persistence for an unmastered Secondary
+AssertionError: expected ReferenceError: hasPrimaryInput is not de… to match object { code: 'INVALID_REQUEST' }
+
+- Expected
++ Received
+
+- {
+-   "code": "INVALID_REQUEST",
++ ReferenceError {
++   "message": "hasPrimaryInput is not defined",
+  }
+
+ ❯ src/server/character/character-build-service.test.ts:324:6
+    322|         repo,
+    323|       ),
+    324|     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+       |      ^
+    325|   })
+    326|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/server/character/character-build-service.test.ts > previews an authored same-identity Core refresh without resetting personal points
+ReferenceError: hasPrimaryInput is not defined
+ ❯ Module.previewCharacterDisciplines src/server/character/character-build-service.ts:631:60
+    629|   }
+    630|
+    631|   const primary = resolvedPrimaryEntry(primaryId, context, hasPrimaryI…
+       |                                                            ^
+    632|   const secondary = resolvedSecondaryDefinition(secondaryId, context)
+    633|
+ ❯ src/server/character/character-build-service.test.ts:873:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  6 failed | 54 passed (60)
+   Start at  13:18:02
+   Duration  1.72s (transform 2.27s, setup 0ms, import 2.89s, tests 75ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/character/character-build-service.test.ts src/server/character/character-build-eligibility-transport.test.ts

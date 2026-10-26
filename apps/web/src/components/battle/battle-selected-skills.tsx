@@ -1,5 +1,7 @@
 'use client'
 
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
+
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 import {
@@ -328,7 +330,10 @@ export function BattleSelectedSkills({
                   data-battle-skill-cooldown={cooldowns[runtime.resonance.id] || undefined}
                 >
                   <Image
-                    src={battleResonanceArtwork(runtime.resonance.id)}
+                    src={battleResonanceArtwork(
+                      runtime.resonance.id,
+                      contentArtworkKey(runtime.resonance.definition?.media ?? {}),
+                    )}
                     width={192}
                     height={192}
                     alt=""
@@ -366,7 +371,10 @@ export function BattleSelectedSkills({
               <>
                 <span className={styles.artworkFrame} data-av-square-media="true">
                   <Image
-                    src={battleResonanceArtwork(runtime.resonance.id)}
+                    src={battleResonanceArtwork(
+                      runtime.resonance.id,
+                      contentArtworkKey(runtime.resonance.definition?.media ?? {}),
+                    )}
                     width={192}
                     height={192}
                     alt=""

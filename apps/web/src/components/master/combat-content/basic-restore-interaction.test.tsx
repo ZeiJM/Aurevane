@@ -1,5 +1,17 @@
+import { renderToStaticMarkup } from 'react-dom/server'
+import { ContentRecordPreview } from './content-record-preview'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import {
+  BASIC_SKILL_IDS,
+  parseBasicSkillDefinition,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import { SUPPORT_ACTION_IDS } from '@aurevane/game-core/combat/support-actions'
+import type {
+  CompleteCombatContentRecord,
+  CombatContentDefinition,
+} from '@aurevane/db/combat-content'
 const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[] }))
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
@@ -22,324 +34,513 @@ vi.mock('react', async (original) => ({
   },
 }))
 vi.mock('server-only', () => ({}))
-vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh() {} }) }))
-vi.mock('../../character/skill-effect-timing-context', () => ({
-  useSkillEffectTimingPolicy: () => ({ version: 1, modes: {} }),
-}))
-import { InMemoryCombatContentRepository } from '@aurevane/db/combat-content'
-import {
-  defaultBasicSkills,
-  parseBasicSkillDefinition,
-} from '@aurevane/game-core/combat/combat-basic-actions'
-import { createCombatContentResolver } from '@/server/combat/combat-content-resolver'
-import { createCombatContentAuthoringService } from '@/server/master/combat-content-authoring-service'
-import { handleCombatContentAuthoringRequest } from '@/server/master/combat-content-authoring-handler'
-import { BasicContentEditor } from './basic-content-editor'
-import { CombatContentReviewPanel } from './combat-content-review-panel'
+import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
+import { CombatContentAuthoringWorkspace } from './combat-content-authoring-workspace'
+import { ContentDefinitionFields } from './content-definition-fields'
+import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { AbilityText } from './ability-editor-fields'
-
 type Props = Record<string, unknown> & { children?: ReactNode }
 function find(
   node: ReactNode,
   predicate: (element: ReactElement<Props>) => boolean,
 ): ReactElement<Props> | null {
-  if (Array.isArray(node))
+  if (Array.isArray(node)) {
     for (const child of node) {
       const result = find(child, predicate)
       if (result) return result
     }
+  }
   if (!isValidElement<Props>(node)) return null
   return predicate(node) ? node : find(node.props.children, predicate)
-}
-const owner = '11111111-1111-4111-8111-111111111111'
-class Store extends InMemoryCombatContentRepository {
-  async getOperatorRole() {
-    return 'owner' as const
-  }
 }
 beforeEach(() => {
   hooks.index = 0
   hooks.cells = []
 })
 afterEach(() => vi.unstubAllGlobals())
-async function fixture(id: string = 'basic.guard') {
-  const store = new Store()
-  const resolver = createCombatContentResolver({
-    findCurrentSkill: (key) => store.findPublished(key, 'skill'),
-    findSkillVersion: async (key, version) =>
-      (await store.listPublishedVersions(key)).find((row) => row.contentVersion === version) ??
-      null,
+function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatContentRecord> = {}) {
+  const definition = { ...structuredClone(defaultBasicSkills().find((row) => row.id === id)!) }
+  const version = (n: number) => ({
+    contentVersion: n,
+    definition: { ...definition, contentVersion: n, name: `Version ${n}` },
+    publishedBy: 'publisher',
+    publishedAt: '2026-10-22',
+    authoredBy: 'author',
+    authoredAt: '2026-10-21',
+    restoredFrom: null,
+    restoredBy: null,
   })
-  const service = createCombatContentAuthoringService({ store, resolver })
-  const original = structuredClone(defaultBasicSkills().find((row) => row.id === id)!)
-  const first = await service.publishSkill({
-    actorUserId: owner,
-    definition: { ...original, name: 'Earlier published name' },
-    expectedBaseVersion: 1,
+  const initial: CompleteCombatContentRecord = {
+    contentKey: id,
+    contentKind: 'skill',
+    lifecycle: 'active',
+    revision: 9,
+    versionFloor: 1,
+    createdBy: 'author',
+    createdAt: '2026-10-21',
+    draft: {
+      definition,
+      draftVersion: 4,
+      baseVersion: 5,
+      updatedBy: 'editor',
+      updatedAt: '2026-10-22',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+    current: version(5),
+    history: [version(5), version(4), version(3), version(2)],
+    links: [],
+    usedBy: [],
+    ...override,
+  }
+  const request = vi.fn().mockImplementation((_url, options) => {
+    const command = JSON.parse(options.body).command
+    if (command.action === 'list')
+      return Promise.resolve(Response.json({ records: [], nextCursor: null }))
+    throw new Error('Unexpected fixture mutation')
   })
-  const edited = structuredClone(original)
-  Object.assign(edited, { name: 'Current published name' })
-  Object.assign(edited.ability.behaviors[0]!, { costs: [{ resource: 'ap', amount: 29 }] })
-  const current = await service.publishSkill({
-    actorUserId: owner,
-    definition: edited,
-    expectedBaseVersion: 2,
-  })
-  const draft = await service.saveSkillDraft({
-    actorUserId: owner,
-    definition: { ...edited, name: 'Unsaved publication draft' },
-    baseVersion: 3,
-    expectedDraftVersion: null,
-  })
-  const options = defaultBasicSkills().map((definition) =>
-    definition.id === id
-      ? {
-          id: definition.id,
-          label: current.definition.name as string,
-          definition: parseBasicSkillDefinition(current.definition),
-          initialDraft: parseBasicSkillDefinition(draft.definition),
-          currentVersion: 3,
-          baseVersion: 3,
-          draftVersion: 1,
-          history: [
-            {
-              contentVersion: 3,
-              source: 'published' as const,
-              current: true,
-              publishedAt: current.publishedAt,
-            },
-            {
-              contentVersion: 2,
-              source: 'published' as const,
-              current: false,
-              publishedAt: first.publishedAt,
-            },
-            {
-              contentVersion: 1,
-              source: 'static-baseline' as const,
-              current: false,
-              publishedAt: null,
-            },
-          ],
-        }
-      : {
-          id: definition.id,
-          label: definition.name,
-          definition,
-          currentVersion: 1,
-          baseVersion: 1,
-          draftVersion: null,
-          history: [],
-        },
-  )
-  const requests: Record<string, unknown>[] = []
-  let hold = false
-  let release: (() => void) | undefined
-  vi.stubGlobal('fetch', async (_url: string, init: RequestInit) => {
-    const body = JSON.parse(init.body as string)
-    requests.push(body)
-    if (body.operation === 'restore-basic-draft' && hold)
-      await new Promise<void>((resolve) => {
-        release = resolve
-      })
-    return handleCombatContentAuthoringRequest(
-      new Request('https://aurevane.test/api/master/combat-content', init),
-      {
-        getActor: async () => ({ userId: owner }),
-        createService: () => service,
-      },
-    )
-  })
+  vi.stubGlobal('fetch', request)
   function render() {
     hooks.index = 0
-    return BasicContentEditor({ basics: options, initialBasicId: id })
+    return CombatContentAuthoringWorkspace({
+      categories: COMBAT_CONTENT_CATEGORIES.map((row) => row.editor),
+      initialRecord: initial,
+      initialPage: {
+        records: [
+          {
+            contentKey: initial.contentKey,
+            contentKind: initial.contentKind,
+            lifecycle: 'active',
+            revision: 9,
+            name: definition.name,
+          },
+        ],
+        nextCursor: null,
+      },
+    })
   }
-  function panel() {
-    return find(render(), (node) => node.type === CombatContentReviewPanel)!
-      .props as unknown as Parameters<typeof CombatContentReviewPanel>[0]
-  }
-  function button(node: ReactNode, text: string) {
-    const found = find(node, (row) => row.type === 'button' && row.props.children === text)
-    expect(found, text).not.toBeNull()
-    return found!
-  }
-  function request(version: number) {
-    const row = find(
-      CombatContentReviewPanel(panel()),
-      (node) =>
-        node.type === 'button' && node.props['aria-label'] === `Restore v${version} to draft`,
+  const button = (label: string) =>
+    find(render(), (node) => node.type === 'button' && node.props.children === label)!
+  const fields = () => find(render(), (node) => node.type === ContentDefinitionFields)!
+  const change = (next: CombatContentDefinition) =>
+    (fields().props.onChange as (definition: CombatContentDefinition) => void)(next)
+  const reply = (record: CompleteCombatContentRecord) =>
+    request.mockResolvedValueOnce(Response.json({ record }))
+  const click = async (label: string) => {
+    const control = button(label)
+    expect(control.props.disabled).not.toBe(true)
+    ;(control.props.onClick as () => void)()
+    await vi.waitFor(() =>
+      expect(
+        button('Save draft')?.props.disabled ?? button('Create draft')?.props.disabled ?? false,
+      ).not.toBe(true),
     )
-    expect(row, `Restore v${version} button`).not.toBeNull()
-    ;(row!.props.onClick as () => void)()
   }
-  function confirmation() {
-    return find(render(), (node) => node.props['aria-label'] === 'Confirm restore to draft')
-  }
-  async function confirm() {
-    ;(button(confirmation(), 'Confirm restore to draft').props.onClick as () => void)()
-    await vi.waitFor(() => expect(panel().busy).toBe(false))
-  }
-  function name() {
-    return find(
-      render(),
-      (node) => node.type === AbilityText && node.props.label === 'Basic Skill name',
-    )!
-  }
-  function editName(value: string) {
-    ;(name().props.onChange as (value: string) => void)(value)
-  }
-  async function run(action: 'onValidate' | 'onDiff' | 'onPreview' | 'onConfirmPublish') {
-    panel()[action]()
-    await vi.waitFor(() => expect(panel().busy).toBe(false))
-  }
-  return {
-    original,
-    store,
-    service,
-    requests,
-    current,
-    draft,
-    render,
-    panel,
-    button,
-    request,
-    confirmation,
-    confirm,
-    name,
-    editName,
-    run,
-    holdRestore() {
-      hold = true
-    },
-    releaseRestore() {
-      expect(release).toBeTypeOf('function')
-      release!()
-    },
-  }
+  const command = () =>
+    request.mock.calls
+      .map((call) => JSON.parse(call[1].body).command)
+      .filter((command) => command.action !== 'list')
+      .at(-1)
+  return { initial, definition, request, render, button, fields, change, reply, click, command }
 }
-
-it.each(defaultBasicSkills())(
-  'restores $id through its actual editor, server and normal publication review',
-  async ({ id }) => {
-    const f = await fixture(id)
-    const oldHistory = await f.store.listPublishedVersions(id)
-    f.request(1)
-    expect(f.confirmation()).not.toBeNull()
-    expect(f.requests).toHaveLength(0)
-    await f.confirm()
-    expect(f.requests[0]).toEqual({
-      operation: 'restore-basic-draft',
-      skillId: id,
-      targetVersion: 1,
-      expectedBaseVersion: 3,
-      expectedDraftVersion: 1,
+it.each(SUPPORT_ACTION_IDS)(
+  'saves changed %s mechanics and publishes only its exact saved revision',
+  async (id) => {
+    const f = fixture(id),
+      changed = {
+        ...f.definition,
+        ability: {
+          ...f.definition.ability,
+          behaviors: f.definition.ability.behaviors.map((row) => ({
+            ...row,
+            costs: [{ resource: 'ap' as const, amount: 29 }],
+          })),
+        },
+      }
+    f.change(changed)
+    expect(f.button('Publish saved draft').props.disabled).toBe(true)
+    const saved = {
+      ...f.initial,
+      revision: 10,
+      draft: { ...f.initial.draft!, definition: changed, draftVersion: 5 },
+    }
+    f.reply(saved)
+    await f.click('Save draft')
+    expect(f.command()).toEqual({
+      action: 'save',
+      contentKey: id,
+      expectedRevision: 9,
+      definition: changed,
     })
-    expect(f.name().props.value).toBe(f.original.name)
-    expect(await f.store.findDraft(id)).toMatchObject({
-      definition: f.original,
-      baseVersion: 3,
-      draftVersion: 2,
+    f.reply({
+      ...saved,
+      revision: 11,
+      draft: null,
+      current: { ...f.initial.current!, contentVersion: 6, definition: changed },
     })
-    expect(await f.store.findPublished(id)).toEqual(f.current)
-    expect(await f.store.listPublishedVersions(id)).toEqual(oldHistory)
-    expect(f.panel()).toMatchObject({
-      baseVersion: 3,
-      validation: null,
-      diff: null,
-      preview: null,
-      publishConfirmationOpen: false,
+    await f.click('Publish saved draft')
+    expect(f.command()).toEqual({
+      action: 'publish',
+      contentKey: id,
+      expectedDraftVersion: 5,
+      expectedBaseVersion: 5,
     })
-    await f.run('onValidate')
-    await f.run('onDiff')
-    await f.run('onPreview')
-    expect(f.panel().preview?.legal).toBe(true)
-    f.panel().onRequestPublish()
-    expect(f.panel().publishConfirmationOpen).toBe(true)
-    await f.run('onConfirmPublish')
-    expect(f.panel().baseVersion).toBe(4)
+    expect(f.command()).not.toHaveProperty('definition')
+  },
+)
+it('restores the whole snapshot to a saved draft, retains the current pointer and shows only three history entries', async () => {
+  const f = fixture()
+  await f.click('History')
+  expect(
+    find(
+      f.render(),
+      (node) =>
+        node.type === 'button' &&
+        Array.isArray(node.props.children) &&
+        node.props.children.join('') === 'Restore version 2 to draft',
+    ),
+  ).toBeNull()
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Publication history')!.props.children,
+  ).toHaveLength(3)
+  const restore = find(
+    f.render(),
+    (node) =>
+      node.type === 'button' &&
+      Array.isArray(node.props.children) &&
+      node.props.children.join('') === 'Restore version 4 to draft',
+  )!
+  const restored = {
+    ...f.initial,
+    revision: 10,
+    draft: {
+      ...f.initial.draft!,
+      definition: f.initial.history[1]!.definition,
+      draftVersion: 5,
+      restoredFrom: 4,
+      restoredBy: 'restorer',
+    },
+  }
+  f.reply(restored)
+  ;(restore.props.onClick as () => void)()
+  await vi.waitFor(() =>
     expect(
-      f
-        .panel()
-        .history.map((row) => row.contentVersion)
-        .sort(),
-    ).toEqual([2, 3, 4])
-    expect((await f.store.findPublished(id))!.definition).toEqual({
-      ...f.original,
-      contentVersion: 4,
+      f.request.mock.calls.filter((call) => JSON.parse(call[1].body).command.action === 'restore'),
+    ).toHaveLength(1),
+  )
+  await vi.waitFor(() => expect(f.button('Save draft').props.disabled).toBe(false))
+  expect(f.command()).toEqual({
+    action: 'restore',
+    contentKey: 'basic.guard',
+    expectedRevision: 9,
+    sourceVersion: 4,
+  })
+  await f.click('Parameters')
+  expect(f.fields().props.value).toEqual(restored.draft.definition)
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Content version state')!.props
+      .children,
+  ).toContain(' · Current v5')
+  expect(f.initial.history).toHaveLength(4)
+})
+it('keeps newer local edits when a held save returns and uses the returned revision on the next save', async () => {
+  const f = fixture()
+  let release!: (value: Response) => void
+  f.request.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        release = resolve
+      }),
+  )
+  const first = { ...f.definition, name: 'Submitted' }
+  f.change(first)
+  ;(f.button('Save draft').props.onClick as () => void)()
+  const later = { ...first, name: 'Newer local edit' }
+  f.change(later)
+  release(
+    Response.json({
+      record: {
+        ...f.initial,
+        revision: 10,
+        draft: { ...f.initial.draft!, definition: first, draftVersion: 5 },
+      },
+    }),
+  )
+  await vi.waitFor(() => expect(f.button('Save draft').props.disabled).toBe(false))
+  expect(f.fields().props.value).toEqual(later)
+  expect(f.button('Publish saved draft').props.disabled).toBe(true)
+  f.reply({
+    ...f.initial,
+    revision: 11,
+    draft: { ...f.initial.draft!, definition: later, draftVersion: 6 },
+  })
+  await f.click('Save draft')
+  expect(f.command()).toMatchObject({ expectedRevision: 10, definition: later })
+})
+it('preserves local changes and exposes a stale revision failure without automatic overwrite', async () => {
+  const f = fixture(),
+    changed = { ...f.definition, name: 'Keep this local draft' }
+  f.change(changed)
+  f.request.mockResolvedValueOnce(
+    Response.json(
+      { error: { code: 'REVISION_CONFLICT', message: 'Another editor saved a newer revision.' } },
+      { status: 409 },
+    ),
+  )
+  await f.click('Save draft')
+  expect(f.fields().props.value).toEqual(changed)
+  expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
+  expect(f.request).toHaveBeenCalledTimes(1)
+  expect(f.button('Publish saved draft').props.disabled).toBe(true)
+})
+
+function disciplineFixture() {
+  const definition = COMBAT_CONTENT_CATEGORIES.find((row) => row.category === 'discipline')!.editor
+    .defaultDefinition!
+  const f = fixture('basic.guard', {
+    contentKind: 'discipline',
+    contentKey: 'discipline.original',
+    draft: null,
+    current: {
+      contentVersion: 5,
+      definition: { ...definition, id: 'discipline.original' },
+      publishedBy: 'publisher',
+      publishedAt: '2026-10-22',
+      authoredBy: 'author',
+      authoredAt: '2026-10-21',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  })
+  return f
+}
+it('retains a new unsaved definition until creation or explicit discard', async () => {
+  const f = disciplineFixture()
+  await f.click('New')
+  f.change({ ...(f.fields().props.value as CombatContentDefinition), name: 'Keep new work' })
+  expect(f.button('New').props.disabled).toBe(true)
+  expect(f.button('First page').props.disabled).toBe(true)
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Content category')!.props.disabled,
+  ).toBe(true)
+  expect(f.fields().props.value).toMatchObject({ name: 'Keep new work' })
+  await f.click('Discard new draft')
+  expect(f.fields().props.value).toEqual(f.initial.current!.definition)
+  expect(f.request).not.toHaveBeenCalled()
+})
+it('creates directly within a Discipline using its revision and refreshes the matching global Skill list', async () => {
+  const f = disciplineFixture()
+  await f.click('New Skill in this Discipline')
+  const draft = f.fields().props.value as CombatContentDefinition
+  expect(draft.sourceDisciplineId).toBe('discipline.original')
+  const key = 'skill.11111111-1111-4111-8111-111111111111'
+  const created = {
+    ...f.initial,
+    contentKey: key,
+    contentKind: 'skill' as const,
+    lifecycle: 'draft' as const,
+    revision: 1,
+    current: null,
+    history: [],
+    draft: {
+      definition: { ...draft, id: key },
+      draftVersion: 1,
+      baseVersion: null,
+      updatedBy: 'author',
+      updatedAt: '2026-10-23',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  }
+  f.reply(created)
+  f.request.mockResolvedValueOnce(
+    Response.json({
+      records: [
+        {
+          contentKey: key,
+          contentKind: 'skill',
+          revision: 1,
+          lifecycle: 'draft',
+          name: 'New Skill',
+        },
+      ],
+      nextCursor: null,
+    }),
+  )
+  await f.click('Create draft')
+  expect(JSON.parse(f.request.mock.calls[0]![1].body).command).toMatchObject({
+    action: 'create',
+    contentKind: 'skill',
+    parentKey: 'discipline.original',
+    expectedParentRevision: 9,
+    definition: JSON.parse(JSON.stringify(draft)),
+  })
+  expect(JSON.parse(f.request.mock.calls.at(-1)![1].body).command).toMatchObject({
+    action: 'list',
+    kind: 'skill',
+    category: 'discipline-skill',
+    sort: 'name-asc',
+    limit: 20,
+  })
+  expect(find(f.render(), (node) => node.props['data-content-key'] === key)).toBeTruthy()
+  expect(f.fields().props.value).toEqual(JSON.parse(JSON.stringify(created.draft.definition)))
+})
+it('keeps the record when dependency-aware archive rejects it', async () => {
+  const f = disciplineFixture()
+  f.request.mockResolvedValueOnce(
+    Response.json(
+      {
+        error: {
+          code: 'CONTENT_REFERENCED',
+          message: 'This Discipline is used by a player build.',
+        },
+      },
+      { status: 409 },
+    ),
+  )
+  await f.click('Archive')
+  expect(f.command()).toEqual({
+    action: 'archive',
+    contentKey: 'discipline.original',
+    expectedRevision: 9,
+  })
+  expect(f.fields().props.value).toEqual(f.initial.current!.definition)
+  expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
+})
+
+it.each(BASIC_SKILL_IDS)(
+  'keeps %s Text callbacks parse/save-valid including optional clearing',
+  async (id) => {
+    const f = fixture(id)
+    await f.click('Text')
+    const tree = () =>
+      ContentDefinitionFields(
+        f.fields().props as unknown as Parameters<typeof ContentDefinitionFields>[0],
+      )
+    expect(
+      find(tree(), (n) => n.type === AbilityText && n.props.label === 'Flavor line'),
+    ).toBeNull()
+    const description = find(tree(), (n) => n.props['aria-label'] === 'Description')!
+    ;(description.props.onChange as (event: unknown) => void)({
+      currentTarget: { value: 'Supported description retained.' },
     })
-    expect((await f.store.listPublishedVersions(id)).slice(0, 2)).toEqual(oldHistory)
+    const battle = find(
+      tree(),
+      (n) => n.type === AbilityText && n.props.label === 'In-battle text',
+    )!
+    ;(battle.props.onChange as (value: string) => void)('{actor} uses {ability}.')
+    const presentation = () =>
+      AbilityPresentationEditor(
+        find(tree(), (n) => n.type === AbilityPresentationEditor)!.props as unknown as Parameters<
+          typeof AbilityPresentationEditor
+        >[0],
+      )
+    const changeCompact = (value: string) =>
+      (
+        find(presentation(), (n) => n.props['aria-label'] === 'Compact battle description')!.props
+          .onChange as (event: unknown) => void
+      )({ currentTarget: { value } })
+    changeCompact('Distinct {ability} compact text.')
+    expect(() => parseBasicSkillDefinition(f.fields().props.value)).not.toThrow()
+    changeCompact('')
+    const changed = f.fields().props.value as CombatContentDefinition
+    expect(parseBasicSkillDefinition(changed)).toMatchObject({
+      description: 'Supported description retained.',
+      battleText: '{actor} uses {ability}.',
+    })
+    expect(changed).not.toHaveProperty('flavorLine')
+    expect(changed.presentation).not.toHaveProperty('compact')
+    f.reply({
+      ...f.initial,
+      revision: 10,
+      draft: { ...f.initial.draft!, definition: changed, draftVersion: 5 },
+    })
+    await f.click('Save draft')
+    expect(f.command()).toMatchObject({ action: 'save', definition: changed })
+    expect(() => parseBasicSkillDefinition(f.command().definition)).not.toThrow()
+  },
+)
+it('reserves the current history row when retained future versions are newer', async () => {
+  const seed = fixture().initial
+  hooks.cells = []
+  const version = (n: number) => ({ ...seed.current!, contentVersion: n })
+  const f = fixture('basic.guard', {
+    current: version(2),
+    history: [version(2), version(73), version(74), version(75)],
+  })
+  await f.click('History')
+  const rows = find(f.render(), (n) => n.props['aria-label'] === 'Publication history')!.props
+    .children as ReactElement[]
+  expect(rows.map((row) => row.key)).toEqual(['2', '75', '74'])
+})
+
+it.each(['working', 'saved', 'current', 'compare'])(
+  'reads finalized retained media through protected authoring in %s view',
+  (view) => {
+    const basic = defaultBasicSkills()[0]!
+    const definition = (suffix: number) => ({
+      ...basic,
+      media: {
+        ...basic.media,
+        audio: {
+          id: `11111111-1111-4111-8111-${String(suffix).padStart(12, '0')}`,
+          kind: 'audio',
+          contentType: 'audio/wav',
+          checksum: 'b'.repeat(64),
+          byteLength: 100,
+          durationMs: 1000,
+          channels: 1,
+          sampleRate: 44100,
+        },
+      },
+    })
+    const props = {
+      kind: 'skill' as const,
+      working: definition(1),
+      saved: definition(2),
+      current: definition(3),
+    }
+    const render = () => {
+      hooks.index = 0
+      return ContentRecordPreview(props)
+    }
+    ;(find(render(), (n) => n.type === 'select')!.props.onChange as (event: unknown) => void)({
+      currentTarget: { value: view },
+    })
+    const html = renderToStaticMarkup(render())
+    const expected =
+      view === 'working' ? [1] : view === 'saved' ? [2] : view === 'current' ? [3] : [1, 3]
+    for (const suffix of expected)
+      expect(html).toContain(
+        `src="/api/master/combat-content/media/11111111-1111-4111-8111-${String(suffix).padStart(12, '0')}"`,
+      )
+    expect(html).not.toContain('src="/api/content-media/')
   },
 )
 
-it('cancels restore without a request and binds confirmation to the selected Basic', async () => {
-  const f = await fixture()
-  f.request(2)
-  ;(f.button(f.confirmation(), 'Cancel restore').props.onClick as () => void)()
-  expect(f.confirmation()).toBeNull()
-  expect(f.requests).toHaveLength(0)
-  f.request(1)
-  const change = (id: string) => {
-    const select = find(
-      f.render(),
-      (node) => node.type === 'select' && node.props['aria-label'] === 'Basic Skill',
-    )!
-    ;(select.props.onChange as (event: unknown) => void)({ currentTarget: { value: id } })
-  }
-  change('basic.recover.mp')
-  expect(f.confirmation()).toBeNull()
-  change('basic.guard')
-  expect(f.confirmation()).toBeNull()
-  expect(f.requests).toHaveLength(0)
-})
-
-it('preserves newer local edits during restore and advances the saved draft CAS for the next save', async () => {
-  const f = await fixture()
-  f.holdRestore()
-  f.request(1)
-  ;(f.button(f.confirmation(), 'Confirm restore to draft').props.onClick as () => void)()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(true))
-  const restore = find(
-    CombatContentReviewPanel(f.panel()),
-    (node) => node.props['aria-label'] === 'Restore v2 to draft',
-  )!
-  expect(restore.props.disabled).toBe(true)
-  f.editName('Newer local edit')
-  f.releaseRestore()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  expect(f.name().props.value).toBe('Newer local edit')
-  expect(f.panel().noticeMessage).toMatch(/newer edits.*unsaved/i)
-  expect((await f.store.findDraft(f.original.id))!.definition).toEqual(f.original)
-  ;(f.button(f.panel().draftActions, 'Save draft').props.onClick as () => void)()
-  await vi.waitFor(() => expect(f.panel().busy).toBe(false))
-  expect(f.requests.at(-1)).toMatchObject({
-    operation: 'save-draft',
-    baseVersion: 3,
-    expectedDraftVersion: 2,
-    definition: { name: 'Newer local edit' },
-  })
-  expect((await f.store.findDraft(f.original.id))!.draftVersion).toBe(3)
-})
-
-it('retains local draft and review when another writer wins the draft CAS', async () => {
-  const f = await fixture()
-  await f.run('onValidate')
-  await f.run('onDiff')
-  await f.run('onPreview')
-  const before = f.panel()
-  await f.service.saveSkillDraft({
-    actorUserId: owner,
-    definition: { ...f.original, name: 'Other writer' },
-    baseVersion: 3,
-    expectedDraftVersion: 1,
-  })
-  f.request(1)
-  await f.confirm()
-  expect(f.panel().errorMessage).toMatch(/Refresh/)
-  expect(f.name().props.value).toBe('Unsaved publication draft')
-  expect(f.panel().history).toEqual(before.history)
-  expect(f.panel().validation).toEqual(before.validation)
-  expect(f.panel().diff).toEqual(before.diff)
-  expect(f.panel().preview).toEqual(before.preview)
-  expect((await f.store.findDraft(f.original.id))!.definition.name).toBe('Other writer')
-  expect(await f.store.findPublished(f.original.id)).toEqual(f.current)
-})
+it.each(BASIC_SKILL_IDS)(
+  'offers %s original as a separate System source and sends only intent',
+  async (id) => {
+    const f = fixture(id, { builtin: { contentVersion: 1, name: id }, builtinRestoreVersion: 1 })
+    await f.click('History')
+    f.reply({
+      ...f.initial,
+      revision: 10,
+      draft: {
+        ...f.initial.draft!,
+        restoredFrom: 1,
+        restoredSource: 'builtin',
+        restoredBy: 'owner',
+      },
+    })
+    await f.click('Restore System original v1 to draft')
+    expect(f.command()).toEqual({
+      action: 'restore',
+      contentKey: id,
+      expectedRevision: 9,
+      sourceVersion: 1,
+      sourceKind: 'builtin',
+    })
+    expect(f.command()).not.toHaveProperty('definition')
+  },
+)

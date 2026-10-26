@@ -175,3 +175,23 @@ describe('World page', () => {
     expect(markup).not.toContain('mobileSettings')
   })
 })
+
+it('shows World time, phase and region-correct weather inside the actual right panel', () => {
+  const view = projectWorld(newWorldState(), [], 1000)
+  view.environment = {
+    ...view.environment,
+    minuteOfDay: 720,
+    dayLengthMs: 7200000,
+    weather: 'storm',
+  }
+  view.sectors = view.sectors.map((sector) => ({ ...sector, regionId: 'frostmere' }))
+  const html = renderToStaticMarkup(
+    <WorldWorkspace
+      initialView={view}
+      character={{ name: 'Traveller', portrait: '/portrait.webp' }}
+    />,
+  )
+  const panel = html.slice(html.indexOf('<aside'), html.indexOf('</aside>'))
+  expect(panel).toContain('World conditions')
+  expect(panel.replace(/<[^>]+>/g, '')).toContain('12:00 · Day · Snowstorm')
+})

@@ -1,8 +1,8 @@
+import { projectAllocationForPrimaryDisciplineChange } from '@aurevane/game-core/character/attribute-allocation'
 import {
-  foundationDisciplineAttributePolicy,
-  projectAllocationForPrimaryDisciplineChange,
-} from '@aurevane/game-core/character/attribute-allocation'
-import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
+  buildPrimaryDisciplinePreview,
+  disciplineAttributePolicyForProfile,
+} from '@aurevane/game-core/character/discipline-build'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -81,8 +81,8 @@ export async function POST(request: Request) {
       createSupabaseCharacterBuildRepository(),
     )
 
-    const currentPolicy = foundationDisciplineAttributePolicy(preview.current.definition.id)
-    const proposedPolicy = foundationDisciplineAttributePolicy(preview.proposed.definition.id)
+    const currentPolicy = disciplineAttributePolicyForProfile(preview.current.profile)
+    const proposedPolicy = disciplineAttributePolicyForProfile(preview.proposed.profile)
     if (!currentPolicy || !proposedPolicy) {
       throw new AurevaneError('INVALID_REQUEST', 'The selected Primary Discipline is unavailable.')
     }

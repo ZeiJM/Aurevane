@@ -1,0 +1,47 @@
+[
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-red/players-nesting-1366-1.json",
+    "bytes": 326,
+    "sha256": "b5e906eb445fecc68d585e12f7f0d1ef15336c5523c55d964964fb8d80494585"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-red/players-nesting-1366-1.png",
+    "bytes": 424486,
+    "sha256": "4e106fd3deabc7dd613074f948304d30128eea1aa36723de947d078346615252"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-green/players-1366-1.png",
+    "bytes": 424492,
+    "sha256": "41f579a6bb93321a124ea3f5e8769818f3f785dd588e62fa493ec595d30f3ee6"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-green/players-390-1.png",
+    "bytes": 151031,
+    "sha256": "2b6d74c6ebc8c41513c348098bc1791f07e2f81219b7c38bde144686045a61b6"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-green/players-nesting-1366-1.json",
+    "bytes": 326,
+    "sha256": "07ea298a7e5c1454b2d9fe5b7a41e0b5ffb60e112463fc619d0247134ea2206b"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-green/players-nesting-1366-1.png",
+    "bytes": 424486,
+    "sha256": "4e106fd3deabc7dd613074f948304d30128eea1aa36723de947d078346615252"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-green/players-nesting-390-1.json",
+    "bytes": 325,
+    "sha256": "500851a27522b94acec8f454024d0b4e3a3fa63fb6a5ef4832283476c55f2be8"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-green/players-nesting-390-1.png",
+    "bytes": 151031,
+    "sha256": "2b6d74c6ebc8c41513c348098bc1791f07e2f81219b7c38bde144686045a61b6"
+  },
+  {
+    "path": "docs/verification/task-10-reconstruction/task13-fix2-recovery-f1-green/players-reader-results.json",
+    "bytes": 427,
+    "sha256": "3880bf671a04f7801437d706743b184028e52a3b561b6a9a9cc40986bc5d7eda"
+  }
+]

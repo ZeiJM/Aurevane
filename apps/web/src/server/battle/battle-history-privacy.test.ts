@@ -1116,3 +1116,41 @@ describe('CSR-3 viewer-relative historical projection', () => {
     expect(projectBattleHistoryForViewer(records, [], opponent)).toEqual(records)
   })
 })
+
+it('triggering actor identity is exposed only with a visible actor command in the same commit', () => {
+  const viewer = deriveParticipantBattleViewerEntitlement(encounter().tactical.battle.combatants, [
+    TARGET,
+  ])
+  const trigger = record(9, 0, {
+    event: 'combat_action_used',
+    actorId: ACTOR,
+    actionId: 'secret.trigger',
+  })
+  const reaction = record(9, 1, {
+    event: 'combat_action_used',
+    actorId: TARGET,
+    actionId: 'public.reaction',
+    triggeringActorId: ACTOR,
+  })
+  const hidden: BattleHistoryPrivacyJournal = {
+    schemaVersion: 1,
+    battleVersion: 9,
+    actorCombatantId: ACTOR,
+    actorTeamId: 'team:a',
+    eventCount: 2,
+    commandVisibility: { kind: 'team-only', teamId: 'team:a' },
+    eventVisibilityOverrides: [{ eventIndex: 1, visibility: { kind: 'public' } }],
+  }
+  const projected = projectBattleHistoryForViewer([trigger, reaction], [hidden], viewer)
+  expect(
+    projected.find((entry) => (entry.event as { event?: string }).event === 'combat_action_used')
+      ?.event,
+  ).not.toHaveProperty('triggeringActorId')
+  expect(projectBattleHistoryForViewer([trigger, reaction], [], viewer)[1]?.event).toHaveProperty(
+    'triggeringActorId',
+    ACTOR,
+  )
+  expect(
+    projectBattleHistoryForViewer([record(8, 0, trigger.event), reaction], [], viewer)[1]?.event,
+  ).not.toHaveProperty('triggeringActorId')
+})

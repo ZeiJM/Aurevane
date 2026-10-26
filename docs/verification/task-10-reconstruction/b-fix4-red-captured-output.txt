@@ -1,0 +1,263 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web
+
+stderr | src/app/api/character/build/disciplines/admission-route.test.ts > real PUT/service/v3 adapter maps 40001 COMBAT_CONTENT_ADMISSION_RETRY
+{"timestamp":"2026-10-22T21:21:29.084Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+ ❯ src/app/api/character/build/disciplines/admission-route.test.ts (12 tests | 2 failed) 87ms
+   × real PUT/service/v3 adapter maps 40001 COMBAT_CONTENT_ADMISSION_RETRY 25ms
+   × real PUT/service/v3 adapter maps 22023 COMBAT_CONTENT_ARCHIVED 11ms
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A name at length 81 unchanged so it can be corrected
+{"timestamp":"2026-10-22T21:21:29.316Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A name at length 120 unchanged so it can be corrected
+{"timestamp":"2026-10-22T21:21:29.323Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A description at length 241 unchanged so it can be corrected
+{"timestamp":"2026-10-22T21:21:29.324Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A description at length 4000 unchanged so it can be corrected
+{"timestamp":"2026-10-22T21:21:29.325Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > retains long text in immutable current bodies
+{"timestamp":"2026-10-22T21:21:29.328Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > retains long text in immutable history bodies
+{"timestamp":"2026-10-22T21:21:29.329Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > rejects overlong name at new authoring and saved-publication boundaries
+{"timestamp":"2026-10-22T21:21:29.331Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+stderr | src/server/master/combat-content-discipline-boundaries.test.ts > rejects overlong description at new authoring and saved-publication boundaries
+{"timestamp":"2026-10-22T21:21:29.332Z","level":"error","event":"server.persistence_unavailable","code":"PERSISTENCE_UNAVAILABLE"}
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts (18 tests | 15 failed) 210ms
+   × reads the retained Stage A name at length 81 unchanged so it can be corrected 12ms
+   × reads the retained Stage A name at length 120 unchanged so it can be corrected 1ms
+   × reads the retained Stage A description at length 241 unchanged so it can be corrected 1ms
+   × reads the retained Stage A description at length 4000 unchanged so it can be corrected 1ms
+   × retains long text in immutable current bodies 1ms
+   × retains long text in immutable history bodies 1ms
+   × rejects overlong name at new authoring and saved-publication boundaries 2ms
+   × rejects overlong description at new authoring and saved-publication boundaries 1ms
+   × returns actionable actual producer blocker DISCIPLINE_ESSENCE_UNAVAILABLE through saved-publication HTTP 13ms
+   × returns actionable actual producer blocker DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE through saved-publication HTTP 16ms
+   × returns actionable actual producer blocker DISCIPLINE_RESONANCE_SELECTION_CONFLICT through saved-publication HTTP 8ms
+   × returns actionable actual producer blocker DISCIPLINE_RESONANCE_SELECTION_CONFLICT through saved-publication HTTP 10ms
+   × never forwards malformed SQL details "vanguard+lifebinder\nSELECT secret FROM private" 47ms
+   × never forwards malformed SQL details "vanguard+lifebinder+third" 65ms
+   × never forwards malformed SQL details "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx+vanguard" 13ms
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A name at length 81 unchanged so it can be corrected
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A name at length 120 unchanged so it can be corrected
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A description at length 241 unchanged so it can be corrected
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > reads the retained Stage A description at length 4000 unchanged so it can be corrected
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:103:29
+    101|     saved = retainedRecord({ ...legacy, [field]: 'x'.repeat(length) })
+    102|     const response = await call({ action: 'read', contentKey: legacy.i…
+    103|     expect(response.status).toBe(200)
+       |                             ^
+    104|     expect(await response.json()).toEqual({ record: saved })
+    105|   },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/17]⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > retains long text in immutable current bodies
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > retains long text in immutable history bodies
+AssertionError: expected 503 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 503
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:123:27
+    121|   rpc.mockImplementationOnce(async () => ({ data: record, error: null …
+    122|   const response = await call({ action: 'read', contentKey: legacy.id …
+    123|   expect(response.status).toBe(200)
+       |                           ^
+    124|   expect(await response.json()).toEqual({ record })
+    125| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/17]⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > rejects overlong name at new authoring and saved-publication boundaries
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > rejects overlong description at new authoring and saved-publication boundaries
+AssertionError: expected 503 to be 400 // Object.is equality
+
+- Expected
++ Received
+
+- 400
++ 503
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:134:29
+    132|     expect(() => descriptor.validatePublication!(definition)).toThrow(…
+    133|     const response = await publish()
+    134|     expect(response.status).toBe(400)
+       |                             ^
+    135|     expect(await response.json()).toMatchObject({ error: { code: 'INVA…
+    136|     expect(publicationAttempts).toBe(0)
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/17]⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > returns actionable actual producer blocker DISCIPLINE_ESSENCE_UNAVAILABLE through saved-publication HTTP
+AssertionError: expected { error: { …(2) } } to match object { error: { …(2) } }
+
+- Expected
++ Received
+
+  {
+    "error": {
+      "code": "INVALID_REQUEST",
+-     "message": StringMatching /essence.ready.*discipline.ready.*active Essence/i,
++     "message": "The content request contains unsupported or invalid fields.",
+    },
+  }
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:162:16
+    160|   expect(response.status).toBe(400)
+    161|   const body = await response.json()
+    162|   expect(body).toMatchObject({ error: { code: 'INVALID_REQUEST', messa…
+       |                ^
+    163|   expect(JSON.stringify(body)).not.toMatch(/SECRET|SQL HINT|DISCIPLINE…
+    164| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/17]⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > returns actionable actual producer blocker DISCIPLINE_CORE_BASE_MUST_BE_UNIQUE through saved-publication HTTP
+AssertionError: expected { error: { …(2) } } to match object { error: { …(2) } }
+
+- Expected
++ Received
+
+  {
+    "error": {
+      "code": "INVALID_REQUEST",
+-     "message": StringMatching /discipline.ready.*Core.*different.*31/i,
++     "message": "The content request contains unsupported or invalid fields.",
+    },
+  }
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:162:16
+    160|   expect(response.status).toBe(400)
+    161|   const body = await response.json()
+    162|   expect(body).toMatchObject({ error: { code: 'INVALID_REQUEST', messa…
+       |                ^
+    163|   expect(JSON.stringify(body)).not.toMatch(/SECRET|SQL HINT|DISCIPLINE…
+    164| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/17]⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > returns actionable actual producer blocker DISCIPLINE_RESONANCE_SELECTION_CONFLICT through saved-publication HTTP
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > returns actionable actual producer blocker DISCIPLINE_RESONANCE_SELECTION_CONFLICT through saved-publication HTTP
+AssertionError: expected { error: { …(2) } } to match object { error: { …(2) } }
+
+- Expected
++ Received
+
+  {
+    "error": {
+      "code": "INVALID_REQUEST",
+-     "message": StringMatching /discipline.ready.*vanguard.*both Discipline/i,
++     "message": "The content request contains unsupported or invalid fields.",
+    },
+  }
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:162:16
+    160|   expect(response.status).toBe(400)
+    161|   const body = await response.json()
+    162|   expect(body).toMatchObject({ error: { code: 'INVALID_REQUEST', messa…
+       |                ^
+    163|   expect(JSON.stringify(body)).not.toMatch(/SECRET|SQL HINT|DISCIPLINE…
+    164| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/17]⎯
+
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > never forwards malformed SQL details "vanguard+lifebinder\nSELECT secret FROM private"
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > never forwards malformed SQL details "vanguard+lifebinder+third"
+ FAIL  src/server/master/combat-content-discipline-boundaries.test.ts > never forwards malformed SQL details "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx+vanguard"
+AssertionError: expected 'The content request contains unsuppor…' to match /discipline.ready.*vanguard.*both Dis…/i
+
+- Expected:
+/discipline.ready.*vanguard.*both Discipline/i
+
++ Received:
+"The content request contains unsupported or invalid fields."
+
+ ❯ src/server/master/combat-content-discipline-boundaries.test.ts:170:30
+    168|   expect(response.status).toBe(400)
+    169|   const body = await response.json()
+    170|   expect(body.error.message).toMatch(/discipline.ready.*vanguard.*both…
+       |                              ^
+    171|   expect(JSON.stringify(body)).not.toContain(details)
+    172| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/17]⎯
+
+ FAIL  src/app/api/character/build/disciplines/admission-route.test.ts > real PUT/service/v3 adapter maps 40001 COMBAT_CONTENT_ADMISSION_RETRY
+AssertionError: expected 503 to be 409 // Object.is equality
+
+- Expected
++ Received
+
+- 409
++ 503
+
+ ❯ src/app/api/character/build/disciplines/admission-route.test.ts:81:27
+     79|   }))
+     80|   expect(mutationAttempts).toBe(1)
+     81|   expect(response.status).toBe(status)
+       |                           ^
+     82|   expect(response.headers.get('Cache-Control')).toBe('private, no-stor…
+     83|   const body = await response.json()
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/17]⎯
+
+ FAIL  src/app/api/character/build/disciplines/admission-route.test.ts > real PUT/service/v3 adapter maps 22023 COMBAT_CONTENT_ARCHIVED
+AssertionError: expected { error: { …(2) } } to match object { error: { …(2) } }
+
+- Expected
++ Received
+
+  {
+    "error": {
+      "code": "INVALID_REQUEST",
+-     "message": StringMatching /archived.*new build/i,
++     "message": "That Discipline build change is not legal.",
+    },
+  }
+
+ ❯ src/app/api/character/build/disciplines/admission-route.test.ts:84:16
+     82|   expect(response.headers.get('Cache-Control')).toBe('private, no-stor…
+     83|   const body = await response.json()
+     84|   expect(body).toMatchObject({ error: { code: expectedCode, message: e…
+       |                ^
+     85|   expect(JSON.stringify(body)).not.toContain(message)
+     86| })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/17]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  17 failed | 13 passed (30)
+   Start at  14:21:27
+   Duration  1.61s (transform 1.78s, setup 0ms, import 2.27s, tests 297ms, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/apps/web:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/server/master/combat-content-discipline-boundaries.test.ts src/app/api/character/build/disciplines/admission-route.test.ts

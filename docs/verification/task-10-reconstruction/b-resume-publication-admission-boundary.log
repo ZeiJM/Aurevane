@@ -1,0 +1,37 @@
+
+ RUN  v4.1.10 /workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db
+
+ ❯ src/combat-content-discipline-producers.test.ts (56 tests | 1 failed | 55 skipped) 3535ms
+   × publication invalidates preparation without changing pinned character Core, and a fresh capture admits 86ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/combat-content-discipline-producers.test.ts > publication invalidates preparation without changing pinned character Core, and a fresh capture admits
+AssertionError: expected [Function] to throw error matching /PLAYER_PREPARATION_STALE/ but got 'BATTLE_INVALID_SNAPSHOT'
+
+- Expected:
+/PLAYER_PREPARATION_STALE/
+
++ Received:
+"BATTLE_INVALID_SNAPSHOT"
+
+ ❯ denied src/combat-content-discipline-producers.test.ts:104:22
+    102| async function denied(run: () => Promise<unknown>, message: RegExp) {
+    103|   await db.exec('savepoint rejected')
+    104|   await expect(run()).rejects.toThrow(message)
+       |                      ^
+    105|   await db.exec('rollback to savepoint rejected')
+    106| }
+ ❯ src/combat-content-discipline-producers.test.ts:2073:2
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 55 skipped (56)
+   Start at  13:43:03
+   Duration  5.08s (transform 1.09s, setup 0ms, import 1.35s, tests 3.53s, environment 0ms)
+
+undefined
+/workspace/scratch/e5db2ba73c1a/aurevane-master-complete-20261022/packages/db:
+[ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL] Command failed with exit code 1: vitest run src/combat-content-discipline-producers.test.ts -t 'publication invalidates preparation'

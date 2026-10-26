@@ -1,0 +1,203 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: master-players-recovery.pw.ts >> Owner corrections and whole encounter recovery reach actual PvE, both PvP participants and spectator
+- Location: e2e/master-players-recovery.pw.ts:42:5
+
+# Error details
+
+```
+Test timeout of 300000ms exceeded.
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=f2e1]:
+  - generic [ref=f2e3]:
+    - link "Skip to game content" [ref=f2e4]:
+      - /url: "#game-main"
+    - banner [ref=f2e5]:
+      - link "AUREVANE Haven" [ref=f2e6]:
+        - /url: /game/haven
+        - generic [ref=f2e8]:
+          - strong [ref=f2e9]: AUREVANE
+          - generic [ref=f2e10]: Persistent tactical fantasy
+      - navigation "Reference" [ref=f2e11]:
+        - link "News" [ref=f2e12]:
+          - /url: /news
+        - link "Manual" [ref=f2e13]:
+          - /url: /manual
+        - link "Rules" [ref=f2e14]:
+          - /url: /rules
+      - button "Account" [ref=f2e17]:
+        - generic [ref=f2e18]: ◇
+        - text: Account
+    - complementary [ref=f2e19]:
+      - article [ref=f2e22]:
+        - img "Male adventurer 1" [ref=f2e25]
+        - strong [ref=f2e27]: Owner defeeaba
+        - region "Character progression" [ref=f2e28]:
+          - generic [ref=f2e29]:
+            - strong [ref=f2e30]:
+              - generic [ref=f2e31]: Character
+              - text: Level 1
+            - generic [ref=f2e32]: 0 / 100 XP
+          - progressbar "Rail level progress" [ref=f2e33]
+        - generic [ref=f2e34]:
+          - generic [ref=f2e36]:
+            - generic [ref=f2e37]: ♥
+            - strong [ref=f2e38]: HP
+            - generic [ref=f2e39]: 174 / 174
+          - generic [ref=f2e43]:
+            - generic [ref=f2e44]: ◇
+            - strong [ref=f2e45]: MP
+            - generic [ref=f2e46]: 44 / 44
+      - navigation "Primary game navigation" [ref=f2e49]:
+        - link "Haven" [ref=f2e50]:
+          - /url: /game/haven
+        - link "Profile" [ref=f2e54]:
+          - /url: /game/character
+        - link "Loadout" [ref=f2e59]:
+          - /url: /game/loadout
+        - link "World" [ref=f2e64]:
+          - /url: /game/world
+        - link "Battle" [ref=f2e69]:
+          - /url: /game/battle
+        - link "Training" [ref=f2e73]:
+          - /url: /game/training
+    - main [ref=f2e78]:
+      - generic [ref=f2e79]:
+        - generic [ref=f2e80]:
+          - generic [ref=f2e81]:
+            - generic [ref=f2e82]: Master Panel · Worldwright
+            - heading "Players" [level=1] [ref=f2e83]
+          - paragraph [ref=f2e84]: Inspect existing gameplay facts, review corrections, and recover stuck encounters.
+        - navigation "Master Panel navigation" [ref=f2e85]:
+          - link "Overview" [ref=f2e86]:
+            - /url: /master
+          - link "Players" [ref=f2e87]:
+            - /url: /master/players
+            - generic [ref=f2e88]: ♙
+            - text: Players
+          - link "Combat Settings" [ref=f2e89]:
+            - /url: /master/combat-timing
+            - generic [ref=f2e90]: ◷
+            - text: Combat Settings
+          - link "World Environment" [ref=f2e91]:
+            - /url: /master/world-environment
+            - generic [ref=f2e92]: ☼
+            - text: World Environment
+          - link "Combat Content" [ref=f2e93]:
+            - /url: /master/combat-content
+            - generic [ref=f2e94]: ⚔
+            - text: Combat Content
+          - link "Site Music" [ref=f2e95]:
+            - /url: /master/music
+            - generic [ref=f2e96]: ♫
+            - text: Site Music
+          - link "Staff & Access" [ref=f2e97]:
+            - /url: /master/staff
+            - generic [ref=f2e98]: ♜
+            - text: Staff & Access
+          - link "Event Builder" [ref=f2e99]:
+            - /url: /master/events
+            - generic [ref=f2e100]: ✧
+            - text: Event Builder
+          - link "Live Event Ops" [ref=f2e101]:
+            - /url: /master/events/live
+            - generic [ref=f2e102]: ✦
+            - text: Live Event Ops
+        - generic [ref=f2e104]:
+          - generic [ref=f2e105]:
+            - heading "Find a player" [level=2] [ref=f2e106]
+            - generic [ref=f2e107]:
+              - generic [ref=f2e108]:
+                - text: Character name
+                - textbox "Character name" [ref=f2e109]: Player defeeaba
+              - button "Find players" [ref=f2e110]
+            - paragraph [ref=f2e111]: Up to 20 matches. Inspection reads existing gameplay facts without advancing activity.
+            - list [ref=f2e112]:
+              - listitem [ref=f2e113]:
+                - generic [ref=f2e114]:
+                  - strong [ref=f2e115]: Player defeeaba
+                  - generic [ref=f2e116]: Level 1 · Slot 1
+                  - generic [ref=f2e117]: players-player-fb2517c8-7425-4725-888a-fbfd866f9936@example.test
+                - button "Inspect Player defeeaba" [ref=f2e118]
+          - status [ref=f2e119]: Correction saved. Calculated values have been refreshed.
+          - generic [ref=f2e120]:
+            - generic [ref=f2e121]:
+              - heading "Player defeeaba" [active] [level=2] [ref=f2e122]
+              - button "Refresh player" [ref=f2e123]
+            - paragraph [ref=f2e124]: players-player-fb2517c8-7425-4725-888a-fbfd866f9936@example.test · Identity and account access are protected.
+            - generic [ref=f2e125]:
+              - generic [ref=f2e126]:
+                - term [ref=f2e127]: Progression
+                - definition [ref=f2e128]: Level 1 · 1 XP · Cycle 1
+              - generic [ref=f2e129]:
+                - term [ref=f2e130]: Primary / Secondary
+                - definition [ref=f2e131]: Vanguard / None
+              - generic [ref=f2e132]:
+                - term [ref=f2e133]: Active Skills
+                - definition [ref=f2e134]: None
+              - generic [ref=f2e135]:
+                - term [ref=f2e136]: Support action
+                - definition [ref=f2e137]: Guard
+              - generic [ref=f2e138]:
+                - term [ref=f2e139]: Calculated maximum resources
+                - definition [ref=f2e140]: 174 HP · 44 MP
+              - generic [ref=f2e141]:
+                - term [ref=f2e142]: World position
+                - definition [ref=f2e143]: No saved position
+              - generic [ref=f2e144]:
+                - term [ref=f2e145]: Training
+                - definition [ref=f2e146]: No planned window
+              - generic [ref=f2e147]:
+                - term [ref=f2e148]: Saved loadouts
+                - definition [ref=f2e149]: None
+              - generic [ref=f2e150]:
+                - term [ref=f2e151]: Resonance / Essence
+                - definition [ref=f2e152]: None / Essence Vanguard Unbroken Strike
+            - paragraph [ref=f2e153]: Current HP, MP and AP belong to an encounter. Persistent wallet, inventory and equipment corrections are not available.
+            - generic [ref=f2e154]:
+              - heading "Gameplay correction" [level=3] [ref=f2e155]
+              - paragraph [ref=f2e156]: Review one group at a time. Active encounters and pending deletion block corrections.
+              - generic [ref=f2e157]:
+                - text: Correction group
+                - combobox "Correction group" [ref=f2e158]:
+                  - option "Core Stats & XP" [selected]
+                  - option "Primary & Secondary"
+                  - option "Earned Skill loadout"
+                  - option "Support action"
+              - group "Source values" [ref=f2e159]:
+                - paragraph [ref=f2e161]: "Level follows XP. Current personal point pool: 5. Primary bases and the 60 focus / 40 nonfocus caps are validated when saved."
+                - generic [ref=f2e162]:
+                  - generic [ref=f2e163]:
+                    - text: Might
+                    - spinbutton "Might" [ref=f2e164]: "9"
+                  - generic [ref=f2e165]:
+                    - text: Finesse
+                    - spinbutton "Finesse" [ref=f2e166]: "4"
+                  - generic [ref=f2e167]:
+                    - text: Vitality
+                    - spinbutton "Vitality" [ref=f2e168]: "9"
+                  - generic [ref=f2e169]:
+                    - text: Agility
+                    - spinbutton "Agility" [ref=f2e170]: "4"
+                  - generic [ref=f2e171]:
+                    - text: Intellect
+                    - spinbutton "Intellect" [ref=f2e172]: "3"
+                  - generic [ref=f2e173]:
+                    - text: Resolve
+                    - spinbutton "Resolve" [ref=f2e174]: "7"
+                  - generic [ref=f2e175]:
+                    - text: Total XP
+                    - spinbutton "Total XP" [ref=f2e176]: "1"
+              - button "Review correction" [ref=f2e177]
+  - alert [ref=f2e178]
+```

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { BattlefieldElevationEditor } from './battlefield-elevation-editor'
-it('renders three exact chances with a new battle warning and reason-gated publish', () => {
+it('renders three exact chances with a new battle warning and reason-free save', () => {
   const html = renderToStaticMarkup(
     <BattlefieldElevationEditor
       initialPolicy={{
@@ -16,13 +16,14 @@ it('renders three exact chances with a new battle warning and reason-gated publi
     'Elevation level 1 chance (%)',
     'Elevation level 2 chance (%)',
     'Elevation level 3 chance (%)',
-    'Elevation change reason',
-    'Publish elevation chances',
+    'Save Changes',
     'Total: 100%',
     'new battles',
   ])
     expect(html).toContain(label)
   expect(html).toContain('value="12.34"')
   expect(html).toContain('step="0.01"')
-  expect(html).toContain('disabled=""')
+  expect(html).not.toContain('disabled=""')
+  expect(html).not.toMatch(/change reason|policy v7|chances v7/)
+  expect(html).toContain('Target Elevation')
 })

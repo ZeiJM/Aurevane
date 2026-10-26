@@ -1,0 +1,25 @@
+{
+  "localSourceMerge": "3e62cad722049bb74005953d32d31fd7bfd1ec2f",
+  "localFrozenHead": "b2af6e4ef80cdfa12628a5edc589d78c75daa4c2",
+  "remoteExactHead": "ccd34aff9c32b69bc3e28cf2ded12953757374aa",
+  "tree": "6dd193521a6fa30fb28eed9465c46ad73a5544ce",
+  "branch": "agent/master-resume-20261025",
+  "actualMainParent": "14df01a2c42d4cb36bd6c99d21372a1c51084164",
+  "fetchedZeroDiff": true,
+  "mainAncestor": true,
+  "ledger": {
+    "priorBytes": 371335,
+    "currentBytes": 388384,
+    "newRows": 19,
+    "allNewGzipSHAAndDecode": true,
+    "newExitCodes": {
+      "0": 14,
+      "1": 5
+    },
+    "keyJWTMatches": 0
+  },
+  "allRepositoryPriorGzipUnchanged": 583,
+  "task10EvidenceDirectoryPriorGzipUnchanged": 508,
+  "deploymentLockBlob": "b8a4e0e3c57b95a8da49c05d1fe5f60ba2181b5f",
+  "status": "Independent scoped review running; no approval or Master live release yet"
+}

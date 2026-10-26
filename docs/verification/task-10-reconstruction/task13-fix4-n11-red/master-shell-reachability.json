@@ -1,0 +1,557 @@
+[
+  {
+    "viewport": {
+      "width": 683,
+      "height": 340
+    },
+    "index": 0,
+    "target": "BUTTON",
+    "text": "Search",
+    "rect": {
+      "x": 578.5,
+      "y": 265.9375,
+      "width": 57.96875,
+      "height": 40,
+      "top": 265.9375,
+      "right": 636.46875,
+      "bottom": 305.9375,
+      "left": 578.5
+    },
+    "dock": {
+      "x": 0,
+      "y": 289.40625,
+      "width": 668,
+      "height": 50.59375,
+      "top": 289.40625,
+      "right": 668,
+      "bottom": 340,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 683,
+    "height": 340,
+    "rootScrollWidth": 668,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 683,
+      "height": 340
+    },
+    "index": 1,
+    "target": "INPUT",
+    "text": "",
+    "rect": {
+      "x": 46.96875,
+      "y": 148.046875,
+      "width": 574.0625,
+      "height": 44,
+      "top": 148.046875,
+      "right": 621.03125,
+      "bottom": 192.046875,
+      "left": 46.96875
+    },
+    "dock": {
+      "x": 0,
+      "y": 289.40625,
+      "width": 668,
+      "height": 50.59375,
+      "top": 289.40625,
+      "right": 668,
+      "bottom": 340,
+      "left": 0
+    },
+    "hit": "INPUT",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 683,
+    "height": 340,
+    "rootScrollWidth": 668,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 683,
+      "height": 340
+    },
+    "index": 2,
+    "target": "BUTTON",
+    "text": "History",
+    "rect": {
+      "x": 230.15625,
+      "y": 33.53125,
+      "width": 59.53125,
+      "height": 40,
+      "top": 33.53125,
+      "right": 289.6875,
+      "bottom": 73.53125,
+      "left": 230.15625
+    },
+    "dock": {
+      "x": 0,
+      "y": 289.40625,
+      "width": 668,
+      "height": 50.59375,
+      "top": 289.40625,
+      "right": 668,
+      "bottom": 340,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 683,
+    "height": 340,
+    "rootScrollWidth": 668,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "index": 0,
+    "target": "BUTTON",
+    "text": "Search",
+    "rect": {
+      "x": 578.5,
+      "y": 236.9375,
+      "width": 57.96875,
+      "height": 40,
+      "top": 236.9375,
+      "right": 636.46875,
+      "bottom": 276.9375,
+      "left": 578.5
+    },
+    "dock": {
+      "x": 0,
+      "y": 399.40625,
+      "width": 705,
+      "height": 50.59375,
+      "top": 399.40625,
+      "right": 705,
+      "bottom": 450,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 720,
+    "height": 450,
+    "rootScrollWidth": 705,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "index": 1,
+    "target": "INPUT",
+    "text": "",
+    "rect": {
+      "x": 231.96875,
+      "y": 203.25,
+      "width": 413.0625,
+      "height": 44,
+      "top": 203.25,
+      "right": 645.03125,
+      "bottom": 247.25,
+      "left": 231.96875
+    },
+    "dock": {
+      "x": 0,
+      "y": 399.40625,
+      "width": 705,
+      "height": 50.59375,
+      "top": 399.40625,
+      "right": 705,
+      "bottom": 450,
+      "left": 0
+    },
+    "hit": "INPUT",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 720,
+    "height": 450,
+    "rootScrollWidth": 705,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "index": 2,
+    "target": "BUTTON",
+    "text": "History",
+    "rect": {
+      "x": 415.15625,
+      "y": 88.734375,
+      "width": 59.53125,
+      "height": 40,
+      "top": 88.734375,
+      "right": 474.6875,
+      "bottom": 128.734375,
+      "left": 415.15625
+    },
+    "dock": {
+      "x": 0,
+      "y": 399.40625,
+      "width": 705,
+      "height": 50.59375,
+      "top": 399.40625,
+      "right": 705,
+      "bottom": 450,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 720,
+    "height": 450,
+    "rootScrollWidth": 705,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "index": 0,
+    "target": "BUTTON",
+    "text": "Search",
+    "rect": {
+      "x": 771.765625,
+      "y": 240.609375,
+      "width": 57.96875,
+      "height": 40,
+      "top": 240.609375,
+      "right": 829.734375,
+      "bottom": 280.609375,
+      "left": 771.765625
+    },
+    "dock": {
+      "x": 0,
+      "y": 64,
+      "width": 190,
+      "height": 704,
+      "top": 64,
+      "right": 190,
+      "bottom": 768,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 1366,
+    "height": 768,
+    "rootScrollWidth": 1351,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "index": 1,
+    "target": "INPUT",
+    "text": "",
+    "rect": {
+      "x": 481.640625,
+      "y": 569.125,
+      "width": 505.5625,
+      "height": 41.59375,
+      "top": 569.125,
+      "right": 987.203125,
+      "bottom": 610.71875,
+      "left": 481.640625
+    },
+    "dock": {
+      "x": 0,
+      "y": 64,
+      "width": 190,
+      "height": 704,
+      "top": 64,
+      "right": 190,
+      "bottom": 768,
+      "left": 0
+    },
+    "hit": "INPUT",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 1366,
+    "height": 768,
+    "rootScrollWidth": 1351,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "index": 2,
+    "target": "BUTTON",
+    "text": "History",
+    "rect": {
+      "x": 664.828125,
+      "y": 458.609375,
+      "width": 59.53125,
+      "height": 40,
+      "top": 458.609375,
+      "right": 724.359375,
+      "bottom": 498.609375,
+      "left": 664.828125
+    },
+    "dock": {
+      "x": 0,
+      "y": 64,
+      "width": 190,
+      "height": 704,
+      "top": 64,
+      "right": 190,
+      "bottom": 768,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 1366,
+    "height": 768,
+    "rootScrollWidth": 1351,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "index": 0,
+    "target": "BUTTON",
+    "text": "Search",
+    "rect": {
+      "x": 772.5,
+      "y": 205.75,
+      "width": 57.96875,
+      "height": 40,
+      "top": 205.75,
+      "right": 830.46875,
+      "bottom": 245.75,
+      "left": 772.5
+    },
+    "dock": {
+      "x": 0,
+      "y": 64,
+      "width": 190,
+      "height": 836,
+      "top": 64,
+      "right": 190,
+      "bottom": 900,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 1440,
+    "height": 900,
+    "rootScrollWidth": 1425,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "index": 1,
+    "target": "INPUT",
+    "text": "",
+    "rect": {
+      "x": 496.890625,
+      "y": 534.265625,
+      "width": 544.234375,
+      "height": 41.59375,
+      "top": 534.265625,
+      "right": 1041.125,
+      "bottom": 575.859375,
+      "left": 496.890625
+    },
+    "dock": {
+      "x": 0,
+      "y": 64,
+      "width": 190,
+      "height": 836,
+      "top": 64,
+      "right": 190,
+      "bottom": 900,
+      "left": 0
+    },
+    "hit": "INPUT",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 1440,
+    "height": 900,
+    "rootScrollWidth": 1425,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "index": 2,
+    "target": "BUTTON",
+    "text": "History",
+    "rect": {
+      "x": 680.078125,
+      "y": 423.75,
+      "width": 59.53125,
+      "height": 40,
+      "top": 423.75,
+      "right": 739.609375,
+      "bottom": 463.75,
+      "left": 680.078125
+    },
+    "dock": {
+      "x": 0,
+      "y": 64,
+      "width": 190,
+      "height": 836,
+      "top": 64,
+      "right": 190,
+      "bottom": 900,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 1440,
+    "height": 900,
+    "rootScrollWidth": 1425,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "index": 0,
+    "target": "BUTTON",
+    "text": "Search",
+    "rect": {
+      "x": 578.5,
+      "y": 236.9375,
+      "width": 57.96875,
+      "height": 40,
+      "top": 236.9375,
+      "right": 636.46875,
+      "bottom": 276.9375,
+      "left": 578.5
+    },
+    "dock": {
+      "x": 0,
+      "y": 399.40625,
+      "width": 705,
+      "height": 50.59375,
+      "top": 399.40625,
+      "right": 705,
+      "bottom": 450,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 720,
+    "height": 450,
+    "rootScrollWidth": 705,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "index": 1,
+    "target": "INPUT",
+    "text": "",
+    "rect": {
+      "x": 231.96875,
+      "y": 203.25,
+      "width": 413.0625,
+      "height": 44,
+      "top": 203.25,
+      "right": 645.03125,
+      "bottom": 247.25,
+      "left": 231.96875
+    },
+    "dock": {
+      "x": 0,
+      "y": 399.40625,
+      "width": 705,
+      "height": 50.59375,
+      "top": 399.40625,
+      "right": 705,
+      "bottom": 450,
+      "left": 0
+    },
+    "hit": "INPUT",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 720,
+    "height": 450,
+    "rootScrollWidth": 705,
+    "cssZoom": "1",
+    "focusVisible": true
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "index": 2,
+    "target": "BUTTON",
+    "text": "History",
+    "rect": {
+      "x": 415.15625,
+      "y": 88.734375,
+      "width": 59.53125,
+      "height": 40,
+      "top": 88.734375,
+      "right": 474.6875,
+      "bottom": 128.734375,
+      "left": 415.15625
+    },
+    "dock": {
+      "x": 0,
+      "y": 399.40625,
+      "width": 705,
+      "height": 50.59375,
+      "top": 399.40625,
+      "right": 705,
+      "bottom": 450,
+      "left": 0
+    },
+    "hit": "BUTTON",
+    "hitDock": false,
+    "unobscured": true,
+    "width": 720,
+    "height": 450,
+    "rootScrollWidth": 705,
+    "cssZoom": "1",
+    "focusVisible": true
+  }
+]

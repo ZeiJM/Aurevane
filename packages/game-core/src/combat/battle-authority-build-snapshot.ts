@@ -51,11 +51,21 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
       !positiveInteger(candidate.slotIndex) ||
       typeof candidate.skillId !== 'string' ||
       !positiveInteger(candidate.contentVersion) ||
-      typeof candidate.sourceDisciplineId !== 'string'
+      typeof candidate.sourceDisciplineId !== 'string' ||
+      (Object.hasOwn(candidate, 'eligibilityDisciplineId') &&
+        typeof candidate.eligibilityDisciplineId !== 'string') ||
+      (Object.hasOwn(candidate, 'earnedEligibility') &&
+        typeof candidate.earnedEligibility !== 'boolean')
     ) {
       return null
     }
     disciplineSkills.push({
+      ...(Object.hasOwn(candidate, 'eligibilityDisciplineId')
+        ? { eligibilityDisciplineId: candidate.eligibilityDisciplineId as string }
+        : {}),
+      ...(Object.hasOwn(candidate, 'earnedEligibility')
+        ? { earnedEligibility: candidate.earnedEligibility as boolean }
+        : {}),
       slotIndex: candidate.slotIndex,
       skillId: candidate.skillId,
       contentVersion: candidate.contentVersion,
@@ -71,6 +81,9 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
     schemaVersion: 1,
     sourceBuildSchemaVersion: value.buildSchemaVersion,
     sourceBuildVersion: value.buildVersion,
+    ...(value.skillEligibilityPolicyVersion === 1
+      ? { skillEligibilityPolicyVersion: 1 as const }
+      : {}),
     fingerprint: value.fingerprint,
     primary: {
       disciplineId: value.primary.disciplineId,

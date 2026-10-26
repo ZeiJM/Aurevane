@@ -6,7 +6,12 @@ vi.mock('./foundation-discipline-sigil', () => ({ FoundationDisciplineSigil: () 
 
 import { DisciplineLibrary } from './character-discipline-build-panel'
 
-type ButtonProps = { children?: ReactNode; disabled?: boolean; onClick?: () => void }
+type ButtonProps = {
+  'aria-label'?: string
+  children?: ReactNode
+  disabled?: boolean
+  onClick?: () => void
+}
 
 function buttons(node: ReactNode): ReactElement<ButtonProps>[] {
   const result: ReactElement<ButtonProps>[] = []
@@ -104,4 +109,18 @@ describe('Discipline library slot interaction', () => {
       ),
     ).toBe(true)
   })
+})
+
+it('allows a same-identity Core refresh during attunement while blocking other identities', () => {
+  const input = { ...props(), primaryRemainingSeconds: 3600, refreshPrimaryId: 'vanguard' }
+  const cards = buttons(DisciplineLibrary(input))
+  expect(
+    cards.find((card) => card.props['aria-label'] === 'Select Vanguard as Primary Discipline')
+      ?.props.disabled,
+  ).toBe(false)
+  expect(
+    cards
+      .filter((card) => card.props['aria-label'] !== 'Select Vanguard as Primary Discipline')
+      .every((card) => card.props.disabled),
+  ).toBe(true)
 })

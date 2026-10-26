@@ -1,3 +1,5 @@
+import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
+import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
 import { createPercentageRecoveryResonanceVersion } from './combat-recovery-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
@@ -48,7 +50,7 @@ export interface ResonanceSkillSequenceTrigger {
   readonly aiPayoffUtilityBonus: number
 }
 
-export interface ResonanceMediaHooks {
+export interface ResonanceMediaHooks extends FinalizedContentMediaSlots {
   readonly iconKey: string | null
   readonly audioCueKey: string | null
   readonly vfxKey: string | null
@@ -62,6 +64,7 @@ export interface ResonanceDefinition {
   readonly disciplinePair: readonly [string, string]
   readonly name: string
   readonly description: string
+  readonly presentation?: AbilityPresentationText
   readonly flavorLine?: string
   readonly trigger: ResonanceSkillSequenceTrigger
   readonly media: ResonanceMediaHooks
@@ -208,7 +211,10 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
     return validateResonanceDefinitionV2(definition)
   }
 
-  const issues: string[] = []
+  const issues: string[] = [
+    ...finalizedContentMediaIssues(definition.media),
+    ...abilityPresentationTextIssues(definition),
+  ]
   const canonical = Object.hasOwn(definition, 'ability')
   if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')
   if (!STABLE_ID_PATTERN.test(definition.id)) issues.push('id')

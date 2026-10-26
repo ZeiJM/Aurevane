@@ -181,10 +181,8 @@ it('the production Event factory keeps current reads actorless through real work
       actorUserId: state.userId,
       eventKey,
       idempotencyKey: '11111111-1111-4111-8111-111111111111',
-      requestFingerprint: 'fixture',
       scheduledStartAt: '2026-11-01T12:00:00Z',
       scheduledEndAt: null,
-      reason: 'Reviewed schedule',
       confirmed: true,
     }),
   ).resolves.toMatchObject({ runId: 'scheduled' })

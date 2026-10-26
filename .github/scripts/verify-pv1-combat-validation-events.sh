@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source .github/scripts/current-character-test-snapshot.sh
 
 source .github/scripts/auth-test-helpers.sh
 load_test_auth
@@ -67,6 +68,7 @@ create_battle() {
       }
     }')"
 
+  snapshot="$(with_current_character_build "$db_container" "$user_id" "$character_id" "$player_combatant" "$snapshot")"
   participants="$(jq -cn \
     --arg player "$player_combatant" \
     --arg opponent "$opponent_id" \

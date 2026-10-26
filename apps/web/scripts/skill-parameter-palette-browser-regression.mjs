@@ -2,13 +2,13 @@
 // Run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
-import { createRequire } from 'node:module'
+import { createRequire, stripTypeScriptTypes } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const require = createRequire(import.meta.url)
-const { createServer } = await import(
+const { createServer, build } = await import(
   pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
 )
 const { chromium } = require(
@@ -16,7 +16,14 @@ const { chromium } = require(
 )
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
-const basicServiceAcceptance = process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1'
+const shellReachabilityOnly = process.env.AV_MASTER_SHELL_REACHABILITY_ONLY === '1'
+const editorIdentityOnly = process.env.AV_MASTER_EDITOR_IDENTITY_ONLY === '1'
+const originalRpcAcceptance = process.env.AV_BASIC_ORIGINAL_RPC_ACCEPTANCE === '1'
+const basicServiceAcceptance =
+  process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' ||
+  originalRpcAcceptance ||
+  editorIdentityOnly ||
+  shellReachabilityOnly
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'skill-parameter-palette-'))
 const output =
   process.env.AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR ||
@@ -63,6 +70,10 @@ await fs.writeFile(
   resolve(fixture, 'next-dynamic.jsx'),
   `import React from 'react';export default function dynamic(loader){const Component=React.lazy(()=>loader().then(value=>({default:value})));return props=><React.Suspense fallback={null}><Component {...props}/></React.Suspense>}`,
 )
+await fs.writeFile(
+  resolve(fixture, 'shell.jsx'),
+  `import React from 'react';import {AuthenticatedShellPresentation} from '@/components/shell/authenticated-shell-presentation';export function AuthenticatedShellFrame({children}){return <AuthenticatedShellPresentation masterPanelHref="/master">{children}</AuthenticatedShellPresentation>}`,
+)
 await fs.writeFile(resolve(fixture, 'server-only.js'), 'export {}')
 await fs.writeFile(
   resolve(fixture, 'auth-boundary.js'),
@@ -88,6 +99,7 @@ async function handleBasicRequest(request, response, next) {
   try {
     let result
     if (url.pathname === '/__basic-acceptance/reset') {
+      await basicFixture?.close?.()
       basicFixture = await createBasicEditorServiceFixture()
       result = Response.json({ reset: true })
     } else if (url.pathname === '/__basic-acceptance/options')
@@ -112,7 +124,7 @@ async function handleBasicRequest(request, response, next) {
     response.end(JSON.stringify({ error: String(error) }))
   }
 }
-const server = await createServer({
+const config = {
   plugins: basicServiceAcceptance
     ? [
         {
@@ -128,6 +140,7 @@ const server = await createServer({
   publicDir: resolve(web, 'public'),
   resolve: {
     alias: {
+      '@/components/shell/authenticated-game-shell': resolve(fixture, 'shell.jsx'),
       ...(basicServiceAcceptance
         ? {
             '@/server/auth/actor': resolve(fixture, 'auth-boundary.js'),
@@ -156,10 +169,60 @@ const server = await createServer({
   esbuild: { jsx: 'automatic' },
   server: { host: '127.0.0.1', port: 0, hmr: false, watch: null, fs: { allow: [root, fixture] } },
   optimizeDeps: { include: ['react', 'react-dom/client'] },
-})
+}
+if (process.env.AV_SKILL_PARAMETER_PALETTE_COMPILE_ONLY === '1') {
+  try {
+    await build({ ...config, build: { write: false, minify: false } })
+    console.log('Production shared Master/browser fixture compiled.')
+  } finally {
+    await fs.rm(fixture, { recursive: true, force: true })
+  }
+  process.exit(0)
+}
+// Reuse the exact native control/activate bodies, including tab order, hit testing,
+// ancestor clipping and visible focus. This local fixture does not simulate zoom.
+let nativeMasterControls
+if (shellReachabilityOnly) {
+  const source = await fs.readFile(resolve(web, 'e2e/master-zoom-workflows.ts'), 'utf8')
+  const start = source.indexOf('  async function control(')
+  const end = source.indexOf('  async function state(', start)
+  assert.ok(start >= 0 && end > start, 'Native control/activate source boundaries must exist')
+  const moduleSource = `import playwright from ${JSON.stringify(pathToFileURL(require.resolve('@playwright/test')).href)};
+const { expect } = playwright;
+export function nativeMasterControls(page, info, evidence, slug) {
+${source.slice(start, end)}
+return { control, activate };
+}`
+  const modulePath = resolve(fixture, 'native-master-controls.mjs')
+  await fs.writeFile(modulePath, stripTypeScriptTypes(moduleSource))
+  ;({ nativeMasterControls } = await import(pathToFileURL(modulePath).href))
+  await fs.writeFile(resolve(output, 'native-controls-source.ts.txt'), moduleSource)
+}
+const server = await createServer(config)
+// The SQL-backed server fixture uses Node package resolution for React cache().
+// Client aliases are only for the browser bundle; inlining its CJS entry in SSR
+// would fail before any production store or editor behavior runs.
+const sqlFixtureServer = originalRpcAcceptance
+  ? await createServer({
+      ...config,
+      plugins: [],
+      resolve: {
+        alias: Object.fromEntries(
+          Object.entries(config.resolve.alias).filter(
+            ([name]) => name !== 'react' && name !== 'react-dom',
+          ),
+        ),
+      },
+    })
+  : undefined
 if (basicServiceAcceptance) {
-  ;({ createBasicEditorServiceFixture } = await server.ssrLoadModule(
-    resolve(web, 'e2e/fixtures/basic-editor-service.ts'),
+  ;({ createBasicEditorServiceFixture } = await (sqlFixtureServer ?? server).ssrLoadModule(
+    resolve(
+      web,
+      originalRpcAcceptance
+        ? 'e2e/fixtures/basic-original-rpc-service.ts'
+        : 'e2e/fixtures/basic-editor-service.ts',
+    ),
   ))
   basicFixture = await createBasicEditorServiceFixture()
 
@@ -172,19 +235,22 @@ if (basicServiceAcceptance) {
     const restored = await fetch(new URL('/api/master/combat-content', origin), {
       method: 'POST',
       body: JSON.stringify({
-        operation: 'restore-basic-draft',
-        skillId: 'basic.guard',
-        targetVersion: 1,
-        expectedBaseVersion: 2,
-        expectedDraftVersion: null,
+        operation: 'record',
+        command: {
+          action: 'restore',
+          contentKey: 'basic.guard',
+          sourceVersion: 2,
+          expectedRevision: 3,
+        },
       }),
     })
     assert.equal(restored.status, 200)
     const inspection = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
     assert.equal(inspection.oldCapturesUnchanged, true)
     console.log(
-      'Actual Basic HTTP handler/service probe passed: five v2 records and v1 Guard restore.',
+      'Actual Basic HTTP handler/service probe passed: five v3 records and physical v2 Guard restore.',
     )
+    await sqlFixtureServer?.close()
     await server.close()
     await fs.rm(fixture, { recursive: true, force: true })
     process.exit(0)
@@ -431,14 +497,19 @@ async function verifyModularManual(page, viewport) {
 }
 async function assertBasicContrast(locator, minimum = 4.5) {
   const colors = await locator.evaluate((element) => {
-    const style = getComputedStyle(element)
-    let background = style.backgroundColor
-    let parent = element.parentElement
-    while ((background === 'rgba(0, 0, 0, 0)' || background === 'transparent') && parent) {
-      background = getComputedStyle(parent).backgroundColor
-      parent = parent.parentElement
+    const color = getComputedStyle(element).color
+    let surface = element
+    while (surface) {
+      const style = getComputedStyle(surface)
+      const gradient = style.backgroundImage.includes('gradient(')
+        ? [...style.backgroundImage.matchAll(/rgba?\([^)]+\)/g)].map((match) => match[0])
+        : []
+      if (gradient.length) return { color, backgrounds: gradient }
+      if (style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent')
+        return { color, backgrounds: [style.backgroundColor] }
+      surface = surface.parentElement
     }
-    return { color: style.color, background }
+    throw new Error('No rendered background for contrast measurement')
   })
   const luminance = (css) => {
     const channels = css
@@ -451,41 +522,52 @@ async function assertBasicContrast(locator, minimum = 4.5) {
       })
     return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722
   }
-  const [light, dark] = [luminance(colors.color), luminance(colors.background)].sort(
-    (a, b) => b - a,
-  )
-  assert.ok(
-    (light + 0.05) / (dark + 0.05) >= minimum,
-    `Basic contrast below ${minimum}: ${JSON.stringify(colors)}`,
-  )
+  for (const background of colors.backgrounds) {
+    const [light, dark] = [luminance(colors.color), luminance(background)].sort((a, b) => b - a)
+    assert.ok(
+      (light + 0.05) / (dark + 0.05) >= minimum,
+      `Basic contrast below ${minimum}: ${JSON.stringify(colors)}`,
+    )
+  }
 }
 
+async function openNativeSample(scope) {
+  const details = scope.locator('details:has(> summary:text-is("Native sample"))')
+  if ((await details.getAttribute('open')) === null) await details.locator('summary').click()
+}
 async function verifyBasicEditor(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`, {
     waitUntil: 'networkidle',
   })
-  const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
-  const selector = editor.getByLabel('Basic Skill', { exact: true })
-  await assertBasicContrast(editor.locator('[aria-pressed="true"] strong'))
-  await assertBasicContrast(editor.getByLabel('Basic Skill name', { exact: true }))
+  const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+  const selector = {
+    selectOption: async (id) => {
+      await editor.locator(`[data-content-key="${id}"]`).click()
+      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
+    },
+  }
+  await assertBasicContrast(editor.locator('[data-content-key][aria-current="true"]'))
+  await assertBasicContrast(editor.getByLabel('Name', { exact: true }))
   await assertBasicContrast(
-    editor.getByLabel('Basic Skill name', { exact: true }).locator('..').locator('span').first(),
+    editor.getByLabel('Name', { exact: true }).locator('..').locator('span').first(),
   )
   assert.deepEqual(
-    await selector.locator('option').evaluateAll((rows) => rows.map((row) => row.value)),
+    await editor
+      .locator('[data-content-key]')
+      .evaluateAll((rows) => rows.map((row) => row.dataset.contentKey)),
     ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'],
   )
-  assert.equal(await page.getByLabel('Combat content type').inputValue(), 'basics')
+  assert.equal(await page.getByLabel('Content category').inputValue(), 'basic')
   await editor.getByLabel('Move cost basis').selectOption('flat')
-  await editor.getByLabel('Basic Skill name', { exact: true }).fill('Authored Move')
+  await editor.getByLabel('Name', { exact: true }).fill('Authored Move')
   await editor.getByLabel('AP cost', { exact: true }).fill('11')
   await editor.getByLabel('MP cost', { exact: true }).fill('2')
   await editor.getByLabel('HP cost', { exact: true }).fill('1')
   await editor.getByLabel('Move maximum tiles').fill('3')
   await editor.getByRole('button', { name: 'Validate', exact: true }).click()
-  await editor.getByText('Definition valid.', { exact: true }).waitFor()
+  await editor.getByText('Validated', { exact: true }).waitFor()
   await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await editor.getByText('Draft saved.', { exact: true }).waitFor()
+  await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
   const first = await page.evaluate(() => window.basicSavedDrafts['basic.move'])
   assert.equal(first.execution.costBasis, 'flat')
   assert.deepEqual(first.ability.behaviors[0].costs, [
@@ -500,33 +582,32 @@ async function verifyBasicEditor(page, viewport) {
   })
   await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
   await page.waitForFunction(() => typeof window.releaseBasicSave === 'function')
-  await editor.getByLabel('Basic Skill name', { exact: true }).fill('Newer unsaved Move')
+  await editor.getByLabel('Name', { exact: true }).fill('Newer unsaved Move')
   await page.evaluate(() => {
     window.holdBasicSave = false
     window.releaseBasicSave()
   })
   await editor
-    .getByText('Earlier draft saved; newer edits are still unsaved.', { exact: true })
+    .getByText('Saved earlier changes; newer local edits remain unsaved.', { exact: true })
     .waitFor()
-  assert.equal(
-    await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
-    'Newer unsaved Move',
-  )
+  assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), 'Newer unsaved Move')
   await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await editor.getByText('Draft saved.', { exact: true }).waitFor()
+  await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
   await editor.getByLabel('AP cost', { exact: true }).scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `basic-editor-move-${viewport.width}.png`) })
   await selector.selectOption('unarmed.basic')
   await editor.getByLabel('AP cost', { exact: true }).fill('0')
+  await editor.getByRole('button', { name: 'Validate', exact: true }).click()
+  await editor.getByRole('region', { name: 'Validation issues' }).waitFor()
   assert.ok(
-    (
-      await editor.getByRole('region', { name: 'Basic Skill definition report' }).textContent()
-    ).includes('Basic Attack requires a positive authored AP cost.'),
+    (await editor.getByRole('region', { name: 'Validation issues' }).textContent()).includes(
+      'Basic Attack requires a positive authored AP cost.',
+    ),
   )
   await editor.getByLabel('AP cost', { exact: true }).fill('17')
   await editor.getByLabel('Higher Power scaling (%)').fill('42.25')
   await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-  await editor.getByText('Draft saved.', { exact: true }).waitFor()
+  await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
   assert.equal(
     await page.evaluate(
       () => window.basicSavedDrafts['unarmed.basic'].execution.scalingBasisPoints,
@@ -539,51 +620,63 @@ async function verifyBasicEditor(page, viewport) {
     await selector.selectOption(id)
     if (id === 'basic.guard')
       assert.equal(
-        await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+        await editor.getByLabel('Name', { exact: true }).inputValue(),
         'Saved Guard draft',
       )
-    await editor.getByLabel('Basic Skill name', { exact: true }).fill(`Edited ${id}`)
+    await editor.getByLabel('Name', { exact: true }).fill(`Edited ${id}`)
     await editor.getByLabel('AP cost', { exact: true }).fill(String(9 + index))
     await editor.getByLabel('Recovery rounding').selectOption('floor')
     if (id !== 'basic.guard')
       await editor.getByLabel('Recovery percent', { exact: true }).fill(String(21 + index))
     await editor.getByRole('button', { name: 'Validate', exact: true }).click()
-    await editor.getByText('Definition valid.', { exact: true }).waitFor()
+    await editor.getByText('Validated', { exact: true }).waitFor()
     await editor.getByRole('button', { name: 'Save draft', exact: true }).click()
-    await editor.getByText('Draft saved.', { exact: true }).waitFor()
+    await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
   }
   await selector.selectOption('basic.move')
-  assert.equal(
-    await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
-    'Newer unsaved Move',
-  )
+  assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), 'Newer unsaved Move')
   const requests = await page.evaluate(() => window.basicDraftRequests)
   assert.deepEqual(
     requests
-      .filter((row) => row.operation === 'save-draft' && row.definition.id === 'basic.move')
-      .map((row) => row.expectedDraftVersion),
-    [null, 1, 2],
+      .filter(
+        (row) =>
+          row.operation === 'record' &&
+          row.command.action === 'save' &&
+          row.command.contentKey === 'basic.move',
+      )
+      .map((row) => row.command.expectedRevision),
+    [1, 2, 3],
   )
   assert.equal(
-    requests.find((row) => row.operation === 'save-draft' && row.definition.id === 'basic.guard')
-      .expectedDraftVersion,
-    4,
+    requests.find(
+      (row) =>
+        row.operation === 'record' &&
+        row.command.action === 'save' &&
+        row.command.contentKey === 'basic.guard',
+    ).command.expectedRevision,
+    1,
   )
   assert.ok(
     requests
-      .filter((row) => row.operation === 'save-draft')
-      .every((row) => row.baseVersion === 1 && row.definition.contentVersion === 1),
+      .filter((row) => row.operation === 'record' && row.command.action === 'save')
+      .every(
+        (row) =>
+          !Object.hasOwn(row.command, 'baseVersion') && row.command.definition.contentVersion === 1,
+      ),
   )
   await selector.selectOption('basic.recover.mp')
-  await editor
-    .getByRole('region', { name: 'Basic Skill definition report' })
-    .scrollIntoViewIfNeeded()
+  await editor.getByRole('complementary', { name: 'Content previews' }).scrollIntoViewIfNeeded()
   await assertBasicContrast(
     editor
-      .getByRole('region', { name: 'Basic Skill definition report' })
+      .getByRole('complementary', { name: 'Content previews' })
       .locator('[data-compact-effect-label]')
       .first(),
   )
+  for (const trigger of await editor
+    .getByRole('complementary', { name: 'Content previews' })
+    .locator('button[data-combat-tag-reference-trigger]')
+    .all())
+    await assertBasicContrast(trigger)
   await assertBasicContrast(editor.getByRole('button', { name: 'Save draft', exact: true }))
   await page.screenshot({ path: resolve(output, `basic-editor-recovery-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
@@ -594,8 +687,13 @@ async function verifyBasicPublication(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor`, {
     waitUntil: 'networkidle',
   })
-  const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
-  const select = editor.getByLabel('Basic Skill', { exact: true })
+  const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+  const select = {
+    selectOption: async (id) => {
+      await editor.locator(`[data-content-key="${id}"]`).click()
+      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
+    },
+  }
   const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
   const button = (name) => editor.getByRole('button', { name, exact: true })
   for (const id of [
@@ -606,11 +704,12 @@ async function verifyBasicPublication(page, viewport) {
     'basic.recover.mp',
   ]) {
     await select.selectOption(id)
-    await editor.getByLabel('Basic Skill name', { exact: true }).fill(`Publish ${id}`)
+    await editor.getByLabel('Name', { exact: true }).fill(`Publish ${id}`)
     if (id === 'basic.move') await editor.getByLabel('Move cost basis').selectOption('flat')
     await editor.getByLabel('AP cost', { exact: true }).fill('11')
     await editor.getByLabel('MP cost', { exact: true }).fill('2')
     await editor.getByLabel('HP cost', { exact: true }).fill('1')
+    await openNativeSample(editor)
     let groupId = 'use'
     if (id === 'basic.guard') {
       await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
@@ -621,14 +720,14 @@ async function verifyBasicPublication(page, viewport) {
       groupId = 'group-1'
       await editor.getByLabel('Preview action group', { exact: true }).selectOption(groupId)
     }
-    assert.equal(await button('Publish').isDisabled(), true)
+    assert.equal(await button('Publish saved draft').isDisabled(), true)
     await gesture(button('Save draft'))
-    await editor.getByText('Draft saved.', { exact: true }).waitFor()
+    await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
     await gesture(button('Validate'))
-    await editor.getByText('Definition valid.', { exact: true }).waitFor()
+    await editor.getByText('Validated', { exact: true }).waitFor()
     await gesture(button('Diff'))
     await editor.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
-    await gesture(button('Preview'))
+    await gesture(button('Run native sample'))
     const preview = editor.getByRole('region', { name: 'Deterministic preview', exact: true })
     await preview.waitFor()
     assert.match(await preview.innerText(), new RegExp(groupId))
@@ -637,25 +736,22 @@ async function verifyBasicPublication(page, viewport) {
       id === 'basic.guard' ? /17 AP[\s\S]*3 MP[\s\S]*2 HP/ : /11 AP[\s\S]*2 MP[\s\S]*1 HP/,
     )
     if (id === 'basic.move') assert.match(await preview.innerText(), /1 tile/)
-    await gesture(button('Publish'))
-    const confirmation = editor.getByRole('region', { name: 'Confirm publication', exact: true })
-    await confirmation.waitFor()
-    assert.match(await confirmation.innerText(), /Base v1[\s\S]*New v2/)
+    // Saving and reviewing never publish. Only the explicit saved-revision action does.
     const beforeCancel = await page.evaluate(() => window.basicPublishedVersions.length)
-    await gesture(confirmation.getByRole('button', { name: 'Cancel', exact: true }))
-    assert.equal(await page.evaluate(() => window.basicPublishedVersions.length), beforeCancel)
-    await gesture(button('Publish'))
+    assert.equal(
+      beforeCancel,
+      ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'].indexOf(
+        id,
+      ),
+    )
     if (id === 'basic.recover.mp') {
       await page.evaluate(() => {
         window.rejectBasicPublish = true
       })
-      await gesture(confirmation.getByRole('button', { name: 'Confirm publish', exact: true }))
+      await gesture(button('Publish saved draft'))
       await editor.getByRole('alert').waitFor()
       assert.match(await editor.getByRole('alert').innerText(), /Combat content changed/)
-      assert.equal(
-        await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
-        `Publish ${id}`,
-      )
+      assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), `Publish ${id}`)
       assert.equal(await page.evaluate(() => window.basicPublishedVersions.length), beforeCancel)
       await page.evaluate(() => {
         window.rejectBasicPublish = false
@@ -665,36 +761,39 @@ async function verifyBasicPublication(page, viewport) {
       await page.evaluate(() => {
         window.holdBasicPublish = true
       })
-    await gesture(confirmation.getByRole('button', { name: 'Confirm publish', exact: true }))
+    await gesture(button('Publish saved draft'))
     if (id === 'basic.move') {
       await page.waitForFunction(() => typeof window.releaseBasicPublish === 'function')
-      await editor.getByLabel('Basic Skill name', { exact: true }).fill('Newer unpublished Move')
+      await editor.getByLabel('Name', { exact: true }).fill('Newer unpublished Move')
       await page.evaluate(() => {
         window.releaseBasicPublish()
         window.holdBasicPublish = false
       })
       await editor
-        .getByText('Published earlier draft as v2; newer edits are still unpublished.', {
+        .getByText('Saved earlier changes; newer local edits remain unsaved.', {
           exact: true,
         })
         .waitFor()
       assert.equal(
-        await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+        await editor.getByLabel('Name', { exact: true }).inputValue(),
         'Newer unpublished Move',
       )
       await gesture(button('Save draft'))
-      await editor.getByText('Draft saved.', { exact: true }).waitFor()
+      await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
       const lastSave = await page.evaluate(() =>
-        window.basicDraftRequests.filter((row) => row.operation === 'save-draft').at(-1),
+        window.basicDraftRequests
+          .filter((row) => row.operation === 'record' && row.command.action === 'save')
+          .at(-1),
       )
-      assert.equal(lastSave.baseVersion, 2)
-      assert.equal(lastSave.expectedDraftVersion, 1)
-    } else await editor.getByText('Published immutable v2.', { exact: true }).waitFor()
-    assert.equal(await button('Publish').isDisabled(), true)
+      assert.equal(lastSave.command.expectedRevision, 3)
+      assert.equal(Object.hasOwn(lastSave.command, 'definition'), true)
+    } else await editor.getByText('Published the saved complete record.', { exact: true }).waitFor()
+    assert.equal(await button('Publish saved draft').isDisabled(), id !== 'basic.move')
+    await button('History').click()
     assert.equal(await editor.getByRole('button', { name: 'Rollback', exact: true }).count(), 0)
     assert.match(
-      await editor.getByRole('region', { name: 'Version history', exact: true }).innerText(),
-      /v2[\s\S]*Current[\s\S]*v1/,
+      await editor.getByRole('list', { name: 'Publication history' }).innerText(),
+      /Version 2[\s\S]*current/,
     )
   }
   const result = await page.evaluate(() => ({
@@ -708,15 +807,15 @@ async function verifyBasicPublication(page, viewport) {
   )
   assert.ok(
     result.requests
-      .filter((row) => row.operation === 'publish')
-      .every((row) => row.expectedBaseVersion === 1),
+      .filter((row) => row.operation === 'record' && row.command.action === 'publish')
+      .every(
+        (row) => row.command.expectedBaseVersion === 1 && !Object.hasOwn(row.command, 'definition'),
+      ),
   )
   assert.equal(result.definitions['basic.guard'].ability.behaviors.length, 2)
   assert.equal(result.definitions['basic.move'].name, 'Publish basic.move')
   assert.equal(result.definitions['basic.recover.mp'].contentVersion, 2)
-  await editor
-    .getByRole('region', { name: 'Version history', exact: true })
-    .scrollIntoViewIfNeeded()
+  await editor.getByRole('list', { name: 'Publication history' }).scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `basic-publication-${viewport.width}.png`) })
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.equal(await editor.getByRole('alert').count(), 0)
@@ -732,28 +831,20 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
   const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
   const selector = page.getByLabel('Preview action group', { exact: true })
   const preview = page.getByRole('region', { name: 'Deterministic preview', exact: true })
-  const publish = page.getByRole('button', { name: 'Publish', exact: true })
-  const runPreview = () => gesture(page.getByRole('button', { name: 'Preview', exact: true }))
+  await openNativeSample(page)
+  const runPreview = () =>
+    gesture(page.getByRole('button', { name: 'Run native sample', exact: true }))
   assert.equal(await selector.inputValue(), 'brace')
   const selectorBounds = await selector.boundingBox()
   assert.ok(
     selectorBounds && selectorBounds.width >= 200,
     'The actual preview group selector needs readable space',
   )
-  await gesture(page.getByRole('button', { name: 'Validate', exact: true }))
-  await page.waitForFunction(() =>
-    [...document.querySelectorAll('button')].some(
-      (button) => button.textContent === 'Diff' && !button.disabled,
-    ),
-  )
-  await gesture(page.getByRole('button', { name: 'Diff', exact: true }))
-  await page.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
   await runPreview()
   await preview.waitFor()
   assert.match(await preview.innerText(), /brace[\s\S]*5 AP[\s\S]*barrier-change/)
   await selector.selectOption('recover')
   assert.equal(await preview.count(), 0)
-  assert.equal(await publish.isDisabled(), true)
   await runPreview()
   await preview.waitFor()
   assert.match(await preview.innerText(), /recover[\s\S]*13 AP[\s\S]*3 MP[\s\S]*healing/)
@@ -770,15 +861,6 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
     .getByLabel('Healing amount', { exact: true })
     .fill('18')
   assert.equal(await preview.count(), 0)
-  assert.equal(await publish.isDisabled(), true)
-  await gesture(page.getByRole('button', { name: 'Validate', exact: true }))
-  await page.waitForFunction(() =>
-    [...document.querySelectorAll('button')].some(
-      (button) => button.textContent === 'Diff' && !button.disabled,
-    ),
-  )
-  await gesture(page.getByRole('button', { name: 'Diff', exact: true }))
-  await page.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
   await runPreview()
   await preview.waitFor()
   assert.match(await preview.innerText(), /Free Controlled prime/)
@@ -793,13 +875,8 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
     undefined,
     'Controlled healing comes from the global policy, never a per-Skill timing override',
   )
-  await gesture(publish)
-  const confirmation = page.getByRole('region', { name: 'Confirm publication', exact: true })
-  await confirmation.waitFor()
   await selector.selectOption('brace')
-  assert.equal(await confirmation.count(), 0)
   assert.equal(await preview.count(), 0)
-  assert.equal(await publish.isDisabled(), true)
   await selector.selectOption('recover')
   await runPreview()
   await preview.waitFor()
@@ -824,7 +901,6 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
     () => !document.querySelector('[aria-label="Preview action group"]').disabled,
   )
   assert.equal(await preview.count(), 0, 'An older response cannot review the newer draft')
-  assert.equal(await publish.isDisabled(), true)
   assert.equal(await page.getByRole('alert').count(), 0)
   assert.ok(
     await page.evaluate(() =>
@@ -908,15 +984,87 @@ async function verifyCanonicalEditor(page, viewport) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.deepEqual(await page.evaluate(() => window.requests), [])
 }
+async function verifyOriginalRpcRestore(page, viewport) {
+  await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
+    waitUntil: 'networkidle',
+  })
+  const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+  const inspect = async () =>
+    (await page.request.get(`${server.resolvedUrls.local[0]}__basic-acceptance/inspect`)).json()
+  const originals = (await inspect()).originals
+  const activate = async (label) => {
+    const control = editor.getByRole('button', { name: label, exact: true })
+    if (viewport.width < 720) await control.tap()
+    else {
+      await control.focus()
+      await page.keyboard.press('Enter')
+    }
+  }
+  for (const original of originals) {
+    await editor.locator(`[data-content-key="${original.id}"]`).click()
+    await editor
+      .locator(`[data-content-key="${original.id}"][aria-current="true"]:not(:disabled)`)
+      .waitFor()
+    const before = (await inspect()).requests.length
+    await editor
+      .getByLabel('Name', { exact: true })
+      .fill(`${original.name} original restore regression`)
+    await activate('Save draft')
+    await editor.getByText('Draft saved. Publishing is separate.', { exact: true }).waitFor()
+    await activate('History')
+    await editor
+      .getByRole('button', { name: 'Restore System original v1 to draft', exact: true })
+      .waitFor()
+    await activate('Publish saved draft')
+    await editor.getByText('Published the saved complete record.', { exact: true }).waitFor()
+    await activate('History')
+    await activate('Restore System original v1 to draft')
+    await editor
+      .getByText('System original restored to a saved draft. Preview and publish when ready.', {
+        exact: true,
+      })
+      .waitFor()
+    await activate('History')
+    await editor
+      .getByRole('button', { name: 'Restore System original v1 to draft', exact: true })
+      .waitFor()
+    const result = await inspect(),
+      record = result.records.find((row) => row.contentKey === original.id)
+    assert.deepEqual(record.draft.definition, original)
+    assert.equal(record.draft.restoredSource, 'builtin')
+    assert.equal(record.builtinRestoreVersion, 1)
+    assert.deepEqual(
+      result.requests
+        .slice(before)
+        .map((row) => row.command.action)
+        .filter((action) => action !== 'list'),
+      ['save', 'publish', 'restore'],
+    )
+    await page.screenshot({
+      path: resolve(output, `original-rpc-${original.id}-${viewport.width}.png`),
+      fullPage: true,
+    })
+  }
+  const result = await inspect()
+  await fs.writeFile(
+    resolve(output, `original-rpc-${viewport.width}.json`),
+    JSON.stringify(result, null, 2),
+  )
+}
 async function verifyBasicServiceRestore(page, viewport) {
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
   })
-  const editor = page.getByRole('region', { name: 'Basic Skill authoring', exact: true })
-  const select = editor.getByLabel('Basic Skill', { exact: true })
+  const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+  const select = {
+    selectOption: async (id) => {
+      await editor.locator(`[data-content-key="${id}"]`).click()
+      await editor.locator(`[data-content-key="${id}"][aria-current="true"]`).waitFor()
+    },
+  }
   await editor.waitFor({ state: 'visible' })
-  await select.waitFor({ state: 'visible' })
   const activate = async (locator) => {
     if (viewport.width < 720) await locator.tap()
     else {
@@ -928,86 +1076,89 @@ async function verifyBasicServiceRestore(page, viewport) {
     (await page.request.get(`${server.resolvedUrls.local[0]}__basic-acceptance/inspect`)).json()
   const ids = ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp']
   assert.deepEqual(
-    await select.locator('option').evaluateAll((options) => options.map((row) => row.value)),
+    await editor
+      .locator('[data-content-key]')
+      .evaluateAll((rows) => rows.map((row) => row.dataset.contentKey)),
     ids,
   )
   for (const id of ids) {
     await select.selectOption(id)
     const original = (await inspect()).records.find((row) => row.id === id)
-    const restore = editor.getByRole('button', { name: 'Restore v1 to draft', exact: true })
-    await activate(restore)
-    const confirmation = editor.getByRole('region', {
-      name: 'Confirm restore to draft',
-      exact: true,
-    })
-    await confirmation.waitFor()
-    assert.match(
-      await confirmation.innerText(),
-      /Published versions and active battles stay unchanged/,
-    )
     const count = (await inspect()).requests.length
-    await activate(confirmation.getByRole('button', { name: 'Cancel restore', exact: true }))
-    assert.equal((await inspect()).requests.length, count)
-    await activate(restore)
-    await activate(
-      confirmation.getByRole('button', { name: 'Confirm restore to draft', exact: true }),
+    await activate(editor.getByRole('button', { name: 'History', exact: true }))
+    assert.equal(
+      (await inspect()).requests.length,
+      count,
+      'Browsing physical history does not mutate content',
     )
+    assert.equal(
+      await editor.getByRole('button', { name: 'Restore version 1 to draft', exact: true }).count(),
+      0,
+    )
+    await activate(editor.getByRole('button', { name: 'Restore version 2 to draft', exact: true }))
     await editor
-      .getByText('Restored v1 to a draft. Review and publish to apply it.', { exact: true })
+      .getByText('Version 2 restored to a saved draft. Preview and publish when ready.', {
+        exact: true,
+      })
       .waitFor()
+    await activate(editor.getByRole('button', { name: 'Parameters', exact: true }))
     const saved = await inspect()
     const record = saved.records.find((row) => row.id === id)
     assert.deepEqual(record.current, original.current)
     assert.deepEqual(record.history, original.history)
-    assert.equal(record.draft.baseVersion, 2)
-    assert.equal(record.draft.definition.contentVersion, 1)
+    assert.equal(record.draft.baseVersion, 3)
+    assert.equal(record.draft.definition.contentVersion, 2)
     assert.equal(saved.oldCapturesUnchanged, true)
     assert.equal(
-      await editor.getByLabel('Basic Skill name', { exact: true }).inputValue(),
+      await editor.getByLabel('Name', { exact: true }).inputValue(),
       record.draft.definition.name,
     )
     const button = (name) => editor.getByRole('button', { name, exact: true })
-    assert.equal(await button('Publish').isDisabled(), true)
+    assert.equal(await button('Publish saved draft').isDisabled(), false)
     await activate(button('Validate'))
-    await editor.getByText('Definition valid.', { exact: true }).waitFor()
+    await editor.getByText('Validated', { exact: true }).waitFor()
     await activate(button('Diff'))
     await editor.getByRole('region', { name: 'Semantic diff', exact: true }).waitFor()
     const previewResponse = page.waitForResponse((response) => {
       if (!response.url().endsWith('/api/master/combat-content')) return false
       return response.request().postDataJSON()?.operation === 'preview'
     })
-    await activate(button('Preview'))
+    await openNativeSample(editor)
+    await activate(button('Run native sample'))
     const preview = editor.getByRole('region', { name: 'Deterministic preview', exact: true })
     await preview.waitFor()
     const actualPreview = (await (await previewResponse).json()).preview
     assert.equal(actualPreview.legal, true)
     assert.equal(actualPreview.behaviorId, record.draft.definition.ability.behaviors[0].id)
     assert.match(await preview.innerText(), new RegExp(`${actualPreview.costs.actionEconomy} AP`))
-    await activate(button('Publish'))
-    const publication = editor.getByRole('region', { name: 'Confirm publication', exact: true })
-    await publication.waitFor()
-    assert.match(await publication.innerText(), /Base v2[\s\S]*New v3/)
-    await activate(publication.getByRole('button', { name: 'Confirm publish', exact: true }))
-    await editor.getByText('Published immutable v3.', { exact: true }).waitFor()
+    await activate(button('Publish saved draft'))
+    await editor.getByText('Published the saved complete record.', { exact: true }).waitFor()
     const after = await inspect()
     const current = after.records.find((row) => row.id === id)
-    assert.deepEqual(current.current.definition, { ...record.draft.definition, contentVersion: 3 })
+    assert.deepEqual(current.current.definition, { ...record.draft.definition, contentVersion: 4 })
     assert.deepEqual(current.history[0], original.history[0])
-    assert.equal(current.history.length, 2)
+    assert.equal(current.history.length, 3)
     assert.equal(after.oldCapturesUnchanged, true)
-    assert.deepEqual(after.oldVersions, [2, 2, 2])
+    assert.deepEqual(after.oldVersions, [3, 3, 3])
     assert.equal(await editor.getByRole('button', { name: 'Rollback', exact: true }).count(), 0)
-    await editor
-      .getByRole('region', { name: 'Version history', exact: true })
-      .scrollIntoViewIfNeeded()
+    await activate(button('History'))
+    await editor.getByRole('list', { name: 'Publication history' }).scrollIntoViewIfNeeded()
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     await page.screenshot({
       path: resolve(output, `basic-service-restore-${id}-${viewport.width}.png`),
     })
   }
   const result = await inspect()
-  assert.equal(result.requests.filter((row) => row.operation === 'restore-basic-draft').length, 5)
-  assert.equal(result.requests.filter((row) => row.operation === 'publish').length, 5)
+  assert.equal(
+    result.requests.filter((row) => row.operation === 'record' && row.command.action === 'restore')
+      .length,
+    5,
+  )
+  assert.equal(
+    result.requests.filter((row) => row.operation === 'record' && row.command.action === 'publish')
+      .length,
+    5,
+  )
   await fs.writeFile(
     resolve(output, `basic-service-${viewport.width}.json`),
     JSON.stringify(result, null, 2),
@@ -1015,8 +1166,18 @@ async function verifyBasicServiceRestore(page, viewport) {
 }
 try {
   for (const viewport of [
+    ...(shellReachabilityOnly
+      ? [
+          { width: 683, height: 340 },
+          { width: 683, height: 384 },
+          { width: 720, height: 450 },
+          { width: 390, height: 422 },
+          { width: 320, height: 370 },
+          { width: 1440, height: 900 },
+        ]
+      : []),
     { width: 1366, height: 768 },
-    ...(basicServiceAcceptance
+    ...(basicServiceAcceptance && !editorIdentityOnly && !shellReachabilityOnly
       ? [
           { width: 1440, height: 900 },
           { width: 720, height: 450 },
@@ -1024,23 +1185,163 @@ try {
       : []),
     { width: 390, height: 844 },
   ]) {
-    const page = await browser.newPage({ viewport, hasTouch: viewport.width < 720 })
+    const page = await browser.newPage({
+      viewport,
+      hasTouch: shellReachabilityOnly ? viewport.width === 390 : viewport.width < 720,
+    })
     const errors = []
     page.on('pageerror', (error) => {
       errors.push(error.message)
       browserErrors.push(error.message)
     })
+    if (shellReachabilityOnly) {
+      await page.goto(
+        `${server.resolvedUrls.local[0]}?surface=basic-editor&shell=true&basicService=1`,
+      )
+      await page.getByRole('navigation', { name: 'Master Panel navigation' }).waitFor()
+      await page.getByLabel('Content category', { exact: true }).selectOption('basic')
+      await page.getByLabel('Search content', { exact: true }).fill('no-matching-zoom-content')
+      const nativeEvidence = []
+      const native = nativeMasterControls(
+        page,
+        {
+          outputPath: (name) =>
+            resolve(output, `local-${viewport.width}-${viewport.height}-${name}`),
+          attach: async (name, { body }) =>
+            fs.writeFile(
+              resolve(output, `local-${viewport.width}-${viewport.height}-${name}`),
+              body,
+            ),
+        },
+        nativeEvidence,
+        'combat-content',
+      )
+      const targets = [
+        page.getByRole('button', { name: 'Search', exact: true }),
+        page.getByLabel('Name', { exact: true }),
+        page.getByRole('button', { name: 'History', exact: true }),
+      ]
+      for (const [index, target] of targets.entries()) {
+        if (index === 1) await page.locator('[data-content-key="unarmed.basic"]').click()
+        if (index === 1) {
+          await target.fill(await target.inputValue())
+          await native.control(target, 'name')
+        } else await native.activate(target, index === 0 ? 'search-empty' : 'history')
+        await fs.writeFile(
+          resolve(output, `native-controls-${viewport.width}-${viewport.height}.json`),
+          JSON.stringify(nativeEvidence, null, 2),
+        )
+        const measured = await target.evaluate((element) => {
+          const rect = element.getBoundingClientRect(),
+            dock = document.querySelector('[data-av-game-rail]'),
+            dockRect = dock.getBoundingClientRect()
+          const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
+          return {
+            target: element.tagName,
+            text: element.textContent,
+            rect: rect.toJSON(),
+            dock: dockRect.toJSON(),
+            hit: hit?.tagName,
+            hitDock: !!hit?.closest('[data-av-game-rail]'),
+            unobscured: hit === element || element.contains(hit),
+            width: innerWidth,
+            height: innerHeight,
+            rootScrollWidth: document.documentElement.scrollWidth,
+            cssZoom: getComputedStyle(document.documentElement).zoom,
+            focusVisible: element.matches(':focus-visible'),
+          }
+        })
+        evidence.push({ viewport, index, ...measured })
+        await fs.writeFile(
+          resolve(output, 'master-shell-reachability.json'),
+          JSON.stringify(evidence, null, 2),
+        )
+        await page.screenshot({
+          path: resolve(output, `master-shell-${viewport.width}-${viewport.height}-${index}.png`),
+        })
+        if (viewport.width <= 760)
+          assert.ok(
+            measured.rect.bottom <= measured.dock.top,
+            'The complete Master control must remain above the persistent dock',
+          )
+        assert.equal(
+          measured.unobscured,
+          true,
+          `Actual Master control ${index} must clear the persistent dock`,
+        )
+        assert.equal(measured.cssZoom, '1')
+        assert.ok(
+          measured.rect.left >= -1 &&
+            measured.rect.right <= measured.width + 1 &&
+            measured.rect.top >= -1 &&
+            measured.rect.bottom <= measured.height + 1,
+        )
+        assert.ok(measured.rootScrollWidth <= measured.width + 1)
+      }
+      assert.deepEqual(errors, [])
+      await page.close()
+      continue
+    }
+    if (editorIdentityOnly) {
+      await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`)
+      const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+      await editor.locator('[data-content-key="unarmed.basic"]').click()
+      await editor.locator('[data-content-key="unarmed.basic"][aria-current="true"]').waitFor()
+      const initialName = await editor
+        .getByRole('textbox', { name: 'Name', exact: true })
+        .inputValue()
+      for (const name of [initialName, 'Gash', 'Flame Burst']) {
+        await editor.getByRole('textbox', { name: 'Name', exact: true }).fill(name)
+        const heading = editor.getByRole('heading', { name, level: 2, exact: true })
+        await heading.waitFor()
+        await openNativeSample(editor)
+        await editor.getByRole('button', { name: 'Run native sample', exact: true }).click()
+        const chronicle = editor
+          .getByTestId('battle-log-feed')
+          .getByRole('heading', { name, level: 4, exact: true })
+        await chronicle.waitFor()
+        assert.equal(
+          await page.getByRole('heading', { name, exact: true }).count(),
+          2,
+          'Legacy broad identity is ambiguous with the real sample Chronicle',
+        )
+        assert.equal(await editor.getByRole('heading', { name, level: 2, exact: true }).count(), 1)
+        assert.equal(await chronicle.isVisible(), true)
+        await page.screenshot({
+          path: resolve(
+            output,
+            `editor-identity-${viewport.width}-${name.toLowerCase().replaceAll(' ', '-')}.png`,
+          ),
+          fullPage: true,
+        })
+        evidence.push({
+          viewport,
+          name,
+          legacyHeadingCount: 2,
+          selectedEditorHeadingCount: 1,
+          chronicleVisible: true,
+        })
+      }
+      assert.deepEqual(errors, [])
+      await page.close()
+      continue
+    }
     if (basicServiceAcceptance) {
-      await verifyBasicServiceRestore(page, viewport)
+      if (originalRpcAcceptance) await verifyOriginalRpcRestore(page, viewport)
+      else await verifyBasicServiceRestore(page, viewport)
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
         status: 'passed',
         basics: 5,
-        transport: 'actual local handler/service/repository/preview/publication',
+        browser: browser.version(),
+        transport: originalRpcAcceptance
+          ? 'actual handler/service/RPC store/production migration SQL'
+          : 'actual local handler/service/repository/preview/publication',
         input: viewport.width < 720 ? 'touch' : 'keyboard',
-        scope:
-          'Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim.',
+        scope: originalRpcAcceptance
+          ? 'Production editor and exact SQL-backed mutation responses with a controlled local Owner identity and PGlite transport; no hosted authentication, physical contention or browser zoom claim.'
+          : 'Production editor with controlled fixture actor and in-memory persistence; no hosted identity, physical browser zoom or human gameplay claim.',
       })
       await page.close()
       continue
@@ -1425,7 +1726,9 @@ try {
     await page.close()
   }
   await fs.writeFile(resolve(output, 'results.json'), JSON.stringify(evidence, null, 2))
-  console.log(`Skill parameter family/palette browser regression passed. Evidence: ${output}`)
+  console.log(
+    `${shellReachabilityOnly ? 'Mounted Master shell control reachability' : editorIdentityOnly ? 'Mounted editor identity and retained sample Chronicle' : 'Skill parameter family/palette browser'} regression passed. Evidence: ${output}`,
+  )
 } catch (error) {
   const failedPage = browser
     .contexts()
@@ -1457,7 +1760,9 @@ try {
   ])
   throw error
 } finally {
+  await basicFixture?.close?.()
   await browser.close()
+  await sqlFixtureServer?.close()
   await server.close()
   await fs.rm(fixture, { recursive: true, force: true })
 }

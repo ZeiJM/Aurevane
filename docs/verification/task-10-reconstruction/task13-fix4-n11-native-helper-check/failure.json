@@ -1,0 +1,154 @@
+{
+  "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n",
+  "browserErrors": [],
+  "evidence": [
+    {
+      "viewport": {
+        "width": 683,
+        "height": 340
+      },
+      "index": 0,
+      "target": "BUTTON",
+      "text": "Search",
+      "rect": {
+        "x": 24.1875,
+        "y": 243.734375,
+        "width": 57.96875,
+        "height": 40,
+        "top": 243.734375,
+        "right": 82.15625,
+        "bottom": 283.734375,
+        "left": 24.1875
+      },
+      "dock": {
+        "x": 0,
+        "y": 289.40625,
+        "width": 668,
+        "height": 50.59375,
+        "top": 289.40625,
+        "right": 668,
+        "bottom": 340,
+        "left": 0
+      },
+      "hit": "BUTTON",
+      "hitDock": false,
+      "unobscured": true,
+      "width": 683,
+      "height": 340,
+      "rootScrollWidth": 668,
+      "cssZoom": "1",
+      "focusVisible": true
+    },
+    {
+      "viewport": {
+        "width": 683,
+        "height": 340
+      },
+      "index": 1,
+      "target": "INPUT",
+      "text": "",
+      "rect": {
+        "x": 46.96875,
+        "y": 240.046875,
+        "width": 574.0625,
+        "height": 44,
+        "top": 240.046875,
+        "right": 621.03125,
+        "bottom": 284.046875,
+        "left": 46.96875
+      },
+      "dock": {
+        "x": 0,
+        "y": 289.40625,
+        "width": 668,
+        "height": 50.59375,
+        "top": 289.40625,
+        "right": 668,
+        "bottom": 340,
+        "left": 0
+      },
+      "hit": "INPUT",
+      "hitDock": false,
+      "unobscured": true,
+      "width": 683,
+      "height": 340,
+      "rootScrollWidth": 668,
+      "cssZoom": "1",
+      "focusVisible": true
+    },
+    {
+      "viewport": {
+        "width": 683,
+        "height": 340
+      },
+      "index": 2,
+      "target": "BUTTON",
+      "text": "History",
+      "rect": {
+        "x": 230.15625,
+        "y": 125.53125,
+        "width": 59.53125,
+        "height": 40,
+        "top": 125.53125,
+        "right": 289.6875,
+        "bottom": 165.53125,
+        "left": 230.15625
+      },
+      "dock": {
+        "x": 0,
+        "y": 289.40625,
+        "width": 668,
+        "height": 50.59375,
+        "top": 289.40625,
+        "right": 668,
+        "bottom": 340,
+        "left": 0
+      },
+      "hit": "BUTTON",
+      "hitDock": false,
+      "unobscured": true,
+      "width": 683,
+      "height": 340,
+      "rootScrollWidth": 668,
+      "cssZoom": "1",
+      "focusVisible": true
+    },
+    {
+      "viewport": {
+        "width": 683,
+        "height": 384
+      },
+      "index": 0,
+      "target": "BUTTON",
+      "text": "Search",
+      "rect": {
+        "x": 24.1875,
+        "y": 287.734375,
+        "width": 57.96875,
+        "height": 40,
+        "top": 287.734375,
+        "right": 82.15625,
+        "bottom": 327.734375,
+        "left": 24.1875
+      },
+      "dock": {
+        "x": 0,
+        "y": 333.40625,
+        "width": 668,
+        "height": 50.59375,
+        "top": 333.40625,
+        "right": 668,
+        "bottom": 384,
+        "left": 0
+      },
+      "hit": "BUTTON",
+      "hitDock": false,
+      "unobscured": true,
+      "width": 683,
+      "height": 384,
+      "rootScrollWidth": 668,
+      "cssZoom": "1",
+      "focusVisible": false
+    }
+  ]
+}

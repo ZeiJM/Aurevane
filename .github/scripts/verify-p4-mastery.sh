@@ -56,7 +56,13 @@ begin
  head:=jsonb_set(body,'{tactical,battle}',(body #> '{tactical,battle}') || jsonb_build_object('battleId','test:p4:'||id,'rulesVersion',1,'contentVersion',1,'lifecycle','completed','rng',jsonb_build_object('seed',42,'cursor',0)));
  initial:=jsonb_set(head,'{tactical,battle,lifecycle}','"active"');
  insert into app_private.battle_sessions(id,owner_user_id,battle_id,rules_version,content_version,current_version,lifecycle,current_snapshot) values(id,u,'test:p4:'||id,1,1,2,'completed',head);
+ -- Explicit import of a pre-policy completed encounter. Its omitted-policy
+ -- initial body is the regression subject, not a fresh admission candidate.
+ -- Disable only this newer admission trigger for the one fixture insert; the
+ -- outer disposable transaction rolls back all imported history and DDL.
+ alter table app_private.battle_participants disable trigger aaa_player_battle_admission;
  insert into app_private.battle_participants(battle_session_id,combatant_id,participant_role,user_id,character_id) values(id,'character:'||c,'player',u,c);
+ alter table app_private.battle_participants enable trigger aaa_player_battle_admission;
  insert into app_private.battle_snapshots(battle_session_id,battle_version,snapshot) values(id,1,initial),(id,2,head);
  if copy_events_from is not null then
   insert into app_private.battle_events(battle_session_id,battle_version,event_index,event) select id,battle_version,event_index,event from app_private.battle_events where battle_session_id=copy_events_from;

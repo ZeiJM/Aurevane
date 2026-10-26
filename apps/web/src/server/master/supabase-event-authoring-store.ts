@@ -192,6 +192,17 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     this.#actorUserId = actorUserId
   }
 
+  async readCatalogue() {
+    const { data, error } = await this.#rpc('read_event_workspace_catalogue_v1', {
+      p_actor_user_id: this.#actorUserId,
+    })
+    if (error) mapRpcError(error)
+    const catalogue = isObject(data) ? data : null
+    if (!catalogue || !Array.isArray(catalogue.events) || !Array.isArray(catalogue.rewards))
+      throw unavailable()
+    return catalogue as unknown as import('./event-authoring-service').EventWorkspaceCatalogue
+  }
+
   async readDraft(eventKey: string): Promise<EventDefinitionDraftRecord | null> {
     const { data, error } = await this.#rpc('read_event_definition_draft_v1', {
       p_actor_user_id: this.#actorUserId,
@@ -242,7 +253,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     definition: PersistentEventDefinition
     expectedBaseVersion: number | null
     correlationKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventDefinitionVersionRecord> {
     const { data, error } = await this.#rpc('publish_event_definition_v2', {
@@ -251,7 +262,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
       p_definition: input.definition,
       p_expected_base_version: input.expectedBaseVersion,
       p_correlation_key: input.correlationKey,
-      p_reason: input.reason,
+      p_reason: null,
       p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
@@ -266,7 +277,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     requestFingerprint: string
     scheduledStartAt: string
     scheduledEndAt: string | null
-    reason: string
+
     confirmed: boolean
   }): Promise<ScheduledEventRunRecord> {
     const { data, error } = await this.#rpc('schedule_event_run_v2', {
@@ -276,7 +287,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
       p_request_fingerprint: input.requestFingerprint,
       p_scheduled_start_at: input.scheduledStartAt,
       p_scheduled_end_at: input.scheduledEndAt,
-      p_reason: input.reason,
+      p_reason: null,
       p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)
@@ -287,7 +298,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     runId: string
     expectedStateVersion: number
     idempotencyKey: string
-    reason: string
+
     confirmed: boolean
   }): Promise<EventRunTransitionRecord> {
     const { data, error } = await this.#rpc('cancel_scheduled_event_run_v2', {
@@ -295,7 +306,7 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
       p_run_id: input.runId,
       p_expected_state_version: input.expectedStateVersion,
       p_idempotency_key: input.idempotencyKey,
-      p_reason: input.reason,
+      p_reason: null,
       p_confirmed: input.confirmed,
     })
     if (error) mapRpcError(error)

@@ -16,7 +16,7 @@ it('offers compatible Controlled timing without exposed policy numbers or a reas
   expect(markup).not.toContain('Reason for this change')
   expect(markup).not.toContain('policy v1')
   expect(markup).toContain('value="controlled"')
-  expect(markup).toContain('Save timing')
+  expect(markup).toContain('Save Changes')
   expect(markup).toContain('Existing battles retain their saved rules')
 })
 
@@ -37,5 +37,26 @@ it('shows saved compatible Controlled choices while disabling unsupported releas
   expect(markup).toContain('dedicated release targeting')
   expect(markup).not.toContain('policy v12')
   expect(markup).not.toContain('textarea')
-  expect(markup).toContain('<button type="submit">Save timing</button>')
+  expect(markup).toContain('<button type="submit">Save Changes</button>')
+})
+
+it('exposes compact search, filter, bidirectional display sort and actual Used by', () => {
+  const markup = renderToStaticMarkup(
+    <CombatEffectTimingEditor
+      initialPolicy={{ version: 8, modes: {} }}
+      usedBy={{ damage: [{ contentKey: 'unarmed.basic', name: 'Basic Attack' }] }}
+    />,
+  )
+  for (const text of [
+    'Search effect tags',
+    'Filter timing',
+    'Sort effect tags',
+    'Name A–Z',
+    'Name Z–A',
+    'Timing first–last',
+    'Timing last–first',
+    'Used by',
+    'Basic Attack',
+  ])
+    expect(markup).toContain(text)
 })

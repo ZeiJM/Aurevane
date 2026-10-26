@@ -1,5 +1,7 @@
 'use client'
 
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
+
 import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { groupSkillEffects } from './skill-effect-groups'
 
@@ -53,9 +55,15 @@ interface SkillCatalogEntryView {
   definition: MatureSkillDefinition
   learnedAt: string
   activeSource: boolean
+  eligibilityGrants?: readonly {
+    eligibilityDisciplineId: string
+    activeSource: boolean
+    earnedAt?: string | null
+  }[]
 }
 
 interface EquippedSkillView {
+  eligibilityDisciplineId?: string
   definition: MatureSkillDefinition
   slotIndex: number
   equippedAt: string
@@ -130,6 +138,30 @@ function sameSelection(left: readonly string[], right: readonly string[]): boole
   return left.length === right.length && left.every((skillId, index) => skillId === right[index])
 }
 
+function activeEligibility(skill: SkillCatalogEntryView) {
+  return (
+    skill.eligibilityGrants?.filter((grant) => grant.activeSource) ??
+    (skill.activeSource
+      ? [
+          {
+            eligibilityDisciplineId: skill.definition.sourceDisciplineId,
+            activeSource: true,
+            earnedAt: undefined,
+          },
+        ]
+      : [])
+  )
+}
+
+function equippedEligibility(skills: readonly EquippedSkillView[]): Record<string, string> {
+  return Object.fromEntries(
+    skills.map((entry) => [
+      entry.definition.id,
+      entry.eligibilityDisciplineId ?? entry.definition.sourceDisciplineId,
+    ]),
+  )
+}
+
 export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const {
@@ -174,6 +206,25 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     'primary',
   )
   const refreshOnCloseRef = useRef(false)
+  const [eligibility, setEligibility] = useState<Record<string, string>>(
+    equippedEligibility(initialEquippedSkills),
+  )
+  const [committedEligibility, setCommittedEligibility] = useState<Record<string, string>>(
+    equippedEligibility(initialEquippedSkills),
+  )
+
+  function selectedEligibility(
+    skill: SkillCatalogEntryView,
+    choices = eligibility,
+  ): string | undefined {
+    const grants = activeEligibility(skill)
+    const choice = choices[skill.definition.id]
+    return grants.some((grant) => grant.eligibilityDisciplineId === choice)
+      ? choice
+      : grants.length === 1
+        ? grants[0]!.eligibilityDisciplineId
+        : undefined
+  }
 
   const visibleSkills = useMemo(
     () => learnedSkills.filter((entry) => entry.activeSource),
@@ -181,19 +232,25 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   )
   const primarySkills = useMemo(
     () =>
-      visibleSkills
-        .filter((entry) => entry.definition.sourceDisciplineId === primaryDiscipline.id)
-        .slice(0, TECHNIQUES_PER_DISCIPLINE),
+      visibleSkills.filter((entry) =>
+        activeEligibility(entry).some(
+          (grant) => grant.eligibilityDisciplineId === primaryDiscipline.id,
+        ),
+      ),
     [primaryDiscipline.id, visibleSkills],
   )
   const secondarySkills = useMemo(
     () =>
       secondaryDiscipline
-        ? visibleSkills
-            .filter((entry) => entry.definition.sourceDisciplineId === secondaryDiscipline.id)
-            .slice(0, TECHNIQUES_PER_DISCIPLINE)
+        ? visibleSkills.filter(
+            (entry) =>
+              !primarySkills.includes(entry) &&
+              activeEligibility(entry).some(
+                (grant) => grant.eligibilityDisciplineId === secondaryDiscipline.id,
+              ),
+          )
         : [],
-    [secondaryDiscipline, visibleSkills],
+    [secondaryDiscipline, primarySkills, visibleSkills],
   )
   const focusedSkill =
     visibleSkills.find((entry) => entry.definition.id === focusedSkillId) ??
@@ -258,20 +315,21 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   function selectedSourceCount(
     sourceDisciplineId: string,
     ids: readonly string[] = selectedIds,
+    choices = eligibility,
   ): number {
     const selected = new Set(ids)
     return visibleSkills.filter(
       (entry) =>
         selected.has(entry.definition.id) &&
-        entry.definition.sourceDisciplineId === sourceDisciplineId,
+        selectedEligibility(entry, choices) === sourceDisciplineId,
     ).length
   }
 
-  function mixedSelectionValid(ids: readonly string[]): boolean {
+  function mixedSelectionValid(ids: readonly string[], choices = eligibility): boolean {
     if (!secondaryDiscipline || ids.length < capacity) return true
     return (
-      selectedSourceCount(primaryDiscipline.id, ids) > 0 &&
-      selectedSourceCount(secondaryDiscipline.id, ids) > 0
+      selectedSourceCount(primaryDiscipline.id, ids, choices) > 0 &&
+      selectedSourceCount(secondaryDiscipline.id, ids, choices) > 0
     )
   }
 
@@ -283,21 +341,38 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     if (selectedIds.length >= capacity) return selectedIds
     if (
       secondaryDiscipline &&
-      selectedSourceCount(skill.definition.sourceDisciplineId) >= MIXED_SOURCE_MAXIMUM
+      selectedSourceCount(selectedEligibility(skill) ?? '') >= MIXED_SOURCE_MAXIMUM
     ) {
       return selectedIds
     }
     return [...selectedIds, id]
   }
 
-  async function commitSelection(nextIds: string[]) {
-    if (pendingRef.current || sameSelection(nextIds, selectedIds)) return
-    if (!mixedSelectionValid(nextIds)) {
+  async function commitSelection(nextIds: string[], nextEligibility = eligibility) {
+    if (
+      pendingRef.current ||
+      (sameSelection(nextIds, selectedIds) &&
+        nextIds.every((id) => nextEligibility[id] === eligibility[id]))
+    )
+      return
+    const eligibilitySelections = nextIds.map((skillId) => ({
+      skillId,
+      eligibilityDisciplineId: selectedEligibility(
+        visibleSkills.find((entry) => entry.definition.id === skillId)!,
+        nextEligibility,
+      ),
+    }))
+    if (eligibilitySelections.some((choice) => !choice.eligibilityDisciplineId)) {
+      setMessage('Choose the eligible Discipline for each shared Skill before saving.')
+      return
+    }
+    if (!mixedSelectionValid(nextIds, nextEligibility)) {
       setMessage('A full mixed loadout needs at least one Technique from each active Discipline.')
       return
     }
 
     setSelectedIds(nextIds)
+    setEligibility(nextEligibility)
     pendingRef.current = true
     setPending(true)
     setMessage(null)
@@ -309,12 +384,14 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
         body: JSON.stringify({
           expectedBuildVersion: buildVersionRef.current,
           skillIds: nextIds,
+          eligibilitySelections,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
       const body = (await response.json()) as SkillCommitResponse
       if (!response.ok || !body.context) {
         setSelectedIds(committedIds)
+        setEligibility(committedEligibility)
         refreshOnCloseRef.current = true
         setMessage(body.error?.message ?? 'The selected Techniques could not be saved.')
         return
@@ -329,10 +406,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
       setCommittedIds(committed)
       setSelectedIds(committed)
+      setEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
+      setCommittedEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
       refreshOnCloseRef.current = true
       setMessage(null)
     } catch {
       setSelectedIds(committedIds)
+      setEligibility(committedEligibility)
       refreshOnCloseRef.current = true
       setMessage('The save could not be confirmed. Close Techniques to refresh your build.')
     } finally {
@@ -343,10 +423,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
 
   function equipBlockedReason(skill: SkillCatalogEntryView): string | null {
     if (selectedIds.includes(skill.definition.id)) return null
+    if (!selectedEligibility(skill)) return 'Choose an eligible Discipline first.'
     if (selectedIds.length >= capacity) return 'Your technique slots are full. Remove one first.'
     if (
       secondaryDiscipline &&
-      selectedSourceCount(skill.definition.sourceDisciplineId) >= MIXED_SOURCE_MAXIMUM
+      selectedSourceCount(selectedEligibility(skill) ?? '') >= MIXED_SOURCE_MAXIMUM
     ) {
       return 'You already have the most techniques allowed from this discipline.'
     }
@@ -397,6 +478,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
       setCommittedIds(committed)
       setSelectedIds(committed)
+      setEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
+      setCommittedEligibility(equippedEligibility(body.context.disciplineSkills.equippedSkills))
       refreshOnCloseRef.current = true
       setMessage(null)
     } catch {
@@ -522,102 +605,145 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
           <small>{locked ? '0 / 8 unlocked' : `${skills.length} techniques available`}</small>
         </header>
         <div className={styles.skillGrid} data-technique-grid="true">
-          {Array.from({ length: TECHNIQUES_PER_DISCIPLINE }, (_, index) => {
-            if (locked) {
-              return (
-                <div
-                  className={styles.lockedSkill}
-                  data-technique-card="true"
-                  key={`locked-${index}`}
-                  aria-hidden="true"
-                >
-                  <span data-technique-art="true">▣</span>
-                  <strong>Locked</strong>
-                </div>
-              )
-            }
-
-            const entry = skills[index]
-            if (!entry) {
-              return (
-                <div
-                  className={styles.lockedSkill}
-                  data-technique-card="true"
-                  key={`void-${index}`}
-                  aria-hidden="true"
-                >
-                  <span data-technique-art="true">◇</span>
-                  <strong>Unavailable</strong>
-                </div>
-              )
-            }
-
-            const selected = selectedIds.includes(entry.definition.id)
-            const sourceCount = selectedSourceCount(entry.definition.sourceDisciplineId)
-            const disabledBySource = Boolean(
-              secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
-            )
-            const disabledByCapacity = !selected && selectedIds.length >= capacity
-            const disabled = pending || disabledByCapacity || disabledBySource
-            const label = skillDisplayName(entry.definition)
-
-            return (
-              <article
-                className={styles.skill}
-                data-technique-card="true"
-                key={`${entry.definition.id}:${entry.definition.contentVersion}`}
-                data-selected={selected ? 'true' : 'false'}
-                style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
-                onMouseEnter={() => {
-                  setFocusedSupportActionId(null)
-                  setFocusedSkillId(entry.definition.id)
-                }}
-                onFocusCapture={() => {
-                  setFocusedSupportActionId(null)
-                  setFocusedSkillId(entry.definition.id)
-                }}
-              >
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={selected}
-                    disabled={disabled}
-                    aria-label={`${selected ? 'Unselect' : 'Select'} ${label}`}
-                    onClick={(event) => {
-                      // Touch: a tap only previews. Equipping is the explicit button in the preview.
-                      if (!coarsePointer) return
-                      event.preventDefault()
-                      setFocusedSupportActionId(null)
-                      setFocusedSkillId(entry.definition.id)
-                    }}
-                    onChange={() => {
-                      if (!coarsePointer) toggleAndCommit(entry)
-                    }}
-                  />
-                  <span
-                    className={styles.skillArt}
-                    data-technique-art="true"
-                    data-av-square-media="true"
-                    data-av-square-media-fit="contain"
+          {Array.from(
+            { length: Math.max(TECHNIQUES_PER_DISCIPLINE, skills.length) },
+            (_, index) => {
+              if (locked) {
+                return (
+                  <div
+                    className={styles.lockedSkill}
+                    data-technique-card="true"
+                    key={`locked-${index}`}
                     aria-hidden="true"
                   >
-                    <Image
-                      src={battleSkillArtwork(entry.definition.id)}
-                      width={160}
-                      height={160}
-                      unoptimized
-                      alt=""
+                    <span data-technique-art="true">▣</span>
+                    <strong>Locked</strong>
+                  </div>
+                )
+              }
+
+              const entry = skills[index]
+              if (!entry) {
+                return (
+                  <div
+                    className={styles.lockedSkill}
+                    data-technique-card="true"
+                    key={`void-${index}`}
+                    aria-hidden="true"
+                  >
+                    <span data-technique-art="true">◇</span>
+                    <strong>Unavailable</strong>
+                  </div>
+                )
+              }
+
+              const selected = selectedIds.includes(entry.definition.id)
+              const sourceCount = selectedSourceCount(selectedEligibility(entry) ?? '')
+              const disabledBySource = Boolean(
+                secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
+              )
+              const disabledByCapacity = !selected && selectedIds.length >= capacity
+              const disabled = pending || disabledByCapacity || disabledBySource
+              const label = skillDisplayName(entry.definition)
+
+              return (
+                <article
+                  className={styles.skill}
+                  data-technique-card="true"
+                  data-has-eligibility={entry.eligibilityGrants ? 'true' : undefined}
+                  key={`${entry.definition.id}:${entry.definition.contentVersion}`}
+                  data-selected={selected ? 'true' : 'false'}
+                  style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
+                  onMouseEnter={() => {
+                    setFocusedSupportActionId(null)
+                    setFocusedSkillId(entry.definition.id)
+                  }}
+                  onFocusCapture={() => {
+                    setFocusedSupportActionId(null)
+                    setFocusedSkillId(entry.definition.id)
+                  }}
+                >
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      disabled={disabled}
+                      aria-label={`${selected ? 'Unselect' : 'Select'} ${label}`}
+                      onClick={(event) => {
+                        // Touch: a tap only previews. Equipping is the explicit button in the preview.
+                        if (!coarsePointer) return
+                        event.preventDefault()
+                        setFocusedSupportActionId(null)
+                        setFocusedSkillId(entry.definition.id)
+                      }}
+                      onChange={() => {
+                        if (!coarsePointer) toggleAndCommit(entry)
+                      }}
                     />
-                    {selected ? <b>✓</b> : null}
-                  </span>
-                  <strong title={label}>{label}</strong>
-                  <span className={styles.skillMeta} data-technique-meta="true">
-                    {skillTypeDescription(entry.definition)}
-                  </span>
-                </label>
-              </article>
-            )
-          })}
+                    <span
+                      className={styles.skillArt}
+                      data-technique-art="true"
+                      data-av-square-media="true"
+                      data-av-square-media-fit="contain"
+                      aria-hidden="true"
+                    >
+                      <Image
+                        src={battleSkillArtwork(
+                          entry.definition.id,
+                          contentArtworkKey(entry.definition.media),
+                        )}
+                        width={160}
+                        height={160}
+                        unoptimized
+                        alt=""
+                      />
+                      {selected ? <b>✓</b> : null}
+                    </span>
+                    <strong title={label}>{label}</strong>
+                    <span className={styles.skillMeta} data-technique-meta="true">
+                      {skillTypeDescription(entry.definition)}
+                    </span>
+                  </label>
+                  {entry.eligibilityGrants ? (
+                    <label className={styles.eligibility}>
+                      Eligible
+                      <select
+                        aria-label={`Eligible Discipline for ${label}`}
+                        disabled={pending}
+                        value={selectedEligibility(entry) ?? ''}
+                        onChange={(event) => {
+                          const next = { ...eligibility, [entry.definition.id]: event.target.value }
+                          if (selected) void commitSelection(selectedIds, next)
+                          else setEligibility(next)
+                        }}
+                      >
+                        <option value="" disabled>
+                          Choose Discipline
+                        </option>
+                        {activeEligibility(entry).map((grant) => (
+                          <option
+                            key={grant.eligibilityDisciplineId}
+                            value={grant.eligibilityDisciplineId}
+                          >
+                            {grant.eligibilityDisciplineId === primaryDiscipline.id
+                              ? primaryDiscipline.name
+                              : (secondaryDiscipline?.name ??
+                                titleCase(grant.eligibilityDisciplineId))}{' '}
+                            —{' '}
+                            {grant.earnedAt
+                              ? 'Earned'
+                              : grant.earnedAt === null
+                                ? 'Available (unearned)'
+                                : 'Earned status unavailable'}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </article>
+              )
+            },
+          )}
         </div>
       </section>
     )

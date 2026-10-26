@@ -1,3 +1,4 @@
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import Image from 'next/image'
 import { BattleInfoPopover } from '@/components/battle/battle-info-popover'
 import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-narration'
@@ -76,7 +77,7 @@ function ResonanceHoverPreview({
       trigger={
         <span className={styles.attunementArt} data-gameplay-art="attunement">
           <Image
-            src={battleResonanceArtwork(resonance.id)}
+            src={battleResonanceArtwork(resonance.id, contentArtworkKey(resonance.media ?? {}))}
             width={160}
             height={160}
             unoptimized
@@ -202,6 +203,9 @@ export function CharacterArsenalShell({
     disciplineBuild.current.definition.id,
     disciplineBuild.currentSecondary?.id ?? 'pure',
     learnedSkillCatalogKey,
+    JSON.stringify(
+      disciplineBuild.disciplineSkills.learnedSkills.map((entry) => entry.eligibilityGrants ?? []),
+    ),
   ].join(':')
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
   const essence = disciplineBuild.disciplineSkills.extensions.essence

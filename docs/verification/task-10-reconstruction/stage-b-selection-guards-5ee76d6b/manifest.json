@@ -1,0 +1,71 @@
+{
+  "local_source": "5ee76d6b74302e4460efd535655a609fc62fd85b",
+  "remote_source": "ca71a250a5aae03ed1d737e3f4826dd0ed7c2755",
+  "prior_rows_unchanged": 189,
+  "logs": [
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-publication-red.log",
+      "file": "b-selection-publication-red.log.gz",
+      "bytes": 18185,
+      "sha256": "37fbae7d542a1605b2f01df8d0c04606c07a09e2ac665e90a259af47c0441959",
+      "gzip_sha256": "60e98f635deeb54551aa15dedf14810cb0e8b107fdf7d8445199fc86e655cac5",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-publication-green.log",
+      "file": "b-selection-publication-green.log.gz",
+      "bytes": 1915,
+      "sha256": "f25b718a9c84d7ed017519cd3d5c178413d96dddcda28551b235f46dc59a4203",
+      "gzip_sha256": "856db6f06ee1974aebc161305103efcb967e941393f4edbf46a566a3eec80165",
+      "exit": 1
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-publication-confirmed-green.log",
+      "file": "b-selection-publication-confirmed-green.log.gz",
+      "bytes": 256,
+      "sha256": "6f76c84e1bd6cd1c8681a249b2f0a69c4c846f76fba36e0a0497966a37345bc7",
+      "gzip_sha256": "3b4f395e348396b5542f3cc8446628de7d34f85961fbbbbbb48c7eabf3f235f9",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-rollback-helper-green.log",
+      "file": "b-selection-rollback-helper-green.log.gz",
+      "bytes": 268,
+      "sha256": "bbded931b6bbd51490c83bc700c5d5fa3dc8c0e62e58adc03849b5b55ec2031d",
+      "gzip_sha256": "6093142698ab855d28f87d06698153a5a4883e8619119405b8245470f45455c4",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-publication-format.log",
+      "file": "b-selection-publication-format.log.gz",
+      "bytes": 66,
+      "sha256": "89c05d31f6ff1a506420a276ea61873dc47430b711958fedd6ba292664cfc234",
+      "gzip_sha256": "4e6752cf93307d0fda4aabc62172b901a0af47e49cdb1ce3a9300fde8ee7b71f",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-publication-types.log",
+      "file": "b-selection-publication-types.log.gz",
+      "bytes": 15,
+      "sha256": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+      "gzip_sha256": "67be5567bde7f0f4c1fd5e775e918562bc1f228a849614e4ad48b4172e907169",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-publication-lint.log",
+      "file": "b-selection-publication-lint.log.gz",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip_sha256": "f61f27bd17de546264aa58f40f3aafaac7021e0ef69c17f6b1b4cd7664a037ec",
+      "exit": 0
+    },
+    {
+      "source": "docs/verification/task-10-reconstruction/b-selection-publication-style.log",
+      "file": "b-selection-publication-style.log.gz",
+      "bytes": 66,
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20",
+      "gzip_sha256": "710c63d8d40d5688a62c3b08053dd1971c4e4ee87b2297f3f20c2540d22cd94e",
+      "exit": 0
+    }
+  ]
+}

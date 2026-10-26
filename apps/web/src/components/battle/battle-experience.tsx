@@ -1,5 +1,6 @@
 'use client'
 
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { BattleCockpitInfoProvider, BattlePreviewInfoMenu } from './battle-cockpit-info'
 
 import { BATTLE_MOBILE_LAYOUT_QUERY, useDesktopBattleLayout } from './battle-responsive-layout'
@@ -707,7 +708,10 @@ function BattleExperienceContent({
         label: selectableSpecial.name,
         artworkSrc:
           special.kind === 'resonance'
-            ? battleResonanceArtwork(selectableSpecial.id)
+            ? battleResonanceArtwork(
+                selectableSpecial.id,
+                contentArtworkKey(runtime.resonance?.definition?.media ?? {}),
+              )
             : battleSkillArtwork(selectableSpecial.id, selectableSpecial.iconKey),
         tags: selectableSpecial.tags,
       }

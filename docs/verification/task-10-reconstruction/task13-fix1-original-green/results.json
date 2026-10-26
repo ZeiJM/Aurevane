@@ -1,0 +1,50 @@
+[
+  {
+    "viewport": {
+      "width": 1366,
+      "height": 768
+    },
+    "status": "passed",
+    "basics": 5,
+    "browser": "153.0.8010.0",
+    "transport": "actual handler/service/RPC store/production migration SQL",
+    "input": "keyboard",
+    "scope": "Production editor and exact SQL-backed mutation responses with a controlled local Owner identity and PGlite transport; no hosted authentication, physical contention or browser zoom claim."
+  },
+  {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "status": "passed",
+    "basics": 5,
+    "browser": "153.0.8010.0",
+    "transport": "actual handler/service/RPC store/production migration SQL",
+    "input": "keyboard",
+    "scope": "Production editor and exact SQL-backed mutation responses with a controlled local Owner identity and PGlite transport; no hosted authentication, physical contention or browser zoom claim."
+  },
+  {
+    "viewport": {
+      "width": 720,
+      "height": 450
+    },
+    "status": "passed",
+    "basics": 5,
+    "browser": "153.0.8010.0",
+    "transport": "actual handler/service/RPC store/production migration SQL",
+    "input": "keyboard",
+    "scope": "Production editor and exact SQL-backed mutation responses with a controlled local Owner identity and PGlite transport; no hosted authentication, physical contention or browser zoom claim."
+  },
+  {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "status": "passed",
+    "basics": 5,
+    "browser": "153.0.8010.0",
+    "transport": "actual handler/service/RPC store/production migration SQL",
+    "input": "touch",
+    "scope": "Production editor and exact SQL-backed mutation responses with a controlled local Owner identity and PGlite transport; no hosted authentication, physical contention or browser zoom claim."
+  }
+]

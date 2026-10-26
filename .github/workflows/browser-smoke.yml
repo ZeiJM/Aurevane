@@ -77,6 +77,19 @@ jobs:
           if [ "$AV_VERIFY_BATTLE" = 'true' ]; then browsers+=(msedge); fi
           pnpm --filter @aurevane/web exec playwright install --with-deps "${browsers[@]}"
 
+      - name: Verify complete Master operational components
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_MASTER_OPERATIONS_EVIDENCE_DIR: /tmp/master-operations-review
+          AV_TECHNIQUE_ELIGIBILITY_EVIDENCE_DIR: /tmp/technique-eligibility-review
+          AV_EVENT_WORKSPACE_EVIDENCE_DIR: /tmp/event-workspace-review
+          AV_NEXUS_DESKTOP_EVIDENCE_DIR: /tmp/nexus-desktop-review
+        run: |
+          node apps/web/scripts/master-operations-browser-regression.mjs
+          node apps/web/scripts/technique-eligibility-browser-regression.mjs
+          node apps/web/scripts/event-workspace-browser-regression.mjs
+          node apps/web/scripts/nexus-desktop-integration-regression.mjs
+
       - name: Verify shared ally inspection and multi-target previews
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}
         env:
@@ -106,6 +119,13 @@ jobs:
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}
         env:
           AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
+        run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
+
+      - name: Verify immediate System original restore through actual mutation responses
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_BASIC_ORIGINAL_RPC_ACCEPTANCE: '1'
+          AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/basic-original-rpc-review
         run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
 
       - name: Verify percentage Skill Essence and rail readers across modes
@@ -298,6 +318,14 @@ jobs:
           path: /tmp/skill-parameter-palette-review
           retention-days: 7
 
+      - name: Save actual store original restore evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: basic-original-rpc-review
+          path: /tmp/basic-original-rpc-review
+          retention-days: 7
+
       - name: Save elevated rail effect evidence
         if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
         uses: actions/upload-artifact@v4
@@ -332,6 +360,21 @@ jobs:
             apps/web/test-results/atlas-world.pw.ts-*/error-context.md
             apps/web/test-results/atlas-world.pw.ts-*/test-failed-*.png
             apps/web/test-results/atlas-world.pw.ts-*/attachments/world-*.json
+          retention-days: 7
+
+      - name: Save complete Master operational evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-integration-operational-evidence
+          path: |
+            /tmp/master-full-integration-review
+            apps/web/test-results/master-complete-layout*/
+            apps/web/test-results/master-world-environment-*/
+            /tmp/master-operations-review
+            /tmp/technique-eligibility-review
+            /tmp/event-workspace-review
+            /tmp/nexus-desktop-review
           retention-days: 7
 
       - name: Save browser evidence

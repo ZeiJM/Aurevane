@@ -845,7 +845,13 @@ it('projects captured Basic Attack geometry under its actual command identity wi
       captureBasicSkillSources({
         ownerCombatantId: PLAYER,
         supportActionId: 'basic.guard',
-        definitions: defaultBasicSkills(),
+        definitions: defaultBasicSkills().map((definition) => ({
+          ...definition,
+          presentation: {
+            public: '{ability} full explanation.',
+            compact: '{ability} compact explanation.',
+          },
+        })),
       }),
     ),
     base.statBridge,
@@ -854,6 +860,12 @@ it('projects captured Basic Attack geometry under its actual command identity wi
     state,
     deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
   )
+  expect(
+    view.basicActions?.find((action) => action.actionId === 'basic.attack.unarmed.basic'),
+  ).toMatchObject({
+    description: 'Basic Attack full explanation.',
+    compactText: 'Basic Attack compact explanation.',
+  })
   expect(view.manualActionTargets).toContainEqual(
     expect.objectContaining({ actionId: 'basic.attack.unarmed.basic', behaviorId: 'use' }),
   )
@@ -1461,4 +1473,54 @@ it('derives an amber Primed rail tag from real Controlled state without publishi
       .flatMap((row) => row.statuses)
       .some((row) => row.statusId === 'primed'),
   ).toBe(false)
+})
+
+it('composed battle transport includes only controlled captured Tag wording and recursively strips private authoring fields', () => {
+  const state = encounter()
+  const tags = [
+    {
+      contentKey: 'tag.percentage-recovery',
+      contentVersion: 2,
+      tagId: 'percentage-recovery',
+      name: 'Renewal',
+      compact: 'Restore MP.',
+      full: 'Restore a percentage of maximum MP.',
+    },
+  ]
+  const sources = [PLAYER, ENEMY].flatMap((ownerCombatantId) =>
+    captureBasicSkillSources({
+      ownerCombatantId,
+      definitions: defaultBasicSkills(),
+      supportActionId: 'basic.recover.mp',
+    }).filter((source) => source.abilityId === 'basic.recover.mp'),
+  )
+  // Stored data can contain additional unknown nested fields; project the fully composed envelope.
+  state.capturedAbilitySources = sources.map((captured) => ({
+    ...captured,
+    definition: {
+      ...captured.definition,
+      tagPresentation: tags.map((tag) => ({
+        ...tag,
+        accuracy: { kind: 'fixed', chanceBasisPoints: 6100 },
+        nested: {
+          accuracyMode: 'fixed',
+          accuracyRule: { kind: 'fixed', chanceBasisPoints: 6100 },
+          hp: 12,
+        },
+      })),
+    },
+  })) as typeof state.capturedAbilitySources
+  const publicView = projectBattleSnapshot(
+    state,
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  )
+  expect(publicView.tagPresentations).toHaveLength(1)
+  expect(publicView.tagPresentations?.[0]).toMatchObject({
+    ownerCombatantId: PLAYER,
+    tags: [{ name: 'Renewal', nested: { hp: 12 } }],
+  })
+  expect(JSON.stringify(publicView.tagPresentations)).not.toMatch(/accuracy|chanceBasisPoints|6100/)
+  expect(
+    projectBattleSnapshot(state, createSpectatorBattleViewerEntitlement()).tagPresentations,
+  ).toEqual([])
 })

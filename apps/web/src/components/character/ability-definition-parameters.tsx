@@ -1,5 +1,7 @@
 'use client'
 
+import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
+import type { BasicActionCharacterStats } from './basic-action-presentation'
 import type { PublicAbilityDefinition } from '@aurevane/game-core/combat/public-combat-presentation'
 import { abilityBehaviorInformation } from './ability-detail-presentation'
 import { AbilityParameters } from './ability-parameters'
@@ -13,12 +15,16 @@ import styles from './ability-definition-parameters.module.css'
 /** Current/draft/exact-pinned definitions share the captured report grammar, one report per group. */
 export function AbilityDefinitionParameters({
   definition,
+  basic,
+  stats,
   effectDescriptions,
   characteristicsClassName,
   effectExplanationsClassName,
   showActivationNotes = true,
 }: {
   definition: PublicAbilityDefinition
+  basic?: BasicSkillDefinition
+  stats?: BasicActionCharacterStats
   effectDescriptions?: readonly (string | null)[]
   characteristicsClassName?: string
   effectExplanationsClassName?: string
@@ -40,6 +46,9 @@ export function AbilityDefinitionParameters({
           .reduce((sum, group) => sum + group.effects.length, 0)
         const explanations = authored?.slice(offset, offset + behavior.effects.length)
         const report = abilityBehaviorInformation(behavior, {
+          tagPresentation: definition.tagPresentation,
+          basic,
+          stats,
           timingPolicy,
           effectContext: {
             ...groundRules,
