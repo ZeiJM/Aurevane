@@ -1,5 +1,7 @@
 import 'server-only'
 
+import { isDeepStrictEqual } from 'node:util'
+
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -74,6 +76,32 @@ export async function saveSiteMusicConfig(input: {
   }
 
   const client = createSupabaseAdminClient()
+  let current: SiteMusicConfig | null
+  try {
+    const { data, error } = await client
+      .from('site_music_configuration')
+      .select('enabled, default_track, route_overrides, song_library, revision, updated_at')
+      .eq('singleton_id', true)
+      .maybeSingle()
+
+    if (error) throw error
+    current = data ? parseRow(data as SiteMusicRow) : null
+  } catch (error) {
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'Site music configuration is unavailable right now.',
+      { cause: error },
+    )
+  }
+  if (!current || current.revision !== input.expectedRevision) {
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'The site music configuration changed. Refresh and try again.',
+    )
+  }
+  // A no-op returns the authoritative read snapshot without changing its metadata.
+  if (isDeepStrictEqual(config, parseSiteMusicDraft(current))) return current
+
   const nextRevision = input.expectedRevision + 1
   const { data, error } = await client
     .from('site_music_configuration')

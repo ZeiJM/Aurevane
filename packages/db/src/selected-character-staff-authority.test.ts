@@ -540,6 +540,23 @@ it('Owner defaults CAS changes immediately authorize and withdraw actual draft o
       )
     ).rows[0]!.defaults
   const original = await readDefaults()
+  const originalDefaultsRows = (
+    await db.query('select * from app_private.master_panel_role_defaults')
+  ).rows
+  const reorderedRoles = Object.fromEntries(
+    Object.entries(original.roles).map(([role, capabilities]) => [
+      role,
+      [...capabilities].reverse(),
+    ]),
+  )
+  await db.query('select public.save_master_panel_role_defaults_v1($1,$2,$3::jsonb)', [
+    owner,
+    original.revision,
+    JSON.stringify(reorderedRoles),
+  ])
+  expect((await db.query('select * from app_private.master_panel_role_defaults')).rows).toEqual(
+    originalDefaultsRows,
+  )
   const roles = { ...original.roles, moderator: ['master.access', 'content.combat.author'] }
   const save = (actor: string, revision: number, value: unknown) =>
     db.query('select public.save_master_panel_role_defaults_v1($1,$2,$3::jsonb) defaults', [

@@ -112,3 +112,7 @@ Interfaces: persist a named track library separately from global/page assignment
 - Add publication-failure rollback, restored-draft attribution, failed-create recovery, in-flight revert and legacy-music-save retention guards from independent review.
 
 Release sequencing: the narrow catalogue-read and World stale-code repairs are backward compatible and already applied separately. New independent-elevation policy adds a strict-parser field and must follow compatible app deployment. Broad domain-conflict SQLSTATE repair requires the five dual-code app adapters live, older executions drained, and its role-default/commit predecessor migrations present. Do not indiscriminately push all unapplied migrations before deploying compatible app code. No database reset, player-fact rewrite or blanket history deletion is authorized by this plan.
+
+## Owner execution change — one release candidate
+
+Finish the complete consolidated request list before final acceptance. Audit all 37 requirements against the implementation and record any unmet requirement explicitly. Freeze one candidate, then run one consolidated batch covering quality, database authority/persistence, browser layouts/interactions and game consumers. Repair failures and rerun affected checks; do not deploy partial sections. Deploy the complete compatible app/migration sequence only after the candidate passes. The earlier read-only performance and World retry incident repairs are already applied and are separate from this final panel release.

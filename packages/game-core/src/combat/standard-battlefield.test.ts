@@ -321,3 +321,56 @@ it('independently rolls each chance instead of normalizing the entered percentag
       1,
     )
 })
+
+it('keeps independent-roll standard patches paired and every flat route connected across seeds', () => {
+  for (const chances of [
+    [6000, 3000, 1000],
+    [500, 500, 500],
+    [0, 0, 0],
+    [10000, 10000, 10000],
+  ]) {
+    for (let seed = 1; seed <= 150; seed++) {
+      const spawns = [
+        { x: 1, y: 3 },
+        { x: 7, y: 3 },
+      ]
+      const tiles = createStandardBattlefieldTiles({
+        width: 9,
+        height: 7,
+        seed,
+        spawns,
+        elevationPolicy: {
+          version: 2,
+          model: 'independent-highest',
+          level1BasisPoints: chances[0]!,
+          level2BasisPoints: chances[1]!,
+          level3BasisPoints: chances[2]!,
+        },
+      })
+      expect(connectedGround(tiles)).toBe(true)
+      for (const raised of tiles.filter((tile) => tile.elevation > 0)) {
+        expect(
+          tiles.some(
+            (neighbor) =>
+              neighbor.elevation > 0 &&
+              Math.abs(neighbor.position.x - raised.position.x) +
+                Math.abs(neighbor.position.y - raised.position.y) ===
+                1,
+          ),
+        ).toBe(true)
+      }
+      for (const spawn of spawns) {
+        expect(
+          tiles
+            .filter(
+              (tile) =>
+                Math.abs(tile.position.x - spawn.x) + Math.abs(tile.position.y - spawn.y) <= 1,
+            )
+            .every((tile) => tile.elevation === 0),
+        ).toBe(true)
+      }
+      if (chances.every((chance) => chance === 0))
+        expect(tiles.every((tile) => tile.elevation === 0)).toBe(true)
+    }
+  }
+})

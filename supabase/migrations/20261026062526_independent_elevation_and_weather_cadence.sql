@@ -96,6 +96,14 @@ begin
     v_until := v_current.weather_override_until;
   end if;
   v_before := app_private.world_environment_json_v1(v_current);
+  if v_current.day_length_minutes = v_day
+    and v_current.weather_roll_minutes = coalesce(v_roll,v_current.weather_roll_minutes)
+    and v_current.time_offset_minutes = v_offset
+    and v_current.frozen_minute_of_day is not distinct from v_frozen
+    and v_current.weather_override is not distinct from v_weather
+    and v_current.weather_override_until is not distinct from v_until then
+    return v_before;
+  end if;
   update app_private.world_environment_settings set
     version = v_current.version + 1,
     day_length_minutes = v_day,
@@ -179,6 +187,9 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('battlefield-elevation-policy',0));
   select max(version) into v_version from app_private.battlefield_elevation_policy_versions;
   if p_expected_version is null or v_version <> p_expected_version then raise exception 'ELEVATION_POLICY_VERSION_CONFLICT'; end if;
+  if public.read_battlefield_elevation_policy_v1() - 'version' = p_chances then
+    return public.read_battlefield_elevation_policy_v1();
+  end if;
   insert into app_private.battlefield_elevation_policy_versions(version,model,level1_basis_points,level2_basis_points,level3_basis_points,published_by)
   values (v_version+1,'independent-highest',v_one,v_two,v_three,p_actor_user_id);
   return jsonb_build_object('version',v_version+1,'model','independent-highest','level1BasisPoints',v_one,'level2BasisPoints',v_two,'level3BasisPoints',v_three);

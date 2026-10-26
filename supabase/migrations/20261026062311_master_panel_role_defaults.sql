@@ -22,7 +22,7 @@ end; $$;
 
 create function public.save_master_panel_role_defaults_v1(p_actor_user_id uuid,p_expected_revision bigint,p_roles jsonb)
 returns jsonb language plpgsql security definer set search_path = '' as $$
-declare v_role text; v_caps jsonb; v_revision bigint;
+declare v_role text; v_caps jsonb; v_revision bigint; v_current_roles jsonb; v_unchanged boolean := true;
 begin
   perform app_private.assert_game_owner_v1(p_actor_user_id);
   if p_expected_revision is null or p_expected_revision < 1 or p_roles is null or jsonb_typeof(p_roles)<>'object' then
@@ -42,8 +42,14 @@ begin
       raise exception using errcode='22023',message='MASTER_PANEL_ROLE_DEFAULTS_INVALID';
     end if;
   end loop;
-  select revision into v_revision from app_private.master_panel_role_defaults where singleton for update;
+  select revision,roles into v_revision,v_current_roles from app_private.master_panel_role_defaults where singleton for update;
   if v_revision<>p_expected_revision then raise exception using errcode='40001',message='MASTER_PANEL_ROLE_DEFAULTS_VERSION_CONFLICT'; end if;
+  foreach v_role in array array['moderator','content-staff','event-staff'] loop
+    if not ((v_current_roles->v_role) @> (p_roles->v_role) and (p_roles->v_role) @> (v_current_roles->v_role)) then
+      v_unchanged := false;
+    end if;
+  end loop;
+  if v_unchanged then return public.read_master_panel_role_defaults_v1(p_actor_user_id); end if;
   update app_private.master_panel_role_defaults set roles=p_roles,revision=revision+1,updated_by=p_actor_user_id,updated_at=clock_timestamp() where singleton;
   return public.read_master_panel_role_defaults_v1(p_actor_user_id);
 end; $$;

@@ -97,6 +97,14 @@ it('persists independent chances and weather cadence with Owner authority, CAS, 
       )
     await set(0)
     expect(await readWorld()).toMatchObject({ ...change, version: 1 })
+    const worldBeforeNoop = (
+      await db.query('select * from app_private.world_environment_audit order by version')
+    ).rows
+    await set(1)
+    expect(await readWorld()).toMatchObject({ ...change, version: 1 })
+    expect(
+      (await db.query('select * from app_private.world_environment_audit order by version')).rows,
+    ).toEqual(worldBeforeNoop)
     await expect(set(0)).rejects.toThrow('WORLD_ENVIRONMENT_VERSION_CONFLICT')
     await set(1, { dayLengthMinutes: 60, timeOffsetMinutes: 0, frozenMinuteOfDay: null })
     expect(await readWorld()).toMatchObject({
@@ -124,6 +132,22 @@ it('persists independent chances and weather cadence with Owner authority, CAS, 
       version: currentVersion + 1,
       ...chances,
     })
+    const elevationBeforeNoop = (
+      await db.query(
+        'select * from app_private.battlefield_elevation_policy_versions order by version',
+      )
+    ).rows
+    expect((await publish(currentVersion + 1)).rows[0]!.value).toEqual({
+      version: currentVersion + 1,
+      ...chances,
+    })
+    expect(
+      (
+        await db.query(
+          'select * from app_private.battlefield_elevation_policy_versions order by version',
+        )
+      ).rows,
+    ).toEqual(elevationBeforeNoop)
     await expect(publish(currentVersion)).rejects.toThrow('ELEVATION_POLICY_VERSION_CONFLICT')
     const zero = { ...chances, level1BasisPoints: 0, level2BasisPoints: 0, level3BasisPoints: 0 }
     expect((await publish(currentVersion + 1, zero)).rows[0]!.value).toEqual({

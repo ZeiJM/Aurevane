@@ -163,11 +163,23 @@ export function createStandardBattlefieldTiles(
   const raisedBudget =
     Math.floor((eligible.length * RAISED_RATE[input.elevationBias ?? 'neutral']) / 2000) * 2
   let raisedCount = 0
+  const nextHeight = () =>
+    drawHeight(() => {
+      const draw = advanceBattleRng(mapRng)
+      mapRng = draw.state
+      return draw.value
+    }, policy)
   for (const [first, second] of pairs) {
     if (raisedCount >= raisedBudget) break
     if (tiles[first]!.elevation || tiles[second]!.elevation) continue
-    tiles[first]!.elevation = 1
-    tiles[second]!.elevation = 1
+    const firstHeight = policy.model === 'independent-highest' ? nextHeight() : 1
+    const secondHeight = policy.model === 'independent-highest' ? nextHeight() : 1
+    // A standard raised patch needs two independently rolled raised cells.
+    // Reject incomplete patches before admission rather than flattening one
+    // member later, which could leave lone raised cells or isolated flat pockets.
+    if (!firstHeight || !secondHeight) continue
+    tiles[first]!.elevation = firstHeight
+    tiles[second]!.elevation = secondHeight
     // Jump 0 characters must retain a route through every flat tile and between all spawns.
     if (flatGroundConnected()) {
       raisedCount += 2
@@ -179,12 +191,9 @@ export function createStandardBattlefieldTiles(
 
   // Every raised tile draws independently, including adjacent tiles.
   for (const tile of tiles) {
+    if (policy.model === 'independent-highest') break
     if (tile.elevation <= 0) continue
-    tile.elevation = drawHeight(() => {
-      const draw = advanceBattleRng(mapRng)
-      mapRng = draw.state
-      return draw.value
-    }, policy)
+    tile.elevation = nextHeight()
   }
 
   const roughBudget = Math.floor(

@@ -1595,3 +1595,43 @@ it('attributes a changed restored draft as new authorship through Commit Now', a
   })
   expect(committed.draft).toBeNull()
 })
+
+it('unchanged effect timing retains policy rows and activity while stale and unauthorized calls still reject', async () => {
+  const read = async () =>
+    (
+      await db.query<{ value: { version: number; modes: Record<string, string> } }>(
+        'select public.read_combat_effect_timing_policy_v1() value',
+      )
+    ).rows[0]!.value
+  const initial = await read()
+  const rows = async () =>
+    (
+      await db.query(
+        'select * from app_private.combat_effect_timing_policy_versions order by version',
+      )
+    ).rows
+  const activity = async () =>
+    (await db.query('select * from app_private.master_panel_activity order by id')).rows
+  const before = await rows()
+  const beforeActivity = await activity()
+  const publish = async (actor: string, version: number, modes: unknown) =>
+    db.query<{ value: unknown }>(
+      'select public.publish_combat_effect_timing_policy_v2($1,$2,$3::jsonb,$4) value',
+      [actor, version, modes, await token()],
+    )
+  expect((await publish(owner, initial.version, initial.modes)).rows[0]!.value).toEqual(initial)
+  expect(await rows()).toEqual(before)
+  expect(await activity()).toEqual(beforeActivity)
+  await denied(() => publish(other, initial.version, initial.modes), /OWNER_REQUIRED/)
+  await denied(() => publish(owner, initial.version - 1, initial.modes), /VERSION_CONFLICT/)
+  await denied(() => publish(owner, initial.version, null), /INVALID_TIMING_POLICY/)
+  const changed = {
+    ...initial.modes,
+    damage: initial.modes.damage === 'instant' ? 'delayed' : 'instant',
+  }
+  expect((await publish(owner, initial.version, changed)).rows[0]!.value).toMatchObject({
+    version: initial.version + 1,
+    modes: changed,
+  })
+  expect((await rows()).length).toBe(before.length + 1)
+})
