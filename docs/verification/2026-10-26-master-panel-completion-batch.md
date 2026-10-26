@@ -29,3 +29,11 @@ CI on a1006f8 executed 16 repeated native cases: 15 passed, including both genui
 Exact-final-head required GitHub workflows, genuine browser zoom where required, compatible production rollout, canonical commit/readiness and hosted gameplay readback remain release gates. Human signed-in/physical-device testing has not been fabricated.
 
 Owner history request discrepancy remains explicit: editor exposes Current/Previous, but protected immutable published definitions remain stored for exact-version gameplay consumers and provenance. No blanket deletion of older definitions was performed or claimed.
+
+## Completed c222 native regression and remaining CI setup repair
+
+Exact candidate c2222809fbed4ab9b2712fcec018706456e74eb7 (tree418ec043e440fc05a893687f211f5b75c0aa75b1) completed Browser Smoke execution job121553648696 on October26 at13:21UTC. Actual execution:16/16 repeated authoring/authority cases (including genuine200% browser zoom and automatic-weather expiry),376/376 executed full Chromium cases with284 configured project skips, and10/10 Edge cases with2 configured skips. Earlier component/browser fixture steps also passed. Full quality on this same head passed13,044Vitest tests plus7Node tests, formatting/lint/eight-package types and production build.
+
+Desktop Experience40317456325 cancelled twice at its18minute budget. Logs show the Azure HTTP apt mirror consuming nearly14minutes before the75 unchanged cases could complete; these are cancelled runs, not failed test assertions or passes. The next candidate switches only that dependency download to the same official HTTPS Ubuntu mirror already used by Browser Smoke. Its18minute budget,75cases, reporters, assertions and cleanup remain unchanged. YAML/Prettier/diff checks and independent review passed before workspace loss. The differently activated disposable database fixtures mean the cancelled Desktop run is not waived using the full Browser result. Fresh exact-head CI, including Desktop Experience, remains required before release.
+
+No new application deployment or remaining panel schema rollout has occurred. The loss of the local execution environment does not change cloud CI evidence; Owner-signed-in production, physical-device, multiplayer and human acceptance are still unverified. Immutable older definitions remain retained as described above.
