@@ -40,8 +40,8 @@ it('requires staff authority before reading the body', async () => {
   expect(response.status).toBe(403)
   expect(setEnvironment).not.toHaveBeenCalled()
 })
-it('rejects delegated staff who are not the Game Owner', async () => {
-  requireCapability.mockResolvedValue({ roles: ['content-staff'] })
+it('rejects staff without the assigned World Environment page', async () => {
+  requireCapability.mockRejectedValue(new AurevaneError('FORBIDDEN', 'Page access required.'))
   expect((await POST(request({ expectedVersion: 0, change, reason: 'Owner test' }))).status).toBe(
     403,
   )

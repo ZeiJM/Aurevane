@@ -1,10 +1,7 @@
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { StaffManagement } from '@/components/master/staff-management'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
-import {
-  DELEGATED_MASTER_PANEL_ROLE_DETAILS,
-  MASTER_PANEL_SPECIAL_CAPABILITY_DETAILS,
-} from '@/server/master/staff-access'
+import { DELEGATED_MASTER_PANEL_ROLE_DETAILS } from '@/server/master/staff-access'
 import {
   createServerMasterPanelStaffAccessService,
   createServerMasterPanelRoleDefaultsService,
@@ -27,7 +24,6 @@ export default async function MasterStaffPage() {
       description="Assign clear responsibilities to one verified linked character."
     >
       <StaffManagement
-        capabilityOptions={MASTER_PANEL_SPECIAL_CAPABILITY_DETAILS}
         roleOptions={DELEGATED_MASTER_PANEL_ROLE_DETAILS}
         staff={staff}
         roleDefaults={roleDefaults}

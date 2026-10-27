@@ -1,4 +1,5 @@
 import 'server-only'
+import { createSelectedCharacterRpc } from './selected-character-rpc'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { parseWorldEnvironmentSettings } from '@/server/world/world-environment-store'
@@ -87,7 +88,9 @@ export async function setWorldEnvironment(input: {
     weather !== null && weather !== 'unchanged'
       ? (input.nowMs ?? Date.now()) + change.durationMinutes! * 60_000
       : null
-  const { data, error } = await createSupabaseAdminClient().rpc('set_world_environment_v2', {
+  const { data, error } = await createSelectedCharacterRpc((name, params) =>
+    createSupabaseAdminClient().rpc(name, params),
+  )('set_world_environment_v2', {
     p_actor: input.actorUserId,
     p_expected_version: input.expectedVersion as number,
     p_settings: {
@@ -107,7 +110,7 @@ export async function setWorldEnvironment(input: {
   if (error?.message?.includes('INVALID_WORLD_ENVIRONMENT'))
     invalid('The world environment change is invalid.')
   if (error?.code === '42501' || error?.message?.includes('GAME_OWNER_REQUIRED'))
-    throw new AurevaneError('FORBIDDEN', 'Only the Game Owner may change the world environment.')
+    throw new AurevaneError('FORBIDDEN', 'World Environment page access is required.')
   const parsed = error ? null : parseWorldEnvironmentSettings(data)
   if (!parsed)
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The world environment could not be saved.')

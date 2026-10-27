@@ -74,7 +74,9 @@ export async function GET() {
           ? mastery.releaseUnlocked
             ? 'unlocked'
             : mastery.unlocked
-              ? 'testing'
+              ? mastery.testingAccess
+                ? 'testing'
+                : 'unlocked'
               : evaluation.state
           : discipline.publication === 'published'
             ? 'revealed'

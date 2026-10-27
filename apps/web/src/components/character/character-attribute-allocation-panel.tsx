@@ -1,6 +1,9 @@
 'use client'
 
-import { CHARACTER_ATTRIBUTE_LABELS } from '@aurevane/game-core/character/attribute-allocation'
+import {
+  CHARACTER_ATTRIBUTE_LABELS,
+  spendableAttributePoints,
+} from '@aurevane/game-core/character/attribute-allocation'
 import {
   CHARACTER_ATTRIBUTE_IDS,
   type CharacterAttributeId,
@@ -74,7 +77,7 @@ export function CharacterAttributeAllocationPanel({
   const requestedReset = requestedOpen && searchParams.get(ATTRIBUTE_MODE_QUERY) === 'reset'
   const forcedMode: AttributePanelMode | null = allocation.conversionRequired
     ? 'convert'
-    : allocation.unspentPoints > 0
+    : spendableAttributePoints(allocation.attributes, allocation.pointPool, attributeCaps) > 0
       ? 'spend'
       : null
   const mode: AttributePanelMode | null = forcedMode ?? (requestedReset ? 'reset' : null)
@@ -85,14 +88,15 @@ export function CharacterAttributeAllocationPanel({
     [draft],
   )
   const availableDraft = Math.max(0, allocation.pointPool - spentDraft)
+  const spendableDraft = spendableAttributePoints(draft, allocation.pointPool, attributeCaps)
   const hasChanges = CHARACTER_ATTRIBUTE_IDS.some((id) => draft[id] !== allocation.attributes[id])
   const canSave =
     mode === 'convert'
-      ? availableDraft === 0
+      ? spendableDraft === 0
       : mode === 'reset'
-        ? hasChanges && availableDraft === 0 && allocation.resetRemaining > 0
+        ? hasChanges && spendableDraft === 0 && allocation.resetRemaining > 0
         : mode === 'spend'
-          ? hasChanges && spentDraft > allocation.spentPoints && availableDraft === 0
+          ? hasChanges && spentDraft > allocation.spentPoints && spendableDraft === 0
           : false
 
   const setResetOpen = useCallback(
@@ -183,6 +187,9 @@ export function CharacterAttributeAllocationPanel({
       setMessage(
         error instanceof Error ? error.message : 'The Core Stat change could not be saved.',
       )
+      // A concurrent level-up or Primary change can invalidate the displayed pool.
+      // The Profile revision key replaces local state only when authority changed.
+      router.refresh()
     } finally {
       setSaveState('idle')
     }
@@ -325,6 +332,13 @@ export function CharacterAttributeAllocationPanel({
                     <span>point{availableDraft === 1 ? '' : 's'} remaining</span>
                   </div>
                 )}
+
+                {availableDraft > 0 && spendableDraft === 0 ? (
+                  <p className={styles.message} role="status">
+                    All Core Stats are at their current caps. The remaining {availableDraft} points
+                    stay available for a future legal allocation.
+                  </p>
+                ) : null}
 
                 <div className={styles.grid}>
                   {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {

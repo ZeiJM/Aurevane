@@ -19,7 +19,7 @@ beforeAll(async () => {
   // Only Supabase's platform identity and unavailable scheduler are fixtures.
   // Every Aurevane table, authorization function, producer and finalizer is real migration SQL.
   await db.exec(`create role anon; create role authenticated; create role service_role;
-    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,created_at timestamptz default now());
+    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz,updated_at timestamptz,created_at timestamptz default now());
     create function auth.uid() returns uuid language sql as $$ select null::uuid $$;
     create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create schema realtime; create table realtime.messages(extension text,topic text,payload jsonb);
@@ -32,6 +32,11 @@ beforeAll(async () => {
     .filter((name) => name.endsWith('.sql'))
     .sort()) {
     if (process.env.TASK9_PREDECESSOR === '1' && name.endsWith('_master_players_recovery.sql'))
+      continue
+    if (
+      process.env.TASK3_PREDECESSOR === '1' &&
+      name.endsWith('_player_correction_allocation_capacity.sql')
+    )
       continue
     // PGlite has no LZ4 codec; this storage-only setting does not alter authority.
     const sql = readFileSync(resolve(root, name), 'utf8')
@@ -68,7 +73,7 @@ async function denied(operation: () => Promise<unknown>, message: RegExp) {
   await db.exec('rollback to savepoint denied')
 }
 it('neutral_reader_no_world_mutation and existing real Owner authority', async () => {
-  await denied(() => read(other), /OWNER_REQUIRED/)
+  await denied(() => read(other), /PAGE_ACCESS_REQUIRED/)
   const result = (await read()).rows[0]!.result
   expect(result.name).toBe('Test Player')
   expect(result.world).toBeNull()
@@ -835,9 +840,12 @@ it.each([
   'select public.read_master_player_v1($1,$2,$2)',
   "select public.edit_master_player_v1($1,$2,'bad',gen_random_uuid(),'{}',true,$2)",
   'select public.recover_master_player_battle_v1($1,$2,gen_random_uuid(),1,array[$2::uuid],gen_random_uuid(),null,true,$2)',
-])('real new operation denies non-Owner even with explicit actor: %s', async (query) => {
-  await denied(() => db.query(query, [other, character]), /OWNER_REQUIRED/)
-})
+])(
+  'real operation denies an actor without Players page access even with explicit actor: %s',
+  async (query) => {
+    await denied(() => db.query(query, [other, character]), /PAGE_ACCESS_REQUIRED/)
+  },
+)
 
 it.each(['secondary-add', 'secondary-remove', 'primary-pure', 'primary-retain-secondary'])(
   'actual Discipline authority accepts form command %s and preserves omitted fields',
@@ -975,7 +983,7 @@ it('browser fixture uses the immutable auth ID and cleans only its own grant aft
   expect((await db.query('select * from app_private.master_panel_role_assignments')).rows).toEqual(
     before,
   )
-  await denied(() => read(other), /OWNER_REQUIRED/)
+  await denied(() => read(other), /PAGE_ACCESS_REQUIRED/)
 })
 it.each(['', '00000000-0000-4000-8000-000000000099'])(
   'browser fixture rejects a missing auth identity before Owner SQL: %s',
@@ -994,3 +1002,241 @@ it.each(['', '00000000-0000-4000-8000-000000000099'])(
     ).toEqual([])
   },
 )
+
+it('source editor reads the exact pinned Core policy and a legal Level1 XP1 redistribution persists', async () => {
+  const initial = (await read()).rows[0]!.result
+  expect(initial.attributePolicy).toMatchObject({
+    disciplineId: 'vanguard',
+    baseAttributes: { might: 7, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+    focusAttributes: ['might', 'vitality', 'resolve'],
+    offFocusCap: 40,
+  })
+  const attributes = { ...sourceCommand.attributes, resolve: 7 }
+  await edit({ kind: 'source', xp: 1, attributes })
+  const saved = (await read()).rows[0]!.result.facts as {
+    attributes: unknown
+    level: number
+    xp: number
+  }
+  expect(saved).toMatchObject({ attributes, level: 1, xp: 1 })
+  await denied(
+    () =>
+      edit(
+        { kind: 'source', xp: 1, attributes: { ...attributes, might: 12 } },
+        crypto.randomUUID(),
+      ),
+    /POINT_POOL_EXCEEDED/,
+  )
+  await denied(
+    () =>
+      edit(
+        { kind: 'source', xp: 1, attributes: { ...attributes, vitality: 6 } },
+        crypto.randomUUID(),
+      ),
+    /BELOW_PRIMARY_BASE/,
+  )
+})
+it('a level-up between review and correction rejects the stale review and preserves earned XP and points', async () => {
+  const fingerprint = String((await read()).rows[0]!.result.fingerprint)
+  await db.query(
+    "select * from public.grant_character_xp_v1($1,$2,'levelup-correction','test','gameplay','concurrent-levelup','test',100)",
+    [character, crypto.randomUUID()],
+  )
+  await denied(() => edit(sourceCommand, request, fingerprint), /VERSION_STALE/)
+  expect((await read()).rows[0]!.result.facts).toMatchObject({ level: 2, xp: 100 })
+  const allocation = (
+    await db.query(
+      'select unspent_points from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]
+  expect(allocation).toMatchObject({ unspent_points: 1 })
+})
+it('full allocation permits only genuinely cap-saturated excess and keeps every cap authoritative', async () => {
+  // Future capacity boundary: current published 60/40 profiles cannot saturate at Level100.
+  // Existing SQL profile constraints allow an off-focus cap of one; call the validator
+  // directly so no production policy or character entitlement is changed by this fixture.
+  const base = { might: 14, finesse: 1, vitality: 13, agility: 1, intellect: 1, resolve: 1 }
+  const validate = (might: number, vitality: number) =>
+    db.query(
+      "select app_private.validate_character_core_allocation_v1($1,1,$2,1,1,1,100,$3,array['might','vitality'],1,true)",
+      [might, vitality, base],
+    )
+  await validate(60, 60)
+  await denied(() => validate(59, 60), /RESET_MUST_SPEND_FULL_POOL/)
+  await denied(() => validate(61, 60), /DISCIPLINE_CAP_EXCEEDED/)
+})
+
+it.each(['reset', 'convert'])(
+  'real %s commit retains saturated excess across reload and a later earned level-up',
+  async (mode) => {
+    // A synthetic future pinned profile makes saturation reachable below Level100.
+    // Current published 60/40 policies remain unchanged outside this transaction.
+    const base = { might: 14, finesse: 1, vitality: 13, agility: 1, intellect: 1, resolve: 1 }
+    await db.query(
+      "update app_private.discipline_primary_profiles set core_base_attributes=$1,focus_attributes=array['might','vitality'],off_focus_cap=1 where discipline_id='vanguard' and profile_version=1",
+      [base],
+    )
+    const thresholds = (
+      await db.query<{ previous: number; maximum: number }>(
+        'select c.cumulative_xp_by_level[99]::float8 previous,c.cumulative_xp_by_level[100]::float8 maximum from app_private.level_progression_curves c join app_private.progression_cycle_level_curves m on m.curve_version=c.version where m.progression_cycle=1',
+      )
+    ).rows[0]!
+    await db.query(
+      'update public.characters set level=99,xp=$1,might=59,finesse=1,vitality=60,agility=1,intellect=1,resolve=1 where id=$2',
+      [thresholds.previous, character],
+    )
+    await db.query(
+      'update app_private.character_attribute_personal_allocations set might=45,finesse=0,vitality=47,agility=0,intellect=0,resolve=0,conversion_required=$1 where character_id=$2',
+      [mode === 'convert', character],
+    )
+    const result = (
+      await db.query(
+        'select * from public.commit_character_attribute_allocation_v2($1,$2,$3,60,1,60,1,1,1,$4,$5)',
+        [other, character, mode, crypto.randomUUID(), 'saturated-' + mode],
+      )
+    ).rows[0]
+    expect(result).toMatchObject({
+      unspent_points: 10,
+      conversion_required: false,
+      reset_used: mode === 'reset' ? 1 : 0,
+    })
+    expect(
+      (
+        await db.query(
+          'select unspent_points from public.get_character_attribute_allocation_v2($1,$2)',
+          [other, character],
+        )
+      ).rows[0],
+    ).toMatchObject({ unspent_points: 10 })
+    await db.query(
+      "select * from public.grant_character_xp_v1($1,$2,'saturated-levelup','test','gameplay','saturated-levelup','test',$3)",
+      [character, crypto.randomUUID(), thresholds.maximum - thresholds.previous],
+    )
+    expect(
+      (
+        await db.query(
+          'select level,unspent_points,might,vitality from public.get_character_attribute_allocation_v2($1,$2)',
+          [other, character],
+        )
+      ).rows[0],
+    ).toMatchObject({ level: 100, unspent_points: 11, might: 60, vitality: 60 })
+    await denied(
+      () =>
+        db.query(
+          "select * from public.commit_character_attribute_allocation_v2($1,$2,'spend',61,1,60,1,1,1,$3,'illegal-cap')",
+          [other, character, crypto.randomUUID()],
+        ),
+      /DISCIPLINE_CAP_EXCEEDED/,
+    )
+  },
+)
+
+it('retrying a historical spend cannot roll personal allocations behind newer earned spending', async () => {
+  await db.query(
+    "select * from public.grant_character_xp_v1($1,$2,'retry-levelup','test','gameplay','retry-levelup','test',100)",
+    [character, crypto.randomUUID()],
+  )
+  const firstKey = crypto.randomUUID()
+  const spend = (might: number, key: string, fingerprint: string) =>
+    db.query(
+      "select * from public.commit_character_attribute_allocation_v2($1,$2,'spend',$3,4,7,4,3,6,$4,$5)",
+      [other, character, might, key, fingerprint],
+    )
+  // First spend one newly available point, earn another, then spend it too.
+  await spend(13, firstKey, 'first-spend')
+  await db.query(
+    "select * from public.grant_character_xp_v1($1,$2,'retry-levelup2','test','gameplay','retry-levelup2','test',200)",
+    [character, crypto.randomUUID()],
+  )
+  await spend(14, crypto.randomUUID(), 'second-spend')
+  const before = (
+    await db.query(
+      'select personal_attributes,might,unspent_points from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]
+  expect((await spend(13, firstKey, 'first-spend')).rows[0]).toMatchObject({
+    replayed: true,
+    might: 14,
+  })
+  expect(
+    (
+      await db.query(
+        'select personal_attributes,might,unspent_points from public.get_character_attribute_allocation_v2($1,$2)',
+        [other, character],
+      )
+    ).rows[0],
+  ).toEqual(before)
+  await denied(() => spend(13, firstKey, 'different-intent'), /IDEMPOTENCY_CONFLICT/)
+})
+it('level-up after a reset preserves fresh points on retry and rejects a new stale full-reset intent', async () => {
+  const key = crypto.randomUUID()
+  const reset = (requestKey: string) =>
+    db.query(
+      "select * from public.commit_character_attribute_allocation_v2($1,$2,'reset',11,4,7,4,3,7,$3,'reset-before-levelup')",
+      [other, character, requestKey],
+    )
+  await reset(key)
+  await db.query(
+    "select * from public.grant_character_xp_v1($1,$2,'reset-levelup','test','gameplay','reset-levelup','test',100)",
+    [character, crypto.randomUUID()],
+  )
+  expect((await reset(key)).rows[0]).toMatchObject({
+    replayed: true,
+    level: 2,
+    unspent_points: 1,
+    reset_used: 1,
+  })
+  await denied(() => reset(crypto.randomUUID()), /RESET_MUST_SPEND_FULL_POOL/)
+  expect(
+    (
+      await db.query(
+        'select level,unspent_points,reset_used from public.get_character_attribute_allocation_v2($1,$2)',
+        [other, character],
+      )
+    ).rows[0],
+  ).toMatchObject({ level: 2, unspent_points: 1, reset_used: 1 })
+})
+
+it('allocation changes retain service-only RPCs and a private validator', async () => {
+  const rows = (
+    await db.query<{ proname: string; anon: boolean; authenticated: boolean; service: boolean }>(
+      "select p.proname,has_function_privilege('anon',p.oid,'execute') anon,has_function_privilege('authenticated',p.oid,'execute') authenticated,has_function_privilege('service_role',p.oid,'execute') service from pg_proc p join pg_namespace n on n.oid=p.pronamespace where (n.nspname='public' and p.proname in ('commit_character_attribute_allocation_v1','commit_character_attribute_allocation_v2')) or (n.nspname='app_private' and p.proname='validate_character_core_allocation_v1')",
+    )
+  ).rows
+  expect(rows).toHaveLength(3)
+  for (const row of rows) {
+    expect(row.anon).toBe(false)
+    expect(row.authenticated).toBe(false)
+    expect(row.service).toBe(row.proname !== 'validate_character_core_allocation_v1')
+  }
+})
+
+it('the reported Aetherist Level1 XP1 profile accepts a real legal redistribution without granting progression', async () => {
+  await edit({ kind: 'disciplines', primary: 'aetherist' }, crypto.randomUUID())
+  const before = (await read()).rows[0]!.result
+  const facts = before.facts as import('../../../apps/web/src/master/players').MasterPlayerFacts
+  const attributes = {
+    ...facts.attributes,
+    might: facts.attributes.might - 1,
+    intellect: facts.attributes.intellect + 1,
+  }
+  await edit({ kind: 'source', xp: 1, attributes }, crypto.randomUUID())
+  const after = (await read()).rows[0]!.result
+  expect(after.facts).toMatchObject({
+    level: 1,
+    xp: 1,
+    attributes,
+    build: { primary: { disciplineId: 'aetherist' } },
+  })
+  expect(after.learnedSkills).toEqual(before.learnedSkills)
+  expect(
+    (
+      await db.query(
+        'select unspent_points from public.get_character_attribute_allocation_v2($1,$2)',
+        [other, character],
+      )
+    ).rows[0],
+  ).toMatchObject({ unspent_points: 0 })
+})

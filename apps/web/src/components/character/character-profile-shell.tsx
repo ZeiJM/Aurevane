@@ -30,7 +30,7 @@ interface PrimaryOption {
 }
 
 interface SecondaryOption extends PrimaryOption {
-  masteredAt: string
+  masteredAt: string | null
 }
 
 interface AttributeAllocationView {
@@ -208,6 +208,15 @@ export function CharacterProfileShell({
           showBuildTendencies
           attributeResetControl={
             <CharacterAttributeAllocationPanel
+              key={JSON.stringify([
+                attributeAllocation.characterId,
+                attributeAllocation.level,
+                attributeAllocation.attributes,
+                attributeAllocation.baseAttributes,
+                attributeAllocation.conversionRequired,
+                attributeAllocation.resetUsed,
+                attributePolicy?.attributeCaps,
+              ])}
               initialAllocation={attributeAllocation}
               resetLabel="Reset Stats"
               portrait={{

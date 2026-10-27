@@ -26,8 +26,7 @@ staff_character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U pos
     and target_character_id is not null order by created_at,id limit 1;")"
 test -n "$staff_character_id"
 
-set_event_staff_capabilities() {
-  local capabilities="$1"
+assign_event_staff() {
   local version
   version="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
     select access_version from app_private.master_panel_character_access where character_id='$staff_character_id'::uuid;")"
@@ -35,10 +34,17 @@ set_event_staff_capabilities() {
     set role service_role;
     select public.set_master_panel_character_access_v2(
       '$owner_id'::uuid,'$staff_id'::uuid,'$staff_character_id'::uuid,
-      array['event-staff'], $capabilities, null, '$version'::bigint, true);
+      array['event-staff'], array[]::text[], null, '$version'::bigint, true);
   " >/dev/null
 }
-set_event_staff_capabilities 'array[]::text[]'
+assign_event_staff
+source "$(dirname "${BASH_SOURCE[0]}")/event-page-access-fixture.sh"
+set_event_page_access true
+all_event_tools="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select effective_capabilities @> array['events.author','events.operate','events.production_publish','events.global_scope','events.reward_titles','events.emergency_stop']
+  from public.read_master_panel_access_v2('$staff_id'::uuid,'$staff_character_id'::uuid);")"
+test "$all_event_tools" = 't'
 
 staff_access="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -168,6 +174,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'EVENT_DRAFT_VERSION_CONFLICT' /tmp/p413-stale-draft.err
 
+set_event_page_access false
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.publish_event_definition_v2(
@@ -180,12 +187,12 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     'P4.13 capability denial publication',
     true
   );" >/tmp/p413-publish-cap.out 2>/tmp/p413-publish-cap.err; then
-  echo 'Expected Event Staff publication without production capability to fail.' >&2
+  echo 'Expected Event publication after Events page revocation to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_PRODUCTION_PUBLISH_CAPABILITY_REQUIRED' /tmp/p413-publish-cap.err
+grep -Fq 'EVENT_STAFF_REQUIRED' /tmp/p413-publish-cap.err
 
-set_event_staff_capabilities "array['events.production_publish']"
+set_event_page_access true
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
@@ -515,6 +522,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Fq 'permission denied for table event_authoring_audit' /tmp/p413-audit-write.err
 
+set_event_page_access false
 global_definition="$(definition_sql 'event.p413-global' 'global' '' 'reward.p413-ci')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
@@ -528,12 +536,12 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     'P4.13 global scope denial publication',
     true
   );" >/tmp/p413-global-cap.out 2>/tmp/p413-global-cap.err; then
-  echo 'Expected global Event publication without global-scope capability to fail.' >&2
+  echo 'Expected global Event publication after Events page revocation to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_GLOBAL_SCOPE_CAPABILITY_REQUIRED' /tmp/p413-global-cap.err
+grep -Fq 'EVENT_STAFF_REQUIRED' /tmp/p413-global-cap.err
 
-set_event_staff_capabilities "array['events.production_publish','events.global_scope']"
+set_event_page_access true
 
 global_published="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -556,7 +564,7 @@ audit_total="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -
   where actor_user_id = '$staff_id'::uuid;")"
 test "$audit_total" = '4'
 
-set_event_staff_capabilities "array['events.global_scope']"
+set_event_page_access false
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
@@ -573,7 +581,8 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   echo 'Revoked Event Staff unexpectedly replayed a privileged publication receipt.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_PRODUCTION_PUBLISH_CAPABILITY_REQUIRED' /tmp/p413-revoked-replay.err
+grep -Fq 'EVENT_STAFF_REQUIRED' /tmp/p413-revoked-replay.err
+set_event_page_access true
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;

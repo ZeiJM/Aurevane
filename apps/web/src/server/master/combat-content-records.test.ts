@@ -1,4 +1,6 @@
 import { expect, it, vi } from 'vitest'
+import type { CompleteCombatContentRecord } from '@aurevane/db/combat-content'
+import { DISCIPLINE_ATLAS_BY_ID } from '@aurevane/game-core/character/discipline-atlas'
 vi.mock('server-only', () => ({}))
 import { RpcCombatContentAuthoringStore } from './supabase-combat-content-authoring-store'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
@@ -196,15 +198,18 @@ it('builtin Discipline first edit enriches the actual producer metadata with ret
     error: null,
   }))
   const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
-  expect(await store.readRecord('vanguard')).toMatchObject({
+  const current = await store.readRecord('vanguard')
+  expect(current).toMatchObject({
     builtinDefinition: {
       ...native,
       atlas: { family: 'foundation', band: 'foundation', disclosure: 'open' },
     },
   })
+  const { family, band, disclosure, power } = DISCIPLINE_ATLAS_BY_ID.vanguard!
+  expect(current?.builtinDefinition?.atlas).toEqual({ family, band, disclosure, power })
 })
 
-it('publishes a complete saved Discipline through the shared descriptor and rejects incomplete producer metadata before write', async () => {
+it('publishes complete ordinary and grant-only Disciplines while retaining required Atlas and producer metadata validation', async () => {
   const definition = {
     schemaVersion: 1,
     id: 'discipline.ready',
@@ -230,7 +235,7 @@ it('publishes a complete saved Discipline through the shared descriptor and reje
       power: { reliability: 1, flexibility: 2, setup: 3, ruleAccess: 4, execution: 5 },
     },
   }
-  let saved = {
+  let saved: CompleteCombatContentRecord = {
     ...record,
     contentKey: definition.id,
     contentKind: 'discipline' as const,
@@ -257,10 +262,44 @@ it('publishes a complete saved Discipline through the shared descriptor and reje
   rpc.mockClear()
   saved = {
     ...saved,
-    draft: { ...saved.draft, definition: { ...definition, unlock: { kind: 'unavailable' } } },
+    draft: { ...saved.draft!, definition: { ...definition, unlock: { kind: 'unavailable' } } },
   }
-  await expect(store.publishSaved(saved, 4, null)).rejects.toThrow(/complete|prerequisite/i)
+  expect(await store.publishSaved(saved, 4, null)).toMatchObject({
+    draft: { definition: { unlock: { kind: 'unavailable' }, atlas: definition.atlas } },
+  })
+  expect(rpc).toHaveBeenCalledWith(
+    'publish_saved_combat_content_v1',
+    expect.objectContaining({
+      p_content_key: definition.id,
+      p_expected_draft_version: 4,
+      p_expected_base_version: null,
+    }),
+  )
+  const stageA: Record<string, unknown> = { ...definition, unlock: { kind: 'unavailable' } }
+  for (const field of ['atlas', 'skillStages', 'essenceId', 'resonanceSelections'])
+    delete stageA[field]
+  saved = { ...saved, draft: { ...saved.draft!, definition: stageA } }
+  rpc.mockClear()
+  await expect(store.publishSaved(saved, 4, null)).rejects.toMatchObject({
+    code: 'INVALID_REQUEST',
+    message: expect.stringMatching(/complete.*Atlas/i),
+  })
   expect(rpc).not.toHaveBeenCalledWith('publish_saved_combat_content_v1', expect.anything())
+  for (const invalid of [
+    {
+      ...definition,
+      atlas: { ...definition.atlas, power: { ...definition.atlas.power, reliability: 0 } },
+    },
+    { ...definition, atlas: { ...definition.atlas, band: 'unimplemented' } },
+    { ...definition, skillStages: [{ skillId: 'missing.skill', minimumStage: 1 }] },
+  ]) {
+    saved = { ...saved, draft: { ...saved.draft!, definition: invalid } }
+    rpc.mockClear()
+    await expect(store.publishSaved(saved, 4, null)).rejects.toMatchObject({
+      code: 'PERSISTENCE_UNAVAILABLE',
+    })
+    expect(rpc).not.toHaveBeenCalledWith('publish_saved_combat_content_v1', expect.anything())
+  }
 })
 
 it('restores the exact system Basic baseline without accepting a caller definition or inventing history', async () => {

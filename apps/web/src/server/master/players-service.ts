@@ -1,6 +1,7 @@
 import 'server-only'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
 import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
@@ -148,6 +149,16 @@ function projectPlayer(raw: unknown): MasterPlayerView {
         : [],
     }
   }
+  const attributePolicy = playerRecord(raw.attributePolicy)
+    ? disciplineAttributePolicyFromCore(
+        String(raw.attributePolicy.disciplineId),
+        Number(raw.attributePolicy.policyVersion),
+        raw.attributePolicy.baseAttributes,
+        raw.attributePolicy.focusAttributes,
+        raw.attributePolicy.offFocusCap,
+      )
+    : null
+  if (raw.attributePolicy !== undefined && !attributePolicy) unavailable()
   // Select fields explicitly. Raw battle state, source hashes, actor/account IDs,
   // private journals and automatic audit facts never cross the public boundary.
   return projectPublicCombat({
@@ -164,6 +175,7 @@ function projectPlayer(raw: unknown): MasterPlayerView {
       attributes: facts.attributes,
       build: facts.build,
     },
+    ...(attributePolicy ? { attributePolicy } : {}),
     calculated: {
       maxHp: stats.maxHp.value,
       maxMp: stats.maxMp.value,
@@ -192,7 +204,7 @@ export function createMasterPlayersService(
   rpc: PlayersRpc,
 ) {
   const call = async (userId: string, name: string, parameters: Record<string, unknown>) => {
-    await access.requireCapability(userId, 'staff.manage')
+    await access.requireCapability(userId, 'players.manage')
     return rpc(name, { p_actor_user_id: userId, ...parameters })
   }
   const readRaw = (userId: string, characterId: string) =>

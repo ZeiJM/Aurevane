@@ -13,6 +13,8 @@ interface Definition {
 }
 let db: PGlite
 let predecessors: Definition[]
+let repaired: Definition[] | undefined
+let remainingAssignments: { proname: string }[] | undefined
 beforeAll(async () => {
   db = await createCombatContentTestDatabase(async (database, name) => {
     if (name === migration)
@@ -22,6 +24,22 @@ beforeAll(async () => {
           [pattern],
         )
       ).rows
+    // Audit this repair at its own migration boundary. Later migrations may
+    // legitimately extend these same functions without changing this proof.
+    if (name > migration && repaired === undefined) {
+      repaired = (
+        await database.query<Definition>(
+          `select format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) signature, pg_get_functiondef(p.oid) definition,proacl::text acl,proowner owner from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid=any($1::regprocedure[]) order by signature`,
+          [predecessors.map((row) => row.signature)],
+        )
+      ).rows
+      remainingAssignments = (
+        await database.query<{ proname: string }>(
+          `select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and p.prosrc ~* $1`,
+          [pattern],
+        )
+      ).rows
+    }
   })
   await db.exec(
     `insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now()); insert into app_private.master_panel_role_assignments(user_id,role) values('${owner}','game-owner');`,
@@ -33,24 +51,16 @@ afterAll(async () => {
 it('changes only intentional domain SQLSTATE assignments and preserves every audited full function body, owner and ACL', async () => {
   expect(predecessors).toHaveLength(35)
   expect(predecessors.reduce((count, row) => count + row.count, 0)).toBe(65)
+  expect(repaired).toHaveLength(predecessors.length)
   for (const before of predecessors) {
-    const after = (
-      await db.query<Definition>(
-        'select pg_get_functiondef($1::regprocedure) definition,proacl::text acl,proowner owner from pg_proc where oid=$1::regprocedure',
-        [before.signature],
-      )
-    ).rows[0]!
+    const after = repaired!.find((row) => row.signature === before.signature)!
     expect(after.definition, before.signature).toBe(
       before.definition.replace(/errcode\s*=\s*'40001'/gi, "errcode='PT409'"),
     )
     expect(after.acl, before.signature).toBe(before.acl)
     expect(after.owner, before.signature).toBe(before.owner)
   }
-  const remaining = await db.query(
-    `select p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and p.prosrc ~* $1`,
-    [pattern],
-  )
-  expect(remaining.rows).toEqual([])
+  expect(remainingAssignments).toEqual([])
 })
 it('Master catalogue and record CAS return one PT409 rejection without writes, while invalid input keeps its original error', async () => {
   await db.exec('begin')

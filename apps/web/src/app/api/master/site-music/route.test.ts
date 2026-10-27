@@ -103,3 +103,18 @@ it('rejects legacy saves that omit the song library before they can replace stor
   expect((await response.json()).error.message).toMatch(/refresh.*library/i)
   expect(api.save).not.toHaveBeenCalled()
 })
+
+it('rejects YouTube watch URLs at the server boundary before saving', async () => {
+  const config = createDefaultSiteMusicConfig()
+  config.defaultTrack = {
+    ...config.defaultTrack,
+    url: 'https://www.youtube.com/watch?v=x06zFQ85gT0',
+    source: 'url',
+  }
+  config.songLibrary = [config.defaultTrack]
+  const response = await request({ operation: 'save', expectedRevision: 1, config })
+  expect(response.status).toBe(400)
+  expect((await response.json()).error.message).toMatch(/YouTube.*background music/)
+  expect(api.save).not.toHaveBeenCalled()
+  expect(api.storage).not.toHaveBeenCalled()
+})

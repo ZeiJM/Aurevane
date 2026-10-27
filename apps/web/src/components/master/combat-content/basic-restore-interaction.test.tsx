@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ContentRecordPreview } from './content-record-preview'
-import { ContentHistory } from './content-history'
+import { ContentRecordModal } from './content-record-modal'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import {
@@ -13,7 +13,12 @@ import type {
   CompleteCombatContentRecord,
   CombatContentDefinition,
 } from '@aurevane/db/combat-content'
-const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[] }))
+const hooks = vi.hoisted(() => ({
+  index: 0,
+  cells: [] as unknown[],
+  effects: [] as (() => void)[],
+  cleanups: new Set<() => void>(),
+}))
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
   useMemo(factory: () => unknown) {
@@ -30,6 +35,25 @@ vi.mock('react', async (original) => ({
           typeof next === 'function' ? (next as (old: unknown) => unknown)(hooks.cells[i]) : next
       },
     ]
+  },
+  useEffect(effect: () => void | (() => void), dependencies: unknown[]) {
+    const index = hooks.index++
+    const old = hooks.cells[index] as { dependencies: unknown[]; cleanup?: () => void } | undefined
+    if (!old || dependencies.some((value, i) => !Object.is(value, old.dependencies[i]))) {
+      const cell = { dependencies, cleanup: undefined as (() => void) | undefined }
+      hooks.cells[index] = cell
+      hooks.effects.push(() => {
+        if (old?.cleanup) {
+          old.cleanup()
+          hooks.cleanups.delete(old.cleanup)
+        }
+        const cleanup = effect()
+        if (cleanup) {
+          cell.cleanup = cleanup
+          hooks.cleanups.add(cleanup)
+        }
+      })
+    }
   },
   useRef(initial: unknown) {
     const i = hooks.index++
@@ -56,18 +80,20 @@ function find(
   }
   if (!isValidElement<Props>(node)) return null
   if (predicate(node)) return node
-  if (node.type === ContentHistory)
-    return find(
-      ContentHistory(node.props as unknown as Parameters<typeof ContentHistory>[0]),
-      predicate,
-    )
+  if (typeof node.type === 'function' && node.type.name === 'ContentDescriptionFields')
+    return find((node.type as (props: Props) => ReactNode)(node.props), predicate)
   return find(node.props.children, predicate)
 }
 beforeEach(() => {
   hooks.index = 0
   hooks.cells = []
+  hooks.effects = []
+  hooks.cleanups.clear()
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  for (const cleanup of hooks.cleanups) cleanup()
+  vi.unstubAllGlobals()
+})
 function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatContentRecord> = {}) {
   const definition = { ...structuredClone(defaultBasicSkills().find((row) => row.id === id)!) }
   const version = (n: number) => ({
@@ -112,9 +138,19 @@ function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatCon
   vi.stubGlobal('fetch', request)
   function render() {
     hooks.index = 0
-    return CombatContentAuthoringWorkspace({
+    const tree = CombatContentAuthoringWorkspace({
       categories: COMBAT_CONTENT_CATEGORIES.map((row) => row.editor),
       initialRecord: initial,
+      references:
+        initial.contentKind === 'discipline'
+          ? [
+              {
+                contentKey: initial.contentKey,
+                contentKind: 'discipline',
+                name: String(initial.current?.definition.name),
+              },
+            ]
+          : [],
       initialPage: {
         records: [
           {
@@ -128,6 +164,8 @@ function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatCon
         nextCursor: null,
       },
     })
+    hooks.effects.splice(0).forEach((effect) => effect())
+    return tree
   }
   const button = (label: string) =>
     find(render(), (node) => node.type === 'button' && node.props.children === label)!
@@ -140,14 +178,37 @@ function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatCon
     const control = button(label)
     expect(control.props.disabled).not.toBe(true)
     ;(control.props.onClick as () => void)()
-    await vi.waitFor(() => expect(button('Commit Now')?.props.disabled ?? false).not.toBe(true))
+    await vi.waitFor(() => expect(render().props['aria-busy']).toBe(false))
   }
   const command = () =>
     request.mock.calls
       .map((call) => JSON.parse(call[1].body).command)
       .filter((command) => command.action !== 'list')
       .at(-1)
-  return { initial, definition, request, render, button, fields, change, reply, click, command }
+  const selectRecord = async (key: string) => {
+    const control = find(render(), (node) => node.props['data-content-key'] === key)!
+    ;(control.props.onClick as () => void)()
+    await vi.waitFor(() => expect(render().props['aria-busy']).toBe(false))
+  }
+  const chooseCategory = async (value: string) => {
+    const selector = find(render(), (node) => node.props['aria-label'] === 'Content category')!
+    ;(selector.props.onChange as (event: unknown) => void)({ currentTarget: { value } })
+    await vi.waitFor(() => expect(render().props['aria-busy']).toBe(false))
+  }
+  return {
+    initial,
+    definition,
+    request,
+    render,
+    button,
+    fields,
+    change,
+    reply,
+    click,
+    command,
+    chooseCategory,
+    selectRecord,
+  }
 }
 it.each(SUPPORT_ACTION_IDS)(
   'commits changed %s mechanics directly with the reviewed revision',
@@ -183,34 +244,33 @@ it.each(SUPPORT_ACTION_IDS)(
     ).toHaveLength(1)
   },
 )
-it('restores the previous complete settings for review without modifying the current publication', async () => {
+it('commits explicitly authored settings while retained previous versions stay outside the editor', async () => {
   const f = fixture()
-  await f.click('History')
-  expect(f.button('Restore Previous')).toBeTruthy()
-  expect(find(f.render(), (n) => n.type === 'h4' && n.props.children === 'Current')).toBeTruthy()
-  const restored = {
+  const retained = JSON.stringify({ current: f.initial.current, history: f.initial.history })
+  expect(f.button('History')).toBeNull()
+  expect(f.button('Restore Previous')).toBeNull()
+  expect(f.button('Skill Details')).toBeTruthy()
+  const authored = { ...f.initial.history[1]!.definition, name: 'Manually authored settings' }
+  f.change(authored)
+  f.reply({
     ...f.initial,
     revision: 10,
-    draft: {
-      ...f.initial.draft!,
-      definition: f.initial.history[1]!.definition,
-      draftVersion: 5,
-      restoredFrom: 4,
-      restoredBy: 'restorer',
+    draft: null,
+    current: {
+      ...f.initial.current!,
+      contentVersion: 6,
+      definition: { ...authored, contentVersion: 6 },
     },
-  }
-  f.reply(restored)
-  await f.click('Restore Previous')
+  })
+  await f.click('Commit Now')
   expect(f.command()).toEqual({
-    action: 'restore',
+    action: 'commit',
     contentKey: 'basic.guard',
     expectedRevision: 9,
-    sourceVersion: 4,
+    definition: authored,
   })
-  await f.click('Parameters')
-  expect(f.fields().props.value).toEqual(restored.draft.definition)
-  expect(f.initial.current!.contentVersion).toBe(5)
-  expect(f.initial.history).toHaveLength(4)
+  expect(f.command()).not.toHaveProperty('sourceVersion')
+  expect(JSON.stringify({ current: f.initial.current, history: f.initial.history })).toBe(retained)
 })
 it('keeps newer local edits when a held save returns and uses the returned revision on the next save', async () => {
   const f = fixture()
@@ -288,7 +348,11 @@ it('retains a new unsaved definition until creation or explicit discard', async 
   await f.click('New')
   f.change({ ...(f.fields().props.value as CombatContentDefinition), name: 'Keep new work' })
   expect(f.button('New').props.disabled).toBe(true)
-  expect(f.button('First page').props.disabled).toBe(true)
+  expect(f.button('Search').props.disabled).toBe(true)
+  expect(
+    find(f.render(), (node) => node.props['data-content-key'] === f.initial.contentKey)!.props
+      .disabled,
+  ).toBe(true)
   expect(
     find(f.render(), (node) => node.props['aria-label'] === 'Content category')!.props.disabled,
   ).toBe(true)
@@ -297,10 +361,24 @@ it('retains a new unsaved definition until creation or explicit discard', async 
   expect(f.fields().props.value).toEqual(f.initial.current!.definition)
   expect(f.request).not.toHaveBeenCalled()
 })
-it('creates directly within a Discipline using its revision and refreshes the matching global Skill list', async () => {
+async function beginSkillCreation(f: ReturnType<typeof disciplineFixture>) {
+  await f.chooseCategory('skill')
+  await f.click('New')
+  const details = ContentDefinitionFields(
+    f.fields().props as unknown as Parameters<typeof ContentDefinitionFields>[0],
+  )
+  const source = find(details, (node) => node.props.label === 'Source Discipline')!
+  expect(source.props.choices).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ contentKey: 'discipline.original', contentKind: 'discipline' }),
+    ]),
+  )
+  ;(source.props.onChange as (value: string) => void)('discipline.original')
+  expect(f.fields().props.value).toMatchObject({ sourceDisciplineId: 'discipline.original' })
+}
+it('creates a source-bound Skill, finds it in its Discipline and commits explicit availability once', async () => {
   const f = disciplineFixture()
-  await f.click('Skills')
-  await f.click('Add Skill')
+  await beginSkillCreation(f)
   const draft = f.fields().props.value as CombatContentDefinition
   expect(draft.sourceDisciplineId).toBe('discipline.original')
   const key = 'skill.11111111-1111-4111-8111-111111111111'
@@ -345,11 +423,13 @@ it('creates directly within a Discipline using its revision and refreshes the ma
     }),
   )
   await f.click('Commit Now')
-  expect(JSON.parse(f.request.mock.calls[0]![1].body).command).toMatchObject({
+  expect(
+    f.request.mock.calls
+      .map((call) => JSON.parse(call[1].body).command)
+      .find((command) => command.action === 'create'),
+  ).toMatchObject({
     action: 'create',
     contentKind: 'skill',
-    parentKey: 'discipline.original',
-    expectedParentRevision: 9,
     definition: JSON.parse(JSON.stringify(draft)),
   })
   expect(JSON.parse(f.request.mock.calls.at(-1)![1].body).command).toMatchObject({
@@ -357,10 +437,90 @@ it('creates directly within a Discipline using its revision and refreshes the ma
     kind: 'skill',
     category: 'discipline-skill',
     sort: 'name-asc',
-    limit: 20,
+    limit: 100,
   })
   expect(find(f.render(), (node) => node.props['data-content-key'] === key)).toBeTruthy()
   expect(f.fields().props.value).toEqual(JSON.parse(JSON.stringify(created.draft.definition)))
+  expect(f.fields().props.value).toMatchObject({
+    id: key,
+    sourceDisciplineId: 'discipline.original',
+  })
+  expect(
+    f.request.mock.calls
+      .map((call) => JSON.parse(call[1].body).command.action)
+      .filter((action) => !['list', 'read'].includes(action)),
+  ).toEqual(['create', 'commit'])
+  f.request.mockResolvedValueOnce(
+    Response.json({
+      records: [
+        {
+          contentKey: f.initial.contentKey,
+          contentKind: 'discipline',
+          lifecycle: 'active',
+          revision: f.initial.revision,
+          name: f.initial.current!.definition.name,
+        },
+      ],
+      nextCursor: null,
+    }),
+  )
+  await f.chooseCategory('discipline')
+  // The server's unchanged parent is deliberate: a matching Source Discipline
+  // must be discoverable without inventing an automatic persisted parent edit.
+  f.reply(f.initial)
+  await f.selectRecord(f.initial.contentKey)
+  await f.click('Skills')
+  const related = find(
+    f.render(),
+    (node) =>
+      node.type === 'button' &&
+      Array.isArray(node.props.children) &&
+      node.props.children[0] === 'New Skill',
+  )
+  expect(related).not.toBeNull()
+  ;(related!.props.onClick as () => void)()
+  const modal = () => find(f.render(), (node) => node.type === ContentRecordModal)!
+  expect(modal().props.contentKey).toBe(key)
+  expect(modal().props.availableInDiscipline).toBe(false)
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Content version state')!.props
+      .children,
+  ).toBe('Current')
+  const beforeInclusion = f.request.mock.calls.length
+  expect(f.initial.current!.definition.linkedSkills).toEqual([])
+  ;(modal().props.onAvailabilityChange as (enabled: boolean) => void)(true)
+  expect(modal().props.availableInDiscipline).toBe(true)
+  expect(f.request).toHaveBeenCalledTimes(beforeInclusion)
+  const included = {
+    ...f.initial.current!.definition,
+    linkedSkills: [key],
+    skillStages: [{ skillId: key, minimumStage: 1 }],
+  }
+  f.reply({
+    ...f.initial,
+    revision: 10,
+    current: {
+      ...f.initial.current!,
+      contentVersion: 6,
+      definition: { ...included, contentVersion: 6 },
+    },
+  })
+  await (modal().props.onCommitRelated as () => Promise<void>)()
+  expect(f.command()).toEqual({
+    action: 'commit',
+    contentKey: f.initial.contentKey,
+    expectedRevision: 9,
+    definition: included,
+  })
+  expect(modal().props.availableInDiscipline).toBe(true)
+  const afterInclusion = f.request.mock.calls.length
+  await (modal().props.onCommitRelated as () => Promise<void>)()
+  expect(f.request).toHaveBeenCalledTimes(afterInclusion)
+  expect(
+    f.request.mock.calls
+      .map((call) => JSON.parse(call[1].body).command.action)
+      .filter((action) => !['list', 'read'].includes(action)),
+  ).toEqual(['create', 'commit', 'commit'])
 })
 it('keeps the record when dependency-aware archive rejects it', async () => {
   const f = disciplineFixture()
@@ -375,23 +535,53 @@ it('keeps the record when dependency-aware archive rejects it', async () => {
       { status: 409 },
     ),
   )
-  await f.click('Identity & Relations')
   await f.click('Archive')
   expect(f.command()).toEqual({
     action: 'archive',
     contentKey: 'discipline.original',
     expectedRevision: 9,
   })
-  await f.click('Parameters')
+  await f.click('Discipline Details')
   expect(f.fields().props.value).toEqual(f.initial.current!.definition)
   expect(find(f.render(), (node) => node.props.role === 'alert')).toBeTruthy()
 })
 
+it('keeps an archived definition readable while its commit, duplicate and archive actions are denied', () => {
+  const active = disciplineFixture()
+  expect(active.button('Duplicate').props.disabled).toBe(false)
+  expect(active.button('Archive').props.disabled).toBe(false)
+  const seed = active.initial
+  hooks.cells = []
+  hooks.effects = []
+  const f = fixture('basic.guard', {
+    ...seed,
+    lifecycle: 'archived',
+    current: null,
+    draft: {
+      definition: seed.current!.definition,
+      draftVersion: 1,
+      baseVersion: 5,
+      updatedBy: 'author',
+      updatedAt: '2026-10-22',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  })
+  expect(f.fields().props.value).toEqual(f.initial.draft!.definition)
+  expect(f.button('Commit Now').props.disabled).toBe(true)
+  expect(f.button('Duplicate').props.disabled).toBe(true)
+  expect(f.button('Archive').props.disabled).toBe(true)
+  expect(
+    find(f.render(), (node) => node.type === 'fieldset' && node.props.disabled === true),
+  ).toBeTruthy()
+  expect(f.request).not.toHaveBeenCalled()
+})
+
 it.each(BASIC_SKILL_IDS)(
-  'keeps %s Text callbacks parse/save-valid including optional clearing',
+  'keeps %s Details text callbacks parse/commit-valid including optional clearing',
   async (id) => {
     const f = fixture(id)
-    await f.click('Text')
+    await f.click('Skill Details')
     const tree = () =>
       ContentDefinitionFields(
         f.fields().props as unknown as Parameters<typeof ContentDefinitionFields>[0],
@@ -439,18 +629,41 @@ it.each(BASIC_SKILL_IDS)(
     expect(() => parseBasicSkillDefinition(f.command().definition)).not.toThrow()
   },
 )
-it('shows Current and one Previous choice even when retained future versions are newer', async () => {
+it('edits the current definition without selecting retained future versions', async () => {
   const seed = fixture().initial
   hooks.cells = []
-  const version = (n: number) => ({ ...seed.current!, contentVersion: n })
+  hooks.effects = []
+  const version = (n: number) => ({
+    ...seed.current!,
+    contentVersion: n,
+    definition: { ...seed.current!.definition, contentVersion: n },
+  })
   const f = fixture('basic.guard', {
+    draft: null,
+    versionFloor: 75,
     current: version(2),
     history: [version(2), version(73), version(74), version(75)],
   })
-  await f.click('History')
-  f.reply({ ...f.initial, revision: 10 })
-  await f.click('Restore Previous')
-  expect(f.command()).toMatchObject({ sourceVersion: 75 })
+  const retained = JSON.stringify(f.initial.history)
+  expect(f.button('History')).toBeNull()
+  expect(f.fields().props.value).toEqual(f.initial.current!.definition)
+  const authored = { ...f.initial.current!.definition, name: 'Current settings edited' }
+  f.change(authored)
+  f.reply({
+    ...f.initial,
+    revision: 10,
+    current: { ...version(76), definition: { ...authored, contentVersion: 76 } },
+  })
+  await f.click('Commit Now')
+  expect(f.command()).toEqual({
+    action: 'commit',
+    contentKey: f.initial.contentKey,
+    expectedRevision: 9,
+    definition: authored,
+  })
+  expect(f.command()).not.toHaveProperty('sourceVersion')
+  expect(f.fields().props.value).toMatchObject({ name: authored.name, contentVersion: 76 })
+  expect(JSON.stringify(f.initial.history)).toBe(retained)
 })
 
 it.each(['working', 'saved', 'current', 'compare'])(
@@ -498,36 +711,44 @@ it.each(['working', 'saved', 'current', 'compare'])(
 )
 
 it.each(BASIC_SKILL_IDS)(
-  'offers %s original as a separate System source and sends only intent',
+  'authors %s current settings without an original-restore control or restore intent',
   async (id) => {
-    const f = fixture(id, { builtin: { contentVersion: 1, name: id }, builtinRestoreVersion: 1 })
-    await f.click('History')
+    const f = fixture(id, {
+      draft: null,
+      builtin: { contentVersion: 1, name: id },
+      builtinRestoreVersion: 1,
+    })
+    const retained = JSON.stringify(f.initial)
+    expect(f.button('History')).toBeNull()
+    expect(f.button('Restore System original')).toBeNull()
+    expect(f.fields().props.value).toEqual(f.initial.current!.definition)
+    const authored = { ...f.initial.current!.definition, name: `Authored ${id}` }
+    f.change(authored)
     f.reply({
       ...f.initial,
       revision: 10,
-      draft: {
-        ...f.initial.draft!,
-        restoredFrom: 1,
-        restoredSource: 'builtin',
-        restoredBy: 'owner',
+      current: {
+        ...f.initial.current!,
+        contentVersion: 6,
+        definition: { ...authored, contentVersion: 6 },
       },
     })
-    await f.click('Restore System original')
+    await f.click('Commit Now')
     expect(f.command()).toEqual({
-      action: 'restore',
+      action: 'commit',
       contentKey: id,
       expectedRevision: 9,
-      sourceVersion: 1,
-      sourceKind: 'builtin',
+      definition: authored,
     })
-    expect(f.command()).not.toHaveProperty('definition')
+    expect(f.command()).not.toHaveProperty('sourceKind')
+    expect(f.command()).not.toHaveProperty('sourceVersion')
+    expect(JSON.stringify(f.initial)).toBe(retained)
   },
 )
 
-it('retains the created Skill identity and inline edits after commit failure, then retries without another create or parent link', async () => {
+it('retains the created Skill identity and inline edits after commit failure, then retries without recreating or losing its Source Discipline', async () => {
   const f = disciplineFixture()
-  await f.click('Skills')
-  await f.click('Add Skill')
+  await beginSkillCreation(f)
   const submitted = f.fields().props.value as CombatContentDefinition
   const key = 'skill.11111111-1111-4111-8111-111111111111'
   const created: CompleteCombatContentRecord = {
@@ -559,7 +780,10 @@ it('retains the created Skill identity and inline edits after commit failure, th
   )
   ;(f.button('Commit Now').props.onClick as () => void)()
   await vi.waitFor(() => expect(rejectCommit).toBeTypeOf('function'))
-  expect(f.fields().props.value).toMatchObject({ id: key })
+  expect(f.fields().props.value).toMatchObject({
+    id: key,
+    sourceDisciplineId: 'discipline.original',
+  })
   const inlineEdit = {
     ...(f.fields().props.value as CombatContentDefinition),
     name: 'Retain this new Skill',
@@ -576,7 +800,7 @@ it('retains the created Skill identity and inline edits after commit failure, th
   expect(f.button('Cancel new content')).toBeNull()
   expect(
     JSON.stringify(find(f.render(), (node) => node.props.role === 'alert')!.props.children),
-  ).toMatch(/saved.*commit not confirmed/i)
+  ).toContain('Commit storage unavailable.')
   f.reply({
     ...created,
     lifecycle: 'active',
@@ -645,7 +869,7 @@ it('keeps queued edits made during creation under the returned identity when the
   expect(f.button('Cancel new content')).toBeNull()
   expect(
     JSON.stringify(find(f.render(), (node) => node.props.role === 'status')?.props.children),
-  ).toContain('newer local edits remain unsaved')
+  ).toContain('newer local edits remain uncommitted')
 })
 
 it('preserves a revert to the previously saved value while an earlier changed value is committing', async () => {

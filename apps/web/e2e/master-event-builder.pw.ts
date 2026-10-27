@@ -3,6 +3,13 @@ import { execFileSync } from 'node:child_process'
 import { expect, test, type Page, type Response } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { createEventPageAccessFixture } from './event-page-access-fixture'
+
+let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
+test.afterEach(() => {
+  eventPageAccess?.restore()
+  eventPageAccess = undefined
+})
 
 function escapeSqlLiteral(value: string): string {
   return value.replaceAll("'", "''")
@@ -57,16 +64,7 @@ function grantLocalEventStaff(email: string): void {
     insert into app_private.master_panel_character_access(character_id,user_id,roles,special_capabilities,updated_by)
       select c.id,c.user_id,array['event-staff'],array[]::text[],c.user_id from public.characters c
       where c.user_id='${userId}'::uuid order by c.slot_index limit 1
-      on conflict(character_id) do update set roles=excluded.roles,enabled=true,access_version=app_private.master_panel_character_access.access_version+1;
-  `)
-}
-
-function grantLocalProductionPublish(email: string): void {
-  const userId = localUserId(email)
-  queryLocalDatabase(`
-    update app_private.master_panel_character_access
-      set special_capabilities=array['events.production_publish'],access_version=access_version+1
-      where user_id='${userId}'::uuid;
+      on conflict(character_id) do update set roles=excluded.roles,special_capabilities=excluded.special_capabilities,enabled=true,access_version=app_private.master_panel_character_access.access_version+1;
   `)
 }
 
@@ -133,6 +131,8 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   })
 
   grantLocalEventStaff(email)
+  eventPageAccess = createEventPageAccessFixture(queryLocalDatabase)
+  eventPageAccess.set(true)
 
   await page.goto('/master/events')
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
@@ -144,7 +144,7 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
     .getByRole('button', { name: 'Schedule', exact: true })
     .click()
   await expect(publishButton).toBeDisabled()
-  await expect(page.getByText(/Production publication is disabled/)).toBeVisible()
+  await expect(page.getByText(/Production publication is disabled/)).not.toBeVisible()
 
   const eventKey = `event.browser-${now}`
   await page.getByLabel('Event key').fill(eventKey)
@@ -180,7 +180,19 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   await runEventOperation(page, 'save-draft', 'Save draft')
   await expect(page.getByText(/Draft v\d+ saved\./)).toBeVisible()
 
-  grantLocalProductionPublish(email)
+  // Revoke the page behind the open editor: its current controls cannot bypass live access.
+  eventPageAccess.set(false)
+  await page
+    .getByRole('navigation', { name: 'Event authoring sections' })
+    .getByRole('button', { name: 'Schedule', exact: true })
+    .click()
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  const deniedPublication = page.waitForResponse((response) =>
+    isEventOperationResponse(response, 'publish'),
+  )
+  await publishButton.click()
+  expect((await deniedPublication).status()).toBe(403)
+  eventPageAccess.set(true)
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Persistent Event Definition' })).toBeVisible()
   await page

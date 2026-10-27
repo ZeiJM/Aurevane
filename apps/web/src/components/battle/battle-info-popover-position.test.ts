@@ -40,6 +40,31 @@ describe('reading-panel viewport placement', () => {
       ),
     ).toEqual({ left: 22, top: 86 })
   })
+  it('keeps a vertically clamped hover reader clear of its image button', () => {
+    const anchor = { left: 478.09, right: 566.09, top: 445.42, bottom: 533.42 }
+    const panel = { width: 320, height: 513.56 }
+    const result = battleInfoPopoverPosition(anchor, panel, viewport)
+    expect(result.left + panel.width).toBeLessThanOrEqual(anchor.left - 8)
+    expect(result.left).toBeGreaterThanOrEqual(8)
+    expect(result.top).toBeGreaterThanOrEqual(8)
+    expect(result.top + panel.height).toBeLessThanOrEqual(viewport.height - 8)
+  })
+  it('uses available space to the right when a clamped reader cannot fit left', () => {
+    const anchor = { left: 100, right: 188, top: 300, bottom: 388 }
+    const panel = { width: 320, height: 600 }
+    const result = battleInfoPopoverPosition(anchor, panel, viewport, { x: 12, y: 100 })
+    expect(result.left).toBe(anchor.right + 8 + 12)
+    expect(result.top).toBe(108)
+    expect(result.left + panel.width - 12).toBeLessThanOrEqual(viewport.width - 8)
+  })
+  it('does not follow an offscreen image horizontally when a long reader overlaps its height', () => {
+    const result = battleInfoPopoverPosition(
+      { left: 1000, right: 1088, top: 300, bottom: 388 },
+      { width: 320, height: 600 },
+      { width: 390, height: 844 },
+    )
+    expect(result.left).toBe(62)
+  })
 })
 
 describe('footer placement preference', () => {

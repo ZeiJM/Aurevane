@@ -121,6 +121,30 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     await owner.evaluate(() => {
       document.documentElement.style.zoom = '1'
     })
+    await owner.setViewportSize({ width: 1366, height: 768 })
+    const panes = owner.locator('[data-player-pane]')
+    const beforeError = await panes.evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().toJSON()),
+    )
+    await owner.route('**/api/master/players', (route) =>
+      route.fulfill({
+        status: 503,
+        json: { error: { message: 'Player read temporarily unavailable' } },
+      }),
+    )
+    await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
+    await expect(owner.locator('[data-player-pane="details"]').getByRole('alert')).toContainText(
+      'Player read temporarily unavailable',
+    )
+    const afterError = await panes.evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().toJSON()),
+    )
+    expect(afterError).toHaveLength(2)
+    expect(afterError[1]!.x).toBeGreaterThan(afterError[0]!.right)
+    expect(afterError[1]!.y).toBe(beforeError[1]!.y)
+    expect(afterError[1]!.x).toBe(beforeError[1]!.x)
+    await owner.unroute('**/api/master/players')
+    await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
     await owner.getByLabel('Total XP', { exact: true }).fill('1')
     await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
     await expect(

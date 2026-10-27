@@ -184,7 +184,7 @@ describe('combat content authoring handler', () => {
     })
   })
 
-  it('routes publish and rollback through the protected service', async () => {
+  it('publishes current settings and rejects retired rollback', async () => {
     const service = serviceMock()
     const deps = dependencies(service)
 
@@ -206,17 +206,13 @@ describe('combat content authoring handler', () => {
     )
 
     expect(publishResponse.status).toBe(200)
-    expect(rollbackResponse.status).toBe(200)
+    expect(rollbackResponse.status).toBe(400)
     expect(service.publishSkill).toHaveBeenCalledWith({
       actorUserId: ACTOR,
       definition: { id: 'vanguard.forceful-strike' },
       expectedBaseVersion: 2,
     })
-    expect(service.rollbackSkill).toHaveBeenCalledWith({
-      actorUserId: ACTOR,
-      skillId: 'vanguard.forceful-strike',
-      targetVersion: 2,
-    })
+    expect(service.rollbackSkill).not.toHaveBeenCalled()
   })
 
   it('routes Essence and Resonance writes through their typed authoring lanes', async () => {
@@ -244,18 +240,13 @@ describe('combat content authoring handler', () => {
     )
 
     expect(essenceResponse.status).toBe(200)
-    expect(resonanceRollback.status).toBe(200)
+    expect(resonanceRollback.status).toBe(400)
     expect(service.publishEssence).toHaveBeenCalledWith({
       actorUserId: ACTOR,
       definition: { essenceId: 'essence.vanguard.unbroken-strike' },
       expectedBaseVersion: 4,
     })
-    expect(service.rollbackResonance).toHaveBeenCalledWith({
-      actorUserId: ACTOR,
-      resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
-      disciplinePair: ['lifebinder', 'vanguard'],
-      targetVersion: 2,
-    })
+    expect(service.rollbackResonance).not.toHaveBeenCalled()
   })
 
   it('rejects malformed operations as invalid requests', async () => {

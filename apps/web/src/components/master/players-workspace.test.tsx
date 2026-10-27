@@ -5,7 +5,7 @@ vi.mock('server-only', () => ({}))
 import { PlayersWorkspace } from './players-workspace'
 import type { MasterPanelAccess } from '@/server/master/staff-access'
 import { masterNavigationForAccess } from './master-panel-shell'
-it('offers neutral bounded search and Owner-only navigation', () => {
+it('offers neutral bounded search and page-authorized navigation', () => {
   const html = renderToStaticMarkup(createElement(PlayersWorkspace))
   expect(html).toContain('Character name')
   expect(html).toContain('Find players')
@@ -13,13 +13,15 @@ it('offers neutral bounded search and Owner-only navigation', () => {
   const access: MasterPanelAccess = {
     userId: 'owner',
     roles: ['game-owner'],
-    effectiveCapabilities: ['staff.manage'],
+    effectiveCapabilities: ['staff.manage', 'players.manage'],
     specialCapabilities: [],
     accessVersion: 1,
   }
   expect(masterNavigationForAccess(access).map((row) => row.id)).toContain('players')
   expect(
-    masterNavigationForAccess({ ...access, roles: ['moderator'] }).map((row) => row.id),
+    masterNavigationForAccess({ ...access, roles: ['moderator'], effectiveCapabilities: [] }).map(
+      (row) => row.id,
+    ),
   ).not.toContain('players')
 })
 it('reads calculated and protected facts, actual AP and every human affected by recovery', () => {

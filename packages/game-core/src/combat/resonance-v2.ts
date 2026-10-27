@@ -26,6 +26,8 @@ export interface ResonanceSkillTriggerV2 {
 }
 
 export interface ResonanceDefinitionV2 {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
   readonly ability?: AbilityDefinition
   readonly id: string
   readonly contentVersion: number

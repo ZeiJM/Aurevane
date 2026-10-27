@@ -1,3 +1,4 @@
+vi.mock('./selected-character-rpc', () => ({ createSelectedCharacterRpc: (rpc: unknown) => rpc }))
 import { beforeEach, expect, it, vi } from 'vitest'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'

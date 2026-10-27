@@ -909,8 +909,8 @@ export function committedMatureSkills(
   const essenceReference = snapshot.extensions.essence
   if (essenceReference) {
     const essence = resolveEssenceForBuild(
-      snapshot.primary.disciplineId,
-      snapshot.secondary?.disciplineId ?? null,
+      essenceReference.sourceDisciplineId,
+      null,
       essenceReference.contentVersion,
     )
     if (

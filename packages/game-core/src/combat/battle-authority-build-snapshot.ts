@@ -105,6 +105,12 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
               typeof resonance.disciplinePair[0] === 'string' &&
               typeof resonance.disciplinePair[1] === 'string'
             ? {
+                ...(resonance.relationshipOverrideDisciplineId !== undefined
+                  ? {
+                      relationshipOverrideDisciplineId:
+                        resonance.relationshipOverrideDisciplineId as string,
+                    }
+                  : {}),
                 resonanceId: resonance.resonanceId,
                 contentVersion: resonance.contentVersion,
                 disciplinePair: [resonance.disciplinePair[0], resonance.disciplinePair[1]],
@@ -120,6 +126,12 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
               typeof essence.skillId === 'string' &&
               positiveInteger(essence.skillContentVersion)
             ? {
+                ...(essence.relationshipOverrideDisciplineId !== undefined
+                  ? {
+                      relationshipOverrideDisciplineId:
+                        essence.relationshipOverrideDisciplineId as string,
+                    }
+                  : {}),
                 essenceId: essence.essenceId,
                 contentVersion: essence.contentVersion,
                 sourceDisciplineId: essence.sourceDisciplineId,

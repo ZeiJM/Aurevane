@@ -54,13 +54,13 @@
   max-width: 58rem;
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.67rem;
+  font-size: 0.78rem;
   line-height: 1.45;
 }
 
 .eyebrow {
   color: var(--av-teal-bright);
-  font: 700 0.53rem/1.2 var(--av-font-body);
+  font: 700 0.78rem/1.2 var(--av-font-body);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -76,7 +76,7 @@
   gap: 0.5rem;
   align-items: center;
   color: var(--av-text-muted);
-  font-size: 0.66rem;
+  font-size: 0.78rem;
 }
 
 .selector select,
@@ -98,7 +98,7 @@
 .itemList button,
 .toolbar button {
   padding: 0.48rem 0.68rem;
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -120,7 +120,7 @@
 
 .status {
   color: var(--av-text-dim);
-  font-size: 0.66rem;
+  font-size: 0.78rem;
 }
 
 .summaryGrid {
@@ -154,7 +154,7 @@
 .card p {
   margin: 0.45rem 0 0;
   color: var(--av-text-dim);
-  font-size: 0.66rem;
+  font-size: 0.78rem;
   line-height: 1.45;
 }
 
@@ -174,13 +174,13 @@
 
 .card dt {
   color: var(--av-text-dim);
-  font-size: 0.63rem;
+  font-size: 0.78rem;
 }
 
 .card dd {
   margin: 0;
   color: var(--av-text);
-  font-size: 0.66rem;
+  font-size: 0.78rem;
   text-align: right;
 }
 
@@ -206,7 +206,7 @@
   grid-column: 1;
   gap: 0.28rem;
   color: var(--av-text-muted);
-  font-size: 0.67rem;
+  font-size: 0.78rem;
 }
 
 .approvalField textarea {
@@ -227,7 +227,7 @@
   align-items: center;
   width: fit-content;
   color: var(--av-text-muted);
-  font-size: 0.65rem;
+  font-size: 0.78rem;
 }
 
 .approvalCheck input {
@@ -253,7 +253,7 @@
   grid-column: 1 / -1;
   margin: 0;
   color: var(--av-brass-300);
-  font-size: 0.66rem;
+  font-size: 0.78rem;
   line-height: 1.45;
 }
 
@@ -279,7 +279,7 @@
 .phase header strong,
 .itemList strong {
   color: var(--av-text);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
 }
 
 .phase header span,
@@ -288,7 +288,7 @@
 .itemList span,
 .itemList small {
   color: var(--av-text-dim);
-  font-size: 0.6rem;
+  font-size: 0.78rem;
 }
 
 .objective {
@@ -298,7 +298,7 @@
 
 .objective strong {
   color: var(--av-teal-bright);
-  font-size: 0.66rem;
+  font-size: 0.78rem;
 }
 
 .itemList {
@@ -322,7 +322,7 @@
   background: rgba(2, 7, 13, 0.82);
   color: var(--av-text-muted);
   white-space: pre-wrap;
-  font-size: 0.64rem;
+  font-size: 0.78rem;
 }
 
 @media (max-width: 950px) {
@@ -407,7 +407,7 @@
 }
 
 .toolbar p {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   line-height: 1.4;
 }
 
@@ -416,7 +416,7 @@
 .itemList button {
   min-height: 2.05rem;
   padding: 0.4rem 0.56rem;
-  font-size: 0.61rem;
+  font-size: 0.78rem;
 }
 
 .selector {
@@ -425,13 +425,13 @@
 
 .selector label {
   grid-template-columns: auto minmax(12rem, 22rem);
-  font-size: 0.62rem;
+  font-size: 0.78rem;
 }
 
 .selector select {
   min-height: 2.05rem;
   padding: 0.4rem 0.5rem;
-  font-size: 0.64rem;
+  font-size: 0.78rem;
 }
 
 .summaryGrid {
@@ -482,7 +482,7 @@
 .approvalField textarea {
   min-height: 4rem;
   padding: 0.46rem 0.52rem;
-  font-size: 0.64rem;
+  font-size: 0.78rem;
 }
 
 .actionRow {
@@ -502,7 +502,7 @@
 }
 
 .card p {
-  font-size: 0.61rem;
+  font-size: 0.78rem;
   line-height: 1.4;
 }
 
@@ -516,7 +516,7 @@
 
 .card dt,
 .card dd {
-  font-size: 0.59rem;
+  font-size: 0.78rem;
 }
 
 .phaseGrid {
@@ -545,7 +545,7 @@
 .card pre {
   max-height: 13rem;
   padding: 0.5rem;
-  font-size: 0.58rem;
+  font-size: 0.78rem;
 }
 
 @media (max-width: 1080px) {
@@ -658,13 +658,13 @@
   display: grid;
   gap: 0.22rem;
   color: var(--av-text-muted);
-  font-size: 0.6rem;
+  font-size: 0.78rem;
 }
 
 .runSearch > span,
 .runSelect > span {
   color: var(--av-text-dim);
-  font: 650 0.5rem/1.2 var(--av-font-body);
+  font: 650 0.78rem/1.2 var(--av-font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -678,7 +678,7 @@
   border-radius: var(--av-radius-sm);
   color: var(--av-text);
   background: rgba(3, 10, 17, 0.86);
-  font-size: 0.63rem;
+  font-size: 0.78rem;
 }
 
 .runList {
@@ -729,7 +729,7 @@
   border-radius: 0.38rem;
   color: var(--av-brass-200);
   background: rgba(185, 154, 92, 0.04);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .runIdentity {
@@ -741,7 +741,7 @@
 .runIdentity strong {
   overflow: hidden;
   color: var(--av-text);
-  font-size: 0.64rem;
+  font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -749,7 +749,7 @@
 .runIdentity small {
   overflow: hidden;
   color: var(--av-text-dim);
-  font-size: 0.5rem;
+  font-size: 0.78rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -762,7 +762,7 @@
   border-radius: 999px;
   color: var(--av-text-dim);
   background: rgba(255, 255, 255, 0.018);
-  font: 700 0.48rem/1 var(--av-font-body);
+  font: 700 0.78rem/1 var(--av-font-body);
   text-transform: capitalize;
   white-space: nowrap;
 }
@@ -826,7 +826,7 @@
   align-items: center;
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.56rem;
+  font-size: 0.78rem;
 }
 
 .runHeaderIdentity code {
@@ -836,7 +836,7 @@
 .workspaceMessage {
   max-width: 13rem;
   color: var(--av-text-dim);
-  font-size: 0.57rem;
+  font-size: 0.78rem;
   font-weight: 600;
   text-align: right;
 }
@@ -857,7 +857,7 @@
   align-items: center;
   padding: 0 0.6rem;
   color: var(--av-text-dim);
-  font: 700 0.57rem/1 var(--av-font-body);
+  font: 700 0.78rem/1 var(--av-font-body);
   text-decoration: none;
 }
 
@@ -912,13 +912,13 @@
 
 .overviewFacts span {
   color: var(--av-text-dim);
-  font: 650 0.49rem/1.2 var(--av-font-body);
+  font: 650 0.78rem/1.2 var(--av-font-body);
   text-transform: uppercase;
 }
 
 .overviewFacts strong {
   color: var(--av-text);
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 650;
 }
 
@@ -974,7 +974,7 @@
   border: 1px solid var(--av-border-strong);
   border-radius: 50%;
   background: var(--av-ink-900);
-  font-size: 0.55rem;
+  font-size: 0.78rem;
 }
 
 .lifecycleStep[data-complete='true'] > span,
@@ -990,7 +990,7 @@
 }
 
 .lifecycleStep strong {
-  font-size: 0.54rem;
+  font-size: 0.78rem;
   text-transform: capitalize;
 }
 
@@ -1005,7 +1005,7 @@
 
 .cardHeading > span {
   color: var(--av-text-dim);
-  font: 650 0.52rem/1.2 var(--av-font-body);
+  font: 650 0.78rem/1.2 var(--av-font-body);
 }
 
 .operationWorkspace .phaseGrid {
@@ -1059,7 +1059,7 @@
 
 .metricGrid span {
   color: var(--av-text-dim);
-  font-size: 0.52rem;
+  font-size: 0.78rem;
 }
 
 .operationDock .approvalField textarea {
@@ -1093,7 +1093,7 @@
 
 .compactFacts dt,
 .compactFacts dd {
-  font-size: 0.58rem;
+  font-size: 0.78rem;
 }
 
 .compactFacts dt {
@@ -1303,4 +1303,131 @@
 
 :global(.av-master) .runRow[data-selected='true'] :is(strong, small) {
   color: #f1e5ce;
+}
+
+/* The live console uses the same hierarchy as the authoring workspace. */
+:global(.av-master) .operations {
+  grid-template-columns: minmax(14rem, 21%) minmax(0, 1fr) minmax(16rem, 25%);
+  gap: 0.8rem;
+  color: var(--av-text);
+  font-size: 0.875rem;
+}
+:global(.av-master)
+  .operations
+  :is(
+    .runNavigator,
+    .operationDock,
+    .card,
+    .dockCard,
+    .overviewPanel,
+    .runHeader,
+    .emptyOperations
+  ) {
+  background: var(--master-panel, #f7f1e5);
+  border-color: #b6a587;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 3px #4d402a12;
+}
+:global(.av-master)
+  .operations
+  :is(.operationWorkspace, .overviewFacts, .metricGrid, .compactFacts) {
+  background: transparent;
+  box-shadow: none;
+}
+:global(.av-master) .operations :is(.runNavigator, .operationDock) {
+  position: sticky;
+  top: 0;
+  max-height: calc(100dvh - 12rem);
+  grid-column: auto;
+}
+:global(.av-master) .operations :is(.card, .dockCard, .overviewPanel, .runNavigator, .runHeader) {
+  padding: 0.8rem;
+}
+:global(.av-master) .operations .operationWorkspace {
+  grid-column: auto;
+}
+:global(.av-master) .operations .runHeader {
+  border-top: 3px solid #a1844d;
+}
+:global(.av-master) .operations :is(h2, h3) {
+  color: #293d37;
+  font-size: 1rem;
+}
+:global(.av-master) .operations :is(.runHeaderIcon, .runGlyph, .eyebrow) {
+  color: #786138;
+}
+:global(.av-master)
+  .operations
+  :is(.phase, .objective, .runRow, .lifecycleStep, .metricGrid > div) {
+  background: #eee7d9;
+  border-color: #cabba0;
+}
+:global(.av-master) .operations .runRow {
+  min-height: 3.5rem;
+  gap: 0.5rem;
+  padding: 0.55rem;
+}
+:global(.av-master) .operations .runRow[data-selected='true'] {
+  color: #fff4de;
+  background: #315e53;
+  border-left-color: #b9995f;
+}
+:global(.av-master) .operations .runRow[data-selected='true'] :is(strong, small, span) {
+  color: #fff4de;
+}
+:global(.av-master) .operations :is(label, input, select, textarea, button) {
+  font-size: 0.85rem;
+}
+:global(.av-master) .operations button:not(.runRow) {
+  background: #e8dfcc;
+  color: #345348;
+  border-color: #a99879;
+}
+:global(.av-master) .operations button:not(.runRow):hover:not(:disabled) {
+  background: #d6e5da;
+  border-color: #618779;
+}
+:global(.av-master) .operations .workspaceTabs {
+  gap: 0.3rem;
+  padding: 0 0 0.6rem;
+}
+:global(.av-master) .operations .workspaceTabs button[aria-pressed='true'] {
+  color: #fff4de;
+  background: #315e53;
+}
+:global(.av-master) .operations .danger {
+  color: #8b302a !important;
+  border-color: #ba7870 !important;
+  background: #f4dfd6 !important;
+}
+:global(.av-master) .operations :is(button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #237569;
+  outline-offset: 2px;
+}
+@media (max-width: 1280px) {
+  :global(.av-master) .operations {
+    grid-template-columns: minmax(14rem, 26%) minmax(0, 1fr);
+  }
+  :global(.av-master) .operations :is(.operationWorkspace, .operationDock) {
+    grid-column: 2;
+  }
+  :global(.av-master) .operations .operationDock {
+    position: static;
+    max-height: none;
+  }
+}
+@media (max-width: 900px) {
+  :global(.av-master) .operations {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :global(.av-master) .operations :is(.runNavigator, .operationWorkspace, .operationDock) {
+    grid-column: 1;
+    position: static;
+    max-height: none;
+  }
+}
+@media (max-width: 600px) {
+  :global(.av-master) .operations :is(button, input, select) {
+    min-height: 2.75rem;
+  }
 }

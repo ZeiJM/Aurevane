@@ -176,6 +176,7 @@ function serviceFor(record: MasterPanelAccessRecord) {
       staffAccess: createMasterPanelStaffAccessService(staff),
     }),
     store,
+    staff,
   }
 }
 
@@ -225,8 +226,11 @@ describe('Event Builder authoring service', () => {
     })
   })
 
-  it('requires the explicit Production publication capability for Event Staff', async () => {
-    const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
+  it('rejects publication after live Events page access is removed', async () => {
+    const { service } = serviceFor({
+      ...access(EVENT_STAFF, ['event-staff']),
+      effectiveCapabilities: [],
+    })
 
     await expect(
       service.publish({
@@ -268,7 +272,7 @@ describe('Event Builder authoring service', () => {
     ).resolves.toMatchObject({ definitionVersion: 1 })
   })
 
-  it('allows scoped publication with Production publish but separately gates global scope', async () => {
+  it('includes regional and global publication tools with Events page access', async () => {
     const scoped = serviceFor(access(EVENT_STAFF, ['event-staff'], ['events.production_publish']))
 
     await expect(
@@ -291,7 +295,7 @@ describe('Event Builder authoring service', () => {
 
         confirmed: true,
       }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    ).resolves.toMatchObject({ definitionVersion: 2 })
 
     const global = serviceFor(
       access(EVENT_STAFF, ['event-staff'], ['events.production_publish', 'events.global_scope']),

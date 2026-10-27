@@ -1,3 +1,4 @@
+import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
@@ -386,6 +387,10 @@ export async function startPvpLobbyWithQuality(
     buildAuthority,
     combatContentResolver,
   )
+  const usageBalance = await createBattleUsageProvenance(
+    'pvp',
+    roster.map(({ member }) => member.userId),
+  )
   const battle = snapshot.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc(
@@ -396,8 +401,13 @@ export async function startPvpLobbyWithQuality(
       p_battle_id: battle.battleId,
       p_rules_version: battle.rulesVersion,
       p_content_version: battle.contentVersion,
-      p_initial_snapshot: snapshot,
-      ...(startup ?? {}),
+      p_initial_snapshot: { ...snapshot, usageBalance },
+      ...(startup
+        ? {
+            ...startup,
+            p_start_snapshot: { ...(startup.p_start_snapshot as object), usageBalance },
+          }
+        : {}),
       p_participants: roster.map(({ member, character }) => ({
         combatant_id: `character:${character.id}`,
         user_id: member.userId,

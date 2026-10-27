@@ -19,11 +19,17 @@ const access: MasterPanelAccess = {
   effectiveCapabilities: ['master.access', 'content.combat.author'],
 }
 describe('Master workspace composition', () => {
-  it('exposes effect timing only to the Owner and keeps staff settings distinct', () => {
+  it('exposes delegated pages only when the current access snapshot grants their tools', () => {
     const render = (roles: MasterPanelAccess['roles']) =>
       renderToStaticMarkup(
         <MasterPanelShell
-          access={{ ...access, roles, effectiveCapabilities: ['master.access', 'staff.manage'] }}
+          access={{
+            ...access,
+            roles,
+            effectiveCapabilities: roles.includes('game-owner')
+              ? ['master.access', 'staff.manage', 'combat.rules', 'world.manage']
+              : ['master.access'],
+          }}
           activeSection="combat"
           title="Combat"
           description="Review"

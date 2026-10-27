@@ -5,14 +5,19 @@ import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { ContentDefinitionFields } from './content-definition-fields'
 vi.mock('server-only', () => ({}))
 import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
-it('keeps authored Skill text separate from stable identity and native mechanics', () => {
+it('keeps authored Skill text in Details without changing stable identity or native mechanics', () => {
   const definition = {
     ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
     name: 'Named Strike',
     battleText: 'Saved unpublished action text.',
   }
   const html = renderToStaticMarkup(
-    <ContentDefinitionFields kind="skill" value={definition} tab="Text" onChange={() => {}} />,
+    <ContentDefinitionFields
+      kind="skill"
+      value={definition}
+      tab="Parameters"
+      onChange={() => {}}
+    />,
   )
   expect(html).toContain('value="Named Strike"')
   expect(html).toContain('value="Saved unpublished action text."')
@@ -27,25 +32,36 @@ it('keeps Essence action text independently editable from catalogue flavor', () 
     skill: { ...original.skill, battleText: '{actor} raises {ability}.' },
   }
   const html = renderToStaticMarkup(
-    <ContentDefinitionFields kind="essence" value={definition} tab="Text" onChange={() => {}} />,
+    <ContentDefinitionFields
+      kind="essence"
+      value={definition}
+      tab="Parameters"
+      onChange={() => {}}
+    />,
   )
   expect(html).toContain('aria-label="In-battle text"')
   expect(html).toContain('value="{actor} raises {ability}."')
   expect(html).toContain('value="Catalogue flavor stays separate."')
 })
 it.each(['skill', 'essence'] as const)(
-  'mounts finalized and retained hook media controls on %s only in Media',
+  'keeps finalized media and native mechanics together in %s Details',
   (kind) => {
     const definition =
       kind === 'skill'
         ? { ...resolveMatureSkillVersion('vanguard.forceful-strike')! }
         : { ...resolveEssenceForBuild('vanguard', null)! }
     const html = renderToStaticMarkup(
-      <ContentDefinitionFields kind={kind} value={definition} tab="Media" onChange={() => {}} />,
+      <ContentDefinitionFields
+        kind={kind}
+        value={definition}
+        tab="Parameters"
+        onChange={() => {}}
+      />,
     )
     for (const label of ['Upload content media', 'Skill artwork hook', 'Skill audio hook'])
       expect(html).toContain(`aria-label="${label}"`)
-    expect(html).not.toContain('Action Economy (AP)')
+    expect(html).toContain('<summary>Artwork and sound</summary>')
+    expect(html).toContain('Action Economy (AP)')
   },
 )
 it('mounts a dedicated retained Summon profile editor', () => {

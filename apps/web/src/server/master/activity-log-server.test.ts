@@ -1,3 +1,4 @@
+vi.mock('./selected-character-rpc', () => ({ createSelectedCharacterRpc: (rpc: unknown) => rpc }))
 import { expect, it, vi } from 'vitest'
 const dependencies = vi.hoisted(() => ({ rpc: vi.fn(), access: vi.fn() }))
 vi.mock('server-only', () => ({}))

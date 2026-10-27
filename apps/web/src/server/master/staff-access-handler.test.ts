@@ -113,7 +113,7 @@ it('role defaults commands bind the authenticated Owner and return the saved aut
   const { dependencies } = fixture()
   const defaults: MasterPanelRoleDefaults = {
     revision: 5,
-    roles: { moderator: ['master.access'], 'content-staff': [], 'event-staff': ['events.author'] },
+    roles: { moderator: ['moderation'], 'content-staff': [], 'event-staff': ['events'] },
   }
   const readRoleDefaults = vi.fn(async () => defaults)
   const saveRoleDefaults = vi.fn(async () => defaults)

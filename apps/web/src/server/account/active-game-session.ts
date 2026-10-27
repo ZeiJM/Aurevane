@@ -44,6 +44,12 @@ export async function claimActiveGameSession(
     p_auth_session_id: identity.authSessionId,
   })
 
+  if (error?.code === '42501' && error.message?.includes('ACCOUNT_BANNED')) {
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'This account is currently banned. Contact support if you believe this is an error.',
+    )
+  }
   if (error || typeof data !== 'boolean') {
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',
@@ -63,6 +69,12 @@ export async function ensureActiveGameSession(
     p_auth_session_id: identity.authSessionId,
   })
 
+  if (error?.code === '42501' && error.message?.includes('ACCOUNT_BANNED')) {
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'This account is currently banned. Contact support if you believe this is an error.',
+    )
+  }
   if (error || typeof data !== 'boolean') {
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',

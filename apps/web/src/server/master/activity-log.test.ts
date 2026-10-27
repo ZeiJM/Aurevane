@@ -30,12 +30,18 @@ const access = (roles: ('game-owner' | 'moderator')[]) => ({
     specialCapabilities: [],
   }),
 })
-it('rejects a delegated caller before reading the private feed and projects only bounded display data', async () => {
+it('requires live Activity Log page access and projects bounded display data', async () => {
   const rpc = vi.fn(async () => ({ ...feed, privatePayload: 'secret' }))
-  await expect(
-    createMasterActivityService(access(['moderator']), rpc).read('actor'),
-  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  const denied = {
+    requireCapability: async () => {
+      throw new AurevaneError('FORBIDDEN', 'Page access required.')
+    },
+  }
+  await expect(createMasterActivityService(denied, rpc).read('actor')).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
   expect(rpc).not.toHaveBeenCalled()
+  expect(await createMasterActivityService(access(['moderator']), rpc).read('actor')).toEqual(feed)
   const result = await createMasterActivityService(access(['game-owner']), rpc).read('actor', '23')
   expect(result).toEqual(feed)
   expect(rpc).toHaveBeenCalledWith('read_master_panel_activity_v1', {

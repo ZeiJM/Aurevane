@@ -312,3 +312,58 @@
     flex-wrap: wrap;
   }
 }
+
+.directory,
+.editor {
+  padding: 0.85rem;
+  background: var(--master-panel, #f7f1e5);
+  border-color: #b6a587;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 3px #4d402a12;
+}
+.editor {
+  border-top: 3px solid #a1844d;
+}
+.layout button {
+  background: #e8dfcc;
+  border-color: #a99879;
+  font-size: 0.85rem;
+}
+.columns {
+  padding: 0.6rem 0.4rem;
+  color: #4e5d52;
+  background: #e6ddca;
+}
+.row {
+  padding: 0.7rem 0.4rem;
+  border-color: #d2c6af;
+}
+.row:nth-child(even) {
+  background: #f0eadf;
+}
+.row strong,
+.row span {
+  font-size: 0.85rem;
+}
+.editor fieldset {
+  border-color: #c6b699;
+  border-radius: 0.3rem;
+}
+.summary {
+  background: #e1eadd;
+}
+@media (max-width: 600px) {
+  .layout :is(button, input:not([type='checkbox']), select) {
+    min-height: 2.75rem;
+  }
+  .editor,
+  .directory {
+    max-height: none;
+  }
+  .defaultPermissions label,
+  .additional label,
+  .presets label,
+  .confirm {
+    min-height: 2.75rem;
+  }
+}

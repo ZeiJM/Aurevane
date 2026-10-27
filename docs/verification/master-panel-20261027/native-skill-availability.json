@@ -1,0 +1,44 @@
+{
+  "browser": "151.0.7922.34",
+  "evidence": [
+    {
+      "scenario": "skill-availability",
+      "viewport": {
+        "width": 1366,
+        "height": 768
+      },
+      "globalCreateSource": true,
+      "openingDoesNotAssign": true,
+      "exactSourceCandidates": true,
+      "explicitAssociationAndMastery": true,
+      "parentExpectedRevision": 2,
+      "unrelatedParentEditsRetained": true,
+      "reviewedAssociationSnapshot": true,
+      "modalHeldSaveThenRevertRetained": true,
+      "removal": true,
+      "partialSaveCasErrorRetained": true,
+      "parentReadOnlyControls": true,
+      "authority": "Production components with local HTTP transport; unchanged SQL projector/authority checked separately."
+    },
+    {
+      "scenario": "skill-availability",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "globalCreateSource": true,
+      "openingDoesNotAssign": true,
+      "exactSourceCandidates": true,
+      "explicitAssociationAndMastery": true,
+      "parentExpectedRevision": 2,
+      "unrelatedParentEditsRetained": true,
+      "reviewedAssociationSnapshot": true,
+      "modalHeldSaveThenRevertRetained": true,
+      "removal": true,
+      "partialSaveCasErrorRetained": true,
+      "parentReadOnlyControls": true,
+      "authority": "Production components with local HTTP transport; unchanged SQL projector/authority checked separately."
+    }
+  ],
+  "failures": []
+}

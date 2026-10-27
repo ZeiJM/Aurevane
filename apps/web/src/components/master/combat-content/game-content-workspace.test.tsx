@@ -48,9 +48,9 @@ it.each(SUPPORT_ACTION_IDS)(
     expect(html).toContain('Commit Now')
     expect(html).not.toContain('Publish saved draft')
     expect(html).not.toContain('aria-label="Content previews"')
-    expect(html).toContain('Parameters')
-    expect(html).toContain('History')
-    expect(html).toContain('Identity &amp; Relations')
+    expect(html).toContain('Skill Details')
+    expect(html).not.toContain('>History<')
+    expect(html).toContain('Usage &amp; Balance')
     expect(html).toContain('New')
     expect(html).toContain(definition.name)
     expect(html).not.toContain('Confirm rollback')
@@ -215,4 +215,17 @@ it('uses protected finalized media URLs in the actual authoring preview', () => 
   )
   expect(html).toContain(`src="/api/master/combat-content/media/${id}"`)
   expect(html).not.toContain(`src="/api/content-media/${id}"`)
+})
+
+it('uses a compact sidebar without pagination/state controls or misplaced commit help', () => {
+  const html = renderToStaticMarkup(
+    <CombatContentAuthoringWorkspace
+      categories={COMBAT_CONTENT_CATEGORIES.map((row) => row.editor)}
+    />,
+  )
+  expect(html).toContain('Content browser')
+  expect(html).not.toContain('First page')
+  expect(html).not.toContain('Next page')
+  expect(html).not.toContain('All states')
+  expect(html).not.toContain('Committing content')
 })

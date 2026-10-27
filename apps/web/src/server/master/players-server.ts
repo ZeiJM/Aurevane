@@ -18,7 +18,7 @@ export function createServerMasterPlayersService() {
         if (error.code === '42501')
           throw new AurevaneError(
             'FORBIDDEN',
-            'Only the Game Owner may inspect or correct players.',
+            'Your selected character does not have access to Players.',
           )
         if (error.code === '40001' || error.code === 'PT409' || error.code === '55P03')
           throw new AurevaneError(
@@ -30,6 +30,18 @@ export function createServerMasterPlayersService() {
             'INVALID_REQUEST',
             'This character is in a battle. End the encounter safely before correcting the build or progression.',
           )
+        const sourceRejections: Record<string, string> = {
+          CHARACTER_ATTRIBUTE_POINT_POOL_EXCEEDED:
+            'This allocation exceeds the personal point pool for the Level provided by the entered XP. Move points between Core Stats or correct XP first.',
+          CHARACTER_ATTRIBUTE_BELOW_PRIMARY_BASE:
+            'A Core Stat is below the fixed Primary Discipline base. Only personal points can be redistributed.',
+          CHARACTER_ATTRIBUTE_DISCIPLINE_CAP_EXCEEDED:
+            'A Core Stat exceeds a Primary focus or nonfocus cap. Use the caps shown beside each field.',
+          PLAYER_XP_RANGE_INVALID:
+            'The entered XP exceeds the current progression cycle’s Level cap.',
+        }
+        const sourceReason = sourceRejections[error.message ?? '']
+        if (sourceReason) throw new AurevaneError('INVALID_REQUEST', sourceReason)
         if (
           error.code === '22023' ||
           /LOCKED|VERSION_CONFLICT|MASTERY_REQUIRED/u.test(error.message ?? '')

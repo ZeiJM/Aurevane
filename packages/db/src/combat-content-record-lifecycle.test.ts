@@ -19,6 +19,16 @@ interface TestRecord {
 }
 let db: PGlite
 let originals: string
+let legacyActorSignatures: string[]
+async function actorSignatures(): Promise<string[]> {
+  return (
+    await db.query<{ signature: string }>(
+      "select format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)",
+    )
+  ).rows
+    .map((row) => row.signature)
+    .sort()
+}
 beforeAll(async () => {
   // Executable fixture compilation is setup, shared with the native SQL proof.
   const fixtureStarted = performance.now()
@@ -33,7 +43,7 @@ beforeAll(async () => {
   // Only Supabase's platform identity and unavailable scheduler are fixtures.
   // Every Aurevane table, authorization function, producer and finalizer is real migration SQL.
   await db.exec(`create role anon; create role authenticated; create role service_role;
-    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,created_at timestamptz default now());
+    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,created_at timestamptz default now(),banned_until timestamptz,updated_at timestamptz);
     create function auth.uid() returns uuid language sql as $$ select null::uuid $$;
     create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create schema realtime; create table realtime.messages(extension text,topic text,payload jsonb);
@@ -45,6 +55,8 @@ beforeAll(async () => {
   for (const name of readdirSync(root)
     .filter((name) => name.endsWith('.sql'))
     .sort()) {
+    if (name === '20261027123107_master_page_access_and_moderation.sql')
+      legacyActorSignatures = await actorSignatures()
     // PGlite has no LZ4 codec; this storage-only setting does not alter authority.
     const sql = readFileSync(resolve(root, name), 'utf8')
       .replace(/create extension if not exists pg_cron(?: with schema pg_catalog)?;/gi, '')
@@ -647,22 +659,82 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('combined actor inventory includes original33 Players4 Content4 Media2 Event2 with private helpers inaccessible', async () => {
-  expect(
-    (
-      await db.query(
-        "select p.oid from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)",
-      )
-    ).rows,
-  ).toHaveLength(48)
+it('retains all 48 legacy actor contracts plus exactly 14 workspace contracts with private helpers inaccessible', async () => {
+  const workspaceSignatures = [
+    'public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)',
+    'public.set_world_environment_v2(uuid,integer,jsonb,uuid)',
+    'public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)',
+    'public.publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)',
+    'public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)',
+    'public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)',
+    'public.search_master_moderation_players_v1(uuid,text,uuid)',
+    'public.read_master_moderation_v1(uuid,uuid,uuid,bigint)',
+    'public.write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)',
+    'public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)',
+    'public.search_discipline_grant_players_v1(uuid,uuid,text)',
+    'public.read_discipline_player_grants_v1(uuid,uuid,text,uuid)',
+    'public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)',
+    'public.read_master_usage_balance_v1(uuid,uuid,text)',
+  ]
+  const workspaceContracts = (
+    await db.query<{
+      signature: string
+      name: string
+      selected_actor: boolean
+      anon_execute: boolean
+      authenticated_execute: boolean
+      service_execute: boolean
+    }>(
+      "select format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) signature,p.proname name,'p_actor_character_id'=any(p.proargnames) selected_actor,has_function_privilege('anon',p.oid,'execute') anon_execute,has_function_privilege('authenticated',p.oid,'execute') authenticated_execute,has_function_privilege('service_role',p.oid,'execute') service_execute from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid=any($1::regprocedure[])",
+      [workspaceSignatures],
+    )
+  ).rows
+  expect(legacyActorSignatures).toHaveLength(48)
+  expect(workspaceContracts).toHaveLength(14)
+  expect(await actorSignatures()).toEqual(
+    [...legacyActorSignatures, ...workspaceContracts.map((contract) => contract.signature)].sort(),
+  )
+  for (const contract of workspaceContracts) {
+    expect(contract.selected_actor, contract.signature).toBe(true)
+    expect(contract.anon_execute, contract.signature).toBe(false)
+    expect(contract.authenticated_execute, contract.signature).toBe(false)
+    // The v1 timing overload is a private dispatcher, not a service entrypoint.
+    expect(contract.service_execute, contract.signature).toBe(
+      contract.name !== 'publish_combat_effect_timing_policy_v1',
+    )
+  }
   const helpers = (
     await db.query<{ allowed: boolean }>(
       "select has_function_privilege('service_role',p.oid,'execute') allowed from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='app_private' and (p.proname like '%combat_content%' or p.proname in ('validate_noncombat_content_v1','validate_content_record_identity_v1','content_nonnegative_integer_v1','validate_content_requirement_v1','validate_content_command_v1','content_reference_targets_v1','index_content_references_v1','bound_content_links_v1')) and p.proname<>'prevent_combat_content_version_mutation_v1'",
     )
   ).rows
   expect(helpers.every((r) => !r.allowed)).toBe(true)
+  const workspaceHelpers = [
+    'app_private.master_page_capabilities_v1(text[])',
+    'app_private.assert_master_page_v1(uuid,uuid,text)',
+    'app_private.prevent_moderation_history_change_v1()',
+    'app_private.discipline_grant_only_v1(text)',
+    'app_private.discipline_unlocked_before_player_grants_v1(uuid,text)',
+    'app_private.discipline_account_granted_v1(uuid,text)',
+    'app_private.validate_discipline_envelope_before_override_v1(jsonb)',
+    'app_private.current_discipline_relationship_override_v1(text,text)',
+    'app_private.essence_selection_key_before_override_v1(text,text)',
+    'app_private.resonance_selection_key_before_override_v1(text,text)',
+    'app_private.discipline_unlocked_v1(uuid,text)',
+    'app_private.resolve_essence_reference_v1(text,text)',
+    'app_private.resolve_resonance_reference_v1(text,text)',
+    'app_private.capture_usage_balance_start_v1()',
+    'app_private.capture_usage_balance_event_v1()',
+  ]
+  const denials = await db.query<{ signature: string; role: string; allowed: boolean }>(
+    "select signature,role,has_function_privilege(role,signature::regprocedure,'execute') allowed from unnest($1::text[]) signature cross join unnest(array['anon','authenticated','service_role']) role",
+    [workspaceHelpers],
+  )
+  expect(denials.rows).toHaveLength(workspaceHelpers.length * 3)
+  for (const result of denials.rows)
+    expect(result.allowed, `${result.role}: ${result.signature}`).toBe(false)
 })
-it('executes the complete native Staff fixture with all 45 real actor contracts on the current migration chain', async () => {
+it('executes the complete native Staff fixture with legacy and workspace actor contracts on the current migration chain', async () => {
   const outsider = '00000000-0000-4000-8000-000000000003'
   const alternate = '00000000-0000-4000-8000-000000000012'
   await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${outsider}','outsider@example.test',now());

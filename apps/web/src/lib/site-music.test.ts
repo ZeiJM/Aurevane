@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   attemptSiteMusicPlayback,
   createDefaultSiteMusicConfig,
+  parseSiteMusicConfig,
   parseSiteMusicDraft,
   parseSiteMusicUploadMetadata,
   resolveSiteMusicTrack,
@@ -10,6 +11,53 @@ import {
 } from './site-music'
 
 describe('site music configuration', () => {
+  it.each([
+    'https://www.youtube.com/watch?v=x06zFQ85gT0',
+    'https://youtu.be/x06zFQ85gT0',
+    'https://music.youtube.com/watch?v=x06zFQ85gT0',
+    'https://www.youtube-nocookie.com/embed/x06zFQ85gT0',
+    'https://WWW.YOUTUBE.COM./shorts/x06zFQ85gT0',
+  ])('rejects a YouTube page before saving it as native background audio: %s', (url) => {
+    const config = createDefaultSiteMusicConfig()
+    config.defaultTrack = { ...config.defaultTrack, url, source: 'url' }
+    expect(() => parseSiteMusicDraft(config)).toThrow(/YouTube.*background music/)
+  })
+
+  it('rejects an unsupported source in an unassigned library song or retained silent page', () => {
+    const config = createDefaultSiteMusicConfig()
+    const track = { ...config.defaultTrack, url: 'https://youtu.be/x06zFQ85gT0' }
+    expect(() =>
+      parseSiteMusicDraft({ ...config, songLibrary: [config.defaultTrack, track] }),
+    ).toThrow(/YouTube/)
+    expect(() =>
+      parseSiteMusicDraft({
+        ...config,
+        routeOverrides: [
+          { id: 'world', label: 'World', pathPrefix: '/game/world', enabled: false, track },
+        ],
+      }),
+    ).toThrow(/YouTube/)
+  })
+
+  it('retains legacy unsupported sources on read so the Owner can replace them', () => {
+    const config = createDefaultSiteMusicConfig()
+    config.defaultTrack = { ...config.defaultTrack, url: 'https://youtu.be/x06zFQ85gT0' }
+    expect(parseSiteMusicConfig(config).defaultTrack).toEqual(config.defaultTrack)
+  })
+
+  it.each([
+    '/media/audio/music/road-to-aurevane.webm',
+    'https://cdn.example.test/song.mp3?signature=valid',
+    'https://cdn.example.test/audio/123?token=valid',
+    'https://youtube.com.example.test/song.mp3',
+  ])('preserves direct and signed audio sources: %s', (url) => {
+    const config = createDefaultSiteMusicConfig()
+    expect(
+      parseSiteMusicDraft({ ...config, defaultTrack: { ...config.defaultTrack, url } }).defaultTrack
+        .url,
+    ).toBe(url)
+  })
+
   it('attempts soundtrack playback on initial load before user interaction', async () => {
     const play = vi.fn().mockResolvedValue(undefined)
 

@@ -6,7 +6,9 @@ import { contentRecordName } from '@/components/master/combat-content/content-re
 import { PlayersWorkspace } from '@/components/master/players-workspace'
 import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
+import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
 import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
+import { parseNoncombatContentDefinition } from '@aurevane/game-core/content/authored-content'
 import './production-styles'
 
 // These are transport fixtures. Runtime editors, engine definitions, categories,
@@ -19,6 +21,9 @@ const skill = structuredClone(
 const resonance = structuredClone(
   currentResonanceDefinitions().find((entry) => entry.disciplinePair.includes('bastion')),
 )
+const essence = structuredClone(
+  currentEssenceDefinitions().find((entry) => entry.sourceDisciplineId === 'bastion'),
+)
 skill.name = contentRecordName(skill)
 resonance.name = contentRecordName(resonance)
 const discipline = {
@@ -26,11 +31,12 @@ const discipline = {
   id: 'bastion',
   name: 'Bastion',
   description: 'Current Bastion text.',
+  essenceId: essence.essenceId,
   linkedSkills: [skill.id],
   skillStages: [{ skillId: skill.id, minimumStage: 1 }],
   resonanceSelections: [
     {
-      partnerDisciplineId: resonance.disciplinePair.find((id) => id !== 'bastion'),
+      withDisciplineId: resonance.disciplinePair.find((id) => id !== 'bastion'),
       resonanceId: resonance.id,
     },
   ],
@@ -46,7 +52,7 @@ function version(definition, number) {
 function record(kind, definition, index = 0) {
   const current = version(definition, 2)
   return {
-    contentKey: definition.id,
+    contentKey: definition.id ?? definition.essenceId,
     contentKind: kind,
     lifecycle: 'active',
     revision: 2,
@@ -69,24 +75,58 @@ const records = new Map(
   [
     record('discipline', discipline),
     record('skill', skill),
+    record('skill', {
+      ...skill,
+      id: 'skill.fixture.unrelated',
+      name: 'Unrelated Source Skill',
+      sourceDisciplineId: resonance.disciplinePair.find((id) => id !== 'bastion'),
+    }),
     record('resonance', resonance),
-    ...Array.from({ length: 30 }, (_, index) =>
+    record('resonance', {
+      ...resonance,
+      id: 'resonance.fixture.alternative',
+      name: 'Alternative Shared Power',
+    }),
+    record('essence', essence),
+    record('essence', {
+      ...essence,
+      essenceId: 'essence.fixture.alternative',
+      name: 'Alternative Bastion Essence',
+    }),
+    record('discipline', {
+      ...discipline,
+      id: resonance.disciplinePair.find((id) => id !== 'bastion'),
+      name: 'Partner Discipline',
+      linkedSkills: [],
+      skillStages: [],
+      resonanceSelections: [],
+    }),
+    ...Array.from({ length: 125 }, (_, index) =>
       record(
         'discipline',
         {
           ...discipline,
           id: 'discipline.fixture.' + index,
-          name: 'Additional Discipline ' + String(index + 1).padStart(2, '0'),
+          name: 'Additional Discipline ' + String(index + 1).padStart(3, '0'),
         },
         index + 1,
       ),
     ),
   ].map((entry) => [entry.contentKey, entry]),
 )
+const savedRecords = JSON.parse(sessionStorage.getItem('fixture.saved-records') ?? 'null')
+if (savedRecords) for (const entry of savedRecords) records.set(entry.contentKey, entry)
 const references = [...records.values()].map((entry) => ({
   contentKey: entry.contentKey,
   contentKind: entry.contentKind,
-  name: entry.current.definition.name,
+  name: (entry.current?.definition ?? entry.draft?.definition ?? entry.builtinDefinition).name,
+  sourceDisciplineId: (
+    entry.current?.definition ??
+    entry.draft?.definition ??
+    entry.builtinDefinition
+  ).sourceDisciplineId,
+  disciplinePair: (entry.current?.definition ?? entry.draft?.definition ?? entry.builtinDefinition)
+    .disciplinePair,
 }))
 function list(command = {}) {
   let rows = [...records.values()]
@@ -94,19 +134,27 @@ function list(command = {}) {
     .filter(
       (row) =>
         !command.search ||
-        JSON.stringify(row.current.definition).toLowerCase().includes(command.search.toLowerCase()),
+        JSON.stringify(row.current?.definition ?? row.draft?.definition ?? row.builtinDefinition)
+          .toLowerCase()
+          .includes(command.search.toLowerCase()),
     )
-  rows.sort((a, b) => a.current.definition.name.localeCompare(b.current.definition.name))
+  rows.sort((a, b) =>
+    (a.current?.definition ?? a.draft?.definition).name.localeCompare(
+      (b.current?.definition ?? b.draft?.definition).name,
+    ),
+  )
   if (command.sort === 'name-desc') rows.reverse()
+  const start = Number(command.after?.replace('fixture-offset-', '') ?? 0)
+  const end = start + (command.limit ?? 100)
   return {
-    records: rows.map((row) => ({
+    records: rows.slice(start, end).map((row) => ({
       contentKey: row.contentKey,
       contentKind: row.contentKind,
       lifecycle: row.lifecycle,
       revision: row.revision,
-      name: row.current.definition.name,
+      name: (row.current?.definition ?? row.draft?.definition ?? row.builtinDefinition).name,
     })),
-    nextCursor: null,
+    nextCursor: end < rows.length ? 'fixture-offset-' + end : null,
   }
 }
 const player = {
@@ -138,14 +186,25 @@ const player = {
   training: null,
   battle: null,
 }
+const creationLedger = new Map(JSON.parse(sessionStorage.getItem('fixture.creations') ?? '[]'))
+const fixtureGrantRecipient = {
+  accountId: '11111111-1111-4111-8111-111111111111',
+  name: 'Verified Fixture Player',
+}
+const fixtureGrants = new Map(JSON.parse(sessionStorage.getItem('fixture.grants') ?? '[]'))
 const nativeFetch = window.fetch.bind(window)
 window.__contentRequests = []
+window.__contentCommitCount = Number(sessionStorage.getItem('fixture.commit-count') ?? 0)
 window.__contentFixture = {
   holdCommit: false,
   failCommit: false,
   failMedia: false,
+  loseCreateResponse: false,
+  creations: creationLedger,
   records,
   player,
+  essenceId: essence.essenceId,
+  partnerId: resonance.disciplinePair.find((id) => id !== 'bastion'),
   skillId: skill.id,
   resonanceId: resonance.id,
 }
@@ -164,6 +223,19 @@ window.fetch = async (input, options) => {
         { status: 400 },
       )
     }
+    if (body.get('file')?.type.startsWith('audio/'))
+      return Response.json({
+        media: {
+          id: '11111111-1111-4111-8111-111111111112',
+          checksum: 'b'.repeat(64),
+          byteLength: 8864,
+          kind: 'audio',
+          contentType: 'audio/wav',
+          durationMs: 100,
+          channels: 1,
+          sampleRate: 44100,
+        },
+      })
     return Response.json({
       media: {
         id: '11111111-1111-4111-8111-111111111111',
@@ -197,14 +269,154 @@ window.fetch = async (input, options) => {
       })
     return Response.json({ player })
   }
+  if (typeof input === 'string' && input.startsWith('/api/master/combat-content/usage-balance?')) {
+    const contentKey = new URL(input, location.origin).searchParams.get('contentKey')
+    return Response.json({
+      contentKey,
+      subjectKind: 'discipline',
+      asOf: '2026-10-27T12:00:00Z',
+      weekStartsAt: '2026-10-26T00:00:00Z',
+      weekEndsAt: '2026-11-02T00:00:00Z',
+      current: {
+        primaryPlayers: 3,
+        secondaryPlayers: 2,
+        primaryCharacters: 3,
+        secondaryCharacters: 2,
+        totalPlayers: 5,
+        totalCharacters: 5,
+      },
+      skills: [
+        {
+          skillId: skill.id,
+          name: skill.name,
+          equippedPlayers: 2,
+          equippedCharacters: 2,
+          actualUses: 0,
+          usedBattles: 0,
+        },
+      ],
+      weekly: ['pvp', 'pve-recruit'].map((source) => ({
+        source,
+        appearances: 0,
+        wins: 0,
+        losses: 0,
+        draws: 0,
+      })),
+      pairs: [],
+      matchups: [],
+      coverage: {
+        legacyHistoryAvailable: false,
+        rosterTruncated: false,
+        battlesTruncated: false,
+        collectedBattles: 0,
+        collectionStartedAt: null,
+      },
+    })
+  }
+  if (input === '/api/master/discipline-player-grants') {
+    const body = JSON.parse(options.body)
+    window.__contentRequests.push({ path: input, body })
+    const existing = fixtureGrants.get(body.disciplineId) ?? []
+    if (body.operation === 'read') return Response.json({ result: existing })
+    if (body.operation === 'search') return Response.json({ result: [fixtureGrantRecipient] })
+    const recipients = body.accountIds?.includes(fixtureGrantRecipient.accountId)
+      ? [fixtureGrantRecipient]
+      : []
+    fixtureGrants.set(
+      body.disciplineId,
+      body.operation === 'grant'
+        ? recipients
+        : existing.filter((row) => !body.accountIds?.includes(row.accountId)),
+    )
+    sessionStorage.setItem('fixture.grants', JSON.stringify([...fixtureGrants]))
+    return Response.json({ result: null })
+  }
   if (input !== '/api/master/combat-content') return nativeFetch(input, options)
   const body = JSON.parse(options.body),
     command = body.command
   window.__contentRequests.push({ path: input, body: structuredClone(body) })
-  if (command.action === 'list') return Response.json(list(command))
-  if (command.action === 'read') return Response.json({ record: records.get(command.contentKey) })
+  if (command.action === 'list') {
+    if (
+      new URLSearchParams(location.search).get('holdRestore') === '1' &&
+      !window.__contentRestoreReleased
+    ) {
+      await new Promise((resolve) => {
+        window.__releaseContentRestore = () => {
+          window.__contentRestoreReleased = true
+          resolve()
+        }
+      })
+    }
+    return Response.json(list(command))
+  }
+  if (command.action === 'read') {
+    if (
+      new URLSearchParams(location.search).get('holdRead') === '1' &&
+      !window.__contentReadReleased
+    )
+      await new Promise((resolve) => {
+        window.__releaseContentRead = () => {
+          window.__contentReadReleased = true
+          resolve()
+        }
+      })
+    return Response.json({ record: records.get(command.contentKey) })
+  }
+  if (command.action === 'create') {
+    if (command.contentKind === 'discipline') {
+      try {
+        parseNoncombatContentDefinition('discipline', command.definition)
+      } catch (error) {
+        return Response.json(
+          { error: { code: 'INVALID_REQUEST', message: error.message } },
+          { status: 400 },
+        )
+      }
+    }
+    const fingerprint = JSON.stringify({
+      kind: command.contentKind,
+      definition: command.definition,
+    })
+    let receipt = creationLedger.get(command.requestId)
+    if (receipt && receipt.fingerprint !== fingerprint)
+      return Response.json(
+        {
+          error: {
+            code: 'REQUEST_REUSED',
+            message: 'Fixture request identity was reused with a different creation payload.',
+          },
+        },
+        { status: 409 },
+      )
+    if (!receipt) {
+      const key = command.contentKind + '.created.' + command.requestId.replaceAll('-', '')
+      const definition = { ...command.definition, id: key }
+      const created = record(command.contentKind, definition)
+      created.current = null
+      created.history = []
+      created.draft = {
+        definition,
+        draftVersion: 1,
+        baseVersion: null,
+        updatedBy: 'fixture-owner',
+        updatedAt: '2026-10-27T12:00:00Z',
+      }
+      records.set(key, created)
+      receipt = { key, fingerprint }
+      creationLedger.set(command.requestId, receipt)
+      sessionStorage.setItem('fixture.creations', JSON.stringify([...creationLedger]))
+      sessionStorage.setItem('fixture.saved-records', JSON.stringify([...records.values()]))
+      if (window.__contentFixture.loseCreateResponse) {
+        window.__contentFixture.loseCreateResponse = false
+        throw new TypeError('Fixture response was lost after creation.')
+      }
+    }
+    return Response.json({ record: structuredClone(records.get(receipt.key)) })
+  }
   const entry = records.get(command.contentKey)
   if (command.action === 'commit') {
+    window.__contentCommitCount++
+    sessionStorage.setItem('fixture.commit-count', String(window.__contentCommitCount))
     if (window.__contentFixture.holdCommit)
       await new Promise((resolve) => (window.__releaseContentCommit = resolve))
     window.__contentFixture.holdCommit = false
@@ -220,10 +432,20 @@ window.fetch = async (input, options) => {
         { error: { code: 'STALE_VERSION', message: 'Fixture stale revision.' } },
         { status: 409 },
       )
-    entry.current = version(command.definition, entry.current.contentVersion + 1)
+    const comparable = { ...command.definition, contentVersion: entry.current?.contentVersion }
+    if (entry.contentKind === 'essence' && comparable.skill)
+      comparable.skill = { ...comparable.skill, contentVersion: entry.current?.contentVersion }
+    if (
+      entry.current &&
+      !entry.draft &&
+      JSON.stringify(comparable) === JSON.stringify(entry.current.definition)
+    )
+      return Response.json({ record: structuredClone(entry) })
+    entry.current = version(command.definition, (entry.current?.contentVersion ?? 0) + 1)
     entry.history.unshift(entry.current)
     entry.revision++
     entry.draft = null
+    sessionStorage.setItem('fixture.saved-records', JSON.stringify([...records.values()]))
     return Response.json({ record: structuredClone(entry) })
   }
   if (command.action === 'restore') {
@@ -248,7 +470,19 @@ const access = {
   accessVersion: 1,
   roles: ['game-owner'],
   specialCapabilities: [],
-  effectiveCapabilities: ['master.access', 'staff.manage', 'content.combat.author'],
+  effectiveCapabilities: [
+    'master.access',
+    'staff.manage',
+    'content.combat.author',
+    'combat.rules',
+    'events.author',
+    'events.operate',
+    'moderation.manage',
+    'players.manage',
+    'music.manage',
+    'world.manage',
+    'activity.read',
+  ],
 }
 const players = new URLSearchParams(location.search).get('view') === 'players'
 createRoot(document.getElementById('root')).render(
@@ -262,6 +496,9 @@ createRoot(document.getElementById('root')).render(
       <PlayersWorkspace />
     ) : (
       <CombatContentAuthoringWorkspace
+        recoveryScope={
+          new URLSearchParams(location.search).get('actor') ?? 'fixture-owner:selected-character'
+        }
         categories={categories}
         initialPage={list({ kind: 'discipline' })}
         initialRecord={records.get('bastion')}

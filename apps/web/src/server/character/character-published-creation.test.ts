@@ -102,3 +102,57 @@ it('public Atlas carries current authored metadata and never resurrects a remove
   expect(atlas.some((row) => row.id === 'vanguard')).toBe(false)
   expect(atlas.some((row) => row.publication === 'planned')).toBe(true)
 })
+
+import { loadPublishedFoundations } from './published-discipline-catalogue'
+it('filters grant-only Foundation choices by verified account entitlement without fabricating Mastery', async () => {
+  const core = { might: 7, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 }
+  const definition = {
+    schemaVersion: 1,
+    id: 'vanguard',
+    contentVersion: 7,
+    name: 'Vanguard',
+    description: 'Grant only.',
+    sortOrder: 0,
+    enabled: true,
+    media: {},
+    core,
+    focus: ['might', 'vitality', 'resolve'],
+    enabledForPrimary: true,
+    enabledForSecondary: true,
+    linkedSkills: [],
+    unlock: { kind: 'unavailable' },
+    atlas: {
+      family: 'foundation',
+      band: 'foundation',
+      disclosure: 'open',
+      power: { reliability: 1, flexibility: 1, setup: 1, ruleAccess: 1, execution: 1 },
+    },
+    skillStages: [],
+    essenceId: null,
+    resonanceSelections: [],
+  }
+  const row = {
+    discipline_id: 'vanguard',
+    name: 'Vanguard',
+    summary: 'Grant only.',
+    profile_version: 7,
+    definition_version: 7,
+    enabled_for_primary: true,
+    enabled_for_secondary: true,
+    core_base_attributes: core,
+    focus_attributes: definition.focus,
+    off_focus_cap: 40,
+    authored_definition: definition,
+  }
+  let granted = false
+  rpc.mockImplementation(async (name: string) => ({
+    data: name === 'get_current_discipline_catalog_v1' ? [row] : granted ? ['vanguard'] : [],
+    error: null,
+  }))
+  expect(await loadPublishedFoundations('account')).toEqual([])
+  granted = true
+  expect(await loadPublishedFoundations('account')).toEqual([
+    expect.objectContaining({ id: 'vanguard', profileVersion: 7 }),
+  ])
+  expect(rpc).toHaveBeenCalledWith('get_account_discipline_grants_v1', { p_user_id: 'account' })
+})

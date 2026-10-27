@@ -177,3 +177,67 @@ it('one captured admission shares the same in-flight selection for Essence and R
     rpc.mock.calls.filter(([name]) => name === 'read_current_discipline_selection_v1'),
   ).toHaveLength(2)
 })
+
+it.each([
+  ['vanguard', null],
+  ['vanguard', 'arcanist'],
+  ['arcanist', 'vanguard'],
+] as const)('resolves the exact overridden Resonance for %s + %s', async (a, b) => {
+  const { resolver } = fixture({
+    selection: {
+      selectionVersion: 1,
+      catalogueToken: token,
+      essence: null,
+      resonance: {
+        resonanceId: resonance.id,
+        contentVersion: 41,
+        disciplinePair: resonance.disciplinePair,
+        relationshipOverrideDisciplineId: 'vanguard',
+      },
+    },
+  })
+  expect(await resolver.resolveCurrentResonanceDefinition!(a, b)).toEqual({
+    ...resonance,
+    relationshipOverrideDisciplineId: 'vanguard',
+  })
+})
+it.each([
+  ['vanguard', 'arcanist'],
+  ['arcanist', 'vanguard'],
+] as const)('resolves the exact overridden Essence for %s + %s', async (a, b) => {
+  const { resolver } = fixture({
+    selection: {
+      selectionVersion: 1,
+      catalogueToken: token,
+      resonance: null,
+      essence: {
+        essenceId: essence.essenceId,
+        contentVersion: 42,
+        sourceDisciplineId: 'vanguard',
+        skillId: essence.essenceId,
+        skillContentVersion: 42,
+        relationshipOverrideDisciplineId: 'vanguard',
+      },
+    },
+  })
+  expect(await resolver.resolveCurrentEssenceDefinition!(a, b)).toEqual({
+    ...essence,
+    relationshipOverrideDisciplineId: 'vanguard',
+  })
+})
+it.each(['missing', 42, null])('rejects forged relationship override identity %j', async (id) => {
+  const { resolver } = fixture({
+    selection: {
+      selectionVersion: 1,
+      catalogueToken: token,
+      essence: null,
+      resonance: {
+        resonanceId: resonance.id,
+        contentVersion: 41,
+        disciplinePair: resonance.disciplinePair,
+        relationshipOverrideDisciplineId: id,
+      },
+    },
+  })
+  await expect(resolver.resolveCurrentResonanceDefinition!('vanguard', null)).rejects.toThrow()
+})

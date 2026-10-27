@@ -103,6 +103,9 @@ declare
   checked integer := 0;
   proc record;
   predecessor text;
+  new_actor_signatures text[] := array[]::text[];
+  expected_player_denial text := 'MASTER_PANEL_OWNER_REQUIRED';
+  probe record;
 begin
   begin
     insert into app_private.master_panel_role_assignments(user_id,role,granted_by,note) values(other_id,'game-owner',owner_id,'CI duplicate Owner probe');
@@ -121,7 +124,25 @@ begin
     assert not has_function_privilege('service_role',signature,'execute'), 'Retired API service denial: '||signature;
     assert not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'Retired API browser denial: '||signature;
   end loop;
-  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1','read_event_workspace_catalogue_v1','list_event_workspace_runs_v1','commit_combat_content_record_v1']) loop
+  -- Exact contracts introduced by the October 27 batch have no uniform predecessor.
+  -- Each module marker requires its entire signature set; absent individual functions
+  -- cannot silently shrink either the module check or the global actor inventory.
+  if to_regclass('app_private.master_moderation_audit') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','public.set_world_environment_v2(uuid,integer,jsonb,uuid)','public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)','public.publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)','public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)','public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','public.search_master_moderation_players_v1(uuid,text,uuid)','public.read_master_moderation_v1(uuid,uuid,uuid,bigint)','public.write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)','public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)']::text[];
+  end if;
+  if to_regclass('app_private.discipline_player_grants') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.search_discipline_grant_players_v1(uuid,uuid,text)','public.read_discipline_player_grants_v1(uuid,uuid,text,uuid)','public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)']::text[];
+  end if;
+  if to_regclass('app_private.usage_balance_sessions') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.read_master_usage_balance_v1(uuid,uuid,text)']::text[];
+  end if;
+  foreach signature in array new_actor_signatures loop
+    assert to_regprocedure(signature) is not null, 'Required workspace actor signature: '||signature;
+    assert (select 'p_actor_character_id'=any(proargnames) from pg_proc where oid=signature::regprocedure), 'Explicit selected actor contract: '||signature;
+    assert not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Workspace actor browser ACL: '||signature;
+    assert has_function_privilege('service_role',signature,'execute')=(signature<>'public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)'), 'Workspace actor service/private-helper ACL: '||signature;
+  end loop;
+  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.oid<>all(array(select to_regprocedure(contract)::oid from unnest(new_actor_signatures) contract)) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1','read_event_workspace_catalogue_v1','list_event_workspace_runs_v1','commit_combat_content_record_v1']) loop
     checked := checked+1;
     assert not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Explicit actor browser denial: '||proc.proname;
     if proc.nspname='app_private' then
@@ -145,7 +166,9 @@ begin
       execute signature using owner_id,null::uuid;
     end loop;
   end if;
-  -- Task9 adds independent Owner-only operations with no legacy overload.
+  -- Players retain independent selected-actor contracts; the page migration replaces
+  -- their Owner-only assertion while preserving the same negative authority probes.
+  if to_regclass('app_private.master_moderation_audit') is not null then expected_player_denial:='MASTER_PANEL_PAGE_ACCESS_REQUIRED'; end if;
   if to_regprocedure('public.read_master_player_v1(uuid,uuid,uuid)') is not null then
     checked:=0;
     for proc in select p.oid,p.proname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=any(array['search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1']) and 'p_actor_character_id'=any(p.proargnames) loop
@@ -162,8 +185,8 @@ begin
     ] loop
       begin
         execute signature using staff_id,character_id;
-        raise exception 'EXPECTED Players Owner denial: %',signature;
-      exception when insufficient_privilege then assert sqlerrm='MASTER_PANEL_OWNER_REQUIRED'; end;
+        raise exception 'EXPECTED Players authority denial: %',signature;
+      exception when insufficient_privilege then assert sqlerrm=expected_player_denial; end;
     end loop;
 
   end if;
@@ -195,7 +218,7 @@ begin
       assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Stage B ordinary service RPC ACL: '||signature;
     end loop;
 
-    assert (select count(*)=41+case when to_regprocedure('public.commit_combat_content_record_v1(uuid,uuid,text,bigint,jsonb,text,integer)') is null then 0 else 1 end+case when to_regprocedure('public.read_master_panel_access_v2(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Original33 + Players4 + Content4 actor inventory';
+    assert (select count(*)=41+case when to_regprocedure('public.commit_combat_content_record_v1(uuid,uuid,text,bigint,jsonb,text,integer)') is null then 0 else 1 end+case when to_regprocedure('public.read_master_panel_access_v2(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end+cardinality(new_actor_signatures) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Legacy actor contracts plus exact workspace actor inventory';
     foreach signature in array array[
       'select public.read_combat_content_record_v1($1,$2,''native.staff.skill'')',
       'select public.list_combat_content_records_v1($1,$2,null,null,null,null,20)',
@@ -241,6 +264,83 @@ begin
     end loop;
     assert checked=3, 'Stage C complete private Tag helper inventory';
   end if;
+  -- All newly exposed page APIs must reject a revoked staff character, missing
+  -- selection, an owned alternate and an actor belonging to a different account.
+  for probe in select * from (values
+      ('public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','select public.read_master_panel_activity_v1($1,100,null,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.set_world_environment_v2(uuid,integer,jsonb,uuid)','select public.set_world_environment_v2($1,0,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v2($1,1,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v3($1,1,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v2($1,1,''{}'',repeat(''a'',32),$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','select public.save_site_music_configuration_v1($1,$2,1,''{}'')','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.search_master_moderation_players_v1(uuid,text,uuid)','select public.search_master_moderation_players_v1($1,''native'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.read_master_moderation_v1(uuid,uuid,uuid,bigint)','select public.read_master_moderation_v1($1,$3,$2,null)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)','select public.write_master_moderation_v1($1,$3,''invalid'',''ban'',''CI denied probe'',60,false,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.search_discipline_grant_players_v1(uuid,uuid,text)','select public.search_discipline_grant_players_v1($1,$2,''native'')','MASTER_FORBIDDEN'),
+      ('public.read_discipline_player_grants_v1(uuid,uuid,text,uuid)','select public.read_discipline_player_grants_v1($1,$2,''vanguard'',null)','MASTER_FORBIDDEN'),
+      ('public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)','select public.write_discipline_player_grants_v1($1,$2,''vanguard'',array[$3::uuid],''grant'',''CI denied probe'')','MASTER_FORBIDDEN'),
+      ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')','MASTER_PANEL_OPERATOR_REQUIRED')
+  ) contracts(signature,command,denial) loop
+    if not probe.signature=any(new_actor_signatures) then continue; end if;
+    begin execute probe.command using staff_id,character_id,other_id; raise exception 'EXPECTED revoked workspace denial: %',probe.signature;
+    exception when insufficient_privilege then assert sqlerrm=probe.denial; end;
+    begin execute probe.command using staff_id,null::uuid,other_id; raise exception 'EXPECTED missing selection workspace denial: %',probe.signature;
+    exception when insufficient_privilege then assert sqlerrm=probe.denial; end;
+    begin execute probe.command using staff_id,current_setting('task8.alternate')::uuid,other_id; raise exception 'EXPECTED alternate workspace denial: %',probe.signature;
+    exception when insufficient_privilege then assert sqlerrm=probe.denial; end;
+    begin execute probe.command using other_id,character_id,staff_id; raise exception 'EXPECTED forged ownership workspace denial: %',probe.signature;
+    exception when insufficient_privilege then assert sqlerrm=probe.denial; end;
+  end loop;
+  if to_regclass('app_private.master_moderation_audit') is not null then
+    foreach signature in array array['app_private.master_page_capabilities_v1(text[])','app_private.assert_master_page_v1(uuid,uuid,text)','app_private.prevent_moderation_history_change_v1()']::text[] loop
+      assert to_regprocedure(signature) is not null, 'Required workspace private helper: '||signature;
+      assert not has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Workspace private helper ACL: '||signature;
+    end loop;
+  end if;
+  if to_regclass('app_private.discipline_player_grants') is not null then
+    foreach signature in array array['app_private.discipline_grant_only_v1(text)','app_private.discipline_unlocked_before_player_grants_v1(uuid,text)','app_private.discipline_account_granted_v1(uuid,text)','app_private.validate_discipline_envelope_before_override_v1(jsonb)','app_private.current_discipline_relationship_override_v1(text,text)','app_private.essence_selection_key_before_override_v1(text,text)','app_private.resonance_selection_key_before_override_v1(text,text)','app_private.discipline_unlocked_v1(uuid,text)','app_private.resolve_essence_reference_v1(text,text)','app_private.resolve_resonance_reference_v1(text,text)']::text[] loop
+      assert to_regprocedure(signature) is not null, 'Required workspace private helper: '||signature;
+      assert not has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Workspace private helper ACL: '||signature;
+    end loop;
+  end if;
+  if to_regclass('app_private.usage_balance_sessions') is not null then
+    foreach signature in array array['app_private.capture_usage_balance_start_v1()','app_private.capture_usage_balance_event_v1()']::text[] loop
+      assert to_regprocedure(signature) is not null, 'Required workspace private helper: '||signature;
+      assert not has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Workspace private helper ACL: '||signature;
+    end loop;
+  end if;
+  if to_regclass('app_private.discipline_player_grants') is not null then
+    foreach signature in array array['public.get_account_discipline_grants_v1(uuid)','public.discipline_catalog_before_player_grants_v3(uuid,uuid)','app_private.essence_reference_before_override_v1(text,text)','app_private.resonance_reference_before_override_v1(text,text)'] loop
+      assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Ordinary grant/catalogue service RPC ACL: '||signature;
+    end loop;
+  end if;
+  if to_regclass('app_private.master_moderation_audit') is not null then
+    foreach table_name in array array['master_moderation_audit']::text[] loop
+      assert to_regclass('app_private.'||table_name) is not null, 'Required workspace private table: '||table_name;
+      assert (select relrowsecurity from pg_class where oid=('app_private.'||table_name)::regclass), 'Workspace private RLS: '||table_name;
+      assert not has_table_privilege('service_role','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('anon','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('authenticated','app_private.'||table_name,'select,insert,update,delete'), 'Workspace private table ACL: '||table_name;
+    end loop;
+    foreach signature in array array['app_private.master_moderation_audit_id_seq']::text[] loop
+      assert not has_sequence_privilege('service_role',signature,'usage,select,update') and not has_sequence_privilege('anon',signature,'usage,select,update') and not has_sequence_privilege('authenticated',signature,'usage,select,update'), 'Workspace private sequence ACL: '||signature;
+    end loop;
+  end if;
+  if to_regclass('app_private.discipline_player_grants') is not null then
+    foreach table_name in array array['discipline_player_grants','discipline_player_grant_audit']::text[] loop
+      assert to_regclass('app_private.'||table_name) is not null, 'Required workspace private table: '||table_name;
+      assert (select relrowsecurity from pg_class where oid=('app_private.'||table_name)::regclass), 'Workspace private RLS: '||table_name;
+      assert not has_table_privilege('service_role','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('anon','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('authenticated','app_private.'||table_name,'select,insert,update,delete'), 'Workspace private table ACL: '||table_name;
+    end loop;
+    foreach signature in array array['app_private.discipline_player_grant_audit_id_seq']::text[] loop
+      assert not has_sequence_privilege('service_role',signature,'usage,select,update') and not has_sequence_privilege('anon',signature,'usage,select,update') and not has_sequence_privilege('authenticated',signature,'usage,select,update'), 'Workspace private sequence ACL: '||signature;
+    end loop;
+  end if;
+  if to_regclass('app_private.usage_balance_sessions') is not null then
+    foreach table_name in array array['usage_balance_sessions','usage_balance_actions']::text[] loop
+      assert to_regclass('app_private.'||table_name) is not null, 'Required workspace private table: '||table_name;
+      assert (select relrowsecurity from pg_class where oid=('app_private.'||table_name)::regclass), 'Workspace private RLS: '||table_name;
+      assert not has_table_privilege('service_role','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('anon','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('authenticated','app_private.'||table_name,'select,insert,update,delete'), 'Workspace private table ACL: '||table_name;
+    end loop;
+  end if;
   foreach signature in array array['public.resolve_master_panel_account_v2(uuid,text)','public.list_master_panel_staff_v2(uuid)','public.set_master_panel_character_access_v2(uuid,uuid,uuid,text[],text[],integer,bigint,boolean)'] loop
     assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('authenticated',signature,'execute') and not has_function_privilege('anon',signature,'execute'), 'New management private RPC ACL';
   end loop;
@@ -250,7 +350,27 @@ begin
 end; $$;
 -- Actual browser invocation denial, in addition to the complete catalog ACL assertions.
 set local role authenticated;
-do $$ begin
+do $$ declare probe record; begin
+  for probe in select * from (values
+      ('public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','select public.read_master_panel_activity_v1($1,100,null,$2)'),
+      ('public.set_world_environment_v2(uuid,integer,jsonb,uuid)','select public.set_world_environment_v2($1,0,''{}'',$2)'),
+      ('public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v2($1,1,''{}'',$2)'),
+      ('public.publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v3($1,1,''{}'',$2)'),
+      ('public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v2($1,1,''{}'',repeat(''a'',32),$2)'),
+      ('public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','select public.save_site_music_configuration_v1($1,$2,1,''{}'')'),
+      ('public.search_master_moderation_players_v1(uuid,text,uuid)','select public.search_master_moderation_players_v1($1,''native'',$2)'),
+      ('public.read_master_moderation_v1(uuid,uuid,uuid,bigint)','select public.read_master_moderation_v1($1,$3,$2,null)'),
+      ('public.write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)','select public.write_master_moderation_v1($1,$3,''invalid'',''ban'',''CI denied probe'',60,false,$2)'),
+      ('public.search_discipline_grant_players_v1(uuid,uuid,text)','select public.search_discipline_grant_players_v1($1,$2,''native'')'),
+      ('public.read_discipline_player_grants_v1(uuid,uuid,text,uuid)','select public.read_discipline_player_grants_v1($1,$2,''vanguard'',null)'),
+      ('public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)','select public.write_discipline_player_grants_v1($1,$2,''vanguard'',array[$3::uuid],''grant'',''CI denied probe'')'),
+      ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')'),
+      ('public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v1($1,1,''{}'',null,$2)')
+  ) contracts(signature,command) loop
+    if to_regprocedure(probe.signature) is null then continue; end if;
+    begin execute probe.command using current_setting('task8.owner')::uuid,null::uuid,current_setting('task8.other')::uuid; raise exception 'EXPECTED forged Owner browser invocation denial: %',probe.signature;
+    exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
+  end loop;
   if to_regprocedure('public.read_master_panel_role_defaults_v1(uuid)') is not null then
     begin perform public.read_master_panel_role_defaults_v1(current_setting('task8.owner')::uuid); raise exception 'EXPECTED role defaults browser read denial'; exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
     begin perform public.save_master_panel_role_defaults_v1(current_setting('task8.owner')::uuid,1,'{}'::jsonb); raise exception 'EXPECTED role defaults browser forgery denial'; exception when insufficient_privilege then assert sqlerrm like '%permission denied%'; end;
@@ -276,7 +396,7 @@ set local role service_role;
 do $$
 declare table_name text;
 begin
-  foreach table_name in array array['master_panel_character_access','master_panel_capability_grants','master_panel_access_audit','master_panel_role_defaults'] loop
+  foreach table_name in array array['master_panel_character_access','master_panel_capability_grants','master_panel_access_audit','master_panel_role_defaults','master_moderation_audit','discipline_player_grants','discipline_player_grant_audit','usage_balance_sessions','usage_balance_actions'] loop
     if not exists(select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='app_private' and c.relname=table_name) then continue; end if;
     begin
       execute format('select 1 from app_private.%I limit 1',table_name);

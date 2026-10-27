@@ -1,4 +1,5 @@
 import 'server-only'
+import { createSelectedCharacterRpc } from './selected-character-rpc'
 import {
   parseCombatEffectTimingPolicy,
   parseStoredCombatEffectTimingPolicy,
@@ -59,7 +60,9 @@ export async function publishCombatEffectTimingPolicy(input: {
   assertCombatCatalogueTimingCompatible(
     resolveCombatContentCatalogueSnapshot({ ...snapshot, policy }),
   )
-  const { data, error } = await client.rpc('publish_combat_effect_timing_policy_v2', {
+  const { data, error } = await createSelectedCharacterRpc((name, params) =>
+    client.rpc(name, params),
+  )('publish_combat_effect_timing_policy_v2', {
     p_actor_user_id: input.actorUserId,
     p_expected_version: policy.version,
     p_modes: policy.modes,
@@ -73,7 +76,7 @@ export async function publishCombatEffectTimingPolicy(input: {
   if (error?.message?.includes('TIMING_POLICY_VERSION_CONFLICT'))
     throw new AurevaneError('STALE_VERSION', 'Refresh the timing policy before publishing again.')
   if (error?.code === '42501')
-    throw new AurevaneError('FORBIDDEN', 'Only the Game Owner may publish combat timing.')
+    throw new AurevaneError('FORBIDDEN', 'Combat Rules page access is required.')
   if (error || !data)
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',

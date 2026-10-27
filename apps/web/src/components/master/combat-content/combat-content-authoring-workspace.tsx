@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import { BASIC_SKILL_IDS } from '@aurevane/game-core/combat/combat-basic-actions'
 import type {
@@ -11,7 +11,6 @@ import type {
 import type { CombatContentEditorDescriptor } from '@/server/combat/combat-content-editor-defaults'
 import {
   ContentDefinitionFields,
-  objectValue,
   type ContentEditorTab,
   type ContentReference,
 } from './content-definition-fields'
@@ -21,30 +20,54 @@ import {
   editableDefinition,
   recordIsDirty,
 } from './content-record-workflow'
-import { ContentHistory } from './content-history'
-import { readableContentReference } from './content-reference-label'
-import { MasterHelp } from '../master-help'
+import {
+  loadCompleteContentList,
+  disciplineMasteryCommit,
+  holdContentCommit,
+  disciplineSkillCandidates,
+  disciplineSkillIsAvailable,
+  withDisciplineSkill,
+  adoptCreatedContentIdentity,
+  freezeCreationAttempt,
+  type ContentCreationAttempt,
+  parseWorkspaceRecovery,
+  recoveryKey,
+  type PendingContentEdit,
+  type WorkspaceRecovery,
+} from './content-workspace-recovery'
+import { CombatContentAuthoringClientError } from './combat-content-client'
+import { ContentRecordModal } from './content-record-modal'
+import { UsageBalancePanel } from './usage-balance-panel'
+import { DisciplinePlayerGrants } from './discipline-player-grants'
+import { RelationshipOverrideFields } from './relationship-override-fields'
+import { DisciplineRelationshipList } from './discipline-relationship-list'
+import type { AuthoredDiscipline } from '@aurevane/game-core/content/authored-content'
 import styles from './game-content-workspace.module.css'
+
 export interface CombatContentAuthoringWorkspaceProps {
   readonly categories?: readonly CombatContentEditorDescriptor[]
   readonly initialPage?: CombatContentListPage
   readonly initialRecord?: CompleteCombatContentRecord | null
   readonly references?: readonly ContentReference[]
   readonly tagPresentations?: readonly CombatTagPresentationSnapshot[]
+  readonly recoveryScope?: string
 }
 const categoryOf = (record: Pick<CompleteCombatContentRecord, 'contentKind' | 'contentKey'>) =>
   record.contentKind === 'skill' &&
   (BASIC_SKILL_IDS as readonly string[]).includes(record.contentKey)
     ? 'basic'
     : record.contentKind
+export const contentDetailsLabel = (kind?: string) =>
+  `${kind === 'discipline' ? 'Discipline' : kind === 'skill' || kind === 'basic' ? 'Skill' : kind === 'essence' ? 'Essence' : kind === 'resonance' ? 'Resonance' : kind === 'tag' ? 'Tag' : kind === 'status' ? 'Status' : kind === 'item' ? 'Item' : 'Content'} Details`
+
 export function CombatContentAuthoringWorkspace({
   categories = [],
   initialPage = { records: [], nextCursor: null },
   initialRecord = null,
   references = [],
+  recoveryScope = '',
 }: CombatContentAuthoringWorkspaceProps) {
   const [record, setRecord] = useState(initialRecord)
-  const [parentKey, setParentKey] = useState<string | null>(null)
   const [definition, setDefinition] = useState<CombatContentDefinition | null>(
     initialRecord ? editableDefinition(initialRecord) : null,
   )
@@ -52,101 +75,152 @@ export function CombatContentAuthoringWorkspace({
     initialRecord ? categoryOf(initialRecord) : (categories[0]?.category ?? 'discipline'),
   )
   const [page, setPage] = useState(initialPage)
-  const [search, setSearch] = useState(''),
-    [sort, setSort] = useState<CombatContentSort>('name-asc'),
-    [lifecycle, setLifecycle] = useState('')
-  const [tab, setTab] = useState<ContentEditorTab>('Parameters'),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [notice, setNotice] = useState('')
-  const [newParent, setNewParent] = useState<{
-    parentKey: string
-    expectedParentRevision: number
-  } | null>(null)
+  const [search, setSearch] = useState('')
+  const [sort, setSort] = useState<CombatContentSort>('name-asc')
+  const [tab, setTab] = useState<ContentEditorTab>('Parameters')
+  const [working, setWorking] = useState(false)
+  const [modalSaving, setModalSaving] = useState(0)
+  const busy = working || modalSaving > 0
+  const [restoring, setRestoring] = useState(!!recoveryScope)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [newDefinition, setNewDefinition] = useState<CombatContentDefinition | null>(null)
-  const [linkSearch, setLinkSearch] = useState(''),
-    [linkChoices, setLinkChoices] = useState<ContentReference[]>([])
-  const localEdits = useRef(new Map<string, CombatContentDefinition>())
-  const [localDirtyKeys, setLocalDirtyKeys] = useState<Record<string, boolean>>({})
-  const editRevision = useRef(0)
-  const latestEdit = useRef<CombatContentDefinition | null>(null)
-  const browseRequest = useRef(0)
-  const [appliedBrowse, setAppliedBrowse] = useState(
-    JSON.stringify({ search: '', sort: 'name-asc', lifecycle: '' }),
+  const latestNewDefinition = useRef<CombatContentDefinition | null>(null)
+  const [modalKey, setModalKey] = useState<string | null>(null)
+  const [knownReferences, setKnownReferences] = useState<Record<string, ContentReference | null>>(
+    {},
   )
-  const descriptor = categories.find((row) => row.category === category)
-  const activeDescriptor = categories.find(
-    (row) => row.category === (newDefinition ? category : record ? categoryOf(record) : category),
-  )
-  const dirty = !!record && !!definition && recordIsDirty(record, definition)
+  const [nameOverrides, setNameOverrides] = useState<Record<string, string>>({})
+  const [pending, setPendingState] = useState<Record<string, PendingContentEdit>>({})
+  const pendingRef = useRef(pending)
+  const committingKeys = useRef(new Map<string, number>())
+  const [conflict, setConflict] = useState(false)
+  const listRef = useRef<HTMLElement>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const scroll = useRef({ listScroll: 0, editorScroll: 0 })
+  const createRequestId = useRef<string | null>(null)
+  const createAttempt = useRef<ContentCreationAttempt | null>(null)
+  const loadId = useRef(0)
+  const hydrated = useRef(false)
+  const recoveryWarning = useRef(false)
+  const recoverySnapshot = useRef<WorkspaceRecovery | null>(null)
+  const persistenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialProps = useRef({ categories, initialPage, initialRecord })
+  const storageKey = recoveryKey(recoveryScope)
   const activeDefinition = newDefinition ?? definition
+  const descriptor = categories.find((row) => row.category === category)
+  const activeKind = newDefinition ? descriptor?.storedKind : record?.contentKind
+  const readOnly =
+    !newDefinition && (!!record?.authoringBlocker || record?.lifecycle === 'archived')
+  const dirty = !!record && !!definition && recordIsDirty(record, definition)
   const choices = useMemo(
-    () => [
-      ...new Map(
-        [
-          ...references,
-          ...page.records.map((row) => ({ ...row, name: row.name ?? row.contentKey })),
-          ...linkChoices,
-        ].map((row) => [row.contentKey, row]),
-      ).values(),
-    ],
-    [references, page.records, linkChoices],
+    () =>
+      [
+        ...new Map(
+          [
+            ...references,
+            ...Object.values(knownReferences).filter(
+              (row): row is ContentReference => row !== null,
+            ),
+            ...page.records.map((row) => ({ ...row, name: row.name ?? row.contentKey })),
+          ].map((row) => [row.contentKey, row]),
+        ).values(),
+      ]
+        .filter((row) => knownReferences[row.contentKey] !== null)
+        .map((row) => ({ ...row, name: nameOverrides[row.contentKey] ?? row.name })),
+    [references, page.records, nameOverrides, knownReferences],
   )
-  function change(next: CombatContentDefinition) {
-    editRevision.current++
-    latestEdit.current = next
-    setError('')
-    setNotice('')
-    if (newDefinition) setNewDefinition(next)
-    else {
-      setDefinition(next)
-      if (record) {
-        if (recordIsDirty(record, next)) localEdits.current.set(record.contentKey, next)
-        else localEdits.current.delete(record.contentKey)
-        setLocalDirtyKeys((old) => ({ ...old, [record.contentKey]: recordIsDirty(record, next) }))
-      }
-    }
+  function pendingEdit(key: string, edit: PendingContentEdit | null) {
+    const next = { ...pendingRef.current }
+    if (edit) next[key] = edit
+    else delete next[key]
+    pendingRef.current = next
+    setPendingState(next)
   }
-  async function work(action: () => Promise<void>) {
-    setBusy(true)
-    setError('')
-    setNotice('')
-    try {
-      await action()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to complete this operation.')
-    } finally {
-      setBusy(false)
-    }
+  function remember(next: CompleteCombatContentRecord) {
+    const body = editableDefinition(next)
+    setKnownReferences((old) => ({
+      ...old,
+      [next.contentKey]:
+        next.lifecycle === 'archived'
+          ? null
+          : {
+              contentKey: next.contentKey,
+              contentKind: next.contentKind,
+              name: body ? contentRecordName(body) : next.contentKey,
+              ...(typeof body?.sourceDisciplineId === 'string'
+                ? { sourceDisciplineId: body.sourceDisciplineId }
+                : {}),
+              ...(Array.isArray(body?.disciplinePair)
+                ? { disciplinePair: body.disciplinePair as string[] }
+                : {}),
+            },
+    }))
   }
-  function accept(next: CompleteCombatContentRecord, keepLocal = false) {
+  function accept(next: CompleteCombatContentRecord) {
+    remember(next)
+    let local: PendingContentEdit | undefined = pendingRef.current[next.contentKey]
+    if (local && !recordIsDirty(next, local.definition)) {
+      pendingEdit(next.contentKey, null)
+      local = undefined
+    }
     setRecord(next)
     setCategory(categoryOf(next))
     setNewDefinition(null)
-    setNewParent(null)
-    const local = keepLocal ? localEdits.current.get(next.contentKey) : null
-    setDefinition(local ?? editableDefinition(next))
-    if (!keepLocal) {
-      localEdits.current.delete(next.contentKey)
-      setLocalDirtyKeys((old) => ({ ...old, [next.contentKey]: false }))
+    latestNewDefinition.current = null
+    createRequestId.current = null
+    createAttempt.current = null
+    setDefinition(local?.definition ?? editableDefinition(next))
+    setConflict(!!local && local.revision !== next.revision)
+  }
+  function change(next: CombatContentDefinition) {
+    setError('')
+    setNotice('')
+    if (newDefinition) {
+      latestNewDefinition.current = next
+      setNewDefinition(next)
+    } else {
+      setDefinition(next)
+      if (record)
+        pendingEdit(
+          record.contentKey,
+          recordIsDirty(record, next) || committingKeys.current.has(record.contentKey)
+            ? {
+                revision: pendingRef.current[record.contentKey]?.revision ?? record.revision,
+                definition: next,
+              }
+            : null,
+        )
     }
   }
-  async function read(key: string) {
+  async function work(fn: () => Promise<void>) {
+    setWorking(true)
+    setError('')
+    setNotice('')
+    try {
+      await fn()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Unable to complete this operation.')
+    } finally {
+      setWorking(false)
+    }
+  }
+  async function read(key: string, nextTab: ContentEditorTab = 'Parameters') {
     await work(async () => {
       const result = await contentRecordCommand<{ record: CompleteCombatContentRecord | null }>({
         action: 'read',
         contentKey: key,
       })
-      if (!result.record) throw new Error('This record is no longer available.')
-      accept(result.record, true)
-      setTab('Parameters')
+      if (!result.record) throw new Error('This content is no longer available.')
+      accept(result.record)
+      setTab(nextTab)
+      editorRef.current?.scrollTo({ top: 0 })
     })
   }
-  async function browse(nextCategory = category, after?: string) {
-    const request = ++browseRequest.current
-    await work(async () => {
-      const selected = categories.find((row) => row.category === nextCategory)
-      const result = await contentRecordCommand<CombatContentListPage>({
+  async function list(nextCategory = category, nextSearch = search, nextSort = sort) {
+    const selected = categories.find((row) => row.category === nextCategory)
+    return loadCompleteContentList((after) =>
+      contentRecordCommand<CombatContentListPage>({
         action: 'list',
         kind: selected?.storedKind,
         ...(nextCategory === 'basic'
@@ -154,286 +228,462 @@ export function CombatContentAuthoringWorkspace({
           : nextCategory === 'skill'
             ? { category: 'discipline-skill' }
             : {}),
-        search,
-        sort,
-        ...(lifecycle ? { lifecycle } : {}),
+        search: nextSearch,
+        sort: nextSort,
+        limit: 100,
         ...(after ? { after } : {}),
-        limit: 20,
+      }),
+    )
+  }
+  async function browse(nextCategory = category) {
+    const id = ++loadId.current
+    await work(async () => {
+      const result = await list(nextCategory)
+      if (id !== loadId.current) return
+      setPage(result)
+      setCategory(nextCategory)
+      if (nextCategory !== category) {
+        setRecord(null)
+        setDefinition(null)
+        setNewDefinition(null)
+        setTab('Parameters')
+      }
+      listRef.current?.scrollTo({ top: 0 })
+    })
+  }
+  async function commitSaved(source: CompleteCombatContentRecord, body: CombatContentDefinition) {
+    const finishCommit = holdContentCommit(committingKeys.current, source.contentKey)
+    try {
+      const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
+        action: 'commit',
+        contentKey: source.contentKey,
+        expectedRevision: source.revision,
+        definition: body,
       })
-      if (request === browseRequest.current) {
-        setPage(result)
-        setCategory(nextCategory)
-        setAppliedBrowse(JSON.stringify({ search, sort, lifecycle }))
-        if (nextCategory !== category) {
-          setRecord(null)
-          setDefinition(null)
-          setNewDefinition(null)
-          setTab('Parameters')
+      const latest = pendingRef.current[source.contentKey]
+      if (
+        !latest ||
+        JSON.stringify(latest.definition) === JSON.stringify(body) ||
+        !recordIsDirty(result.record, latest.definition)
+      )
+        pendingEdit(source.contentKey, null)
+      else
+        pendingEdit(source.contentKey, {
+          revision: result.record.revision,
+          definition: latest.definition,
+        })
+      return result.record
+    } finally {
+      finishCommit()
+    }
+  }
+  async function commit() {
+    if (!activeDefinition || !descriptor || conflict) return
+    await work(async () => {
+      let saved: CompleteCombatContentRecord
+      if (newDefinition) {
+        const submitted = structuredClone(newDefinition)
+        const retryingUncertainCreation = createAttempt.current !== null
+        const attempt = freezeCreationAttempt(
+          createAttempt.current,
+          createRequestId.current ?? (createRequestId.current = crypto.randomUUID()),
+          descriptor.storedKind,
+          submitted,
+        )
+        createAttempt.current = attempt
+        flushRecovery()
+        let result: { record: CompleteCombatContentRecord }
+        try {
+          result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
+            action: 'create',
+            requestId: attempt.requestId,
+            contentKind: attempt.contentKind,
+            definition: attempt.definition,
+          })
+        } catch (cause) {
+          // Initial authoring validation is definitive: it runs before any record write.
+          // An uncertain prior attempt must retain its fingerprint even if a later
+          // replay is rejected after the catalogue changes.
+          if (
+            !retryingUncertainCreation &&
+            cause instanceof CombatContentAuthoringClientError &&
+            cause.code === 'INVALID_REQUEST'
+          ) {
+            createAttempt.current = null
+            createRequestId.current = null
+            flushRecovery()
+          }
+          throw cause
         }
+        // Adopt the assigned identity before committing, so a failed second request cannot duplicate it.
+        saved = result.record
+        const newer = latestNewDefinition.current
+        if (newer) {
+          const adopted = adoptCreatedContentIdentity(newer, saved.contentKey, saved.contentKind)
+          if (recordIsDirty(saved, adopted))
+            pendingEdit(saved.contentKey, { revision: saved.revision, definition: adopted })
+        }
+        accept(saved)
+        const intent = adoptCreatedContentIdentity(submitted, saved.contentKey, saved.contentKind)
+        if (saved.draft || recordIsDirty(saved, intent)) saved = await commitSaved(saved, intent)
+      } else {
+        if (!record) return
+        saved = await commitSaved(record, activeDefinition)
+      }
+      accept(saved)
+      setNotice(
+        pendingRef.current[saved.contentKey]
+          ? 'Saved; newer local edits remain uncommitted.'
+          : 'Changes committed and available to the game.',
+      )
+      try {
+        setPage(await list(categoryOf(saved)))
+      } catch {
+        setError('Content was committed, but the list could not refresh. Your editor is retained.')
       }
     })
   }
-  async function mutate(command: Record<string, unknown>, message: string) {
-    const revision = editRevision.current
-    await work(async () => {
-      let result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>(command)
-      if (command.action === 'create' && result.record.draft) {
-        const created = result.record
-        const keepLocal = revision !== editRevision.current && latestEdit.current !== null
-        if (keepLocal) {
-          // Creation assigns the identity; queued edits still belong to that
-          // saved record, including an Essence's nested executable Skill.
-          const local: CombatContentDefinition = {
-            ...latestEdit.current,
-            id: created.contentKey,
-            ...(created.contentKind === 'essence'
-              ? {
-                  essenceId: created.contentKey,
-                  skill: { ...objectValue(latestEdit.current!.skill), id: created.contentKey },
-                }
-              : {}),
-          }
-          latestEdit.current = local
-          if (recordIsDirty(created, local)) localEdits.current.set(created.contentKey, local)
-          else localEdits.current.delete(created.contentKey)
-          setLocalDirtyKeys((old) => ({
-            ...old,
-            [created.contentKey]: recordIsDirty(created, local),
-          }))
+  function flushRecovery() {
+    if (!storageKey || !hydrated.current || !recoverySnapshot.current) return
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          ...recoverySnapshot.current,
+          ...scroll.current,
+          edits: pendingRef.current,
+          createAttempt: createAttempt.current,
+        }),
+      )
+    } catch {
+      if (!recoveryWarning.current) {
+        recoveryWarning.current = true
+        setError(
+          'Browser recovery storage is unavailable or full. Keep this tab open until you commit your edits.',
+        )
+      }
+    }
+  }
+  function scheduleRecovery() {
+    if (persistenceTimer.current) clearTimeout(persistenceTimer.current)
+    persistenceTimer.current = setTimeout(flushRecovery, 250)
+  }
+  useEffect(() => {
+    if (!storageKey) {
+      hydrated.current = true
+      return
+    }
+    let live = true
+    queueMicrotask(async () => {
+      if (!live) return
+      let saved: WorkspaceRecovery | null = null
+      try {
+        saved = parseWorkspaceRecovery(sessionStorage.getItem(storageKey))
+      } catch {
+        if (live)
+          setError(
+            'Refresh recovery is unavailable in this browser. Keep this tab open until you commit.',
+          )
+      }
+      if (saved) {
+        pendingRef.current = saved.edits
+        setPendingState(saved.edits)
+        setCategory(saved.category as typeof category)
+        setSearch(saved.search)
+        setSort(saved.sort)
+        setTab(saved.tab as ContentEditorTab)
+        scroll.current = { listScroll: saved.listScroll, editorScroll: saved.editorScroll }
+        setNewDefinition(saved.newDefinition)
+        latestNewDefinition.current = saved.newDefinition
+        createRequestId.current = saved.newRequestId ?? saved.createAttempt?.requestId ?? null
+        createAttempt.current = saved.createAttempt ?? null
+        if (!saved.selectedKey) {
+          setRecord(null)
+          setDefinition(null)
         }
-        // Adopt the durable draft before the separate commit request. A retry
-        // must commit this identity rather than create another child/parent link.
-        accept(created, keepLocal)
-        setPage({
-          records: [
-            {
-              contentKey: created.contentKey,
-              contentKind: created.contentKind,
-              lifecycle: created.lifecycle,
-              revision: created.revision,
-              name: contentRecordName(created.draft!.definition),
-            },
-          ],
-          nextCursor: null,
+      }
+      const props = initialProps.current
+      const cat =
+        saved?.category ??
+        (props.initialRecord
+          ? categoryOf(props.initialRecord)
+          : (props.categories[0]?.category ?? 'discipline'))
+      const selected = props.categories.find((row) => row.category === cat)
+      try {
+        const result = await loadCompleteContentList((after) =>
+          contentRecordCommand<CombatContentListPage>({
+            action: 'list',
+            kind: selected?.storedKind,
+            ...(cat === 'basic'
+              ? { category: 'basic' }
+              : cat === 'skill'
+                ? { category: 'discipline-skill' }
+                : {}),
+            search: saved?.search ?? '',
+            sort: saved?.sort ?? 'name-asc',
+            limit: 100,
+            ...(after ? { after } : {}),
+          }),
+        )
+        if (!live) return
+        setPage(result)
+        if (saved?.selectedKey) {
+          const response = await contentRecordCommand<{
+            record: CompleteCombatContentRecord | null
+          }>({ action: 'read', contentKey: saved.selectedKey })
+          if (!live) return
+          if (response.record) {
+            let local: PendingContentEdit | undefined =
+              pendingRef.current[response.record.contentKey]
+            if (local && !recordIsDirty(response.record, local.definition)) {
+              const edits = { ...pendingRef.current }
+              delete edits[response.record.contentKey]
+              pendingRef.current = edits
+              setPendingState(edits)
+              local = undefined
+            }
+            setRecord(response.record)
+            setDefinition(local?.definition ?? editableDefinition(response.record))
+            setConflict(!!local && local.revision !== response.record.revision)
+            if (local) setNotice('Your uncommitted edits were recovered.')
+          }
+        }
+        requestAnimationFrame(() => {
+          if (!live) return
+          if (listRef.current) listRef.current.scrollTop = scroll.current.listScroll
+          if (editorRef.current) editorRef.current.scrollTop = scroll.current.editorScroll
         })
-        setSearch('')
-        setLifecycle('')
-        setAppliedBrowse(JSON.stringify({ search: '', sort, lifecycle: '' }))
+      } catch (cause) {
+        if (live)
+          setError(cause instanceof Error ? cause.message : 'Unable to restore this workspace.')
+      } finally {
+        if (live) {
+          hydrated.current = true
+          setRestoring(false)
+        }
+      }
+    })
+    return () => {
+      live = false
+    }
+  }, [storageKey])
+  useEffect(() => {
+    recoverySnapshot.current = {
+      schema: 1,
+      category,
+      selectedKey: record?.contentKey ?? null,
+      tab,
+      search,
+      sort,
+      ...scroll.current,
+      edits: pending,
+      newDefinition,
+      newRequestId: createRequestId.current,
+      createAttempt: createAttempt.current,
+    }
+    if (!storageKey) return
+    const timer = setTimeout(() => {
+      if (hydrated.current && recoverySnapshot.current) {
         try {
-          result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
-            action: 'commit',
-            contentKey: created.contentKey,
-            expectedRevision: created.revision,
-            definition: created.draft!.definition,
-          })
-        } catch (cause) {
-          throw new Error(
-            `Created item saved; commit not confirmed. Refresh saved state before retrying. ${cause instanceof Error ? cause.message : 'The commit response is unavailable.'}`,
+          sessionStorage.setItem(storageKey, JSON.stringify(recoverySnapshot.current))
+        } catch {
+          setError(
+            'Browser recovery storage is unavailable or full. Keep this tab open until you commit your edits.',
           )
         }
       }
-      const newerEdits = revision !== editRevision.current
-      if (newerEdits && latestEdit.current) {
-        // A newer value may equal the old saved record, so its dirty-map entry
-        // can disappear while the request is pending. Compare it to the new
-        // response rather than using dirty-map presence as the editor value.
-        const local = latestEdit.current
-        const stillDirty = recordIsDirty(result.record, local)
-        if (stillDirty) localEdits.current.set(result.record.contentKey, local)
-        else localEdits.current.delete(result.record.contentKey)
-        setLocalDirtyKeys((old) => ({ ...old, [result.record.contentKey]: stillDirty }))
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [storageKey, category, record?.contentKey, tab, search, sort, pending, newDefinition])
+  useEffect(() => {
+    if (!storageKey) return
+    const save = () => {
+      if (hydrated.current && recoverySnapshot.current) {
+        try {
+          sessionStorage.setItem(
+            storageKey,
+            JSON.stringify({
+              ...recoverySnapshot.current,
+              ...scroll.current,
+              edits: pendingRef.current,
+              createAttempt: createAttempt.current,
+            }),
+          )
+        } catch {
+          /* The visible editor already reports storage failures. */
+        }
       }
-      accept(result.record, newerEdits)
-      setNotice(
-        revision !== editRevision.current
-          ? 'Saved earlier changes; newer local edits remain unsaved.'
-          : message,
-      )
-      const nextCategory = categoryOf(result.record)
-      const isNew = command.action === 'create' || command.action === 'duplicate'
-      const nextSearch = isNew ? '' : search,
-        nextLifecycle = isNew ? '' : lifecycle
-      try {
-        const nextPage = await contentRecordCommand<CombatContentListPage>({
-          action: 'list',
-          kind: result.record.contentKind,
-          ...(nextCategory === 'basic'
-            ? { category: 'basic' }
-            : nextCategory === 'skill'
-              ? { category: 'discipline-skill' }
-              : {}),
-          search: nextSearch,
-          sort,
-          ...(nextLifecycle ? { lifecycle: nextLifecycle } : {}),
-          limit: 20,
-        })
-        setPage(nextPage)
-        setSearch(nextSearch)
-        setLifecycle(nextLifecycle)
-        setAppliedBrowse(JSON.stringify({ search: nextSearch, sort, lifecycle: nextLifecycle }))
-      } catch {
-        setPage((old) => ({ ...old, nextCursor: null }))
-        setError(
-          'The record was saved, but the content list could not refresh. Use Search to reload the list.',
-        )
-      }
-    })
-  }
-  async function create() {
-    if (!newDefinition || !descriptor) return
-    await mutate(
-      {
-        action: 'create',
-        requestId: crypto.randomUUID(),
-        contentKind: descriptor.storedKind,
-        definition: newDefinition,
-        ...(newParent ?? {}),
-      },
-      'Content committed.',
-    )
-  }
-  const readOnly = !!record?.authoringBlocker || record?.lifecycle === 'archived'
+    }
+    window.addEventListener('pagehide', save)
+    window.addEventListener('beforeunload', save)
+    return () => {
+      save()
+      window.removeEventListener('pagehide', save)
+      window.removeEventListener('beforeunload', save)
+    }
+  }, [storageKey])
+  const skills =
+    activeKind === 'discipline' && activeDefinition
+      ? disciplineSkillCandidates(activeDefinition, choices, record?.links ?? [])
+      : []
+  const disciplineSkillModal =
+    !!record &&
+    !newDefinition &&
+    activeKind === 'discipline' &&
+    !!modalKey &&
+    skills.includes(modalKey)
   return (
-    <section className={styles.workspace} aria-label="Game Content workspace">
-      <form
-        className={styles.toolbar}
-        onSubmit={(event) => {
-          event.preventDefault()
-          if (!newDefinition) void browse()
-        }}
-      >
-        <label>
-          Category
-          <select
-            aria-label="Content category"
-            value={category}
-            disabled={busy || !!newDefinition}
-            onChange={(event) => {
-              void browse(event.currentTarget.value as typeof category)
-            }}
-          >
-            {categories.map((entry) => (
-              <option key={entry.category} value={entry.category}>
-                {entry.group === 'Skills' ? `Skills · ${entry.label}` : entry.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Search content
-          <input
-            type="search"
-            maxLength={160}
-            value={search}
-            onChange={(event) => setSearch(event.currentTarget.value)}
-          />
-        </label>
-        <label>
-          Sort
-          <select
-            value={sort}
-            onChange={(event) => setSort(event.currentTarget.value as CombatContentSort)}
-          >
-            <option value="name-asc">Name A–Z</option>
-            <option value="name-desc">Name Z–A</option>
-            <option value="key-asc">Identity A–Z</option>
-            <option value="key-desc">Identity Z–A</option>
-          </select>
-        </label>
-        <label>
-          State
-          <select value={lifecycle} onChange={(event) => setLifecycle(event.currentTarget.value)}>
-            <option value="">All states</option>
-            <option value="draft">Drafts</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-          </select>
-        </label>
-        <button disabled={busy || !!newDefinition}>Search</button>
-        <button
-          type="button"
-          disabled={busy || !!newDefinition || !descriptor?.defaultDefinition}
-          onClick={() => {
-            setNewParent(null)
-            setNewDefinition(structuredClone(descriptor!.defaultDefinition!))
-            setTab('Parameters')
-            setError('')
-          }}
-        >
-          New
-        </button>
-      </form>
+    <section
+      className={styles.workspace}
+      aria-label="Game Content workspace"
+      aria-busy={restoring || busy}
+    >
+      {restoring ? <p role="status">Restoring your workspace…</p> : null}
       {error ? (
         <p className={styles.error} role="alert">
-          {error} Your local edits are retained.{' '}
+          {error}{' '}
           {record && !newDefinition ? (
-            <button type="button" disabled={busy} onClick={() => void read(record.contentKey)}>
+            <button
+              type="button"
+              disabled={restoring || busy}
+              onClick={() => void read(record.contentKey, tab)}
+            >
               Refresh saved state
             </button>
           ) : null}
         </p>
       ) : null}
-      {notice ? <p role="status">{notice}</p> : null}
+      {notice ? (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      ) : null}
       <div className={styles.columns}>
-        <nav aria-label="Content records" className={styles.list}>
-          {page.records.map((row) => (
-            <button
-              type="button"
-              key={row.contentKey}
-              data-content-key={row.contentKey}
-              aria-current={record?.contentKey === row.contentKey && !newDefinition}
-              disabled={busy || !!newDefinition}
-              onClick={() => void read(row.contentKey)}
+        <aside className={styles.sidebar} aria-label="Content browser">
+          <label>
+            Category
+            <select
+              aria-label="Content category"
+              value={category}
+              disabled={restoring || busy || !!newDefinition}
+              onChange={(event) => void browse(event.currentTarget.value as typeof category)}
             >
-              {row.name ?? row.contentKey}
-              <small>
-                {' '}
-                · {row.lifecycle}
-                {localDirtyKeys[row.contentKey] ? ' · local edits' : ''}
-              </small>
-            </button>
-          ))}
-          {page.records.length === 0 ? <p>No matching records.</p> : null}
-          <div className={styles.actions}>
-            <button disabled={busy || !!newDefinition} onClick={() => void browse()}>
-              First page
-            </button>
-            <button
-              disabled={
-                busy ||
-                !!newDefinition ||
-                !page.nextCursor ||
-                appliedBrowse !== JSON.stringify({ search, sort, lifecycle })
-              }
-              onClick={() => void browse(category, page.nextCursor!)}
-            >
-              Next page
-            </button>
-          </div>
-        </nav>
+              {categories.map((row) => (
+                <option key={row.category} value={row.category}>
+                  {row.group === 'Skills' ? `Skills · ${row.label}` : row.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <nav
+            ref={listRef}
+            aria-label="Content records"
+            className={styles.list}
+            onScroll={(event) => {
+              scroll.current.listScroll = event.currentTarget.scrollTop
+              scheduleRecovery()
+            }}
+          >
+            {page.records.map((row) => (
+              <button
+                type="button"
+                key={row.contentKey}
+                data-content-key={row.contentKey}
+                aria-current={record?.contentKey === row.contentKey && !newDefinition}
+                disabled={restoring || busy || !!newDefinition}
+                onClick={() => void read(row.contentKey)}
+              >
+                {row.name ?? row.contentKey}
+                {pending[row.contentKey] ? <small>Unsaved edits</small> : null}
+              </button>
+            ))}
+            {!page.records.length ? <p>No matching content.</p> : null}
+          </nav>
+          <form
+            className={styles.toolbar}
+            onSubmit={(event) => {
+              event.preventDefault()
+              void browse()
+            }}
+          >
+            <label>
+              Search content
+              <input
+                type="search"
+                disabled={restoring || busy}
+                maxLength={160}
+                value={search}
+                onChange={(event) => setSearch(event.currentTarget.value)}
+              />
+            </label>
+            <div className={styles.searchActions}>
+              <label>
+                Sort
+                <select
+                  aria-label="Sort content"
+                  disabled={restoring || busy}
+                  value={sort}
+                  onChange={(event) => setSort(event.currentTarget.value as CombatContentSort)}
+                >
+                  <option value="name-asc">Name A–Z</option>
+                  <option value="name-desc">Name Z–A</option>
+                </select>
+              </label>
+              <button disabled={restoring || busy || !!newDefinition}>Search</button>
+            </div>
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.commit}
+                disabled={
+                  restoring ||
+                  busy ||
+                  !activeDefinition ||
+                  readOnly ||
+                  conflict ||
+                  !!descriptor?.publicationBlocker
+                }
+                onClick={() => void commit()}
+              >
+                {busy ? 'Working…' : 'Commit Now'}
+              </button>
+              <button
+                type="button"
+                disabled={restoring || busy || !!newDefinition || !descriptor?.defaultDefinition}
+                onClick={() => {
+                  createRequestId.current = crypto.randomUUID()
+                  createAttempt.current = null
+                  const next = structuredClone(descriptor!.defaultDefinition!)
+                  latestNewDefinition.current = next
+                  setNewDefinition(next)
+                  setTab('Parameters')
+                  setError('')
+                }}
+              >
+                New
+              </button>
+            </div>
+            {newDefinition ? (
+              <button
+                type="button"
+                disabled={restoring || busy}
+                onClick={() => {
+                  createRequestId.current = null
+                  createAttempt.current = null
+                  latestNewDefinition.current = null
+                  setNewDefinition(null)
+                }}
+              >
+                Cancel new content
+              </button>
+            ) : null}
+          </form>
+        </aside>
         <div className={styles.editor}>
           {activeDefinition ? (
             <>
-              <div className={styles.recordHeading}>
-                {parentKey && record?.contentKey !== parentKey ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      void read(parentKey)
-                      setParentKey(null)
-                    }}
-                  >
-                    Back to Discipline
-                  </button>
-                ) : null}
+              <header className={styles.recordHeading}>
                 <h2>{contentRecordName(activeDefinition)}</h2>
-                <MasterHelp label="Committing content">
-                  Commit Now applies the complete record to the game. Existing battles keep their
-                  recorded rules.
-                </MasterHelp>
-              </div>
-              <div className={`${styles.actions} ${styles.savebar}`}>
                 <span className={styles.status} role="status" aria-label="Content version state">
                   {newDefinition
                     ? 'New content'
@@ -443,314 +693,265 @@ export function CombatContentAuthoringWorkspace({
                         ? 'Uncommitted changes'
                         : 'Current'}
                 </span>
-                {newDefinition ? (
-                  <>
-                    <button disabled={busy} onClick={() => void create()}>
-                      Commit Now
-                    </button>
+                {!newDefinition && record ? (
+                  <details className={styles.recordActions}>
+                    <summary>Actions</summary>
+                    <div>
+                      <button
+                        type="button"
+                        disabled={
+                          restoring ||
+                          busy ||
+                          dirty ||
+                          readOnly ||
+                          category === 'basic' ||
+                          record.contentKind === 'tag'
+                        }
+                        onClick={() =>
+                          void work(async () => {
+                            const result = await contentRecordCommand<{
+                              record: CompleteCombatContentRecord
+                            }>({
+                              action: 'duplicate',
+                              sourceKey: record.contentKey,
+                              expectedSourceRevision: record.revision,
+                              requestId: crypto.randomUUID(),
+                            })
+                            accept(result.record)
+                            setNotice('Copy created. Review the settings and Commit Now.')
+                            setPage(await list(categoryOf(result.record)))
+                          })
+                        }
+                      >
+                        Duplicate
+                      </button>
+                      <button
+                        type="button"
+                        disabled={restoring || busy || dirty || readOnly || category === 'basic'}
+                        onClick={() =>
+                          void work(async () => {
+                            const result = await contentRecordCommand<{
+                              record: CompleteCombatContentRecord
+                            }>({
+                              action: 'archive',
+                              contentKey: record.contentKey,
+                              expectedRevision: record.revision,
+                            })
+                            accept(result.record)
+                            setNotice('Content archived.')
+                            setPage(await list())
+                          })
+                        }
+                      >
+                        Archive
+                      </button>
+                    </div>
+                  </details>
+                ) : null}
+              </header>
+              {conflict && record ? (
+                <div className={styles.error} role="alert">
+                  This content changed after your recovered edits. Review the latest saved settings
+                  before committing.
+                  <div className={styles.actions}>
                     <button
-                      disabled={busy}
                       onClick={() => {
-                        setNewDefinition(null)
-                        setNewParent(null)
-                        if (record) setCategory(categoryOf(record))
-                        setNotice('New draft discarded.')
+                        pendingEdit(record.contentKey, null)
+                        setDefinition(editableDefinition(record))
+                        setConflict(false)
                       }}
                     >
-                      Cancel new content
+                      Use saved settings
                     </button>
-                  </>
-                ) : (
-                  <>
                     <button
-                      disabled={busy || readOnly || !!activeDescriptor?.publicationBlocker}
-                      title={
-                        readOnly
-                          ? (record?.authoringBlocker?.message ?? 'This content is archived.')
-                          : activeDescriptor?.publicationBlocker?.message
-                      }
-                      onClick={() =>
-                        void mutate(
-                          {
-                            action: 'commit',
-                            contentKey: record!.contentKey,
-                            expectedRevision: record!.revision,
-                            definition,
-                          },
-                          'Changes committed and available to the game.',
-                        )
-                      }
+                      onClick={() => {
+                        if (definition)
+                          pendingEdit(record.contentKey, { revision: record.revision, definition })
+                        setConflict(false)
+                      }}
                     >
-                      Commit Now
+                      Keep my recovered edits
                     </button>
-                  </>
-                )}
-              </div>
-              {record?.authoringBlocker || activeDescriptor?.publicationBlocker ? (
+                  </div>
+                </div>
+              ) : null}
+              {record?.authoringBlocker || descriptor?.publicationBlocker ? (
                 <p role="note">
-                  {record?.authoringBlocker?.message ??
-                    activeDescriptor?.publicationBlocker?.message}
+                  {record?.authoringBlocker?.message ?? descriptor?.publicationBlocker?.message}
                 </p>
               ) : null}
               <div className={styles.tabs} role="group" aria-label="Editor sections">
                 {(
                   [
                     'Parameters',
-                    ...(record?.contentKind === 'discipline' ||
-                    (newDefinition && category === 'discipline')
-                      ? (['Skills', 'Resonances'] as const)
-                      : []),
-                    'Text',
-                    'History',
-                    'Identity & Relations',
-                  ] as const
+                    ...(activeKind === 'discipline' ? ['Skills', 'Resonances'] : []),
+                    'Usage & Balance',
+                  ] as ContentEditorTab[]
                 ).map((section) => (
                   <button
                     key={section}
-                    disabled={newDefinition !== null && section === 'History'}
                     aria-pressed={tab === section}
+                    disabled={restoring || busy}
                     onClick={() => setTab(section)}
                   >
-                    {section}
+                    {section === 'Parameters' ? contentDetailsLabel(category) : section}
                   </button>
                 ))}
               </div>
-              <div className={styles.editorBody}>
-                {tab === 'History' && record ? (
-                  <ContentHistory
-                    record={record}
-                    busy={busy}
-                    readOnly={readOnly}
-                    dirty={dirty}
-                    choices={choices}
-                    onRestore={(sourceVersion, sourceKind) =>
-                      void mutate(
-                        {
-                          action: 'restore',
-                          contentKey: record.contentKey,
-                          expectedRevision: record.revision,
-                          sourceVersion,
-                          ...(sourceKind ? { sourceKind } : {}),
-                        },
-                        'Previous settings loaded. Review them, then Commit Now to apply.',
-                      )
-                    }
-                  />
-                ) : tab === 'Identity & Relations' ? null : (
-                  <fieldset disabled={newDefinition ? busy : readOnly}>
+              <div
+                ref={editorRef}
+                className={styles.editorBody}
+                onScroll={(event) => {
+                  scroll.current.editorScroll = event.currentTarget.scrollTop
+                  scheduleRecovery()
+                }}
+              >
+                {tab === 'Usage & Balance' ? (
+                  record ? (
+                    <UsageBalancePanel contentKey={record.contentKey} />
+                  ) : (
+                    <p>Commit the new item to see usage statistics.</p>
+                  )
+                ) : tab === 'Skills' ? (
+                  <section className={styles.relatedList} aria-label="Discipline skills">
+                    {skills.map((key) => (
+                      <div key={key}>
+                        <button
+                          type="button"
+                          disabled={restoring || busy}
+                          onClick={() => setModalKey(key)}
+                        >
+                          {choices.find((row) => row.contentKey === key)?.name ?? key}
+                          <span aria-hidden="true">Edit →</span>
+                        </button>
+                        {activeDefinition && !disciplineSkillIsAvailable(activeDefinition, key) ? (
+                          <small>Not available in this Discipline</small>
+                        ) : null}
+                        {pending[key] ? <small>Uncommitted skill changes</small> : null}
+                      </div>
+                    ))}
+                    {!skills.length ? <p>No matching skills.</p> : null}
+                  </section>
+                ) : tab === 'Resonances' ? (
+                  <section aria-label="Discipline relationships">
+                    <fieldset disabled={restoring || readOnly}>
+                      <RelationshipOverrideFields
+                        value={activeDefinition as unknown as AuthoredDiscipline}
+                        onChange={(next) => change(next as unknown as CombatContentDefinition)}
+                        choices={choices
+                          .filter((row) => row.contentKind === 'discipline')
+                          .map((row) => ({ id: row.contentKey, label: row.name }))}
+                      />
+                    </fieldset>
+                    <DisciplineRelationshipList
+                      value={activeDefinition as unknown as AuthoredDiscipline}
+                      choices={choices}
+                      onChange={(next) => change(next as unknown as CombatContentDefinition)}
+                      onEdit={setModalKey}
+                      disabled={restoring || busy || readOnly}
+                    />
+                  </section>
+                ) : (
+                  <fieldset disabled={restoring || readOnly}>
                     <ContentDefinitionFields
                       kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
                       value={activeDefinition}
-                      tab={tab}
+                      tab="Parameters"
                       onChange={change}
                       choices={choices}
                     />
+                    {record?.contentKind === 'discipline' ? (
+                      <DisciplinePlayerGrants disciplineId={record.contentKey} />
+                    ) : null}
                   </fieldset>
                 )}
-                {tab === 'Resonances' && record?.contentKind === 'discipline' ? (
-                  <div className={styles.relatedActions}>
-                    {(
-                      definition?.resonanceSelections as { resonanceId: string }[] | undefined
-                    )?.map(({ resonanceId }) => (
-                      <button
-                        type="button"
-                        key={resonanceId}
-                        disabled={busy}
-                        onClick={() => {
-                          setParentKey(record.contentKey)
-                          void read(resonanceId)
-                        }}
-                      >
-                        Edit {readableContentReference(resonanceId, choices, 'resonance')}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-                {!newDefinition && record ? (
-                  <>
-                    {tab === 'Identity & Relations' ? (
-                      <section aria-label="Identity and relationships">
-                        <h3>Used in</h3>
-                        {record.usedBy.length ? (
-                          record.usedBy.map((use, index) => (
-                            <p key={`${use.kind}:${use.key}:${index}`}>
-                              {readableContentReference(use.key, choices, use.kind)}
-                            </p>
-                          ))
-                        ) : (
-                          <p>No recorded references.</p>
-                        )}
-                        {record.usedByTruncated ? (
-                          <p>Additional references exist; archive still checks all dependencies.</p>
-                        ) : null}
-                      </section>
-                    ) : null}
-                    {record.contentKind === 'discipline' && tab === 'Skills' ? (
-                      <>
-                        <h3>Skills in this Discipline</h3>
-                        {record.links.map((key) => (
-                          <p key={key}>
-                            <button
-                              disabled={busy}
-                              onClick={() => {
-                                setParentKey(record.contentKey)
-                                void read(key)
-                              }}
-                            >
-                              {readableContentReference(key, choices, 'skill')}
-                            </button>
-                            <button
-                              disabled={busy || dirty}
-                              onClick={() =>
-                                void mutate(
-                                  {
-                                    action: 'unlink',
-                                    contentKey: record.contentKey,
-                                    expectedRevision: record.revision,
-                                    requestId: crypto.randomUUID(),
-                                    childKey: key,
-                                  },
-                                  'Skill unlinked in the saved draft.',
-                                )
-                              }
-                            >
-                              Unlink
-                            </button>
-                          </p>
-                        ))}
-                        <label>
-                          Find existing Skill
-                          <input
-                            value={linkSearch}
-                            onChange={(event) => setLinkSearch(event.currentTarget.value)}
-                          />
-                        </label>
-                        <button
-                          disabled={busy}
-                          onClick={() =>
-                            void work(async () => {
-                              const result = await contentRecordCommand<CombatContentListPage>({
-                                action: 'list',
-                                kind: 'skill',
-                                category: 'discipline-skill',
-                                search: linkSearch,
-                                sort: 'name-asc',
-                                limit: 20,
-                              })
-                              setLinkChoices(
-                                result.records.map((row) => ({
-                                  ...row,
-                                  name: row.name ?? row.contentKey,
-                                })),
-                              )
-                            })
-                          }
-                        >
-                          Find Skills
-                        </button>
-                        {linkChoices.map((row) => (
-                          <button
-                            key={row.contentKey}
-                            disabled={busy || dirty || record.links.includes(row.contentKey)}
-                            onClick={() =>
-                              void mutate(
-                                {
-                                  action: 'link',
-                                  contentKey: record.contentKey,
-                                  expectedRevision: record.revision,
-                                  requestId: crypto.randomUUID(),
-                                  childKey: row.contentKey,
-                                },
-                                'Skill linked in the saved draft.',
-                              )
-                            }
-                          >
-                            Link {row.name}
-                          </button>
-                        ))}
-                        <button
-                          disabled={busy || dirty}
-                          onClick={() => {
-                            const skill = categories.find((row) => row.category === 'skill')!
-                            setNewParent({
-                              parentKey: record.contentKey,
-                              expectedParentRevision: record.revision,
-                            })
-                            setCategory('skill')
-                            setNewDefinition({
-                              ...structuredClone(skill.defaultDefinition!),
-                              sourceDisciplineId: record.contentKey,
-                            })
-                            setTab('Parameters')
-                          }}
-                        >
-                          Add Skill
-                        </button>
-                      </>
-                    ) : null}
-                    {tab === 'Identity & Relations' ? (
-                      <div className={styles.actions}>
-                        <button
-                          disabled={
-                            busy ||
-                            dirty ||
-                            readOnly ||
-                            category === 'basic' ||
-                            record.contentKind === 'tag'
-                          }
-                          onClick={() =>
-                            void mutate(
-                              {
-                                action: 'duplicate',
-                                sourceKey: record.contentKey,
-                                expectedSourceRevision: record.revision,
-                                requestId: crypto.randomUUID(),
-                              },
-                              'Duplicated into a new saved draft.',
-                            )
-                          }
-                        >
-                          Duplicate
-                        </button>
-                        <button
-                          disabled={busy || dirty || readOnly || category === 'basic'}
-                          onClick={() =>
-                            void mutate(
-                              {
-                                action: 'archive',
-                                contentKey: record.contentKey,
-                                expectedRevision: record.revision,
-                              },
-                              'Archived after checking dependencies.',
-                            )
-                          }
-                        >
-                          Archive
-                        </button>
-                        {dirty ? (
-                          <button
-                            disabled={busy}
-                            onClick={() => {
-                              localEdits.current.delete(record.contentKey)
-                              setLocalDirtyKeys((old) => ({ ...old, [record.contentKey]: false }))
-                              setDefinition(editableDefinition(record))
-                              setNotice('Local edits discarded.')
-                            }}
-                          >
-                            Discard local edits
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                  </>
-                ) : null}
               </div>
             </>
           ) : (
-            <p>Select a record or create new content.</p>
+            <div className={styles.empty}>
+              <h2>Your content workspace</h2>
+              <p>Select an item from the list to edit it.</p>
+            </div>
           )}
         </div>
       </div>
+      {modalKey ? (
+        <ContentRecordModal
+          availableInDiscipline={
+            disciplineSkillModal && activeDefinition
+              ? disciplineSkillIsAvailable(activeDefinition, modalKey)
+              : undefined
+          }
+          disciplineSettingsDisabled={restoring || working || readOnly}
+          onAvailabilityChange={(available) => {
+            if (disciplineSkillModal && activeDefinition && !restoring && !working && !readOnly)
+              change(withDisciplineSkill(activeDefinition, modalKey, available))
+          }}
+          masteryStage={
+            disciplineSkillModal
+              ? ((
+                  activeDefinition?.skillStages as
+                    { skillId: string; minimumStage: number }[] | undefined
+                )?.find((row) => row.skillId === modalKey)?.minimumStage ?? 1)
+              : undefined
+          }
+          onMasteryChange={(stage) => {
+            if (disciplineSkillModal && activeDefinition && !restoring && !working && !readOnly)
+              change(withDisciplineSkill(activeDefinition, modalKey, true, stage))
+          }}
+          onCommitStart={() => {
+            setModalSaving((count) => count + 1)
+            const finishParent =
+              disciplineSkillModal && record
+                ? holdContentCommit(committingKeys.current, record.contentKey)
+                : () => {}
+            let active = true
+            return () => {
+              if (!active) return
+              active = false
+              finishParent()
+              setModalSaving((count) => Math.max(0, count - 1))
+            }
+          }}
+          onCommitRelated={async () => {
+            // This closure captures the association reviewed when Commit Now was
+            // pressed; newer parent edits are rebased by commitSaved and kept local.
+            if (!disciplineSkillModal || !record || !activeDefinition)
+              return !!newDefinition || !!(record && pendingRef.current[record.contentKey])
+            const base = editableDefinition(record)
+            if (!base) return !!pendingRef.current[record.contentKey]
+            const patch = disciplineMasteryCommit(base, activeDefinition, modalKey)
+            if (!patch) {
+              const local = pendingRef.current[record.contentKey]
+              if (local && !recordIsDirty(record, local.definition))
+                pendingEdit(record.contentKey, null)
+              return !!pendingRef.current[record.contentKey]
+            }
+            if (conflict) throw new Error('Review the recovered discipline edits first.')
+            if (readOnly)
+              throw new Error(
+                'This discipline is read-only; its availability and mastery remain uncommitted.',
+              )
+            accept(await commitSaved(record, patch))
+            return !!pendingRef.current[record.contentKey]
+          }}
+          contentKey={modalKey}
+          choices={choices}
+          pending={pending[modalKey] ?? null}
+          onChange={(key, edit) => pendingEdit(key, edit)}
+          onClose={() => setModalKey(null)}
+          onSaved={(saved) => {
+            remember(saved)
+            setNameOverrides((old) => ({
+              ...old,
+              [saved.contentKey]: contentRecordName(
+                editableDefinition(saved) ?? { id: saved.contentKey },
+              ),
+            }))
+            if (saved.contentKey === record?.contentKey) accept(saved)
+          }}
+        />
+      ) : null}
     </section>
   )
 }

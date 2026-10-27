@@ -79,7 +79,7 @@ it('maps authoritative denial, stale CAS and malformed identity records safely',
 it('reads and saves authoritative role defaults through Owner-only revision RPCs', async () => {
   const defaults = {
     revision: 3,
-    roles: { moderator: ['master.access'], 'content-staff': [], 'event-staff': ['events.author'] },
+    roles: { moderator: ['moderation'], 'content-staff': [], 'event-staff': ['events'] },
   }
   const rpc = vi.fn(async () => ({ data: defaults, error: null }))
   const store = new RpcMasterPanelStaffAccessStore(rpc)

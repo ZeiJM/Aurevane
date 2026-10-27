@@ -56,17 +56,17 @@ it('shows default configuration only when the Owner supplies the protected snaps
     capabilityOptions: [],
   }
   const delegated = renderToStaticMarkup(createElement(StaffManagement, props))
-  expect(delegated).not.toContain('Role defaults')
+  expect(delegated).not.toContain('Role page access')
   const owner = renderToStaticMarkup(
     createElement(StaffManagement, {
       ...props,
       roleDefaults: {
         revision: 1,
-        roles: { moderator: ['master.access'], 'content-staff': [], 'event-staff': [] },
+        roles: { moderator: ['moderation'], 'content-staff': [], 'event-staff': [] },
       },
     }),
   )
-  expect(owner).toContain('Role defaults')
+  expect(owner).toContain('Role page access')
   expect(owner).toContain('Save role defaults')
   expect(owner).not.toContain('aria-label="Staff management"')
 })

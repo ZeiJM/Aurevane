@@ -65,11 +65,12 @@ export interface CharacterActiveBuildRecord {
 export interface DisciplineCatalogEntry {
   definition: DisciplineDefinition
   profile: PrimaryDisciplineBaseProfile
+  playerGranted?: boolean
   masteredAt: string | null
 }
 
 export type PrimaryDisciplineCatalogEntry = DisciplineCatalogEntry
-export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry & { masteredAt: string }
+export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry
 
 export interface CharacterLearnedSkillRecord extends DisciplineSkillReference {
   learnedAt: string
@@ -291,7 +292,8 @@ function availableCatalog(catalog: readonly DisciplineCatalogEntry[]) {
   )
   const availableSecondaries = catalog.filter(
     (entry): entry is SecondaryDisciplineCatalogEntry =>
-      entry.definition.enabledForSecondary && entry.masteredAt !== null,
+      entry.definition.enabledForSecondary &&
+      (entry.masteredAt !== null || entry.playerGranted === true),
   )
   return { availablePrimaries, availableSecondaries }
 }
@@ -538,8 +540,8 @@ export async function loadCharacterCommittedBuildSnapshot(
   } else {
     const resolved = repository.contentResolver?.resolvePinnedResonanceDefinition
       ? await repository.contentResolver.resolvePinnedResonanceDefinition(
-          snapshot.primary.disciplineId,
-          secondaryDisciplineId,
+          persistedResonance.disciplinePair[0],
+          persistedResonance.disciplinePair[1],
           persistedResonance.resonanceId,
           persistedResonance.contentVersion,
         )
@@ -571,8 +573,8 @@ export async function loadCharacterCommittedBuildSnapshot(
   } else {
     const resolved = repository.contentResolver?.resolvePinnedEssenceDefinition
       ? await repository.contentResolver.resolvePinnedEssenceDefinition(
-          snapshot.primary.disciplineId,
-          secondaryDisciplineId,
+          persistedEssence.sourceDisciplineId,
+          null,
           persistedEssence.essenceId,
           persistedEssence.contentVersion,
         )

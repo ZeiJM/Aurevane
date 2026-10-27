@@ -1,4 +1,5 @@
 import 'server-only'
+import { createSelectedCharacterRpc } from './selected-character-rpc'
 import {
   defaultBattlefieldElevationPolicy,
   parseBattlefieldElevationPolicy,
@@ -35,7 +36,9 @@ export async function publishBattlefieldElevationPolicy(input: {
     )
   }
   const { version, ...chances } = policy
-  const { data, error } = await createSupabaseAdminClient().rpc(
+  const { data, error } = await createSelectedCharacterRpc((name, params) =>
+    createSupabaseAdminClient().rpc(name, params),
+  )(
     policy.model === 'independent-highest'
       ? 'publish_battlefield_elevation_policy_v3'
       : 'publish_battlefield_elevation_policy_v2',
@@ -48,7 +51,7 @@ export async function publishBattlefieldElevationPolicy(input: {
   if (error?.message?.includes('ELEVATION_POLICY_VERSION_CONFLICT'))
     throw new AurevaneError('STALE_VERSION', 'Refresh elevation settings before saving again.')
   if (error?.code === '42501')
-    throw new AurevaneError('FORBIDDEN', 'Only the Game Owner may publish elevation chances.')
+    throw new AurevaneError('FORBIDDEN', 'Combat Rules page access is required.')
   if (error || !data)
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Elevation chances could not be published.')
   try {

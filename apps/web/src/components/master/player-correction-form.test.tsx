@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { disciplineCorrectionFromForm } from '@/master/player-discipline-correction'
 import type { MasterPlayerFacts, MasterPlayerView } from '@/master/players'
-import { PlayerCorrectionReview } from './player-correction-form'
+import { PlayerCorrectionForm, PlayerCorrectionReview } from './player-correction-form'
 const build = (secondary: string | null): MasterPlayerFacts['build'] => ({
   buildVersion: 1,
   primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
@@ -35,7 +35,7 @@ it.each([null, 'arcanist'])('rejects unchanged Discipline selections including %
   )
 })
 it('review retains omitted Secondary and distinguishes explicit removal', () => {
-  const player = { facts: { build: build('arcanist') } } as MasterPlayerView
+  const player = { facts: { build: build('arcanist') } } as unknown as MasterPlayerView
   const preserved = renderToStaticMarkup(
     createElement(PlayerCorrectionReview, {
       player,
@@ -51,4 +51,37 @@ it('review retains omitted Secondary and distinguishes explicit removal', () => 
   )
   expect(removed).toContain('Arcanist → <strong>None</strong>')
   expect(removed).toContain('Vanguard → <strong>Vanguard</strong>')
+})
+
+it('shows the actual pinned Primary bases and caps rather than inviting an illegal stat correction', () => {
+  const player = {
+    facts: {
+      build: build(null),
+      xp: 1,
+      level: 1,
+      attributes: { might: 12, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+    },
+    calculated: { personalPointPool: 5 },
+    learnedSkills: [],
+    attributePolicy: {
+      disciplineId: 'vanguard',
+      policyVersion: 1,
+      baseAttributes: { might: 7, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+      focusAttributes: ['might', 'vitality'],
+      attributeCaps: {
+        might: 60,
+        finesse: 40,
+        vitality: 60,
+        agility: 40,
+        intellect: 40,
+        resolve: 40,
+      },
+    },
+  } as unknown as MasterPlayerView
+  const html = renderToStaticMarkup(
+    createElement(PlayerCorrectionForm, { player, disabled: false, onReview: () => {} }),
+  )
+  expect(html).toMatch(/<input(?=[^>]*name="might")(?=[^>]*min="7")(?=[^>]*max="60")[^>]*>/)
+  expect(html).toMatch(/<input(?=[^>]*name="finesse")(?=[^>]*min="4")(?=[^>]*max="40")[^>]*>/)
+  expect(html).toContain('5 / 5 personal points assigned')
 })

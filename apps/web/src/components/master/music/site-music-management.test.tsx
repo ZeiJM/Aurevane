@@ -11,6 +11,15 @@ import { createDefaultSiteMusicConfig } from '@/lib/site-music'
 import { SiteMusicManagement } from './site-music-management'
 
 describe('Master Panel site music management', () => {
+  it('keeps legacy YouTube selections editable with precise feedback and no native preview', () => {
+    const initialConfig = createDefaultSiteMusicConfig()
+    initialConfig.defaultTrack.url = 'https://www.youtube.com/watch?v=x06zFQ85gT0'
+    const markup = renderToStaticMarkup(createElement(SiteMusicManagement, { initialConfig }))
+    expect(markup).toContain('YouTube cannot be used as background music')
+    expect(markup).toContain('aria-invalid="true"')
+    expect(markup).not.toContain('<audio')
+    expect(markup).toContain('value="https://www.youtube.com/watch?v=x06zFQ85gT0"')
+  })
   it('keeps a local PC audio-file picker available for the default site track', () => {
     const markup = renderToStaticMarkup(
       createElement(SiteMusicManagement, {

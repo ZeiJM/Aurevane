@@ -132,6 +132,7 @@ export async function exerciseMasterAtBrowserZoom(
       ap = page.getByLabel('AP cost', { exact: true })
     await expect(name).toBeEnabled()
     const originalAP = await ap.inputValue()
+    const originalName = await name.inputValue()
     await name.fill(
       'A long Basic Attack title demonstrating wrapped authoring and reader content at actual browser zoom',
     )
@@ -167,7 +168,10 @@ export async function exerciseMasterAtBrowserZoom(
     expectedResourceErrors.push({ url: rejected.url(), status: rejected.status() })
     const validation = page.getByRole('alert').filter({ hasText: 'positive authored AP cost' })
     await expect(validation).toBeVisible()
-    await expect(validation).toContainText('Your local edits are retained.')
+    await expect(name).toHaveValue(
+      'A long Basic Attack title demonstrating wrapped authoring and reader content at actual browser zoom',
+    )
+    await expect(ap).toHaveValue('0')
     await expect(page.getByRole('status', { name: 'Content version state' })).toContainText(
       'Unsaved changes',
     )
@@ -179,31 +183,61 @@ export async function exerciseMasterAtBrowserZoom(
       page.getByText('Changes committed and available to the game.', { exact: true }),
     ).toBeVisible()
     await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText('Current')
-    await activate(button('History'), 'open-history')
-    const history = page.getByRole('region', { name: 'Content history', exact: true })
-    await expect(
-      history.getByRole('heading', { name: 'Current and Previous', exact: true }),
-    ).toBeVisible()
-    const systemOriginal = history.locator('summary').filter({ hasText: /^System original$/ })
-    await activate(systemOriginal, 'open-system-original')
-    await control(button('Restore System original'), 'original-restore')
-    await state('saved-history', workspace)
-    await activate(button('Restore System original'), 'restore-original')
-    await expect(
-      page.getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
-        exact: true,
-      }),
-    ).toBeVisible()
-    await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText(
-      'Uncommitted changes',
-    )
-    await state('restored', workspace)
-    await activate(button('Commit Now'), 'commit-restored-original')
+    await expect(button('History')).toHaveCount(0)
+    await expect(workspace.getByRole('button', { name: /^Restore / })).toHaveCount(0)
+    const readCurrent = async () => {
+      const response = await page.request.post('/api/master/combat-content', {
+        data: { operation: 'record', command: { action: 'read', contentKey: 'unarmed.basic' } },
+      })
+      expect(response.status()).toBe(200)
+      return (await response.json()).record
+    }
+    const beforeRetiredRequests = await readCurrent()
+    for (const data of [
+      { operation: 'restore-basic-draft', skillId: 'unarmed.basic' },
+      { operation: 'rollback', contentKey: 'unarmed.basic', version: 1 },
+      {
+        operation: 'record',
+        command: {
+          action: 'restore',
+          contentKey: 'unarmed.basic',
+          expectedRevision: beforeRetiredRequests.revision,
+          source: 'builtin',
+        },
+      },
+    ]) {
+      const response = await page.request.post('/api/master/combat-content', { data })
+      expect(response.status()).toBe(400)
+      expect((await response.json()).error.code).toBe('INVALID_REQUEST')
+    }
+    const afterRetiredRequests = await readCurrent()
+    for (const key of [
+      'contentKey',
+      'contentKind',
+      'lifecycle',
+      'revision',
+      'versionFloor',
+      'createdBy',
+      'createdAt',
+      'draft',
+      'current',
+      'history',
+      'links',
+    ])
+      expect(afterRetiredRequests[key]).toEqual(beforeRetiredRequests[key])
+    await state('retired-history-unchanged', workspace)
+    // Restore the fixture's title through the same explicit authoring controls.
+    await name.fill(originalName)
+    await expect(button('Commit Now')).toBeEnabled()
+    await control(name, 'restore-title-through-editing')
+    await activate(button('Commit Now'), 'commit-original-title')
     await expect(
       page.getByText('Changes committed and available to the game.', { exact: true }),
     ).toBeVisible()
+    await expect(name).toHaveValue(originalName)
+    await expect(ap).toHaveValue(originalAP)
     await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText('Current')
-    await state('restored-current', workspace)
+    await state('current-authored-settings', workspace)
   } else if (route === '/master/combat-timing') {
     const form = page
       .locator('form')
@@ -284,6 +318,51 @@ export async function exerciseMasterAtBrowserZoom(
     await state('persisted-page-rule', page.getByRole('region', { name: 'Site Music' }))
     await activate(button('Reset to Global'), 'reset-page-rule')
     await expect(mode).toHaveValue('global')
+  } else if (route === '/master/moderation') {
+    const directory = page.getByRole('region', { name: 'Find a player', exact: true })
+    const lookup = directory.getByLabel('Character name', { exact: true })
+    await lookup.fill('no-matching-zoom-player')
+    await activate(
+      directory.getByRole('button', { name: 'Search', exact: true }),
+      'moderation-empty-search',
+    )
+    await expect(directory.locator('strong')).toHaveCount(0)
+    await lookup.fill(identity.characterName)
+    await activate(
+      directory.getByRole('button', { name: 'Search', exact: true }),
+      'moderation-player-search',
+    )
+    const result = directory.getByRole('button').filter({ hasText: identity.characterName }).first()
+    await activate(result, 'moderation-protected-owner')
+    const detail = page.getByRole('region', { name: identity.characterName, exact: true })
+    await expect(detail).toContainText('Protected account')
+    await expect(detail.locator('form')).toHaveCount(0)
+    await activate(
+      detail.getByRole('button', { name: 'Refresh player', exact: true }),
+      'moderation-refresh',
+    )
+    await expect(detail.getByRole('button', { name: 'Refresh player', exact: true })).toBeEnabled()
+    await expect(detail).toContainText('Protected account')
+    await state('protected-owner-moderation', detail)
+  } else if (route === '/master/activity') {
+    const workspace = page.getByRole('region', {
+      name: 'Weekly Master Panel activity',
+      exact: true,
+    })
+    const response = page.waitForResponse(
+      (res) =>
+        res.request().method() === 'GET' && new URL(res.url()).pathname === '/api/master/activity',
+    )
+    await activate(
+      workspace.getByRole('button', { name: 'Refresh', exact: true }),
+      'refresh-audit-log',
+    )
+    expect((await response).status()).toBe(200)
+    await expect(workspace.getByRole('button', { name: 'Refresh', exact: true })).toBeEnabled()
+    await expect(
+      workspace.getByRole('region', { name: 'Recorded changes', exact: true }),
+    ).toBeVisible()
+    await state('refreshed-audit-log', workspace)
   } else if (route === '/master/staff') {
     const lookup = page.getByLabel('Character name or verified email')
     await lookup.fill(identity.email)

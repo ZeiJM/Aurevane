@@ -6,6 +6,18 @@ import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 /** Only staff entrypoints take selected actor context. Player/history and worker RPCs do not. */
 const SELECTED_ACTOR_RPCS = new Set([
+  'search_discipline_grant_players_v1',
+  'read_discipline_player_grants_v1',
+  'write_discipline_player_grants_v1',
+  'search_master_moderation_players_v1',
+  'read_master_moderation_v1',
+  'write_master_moderation_v1',
+  'read_master_panel_activity_v1',
+  'set_world_environment_v2',
+  'publish_battlefield_elevation_policy_v2',
+  'publish_battlefield_elevation_policy_v3',
+  'publish_combat_effect_timing_policy_v2',
+  'save_site_music_configuration_v1',
   'finalize_combat_content_media_v1',
   'read_combat_content_media_v1',
   'read_combat_content_record_v1',
@@ -53,7 +65,7 @@ export function createSelectedCharacterRpc<T>(
   return async (name, parameters) => {
     if (!SELECTED_ACTOR_RPCS.has(name)) return rpc(name, parameters)
     const actor = await dependencies.getActor()
-    const expectedUser = parameters.p_actor_user_id ?? parameters.p_user_id
+    const expectedUser = parameters.p_actor_user_id ?? parameters.p_user_id ?? parameters.p_actor
     if (expectedUser !== actor.userId) {
       throw new AurevaneError('FORBIDDEN', 'Master Panel actor context changed unexpectedly.')
     }

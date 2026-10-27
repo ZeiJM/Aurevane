@@ -37,12 +37,6 @@ function readNullablePositiveInteger(value: unknown, field: string): number | nu
   return value as number
 }
 
-function readPositiveInteger(value: unknown, field: string): number {
-  const parsed = readNullablePositiveInteger(value, field)
-  if (parsed === null) return invalid(`${field} must be a positive integer.`)
-  return parsed
-}
-
 function readOptionalPreviewSeed(value: unknown): number | undefined {
   if (value === undefined) return undefined
   if (!Number.isSafeInteger(value) || (value as number) < 1 || (value as number) > 0xffff_ffff) {
@@ -59,16 +53,6 @@ function readAuthoringContentKind(value: unknown): AuthoringContentKind {
     return invalid('contentKind must be skill, essence, or resonance.')
   }
   return value
-}
-
-function readDisciplinePair(value: unknown): readonly [string, string] {
-  if (!Array.isArray(value) || value.length !== 2) {
-    return invalid('disciplinePair must contain exactly two Discipline ids.')
-  }
-  return [
-    requiredString(value[0], 'disciplinePair[0]'),
-    requiredString(value[1], 'disciplinePair[1]'),
-  ]
 }
 
 function readOptionalCombatContext(value: unknown): 'pve' | 'pvp' | undefined {
@@ -122,13 +106,26 @@ export async function handleCombatContentAuthoringRequest(
     await service.requireOperator(actor.userId)
     const body = await readBody(request)
     const operation = requiredString(body.operation, 'operation')
+    if (
+      operation === 'rollback' ||
+      operation === 'restore-basic-draft' ||
+      (operation === 'record' && isObject(body.command) && body.command.action === 'restore')
+    ) {
+      invalid('Content rollback is no longer available. Edit the current settings and Commit Now.')
+    }
     if (operation === 'record') {
       if (
         Object.keys(body).some((key) => !['operation', 'command'].includes(key)) ||
         !service.recordCommand
       )
         invalid('A supported complete-record command is required.')
-      return success(await service.recordCommand(requireProperty(body, 'command')))
+      const result: unknown = await service.recordCommand(requireProperty(body, 'command'))
+      if (isObject(result) && isObject(result.record)) {
+        const record = { ...result.record, history: [] }
+        delete (record as JsonObject).builtinRestoreVersion
+        return success({ ...result, record })
+      }
+      return success(result)
     }
     const contentKind = readAuthoringContentKind(body.contentKind)
 
@@ -209,21 +206,6 @@ export async function handleCombatContentAuthoringRequest(
       return success({ draft })
     }
 
-    if (operation === 'restore-basic-draft') {
-      if (contentKind !== 'skill') return invalid('Restore to draft requires a Basic Skill.')
-      const draft = await service.restoreBasicSkillDraft({
-        actorUserId: actor.userId,
-        skillId: requiredString(body.skillId, 'skillId'),
-        targetVersion: readPositiveInteger(body.targetVersion, 'targetVersion'),
-        expectedBaseVersion: readPositiveInteger(body.expectedBaseVersion, 'expectedBaseVersion'),
-        expectedDraftVersion: readNullablePositiveInteger(
-          requireProperty(body, 'expectedDraftVersion'),
-          'expectedDraftVersion',
-        ),
-      })
-      return success({ draft })
-    }
-
     if (operation === 'publish') {
       const definition = requireProperty(body, 'definition')
       const expectedBaseVersion = readNullablePositiveInteger(
@@ -242,32 +224,6 @@ export async function handleCombatContentAuthoringRequest(
             ? await service.publishEssence(input)
             : await service.publishResonance(input)
       return success({ published })
-    }
-
-    if (operation === 'rollback') {
-      const targetVersion = readPositiveInteger(body.targetVersion, 'targetVersion')
-      if (contentKind === 'skill') {
-        await service.rollbackSkill({
-          actorUserId: actor.userId,
-          skillId: requiredString(body.skillId, 'skillId'),
-          targetVersion,
-        })
-      } else if (contentKind === 'essence') {
-        await service.rollbackEssence({
-          actorUserId: actor.userId,
-          essenceId: requiredString(body.contentKey, 'contentKey'),
-          sourceDisciplineId: requiredString(body.sourceDisciplineId, 'sourceDisciplineId'),
-          targetVersion,
-        })
-      } else {
-        await service.rollbackResonance({
-          actorUserId: actor.userId,
-          resonanceId: requiredString(body.contentKey, 'contentKey'),
-          disciplinePair: readDisciplinePair(body.disciplinePair),
-          targetVersion,
-        })
-      }
-      return success({ ok: true })
     }
 
     throw new AurevaneError('INVALID_REQUEST', 'Unsupported Master Panel authoring operation.')

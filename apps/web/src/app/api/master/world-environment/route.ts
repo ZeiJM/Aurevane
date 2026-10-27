@@ -9,21 +9,15 @@ import {
 
 const NO_STORE = { 'Cache-Control': 'private, no-store' }
 
-async function requireOwner() {
+async function requireWorldPageAccess() {
   const actor = await getAuthenticatedActor()
-  const access = await createServerMasterPanelStaffAccessService().requireCapability(
-    actor.userId,
-    'staff.manage',
-  )
-  // The database RPC independently asserts Game Owner authority.
-  if (!access.roles.includes('game-owner'))
-    throw new AurevaneError('FORBIDDEN', 'Only the Game Owner may change the world environment.')
+  await createServerMasterPanelStaffAccessService().requireCapability(actor.userId, 'world.manage')
   return actor
 }
 
 export async function GET() {
   try {
-    await requireOwner()
+    await requireWorldPageAccess()
     return Response.json(
       { settings: await readWorldEnvironmentAdminSettings() },
       { headers: NO_STORE },
@@ -35,7 +29,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const actor = await requireOwner()
+    const actor = await requireWorldPageAccess()
     let body: unknown
     try {
       body = await request.json()

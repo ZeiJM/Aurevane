@@ -109,3 +109,53 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.editor {
+  align-content: start;
+  max-width: none;
+  gap: 0.8rem;
+  font-size: 0.875rem;
+}
+.editor > .heading {
+  padding: 0.75rem 0.85rem;
+  background: var(--master-panel, #f7f1e5);
+  border: 1px solid #b6a587;
+  border-top: 3px solid #a1844d;
+  border-radius: 0.4rem;
+}
+.editor h2 {
+  font-size: 1.1rem;
+}
+.editor fieldset {
+  gap: 0.65rem;
+  padding: 0.85rem;
+  background: var(--master-panel, #f7f1e5);
+  border: 1px solid #b6a587;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 3px #4d402a12;
+}
+.editor legend {
+  padding-inline: 0.35rem;
+  color: #375a4d;
+  font-weight: 600;
+}
+.editor button {
+  background: #315e53;
+  border-color: #274b43;
+  border-radius: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.editor :is(input, select, textarea, button):focus-visible {
+  outline: 3px solid #237569;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .editor :is(button, input:not([type='checkbox']), select) {
+    min-height: 2.75rem;
+  }
+}
+
+.sections {
+  align-items: start;
+}

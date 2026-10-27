@@ -44,7 +44,7 @@ interface PrimaryOption {
 }
 
 interface SecondaryOption extends PrimaryOption {
-  masteredAt: string
+  masteredAt: string | null
 }
 
 interface AttunementView {

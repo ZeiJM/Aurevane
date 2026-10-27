@@ -962,3 +962,14 @@ it('previews an authored same-identity Core refresh without resetting personal p
     }).derived,
   )
 })
+
+it('offers a granted Secondary without inventing its mastered timestamp', async () => {
+  const granted = { ...aetherist, masteredAt: null, playerGranted: true }
+  const context = await loadCharacterBuildContext(
+    userId,
+    character(),
+    repository({ listDisciplines: async () => [vanguard, granted] }),
+  )
+  expect(context.availableSecondaries).toContainEqual(granted)
+  expect(context.availableSecondaries[0]!.masteredAt).toBeNull()
+})
