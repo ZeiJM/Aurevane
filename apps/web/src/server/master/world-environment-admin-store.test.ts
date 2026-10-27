@@ -1,3 +1,4 @@
+vi.mock('./selected-character-rpc', () => ({ createSelectedCharacterRpc: (rpc: unknown) => rpc }))
 import { beforeEach, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))

@@ -142,6 +142,9 @@ function parseResonanceReference(value: unknown): ResonanceSnapshotReference | n
     return undefined
   }
   return {
+    ...(value.relationshipOverrideDisciplineId !== undefined
+      ? { relationshipOverrideDisciplineId: value.relationshipOverrideDisciplineId as string }
+      : {}),
     resonanceId: value.resonanceId,
     contentVersion: value.contentVersion,
     disciplinePair: [value.disciplinePair[0], value.disciplinePair[1]],
@@ -161,6 +164,9 @@ function parseEssenceReference(value: unknown): EssenceSnapshotReference | null 
     return undefined
   }
   return {
+    ...(value.relationshipOverrideDisciplineId !== undefined
+      ? { relationshipOverrideDisciplineId: value.relationshipOverrideDisciplineId as string }
+      : {}),
     essenceId: value.essenceId,
     contentVersion: value.contentVersion,
     sourceDisciplineId: value.sourceDisciplineId,
@@ -567,8 +573,8 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
         (!currentEssence.enabled ||
           !currentEssence.skill.enabled ||
           validateEssenceDefinition(currentEssence).length ||
-          currentEssence.sourceDisciplineId !== primary ||
-          secondary !== null)
+          (!currentEssence.relationshipOverrideDisciplineId &&
+            (currentEssence.sourceDisciplineId !== primary || secondary !== null)))
       )
         throw new TypeError(
           'Published Essence does not match the enabled committed build extension.',
@@ -577,9 +583,10 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
         currentResonance &&
         (!currentResonance.enabled ||
           validateResonanceDefinition(currentResonance).length ||
-          secondary === null ||
-          !currentResonance.disciplinePair.includes(primary) ||
-          !currentResonance.disciplinePair.includes(secondary))
+          (!currentResonance.relationshipOverrideDisciplineId &&
+            (secondary === null ||
+              !currentResonance.disciplinePair.includes(primary) ||
+              !currentResonance.disciplinePair.includes(secondary))))
       )
         throw new TypeError('Published Resonance does not match the enabled committed build pair.')
 
@@ -683,8 +690,8 @@ export function resolveBattleEssenceDefinition(
   const reference = build?.extensions.essence
   if (!build || !reference) return null
   const definition = resolveEssenceForBuild(
-    build.primary.disciplineId,
-    build.secondary?.disciplineId ?? null,
+    reference.sourceDisciplineId,
+    null,
     reference.contentVersion,
   )
   if (!definition) return null
@@ -704,8 +711,8 @@ export function resolveBattleResonanceDefinition(
   const reference = build?.extensions.resonance
   if (!build || !reference) return null
   const definition = resolveResonanceForPair(
-    build.primary.disciplineId,
-    build.secondary?.disciplineId ?? null,
+    reference.disciplinePair[0],
+    reference.disciplinePair[1],
     reference.contentVersion,
   )
   if (!definition) return null
@@ -725,22 +732,32 @@ export async function resolvePinnedBattleEssenceDefinition(
   const definition =
     authority?.catalogVersion === 3 && resolver?.resolvePinnedEssenceDefinition
       ? await resolver.resolvePinnedEssenceDefinition(
-          build.primary.disciplineId,
-          build.secondary?.disciplineId ?? null,
+          reference.sourceDisciplineId,
+          null,
           reference.essenceId,
           reference.contentVersion,
         )
       : resolveBattleEssenceDefinition(authority, combatantId)
-  if (!definition || validateEssenceDefinition(definition).length || build.secondary !== null)
+  if (
+    !definition ||
+    validateEssenceDefinition(definition).length ||
+    (build.secondary !== null && !reference.relationshipOverrideDisciplineId)
+  )
     return null
   const expected = essenceSnapshotReference(definition)
   return expected.essenceId === reference.essenceId &&
     expected.contentVersion === reference.contentVersion &&
-    expected.sourceDisciplineId === build.primary.disciplineId &&
+    (expected.sourceDisciplineId === build.primary.disciplineId ||
+      reference.relationshipOverrideDisciplineId === expected.sourceDisciplineId) &&
     expected.sourceDisciplineId === reference.sourceDisciplineId &&
     expected.skillId === reference.skillId &&
     expected.skillContentVersion === reference.skillContentVersion
-    ? structuredClone(definition)
+    ? {
+        ...structuredClone(definition),
+        ...(reference.relationshipOverrideDisciplineId
+          ? { relationshipOverrideDisciplineId: reference.relationshipOverrideDisciplineId }
+          : {}),
+      }
     : null
 }
 
@@ -751,12 +768,13 @@ export async function resolvePinnedBattleResonanceDefinition(
 ): Promise<AnyResonanceDefinition | null> {
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   const reference = build?.extensions.resonance
-  if (!build || !reference || !build.secondary) return null
+  if (!build || !reference || (!build.secondary && !reference.relationshipOverrideDisciplineId))
+    return null
   const definition =
     authority?.catalogVersion === 3 && resolver?.resolvePinnedResonanceDefinition
       ? await resolver.resolvePinnedResonanceDefinition(
-          build.primary.disciplineId,
-          build.secondary.disciplineId,
+          reference.disciplinePair[0],
+          reference.disciplinePair[1],
           reference.resonanceId,
           reference.contentVersion,
         )

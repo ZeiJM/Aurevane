@@ -1,0 +1,35 @@
+{
+  "canonical": [
+    {
+      "version": "20261027123107",
+      "name": "master_page_access_and_moderation",
+      "hash": "bbdca40b621bbd781c5341ebd205b4a1"
+    },
+    {
+      "version": "20261027123133",
+      "name": "discipline_player_grants_relationship_override",
+      "hash": "e1f87535b3e8ad74a5fc34d33f87a674"
+    },
+    {
+      "version": "20261027123206",
+      "name": "master_usage_balance_reporting",
+      "hash": "0fd799d42bf8e13d9108f6d815350d69"
+    },
+    {
+      "version": "20261027123211",
+      "name": "player_correction_allocation_capacity",
+      "hash": "0593305eed978ad0a9554f7b7e621451"
+    }
+  ],
+  "unsafe": [
+    {
+      "n": 0
+    }
+  ],
+  "fixtureCharacters": [
+    {
+      "n": 1
+    }
+  ],
+  "changedFunctionContracts": 53
+}

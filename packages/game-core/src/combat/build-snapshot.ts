@@ -163,10 +163,22 @@ export function validateCombatBuildSnapshot(
     seenSlots.add(skill.slotIndex)
   }
 
-  if (secondaryId === null && snapshot.extensions.resonance !== null) {
+  if (snapshot.extensions.essence && snapshot.extensions.resonance)
+    issues.push({ field: 'extensions', message: 'Choose exactly one relationship power.' })
+  const activeOverride = (id: string | undefined) =>
+    typeof id === 'string' && [snapshot.primary.disciplineId, secondaryId].includes(id)
+  if (
+    secondaryId === null &&
+    snapshot.extensions.resonance !== null &&
+    !activeOverride(snapshot.extensions.resonance.relationshipOverrideDisciplineId)
+  ) {
     issues.push({ field: 'extensions.resonance', message: 'Pure builds cannot carry Resonance.' })
   }
-  if (secondaryId !== null && snapshot.extensions.essence !== null) {
+  if (
+    secondaryId !== null &&
+    snapshot.extensions.essence !== null &&
+    !activeOverride(snapshot.extensions.essence.relationshipOverrideDisciplineId)
+  ) {
     issues.push({ field: 'extensions.essence', message: 'Mixed builds cannot carry Essence.' })
   }
   if (snapshot.extensions.resonance) {
@@ -175,9 +187,13 @@ export function validateCombatBuildSnapshot(
     positiveIntegerIssue(issues, resonance.contentVersion, 'extensions.resonance.contentVersion')
     if (
       resonance.disciplinePair.length !== 2 ||
-      !resonance.disciplinePair.includes(snapshot.primary.disciplineId) ||
-      secondaryId === null ||
-      !resonance.disciplinePair.includes(secondaryId)
+      (resonance.relationshipOverrideDisciplineId !== undefined &&
+        (!activeOverride(resonance.relationshipOverrideDisciplineId) ||
+          !resonance.disciplinePair.includes(resonance.relationshipOverrideDisciplineId))) ||
+      (!activeOverride(resonance.relationshipOverrideDisciplineId) &&
+        (!resonance.disciplinePair.includes(snapshot.primary.disciplineId) ||
+          secondaryId === null ||
+          !resonance.disciplinePair.includes(secondaryId)))
     ) {
       issues.push({
         field: 'extensions.resonance.disciplinePair',
@@ -196,7 +212,12 @@ export function validateCombatBuildSnapshot(
       essence.skillContentVersion,
       'extensions.essence.skillContentVersion',
     )
-    if (essence.sourceDisciplineId !== snapshot.primary.disciplineId) {
+    if (
+      essence.relationshipOverrideDisciplineId !== undefined
+        ? !activeOverride(essence.relationshipOverrideDisciplineId) ||
+          essence.sourceDisciplineId !== essence.relationshipOverrideDisciplineId
+        : essence.sourceDisciplineId !== snapshot.primary.disciplineId
+    ) {
       issues.push({
         field: 'extensions.essence.sourceDisciplineId',
         message: 'Essence source must match the committed Primary Discipline.',

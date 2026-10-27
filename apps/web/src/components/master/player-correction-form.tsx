@@ -9,6 +9,7 @@ import {
   SUPPORT_ACTION_IDS,
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
+import { validateAttributeAllocation } from '@aurevane/game-core/character/attribute-allocation'
 import type { MasterPlayerView, PlayerCorrection } from '@/master/players'
 import { disciplineCorrectionFromForm } from '@/master/player-discipline-correction'
 
@@ -29,6 +30,13 @@ export function PlayerCorrectionForm({
 }) {
   const [kind, setKind] = useState<PlayerCorrection['kind']>('source')
   const [error, setError] = useState<string | null>(null)
+  const [attributes, setAttributes] = useState(player.facts.attributes)
+  const policy = player.attributePolicy
+  const baseTotal = policy
+    ? CHARACTER_ATTRIBUTE_IDS.reduce((total, id) => total + policy.baseAttributes[id], 0)
+    : 31
+  const personalSpent =
+    CHARACTER_ATTRIBUTE_IDS.reduce((total, id) => total + attributes[id], 0) - baseTotal
   const available = player.learnedSkills.filter(
     (skill) =>
       (skill.eligibilityDisciplineId ?? skill.sourceDisciplineId) ===
@@ -41,7 +49,7 @@ export function PlayerCorrectionForm({
     setError(null)
     const data = new FormData(event.currentTarget)
     let command: PlayerCorrection
-    if (kind === 'source')
+    if (kind === 'source') {
       command = {
         kind,
         xp: Number(data.get('xp')),
@@ -49,7 +57,18 @@ export function PlayerCorrectionForm({
           CHARACTER_ATTRIBUTE_IDS.map((id) => [id, Number(data.get(id))]),
         ) as CharacterAttributes,
       }
-    else if (kind === 'disciplines') {
+      if (policy && command.xp === player.facts.xp) {
+        const issue = validateAttributeAllocation({
+          attributes: command.attributes,
+          level: player.facts.level,
+          policy,
+        })[0]
+        if (issue) {
+          setError(issue.message)
+          return
+        }
+      }
+    } else if (kind === 'disciplines') {
       try {
         command = disciplineCorrectionFromForm(player.facts.build, data)
       } catch (error) {
@@ -116,8 +135,9 @@ export function PlayerCorrectionForm({
         {kind === 'source' ? (
           <>
             <p>
-              Level follows XP. Current personal point pool: {player.calculated.personalPointPool}.
-              Primary bases and the 60 focus / 40 nonfocus caps are validated when saved.
+              {personalSpent} / {player.calculated.personalPointPool} personal points assigned at
+              Level {player.facts.level}. Level follows XP; raising a stat requires available points
+              or moving personal points from another stat. Fixed Primary bases stay in place.
             </p>
             <div data-player-fields>
               {CHARACTER_ATTRIBUTE_IDS.map((id) => (
@@ -125,13 +145,23 @@ export function PlayerCorrectionForm({
                   {playerLabel(id)}
                   <input
                     name={id}
+                    aria-label={playerLabel(id)}
+                    aria-describedby={policy ? `player-${id}-limits` : undefined}
                     type="number"
-                    min="1"
-                    max="60"
+                    min={policy?.baseAttributes[id] ?? 1}
+                    max={policy?.attributeCaps[id] ?? 60}
                     step="1"
                     required
-                    defaultValue={player.facts.attributes[id]}
+                    value={attributes[id]}
+                    onChange={(event) =>
+                      setAttributes((current) => ({ ...current, [id]: Number(event.target.value) }))
+                    }
                   />
+                  {policy ? (
+                    <small id={`player-${id}-limits`}>
+                      Base {policy.baseAttributes[id]} · Cap {policy.attributeCaps[id] ?? 'None'}
+                    </small>
+                  ) : null}
                 </label>
               ))}
               <label>

@@ -15,7 +15,7 @@ export type MasterPanelSection =
   | 'players'
   | 'staff'
   | 'events'
-  | 'live-events'
+  | 'moderation'
   | 'music'
   | 'activity'
 
@@ -34,8 +34,7 @@ export const masterNavigation = [
     label: 'Activity Log',
     detail: 'Recent changes',
     icon: '≡',
-    capability: 'staff.manage',
-    ownerOnly: true,
+    capability: 'activity.read',
   },
   {
     id: 'players',
@@ -43,8 +42,7 @@ export const masterNavigation = [
     label: 'Players',
     detail: 'Inspect & recover',
     icon: '♙',
-    capability: 'staff.manage',
-    ownerOnly: true,
+    capability: 'players.manage',
   },
   {
     id: 'combat-timing',
@@ -52,8 +50,7 @@ export const masterNavigation = [
     label: 'Combat Rules',
     detail: 'Timing & elevation',
     icon: '◷',
-    capability: 'staff.manage',
-    ownerOnly: true,
+    capability: 'combat.rules',
   },
   {
     id: 'world-environment',
@@ -61,8 +58,7 @@ export const masterNavigation = [
     label: 'World Environment',
     detail: 'Server time & weather',
     icon: '☼',
-    capability: 'staff.manage',
-    ownerOnly: true,
+    capability: 'world.manage',
   },
   {
     id: 'combat',
@@ -78,31 +74,31 @@ export const masterNavigation = [
     label: 'Site Music',
     detail: 'Global & page tracks',
     icon: '♫',
-    capability: 'staff.manage',
+    capability: 'music.manage',
   },
   {
     id: 'staff',
     href: '/master/staff',
     label: 'Staff & Access',
-    detail: 'Roles & capabilities',
+    detail: 'Roles & page access',
     icon: '♜',
     capability: 'staff.manage',
   },
   {
     id: 'events',
     href: '/master/events',
-    label: 'Events & Live Ops',
+    label: 'Events',
     detail: 'Draft & schedule',
     icon: '✧',
     capability: 'events.author',
   },
   {
-    id: 'live-events',
-    href: '/master/events/live',
-    label: 'Live Event Ops',
-    detail: 'Operate & recover',
-    icon: '✦',
-    capability: 'events.operate',
+    id: 'moderation',
+    href: '/master/moderation',
+    label: 'Moderation',
+    detail: 'Bans & history',
+    icon: '⚑',
+    capability: 'moderation.manage',
   },
 ] as const satisfies readonly {
   id: MasterPanelSection
@@ -114,13 +110,12 @@ export const masterNavigation = [
     | '/master/players'
     | '/master/staff'
     | '/master/events'
-    | '/master/events/live'
+    | '/master/moderation'
     | '/master/activity'
   label: string
   detail: string
   icon: string
   capability: MasterPanelCapability | null
-  ownerOnly?: boolean
 }[]
 
 export function masterNavigationForAccess(access: MasterPanelAccess) {
@@ -128,7 +123,7 @@ export function masterNavigationForAccess(access: MasterPanelAccess) {
     'combat',
     'combat-timing',
     'events',
-    'live-events',
+    'moderation',
     'players',
     'staff',
     'music',
@@ -136,11 +131,7 @@ export function masterNavigationForAccess(access: MasterPanelAccess) {
     'activity',
   ]
   return masterNavigation
-    .filter(
-      (item) =>
-        (!('ownerOnly' in item) || !item.ownerOnly || access.roles.includes('game-owner')) &&
-        (!item.capability || hasMasterPanelCapability(access, item.capability)),
-    )
+    .filter((item) => !item.capability || hasMasterPanelCapability(access, item.capability))
     .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
 }
 

@@ -10,3 +10,13 @@ export function hasMasterPanelCapability(
     (capability !== 'staff.manage' || access.roles.includes('game-owner'))
   )
 }
+
+import { MASTER_PANEL_PAGES, type MasterPanelPage } from './master-panel-pages'
+export { MASTER_PANEL_PAGES, type MasterPanelPage } from './master-panel-pages'
+export function hasMasterPanelPageAccess(
+  access: MasterPanelAccess,
+  page: MasterPanelPage,
+): boolean {
+  const definition = MASTER_PANEL_PAGES.find((item) => item.id === page)
+  return Boolean(definition && hasMasterPanelCapability(access, definition.capabilities[0]))
+}

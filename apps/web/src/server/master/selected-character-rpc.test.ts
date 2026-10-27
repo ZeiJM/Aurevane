@@ -43,6 +43,16 @@ it('ordinary current/pinned gameplay reads retain their service-only path withou
   expect(getActor).not.toHaveBeenCalled()
 })
 it.each([
+  'search_master_moderation_players_v1',
+  'read_master_moderation_v1',
+  'write_master_moderation_v1',
+  'read_master_panel_activity_v1',
+  'save_site_music_configuration_v1',
+  'publish_combat_effect_timing_policy_v2',
+  'publish_battlefield_elevation_policy_v3',
+  'search_discipline_grant_players_v1',
+  'read_discipline_player_grants_v1',
+  'write_discipline_player_grants_v1',
   'search_master_players_v1',
   'read_master_player_v1',
   'edit_master_player_v1',
@@ -77,4 +87,17 @@ it.each([
   expect(
     await rpc(name, { p_actor_user_id: 'owner', p_actor_character_id: 'forged' }),
   ).toMatchObject({ p_actor_character_id: 'selected' })
+})
+
+it('World settings uses the trusted selected identity with its existing p_actor parameter', async () => {
+  const rpc = createSelectedCharacterRpc(async (_name, parameters) => parameters, {
+    getActor: async () => ({ userId: 'staff' }),
+    loadSelection: async () => ({ id: 'selected' }),
+  })
+  expect(
+    await rpc('set_world_environment_v2', { p_actor: 'staff', p_actor_character_id: 'forged' }),
+  ).toMatchObject({ p_actor_character_id: 'selected' })
+  await expect(rpc('set_world_environment_v2', { p_actor: 'forged' })).rejects.toMatchObject({
+    code: 'FORBIDDEN',
+  })
 })

@@ -1,5 +1,12 @@
 import 'server-only'
 
+import {
+  capabilitiesForMasterPanelPages,
+  isMasterPanelPage,
+  type MasterPanelPage,
+} from '@/lib/master-panel-pages'
+export { capabilitiesForMasterPanelPages } from '@/lib/master-panel-pages'
+
 import { hasMasterPanelCapability } from '@/lib/master-panel-access'
 export { hasMasterPanelCapability } from '@/lib/master-panel-access'
 
@@ -35,6 +42,12 @@ export type MasterPanelSpecialCapability = (typeof MASTER_PANEL_SPECIAL_CAPABILI
 export const MASTER_PANEL_CAPABILITIES = [
   'master.access',
   'staff.manage',
+  'players.manage',
+  'moderation.manage',
+  'combat.rules',
+  'music.manage',
+  'world.manage',
+  'activity.read',
   'content.combat.author',
   'events.author',
   'events.operate',
@@ -47,7 +60,7 @@ export const DELEGATED_MASTER_PANEL_ROLE_DETAILS = [
   {
     id: 'moderator',
     label: 'Moderator',
-    description: 'Master access for moderation; no player identity or global settings authority.',
+    description: 'Account moderation and any additional pages assigned by the Game Owner.',
   },
   {
     id: 'content-staff',
@@ -57,8 +70,7 @@ export const DELEGATED_MASTER_PANEL_ROLE_DETAILS = [
   {
     id: 'event-staff',
     label: 'Event Staff',
-    description:
-      'Event authoring and live operations; global scope and production publication require explicit permissions.',
+    description: 'Event definitions, scheduling and live operations with all page tools.',
   },
 ] as const satisfies readonly {
   id: DelegatedMasterPanelRole
@@ -122,9 +134,9 @@ export const DEFAULT_MASTER_PANEL_ROLE_CAPABILITIES: Readonly<
   Record<MasterPanelRole, readonly MasterPanelCapability[]>
 > = {
   'game-owner': MASTER_PANEL_CAPABILITIES,
-  moderator: ['master.access'],
-  'content-staff': ['master.access', 'content.combat.author'],
-  'event-staff': ['master.access', 'events.author', 'events.operate'],
+  moderator: capabilitiesForMasterPanelPages(['moderation']),
+  'content-staff': capabilitiesForMasterPanelPages(['combat']),
+  'event-staff': capabilitiesForMasterPanelPages(['events']),
 }
 
 export interface MasterPanelAccessRecord {
@@ -211,14 +223,12 @@ export function masterPanelAuthorityLabel(roles: readonly MasterPanelRole[]): st
 
 export function effectiveMasterPanelCapabilities(
   roles: readonly MasterPanelRole[],
-  specialCapabilities: readonly MasterPanelSpecialCapability[] = [],
 ): readonly MasterPanelCapability[] {
   const capabilities = new Set<MasterPanelCapability>()
   for (const role of roles) {
     for (const capability of DEFAULT_MASTER_PANEL_ROLE_CAPABILITIES[role])
       capabilities.add(capability)
   }
-  for (const capability of specialCapabilities) capabilities.add(capability)
   return [...capabilities]
 }
 
@@ -226,8 +236,7 @@ function toAccess(record: MasterPanelAccessRecord): MasterPanelAccess {
   return {
     ...record,
     effectiveCapabilities:
-      record.effectiveCapabilities ??
-      effectiveMasterPanelCapabilities(record.roles, record.specialCapabilities),
+      record.effectiveCapabilities ?? effectiveMasterPanelCapabilities(record.roles),
   }
 }
 
@@ -299,13 +308,9 @@ export function createMasterPanelStaffAccessService(
   }
 }
 
-/** Only these capabilities may be delegated through a role default. */
-export const MASTER_PANEL_DELEGABLE_CAPABILITIES = MASTER_PANEL_CAPABILITIES.filter(
-  (capability) => capability !== 'staff.manage',
-)
 export interface MasterPanelRoleDefaults {
   readonly revision: number
-  readonly roles: Readonly<Record<DelegatedMasterPanelRole, readonly MasterPanelCapability[]>>
+  readonly roles: Readonly<Record<DelegatedMasterPanelRole, readonly MasterPanelPage[]>>
 }
 export interface SaveMasterPanelRoleDefaultsInput {
   readonly actorUserId: string
@@ -327,9 +332,7 @@ export function isMasterPanelRoleDefaultsRoles(
       const capabilities = roles[role]
       return (
         Array.isArray(capabilities) &&
-        capabilities.every((capability) =>
-          MASTER_PANEL_DELEGABLE_CAPABILITIES.includes(capability),
-        ) &&
+        capabilities.every(isMasterPanelPage) &&
         new Set(capabilities).size === capabilities.length
       )
     })
@@ -356,10 +359,7 @@ export function createMasterPanelRoleDefaultsService(
         input.expectedRevision < 1 ||
         !isMasterPanelRoleDefaultsRoles(input.roles)
       ) {
-        throw new AurevaneError(
-          'INVALID_REQUEST',
-          'Choose permitted capabilities for each staff role.',
-        )
+        throw new AurevaneError('INVALID_REQUEST', 'Choose permitted pages for each staff role.')
       }
       return store.saveRoleDefaults(input)
     },

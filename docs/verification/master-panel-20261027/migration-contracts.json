@@ -1,0 +1,391 @@
+{
+  "predecessors": [
+    {
+      "signature": "app_private.current_essence_selection_key_v1(text,text)",
+      "hash": "b8cb3ca46a6bd090cb8b9aefa0e637e9"
+    },
+    {
+      "signature": "app_private.current_resonance_selection_key_v1(text,text)",
+      "hash": "36f2236b8cdb6f2fe2eaef054b4c526f"
+    },
+    {
+      "signature": "app_private.discipline_unlocked_v1(uuid,text)",
+      "hash": "84313e80c66a5a440aaa2607eb60fefc"
+    },
+    {
+      "signature": "app_private.guard_player_battle_admission_v1()",
+      "hash": "ceb17250ad99711ee2c25070ad056038"
+    },
+    {
+      "signature": "app_private.project_published_discipline_v1(uuid)",
+      "hash": "c2cc1dc5823ab11c600f4b308cedb0e4"
+    },
+    {
+      "signature": "app_private.provision_character_active_build_v1()",
+      "hash": "c867dcdfad263a25605a5fc3fffe862b"
+    },
+    {
+      "signature": "app_private.resolve_essence_reference_v1(text,text)",
+      "hash": "1673b9765bfcc2905c421cd86414aaae"
+    },
+    {
+      "signature": "app_private.resolve_resonance_reference_v1(text,text)",
+      "hash": "0e62ecb9707ef535e104eb54a4e6254d"
+    },
+    {
+      "signature": "app_private.validate_authored_discipline_envelope_v1(jsonb)",
+      "hash": "7a5125b33325e563559cea5ffcd4f419"
+    },
+    {
+      "signature": "app_private.validate_character_core_allocation_v1(integer,integer,integer,integer,integer,integer,integer,jsonb,text[],integer,boolean)",
+      "hash": "cd11408ea83899f6f08d027e2f666b63"
+    },
+    {
+      "signature": "app_private.validate_noncombat_content_v1(text,jsonb)",
+      "hash": "de2190cf4bc671bd227672a600a4dde3"
+    },
+    {
+      "signature": "change_character_disciplines_v2(uuid,uuid,bigint,boolean,text,boolean,text,uuid,text)",
+      "hash": "54e7217466bcc1258c09262a5adc2f29"
+    },
+    {
+      "signature": "claim_active_game_session_v1(uuid,text)",
+      "hash": "6c317ef521e41652e056150a0d9ddc6a"
+    },
+    {
+      "signature": "commit_character_attribute_allocation_v1(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text)",
+      "hash": "ef66a4390c386f09af9832e30e5f846f"
+    },
+    {
+      "signature": "commit_character_attribute_allocation_v2(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text)",
+      "hash": "d188f988479f63bdbe7e933aa5653134"
+    },
+    {
+      "signature": "edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid)",
+      "hash": "481e9124a863f15a7da2e1b7cb19e7a7"
+    },
+    {
+      "signature": "ensure_active_game_session_v1(uuid,text)",
+      "hash": "32986ced895a5536ae067abd6fdb6b6e"
+    },
+    {
+      "signature": "get_character_discipline_catalog_v3(uuid,uuid)",
+      "hash": "9c0f1e807695352f4d2e4e6740ba06a0"
+    },
+    {
+      "signature": "publish_battlefield_elevation_policy_v2(uuid,integer,jsonb)",
+      "hash": "42c366f8e957af49da714842aec36f9f"
+    },
+    {
+      "signature": "publish_battlefield_elevation_policy_v3(uuid,integer,jsonb)",
+      "hash": "e671087a7b22dbe861397262c97bb7ce"
+    },
+    {
+      "signature": "publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text)",
+      "hash": "67c0dc1529bf16862fe7ceea0d193d72"
+    },
+    {
+      "signature": "publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text)",
+      "hash": "604aa916e94933899b71559a45ed89c1"
+    },
+    {
+      "signature": "read_master_panel_access_v2(uuid)",
+      "hash": "40e7b8274bf3159b4636fe78d7629a20"
+    },
+    {
+      "signature": "read_master_panel_access_v2(uuid,uuid)",
+      "hash": "acb05a130098c4404f0b14a1d960be71"
+    },
+    {
+      "signature": "read_master_panel_activity_v1(uuid,integer,bigint)",
+      "hash": "e6c6234d4b46f6b3e831f1ef9eec94c3"
+    },
+    {
+      "signature": "read_master_player_v1(uuid,uuid,uuid)",
+      "hash": "9347406c9d25b07a181fc2de0a64e127"
+    },
+    {
+      "signature": "recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid)",
+      "hash": "dbc23c27c654c9764772f14d17ef6de6"
+    },
+    {
+      "signature": "save_master_panel_role_defaults_v1(uuid,bigint,jsonb)",
+      "hash": "9a7756f60bd841f4f432613049b57b6d"
+    },
+    {
+      "signature": "search_master_players_v1(uuid,text,uuid)",
+      "hash": "c3bd24eb5657f4355af1393a06433d3a"
+    },
+    {
+      "signature": "set_world_environment_v2(uuid,integer,jsonb)",
+      "hash": "f65f213824b4e28cbc7d3cbe6706d319"
+    }
+  ],
+  "after": [
+    {
+      "signature": "app_private.assert_master_page_v1(uuid,uuid,text)",
+      "hash": "27e74a51ac4b14c57c8d93e6d2d7c324",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.capture_usage_balance_event_v1()",
+      "hash": "98c7bdf10e86d4f9fcfa3e277c7626d0",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.capture_usage_balance_start_v1()",
+      "hash": "f9db9563e1f59a17ad74ced4c68a272d",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.current_discipline_relationship_override_v1(text,text)",
+      "hash": "58fcc006c55f48d9f7641538d9788141",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.current_essence_selection_key_v1(text,text)",
+      "hash": "8f9e40a0b21514f1acbb476a90236b2c",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.current_resonance_selection_key_v1(text,text)",
+      "hash": "774fea6067ccf3b899b5e17ce0b24e99",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.discipline_account_granted_v1(uuid,text)",
+      "hash": "ffc2f093195f69a5123e09336f321208",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.discipline_grant_only_v1(text)",
+      "hash": "611c7311e58879d2a4a8d10d650a82ee",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.discipline_unlocked_before_player_grants_v1(uuid,text)",
+      "hash": "6923667b9baf700791fee4cf4bf85d09",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.discipline_unlocked_v1(uuid,text)",
+      "hash": "12518354fddf67f1bd957314751f0f4f",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.essence_reference_before_override_v1(text,text)",
+      "hash": "450e457597f712f2e08abbda877eaefa",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "app_private.essence_selection_key_before_override_v1(text,text)",
+      "hash": "e0bca80849493ffbdd08ee26b83c351c",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.guard_player_battle_admission_v1()",
+      "hash": "ee097127382367454981f13d6c688b64",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.master_page_capabilities_v1(text[])",
+      "hash": "efd0c97de78efbe615b20fde5c29041f",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.prevent_moderation_history_change_v1()",
+      "hash": "5185ebb4e02afdaae6fa261a08281efb",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.project_published_discipline_v1(uuid)",
+      "hash": "67d71dc867cfc4cfa9e6543080eb52fd",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.provision_character_active_build_v1()",
+      "hash": "c4ceaea8c52a5a46c95e4af5bb8b4503",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.resolve_essence_reference_v1(text,text)",
+      "hash": "c27a062d873ae10c1fcdf1e19e021a14",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.resolve_resonance_reference_v1(text,text)",
+      "hash": "66e5c2db8e250d70a192e99fabb937cd",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.resonance_reference_before_override_v1(text,text)",
+      "hash": "55a3b2aea1d0d4f06174a2fcc0766afe",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "app_private.resonance_selection_key_before_override_v1(text,text)",
+      "hash": "d1db1b097c7925b1e80e0d61e56c29a3",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.validate_authored_discipline_envelope_v1(jsonb)",
+      "hash": "19c564291b665ec5304ce078f274ea3f",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.validate_character_core_allocation_v1(integer,integer,integer,integer,integer,integer,integer,jsonb,text[],integer,boolean)",
+      "hash": "0cfb5368fc20c42d9502d403647e5afe",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.validate_discipline_envelope_before_override_v1(jsonb)",
+      "hash": "e1f50294877248096d691ffc23f14c00",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "app_private.validate_noncombat_content_v1(text,jsonb)",
+      "hash": "209bd9e6005f4d27684bc8c402c524a0",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "change_character_disciplines_v2(uuid,uuid,bigint,boolean,text,boolean,text,uuid,text)",
+      "hash": "256a80bf6a1a1cfa415eebffd805cdc9",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "claim_active_game_session_v1(uuid,text)",
+      "hash": "cc693f9e8df978dff7d926df9eeafdde",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "commit_character_attribute_allocation_v1(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text)",
+      "hash": "7ad64602cb373b625a18183b8a805f56",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "commit_character_attribute_allocation_v2(uuid,uuid,text,integer,integer,integer,integer,integer,integer,uuid,text)",
+      "hash": "b1fcb22ee7f65265fdfe7c71ecd646a1",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "discipline_catalog_before_player_grants_v3(uuid,uuid)",
+      "hash": "88d678b0bb2841b182673f7fce07fc53",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid)",
+      "hash": "5b856301217cd34732a0158d4568cd34",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "ensure_active_game_session_v1(uuid,text)",
+      "hash": "5ee74a015bbd4734a55c7a1c9924822e",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "get_account_discipline_grants_v1(uuid)",
+      "hash": "25ccc8d6e264efba2c227ea46943e3c3",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "get_character_discipline_catalog_v3(uuid,uuid)",
+      "hash": "19c04e7700c2f27aeef72e4479fd9b5d",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)",
+      "hash": "3f71048a280b207078c1687d2bda94aa",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "publish_battlefield_elevation_policy_v3(uuid,integer,jsonb,uuid)",
+      "hash": "813ba5d4acba3a511354233c81e4e44f",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)",
+      "hash": "c37185ad29213e4a6c2dc4f9dcd49ccf",
+      "acl": "{postgres=X/postgres}"
+    },
+    {
+      "signature": "publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)",
+      "hash": "539762a768aef8db03e178ff6dd31efe",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "read_discipline_player_grants_v1(uuid,uuid,text,uuid)",
+      "hash": "dacb7bf73adf17810e45d48cad1d274b",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "read_master_moderation_v1(uuid,uuid,uuid,bigint)",
+      "hash": "f4845a62e370a18446e29dfa7ae41818",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "read_master_panel_access_v2(uuid,uuid)",
+      "hash": "2680ad6b486f7c5a380347d5328c9682",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "read_master_panel_activity_v1(uuid,integer,bigint,uuid)",
+      "hash": "cf6385a44fc22e040bae9656188b621e",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "read_master_player_v1(uuid,uuid,uuid)",
+      "hash": "528936ff6a72f5836591174f260ef3a9",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "read_master_usage_balance_v1(uuid,uuid,text)",
+      "hash": "feb0b45f48b687540474b96b8904bab1",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid)",
+      "hash": "39498e51f54b80fb055aa901002e207a",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "save_master_panel_role_defaults_v1(uuid,bigint,jsonb)",
+      "hash": "38737f0c9c02462ba56e33d7aada7182",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)",
+      "hash": "13b259d44dae6dfff7e791f5d6d400e4",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "search_discipline_grant_players_v1(uuid,uuid,text)",
+      "hash": "8ed95db920d663f126b434b27574a373",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "search_master_moderation_players_v1(uuid,text,uuid)",
+      "hash": "e99fcb4ec59ab28283c81a5bde04cd4d",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "search_master_players_v1(uuid,text,uuid)",
+      "hash": "a1a30192890ea332204caaba238f9859",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "set_world_environment_v2(uuid,integer,jsonb,uuid)",
+      "hash": "569a322aed173743815e574780f8e137",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)",
+      "hash": "98871947edebc3dc5811b626255c897a",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)",
+      "hash": "9a86b3e9dec0e3924e0776e74cc76ce1",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    }
+  ]
+}

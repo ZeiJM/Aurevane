@@ -73,8 +73,7 @@ export async function loadPublishedPrimaryDisciplines(): Promise<PublishedPrimar
       authoredDefinition &&
       (authoredDefinition.id !== row.discipline_id ||
         authoredDefinition.contentVersion !== row.definition_version ||
-        !authoredDefinition.atlas ||
-        authoredDefinition.unlock.kind === 'unavailable')
+        !authoredDefinition.atlas)
     )
       throw unavailable()
     return {
@@ -93,11 +92,29 @@ export async function loadPublishedPrimaryDisciplines(): Promise<PublishedPrimar
     }
   })
 }
-export async function loadPublishedFoundations(): Promise<PublishedFoundationDiscipline[]> {
+export async function loadPublishedFoundations(
+  userId?: string,
+): Promise<PublishedFoundationDiscipline[]> {
   const current = await loadPublishedPrimaryDisciplines()
+  const grants = new Set<string>()
+  if (userId && current.some((row) => row.authoredDefinition?.unlock.kind === 'unavailable')) {
+    const { data, error } = await createSupabaseAdminClient().rpc(
+      'get_account_discipline_grants_v1',
+      { p_user_id: userId },
+    )
+    if (error || !Array.isArray(data) || data.some((id) => typeof id !== 'string'))
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'Foundation access is temporarily unavailable.',
+      )
+    for (const id of data) grants.add(id)
+  }
   return FOUNDATION_DISCIPLINES.flatMap((legacy) => {
     const row = current.find(
-      (candidate) => candidate.id === legacy.id && candidate.enabledForPrimary,
+      (candidate) =>
+        candidate.id === legacy.id &&
+        candidate.enabledForPrimary &&
+        (candidate.authoredDefinition?.unlock.kind !== 'unavailable' || grants.has(candidate.id)),
     )
     return row
       ? [
@@ -124,7 +141,7 @@ export async function loadPublishedDisciplineAtlas(): Promise<DisciplineAtlasEnt
   return [
     ...current.map((row) => {
       const authored = row.authoredDefinition
-      if (authored?.atlas && authored.unlock.kind !== 'unavailable')
+      if (authored?.atlas)
         return {
           ...(row.media ? { media: row.media } : {}),
           id: row.id,

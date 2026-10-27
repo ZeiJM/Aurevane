@@ -86,6 +86,25 @@ const pageButton = (tree: ReactNode, name: string) =>
 const editor = (tree: ReactNode) =>
   find(tree, (node) => typeof node.type === 'function' && 'onUpload' in node.props)
 
+it('blocks a YouTube URL before any save request and retains the draft for correction', async () => {
+  const config = createDefaultSiteMusicConfig()
+  const request = vi.fn()
+  vi.stubGlobal('fetch', request)
+  const render = renderWith(() => SiteMusicManagement({ initialConfig: config }))
+  const track = {
+    ...config.defaultTrack,
+    url: 'https://www.youtube.com/watch?v=x06zFQ85gT0',
+    source: 'url',
+  }
+  ;(editor(render()).props.onChange as (track: unknown) => void)(track)
+  await click(button(render(), 'Save Changes'))
+  expect(request).not.toHaveBeenCalled()
+  expect(all(render(), (node) => node.props.role === 'status')[0]?.props.children).toMatch(
+    /YouTube.*background music/,
+  )
+  expect(editor(render()).props.track).toEqual(track)
+})
+
 it('persists all page choices, resets explicitly over broad legacy silence, searches and restores inheritance only on remove', async () => {
   const config = createDefaultSiteMusicConfig()
   config.enabled = false

@@ -90,7 +90,7 @@ async function exercise(page, label, desktop) {
   })
   await page.goto(server.resolvedUrls.local[0] + 'master/staff')
   const directory = page.locator('section[aria-labelledby="staff-directory-title"]')
-  await page.getByRole('heading', { name: 'Role defaults', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Role page access', exact: true }).waitFor()
   assert.ok(
     await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
     label + ' horizontal overflow',
@@ -123,7 +123,7 @@ async function exercise(page, label, desktop) {
     window.__staffRequests.findLast((value) => value.operation === 'save-role-defaults'),
   )
   assert.equal(saved.expectedRevision, baseline ? 2 : 1)
-  assert.equal(saved.roles.moderator.includes('content.combat.author'), !baseline)
+  assert.equal(saved.roles.moderator.includes('combat'), !baseline)
   await page.evaluate(() => {
     window.__staffRejectNextSave = true
   })
@@ -137,12 +137,12 @@ async function exercise(page, label, desktop) {
     (expected) => document.querySelector('input[aria-label="Game Content"]').checked === expected,
     !baseline,
   )
-  const help = page.getByRole('button', { name: 'About Role defaults', exact: true })
+  const help = page.getByRole('button', { name: 'About Role page access', exact: true })
   await help.click()
-  await page.getByRole('dialog', { name: 'Role defaults', exact: true }).waitFor()
+  await page.getByRole('dialog', { name: 'Role page access', exact: true }).waitFor()
   await page.keyboard.press('Escape')
   await page
-    .getByRole('dialog', { name: 'Role defaults', exact: true })
+    .getByRole('dialog', { name: 'Role page access', exact: true })
     .waitFor({ state: 'hidden' })
   assert.equal(
     await help.evaluate((element) => document.activeElement === element),
@@ -184,7 +184,7 @@ async function exercise(page, label, desktop) {
   assert.equal(metrics.focus, true, label + ' keyboard focus visible')
   await page.screenshot({ path: resolve(output, label + '-editor.png'), fullPage: true })
   await save.click()
-  await page.getByRole('heading', { name: 'Role defaults', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Role page access', exact: true }).waitFor()
   const assigned = await page.evaluate(() =>
     window.__staffRequests.findLast((value) => value.operation === 'set-character-access'),
   )

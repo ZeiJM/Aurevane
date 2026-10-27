@@ -369,3 +369,82 @@ describe('exact proposed roster through legal earned-loadout save and battle adm
     },
   )
 })
+
+it.each(['pve', 'pvp'] as const)(
+  'new %s authority pins overridden pure Resonance and mixed Essence through reload and native capture',
+  async (context) => {
+    for (const kind of ['resonance', 'essence'] as const) {
+      const kit = {
+        name: 'override',
+        primary: 'vanguard',
+        secondary: kind === 'essence' ? 'lifebinder' : null,
+        ids: [
+          ...skillRows
+            .filter((row) => row.after.sourceDisciplineId === 'vanguard')
+            .slice(0, kind === 'essence' ? 3 : 4),
+          ...(kind === 'essence'
+            ? skillRows.filter((row) => row.after.sourceDisciplineId === 'lifebinder').slice(0, 1)
+            : []),
+        ].map((row) => row.id),
+      }
+      const { character, repository } = fixture(kit, 100)
+      await saveCharacterDisciplineSkills(
+        owner,
+        character,
+        {
+          expectedBuildVersion: 1,
+          skillIds: kit.ids,
+          idempotencyKey: '33333333-3333-4333-8333-333333333333',
+        },
+        repository,
+      )
+      const committed = await loadCharacterCommittedBuildSnapshot(owner, characterId, repository)
+      const power = rows.find((row) =>
+        kind === 'essence'
+          ? row.kind === 'essence' && row.after.sourceDisciplineId === 'vanguard'
+          : row.kind === 'resonance' &&
+            row.after.disciplinePair.includes('vanguard') &&
+            row.after.disciplinePair.includes('lifebinder'),
+      )!
+      const selectedResolver = {
+        ...resolver,
+        resolveCurrentEssenceDefinition: async () =>
+          kind === 'essence'
+            ? {
+                ...(power.after as import('@aurevane/game-core/combat/essence').EssenceDefinition),
+                relationshipOverrideDisciplineId: 'vanguard',
+              }
+            : null,
+        resolveCurrentResonanceDefinition: async () =>
+          kind === 'resonance'
+            ? {
+                ...(power.after as import('@aurevane/game-core/combat/resonance').AnyResonanceDefinition),
+                relationshipOverrideDisciplineId: 'vanguard',
+              }
+            : null,
+      }
+      const authority = await createResolvedBattleBuildAuthoritySnapshot(
+        context,
+        [{ combatantId: actorId, characterId, snapshot: committed }],
+        selectedResolver,
+      )
+      expect(authority.combatants[0]!.extensions[kind]).toMatchObject({
+        relationshipOverrideDisciplineId: 'vanguard',
+      })
+      const restored = parseBattleBuildAuthoritySnapshot(JSON.parse(JSON.stringify(authority)))
+      expect(restored).toEqual(authority)
+      const sources = await captureBattleBuildAbilitySources(
+        encounter(character),
+        restored!,
+        selectedResolver,
+      )
+      expect(sources).toContainEqual(
+        expect.objectContaining({
+          abilityId: power.id,
+          contentVersion: power.after.contentVersion,
+          ownerCombatantId: actorId,
+        }),
+      )
+    }
+  },
+)

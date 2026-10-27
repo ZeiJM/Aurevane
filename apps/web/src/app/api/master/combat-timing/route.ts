@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     const actor = await getAuthenticatedActor()
     await createServerMasterPanelStaffAccessService().requireCapability(
       actor.userId,
-      'staff.manage',
+      'combat.rules',
     )
     let body: unknown
     try {

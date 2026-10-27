@@ -6,7 +6,7 @@ import { readSiteMusicConfig } from '@/server/music/site-music-store'
 export const dynamic = 'force-dynamic'
 
 export default async function MasterMusicPage() {
-  const { access } = await requireMasterPanelPageAccess('staff.manage')
+  const { access } = await requireMasterPanelPageAccess('music.manage')
   const config = await readSiteMusicConfig({ strict: true })
 
   return (

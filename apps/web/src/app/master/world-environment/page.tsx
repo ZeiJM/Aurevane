@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { WorldEnvironmentEditor } from '@/components/master/world-environment/world-environment-editor'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
@@ -7,8 +6,7 @@ import { readWorldEnvironmentAdminSettings } from '@/server/master/world-environ
 export const dynamic = 'force-dynamic'
 
 export default async function MasterWorldEnvironmentPage() {
-  const { access } = await requireMasterPanelPageAccess('staff.manage')
-  if (!access.roles.includes('game-owner')) redirect('/master')
+  const { access } = await requireMasterPanelPageAccess('world.manage')
   const settings = await readWorldEnvironmentAdminSettings()
   return (
     <MasterPanelShell

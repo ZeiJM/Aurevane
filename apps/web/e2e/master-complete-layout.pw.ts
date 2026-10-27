@@ -190,8 +190,8 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
       ['/master/music', 'Site Music'],
       ['/master/staff', 'Staff & Access'],
       ['/master/players', 'Players'],
-      ['/master/events', 'Events & Live Ops'],
-      ['/master/events/live', 'Events & Live Ops'],
+      ['/master/events', 'Events'],
+      ['/master/events/live', 'Events'],
     ] as const
     for (const [name, width, height, factor] of [
       ['real200', 1366, 768, 2],

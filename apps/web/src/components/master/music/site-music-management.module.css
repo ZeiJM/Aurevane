@@ -34,7 +34,7 @@
 }
 .musicWorkspace {
   display: grid;
-  grid-template-columns: minmax(10rem, 0.8fr) minmax(10rem, 0.8fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(10rem, 0.8fr) minmax(10rem, 0.8fr) minmax(20rem, 1.6fr);
   gap: 0.75rem;
   min-height: 0;
   min-width: 0;
@@ -49,6 +49,11 @@
   background: #d6c9af;
   border: 1px solid #9d8865;
   border-radius: 4px;
+}
+.card {
+  align-content: start;
+  gap: 0.55rem;
+  padding: 0.75rem;
 }
 .trackLibrary,
 .songLibrary {
@@ -113,8 +118,12 @@
 .trackDetail {
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  scrollbar-gutter: stable;
+}
+.selectionFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  min-width: 0;
 }
 .actions {
   display: flex;
@@ -137,9 +146,15 @@
   width: 100%;
   box-sizing: border-box;
 }
-.uploadButton {
+.root .uploadButton {
   position: relative;
-  padding: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: end;
+  min-height: 2.35rem;
+  box-sizing: border-box;
+  padding: 0.4rem;
   color: #f8f1df;
   background: #345b52;
   border: 1px solid #345b52;
@@ -171,7 +186,8 @@
     grid-template-rows: auto;
   }
   .musicWorkspace,
-  .trackEditor {
+  .trackEditor,
+  .selectionFields {
     grid-template-columns: minmax(0, 1fr);
   }
   .pageList {

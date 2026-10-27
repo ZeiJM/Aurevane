@@ -3,7 +3,7 @@ import { PlayersWorkspace } from '@/components/master/players-workspace'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 export const dynamic = 'force-dynamic'
 export default async function MasterPlayersPage() {
-  const { access } = await requireMasterPanelPageAccess('staff.manage')
+  const { access } = await requireMasterPanelPageAccess('players.manage')
   return (
     <MasterPanelShell
       access={access}

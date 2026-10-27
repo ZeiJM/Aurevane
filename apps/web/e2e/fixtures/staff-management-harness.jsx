@@ -9,9 +9,9 @@ const defaultsKey = 'staff-fixture-defaults'
 let defaults = JSON.parse(sessionStorage.getItem(defaultsKey) || 'null') || {
   revision: 1,
   roles: {
-    moderator: ['master.access'],
-    'content-staff': ['master.access', 'content.combat.author'],
-    'event-staff': ['master.access', 'events.author', 'events.operate'],
+    moderator: ['moderation'],
+    'content-staff': ['combat'],
+    'event-staff': ['events'],
   },
 }
 const roleOptions = [
@@ -101,6 +101,12 @@ const access = {
   effectiveCapabilities: [
     'master.access',
     'staff.manage',
+    'players.manage',
+    'moderation.manage',
+    'combat.rules',
+    'music.manage',
+    'world.manage',
+    'activity.read',
     'content.combat.author',
     'events.author',
     'events.operate',

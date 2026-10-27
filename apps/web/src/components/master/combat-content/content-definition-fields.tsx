@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import type {
   AuthoredDiscipline,
@@ -31,16 +31,37 @@ import { ResonanceMechanicsFields } from './resonance-mechanics-fields'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import styles from './game-content-workspace.module.css'
-import { phase4DisciplineSigil } from '@/components/battle/phase4-combat-art'
+import { disciplineSigilArtwork } from '@/media/discipline-sigil-art'
 import { MasterHelp } from '../master-help'
-import { contentRecordName, contentRecordCommand } from './content-record-workflow'
+import { contentRecordName } from './content-record-workflow'
 
 export type ContentEditorTab =
-  'Parameters' | 'Skills' | 'Resonances' | 'Text' | 'Media' | 'History' | 'Identity & Relations'
+  | 'Parameters'
+  | 'Skills'
+  | 'Resonances'
+  | 'Text'
+  | 'Media'
+  | 'History'
+  | 'Identity & Relations'
+  | 'Usage & Balance'
 export interface ContentReference {
   contentKey: string
   name: string
   contentKind: CombatContentKind
+  sourceDisciplineId?: string
+  disciplinePair?: readonly string[]
+}
+export function withContentIdentityText(
+  kind: CombatContentKind,
+  value: CombatContentDefinition,
+  field: 'name' | 'description',
+  text: string,
+): CombatContentDefinition {
+  return {
+    ...value,
+    [field]: text,
+    ...(kind === 'essence' ? { skill: { ...objectValue(value.skill), [field]: text } } : {}),
+  }
 }
 export const asDefinition = (value: object) => value as CombatContentDefinition
 export const objectValue = (value: unknown): Record<string, unknown> =>
@@ -83,92 +104,26 @@ export function ContentReferenceSelect({
   onChange(value: string): void
   optional?: boolean
 }) {
-  const [query, setQuery] = useState(''),
-    [results, setResults] = useState<ContentReference[]>([]),
-    [cursor, setCursor] = useState<string | null>(null),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState('')
-  const [appliedQuery, setAppliedQuery] = useState('')
-  const entries = useMemo(
-    () => [
-      ...new Map(
-        [...choices.filter((row) => row.contentKind === kind), ...results].map((row) => [
-          row.contentKey,
-          row,
-        ]),
-      ).values(),
-    ],
-    [choices, kind, results],
-  )
-  async function search(after?: string) {
-    setBusy(true)
-    setError('')
-    try {
-      const page = await contentRecordCommand<
-        import('@aurevane/db/combat-content').CombatContentListPage
-      >({
-        action: 'list',
-        kind,
-        search: query,
-        sort: 'name-asc',
-        limit: 20,
-        ...(after ? { after } : {}),
-      })
-      setResults((old) => [
-        ...(after ? old : []),
-        ...page.records.map((row) => ({ ...row, name: row.name ?? row.contentKey })),
-      ])
-      setCursor(page.nextCursor)
-      setAppliedQuery(query)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Unable to search references.')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const entries = choices.filter((row) => row.contentKind === kind)
   return (
-    <div>
-      <label>
-        {label}
-        <select
-          aria-label={label}
-          value={value}
-          onChange={(event) => onChange(event.currentTarget.value)}
-        >
-          <option value="">{optional ? 'None' : 'Choose content'}</option>
-          {value && !entries.some((row) => row.contentKey === value) ? (
-            <option value={value}>{value} (linked)</option>
-          ) : null}
-          {entries.map((row) => (
-            <option key={row.contentKey} value={row.contentKey}>
-              {row.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      <details>
-        <summary>Find {label}</summary>
-        <label>
-          Search {label}
-          <input
-            value={query}
-            maxLength={160}
-            onChange={(event) => setQuery(event.currentTarget.value)}
-          />
-        </label>
-        <button type="button" disabled={busy} onClick={() => void search()}>
-          Search references
-        </button>
-        <button
-          type="button"
-          disabled={busy || !cursor || query !== appliedQuery}
-          onClick={() => void search(cursor!)}
-        >
-          More references
-        </button>
-        {error ? <p role="alert">{error}</p> : null}
-      </details>
-    </div>
+    <label>
+      {label}
+      <select
+        aria-label={label}
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+      >
+        <option value="">{optional ? 'None' : 'Choose content'}</option>
+        {value && !entries.some((row) => row.contentKey === value) ? (
+          <option value={value}>{value}</option>
+        ) : null}
+        {entries.map((row) => (
+          <option key={row.contentKey} value={row.contentKey}>
+            {row.name}
+          </option>
+        ))}
+      </select>
+    </label>
   )
 }
 /** Lossless retained settings stay editable with explicit parse errors; validation remains server-owned. */
@@ -211,6 +166,11 @@ function JsonSettings({
     </details>
   )
 }
+export function flattenUnlockRules(
+  rules: readonly AuthoredDisciplineUnlock[],
+): AuthoredDisciplineUnlock[] {
+  return rules.flatMap((rule) => (rule.kind === 'all' ? flattenUnlockRules(rule.rules) : [rule]))
+}
 function UnlockFields({
   value,
   onChange,
@@ -222,19 +182,24 @@ function UnlockFields({
   choices: readonly ContentReference[]
   depth?: number
 }) {
+  const rules = value.kind === 'all' ? flattenUnlockRules(value.rules) : []
   return (
     <fieldset>
       <legend>Unlock conditions</legend>
       <AbilitySelect
         label={`Unlock rule${depth ? ` ${depth}` : ''}`}
         value={value.kind}
-        options={['always', 'mastery', 'rekindling', 'all', 'unavailable'] as const}
+        options={
+          depth === 0
+            ? (['always', 'mastery', 'rekindling', 'all', 'unavailable'] as const)
+            : (['always', 'mastery', 'rekindling'] as const)
+        }
         optionLabels={{
           always: 'No requirements',
           mastery: 'Discipline mastery',
           rekindling: 'Rekindling count',
           all: 'Meet all requirements',
-          unavailable: 'Unavailable',
+          unavailable: 'Grant to player',
         }}
         onChange={(kind) =>
           onChange(
@@ -285,12 +250,10 @@ function UnlockFields({
           }
         />
       ) : null}
-      {value.kind === 'unavailable' ? (
-        <p>Complete a supported prerequisite before publishing.</p>
-      ) : null}
+      {value.kind === 'unavailable' ? <p>Available through explicit player grants.</p> : null}
       {value.kind === 'all' ? (
         <>
-          {value.rules.map((rule, index) => (
+          {rules.map((rule, index) => (
             <div key={index}>
               <UnlockFields
                 value={rule}
@@ -299,7 +262,7 @@ function UnlockFields({
                 onChange={(next) =>
                   onChange({
                     ...value,
-                    rules: value.rules.map((old, i) =>
+                    rules: rules.map((old, i) =>
                       i === index ? (next as AuthoredDisciplineUnlock) : old,
                     ),
                   })
@@ -307,9 +270,7 @@ function UnlockFields({
               />
               <button
                 type="button"
-                onClick={() =>
-                  onChange({ ...value, rules: value.rules.filter((_, i) => i !== index) })
-                }
+                onClick={() => onChange({ ...value, rules: rules.filter((_, i) => i !== index) })}
               >
                 Remove condition {index + 1}
               </button>
@@ -317,8 +278,8 @@ function UnlockFields({
           ))}
           <button
             type="button"
-            disabled={depth >= 7 || value.rules.length >= 32}
-            onClick={() => onChange({ ...value, rules: [...value.rules, { kind: 'always' }] })}
+            disabled={depth >= 7 || rules.length >= 32}
+            onClick={() => onChange({ ...value, rules: [...rules, { kind: 'always' }] })}
           >
             Add condition
           </button>
@@ -353,7 +314,7 @@ function DisciplineFields({
             <MasterHelp label="Core attributes">
               Core bases total 31. Choose 2–3 focus attributes.
             </MasterHelp>
-            <div className={styles.fields}>
+            <div className={styles.coreAttributes}>
               {Object.entries(value.core).map(([key, amount]) => (
                 <div key={key}>
                   <AbilityNumber
@@ -397,45 +358,13 @@ function DisciplineFields({
             onChange={(unlock) => onChange({ ...value, unlock })}
           />
           <fieldset>
-            <legend>Progression and public presentation</legend>
+            <legend>Classification</legend>
             <AbilitySelect
               label="Discipline family"
               value={atlas.family}
               options={['foundation', 'martial', 'hybrid', 'mage', 'support'] as const}
               onChange={(family) => onChange({ ...value, atlas: { ...atlas, family } })}
             />
-            <AbilitySelect
-              label="Progression band"
-              value={atlas.band}
-              options={
-                [
-                  'foundation',
-                  'first-journey',
-                  'rekindling-1',
-                  'rekindling-2',
-                  'rekindling-3',
-                ] as const
-              }
-              onChange={(band) => onChange({ ...value, atlas: { ...atlas, band } })}
-            />
-            <p>Public disclosure: Open. Secret discovery is unavailable.</p>
-            <div className={styles.fields}>
-              {Object.entries(atlas.power).map(([key, amount]) => (
-                <AbilityNumber
-                  key={key}
-                  label={`${key} presentation`}
-                  min={1}
-                  max={5}
-                  value={amount}
-                  onChange={(next) =>
-                    onChange({
-                      ...value,
-                      atlas: { ...atlas, power: { ...atlas.power, [key]: next } },
-                    })
-                  }
-                />
-              ))}
-            </div>
           </fieldset>
         </>
       ) : null}
@@ -650,78 +579,7 @@ export function ContentDefinitionFields({
   }
   if (tab === 'Text')
     return (
-      <>
-        <AbilityText
-          label="Name"
-          value={name}
-          maxLength={kind === 'discipline' ? 80 : 120}
-          onChange={(name) => set({ name })}
-        />
-        <label>
-          Description
-          <textarea
-            aria-label="Description"
-            value={text(value.description)}
-            onChange={(event) => set({ description: event.currentTarget.value })}
-          />
-        </label>
-        {kind === 'tag' ? (
-          <>
-            <label>
-              Full Tag explanation
-              <textarea
-                aria-label="Full Tag explanation"
-                value={text(value.explanation)}
-                onChange={(event) => set({ explanation: event.currentTarget.value })}
-              />
-            </label>
-            <p>
-              Compact wording: description (240 characters for publication). Full explanation: 2000
-              characters. Existing retained text is never truncated.
-            </p>
-          </>
-        ) : null}
-        {combat ? (
-          <>
-            {!basic ? (
-              <>
-                <AbilityText
-                  label="Flavor line"
-                  value={text(value.flavorLine)}
-                  maxLength={160}
-                  onChange={(flavorLine) => set({ flavorLine })}
-                />
-                <BattleFlavorTemplateHelp
-                  value={text(value.flavorLine)}
-                  ability={name}
-                  onChange={(flavorLine) => set({ flavorLine })}
-                />
-              </>
-            ) : null}
-            {kind !== 'resonance' ? (
-              <>
-                <AbilityText
-                  label="In-battle text"
-                  value={text(body.battleText)}
-                  maxLength={160}
-                  onChange={(battleText) => setBody({ ...body, battleText })}
-                />
-                <BattleFlavorTemplateHelp
-                  value={text(body.battleText)}
-                  ability={name}
-                  onChange={(battleText) => setBody({ ...body, battleText })}
-                />
-              </>
-            ) : null}
-            <AbilityPresentationEditor
-              definition={body}
-              name={name}
-              value={body.presentation as MatureSkillDefinition['presentation']}
-              onChange={(presentation) => setBody({ ...body, presentation })}
-            />
-          </>
-        ) : null}
-      </>
+      <ContentDescriptionFields kind={kind} value={value} choices={choices} onChange={onChange} />
     )
   if (kind === 'discipline' && (tab === 'Skills' || tab === 'Resonances'))
     return (
@@ -739,13 +597,13 @@ export function ContentDefinitionFields({
     )
   return (
     <>
-      <fieldset>
+      <fieldset className={styles.identityGroup}>
         <legend>Identity</legend>
         <AbilityText
           label="Name"
           value={name}
           maxLength={kind === 'discipline' ? 80 : 120}
-          onChange={(name) => set({ name })}
+          onChange={(name) => onChange(withContentIdentityText(kind, value, 'name', name))}
         />
         {kind !== 'status' ? (
           <Toggle
@@ -787,6 +645,7 @@ export function ContentDefinitionFields({
           />
         ) : null}
       </fieldset>
+      <ContentDescriptionFields kind={kind} value={value} choices={choices} onChange={onChange} />
       {kind !== 'status' && kind !== 'tag' ? (
         <details className={styles.mediaSection} open={kind === 'discipline'}>
           <summary>Artwork{combat ? ' and sound' : ''}</summary>
@@ -802,7 +661,7 @@ export function ContentDefinitionFields({
               allowAudio={false}
               fallbackArtwork={
                 kind === 'discipline'
-                  ? (phase4DisciplineSigil(String(value.id)) ?? undefined)
+                  ? (disciplineSigilArtwork(String(value.id)) ?? undefined)
                   : undefined
               }
               onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
@@ -1064,6 +923,96 @@ export function ContentDefinitionFields({
             )
           })()
         : null}
+    </>
+  )
+}
+
+function ContentDescriptionFields({
+  kind,
+  value,
+  onChange,
+}: {
+  kind: CombatContentKind
+  value: CombatContentDefinition
+  choices?: readonly ContentReference[]
+  onChange(value: CombatContentDefinition): void
+}) {
+  const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch })
+  const body = kind === 'essence' ? objectValue(value.skill) : value
+  const setBody = (next: CombatContentDefinition) =>
+    kind === 'essence' ? set({ skill: next }) : onChange(next)
+  const name = contentRecordName(value)
+  const basic =
+    kind === 'skill' && (BASIC_SKILL_IDS as readonly string[]).includes(String(value.id))
+  const combat = kind === 'skill' || kind === 'essence' || kind === 'resonance'
+  return (
+    <>
+      <label>
+        Description
+        <textarea
+          aria-label="Description"
+          value={text(value.description)}
+          onChange={(event) =>
+            onChange(withContentIdentityText(kind, value, 'description', event.currentTarget.value))
+          }
+        />
+      </label>
+      {kind === 'tag' ? (
+        <>
+          <label>
+            Full Tag explanation
+            <textarea
+              aria-label="Full Tag explanation"
+              value={text(value.explanation)}
+              onChange={(event) => set({ explanation: event.currentTarget.value })}
+            />
+          </label>
+          <p>
+            Compact wording: description (240 characters for publication). Full explanation: 2000
+            characters. Existing retained text is never truncated.
+          </p>
+        </>
+      ) : null}
+      {combat ? (
+        <>
+          {!basic ? (
+            <>
+              <AbilityText
+                label="Flavor line"
+                value={text(value.flavorLine)}
+                maxLength={160}
+                onChange={(flavorLine) => set({ flavorLine })}
+              />
+              <BattleFlavorTemplateHelp
+                value={text(value.flavorLine)}
+                ability={name}
+                onChange={(flavorLine) => set({ flavorLine })}
+              />
+            </>
+          ) : null}
+          {kind !== 'resonance' ? (
+            <>
+              <AbilityText
+                label="In-battle text"
+                value={text(body.battleText)}
+                maxLength={160}
+                onChange={(battleText) => setBody({ ...body, battleText })}
+              />
+              <BattleFlavorTemplateHelp
+                value={text(body.battleText)}
+                ability={name}
+                onChange={(battleText) => setBody({ ...body, battleText })}
+              />
+            </>
+          ) : null}
+          <AbilityPresentationEditor
+            definition={body}
+            name={name}
+            value={body.presentation as MatureSkillDefinition['presentation']}
+            onChange={(presentation) => setBody({ ...body, presentation })}
+          />
+        </>
+      ) : null}
     </>
   )
 }

@@ -51,6 +51,8 @@ export type AuthoredDisciplineUnlock =
   | { readonly kind: 'rekindling'; readonly minimumCount: 1 | 2 | 3 }
   | { readonly kind: 'all'; readonly rules: readonly AuthoredDisciplineUnlock[] }
 export interface AuthoredDiscipline extends AuthoredIdentity {
+  /** Null/absent restores individual mappings; null partner selects this Discipline's Essence. */
+  readonly relationshipOverride?: { readonly withDisciplineId: string | null } | null
   readonly core: Readonly<
     Record<'might' | 'finesse' | 'vitality' | 'agility' | 'intellect' | 'resolve', number>
   >
@@ -185,6 +187,7 @@ function parseNoncombatDefinition(
           'skillStages',
           'essenceId',
           'resonanceSelections',
+          'relationshipOverride',
         ]
       : kind === 'tag'
         ? ['tagId', 'explanation']
@@ -293,6 +296,25 @@ function parseNoncombatDefinition(
         pairs.add(pair.withDisciplineId)
       })
     }
+    if (row.relationshipOverride !== undefined && row.relationshipOverride !== null) {
+      const override = object(row.relationshipOverride, 'relationshipOverride', [
+        'withDisciplineId',
+      ])
+      if (override.withDisciplineId === null) {
+        if (typeof row.essenceId !== 'string')
+          invalid('relationshipOverride', 'Choose an existing Essence relationship.')
+      } else {
+        id(override.withDisciplineId, 'relationshipOverride.withDisciplineId')
+        if (
+          !Array.isArray(row.resonanceSelections) ||
+          !row.resonanceSelections.some(
+            (pair: { withDisciplineId: string }) =>
+              pair.withDisciplineId === override.withDisciplineId,
+          )
+        )
+          invalid('relationshipOverride', 'Choose an existing partner relationship.')
+      }
+    }
   } else if (kind === 'tag') {
     text(row.tagId, 'tagId', 160)
     if (!combatTagDefinition(row.tagId)) invalid('tagId', 'Choose an implemented registry Tag.')
@@ -359,7 +381,6 @@ export function noncombatPublicationBlocker(kind: NoncombatContentKind): {
 export function assertDisciplinePublicationReady(value: unknown): void {
   const discipline = parseNoncombatContentDefinition('discipline', value) as AuthoredDiscipline
   if (
-    discipline.unlock.kind === 'unavailable' ||
     !discipline.atlas ||
     !discipline.skillStages ||
     discipline.essenceId === undefined ||

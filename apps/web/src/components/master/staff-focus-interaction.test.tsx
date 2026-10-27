@@ -186,9 +186,9 @@ it('Owner edits role defaults, preserves a stale draft, then saves the authorita
   const defaults: MasterPanelRoleDefaults = {
     revision: 7,
     roles: {
-      moderator: ['master.access'],
-      'content-staff': ['master.access', 'content.combat.author'],
-      'event-staff': ['master.access', 'events.author', 'events.operate'],
+      moderator: ['moderation'],
+      'content-staff': ['combat'],
+      'event-staff': ['events'],
     },
   }
   const props = {
@@ -210,7 +210,7 @@ it('Owner edits role defaults, preserves a stale draft, then saves the authorita
         defaults: {
           ...defaults,
           revision: 8,
-          roles: { ...defaults.roles, moderator: ['master.access', 'content.combat.author'] },
+          roles: { ...defaults.roles, moderator: ['moderation', 'combat'] },
         },
       }),
     )
@@ -240,7 +240,7 @@ it('Owner edits role defaults, preserves a stale draft, then saves the authorita
   expect(JSON.parse(request.mock.calls[1]![1].body)).toMatchObject({
     operation: 'save-role-defaults',
     expectedRevision: 7,
-    roles: { moderator: ['master.access', 'content.combat.author'] },
+    roles: { moderator: ['moderation', 'combat'] },
   })
   expect(button().props.disabled).toBe(true)
 })

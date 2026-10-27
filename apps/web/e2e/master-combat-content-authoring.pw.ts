@@ -359,7 +359,7 @@ function isMasterOperationResponse(response: Response, operation: string): boole
       operation?: unknown
       command?: { action?: unknown }
     }
-    return ['commit', 'restore'].includes(operation)
+    return operation === 'commit'
       ? body.operation === 'record' && body.command?.action === operation
       : body.operation === operation
   } catch {
@@ -409,48 +409,116 @@ async function selectAuthoringSkill(page: Page): Promise<void> {
 async function commitContent(page: Page): Promise<unknown> {
   return runMasterOperation(page, 'commit', 'Commit Now')
 }
-async function restorePreviousAndCommit(page: Page, version: number): Promise<unknown> {
+function immutableContentVersionsSql(contentKey: string, excludingVersion?: number): string {
+  return `select coalesce(jsonb_agg(to_jsonb(v) || jsonb_build_object('attribution',to_jsonb(a)) order by v.id),'[]')
+    from app_private.combat_content_versions v
+    left join app_private.combat_content_attribution a on a.version_id=v.id
+    where v.content_key='${escapeSqlLiteral(contentKey)}'
+      ${excludingVersion === undefined ? '' : `and v.content_version <> ${excludingVersion}`};`
+}
+
+async function expectRetiredRestorationRejected(page: Page, sourceVersion: number): Promise<void> {
+  for (const label of [
+    'History',
+    'Restore Previous',
+    'Restore System original',
+    'Text',
+    'Parameters',
+  ])
+    await expect(page.getByRole('button', { name: label, exact: true })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: 'Content history', exact: true })).toHaveCount(0)
   const before = await readContentRecord(page)
-  if (
-    !isRecord(before.current) ||
-    !Array.isArray(before.history) ||
-    typeof before.contentKey !== 'string'
+  if (typeof before.contentKey !== 'string' || !positiveInteger(before.revision))
+    throw new Error('Missing current content identity/revision.')
+  expect(before.history).toEqual([])
+  expect(before).not.toHaveProperty('builtinRestoreVersion')
+  const contentKey = before.contentKey
+  const unchangedStateSql = `select jsonb_build_object(
+    'record',(select to_jsonb(r) from app_private.combat_content_records r where r.content_key='${escapeSqlLiteral(contentKey)}'),
+    'draft',(select to_jsonb(d) from app_private.combat_content_drafts d where d.content_key='${escapeSqlLiteral(contentKey)}'),
+    'publication',(select to_jsonb(p) from app_private.combat_content_publications p where p.content_key='${escapeSqlLiteral(contentKey)}'),
+    'versions',(${immutableContentVersionsSql(contentKey).replace(/;$/, '')}));`
+  const unchangedState = queryLocalDatabase(unchangedStateSql)
+  for (const data of [
+    { operation: 'rollback', skillId: contentKey, targetVersion: sourceVersion },
+    { operation: 'restore-basic-draft', skillId: contentKey },
+    {
+      operation: 'record',
+      command: { action: 'restore', contentKey, expectedRevision: before.revision, sourceVersion },
+    },
+    {
+      operation: 'record',
+      command: {
+        action: 'restore',
+        contentKey,
+        expectedRevision: before.revision,
+        sourceVersion: 1,
+        sourceKind: 'builtin',
+      },
+    },
+  ]) {
+    const response = await page.request.post('/api/master/combat-content', { data })
+    expect(response.status()).toBe(400)
+    expect(await response.json()).toMatchObject({
+      error: {
+        code: 'INVALID_REQUEST',
+        message: expect.stringMatching(/rollback is no longer available/),
+      },
+    })
+    expect(queryLocalDatabase(unchangedStateSql)).toBe(unchangedState)
+  }
+  expect(await readContentRecord(page)).toEqual(before)
+}
+
+async function commitAuthoredBaseline(page: Page, baselinePublication: unknown): Promise<unknown> {
+  const baseline = publishedSnapshot(baselinePublication)
+  if (!isRecord(baseline.definition) || !positiveInteger(baseline.contentVersion))
+    throw new Error('Missing copied baseline definition.')
+  await expectRetiredRestorationRejected(page, baseline.contentVersion)
+  const before = await readContentRecord(page)
+  if (typeof before.contentKey !== 'string' || !positiveInteger(before.revision))
+    throw new Error('Missing current content identity/revision.')
+  const retainedVersions = queryLocalDatabase(immutableContentVersionsSql(before.contentKey))
+  // This is an ordinary new authored commit of explicitly copied test settings,
+  // not a rollback or a restored draft. The browser submits the real authorized API.
+  const response = await page.request.post('/api/master/combat-content', {
+    data: {
+      operation: 'record',
+      command: {
+        action: 'commit',
+        contentKey: before.contentKey,
+        expectedRevision: before.revision,
+        definition: structuredClone(baseline.definition),
+      },
+    },
+  })
+  expect(response.status()).toBe(200)
+  const payload: unknown = await response.json()
+  const current = publishedSnapshot(payload)
+  const newVersion = publishedVersion(payload)
+  expect(newVersion).toBeGreaterThan(publishedVersion({ record: before }))
+  expect(current.definition).toEqual({ ...baseline.definition, contentVersion: newVersion })
+  expect(current).toMatchObject({
+    authoredBy: current.publishedBy,
+    authoredAt: expect.any(String),
+    restoredFrom: null,
+    restoredBy: null,
+  })
+  expect(current.authoredBy).toMatch(/^[0-9a-f-]{36}$/)
+  expect(current.authoredAt).not.toBe(baseline.authoredAt)
+  expect(current.restoredSource ?? null).toBeNull()
+  expect(queryLocalDatabase(immutableContentVersionsSql(before.contentKey, newVersion))).toBe(
+    retainedVersions,
   )
-    throw new Error('Missing current/history snapshots.')
-  const previous = before.history
-    .filter(
-      (row): row is Record<string, unknown> =>
-        isRecord(row) &&
-        row.contentVersion !== (before.current as Record<string, unknown>).contentVersion,
-    )
-    .sort((a, b) => Number(b.contentVersion) - Number(a.contentVersion))[0]
-  expect(previous?.contentVersion).toBe(version)
-  const immutableHistorySql = `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(before.contentKey)}';`
-  const immutableHistory = queryLocalDatabase(immutableHistorySql)
-  await page.getByRole('button', { name: 'History', exact: true }).click()
-  const history = page.getByRole('region', { name: 'Content history', exact: true })
-  await history
-    .locator('summary')
-    .filter({ hasText: /^Previous settings$/ })
-    .click()
-  const restored = await runMasterOperation(page, 'restore', 'Restore Previous')
-  if (!isRecord(restored) || !isRecord(restored.record) || !isRecord(restored.record.draft))
-    throw new Error('Missing restored complete draft.')
-  expect(restored.record.draft.restoredFrom).toBe(version)
-  expect(restored.record.draft.definition).toEqual(previous!.definition)
-  expect(publishedVersion(restored)).toBe(publishedVersion({ record: before }))
-  expect(queryLocalDatabase(immutableHistorySql)).toBe(immutableHistory)
-  await expect(
-    page.getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
-      exact: true,
-    }),
-  ).toBeVisible()
-  const payload = await commitContent(page)
-  expect(publishedVersion(payload)).toBeGreaterThan(publishedVersion({ record: before }))
+  expect(
+    queryLocalDatabase(
+      `select count(*) from app_private.combat_content_versions where content_key='${escapeSqlLiteral(before.contentKey)}' and content_version=${newVersion};`,
+    ),
+  ).toBe('1')
   return payload
 }
 
-test('Master combat authoring publishes versioned content, pins battles, and restores complete snapshots as new versions', async ({
+test('Master combat authoring publishes and pins versioned content, rejects retired restoration, and authors copied settings as new versions', async ({
   page,
 }, testInfo) => {
   test.setTimeout(360_000)
@@ -543,7 +611,7 @@ test('Master combat authoring publishes versioned content, pins battles, and res
     const nextAp = originalAp === 100 ? 99 : originalAp + 1
     await apInput.fill(String(nextAp))
 
-    await page.getByRole('button', { name: 'Parameters', exact: true }).click()
+    await page.getByRole('button', { name: 'Skill Details', exact: true }).click()
     await page
       .locator('summary')
       .filter({ hasText: /^Artwork and sound$/ })
@@ -610,33 +678,29 @@ test('Master combat authoring publishes versioned content, pins battles, and res
     await selectAuthoringSkill(page)
     await expect.poll(() => currentContentVersion(page)).toBe(newVersion)
 
-    const restoredPublication = await restorePreviousAndCommit(page, oldVersion)
-    expect(publishedSnapshot(restoredPublication).definition).toEqual({
+    const reauthoredPublication = await commitAuthoredBaseline(page, baselinePublication)
+    expect(publishedSnapshot(reauthoredPublication).definition).toEqual({
       ...(publishedSnapshot(baselinePublication).definition as Record<string, unknown>),
-      contentVersion: publishedVersion(restoredPublication),
+      contentVersion: publishedVersion(reauthoredPublication),
     })
-    await expect(
-      page
-        .getByRole('region', { name: 'Content history', exact: true })
-        .getByRole('heading', { level: 4 }),
-    ).toHaveText(['Current', 'Previous'])
+    expect((await readContentRecord(page)).history).toEqual([])
     expect(
       queryLocalDatabase(
         `select count(*) from app_private.combat_content_versions where content_key='${escapeSqlLiteral(SKILL_ID)}' and content_version in (${newVersion},${oldVersion});`,
       ),
     ).toBe('2')
 
-    const newBattleAfterRestore = await readBattle(page, newBattle.battleSessionId)
-    expect(pinnedSkillVersion(newBattleAfterRestore, SKILL_ID)).toBe(newVersion)
+    const newBattleAfterReauthoring = await readBattle(page, newBattle.battleSessionId)
+    expect(pinnedSkillVersion(newBattleAfterReauthoring, SKILL_ID)).toBe(newVersion)
 
-    const newBattleAfterRestoreIdentity = battleIdentity(newBattleAfterRestore)
+    const newBattleAfterReauthoringIdentity = battleIdentity(newBattleAfterReauthoring)
     await surrenderBattle(
       page,
-      newBattleAfterRestoreIdentity.battleSessionId,
-      newBattleAfterRestoreIdentity.battleVersion,
+      newBattleAfterReauthoringIdentity.battleSessionId,
+      newBattleAfterReauthoringIdentity.battleVersion,
     )
 
-    // Real audited publication, reload and restore; both responsive editor layouts.
+    // Real audited publication, reload and manual reauthoring; both responsive editor layouts.
     for (const width of [1366, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 768 })
       await page.goto('/master/combat-content')
@@ -675,16 +739,16 @@ test('Master combat authoring publishes versioned content, pins battles, and res
         expect(fieldBox!.x + fieldBox!.width).toBeLessThanOrEqual(width)
       }
       await page.screenshot({ path: testInfo.outputPath(`master-percentage-${width}.png`) })
-      const gashRestore = await restorePreviousAndCommit(page, oldGashVersion)
-      expect(publishedSnapshot(gashRestore).definition).toEqual({
+      const gashReauthored = await commitAuthoredBaseline(page, gashBaseline)
+      expect(publishedSnapshot(gashReauthored).definition).toEqual({
         ...(publishedSnapshot(gashBaseline).definition as Record<string, unknown>),
-        contentVersion: publishedVersion(gashRestore),
+        contentVersion: publishedVersion(gashReauthored),
       })
       await page.reload()
       await selectGash()
       await expect(percentage).toHaveValue(oldPercentage)
     }
-    // Actual protected Ground and Burn-trigger publication, reload and restore.
+    // Actual protected Ground and Burn-trigger publication, reload and manual reauthoring.
     await page.goto('/game/nexus')
     await page.getByRole('button', { name: /Manage Disciplines/ }).click()
     const management = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
@@ -820,10 +884,10 @@ test('Master combat authoring publishes versioned content, pins battles, and res
       ).toBe('0')
       await page.goto('/master/combat-content')
       await selectFlame()
-      const flameRestore = await restorePreviousAndCommit(page, oldFlameVersion)
-      expect(publishedSnapshot(flameRestore).definition).toEqual({
+      const flameReauthored = await commitAuthoredBaseline(page, flameBaseline)
+      expect(publishedSnapshot(flameReauthored).definition).toEqual({
         ...(publishedSnapshot(flameBaseline).definition as Record<string, unknown>),
-        contentVersion: publishedVersion(flameRestore),
+        contentVersion: publishedVersion(flameReauthored),
       })
       await page.reload()
       await selectFlame()
@@ -981,7 +1045,7 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
     grantLocalMasterOperator(email)
     await page.goto('/master/combat-content')
     await selectContentRecord(page, 'basic.guard', 'basic')
-    await page.getByRole('button', { name: 'Parameters', exact: true }).click()
+    await page.getByRole('button', { name: 'Skill Details', exact: true }).click()
     await page
       .locator('summary')
       .filter({ hasText: /^Artwork and sound$/ })
@@ -1106,18 +1170,18 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
   }
 })
 
-test('all five independent Basic originals restore through the mounted complete editor and real saved publication', async ({
+test('all five Basics reject retired restoration and retain manually authored versions with truthful provenance', async ({
   page,
 }, testInfo) => {
   test.setTimeout(120_000)
-  // Use the same executable-source transport as the native SQL lifecycle proof.
+  // Enumerate all five canonical Basic identities using the executable-source fixture.
   // Playwright's test loader must not compile core's ESM package as CommonJS.
-  const originals: BasicSkillDefinition[] = JSON.parse(
+  const basics: BasicSkillDefinition[] = JSON.parse(
     execFileSync(process.execPath, [resolve('scripts/master-originals-fixture.mjs')], {
       encoding: 'utf8',
     }),
   )
-  expect(originals).toHaveLength(5)
+  expect(basics).toHaveLength(5)
   expect(['localhost', '127.0.0.1']).toContain(
     new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname,
   )
@@ -1134,63 +1198,41 @@ test('all five independent Basic originals restore through the mounted complete 
   try {
     grantLocalMasterOperator(email)
     await page.goto('/master/combat-content')
-    for (const original of originals) {
-      await selectContentRecord(page, original.id, 'basic')
-      // Start with a real saved edit/publication, with any prior publications retained.
-      await page.getByRole('button', { name: 'Text', exact: true }).click()
+    for (const basic of basics) {
+      await selectContentRecord(page, basic.id, 'basic')
+      const baselinePublication = await commitContent(page)
+      const baselineDefinition = publishedSnapshot(baselinePublication).definition
+      if (!isRecord(baselineDefinition) || typeof baselineDefinition.name !== 'string')
+        throw new Error('Missing current Basic definition/name.')
+      await page.getByRole('button', { name: 'Skill Details', exact: true }).click()
       const name = page.getByRole('textbox', { name: 'Name', exact: true })
-      await name.fill(`${original.name} integration edit`)
+      const editedName = `${basic.name} integration ${crypto.randomUUID().slice(0, 8)}`
+      await name.fill(editedName)
       const edited = await commitContent(page)
-      const version = publishedVersion(edited)
-      const physicalBefore = queryLocalDatabase(
-        `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(original.id)}';`,
-      )
-      await page.getByRole('button', { name: 'History', exact: true }).click()
-      await page
-        .locator('summary')
-        .filter({ hasText: /^System original$/ })
-        .click()
-      const restored = await runMasterOperation(page, 'restore', 'Restore System original')
-      expect(
-        isRecord(restored) && isRecord(restored.record) && isRecord(restored.record.draft),
-      ).toBe(true)
-      if (!isRecord(restored) || !isRecord(restored.record) || !isRecord(restored.record.draft))
-        throw new Error('Missing complete draft')
-      expect(restored.record.draft.definition).toEqual(original)
-      expect(restored.record.draft.restoredSource).toBe('builtin')
-      expect(
-        queryLocalDatabase(
-          `select coalesce(jsonb_agg(to_jsonb(v) order by id),'[]') from app_private.combat_content_versions v where content_key='${escapeSqlLiteral(original.id)}';`,
-        ),
-      ).toBe(physicalBefore)
-      const published = await commitContent(page)
-      expect(publishedVersion(published)).toBeGreaterThan(version)
-      expect(publishedSnapshot(published)).toMatchObject({
-        restoredFrom: 1,
-        restoredSource: 'builtin',
-        authoredBy: null,
-        authoredAt: null,
-      })
-      await page.getByRole('button', { name: 'History', exact: true }).click()
-      const currentRecord = await readContentRecord(page, original.id)
-      expect(currentRecord.current).toMatchObject({
-        authoredBy: null,
-        authoredAt: null,
-        restoredFrom: 1,
-        restoredSource: 'builtin',
-      })
+      const editedVersion = publishedVersion(edited)
+      expect(editedVersion).toBeGreaterThan(publishedVersion(baselinePublication))
+      expect(publishedSnapshot(edited).definition).toMatchObject({ name: editedName })
+
+      const authored = await commitAuthoredBaseline(page, baselinePublication)
+      const authoredVersion = publishedVersion(authored)
+      expect(authoredVersion).toBeGreaterThan(editedVersion)
+      await page.reload()
+      await selectContentRecord(page, basic.id, 'basic')
+      await expect(name).toHaveValue(baselineDefinition.name)
+      await expect(
+        page.getByRole('status', { name: 'Content version state', exact: true }),
+      ).toHaveText('Current')
+      const currentRecord = await readContentRecord(page, basic.id)
+      expect(currentRecord.history).toEqual([])
+      expect(currentRecord).not.toHaveProperty('builtinRestoreVersion')
+      expect(currentRecord.current).toEqual(publishedSnapshot(authored))
       expect(
         queryLocalDatabase(
-          `select count(*) from app_private.combat_content_versions where content_key='${escapeSqlLiteral(original.id)}' and content_version=${version};`,
+          `select count(*) from app_private.combat_content_versions where content_key='${escapeSqlLiteral(basic.id)}' and content_version=${editedVersion};`,
         ),
       ).toBe('1')
-      await expect(
-        page
-          .getByRole('region', { name: 'Content history', exact: true })
-          .getByRole('heading', { level: 4 }),
-      ).toHaveText(['Current', 'Previous'])
       await page.screenshot({
-        path: testInfo.outputPath(`master-original-${original.id}.png`),
+        path: testInfo.outputPath(`master-basic-authored-${basic.id}.png`),
         fullPage: true,
       })
     }

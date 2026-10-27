@@ -125,7 +125,7 @@ export function PlayersWorkspace({
   }
   return (
     <div className={styles.workspace} aria-busy={busy}>
-      <section className={styles.card}>
+      <section className={`${styles.card} ${styles.searchPane}`} data-player-pane="search">
         <h2>
           Find a player{' '}
           <MasterHelp label="Player search">
@@ -172,201 +172,209 @@ export function PlayersWorkspace({
           </ul>
         ) : null}
       </section>
-      {error ? (
-        <p className={styles.message} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p className={styles.message} role="status">
-          {notice}
-        </p>
-      ) : null}
-      {player ? (
-        <section className={styles.card}>
-          <div className={styles.heading}>
-            <h2 ref={heading} tabIndex={-1}>
-              {player.name}
-            </h2>
-            <button disabled={busy} onClick={() => select(player.characterId)}>
-              Refresh player
-            </button>
-          </div>
-          <p>
-            {player.verifiedEmail ?? 'No verified email available'} · Identity and account access
-            are protected.
+      <section className={`${styles.card} ${styles.detailsPane}`} data-player-pane="details">
+        {error ? (
+          <p className={styles.message} role="alert">
+            {error}
           </p>
-          <dl className={styles.facts}>
-            <div>
-              <dt>Progression</dt>
-              <dd>
-                Level {player.facts.level} · {player.facts.xp} XP · Cycle {player.facts.cycle}
-              </dd>
-            </div>
-            <div>
-              <dt>Primary / Secondary</dt>
-              <dd>
-                {playerLabel(player.facts.build.primary.disciplineId)} /{' '}
-                {playerLabel(player.facts.build.secondary?.disciplineId ?? 'None')}
-              </dd>
-            </div>
-            <div>
-              <dt>Active Skills</dt>
-              <dd>
-                {player.facts.build.disciplineSkills
-                  .map((skill) => `${playerLabel(skill.skillId)} v${skill.contentVersion}`)
-                  .join(', ') || 'None'}
-              </dd>
-            </div>
-            <div>
-              <dt>Support action</dt>
-              <dd>
-                {player.facts.build.supportActionId === 'basic.guard'
-                  ? 'Guard'
-                  : player.facts.build.supportActionId === 'basic.recover'
-                    ? 'Recover HP'
-                    : 'Recover MP'}
-              </dd>
-            </div>
-            <div>
-              <dt>Calculated maximum resources</dt>
-              <dd>
-                {player.calculated.maxHp} HP · {player.calculated.maxMp} MP
-              </dd>
-            </div>
-            <div>
-              <dt>World position</dt>
-              <dd>
-                {player.world?.position
-                  ? `${player.world.position.sectorId} · ${player.world.position.x}, ${player.world.position.y}`
-                  : 'No saved position'}
-              </dd>
-            </div>
-            <div>
-              <dt>Training</dt>
-              <dd>{player.training?.plannedWindow ?? 'No planned window'}</dd>
-            </div>
-            <div>
-              <dt>Saved loadouts</dt>
-              <dd>{player.savedLoadouts.map((row) => row.name).join(', ') || 'None'}</dd>
-            </div>
-            <div>
-              <dt>Resonance / Essence</dt>
-              <dd>
-                {playerLabel(player.facts.build.extensions.resonance?.resonanceId ?? 'None')} /{' '}
-                {playerLabel(player.facts.build.extensions.essence?.essenceId ?? 'None')}
-              </dd>
-            </div>
-          </dl>
-          <p>
-            Current HP, MP and AP belong to an encounter. Persistent wallet, inventory and equipment
-            corrections are not available.
+        ) : null}
+        {notice ? (
+          <p className={styles.message} role="status">
+            {notice}
           </p>
-          {player.deletionPending ? (
-            <p role="status">Deletion pending. Gameplay corrections are unavailable.</p>
-          ) : null}
-          {player.battle ? (
-            <section className={styles.encounter}>
-              <h3>Active encounter · {player.battle.lifecycle}</h3>
-              <p>Participants: {player.battle.participants.map((row) => row.name).join(', ')}</p>
-              <ul>
-                {player.battle.combatants.map((unit) => (
-                  <li key={unit.id}>
-                    <strong>
-                      {player.battle?.participants.find(
-                        (row) =>
-                          unit.id === `character:${row.characterId}` || unit.id === row.characterId,
-                      )?.name ?? playerLabel(unit.id)}
-                    </strong>
-                    : {unit.hp} HP · {unit.mp} MP · {unit.ap ?? '—'} AP
-                    {unit.statuses.length ? ` · ${unit.statuses.map(playerLabel).join(', ')}` : ''}
-                  </li>
-                ))}
-              </ul>
-              <details>
-                <summary>Recent actions</summary>
-                <ol>
-                  {player.battle.recentActions.map((action, index) => (
-                    <li key={index}>{playerLabel(action)}</li>
-                  ))}
-                </ol>
-              </details>
-              <p>
-                Recovery ends this entire encounter for every listed participant. It gives no
-                rewards or refunds and preserves World progress.
-              </p>
-              <button
-                disabled={busy || !!review}
-                onClick={() => preview({ kind: 'recover', requestKey: crypto.randomUUID() })}
-              >
-                Review encounter recovery
+        ) : null}
+        {player ? (
+          <>
+            <div className={styles.heading}>
+              <h2 ref={heading} tabIndex={-1}>
+                {player.name}
+              </h2>
+              <button disabled={busy} onClick={() => select(player.characterId)}>
+                Refresh player
               </button>
-            </section>
-          ) : null}
-          {review ? (
-            <section className={styles.review}>
-              <h3 tabIndex={-1} ref={reviewHeading}>
-                {review.kind === 'edit' ? 'Review correction' : 'Confirm all participants'}
-              </h3>
-              {review.kind === 'edit' ? (
-                <PlayerCorrectionReview player={player} command={review.command} />
-              ) : (
-                <>
-                  <p>
-                    This whole encounter will end as <strong>No contest · No rewards</strong>.
-                  </p>
-                  <ul>
-                    {player.battle?.participants.map((row) => (
-                      <li key={row.characterId}>
-                        <strong>{row.name}</strong>
-                      </li>
-                    ))}
-                  </ul>
-                  <p>
-                    No participant receives a win, defeat reward, trial benefit or resource refund.
-                  </p>
-                </>
-              )}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={confirmed}
-                  disabled={busy}
-                  onChange={(event) => setConfirmed(event.target.checked)}
-                />
-                {review.kind === 'edit'
-                  ? `I confirm this correction for ${player.name}.`
-                  : 'I confirm ending the encounter for every participant listed above.'}
-              </label>
-              <div className={styles.actions}>
-                <button disabled={busy || !confirmed} onClick={save}>
-                  {review.kind === 'edit'
-                    ? 'Save confirmed correction'
-                    : 'End encounter without rewards'}
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={() => {
-                    setReview(null)
-                    setConfirmed(false)
-                  }}
-                >
-                  Cancel review
-                </button>
+            </div>
+            <p>
+              {player.verifiedEmail ?? 'No verified email available'} · Identity and account access
+              are protected.
+            </p>
+            <dl className={styles.facts}>
+              <div>
+                <dt>Progression</dt>
+                <dd>
+                  Level {player.facts.level} · {player.facts.xp} XP · Cycle {player.facts.cycle}
+                </dd>
               </div>
-            </section>
-          ) : (
-            <PlayerCorrectionForm
-              key={player.fingerprint}
-              player={player}
-              disabled={busy || player.deletionPending || !!player.battle}
-              onReview={(command) =>
-                preview({ kind: 'edit', command, requestKey: crypto.randomUUID() })
-              }
-            />
-          )}
-        </section>
-      ) : null}
+              <div>
+                <dt>Primary / Secondary</dt>
+                <dd>
+                  {playerLabel(player.facts.build.primary.disciplineId)} /{' '}
+                  {playerLabel(player.facts.build.secondary?.disciplineId ?? 'None')}
+                </dd>
+              </div>
+              <div>
+                <dt>Active Skills</dt>
+                <dd>
+                  {player.facts.build.disciplineSkills
+                    .map((skill) => `${playerLabel(skill.skillId)} v${skill.contentVersion}`)
+                    .join(', ') || 'None'}
+                </dd>
+              </div>
+              <div>
+                <dt>Support action</dt>
+                <dd>
+                  {player.facts.build.supportActionId === 'basic.guard'
+                    ? 'Guard'
+                    : player.facts.build.supportActionId === 'basic.recover'
+                      ? 'Recover HP'
+                      : 'Recover MP'}
+                </dd>
+              </div>
+              <div>
+                <dt>Calculated maximum resources</dt>
+                <dd>
+                  {player.calculated.maxHp} HP · {player.calculated.maxMp} MP
+                </dd>
+              </div>
+              <div>
+                <dt>World position</dt>
+                <dd>
+                  {player.world?.position
+                    ? `${player.world.position.sectorId} · ${player.world.position.x}, ${player.world.position.y}`
+                    : 'No saved position'}
+                </dd>
+              </div>
+              <div>
+                <dt>Training</dt>
+                <dd>{player.training?.plannedWindow ?? 'No planned window'}</dd>
+              </div>
+              <div>
+                <dt>Saved loadouts</dt>
+                <dd>{player.savedLoadouts.map((row) => row.name).join(', ') || 'None'}</dd>
+              </div>
+              <div>
+                <dt>Resonance / Essence</dt>
+                <dd>
+                  {playerLabel(player.facts.build.extensions.resonance?.resonanceId ?? 'None')} /{' '}
+                  {playerLabel(player.facts.build.extensions.essence?.essenceId ?? 'None')}
+                </dd>
+              </div>
+            </dl>
+            <p>
+              Current HP, MP and AP belong to an encounter. Persistent wallet, inventory and
+              equipment corrections are not available.
+            </p>
+            {player.deletionPending ? (
+              <p role="status">Deletion pending. Gameplay corrections are unavailable.</p>
+            ) : null}
+            {player.battle ? (
+              <section className={styles.encounter}>
+                <h3>Active encounter · {player.battle.lifecycle}</h3>
+                <p>Participants: {player.battle.participants.map((row) => row.name).join(', ')}</p>
+                <ul>
+                  {player.battle.combatants.map((unit) => (
+                    <li key={unit.id}>
+                      <strong>
+                        {player.battle?.participants.find(
+                          (row) =>
+                            unit.id === `character:${row.characterId}` ||
+                            unit.id === row.characterId,
+                        )?.name ?? playerLabel(unit.id)}
+                      </strong>
+                      : {unit.hp} HP · {unit.mp} MP · {unit.ap ?? '—'} AP
+                      {unit.statuses.length
+                        ? ` · ${unit.statuses.map(playerLabel).join(', ')}`
+                        : ''}
+                    </li>
+                  ))}
+                </ul>
+                <details>
+                  <summary>Recent actions</summary>
+                  <ol>
+                    {player.battle.recentActions.map((action, index) => (
+                      <li key={index}>{playerLabel(action)}</li>
+                    ))}
+                  </ol>
+                </details>
+                <p>
+                  Recovery ends this entire encounter for every listed participant. It gives no
+                  rewards or refunds and preserves World progress.
+                </p>
+                <button
+                  disabled={busy || !!review}
+                  onClick={() => preview({ kind: 'recover', requestKey: crypto.randomUUID() })}
+                >
+                  Review encounter recovery
+                </button>
+              </section>
+            ) : null}
+            {review ? (
+              <section className={styles.review}>
+                <h3 tabIndex={-1} ref={reviewHeading}>
+                  {review.kind === 'edit' ? 'Review correction' : 'Confirm all participants'}
+                </h3>
+                {review.kind === 'edit' ? (
+                  <PlayerCorrectionReview player={player} command={review.command} />
+                ) : (
+                  <>
+                    <p>
+                      This whole encounter will end as <strong>No contest · No rewards</strong>.
+                    </p>
+                    <ul>
+                      {player.battle?.participants.map((row) => (
+                        <li key={row.characterId}>
+                          <strong>{row.name}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                    <p>
+                      No participant receives a win, defeat reward, trial benefit or resource
+                      refund.
+                    </p>
+                  </>
+                )}
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={confirmed}
+                    disabled={busy}
+                    onChange={(event) => setConfirmed(event.target.checked)}
+                  />
+                  {review.kind === 'edit'
+                    ? `I confirm this correction for ${player.name}.`
+                    : 'I confirm ending the encounter for every participant listed above.'}
+                </label>
+                <div className={styles.actions}>
+                  <button disabled={busy || !confirmed} onClick={save}>
+                    {review.kind === 'edit'
+                      ? 'Save confirmed correction'
+                      : 'End encounter without rewards'}
+                  </button>
+                  <button
+                    disabled={busy}
+                    onClick={() => {
+                      setReview(null)
+                      setConfirmed(false)
+                    }}
+                  >
+                    Cancel review
+                  </button>
+                </div>
+              </section>
+            ) : (
+              <PlayerCorrectionForm
+                key={player.fingerprint}
+                player={player}
+                disabled={busy || player.deletionPending || !!player.battle}
+                onReview={(command) =>
+                  preview({ kind: 'edit', command, requestKey: crypto.randomUUID() })
+                }
+              />
+            )}
+          </>
+        ) : (
+          <p>Select a player to inspect their character and review a correction.</p>
+        )}
+      </section>
     </div>
   )
 }

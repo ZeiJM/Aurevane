@@ -39,6 +39,13 @@ export default async function MasterCombatContentPage() {
     contentKey: entry.contentKey,
     contentKind: entry.contentKind,
     name: String('name' in entry.definition ? entry.definition.name : entry.contentKey),
+    ...('sourceDisciplineId' in entry.definition &&
+    typeof entry.definition.sourceDisciplineId === 'string'
+      ? { sourceDisciplineId: entry.definition.sourceDisciplineId }
+      : {}),
+    ...('disciplinePair' in entry.definition && Array.isArray(entry.definition.disciplinePair)
+      ? { disciplinePair: entry.definition.disciplinePair as string[] }
+      : {}),
   }))
   return (
     <SkillEffectTimingProvider policy={catalogue.policy}>
@@ -49,6 +56,8 @@ export default async function MasterCombatContentPage() {
         description="Create, preview and publish complete content records."
       >
         <CombatContentAuthoringWorkspace
+          key={actor.userId}
+          recoveryScope={actor.userId}
           categories={categories}
           initialPage={initialPage}
           initialRecord={initialRecord}

@@ -119,7 +119,19 @@ const access = {
   accessVersion: 1,
   roles: ['game-owner'],
   specialCapabilities: [],
-  effectiveCapabilities: ['master.access', 'staff.manage', 'content.combat.author'],
+  effectiveCapabilities: [
+    'master.access',
+    'staff.manage',
+    'content.combat.author',
+    'combat.rules',
+    'events.author',
+    'events.operate',
+    'moderation.manage',
+    'players.manage',
+    'music.manage',
+    'world.manage',
+    'activity.read',
+  ],
 }
 function App() {
   const pathname = usePathname()

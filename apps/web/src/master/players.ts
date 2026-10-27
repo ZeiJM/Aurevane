@@ -1,3 +1,4 @@
+import type { DisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
 import type { CharacterAttributes } from '@aurevane/game-core/character/creation'
 import type { DisciplineSkillReference } from '@aurevane/game-core/character/discipline-skill-loadout'
 import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
@@ -40,6 +41,7 @@ export interface MasterPlayerView {
   fingerprint: string
   deletionPending: boolean
   facts: MasterPlayerFacts
+  attributePolicy?: DisciplineAttributePolicy
   calculated: { maxHp: number; maxMp: number; personalPointPool: number }
   disciplines: { id: string; name: string; primary: boolean; secondary: boolean }[]
   learnedSkills: DisciplineSkillReference[]

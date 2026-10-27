@@ -1,0 +1,208 @@
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.75fr) minmax(0, 1.8fr);
+  gap: 1rem;
+  min-height: 0;
+  height: 100%;
+  color: #eee9d8;
+}
+.directory,
+.detail {
+  min-width: 0;
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid rgba(190, 164, 106, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(140deg, rgba(29, 48, 47, 0.92), rgba(14, 24, 28, 0.96));
+}
+.workspace h2 {
+  margin: 0 0 1rem;
+  font-size: 1.2rem;
+}
+.workspace h3 {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid #4b554e;
+  padding-top: 1rem;
+}
+.workspace label {
+  display: grid;
+  gap: 0.35rem;
+}
+.workspace input,
+.workspace select,
+.workspace textarea {
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid #64716c;
+  border-radius: 6px;
+  background: #101f22;
+  color: #f0ede2;
+  padding: 0.55rem;
+  font: inherit;
+}
+.workspace button {
+  border: 1px solid #8f8259;
+  border-radius: 6px;
+  background: #233b39;
+  color: #f0ede2;
+  padding: 0.55rem 0.8rem;
+  font: inherit;
+  cursor: pointer;
+}
+.workspace button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.workspace :focus-visible {
+  outline: 2px solid #e6ce8d;
+  outline-offset: 3px;
+}
+.search,
+.heading,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.search input {
+  flex: 1;
+  width: 100%;
+}
+.heading {
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.hint,
+.workspace small {
+  color: #bcc6bb;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.results {
+  display: grid;
+  gap: 0.5rem;
+}
+.results button {
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.results button[aria-pressed='true'] {
+  border-color: #e6ce8d;
+  background: #35534a;
+}
+.status {
+  padding: 0.75rem;
+  background: #172e2d;
+  border-left: 3px solid #c5ac6e;
+}
+.workspace fieldset {
+  display: grid;
+  gap: 0.9rem;
+  border: 1px solid #53675c;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 0;
+}
+.workspace legend {
+  padding: 0 0.5rem;
+  color: #e6ce8d;
+}
+.workspace .check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.check input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.duration {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.65rem;
+}
+.history {
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.7rem;
+}
+.history li {
+  padding: 0.8rem;
+  border: 1px solid #3f5550;
+  border-radius: 8px;
+}
+.history li > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+.history time {
+  font-size: 0.8rem;
+  color: #bdc6ba;
+}
+.history p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.error {
+  color: #ffd0ba;
+}
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+  .directory,
+  .detail {
+    overflow: visible;
+  }
+  .results {
+    max-height: 220px;
+    overflow: auto;
+  }
+  .actions {
+    flex-wrap: wrap;
+  }
+  .workspace button {
+    min-height: 42px;
+  }
+}
+
+.workspace fieldset {
+  min-width: 0;
+}
+.results strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Keep dark work surfaces readable inside the shared warm Master frame. */
+.workspace :is(.directory, .detail) :is(h2, h3, label, p, strong, legend) {
+  color: #eee9d8;
+}
+.workspace :is(.directory, .detail) :is(input, textarea, select) {
+  background: #f0e8d1;
+  color: #213e37;
+}
+.workspace :is(.directory, .detail) .hint {
+  color: #c1ccc1;
+}
+.workspace .detail .status {
+  color: #f4edd8;
+}
+.workspace .detail .error {
+  color: #ffd0ba;
+}
+.workspace button:disabled {
+  color: #d1d5cb;
+}
+
+.workspace .history span {
+  color: #c1ccc1;
+}

@@ -35,7 +35,7 @@ export default async function CharacterCreationPage({
   const characters = await loadCharacterSlots(actor.userId)
   if (characters.some((character) => character.slotIndex === slotIndex)) redirect('/game')
 
-  const disciplines = await loadPublishedFoundations()
+  const disciplines = await loadPublishedFoundations(actor.userId)
   if (disciplines.length === 0) throw new Error('No current Foundation Discipline is available.')
 
   return (

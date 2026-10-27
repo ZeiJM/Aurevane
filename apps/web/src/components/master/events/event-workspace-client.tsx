@@ -20,10 +20,10 @@ export function EventWorkspaceClient({
     <>
       <nav className={styles.workspaceTabs} aria-label="Events workspace">
         <button type="button" aria-pressed={view === 'author'} onClick={() => setView('author')}>
-          Definitions &amp; schedule
+          Definitions &amp; Schedule
         </button>
         <button type="button" aria-pressed={view === 'live'} onClick={() => setView('live')}>
-          Live runs
+          Live Operations
         </button>
       </nav>
       <div hidden={view !== 'author'}>

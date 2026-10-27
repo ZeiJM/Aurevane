@@ -1,3 +1,4 @@
+import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from './battle-source-authority'
 import {
   projectPublicCombat,
@@ -906,6 +907,7 @@ export function createBattleSessionService({
           }
       }
       const battle = encounter.tactical.battle
+      const usageBalance = await createBattleUsageProvenance('pve-recruit', [command.userId])
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
@@ -923,8 +925,15 @@ export function createBattleSessionService({
         battleId: battle.battleId,
         rulesVersion: battle.rulesVersion,
         contentVersion: battle.contentVersion,
-        initialSnapshot: encounter,
-        ...(startup ? { startup } : {}),
+        initialSnapshot: { ...encounter, usageBalance },
+        ...(startup
+          ? {
+              startup: {
+                ...startup,
+                startSnapshot: { ...(startup.startSnapshot as object), usageBalance },
+              },
+            }
+          : {}),
         participants: [
           {
             combatantId: `character:${character.id}`,

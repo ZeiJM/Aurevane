@@ -332,7 +332,7 @@ try {
     await page.getByText(/Scheduled run 22222222/).waitFor()
     await page
       .getByRole('navigation', { name: 'Events workspace' })
-      .getByRole('button', { name: 'Live runs' })
+      .getByRole('button', { name: 'Live Operations' })
       .click()
     for (const action of [
       'Pause',

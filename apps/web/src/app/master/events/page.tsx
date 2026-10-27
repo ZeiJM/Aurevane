@@ -12,7 +12,7 @@ export default async function MasterEventsPage() {
     <MasterPanelShell
       access={access}
       activeSection="events"
-      title="Events & Live Ops"
+      title="Events"
       description="Draft, validate, preview, publish, and schedule persistent Events through typed authoritative content."
     >
       <EventWorkspaceClient

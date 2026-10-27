@@ -57,6 +57,8 @@ export interface ResonanceMediaHooks extends FinalizedContentMediaSlots {
 }
 
 export interface ResonanceDefinition {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
   readonly ability?: AbilityDefinition
   readonly id: string
   readonly contentVersion: number
@@ -78,6 +80,8 @@ export interface ResonanceDefinition {
 export type AnyResonanceDefinition = ResonanceDefinition | ResonanceDefinitionV2
 
 export interface ResonanceSnapshotReference {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
   readonly resonanceId: string
   readonly contentVersion: number
   readonly disciplinePair: readonly [string, string]
@@ -352,6 +356,9 @@ export function resonanceSnapshotReference(
 ): ResonanceSnapshotReference {
   assertUsableResonance(definition)
   return {
+    ...(definition.relationshipOverrideDisciplineId
+      ? { relationshipOverrideDisciplineId: definition.relationshipOverrideDisciplineId }
+      : {}),
     resonanceId: definition.id,
     contentVersion: definition.contentVersion,
     disciplinePair: [...definition.disciplinePair],

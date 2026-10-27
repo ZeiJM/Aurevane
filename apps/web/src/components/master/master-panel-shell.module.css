@@ -1,72 +1,88 @@
-/* Boards 10, 15 and 19: a scene header above a bounded authoring workspace. */
+/* A compact frame shared by every staff workspace. */
 .workspace {
-  --av-text: #313b37;
-  --av-text-muted: #546058;
-  --av-text-dim: #3e4438;
-  --av-parchment-100: #303a35;
-  --av-brass-200: #605039;
-  --av-brass-300: #7e6949;
-  --av-border: #a18e71;
-  --av-border-strong: #8d795e;
-  --master-stone: linear-gradient(130deg, #ddd3c0, #c2b295);
+  --av-text: #293d37;
+  --av-text-muted: #4e5d52;
+  --av-text-dim: #626858;
+  --av-parchment-100: #293d37;
+  --av-brass-200: #725931;
+  --av-brass-300: #80643a;
+  --av-border: #b6a587;
+  --av-border-strong: #988465;
+  --av-teal-bright: #28685d;
+  --master-stone: linear-gradient(135deg, #f0e9da, #e3d8c2);
+  --master-panel: #f7f1e5;
+  --master-inset: #e6ddca;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   height: 100%;
-  color: #313b37;
-  background: #384342;
-  border: 1px solid #907c60;
+  color: var(--av-text);
+  background: #263c39;
+  border: 1px solid #8b7755;
+  border-radius: 0.45rem;
+  box-shadow: 0 0.5rem 1.5rem #101d2026;
+  isolation: isolate;
 }
 .heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0.55rem 0.85rem;
-  color: #efe4d1;
+  padding: 0.65rem 1rem;
+  color: #f4ead7;
+  background: linear-gradient(110deg, #243e3a, #354b43);
+  border-radius: 0.4rem 0.4rem 0 0;
 }
 .heading h1 {
   margin: 0;
-  font: 500 1.25rem/1.3 var(--av-font-display);
+  font: 500 1.2rem/1.3 var(--av-font-display);
+  letter-spacing: 0.015em;
 }
 .heading :global(.av-eyebrow) {
   display: none;
 }
 .heading > p {
   margin: 0;
-  max-width: 45rem;
   color: #e0d5bf;
   font-size: 0.875rem;
 }
 .navigation {
   display: flex;
   flex-wrap: wrap;
-  gap: 1px;
+  gap: 0.2rem;
   padding: 0.4rem 0.6rem;
-  background: #c8b99e;
-  border-block: 1px solid #9a8464;
+  background: #ded3bd;
+  border-block: 1px solid #ae9975;
 }
 .navigation a {
   display: inline-flex;
+  min-height: 2.4rem;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.55rem 0.85rem;
-  color: #42473c;
-  font: 500 0.83rem var(--av-font-display);
+  padding: 0.4rem 0.7rem;
+  color: #405249;
+  font: 600 0.83rem/1.3 var(--av-font-body);
   text-decoration: none;
   border: 1px solid transparent;
+  border-radius: 0.25rem;
 }
-.navigation a:hover,
-.navigation a:focus-visible {
-  background: #ddd2bb;
-  border-color: #9b8663;
+.navigation a > span {
+  color: #766241;
+  font-size: 1rem;
+}
+.navigation a:hover {
+  background: #f3ead7;
+  border-color: #af9873;
 }
 .navigation a[aria-current] {
-  color: #eee2ca;
-  background: #3e6260;
-  border-color: #2e4b4b;
+  color: #fff4dc;
+  background: #315d54;
+  border-color: #254b43;
+  box-shadow: inset 0 1px #ffffff1a;
+}
+.navigation a[aria-current] > span {
+  color: #e2c181;
 }
 .content {
   min-width: 0;
@@ -76,26 +92,58 @@
   flex-direction: column;
   overscroll-behavior: contain;
   scrollbar-width: thin;
-  padding: 0.8rem;
+  padding: 0.75rem;
   background: var(--master-stone);
+  border-radius: 0 0 0.4rem 0.4rem;
 }
 :where(.content) > * {
+  min-width: 0;
   min-height: 0;
   max-height: 100%;
   flex: 1 1 auto;
   overflow: auto;
+  scrollbar-width: thin;
+}
+/* Workspace tabs stay above the scrolling page body. */
+.content > nav {
+  flex: 0 0 auto;
+  max-height: none;
+  overflow: visible;
 }
 .workspace :is(input, select, textarea) {
-  border-radius: 2px;
+  border-radius: 0.25rem;
 }
-.workspace :is(button, a):focus-visible {
-  outline: 2px solid #327f77;
+.workspace :is(button, a, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #237569;
   outline-offset: 2px;
 }
-
+.workspace[data-master-composition='combat-timing'] .content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 24%);
+  align-items: stretch;
+  gap: 0.8rem;
+}
+.workspace[data-master-composition='combat-timing'] .content > * {
+  overflow: hidden;
+}
+.workspace[data-master-composition='combat-timing'] .content > :last-child {
+  align-self: start;
+  overflow: auto;
+}
+@media (max-width: 960px) {
+  .workspace[data-master-composition='combat-timing'] .content {
+    grid-template-columns: minmax(0, 1fr);
+    overflow: auto;
+  }
+  .workspace[data-master-composition='combat-timing'] .content > * {
+    max-height: none;
+    overflow: visible;
+  }
+}
 @media (max-width: 760px), (max-height: 550px) {
   .workspace {
     height: auto;
+    min-height: 100%;
   }
   .content {
     overflow: visible;
@@ -105,13 +153,26 @@
     overflow: visible;
   }
 }
-
-/* Keyboard focus and scrollIntoView must reserve the existing mobile dock, even
- * when a control already falls inside the visual viewport behind that dock. */
 @media (max-width: 760px) {
+  .heading {
+    padding: 0.65rem 0.75rem;
+  }
+  .navigation {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 0.35rem;
+    scrollbar-width: thin;
+  }
+  .navigation a {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+    padding-inline: 0.6rem;
+  }
+  .content {
+    padding: 0.55rem;
+  }
   .workspace :is(a, button, input, select, textarea, summary) {
-    scroll-margin-block-end: calc(
-      var(--av-mobile-dock-height, 3.25rem + env(safe-area-inset-bottom)) + 0.25rem
-    );
+    scroll-margin-block: 0.75rem
+      calc(var(--av-mobile-dock-height, 3.25rem + env(safe-area-inset-bottom)) + 0.75rem);
   }
 }

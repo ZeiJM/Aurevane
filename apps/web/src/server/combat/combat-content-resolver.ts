@@ -285,15 +285,21 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
       )
     )
       throw invalid()
+    const activeOverride = (row: Record<string, unknown>) =>
+      typeof row.relationshipOverrideDisciplineId === 'string' &&
+      [primary, secondary].includes(row.relationshipOverrideDisciplineId)
     const essence = data.essence
     const resonance = data.resonance
     if (
       essence !== null &&
       (!isObject(essence) ||
-        secondary !== null ||
+        (secondary !== null && !activeOverride(essence)) ||
+        (essence.relationshipOverrideDisciplineId !== undefined &&
+          (!activeOverride(essence) ||
+            essence.sourceDisciplineId !== essence.relationshipOverrideDisciplineId)) ||
         !requiredString(essence.essenceId) ||
         !positiveInteger(essence.contentVersion) ||
-        essence.sourceDisciplineId !== primary ||
+        (essence.sourceDisciplineId !== primary && !activeOverride(essence)) ||
         essence.skillId !== essence.essenceId ||
         essence.skillContentVersion !== essence.contentVersion ||
         Object.keys(essence).some(
@@ -304,6 +310,7 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
               'sourceDisciplineId',
               'skillId',
               'skillContentVersion',
+              'relationshipOverrideDisciplineId',
             ].includes(key),
         ))
     )
@@ -312,15 +319,26 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     if (
       resonance !== null &&
       (!isObject(resonance) ||
-        secondary === null ||
+        (secondary === null && !activeOverride(resonance)) ||
         secondary === primary ||
+        (resonance.relationshipOverrideDisciplineId !== undefined &&
+          (!activeOverride(resonance) ||
+            !Array.isArray(resonance.disciplinePair) ||
+            !resonance.disciplinePair.includes(resonance.relationshipOverrideDisciplineId))) ||
         !requiredString(resonance.resonanceId) ||
         !positiveInteger(resonance.contentVersion) ||
         !Array.isArray(resonance.disciplinePair) ||
         resonance.disciplinePair.length !== 2 ||
-        resonance.disciplinePair.some((id, index) => id !== pair![index]) ||
+        (!activeOverride(resonance) &&
+          resonance.disciplinePair.some((id, index) => id !== pair![index])) ||
         Object.keys(resonance).some(
-          (key) => !['resonanceId', 'contentVersion', 'disciplinePair'].includes(key),
+          (key) =>
+            ![
+              'resonanceId',
+              'contentVersion',
+              'disciplinePair',
+              'relationshipOverrideDisciplineId',
+            ].includes(key),
         ))
     )
       throw invalid()
@@ -736,22 +754,23 @@ export function createCombatContentResolver(
         )
         const definition = published
           ? validatePublishedEssence(published, reference.essenceId, reference.contentVersion)
-          : resolveEssenceForBuild(
-              primaryDisciplineId,
-              secondaryDisciplineId,
-              reference.contentVersion,
-            )
+          : resolveEssenceForBuild(reference.sourceDisciplineId, null, reference.contentVersion)
         if (
           !definition ||
           definition.essenceId !== reference.essenceId ||
-          definition.sourceDisciplineId !== primaryDisciplineId ||
+          definition.sourceDisciplineId !== reference.sourceDisciplineId ||
           !definition.enabled ||
           !definition.skill.enabled
         )
           throw new InvalidPublishedCombatContentError(
             'The selected Essence is unavailable for this build.',
           )
-        return structuredClone(definition)
+        return {
+          ...structuredClone(definition),
+          ...(reference.relationshipOverrideDisciplineId
+            ? { relationshipOverrideDisciplineId: reference.relationshipOverrideDisciplineId }
+            : {}),
+        }
       }
       const fallback = resolveEssenceForBuild(primaryDisciplineId, secondaryDisciplineId)
       if (!fallback) return null
@@ -791,8 +810,8 @@ export function createCombatContentResolver(
         const definition = published
           ? validatePublishedResonance(published, reference.resonanceId, reference.contentVersion)
           : resolveResonanceForPair(
-              primaryDisciplineId,
-              secondaryDisciplineId,
+              reference.disciplinePair[0],
+              reference.disciplinePair[1],
               reference.contentVersion,
             )
         if (
@@ -804,7 +823,12 @@ export function createCombatContentResolver(
           throw new InvalidPublishedCombatContentError(
             'The selected Resonance is unavailable for this build.',
           )
-        return structuredClone(definition)
+        return {
+          ...structuredClone(definition),
+          ...(reference.relationshipOverrideDisciplineId
+            ? { relationshipOverrideDisciplineId: reference.relationshipOverrideDisciplineId }
+            : {}),
+        }
       }
       const fallback = resolveResonanceForPair(primaryDisciplineId, secondaryDisciplineId)
       if (!fallback) return null

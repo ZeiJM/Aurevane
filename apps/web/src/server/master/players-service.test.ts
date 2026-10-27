@@ -69,7 +69,7 @@ it('neutral_reader_no_world_mutation projects real AP, resources, derived maxima
     p_actor_user_id: 'owner',
     p_character_id: 'target',
   })
-  expect(access.requireCapability).toHaveBeenLastCalledWith('owner', 'staff.manage')
+  expect(access.requireCapability).toHaveBeenLastCalledWith('owner', 'players.manage')
   expect(view.battle?.combatants[0]).toMatchObject({ hp: 5, mp: 3, ap: 2 })
   expect(view.battle?.participants.map((p) => p.name)).toEqual(['Target', 'Peer'])
   expect(view.calculated.maxHp).toBeGreaterThan(0)
@@ -148,4 +148,24 @@ it('accepts explicit selected eligibility in a Skill correction but rejects call
   expect(() =>
     parsePlayerCorrection({ kind: 'skills', skills: [{ ...skill, earnedEligibility: true }] }),
   ).toThrow()
+})
+
+it('projects only the pinned correction policy and derives its real focus/nonfocus caps', async () => {
+  const value = {
+    ...raw(),
+    attributePolicy: {
+      disciplineId: 'vanguard',
+      policyVersion: 17,
+      baseAttributes: { might: 7, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+      focusAttributes: ['intellect', 'resolve'],
+      offFocusCap: 40,
+      privateOwner: 'never',
+    },
+  }
+  const view = await createMasterPlayersService(access, async () => value).read('owner', 'target')
+  expect(view.attributePolicy).toMatchObject({
+    policyVersion: 17,
+    attributeCaps: { might: 40, intellect: 60, resolve: 60 },
+  })
+  expect(JSON.stringify(view.attributePolicy)).not.toContain('privateOwner')
 })

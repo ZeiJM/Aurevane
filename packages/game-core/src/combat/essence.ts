@@ -32,6 +32,8 @@ import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 export const ESSENCE_SCHEMA_VERSION = 1 as const
 
 export interface EssenceDefinition {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
   readonly ability?: AbilityDefinition
   readonly essenceId: string
   readonly contentVersion: number
@@ -49,6 +51,8 @@ export interface EssenceDefinition {
 }
 
 export interface EssenceSnapshotReference {
+  /** Captured server selection only; never changes the original power identity. */
+  readonly relationshipOverrideDisciplineId?: string
   readonly essenceId: string
   readonly contentVersion: number
   readonly sourceDisciplineId: string
@@ -671,6 +675,9 @@ export function resolveEssenceForBuild(
 export function essenceSnapshotReference(definition: EssenceDefinition): EssenceSnapshotReference {
   assertUsableEssence(definition)
   return {
+    ...(definition.relationshipOverrideDisciplineId
+      ? { relationshipOverrideDisciplineId: definition.relationshipOverrideDisciplineId }
+      : {}),
     essenceId: definition.essenceId,
     contentVersion: definition.contentVersion,
     sourceDisciplineId: definition.sourceDisciplineId,
@@ -685,6 +692,14 @@ function resolveLegalEssence(
   secondaryDisciplineId: string | null,
 ): EssenceDefinition | null {
   assertUsableEssence(essence)
+  if (
+    essence.relationshipOverrideDisciplineId &&
+    [primaryDisciplineId, secondaryDisciplineId].includes(
+      essence.relationshipOverrideDisciplineId,
+    ) &&
+    essence.sourceDisciplineId === essence.relationshipOverrideDisciplineId
+  )
+    return essence
   if (Object.hasOwn(essence, 'ability') || Object.hasOwn(essence.skill, 'ability'))
     return secondaryDisciplineId === null && primaryDisciplineId === essence.sourceDisciplineId
       ? essence

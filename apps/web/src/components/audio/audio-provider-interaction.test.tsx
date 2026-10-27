@@ -161,6 +161,29 @@ beforeEach(() => {
   )
 })
 afterEach(() => vi.unstubAllGlobals())
+it('reports legacy YouTube sources without assigning them to the native player and recovers on replacement', async () => {
+  const config = createDefaultSiteMusicConfig()
+  config.defaultTrack = {
+    ...config.defaultTrack,
+    url: 'https://www.youtube.com/watch?v=x06zFQ85gT0',
+    source: 'url',
+  }
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ config })))
+  render()
+  await settle()
+  expect(element.src).toBe('')
+  expect(element.play).not.toHaveBeenCalled()
+  expect(render().music.error).toMatch(/YouTube.*background music/)
+  await render().toggleMusicPlayback()
+  expect(element.play).not.toHaveBeenCalled()
+  emit(SITE_MUSIC_UPDATED_EVENT, createDefaultSiteMusicConfig())
+  render()
+  await settle()
+  expect(element.src).toBe('/media/audio/music/road-to-aurevane.webm')
+  expect(element.paused).toBe(false)
+  expect(render().music.error).toBeNull()
+})
+
 it('keeps one source continuous across shared-track pages, respects user pause and stops for explicit silence', async () => {
   render()
   await settle()

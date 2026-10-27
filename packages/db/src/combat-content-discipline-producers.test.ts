@@ -25,7 +25,7 @@ beforeAll(async () => {
   // Only Supabase's platform identity and unavailable scheduler are fixtures.
   // Every Aurevane table, authorization function, producer and finalizer is real migration SQL.
   await db.exec(`create role anon; create role authenticated; create role service_role;
-    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,created_at timestamptz default now());
+    create schema auth; create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,banned_until timestamptz,updated_at timestamptz,created_at timestamptz default now());
     create function auth.uid() returns uuid language sql as $$ select null::uuid $$;
     create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
     create schema realtime; create table realtime.messages(extension text,topic text,payload jsonb);
@@ -2203,4 +2203,203 @@ it('current Discipline chooser includes authored artwork while preserving the pu
     definition_version: published.current.contentVersion,
     core_base_attributes: authored.core,
   })
+})
+
+it('relationship override captures chosen pair for pure, mixed and reversed builds, then restores normal mappings', async () => {
+  const power = resolveResonanceForPair('vanguard', 'lifebinder')!
+  const mapping = [{ withDisciplineId: 'lifebinder', resonanceId: power.id }]
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: mapping,
+    relationshipOverride: { withDisciplineId: 'lifebinder' },
+  })
+  for (const [a, b] of [
+    ['vanguard', null],
+    ['vanguard', 'aetherist'],
+    ['aetherist', 'vanguard'],
+  ]) {
+    const selected = (
+      await db.query<{ value: { resonance: unknown; essence: unknown } }>(
+        'select public.read_current_discipline_selection_v1($1,$2) value',
+        [a, b],
+      )
+    ).rows[0]!.value
+    expect(selected.resonance).toMatchObject({
+      resonanceId: power.id,
+      disciplinePair: power.disciplinePair,
+      relationshipOverrideDisciplineId: 'vanguard',
+    })
+    expect(selected.essence).toBeNull()
+  }
+  const pinned = await newTrialSnapshot()
+  // Actual application battle authority carries only the two supported powers.
+  const captured = pinned.buildAuthority.combatants[0]! as Record<string, unknown>
+  const extensions = captured.extensions as { essence: unknown; resonance: unknown }
+  captured.extensions = { essence: extensions.essence, resonance: extensions.resonance }
+  const admitted = await admitTrial(pinned)
+  expect(admitted.battle_session_id).toBeTruthy()
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: mapping,
+    relationshipOverride: null,
+  })
+  expect(
+    (
+      await db.query<{ value: unknown }>(
+        'select current_snapshot value from app_private.battle_sessions where id=$1',
+        [admitted.battle_session_id],
+      )
+    ).rows[0]!.value,
+  ).toEqual(pinned)
+  expect(
+    (
+      await db.query<{ value: { resonance: unknown } }>(
+        'select public.read_current_discipline_selection_v1($1,null) value',
+        ['vanguard'],
+      )
+    ).rows[0]!.value.resonance,
+  ).toBeNull()
+})
+it('two overrides choose the same lexicographically first Discipline independent of slot, including mixed Essence', async () => {
+  const essence = resolveEssenceForBuild('lifebinder', null)!
+  await publishNativeDiscipline('lifebinder', {
+    essenceId: essence.essenceId,
+    relationshipOverride: { withDisciplineId: null },
+  })
+  const power = resolveResonanceForPair('vanguard', 'lifebinder')!
+  await publishNativeDiscipline('vanguard', {
+    resonanceSelections: [{ withDisciplineId: 'lifebinder', resonanceId: power.id }],
+    relationshipOverride: { withDisciplineId: 'lifebinder' },
+  })
+  for (const [a, b] of [
+    ['lifebinder', 'vanguard'],
+    ['vanguard', 'lifebinder'],
+  ]) {
+    const selected = (
+      await db.query<{ value: { resonance: unknown; essence: unknown } }>(
+        'select public.read_current_discipline_selection_v1($1,$2) value',
+        [a, b],
+      )
+    ).rows[0]!.value
+    expect(selected.essence).toMatchObject({
+      essenceId: essence.essenceId,
+      sourceDisciplineId: 'lifebinder',
+      relationshipOverrideDisciplineId: 'lifebinder',
+    })
+    expect(selected.resonance).toBeNull()
+  }
+})
+it('actual SQL refuses an override that has no chosen relationship', async () => {
+  await denied(
+    () =>
+      publishNativeDiscipline('vanguard', {
+        relationshipOverride: { withDisciplineId: 'missing' },
+      }),
+    /DISCIPLINE_RELATIONSHIP_OVERRIDE_INVALID/,
+  )
+})
+
+it('grant-only unavailable Discipline is selectable in either slot without invented mastery and revocation removes future access', async () => {
+  const saved = await authoredDraft({ ...authored, unlock: { kind: 'unavailable' } })
+  await publish(authored.id, saved.draft.draftVersion, null)
+  const available = async () =>
+    (
+      await db.query<{ value: Record<string, unknown>[] }>(
+        'select public.get_character_discipline_catalog_v3($1,$2) value',
+        [other, character],
+      )
+    ).rows[0]!.value.find((row) => row.discipline_id === authored.id)
+  expect(await available()).toMatchObject({
+    enabled_for_primary: false,
+    enabled_for_secondary: false,
+    player_granted: false,
+  })
+  await db.exec('update app_private.discipline_unlock_policy_state set testing_open=false')
+  expect(await available()).toMatchObject({
+    enabled_for_primary: false,
+    mastered_at: null,
+    player_granted: false,
+  })
+  await db.query('select public.write_discipline_player_grants_v1($1,null,$2,$3,$4,$5)', [
+    owner,
+    authored.id,
+    [other],
+    'grant',
+    'Owner entitlement',
+  ])
+  expect(await available()).toMatchObject({
+    enabled_for_primary: true,
+    mastered_at: null,
+    player_granted: true,
+  })
+  await db.exec('savepoint granted_primary_probe')
+  await db.query(
+    'select * from public.change_character_disciplines_v3($1,$2,1,true,$3,false,null,$4,$5)',
+    [other, character, authored.id, crypto.randomUUID(), 'grant-primary'],
+  )
+  expect(
+    (
+      await db.query<{ primary_discipline_id: string }>(
+        'select primary_discipline_id from app_private.character_active_builds where character_id=$1',
+        [character],
+      )
+    ).rows[0]!.primary_discipline_id,
+  ).toBe(authored.id)
+  await db.exec('rollback to savepoint granted_primary_probe')
+  await db.query(
+    'select * from public.change_character_disciplines_v3($1,$2,1,false,null,true,$3,$4,$5)',
+    [other, character, authored.id, crypto.randomUUID(), 'grant-secondary'],
+  )
+  expect(
+    (
+      await db.query(
+        'select 1 from app_private.character_discipline_masteries where character_id=$1 and discipline_id=$2',
+        [character, authored.id],
+      )
+    ).rows,
+  ).toHaveLength(0)
+  await db.query('select public.write_discipline_player_grants_v1($1,null,$2,$3,$4,$5)', [
+    owner,
+    authored.id,
+    [other],
+    'revoke',
+    'Owner revocation',
+  ])
+  expect(await available()).toMatchObject({
+    enabled_for_primary: false,
+    mastered_at: null,
+    player_granted: false,
+  })
+  await denied(
+    () =>
+      db.query(
+        'select * from public.change_character_disciplines_v3($1,$2,2,true,$3,true,null,$4,$5)',
+        [other, character, authored.id, crypto.randomUUID(), 'revoked-primary'],
+      ),
+    /PRIMARY_DISCIPLINE_MASTERY_REQUIRED/,
+  )
+})
+it('new admission refuses a forged extension override without any partial battle insert', async () => {
+  const forged = await newTrialSnapshot()
+  const build = forged.buildAuthority.combatants[0]! as Record<string, unknown>
+  const extensions = build.extensions as { essence: Record<string, unknown> }
+  extensions.essence.relationshipOverrideDisciplineId = 'vanguard'
+  await denied(() => admitTrial(forged), /PLAYER_PREPARATION_STALE/)
+  expect((await db.query('select 1 from app_private.battle_sessions')).rows).toHaveLength(0)
+})
+
+it('grant-only Foundation creation uses the account entitlement and cannot bypass it through a new slot', async () => {
+  const published = await publishNativeDiscipline('vanguard', { unlock: { kind: 'unavailable' } })
+  const create = () =>
+    db.query(
+      "select * from public.create_character_v4($1,1::smallint,$2,$3,1,'Extra Player','extra-player','default','they','portrait','appearance','vanguard',2,0,2,0,0,1,$4)",
+      [other, crypto.randomUUID(), 'grant-creation', published.current.contentVersion],
+    )
+  await denied(create, /PRIMARY_DISCIPLINE_MASTERY_REQUIRED/)
+  await db.query('select public.write_discipline_player_grants_v1($1,null,$2,$3,$4,$5)', [
+    owner,
+    'vanguard',
+    [other],
+    'grant',
+    'New slot entitlement',
+  ])
+  expect((await create()).rows).toHaveLength(1)
 })

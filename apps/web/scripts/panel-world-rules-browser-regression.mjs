@@ -208,6 +208,29 @@ async function verify(page, scenario) {
       `Desktop Rules should fit its workspace: ${JSON.stringify(workspace)}`,
     )
   }
+  const rulesGeometry = await timing.evaluate((form) => {
+    const list = form.querySelector('table').parentElement
+    const bounds = list.getBoundingClientRect()
+    const elevation = document.querySelector('form[aria-label="Elevation chances"]')
+    const side = elevation.getBoundingClientRect()
+    const timing = form.getBoundingClientRect()
+    const visibleRows = [...list.querySelectorAll('tbody tr')].filter((row) => {
+      const rect = row.getBoundingClientRect()
+      return rect.top >= bounds.top && rect.bottom <= bounds.bottom
+    }).length
+    return {
+      visibleRows,
+      listHeight: bounds.height,
+      columns: timing.right <= side.left,
+      stacked: side.top >= timing.bottom,
+    }
+  })
+  if (scenario === 'desktop') {
+    assert.equal(rulesGeometry.columns, true, 'Timing and elevation use independent columns')
+    assert.ok(rulesGeometry.visibleRows >= 6, 'Timing should show at least six complete tag rows')
+  } else {
+    assert.equal(rulesGeometry.stacked, true, 'Narrow Rules layout stacks elevation after timing')
+  }
   const usage = timing.getByRole('button', { name: '120 current definitions', exact: true })
   await usage.click()
   const dialog = page.getByRole('dialog', { name: 'Direct damage definitions', exact: true })
@@ -285,6 +308,7 @@ async function verify(page, scenario) {
   evidence.push({
     scenario,
     worldGeometry,
+    rulesGeometry,
     scroll,
     savedPolicy: policy,
     weatherCadence: 15,

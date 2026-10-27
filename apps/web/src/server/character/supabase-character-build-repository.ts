@@ -113,7 +113,12 @@ function parseCatalogEntry(row: unknown): DisciplineCatalogEntry | null {
   ) {
     return null
   }
-  return { definition, profile, masteredAt }
+  return {
+    definition,
+    profile,
+    masteredAt,
+    ...(row.player_granted === true ? { playerGranted: true } : {}),
+  }
 }
 
 function parseActiveBuild(row: unknown): CharacterActiveBuildRecord | null {
@@ -359,6 +364,9 @@ function parseSnapshotResonance(
     return undefined
   }
   return {
+    ...(value.relationshipOverrideDisciplineId !== undefined
+      ? { relationshipOverrideDisciplineId: value.relationshipOverrideDisciplineId as string }
+      : {}),
     resonanceId: value.resonanceId,
     contentVersion,
     disciplinePair: [value.disciplinePair[0], value.disciplinePair[1]],
@@ -382,6 +390,9 @@ function parseSnapshotEssence(
     return undefined
   }
   return {
+    ...(value.relationshipOverrideDisciplineId !== undefined
+      ? { relationshipOverrideDisciplineId: value.relationshipOverrideDisciplineId as string }
+      : {}),
     essenceId: value.essenceId,
     contentVersion,
     sourceDisciplineId: value.sourceDisciplineId,

@@ -46,7 +46,7 @@
 .status p {
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.67rem;
+  font-size: 0.78rem;
   line-height: 1.45;
 }
 
@@ -70,7 +70,7 @@
   border-radius: var(--av-radius-sm);
   background: rgba(185, 154, 92, 0.065);
   color: var(--av-text-muted);
-  font-size: 0.65rem;
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
 }
@@ -148,7 +148,7 @@
   display: grid;
   gap: 0.28rem;
   color: var(--av-text-muted);
-  font-size: 0.67rem;
+  font-size: 0.78rem;
 }
 
 .builder input,
@@ -171,7 +171,7 @@
 .eyebrow {
   margin: 0;
   color: var(--av-brass-300);
-  font: 700 0.53rem/1.2 var(--av-font-body);
+  font: 700 0.78rem/1.2 var(--av-font-body);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -237,7 +237,7 @@
 
 .status strong {
   color: var(--av-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
 }
 
 .status pre {
@@ -250,7 +250,7 @@
   background: rgba(2, 7, 13, 0.86);
   color: var(--av-text-muted);
   white-space: pre-wrap;
-  font-size: 0.66rem;
+  font-size: 0.78rem;
 }
 
 @media (max-width: 1050px) {
@@ -317,7 +317,7 @@
 .toolbar p,
 .notice,
 .status p {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   line-height: 1.4;
 }
 
@@ -328,7 +328,7 @@
 .builder button {
   min-height: 2.05rem;
   padding: 0.4rem 0.56rem;
-  font-size: 0.61rem;
+  font-size: 0.78rem;
 }
 
 .notice {
@@ -397,7 +397,7 @@
 .card label,
 .phaseCard label {
   gap: 0.2rem;
-  font-size: 0.62rem;
+  font-size: 0.78rem;
 }
 
 .builder input,
@@ -405,7 +405,7 @@
 .builder textarea {
   min-height: 2.08rem;
   padding: 0.42rem 0.5rem;
-  font-size: 0.65rem;
+  font-size: 0.78rem;
 }
 
 .builder textarea {
@@ -439,7 +439,7 @@
 .status pre {
   max-height: 12rem;
   padding: 0.5rem;
-  font-size: 0.6rem;
+  font-size: 0.78rem;
 }
 
 @media (max-width: 1180px) {
@@ -546,7 +546,7 @@
 .miniHeading > span,
 .dockHeading > span {
   color: var(--av-teal-bright);
-  font: 700 0.54rem/1.2 var(--av-font-body);
+  font: 700 0.78rem/1.2 var(--av-font-body);
   text-transform: uppercase;
 }
 
@@ -555,7 +555,7 @@
   display: grid;
   gap: 0.22rem;
   color: var(--av-text-muted);
-  font-size: 0.62rem;
+  font-size: 0.78rem;
 }
 
 .navigatorActions,
@@ -583,7 +583,7 @@
 .publicationState span {
   display: block;
   color: var(--av-text-dim);
-  font: 650 0.5rem/1.2 var(--av-font-body);
+  font: 650 0.78rem/1.2 var(--av-font-body);
   text-transform: uppercase;
 }
 
@@ -592,7 +592,7 @@
   display: block;
   margin-top: 0.14rem;
   color: var(--av-text);
-  font-size: 0.68rem;
+  font-size: 0.78rem;
 }
 
 .navigatorHistory {
@@ -605,7 +605,7 @@
 .navigatorHistory > p {
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.6rem;
+  font-size: 0.78rem;
   line-height: 1.4;
 }
 
@@ -625,7 +625,7 @@
 
 .versionList > div > span {
   color: var(--av-teal-bright);
-  font-size: 0.5rem;
+  font-size: 0.78rem;
 }
 
 .versionList > div > div {
@@ -636,13 +636,13 @@
 
 .versionList strong {
   color: var(--av-text);
-  font-size: 0.64rem;
+  font-size: 0.78rem;
 }
 
 .versionList small,
 .versionList time {
   color: var(--av-text-dim);
-  font-size: 0.52rem;
+  font-size: 0.78rem;
 }
 
 .builderWorkspace {
@@ -684,7 +684,7 @@
 .definitionHeading {
   margin: 0;
   color: var(--av-text-dim);
-  font: 700 0.53rem/1.2 var(--av-font-body);
+  font: 700 0.78rem/1.2 var(--av-font-body);
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -704,12 +704,12 @@
   align-items: center;
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.58rem;
+  font-size: 0.78rem;
 }
 
 .eventIdentity code {
   color: var(--av-text-muted);
-  font: 650 0.56rem/1.2 var(--av-font-mono);
+  font: 650 0.78rem/1.2 var(--av-font-mono);
 }
 
 .eventIdentity > p > span {
@@ -723,7 +723,7 @@
 .eventHeaderState {
   max-width: 15rem;
   color: var(--av-text-dim);
-  font-size: 0.59rem;
+  font-size: 0.78rem;
   text-align: right;
 }
 
@@ -743,7 +743,7 @@
   align-items: center;
   padding: 0 0.65rem;
   color: var(--av-text-dim);
-  font: 700 0.58rem/1 var(--av-font-body);
+  font: 700 0.78rem/1 var(--av-font-body);
   text-decoration: none;
 }
 
@@ -795,7 +795,7 @@
 
 .phaseHeader > div > span {
   color: var(--av-text-dim);
-  font: 650 0.51rem/1.2 var(--av-font-body);
+  font: 650 0.78rem/1.2 var(--av-font-body);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -1039,4 +1039,127 @@
 .eventTitle {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* Shared warm workspace surfaces and readable controls. */
+:global(.av-master) .builder {
+  grid-template-columns: minmax(14rem, 22%) minmax(0, 1fr);
+  gap: 0.8rem;
+  color: var(--av-text);
+  font-size: 0.875rem;
+}
+:global(.av-master)
+  .builder
+  :is(
+    .eventNavigator,
+    .builderWorkspace,
+    .controlCard,
+    .card,
+    .phaseCard,
+    .status,
+    .dockSection,
+    .eventHeader
+  ) {
+  background: var(--master-panel, #f7f1e5);
+  border-color: #b6a587;
+  border-radius: 0.4rem;
+  box-shadow: 0 1px 3px #4d402a12;
+}
+:global(.av-master) .builder .builderWorkspace {
+  gap: 0.7rem;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+}
+:global(.av-master) .builder :is(.eventNavigator, .card, .phaseCard, .status) {
+  padding: 0.8rem;
+}
+:global(.av-master) .builder .eventNavigator {
+  top: 0;
+  grid-column: 1;
+  max-height: calc(100dvh - 12rem);
+}
+:global(.av-master) .builder .builderWorkspace {
+  grid-column: 2;
+}
+:global(.av-master) .builder :is(.controlCard, .primaryCard, .phases, .status) {
+  grid-column: auto;
+  grid-row: auto;
+}
+:global(.av-master) .builder .eventHeader {
+  padding: 0.8rem;
+  border-top: 3px solid #a1844d;
+}
+:global(.av-master) .builder :is(.navigatorSummary > div, .publicationState, .notice) {
+  background: #e9e1cf;
+  border-color: #baaa8e;
+}
+:global(.av-master) .builder :is(.eventTitle, h2, h3) {
+  color: #293d37;
+}
+:global(.av-master) .builder :is(h2, h3) {
+  font-size: 1rem;
+}
+:global(.av-master) .builder .eventTitle {
+  font-size: 1.25rem;
+}
+:global(.av-master) .builder :is(label, input, select, textarea, button) {
+  font-size: 0.85rem;
+}
+:global(.av-master) .builder button {
+  background: #e8dfcc;
+  color: #345348;
+  border-color: #a99879;
+}
+:global(.av-master) .builder button:hover:not(:disabled) {
+  background: #d6e5da;
+  border-color: #618779;
+}
+:global(.av-master)
+  .builder
+  :is(.eventIdentityIcon, .eyebrow, .navigatorHeading > span, .miniHeading > span) {
+  color: #786138;
+}
+:global(.av-master) .builder .workspaceTabs {
+  gap: 0.3rem;
+  padding: 0 0 0.6rem;
+}
+:global(.av-master) .builder .row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  padding: 0.65rem;
+  background: #eee7d9;
+  border: 1px solid #cabba0;
+  border-radius: 0.3rem;
+}
+:global(.av-master) .builder .row > button {
+  justify-self: start;
+}
+:global(.av-master) .builder :is(button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #237569;
+  outline-offset: 2px;
+}
+@media (max-width: 900px) {
+  :global(.av-master) .builder {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :global(.av-master) .builder :is(.eventNavigator, .builderWorkspace) {
+    grid-column: 1;
+    position: static;
+    max-height: none;
+  }
+}
+@media (max-width: 600px) {
+  :global(.av-master) .builder :is(.primaryCard, .grid, .row) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  :global(.av-master) .builder :is(button, input, select) {
+    min-height: 2.75rem;
+  }
+}
+
+:global(.av-master) .builder .workspaceTabs button[aria-pressed='true'] {
+  color: #fff4de;
+  background: #315e53;
+  border-color: #315e53;
 }

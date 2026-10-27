@@ -32,6 +32,7 @@ import {
   createDefaultSiteMusicConfig,
   parseSiteMusicConfig,
   resolveSiteMusicTrack,
+  siteMusicSourceError,
   SITE_MUSIC_UPDATED_EVENT,
   SITE_MUSIC_PREVIEW_EVENT,
   type SiteMusicConfig,
@@ -149,6 +150,7 @@ export function AudioProvider({ children }: PropsWithChildren) {
   const playMusic = useCallback((element: HTMLAudioElement) => {
     if (musicPreviewActive.current || musicPausedByUser.current) return Promise.resolve(false)
     const url = element.dataset.trackUrl
+    if (!url || siteMusicSourceError(url)) return Promise.resolve(false)
     return attemptSiteMusicPlayback(
       () => element.play(),
       document.hidden,
@@ -192,7 +194,7 @@ export function AudioProvider({ children }: PropsWithChildren) {
     const element = musicElementRef.current
     if (!element) return
 
-    if (!activeTrack) {
+    if (!activeTrack || siteMusicSourceError(activeTrack.url)) {
       musicPausedByUser.current = false
       element.pause()
       element.removeAttribute('src')
@@ -352,7 +354,10 @@ export function AudioProvider({ children }: PropsWithChildren) {
       music: {
         track: activeTrack,
         ...musicPlayback,
-        error: activeTrack && musicError?.url === activeTrack.url ? musicError.message : null,
+        error: activeTrack
+          ? (siteMusicSourceError(activeTrack.url) ??
+            (musicError?.url === activeTrack.url ? musicError.message : null))
+          : null,
       },
       toggleMusicPlayback,
     }),

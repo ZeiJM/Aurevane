@@ -82,10 +82,14 @@ export async function resolveCurrentCharacterSkillDetails(
   const priorResonance = loadout.extensions.resonance
   const [definitions, essence, resonance] = await Promise.all([
     resolveCurrentDefinitions(loadout, resolver),
-    priorEssence && resolver.resolveCurrentEssenceDefinition
+    priorEssence &&
+    !priorEssence.relationshipOverrideDisciplineId &&
+    resolver.resolveCurrentEssenceDefinition
       ? resolver.resolveCurrentEssenceDefinition(priorEssence.sourceDisciplineId, null)
       : priorEssence,
-    priorResonance && resolver.resolveCurrentResonanceDefinition
+    priorResonance &&
+    !priorResonance.relationshipOverrideDisciplineId &&
+    resolver.resolveCurrentResonanceDefinition
       ? resolver.resolveCurrentResonanceDefinition(...priorResonance.disciplinePair)
       : priorResonance,
   ])

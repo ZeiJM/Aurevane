@@ -1,3 +1,4 @@
+import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
@@ -675,6 +676,10 @@ export async function startPvpLobby(
   )
   const initialized = activateCombatAbilitySources(encounter, sources, PV1F_COMBAT_CONTENT, true)
   encounter = { ...initialized.state, buildAuthority } as typeof encounter
+  const usageBalance = await createBattleUsageProvenance(
+    'pvp',
+    roster.map(({ member }) => member.userId),
+  )
   const battle = encounter.tactical.battle
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc(
@@ -685,10 +690,10 @@ export async function startPvpLobby(
       p_battle_id: battle.battleId,
       p_rules_version: battle.rulesVersion,
       p_content_version: battle.contentVersion,
-      p_initial_snapshot: encounter,
+      p_initial_snapshot: { ...encounter, usageBalance },
       ...(sources.length
         ? {
-            p_start_snapshot: startSnapshot,
+            p_start_snapshot: { ...startSnapshot, usageBalance },
             p_initial_events: initialized.events,
             p_privacy_journal: buildBattlePrivacyJournalInput({
               before: startSnapshot,

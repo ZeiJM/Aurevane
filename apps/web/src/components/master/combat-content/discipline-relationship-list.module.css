@@ -1,0 +1,116 @@
+.list {
+  display: grid;
+  gap: 0.5rem;
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid #c9b99b;
+  border-radius: 0.3rem;
+  background: #eee7d9;
+}
+.identity {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+  overflow-wrap: anywhere;
+}
+.identity strong {
+  color: #2b4c40;
+  font-weight: 600;
+}
+.identity span {
+  color: #5b6457;
+  font-size: 0.85rem;
+}
+.actions,
+.dialogActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.actions button,
+.dialog button {
+  min-height: 2.5rem;
+  padding: 0.45rem 0.7rem;
+  color: #345348;
+  background: #f7f1e5;
+  border: 1px solid #a99879;
+  border-radius: 0.25rem;
+  font: inherit;
+  cursor: pointer;
+}
+.actions button:disabled,
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dialog {
+  width: min(32rem, calc(100vw - 1.5rem));
+  max-height: calc(100dvh - 2rem);
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: #293d37;
+  background: #f7f1e5;
+  border: 1px solid #a99879;
+  border-radius: 0.4rem;
+}
+.dialog::backdrop {
+  background: #10251eb3;
+}
+.dialogHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.8rem;
+  border-bottom: 1px solid #c9b99b;
+}
+.dialogHeading h3 {
+  margin: 0;
+  font: 500 1.1rem/1.4 var(--av-font-display);
+}
+.dialogBody {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.8rem;
+}
+.dialogBody label {
+  display: grid;
+  gap: 0.35rem;
+}
+.dialogBody select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  font: inherit;
+  color: inherit;
+  background: #e6ddca;
+  border: 1px solid #a99879;
+}
+.dialogBody p {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+.dialogActions {
+  justify-content: space-between;
+  padding: 0.8rem;
+  border-top: 1px solid #c9b99b;
+}
+.actions button:focus-visible,
+.dialog :is(button, select):focus-visible {
+  outline: 3px solid #237569;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .actions button,
+  .dialog button {
+    min-height: 2.75rem;
+  }
+}

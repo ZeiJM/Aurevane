@@ -272,3 +272,49 @@ it('rejects arbitrary Support Actions when reading historic build bridges', () =
   }
   expect(readCombatBuildSnapshot(state, `character:${characterId}`)).toBeNull()
 })
+
+it('accepts only captured active-discipline relationship overrides while preserving historical restrictions', () => {
+  const pure = pureSnapshot()
+  const resonance = {
+    resonanceId: 'resonance.custom',
+    contentVersion: 1,
+    disciplinePair: ['lifebinder', 'vanguard'] as const,
+    relationshipOverrideDisciplineId: 'vanguard',
+  }
+  expect(
+    validateCombatBuildSnapshot({
+      ...pure,
+      extensions: { ...pure.extensions, essence: null, resonance },
+    }),
+  ).toEqual([])
+  expect(
+    validateCombatBuildSnapshot({
+      ...pure,
+      extensions: {
+        ...pure.extensions,
+        essence: null,
+        resonance: { ...resonance, relationshipOverrideDisciplineId: 'aetherist' },
+      },
+    }),
+  ).not.toEqual([])
+  const mixed = { ...pure, secondary: { disciplineId: 'aetherist', definitionVersion: 1 } }
+  expect(
+    validateCombatBuildSnapshot({
+      ...mixed,
+      extensions: {
+        ...mixed.extensions,
+        essence: { ...pure.extensions.essence!, relationshipOverrideDisciplineId: 'vanguard' },
+      },
+    }),
+  ).toEqual([])
+  expect(validateCombatBuildSnapshot(mixed)).not.toEqual([])
+  expect(
+    validateCombatBuildSnapshot({
+      ...mixed,
+      extensions: {
+        ...mixed.extensions,
+        essence: { ...pure.extensions.essence!, relationshipOverrideDisciplineId: 'aetherist' },
+      },
+    }),
+  ).not.toEqual([])
+})

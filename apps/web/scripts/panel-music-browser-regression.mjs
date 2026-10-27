@@ -115,13 +115,13 @@ const server = await createServer(config)
 await server.listen()
 const browser = await chromium.launch({
   headless: true,
-  executablePath:
-    process.env.AV_PANEL_MUSIC_BROWSER_EXECUTABLE || '/tmp/task13-recovery-browser/chromium',
+  executablePath: process.env.AV_PANEL_MUSIC_BROWSER_EXECUTABLE || chromium.executablePath(),
 })
 const evidence = []
 try {
   const origin = server.resolvedUrls.local[0]
   for (const viewport of [
+    { width: 1665, height: 880, zoom: 1 },
     { width: 1366, height: 768, zoom: 1 },
     { width: 390, height: 844, zoom: 1 },
     { width: 1366, height: 768, zoom: 2 },
@@ -129,12 +129,16 @@ try {
     const page = await browser.newPage({ viewport })
     const errors = []
     page.on('pageerror', (error) => errors.push(String(error)))
-    await page.goto(origin + '?view=music')
+    await page.goto(origin + '?view=music', { waitUntil: 'domcontentloaded' })
     await page.locator('body').evaluate((body, zoom) => (body.style.zoom = zoom), viewport.zoom)
     const workspace = page.getByRole('region', { name: 'Site Music', exact: true })
     const pages = workspace.getByRole('navigation', { name: 'Page music', exact: true })
     const library = workspace.getByRole('navigation', { name: 'Song library', exact: true })
     await library.getByRole('button', { name: 'Add song', exact: true }).waitFor()
+    await page.screenshot({
+      path: resolve(output, `music-global-${viewport.width}-${viewport.zoom}.png`),
+      fullPage: true,
+    })
     const help = workspace.getByRole('button', { name: 'About Music guidance', exact: true })
     await help.click()
     await page.getByRole('dialog', { name: 'Music guidance', exact: true }).waitFor()
@@ -173,12 +177,63 @@ try {
       songRows.some((row) => row.clipped),
       false,
     )
-    if (viewport.width === 1366 && viewport.zoom === 1)
+    if (viewport.width >= 1366 && viewport.zoom === 1) {
       assert.equal(
         await workspace.evaluate((element) => element.scrollHeight <= element.clientHeight + 1),
         true,
         'Desktop workspace grows beyond its fixed frame',
       )
+      const fit = await workspace.evaluate((element) => {
+        const frame = element.getBoundingClientRect()
+        const card = element.querySelector('article')
+        const detail = card.parentElement
+        return {
+          controlsVisible: [...card.querySelectorAll('input, select, audio, button')].every(
+            (control) => {
+              const rect = control.getBoundingClientRect()
+              return (
+                rect.top >= frame.top &&
+                rect.bottom <= Math.min(frame.bottom, innerHeight) &&
+                rect.right <= frame.right
+              )
+            },
+          ),
+          detailFits: detail.scrollHeight <= detail.clientHeight + 1,
+          audioUrlWidth: card.querySelector('input[inputmode="url"]').getBoundingClientRect().width,
+        }
+      })
+      assert.equal(
+        fit.controlsVisible,
+        true,
+        'Global Music controls must fit without editor scrolling',
+      )
+      assert.equal(fit.detailFits, true, 'Track editor needs its own scrollbar')
+      assert.ok(fit.audioUrlWidth >= 300, 'Audio URL field is too narrow to read')
+    }
+    const originalUrl = await workspace.getByLabel('Audio URL', { exact: true }).inputValue()
+    const requestsBefore = await page.evaluate(() => window.__operationsRequests.length)
+    await workspace
+      .getByLabel('Audio URL', { exact: true })
+      .fill('https://www.youtube.com/watch?v=x06zFQ85gT0')
+    await workspace
+      .getByRole('alert')
+      .filter({ hasText: 'YouTube cannot be used as background music' })
+      .waitFor()
+    assert.equal(await workspace.getByLabel('Track preview', { exact: true }).count(), 0)
+    await workspace.getByRole('button', { name: 'Save Changes', exact: true }).click()
+    await workspace
+      .getByRole('status')
+      .filter({ hasText: 'YouTube cannot be used as background music' })
+      .waitFor()
+    assert.equal(await page.evaluate(() => window.__operationsRequests.length), requestsBefore)
+    await workspace.getByLabel('Audio URL', { exact: true }).fill(originalUrl)
+    await workspace
+      .getByRole('combobox', { name: 'Library song', exact: true })
+      .selectOption(originalUrl)
+    assert.equal(
+      await workspace.getByRole('button', { name: 'Save Changes', exact: true }).isDisabled(),
+      true,
+    )
     await workspace.getByRole('button', { name: 'Add song', exact: true }).click()
     await workspace.getByLabel('Track name', { exact: true }).fill('Saved for later')
     const audioUrl = '/media/audio/music/road-to-aurevane.webm?library=1'
@@ -188,7 +243,7 @@ try {
     let saved = await page.evaluate(() => JSON.parse(sessionStorage.getItem('music-test-settings')))
     assert.equal(saved.defaultTrack.label, 'Road to Aurevane')
     assert.ok(saved.songLibrary.some((song) => song.label === 'Saved for later'))
-    await page.reload()
+    await page.reload({ waitUntil: 'domcontentloaded' })
     await page.locator('body').evaluate((body, zoom) => (body.style.zoom = zoom), viewport.zoom)
     await library.getByRole('button').filter({ hasText: 'Saved for later' }).click()
     const preview = workspace.getByLabel('Track preview', { exact: true })
@@ -238,6 +293,19 @@ try {
       true,
       'Horizontal overflow',
     )
+    if (viewport.width >= 1366 && viewport.zoom === 1) {
+      assert.equal(
+        await workspace.evaluate((element) => {
+          const frame = element.getBoundingClientRect()
+          return [...element.querySelectorAll('article button')].every((button) => {
+            const rect = button.getBoundingClientRect()
+            return rect.bottom <= Math.min(frame.bottom, innerHeight)
+          })
+        }),
+        true,
+        'Custom page actions must remain visible',
+      )
+    }
     assert.deepEqual(errors, [])
     await page.screenshot({
       path: resolve(output, `music-${viewport.width}-${viewport.zoom}.png`),
@@ -251,6 +319,8 @@ try {
       backgroundPreviewHandoff: true,
       nativePreview: true,
       replacementPlayback: true,
+      unsupportedSourceBlocked: true,
+      noOpSaveDisabled: true,
       reload: true,
       assignment: true,
       inUseDeletionBlocked: true,

@@ -48,13 +48,23 @@ describe('selected-character staff service', () => {
     expect(effectiveMasterPanelCapabilities(['content-staff'])).toEqual([
       'master.access',
       'content.combat.author',
+      'content.story_copy',
+      'content.production_publish',
     ])
     expect(effectiveMasterPanelCapabilities(['event-staff'])).toEqual([
       'master.access',
       'events.author',
       'events.operate',
+      'events.production_publish',
+      'events.global_scope',
+      'events.reward_titles',
+      'events.emergency_stop',
     ])
-    expect(effectiveMasterPanelCapabilities(['moderator'])).toEqual(['master.access'])
+    expect(effectiveMasterPanelCapabilities(['moderator'])).toEqual([
+      'master.access',
+      'moderation.manage',
+      'moderation.permanent_ban',
+    ])
     expect(effectiveMasterPanelCapabilities(['game-owner'])).toContain('staff.manage')
     expect(MASTER_PANEL_SPECIAL_CAPABILITIES).not.toContain('staff.manage')
   })
@@ -117,9 +127,9 @@ it('only the protected Owner can read and CAS-save validated role defaults', asy
   let defaults: MasterPanelRoleDefaults = {
     revision: 1,
     roles: {
-      moderator: ['master.access'],
-      'content-staff': ['master.access', 'content.combat.author'],
-      'event-staff': ['master.access', 'events.author', 'events.operate'],
+      moderator: ['moderation'],
+      'content-staff': ['combat'],
+      'event-staff': ['events'],
     },
   }
   const defaultsService = createMasterPanelRoleDefaultsService(service, {
@@ -135,7 +145,7 @@ it('only the protected Owner can read and CAS-save validated role defaults', asy
     },
   })
   expect(await defaultsService.readRoleDefaults(owner)).toMatchObject({ revision: 1 })
-  const roles = { ...defaults.roles, moderator: ['master.access', 'content.combat.author'] }
+  const roles = { ...defaults.roles, moderator: ['moderation', 'combat'] }
   expect(
     await defaultsService.saveRoleDefaults({ actorUserId: owner, expectedRevision: 1, roles }),
   ).toMatchObject({ revision: 2 })

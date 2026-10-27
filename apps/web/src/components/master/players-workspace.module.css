@@ -2,6 +2,7 @@
   display: grid;
   grid-template-columns: minmax(14rem, 0.34fr) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'search details';
   gap: 0.75rem;
   height: 100%;
   min-height: 0;
@@ -10,6 +11,14 @@
   color: #30372f;
   font-size: 0.9rem;
   line-height: 1.5;
+}
+.searchPane {
+  grid-area: search;
+  display: flex;
+  flex-direction: column;
+}
+.detailsPane {
+  grid-area: details;
 }
 .card {
   min-width: 0;
@@ -120,7 +129,8 @@
 .results {
   list-style: none;
   overflow: auto;
-  max-height: 55dvh;
+  flex: 1 1 auto;
+  min-height: 0;
   margin: 0.5rem 0 0;
   padding: 0;
 }
@@ -173,13 +183,11 @@
   }
 }
 
-.message {
-  grid-column: 1 / -1;
-}
-@media (max-width: 760px), (max-height: 550px) {
+@media (max-width: 760px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto;
+    grid-template-areas: 'search' 'details';
     height: auto;
     overflow: visible;
   }

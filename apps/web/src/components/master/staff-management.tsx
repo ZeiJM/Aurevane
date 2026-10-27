@@ -2,11 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
+import { MASTER_PANEL_PAGES, type MasterPanelPage } from '@/lib/master-panel-pages'
 import styles from './staff-management.module.css'
 import { MasterHelp } from './master-help'
 import type {
   DelegatedMasterPanelRole,
-  MasterPanelCapability,
   MasterPanelRoleDefaults,
 } from '@/server/master/staff-access'
 
@@ -35,7 +35,7 @@ interface StaffManagementProps {
   readonly roleDefaults?: MasterPanelRoleDefaults
   readonly staff: readonly StaffMember[]
   readonly roleOptions: readonly Option[]
-  readonly capabilityOptions: readonly Option[]
+  readonly capabilityOptions?: readonly Option[]
 }
 function utc(value: string | null): string {
   return value
@@ -45,14 +45,12 @@ function utc(value: string | null): string {
         .replace(/\.\d{3}Z$/, ' UTC')
     : 'No Expiry'
 }
-function scope(roles: readonly string[], caps: readonly string[]): string {
+function scope(roles: readonly string[]): string {
   const labels: string[] = []
   if (roles.includes('game-owner')) return 'Global administration · protected Owner'
   if (roles.includes('moderator')) labels.push('Moderation access')
   if (roles.includes('content-staff')) labels.push('Game Content authoring')
   if (roles.includes('event-staff')) labels.push('Event authoring and live operations')
-  if (caps.length)
-    labels.push(`${caps.length} additional permission${caps.length === 1 ? '' : 's'}`)
   return labels.join(' · ') || 'Choose a role'
 }
 function errorMessage(value: unknown): string {
@@ -68,12 +66,7 @@ function errorMessage(value: unknown): string {
   }
   return 'Staff & Access could not complete this request.'
 }
-export function StaffManagement({
-  staff,
-  roleOptions,
-  capabilityOptions,
-  roleDefaults,
-}: StaffManagementProps) {
+export function StaffManagement({ staff, roleOptions, roleDefaults }: StaffManagementProps) {
   const router = useRouter(),
     editorRef = useRef<HTMLHeadingElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
@@ -82,8 +75,7 @@ export function StaffManagement({
   const [query, setQuery] = useState(''),
     [identity, setIdentity] = useState<ResolvedAccount | null>(null)
   const [selected, setSelected] = useState(''),
-    [roles, setRoles] = useState<string[]>([]),
-    [caps, setCaps] = useState<string[]>([])
+    [roles, setRoles] = useState<string[]>([])
   const [duration, setDuration] = useState('none'),
     [days, setDays] = useState('7'),
     [confirmed, setConfirmed] = useState(false)
@@ -94,13 +86,7 @@ export function StaffManagement({
   const [defaults, setDefaults] = useState(roleDefaults)
   const [defaultDraft, setDefaultDraft] = useState(roleDefaults?.roles)
   const [defaultRole, setDefaultRole] = useState<DelegatedMasterPanelRole>('moderator')
-  const defaultCapabilityOptions = [
-    { id: 'master.access', label: 'Master Panel' },
-    { id: 'content.combat.author', label: 'Game Content' },
-    { id: 'events.author', label: 'Event authoring' },
-    { id: 'events.operate', label: 'Event operations' },
-    ...capabilityOptions,
-  ]
+  const defaultCapabilityOptions = MASTER_PANEL_PAGES
   const defaultsChanged = JSON.stringify(defaultDraft) !== JSON.stringify(defaults?.roles)
   async function saveDefaults() {
     if (!defaults || !defaultDraft || pending || !defaultsChanged) return
@@ -184,7 +170,6 @@ export function StaffManagement({
     )
     setSelected(characterId)
     setRoles([...(row?.roles ?? [])])
-    setCaps([...(row?.specialCapabilities ?? [])])
     setDuration(row?.expiresAt ? 'days' : 'none')
     setDays(
       row?.expiresAt
@@ -233,7 +218,7 @@ export function StaffManagement({
         targetUserId: identity.userId,
         targetCharacterId: selected,
         roles,
-        specialCapabilities: caps,
+        specialCapabilities: [],
         days: duration === 'none' ? null : Number(days),
         expectedVersion: existing?.accessVersion ?? 0,
         enabled,
@@ -355,11 +340,10 @@ export function StaffManagement({
       {!identity && defaults && defaultDraft && (
         <section className={styles.editor} aria-labelledby="role-defaults-title">
           <div className={styles.heading}>
-            <h2 id="role-defaults-title">Role defaults</h2>
-            <MasterHelp label="Role defaults">
-              Changes apply immediately to existing staff with these roles. Explicit permissions
-              remain in place. Staff management, identity changes and global settings stay with the
-              Game Owner.
+            <h2 id="role-defaults-title">Role page access</h2>
+            <MasterHelp label="Role page access">
+              Changes apply immediately to existing staff. Each page includes all of its tools. Only
+              the Game Owner can manage Staff & Access.
             </MasterHelp>
           </div>
           <label htmlFor="staff-default-role">Role</label>
@@ -376,16 +360,16 @@ export function StaffManagement({
             ))}
           </select>
           <fieldset disabled={pending}>
-            <legend>Permissions</legend>
+            <legend>Accessible pages</legend>
             <div className={styles.defaultPermissions}>
               {defaultCapabilityOptions.map((option) => (
                 <label key={option.id}>
                   <input
                     type="checkbox"
                     aria-label={option.label}
-                    checked={defaultDraft[defaultRole].includes(option.id as MasterPanelCapability)}
+                    checked={defaultDraft[defaultRole].includes(option.id as MasterPanelPage)}
                     onChange={() => {
-                      const capability = option.id as MasterPanelCapability
+                      const capability = option.id as MasterPanelPage
                       const current = defaultDraft[defaultRole]
                       setDefaultDraft({
                         ...defaultDraft,
@@ -470,7 +454,7 @@ export function StaffManagement({
                 </div>
               </fieldset>
               <div className={styles.summary}>
-                <strong>Permissions</strong>
+                <strong>Accessible pages</strong>
                 <p>
                   {defaults
                     ? [
@@ -478,7 +462,6 @@ export function StaffManagement({
                           ...roles.flatMap(
                             (role) => defaults.roles[role as DelegatedMasterPanelRole] ?? [],
                           ),
-                          ...caps,
                         ]),
                       ]
                         .map(
@@ -487,25 +470,9 @@ export function StaffManagement({
                               ?.label ?? capability,
                         )
                         .join(' · ') || 'None'
-                    : scope(roles, caps)}
+                    : scope(roles)}
                 </p>
               </div>
-              <details className={styles.additional}>
-                <summary>Additional permissions</summary>
-                <div>
-                  {capabilityOptions.map((option) => (
-                    <label key={option.id}>
-                      <input
-                        type="checkbox"
-                        disabled={pending}
-                        checked={caps.includes(option.id)}
-                        onChange={() => toggle(option.id, caps, setCaps)}
-                      />
-                      <span>{option.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </details>
               <div className={styles.expiry}>
                 <label htmlFor="staff-expiry">
                   Duration

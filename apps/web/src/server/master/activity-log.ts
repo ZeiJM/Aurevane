@@ -71,9 +71,7 @@ export function createMasterActivityService(
 ) {
   return {
     async read(userId: string, before: string | null = null): Promise<MasterActivityFeed> {
-      const granted = await access.requireCapability(userId, 'staff.manage')
-      if (!granted.roles.includes('game-owner'))
-        throw new AurevaneError('FORBIDDEN', 'Only the Game Owner may read the activity log.')
+      await access.requireCapability(userId, 'activity.read')
       if (before !== null && !isActivityCursor(before))
         throw new AurevaneError('INVALID_REQUEST', 'Choose a valid activity page.')
       return parseMasterActivityFeed(

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     const actor = await getAuthenticatedActor()
     await createServerMasterPanelStaffAccessService().requireCapability(
       actor.userId,
-      'staff.manage',
+      'music.manage',
     )
 
     let body: unknown

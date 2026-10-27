@@ -153,13 +153,31 @@ export function isAllowedSiteMusicUrl(value: string): boolean {
   }
 }
 
-function parseTrack(value: unknown, field: string): SiteMusicTrack {
+export function siteMusicSourceError(value: string): string | null {
+  if (!isAllowedSiteMusicUrl(value)) {
+    return 'Audio URL must be a root-relative path or an HTTPS URL.'
+  }
+  if (value.startsWith('/')) return null
+
+  const hostname = new URL(value).hostname.toLowerCase().replace(/\.$/, '')
+  const isHost = (domain: string) => hostname === domain || hostname.endsWith(`.${domain}`)
+  if (['youtube.com', 'youtu.be', 'youtube-nocookie.com'].some(isHost)) {
+    return 'YouTube cannot be used as background music. Its links require a visible video player. Upload an audio file or use a direct audio URL.'
+  }
+  return null
+}
+
+function parseTrack(value: unknown, field: string, validateSource: boolean): SiteMusicTrack {
   if (!isRecord(value)) throw new Error(`${field} must be an object.`)
 
   const label = readString(value.label, `${field}.label`, 80)
   const url = readString(value.url, `${field}.url`, 2048)
   if (!isAllowedSiteMusicUrl(url)) {
     throw new Error(`${field}.url must be a root-relative path or an HTTPS URL.`)
+  }
+  if (validateSource) {
+    const sourceError = siteMusicSourceError(url)
+    if (sourceError) throw new Error(`${field}.url: ${sourceError}`)
   }
   if (value.source !== 'bundled' && value.source !== 'upload' && value.source !== 'url') {
     throw new Error(`${field}.source is invalid.`)
@@ -181,11 +199,11 @@ export function normalizeSiteMusicPathPrefix(value: string): string {
   return trimmed.replace(/\/+$/, '')
 }
 
-export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
+function parseDraft(value: unknown, validateSources: boolean): SiteMusicDraft {
   if (!isRecord(value)) throw new Error('Music configuration must be an object.')
   if (typeof value.enabled !== 'boolean') throw new Error('enabled must be a boolean.')
 
-  const defaultTrack = parseTrack(value.defaultTrack, 'defaultTrack')
+  const defaultTrack = parseTrack(value.defaultTrack, 'defaultTrack', validateSources)
   if (!Array.isArray(value.routeOverrides) || value.routeOverrides.length > 50) {
     throw new Error('routeOverrides must contain at most 50 entries.')
   }
@@ -221,7 +239,7 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
       pathPrefix,
       ...(entry.mode === undefined ? {} : { mode: entry.mode }),
       enabled: entry.enabled,
-      track: parseTrack(entry.track, `routeOverrides[${index}].track`),
+      track: parseTrack(entry.track, `routeOverrides[${index}].track`, validateSources),
     }
   })
 
@@ -233,7 +251,9 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
   if (!Array.isArray(libraryInput) || libraryInput.length > 200) {
     throw new Error('songLibrary must contain at most 200 songs.')
   }
-  const songLibrary = libraryInput.map((track, index) => parseTrack(track, `songLibrary[${index}]`))
+  const songLibrary = libraryInput.map((track, index) =>
+    parseTrack(track, `songLibrary[${index}]`, validateSources),
+  )
   const urls = new Set(songLibrary.map((track) => track.url))
   if (urls.size !== songLibrary.length)
     throw new Error('Each library song must have a unique audio URL.')
@@ -245,9 +265,15 @@ export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
   return { enabled: value.enabled, defaultTrack, routeOverrides, songLibrary }
 }
 
+export function parseSiteMusicDraft(value: unknown): SiteMusicDraft {
+  return parseDraft(value, true)
+}
+
 export function parseSiteMusicConfig(value: unknown): SiteMusicConfig {
   if (!isRecord(value)) throw new Error('Music configuration must be an object.')
-  const draft = parseSiteMusicDraft(value)
+  // Keep legacy provider selections readable so the Owner can repair them.
+  // Preview/playback reject unsupported sources; every new save is strict.
+  const draft = parseDraft(value, false)
   if (!Number.isSafeInteger(value.revision) || (value.revision as number) < 1) {
     throw new Error('revision must be a positive integer.')
   }

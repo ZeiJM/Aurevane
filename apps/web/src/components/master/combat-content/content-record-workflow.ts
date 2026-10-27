@@ -12,7 +12,25 @@ export function recordIsDirty(
   record: CompleteCombatContentRecord,
   definition: CombatContentDefinition,
 ): boolean {
-  return JSON.stringify(definition) !== JSON.stringify(editableDefinition(record))
+  const editable = (value: CombatContentDefinition | null) => {
+    if (!value) return null
+    const next = { ...value }
+    delete next.contentVersion
+    if (
+      typeof next.essenceId === 'string' &&
+      next.skill &&
+      typeof next.skill === 'object' &&
+      !Array.isArray(next.skill)
+    ) {
+      const skill = { ...(next.skill as Record<string, unknown>) }
+      delete skill.contentVersion
+      next.skill = skill
+    }
+    return next
+  }
+  return (
+    JSON.stringify(editable(definition)) !== JSON.stringify(editable(editableDefinition(record)))
+  )
 }
 export function savedPublicationCommand(
   record: CompleteCombatContentRecord,
