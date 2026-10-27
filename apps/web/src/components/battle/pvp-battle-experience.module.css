@@ -156,6 +156,12 @@
   white-space: normal;
   font: 650 0.875rem/1.2 var(--av-font-display);
 }
+.content :global([data-battle-preview-strip]) > :global([data-battle-instruction-description]) {
+  /* Passive captions share the active forecast's type scale and row budget. */
+  margin: 0;
+  min-width: 0;
+  font: 500 0.75rem/1.2 var(--av-font-body);
+}
 .content :global([data-battle-command-dock]) {
   grid-area: cockpit;
   min-width: 0;
