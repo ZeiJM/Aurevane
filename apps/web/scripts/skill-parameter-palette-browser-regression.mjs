@@ -18,6 +18,7 @@ const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
 const shellReachabilityOnly = process.env.AV_MASTER_SHELL_REACHABILITY_ONLY === '1'
 const editorIdentityOnly = process.env.AV_MASTER_EDITOR_IDENTITY_ONLY === '1'
+const attunementPointerOnly = process.env.AV_ATTUNEMENT_POINTER_ONLY === '1'
 const originalRpcAcceptance = process.env.AV_BASIC_ORIGINAL_RPC_ACCEPTANCE === '1'
 const basicServiceAcceptance =
   process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' ||
@@ -1120,6 +1121,78 @@ async function verifyCanonicalEditor(page, viewport) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.deepEqual(await page.evaluate(() => window.requests), [])
 }
+async function verifyAttunementPointer(page, viewport) {
+  for (const family of ['resonance', 'essence']) {
+    await page.mouse.move(0, 0)
+    await page.goto(`${server.resolvedUrls.local[0]}?surface=nexus&attunement=${family}`, {
+      waitUntil: 'networkidle',
+    })
+    const name = await page.evaluate((kind) => window.paletteDefinitions[kind].name, family)
+    const trigger = page.getByRole('button', {
+      name: `Preview ${family === 'resonance' ? 'Resonance' : 'Essence'}: ${name}`,
+      exact: true,
+    })
+    const artworkBefore = await trigger.locator('img').boundingBox()
+    assert.equal(
+      await page.getByRole('dialog').count(),
+      0,
+      'A neutral pointer must not inherit an open reader',
+    )
+    const panel = page.getByRole('dialog', { name, exact: true })
+    if (viewport.width >= 720) {
+      await trigger.hover()
+      await panel.waitFor()
+      const geometry = await trigger.evaluate((element) => {
+        const anchor = element.getBoundingClientRect()
+        const panel = document.querySelector('[data-battle-info-panel]')
+        const center = { x: anchor.x + anchor.width / 2, y: anchor.y + anchor.height / 2 }
+        const hit = document.elementFromPoint(center.x, center.y)
+        return {
+          anchor: anchor.toJSON(),
+          panel: panel?.getBoundingClientRect().toJSON(),
+          expanded: element.getAttribute('aria-expanded'),
+          center,
+          hit: hit?.tagName,
+          hitTrigger: hit === element || element.contains(hit),
+          hitReader: !!hit?.closest('[data-battle-info-panel]'),
+          scrollY,
+        }
+      })
+      await fs.writeFile(
+        resolve(output, `attunement-pointer-${family}-${viewport.width}.json`),
+        JSON.stringify(geometry, null, 2),
+      )
+      await page.screenshot({
+        path: resolve(output, `attunement-hover-${family}-${viewport.width}.png`),
+      })
+      assert.equal(
+        geometry.hitTrigger,
+        true,
+        'A hover-open report must leave its trigger clickable',
+      )
+      await trigger.click()
+    } else await trigger.tap()
+    await panel.waitFor()
+    assert.equal(await page.getByRole('dialog').count(), 1)
+    assert.equal(await panel.evaluate((element) => element === document.activeElement), true)
+    assert.deepEqual((await panel.locator('dt').allTextContents()).slice(0, 10), fields)
+    const artworkAfter = await trigger.locator('img').boundingBox()
+    assert.equal(artworkAfter.width, artworkBefore.width)
+    assert.equal(artworkAfter.height, artworkBefore.height)
+    const box = await panel.boundingBox()
+    assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
+    await page.keyboard.press('Escape')
+    await panel.waitFor({ state: 'detached' })
+    assert.equal(await trigger.evaluate((element) => element === document.activeElement), true)
+    await page.keyboard.press('Enter')
+    await panel.waitFor()
+    assert.equal(await panel.evaluate((element) => element === document.activeElement), true)
+    await page.keyboard.press('Escape')
+    await panel.waitFor({ state: 'detached' })
+    assert.equal(await trigger.evaluate((element) => element === document.activeElement), true)
+  }
+}
+
 async function assertCurrentOnlyEditor(editor) {
   for (const name of [
     'History',
@@ -1386,6 +1459,7 @@ try {
     const page = await browser.newPage({
       viewport,
       hasTouch: shellReachabilityOnly ? viewport.width === 390 : viewport.width < 720,
+      ...(attunementPointerOnly && viewport.width < 720 ? { isMobile: true } : {}),
     })
     const errors = []
     const pendingRequests = new Set()
@@ -1397,6 +1471,19 @@ try {
       errors.push(error.message)
       browserErrors.push(error.message)
     })
+    if (attunementPointerOnly) {
+      await verifyAttunementPointer(page, viewport)
+      assert.deepEqual(errors, [])
+      evidence.push({
+        viewport,
+        status: 'passed',
+        families: 2,
+        input: viewport.width < 720 ? 'touch tap and keyboard' : 'mouse hover/click and keyboard',
+        scope: 'Real neutral-pointer attunement lifecycle; full reader, geometry and focus checks',
+      })
+      await page.close()
+      continue
+    }
     if (shellReachabilityOnly) {
       await page.goto(
         `${server.resolvedUrls.local[0]}?surface=basic-editor&shell=true&basicService=1`,
@@ -1749,7 +1836,8 @@ try {
         { exact: true },
       )
       assert.equal(await prefixedName.count(), 0)
-      await trigger.click()
+      if (viewport.width < 720) await trigger.tap()
+      else await trigger.click()
       const popup = page.getByRole('dialog', { name, exact: true })
       await popup.waitFor()
       assert.equal(await popup.locator('header > strong').textContent(), name)
@@ -1929,6 +2017,7 @@ try {
       await page.keyboard.press('Escape')
       await firePopup.waitFor({ state: 'detached' })
     }
+    await verifyAttunementPointer(page, viewport)
     assert.deepEqual(errors, [])
     evidence.push({ viewport, status: 'passed' })
     await page.close()
