@@ -37,7 +37,7 @@ Authority: [approved specification](../superpowers/specs/2026-10-27-master-panel
 
 ## Final gate
 
-- [ ] Freeze/reconcile all domain changes and fresh main.
+- [x] Freeze/reconcile all domain changes and fresh main.
 - [ ] Full format/lint/eight-package types/unit+DB/build gate on integrated source.
 - [ ] Actual configured native auth/core battle/owner-authority workflows, not discovery counts.
 - [x] Independent whole-branch review and meaningful findings resolved.
@@ -85,3 +85,18 @@ The generated coordinator wrapper independently passed read-only source review w
 The legacy selected-character suite subsequently passed18tests with its original fixture budget; both PT409/legacy adapters passed11tests. Native invalid-first creation and uncertain-response adjacency both pass, with exactly one accepted created record in each applicable scenario. Production dependency audit reports no known vulnerabilities.
 
 Reproducible release artifacts are versioned with this source: `scripts/release/prepare-master-workspace-coordinator.py` reads `master-panel-20261027/migration-contracts.json`; `master-panel-20261027/coordinator-local-proof.json` records the executed full-chain proof. Regeneration produced the exact independently reviewed SHA256 above. The generator produces SQL only and never connects to a database.
+
+## First candidate CI and contract repair
+
+PR [#984](https://github.com/ZeiJM/Aurevane/pull/984), first candidate `a1202580aa6918860e24f8e8e90ae500bab08918`, exact tree `93bd260f1b8036e221239d02dcc8edc2cbde5cd5`. All19 actual workflows finished:16success,3failure. These are workflow totals, not individual job/check rows. CI and Browser smoke each contain multiple jobs/steps.
+
+Observed failures and repairs:
+- Native palette workflows still expected old save/retention wording and History/restore controls. Tests now inspect retained AP input/state, explicitly reject all retired HTTP variants without mutation and commit current edits with truthful authorship; current and pinned readers remain verified.
+- CI's private Music assertion expected service direct UPDATE. It now requires that privilege to be absent and separately checks exact server-only CAS RPC execution (`service/anon/auth = true/false/false`).
+- An independent lifecycle test's fake platform Auth table lacked canonical ban columns; only those fixture columns were added. A historical SQLSTATE audit incorrectly compared its35functions after later legitimate migrations; it now captures at the audited migration's own boundary, retaining every65assignment/full-definition/owner/ACL assertion. Its2tests pass locally. Lifecycle's56cases still require a fresh complete run; prior combined attempts hit unchanged setup deadlines.
+
+Updated native evidence: all5Basics across1366x768,1440x900,720x450 and390x844 (20 cases, keyboard/touch) pass against actual local handler/service/resolver/engine components. Desktop/mobile modular scenarios pass with12current/pinned reader contexts each. Results are retained beside the migration artifacts. Local execution uses an optional precompiled static fixture transport because cold development-module requests exceeded the existing navigation budget; feature assertions and browser deadlines are unchanged. This is not hosted authentication, genuine browser200%zoom or human gameplay evidence.
+
+The actual authenticated200%browser-zoom workflow now includes Moderation and Activity Log, preserves invalid-edit retention/CAS and rejects retired requests without mutation. Its previous rollback journey is replaced by explicit current authoring. The Activity help text now describes delegated page access accurately. These native changes await exact-head CI.
+
+The repair batch passes fresh web/database TypeScript checks and scoped source/format checks. The isolated lifecycle fixture still exceeded the unchanged60-second setup budget locally (26.55seconds compiling the executable fixture); its first CI attempt compiled in5.07seconds and reached the concrete missing-column error in12.31seconds. No timeout was increased. The corrected56-case lifecycle suite and new exact Music privilege tuples must execute in final exact-head CI. Local broad attempts are not recorded as passing.

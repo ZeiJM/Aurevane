@@ -67,10 +67,8 @@ export function MasterActivityLog({ initialFeed }: { initialFeed: MasterActivity
         <div className={styles.note}>
           Clears every Monday at 00:00 UTC.{' '}
           <MasterHelp label="Activity Log">
-            Only the Game Owner can view this weekly list. It records published content, Staff
-            access, player support, World settings, Combat Rules, music and events. Existing history
-            is retained. Where an older source records an account, its linked Staff names appear
-            together.
+            Staff with Activity Log page access can view this week's changes. The list resets on
+            Monday at 00:00 UTC.
           </MasterHelp>
         </div>
         <button type="button" onClick={() => void load()} disabled={busy}>

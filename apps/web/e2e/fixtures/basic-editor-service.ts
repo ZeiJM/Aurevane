@@ -7,6 +7,7 @@ import {
   type CombatContentVersionRecord,
   type CompleteCombatContentWrite,
 } from '@aurevane/db/combat-content'
+import { isDeepStrictEqual } from 'node:util'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import {
   captureBasicSkillSources,
@@ -35,7 +36,7 @@ export async function createBasicEditorServiceFixture() {
   const service = createCombatContentAuthoringService({ store, resolver })
   const basics = defaultBasicSkills()
   // Record genuine publications in this disposable repository. Builtin v1 has
-  // no invented history row; unchanged v2 is the physical restore source.
+  // no invented history row; unchanged v2 remains an immutable test oracle.
   for (const basic of basics) {
     await service.publishSkill({ actorUserId, definition: basic, expectedBaseVersion: 1 })
     const definition = structuredClone(basic)
@@ -90,6 +91,35 @@ export async function createBasicEditorServiceFixture() {
     }
   }
   const adapter = {
+    async commitRecord(key: string, expectedRevision: number, definition: unknown) {
+      const fresh = await readRecord(key)
+      if (fresh.revision !== expectedRevision)
+        throw new AurevaneError('STALE_VERSION', 'Record changed. Refresh and retry.')
+      const parsed = parseBasicSkillDefinition(definition)
+      if (
+        !fresh.draft &&
+        isDeepStrictEqual(
+          { ...parsed, contentVersion: fresh.current!.contentVersion },
+          fresh.current!.definition,
+        )
+      )
+        return fresh
+      const published = await service.publishSkill({
+        actorUserId,
+        definition: parsed,
+        expectedBaseVersion: fresh.current!.contentVersion,
+      })
+      attribution.set(`${key}:${published.contentVersion}`, {
+        authoredBy: actorUserId,
+        authoredAt: published.publishedAt,
+        restoredFrom: null,
+        restoredBy: null,
+      })
+      if (fresh.draft) consumed.set(key, fresh.draft.draftVersion)
+      restored.delete(key)
+      revisions.set(key, fresh.revision + 1)
+      return readRecord(key)
+    },
     readRecord,
     async listRecords() {
       return {

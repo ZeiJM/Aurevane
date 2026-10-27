@@ -152,7 +152,9 @@ jobs:
           privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_schema_privilege('anon','app_private','USAGE'), has_schema_privilege('authenticated','app_private','USAGE'), has_schema_privilege('service_role','app_private','USAGE');")"
           test "$privileges" = "f|f|t"
           music_privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_table_privilege('service_role','public.site_music_configuration','SELECT'), has_table_privilege('service_role','public.site_music_configuration','UPDATE'), has_table_privilege('service_role','public.site_music_configuration','INSERT,DELETE,TRUNCATE'), has_table_privilege('anon','public.site_music_configuration','SELECT,INSERT,UPDATE,DELETE'), has_table_privilege('authenticated','public.site_music_configuration','SELECT,INSERT,UPDATE,DELETE'), relrowsecurity from pg_class where oid = 'public.site_music_configuration'::regclass;")"
-          test "$music_privileges" = "t|t|f|f|f|t"
+          test "$music_privileges" = "t|f|f|f|f|t"
+          music_rpc_privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_function_privilege('service_role','public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','EXECUTE'), has_function_privilege('anon','public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','EXECUTE'), has_function_privilege('authenticated','public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','EXECUTE');")"
+          test "$music_rpc_privileges" = "t|f|f"
 
       - name: Verify Master Panel staff authority
         run: bash .github/scripts/verify-master-panel-staff-authority.sh

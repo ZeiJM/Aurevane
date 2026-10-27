@@ -121,7 +121,7 @@ jobs:
           AV_SKILL_PARAMETER_PALETTE_EVIDENCE_DIR: /tmp/skill-parameter-palette-review
         run: pnpm --filter @aurevane/web exec node scripts/skill-parameter-palette-browser-regression.mjs
 
-      - name: Verify immediate System original restore through actual mutation responses
+      - name: Verify Basic authoring and retired rollback through actual mutation responses
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}
         env:
           AV_BASIC_ORIGINAL_RPC_ACCEPTANCE: '1'
@@ -318,7 +318,7 @@ jobs:
           path: /tmp/skill-parameter-palette-review
           retention-days: 7
 
-      - name: Save actual store original restore evidence
+      - name: Save Basic authoring and retirement evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:

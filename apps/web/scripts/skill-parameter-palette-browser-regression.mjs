@@ -121,6 +121,8 @@ await fs.writeFile(
 )
 let basicFixture
 let createBasicEditorServiceFixture
+let bundledDocument
+const bundledAssets = new Map()
 async function handleBasicRequest(request, response, next) {
   const url = new URL(request.url, 'http://127.0.0.1')
   if (
@@ -165,32 +167,23 @@ const config = {
   // and resolver. This in-memory adapter does not claim physical SQL atomicity.
   plugins: [
     {
-      name: 'basic-current-commit-adapter',
-      enforce: 'pre',
-      transform(source, id) {
-        if (!id.endsWith('/e2e/fixtures/basic-editor-service.ts')) return
-        assert.ok(source.includes('  const adapter = {'))
-        return source.replace(
-          '  const adapter = {',
-          `  const adapter = {
-    async commitRecord(key: string, expectedRevision: number, definition: unknown) {
-      const fresh = await readRecord(key)
-      if (fresh.revision !== expectedRevision) throw new AurevaneError('STALE_VERSION', 'Record changed. Refresh and retry.')
-      const published = await service.publishSkill({ actorUserId, definition, expectedBaseVersion: fresh.current!.contentVersion })
-      const source = fresh.draft?.restoredFrom ? fresh.history.find(row => row.contentVersion === fresh.draft!.restoredFrom) : null
-      attribution.set(key + ':' + published.contentVersion, { authoredBy: source?.authoredBy ?? actorUserId, authoredAt: source?.authoredAt ?? published.publishedAt, restoredFrom: fresh.draft?.restoredFrom ?? null, restoredBy: fresh.draft?.restoredBy ?? null })
-      if (fresh.draft) consumed.set(key, fresh.draft.draftVersion)
-      restored.delete(key)
-      revisions.set(key, fresh.revision + 1)
-      return readRecord(key)
-    },`,
-        )
-      },
-    },
-    {
       name: 'basic-service-acceptance',
       configureServer(server) {
         server.middlewares.use(handleBasicRequest)
+        server.middlewares.use((request, response, next) => {
+          const pathname = new URL(request.url, 'http://127.0.0.1').pathname
+          const asset = pathname === '/' ? bundledDocument : bundledAssets.get(pathname)
+          if (!asset) return next()
+          response.writeHead(200, {
+            'Content-Type':
+              pathname === '/'
+                ? 'text/html'
+                : pathname.endsWith('.css')
+                  ? 'text/css'
+                  : 'application/javascript',
+          })
+          response.end(asset)
+        })
       },
     },
   ],
@@ -255,7 +248,20 @@ return { control, activate };
   ;({ nativeMasterControls } = await import(pathToFileURL(modulePath).href))
   await fs.writeFile(resolve(output, 'native-controls-source.ts.txt'), moduleSource)
 }
-const server = await createServer(config)
+// Optional local transport: serve the same production-component fixture as a
+// bundle when a constrained environment cannot finish the dev-module fanout.
+// Browser deadlines and every interaction/semantic assertion remain identical.
+if (process.env.AV_SKILL_PARAMETER_PALETTE_BUNDLED === '1') {
+  const outDir = resolve(fixture, 'bundle')
+  await build({ ...config, build: { outDir, minify: false, copyPublicDir: false } })
+  bundledDocument = await fs.readFile(resolve(outDir, 'index.html'))
+  for (const name of await fs.readdir(resolve(outDir, 'assets')))
+    bundledAssets.set(`/assets/${name}`, await fs.readFile(resolve(outDir, 'assets', name)))
+}
+const server = await createServer({
+  ...config,
+  ...(bundledDocument ? { optimizeDeps: { noDiscovery: true, include: [] } } : {}),
+})
 // The SQL-backed server fixture uses Node package resolution for React cache().
 // Client aliases are only for the browser bundle; inlining its CJS entry in SSR
 // would fail before any production store or editor behavior runs.
@@ -289,6 +295,7 @@ const sqlFixtureServer = originalRpcAcceptance
     const options = await fetch(`${origin}__basic-acceptance/options`)
     assert.match(options.headers.get('content-type') ?? '', /application\/json/)
     assert.equal((await options.json()).length, 5)
+    const before = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
     const restored = await fetch(new URL('/api/master/combat-content', origin), {
       method: 'POST',
       body: JSON.stringify({
@@ -301,11 +308,13 @@ const sqlFixtureServer = originalRpcAcceptance
         },
       }),
     })
-    assert.equal(restored.status, 200)
+    assert.equal(restored.status, 400)
+    assert.match((await restored.json()).error.message, /rollback is no longer available/)
     const inspection = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
+    assert.deepEqual(inspection.records, before.records)
     assert.equal(inspection.oldCapturesUnchanged, true)
     console.log(
-      'Actual Basic HTTP handler/service probe passed: five v3 records and physical v2 Guard restore.',
+      'Actual Basic HTTP handler/service probe passed: five v3 records and retired Guard restore rejected without mutation.',
     )
     await sqlFixtureServer?.close()
     await server.close()
@@ -747,9 +756,7 @@ async function verifyBasicEditor(page, viewport) {
   await held
   await editor.getByLabel('Name', { exact: true }).fill('Newer unsaved Move')
   release()
-  await editor
-    .getByText('Saved earlier changes; newer local edits remain unsaved.', { exact: true })
-    .waitFor()
+  await editor.getByText('Saved; newer local edits remain uncommitted.', { exact: true }).waitFor()
   assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), 'Newer unsaved Move')
   await page.unroute('**/api/master/combat-content')
   await commitBasic(editor, viewport)
@@ -762,7 +769,7 @@ async function verifyBasicEditor(page, viewport) {
   const invalid = editor.getByRole('alert')
   await invalid.waitFor()
   assert.match(await invalid.innerText(), /Basic Attack requires a positive authored AP cost/)
-  assert.match(await invalid.innerText(), /Your local edits are retained/)
+  assert.equal(await editor.getByLabel('AP cost', { exact: true }).inputValue(), '0')
   assert.equal(
     (await inspectBasics(page)).records.find((row) => row.id === 'unarmed.basic').current
       .contentVersion,
@@ -917,11 +924,14 @@ async function verifyBasicPublication(page, viewport) {
       'Validation, diff and native sample never publish another version',
     )
     await hideBasicParity(page)
-    await editor.getByRole('button', { name: 'History', exact: true }).click()
-    const history = editor.getByRole('region', { name: 'Content history', exact: true })
-    await history.getByRole('heading', { name: 'Current', exact: true }).waitFor()
-    await history.getByRole('heading', { name: 'Previous', exact: true }).waitFor()
-    assert.equal(await editor.getByRole('button', { name: 'Rollback', exact: true }).count(), 0)
+    await assertCurrentOnlyEditor(editor)
+    const visible = await basicApi(page, {
+      operation: 'record',
+      command: { action: 'read', contentKey: id },
+    })
+    assert.deepEqual(visible.record.history, [])
+    assert.equal(Object.hasOwn(visible.record, 'builtinRestoreVersion'), false)
+    assert.deepEqual(visible.record.current, current.current)
   }
   assert.deepEqual(published, ids)
   const result = await inspectBasics(page)
@@ -1110,8 +1120,81 @@ async function verifyCanonicalEditor(page, viewport) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.deepEqual(await page.evaluate(() => window.requests), [])
 }
-async function verifyOriginalRpcRestore(page, viewport) {
-  console.log('verifyOriginalRpcRestore', viewport.width)
+async function assertCurrentOnlyEditor(editor) {
+  for (const name of [
+    'History',
+    'Text',
+    'Parameters',
+    'Rollback',
+    'Restore Previous',
+    'Restore System original',
+  ])
+    assert.equal(await editor.getByRole('button', { name, exact: true }).count(), 0)
+  assert.equal(
+    await editor.getByRole('region', { name: 'Content history', exact: true }).count(),
+    0,
+  )
+  assert.equal(
+    await editor
+      .getByRole('button', { name: 'Skill Details', exact: true })
+      .getAttribute('aria-pressed'),
+    'true',
+  )
+}
+async function rejectRetiredBasicRestoration(page, editor, id, sourceVersion) {
+  await assertCurrentOnlyEditor(editor)
+  const snapshot = await inspectBasics(page)
+  const before = snapshot.records.find((row) => (row.id ?? row.contentKey) === id)
+  for (const data of [
+    { operation: 'rollback', skillId: id, targetVersion: sourceVersion },
+    { operation: 'restore-basic-draft', skillId: id },
+    {
+      operation: 'record',
+      command: {
+        action: 'restore',
+        contentKey: id,
+        expectedRevision: before.revision,
+        sourceVersion,
+      },
+    },
+    {
+      operation: 'record',
+      command: {
+        action: 'restore',
+        contentKey: id,
+        expectedRevision: before.revision,
+        sourceVersion: 1,
+        sourceKind: 'builtin',
+      },
+    },
+  ]) {
+    const response = await page.request.post(basicEndpoint(), { data })
+    assert.equal(response.status(), 400)
+    const body = await response.json()
+    assert.equal(body.error.code, 'INVALID_REQUEST')
+    assert.match(body.error.message, /rollback is no longer available/)
+    const after = await inspectBasics(page)
+    assert.deepEqual(
+      after.records,
+      snapshot.records,
+      'Retired HTTP operations must not change drafts, publications, revisions or retained versions',
+    )
+    if (snapshot.physicalVersions)
+      assert.deepEqual(after.physicalVersions, snapshot.physicalVersions)
+    if (Object.hasOwn(snapshot, 'oldCapturesUnchanged'))
+      assert.equal(after.oldCapturesUnchanged, true)
+  }
+  const visible = await basicApi(page, {
+    operation: 'record',
+    command: { action: 'read', contentKey: id },
+  })
+  assert.deepEqual(visible.record.history, [])
+  assert.equal(Object.hasOwn(visible.record, 'builtinRestoreVersion'), false)
+  assert.deepEqual(visible.record.current, before.current)
+}
+
+async function verifyOriginalRpcAuthoring(page, viewport) {
+  console.log('verifyOriginalRpcAuthoring', viewport.width)
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
@@ -1131,46 +1214,46 @@ async function verifyOriginalRpcRestore(page, viewport) {
     await editor
       .locator(`[data-content-key="${original.id}"][aria-current="true"]:not(:disabled)`)
       .waitFor()
-    const before = (await inspectBasics(page)).requests.length
+    const requestsBefore = (await inspectBasics(page)).requests.length
     await editor
       .getByLabel('Name', { exact: true })
-      .fill(`${original.name} original restore regression`)
+      .fill(`${original.name} current authoring regression`)
     await activate('Commit Now')
     await committedBasic(editor)
-    await activate('History')
-    await editor
-      .getByRole('region', { name: 'Content history', exact: true })
-      .locator('summary')
-      .filter({ hasText: /^System original$/ })
-      .click()
-    await activate('Restore System original')
-    await editor
-      .getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
-        exact: true,
-      })
-      .waitFor()
-    const restored = await inspectBasics(page),
-      record = restored.records.find((row) => row.contentKey === original.id)
-    assert.deepEqual(record.draft.definition, original)
-    assert.equal(record.draft.restoredSource, 'builtin')
-    assert.equal(record.builtinRestoreVersion, 1)
-    await verifyBasicApiParity(page, record.current.definition, record.draft.definition)
+    const edited = await inspectBasics(page)
+    const prior = edited.records.find((row) => row.contentKey === original.id)
+    await rejectRetiredBasicRestoration(page, editor, original.id, 1)
+    // Enter the explicit canonical name as a new authored edit. No restore command
+    // or borrowed authorship is involved in choosing these fixture settings.
+    await editor.getByLabel('Name', { exact: true }).fill(original.name)
+    await verifyBasicApiParity(page, prior.current.definition, original)
     await activate('Commit Now')
     await committedBasic(editor)
-    const result = await inspectBasics(page),
-      current = result.records.find((row) => row.contentKey === original.id)
+    const result = await inspectBasics(page)
+    const current = result.records.find((row) => row.contentKey === original.id)
     assert.deepEqual(current.current.definition, { ...original, contentVersion: 3 })
-    assert.equal(current.history.length, 2)
+    assert.equal(current.current.authoredBy, current.current.publishedBy)
+    assert.ok(current.current.authoredAt)
+    assert.equal(current.current.restoredFrom, null)
+    assert.equal(current.current.restoredBy, null)
+    assert.equal(current.current.restoredSource ?? null, null)
     assert.deepEqual(
-      result.requests
-        .slice(before)
-        .filter((row) => row.operation === 'record')
-        .map((row) => row.command.action)
-        .filter((action) => action !== 'list'),
-      ['commit', 'restore', 'commit'],
+      current.history.filter((row) => row.contentVersion !== 3),
+      prior.history,
     )
+    for (const row of edited.physicalVersions)
+      assert.ok(
+        result.physicalVersions.some((after) => JSON.stringify(after) === JSON.stringify(row)),
+        'Prior physical versions and attribution must remain unchanged',
+      )
+    const actions = result.requests
+      .slice(requestsBefore)
+      .filter((row) => row.operation === 'record')
+      .map((row) => row.command.action)
+    assert.equal(actions.filter((action) => action === 'commit').length, 2)
+    assert.equal(actions.filter((action) => action === 'restore').length, 2)
     await page.screenshot({
-      path: resolve(output, `original-rpc-${original.id}-${viewport.width}.png`),
+      path: resolve(output, `original-rpc-authored-${original.id}-${viewport.width}.png`),
       fullPage: true,
     })
   }
@@ -1179,8 +1262,8 @@ async function verifyOriginalRpcRestore(page, viewport) {
     JSON.stringify(await inspectBasics(page), null, 2),
   )
 }
-async function verifyBasicServiceRestore(page, viewport) {
-  console.log('verifyBasicServiceRestore', viewport.width)
+async function verifyBasicServiceAuthoring(page, viewport) {
+  console.log('verifyBasicServiceAuthoring', viewport.width)
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
@@ -1204,51 +1287,23 @@ async function verifyBasicServiceRestore(page, viewport) {
   for (const id of ids) {
     await editor.locator(`[data-content-key="${id}"]`).click()
     await editor.locator(`[data-content-key="${id}"][aria-current="true"]:not(:disabled)`).waitFor()
-    const original = (await inspectBasics(page)).records.find((row) => row.id === id)
-    const count = (await inspectBasics(page)).requests.length
-    await activate(editor.getByRole('button', { name: 'History', exact: true }))
-    const history = editor.getByRole('region', { name: 'Content history', exact: true })
-    await history
-      .locator('summary')
-      .filter({ hasText: /^Previous settings$/ })
-      .click()
-    assert.equal(
-      (await inspectBasics(page)).requests.length,
-      count,
-      'Browsing and previewing saved history never mutates content',
-    )
-    assert.equal(
-      await editor.getByRole('button', { name: 'Restore version 1 to draft', exact: true }).count(),
-      0,
-    )
-    await activate(history.getByRole('button', { name: 'Restore Previous', exact: true }))
-    await editor
-      .getByText('Previous settings loaded. Review them, then Commit Now to apply.', {
-        exact: true,
-      })
-      .waitFor()
-    await activate(editor.getByRole('button', { name: 'Parameters', exact: true }))
-    const saved = await inspectBasics(page),
-      record = saved.records.find((row) => row.id === id)
-    assert.deepEqual(record.current, original.current)
-    assert.deepEqual(record.history, original.history)
-    assert.equal(record.draft.baseVersion, 3)
-    assert.equal(record.draft.definition.contentVersion, 2)
-    assert.equal(saved.oldCapturesUnchanged, true)
+    const before = (await inspectBasics(page)).records.find((row) => row.id === id)
+    const chosen = before.history.find((row) => row.contentVersion === 2).definition
+    await rejectRetiredBasicRestoration(page, editor, id, 2)
     assert.equal(
       await editor.getByLabel('Name', { exact: true }).inputValue(),
-      record.draft.definition.name,
+      before.current.definition.name,
     )
-    assert.equal(
-      await editor.getByRole('button', { name: 'Commit Now', exact: true }).isDisabled(),
-      false,
-    )
-    const actualPreview = await verifyBasicApiParity(
-      page,
-      record.current.definition,
-      record.draft.definition,
-    )
-    const reader = await basicParityReader(page, record.draft.definition)
+    // Ordinary current-setting authoring chooses explicit fixture values. The
+    // historical definition is a test oracle, not an exposed restoration feature.
+    await editor.getByLabel('Name', { exact: true }).fill(chosen.name)
+    await editor
+      .getByLabel('AP cost', { exact: true })
+      .fill(
+        String(chosen.ability.behaviors[0].costs.find((row) => row.resource === 'ap')?.amount ?? 0),
+      )
+    const actualPreview = await verifyBasicApiParity(page, before.current.definition, chosen)
+    const reader = await basicParityReader(page, chosen)
     await openNativeSample(reader)
     await activate(reader.getByRole('button', { name: 'Run native sample', exact: true }))
     const preview = reader.getByRole('region', { name: 'Deterministic preview', exact: true })
@@ -1256,28 +1311,44 @@ async function verifyBasicServiceRestore(page, viewport) {
     assert.match(await preview.innerText(), new RegExp(`${actualPreview.costs.actionEconomy} AP`))
     await commitBasic(editor, viewport)
     await committedBasic(editor)
-    const after = await inspectBasics(page),
-      current = after.records.find((row) => row.id === id)
-    assert.deepEqual(current.current.definition, { ...record.draft.definition, contentVersion: 4 })
-    assert.deepEqual(current.history[0], original.history[0])
+    const after = await inspectBasics(page)
+    const current = after.records.find((row) => row.id === id)
+    assert.deepEqual(current.current.definition, { ...chosen, contentVersion: 4 })
+    assert.deepEqual(
+      current.history.filter((row) => row.contentVersion !== 4),
+      before.history,
+    )
     assert.equal(current.history.length, 3)
+    assert.equal(current.current.authoredBy, current.current.publishedBy)
+    assert.ok(current.current.authoredAt)
+    assert.notEqual(
+      current.current.authoredAt,
+      before.history.find((row) => row.contentVersion === 2).authoredAt,
+    )
+    assert.equal(current.current.restoredFrom, null)
+    assert.equal(current.current.restoredBy, null)
+    assert.equal(current.current.restoredSource ?? null, null)
     assert.equal(after.oldCapturesUnchanged, true)
     assert.deepEqual(after.oldVersions, [3, 3, 3])
-    assert.equal(await editor.getByRole('button', { name: 'Rollback', exact: true }).count(), 0)
-    await activate(editor.getByRole('button', { name: 'History', exact: true }))
-    await history.getByRole('heading', { name: 'Current', exact: true }).scrollIntoViewIfNeeded()
-    await history.getByRole('heading', { name: 'Previous', exact: true }).waitFor()
+    assert.deepEqual(
+      after.currentDefinitions.find((row) => row.id === id),
+      current.current.definition,
+    )
+    await assertCurrentOnlyEditor(editor)
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
     await page.screenshot({
-      path: resolve(output, `basic-service-restore-${id}-${viewport.width}.png`),
+      path: resolve(output, `basic-service-authored-${id}-${viewport.width}.png`),
     })
   }
   const result = await inspectBasics(page)
   assert.equal(
     result.requests.filter((row) => row.operation === 'record' && row.command.action === 'restore')
       .length,
-    5,
+    10,
+    'Each Basic explicitly rejects both previous and builtin restoration',
   )
+  assert.equal(result.requests.filter((row) => row.operation === 'rollback').length, 5)
+  assert.equal(result.requests.filter((row) => row.operation === 'restore-basic-draft').length, 5)
   assert.equal(
     result.requests.filter((row) => row.operation === 'record' && row.command.action === 'commit')
       .length,
@@ -1317,6 +1388,11 @@ try {
       hasTouch: shellReachabilityOnly ? viewport.width === 390 : viewport.width < 720,
     })
     const errors = []
+    const pendingRequests = new Set()
+    page.pendingPaletteRequests = pendingRequests
+    page.on('request', (request) => pendingRequests.add(request.url()))
+    page.on('requestfinished', (request) => pendingRequests.delete(request.url()))
+    page.on('requestfailed', (request) => pendingRequests.delete(request.url()))
     page.on('pageerror', (error) => {
       errors.push(error.message)
       browserErrors.push(error.message)
@@ -1346,14 +1422,14 @@ try {
       const targets = [
         page.getByRole('button', { name: 'Search', exact: true }),
         page.getByLabel('Name', { exact: true }),
-        page.getByRole('button', { name: 'History', exact: true }),
+        page.getByRole('button', { name: 'Skill Details', exact: true }),
       ]
       for (const [index, target] of targets.entries()) {
         if (index === 1) await page.locator('[data-content-key="unarmed.basic"]').click()
         if (index === 1) {
           await target.fill(await target.inputValue())
           await native.control(target, 'name')
-        } else await native.activate(target, index === 0 ? 'search-empty' : 'history')
+        } else await native.activate(target, index === 0 ? 'search-empty' : 'details')
         await fs.writeFile(
           resolve(output, `native-controls-${viewport.width}-${viewport.height}.json`),
           JSON.stringify(nativeEvidence, null, 2),
@@ -1459,8 +1535,8 @@ try {
       continue
     }
     if (basicServiceAcceptance) {
-      if (originalRpcAcceptance) await verifyOriginalRpcRestore(page, viewport)
-      else await verifyBasicServiceRestore(page, viewport)
+      if (originalRpcAcceptance) await verifyOriginalRpcAuthoring(page, viewport)
+      else await verifyBasicServiceAuthoring(page, viewport)
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
@@ -1869,7 +1945,16 @@ try {
   await Promise.allSettled([
     fs.writeFile(
       resolve(output, 'failure.json'),
-      JSON.stringify({ error: String(error), browserErrors, evidence }, null, 2),
+      JSON.stringify(
+        {
+          error: String(error),
+          browserErrors,
+          pendingRequests: [...(failedPage?.pendingPaletteRequests ?? [])],
+          evidence,
+        },
+        null,
+        2,
+      ),
     ),
     ...(failedPage
       ? [

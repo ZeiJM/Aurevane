@@ -67,6 +67,14 @@ export async function createBasicEditorServiceFixture() {
       return {
         requests,
         originals: defaultBasicSkills(),
+        physicalVersions: (
+          await database.query<{ snapshot: unknown }>(
+            `select to_jsonb(v) || jsonb_build_object('attribution',to_jsonb(a)) as snapshot
+           from app_private.combat_content_versions v
+           left join app_private.combat_content_attribution a on a.version_id=v.id
+           order by v.id`,
+          )
+        ).rows.map((row) => row.snapshot),
         records: await Promise.all(defaultBasicSkills().map((basic) => store.readRecord(basic.id))),
       }
     },

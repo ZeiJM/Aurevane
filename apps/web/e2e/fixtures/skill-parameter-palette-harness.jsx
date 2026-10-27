@@ -199,6 +199,26 @@ if (query.get('surface') === 'basic-editor' && !basicService) {
       throw new Error('Unexpected Basic fixture request')
     const body = JSON.parse(options.body)
     window.basicDraftRequests.push(structuredClone(body))
+    if (
+      body.operation === 'rollback' ||
+      body.operation === 'restore-basic-draft' ||
+      (body.operation === 'record' && body.command?.action === 'restore')
+    )
+      return Response.json(
+        {
+          error: {
+            code: 'INVALID_REQUEST',
+            message:
+              'Content rollback is no longer available. Edit the current settings and Commit Now.',
+          },
+        },
+        { status: 400 },
+      )
+    const currentOnly = (record) => {
+      const result = { ...record, history: [] }
+      delete result.builtinRestoreVersion
+      return result
+    }
     if (body.operation === 'diff')
       return Response.json({
         diff: {
@@ -221,7 +241,7 @@ if (query.get('surface') === 'basic-editor' && !basicService) {
         })
       const stored = fixtureRecords.get(command.contentKey)
       if (!stored) throw new Error('Unknown fixture record')
-      if (command.action === 'read') return Response.json({ record: stored })
+      if (command.action === 'read') return Response.json({ record: currentOnly(stored) })
       const record = structuredClone(stored)
       const conflict = () =>
         Response.json(
@@ -285,29 +305,10 @@ if (query.get('surface') === 'basic-editor' && !basicService) {
         record.draft = null
         window.basicPublishedDefinitions[record.contentKey] = definition
         window.basicPublishedVersions.push({ id: record.contentKey, contentVersion })
-      } else if (command.action === 'restore') {
-        if (command.expectedRevision !== record.revision) return conflict()
-        const version = record.history.find((row) => row.contentVersion === command.sourceVersion)
-        if (!version)
-          return Response.json(
-            { error: { message: 'That recorded publication is unavailable.' } },
-            { status: 400 },
-          )
-        const draftVersion = draftSequences.get(record.contentKey) + 1
-        draftSequences.set(record.contentKey, draftVersion)
-        record.draft = {
-          definition: structuredClone(version.definition),
-          draftVersion,
-          baseVersion: record.current.contentVersion,
-          updatedBy: 'fixture-author',
-          updatedAt: new Date().toISOString(),
-          restoredFrom: version.contentVersion,
-          restoredBy: 'fixture-author',
-        }
       } else throw new Error('Unexpected complete-record mutation')
       record.revision++
       fixtureRecords.set(record.contentKey, record)
-      return Response.json({ record })
+      return Response.json({ record: currentOnly(record) })
     }
     const issues = validateBasicSkillDefinition(body.definition)
     if (body.operation === 'preview') {
