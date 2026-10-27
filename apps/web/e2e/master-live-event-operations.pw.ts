@@ -3,6 +3,13 @@ import { execFileSync } from 'node:child_process'
 import { expect, test, type Page, type Response } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { createEventPageAccessFixture } from './event-page-access-fixture'
+
+let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
+test.afterEach(() => {
+  eventPageAccess?.restore()
+  eventPageAccess = undefined
+})
 
 function escapeSqlLiteral(value: string): string {
   return value.replaceAll("'", "''")
@@ -57,17 +64,9 @@ function grantEventStaff(email: string): string {
     insert into app_private.master_panel_character_access(character_id,user_id,roles,special_capabilities,updated_by)
       select c.id,c.user_id,array['event-staff'],array[]::text[],c.user_id from public.characters c
       where c.user_id='${userId}'::uuid order by c.slot_index limit 1
-      on conflict(character_id) do update set roles=excluded.roles,enabled=true,access_version=app_private.master_panel_character_access.access_version+1;
+      on conflict(character_id) do update set roles=excluded.roles,special_capabilities=excluded.special_capabilities,enabled=true,access_version=app_private.master_panel_character_access.access_version+1;
   `)
   return userId
-}
-
-function grantEmergencyStop(userId: string): void {
-  queryLocalDatabase(`
-    update app_private.master_panel_character_access
-      set special_capabilities=array['events.emergency_stop'],access_version=access_version+1
-      where user_id='${userId}'::uuid;
-  `)
 }
 
 function createScheduledRun(userId: string, eventKey: string): string {
@@ -222,13 +221,16 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   })
 
   const userId = grantEventStaff(email)
+  eventPageAccess = createEventPageAccessFixture(queryLocalDatabase)
+  eventPageAccess.set(true)
   const eventKey = `event.browser-ops-${now}`
   const runId = createScheduledRun(userId, eventKey)
 
   await page.goto('/master')
   const masterNavigation = page.getByRole('navigation', { name: 'Master Panel navigation' })
-  await expect(masterNavigation.getByRole('link', { name: /Live Event Ops/ })).toBeVisible()
-  await masterNavigation.getByRole('link', { name: /Live Event Ops/ }).click()
+  await expect(masterNavigation.getByRole('link', { name: /Events/ })).toBeVisible()
+  await masterNavigation.getByRole('link', { name: /Events/ }).click()
+  await page.getByRole('button', { name: 'Live Operations', exact: true }).click()
 
   await expect(page.getByRole('heading', { name: 'Event runs', exact: true })).toBeVisible()
   await expect(page.getByText('Operations console', { exact: true })).toBeVisible()
@@ -246,7 +248,7 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   }
 
   await expectRunStatus('scheduled')
-  await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toBeVisible()
 
   await confirmOperation(page)
   await clickOperation(page, 'operate', 'Start due run')
@@ -269,8 +271,17 @@ test('Event Staff operates a run, completes cleanup and archives Chronicle safel
   await clickOperation(page, 'operate', 'Resume')
   await expectRunStatus('live')
 
-  grantEmergencyStop(userId)
+  // Every Events tool is present, but the open console must recheck live page access.
+  eventPageAccess.set(false)
+  await confirmOperation(page)
+  const deniedEmergency = page.waitForResponse((response) =>
+    isOperationResponse(response, 'operate'),
+  )
+  await page.getByRole('button', { name: 'Emergency stop', exact: true }).click()
+  expect((await deniedEmergency).status()).toBe(403)
+  eventPageAccess.set(true)
   await page.reload()
+  await page.getByRole('button', { name: 'Live Operations', exact: true }).click()
   await expect(page.getByRole('heading', { name: 'Event runs', exact: true })).toBeVisible()
   await page.getByLabel('Event Run').selectOption(runId)
   await expect(page.getByRole('button', { name: 'Emergency stop', exact: true })).toBeVisible()

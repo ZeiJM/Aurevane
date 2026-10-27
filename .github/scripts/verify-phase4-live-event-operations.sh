@@ -22,6 +22,9 @@ staff_character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U pos
   where user_id='$staff_id'::uuid and 'event-staff'=any(roles) and enabled order by character_id limit 1;")"
 test -n "$staff_character_id"
 
+source "$(dirname "${BASH_SOURCE[0]}")/event-page-access-fixture.sh"
+set_event_page_access true
+
 version_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   insert into app_private.event_templates (event_key, event_family, created_by)
   values ('event.p414-ops','regional-event','$owner_id'::uuid);
@@ -453,6 +456,7 @@ docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   );
 " >/dev/null
 
+set_event_page_access false
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.operate_event_run_v2(
@@ -465,20 +469,12 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     'P4.14 emergency denial',
     true
   );" >/tmp/p414-emergency-denied.out 2>/tmp/p414-emergency-denied.err; then
-  echo 'Expected emergency stop without explicit capability to fail.' >&2
+  echo 'Expected emergency stop after Events page revocation to fail.' >&2
   exit 1
 fi
-grep -Fq 'EVENT_EMERGENCY_STOP_CAPABILITY_REQUIRED' /tmp/p414-emergency-denied.err
+grep -Fq 'EVENT_STAFF_REQUIRED' /tmp/p414-emergency-denied.err
 
-staff_version="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  select access_version from app_private.master_panel_character_access where character_id='$staff_character_id'::uuid;")"
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
-  set role service_role;
-  select public.set_master_panel_character_access_v2(
-    '$owner_id'::uuid,'$staff_id'::uuid,'$staff_character_id'::uuid,
-    array['event-staff'],array['events.global_scope','events.emergency_stop'],
-    null,'$staff_version'::bigint,true);
-" >/dev/null
+set_event_page_access true
 
 emergency="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;

@@ -67,8 +67,8 @@ export function MasterActivityLog({ initialFeed }: { initialFeed: MasterActivity
         <div className={styles.note}>
           Clears every Monday at 00:00 UTC.{' '}
           <MasterHelp label="Activity Log">
-            Staff with Activity Log page access can view this week's changes. The list resets on
-            Monday at 00:00 UTC.
+            Staff with Activity Log page access can view changes from the current week. The list
+            resets on Monday at 00:00 UTC.
           </MasterHelp>
         </div>
         <button type="button" onClick={() => void load()} disabled={busy}>

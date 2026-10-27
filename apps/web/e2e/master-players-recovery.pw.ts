@@ -133,7 +133,9 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       }),
     )
     await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
-    await expect(owner.getByRole('alert')).toContainText('Player read temporarily unavailable')
+    await expect(owner.locator('[data-player-pane="details"]').getByRole('alert')).toContainText(
+      'Player read temporarily unavailable',
+    )
     const afterError = await panes.evaluateAll((nodes) =>
       nodes.map((node) => node.getBoundingClientRect().toJSON()),
     )
