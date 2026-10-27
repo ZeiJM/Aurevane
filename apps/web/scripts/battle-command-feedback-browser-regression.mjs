@@ -209,6 +209,18 @@ async function verifyPassiveInspection() {
       )
       await page.locator('button[data-command-slot="attack"]').click()
       await page.waitForFunction(() => window.passivePreviewWaiters.length > 0)
+      const readGeometry = () =>
+        page.evaluate(() =>
+          ['[data-battle-preview-strip]', '#battlefield', '[data-board-auto-fit]'].map(
+            (selector) => {
+              const { x, y, width, height } = document
+                .querySelector(selector)
+                .getBoundingClientRect()
+              return { x, y, width, height }
+            },
+          ),
+        )
+      const activeGeometry = await readGeometry()
       const forecastCount = await page.evaluate(
         () => window.calls.filter((call) => call.path.endsWith('/preview')).length,
       )
@@ -247,6 +259,13 @@ async function verifyPassiveInspection() {
         const preview = page.locator('[data-battle-preview-strip]')
         assert.ok((await preview.innerText()).includes(name))
         assert.ok((await preview.innerText()).includes(type))
+        const passiveGeometry = await readGeometry()
+        for (let index = 0; index < activeGeometry.length; index++)
+          for (const key of ['x', 'y', 'width', 'height'])
+            assert.ok(
+              Math.abs(passiveGeometry[index][key] - activeGeometry[index][key]) <= 1,
+              `${mode} ${viewport.width}: ${type} preserves active preview/map geometry (${index} ${key}): ${JSON.stringify({ activeGeometry, passiveGeometry })}`,
+            )
         const clipped = await preview.evaluate((strip) => {
           const bounds = strip.getBoundingClientRect(),
             walker = document.createTreeWalker(strip, NodeFilter.SHOW_TEXT),
