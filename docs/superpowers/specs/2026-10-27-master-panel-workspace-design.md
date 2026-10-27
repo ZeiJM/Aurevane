@@ -1,16 +1,19 @@
 # Master Panel workspace overhaul
 
-Owner-authorized October 27, 2026. Status: implementation in progress, not released.
+Owner-authorized October 27, 2026. Status: live for Owner testing; acceptance limits and exact evidence are in docs/verification/2026-10-27-master-panel-release.md.
 Base: main d20bb6c079cc6d8210426d0bbcb482aae01eed71 (preserve #983 preview sizing).
 Nick supplied the detailed design through screenshots and explicitly requested implementation; proceed without another design approval round.
 
 ## Intent
+
 Make every Master page attractive, compact, intuitive and practical on desktop and mobile. All extraordinary staff actions belong in the Master Panel. Preserve server authority, actual character facts, combat captures, current data, and existing artwork. This batch does not implement the unrelated World/P5 backlog.
 
 ## Approach
+
 Extend the existing Next/React workspaces, shared engine parsers, private SQL/RPC authority and native modal. A replacement app or independent skill engine would duplicate authority; CSS-only treatment would leave reported functional defects. Use coherent components and scoped styles with a single integrated verification gate. Independent domains may be delegated with exclusive file ownership; root integrates shared contracts.
 
 ## Approved requirements
+
 1. Music: recognise source type; YouTube watch URLs must not be silently accepted as playable HTML audio. Provide supported working playback/preview or precise unsupported-source feedback; investigate supported embedded playback rather than extracting media. Compact Global Music so all controls fit the reported desktop viewport; preview/save/game agree.
 2. Staff: Owner edits role access to named pages, not a list of granular powers. Page access includes its necessary tools. Preserve single protected Owner and Owner-only role management. Enforce live page permissions in server/RPC and navigation, including Activity Log.
 3. Add Moderation page: search players, temporary/permanent bans, duration, reasons, history, edit/extend/lift; canonical authority and audit.
@@ -30,7 +33,9 @@ Extend the existing Next/React workspaces, shared engine parsers, private SQL/RP
 17. Replace Identity & Relations with Usage & Balance: current primary/secondary player counts, skill equipped and actual-use counts, weekly completed wins/losses/draws/rates split PvP vs AI, common pairs/matchups and underused skills. Counts/time windows visible; unavailable data marked honestly. Exclude test/unfinished battles and protect identities. Reporting bounded/lightweight, no gameplay hot-path bulk scans.
 
 ## Visual direction (implementation judgment)
+
 Retain Aurevane fantasy character with ink/teal/brass accents, warmer layered surfaces, restrained highlights and clear type hierarchy. Compact stable desktop frame, useful column proportions, aligned fields; mobile uses intentional stacked views and usable touch controls. Keep contrast, focus, accessible labels, dialog focus restoration and reduced-motion support. No generic numeric mystery controls, excessive instructional copy or tiny text to force fit.
 
 ## Verification and release
+
 Focused reproduction/negative regressions during each domain. Final full pnpm check, DB authority/ACL/concurrency cases, configured exact-head workflows, native desktop/mobile Master flows, app entry and representative battle smoke. No test discovery claimed as executed. Fresh main before finalization. No preview deploys; preserve Git automatic deployment lock. Standing panel release authorization is scoped to this final verified batch; if a new release approval is required, finish the concrete reviewable candidate first. Physical Owner/mobile/multiplayer/load acceptance remains separate from automation.
