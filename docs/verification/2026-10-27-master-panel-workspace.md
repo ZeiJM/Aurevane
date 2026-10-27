@@ -1,5 +1,7 @@
 # Master Panel workspace batch — implementation ledger
 
+**Final status: LIVE for Owner testing.** The exact release, final gate results, operational proof and limitations are in [the release receipt](2026-10-27-master-panel-release.md). The dated implementation entries below describe their then-current state and are historical; their pending-release statements are superseded by that receipt.
+
 Status: **implementation / final integrated CI pending. Not live.**
 
 Branch: `agent/master-panel-rework-20261027`, base main `d20bb6c079cc6d8210426d0bbcb482aae01eed71` (#983). No hosted migration, preview or production deployment has been made by this batch.
@@ -8,22 +10,22 @@ Authority: [approved specification](../superpowers/specs/2026-10-27-master-panel
 
 ## Requirement reconciliation
 
-| Area | Source implemented | Verification / remaining gate |
-| --- | --- | --- |
-| Shared visual overhaul | Warm layered surfaces, ink/teal/brass, readable compact controls, responsive navigation | Native Rules/Events/Music/Content/Players fixtures pass; final integrated/browser authority gates pending |
-| Music | Compact editor, actual file previews/playback, source rejection before saving unsupported YouTube video pages, editable legacy unsupported values | Focused tests and native desktop/mobile/CSS-zoom pass; no YouTube background audio support claimed |
-| Staff pages | Owner-controlled named-page defaults, live server/SQL authority, one Events menu with subtabs | Focused authority/ACL and native Staff checks pass; final suite pending |
-| Moderation | Search, timed/permanent bans, reasons, edit/lift, history, audit; canonical Auth ban authority checked before session actor | Focused SQL and old-token actor tests pass; native Staff/Moderation desktop/mobile fixtures pass |
-| Player correction | Stable right pane, actual pinned base/cap/budget bounds and precise validation | Core38/web38; Players+Discipline SQL115; native predecessor/fix geometry pass |
-| Allocation | Cap-capacity readiness/excess retention, refresh/remount after level/class changes, idempotent replay cannot rewrite newer personal points | Synthetic future cap-saturation and actual stale replay regression pass; current60/40 policy cannot saturate at Level100 pool135 |
-| Content layout | Fixed category/list sidebar, automatic bounded pages into continuous list, search/sort/commit, no State/manual pagination; compact Details header | Native127-record matrix pass |
-| Content recovery | Account-scoped session recovery of view/scroll/definitions, explicit stale revision review, no automatic commit; creation uses stable request identity | Native refresh/in-flight/rejected-save/child-draft matrix pass; focused pure invariants pass |
-| Details / media | Text merged; real builtin class image preview, six desktop Core fields, remove misplaced help/Find helpers/internal rating controls | Native image decode/six-column geometry pass |
-| Skills | Named list -> full native modal; image/sound previews, actual engine fields/text; mastery saves without publishing unrelated parent edits | Native image/WAV/commit/reopen pass; latest recovery/modal/identity-focused checks pass |
-| Relationships | None(Essence)/named partner list -> modal, one-source override switch; off retains per-pair data | Exact parser/current/build/battle capture/SQL authority tests; source and capture propagation verified; final full gate running |
-| Player grants | Verified account search/multi-grant/revoke; unlocks Primary/Secondary without fictional Mastery | Real SQL recipients/rename/idempotency/revocation and authority tests pass; grant-only testing entitlement and creation guard verified |
-| History | Authoring History/rollback removed; legacy HTTP rollback paths rejected and no history payload offered |26 endpoint/retained-capture checks pass; immutable runtime definitions deliberately retained |
-| Usage & Balance | Current roster/equips/pairs; qualified new production battle receipts and weekly PvP/AI W/L/D rates/actual skill use | Focused service/receipt checks pass; eight real reporting SQL cases and full-chain read smoke pass; combined gate running |
+| Area                   | Source implemented                                                                                                                                     | Verification / remaining gate                                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared visual overhaul | Warm layered surfaces, ink/teal/brass, readable compact controls, responsive navigation                                                                | Native Rules/Events/Music/Content/Players fixtures pass; final integrated/browser authority gates pending                              |
+| Music                  | Compact editor, actual file previews/playback, source rejection before saving unsupported YouTube video pages, editable legacy unsupported values      | Focused tests and native desktop/mobile/CSS-zoom pass; no YouTube background audio support claimed                                     |
+| Staff pages            | Owner-controlled named-page defaults, live server/SQL authority, one Events menu with subtabs                                                          | Focused authority/ACL and native Staff checks pass; final suite pending                                                                |
+| Moderation             | Search, timed/permanent bans, reasons, edit/lift, history, audit; canonical Auth ban authority checked before session actor                            | Focused SQL and old-token actor tests pass; native Staff/Moderation desktop/mobile fixtures pass                                       |
+| Player correction      | Stable right pane, actual pinned base/cap/budget bounds and precise validation                                                                         | Core38/web38; Players+Discipline SQL115; native predecessor/fix geometry pass                                                          |
+| Allocation             | Cap-capacity readiness/excess retention, refresh/remount after level/class changes, idempotent replay cannot rewrite newer personal points             | Synthetic future cap-saturation and actual stale replay regression pass; current60/40 policy cannot saturate at Level100 pool135       |
+| Content layout         | Fixed category/list sidebar, automatic bounded pages into continuous list, search/sort/commit, no State/manual pagination; compact Details header      | Native127-record matrix pass                                                                                                           |
+| Content recovery       | Account-scoped session recovery of view/scroll/definitions, explicit stale revision review, no automatic commit; creation uses stable request identity | Native refresh/in-flight/rejected-save/child-draft matrix pass; focused pure invariants pass                                           |
+| Details / media        | Text merged; real builtin class image preview, six desktop Core fields, remove misplaced help/Find helpers/internal rating controls                    | Native image decode/six-column geometry pass                                                                                           |
+| Skills                 | Named list -> full native modal; image/sound previews, actual engine fields/text; mastery saves without publishing unrelated parent edits              | Native image/WAV/commit/reopen pass; latest recovery/modal/identity-focused checks pass                                                |
+| Relationships          | None(Essence)/named partner list -> modal, one-source override switch; off retains per-pair data                                                       | Exact parser/current/build/battle capture/SQL authority tests; source and capture propagation verified; final full gate running        |
+| Player grants          | Verified account search/multi-grant/revoke; unlocks Primary/Secondary without fictional Mastery                                                        | Real SQL recipients/rename/idempotency/revocation and authority tests pass; grant-only testing entitlement and creation guard verified |
+| History                | Authoring History/rollback removed; legacy HTTP rollback paths rejected and no history payload offered                                                 | 26 endpoint/retained-capture checks pass; immutable runtime definitions deliberately retained                                          |
+| Usage & Balance        | Current roster/equips/pairs; qualified new production battle receipts and weekly PvP/AI W/L/D rates/actual skill use                                   | Focused service/receipt checks pass; eight real reporting SQL cases and full-chain read smoke pass; combined gate running              |
 
 ## Important boundaries and decisions
 
@@ -91,6 +93,7 @@ Reproducible release artifacts are versioned with this source: `scripts/release/
 PR [#984](https://github.com/ZeiJM/Aurevane/pull/984), first candidate `a1202580aa6918860e24f8e8e90ae500bab08918`, exact tree `93bd260f1b8036e221239d02dcc8edc2cbde5cd5`. All19 actual workflows finished:16success,3failure. These are workflow totals, not individual job/check rows. CI and Browser smoke each contain multiple jobs/steps.
 
 Observed failures and repairs:
+
 - Native palette workflows still expected old save/retention wording and History/restore controls. Tests now inspect retained AP input/state, explicitly reject all retired HTTP variants without mutation and commit current edits with truthful authorship; current and pinned readers remain verified.
 - CI's private Music assertion expected service direct UPDATE. It now requires that privilege to be absent and separately checks exact server-only CAS RPC execution (`service/anon/auth = true/false/false`).
 - An independent lifecycle test's fake platform Auth table lacked canonical ban columns; only those fixture columns were added. A historical SQLSTATE audit incorrectly compared its35functions after later legitimate migrations; it now captures at the audited migration's own boundary, retaining every65assignment/full-definition/owner/ACL assertion. Its2tests pass locally. Lifecycle's56cases still require a fresh complete run; prior combined attempts hit unchanged setup deadlines.
