@@ -78,6 +78,15 @@ const call = (command: unknown) =>
       createService: createServerCombatContentAuthoringService,
     },
   )
+// Compatibility writer remains server-internal; the public HTTP route retires rollback.
+const internalCommand = (command: unknown) =>
+  createServerCombatContentAuthoringService('owner').recordCommand!(command)
+const rollbackUnavailable = {
+  error: {
+    code: 'INVALID_REQUEST',
+    message: 'Content rollback is no longer available. Edit the current settings and Commit Now.',
+  },
+}
 beforeEach(() => {
   rpc.mockReset()
 })
@@ -206,7 +215,7 @@ function statusFixture(oldSupported: boolean, concurrentEdit = false) {
   })
   return { state, versions }
 }
-it('rejects unsupported exact Status history outside the three visible entries before mutation, then accepts a valid edit', async () => {
+it('blocks HTTP rollback while retaining unsupported immutable Status bytes and validating internal compatibility writes before a valid edit', async () => {
   const { state, versions } = statusFixture(false)
   const before = JSON.stringify(state)
   const historyBefore = JSON.stringify(versions)
@@ -217,7 +226,14 @@ it('rejects unsupported exact Status history outside the three visible entries b
     sourceVersion: 1,
   })
   expect(response.status).toBe(400)
-  expect(await response.text()).toMatch(/historical Status.*unsupported.*restor/i)
+  expect(await response.json()).toEqual(rollbackUnavailable)
+  expect(rpc.mock.calls.some(([name]) => name === 'read_combat_content_version_v1')).toBe(false)
+  await expect(
+    internalCommand({ action: 'restore', contentKey: key, expectedRevision: 8, sourceVersion: 1 }),
+  ).rejects.toMatchObject({
+    code: 'INVALID_REQUEST',
+    message: expect.stringMatching(/historical Status.*unsupported.*restor/i),
+  })
   expect(rpc.mock.calls.some(([name]) => name === 'write_combat_content_record_v1')).toBe(false)
   expect(JSON.stringify(state)).toBe(before)
   expect(JSON.stringify(versions)).toBe(historyBefore)
@@ -233,7 +249,7 @@ it('rejects unsupported exact Status history outside the three visible entries b
   expect(state.draft?.definition.name).toBe('Repaired later')
   expect(JSON.stringify(versions)).toBe(historyBefore)
 })
-it('validates a supported exact older Status before restoring with the original CAS and selected actor', async () => {
+it('retires HTTP restoration while the internal compatibility writer validates exact Status identity, actor and CAS without rewriting captures', async () => {
   const { state, versions } = statusFixture(true)
   const before = JSON.stringify({ current: state.current, history: versions })
   const response = await call({
@@ -242,7 +258,17 @@ it('validates a supported exact older Status before restoring with the original 
     expectedRevision: 8,
     sourceVersion: 1,
   })
-  expect(response.status).toBe(200)
+  expect(response.status).toBe(400)
+  expect(await response.json()).toEqual(rollbackUnavailable)
+  expect(rpc.mock.calls.some(([name]) => name === 'read_combat_content_version_v1')).toBe(false)
+  expect(rpc.mock.calls.some(([name]) => name === 'write_combat_content_record_v1')).toBe(false)
+  const result = await internalCommand({
+    action: 'restore',
+    contentKey: key,
+    expectedRevision: 8,
+    sourceVersion: 1,
+  })
+  expect(result).toMatchObject({ record: { draft: { definition: status(1), restoredFrom: 1 } } })
   expect(rpc).toHaveBeenCalledWith('read_combat_content_version_v1', {
     p_content_key: key,
     p_content_kind: 'status',
@@ -262,7 +288,7 @@ it('validates a supported exact older Status before restoring with the original 
   expect(state.draft?.restoredFrom).toBe(1)
   expect(JSON.stringify({ current: state.current, history: versions })).toBe(before)
 })
-it('keeps the original CAS when a concurrent edit follows the exact Status precheck', async () => {
+it('rejects HTTP rollback before its Status precheck while retaining stale-CAS rejection in the internal compatibility writer', async () => {
   const { state } = statusFixture(true, true)
   const before = JSON.stringify(state.draft)
   const response = await call({
@@ -271,7 +297,20 @@ it('keeps the original CAS when a concurrent edit follows the exact Status prech
     expectedRevision: 8,
     sourceVersion: 1,
   })
-  expect(response.status).toBe(409)
+  expect(response.status).toBe(400)
+  expect(await response.json()).toEqual(rollbackUnavailable)
+  expect(state.revision).toBe(8)
+  expect(rpc.mock.calls.some(([name]) => name === 'read_combat_content_version_v1')).toBe(false)
+  await expect(
+    internalCommand({ action: 'restore', contentKey: key, expectedRevision: 8, sourceVersion: 1 }),
+  ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  expect(rpc).toHaveBeenCalledWith(
+    'write_combat_content_record_v1',
+    expect.objectContaining({
+      p_actor_character_id: 'selected',
+      p_command: { action: 'restore', expectedRevision: 8, sourceVersion: 1 },
+    }),
+  )
   expect(state.revision).toBe(9)
   expect(JSON.stringify(state.draft)).toBe(before)
 })
@@ -292,7 +331,7 @@ it.each([
     status: 400,
   },
 ])(
-  'rejects $label from the exact Status read without mutating the record',
+  'blocks HTTP rollback before $label lookup and retains exact-read validation in the internal compatibility writer',
   async ({ rows, status: expectedStatus }) => {
     const { state, versions } = statusFixture(true)
     const before = JSON.stringify({ state, versions })
@@ -308,8 +347,38 @@ it.each([
       expectedRevision: 8,
       sourceVersion: 1,
     })
-    expect(response.status).toBe(expectedStatus)
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual(rollbackUnavailable)
+    expect(rpc.mock.calls.some(([name]) => name === 'read_combat_content_version_v1')).toBe(false)
+    await expect(
+      internalCommand({
+        action: 'restore',
+        contentKey: key,
+        expectedRevision: 8,
+        sourceVersion: 1,
+      }),
+    ).rejects.toMatchObject({
+      code: expectedStatus === 503 ? 'PERSISTENCE_UNAVAILABLE' : 'INVALID_REQUEST',
+    })
     expect(rpc.mock.calls.some(([name]) => name === 'write_combat_content_record_v1')).toBe(false)
+    expect(JSON.stringify({ state, versions })).toBe(before)
+  },
+)
+
+it.each(['rollback', 'restore-basic-draft'])(
+  'retires legacy %s HTTP before any content read or mutation',
+  async (operation) => {
+    const { state, versions } = statusFixture(true)
+    const before = JSON.stringify({ state, versions })
+    const response = await handleCombatContentAuthoringRequest(
+      new Request('https://example.test/api/master/combat-content', {
+        method: 'POST',
+        body: JSON.stringify({ operation, contentKey: key, version: 1 }),
+      }),
+    )
+    expect(response.status).toBe(400)
+    expect(await response.json()).toEqual(rollbackUnavailable)
+    expect(rpc.mock.calls.every(([name]) => name === 'read_master_panel_operator_v1')).toBe(true)
     expect(JSON.stringify({ state, versions })).toBe(before)
   },
 )

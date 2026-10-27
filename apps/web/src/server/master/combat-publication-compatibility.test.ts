@@ -1,11 +1,20 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
-const { adminRpc } = vi.hoisted(() => ({ adminRpc: vi.fn() }))
+const { adminRpc, getActor, loadSelection } = vi.hoisted(() => ({
+  adminRpc: vi.fn(),
+  getActor: vi.fn(),
+  loadSelection: vi.fn(),
+}))
+vi.mock('@/server/auth/actor', () => ({ getAuthenticatedActor: getActor }))
+vi.mock('@/server/character/selected-character', () => ({
+  loadSelectedCharacter: loadSelection,
+}))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc: adminRpc }) }))
 import {
   latestEnabledMatureSkills,
   resolveMatureSkillVersion,
 } from '@aurevane/game-core/combat/mature-skills'
+import { AurevaneError } from '@aurevane/game-core/errors'
 import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
 import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
@@ -15,6 +24,7 @@ import { RpcCombatContentAuthoringStore } from './supabase-combat-content-author
 import { publishCombatEffectTimingPolicy } from './combat-effect-timing-policy-store'
 
 const actor = '11111111-1111-4111-8111-111111111111'
+const selectedCharacter = '22222222-2222-4222-8222-222222222222'
 const token = 'a'.repeat(32)
 const instantPolicy = { version: 7, modes: {} }
 function record(kind: string, key: string, definition: object, version: number) {
@@ -60,6 +70,8 @@ function fixture(policy = instantPolicy, publications: ReturnType<typeof record>
 }
 beforeEach(() => {
   adminRpc.mockReset()
+  getActor.mockReset().mockResolvedValue({ userId: actor })
+  loadSelection.mockReset().mockResolvedValue({ id: selectedCharacter })
 })
 it.each(['manual', 'automatic'] as const)(
   'uses root Essence %s authority at the actual timing publication boundary',
@@ -108,6 +120,7 @@ it.each(['manual', 'automatic'] as const)(
           name: 'publish_combat_effect_timing_policy_v2',
           parameters: {
             p_actor_user_id: actor,
+            p_actor_character_id: selectedCharacter,
             p_expected_version: 7,
             p_modes: proposed.modes,
             p_expected_catalogue_token: token,
@@ -233,6 +246,7 @@ it('publishes compatible timing through the same catalogue-CAS boundary and pres
       name: 'publish_combat_effect_timing_policy_v2',
       parameters: {
         p_actor_user_id: actor,
+        p_actor_character_id: selectedCharacter,
         p_expected_version: 7,
         p_modes: { slow: 'instant' },
         p_expected_catalogue_token: token,
@@ -329,5 +343,61 @@ it('rejects a stale timing version before writing and translates a post-validati
   await expect(
     publishCombatEffectTimingPolicy({ actorUserId: actor, policy: { version: 7, modes: {} } }),
   ).rejects.toMatchObject({ code: 'STALE_VERSION' })
+  expect(f.writes).toEqual([])
+})
+
+it('refreshes the authenticated actor and selected character for every timing publication', async () => {
+  const f = fixture()
+  const nextCharacter = '33333333-3333-4333-8333-333333333333'
+  loadSelection
+    .mockResolvedValueOnce({ id: selectedCharacter })
+    .mockResolvedValueOnce({ id: nextCharacter })
+  for (let attempt = 0; attempt < 2; attempt++) {
+    await publishCombatEffectTimingPolicy({ actorUserId: actor, policy: instantPolicy })
+  }
+  expect(getActor).toHaveBeenCalledTimes(2)
+  expect(loadSelection.mock.calls).toEqual([[{ userId: actor }], [{ userId: actor }]])
+  expect(f.writes.map(({ parameters }) => parameters.p_actor_character_id)).toEqual([
+    selectedCharacter,
+    nextCharacter,
+  ])
+  expect(f.rpc.mock.calls.filter(([name]) => name === 'read_combat_content_catalogue_v1')).toEqual([
+    ['read_combat_content_catalogue_v1', {}],
+    ['read_combat_content_catalogue_v1', {}],
+  ])
+})
+
+it('rejects a changed or unauthenticated actor before the timing writer', async () => {
+  const f = fixture()
+  getActor.mockResolvedValueOnce({ userId: 'different-account' })
+  await expect(
+    publishCombatEffectTimingPolicy({ actorUserId: actor, policy: instantPolicy }),
+  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  getActor.mockRejectedValueOnce(new AurevaneError('UNAUTHENTICATED', 'Sign in.'))
+  await expect(
+    publishCombatEffectTimingPolicy({ actorUserId: actor, policy: instantPolicy }),
+  ).rejects.toMatchObject({ code: 'UNAUTHENTICATED' })
+  expect(loadSelection).not.toHaveBeenCalled()
+  expect(f.writes).toEqual([])
+})
+
+it('passes missing selection to the protected SQL writer and preserves its page-access denial', async () => {
+  const f = fixture()
+  loadSelection.mockResolvedValue(null)
+  adminRpc.mockImplementation((name: string, parameters: Readonly<Record<string, unknown>>) =>
+    name === 'publish_combat_effect_timing_policy_v2'
+      ? { data: null, error: { code: '42501', message: 'MASTER_CAPABILITY_REQUIRED' } }
+      : f.rpc(name, parameters),
+  )
+  await expect(
+    publishCombatEffectTimingPolicy({ actorUserId: actor, policy: instantPolicy }),
+  ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  expect(adminRpc).toHaveBeenCalledWith('publish_combat_effect_timing_policy_v2', {
+    p_actor_user_id: actor,
+    p_actor_character_id: null,
+    p_expected_version: 7,
+    p_modes: {},
+    p_expected_catalogue_token: token,
+  })
   expect(f.writes).toEqual([])
 })

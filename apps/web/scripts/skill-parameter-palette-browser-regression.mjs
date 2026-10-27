@@ -19,6 +19,7 @@ const root = resolve(web, '../..')
 const shellReachabilityOnly = process.env.AV_MASTER_SHELL_REACHABILITY_ONLY === '1'
 const editorIdentityOnly = process.env.AV_MASTER_EDITOR_IDENTITY_ONLY === '1'
 const attunementPointerOnly = process.env.AV_ATTUNEMENT_POINTER_ONLY === '1'
+const heldRevertOnly = process.env.AV_BASIC_HELD_REVERT_ONLY === '1'
 const originalRpcAcceptance = process.env.AV_BASIC_ORIGINAL_RPC_ACCEPTANCE === '1'
 const basicServiceAcceptance =
   process.env.AV_BASIC_SERVICE_ACCEPTANCE === '1' ||
@@ -142,7 +143,7 @@ async function handleBasicRequest(request, response, next) {
       basicFixture = await createBasicEditorServiceFixture()
       result = Response.json({ reset: true })
     } else if (url.pathname === '/__basic-acceptance/options')
-      result = Response.json(basicFixture.options)
+      result = Response.json((await basicFixture.inspect()).records)
     else if (url.pathname === '/__basic-acceptance/inspect')
       result = Response.json(await basicFixture.inspect())
     else {
@@ -839,6 +840,83 @@ async function verifyBasicEditor(page, viewport) {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.equal(await editor.getByRole('alert').count(), 0)
 }
+async function verifyBasicHeldRevert(page, viewport) {
+  console.log('verifyBasicHeldRevert', viewport.width)
+  await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
+    waitUntil: 'networkidle',
+  })
+  const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+  const name = editor.getByLabel('Name', { exact: true })
+  const originalName = await name.inputValue()
+  const before = (await inspectBasics(page)).records.find((row) => row.id === 'basic.move')
+  await name.fill('Earlier changed value committing')
+  let accepted, release
+  const held = new Promise((resolve) => {
+    accepted = resolve
+  })
+  await page.route('**/api/master/combat-content', async (route) => {
+    const body = route.request().postDataJSON()
+    if (body.operation !== 'record' || body.command.action !== 'commit') return route.continue()
+    const response = await route.fetch()
+    accepted()
+    await new Promise((resolve) => {
+      release = resolve
+    })
+    await route.fulfill({ response })
+  })
+  await commitBasic(editor, viewport)
+  await held
+  await name.fill(originalName)
+  release()
+  await editor.getByText('Saved; newer local edits remain uncommitted.', { exact: true }).waitFor()
+  assert.equal(await name.inputValue(), originalName)
+  assert.equal(
+    await editor.getByRole('status', { name: 'Content version state' }).innerText(),
+    'Unsaved changes',
+  )
+  const submitted = (await inspectBasics(page)).records.find((row) => row.id === 'basic.move')
+  assert.equal(submitted.current.definition.name, 'Earlier changed value committing')
+  assert.equal(submitted.current.contentVersion, 4)
+  await page.unroute('**/api/master/combat-content')
+  await commitBasic(editor, viewport)
+  await committedBasic(editor)
+  const after = await inspectBasics(page)
+  const current = after.records.find((row) => row.id === 'basic.move')
+  assert.deepEqual(current.current.definition, { ...before.current.definition, contentVersion: 5 })
+  assert.deepEqual(
+    current.history.filter((row) => row.contentVersion < 4),
+    before.history,
+  )
+  assert.deepEqual(
+    after.requests
+      .filter((row) => row.operation === 'record' && row.command.action === 'commit')
+      .map((row) => row.command.expectedRevision),
+    [3, 4],
+  )
+  assert.equal(after.oldCapturesUnchanged, true)
+  const freshOptions = page.waitForResponse(
+    (response) => new URL(response.url()).pathname === '/__basic-acceptance/options',
+  )
+  await page.reload({ waitUntil: 'networkidle' })
+  const reloaded = await (await freshOptions).json()
+  assert.equal(
+    reloaded.find((row) => (row.id ?? row.contentKey) === 'basic.move').current.contentVersion,
+    5,
+  )
+  await editor.waitFor()
+  assert.equal(await name.inputValue(), originalName)
+  assert.equal(
+    await editor.getByRole('status', { name: 'Content version state' }).innerText(),
+    'Current',
+  )
+  assert.deepEqual(
+    (await inspectBasics(page)).records.find((row) => row.id === 'basic.move').current,
+    current.current,
+  )
+  await page.screenshot({ path: resolve(output, `basic-held-revert-${viewport.width}.png`) })
+}
+
 async function verifyBasicPublication(page, viewport) {
   console.log('verifyBasicPublication', viewport.width)
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
@@ -1471,6 +1549,18 @@ try {
       errors.push(error.message)
       browserErrors.push(error.message)
     })
+    if (heldRevertOnly) {
+      await verifyBasicHeldRevert(page, viewport)
+      assert.deepEqual(errors, [])
+      evidence.push({
+        viewport,
+        status: 'passed',
+        scope:
+          'Actual held HTTP commit preserves a local revert, authoritative CAS, immutable captures and reload',
+      })
+      await page.close()
+      continue
+    }
     if (attunementPointerOnly) {
       await verifyAttunementPointer(page, viewport)
       assert.deepEqual(errors, [])
@@ -1623,7 +1713,10 @@ try {
     }
     if (basicServiceAcceptance) {
       if (originalRpcAcceptance) await verifyOriginalRpcAuthoring(page, viewport)
-      else await verifyBasicServiceAuthoring(page, viewport)
+      else {
+        await verifyBasicServiceAuthoring(page, viewport)
+        await verifyBasicHeldRevert(page, viewport)
+      }
       assert.deepEqual(errors, [])
       evidence.push({
         viewport,
@@ -1645,6 +1738,7 @@ try {
     await verifyModularManual(page, viewport)
     await verifyCanonicalEditor(page, viewport)
     await verifyBasicEditor(page, viewport)
+    await verifyBasicHeldRevert(page, viewport)
     await verifyBasicPublication(page, viewport)
     await verifySelectedGroupPreview(page, viewport, 'skill')
     await verifySelectedGroupPreview(page, viewport, 'essence')

@@ -9,6 +9,7 @@ vi.mock('@/server/character/selected-character', () => ({
 import { handleCombatContentAuthoringRequest } from './combat-content-authoring-handler'
 import { postCombatContentAuthoring } from '@/components/master/combat-content/combat-content-client'
 import { combatContentCategory } from '../combat/combat-content-categories'
+import { RpcCombatContentAuthoringStore } from './supabase-combat-content-authoring-store'
 
 const legacy = {
   schemaVersion: 1,
@@ -131,7 +132,7 @@ it.each([
   expect(response.status).toBe(503)
 })
 it.each(['current', 'history'] as const)(
-  'retains long text in immutable %s bodies',
+  'keeps immutable %s long text in the retained store while HTTP omits history',
   async (field) => {
     const definition = { ...legacy, name: 'n'.repeat(120), description: 'd'.repeat(4000) }
     const version = {
@@ -161,7 +162,14 @@ it.each(['current', 'history'] as const)(
     rpc.mockImplementationOnce(async () => ({ data: record, error: null }))
     const response = await call({ action: 'read', contentKey: legacy.id })
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ record })
+    expect(await response.json()).toEqual({ record: { ...record, history: [] } })
+    const before = JSON.stringify(record)
+    const retained = new RpcCombatContentAuthoringStore(
+      async () => ({ data: record, error: null }),
+      'owner',
+    )
+    expect(await retained.readRecord(legacy.id)).toEqual(record)
+    expect(JSON.stringify(record)).toBe(before)
   },
 )
 it.each([

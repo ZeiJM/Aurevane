@@ -23,6 +23,10 @@ import {
 import {
   loadCompleteContentList,
   disciplineMasteryCommit,
+  holdContentCommit,
+  disciplineSkillCandidates,
+  disciplineSkillIsAvailable,
+  withDisciplineSkill,
   adoptCreatedContentIdentity,
   freezeCreationAttempt,
   type ContentCreationAttempt,
@@ -74,7 +78,9 @@ export function CombatContentAuthoringWorkspace({
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<CombatContentSort>('name-asc')
   const [tab, setTab] = useState<ContentEditorTab>('Parameters')
-  const [busy, setBusy] = useState(false)
+  const [working, setWorking] = useState(false)
+  const [modalSaving, setModalSaving] = useState(0)
+  const busy = working || modalSaving > 0
   const [restoring, setRestoring] = useState(!!recoveryScope)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -87,6 +93,7 @@ export function CombatContentAuthoringWorkspace({
   const [nameOverrides, setNameOverrides] = useState<Record<string, string>>({})
   const [pending, setPendingState] = useState<Record<string, PendingContentEdit>>({})
   const pendingRef = useRef(pending)
+  const committingKeys = useRef(new Map<string, number>())
   const [conflict, setConflict] = useState(false)
   const listRef = useRef<HTMLElement>(null)
   const editorRef = useRef<HTMLDivElement>(null)
@@ -177,7 +184,7 @@ export function CombatContentAuthoringWorkspace({
       if (record)
         pendingEdit(
           record.contentKey,
-          recordIsDirty(record, next)
+          recordIsDirty(record, next) || committingKeys.current.has(record.contentKey)
             ? {
                 revision: pendingRef.current[record.contentKey]?.revision ?? record.revision,
                 definition: next,
@@ -187,7 +194,7 @@ export function CombatContentAuthoringWorkspace({
     }
   }
   async function work(fn: () => Promise<void>) {
-    setBusy(true)
+    setWorking(true)
     setError('')
     setNotice('')
     try {
@@ -195,7 +202,7 @@ export function CombatContentAuthoringWorkspace({
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to complete this operation.')
     } finally {
-      setBusy(false)
+      setWorking(false)
     }
   }
   async function read(key: string, nextTab: ContentEditorTab = 'Parameters') {
@@ -245,25 +252,30 @@ export function CombatContentAuthoringWorkspace({
     })
   }
   async function commitSaved(source: CompleteCombatContentRecord, body: CombatContentDefinition) {
-    const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
-      action: 'commit',
-      contentKey: source.contentKey,
-      expectedRevision: source.revision,
-      definition: body,
-    })
-    const latest = pendingRef.current[source.contentKey]
-    if (
-      !latest ||
-      JSON.stringify(latest.definition) === JSON.stringify(body) ||
-      !recordIsDirty(result.record, latest.definition)
-    )
-      pendingEdit(source.contentKey, null)
-    else
-      pendingEdit(source.contentKey, {
-        revision: result.record.revision,
-        definition: latest.definition,
+    const finishCommit = holdContentCommit(committingKeys.current, source.contentKey)
+    try {
+      const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
+        action: 'commit',
+        contentKey: source.contentKey,
+        expectedRevision: source.revision,
+        definition: body,
       })
-    return result.record
+      const latest = pendingRef.current[source.contentKey]
+      if (
+        !latest ||
+        JSON.stringify(latest.definition) === JSON.stringify(body) ||
+        !recordIsDirty(result.record, latest.definition)
+      )
+        pendingEdit(source.contentKey, null)
+      else
+        pendingEdit(source.contentKey, {
+          revision: result.record.revision,
+          definition: latest.definition,
+        })
+      return result.record
+    } finally {
+      finishCommit()
+    }
   }
   async function commit() {
     if (!activeDefinition || !descriptor || conflict) return
@@ -511,9 +523,15 @@ export function CombatContentAuthoringWorkspace({
     }
   }, [storageKey])
   const skills =
-    activeKind === 'discipline'
-      ? ((activeDefinition?.linkedSkills as string[] | undefined) ?? record?.links ?? [])
+    activeKind === 'discipline' && activeDefinition
+      ? disciplineSkillCandidates(activeDefinition, choices, record?.links ?? [])
       : []
+  const disciplineSkillModal =
+    !!record &&
+    !newDefinition &&
+    activeKind === 'discipline' &&
+    !!modalKey &&
+    skills.includes(modalKey)
   return (
     <section
       className={styles.workspace}
@@ -806,10 +824,13 @@ export function CombatContentAuthoringWorkspace({
                           {choices.find((row) => row.contentKey === key)?.name ?? key}
                           <span aria-hidden="true">Edit →</span>
                         </button>
+                        {activeDefinition && !disciplineSkillIsAvailable(activeDefinition, key) ? (
+                          <small>Not available in this Discipline</small>
+                        ) : null}
                         {pending[key] ? <small>Uncommitted skill changes</small> : null}
                       </div>
                     ))}
-                    {!skills.length ? <p>No skills assigned.</p> : null}
+                    {!skills.length ? <p>No matching skills.</p> : null}
                   </section>
                 ) : tab === 'Resonances' ? (
                   <section aria-label="Discipline relationships">
@@ -856,8 +877,18 @@ export function CombatContentAuthoringWorkspace({
       </div>
       {modalKey ? (
         <ContentRecordModal
+          availableInDiscipline={
+            disciplineSkillModal && activeDefinition
+              ? disciplineSkillIsAvailable(activeDefinition, modalKey)
+              : undefined
+          }
+          disciplineSettingsDisabled={restoring || working || readOnly}
+          onAvailabilityChange={(available) => {
+            if (disciplineSkillModal && activeDefinition && !restoring && !working && !readOnly)
+              change(withDisciplineSkill(activeDefinition, modalKey, available))
+          }}
           masteryStage={
-            record?.contentKind === 'discipline' && skills.includes(modalKey)
+            disciplineSkillModal
               ? ((
                   activeDefinition?.skillStages as
                     { skillId: string; minimumStage: number }[] | undefined
@@ -865,33 +896,44 @@ export function CombatContentAuthoringWorkspace({
               : undefined
           }
           onMasteryChange={(stage) => {
-            if (activeDefinition)
-              change({
-                ...activeDefinition,
-                skillStages: skills.map((id) => ({
-                  skillId: id,
-                  minimumStage:
-                    id === modalKey
-                      ? stage
-                      : ((
-                          activeDefinition.skillStages as
-                            { skillId: string; minimumStage: number }[] | undefined
-                        )?.find((row) => row.skillId === id)?.minimumStage ?? 1),
-                })),
-              })
+            if (disciplineSkillModal && activeDefinition && !restoring && !working && !readOnly)
+              change(withDisciplineSkill(activeDefinition, modalKey, true, stage))
+          }}
+          onCommitStart={() => {
+            setModalSaving((count) => count + 1)
+            const finishParent =
+              disciplineSkillModal && record
+                ? holdContentCommit(committingKeys.current, record.contentKey)
+                : () => {}
+            let active = true
+            return () => {
+              if (!active) return
+              active = false
+              finishParent()
+              setModalSaving((count) => Math.max(0, count - 1))
+            }
           }}
           onCommitRelated={async () => {
-            if (record && pendingRef.current[record.contentKey]) {
-              if (conflict) throw new Error('Review the recovered discipline edits first.')
-              const base = editableDefinition(record)
-              if (!base) return
-              const patch = disciplineMasteryCommit(
-                base,
-                pendingRef.current[record.contentKey]!.definition,
-                modalKey,
-              )
-              if (patch) accept(await commitSaved(record, patch))
+            // This closure captures the association reviewed when Commit Now was
+            // pressed; newer parent edits are rebased by commitSaved and kept local.
+            if (!disciplineSkillModal || !record || !activeDefinition)
+              return !!newDefinition || !!(record && pendingRef.current[record.contentKey])
+            const base = editableDefinition(record)
+            if (!base) return !!pendingRef.current[record.contentKey]
+            const patch = disciplineMasteryCommit(base, activeDefinition, modalKey)
+            if (!patch) {
+              const local = pendingRef.current[record.contentKey]
+              if (local && !recordIsDirty(record, local.definition))
+                pendingEdit(record.contentKey, null)
+              return !!pendingRef.current[record.contentKey]
             }
+            if (conflict) throw new Error('Review the recovered discipline edits first.')
+            if (readOnly)
+              throw new Error(
+                'This discipline is read-only; its availability and mastery remain uncommitted.',
+              )
+            accept(await commitSaved(record, patch))
+            return !!pendingRef.current[record.contentKey]
           }}
           contentKey={modalKey}
           choices={choices}

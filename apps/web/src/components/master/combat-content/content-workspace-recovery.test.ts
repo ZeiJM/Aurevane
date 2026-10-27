@@ -164,3 +164,98 @@ it('does not mark a confirmed commit dirty solely because the server advanced it
     }),
   ).toBe(true)
 })
+
+it('lists exact-source Skill candidates without assigning them or including unrelated sources', async () => {
+  const { disciplineSkillCandidates } = await import('./content-workspace-recovery')
+  const parent = {
+    id: 'bastion',
+    linkedSkills: ['retained.link'],
+    skillStages: [{ skillId: 'retained.stage', minimumStage: 2 }],
+  }
+  expect(
+    disciplineSkillCandidates(
+      parent,
+      [
+        { contentKey: 'new.skill', contentKind: 'skill', sourceDisciplineId: 'bastion' },
+        { contentKey: 'new.skill', contentKind: 'skill', sourceDisciplineId: 'bastion' },
+        { contentKey: 'other.skill', contentKind: 'skill', sourceDisciplineId: 'warden' },
+        { contentKey: 'unknown.skill', contentKind: 'skill' },
+        { contentKey: 'bastion.essence', contentKind: 'essence', sourceDisciplineId: 'bastion' },
+      ],
+      ['retained.link', 'retained.graph'],
+    ),
+  ).toEqual(['retained.link', 'retained.stage', 'retained.graph', 'new.skill'])
+  expect(parent.linkedSkills).toEqual(['retained.link'])
+  expect(parent.skillStages).toEqual([{ skillId: 'retained.stage', minimumStage: 2 }])
+})
+
+it('explicit Skill inclusion and removal update only its link and mastery while retaining other local edits', async () => {
+  const { withDisciplineSkill, disciplineSkillIsAvailable } =
+    await import('./content-workspace-recovery')
+  const parent = {
+    id: 'bastion',
+    description: 'Unrelated local prose',
+    linkedSkills: ['old.skill'],
+    skillStages: [{ skillId: 'old.skill', minimumStage: 4 }],
+  }
+  expect(disciplineSkillIsAvailable(parent, 'new.skill')).toBe(false)
+  const included = withDisciplineSkill(parent, 'new.skill', true, 3)
+  expect(included).toEqual({
+    ...parent,
+    linkedSkills: ['old.skill', 'new.skill'],
+    skillStages: [...parent.skillStages, { skillId: 'new.skill', minimumStage: 3 }],
+  })
+  expect(disciplineSkillIsAvailable(included, 'new.skill')).toBe(true)
+  expect(withDisciplineSkill(included, 'new.skill', false)).toEqual(parent)
+  expect(parent.linkedSkills).toEqual(['old.skill'])
+})
+
+it('popup association commits publish only the selected Skill inclusion or removal', async () => {
+  const { disciplineMasteryCommit, withDisciplineSkill } =
+    await import('./content-workspace-recovery')
+  const base = {
+    id: 'bastion',
+    name: 'Saved parent',
+    linkedSkills: ['old.skill'],
+    skillStages: [{ skillId: 'old.skill', minimumStage: 1 }],
+  }
+  const local = {
+    ...base,
+    name: 'Uncommitted parent',
+    skillStages: [{ skillId: 'old.skill', minimumStage: 4 }],
+  }
+  const included = withDisciplineSkill(local, 'new.skill', true, 3)
+  const published = disciplineMasteryCommit(base, included, 'new.skill')
+  expect(published).toEqual({
+    ...base,
+    linkedSkills: ['old.skill', 'new.skill'],
+    skillStages: [...base.skillStages, { skillId: 'new.skill', minimumStage: 3 }],
+  })
+  expect(
+    disciplineMasteryCommit(
+      published!,
+      withDisciplineSkill(included, 'new.skill', false),
+      'new.skill',
+    ),
+  ).toEqual(base)
+  expect(disciplineMasteryCommit(base, local, 'new.skill')).toBeNull()
+  expect(included.name).toBe('Uncommitted parent')
+})
+
+it('keeps a parent commit held across nested child and parent saves with idempotent cleanup', async () => {
+  const { holdContentCommit } = await import('./content-workspace-recovery')
+  const held = new Map<string, number>()
+  const finishModal = holdContentCommit(held, 'bastion')
+  const finishParentWrite = holdContentCommit(held, 'bastion')
+  const finishOther = holdContentCommit(held, 'warden')
+  expect(held.get('bastion')).toBe(2)
+  finishParentWrite()
+  expect(held.get('bastion')).toBe(1)
+  finishParentWrite()
+  expect(held.get('bastion')).toBe(1)
+  finishModal()
+  expect(held.has('bastion')).toBe(false)
+  expect(held.get('warden')).toBe(1)
+  finishOther()
+  expect(held.size).toBe(0)
+})

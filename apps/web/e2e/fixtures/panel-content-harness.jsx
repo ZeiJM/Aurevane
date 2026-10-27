@@ -75,6 +75,12 @@ const records = new Map(
   [
     record('discipline', discipline),
     record('skill', skill),
+    record('skill', {
+      ...skill,
+      id: 'skill.fixture.unrelated',
+      name: 'Unrelated Source Skill',
+      sourceDisciplineId: resonance.disciplinePair.find((id) => id !== 'bastion'),
+    }),
     record('resonance', resonance),
     record('resonance', {
       ...resonance,
@@ -426,6 +432,15 @@ window.fetch = async (input, options) => {
         { error: { code: 'STALE_VERSION', message: 'Fixture stale revision.' } },
         { status: 409 },
       )
+    const comparable = { ...command.definition, contentVersion: entry.current?.contentVersion }
+    if (entry.contentKind === 'essence' && comparable.skill)
+      comparable.skill = { ...comparable.skill, contentVersion: entry.current?.contentVersion }
+    if (
+      entry.current &&
+      !entry.draft &&
+      JSON.stringify(comparable) === JSON.stringify(entry.current.definition)
+    )
+      return Response.json({ record: structuredClone(entry) })
     entry.current = version(command.definition, (entry.current?.contentVersion ?? 0) + 1)
     entry.history.unshift(entry.current)
     entry.revision++

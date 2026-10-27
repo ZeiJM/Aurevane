@@ -19,8 +19,12 @@ export function ContentRecordModal({
   onChange,
   onClose,
   onSaved,
+  availableInDiscipline,
+  onAvailabilityChange,
+  disciplineSettingsDisabled = false,
   masteryStage,
   onMasteryChange,
+  onCommitStart,
   onCommitRelated,
 }: {
   contentKey: string
@@ -29,15 +33,20 @@ export function ContentRecordModal({
   onChange(key: string, edit: PendingContentEdit | null): void
   onClose(): void
   onSaved(record: CompleteCombatContentRecord): void
+  availableInDiscipline?: boolean
+  onAvailabilityChange?(available: boolean): void
+  disciplineSettingsDisabled?: boolean
   masteryStage?: number
   onMasteryChange?(value: number): void
-  onCommitRelated?(): Promise<void>
+  onCommitStart?(): () => void
+  onCommitRelated?(): Promise<boolean | void>
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const [record, setRecord] = useState<CompleteCombatContentRecord | null>(null)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
+  const committing = useRef(false)
   const latest = useRef({ pending, onChange })
   useEffect(() => {
     latest.current = { pending, onChange }
@@ -66,11 +75,14 @@ export function ContentRecordModal({
   const definition = pending?.definition ?? (record ? editableDefinition(record) : null)
   const stale = !!record && !!pending && pending.revision !== record.revision
   async function commit() {
-    if (!record || !definition || stale) return
+    if (committing.current || !record || !definition || stale) return
     setBusy(true)
+    committing.current = true
     setError('')
     setNotice('')
+    let finishCommit: (() => void) | undefined
     try {
+      finishCommit = onCommitStart?.()
       const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
         action: 'commit',
         contentKey,
@@ -88,8 +100,9 @@ export function ContentRecordModal({
       )
       setRecord(result.record)
       onSaved(result.record)
+      let relatedPending = false
       try {
-        await onCommitRelated?.()
+        relatedPending = (await onCommitRelated?.()) === true
       } catch (cause) {
         throw new Error(
           `Skill saved; the discipline settings are still uncommitted. ${cause instanceof Error ? cause.message : 'Review the discipline and retry Commit Now.'}`,
@@ -98,7 +111,9 @@ export function ContentRecordModal({
       setNotice(
         changedWhileSaving
           ? 'Saved; newer edits remain uncommitted.'
-          : 'Changes committed and available to the game.',
+          : relatedPending
+            ? 'Saved; discipline edits remain uncommitted.'
+            : 'Changes committed and available to the game.',
       )
     } catch (cause) {
       setError(
@@ -107,6 +122,8 @@ export function ContentRecordModal({
           : 'Unable to commit this skill. Your edits are retained.',
       )
     } finally {
+      finishCommit?.()
+      committing.current = false
       setBusy(false)
     }
   }
@@ -167,7 +184,18 @@ export function ContentRecordModal({
               </div>
             </div>
           ) : null}
-          {masteryStage !== undefined && onMasteryChange ? (
+          {availableInDiscipline !== undefined && onAvailabilityChange ? (
+            <label>
+              <input
+                type="checkbox"
+                checked={availableInDiscipline}
+                disabled={disciplineSettingsDisabled}
+                onChange={(event) => onAvailabilityChange(event.currentTarget.checked)}
+              />
+              Available in this Discipline
+            </label>
+          ) : null}
+          {availableInDiscipline !== false && masteryStage !== undefined && onMasteryChange ? (
             <label>
               Required mastery stage
               <input
@@ -176,6 +204,7 @@ export function ContentRecordModal({
                 max={5}
                 step={1}
                 value={masteryStage}
+                disabled={disciplineSettingsDisabled}
                 onChange={(event) => onMasteryChange(Number(event.currentTarget.value))}
               />
             </label>
@@ -187,14 +216,14 @@ export function ContentRecordModal({
                 value={definition}
                 tab="Parameters"
                 choices={choices}
-                onChange={(next) =>
-                  onChange(
-                    contentKey,
-                    recordIsDirty(record, next)
+                onChange={(next) => {
+                  const edit =
+                    recordIsDirty(record, next) || committing.current
                       ? { revision: pending?.revision ?? record.revision, definition: next }
-                      : null,
-                  )
-                }
+                      : null
+                  latest.current.pending = edit
+                  onChange(contentKey, edit)
+                }}
               />
             </fieldset>
           ) : (

@@ -134,28 +134,78 @@ export async function loadCompleteContentList(
   throw new Error('The content list exceeded its safety limit. Narrow the search and retry.')
 }
 
-/** A popup commit changes its skill's mastery only; unrelated parent edits remain local. */
+const disciplineStages = (definition: CombatContentDefinition) =>
+  (definition.skillStages as readonly { skillId: string; minimumStage: number }[] | undefined) ?? []
+
+export function disciplineSkillIsAvailable(
+  definition: CombatContentDefinition,
+  skillId: string,
+): boolean {
+  return (
+    ((definition.linkedSkills as readonly string[] | undefined) ?? []).includes(skillId) ||
+    disciplineStages(definition).some((row) => row.skillId === skillId)
+  )
+}
+
+/** Candidate discovery never changes a Discipline's availability or earned progression. */
+export function disciplineSkillCandidates(
+  definition: CombatContentDefinition,
+  choices: readonly { contentKey: string; contentKind: string; sourceDisciplineId?: string }[],
+  retainedLinks: readonly string[] = [],
+): string[] {
+  return [
+    ...new Set([
+      ...((definition.linkedSkills as readonly string[] | undefined) ?? []),
+      ...disciplineStages(definition).map((row) => row.skillId),
+      ...retainedLinks,
+      ...choices
+        .filter(
+          (row) =>
+            row.contentKind === 'skill' &&
+            typeof definition.id === 'string' &&
+            row.sourceDisciplineId === definition.id,
+        )
+        .map((row) => row.contentKey),
+    ]),
+  ]
+}
+
+/** Only an explicit availability/mastery control edits the selected association. */
+export function withDisciplineSkill(
+  definition: CombatContentDefinition,
+  skillId: string,
+  available: boolean,
+  stage = disciplineStages(definition).find((row) => row.skillId === skillId)?.minimumStage ?? 1,
+): CombatContentDefinition {
+  const links = (definition.linkedSkills as readonly string[] | undefined) ?? []
+  const stages = disciplineStages(definition)
+  return {
+    ...definition,
+    linkedSkills: available
+      ? [...new Set([...links, skillId])]
+      : links.filter((id) => id !== skillId),
+    skillStages: available
+      ? stages.some((row) => row.skillId === skillId)
+        ? stages.map((row) => (row.skillId === skillId ? { ...row, minimumStage: stage } : row))
+        : [...stages, { skillId, minimumStage: stage }]
+      : stages.filter((row) => row.skillId !== skillId),
+  }
+}
+
+/** A popup publishes only its Skill's association/mastery; other parent edits stay local. */
 export function disciplineMasteryCommit(
   base: CombatContentDefinition,
   local: CombatContentDefinition,
   skillId: string,
 ): CombatContentDefinition | null {
-  const stages = (definition: CombatContentDefinition) =>
-    (definition.skillStages as readonly { skillId: string; minimumStage: number }[] | undefined) ??
-    []
-  const before = stages(base).find((row) => row.skillId === skillId)?.minimumStage ?? 1
-  const after = stages(local).find((row) => row.skillId === skillId)?.minimumStage ?? 1
-  if (before === after) return null
-  return {
-    ...base,
-    skillStages: ((base.linkedSkills as readonly string[] | undefined) ?? []).map((id) => ({
-      skillId: id,
-      minimumStage:
-        id === skillId
-          ? after
-          : (stages(base).find((row) => row.skillId === id)?.minimumStage ?? 1),
-    })),
-  }
+  const before = disciplineSkillIsAvailable(base, skillId)
+  const after = disciplineSkillIsAvailable(local, skillId)
+  const beforeStage =
+    disciplineStages(base).find((row) => row.skillId === skillId)?.minimumStage ?? 1
+  const afterStage =
+    disciplineStages(local).find((row) => row.skillId === skillId)?.minimumStage ?? 1
+  if (before === after && (!after || beforeStage === afterStage)) return null
+  return withDisciplineSkill(base, skillId, after, afterStage)
 }
 
 export function adoptCreatedContentIdentity(
@@ -198,4 +248,17 @@ export function freezeCreationAttempt(
     return previous
   }
   return { requestId, contentKind, definition: structuredClone(definition) }
+}
+
+/** A modal and its later parent write may hold the same key concurrently. */
+export function holdContentCommit(held: Map<string, number>, contentKey: string): () => void {
+  held.set(contentKey, (held.get(contentKey) ?? 0) + 1)
+  let active = true
+  return () => {
+    if (!active) return
+    active = false
+    const remaining = (held.get(contentKey) ?? 1) - 1
+    if (remaining > 0) held.set(contentKey, remaining)
+    else held.delete(contentKey)
+  }
 }

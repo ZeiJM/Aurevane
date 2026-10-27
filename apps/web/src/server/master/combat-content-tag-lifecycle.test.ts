@@ -108,11 +108,11 @@ beforeEach(async () => {
 afterEach(async () => {
   await db.exec('rollback')
 })
-async function command(input: unknown) {
+async function authoringRequest(input: unknown) {
   const response = await handleCombatContentAuthoringRequest(
     new Request('https://example.test/api/master/combat-content', {
       method: 'POST',
-      body: JSON.stringify({ operation: 'record', command: input }),
+      body: JSON.stringify(input),
     }),
   )
   return {
@@ -122,6 +122,9 @@ async function command(input: unknown) {
       error?: { code: string; message: string }
     },
   }
+}
+async function command(input: unknown) {
+  return authoringRequest({ operation: 'record', command: input })
 }
 async function create(definition = tag, request = requestId) {
   return command({ action: 'create', requestId: request, contentKind: 'tag', definition })
@@ -175,7 +178,22 @@ it('actual API create → saved publication → current/exact readers retains ve
     tags: [{ name: 'Strike', contentVersion: second.body.record.current!.contentVersion }],
   })
   expect(await exactTag(version)).toEqual(pinned)
-  expect(second.body.record.history).toHaveLength(2)
+  // The authoring response omits rollback history; exact runtime versions remain immutable.
+  expect(second.body.record.history).toEqual([])
+  expect(second.body.record).not.toHaveProperty('builtinRestoreVersion')
+  expect(
+    (
+      await db.query(
+        "select content_version, definition from app_private.combat_content_versions where content_key='tag.damage' order by content_version",
+      )
+    ).rows,
+  ).toEqual([
+    { content_version: version, definition: first.body.record.current!.definition },
+    {
+      content_version: second.body.record.current!.contentVersion,
+      definition: second.body.record.current!.definition,
+    },
+  ])
 })
 it('canonical creation preserves request conflicts, one identity and stale save/publication CAS', async () => {
   const first = await create()
@@ -310,11 +328,12 @@ import { projectBattleSnapshot } from '@/server/battle/battle-session-service'
 import { deriveParticipantBattleViewerEntitlement } from '@/server/battle/battle-viewer-entitlement'
 
 it.each(defaultBasicSkills())(
-  'complete API → SQL System original → publication → $id execution and reader preserves old captures',
+  'complete current-edit API → SQL commit → $id execution preserves originals and old captures while HTTP rollback is retired',
   async (original) => {
     const initial = (await command({ action: 'read', contentKey: original.id })).body.record
     expect(initial.history).toEqual([])
-    expect(initial.builtinRestoreVersion).toBe(1)
+    expect(initial).not.toHaveProperty('builtinRestoreVersion')
+    expect(initial.builtinDefinition).toEqual(original)
     const edited = structuredClone(original)
     Object.assign(edited, { name: 'Edited original', description: 'A complete edited record.' })
     Object.assign(edited.ability.behaviors[0]!, { costs: [{ resource: 'ap', amount: 29 }] })
@@ -325,14 +344,16 @@ it.each(defaultBasicSkills())(
       definition: edited,
     })
     expect(saved.status, JSON.stringify(saved.body)).toBe(200)
-    expect(saved.body.record.builtinRestoreVersion).toBe(1)
+    expect(saved.body.record).not.toHaveProperty('builtinRestoreVersion')
     const first = await publish(saved.body.record)
     expect(first.status, JSON.stringify(first.body)).toBe(200)
-    expect(first.body.record.builtinRestoreVersion).toBe(1)
+    expect(first.body.record).not.toHaveProperty('builtinRestoreVersion')
     const source = new RpcPublishedCombatContentSource(session.rpc)
     const resolver = createCombatContentResolver(source)
     const oldDefinition = await resolver.resolvePinnedBasicSkillDefinition!(original.id, 2)
     expect(oldDefinition?.name).toBe('Edited original')
+    const pinnedOriginal = await resolver.resolvePinnedBasicSkillDefinition!(original.id, 1)
+    expect(pinnedOriginal).toEqual(original)
     const support = SUPPORT_ACTION_IDS.find((id) => id === original.id) ?? 'basic.guard'
     const capture = (definition: typeof original) => {
       const state = preparePv1fTurnEconomy(percentageDotEncounter())
@@ -354,43 +375,97 @@ it.each(defaultBasicSkills())(
     }
     const old = capture(oldDefinition!)
     const oldBytes = JSON.stringify(old)
-    const restore = {
+    // Every retired HTTP spelling is rejected before a content read/write or mutation.
+    // Retention for current/pinned readers is independent of authoring rollback controls.
+    const beforeRetired = (
+      await db.query('select app_private.combat_content_record_json_v1($1) record', [original.id])
+    ).rows
+    const retired = {
       action: 'restore',
       contentKey: original.id,
       expectedRevision: first.body.record.revision,
       sourceVersion: 1,
       sourceKind: 'builtin',
     }
+    const rpcStart = session.rpc.mock.calls.length
+    for (const body of [
+      { operation: 'record', command: retired },
+      {
+        operation: 'record',
+        command: { ...retired, sourceDefinition: { ...original, name: 'Forged' } },
+      },
+      { operation: 'record', command: { ...retired, sourceVersion: 999 } },
+      { operation: 'record', command: { ...retired, sourceVersion: 2, sourceKind: undefined } },
+      { operation: 'rollback', contentKey: original.id, contentVersion: 1 },
+      { operation: 'restore-basic-draft', contentKey: original.id, sourceVersion: 1 },
+    ]) {
+      const rejected = await authoringRequest(body)
+      expect(rejected.status, JSON.stringify(rejected.body)).toBe(400)
+      expect(rejected.body.error?.message).toMatch(/rollback is no longer available/i)
+    }
     expect(
-      (await command({ ...restore, sourceDefinition: { ...original, name: 'Forged' } })).status,
-    ).toBe(400)
-    expect((await command({ ...restore, sourceVersion: 999 })).status).toBe(400)
+      session.rpc.mock.calls
+        .slice(rpcStart)
+        .every(([name]) => name === 'read_master_panel_operator_v1'),
+    ).toBe(true)
     session.selected = null
-    expect((await command(restore)).status).toBe(403)
+    expect((await command(retired)).status).toBe(403)
     session.selected = selected
-    const restored = await command(restore)
-    expect(restored.status, JSON.stringify(restored.body)).toBe(200)
-    expect(restored.body.record.builtinRestoreVersion).toBe(1)
-    expect(restored.body.record.current).toEqual(first.body.record.current)
-    expect(restored.body.record.history).toEqual(first.body.record.history)
-    expect(restored.body.record.draft).toMatchObject({
-      definition: original,
-      baseVersion: 2,
-      restoredFrom: 1,
-      restoredSource: 'builtin',
+    expect(
+      (await db.query('select app_private.combat_content_record_json_v1($1) record', [original.id]))
+        .rows,
+    ).toEqual(beforeRetired)
+
+    // Author a new current definition through the same fields as the UI, not a
+    // restored source. The original values are explicit operator choices here.
+    const currentEdit = parseBasicSkillDefinition(
+      structuredClone(first.body.record.current!.definition),
+    )
+    Object.assign(currentEdit, { name: original.name, description: original.description })
+    Object.assign(currentEdit.ability.behaviors[0]!, {
+      costs: structuredClone(original.ability.behaviors[0]!.costs),
     })
-    expect((await command(restore)).status).toBe(409)
-    const published = await publish(restored.body.record)
+    const commit = {
+      action: 'commit',
+      contentKey: original.id,
+      expectedRevision: first.body.record.revision,
+      definition: currentEdit,
+    }
+    session.selected = null
+    expect((await command(commit)).status).toBe(403)
+    session.selected = selected
+    const published = await command(commit)
     expect(published.status, JSON.stringify(published.body)).toBe(200)
     expect(published.body.record.current).toMatchObject({
       contentVersion: 3,
-      restoredFrom: 1,
-      restoredSource: 'builtin',
-      authoredBy: null,
-      authoredAt: null,
-      restoredBy: session.userId,
+      restoredFrom: null,
+      restoredSource: null,
+      restoredBy: null,
+      authoredBy: session.userId,
     })
-    expect(published.body.record.history.map((v) => v.contentVersion)).toEqual([3, 2])
+    expect(published.body.record.draft).toBeNull()
+    expect(published.body.record.history).toEqual([])
+    expect(published.body.record).not.toHaveProperty('builtinRestoreVersion')
+    expect((await command(commit)).status).toBe(409)
+    // A deliberate same-definition retry at the fresh CAS token is a no-op,
+    // preserving the current pointer and immutable version count.
+    const noop = await command({
+      ...commit,
+      expectedRevision: published.body.record.revision,
+      definition: published.body.record.current!.definition,
+    })
+    expect(noop).toEqual(published)
+    expect(
+      (
+        await db.query(
+          'select content_version,definition from app_private.combat_content_versions where content_key=$1 order by content_version',
+          [original.id],
+        )
+      ).rows,
+    ).toEqual([
+      { content_version: 2, definition: first.body.record.current!.definition },
+      { content_version: 3, definition: published.body.record.current!.definition },
+    ])
     const catalogue = await resolver.resolveCurrentCatalogue!()
     const definition = parseBasicSkillDefinition(
       catalogue.entries.find((e) => e.contentKey === original.id)!.definition,
@@ -446,6 +521,12 @@ it.each(defaultBasicSkills())(
     expect(JSON.stringify(old)).toBe(oldBytes)
     expect((await resolver.resolvePinnedBasicSkillDefinition!(original.id, 2))!.name).toBe(
       'Edited original',
+    )
+    expect(await resolver.resolvePinnedBasicSkillDefinition!(original.id, 1)).toEqual(
+      pinnedOriginal,
+    )
+    expect(defaultBasicSkills().find((definition) => definition.id === original.id)).toEqual(
+      original,
     )
   },
 )

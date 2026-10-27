@@ -308,6 +308,378 @@ try {
     })
     await page.close()
   }
+  if (
+    !process.env.AV_PANEL_CONTENT_SCENARIO ||
+    process.env.AV_PANEL_CONTENT_SCENARIO === 'skill-availability'
+  ) {
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+    ]) {
+      const context = await browser.newContext({ viewport, hasTouch: viewport.width === 390 })
+      const page = await context.newPage()
+      page.setDefaultNavigationTimeout(60000)
+      await page.goto(origin + '?view=content', { waitUntil: 'domcontentloaded' })
+      const workspace = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+      const sidebar = page.getByRole('complementary', { name: 'Content browser', exact: true })
+      const category = sidebar.getByRole('combobox', { name: 'Content category', exact: true })
+      const records = workspace.getByRole('navigation', { name: 'Content records', exact: true })
+      await expect(records.getByRole('button')).toHaveCount(127)
+      await category.selectOption('skill')
+      await sidebar.getByRole('button', { name: 'New', exact: true }).click()
+      await workspace
+        .getByRole('textbox', { name: 'Name', exact: true })
+        .fill('Created Bastion Skill')
+      await workspace
+        .getByRole('combobox', { name: 'Source Discipline', exact: true })
+        .selectOption('bastion')
+      await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+      await expect(
+        workspace
+          .getByRole('status')
+          .filter({ hasText: 'Changes committed and available to the game.' }),
+      ).toBeVisible()
+      const skillKey = await page.evaluate(
+        () => [...window.__contentFixture.creations.values()][0].key,
+      )
+      await category.selectOption('discipline')
+      await records.locator('[data-content-key="bastion"]').click()
+      const parentBefore = await page.evaluate(() =>
+        structuredClone(window.__contentFixture.records.get('bastion').current.definition),
+      )
+      await workspace
+        .getByRole('textbox', { name: 'Description', exact: true })
+        .fill('Unrelated pending parent description.')
+      const tabs = workspace.getByRole('group', { name: 'Editor sections', exact: true })
+      await tabs.getByRole('button', { name: 'Skills', exact: true }).click()
+      const skills = workspace.getByRole('region', { name: 'Discipline skills', exact: true })
+      await expect(
+        skills.getByRole('button', { name: 'Unrelated Source Skill', exact: true }),
+      ).toHaveCount(0)
+      const trigger = skills.getByRole('button', { name: 'Created Bastion Skill', exact: true })
+      await expect(trigger).toBeVisible()
+      const beforeOpen = await page.evaluate(() => window.__contentCommitCount)
+      await trigger.click()
+      const dialog = page.getByRole('dialog')
+      const availability = dialog.getByRole('checkbox', {
+        name: 'Available in this Discipline',
+        exact: true,
+      })
+      const mastery = dialog.getByRole('spinbutton', {
+        name: 'Required mastery stage',
+        exact: true,
+      })
+      await expect(availability).not.toBeChecked()
+      await expect(mastery).toHaveCount(0)
+      assert.equal(await page.evaluate(() => window.__contentCommitCount), beforeOpen)
+      assert.deepEqual(
+        await page.evaluate(
+          () => window.__contentFixture.records.get('bastion').current.definition,
+        ),
+        parentBefore,
+      )
+      await availability.check()
+      await mastery.fill('3')
+      const childDescription = dialog.getByRole('textbox', { name: 'Description', exact: true })
+      const childBefore = await childDescription.inputValue()
+      await childDescription.fill('Submitted child description.')
+      await page.evaluate(() => (window.__contentFixture.holdCommit = true))
+      await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+      await page.waitForFunction(() => typeof window.__releaseContentCommit === 'function')
+      // Both edits happen after Commit: parent intent must remain stage3, and
+      // reverting to the old child text must remain an explicit newer edit.
+      await childDescription.fill(childBefore)
+      await mastery.fill('4')
+      await page.evaluate(() => window.__releaseContentCommit())
+      await expect(dialog.getByRole('status')).toContainText('newer edits remain uncommitted')
+      await expect(childDescription).toHaveValue(childBefore)
+      await expect(mastery).toHaveValue('4')
+      const afterFirst = await page.evaluate(
+        (key) => ({
+          parent: window.__contentFixture.records.get('bastion'),
+          child: window.__contentFixture.records.get(key),
+        }),
+        skillKey,
+      )
+      assert.equal(afterFirst.child.current.definition.description, 'Submitted child description.')
+      assert.equal(afterFirst.parent.current.definition.description, parentBefore.description)
+      assert.ok(afterFirst.parent.current.definition.linkedSkills.includes(skillKey))
+      assert.equal(
+        afterFirst.parent.current.definition.skillStages.find((row) => row.skillId === skillKey)
+          .minimumStage,
+        3,
+      )
+      const parentCommands = await page.evaluate(() =>
+        window.__contentRequests
+          .filter(
+            (row) =>
+              row.body?.command?.action === 'commit' && row.body.command.contentKey === 'bastion',
+          )
+          .map((row) => row.body.command),
+      )
+      assert.equal(parentCommands.length, 1)
+      assert.equal(parentCommands[0].expectedRevision, 2)
+      assert.deepEqual(
+        parentCommands[0].definition.skillStages.filter((row) => row.skillId !== skillKey),
+        parentBefore.skillStages,
+      )
+      await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+      await expect(dialog.getByRole('status')).toContainText(
+        'Saved; discipline edits remain uncommitted.',
+      )
+      const afterSecond = await page.evaluate(
+        (key) => ({
+          parent: window.__contentFixture.records.get('bastion'),
+          child: window.__contentFixture.records.get(key),
+        }),
+        skillKey,
+      )
+      assert.equal(afterSecond.child.current.definition.description, childBefore)
+      assert.equal(
+        afterSecond.parent.current.definition.skillStages.find((row) => row.skillId === skillKey)
+          .minimumStage,
+        4,
+      )
+      assert.equal(afterSecond.parent.current.definition.description, parentBefore.description)
+      await availability.uncheck()
+      await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+      await expect(dialog.getByRole('status')).toContainText(
+        'Saved; discipline edits remain uncommitted.',
+      )
+      const removed = await page.evaluate(
+        () => window.__contentFixture.records.get('bastion').current.definition,
+      )
+      assert.ok(!removed.linkedSkills.includes(skillKey))
+      assert.ok(!removed.skillStages.some((row) => row.skillId === skillKey))
+      await availability.check()
+      await mastery.fill('2')
+      await page.evaluate(() => window.__contentFixture.records.get('bastion').revision++)
+      await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+      await expect(dialog.getByRole('alert')).toContainText(
+        'Skill saved; the discipline settings are still uncommitted.',
+      )
+      await expect(availability).toBeChecked()
+      await expect(mastery).toHaveValue('2')
+      await dialog.getByRole('button', { name: 'Close skill editor', exact: true }).click()
+      await tabs.getByRole('button', { name: 'Discipline Details', exact: true }).click()
+      await expect(
+        workspace.getByRole('textbox', { name: 'Description', exact: true }),
+      ).toHaveValue('Unrelated pending parent description.')
+      assert.equal(
+        await page.evaluate(
+          () => window.__contentFixture.records.get('bastion').current.definition.description,
+        ),
+        parentBefore.description,
+      )
+      // Archived parents retain independent child editing while parent inclusion
+      // and mastery controls are disabled.
+      await page.evaluate(
+        () => (window.__contentFixture.records.get('bastion').lifecycle = 'archived'),
+      )
+      await records.locator('[data-content-key="bastion"]').click()
+      await tabs.getByRole('button', { name: 'Skills', exact: true }).click()
+      const originalSkillName = await page.evaluate(
+        () =>
+          window.__contentFixture.records.get(window.__contentFixture.skillId).current.definition
+            .name,
+      )
+      await skills.getByRole('button', { name: originalSkillName, exact: true }).click()
+      await expect(availability).toBeDisabled()
+      await expect(mastery).toBeDisabled()
+      await expect(dialog.getByRole('textbox', { name: 'Name', exact: true })).toBeEnabled()
+      await dialog.getByRole('button', { name: 'Close skill editor', exact: true }).click()
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+        .toBe(true)
+      await page.screenshot({
+        path: resolve(output, `skill-availability-${viewport.width}.png`),
+        fullPage: true,
+      })
+      evidence.push({
+        scenario: 'skill-availability',
+        viewport,
+        globalCreateSource: true,
+        openingDoesNotAssign: true,
+        exactSourceCandidates: true,
+        explicitAssociationAndMastery: true,
+        parentExpectedRevision: 2,
+        unrelatedParentEditsRetained: true,
+        reviewedAssociationSnapshot: true,
+        modalHeldSaveThenRevertRetained: true,
+        removal: true,
+        partialSaveCasErrorRetained: true,
+        parentReadOnlyControls: true,
+        authority:
+          'Production components with local HTTP transport; unchanged SQL projector/authority checked separately.',
+      })
+      await context.close()
+    }
+  }
+  if (
+    !process.env.AV_PANEL_CONTENT_SCENARIO ||
+    ['modal-save-races', 'modal-baseline-revert', 'modal-close-context'].includes(
+      process.env.AV_PANEL_CONTENT_SCENARIO,
+    )
+  ) {
+    for (const race of ['modal-baseline-revert', 'modal-close-context']) {
+      if (
+        process.env.AV_PANEL_CONTENT_SCENARIO &&
+        !['modal-save-races', race].includes(process.env.AV_PANEL_CONTENT_SCENARIO)
+      )
+        continue
+      const context = await browser.newContext({ viewport: { width: 1366, height: 768 } })
+      const page = await context.newPage()
+      page.setDefaultNavigationTimeout(60000)
+      try {
+        await page.goto(origin + '?view=content', { waitUntil: 'domcontentloaded' })
+        const workspace = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+        const sidebar = page.getByRole('complementary', { name: 'Content browser', exact: true })
+        const records = workspace.getByRole('navigation', { name: 'Content records', exact: true })
+        await expect(records.getByRole('button')).toHaveCount(127)
+        const tabs = workspace.getByRole('group', { name: 'Editor sections', exact: true })
+        await tabs.getByRole('button', { name: 'Skills', exact: true }).click()
+        const skillId = await page.evaluate(() => window.__contentFixture.skillId)
+        const skillName = await page.evaluate(
+          (key) => window.__contentFixture.records.get(key).current.definition.name,
+          skillId,
+        )
+        await workspace
+          .getByRole('region', { name: 'Discipline skills', exact: true })
+          .getByRole('button', { name: skillName, exact: true })
+          .click()
+        const dialog = page.getByRole('dialog')
+        const mastery = dialog.getByRole('spinbutton', {
+          name: 'Required mastery stage',
+          exact: true,
+        })
+        const availability = dialog.getByRole('checkbox', {
+          name: 'Available in this Discipline',
+          exact: true,
+        })
+        await expect(mastery).toHaveValue('1')
+        await mastery.fill('3')
+        await page.evaluate(() => {
+          delete window.__releaseContentCommit
+          window.__contentFixture.holdCommit = true
+        })
+        await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await page.waitForFunction(() => typeof window.__releaseContentCommit === 'function')
+        if (race === 'modal-baseline-revert') {
+          // The parent is otherwise clean: this reversion exactly matches its old base.
+          await mastery.fill('1')
+          await page.evaluate(() => window.__releaseContentCommit())
+          await expect(
+            dialog.getByRole('button', { name: 'Commit Now', exact: true }),
+          ).toBeEnabled()
+          await expect(mastery).toHaveValue('1')
+          await expect(dialog.getByRole('status')).toContainText(
+            'discipline edits remain uncommitted',
+          )
+          assert.equal(
+            await page.evaluate(
+              (key) =>
+                window.__contentFixture.records
+                  .get('bastion')
+                  .current.definition.skillStages.find((row) => row.skillId === key).minimumStage,
+              skillId,
+            ),
+            3,
+          )
+          await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+          await expect(dialog.getByRole('status')).toContainText(
+            'Changes committed and available to the game.',
+          )
+          assert.equal(
+            await page.evaluate(
+              (key) =>
+                window.__contentFixture.records
+                  .get('bastion')
+                  .current.definition.skillStages.find((row) => row.skillId === key).minimumStage,
+              skillId,
+            ),
+            1,
+          )
+          // The same baseline boundary applies to inclusion, not only numeric mastery.
+          await availability.uncheck()
+          await page.evaluate(() => {
+            delete window.__releaseContentCommit
+            window.__contentFixture.holdCommit = true
+          })
+          await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+          await page.waitForFunction(() => typeof window.__releaseContentCommit === 'function')
+          await availability.check()
+          await page.evaluate(() => window.__releaseContentCommit())
+          await expect(
+            dialog.getByRole('button', { name: 'Commit Now', exact: true }),
+          ).toBeEnabled()
+          await expect(availability).toBeChecked()
+          await expect(mastery).toHaveValue('1')
+          await expect(dialog.getByRole('status')).toContainText(
+            'discipline edits remain uncommitted',
+          )
+          assert.equal(
+            await page.evaluate(
+              (key) =>
+                window.__contentFixture.records
+                  .get('bastion')
+                  .current.definition.linkedSkills.includes(key),
+              skillId,
+            ),
+            false,
+          )
+          evidence.push({
+            scenario: race,
+            parentOnlyMasteryRevertRetained: true,
+            parentOnlyInclusionRevertRetained: true,
+            noticeTruthful: true,
+          })
+        } else {
+          await page.keyboard.press('Escape')
+          await expect(dialog).toHaveCount(0)
+          await expect(sidebar.getByRole('button', { name: 'New', exact: true })).toBeDisabled()
+          await expect(
+            sidebar.getByRole('combobox', { name: 'Content category', exact: true }),
+          ).toBeDisabled()
+          await expect(
+            tabs.getByRole('button', { name: 'Discipline Details', exact: true }),
+          ).toBeDisabled()
+          await expect(records.getByRole('button').first()).toBeDisabled()
+          await page.evaluate(() => window.__releaseContentCommit())
+          await expect(sidebar.getByRole('button', { name: 'New', exact: true })).toBeEnabled()
+          assert.equal(
+            await page.evaluate(
+              (key) =>
+                window.__contentFixture.records
+                  .get('bastion')
+                  .current.definition.skillStages.find((row) => row.skillId === key).minimumStage,
+              skillId,
+            ),
+            3,
+          )
+          await sidebar.getByRole('button', { name: 'New', exact: true }).click()
+          await workspace
+            .getByRole('textbox', { name: 'Name', exact: true })
+            .fill('New draft after the modal transaction settled')
+          await expect(workspace.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(
+            'New draft after the modal transaction settled',
+          )
+          evidence.push({
+            scenario: race,
+            escapeAllowed: true,
+            newAndNavigationDisabledUntilBothWritesFinish: true,
+            newWorksAfterAcknowledgement: true,
+          })
+        }
+        await page.screenshot({ path: resolve(output, race + '.png'), fullPage: true })
+      } catch (error) {
+        failures.push({ scenario: race, message: String(error) })
+        console.error('MODAL RACE FAILURE', race, String(error))
+        await page.screenshot({ path: resolve(output, race + '-failure.png'), fullPage: true })
+      } finally {
+        await context.close()
+      }
+    }
+  }
   for (const scenario of [
     { label: 'desktop', width: 1366, height: 768 },
     { label: 'mobile', width: 390, height: 844 },
