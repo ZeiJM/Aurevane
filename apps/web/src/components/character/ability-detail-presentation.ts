@@ -289,6 +289,7 @@ function effectPresentation(
   stats: BasicActionCharacterStats = {},
   controlledAction = false,
   effectContext: AbilityEffectPresentationContext = {},
+  requirementBehavior?: AbilityBehavior,
 ) {
   const payload = effect.payload
   let parts: CompactSkillEffectSummaryParts, description: string
@@ -427,8 +428,14 @@ function effectPresentation(
   }
   if (parts.timing === 'Instant' && /^1 (?:affected )?turns?$/iu.test(parts.duration ?? ''))
     parts = { ...parts, duration: null }
-  const condition = effect.requirements ? abilityRequirementDescription(effect.requirements) : null
-  const conditionParts = requirementReferenceParts(effect.requirements ?? null, effectContext)
+  const condition = effect.requirements
+    ? abilityRequirementDescription(effect.requirements, requirementBehavior)
+    : null
+  const conditionParts = requirementReferenceParts(
+    effect.requirements ?? null,
+    effectContext,
+    requirementBehavior,
+  )
   return {
     presentation: {
       parts,
@@ -479,6 +486,7 @@ export function abilityBehaviorInformation(
       options.stats,
       controlledAction,
       effectContext,
+      behavior.requirementMode === 'simple' ? behavior : undefined,
     )
     const tagPresentation = resolvedCombatEffectTagPresentation(
       options.tagPresentation,
