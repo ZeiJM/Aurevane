@@ -235,13 +235,22 @@ echo 'Stage B all seven actual guard tables: both physical catalogue/producer lo
 
 # Tag publication uses the same catalogue lock as complete Skill publication.
 # Observe both real blocking orders; the losing writer retains its entire draft.
-test "$(sql "select count(*) from app_private.combat_content_records where content_key='tag.damage';")" = 0
-sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,'tag.damage',jsonb_build_object('action','create','requestId',gen_random_uuid(),'contentKind','tag','definition','{\"schemaVersion\":1,\"id\":\"tag.damage\",\"contentVersion\":1,\"tagId\":\"damage\",\"name\":\"Impact\",\"description\":\"Relative power.\",\"explanation\":\"Damage uses power.\",\"sortOrder\":0,\"enabled\":true,\"media\":{}}'::jsonb));" >/dev/null
-tag_publish="select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',1,null,:'token',null);"
+prepare_tag_race() {
+  { printf '%s\n' 'begin;' "select set_config('task13.owner', :'actor', true);" 'set local role service_role;'; cat .github/scripts/prepare-combat-tag-race.sql; printf '%s\n' 'commit;'; } |
+    docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -v actor="$owner_id" -U postgres -d postgres >/dev/null
+}
+tag_publication() {
+  local draft_version base_version
+  draft_version="$(sql "select draft_version from app_private.combat_content_drafts where content_key='tag.damage';")"
+  base_version="$(sql "select coalesce(base_version::text,'null') from app_private.combat_content_drafts where content_key='tag.damage';")"
+  printf "select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',%s,%s,:'token',null);" "$draft_version" "$base_version"
+}
+prepare_tag_race
+tag_publish="$(tag_publication)"
 loser_publish="select public.publish_saved_combat_content_v1(:'actor',null,'ci.catalogue-loser',1,null,:'token',5);"
 race tag-before-skill "$tag_publish" "$loser_publish"
-sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,'tag.damage',jsonb_build_object('action','save','expectedRevision',2,'definition',public.read_combat_content_record_v1('$owner_id',null,'tag.damage')#>'{current,definition}'));" >/dev/null
-tag_publish="select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',2,1,:'token',null);"
+prepare_tag_race
+tag_publish="$(tag_publication)"
 race skill-before-tag "$loser_publish" "$tag_publish"
 race tag-rollback "$tag_publish" "$timing" rollback ''
 echo 'Media/Tag lifecycle, pointer attribution, both actual Tag/Skill lock orders and whole rollback PASS.'

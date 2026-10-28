@@ -723,10 +723,7 @@ async function commitBasic(editor, viewport) {
 }
 async function committedBasic(editor) {
   await editor.getByText('Changes committed and available to the game.', { exact: true }).waitFor()
-  assert.equal(
-    await editor.getByRole('status', { name: 'Content version state' }).innerText(),
-    'Current',
-  )
+  assert.equal(await editor.getByRole('status', { name: 'Save status' }).innerText(), 'Saved')
 }
 async function verifyBasicEditor(page, viewport) {
   console.log('verifyBasicEditor', viewport.width)
@@ -916,7 +913,7 @@ async function verifyBasicHeldRevert(page, viewport) {
   await editor.getByText('Saved; newer local edits remain uncommitted.', { exact: true }).waitFor()
   assert.equal(await name.inputValue(), originalName)
   assert.equal(
-    await editor.getByRole('status', { name: 'Content version state' }).innerText(),
+    await editor.getByRole('status', { name: 'Save status' }).innerText(),
     'Unsaved changes',
   )
   const submitted = (await inspectBasics(page)).records.find((row) => row.id === 'basic.move')
@@ -950,10 +947,7 @@ async function verifyBasicHeldRevert(page, viewport) {
   )
   await editor.waitFor()
   assert.equal(await name.inputValue(), originalName)
-  assert.equal(
-    await editor.getByRole('status', { name: 'Content version state' }).innerText(),
-    'Current',
-  )
+  assert.equal(await editor.getByRole('status', { name: 'Save status' }).innerText(), 'Saved')
   assert.deepEqual(
     (await inspectBasics(page)).records.find((row) => row.id === 'basic.move').current,
     current.current,
@@ -1219,12 +1213,24 @@ async function verifyCanonicalEditor(page, viewport) {
   await gesture(walk.getByRole('button', { name: '↓ Down', exact: true }))
   assert.ok((await editor.getByRole('status').innerText()).includes('Move must occur once, first'))
   assert.equal(await walk.getByLabel('Effect description', { exact: true }).count(), 0)
+  assert.equal(
+    await page.evaluate(() => {
+      try {
+        window.inspectEditedAbility()
+        return false
+      } catch (error) {
+        return error.message.includes('Move must occur once, first')
+      }
+    }),
+    true,
+    'The engine must reject the deliberately invalid Move ordering',
+  )
+  await gesture(walk.getByRole('button', { name: '↑ Up', exact: true }))
   assert.ok(
     (await page.evaluate(() => window.inspectEditedAbility().notes)).includes(
       'Walk <once> & return',
     ),
   )
-  await gesture(walk.getByRole('button', { name: '↑ Up', exact: true }))
   const maintained = editor.locator('[data-ability-group="maintain"]')
   await openEffectParameters(maintained)
   await maintained.getByLabel('Outgoing damage bonus (%)', { exact: true }).fill('15.25')

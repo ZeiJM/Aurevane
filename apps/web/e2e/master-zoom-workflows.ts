@@ -130,17 +130,31 @@ export async function exerciseMasterAtBrowserZoom(
     )
     const name = page.getByLabel('Name', { exact: true }),
       ap = page.getByLabel('AP cost', { exact: true })
+    async function showAbilitySection(label: string) {
+      const tabs = workspace.getByRole('tablist', { name: 'Ability sections', exact: true })
+      const target = tabs.getByRole('tab', { name: label, exact: true })
+      await tabs.getByRole('tab', { selected: true }).focus()
+      await page.keyboard.press('Home')
+      for (let index = 0; index < (await tabs.getByRole('tab').count()); index++) {
+        if ((await target.getAttribute('aria-selected')) === 'true') break
+        await page.keyboard.press('ArrowRight')
+      }
+      await expect(target).toHaveAttribute('aria-selected', 'true')
+      await expect(target).toBeFocused()
+      expect(await target.evaluate((element) => element.matches(':focus-visible'))).toBe(true)
+      await control(target, `ability-section-${label.replaceAll(' ', '-').toLowerCase()}`)
+    }
     await expect(name).toBeEnabled()
     const originalAP = await ap.inputValue()
     const originalName = await name.inputValue()
     await name.fill(
       'A long Basic Attack title demonstrating wrapped authoring and reader content at actual browser zoom',
     )
+    await showAbilitySection('Action Economy')
     await ap.fill('0')
-    await expect(page.getByRole('status', { name: 'Content version state' })).toContainText(
-      'Unsaved changes',
-    )
+    await expect(page.getByRole('status', { name: 'Save status' })).toContainText('Unsaved changes')
     await expect(button('Commit Now')).toBeEnabled()
+    await showAbilitySection('Details & Text')
     await control(name, 'long-title')
     await state('long-dirty', workspace)
     const rejectedCommit = page.waitForResponse((response) => {
@@ -172,17 +186,17 @@ export async function exerciseMasterAtBrowserZoom(
       'A long Basic Attack title demonstrating wrapped authoring and reader content at actual browser zoom',
     )
     await expect(ap).toHaveValue('0')
-    await expect(page.getByRole('status', { name: 'Content version state' })).toContainText(
-      'Unsaved changes',
-    )
+    await expect(page.getByRole('status', { name: 'Save status' })).toContainText('Unsaved changes')
     await validation.scrollIntoViewIfNeeded()
     await state('validation-error', workspace)
+    await showAbilitySection('Action Economy')
     await ap.fill(originalAP)
+    await showAbilitySection('Details & Text')
     await activate(button('Commit Now'), 'commit-content')
     await expect(
       page.getByText('Changes committed and available to the game.', { exact: true }),
     ).toBeVisible()
-    await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText('Current')
+    await expect(page.getByRole('status', { name: 'Save status' })).toHaveText('Saved')
     await expect(button('History')).toHaveCount(0)
     await expect(workspace.getByRole('button', { name: /^Restore / })).toHaveCount(0)
     const readCurrent = async () => {
@@ -236,12 +250,12 @@ export async function exerciseMasterAtBrowserZoom(
     ).toBeVisible()
     await expect(name).toHaveValue(originalName)
     await expect(ap).toHaveValue(originalAP)
-    await expect(page.getByRole('status', { name: 'Content version state' })).toHaveText('Current')
+    await expect(page.getByRole('status', { name: 'Save status' })).toHaveText('Saved')
     await state('current-authored-settings', workspace)
   } else if (route === '/master/combat-timing') {
     const form = page
       .locator('form')
-      .filter({ has: page.getByRole('heading', { name: 'Effect timing' }) })
+      .filter({ has: page.getByRole('heading', { name: 'Effect tags' }) })
     const search = page.getByLabel('Search effect tags')
     await search.fill('no-matching-zoom-tag')
     await expect(form.locator('tbody tr')).toHaveCount(0)
@@ -389,6 +403,9 @@ export async function exerciseMasterAtBrowserZoom(
     await activate(button(`Inspect ${identity.characterName}`), 'inspect-player')
     const reader = protectedPlayerReader(page)
     await expect(reader).toHaveCount(1)
+    const more = reader.locator('summary', { hasText: /^More player details$/ })
+    await expect(more.locator('..')).not.toHaveAttribute('open', '')
+    await activate(more, 'expand-protected-player-details')
     await expect(reader).toContainText('Identity and account access are protected.')
     await state('protected-player-reader', reader)
     await activate(button('Refresh player'), 'refresh-player')

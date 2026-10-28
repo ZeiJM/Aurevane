@@ -158,7 +158,7 @@ async function publish(
   key: string,
   revision: number,
   base: number | null,
-  floor = 1,
+  floor: number | null = 1,
   catalogueToken?: string,
 ) {
   return (
@@ -1818,4 +1818,45 @@ it('Archive activity capture remains private rather than granting direct browser
     { role: 'authenticated', allowed: false },
     { role: 'service_role', allowed: false },
   ])
+})
+
+it('native Tag race preparation handles seeded metadata and an already published Tag without resetting history', async () => {
+  const prepare = readFileSync(
+    resolve(root, '../../.github/scripts/prepare-combat-tag-race.sql'),
+    'utf8',
+  )
+  const before = await record('tag.damage')
+  expect(before).not.toBeNull()
+  expect(before.current).toBeNull()
+  await db.query("select set_config('task13.owner',$1,true)", [owner])
+  await db.exec('set local role service_role')
+  await db.exec(prepare)
+  const first = await record('tag.damage')
+  expect(first.draft).not.toBeNull()
+  const published = await publish('tag.damage', first.draft.draftVersion, null, null)
+  expect(published.current.contentVersion).toBe(2)
+  const prior = published.current.definition
+  await db.exec(prepare)
+  const next = await record('tag.damage')
+  expect(next.draft).not.toBeNull()
+  const nextPublished = await publish(
+    'tag.damage',
+    next.draft.draftVersion,
+    published.current.contentVersion,
+    null,
+  )
+  expect(nextPublished.current.contentVersion).toBe(published.current.contentVersion + 1)
+  expect(nextPublished.history).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ contentVersion: published.current.contentVersion }),
+    ]),
+  )
+  expect(
+    (
+      await db.query<{ definition: unknown }>(
+        "select definition from public.read_combat_content_version_v1('tag.damage','tag',$1)",
+        [published.current.contentVersion],
+      )
+    ).rows[0]!.definition,
+  ).toEqual(prior)
 })

@@ -193,7 +193,7 @@ async function verify(page, scenario) {
   await page.goto(origin + '?view=rules')
   const timing = page
     .locator('form')
-    .filter({ has: page.getByRole('heading', { name: 'Effect timing', exact: true }) })
+    .filter({ has: page.getByRole('heading', { name: 'Effect tags', exact: true }) })
   await expect(timing).toBeVisible()
   if (scenario === 'desktop') {
     const workspace = await page
