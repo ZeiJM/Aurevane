@@ -241,7 +241,14 @@ try {
           await reader.getByRole('heading', { name: 'Reader Target', exact: true }).count(),
           1,
         )
+        const details = reader
+          .locator('summary', { hasText: /^More player details$/ })
+          .locator('..')
+        assert.equal(await details.getAttribute('open'), null)
+        await details.locator(':scope > summary').click()
         assert.match(await reader.innerText(), /Identity and account access are protected\./)
+        await details.locator(':scope > summary').click()
+        assert.equal(await details.getAttribute('open'), null)
         assert.equal(await reader.isVisible(), true)
         const geometry = await reader.evaluate((element) => ({
           clientWidth: element.clientWidth,

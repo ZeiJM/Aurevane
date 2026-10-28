@@ -220,7 +220,7 @@ test('Techniques guide is discoverable and its tables and catalog fit the viewpo
   const catalog = page.locator('#catalog')
   await catalog.getByText('Runeblade', { exact: true }).click()
   await expect(catalog.getByText(/Siphon Slash —/)).toContainText(
-    'Dmg [13], MP Drain [7], MP Recovery [7%] [Instant]',
+    'Dmg [13] [Enemy], MP Drain [7] [Enemy], MP Recovery [7%] [Instant] [Self]',
   )
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),

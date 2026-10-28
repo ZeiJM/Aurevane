@@ -1181,7 +1181,21 @@ async function verifyCanonicalEditor(page, viewport) {
   const gesture = (locator) => (viewport.width < 720 ? locator.tap() : locator.click())
   await leap.getByLabel('AP cost', { exact: true }).fill('14')
   await leap.getByLabel('HP cost', { exact: true }).fill('2')
-  await leap.getByLabel('Fixed hit chance (%)', { exact: true }).fill('55.5')
+  assert.equal(await leap.getByLabel('Fixed hit chance (%)', { exact: true }).count(), 0)
+  const accuracy = leap.getByLabel('Accuracy rule', { exact: true })
+  assert.equal(await accuracy.inputValue(), 'fixed')
+  assert.equal(
+    await page.evaluate(
+      () => window.inspectEditedAbility().definition.behaviors[0].accuracy.chanceBasisPoints,
+    ),
+    7777,
+  )
+  await accuracy.selectOption('standard')
+  assert.equal(
+    await page.evaluate(() => window.inspectEditedAbility().definition.behaviors[0].accuracy),
+    undefined,
+  )
+  await accuracy.selectOption('always')
   await leap.getByLabel('Cooldown (owner turns; 0 means none)', { exact: true }).fill('2')
   await leap
     .getByRole('group', { name: 'Requirements', exact: true })
@@ -1228,7 +1242,7 @@ async function verifyCanonicalEditor(page, viewport) {
     ap: 14,
     hp: 2,
   })
-  assert.equal(group.accuracy.chanceBasisPoints, 5550)
+  assert.equal(group.accuracy.chanceBasisPoints, 10000)
   assert.equal(group.cooldown.ownerTurns, 2)
   assert.equal(group.requirements.amount, 4)
   assert.equal(group.effects[0].payload.maximumTiles, 3)

@@ -218,8 +218,8 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(resonanceField('Requirements')).toHaveText('Lifebinder Skills tagged Heal')
   await expect(resonancePreview.locator('dt', { hasText: /^(Mode|Setup|Trigger)$/ })).toHaveCount(0)
   await expect(resonanceField('Effects').locator(':scope > div')).toHaveText([
-    'Vanguard Skills tagged Attack + Melee: Dmg [6] → Trigger Skill selected unit',
-    'Vanguard Skills tagged Attack + Melee: HP Recovery [4%] [Instant]',
+    'Vanguard Skills tagged Attack + Melee: Dmg [6] [Trigger Skill selected unit]',
+    'Vanguard Skills tagged Attack + Melee: HP Recovery [4%] [Instant] [Self]',
   ])
   await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
     'Restores a captured 4% of your maximum HP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.',

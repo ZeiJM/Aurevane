@@ -188,7 +188,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
       })
       const assetResponse = await sound
       expect([200, 206]).toContain(assetResponse.status())
-      expect(assetResponse.headers()['content-type']).toContain('audio/wav')
+      expect(assetResponse.headers()['content-type']).toContain('audio/mpeg')
       expect((await assetResponse.body()).byteLength).toBeGreaterThan(0)
       expect(
         battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
@@ -309,7 +309,13 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await fortress.getByRole('checkbox').focus()
   await expect(dialog).toContainText('EffectsFortified [30% / 20%]')
-  await expect(dialog).toContainText('TargetSelf')
+  await expect(dialog.locator('dt').filter({ hasText: /^Target$/ })).toHaveCount(0)
+  await expect(
+    dialog
+      .locator('dt')
+      .filter({ hasText: /^Effects$/ })
+      .locator('..'),
+  ).toContainText('[Self]')
   await expect(dialog.locator('dt').filter({ hasText: /^Damage$/ })).toHaveCount(0)
   await expect(dialog).toContainText('Take 30% less damage and deal 20% less damage.')
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
@@ -378,7 +384,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const audioAssetResponse = await playedAsset
   // HTMLAudioElement may request a byte range; 206 is successful media delivery.
   expect([200, 206]).toContain(audioAssetResponse.status())
-  expect(audioAssetResponse.headers()['content-type']).toContain('audio/wav')
+  expect(audioAssetResponse.headers()['content-type']).toContain('audio/mpeg')
   expect((await audioAssetResponse.body()).byteLength).toBeGreaterThan(0)
   expect(
     battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),

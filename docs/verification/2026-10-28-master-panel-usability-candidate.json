@@ -76,8 +76,8 @@
     "path": "content/media-releases/skill-fx-v01.json",
     "sha256": "5f4f51a315626a0ec64a0d9888e3ad403c3e7d57da50d79ce18db8f02bc75bf5"
   },
-  "githubPublication": "authorized-reviewed-source-tree-for-draft-PR",
-  "githubChecks": "pending-at-publication",
+  "githubPublication": "draft-PR-986",
+  "githubChecks": "first-run-14-success-6-failure-repair-pending-native-rerun",
   "deployment": "not-performed",
   "automaticGitDeployment": "disabled",
   "localApplicationCheckpoint": "5714700ccc14dc0ca164b5eb3ed720922bb81a63",
