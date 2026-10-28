@@ -1883,7 +1883,8 @@
   background: #f7f1e5;
   border: 1px solid #b6a587;
 }
-.abilityTabs button[aria-selected='true'] {
+.abilityTabs button[aria-selected='true'],
+.abilityWorkspace .abilityTabs button[aria-selected='true']:is(:hover, :focus-visible) {
   background: #315d54;
   color: #fff4dc;
   border-color: #254b43;

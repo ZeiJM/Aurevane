@@ -25,8 +25,14 @@ async function activateAbilitySection(scope, name) {
         'xpath=ancestor-or-self::*[./*[@role="tablist" and @aria-label="Ability sections"]][1]',
       )
       .getByRole('tab', { name, exact: true })
-  if ((await tabs.count()) && (await tabs.first().getAttribute('aria-selected')) !== 'true')
-    await tabs.first().click()
+  if (await tabs.count()) {
+    const tab = tabs.first()
+    if ((await tab.getAttribute('aria-selected')) !== 'true') await tab.click()
+    await browserExpect(() => assertBasicContrast(tab)).toPass({
+      timeout: 1500,
+      intervals: [50, 100, 200],
+    })
+  }
 }
 async function abilityField(scope, label) {
   const section = [
@@ -42,6 +48,7 @@ async function abilityField(scope, label) {
           'Recovery rounding',
           'Recovery percent',
           'Move maximum tiles',
+          'Healing amount',
         ].includes(label)
       ? 'Effects'
       : ['Accuracy rule', 'Fixed hit chance (%)'].includes(label)
@@ -65,6 +72,7 @@ async function abilityField(scope, label) {
 }
 
 const require = createRequire(import.meta.url)
+const { expect: browserExpect } = require('@playwright/test')
 const { createServer, build } = await import(
   pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
 )
@@ -1122,10 +1130,9 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
     ['brace', 'recover'],
   )
   assert.equal(requests[1].definition.ability.behaviors[1].effects[0].payload.amount, 17)
-  await page
-    .locator('[data-ability-group="recover"]')
-    .getByLabel('Healing amount', { exact: true })
-    .fill('18')
+  await (
+    await abilityField(page.locator('[data-ability-group="recover"]'), 'Healing amount')
+  ).fill('18')
   assert.equal(await preview.count(), 0)
   await runPreview()
   await preview.waitFor()
@@ -1155,10 +1162,7 @@ async function verifySelectedGroupPreview(page, viewport, kind) {
   await runPreview()
   await page.waitForFunction(() => typeof window.releaseGroupPreview === 'function')
   assert.equal(await selector.isDisabled(), true)
-  await page
-    .locator('[data-ability-group="recover"]')
-    .getByLabel('AP cost', { exact: true })
-    .fill('14')
+  await (await abilityField(page.locator('[data-ability-group="recover"]'), 'AP cost')).fill('14')
   await page.evaluate(() => {
     window.releaseGroupPreview()
     window.holdGroupPreview = false
@@ -1531,11 +1535,11 @@ async function verifyBasicServiceAuthoring(page, viewport) {
     // Ordinary current-setting authoring chooses explicit fixture values. The
     // historical definition is a test oracle, not an exposed restoration feature.
     await (await abilityField(editor, 'Name')).fill(chosen.name)
-    await editor
-      .getByLabel('AP cost', { exact: true })
-      .fill(
-        String(chosen.ability.behaviors[0].costs.find((row) => row.resource === 'ap')?.amount ?? 0),
-      )
+    await (
+      await abilityField(editor, 'AP cost')
+    ).fill(
+      String(chosen.ability.behaviors[0].costs.find((row) => row.resource === 'ap')?.amount ?? 0),
+    )
     const actualPreview = await verifyBasicApiParity(page, before.current.definition, chosen)
     const reader = await basicParityReader(page, chosen)
     await openNativeSample(reader)
