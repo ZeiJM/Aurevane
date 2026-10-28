@@ -2108,7 +2108,7 @@ try {
           assert.ok(explanations.includes(`${scenario.potency || 35}% Storm damage`))
           assert.equal(
             await popup.locator('[data-compact-skill-effect]').first().textContent(),
-            'Water Dmg [10]',
+            'Water Dmg [10] [Enemy]',
           )
           const rows = popup.getByLabel('Effect explanations').locator('li')
           assert.equal(await rows.count(), 2)

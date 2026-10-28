@@ -359,3 +359,50 @@ it('offers the same two ordinary accuracy choices and preserves a retained fixed
   expect(retained).toContain('>Always Hit</option>')
   expect(JSON.stringify(ability)).toBe(before)
 })
+
+it('keeps each condition inside its own collapsed effect parameters rather than a separate empty panel', () => {
+  const definition = parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...base,
+        requirementMode: 'simple',
+        effects: [
+          { id: 'strike', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } },
+          {
+            id: 'mend',
+            payload: { type: 'healing', recipient: 'actor', amount: 1 },
+            requirements: {
+              kind: 'status-presence',
+              subject: 'selected',
+              statusId: 'wet',
+              present: true,
+            },
+          },
+        ],
+      },
+    ],
+  })
+  const before = JSON.stringify(definition)
+  const onChange = vi.fn()
+  const html = renderToStaticMarkup(
+    <AbilityDefinitionEditor value={definition} section="effects" onChange={onChange} />,
+  )
+  const cards = html.match(/<article\b[\s\S]*?<\/article>/gu)!
+  expect(cards).toHaveLength(2)
+  for (const [index, id] of ['strike', 'mend'].entries()) {
+    const card = cards[index]!
+    expect(card).toContain(`data-ability-effect="${id}"`)
+    expect(card).toMatch(
+      new RegExp(
+        `<details[^>]*data-effect-collapsible="true"[^>]*>[\\s\\S]*data-effect-requirement="${id}"[\\s\\S]*</details>`,
+      ),
+    )
+    expect(card).not.toMatch(/<details[^>]*\bopen=""/)
+  }
+  expect(cards[0]).not.toContain('Conditional')
+  expect(cards[1]).toContain('Conditional')
+  expect(html).not.toContain('<legend>Effect requirements</legend>')
+  expect(JSON.stringify(definition)).toBe(before)
+  expect(onChange).not.toHaveBeenCalled()
+})

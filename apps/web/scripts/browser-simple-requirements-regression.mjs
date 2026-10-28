@@ -480,6 +480,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       const encodedBeforeReload = JSON.stringify((await snapshot()).saved)
       await page.reload({ waitUntil: 'networkidle' })
       await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      await openEffectParameters(cleanse)
       await expect
         .poll(() =>
           statuses.evaluate((node) =>

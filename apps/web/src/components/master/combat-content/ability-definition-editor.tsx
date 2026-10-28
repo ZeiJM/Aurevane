@@ -370,38 +370,6 @@ function AbilityGroupEditor({
           ) : null}
         </>
       )}
-      {show('effects') && (
-        <>
-          <fieldset className={styles.typedGroup}>
-            <legend>Effect requirements</legend>
-            <p className={styles.fieldHint}>
-              Conditions here gate only the indicated effect, not the whole Skill. They stay
-              executable modular requirements and appear in the Requirements report.
-            </p>
-            {value.effects.map((effect, index) => {
-              const allowedSubjects = effectSubjects(effect.payload, value)
-              return allowedSubjects.length ? (
-                <div key={effect.id} data-effect-requirement={effect.id}>
-                  <AbilityRequirementEditor
-                    label={`Effect ${index + 1} · ${effect.payload.type} requirement`}
-                    value={effect.requirements ?? null}
-                    simple={readSimpleRequirement(effect.requirements ?? null) !== null}
-                    allowedSubjects={allowedSubjects}
-                    onChange={(requirements) =>
-                      onChange({
-                        ...value,
-                        effects: value.effects.map((row) =>
-                          row.id === effect.id ? { ...row, requirements } : row,
-                        ),
-                      })
-                    }
-                  />
-                </div>
-              ) : null
-            })}
-          </fieldset>
-        </>
-      )}
       {show('range') && value.targeting ? (
         <AbilityTargetingEditor
           value={value.targeting}
@@ -428,6 +396,7 @@ function AbilityGroupEditor({
                         {' '}
                         [{inheritedEffectTargetLabel(effect.payload, value.targeting ?? undefined)}]
                       </span>
+                      {effect.requirements ? <small> · Conditional</small> : null}
                     </strong>
                     <div className={styles.effectActions}>
                       <button
@@ -483,6 +452,24 @@ function AbilityGroupEditor({
                         })
                       }
                     />
+                    {effectSubjects(effect.payload, value).length ? (
+                      <div data-effect-requirement={effect.id}>
+                        <AbilityRequirementEditor
+                          label="Condition"
+                          value={effect.requirements ?? null}
+                          simple={readSimpleRequirement(effect.requirements ?? null) !== null}
+                          allowedSubjects={effectSubjects(effect.payload, value)}
+                          onChange={(requirements) =>
+                            onChange({
+                              ...value,
+                              effects: value.effects.map((row) =>
+                                row.id === effect.id ? { ...row, requirements } : row,
+                              ),
+                            })
+                          }
+                        />
+                      </div>
+                    ) : null}
                   </details>
                 </article>
               ))}
