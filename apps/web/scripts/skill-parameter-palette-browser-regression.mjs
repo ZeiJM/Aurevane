@@ -49,6 +49,17 @@ async function abilityField(scope, label) {
         : 'Details & Text'
   await activateAbilitySection(scope, section)
   const field = scope.getByLabel(label, { exact: true })
+  if (['MP cost', 'HP cost'].includes(label) && (await field.count()) === 0) {
+    const add = scope.getByRole('button', { name: `Add ${label}`, exact: true })
+    await add.click()
+    await field.waitFor({ state: 'visible' })
+    assert.equal(await field.inputValue(), '1', 'Adding a resource starts with its authored amount')
+    assert.equal(await add.count(), 0)
+    assert.equal(
+      await scope.getByRole('button', { name: `Remove ${label}`, exact: true }).count(),
+      1,
+    )
+  }
   await openEffectParameters(field.locator('..'))
   return field
 }
