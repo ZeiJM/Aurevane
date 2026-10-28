@@ -66,7 +66,6 @@ it('renders all ten fields and effect/requirement/limit details from the capture
     'Requirements',
     'Effects',
     'Range',
-    'Target',
     'Target Method',
     'Target Elevation',
     'Line of Sight',

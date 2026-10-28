@@ -48,7 +48,7 @@ export function SkillCharacteristicRows({
         ) : (
           parameterValue(label, value)
         )}
-        {label === 'Target' ? targetDetails : null}
+        {label === 'Target Method' ? targetDetails : null}
       </dd>
     </div>
   ))

@@ -64,9 +64,11 @@ export function SkillParameters({
                   <span key={firstIndex}>
                     {index > 0 ? ', ' : null}
                     <CompactSkillEffectSummary
+                      aim={skill.target}
                       effect={effect}
                       count={count}
                       skillEffects={skill.effects}
+                      tagPresentations={skill.tagPresentation}
                     />
                   </span>
                 ),

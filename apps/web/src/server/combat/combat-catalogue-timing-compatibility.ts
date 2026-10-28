@@ -1,4 +1,5 @@
 import 'server-only'
+import { combatEffectPresentationId } from '@aurevane/game-core/combat/combat-effect-identities'
 import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import { applyAbilityTimingDefaults } from '@aurevane/game-core/combat/combat-definition'
 import {
@@ -94,6 +95,7 @@ export function assertCombatCatalogueTimingCompatible(catalogue: CombatContentCa
 /** Informational dependencies from the exact catalogue used by the compatibility guard. */
 export function combatTimingUsedBy(
   catalogue: CombatContentCatalogue,
+  mode: 'timing' | 'presentation' = 'timing',
 ): Record<string, { contentKey: string; name: string }[]> {
   const used: Record<string, { contentKey: string; name: string }[]> = {}
   for (const entry of catalogue.entries) {
@@ -113,6 +115,10 @@ export function combatTimingUsedBy(
     if (definition.ability) {
       for (const group of definition.ability.behaviors)
         for (const effect of group.effects) {
+          if (mode === 'presentation') {
+            tags.add(combatEffectPresentationId(effect.payload))
+            continue
+          }
           if (effect.payload.type === 'move' || effect.payload.type === 'damage-bonus') continue
           tags.add(
             effect.payload.type === 'summon'
@@ -122,7 +128,11 @@ export function combatTimingUsedBy(
         }
     } else if (entry.category === 'resonance') {
       for (const effect of normalizedResonanceMechanics(entry.definition).resultEffects)
-        tags.add(currentCombatEffectTimingTag(effect))
+        tags.add(
+          mode === 'presentation'
+            ? combatEffectPresentationId(effect)
+            : currentCombatEffectTimingTag(effect),
+        )
     } else if (entry.category !== 'basic') {
       for (const context of ['pve', 'pvp'] as const) {
         const action = toMaterializedCombatActionDefinition(
@@ -131,11 +141,13 @@ export function combatTimingUsedBy(
         )
         for (const [ordinal, effect] of action.effects.entries())
           tags.add(
-            combatActionEffectTimingTag(
-              { displacementPolicyVersion: 1 },
-              effect,
-              action.effectTimingTags?.[ordinal],
-            ),
+            mode === 'presentation'
+              ? combatEffectPresentationId(effect)
+              : combatActionEffectTimingTag(
+                  { displacementPolicyVersion: 1 },
+                  effect,
+                  action.effectTimingTags?.[ordinal],
+                ),
           )
       }
     }
@@ -146,4 +158,8 @@ export function combatTimingUsedBy(
       })
   }
   return used
+}
+
+export function combatEffectUsedBy(catalogue: CombatContentCatalogue) {
+  return combatTimingUsedBy(catalogue, 'presentation')
 }

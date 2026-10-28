@@ -128,6 +128,7 @@ export function battleCapturedSpecialAction(
       maximumRange: first.target.maximumRange,
       apCost: first.costs?.find((cost) => cost.resource === 'ap')?.amount ?? 0,
       mpCost: first.costs?.find((cost) => cost.resource === 'mp')?.amount ?? 0,
+      hpCost: first.costs?.find((cost) => cost.resource === 'hp')?.amount ?? 0,
       tags: [],
       effectDescriptions: [],
       requirementDescriptions: [],

@@ -15,6 +15,8 @@ const migration = readFileSync(
 )
 beforeAll(async () => {
   db = await PGlite.create()
+  // Completed receipts precede the report's exclusive as-of boundary. PGlite
+  // can give consecutive statements the same clock value; never wait on wall time.
   await db.exec(`create role anon; create role authenticated; create role service_role; create schema app_private;
     create table public.characters(id uuid primary key,user_id uuid);
     create table app_private.character_active_builds(character_id uuid primary key,user_id uuid,primary_discipline_id text,secondary_discipline_id text);
@@ -22,8 +24,8 @@ beforeAll(async () => {
     create table app_private.phase4_skill_catalog(skill_id text primary key,discipline_id text);
     create table app_private.character_deletion_requests(character_id uuid);
     create table app_private.account_deletion_requests(user_id uuid primary key,requested_at timestamptz,delete_after timestamptz);
-    create table app_private.battle_sessions(id uuid primary key,lifecycle text,current_snapshot jsonb,created_at timestamptz default now(),updated_at timestamptz default now());
-    create table app_private.battle_events(battle_session_id uuid,event jsonb,created_at timestamptz default now());
+    create table app_private.battle_sessions(id uuid primary key,lifecycle text,current_snapshot jsonb,created_at timestamptz default now()-interval '2 seconds',updated_at timestamptz default now());
+    create table app_private.battle_events(battle_session_id uuid,event jsonb,created_at timestamptz default now()-interval '1 second');
     create table app_private.combat_content_records(content_key text,content_kind text,lifecycle text,builtin_name text,builtin_source_discipline_id text);
     create table app_private.combat_content_publications(content_key text,version_id uuid);
     create table app_private.combat_content_versions(id uuid,definition jsonb);
@@ -35,6 +37,15 @@ beforeAll(async () => {
     insert into app_private.character_build_discipline_skills values('${character}','vanguard.strike','vanguard'),('${other}','vanguard.strike','vanguard');
     insert into app_private.phase4_skill_catalog values('vanguard.strike','vanguard'),('vanguard.guard','vanguard');`)
   await db.exec(migration)
+  await db.exec(
+    readFileSync(
+      new URL(
+        '../../../supabase/migrations/20261028195800_usage_balance_week_selection.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
 }, 30000)
 afterAll(async () => {
   await db?.close()
@@ -277,4 +288,47 @@ it('includes qualifying automatic Skill action receipts without inventing a manu
       expect.objectContaining({ skillId: 'vanguard.strike', actualUses: previous + 2 }),
     ]),
   )
+})
+
+it('selects real collected weekly buckets, preserves current adoption and rejects future/invalid weeks', async () => {
+  await db.exec('begin')
+  try {
+    await db.exec('delete from app_private.usage_balance_sessions')
+    await battle(999)
+    await db.exec(
+      "update app_private.usage_balance_sessions set completed_at=date_trunc('week',statement_timestamp() at time zone 'UTC') at time zone 'UTC' - interval '7 days' + interval '1 hour' where battle_session_id='00000000-0000-4000-8000-000000000999'",
+    )
+    const week = (
+      await db.query<{ week_date: string }>(
+        "select to_char(date_trunc('week',statement_timestamp() at time zone 'UTC')-interval '7 days','YYYY-MM-DD') week_date",
+      )
+    ).rows[0]!.week_date
+    const get = async (selected: string | null) =>
+      (
+        await db.query<{ report: Record<string, unknown> }>(
+          'select public.read_master_usage_balance_week_v1($1,$2,$3,$4::date) report',
+          [actor, character, 'vanguard', selected],
+        )
+      ).rows[0]!.report
+    const old = await get(week)
+    expect(String(old.weekStartsAt).slice(0, 10)).toBe(week)
+    expect(old.availableWeeks).toContain(week)
+    expect(old.current).toEqual((await read()).current)
+    expect(old.coverage).toMatchObject({ collectedBattles: 1 })
+    await db.exec('savepoint invalid_week')
+    await expect(get('2999-01-04')).rejects.toThrow('USAGE_BALANCE_INVALID_WEEK')
+    await db.exec('rollback to savepoint invalid_week')
+    for (const role of ['anon', 'authenticated']) {
+      expect(
+        (
+          await db.query<{ allowed: boolean }>(
+            "select has_function_privilege($1,'public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','execute') allowed",
+            [role],
+          )
+        ).rows[0]!.allowed,
+      ).toBe(false)
+    }
+  } finally {
+    await db.exec('rollback')
+  }
 })

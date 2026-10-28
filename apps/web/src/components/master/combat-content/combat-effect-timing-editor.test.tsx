@@ -2,12 +2,20 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { CombatEffectTimingEditor } from './combat-effect-timing-editor'
+it('offers description editing for each distinct gameplay tag when content authoring is allowed', () => {
+  const html = renderToStaticMarkup(
+    <CombatEffectTimingEditor initialPolicy={{ version: 1, modes: {} }} canEditWording />,
+  )
+  for (const label of ['Copy Buffs', 'Copy Debuffs', 'Dispel', 'Cleanse', 'Vengeance', 'Guard'])
+    expect(html).toContain(`aria-label="Edit ${label} descriptions"`)
+  expect(html).not.toContain('Amplify / Curse copy')
+})
 it('offers compatible Controlled timing without exposed policy numbers or a reason form', () => {
   const markup = renderToStaticMarkup(
     createElement(CombatEffectTimingEditor, { initialPolicy: { version: 1, modes: {} } }),
   )
-  expect(markup).toContain('HP recovery')
-  expect(markup).toContain('MP drain')
+  expect(markup).toContain('HP Recovery')
+  expect(markup).toContain('MP Drain')
   expect(markup).toContain('Normal')
   expect(markup).toContain('timing-push')
   expect(markup).toContain('timing-pull')
@@ -70,8 +78,19 @@ it('puts affected definition names in labelled dialogs without raw identifiers',
   )
   expect(html).toContain('aria-haspopup="dialog"')
   expect(html).toContain('<dialog')
-  expect(html).toContain('Direct damage definitions')
+  expect(html).toContain('Damage definitions')
   expect(html).toContain('Basic Attack')
-  expect(html).not.toContain('unarmed.basic')
+  expect(html.replace(/<[^>]*>/g, '')).not.toContain('unarmed.basic')
   expect(html).not.toContain('<summary>1 current definitions')
+})
+
+it('links affected definitions directly to their effect editor while preserving the rules tab', () => {
+  const html = renderToStaticMarkup(
+    <CombatEffectTimingEditor
+      initialPolicy={{ version: 1, modes: {} }}
+      usedBy={{ damage: [{ contentKey: 'custom.skill-1', name: 'Custom Skill' }] }}
+    />,
+  )
+  expect(html).toContain('href="/master/combat-content?contentKey=custom.skill-1&amp;tab=effects"')
+  expect(html).toContain('target="_blank"')
 })

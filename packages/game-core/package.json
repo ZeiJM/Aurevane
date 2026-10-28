@@ -30,6 +30,11 @@
     "./combat/combat-modifier-compatibility": "./src/combat/combat-modifier-compatibility.ts",
     "./combat/combat-behavior-runtime": "./src/combat/combat-behavior-runtime.ts",
     "./combat/combat-requirements": "./src/combat/combat-requirements.ts",
+    "./combat/combat-tag-wording": "./src/combat/combat-tag-wording.ts",
+    "./combat/combat-effect-identities": "./src/combat/combat-effect-identities.ts",
+    "./combat/combat-effect-target-authoring": "./src/combat/combat-effect-target-authoring.ts",
+    "./combat/combat-effect-recipients": "./src/combat/combat-effect-recipients.ts",
+    "./combat/combat-effect-authoring": "./src/combat/combat-effect-authoring.ts",
     "./combat/combat-tag-registry": "./src/combat/combat-tag-registry.ts",
     "./combat/combat-skill-accuracy": "./src/combat/combat-skill-accuracy.ts",
     "./combat/combat-action-source": "./src/combat/combat-action-source.ts",
@@ -95,7 +100,8 @@
     "./combat/combat-requirement-modules": "./src/combat/combat-requirement-modules.ts",
     "./combat/combat-simple-requirements": "./src/combat/combat-simple-requirements.ts",
     "./content/authored-content": "./src/content/authored-content.ts",
-    "./combat/content-media": "./src/combat/content-media.ts"
+    "./combat/content-media": "./src/combat/content-media.ts",
+    "./combat/pv1f-combat-content": "./src/combat/pv1f-combat-content.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

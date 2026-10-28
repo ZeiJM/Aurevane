@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import type { AuthoredDiscipline } from '@aurevane/game-core/content/authored-content'
 import type { ContentReference } from './content-definition-fields'
 import styles from './discipline-relationship-list.module.css'
@@ -55,6 +55,8 @@ function AssociationDialog({
   choices,
   onApply,
   onClose,
+  createControl,
+  disabled = false,
 }: {
   value: AuthoredDiscipline
   partner: string | null
@@ -62,6 +64,8 @@ function AssociationDialog({
   choices: readonly ContentReference[]
   onApply(power: string): void
   onClose(): void
+  createControl?: ReactNode
+  disabled?: boolean
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const title = useId()
@@ -87,22 +91,32 @@ function AssociationDialog({
       aria-labelledby={title}
       onCancel={(event) => {
         event.preventDefault()
-        onClose()
+        if (!disabled) onClose()
       }}
       onClick={(event) => {
-        if (event.target === event.currentTarget) onClose()
+        if (event.target === event.currentTarget && !disabled) onClose()
       }}
     >
       <header className={styles.dialogHeading}>
-        <h3 id={title}>Change power · {label}</h3>
-        <button type="button" autoFocus onClick={onClose} aria-label="Close power selection">
+        <h3 id={title}>Select power · {label}</h3>
+        <button
+          type="button"
+          autoFocus
+          disabled={disabled}
+          onClick={onClose}
+          aria-label="Close power selection"
+        >
           Close
         </button>
       </header>
       <div className={styles.dialogBody}>
         <label>
           Power
-          <select value={selected} onChange={(event) => setSelected(event.currentTarget.value)}>
+          <select
+            disabled={disabled}
+            value={selected}
+            onChange={(event) => setSelected(event.currentTarget.value)}
+          >
             <option value="">No power selected</option>
             {retained ? <option value={current}>{retainedName} · retained selection</option> : null}
             {available.map((choice) => (
@@ -119,17 +133,16 @@ function AssociationDialog({
           <p>The existing selection is retained until you choose a replacement or remove it.</p>
         ) : null}
         <p>Changes stay local until you commit the discipline.</p>
+        {createControl}
       </div>
       <footer className={styles.dialogActions}>
-        <button type="button" disabled={!current} onClick={() => onApply('')}>
-          Remove association
-        </button>
         <button
           type="button"
           disabled={
-            !!selected &&
-            selected !== current &&
-            !available.some((choice) => choice.contentKey === selected)
+            disabled ||
+            (!!selected &&
+              selected !== current &&
+              !available.some((choice) => choice.contentKey === selected))
           }
           onClick={() => onApply(selected)}
         >
@@ -146,12 +159,14 @@ export function DisciplineRelationshipList({
   onChange,
   onEdit,
   disabled = false,
+  renderCreate,
 }: {
   value: AuthoredDiscipline
   choices: readonly ContentReference[]
   onChange(next: AuthoredDiscipline): void
-  onEdit(contentKey: string): void
+  onEdit(contentKey: string, partner: string | null): void
   disabled?: boolean
+  renderCreate?(partner: string | null, close: () => void): ReactNode
 }) {
   const [editing, setEditing] = useState<{ partner: string | null; label: string } | null>(null)
   const partners = new Map(
@@ -196,7 +211,7 @@ export function DisciplineRelationshipList({
                   type="button"
                   disabled={disabled}
                   aria-label={`Edit power for ${row.label}`}
-                  onClick={() => onEdit(row.power)}
+                  onClick={() => onEdit(row.power, row.partner)}
                 >
                   Edit
                 </button>
@@ -204,11 +219,15 @@ export function DisciplineRelationshipList({
               <button
                 type="button"
                 disabled={disabled}
-                aria-haspopup="dialog"
-                aria-label={`${row.power ? 'Change' : 'Choose'} power for ${row.label}`}
-                onClick={() => setEditing({ partner: row.partner, label: row.label })}
+                aria-haspopup={row.power ? undefined : 'dialog'}
+                aria-label={`${row.power ? 'Clear' : 'Edit'} power for ${row.label}`}
+                onClick={() =>
+                  row.power
+                    ? onChange(withDisciplineRelationship(value, row.partner, ''))
+                    : setEditing({ partner: row.partner, label: row.label })
+                }
               >
-                {row.power ? 'Change power' : 'Choose power'}
+                {row.power ? 'Clear' : 'Edit'}
               </button>
             </div>
           </div>
@@ -220,6 +239,8 @@ export function DisciplineRelationshipList({
           choices={choices}
           partner={editing.partner}
           label={editing.label}
+          disabled={disabled}
+          createControl={renderCreate?.(editing.partner, () => setEditing(null))}
           onClose={() => setEditing(null)}
           onApply={(power) => {
             if (!disabled) onChange(withDisciplineRelationship(value, editing.partner, power))

@@ -320,3 +320,60 @@ describe('current explicit Fire cleanse Skill versions', () => {
     }
   })
 })
+
+describe('native Skill resource costs', () => {
+  it('pays HP and MP before effects and forecasts from the same paid state', () => {
+    const definition = {
+      ...resolveMatureSkillVersion('lifebinder.mending-light', 1)!,
+      hpCost: 29,
+      mpCost: 4,
+    }
+    expect(validateMatureSkillDefinition(definition)).toEqual([])
+    const state = encounter()
+    const before = JSON.stringify(state)
+    const action = toCombatActionDefinition(definition, 'pve')
+    expect(action.cost).toMatchObject({ hp: 29, mp: 4 })
+    const preview = evaluateCombatAction(state, action, { kind: 'self' }, { statuses: [] })
+    expect(preview.legal).toBe(true)
+    expect(preview.projectedEffects).toContainEqual(
+      expect.objectContaining({ effectType: 'healing', before: 1, after: 17 }),
+    )
+    expect(JSON.stringify(state)).toBe(before)
+    const out = executeCombatAction(state, action, { kind: 'self' }, { statuses: [] })
+    expect(out.state.tactical.battle.combatants.find((row) => row.id === 'player')).toMatchObject({
+      hp: 17,
+      mp: 16,
+    })
+    expect(out.events.filter((event) => event.event === 'hp_spent')).toEqual([
+      { event: 'hp_spent', combatantId: 'player', amount: 29, remaining: 1 },
+    ])
+    expect(JSON.stringify(state)).toBe(before)
+  })
+  it('rejects lethal HP payment even if the Skill would heal, without spending resources', () => {
+    const definition = {
+      ...resolveMatureSkillVersion('lifebinder.mending-light', 1)!,
+      hpCost: 30,
+      mpCost: 4,
+    }
+    const state = encounter()
+    const before = JSON.stringify(state)
+    const action = toCombatActionDefinition(definition, 'pve')
+    const preview = evaluateCombatAction(state, action, { kind: 'self' }, { statuses: [] })
+    expect(preview.issues).toContainEqual(expect.objectContaining({ code: 'insufficient-hp' }))
+    expect(() => executeCombatAction(state, action, { kind: 'self' }, { statuses: [] })).toThrow(
+      /insufficient-hp/,
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  })
+  it.each([-1, 0.5, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid HP cost %s',
+    (hpCost) => {
+      expect(
+        validateMatureSkillDefinition({
+          ...resolveMatureSkillVersion('lifebinder.mending-light', 1)!,
+          hpCost,
+        }),
+      ).toContain('hpCost')
+    },
+  )
+})

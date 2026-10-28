@@ -1463,3 +1463,33 @@ it('renders HP Recovery result text from the actual captured healing receipt', a
   expect(formatBattleLogForClipboard(result.entries)).toContain('restores 37 HP')
   expect(formatBattleLogForClipboard(result.entries)).not.toContain('outcome.healing')
 })
+
+it('projects admitted short status wording into sanitized history, retaining no full catalogue', async () => {
+  const build = buildAuthority()
+  build.tagPresentations = [
+    {
+      contentKey: 'tag.guarded',
+      contentVersion: 3,
+      tagId: 'guarded',
+      name: 'Guard',
+      compact: 'Original battle Guard.',
+      full: 'Manager-only long text.',
+    },
+  ]
+  const records = [
+    record({
+      event: 'status_applied',
+      sourceCombatantId: ACTOR,
+      actionId: SKILL,
+      targetCombatantId: OTHER,
+      statusId: 'guarded',
+      stacks: 1,
+      remainingOwnerTurnStarts: 2,
+    }),
+  ]
+  const view = await getLog(records, async () => null, { build })
+  expect(view.entries[0]).toHaveProperty('battleTag.compact', 'Original battle Guard.')
+  expect(JSON.stringify(view)).not.toContain('Manager-only long text.')
+  const legacy = await getLog(records, async () => null, { legacy: true })
+  expect(legacy.entries[0]).not.toHaveProperty('battleTag')
+})

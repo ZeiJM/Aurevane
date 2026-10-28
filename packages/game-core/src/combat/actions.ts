@@ -1,3 +1,5 @@
+import { withEffectDeliveryEligibility } from './combat-effect-delivery-eligibility'
+import type { CombatEffectTarget } from './combat-effect-recipients'
 import type { CombatNativeExecutionHooks } from './combat-native-mutations'
 import type { GridPosition } from './board'
 import {
@@ -6,7 +8,7 @@ import {
   type CommittedCombatExecution,
 } from './combat-committed-execution'
 import { terrainAdjustedDefense } from './combat-stat-balance'
-import { airborneAttackAction } from './combat-airborne'
+import { airborneAttackAction, combatActionHasGroundDelivery } from './combat-airborne'
 import {
   skillPacketGroups,
   rollSkillPacketAccuracy,
@@ -65,6 +67,7 @@ export {
 type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 
 export interface CombatEffectAuthoringTuning {
+  readonly target?: CombatEffectTarget
   /** 0 is immediate. Positive values count full future owner turns. */
   readonly durationTurns?: number
   /** Optional bounded non-percentage power for effects whose native payload has no amount field. */
@@ -230,12 +233,13 @@ export function evaluateCombatAction(
       ? { ...evaluation, vengeanceBasis: materialized.basis }
       : evaluation
   const accuracyPreview = forecastCombatSkillAccuracy(state, action, preview, content)
-  const criticalPreview = forecastCombatCritical(
+  const outcomePreview = withEffectDeliveryEligibility(
     state,
     csrForecast.action,
     accuracyPreview,
-    new Set(),
+    csrForecast.content,
   )
+  const criticalPreview = forecastCombatCritical(state, outcomePreview, accuracyPreview, new Set())
   const result =
     criticalPreview.targetCriticalChances.length > 0
       ? { ...accuracyPreview, targetCriticalChances: criticalPreview.targetCriticalChances }
@@ -245,7 +249,7 @@ export function evaluateCombatAction(
         ...result,
         targetStatusResistances: forecastCombatStatusResistance(
           state,
-          csrForecast.action,
+          outcomePreview,
           result,
           csrForecast.content,
         ),
@@ -308,7 +312,7 @@ export function executeCombatAction(
     action.nativeBasicAttackCommand === true ||
     action.accuracyMode === 'per-target' ||
     action.accuracyRule !== undefined ||
-    (state.airbornePolicyVersion === 1 && action.target.kind === 'ground-tile') ||
+    (state.airbornePolicyVersion === 1 && combatActionHasGroundDelivery(action)) ||
     action.effects.some((effect) => effect.type === 'sensory') ||
     (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
   const evaluation = requiresEvaluation
@@ -415,11 +419,17 @@ export function executeCombatAction(
     content,
     missedCombatantIds: accuracy.missedCombatantIds,
   })
+  const outcomeAction = withEffectDeliveryEligibility(
+    accuracy.state,
+    csr.action,
+    evaluation,
+    csr.content,
+  )
   const packets =
     packetGroups && packetAccuracy
       ? rollSkillPacketOutcomes(
           accuracy.state,
-          csr.action,
+          outcomeAction,
           evaluation,
           csr.content,
           packetGroups,
@@ -435,7 +445,7 @@ export function executeCombatAction(
       }
     : rollCombatStatusResistance(
         accuracy.state,
-        csr.action,
+        outcomeAction,
         evaluation,
         csr.content,
         accuracy.missedCombatantIds,
@@ -446,7 +456,7 @@ export function executeCombatAction(
         events: packets.criticalEvents,
         criticalEffectOrdinalsByTarget: packets.criticalEffectOrdinalsByTarget,
       }
-    : rollCombatCritical(resistance.state, csr.action, evaluation, accuracy.missedCombatantIds)
+    : rollCombatCritical(resistance.state, outcomeAction, evaluation, accuracy.missedCombatantIds)
   const materializedAction = materializeStatScaledDamage(
     critical.state,
     materializeVengeanceDamage(critical.state, csr.action, executionActorId).action,

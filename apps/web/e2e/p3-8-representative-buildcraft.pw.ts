@@ -378,12 +378,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
   await expect(skillDetails).toBeVisible()
   const barrierParameters = skillDetails.locator('[data-battle-skill-parameters]')
-  await expect(
-    barrierParameters
-      .locator('dl > div')
-      .filter({ has: page.getByText('Target', { exact: true }) })
-      .locator('dd'),
-  ).toHaveText('Ally')
+  await expect(barrierParameters.locator('[data-compact-effect-target]').first()).toHaveText(
+    '[Ally]',
+  )
+  await expect(barrierParameters.locator('dt').filter({ hasText: /^Target$/ })).toHaveCount(0)
   await expect(
     barrierParameters
       .locator('dl > div')

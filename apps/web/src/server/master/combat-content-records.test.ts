@@ -27,6 +27,23 @@ const record = {
   usedBy: [],
   links: [],
 }
+it('an old saved draft cannot publish a hidden nonzero Skill accuracy modifier', async () => {
+  const legacy = {
+    ...record,
+    draft: {
+      ...record.draft,
+      definition: { ...skill, accuracyMode: 'per-target', accuracyModifierBasisPoints: 700 },
+    },
+  }
+  const rpc = vi.fn(async () => ({ data: legacy, error: null }))
+  const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+  await expect(store.publishSaved(legacy, 4, null)).rejects.toMatchObject({
+    code: 'INVALID_REQUEST',
+    message: expect.stringMatching(/accuracy modifier/i),
+  })
+  expect(rpc.mock.calls).toHaveLength(1)
+  expect(legacy.draft.definition.accuracyModifierBasisPoints).toBe(700)
+})
 it('publish complete record sends only reviewed saved revision and trusted floor, never caller body', async () => {
   const rpc = vi.fn(async (name: string) => ({
     data:

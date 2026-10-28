@@ -90,3 +90,7 @@
 .editor [data-skill-attack-family='mystic'] {
   color: #6e3f86;
 }
+
+.editor [data-compact-effect-target] {
+  color: #65310e;
+}

@@ -1,3 +1,4 @@
+import { newResonanceAbility } from '@/components/master/combat-content/new-resonance-ability'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
@@ -62,6 +63,7 @@ export function contentEditorDefaults(
           contentVersion: 1,
           name: 'New Resonance',
           description: 'Describe this Resonance.',
+          ability: newResonanceAbility(),
         },
       }
     case 'discipline':

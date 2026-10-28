@@ -44,6 +44,10 @@ export function AccountAccessPanel({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     })
+    if (response.status === 403) {
+      const result = await response.json()
+      if (result.error?.accountBanned === true) router.replace('/account/banned')
+    }
     return response.ok
   }
 

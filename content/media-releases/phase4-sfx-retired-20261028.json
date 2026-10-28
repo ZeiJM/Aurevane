@@ -1,0 +1,752 @@
+{
+  "status": "local-retirement-pending-release",
+  "reason": "Owner requires only the new supplied Skill FX pool in game SFX",
+  "replacement": "skill-fx-v01",
+  "removedFiles": [
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-action-v02-1.wav",
+      "sha256": "0d1e19807f7ec95f5cfd3a499648ae5a88a1ca94165eda7dc82bccb8efa4cc5f"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-action-v02-2.wav",
+      "sha256": "a620668e1c7815377c6dccd71f40203302eb0b6e7d8ec5510d6a0d9b3813d29e"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-action-v02-3.wav",
+      "sha256": "4a07609777dcc6fd43438b15fa07361e6108f9487bd28b1721d31c6aa74d4672"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-essence-v02-1.wav",
+      "sha256": "a603c59f7f04522603b27e63d02b0605fbd316265dc77a89dba1f0c8c5215b37"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-essence-v02-2.wav",
+      "sha256": "a2f977b32006ef281ba9e624b924912bdb54b81d5e288df18327f2094c72e5c4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/aetherist-essence-v02-3.wav",
+      "sha256": "b512193e3bd0cb841accf398853ff3ac4602a29fc981f7819f55e9c58639ac6e"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/attrition-action-v01-1.mp3",
+      "sha256": "c902a3246f174136893b90a3d4992e69f89535ed6dbeba42666d1841d9d325e0"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/attrition-action-v01-2.mp3",
+      "sha256": "3cc1d53257f9cabfb3aeb6f9a2168d8a2dd611546571062cebe72ce6ff084ae9"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/attrition-action-v01-3.mp3",
+      "sha256": "895b587624afb1973478086f2d5d41fe4543d546c5362a83aa0b9d07eff4129f"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v01-1.mp3",
+      "sha256": "2a9facfd3684586c929f436fd05a62c1387207a3f4866268580e9d44a7439c9a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v01-2.mp3",
+      "sha256": "d7db73d9e141ec48db1c41b8f297e0648988fee1355190a84c06459ee4d242f3"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v01-3.mp3",
+      "sha256": "55eb7e62a3a859167c507954a7481b715b69d54ad21d181a952d1bd00b5f0303"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v02-1.wav",
+      "sha256": "f552e2b5740aa19c4d80abb10d16143599124d7f7cd1c2abad0b31da80619664"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v02-2.wav",
+      "sha256": "7f8e8ba37ed6c296cfda58994b7e8abe9c40f834fe2c75bac9096a674b79f407"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v02-3.wav",
+      "sha256": "3fc9b5dc6fd38a4de8d3cb9b9cc7d93264b5fba504f3dc0fbdee8b83005f3527"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v01-1.mp3",
+      "sha256": "5a059934bd477ff79f2783639e1546b0336d799db0ea6544f2ccfad1eeb42619"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v01-2.mp3",
+      "sha256": "f2972912246fb23333eb3debd57fcd3cee01e51c1abe533104f4a92c266e662c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v01-3.mp3",
+      "sha256": "16ea6a3bde9a509d16ac8991dec1f71aa80c73ce598450ea0c4e64a7228c6a65"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v02-1.wav",
+      "sha256": "f1137f4d21b8d2f3470aa504c8030fb914dea4c9d0ad8a59aa829099461d868f"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v02-2.wav",
+      "sha256": "7f9c762aa5eedfe777c99096ebf047f3b7dd0e31c8863e354e947714040ab6bf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v02-3.wav",
+      "sha256": "11686aed71928a955ac67f2d2eb0b2bdb5c2c376a80ae74b76ffbd6ec8676f97"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v01-1.mp3",
+      "sha256": "93d0140b6e64b84c947bcd4563c25c7d877e04c44913e0f886419bba4784c5f7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v01-2.mp3",
+      "sha256": "00055fdb8b15b98ca5185ec7e8424fd3e6fc988d05291a634104fb685240931d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v01-3.mp3",
+      "sha256": "e09e4e4600ce0bdebbceff3eaf26ef9d2771cc06e38c60dd7307335467215d3e"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v02-1.wav",
+      "sha256": "80344e20f78dcf2ed076be87c77c056e552ccf77e15f83b06e1470b67d676072"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v02-2.wav",
+      "sha256": "b6f56f68e22658f86eac04bd1a8e55c6bcdd33d4c3172decfa059b17289b64ff"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v02-3.wav",
+      "sha256": "d40537d2fb34e895ded192e5a9e7f6136ffa50027c0f489f63d3e504ea02646a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v01-1.mp3",
+      "sha256": "1494c2068c042182d4914c0761a982a1d2dfdbd2457018f6fe41c4137738f511"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v01-2.mp3",
+      "sha256": "d86dd9bb623044a24ccc47d9f6caba7ac5807e35522aa75f92e345fa980baeb8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v01-3.mp3",
+      "sha256": "bcf6c163dbda21ac0d608b099a710a79477aebc4433893f049dcd358507c765d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v02-1.wav",
+      "sha256": "e7a8ac1b250366263ed6f31eed720178a2cc32a6b5ed028f76a21c856f17f824"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v02-2.wav",
+      "sha256": "a598711f3036635795d217b97d83b38e24aa0f158fb92e56dd39e8d93d19b9fa"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v02-3.wav",
+      "sha256": "347ecdc218c6ee6352fbb5d16b0d36895b714fa805412dddeb0adf45707fbc07"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v01-1.mp3",
+      "sha256": "45baf64329173b721d482e0fc289e116796bfa9d37cd423e93af515110ab0fac"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v01-2.mp3",
+      "sha256": "d5ebcbbe95681d4a53b28a1b26ef2c96d7fbd193f7459a28f1531b47a7b7286c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v01-3.mp3",
+      "sha256": "8d94dc37c3999ecb204337e6655d2cc3894021eda5da0af533dd15d41504896c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v02-1.wav",
+      "sha256": "8223d16b21890c225457e902a96e735841a6e590224f771de3162ba562a0fb20"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v02-2.wav",
+      "sha256": "21351484078c0a2573ad25733b4c8c72bb855080f6a80a2a37310d0f44a99ff3"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v02-3.wav",
+      "sha256": "289cb0ca7376b54d0e991f7c0bcb4ed103f0a90c38cff30706c29bf18561727e"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v01-1.mp3",
+      "sha256": "67fd11201f8e40ff42d2b230d167420c8834d8f9579b3f29fb6db018b2e67e75"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v01-2.mp3",
+      "sha256": "7b966629500556f67cffc670e35a79bbf134c290a8802eb5a128333c6390517a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v01-3.mp3",
+      "sha256": "2a0f14831e09a9ac590b7e25ef1425082dea26c7f65da6b5e7b1b147795fba1a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v02-1.wav",
+      "sha256": "66441b85089f852e9ebfdaa827cdafeb4a59fe268ef4633c73cfb4b42282f603"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v02-2.wav",
+      "sha256": "0ef146ac95c63dbebde4b65ab7623e921ef014896e209a1a541ed345aeab3802"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v02-3.wav",
+      "sha256": "80ae88da10c333f0c6dbd66a9acbac55e7af9e7605fc3a4384753481a1b544dc"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cleanse-action-v01-1.mp3",
+      "sha256": "bb6f2a82f054b246bd05c3b1b99f440c71b5db2035e39403aee13299cc22c38c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cleanse-action-v01-2.mp3",
+      "sha256": "d08622b13016a87839590eea965cd8458197f0a627d4f71ce975b21efde5edfe"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cleanse-action-v01-3.mp3",
+      "sha256": "94b0e2abc5436e655b8c5ef909832d40fbd22f4b3a3c4d5ca87bc3cb5461f274"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v01-1.mp3",
+      "sha256": "f32fd259cc2b5435b0149b6c65436d44d5e5de787f7f198ca3afe4d3484a0d47"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v01-2.mp3",
+      "sha256": "ef75707098664280e48f5e253c849486201b55a7e74115a9de951492a6238d6d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v01-3.mp3",
+      "sha256": "45a3846b917ca689ed1eefcf914a2dd3ff07fb55a6b1a61d0aebee682e20bc55"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v02-1.wav",
+      "sha256": "9453e3c06dab7cd7d096182773139b465e8c23023a563ae57d3fbc83e83d684c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v02-2.wav",
+      "sha256": "5dde1b84d9e04a1eece0fed8888535fd901dfc42b7f9626eb1873630e7a85a20"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v02-3.wav",
+      "sha256": "cb6123b75ef0e4cc8b5cabacd72dcbe9f829fae8ed8c579db4a74a3a28f54a9a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v01-1.mp3",
+      "sha256": "d9717105d51b2c668540b846ffb0911aaf255195590a25b65951df00b08c5320"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v01-2.mp3",
+      "sha256": "5afb3340ebd0ac4c43f857e6e0f2832b366049ee08f8b07f93325f281e6352c9"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v01-3.mp3",
+      "sha256": "710a144d9217bbd6cc16bac94b06e872d04f50369fa74aedcbc3f790c5c4b430"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v02-1.wav",
+      "sha256": "de8c15153005ea86bc619ebb9722537dd327a7e6d3796dcfd62bff435f65d127"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v02-2.wav",
+      "sha256": "b9ca6a3038d47791ea2f00670a757d12e2af6e5a09eaa431a310f4a7f40cab09"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v02-3.wav",
+      "sha256": "931277ec6fff4b291f3c61e35ef16171b3ddea87dc4f7e62d25cc33349a4db80"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v01-1.mp3",
+      "sha256": "bc08bbb1018da1cbf38a18b6c2de5af79fd72bed88d988289c75b6f335e82a2a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v01-2.mp3",
+      "sha256": "072aec0703deb131dd36e51904c1fecf679de12c5ebad47a0b98002c0590ae17"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v01-3.mp3",
+      "sha256": "766ce8fea8fba35c87a33d71d801d762793a55660ff894ab9ebaac02249ab2bf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v02-1.wav",
+      "sha256": "83ac80297ec12948d570ff3083af77eed578e8648a24807036ce200f88af77eb"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v02-2.wav",
+      "sha256": "6746d2006e0c4408894e86756155a437d7854f7257e9c65548c7188c258b1ff6"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v02-3.wav",
+      "sha256": "16927278434797f6857ccb99d029a5682d07cc472d186334e02ec63184b1a542"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v01-1.mp3",
+      "sha256": "6777023c48dfe583147d9a843187997d639a81fa82094523cc319b4aff0d8eb8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v01-2.mp3",
+      "sha256": "f02e8ccb6ba61f0d062a08ada59a73a2f4c1733dd6279999224b735360c61338"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v01-3.mp3",
+      "sha256": "7b626ec5c59676dc06f239db5ad5bec43b9d91537831e751728df4e6c2529db3"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v02-1.wav",
+      "sha256": "d741f1952008e0119d1fa5adf9de21ba7ed7c6385779cbf8974106f36c54b461"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v02-2.wav",
+      "sha256": "495b725fc945f190fc72b536bdbcc15a5332b0941ae0d9b8a16587e8824a329e"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v02-3.wav",
+      "sha256": "6992230dd2501b743976c37f313f4b9662a65f052919b9aceae88e465c028d87"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-action-v02-1.wav",
+      "sha256": "397adfd7cae91d670d56ca6583b2b2b084794bf54d464c76dfc1230de0a1712b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-action-v02-2.wav",
+      "sha256": "8c2c460da5194ca75393fd47410ccf379d1ee5e81ca6dd1351bc9c491f74243a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-action-v02-3.wav",
+      "sha256": "35d5796d97849c963436caae705e56a256e9905b9d9fc1d6924e280ac952e82f"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-essence-v02-1.wav",
+      "sha256": "dad73c5a9864655f4dd3f6194a96fc95c956f0c6bc3c06b2ba0c20a2f99666c8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-essence-v02-2.wav",
+      "sha256": "76f514e67b78bf0d9cf498a9438b3f180455374d8c214fef1e9ad9a74f5a46d4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/farstrider-essence-v02-3.wav",
+      "sha256": "f611f211b5cd1346df5343a298c47dd1d77a6332a4bea50f6a33766a3bdac6fd"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v01-1.mp3",
+      "sha256": "f3841f604bf8c94bb79d79353618bea947285dc2d7f63bace88b953bae3a1dbc"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v01-2.mp3",
+      "sha256": "f6b6fbcd02c216f8ca669e6a52395ab8b83b541df0a51fc94d384d747f1f2f26"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v01-3.mp3",
+      "sha256": "24ab00b11d7d763c979d19109ca72ece681a5354505f879cc618c629c31e8db8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v02-1.wav",
+      "sha256": "126103dc5a75787000d9ffa9df2ea47154e676b9cf673252a8ca63670169fee7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v02-2.wav",
+      "sha256": "9b02eb839b911e79251f6c22447d1b56e75fcdf6f885afc89a20253c16cc032d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v02-3.wav",
+      "sha256": "3d68ffab339414cf002c65b18fc5b27d3f3e8aeb1f9a99f1113d4ec5761ca5e6"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v01-1.mp3",
+      "sha256": "5e0f54c31f34cbefaf6caa04ef15c1ab4306df540ebd2323cd6422e27838f6c0"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v01-2.mp3",
+      "sha256": "104957c1f6f02750f6914d047060b76df012800dc28ce4d6b0b53f6f48d75f62"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v01-3.mp3",
+      "sha256": "84d04054f0ffdf7c850da085186acf54d34113e1b11dd2c73d5599ffe8323c91"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v02-1.wav",
+      "sha256": "10d09e27da1c2aa7bd52bda9670927b8f6bc43e6151ae3662bff65c0d0cf6f6c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v02-2.wav",
+      "sha256": "ac41facfc086f9564fca0a0a8c3ffde48bc59187842c802dec7487f7fcd93704"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v02-3.wav",
+      "sha256": "dcf358eacceb41550f940230e7c03ad339f32bbbd027f4da9f3d953036081f13"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/healing-action-v01-1.mp3",
+      "sha256": "eb55a6a821af07aa4b32555dcc23999be7d4af609ffe2d6d0c10443766b090f7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/healing-action-v01-2.mp3",
+      "sha256": "0b582672fd00b916778a198adf9f1bdb7cccf9dc334b3cc1241a6f490d8c11ca"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/healing-action-v01-3.mp3",
+      "sha256": "4a9552f4793787050d3630396ee23184622a9d36b4a08025af99952def9524ea"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v01-1.mp3",
+      "sha256": "f4cfabd35d6c7f5609d3dfcd1318e4d7214a97ffcd2de21fe529929e417ae840"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v01-2.mp3",
+      "sha256": "9876013cff2115a3f8a2a4e5bd0f565ba89b3e593c45ecfa1e2fca81822d41cf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v01-3.mp3",
+      "sha256": "8082814be4803032f0d27375fc122543b4f0c536516beef378af91c37a981a11"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v02-1.wav",
+      "sha256": "eba7de3ecc76c8c8e35862984603cc361070ac768f4ffd05d239c86d88a5aeb8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v02-2.wav",
+      "sha256": "d78f9fa71ded1ee6eafa131a4fa7e704de41807f0a2a41029f436557485f9275"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v02-3.wav",
+      "sha256": "59a483e079e9ceac691d7fceb9c37604ca9e55e9c372f87af14b6daf50e9403b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v01-1.mp3",
+      "sha256": "6a6ad88d4410c98f98448466d3bafa2a44e3e40d00824edaa798d4a254c7a508"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v01-2.mp3",
+      "sha256": "1afb874b31bca5640d4869bd9e11e3b624fdb8dac32fee464459e1cb79075b2b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v01-3.mp3",
+      "sha256": "c001c5f84a86a1e9b2ca39eabc2617d8f9c83b5cb5d08b0274e74b075c5b83bf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v02-1.wav",
+      "sha256": "52cd30a857db422bdfe34f2796442f6bba5499182f1c22d65b8f67a27abbe9f3"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v02-2.wav",
+      "sha256": "47ae4749f7cbcb923f3810e791a2c54617e7ca03461d2483298a5d523196beae"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v02-3.wav",
+      "sha256": "69d73aa0c0e80eb09e9c9b0d984a665b372d7d050b09fbf0b012242c1421ce03"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-action-v02-1.wav",
+      "sha256": "1445d7e9edb2989d62cd3c76d57d0f377b11acaf21407417586e0c3aed3ffba6"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-action-v02-2.wav",
+      "sha256": "9f24ef4660129a39681e0bea47e606273cdc5a0e2e41e5c70341b7b5c9fdc4ff"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-action-v02-3.wav",
+      "sha256": "068b4f46e44963c38f2745bc62b68245be493ad71ad0dfebeecdd04a52e68fe8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-essence-v02-1.wav",
+      "sha256": "37df80f97ab23ba31be7032020ff52a175c25bcdb8a5099929f8dc6e5fcb38cb"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-essence-v02-2.wav",
+      "sha256": "f89114a56941030727ba3a230eb764536261511f89404a1a3faba2127ae447db"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/lifebinder-essence-v02-3.wav",
+      "sha256": "54c1569b1d23e2ceea35c4186eb2ee9704a35bdd93762e78b3e2464d5f05974b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v01-1.mp3",
+      "sha256": "0fde94648d155d19b4236acc00bdbd044dcc7740ab7d1245559707c187ea00a0"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v01-2.mp3",
+      "sha256": "6ea8474bcfb3fd957cbe3345cbe05d077aad96f548d13823cba464b43faf6763"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v01-3.mp3",
+      "sha256": "3f8f9810200d47cf12adc276521d5fc99b7632219dc14cffd9c63b4eb83995ff"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v02-1.wav",
+      "sha256": "aa4556eccfc0e96b6e787077f7408b0d83839c9db9b0867c67ecbcf8f8c0bccd"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v02-2.wav",
+      "sha256": "dadd8da7bd61031db6b21c661ecafd4c3a5a46fbc7d1c33388ee180e2092a24c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v02-3.wav",
+      "sha256": "4272c43518fd386248baf6555468d5fd1ce50bee6ba9d5cc3a226a4aa7d17ebd"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v01-1.mp3",
+      "sha256": "3eaca305a14eb520cc5cc40be0d3b2c76a99a18575155c5da68ef6015c71e594"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v01-2.mp3",
+      "sha256": "bc1cbed0cc79d5e66cc5f9506f629af3dae7f861146e474a378a60b542cd28b2"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v01-3.mp3",
+      "sha256": "b1f9eaf4bad7850d02df40a1f925c149441176b389ed97399edba1d5707d84f7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v02-1.wav",
+      "sha256": "702aa1d66a48fda3b75c3658828d14400d2208219b052b6096486ef3124936e4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v02-2.wav",
+      "sha256": "ccaf5ae1c96f736d7a26d84ea5999ff510a1bbfeade91d884773b219465ed5ef"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v02-3.wav",
+      "sha256": "4fb8f8a1d01acf98079757b72e9355757706d7f1f6e79d7b9eecf18c24ff3dce"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/resonance-action-v01-1.mp3",
+      "sha256": "84444a3af1b0dadab67bfc6b071f206e6525b5c0ebb1098649b08dc563887fa8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/resonance-action-v01-2.mp3",
+      "sha256": "83b2f2f53aaa0a5b76ac73bd33ad91d9cb2223ae215c632b226c31978f387b4b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/resonance-action-v01-3.mp3",
+      "sha256": "ffb71dbfead07aa32ac7bdbd623e090dea4f0794e438562b946c6063f4f10845"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v01-1.mp3",
+      "sha256": "6f2dcc65bbb8db6b345f384a110c3ad68bb35a2af5ed60a6ca4757493439308d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v01-2.mp3",
+      "sha256": "7eb3742094df480f604a61dab86f19f69912fff704f5185cb951b6453ce2733a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v01-3.mp3",
+      "sha256": "4356fbbfaa20a985fd40d88dd8f1d35543112b852ac134b66346cc98ac5f2bdf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v02-1.wav",
+      "sha256": "d4141848473ac9e39a3251822c667b165cc075530213f346f3def16ad09584a3"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v02-2.wav",
+      "sha256": "bbdf404a5b4536d440c69af019e67f184a02aceaf74e007015789aca3356da38"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v02-3.wav",
+      "sha256": "2d698068644f2753fc4f3a3041a4e533dc7e4706766fd264d3a19737817bc287"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v01-1.mp3",
+      "sha256": "48d14716afb0e44abaf9adcb1dfa720034e22f006b5509893254d98d293cb97c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v01-2.mp3",
+      "sha256": "f5125b74342d31c42fe2ecb4ea60677437892653a2c15a8995d4080c78812f9d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v01-3.mp3",
+      "sha256": "c1b35ccac23426ea354e2f11ff5643c4a9cdb933f368502aee14acd705d5cc56"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v02-1.wav",
+      "sha256": "9f11db8a3efb8047730162459ef428b5277ed05d03fb3ed640ef82219fd420ba"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v02-2.wav",
+      "sha256": "e0d74f4c96b10c9dbee7e8a1f18178f9b5179008c73a52a580f7e2ec7000372b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v02-3.wav",
+      "sha256": "8aeb34610d246b6443404cfa2b23c847fcc9f14fadc49686e62d36084e58f9f7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-action-v02-1.wav",
+      "sha256": "b889678596e9568b85b1c9ec241fa402e58458f2d3966479a76045094d7c0e71"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-action-v02-2.wav",
+      "sha256": "78f0f262e85268eb16759be56790976199e12ffa42bb556127b1f1d3a04ba877"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-action-v02-3.wav",
+      "sha256": "913ca4dfca349b4ddf34ec0761d79c3c08487dc00bbca62c16c5200a436e1727"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-essence-v02-1.wav",
+      "sha256": "57092d28f56038da646f1f275f7abbd10ac9c7b1742851b7a72e1c43cc3e9724"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-essence-v02-2.wav",
+      "sha256": "cf0d8bf7c19f721b7f6713b67d873c80e6f588db35df1e20168ef0b2c2ea10c8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/shadehand-essence-v02-3.wav",
+      "sha256": "0bd03969114051f5bba01ea2c05c259368f0bcaa107ede3a2867eef4ace608e4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v01-1.mp3",
+      "sha256": "292d0075554392085c2a6df91f298e87679303618f960916e2321c027a10ca12"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v01-2.mp3",
+      "sha256": "b26e42aee0c54cbefbd64bdd6027095d02dcc0dc5251ae954262e3c0f5a27244"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v01-3.mp3",
+      "sha256": "87bba427dbfbe53eaf115cf8f1530a2a97fc906b2da4f44f090797333c130711"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v02-1.wav",
+      "sha256": "d578749e2ce7d0a4470da99c1d548f7315df077cb36589369fc30119d61678b8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v02-2.wav",
+      "sha256": "70cad4dc89383b74bad7ecb38d4b3331362b6ee54d29b8a42318cc8eff50ea5c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v02-3.wav",
+      "sha256": "7b5509a79c0631ad5b4000bdfe84cdc708159b5d75a564aa9b78e4fc30f987e6"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v01-1.mp3",
+      "sha256": "7ac720e3cbefe6e2bad440aeeb1a1a28b973a6634421c6094ffeae32d29ac50a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v01-2.mp3",
+      "sha256": "7b88d497d8bfe9e9796aab01d507c7bc0803303aac2894cc41725976b54ade81"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v01-3.mp3",
+      "sha256": "f499e9992506954128f7c29a50eeb16cf1808a81c576646faced3b36f034287c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v02-1.wav",
+      "sha256": "571871e78634647bcaa552eb7e0cd9c33d79c9adf87389767d44745bb26b63a9"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v02-2.wav",
+      "sha256": "de62c7c7b0288b923324762994b0fd3362b68ec6f21fa732c0732328fba8adc8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v02-3.wav",
+      "sha256": "5354063bfa472ea9b9818500a2b879f4a074981881d157c3b5d5b485f88e5c73"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v01-1.mp3",
+      "sha256": "656985d4db4340abae934c3be9cc4e8dc10256fcd54fd09a08d3769f435545c6"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v01-2.mp3",
+      "sha256": "b93a5b4e55853167c785ccb2acb32c0cc9aa1ac6a3d8a9385c88a921ee5eede2"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v01-3.mp3",
+      "sha256": "5cdd297c3f08ac209728074210eeb37a74d7f7a1319e8a3626615fd7e5ea2921"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v02-1.wav",
+      "sha256": "0dbcb10260184b232bd79c50e97a3450c2cdfc619e3f569609cbbd797685bc3e"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v02-2.wav",
+      "sha256": "45e8511f25525d648eb7bb05d64c6929c9d638eaef904ae6325d0f1098a515e0"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v02-3.wav",
+      "sha256": "0a92b8236758d04c12caf838b2127a8f7520c7851677020f3a8bcecadd6da347"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v01-1.mp3",
+      "sha256": "d89ba2c3598d04f4301c7f074475e319f56d39873119b8ebdc757a0ef5b5ed2a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v01-2.mp3",
+      "sha256": "f0ecd6cea4d79a7b54d82fdfd84ce49e8fbe5cab4cd0e8247b38293a326d7d48"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v01-3.mp3",
+      "sha256": "4accf784c67fc4913a541b33dc874b617804f58ccbf95ad541055a11049cab2c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v02-1.wav",
+      "sha256": "e22db241b35100fa113c3a57b3cb89d359e7780b9eaf9bb5ea08e50ec5191240"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v02-2.wav",
+      "sha256": "cab3b28adc1fbbf12b00088131a13c5874f644ca66cb4d643fa6033c28599965"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v02-3.wav",
+      "sha256": "c2f498418e5c27cafb14cb91bb84b95d55707560d2123df3b3e8531bd6583003"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-action-v02-1.wav",
+      "sha256": "0d295e66a545ceb5b13dbf8a255d485a81ce189c6b794b91ea29cbe791d05f66"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-action-v02-2.wav",
+      "sha256": "71cb3c4fb9fd6505fc1729e55341abed2dfc2284c9dfa194f8ec0c08b150a542"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-action-v02-3.wav",
+      "sha256": "ef79eebb07ac40a952551e3ac887d2bfc89673a712504596c7ba392e3d58c92d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-essence-v02-1.wav",
+      "sha256": "97b52d7cff662fcbc4b38a9587f44c98c5aefd8b2fb76befc4fe85105343224c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-essence-v02-2.wav",
+      "sha256": "6e4159eb2950d2b6bdaf99cac1cbc7b76f6a6d5a2d34cbbf2cb4c19f75250f6a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/vanguard-essence-v02-3.wav",
+      "sha256": "18a46ee244cadeb25c7f15defe9b73be87be8f44403bd627df5b2c63d6f8e0b4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v01-1.mp3",
+      "sha256": "dd3132d94efe22dbf5d426b9daa85935161b8d8d14b63111288781a1f200e668"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v01-2.mp3",
+      "sha256": "d6d70e78d8769f048a71a2e039bd3b8cd07bfb542414bb75ce470e6f3fa938d2"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v01-3.mp3",
+      "sha256": "455c11df4038aa2875752cc11d178e9633cb0342bd2d04d9f22450d8f3d49767"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v02-1.wav",
+      "sha256": "b7879a540da09d8f3b2909ebeeb62f049e860573494da9a031cff0cb4b6a1631"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v02-2.wav",
+      "sha256": "9bd785530414b6a12f893e012cf2adf84f26b6c19e0a35ce995a11636a9633c2"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v02-3.wav",
+      "sha256": "365ab475a0d987c8d7bedd13b44b1fbdb043d4e54b04ae72e630998f8150b911"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v01-1.mp3",
+      "sha256": "29c321da3ab1581af31438c4123c1896328463442148cbda75d6fd714ee215e4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v01-2.mp3",
+      "sha256": "70fd2f3e70f552e4e6121cbe0ff157724ae68bde7936e2fe8b9a2153b2c9d52d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v01-3.mp3",
+      "sha256": "969c81de3e8cd0b1db57e754b3b3f6be83b5f3342d0177a9f457c0b4b482328d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v02-1.wav",
+      "sha256": "55147c288e1c1fbedb3099545fb1535915a62059a9d4cd1e5b64fbb54604f6dd"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v02-2.wav",
+      "sha256": "e2015f37529ac9161cbd3e29ffc109cf313b319b70305baa4ee4f4c3f0a6ca54"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v02-3.wav",
+      "sha256": "a175dacb65754b092167b43a8d1558a49a13b26ac38ec962345b2c169e48f816"
+    }
+  ],
+  "buildRegenerationRemoved": true
+}

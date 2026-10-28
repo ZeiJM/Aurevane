@@ -53,7 +53,7 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     for (const input of await dialog.getByRole('radio').all()) {
       await input.focus()
       expectGeometry(await geometry(dialog), baseline, `${width}x${height}: Support preview focus`)
-      await expect(dialog.getByTestId('technique-preview').locator('dl > div')).toHaveCount(10)
+      await expect(dialog.getByTestId('technique-preview').locator('dl > div')).toHaveCount(9)
     }
     releaseSave = undefined
     const supportTab = dialog.getByRole('tab', { name: 'Support', exact: true })

@@ -206,13 +206,6 @@
   padding: 0.1rem 0 0.45rem;
   border-bottom: 1px solid #dfd3bc;
 }
-.status {
-  color: #6d5d3d;
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
-  background: #e9e4d7;
-  border-radius: 20px;
-}
 .tabs {
   flex: 0 0 auto;
   gap: 0.25rem;
@@ -356,6 +349,48 @@
 .modal::backdrop {
   background: #0b201db8;
   backdrop-filter: blur(3px);
+}
+.deleteDialog {
+  width: min(42rem, calc(100vw - 2rem));
+  height: auto;
+}
+.deleteDialog .modalFrame {
+  height: auto;
+  max-height: calc(90dvh - 2rem);
+}
+.deleteDialog ul {
+  padding-left: 1.2rem;
+  margin: 0.4rem 0 0.8rem;
+}
+.deleteDialog li {
+  margin: 0.25rem 0;
+  overflow-wrap: anywhere;
+}
+.deleteDialog h3 {
+  font-size: 1rem;
+  margin: 0.75rem 0 0.3rem;
+}
+.deleteDialog .deleteConfirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+.recordActions {
+  position: relative;
+}
+.recordActions > button {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  top: calc(100% + 0.3rem);
+  white-space: nowrap;
+  box-shadow: 0 3px 12px #253b3125;
+}
+.workspace .deleteButton {
+  background: #803b2d;
+  color: #fff8ef;
+  border-color: #803b2d;
 }
 .modalFrame {
   display: flex;
@@ -511,30 +546,6 @@
     transition: none;
   }
 }
-.recordActions {
-  position: relative;
-  font-size: 0.78rem;
-  flex: none;
-}
-.recordActions > summary {
-  cursor: pointer;
-  padding: 0.3rem 0.5rem;
-  color: #315e53;
-}
-.recordActions > div {
-  position: absolute;
-  z-index: 3;
-  right: 0;
-  top: 100%;
-  display: grid;
-  min-width: 9rem;
-  gap: 0.3rem;
-  padding: 0.4rem;
-  background: #faf5ea;
-  border: 1px solid #b5a17d;
-  border-radius: 6px;
-  box-shadow: 0 4px 14px #253b3126;
-}
 .workspace .list button[aria-current='true']:is(:hover, :focus-visible) {
   background: #315e53;
   color: #fff6e5;
@@ -568,4 +579,53 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
+}
+
+.skillCreation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.skillCreation details {
+  min-width: 12rem;
+}
+.skillCreation summary {
+  cursor: pointer;
+  padding: 0.6rem;
+  font-weight: 600;
+}
+.skillCreationOptions {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.6rem;
+}
+.skillCreationOptions label {
+  display: grid;
+  gap: 0.35rem;
+}
+.skillCreationOptions select {
+  width: 100%;
+  min-height: 2.75rem;
+}
+@media (max-width: 40rem) {
+  .skillCreation {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.commitControls {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 0.25rem;
+}
+.saveStatus {
+  color: #4a6258;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.commitControls + button {
+  align-self: flex-start;
 }

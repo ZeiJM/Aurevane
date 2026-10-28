@@ -55,3 +55,24 @@ it('rejects invalid keys and mismatched/malformed backend reports; returns only 
     parseUsageBalanceReport({ ...report, secretIdentity: 'hidden' }, 'vanguard'),
   ).not.toHaveProperty('secretIdentity')
 })
+
+it('forwards a valid week only through the authorized bounded reporting RPC', async () => {
+  const rpc = vi.fn().mockResolvedValue({ ...report, availableWeeks: ['2026-10-26'] })
+  const service = createUsageBalanceService(
+    { requireCapability: vi.fn().mockResolvedValue({}) },
+    rpc,
+  )
+  expect((await service.read('actor', 'vanguard', '2026-10-26')).availableWeeks).toEqual([
+    '2026-10-26',
+  ])
+  expect(rpc).toHaveBeenCalledWith('read_master_usage_balance_week_v1', {
+    p_actor_user_id: 'actor',
+    p_content_key: 'vanguard',
+    p_week_start: '2026-10-26',
+  })
+  for (const week of ['2026-10-27', 'bad', '2026-02-30'])
+    await expect(service.read('actor', 'vanguard', week)).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+    })
+  expect(rpc).toHaveBeenCalledTimes(1)
+})

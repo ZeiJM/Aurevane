@@ -164,3 +164,7 @@
 .panel [data-compact-effect-timing] {
   color: #17675e;
 }
+
+.panel [data-compact-effect-target] {
+  color: #65310e;
+}

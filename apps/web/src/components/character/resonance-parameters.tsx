@@ -9,11 +9,10 @@ import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
-import { previewEffect } from './skill-effect-preview'
+import { previewEffectWithTag } from './skill-effect-preview'
 import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
 import {
   resonanceCharacteristicRows,
-  resonanceResultRecipient,
   resonanceMatcher,
   resonanceSupplementalRows,
 } from './resonance-detail-presentation'
@@ -81,10 +80,11 @@ export function ResonanceParameters({
                 ? groupSkillEffects(effects).map(({ effect, count, firstIndex: index }) => (
                     <div className={styles.effectRow} key={index}>
                       {resonanceMatcher(mechanics!.trigger, knownSkills)}:{' '}
-                      <CompactSkillEffectSummary effect={effect} count={count} />
-                      {effect.recipient !== 'actor'
-                        ? ` → ${resonanceResultRecipient(effect)}`
-                        : null}
+                      <CompactSkillEffectSummary
+                        effect={effect}
+                        count={count}
+                        tagPresentations={definition.tagPresentation}
+                      />
                     </div>
                   ))
                 : 'N/A'
@@ -97,16 +97,20 @@ export function ResonanceParameters({
       </dl>
       {Array.isArray(explanations) && explanations.length ? (
         <ul aria-label="Effect explanations">
-          {explanations.map((explanation, index) => (
-            <li key={index}>
-              <strong>
-                <EffectTagLabel
-                  label={previewEffect(groupSkillEffects(effects)[index]!.effect).label}
-                />
-              </strong>{' '}
-              — {explanation}
-            </li>
-          ))}
+          {explanations.map((explanation, index) => {
+            const preview = previewEffectWithTag(
+              groupSkillEffects(effects)[index]!.effect,
+              definition?.tagPresentation,
+            )
+            return (
+              <li key={index}>
+                <strong>
+                  <EffectTagLabel label={preview.label} tagPresentation={preview.tagPresentation} />
+                </strong>{' '}
+                — {explanation}
+              </li>
+            )
+          })}
         </ul>
       ) : null}
     </div>

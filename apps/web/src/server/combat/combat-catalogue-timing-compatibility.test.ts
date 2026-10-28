@@ -17,10 +17,32 @@ import {
 } from './combat-content-resolver'
 import {
   combatTimingUsedBy,
+  combatEffectUsedBy,
   validateCombatCatalogueTiming,
 } from './combat-catalogue-timing-compatibility'
 
 const policy: CombatEffectTimingPolicy = { version: 7, modes: { damage: 'controlled' } }
+it('lists actual users separately for Copy Buffs and each status presentation tag', () => {
+  const entry = skill(
+    source({
+      effects: [
+        {
+          id: 'copy',
+          payload: { type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' },
+        },
+        {
+          id: 'guard',
+          payload: { type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 },
+        },
+      ],
+    }).definition,
+  )
+  const used = combatEffectUsedBy({ token: 'a'.repeat(32), policy, entries: [entry] })
+  expect(used['copy-buffs']?.map((row) => row.contentKey)).toEqual([entry.contentKey])
+  expect(used['copy-debuffs']).toBeUndefined()
+  expect(used.guarded?.map((row) => row.contentKey)).toEqual([entry.contentKey])
+  expect(used.exposed).toBeUndefined()
+})
 function source(overrides: Partial<AbilityBehavior> = {}) {
   const basic = defaultBasicSkills().find((entry) => entry.id === 'unarmed.basic')!
   return {

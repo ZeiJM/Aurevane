@@ -92,6 +92,7 @@ export interface BattleActionPreview {
     damageTakenMultiplierBasisPoints: number | null
   }[]
   mpCost: number
+  hpCost?: number
   actionEconomyCost: number
   actionEconomyBefore: number
   actionEconomyAfter: number
@@ -415,6 +416,7 @@ async function previewIntent(
         ? []
         : evaluation.projectedEvents.map(omitCombatExecutionMetadata),
       mpCost: evaluation.mpCost,
+      ...(evaluation.hpCost !== undefined ? { hpCost: evaluation.hpCost } : {}),
       actionEconomyCost: cost,
       actionEconomyBefore: before,
       actionEconomyAfter: Math.max(0, before - cost),

@@ -1,6 +1,11 @@
 'use client'
 import { useRef, useState } from 'react'
-import type { ModerationPlayer, ModerationRecord } from '@/master/moderation'
+import type {
+  ActiveModerationBan,
+  ActiveModerationBans,
+  ModerationPlayer,
+  ModerationRecord,
+} from '@/master/moderation'
 import styles from './moderation-workspace.module.css'
 
 function timestamp(value: string) {
@@ -9,7 +14,12 @@ function timestamp(value: string) {
 function remainingBanHours(expiresAt: string): string {
   return String(Math.max(1, Math.ceil((Date.parse(expiresAt) - Date.now()) / 3600000)))
 }
-export function ModerationWorkspace() {
+export function ModerationWorkspace({
+  initialBans = { bans: [], nextCursor: null },
+}: {
+  initialBans?: ActiveModerationBans
+}) {
+  const [activeBans, setActiveBans] = useState(initialBans)
   const [query, setQuery] = useState(''),
     [players, setPlayers] = useState<ModerationPlayer[]>([])
   const [selected, setSelected] = useState<ModerationPlayer | null>(null),
@@ -23,6 +33,7 @@ export function ModerationWorkspace() {
     [error, setError] = useState<string | null>(null),
     [notice, setNotice] = useState<string | null>(null)
   const requestSequence = useRef(0)
+  const mutationPending = useRef(false)
   async function post(body: Record<string, unknown>) {
     const response = await fetch('/api/master/moderation', {
       method: 'POST',
@@ -47,6 +58,67 @@ export function ModerationWorkspace() {
         setError(caught instanceof Error ? caught.message : 'Search failed.')
     } finally {
       if (sequence === requestSequence.current) setPending(false)
+    }
+  }
+  async function refreshBans(append = false) {
+    if (pending) return
+    setPending(true)
+    setError(null)
+    try {
+      const payload = await post({
+        operation: 'active',
+        after: append ? activeBans.nextCursor : null,
+      })
+      setActiveBans(
+        append
+          ? {
+              ...payload.active,
+              bans: [
+                ...new Map(
+                  [...activeBans.bans, ...payload.active.bans].map((ban: ActiveModerationBan) => [
+                    ban.userId,
+                    ban,
+                  ]),
+                ).values(),
+              ],
+            }
+          : payload.active,
+      )
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Active bans could not be refreshed.')
+    } finally {
+      setPending(false)
+    }
+  }
+  async function liftBan(ban: Pick<ActiveModerationBan, 'userId' | 'revision' | 'protected'>) {
+    if (pending || mutationPending.current || ban.protected) return
+    mutationPending.current = true
+    setPending(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const payload = await post({
+        operation: 'lift',
+        targetUserId: ban.userId,
+        expectedRevision: ban.revision,
+      })
+      if (record?.userId === ban.userId) setRecord(payload.record)
+      setActiveBans((current) => ({
+        ...current,
+        bans: current.bans.filter((row) => row.userId !== ban.userId),
+      }))
+      setConfirmed(false)
+      setReason('')
+      setNotice('Ban lifted.')
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Ban could not be lifted. Refresh before retrying.',
+      )
+    } finally {
+      mutationPending.current = false
+      setPending(false)
     }
   }
   async function choose(player: ModerationPlayer, refresh = false) {
@@ -76,17 +148,19 @@ export function ModerationWorkspace() {
   const validDuration =
     permanent || (Number.isSafeInteger(minutes) && minutes >= 1 && minutes <= 52560000)
   const editable = !!record && !record.protected && !selected?.protected
-  async function save(lift = false) {
+  async function save() {
     if (
       !selected ||
       !record ||
       !confirmed ||
       !editable ||
       !reason.trim() ||
-      (!lift && !validDuration) ||
-      pending
+      !validDuration ||
+      pending ||
+      mutationPending.current
     )
       return
+    mutationPending.current = true
     setPending(true)
     setError(null)
     setNotice(null)
@@ -95,7 +169,7 @@ export function ModerationWorkspace() {
         operation: 'write',
         targetUserId: selected.userId,
         expectedRevision: record.revision,
-        action: lift ? 'lift' : record.active ? 'edit' : 'ban',
+        action: record.active ? 'edit' : 'ban',
         reason,
         minutes: permanent ? null : minutes,
         permanent,
@@ -105,10 +179,16 @@ export function ModerationWorkspace() {
       setPermanent(payload.record.permanent)
       setConfirmed(false)
       setReason('')
-      setNotice(lift ? 'Ban lifted.' : 'Ban saved. Duration starts from this save.')
+      setNotice('Ban saved. Duration starts from this save.')
+      try {
+        setActiveBans((await post({ operation: 'active' })).active)
+      } catch {
+        setError('Ban saved, but the active list could not refresh. Use Refresh bans to reload it.')
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Ban could not be saved.')
     } finally {
+      mutationPending.current = false
       setPending(false)
     }
   }
@@ -186,11 +266,29 @@ export function ModerationWorkspace() {
         aria-busy={pending}
       >
         <div className={styles.heading}>
-          <h2 id="moderation-detail-title">{selected?.name ?? 'Moderation details'}</h2>
-          {selected && (
-            <button type="button" disabled={pending} onClick={() => void choose(selected, true)}>
-              Refresh player
+          <h2 id="moderation-detail-title">{selected?.name ?? 'Active bans'}</h2>
+          {!selected && (
+            <button type="button" disabled={pending} onClick={() => void refreshBans()}>
+              Refresh bans
             </button>
+          )}
+          {selected && (
+            <div className={styles.actions}>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setSelected(null)
+                  setRecord(null)
+                  setNotice(null)
+                }}
+              >
+                Active bans
+              </button>
+              <button type="button" disabled={pending} onClick={() => void choose(selected, true)}>
+                Refresh player
+              </button>
+            </div>
           )}
         </div>
         {error && (
@@ -200,7 +298,51 @@ export function ModerationWorkspace() {
         )}
         {notice && <p role="status">{notice}</p>}
         {pending && <p role="status">Loading moderation…</p>}
-        {!selected && <p>Select a verified player to review account status and ban history.</p>}
+        {!selected && (
+          <>
+            {activeBans.bans.length ? (
+              <ul className={styles.activeBans}>
+                {activeBans.bans.map((ban) => (
+                  <li key={ban.userId}>
+                    <div>
+                      <button
+                        type="button"
+                        disabled={pending}
+                        onClick={() =>
+                          void choose({
+                            userId: ban.userId,
+                            characterId: ban.characterId ?? '',
+                            name: ban.name,
+                            protected: ban.protected,
+                          })
+                        }
+                      >
+                        {ban.name}
+                      </button>
+                      <p>{ban.permanent ? 'Permanent' : `Until ${timestamp(ban.expiresAt!)}`}</p>
+                      <p>{ban.reason}</p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={pending || ban.protected}
+                      aria-label={`Lift ban for ${ban.name}`}
+                      onClick={() => void liftBan(ban)}
+                    >
+                      Lift ban
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No active bans.</p>
+            )}
+            {activeBans.nextCursor && (
+              <button type="button" disabled={pending} onClick={() => void refreshBans(true)}>
+                Load more bans
+              </button>
+            )}
+          </>
+        )}
         {record && (
           <>
             <p className={styles.status}>
@@ -302,11 +444,7 @@ export function ModerationWorkspace() {
                       {record.active ? 'Save ban changes' : 'Apply ban'}
                     </button>
                     {record.active && (
-                      <button
-                        type="button"
-                        disabled={!confirmed || !reason.trim()}
-                        onClick={() => void save(true)}
-                      >
+                      <button type="button" disabled={pending} onClick={() => void liftBan(record)}>
                         Lift ban
                       </button>
                     )}

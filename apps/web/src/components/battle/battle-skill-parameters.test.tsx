@@ -43,7 +43,7 @@ describe('cockpit Skill Parameters', () => {
     expect(effects).not.toContain('<strong>Ground</strong>')
     expect(effects).not.toContain('Each cast has its own allowance')
     expect(markup).toMatch(
-      /<dt>Target<\/dt><dd>[\s\S]*?aria-label="Ground area rules"[\s\S]*?<\/dd>/,
+      /<dt>Target Method<\/dt><dd[^>]*>[\s\S]*?aria-label="Ground area rules"[\s\S]*?<\/dd>/,
     )
     expect(markup).not.toContain('<strong>Ground area</strong>')
     expect(markup.indexOf('aria-label="Ground area rules"')).toBeLessThan(
@@ -116,7 +116,6 @@ describe('cockpit Skill Parameters', () => {
       'Requirements',
       'Effects',
       'Range',
-      'Target',
       'Target Method',
       'Target Elevation',
       'Line of Sight',
@@ -137,7 +136,8 @@ describe('cockpit Skill Parameters', () => {
     expect(markup).not.toContain('Do not replace pinned Nexus effects')
     expect(markup).not.toContain('Legal range')
     expect(markup).toContain('<dt>Range</dt><dd>1</dd>')
-    expect(markup).toContain('<dt>Target</dt><dd>Enemy</dd>')
+    expect(markup).not.toContain('<dt>Target</dt>')
+    expect(markup).toContain('data-compact-effect-target="true">[Enemy]</span>')
     expect(markup).not.toContain('Single target')
     expect(markup).not.toContain('Affects:')
     expect(markup).not.toContain('aria-label="Ground area rules"')

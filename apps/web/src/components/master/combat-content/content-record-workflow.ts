@@ -3,10 +3,13 @@ import type {
   CompleteCombatContentRecord,
 } from '@aurevane/db/combat-content'
 import { postCombatContentAuthoring } from './combat-content-client'
+import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
 export function editableDefinition(
   record: CompleteCombatContentRecord,
 ): CombatContentDefinition | null {
-  return record.draft?.definition ?? record.current?.definition ?? record.builtinDefinition ?? null
+  const definition =
+    record.draft?.definition ?? record.current?.definition ?? record.builtinDefinition ?? null
+  return definition ? skillAccuracyForAuthoring(record.contentKind, definition) : null
 }
 export function recordIsDirty(
   record: CompleteCombatContentRecord,
@@ -14,7 +17,7 @@ export function recordIsDirty(
 ): boolean {
   const editable = (value: CombatContentDefinition | null) => {
     if (!value) return null
-    const next = { ...value }
+    const next = { ...skillAccuracyForAuthoring(record.contentKind, value) }
     delete next.contentVersion
     if (
       typeof next.essenceId === 'string' &&

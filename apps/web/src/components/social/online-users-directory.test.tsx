@@ -58,3 +58,20 @@ describe('Adventurers roster composition', () => {
     expect(markup).toContain('>—</span>')
   })
 })
+
+it('uses the published Discipline name instead of formatting a generated identity', () => {
+  const markup = renderToStaticMarkup(
+    createElement(OnlineUsersDirectory, {
+      characters: [
+        {
+          ...character,
+          disciplineId: 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2',
+          disciplineName: 'Super Saiyan',
+          secondaryDisciplineName: 'Renamed Aetherist',
+        },
+      ],
+    }),
+  )
+  expect(markup).toContain('Super Saiyan | Renamed Aetherist')
+  expect(markup).not.toContain('F60c5dc7')
+})

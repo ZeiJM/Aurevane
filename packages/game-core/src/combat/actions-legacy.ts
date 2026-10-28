@@ -1,3 +1,10 @@
+import { withEffectDeliveryEligibility } from './combat-effect-delivery-eligibility'
+import { effectUsesGroundDelivery } from './combat-effect-delivery'
+import {
+  combatEffectRecipientIds,
+  validateCombatEffectTarget,
+  type CombatEffectTarget,
+} from './combat-effect-recipients'
 import { DRENCHED_INITIATIVE_APPLICATION_LIMIT } from './combat-drenched'
 import {
   validateCombatNativeCommandFacts,
@@ -19,7 +26,12 @@ import {
   outgoingSuppressionBasisPoints,
   scaleSuppressedDirectDamage,
 } from './combat-suppress'
-import { airborneGroundMiss, airborneAttackAction, airborneJump } from './combat-airborne'
+import {
+  airborneGroundMiss,
+  airborneEffectGroundMiss,
+  airborneAttackAction,
+  airborneJump,
+} from './combat-airborne'
 import {
   percentageRecoveryAmount,
   validateCapturedPercentageRecovery,
@@ -272,6 +284,8 @@ export interface CombatTargetSpec {
 export interface CombatActionCost {
   spendsAction: boolean
   mp: number
+  /** Nonlethal payment. Omission preserves historical no-HP-cost behavior. */
+  hp?: number
 }
 
 export type CombatUseRequirement =
@@ -287,7 +301,7 @@ export interface FacingDamageModifiers {
   rear: number
 }
 
-export type CombatEffectDefinition =
+export type CombatEffectDefinition = (
   | CombatStatusCopyEffect
   | {
       type: 'damage'
@@ -372,6 +386,7 @@ export type CombatEffectDefinition =
       stacks: number
       blindsideModifiersBasisPoints?: BlindsideModifiers
     }
+) & { readonly target?: CombatEffectTarget }
 
 export interface CombatEffectOrigin {
   sourceInstanceId?: string
@@ -683,6 +698,7 @@ export interface CombatActionEvaluation {
   projectedTerrain: readonly CombatTerrainProjection[]
   projectedEvents: readonly CombatResolutionEvent[]
   mpCost: number
+  hpCost?: number
   spendsAction: boolean
   issues: readonly CombatActionIssue[]
 }
@@ -1203,6 +1219,12 @@ export function evaluateCombatAction(
       })
     }
   }
+  if ((action.cost.hp ?? 0) > Math.max(0, actor.hp - 1)) {
+    issues.push({
+      code: 'insufficient-hp',
+      message: 'HP payment must leave the actor with at least 1 HP.',
+    })
+  }
   if (actor.mp < action.cost.mp) {
     issues.push({ code: 'insufficient-mp', message: 'The actor does not have enough MP.' })
   }
@@ -1248,6 +1270,36 @@ export function evaluateCombatAction(
   const affectedTiles = issues.length === 0 ? targeting.affectedTiles : []
   const affectedCombatantIds = issues.length === 0 ? targeting.affectedCombatantIds : []
 
+  if (
+    issues.length === 0 &&
+    action.effects.some((effect) => effect.target !== undefined) &&
+    (action.target.shape.kind !== 'single' ||
+      action.effects.some((effect) => effect.target === 'all')) &&
+    !action.effects.some(
+      (effect, ordinal) =>
+        effect.recipient === 'affected-tiles' ||
+        combatEffectRecipientIds(
+          state,
+          actorId,
+          target.combatantId,
+          affectedCombatantIds,
+          affectedTiles,
+          effect,
+          action.target,
+          content,
+        ).some(
+          (id) =>
+            action.effectEligibleRecipientIds?.[ordinal] === undefined ||
+            action.effectEligibleRecipientIds[ordinal]!.includes(id),
+        ),
+    )
+  ) {
+    issues.push({
+      code: 'effect-target-missing',
+      message: 'No effect has an eligible recipient in the shared aim.',
+    })
+  }
+
   if (issues.length === 0) {
     collectSelfDamageIssues(
       action.effects,
@@ -1255,6 +1307,10 @@ export function evaluateCombatAction(
       target.combatantId,
       affectedCombatantIds,
       issues,
+      state,
+      affectedTiles,
+      action.target,
+      content,
     )
   }
 
@@ -1304,10 +1360,11 @@ export function evaluateCombatAction(
   let projectedEvents: readonly CombatResolutionEvent[] = []
   if (issues.length === 0) {
     const projectionState =
-      action.cost.mp > 0
+      action.cost.mp > 0 || (action.cost.hp ?? 0) > 0
         ? withUpdatedCombatant(state, actorId, {
             ...actor,
             mp: actor.mp - action.cost.mp,
+            hp: actor.hp - (action.cost.hp ?? 0),
           })
         : state
     const projection = resolveActionEffects(
@@ -1343,6 +1400,7 @@ export function evaluateCombatAction(
     projectedTerrain,
     projectedEvents,
     mpCost: action.cost.mp,
+    ...(action.cost.hp !== undefined ? { hpCost: action.cost.hp } : {}),
     spendsAction: action.cost.spendsAction,
     issues,
   }
@@ -1473,6 +1531,13 @@ export function executeCombatAction(
     const spent = spendAction(nextState.tactical.battle)
     nextState = withBattle(nextState, spent.state)
     events.push(...spent.events)
+  }
+
+  if ((action.cost.hp ?? 0) > 0) {
+    const actor = getCombatant(nextState.tactical.battle, actorId)
+    const amount = action.cost.hp!
+    nextState = withUpdatedCombatant(nextState, actorId, { ...actor, hp: actor.hp - amount })
+    events.push({ event: 'hp_spent', combatantId: actorId, amount, remaining: actor.hp - amount })
   }
 
   if (action.cost.mp > 0) {
@@ -3554,15 +3619,31 @@ function collectSelfDamageIssues(
   primaryCombatantId: string | null,
   affectedCombatantIds: readonly string[],
   issues: CombatActionIssue[],
+  state?: CombatEncounterState,
+  tiles: readonly GridPosition[] = [],
+  target?: CombatTargetSpec,
+  content?: CombatContentCatalog,
 ): void {
   for (const effect of effects) {
     if (effect.type !== 'damage') continue
-    const recipients = resolveEffectRecipients(
-      actorId,
-      primaryCombatantId,
-      affectedCombatantIds,
-      effect.recipient,
-    )
+    const recipients =
+      state && target
+        ? combatEffectRecipientIds(
+            state,
+            actorId,
+            primaryCombatantId,
+            affectedCombatantIds,
+            tiles,
+            effect,
+            target,
+            content,
+          )
+        : resolveEffectRecipients(
+            actorId,
+            primaryCombatantId,
+            affectedCombatantIds,
+            effect.recipient,
+          )
     if (recipients.includes(actorId)) {
       issues.push({
         code: 'self-damage-deferred',
@@ -3581,6 +3662,7 @@ function collectEffectRecipientIssues(
   allowsEmptyArea: boolean,
 ): void {
   for (const effect of effects) {
+    if (effect.target !== undefined && effect.recipient !== 'primary-unit') continue
     if (effect.recipient === 'primary-unit' && !primaryCombatantId) {
       issues.push({
         code: 'effect-target-missing',
@@ -3636,6 +3718,9 @@ interface CombatEffectResolutionOptions {
 
 /** Resolve authored tuning against the cast's identities before pending selectors are narrowed. */
 function captureElementalApplication(
+  state: CombatEncounterState,
+  content: CombatContentCatalog,
+  affectedTiles: readonly GridPosition[],
   action: CombatActionDefinition,
   actorId: string,
   primaryCombatantId: string | null,
@@ -3656,11 +3741,15 @@ function captureElementalApplication(
           action.effectOrigins[damageOrdinal]?.sourceInstanceId &&
           action.effectOrigins?.[ordinal]?.behaviorId ===
             action.effectOrigins[damageOrdinal]?.behaviorId)) &&
-      resolveEffectRecipients(
+      combatEffectRecipientIds(
+        state,
         actorId,
         primaryCombatantId,
         affectedCombatantIds,
-        effect.recipient,
+        affectedTiles,
+        effect,
+        action.target,
+        content,
       ).includes(recipientId),
   )
   if (ordinal < 0) return undefined
@@ -3825,6 +3914,18 @@ function resolveActionEffects(
     skillDamage:
       options.skillDamage ?? !['basic-attack', 'basic-action'].includes(action.sourceType),
   }
+  const recipientsFor = (effect: CombatEffectDefinition) =>
+    combatEffectRecipientIds(
+      state,
+      actorId,
+      primaryCombatantId,
+      affectedCombatantIds,
+      affectedTiles,
+      effect,
+      action.target,
+      content,
+      resolvingPending,
+    )
   let nextState = state
   const events: CombatResolutionEvent[] = []
   const projections: CombatEffectProjection[] = []
@@ -3861,7 +3962,19 @@ function resolveActionEffects(
   // Caster/ally HP recovery attached to a hostile attack is a payoff of a hit,
   // not an independent cast benefit. Use the original recipients and exact packet
   // miss/eligibility masks: a killing or Barrier-absorbed hit still qualifies.
+  const independentlyHostile = action.effects.some(
+    (effect) =>
+      effect.type === 'damage' &&
+      effect.target !== undefined &&
+      recipientsFor(effect).some((id) => {
+        const unit = state.tactical.battle.combatants.find((candidate) => candidate.id === id)
+        return (
+          unit && unit.hp > 0 && unit.teamId !== getCombatant(state.tactical.battle, actorId).teamId
+        )
+      }),
+  )
   const emptyGroundCast =
+    !independentlyHostile &&
     state.modularSkillPolicyVersion === 1 &&
     (action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile') &&
     !affectedCombatantIds.some((id) => {
@@ -3873,7 +3986,7 @@ function resolveActionEffects(
   const secondaryHealingNeedsHit =
     !resolvingPending &&
     !emptyGroundCast &&
-    combatTargetAllowsHostileHit(action.target) &&
+    (combatTargetAllowsHostileHit(action.target) || independentlyHostile) &&
     action.effects.some(
       (effect) =>
         effect.type === 'healing' ||
@@ -3886,12 +3999,7 @@ function resolveActionEffects(
       (effect, ordinal) =>
         effect.type === 'damage' &&
         effect.recipient !== 'actor' &&
-        resolveEffectRecipients(
-          actorId,
-          primaryCombatantId,
-          affectedCombatantIds,
-          effect.recipient,
-        ).some((id) => {
+        recipientsFor(effect).some((id) => {
           const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
           return (
             target &&
@@ -3901,7 +4009,7 @@ function resolveActionEffects(
             !options.missedEffectOrdinalsByTarget?.get(id)?.has(ordinal) &&
             (action.effectEligibleRecipientIds?.[ordinal] === undefined ||
               action.effectEligibleRecipientIds[ordinal]!.includes(id)) &&
-            !airborneGroundMiss(state, action, id, content)
+            !airborneEffectGroundMiss(state, action, effect, id, content)
           )
         }),
     )
@@ -3913,12 +4021,7 @@ function resolveActionEffects(
       (hit, hitOrdinal) =>
         hit.type === 'damage' &&
         hit.amount > 0 &&
-        resolveEffectRecipients(
-          actorId,
-          primaryCombatantId,
-          affectedCombatantIds,
-          hit.recipient,
-        ).some((targetId) => {
+        recipientsFor(hit).some((targetId) => {
           if (
             (recipientId !== undefined && targetId !== recipientId) ||
             (action.effectEligibleRecipientIds?.[hitOrdinal] !== undefined &&
@@ -3926,7 +4029,7 @@ function resolveActionEffects(
             targetId === actorId ||
             missedCombatantIds?.has(targetId) ||
             resistedEffectOrdinalsByTarget?.get(targetId)?.has(hitOrdinal) ||
-            airborneGroundMiss(nextState, action, targetId, content)
+            airborneEffectGroundMiss(nextState, action, hit, targetId, content)
           )
             return false
           const actor = getCombatant(nextState.tactical.battle, actorId)
@@ -3947,6 +4050,12 @@ function resolveActionEffects(
     )
   }
   for (const [effectOrdinal, effect] of action.effects.entries()) {
+    const effectTiles =
+      !resolvingPending && effect.target === 'all'
+        ? state.tactical.tiles.map((tile) => tile.position)
+        : !resolvingPending && effect.target === 'self'
+          ? [getPlacement(state.tactical, actorId).position]
+          : affectedTiles
     if (
       !secondaryHealingHasHit &&
       (effect.type === 'healing' ||
@@ -3997,14 +4106,7 @@ function resolveActionEffects(
       // Only overlapping identities defer to positive damage settlement; unrelated authored
       // recipients retain their own application and timing.
       const effectRecipientIds = (
-        effect.recipient === 'affected-tiles'
-          ? []
-          : resolveEffectRecipients(
-              actorId,
-              primaryCombatantId,
-              affectedCombatantIds,
-              effect.recipient,
-            )
+        effect.recipient === 'affected-tiles' ? [] : recipientsFor(effect)
       ).filter(
         (recipientId) =>
           (action.effectEligibleRecipientIds?.[effectOrdinal] === undefined ||
@@ -4023,12 +4125,7 @@ function resolveActionEffects(
               (hit) =>
                 hit.type === 'damage' &&
                 elementalStatusId(hit) === effect.statusId &&
-                resolveEffectRecipients(
-                  actorId,
-                  primaryCombatantId,
-                  affectedCombatantIds,
-                  hit.recipient,
-                ).includes(recipientId),
+                recipientsFor(hit).includes(recipientId),
             )
           ),
       )
@@ -4051,7 +4148,7 @@ function resolveActionEffects(
           (id) =>
             !missedCombatantIds?.has(id) &&
             !(
-              airborneGroundMiss(nextState, action, id, content) &&
+              airborneEffectGroundMiss(nextState, action, effect, id, content) &&
               !(
                 state.elementalDamagePolicyVersion === 2 &&
                 effect.recipient === 'actor' &&
@@ -4067,7 +4164,7 @@ function resolveActionEffects(
         if (
           !recipientIds.length &&
           effect.type !== 'create-terrain' &&
-          !hasCurrentFireTileEffect(state, effect, affectedTiles)
+          !hasCurrentFireTileEffect(state, effect, effectTiles)
         )
           continue
         if (
@@ -4102,17 +4199,17 @@ function resolveActionEffects(
                 : {}),
               ...(state.airbornePolicyVersion === 1 &&
               action.groundTargetedRecipientIds === undefined &&
-              action.target.kind === 'ground-tile'
+              action.target.kind === 'ground-tile' &&
+              effect.target === undefined
                 ? { groundTargeted: true as const }
-                : {}),
-              ...(state.airbornePolicyVersion === 1 &&
-              action.groundTargetedRecipientIds?.some((id) => recipientIds.includes(id))
-                ? {
-                    groundTargetedRecipientIds: action.groundTargetedRecipientIds.filter((id) =>
-                      recipientIds.includes(id),
-                    ),
-                  }
-                : {}),
+                : state.airbornePolicyVersion === 1 &&
+                    recipientIds.some((id) => effectUsesGroundDelivery(action, effect, id))
+                  ? {
+                      groundTargetedRecipientIds: recipientIds.filter((id) =>
+                        effectUsesGroundDelivery(action, effect, id),
+                      ),
+                    }
+                  : {}),
               ...(skillPacketCommandId !== undefined ? { skillPacketCommandId } : {}),
               ...(commandId !== undefined &&
               (isPercentageDotEffect(effect) || effect.type === 'damage')
@@ -4176,6 +4273,9 @@ function resolveActionEffects(
                     elementalApplicationsByRecipient: Object.fromEntries(
                       recipientIds.flatMap((id) => {
                         const application = captureElementalApplication(
+                          state,
+                          content,
+                          affectedTiles,
                           action,
                           actorId,
                           primaryCombatantId,
@@ -4191,7 +4291,7 @@ function resolveActionEffects(
                 : {}),
               effect: JSON.parse(JSON.stringify(effect)) as CombatEffectDefinition,
               recipientIds,
-              affectedTiles: affectedTiles.map((tile) => ({ ...tile })),
+              affectedTiles: effectTiles.map((tile) => ({ ...tile })),
               activationRound:
                 state.tactical.battle.round +
                 Math.max(
@@ -4256,7 +4356,7 @@ function resolveActionEffects(
           }
         }
         if (effect.type === 'create-terrain') {
-          for (const position of affectedTiles) {
+          for (const position of effectTiles) {
             const projected = setTerrainOverlay(nextState, position, 'frozen', actorId, action.id)
             for (const event of projected.events)
               if (event.event === 'terrain_overlay_changed')
@@ -4344,7 +4444,7 @@ function resolveActionEffects(
         effect.type === 'create-terrain' ||
         (effect.type === 'damage' && effect.element === 'fire')
       ) {
-        for (const position of affectedTiles) {
+        for (const position of effectTiles) {
           const iceAreas =
             state.elementalDamagePolicyVersion !== undefined
               ? (nextState.groundAreas ?? []).filter(
@@ -4417,7 +4517,7 @@ function resolveActionEffects(
         // Engine-owned target roll gates every unit effect, not just damage packets.
         if (
           missedCombatantIds?.has(recipientId) ||
-          (airborneGroundMiss(nextState, action, recipientId, content) &&
+          (airborneEffectGroundMiss(nextState, action, effect, recipientId, content) &&
             !(
               state.elementalDamagePolicyVersion === 2 &&
               effect.recipient === 'actor' &&
@@ -4489,6 +4589,9 @@ function resolveActionEffects(
             ? options.capturedElementalApplications !== undefined
               ? options.capturedElementalApplications[recipientId]
               : captureElementalApplication(
+                  state,
+                  content,
+                  affectedTiles,
                   action,
                   actorId,
                   primaryCombatantId,
@@ -6410,6 +6513,7 @@ function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  for (const effect of action.effects) validateCombatEffectTarget(effect, action.target)
   validateCombatGroundAreaDefinition(action)
   validateVersionedCombatTargetSpec(action.target)
   validateCurrentAreaTargetRecipients(action)
@@ -6481,6 +6585,7 @@ function validateCombatActionDefinition(
     assertPositiveSafeInteger(action.target.shape.length, 'line length')
   }
   assertNonNegativeSafeInteger(action.cost.mp, 'MP cost')
+  if (action.cost.hp !== undefined) assertNonNegativeSafeInteger(action.cost.hp, 'HP cost')
 
   if (action.effectTimingTags !== undefined) {
     if (
@@ -6646,7 +6751,7 @@ function validateCombatActionDefinition(
       throw new TypeError('Unknown Rewind anchor mode.')
     if (
       effect.type === 'return-to-turn-start' &&
-      (effect.recipient !== 'actor' || action.target.kind !== 'self')
+      (effect.recipient !== 'actor' || (effect.target !== 'self' && action.target.kind !== 'self'))
     )
       throw new TypeError('Rewind is a self-only effect.')
     if (effect.type === 'apply-status') {
@@ -6735,6 +6840,7 @@ function emptyEvaluation(
     projectedTerrain: [],
     projectedEvents: [],
     mpCost: action.cost.mp,
+    ...(action.cost.hp !== undefined ? { hpCost: action.cost.hp } : {}),
     spendsAction: action.cost.spendsAction,
     issues,
   }
@@ -7204,11 +7310,15 @@ function resolveGroundAtPosition(
         ? { effectOrigins: area.entryEffectOrigins.map((origin) => origin ?? undefined) }
         : {}),
     }
-    if (airborneGroundMiss(current, action, recipientId, area.content)) {
+    if (
+      action.effects.every((effect) =>
+        airborneEffectGroundMiss(current, action, effect, recipientId, area.content),
+      )
+    ) {
       if (preview) return { state: current, events: [] }
       const miss = rollCombatSkillAccuracyForTarget(
         current,
-        action,
+        { ...action, groundTargetedRecipientIds: [recipientId] },
         area.sourceCombatantId,
         recipientId,
         area.content,
@@ -7250,7 +7360,13 @@ function resolveGroundAtPosition(
           events: [],
           resistedEffectOrdinalsByTarget: new Map<string, ReadonlySet<number>>(),
         }
-      : rollCombatStatusResistance(current, action, evaluation, area.content, new Set())
+      : rollCombatStatusResistance(
+          current,
+          withEffectDeliveryEligibility(current, action, evaluation, area.content),
+          evaluation,
+          area.content,
+          new Set(),
+        )
     const applied = resolveActionEffects(
       resistance.state,
       area.sourceCombatantId,

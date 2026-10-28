@@ -33,6 +33,7 @@ import {
   validateResonanceAuthoringDefinition,
 } from '../master/combat-content-authoring-validation'
 import type { CombatContentValidationResult } from '../master/combat-content-authoring-service'
+import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
 
 export interface CombatContentCategoryDescriptor {
   readonly editor: CombatContentEditorDescriptor
@@ -97,7 +98,16 @@ function descriptor(
   }
   return Object.freeze(result)
 }
-const skillAuthoring = validated(validateSkillDefinition)
+const authorSkill = validated(validateSkillDefinition)
+const authorEssence = validated(validateEssenceAuthoringDefinition)
+const skillAuthoring = (value: unknown) => {
+  object(value)
+  return authorSkill(skillAccuracyForAuthoring('skill', value))
+}
+const essenceAuthoring = (value: unknown) => {
+  object(value)
+  return authorEssence(skillAccuracyForAuthoring('essence', value))
+}
 export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor[] = Object.freeze([
   descriptor({
     category: 'basic',
@@ -133,7 +143,7 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
     catalogueProjection: 'combat',
     authoringBlocker: null,
     publicationBlocker: null,
-    parseAuthoring: validated(validateEssenceAuthoringDefinition),
+    parseAuthoring: essenceAuthoring,
     parsePublished: (record) => ({ ...validatePublishedEssence(record, record.contentKey) }),
   }),
   descriptor({

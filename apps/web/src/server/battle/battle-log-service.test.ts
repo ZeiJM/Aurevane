@@ -1023,3 +1023,23 @@ it('records only authoritative administrative no contest as No rewards without o
   ])
   expect(ordinary.entries[0]?.message).not.toContain('No contest')
 })
+
+it('reports HP payment as a resource cost rather than damage or an unknown event', () => {
+  const view = buildBattleLogView(SESSION_ID, [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-10-28T00:00:00Z',
+      event: { event: 'hp_spent', combatantId: 'actor', amount: 12, remaining: 1 },
+    },
+  ])
+  expect(view.entries[0]).toMatchObject({
+    kind: 'resource',
+    headline: 'HP',
+    messageTemplate: '{actor} spent {amount} HP.',
+  })
+  expect(view.entries[0]!.facts).toEqual([
+    { label: '−12 HP', tone: 'neutral' },
+    { label: '1 left', tone: 'neutral' },
+  ])
+})

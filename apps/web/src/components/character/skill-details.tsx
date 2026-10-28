@@ -13,6 +13,7 @@ import {
 } from './skill-effect-timing-context'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import {
+  skillCostDescription,
   skillCooldownDescription,
   skillParameterRows,
   skillRequirementDescription,
@@ -51,9 +52,11 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
                     <span key={firstIndex}>
                       {index > 0 ? ', ' : null}
                       <CompactSkillEffectSummary
+                        aim={skill.target}
                         effect={effect}
                         count={count}
                         skillEffects={skill.effects}
+                        tagPresentations={skill.tagPresentation}
                       />
                     </span>
                   ),
@@ -65,9 +68,7 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
         skill.overrides.pvp.apCost !== skill.apCost ? (
           <div>
             <dt>PvP Cost</dt>
-            <dd>
-              {skill.overrides.pvp.apCost} AP{skill.mpCost ? ` / ${skill.mpCost} MP` : ''}
-            </dd>
+            <dd>{skillCostDescription({ ...skill, apCost: skill.overrides.pvp.apCost })}</dd>
           </div>
         ) : null}
         {skill.cooldown !== null &&
@@ -89,7 +90,7 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
         }).map((effect, index) => (
           <li key={index}>
             <strong>
-              <EffectTagLabel label={effect.label} />
+              <EffectTagLabel label={effect.label} tagPresentation={effect.tagPresentation} />
             </strong>{' '}
             — {effect.explanation}
           </li>

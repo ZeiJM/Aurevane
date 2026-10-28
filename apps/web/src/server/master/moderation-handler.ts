@@ -41,11 +41,17 @@ export async function handleMasterModerationRequest(
             'permanent',
             'confirmed',
             'before',
+            'after',
           ].includes(key),
       )
     )
       throw new AurevaneError('INVALID_REQUEST', 'Unexpected moderation fields.')
     const headers = { 'Cache-Control': 'private, no-store' }
+    if (body.operation === 'active')
+      return Response.json(
+        { active: await service.listActive(actor.userId, (body.after ?? null) as string | null) },
+        { headers },
+      )
     if (body.operation === 'search' && typeof body.query === 'string')
       return Response.json({ players: await service.search(actor.userId, body.query) }, { headers })
     if (
@@ -66,6 +72,25 @@ export async function handleMasterModerationRequest(
             body.targetUserId,
             (body.before ?? null) as string | null,
           ),
+        },
+        { headers },
+      )
+    if (
+      body.operation === 'lift' &&
+      Object.keys(body).every((key) =>
+        ['operation', 'targetUserId', 'expectedRevision'].includes(key),
+      )
+    )
+      return Response.json(
+        {
+          record: await service.write(actor.userId, {
+            targetUserId: body.targetUserId,
+            expectedRevision: body.expectedRevision as string,
+            action: 'lift',
+            reason: 'Ban lifted from the Moderation panel.',
+            minutes: null,
+            permanent: false,
+          }),
         },
         { headers },
       )

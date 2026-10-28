@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -39,7 +40,8 @@ export default async function Home({
           sessionNotice =
             'This account continued on another device or login. Sign in here again if you want this screen to take control.'
         }
-      } catch {
+      } catch (error) {
+        if (error instanceof AccountBannedError) redirect('/account/banned')
         sessionNotice =
           'Your sign-in exists, but the active game session could not be verified yet.'
       }

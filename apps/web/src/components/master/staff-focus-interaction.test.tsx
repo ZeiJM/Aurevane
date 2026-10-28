@@ -146,6 +146,7 @@ it.each(['Close editor', 'Save character access', 'Revoke access'])(
       })
     }
     render()
+    if (action === 'Revoke access') expect(button('Edit')).toBeNull()
     expect(opener.focus).toHaveBeenCalledTimes(1)
     expect(lookup.focus).not.toHaveBeenCalled()
   },

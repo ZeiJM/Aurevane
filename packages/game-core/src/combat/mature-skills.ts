@@ -1,3 +1,7 @@
+import {
+  combatTagPresentationIssues,
+  type CombatTagPresentationSnapshot,
+} from './combat-tag-registry'
 import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import {
@@ -89,6 +93,7 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   /** Authored text overrides preserve the stable identity and historical translation refs. */
   readonly name?: string
   readonly description?: string
+  readonly tagPresentation?: readonly CombatTagPresentationSnapshot[]
   readonly ability?: AbilityDefinition
   readonly groundArea?: CombatGroundAreaDefinition
   readonly id: string
@@ -104,6 +109,8 @@ export interface MatureSkillDefinition extends CombatAccuracyAuthoring {
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
   readonly mpCost?: number
+  /** Optional nonlethal HP payment, charged before effects. */
+  readonly hpCost?: number
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
   readonly effects: readonly MatureSkillEffectDefinition[]
@@ -1197,7 +1204,10 @@ export function latestEnabledMatureSkills(
 export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
-  const issues: string[] = [...abilityPresentationTextIssues(definition)]
+  const issues: string[] = [
+    ...abilityPresentationTextIssues(definition),
+    ...combatTagPresentationIssues(definition.tagPresentation),
+  ]
   if (
     definition.name !== undefined &&
     (typeof definition.name !== 'string' || !definition.name.trim() || definition.name.length > 120)
@@ -1272,6 +1282,11 @@ export function validateMatureSkillDefinition(
       (!Number.isSafeInteger(definition.mpCost) || definition.mpCost < 0 || definition.mpCost > 20)
     )
       issues.push('mpCost')
+    if (
+      definition.hpCost !== undefined &&
+      (!Number.isSafeInteger(definition.hpCost) || definition.hpCost < 0)
+    )
+      issues.push('hpCost')
   }
   const effectDescriptions = definition.effectDescriptions as unknown
   if (effectDescriptions !== undefined) {
@@ -1526,7 +1541,11 @@ function projectResolvedMatureSkillAction(
     tags: resolved.tags,
     target: resolved.target,
     ...(resolved.groundArea ? { groundArea: resolved.groundArea } : {}),
-    cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
+    cost: {
+      spendsAction: true,
+      mp: resolved.mpCost ?? 0,
+      ...(resolved.hpCost !== undefined ? { hp: resolved.hpCost } : {}),
+    },
     requirements: resolved.requirements,
     ...(resolved.cooldown === null ? {} : { cooldown: resolved.cooldown }),
     effects,

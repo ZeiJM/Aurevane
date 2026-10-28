@@ -2,12 +2,18 @@ import { createElement, type EffectCallback } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { effects } = vi.hoisted(() => ({ effects: [] as EffectCallback[] }))
+const { effects, router } = vi.hoisted(() => ({
+  effects: [] as EffectCallback[],
+  router: { replace: vi.fn() },
+}))
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
   useEffect: (effect: EffectCallback) => effects.push(effect),
 }))
-vi.mock('next/navigation', () => ({ usePathname: () => '/game/training' }))
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/game/training',
+  useRouter: () => router,
+}))
 vi.mock('next/link', () => ({
   default: ({
     children,
@@ -50,6 +56,7 @@ async function mount(characterId: string | null) {
 }
 
 beforeEach(() => {
+  router.replace.mockReset()
   vi.useFakeTimers()
   vi.setSystemTime(new Date('2026-10-24T12:00:00Z'))
   visibility = 'visible'
@@ -77,6 +84,15 @@ afterEach(() => {
 })
 
 describe('selected-character activity with the Account menu closed', () => {
+  it('opens the account notice when the authoritative heartbeat reports a ban', async () => {
+    fetchPresence.mockResolvedValueOnce(
+      Response.json({ error: { code: 'FORBIDDEN', accountBanned: true } }, { status: 403 }),
+    )
+    await mount('banned-character')
+    expect(router.replace).toHaveBeenCalledExactlyOnceWith('/account/banned')
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(fetchPresence).toHaveBeenCalledTimes(1)
+  })
   it('records visible training activity without opening the Account menu', async () => {
     const markup = await mount('closed-menu-character')
     expect(markup).toContain('aria-expanded="false"')

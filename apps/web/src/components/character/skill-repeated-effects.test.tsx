@@ -12,10 +12,10 @@ import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 describe('compact repeated effect reports', () => {
   it('shows current Sevenfold as one seven-application parameter and one explanation', () => {
     const sevenfold = resolveEssenceForBuild('edgedancer', null)!.skill
-    expect(skillEffectSummaries(sevenfold)).toEqual(['Dmg [9] ×7'])
+    expect(skillEffectSummaries(sevenfold)).toEqual(['Dmg [9] [Enemy] ×7'])
     expect(skillPreviewEffects(sevenfold)).toHaveLength(1)
     const html = renderToStaticMarkup(<SkillDetails skill={sevenfold} expanded />)
-    expect(html.replace(/<[^>]*>/g, '')).toContain('Dmg [9] ×7')
+    expect(html.replace(/<[^>]*>/g, '')).toContain('Dmg [9] [Enemy] ×7')
     expect(html.match(/Skill power ranges from 1 to 20/g)).toHaveLength(1)
     expect(sevenfold.effects).toHaveLength(7)
   })
@@ -38,10 +38,10 @@ describe('compact repeated effect reports', () => {
       effectDescriptions: ['same', ' same ', '', '', 'distinct'],
     }
     expect(skillEffectSummaries(definition)).toEqual([
-      'Dmg [9] ×2',
-      'Dmg [8]',
-      'Dmg [9]',
-      'Dmg [9]',
+      'Dmg [9] [Enemy] ×2',
+      'Dmg [8] [Enemy]',
+      'Dmg [9] [Self]',
+      'Dmg [9] [Enemy]',
     ])
     expect(skillPreviewEffects(definition).map((row) => row.explanation)).toContain('distinct')
   })

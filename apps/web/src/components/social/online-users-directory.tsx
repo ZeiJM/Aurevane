@@ -12,7 +12,7 @@ import {
   compareDirectoryCharacters,
   formatLastSeenAt,
   readableDisciplinePair,
-  readableIdentity,
+  readableDisciplineName,
   type DirectorySortOrder,
 } from './online-users-directory-utils'
 import { PublicCharacterPortrait, PublicCharacterProfile } from './public-character-profile'
@@ -37,8 +37,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
   const classOptions = useMemo(() => {
     const options = new Map<string, string>()
     for (const character of directory ?? []) {
-      for (const disciplineId of [character.disciplineId, character.secondaryDisciplineId]) {
-        const label = readableIdentity(disciplineId)
+      for (const [disciplineId, name] of [
+        [character.disciplineId, character.disciplineName],
+        [character.secondaryDisciplineId, character.secondaryDisciplineName],
+      ]) {
+        const label = readableDisciplineName(disciplineId ?? null, name)
         if (disciplineId && label) options.set(disciplineId, label)
       }
     }
@@ -210,6 +213,8 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
               const discipline = readableDisciplinePair(
                 character.disciplineId,
                 character.secondaryDisciplineId,
+                character.disciplineName,
+                character.secondaryDisciplineName,
               )
               const online = isOnline(character)
               const lastSeen = formatLastSeenAt(character.lastSeenAt, currentNow)

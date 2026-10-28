@@ -36,6 +36,13 @@ function packetAction(
   return {
     ...action,
     effects: ordinals.map((ordinal) => action.effects[ordinal]!),
+    ...(action.effectEligibleRecipientIds
+      ? {
+          effectEligibleRecipientIds: ordinals.map(
+            (ordinal) => action.effectEligibleRecipientIds![ordinal],
+          ),
+        }
+      : {}),
     ...(action.effectOrigins
       ? { effectOrigins: ordinals.map((ordinal) => action.effectOrigins![ordinal]) }
       : {}),

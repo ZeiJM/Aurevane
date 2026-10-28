@@ -29,3 +29,22 @@
   outline: 2px solid currentColor;
   outline-offset: 2px;
 }
+
+.target {
+  color: #ffb475;
+  font-weight: 650;
+}
+
+:global(.av-master) .target {
+  color: #65310e;
+}
+
+:global(.av-master) .label,
+:global(.av-master) .magnitude,
+:global(.av-master) .reference {
+  color: #503510;
+}
+
+:global(.av-master) .timing {
+  color: #12463e;
+}

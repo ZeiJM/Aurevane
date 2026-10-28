@@ -9,6 +9,7 @@ import { summarizeBattleLogTerrain } from './battle-log-terrain-summary'
 export type ChronicleFamily =
   'movement' | 'idle' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
 export interface ChronicleOutcome {
+  battleTag?: BattleLogEntry['battleTag']
   key: string
   text: string
   recipient?: string
@@ -61,6 +62,7 @@ const OMITTED_EVENTS = new Set([
   'pvp_turn_timed_out',
   'ai_turn_timed_out',
   'mp_spent',
+  'hp_spent',
   'summon_ability_used',
   'skill_cooldown_advanced',
   'skill_cooldown_ready',
@@ -333,6 +335,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
   const value = entry.templateValues
   const base = {
     key: eventKey(entry),
+    ...(entry.battleTag ? { battleTag: entry.battleTag } : {}),
     tone: 'neutral' as const,
     ...(entry.potencyBasisPoints !== undefined
       ? { potencyBasisPoints: entry.potencyBasisPoints }

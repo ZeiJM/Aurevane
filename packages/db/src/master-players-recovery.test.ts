@@ -109,6 +109,57 @@ const sourceCommand = {
   xp: 0,
   attributes: { might: 11, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
 }
+it('reads the actual pinned progression curve and includes changes in correction review identity', async () => {
+  const before = (await read()).rows[0]!.result
+  const facts = before.facts as Record<string, unknown>
+  expect(facts.progressionCurve).toMatchObject({
+    version: expect.any(Number),
+    maxLevel: 100,
+    cumulativeXpByLevel: expect.any(Array),
+  })
+  const original = (facts.progressionCurve as { cumulativeXpByLevel: number[] }).cumulativeXpByLevel
+  await db.query(
+    `insert into app_private.level_progression_curves(version,label,max_level,cumulative_xp_by_level) values(987,'Correction fixture',100,$1)`,
+    [original.map((x) => x * 2)],
+  )
+  await db.exec(
+    'update app_private.progression_cycle_level_curves set curve_version=987 where progression_cycle=1',
+  )
+  const after = (await read()).rows[0]!.result
+  expect(after.fingerprint).not.toBe(before.fingerprint)
+  await denied(() => edit(sourceCommand, request, String(before.fingerprint)), /VERSION_STALE/)
+})
+it('de-levels atomically, clears conversion and keeps personal points coherent on reentry without awarding XP', async () => {
+  const increased = {
+    ...sourceCommand,
+    xp: 100,
+    attributes: { ...sourceCommand.attributes, might: 13 },
+  }
+  await edit(increased, crypto.randomUUID())
+  await db.exec(
+    `update app_private.character_attribute_personal_allocations set conversion_required=true where character_id='${character}'`,
+  )
+  const before = (await read()).rows[0]!.result
+  const lowered = { ...sourceCommand, attributes: { ...sourceCommand.attributes, might: 12 } }
+  await edit(lowered, request, String(before.fingerprint))
+  const allocation = (
+    await db.query<Record<string, unknown>>(
+      'select * from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]!
+  expect(allocation).toMatchObject({ level: 1, conversion_required: false, unspent_points: 0 })
+  expect((await edit(lowered, request, String(before.fingerprint))).rows[0]!.result.replayed).toBe(
+    true,
+  )
+  expect(
+    (
+      await db.query('select * from app_private.character_xp_grants where character_id=$1', [
+        character,
+      ])
+    ).rows,
+  ).toEqual([])
+})
 interface TestSnapshot {
   [key: string]: unknown
   tactical: {

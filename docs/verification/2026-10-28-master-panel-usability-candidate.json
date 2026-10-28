@@ -1,0 +1,83 @@
+{
+  "status": "local-candidate-pending-GitHub-and-native-verification",
+  "applicationSourceCommit": "fac59902ca6f1b83ea72719d9e05095eded531e0",
+  "baseline": "aa46bcd04af053299dea582a6edfa0c37578b297",
+  "tests": {
+    "worker": 2,
+    "audio": 18,
+    "database": 432,
+    "gameCore": 5731,
+    "realtime": 3,
+    "validation": 106,
+    "web": 7140,
+    "webNodeChecks": 7
+  },
+  "localChecks": {
+    "format": "passed",
+    "lint": "passed",
+    "types": "passed",
+    "productionBuild": "passed",
+    "nativeHarnessCompile": "passed",
+    "nativeBrowser": "blocked-before-launch-executor-socket-denial",
+    "independentAudioListening": "not-claimed"
+  },
+  "migrations": [
+    {
+      "path": "supabase/migrations/20261028032631_master_discipline_skill_capacity.sql",
+      "sha256": "10e7f3bc4e4e48d636db355c960bc2fb4c579ba14d403da833e003bc1d6ec97a",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028040228_master_panel_navigation.sql",
+      "sha256": "7eae36abb82df8c05225875427d2012c9ae6ed03fb0d49eec945beee8523b72b",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028041440_current_character_primary_profile_refresh.sql",
+      "sha256": "b363642cbfdc4810fdca2f6903d8b3d5c819bdc452e3ff65545e6386a856f628",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028060810_master_effect_tag_wording_defaults.sql",
+      "sha256": "69110e64610979fa9ac5aad0ec939cb446476b856ece7e93b2947f8aeaadf8d6",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028113418_discipline_delete_review.sql",
+      "sha256": "ce2d992ab02706054d2b2f093e30639e6fb2c41e8f18a1f52749fb058faeaef4",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028125028_player_correction_progression_curve.sql",
+      "sha256": "3f7362899df9d882596f0f04393b6a449ea6a2060c7b4ce90b0bd765cac270f8",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028130439_moderation_active_bans.sql",
+      "sha256": "9804065d5ed26d67ba2f17eed71c0844c7c081f0bd05205b48c45b8faa30ec51",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028131920_self_account_ban_status.sql",
+      "sha256": "4e62d2bafdec3e308387e19ff5eb78d9c35deda1ec5b76f7316a239e0e77fa03",
+      "hostedApplied": false
+    },
+    {
+      "path": "supabase/migrations/20261028195800_usage_balance_week_selection.sql",
+      "sha256": "91598e48569eed1de3162764ed4fe9a221223a2c94671bfba921de31392d75cc",
+      "hostedApplied": false
+    }
+  ],
+  "artworkBaseline": {
+    "path": "apps/web/src/media/content-artwork-defaults.json",
+    "sha256": "55a3ccbad8b1a123e9d8520f0a1449a617686563899e981fea50e81c0b0732dd"
+  },
+  "audioRelease": {
+    "path": "content/media-releases/skill-fx-v01.json",
+    "sha256": "5f4f51a315626a0ec64a0d9888e3ad403c3e7d57da50d79ce18db8f02bc75bf5"
+  },
+  "githubPublication": "blocked-pending-explicit-authorization-after-auto-review-rejection",
+  "githubChecks": "not-run",
+  "deployment": "not-authorized-or-performed",
+  "automaticGitDeployment": "disabled"
+}

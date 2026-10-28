@@ -1,10 +1,14 @@
 'use client'
 
-import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
+import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { useState } from 'react'
+import { reconcileEffectRowIdentity, type EffectRowIdentity } from './effect-row-identity'
+import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
+import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
+import { EffectTagPicker } from './effect-tag-picker'
 
-import { previewEffect } from '../../character/skill-effect-preview'
+import { inheritedEffectTargetLabel } from './effect-target-editor'
 import styles from './combat-content-editor.module.css'
 import { SkillEffectEditor } from './skill-effect-editor'
 
@@ -15,28 +19,6 @@ export type CombatEffectType =
   | 'blindside'
   | 'cleanse-chilled'
   | 'conditional-cleanse'
-
-const EFFECT_TYPES: readonly { value: CombatEffectType; label: string }[] = [
-  { value: 'damage', label: 'Damage' },
-  { value: 'percentage-recovery', label: 'HP / MP percentage recovery' },
-  { value: 'healing', label: 'Legacy HP amount' },
-  { value: 'resource-change', label: 'MP change' },
-  { value: 'apply-status', label: 'Apply status' },
-  { value: 'blindside', label: 'Blindside · Instant, 1 turn' },
-  { value: 'remove-status', label: 'Cleanse / Dispel' },
-  { value: 'conditional-cleanse', label: 'Conditional Cleanse' },
-  { value: 'cleanse-chilled', label: 'Cleanse Chilled' },
-  { value: 'return-to-turn-start', label: 'Return to turn start' },
-  { value: 'create-terrain', label: 'Create Frozen Ground' },
-  { value: 'push', label: 'Push' },
-  { value: 'pull', label: 'Pull' },
-  { value: 'poison', label: 'Poison' },
-  { value: 'bleed', label: 'Bleed' },
-  { value: 'burn', label: 'Burn' },
-  { value: 'barrier-change', label: 'Barrier' },
-  { value: 'copy-statuses', label: 'Copy Buffs / Copy Debuffs' },
-  { value: 'sensory', label: 'Reveal / Revealed' },
-]
 
 function assertNever(value: never): never {
   throw new TypeError(`Unsupported combat effect type: ${String(value)}`)
@@ -178,6 +160,7 @@ export function moveCombatEffectDescription(
 }
 
 export interface SkillEffectListEditorProps {
+  readonly aim?: CombatTargetSpec
   readonly canonicalDamage?: boolean
   readonly value: readonly CombatEffectDefinition[]
   readonly effectDescriptions?: readonly (string | null)[]
@@ -190,38 +173,39 @@ export interface SkillEffectListEditorProps {
 
 export function SkillEffectListEditor({
   value,
+  aim,
   effectDescriptions,
   maxEffects,
   canonicalDamage = false,
   onChange,
 }: SkillEffectListEditorProps) {
-  const [newEffectType, setNewEffectType] = useState<CombatEffectType>('damage')
+  const [rowIdentity, setRowIdentity] = useState<EffectRowIdentity<CombatEffectDefinition>>({
+    value,
+    keys: value.map((_, index) => index),
+    next: value.length,
+  })
+  const rows =
+    rowIdentity.value === value ? rowIdentity : reconcileEffectRowIdentity(rowIdentity, value)
+  if (rows !== rowIdentity) setRowIdentity(rows)
   const alignedDescriptions = alignedEffectDescriptions(value, effectDescriptions)
 
   return (
     <fieldset className={styles.typedGroup}>
-      <legend>Ordered effects</legend>
+      <legend>Effects</legend>
 
       <div
         className={styles.effectList}
         data-effect-sequence={value.map((effect) => effect.type).join('|')}
       >
         {value.map((effect, index) => (
-          <article className={styles.effectCard} key={`${index}:${effect.type}`}>
+          <article className={styles.effectCard} key={rows.keys[index]}>
             <header className={styles.effectHeader}>
               <div>
                 <span className={styles.effectOrdinal}>Effect {index + 1}</span>
-                <strong>
-                  {effect.type === 'displace'
-                    ? effect.direction === 'pull'
-                      ? 'Pull'
-                      : 'Push'
-                    : effect.type === 'remove-status'
-                      ? previewEffect(effect).label
-                      : effect.type === 'apply-status' && effect.statusId === 'blindside'
-                        ? 'Blindside'
-                        : EFFECT_TYPES.find((entry) => entry.value === effect.type)?.label}
-                </strong>
+                <strong>{effectAuthoringTag(effect).label}</strong>
+                <span className={styles.effectTarget}>
+                  [{inheritedEffectTargetLabel(effect, aim)}]
+                </span>
               </div>
               <div className={styles.effectActions}>
                 <button
@@ -263,68 +247,34 @@ export function SkillEffectListEditor({
                 </button>
               </div>
             </header>
-            <SkillEffectEditor
-              canonicalDamage={canonicalDamage && effect.type === 'damage' ? 'damage' : undefined}
-              value={effect}
-              onChange={(nextEffect) =>
-                onChange(
-                  value.map((candidate, effectIndex) =>
-                    effectIndex === index ? nextEffect : candidate,
-                  ),
-                  alignedDescriptions,
-                )
-              }
-            />
-            <label className={`${styles.field} ${styles.effectDescriptionField}`}>
-              <span>Player-facing effect description</span>
-              <input
-                aria-label={`Effect ${index + 1} player-facing description`}
-                type="text"
-                maxLength={240}
-                placeholder={previewEffect(effect).explanation}
-                value={alignedDescriptions[index] ?? ''}
-                onChange={(event) => {
-                  const nextDescriptions = [...alignedDescriptions]
-                  nextDescriptions[index] = event.currentTarget.value.trim()
-                    ? event.currentTarget.value
-                    : null
-                  onChange(value, nextDescriptions)
-                }}
+            <details className={styles.effectBody} data-effect-collapsible="true">
+              <summary>Edit parameters</summary>
+              <SkillEffectEditor
+                aim={aim}
+                siblings={value}
+                canonicalDamage={canonicalDamage && effect.type === 'damage' ? 'damage' : undefined}
+                value={effect}
+                onChange={(nextEffect) =>
+                  onChange(
+                    value.map((candidate, effectIndex) =>
+                      effectIndex === index ? nextEffect : candidate,
+                    ),
+                    alignedDescriptions,
+                  )
+                }
               />
-              <small className={styles.fieldHint}>
-                Leave blank to use the generated wording. Presentation only; this never changes the
-                authoritative combat effect.
-              </small>
-            </label>
+            </details>
           </article>
         ))}
       </div>
 
-      <div className={styles.effectAdd}>
-        <label className={styles.field}>
-          <span>New effect type</span>
-          <select
-            aria-label="New effect type"
-            value={newEffectType}
-            onChange={(event) => setNewEffectType(event.currentTarget.value as CombatEffectType)}
-          >
-            {EFFECT_TYPES.map((entry) => (
-              <option key={entry.value} value={entry.value}>
-                {entry.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          disabled={maxEffects !== undefined && value.length >= maxEffects}
-          onClick={() =>
-            onChange(appendCombatEffect(value, newEffectType), [...alignedDescriptions, null])
-          }
-        >
-          Add effect
-        </button>
-      </div>
+      <EffectTagPicker
+        nativeOnly
+        disabled={maxEffects !== undefined && value.length >= maxEffects}
+        onAdd={(payload) =>
+          onChange([...value, nativeCombatTagPayload(payload)], [...alignedDescriptions, null])
+        }
+      />
 
       <p className={styles.effectNote}>
         Effect order is authoritative.

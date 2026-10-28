@@ -5,6 +5,10 @@ import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character
 import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
+import {
+  validateLevelProgressionCurve,
+  type LevelProgressionCurve,
+} from '@aurevane/game-core/character/progression'
 import type {
   MasterPlayerFacts,
   MasterPlayerSearchResult,
@@ -57,10 +61,14 @@ export function parsePlayerCorrection(value: unknown): PlayerCorrection {
     if (
       (!Object.hasOwn(value, 'primary') && !Object.hasOwn(value, 'secondary')) ||
       (Object.hasOwn(value, 'primary') &&
-        (typeof value.primary !== 'string' || !/^[a-z][a-z-]{0,79}$/u.test(value.primary))) ||
+        (typeof value.primary !== 'string' ||
+          value.primary.length > 160 ||
+          !/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u.test(value.primary))) ||
       (Object.hasOwn(value, 'secondary') &&
         value.secondary !== null &&
-        (typeof value.secondary !== 'string' || !/^[a-z][a-z-]{0,79}$/u.test(value.secondary)))
+        (typeof value.secondary !== 'string' ||
+          value.secondary.length > 160 ||
+          !/^[a-z0-9]+(?:[._-][a-z0-9]+)*$/u.test(value.secondary)))
     )
       invalid()
   } else if (value.kind === 'skills') {
@@ -104,6 +112,17 @@ function projectPlayer(raw: unknown): MasterPlayerView {
   )
     unavailable()
   const facts = raw.facts as unknown as MasterPlayerFacts
+  let progressionCurve: LevelProgressionCurve | undefined
+  if (raw.facts.progressionCurve !== undefined) {
+    const curve = raw.facts.progressionCurve
+    if (!playerRecord(curve) || !Array.isArray(curve.cumulativeXpByLevel)) unavailable()
+    progressionCurve = {
+      version: Number(curve.version),
+      maxLevel: Number(curve.maxLevel),
+      cumulativeXpByLevel: curve.cumulativeXpByLevel,
+    }
+    if (validateLevelProgressionCurve(progressionCurve).length) unavailable()
+  }
   const stats = calculateDerivedStats({ level: facts.level, attributes: facts.attributes }).stats
   let battle: MasterPlayerView['battle'] = null
   if (playerRecord(raw.battle)) {
@@ -176,6 +195,7 @@ function projectPlayer(raw: unknown): MasterPlayerView {
       build: facts.build,
     },
     ...(attributePolicy ? { attributePolicy } : {}),
+    ...(progressionCurve ? { progressionCurve } : {}),
     calculated: {
       maxHp: stats.maxHp.value,
       maxMp: stats.maxMp.value,
@@ -202,6 +222,7 @@ function projectPlayer(raw: unknown): MasterPlayerView {
 export function createMasterPlayersService(
   access: Pick<MasterPanelStaffAccessService, 'requireCapability'>,
   rpc: PlayersRpc,
+  readContentNames?: (player: MasterPlayerView) => Promise<Readonly<Record<string, string>>>,
 ) {
   const call = async (userId: string, name: string, parameters: Record<string, unknown>) => {
     await access.requireCapability(userId, 'players.manage')
@@ -209,6 +230,10 @@ export function createMasterPlayersService(
   }
   const readRaw = (userId: string, characterId: string) =>
     call(userId, 'read_master_player_v1', { p_character_id: characterId })
+  const project = async (raw: unknown) => {
+    const player = projectPlayer(raw)
+    return readContentNames ? { ...player, contentNames: await readContentNames(player) } : player
+  }
   return {
     async search(userId: string, query: string): Promise<MasterPlayerSearchResult[]> {
       if (query.trim().length < 2 || query.trim().length > 48) invalid()
@@ -217,7 +242,7 @@ export function createMasterPlayersService(
       return result as MasterPlayerSearchResult[]
     },
     async read(userId: string, characterId: string) {
-      return projectPlayer(await readRaw(userId, characterId))
+      return project(await readRaw(userId, characterId))
     },
     async edit(
       userId: string,
@@ -234,7 +259,7 @@ export function createMasterPlayersService(
         p_command: correction,
         p_confirmed: true,
       })
-      return projectPlayer(await readRaw(userId, characterId))
+      return project(await readRaw(userId, characterId))
     },
     async recover(
       userId: string,

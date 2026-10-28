@@ -1,3 +1,4 @@
+import { effectTargetLabel } from './effect-target-presentation'
 import { groupSkillEffects } from './skill-effect-groups'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import type { SkillEffectTimingPolicy } from './skill-effect-timing-context'
@@ -13,21 +14,12 @@ import {
 } from '@aurevane/game-core/combat/mature-skills'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
-import { previewEffect } from './skill-effect-preview'
+import { previewEffectWithTag } from './skill-effect-preview'
 import { skillEffectSummaries, skillDisplayName } from './skill-detail-presentation'
 import { skillInformationRows, type SkillCharacteristic } from './skill-information-contract'
 
 export function resonanceResultRecipient(effect: CombatEffectDefinition): string {
-  switch (effect.recipient) {
-    case 'actor':
-      return 'Self'
-    case 'primary-unit':
-      return 'Trigger Skill selected unit'
-    case 'affected-units':
-      return 'Trigger Skill affected units'
-    case 'affected-tiles':
-      return 'Trigger Skill affected tiles'
-  }
+  return effectTargetLabel(effect)
 }
 
 export function resonanceMatcher(
@@ -64,26 +56,21 @@ export function resonanceCharacteristicRows(
       Requirements: 'Unavailable',
       Effects: 'Unavailable',
       Range: 'Unavailable',
-      Target: 'Unavailable',
       'Target Method': 'Unavailable',
       'Target Elevation': 'Unavailable',
       'Line of Sight': 'Unavailable',
     })
   }
   const mechanics = normalizedResonanceMechanics(definition)
-  const recipients = [...new Set(mechanics.resultEffects.map(resonanceResultRecipient))]
-  const grouped = groupSkillEffects(mechanics.resultEffects)
   return skillInformationRows<string | readonly string[]>({
     'Skill Type': 'Utility',
     Cost: 'N/A',
     Cooldown: 'N/A',
     Requirements: mechanics.setup ? resonanceMatcher(mechanics.setup, knownSkills) : 'N/A',
     Effects: skillEffectSummaries({ effects: mechanics.resultEffects }, timingPolicy).map(
-      (summary, index) =>
-        `${resonanceMatcher(mechanics.trigger, knownSkills)}: ${summary}${grouped[index]!.effect.recipient === 'actor' ? '' : ` → ${resonanceResultRecipient(grouped[index]!.effect)}`}`,
+      (summary) => `${resonanceMatcher(mechanics.trigger, knownSkills)}: ${summary}`,
     ),
     Range: 'N/A',
-    Target: recipients.join('; ') || 'N/A',
     'Target Method': 'N/A',
     'Target Elevation': 'N/A',
     'Line of Sight': 'N/A',
@@ -100,7 +87,7 @@ export function resonanceSupplementalRows(
     [
       'Result details',
       groupSkillEffects(mechanics.resultEffects).map(
-        ({ effect }) => previewEffect(effect).explanation,
+        ({ effect }) => previewEffectWithTag(effect, definition.tagPresentation).explanation,
       ),
     ],
   ]

@@ -437,3 +437,7 @@
     font-size: 0.6875rem !important;
   }
 }
+
+.article [data-compact-effect-target] {
+  color: #65310e;
+}

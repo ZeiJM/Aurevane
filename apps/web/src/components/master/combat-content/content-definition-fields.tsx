@@ -1,6 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { readMechanicsBody, writeMechanicsBody } from './essence-editor-mechanics'
+import { newResonanceAbility } from './new-resonance-ability'
+import { TagWordingFields } from './tag-wording-fields'
+
+import { useId, useState, type ReactNode } from 'react'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import type {
   AuthoredDiscipline,
@@ -12,10 +16,14 @@ import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-bas
 import { BASIC_SKILL_IDS } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
-import { COMBAT_TAG_REGISTRY } from '@aurevane/game-core/combat/combat-tag-registry'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import type { RequirementNode } from '@aurevane/game-core/combat/combat-requirements'
+import {
+  AbilityEditorTabs,
+  ABILITY_EDITOR_SECTIONS,
+  type AbilityEditorSection,
+} from './ability-editor-tabs'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
 import { AbilityNumber, AbilitySelect, AbilityText } from './ability-editor-fields'
@@ -26,11 +34,17 @@ import { FinalizedMediaEditor } from './finalized-media-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 import { SkillGroundEditor, withSkillGroundArea } from './skill-ground-editor'
 import { SkillEconomyEditor } from './skill-economy-editor'
+import {
+  deriveSharedEffectAim,
+  hasSelectedAimRequirement,
+} from '@aurevane/game-core/combat/combat-effect-target-authoring'
+import { SkillFormatUpgradeControl } from './skill-format-upgrade-control'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import { ResonanceMechanicsFields } from './resonance-mechanics-fields'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
 import styles from './game-content-workspace.module.css'
+import { contentArtworkDefault } from '@/media/content-artwork-defaults'
 import { disciplineSigilArtwork } from '@/media/discipline-sigil-art'
 import { MasterHelp } from '../master-help'
 import { contentRecordName } from './content-record-workflow'
@@ -469,15 +483,30 @@ function DisciplineFields({
 }
 function SkillMechanics({
   value,
-  onChange,
+  onChange: update,
+  section,
 }: {
+  section?: AbilityEditorSection
   value: MatureSkillDefinition
   onChange(value: MatureSkillDefinition): void
 }) {
+  const onChange = (next: MatureSkillDefinition) =>
+    update({
+      ...next,
+      target:
+        next.ability ||
+        (next.target.maximumSelections ?? 1) > 1 ||
+        (next.effects === value.effects && next.target === value.target)
+          ? next.target
+          : deriveSharedEffectAim(next.target, next.effects, {
+              requiresSelectedUnit: hasSelectedAimRequirement(next.requirements),
+            }),
+    })
   if (value.ability)
     return (
       <AbilityDefinitionEditor
         value={value.ability}
+        section={section}
         effectDescriptions={value.effectDescriptions}
         onChange={(ability, effectDescriptions) =>
           onChange({ ...value, ability, effectDescriptions })
@@ -486,56 +515,77 @@ function SkillMechanics({
     )
   return (
     <>
-      <SkillTargetingEditor
-        value={value.target}
-        v51Rules={value.authoring.validationTags.includes('owner-rebalance-v5-1')}
-        onChange={(target) => onChange({ ...value, target })}
-      />
-      <SkillGroundEditor
-        target={value.target}
-        effects={value.effects}
-        value={value.groundArea}
-        onChange={(groundArea) => onChange(withSkillGroundArea(value, groundArea))}
-      />
-      <SkillEconomyEditor
-        value={value}
-        cooldownLockedByRequirement={value.requirements.length > 0}
-        onChange={(economy) => onChange({ ...value, ...economy })}
-      />
-      <SkillEffectListEditor
-        value={value.effects.filter(isMaterializedCombatEffect)}
-        effectDescriptions={value.effectDescriptions?.filter(
-          (_, index) => value.effects[index]?.type !== 'summon',
-        )}
-        onChange={(effects, effectDescriptions) =>
-          onChange({
-            ...value,
-            effects: [...effects, ...value.effects.filter((effect) => effect.type === 'summon')],
-            effectDescriptions: [
-              ...effectDescriptions,
-              ...value.effects.flatMap((effect, index) =>
-                effect.type === 'summon' ? [value.effectDescriptions?.[index] ?? null] : [],
-              ),
-            ],
-          })
-        }
-      />
-      {value.summonProfile ? (
-        <SummonProfileEditor
-          value={value.summonProfile}
-          onChange={(summonProfile) => onChange({ ...value, summonProfile })}
+      {(!section || section === 'range') && (
+        <>
+          <SkillTargetingEditor
+            value={value.target}
+            effects={value.effects}
+            v51Rules={value.authoring.validationTags.includes('owner-rebalance-v5-1')}
+            onChange={(target) => onChange({ ...value, target })}
+          />
+          <SkillGroundEditor
+            target={value.target}
+            effects={value.effects}
+            value={value.groundArea}
+            onChange={(groundArea) => onChange(withSkillGroundArea(value, groundArea))}
+          />
+        </>
+      )}
+      {(!section || section === 'economy' || section === 'accuracy') && (
+        <SkillEconomyEditor
+          value={value}
+          section={
+            section === 'accuracy' ? 'accuracy' : section === 'economy' ? 'economy' : undefined
+          }
+          cooldownLockedByRequirement={value.requirements.length > 0}
+          onChange={(economy) => onChange({ ...value, ...economy })}
         />
-      ) : null}
-      <JsonSettings
-        label="Retained Skill requirements"
-        value={value.requirements}
-        onChange={(requirements) =>
-          onChange({
-            ...value,
-            requirements: requirements as MatureSkillDefinition['requirements'],
-          })
-        }
-      />
+      )}
+      {(!section || section === 'effects') && (
+        <>
+          <SkillFormatUpgradeControl value={value} onChange={onChange} />
+          <SkillEffectListEditor
+            aim={value.target}
+            value={value.effects.filter(isMaterializedCombatEffect)}
+            effectDescriptions={value.effectDescriptions?.filter(
+              (_, index) => value.effects[index]?.type !== 'summon',
+            )}
+            onChange={(effects, effectDescriptions) =>
+              onChange({
+                ...value,
+                effects: [
+                  ...effects,
+                  ...value.effects.filter((effect) => effect.type === 'summon'),
+                ],
+                effectDescriptions: [
+                  ...effectDescriptions,
+                  ...value.effects.flatMap((effect, index) =>
+                    effect.type === 'summon' ? [value.effectDescriptions?.[index] ?? null] : [],
+                  ),
+                ],
+              })
+            }
+          />
+          {value.summonProfile ? (
+            <SummonProfileEditor
+              value={value.summonProfile}
+              onChange={(summonProfile) => onChange({ ...value, summonProfile })}
+            />
+          ) : null}
+        </>
+      )}
+      {(!section || section === 'details') && (
+        <JsonSettings
+          label="Retained Skill requirements"
+          value={value.requirements}
+          onChange={(requirements) =>
+            onChange({
+              ...value,
+              requirements: requirements as MatureSkillDefinition['requirements'],
+            })
+          }
+        />
+      )}
     </>
   )
 }
@@ -545,21 +595,50 @@ export function ContentDefinitionFields({
   tab,
   onChange,
   choices = [],
+  abilitySection,
+  initialAbilitySection,
 }: {
   kind: CombatContentKind
   value: CombatContentDefinition
   tab: ContentEditorTab
+  abilitySection?: AbilityEditorSection
+  initialAbilitySection?: AbilityEditorSection
   onChange(value: CombatContentDefinition): void
   choices?: readonly ContentReference[]
 }) {
+  if (kind === 'tag' && tab === 'Parameters')
+    return <TagWordingFields value={value} onChange={onChange} />
   const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch })
   const basic =
     kind === 'skill' && (BASIC_SKILL_IDS as readonly string[]).includes(String(value.id))
   const combat = kind === 'skill' || kind === 'essence' || kind === 'resonance'
-  const body = kind === 'essence' ? objectValue(value.skill) : value
-  const setBody = (next: CombatContentDefinition) =>
-    kind === 'essence' ? set({ skill: next }) : onChange(next)
+  const body = readMechanicsBody(kind, value)
+  const setBody = (next: CombatContentDefinition) => onChange(writeMechanicsBody(kind, value, next))
   const name = contentRecordName(value)
+  if (tab === 'Parameters' && combat && !abilitySection)
+    return (
+      <AbilityEditorTabs
+        key={String(value.id ?? value.essenceId ?? kind)}
+        initialSection={initialAbilitySection}
+        panels={
+          Object.fromEntries(
+            ABILITY_EDITOR_SECTIONS.map((section) => [
+              section.id,
+              <ContentDefinitionFields
+                key={section.id}
+                kind={kind}
+                value={value}
+                choices={choices}
+                onChange={onChange}
+                tab={section.id === 'media' ? 'Media' : 'Parameters'}
+                abilitySection={section.id}
+              />,
+            ]),
+          ) as Record<AbilityEditorSection, ReactNode>
+        }
+      />
+    )
+  const details = !combat || abilitySection === 'details'
   if (tab === 'Media') {
     if (kind === 'effect-profile' || kind === 'status')
       return <p>Media has no supported use for this category.</p>
@@ -570,11 +649,36 @@ export function ContentDefinitionFields({
         onChange={(media) => setBody({ ...body, media })}
       />
     ) : (
-      <FinalizedMediaEditor
-        value={objectValue(value.media)}
-        allowAudio={false}
-        onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
-      />
+      <>
+        {kind === 'discipline' && (
+          <button
+            type="button"
+            onClick={() => {
+              const baseline = contentArtworkDefault(String(value.id))
+              set({
+                media: {
+                  ...objectValue(value.media),
+                  artwork: baseline.artwork,
+                  artworkId: baseline.artworkId,
+                },
+              })
+            }}
+          >
+            Restore default artwork
+          </button>
+        )}
+        <FinalizedMediaEditor
+          value={objectValue(value.media)}
+          allowAudio={false}
+          showArtworkRemoval={kind !== 'discipline'}
+          fallbackArtwork={
+            kind === 'discipline'
+              ? (disciplineSigilArtwork(String(value.id)) ?? undefined)
+              : undefined
+          }
+          onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
+        />
+      </>
     )
   }
   if (tab === 'Text')
@@ -597,76 +701,53 @@ export function ContentDefinitionFields({
     )
   return (
     <>
-      <fieldset className={styles.identityGroup}>
-        <legend>Identity</legend>
-        <AbilityText
-          label="Name"
-          value={name}
-          maxLength={kind === 'discipline' ? 80 : 120}
-          onChange={(name) => onChange(withContentIdentityText(kind, value, 'name', name))}
-        />
-        {kind !== 'status' ? (
-          <Toggle
-            label="Enabled"
-            value={value.enabled !== false}
-            onChange={(enabled) => set({ enabled })}
+      {details && (
+        <fieldset className={styles.identityGroup}>
+          <legend>Identity</legend>
+          <AbilityText
+            label="Name"
+            value={name}
+            maxLength={kind === 'discipline' ? 80 : 120}
+            onChange={(name) => onChange(withContentIdentityText(kind, value, 'name', name))}
           />
-        ) : null}
-        {!combat && kind !== 'status' ? (
-          <AbilityNumber
-            label="Display order"
-            min={0}
-            max={1000000}
-            value={Number(value.sortOrder ?? 0)}
-            onChange={(sortOrder) => set({ sortOrder })}
-          />
-        ) : null}
-        {(kind === 'skill' && !basic) || kind === 'essence' ? (
-          <ContentReferenceSelect
-            label="Source Discipline"
-            kind="discipline"
-            value={text(value.sourceDisciplineId)}
-            choices={choices}
-            onChange={(sourceDisciplineId) =>
-              set(
-                kind === 'essence'
-                  ? { sourceDisciplineId, skill: { ...body, sourceDisciplineId } }
-                  : { sourceDisciplineId },
-              )
-            }
-          />
-        ) : null}
-        {kind === 'tag' ? (
-          <AbilitySelect
-            label="Canonical Tag"
-            value={text(value.tagId)}
-            options={COMBAT_TAG_REGISTRY.map((row) => row.id)}
-            onChange={(tagId) => set({ tagId })}
-          />
-        ) : null}
-      </fieldset>
-      <ContentDescriptionFields kind={kind} value={value} choices={choices} onChange={onChange} />
-      {kind !== 'status' && kind !== 'tag' ? (
-        <details className={styles.mediaSection} open={kind === 'discipline'}>
-          <summary>Artwork{combat ? ' and sound' : ''}</summary>
-          {combat ? (
-            <SkillMediaEditor
-              contentId={String(body.id ?? value.id ?? value.essenceId)}
-              value={body.media as MatureSkillDefinition['media']}
-              onChange={(media) => setBody({ ...body, media })}
+          {kind !== 'status' ? (
+            <Toggle
+              label="Enabled"
+              value={value.enabled !== false}
+              onChange={(enabled) => set({ enabled })}
             />
-          ) : (
-            <FinalizedMediaEditor
-              value={objectValue(value.media)}
-              allowAudio={false}
-              fallbackArtwork={
-                kind === 'discipline'
-                  ? (disciplineSigilArtwork(String(value.id)) ?? undefined)
-                  : undefined
-              }
-              onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
+          ) : null}
+          {!combat && kind !== 'status' ? (
+            <AbilityNumber
+              label="Display order"
+              min={0}
+              max={1000000}
+              value={Number(value.sortOrder ?? 0)}
+              onChange={(sortOrder) => set({ sortOrder })}
             />
-          )}
+          ) : null}
+          {kind === 'skill' && !basic ? (
+            <ContentReferenceSelect
+              label="Source Discipline"
+              kind="discipline"
+              value={text(value.sourceDisciplineId)}
+              choices={choices}
+              onChange={(sourceDisciplineId) => set({ sourceDisciplineId })}
+            />
+          ) : null}
+        </fieldset>
+      )}
+      {details && (
+        <ContentDescriptionFields kind={kind} value={value} choices={choices} onChange={onChange} />
+      )}
+      {!combat && kind !== 'discipline' && kind !== 'status' && kind !== 'tag' ? (
+        <details className={styles.mediaSection}>
+          <summary>Artwork</summary>
+          <FinalizedMediaEditor
+            value={objectValue(value.media)}
+            allowAudio={false}
+            onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
+          />
         </details>
       ) : null}
       {kind === 'status' ? (
@@ -748,46 +829,53 @@ export function ContentDefinitionFields({
             const skill = value as unknown as BasicSkillDefinition
             return (
               <>
-                <fieldset>
-                  <legend>Native execution</legend>
-                  {skill.execution.kind === 'basic-move' ? (
-                    <AbilitySelect
-                      label="Move cost basis"
-                      value={skill.execution.costBasis}
-                      options={['flat', 'per-terrain-point'] as const}
-                      onChange={(costBasis) =>
-                        set({ execution: { ...skill.execution, costBasis } })
-                      }
-                    />
-                  ) : skill.execution.kind === 'basic-attack' ? (
-                    <AbilityNumber
-                      label="Higher Power scaling (%)"
-                      value={skill.execution.scalingBasisPoints / 100}
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      onChange={(amount) =>
-                        set({
-                          execution: {
-                            ...skill.execution,
-                            scalingBasisPoints: Math.round(amount * 100),
-                          },
-                        })
-                      }
-                    />
-                  ) : (
-                    <AbilitySelect
-                      label="Recovery rounding"
-                      value={skill.execution.recoveryRounding ?? 'floor'}
-                      options={['nearest', 'floor'] as const}
-                      onChange={(recoveryRounding) =>
-                        set({ execution: { ...skill.execution, recoveryRounding } })
-                      }
-                    />
-                  )}
-                </fieldset>
+                {(!abilitySection ||
+                  abilitySection ===
+                    (skill.execution.kind === 'basic-move' ? 'economy' : 'effects')) && (
+                  <>
+                    <fieldset>
+                      <legend>Native execution</legend>
+                      {skill.execution.kind === 'basic-move' ? (
+                        <AbilitySelect
+                          label="Move cost basis"
+                          value={skill.execution.costBasis}
+                          options={['flat', 'per-terrain-point'] as const}
+                          onChange={(costBasis) =>
+                            set({ execution: { ...skill.execution, costBasis } })
+                          }
+                        />
+                      ) : skill.execution.kind === 'basic-attack' ? (
+                        <AbilityNumber
+                          label="Higher Power scaling (%)"
+                          value={skill.execution.scalingBasisPoints / 100}
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          onChange={(amount) =>
+                            set({
+                              execution: {
+                                ...skill.execution,
+                                scalingBasisPoints: Math.round(amount * 100),
+                              },
+                            })
+                          }
+                        />
+                      ) : (
+                        <AbilitySelect
+                          label="Recovery rounding"
+                          value={skill.execution.recoveryRounding ?? 'floor'}
+                          options={['nearest', 'floor'] as const}
+                          onChange={(recoveryRounding) =>
+                            set({ execution: { ...skill.execution, recoveryRounding } })
+                          }
+                        />
+                      )}
+                    </fieldset>
+                  </>
+                )}
                 <AbilityDefinitionEditor
                   value={skill.ability}
+                  section={abilitySection}
                   allowEffectDescriptions={false}
                   onChange={(ability) => set({ ability })}
                 />
@@ -798,40 +886,60 @@ export function ContentDefinitionFields({
       {(kind === 'skill' && !basic) || kind === 'essence' ? (
         <SkillMechanics
           value={body as unknown as MatureSkillDefinition}
+          section={abilitySection}
           onChange={(next) => setBody(asDefinition(next))}
         />
       ) : null}
       {kind === 'resonance' ? (
         <>
-          <div className={styles.fields}>
-            {(value.disciplinePair as string[]).map((id, index) => (
-              <ContentReferenceSelect
-                key={index}
-                label={`Resonance Discipline ${index + 1}`}
-                kind="discipline"
-                value={id}
-                choices={choices}
-                onChange={(next) =>
-                  set({
-                    disciplinePair: (value.disciplinePair as string[]).map((old, i) =>
-                      i === index ? next : old,
-                    ),
-                  })
-                }
-              />
-            ))}
-          </div>
+          {details && (
+            <div className={styles.fields}>
+              {(value.disciplinePair as string[]).map((id, index) => (
+                <ContentReferenceSelect
+                  key={index}
+                  label={`Resonance Discipline ${index + 1}`}
+                  kind="discipline"
+                  value={id}
+                  choices={choices}
+                  onChange={(next) =>
+                    set({
+                      disciplinePair: (value.disciplinePair as string[]).map((old, i) =>
+                        i === index ? next : old,
+                      ),
+                    })
+                  }
+                />
+              ))}
+            </div>
+          )}
           {value.ability ? (
             <AbilityDefinitionEditor
               value={value.ability as AbilityDefinition}
+              section={abilitySection}
               allowEffectDescriptions={false}
               onChange={(ability) => set({ ability })}
             />
           ) : (
-            <ResonanceMechanicsFields
-              value={value as unknown as AnyResonanceDefinition}
-              onChange={(next) => onChange(asDefinition(next))}
-            />
+            <>
+              {abilitySection === 'effects' && (
+                <details>
+                  <summary>Replace retained mechanics with the full editor</summary>
+                  <p>
+                    This replaces this draft’s older sequence trigger and effects with an editable
+                    automatic Self Barrier starter. Configure its activation, requirements and
+                    effects before saving. Saved versions stay intact.
+                  </p>
+                  <button type="button" onClick={() => set({ ability: newResonanceAbility() })}>
+                    Start full Resonance editor
+                  </button>
+                </details>
+              )}
+              <ResonanceMechanicsFields
+                value={value as unknown as AnyResonanceDefinition}
+                section={abilitySection}
+                onChange={(next) => onChange(asDefinition(next))}
+              />
+            </>
           )}
         </>
       ) : null}
@@ -937,10 +1045,10 @@ function ContentDescriptionFields({
   choices?: readonly ContentReference[]
   onChange(value: CombatContentDefinition): void
 }) {
+  const hintId = useId()
   const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch })
-  const body = kind === 'essence' ? objectValue(value.skill) : value
-  const setBody = (next: CombatContentDefinition) =>
-    kind === 'essence' ? set({ skill: next }) : onChange(next)
+  const body = readMechanicsBody(kind, value)
+  const setBody = (next: CombatContentDefinition) => onChange(writeMechanicsBody(kind, value, next))
   const name = contentRecordName(value)
   const basic =
     kind === 'skill' && (BASIC_SKILL_IDS as readonly string[]).includes(String(value.id))
@@ -951,12 +1059,20 @@ function ContentDescriptionFields({
         Description
         <textarea
           aria-label="Description"
+          aria-describedby={`${hintId}-description`}
           value={text(value.description)}
           onChange={(event) =>
             onChange(withContentIdentityText(kind, value, 'description', event.currentTarget.value))
           }
         />
       </label>
+      <small id={`${hintId}-description`}>
+        {kind === 'resonance'
+          ? 'Shown in Resonance details and the Master player preview.'
+          : kind === 'skill' || kind === 'essence'
+            ? 'Shown above the mechanical parameters in full ability details and the Master player preview.'
+            : 'Shown on this content’s player-facing detail view and the Master preview.'}
+      </small>
       {kind === 'tag' ? (
         <>
           <label>
@@ -983,6 +1099,9 @@ function ContentDescriptionFields({
                 maxLength={160}
                 onChange={(flavorLine) => set({ flavorLine })}
               />
+              <small>
+                Shown on the ability selection card in Skills/Arsenal and in battle action details.
+              </small>
               <BattleFlavorTemplateHelp
                 value={text(value.flavorLine)}
                 ability={name}
@@ -990,27 +1109,30 @@ function ContentDescriptionFields({
               />
             </>
           ) : null}
-          {kind !== 'resonance' ? (
-            <>
-              <AbilityText
-                label="In-battle text"
-                value={text(body.battleText)}
-                maxLength={160}
-                onChange={(battleText) => setBody({ ...body, battleText })}
-              />
-              <BattleFlavorTemplateHelp
-                value={text(body.battleText)}
-                ability={name}
-                onChange={(battleText) => setBody({ ...body, battleText })}
-              />
-            </>
-          ) : null}
-          <AbilityPresentationEditor
-            definition={body}
-            name={name}
-            value={body.presentation as MatureSkillDefinition['presentation']}
-            onChange={(presentation) => setBody({ ...body, presentation })}
-          />
+          <details>
+            <summary>Wording overrides</summary>
+            {kind !== 'resonance' ? (
+              <>
+                <AbilityText
+                  label="In-battle text"
+                  value={text(body.battleText)}
+                  maxLength={160}
+                  onChange={(battleText) => setBody({ ...body, battleText })}
+                />
+                <BattleFlavorTemplateHelp
+                  value={text(body.battleText)}
+                  ability={name}
+                  onChange={(battleText) => setBody({ ...body, battleText })}
+                />
+              </>
+            ) : null}
+            <AbilityPresentationEditor
+              definition={body}
+              name={name}
+              value={body.presentation as MatureSkillDefinition['presentation']}
+              onChange={(presentation) => setBody({ ...body, presentation })}
+            />
+          </details>
         </>
       ) : null}
     </>

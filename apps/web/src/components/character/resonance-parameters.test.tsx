@@ -15,7 +15,6 @@ const fields = [
   'Requirements',
   'Effects',
   'Range',
-  'Target',
   'Target Method',
   'Target Elevation',
   'Line of Sight',
@@ -68,7 +67,7 @@ describe('shared Resonance parameter report', () => {
     const definition = resolveResonanceForPair('wildwarden', 'edgedancer')!
     const before = JSON.stringify(definition)
     const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
-    expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 10).map((match) => match[1])).toEqual(
+    expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 9).map((match) => match[1])).toEqual(
       fields,
     )
     expect(markup).toContain('<dt>Skill Type</dt><dd>Utility</dd>')
@@ -127,7 +126,7 @@ describe('shared Resonance parameter report', () => {
     expect(markup).toContain('data-compact-effect-magnitude="true">[3]</span>')
     expect(markup).toContain('data-compact-effect-magnitude="true">[20%]</span>')
     expect(markup).toContain('data-compact-effect-duration="true">[2 Turns]</span>')
-    expect(markup).toContain('→ Trigger Skill selected unit')
+    expect(markup).toContain('[Trigger Skill selected unit]')
     expect(markup).toContain('<dt>Requirements</dt><dd>N/A</dd>')
     expect(markup).toContain('Restores HP to you.')
     expect(markup).toContain('Take 20% more damage per application.')
@@ -139,7 +138,7 @@ describe('shared Resonance parameter report', () => {
     const before = JSON.stringify(definition)
     const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
     expect(markup).not.toContain('<dt>Mode</dt>')
-    expect(markup).toContain('→ Trigger Skill selected unit')
+    expect(markup).toContain('[Trigger Skill selected unit]')
     expect(markup).toContain('data-compact-skill-effect="true"')
     expect(markup).toContain('aria-label="Effect explanations"')
     expect(JSON.stringify(definition)).toBe(before)
@@ -148,7 +147,7 @@ describe('shared Resonance parameter report', () => {
   it('keeps missing pinned metadata unavailable without fabricated effects or trigger details', () => {
     const markup = renderToStaticMarkup(<ResonanceParameters definition={null} />)
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
-    expect(markup.match(/<dd>Unavailable<\/dd>/g)).toHaveLength(10)
+    expect(markup.match(/<dd>Unavailable<\/dd>/g)).toHaveLength(9)
     expect(markup).not.toContain('data-compact-skill-effect')
     expect(markup).not.toContain('Effect explanations')
     expect(markup).not.toContain('Trigger targeting')

@@ -656,3 +656,54 @@ it('captures current canonical Tag presentation through the actual admission pro
   ).toEqual(ids.map(() => 'Condition'))
   expect(JSON.stringify(old)).toBe(bytes)
 })
+
+it('pins one validated tag-wording catalogue at admission and reuses it for native battle readers', async () => {
+  const { captureCombatTagPresentation } =
+    await import('@aurevane/game-core/combat/combat-tag-registry')
+  const words = [
+    captureCombatTagPresentation({
+      id: 'tag.damage',
+      tagId: 'damage',
+      contentVersion: 2,
+      name: 'Damage',
+      description: 'Recorded short wording.',
+      explanation: 'Recorded full wording.',
+    }),
+  ]
+  const resolveTags = vi.fn(async () => words)
+  const resolver = createCombatContentResolver({
+    findCurrentSkill: async () => null,
+    findSkillVersion: async () => null,
+  })
+  resolver.resolveCurrentTagPresentations = resolveTags
+  const authority = await createResolvedBattleBuildAuthoritySnapshot(
+    'pvp',
+    [
+      {
+        combatantId: 'character:actor',
+        characterId: 'actor',
+        snapshot: productionShapeMixedSnapshot(),
+      },
+    ],
+    resolver,
+  )
+  expect(authority).toHaveProperty('tagPresentations', words)
+  expect(resolveTags).toHaveBeenCalledTimes(1)
+  const restored = parseBattleBuildAuthoritySnapshot(JSON.parse(JSON.stringify(authority)))!
+  expect(restored).toEqual(authority)
+  words[0] = { ...words[0]!, compact: 'Later wording.' }
+  const skills = await resolveBattleDisciplineSkillDefinitions(
+    restored,
+    'character:actor',
+    resolver,
+  )
+  expect(
+    skills!.find((row) => row.effects.some((effect) => effect.type === 'damage')),
+  ).toHaveProperty('tagPresentation.0.compact', 'Recorded short wording.')
+  expect(
+    parseBattleBuildAuthoritySnapshot({
+      ...authority,
+      tagPresentations: [{ ...words[0], tagId: 'invented' }],
+    }),
+  ).toBeNull()
+})

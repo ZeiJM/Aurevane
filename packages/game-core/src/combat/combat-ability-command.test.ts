@@ -580,7 +580,7 @@ describe('one atomic captured Ability command', () => {
       { resource: 'hp', amount: 2 },
     ])
     expect(native.quote?.participants).toHaveLength(2)
-    const definition = resolveMatureSkillVersion('vanguard.forceful-strike')!
+    const definition = { ...resolveMatureSkillVersion('vanguard.forceful-strike')!, hpCost: 5 }
     const nativeMature = evaluatePv1fMatureSkill(
       input.state as ReturnType<typeof percentageDotEncounter>,
       definition,
@@ -589,7 +589,25 @@ describe('one atomic captured Ability command', () => {
       { manualModifiers: input.manualModifiers },
     )
     expect(nativeMature.quote?.participants).toHaveLength(2)
-    expect(nativeMature.quote?.costs.find((row) => row.resource === 'hp')?.amount).toBe(2)
+    expect(nativeMature.quote?.costs.find((row) => row.resource === 'hp')?.amount).toBe(7)
+    const used = executePv1fMatureSkill(
+      input.state as ReturnType<typeof percentageDotEncounter>,
+      definition,
+      input.selection,
+      'pve',
+      { manualModifiers: input.manualModifiers },
+    )
+    expect(used.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')?.hp).toBe(13)
+    expect(
+      used.events.filter(
+        (event) =>
+          typeof event === 'object' &&
+          event !== null &&
+          'event' in event &&
+          event.event === 'hp_spent',
+      ),
+    ).toMatchObject([{ event: 'hp_spent', combatantId: 'actor', amount: 7, remaining: 13 }])
+
     const canonical = captureCombatAbilitySource({
       ...source({}, 'canonical-adapter'),
       abilityId: definition.id,

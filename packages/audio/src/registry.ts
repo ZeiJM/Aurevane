@@ -1,5 +1,5 @@
 import type { RoutedAudioChannel } from './settings'
-import { phase4AudioAssets } from './phase4'
+import { skillFxAudioAssets } from './skill-fx'
 
 export type AudioAssetStatus = 'requested' | 'candidate' | 'approved'
 export type AudioAssetKind = 'music' | 'ambience' | 'sfx' | 'ui'
@@ -17,7 +17,7 @@ export interface AudioAssetDescriptor {
 }
 
 const AUDIO_ASSETS = [
-  ...phase4AudioAssets,
+  ...skillFxAudioAssets,
   {
     id: 'music.foundation.title',
     kind: 'music',
@@ -44,15 +44,6 @@ const AUDIO_ASSETS = [
     requestId: 'AUDIO-AMB-001',
     loop: true,
     preload: 'none',
-  },
-  {
-    id: 'ui.foundation.confirm',
-    kind: 'ui',
-    channel: 'ui',
-    status: 'requested',
-    requestId: 'AUDIO-UI-001',
-    loop: false,
-    preload: 'metadata',
   },
 ] as const satisfies readonly AudioAssetDescriptor[]
 

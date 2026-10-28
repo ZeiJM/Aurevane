@@ -45,6 +45,9 @@ it('ordinary current/pinned gameplay reads retain their service-only path withou
 it.each([
   'search_master_moderation_players_v1',
   'read_master_moderation_v1',
+  'list_active_master_bans_v1',
+  'read_master_panel_navigation_v1',
+  'save_master_panel_navigation_v1',
   'write_master_moderation_v1',
   'read_master_panel_activity_v1',
   'save_site_music_configuration_v1',

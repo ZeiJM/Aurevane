@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { NextResponse } from 'next/server'
 
 import { getSafeInternalRedirect } from '@/lib/auth/redirect'
@@ -22,7 +23,9 @@ export async function GET(request: Request) {
 
   try {
     await claimActiveGameSession(identity)
-  } catch {
+  } catch (error) {
+    if (error instanceof AccountBannedError)
+      return NextResponse.redirect(new URL('/account/banned', origin))
     return NextResponse.redirect(new URL('/?account=session-unavailable', origin))
   }
 

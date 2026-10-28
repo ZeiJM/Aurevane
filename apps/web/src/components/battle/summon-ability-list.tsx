@@ -49,6 +49,7 @@ function SummonAbilityParameters({
             ? groupSkillEffects(ability.effects).map(({ effect, count, firstIndex }) => (
                 <div key={firstIndex}>
                   <CompactSkillEffectSummary
+                    aim={ability.target}
                     effect={effect}
                     count={count}
                     skillEffects={ability.effects}

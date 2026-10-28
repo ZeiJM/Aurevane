@@ -1,4 +1,4 @@
-import { isAurevaneError } from '@aurevane/game-core/errors'
+import { AccountBannedError, isAurevaneError } from '@aurevane/game-core/errors'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -28,7 +28,13 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ characterId: string }> },
 ) {
-  const actor = await getAuthenticatedActor()
+  let actor
+  try {
+    actor = await getAuthenticatedActor()
+  } catch (error) {
+    if (error instanceof AccountBannedError) return redirectTo('/account/banned')
+    throw error
+  }
   const characterPromise = params.then(({ characterId }) =>
     findPlayableOwnedCharacterById(actor.userId, characterId),
   )

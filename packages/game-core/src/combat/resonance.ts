@@ -1,3 +1,7 @@
+import {
+  combatTagPresentationIssues,
+  type CombatTagPresentationSnapshot,
+} from './combat-tag-registry'
 import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import { validateAbilityDefinition, type AbilityDefinition } from './combat-definition'
@@ -59,6 +63,7 @@ export interface ResonanceMediaHooks extends FinalizedContentMediaSlots {
 export interface ResonanceDefinition {
   /** Captured server selection only; never changes the original power identity. */
   readonly relationshipOverrideDisciplineId?: string
+  readonly tagPresentation?: readonly CombatTagPresentationSnapshot[]
   readonly ability?: AbilityDefinition
   readonly id: string
   readonly contentVersion: number
@@ -218,6 +223,7 @@ export function validateResonanceDefinition(definition: AnyResonanceDefinition):
   const issues: string[] = [
     ...finalizedContentMediaIssues(definition.media),
     ...abilityPresentationTextIssues(definition),
+    ...combatTagPresentationIssues(definition.tagPresentation),
   ]
   const canonical = Object.hasOwn(definition, 'ability')
   if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')

@@ -270,13 +270,16 @@ window.fetch = async (input, options) => {
     return Response.json({ player })
   }
   if (typeof input === 'string' && input.startsWith('/api/master/combat-content/usage-balance?')) {
-    const contentKey = new URL(input, location.origin).searchParams.get('contentKey')
+    const query = new URL(input, location.origin).searchParams
+    const contentKey = query.get('contentKey')
+    const historical = query.get('week') === '2026-10-19'
     return Response.json({
       contentKey,
       subjectKind: 'discipline',
       asOf: '2026-10-27T12:00:00Z',
-      weekStartsAt: '2026-10-26T00:00:00Z',
-      weekEndsAt: '2026-11-02T00:00:00Z',
+      availableWeeks: ['2026-10-26', '2026-10-19'],
+      weekStartsAt: historical ? '2026-10-19T00:00:00Z' : '2026-10-26T00:00:00Z',
+      weekEndsAt: historical ? '2026-10-26T00:00:00Z' : '2026-11-02T00:00:00Z',
       current: {
         primaryPlayers: 3,
         secondaryPlayers: 2,
@@ -291,15 +294,15 @@ window.fetch = async (input, options) => {
           name: skill.name,
           equippedPlayers: 2,
           equippedCharacters: 2,
-          actualUses: 0,
-          usedBattles: 0,
+          actualUses: historical ? 3 : 0,
+          usedBattles: historical ? 1 : 0,
         },
       ],
       weekly: ['pvp', 'pve-recruit'].map((source) => ({
         source,
-        appearances: 0,
-        wins: 0,
-        losses: 0,
+        appearances: historical && source === 'pvp' ? 2 : 0,
+        wins: historical && source === 'pvp' ? 1 : 0,
+        losses: historical && source === 'pvp' ? 1 : 0,
         draws: 0,
       })),
       pairs: [],
@@ -308,8 +311,8 @@ window.fetch = async (input, options) => {
         legacyHistoryAvailable: false,
         rosterTruncated: false,
         battlesTruncated: false,
-        collectedBattles: 0,
-        collectionStartedAt: null,
+        collectedBattles: historical ? 1 : 0,
+        collectionStartedAt: '2026-10-19T00:00:00Z',
       },
     })
   }
@@ -389,7 +392,7 @@ window.fetch = async (input, options) => {
         { status: 409 },
       )
     if (!receipt) {
-      const key = command.contentKind + '.created.' + command.requestId.replaceAll('-', '')
+      const key = command.contentKind + '.' + command.requestId
       const definition = { ...command.definition, id: key }
       const created = record(command.contentKind, definition)
       created.current = null
@@ -400,6 +403,30 @@ window.fetch = async (input, options) => {
         baseVersion: null,
         updatedBy: 'fixture-owner',
         updatedAt: '2026-10-27T12:00:00Z',
+      }
+      if (command.parentKey) {
+        const parent = records.get(command.parentKey)
+        if (!parent || parent.revision !== command.expectedParentRevision)
+          return Response.json(
+            { error: { code: 'STALE_VERSION', message: 'Discipline changed.' } },
+            { status: 409 },
+          )
+        const assigned = new Set([
+          ...(parent.links ?? []),
+          ...((parent.draft ?? parent.current).definition.linkedSkills ?? []),
+        ])
+        if (assigned.size >= 8)
+          return Response.json(
+            {
+              error: {
+                code: 'INVALID_REQUEST',
+                message: 'A Discipline can have at most 8 Skills.',
+              },
+            },
+            { status: 400 },
+          )
+        parent.links = [...assigned, key]
+        parent.revision++
       }
       records.set(key, created)
       receipt = { key, fingerprint }

@@ -80,9 +80,8 @@ describe('copy-statuses player forecast presentation', () => {
       'Cost: 31 AP / 6 MP',
       'Cooldown: 2 turns',
       'Requirements: None',
-      'Effects: Dmg [12]',
+      'Effects: Dmg [12] [Enemy]',
       'Range: 1',
-      'Target: Enemy',
       'Target Method: Single',
       'Target Elevation: 1',
       'Line of Sight: Not required',
@@ -336,16 +335,14 @@ it('keeps legacy rows complete without inferring missing pinned mechanics', () =
     'Requirements',
     'Effects',
     'Range',
-    'Target',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
   ])
   expect(Object.fromEntries(rows)).toMatchObject({
-    Target: 'Ground',
-    Effects: 'Recorded effect',
+    Effects: 'Recorded effect [Target unavailable]',
     Cooldown: 'Unavailable',
-    'Target Method': 'Unavailable',
+    'Target Method': 'Unavailable · Aim: Ground',
     'Line of Sight': 'Unavailable',
   })
 })
@@ -380,4 +377,10 @@ it('forecast shows captured Suppress percentage and exact pending lifetime', () 
     },
   ])
   expect(labels(preview)).toContain('Suppress [25.34%] · Starts round 3 · 2 round boundaries')
+})
+
+it('includes HP payment in the actual cost preview', () => {
+  expect(labels(actionPreview([], { hpCost: 12, mpCost: 4 }))).toEqual(
+    expect.arrayContaining(['12 HP', '4 MP']),
+  )
 })

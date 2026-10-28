@@ -5,6 +5,8 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 import { createServerMasterPanelStaffAccessService } from './staff-access-server'
 import { createMasterPlayersService } from './players-service'
+import { readPlayerContentNames } from './player-content-names'
+import { createServerCombatContentResolver } from '../combat/combat-content-resolver'
 
 export function createServerMasterPlayersService() {
   const client = createSupabaseAdminClient()
@@ -57,5 +59,6 @@ export function createServerMasterPlayersService() {
       }
       return data
     },
+    (player) => readPlayerContentNames(player, createServerCombatContentResolver()),
   )
 }

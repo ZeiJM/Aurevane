@@ -99,7 +99,8 @@ it('renders current catalogue Tag wording in raw authoring previews without modi
   // The real popover mounts its body only when opened; inspect the shared label's actual body separately.
   expect(
     renderToStaticMarkup(EffectTagLabel({ label: 'Damage', tagPresentation: tag }).props.children),
-  ).toContain('Snapshot published explanation.')
+  ).toContain('Changed damage wording.')
+  expect(html).toContain('Snapshot published explanation.')
   expect(html).toContain('data-tag-version="8"')
   expect(definition).toEqual(original)
   expect(definition.ability).not.toHaveProperty('tagPresentation')

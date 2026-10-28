@@ -21,7 +21,11 @@ it('previews the real foundation class icon and merges description into details 
       onChange={() => {}}
     />,
   )
-  expect(html).toContain('/media/art/discipline-sigils/aetherist-sigil-v01.webp')
+  const artwork = renderToStaticMarkup(
+    <ContentDefinitionFields kind="discipline" tab="Media" value={value} onChange={() => {}} />,
+  )
+  expect(artwork).toContain('/media/art/discipline-sigils/aetherist-sigil-v01.webp')
+  expect(html).not.toContain('Upload content media')
   expect(html).toContain('Editable class description.')
   expect(html).not.toContain('Progression band')
   expect(html).not.toContain('ruleAccess presentation')

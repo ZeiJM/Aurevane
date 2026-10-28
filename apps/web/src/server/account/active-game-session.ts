@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { AurevaneError } from '@aurevane/game-core/errors'
+import { AccountBannedError, AurevaneError } from '@aurevane/game-core/errors'
 import { cache } from 'react'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -45,10 +45,7 @@ export async function claimActiveGameSession(
   })
 
   if (error?.code === '42501' && error.message?.includes('ACCOUNT_BANNED')) {
-    throw new AurevaneError(
-      'FORBIDDEN',
-      'This account is currently banned. Contact support if you believe this is an error.',
-    )
+    throw new AccountBannedError()
   }
   if (error || typeof data !== 'boolean') {
     throw new AurevaneError(
@@ -70,10 +67,7 @@ export async function ensureActiveGameSession(
   })
 
   if (error?.code === '42501' && error.message?.includes('ACCOUNT_BANNED')) {
-    throw new AurevaneError(
-      'FORBIDDEN',
-      'This account is currently banned. Contact support if you believe this is an error.',
-    )
+    throw new AccountBannedError()
   }
   if (error || typeof data !== 'boolean') {
     throw new AurevaneError(

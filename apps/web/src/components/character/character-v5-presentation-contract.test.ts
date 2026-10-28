@@ -49,7 +49,7 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
       ).Effects
       expect(effects).toBe(skillEffectsSummary(skill, capturedPolicy, options))
       expect(effects).toBe(
-        `${explicitElemental ? 'Water Dmg [10]' : 'Water Dmg [10] [3 Turns]'}, Drenched [42%] [4 Turns] [Delayed]`,
+        `${explicitElemental ? 'Water Dmg [10]' : 'Water Dmg [10] [3 Turns]'} [Enemy], Drenched [42%] [4 Turns] [Delayed] [Enemy]`,
       )
       expect(effects).not.toMatch(/\n/u)
     }

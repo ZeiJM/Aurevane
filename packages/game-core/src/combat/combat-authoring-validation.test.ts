@@ -177,3 +177,12 @@ describe('combat authoring validation boundary', () => {
     ).toThrow(/accuracy modifier/i)
   })
 })
+
+it.each([-1, 0.5, Infinity])('rejects invalid authored HP payment %s', (hp) => {
+  expect(() =>
+    validateCombatActionDefinition({
+      ...P2_3_GUARD_ACTION,
+      cost: { ...P2_3_GUARD_ACTION.cost, hp },
+    }),
+  ).toThrow(/HP cost/)
+})

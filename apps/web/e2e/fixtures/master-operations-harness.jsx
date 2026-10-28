@@ -1,7 +1,10 @@
 import React from 'react'
+import { defaultCombatTagDefinitions } from '@aurevane/game-core/combat/combat-tag-wording'
+import { assertTagPublicationReady } from '@aurevane/game-core/content/authored-content'
 import { createRoot } from 'react-dom/client'
 import { usePathname } from 'next/navigation'
 import { PlayersWorkspace } from '@/components/master/players-workspace'
+import { normalizeMasterPanelOrder } from '@/lib/master-panel-pages'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { CombatEffectTimingEditor } from '@/components/master/combat-content/combat-effect-timing-editor'
 import { BattlefieldElevationEditor } from '@/components/master/combat-content/battlefield-elevation-editor'
@@ -45,6 +48,27 @@ const player = {
   training: null,
   battle: null,
 }
+const tagRecords = new Map(
+  defaultCombatTagDefinitions().map((definition) => [
+    definition.id,
+    {
+      contentKey: definition.id,
+      contentKind: 'tag',
+      lifecycle: 'active',
+      revision: 1,
+      versionFloor: 1,
+      createdBy: null,
+      createdAt: null,
+      builtin: { contentVersion: 1, name: definition.name },
+      builtinDefinition: definition,
+      current: null,
+      draft: null,
+      history: [],
+      usedBy: [],
+      links: [],
+    },
+  ]),
+)
 const nativeFetch = window.fetch.bind(window)
 const config = createDefaultSiteMusicConfig()
 config.routeOverrides = [
@@ -68,6 +92,46 @@ window.fetch = async (input, options) => {
     return nativeFetch(input, options)
   const body = JSON.parse(options.body)
   window.__operationsRequests.push({ path: input, body })
+  if (input === '/api/master/navigation') {
+    if (body.expectedRevision !== access.navigation.revision)
+      return Response.json({ error: { message: 'Tab order changed.' } }, { status: 409 })
+    access.navigation = {
+      revision: body.expectedRevision + 1,
+      order: normalizeMasterPanelOrder(body.order),
+    }
+    localStorage.setItem('fixture-master-navigation', JSON.stringify(access.navigation))
+    return Response.json({ settings: access.navigation })
+  }
+  if (input === '/api/master/combat-content') {
+    const command = body.command
+    const record = tagRecords.get(command.contentKey)
+    if (body.operation !== 'record' || !record) throw new Error('Unexpected tag fixture request')
+    if (command.action === 'read') return Response.json({ record })
+    if (command.action === 'commit') {
+      if (command.expectedRevision !== record.revision)
+        return Response.json({ error: { message: 'The description changed.' } }, { status: 409 })
+      assertTagPublicationReady(command.definition)
+      const contentVersion = record.versionFloor + 1
+      const saved = {
+        ...record,
+        revision: record.revision + 2,
+        versionFloor: contentVersion,
+        current: {
+          contentVersion,
+          definition: { ...command.definition, contentVersion },
+          publishedBy: 'fixture-owner',
+          publishedAt: new Date().toISOString(),
+          authoredBy: 'fixture-owner',
+          authoredAt: new Date().toISOString(),
+          restoredFrom: null,
+          restoredBy: null,
+        },
+      }
+      tagRecords.set(command.contentKey, saved)
+      return Response.json({ record: saved })
+    }
+    throw new Error('Unexpected tag command')
+  }
   if (input === '/api/master/players') {
     if (body.operation === 'search')
       return Response.json({
@@ -116,6 +180,10 @@ window.fetch = async (input, options) => {
 }
 const access = {
   userId: 'fixture-owner',
+  navigation: JSON.parse(localStorage.getItem('fixture-master-navigation') ?? 'null') ?? {
+    revision: 1,
+    order: normalizeMasterPanelOrder(null),
+  },
   accessVersion: 1,
   roles: ['game-owner'],
   specialCapabilities: [],
@@ -175,6 +243,9 @@ function App() {
           <>
             <CombatEffectTimingEditor
               initialPolicy={defaultCombatEffectTimingPolicy()}
+              canEditWording
+              recoveryScope="fixture-owner"
+              effectUsedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
               usedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
             />
             <BattlefieldElevationEditor

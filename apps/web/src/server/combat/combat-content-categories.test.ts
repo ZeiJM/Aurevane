@@ -44,12 +44,16 @@ it.each([
   ['resonance', currentResonanceDefinitions()[0]!],
   ['status', PHASE4_STATUSES[0]!],
 ] as const)(
-  'uses the actual %s validators and identity without normalizing the body',
+  'uses the actual %s validators, retires only per-Skill accuracy and retains history exactly',
   (kind, definition) => {
     const identity = 'essenceId' in definition ? definition.essenceId : definition.id
     const descriptor = combatContentCategory(kind, identity)!
     const before = JSON.stringify(definition)
-    expect(descriptor.parseAuthoring(definition)).toEqual(definition)
+    const expected = structuredClone(definition) as unknown as Record<string, unknown>
+    if (kind === 'skill') delete expected.accuracyModifierBasisPoints
+    if (kind === 'essence')
+      delete (expected.skill as Record<string, unknown>).accuracyModifierBasisPoints
+    expect(descriptor.parseAuthoring(definition)).toEqual(expected)
     expect(descriptor.parseRetained(definition, identity)).toEqual(definition)
     expect(() => descriptor.parseAuthoring({ arbitrary: { execute: 'unsupported' } })).toThrow()
     expect(JSON.stringify(definition)).toBe(before)
@@ -61,6 +65,33 @@ it('retains opaque legacy objects through the explicit non-runtime descriptor an
   expect(descriptor.parseRetained(opaque, 'owner.profile')).toEqual(opaque)
   expect(() => descriptor.parseAuthoring(opaque)).toThrow(/Effect Profile.*unsupported/i)
   expect(descriptor.publicationBlocker).toEqual(descriptor.authoringBlocker)
+})
+it('retires hidden Skill accuracy modifiers for authoring while keeping historical definitions exact', () => {
+  const skill = {
+    ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+    accuracyMode: 'per-target' as const,
+    accuracyModifierBasisPoints: -750,
+  }
+  const category = combatContentCategory('skill', skill.id)!
+  expect(category.parseAuthoring(skill)).not.toHaveProperty('accuracyModifierBasisPoints')
+  expect(category.parseRetained(skill, skill.id)).toEqual(skill)
+  expect(skill.accuracyModifierBasisPoints).toBe(-750)
+})
+it('retires the nested Essence Skill modifier without changing status or effect values', () => {
+  const essence = structuredClone(currentEssenceDefinitions()[0]!)
+  const value = {
+    ...essence,
+    skill: {
+      ...essence.skill,
+      accuracyMode: 'per-target' as const,
+      accuracyModifierBasisPoints: 1200,
+    },
+  }
+  const category = combatContentCategory('essence')!
+  const authored = category.parseAuthoring(value)
+  expect(authored.skill).not.toHaveProperty('accuracyModifierBasisPoints')
+  expect(authored.skill).toMatchObject({ effects: value.skill.effects })
+  expect(category.parseRetained(value, value.essenceId)).toEqual(value)
 })
 it.each(['item', 'ascension', 'severence'] as const)(
   'retains the specific unsupported %s capability',

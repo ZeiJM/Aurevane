@@ -128,8 +128,8 @@ describe('Discipline power association editing', () => {
       'Luminary',
       'Retained Discipline 1',
       'Retained power',
-      'Choose power for Luminary',
-      'Change power for Warden',
+      'Edit power for Luminary',
+      'Clear power for Warden',
     ])
       expect(html).toContain(label)
     expect(html).not.toContain('retained.partner')
@@ -137,4 +137,18 @@ describe('Discipline power association editing', () => {
     expect(onChange).not.toHaveBeenCalled()
     expect(onEdit).not.toHaveBeenCalled()
   })
+})
+
+it('uses Edit/Clear for assigned relationships and keeps empty rows editable', () => {
+  const html = renderToStaticMarkup(
+    <DisciplineRelationshipList
+      value={discipline}
+      choices={choices}
+      onChange={() => {}}
+      onEdit={() => {}}
+    />,
+  )
+  expect(html).toContain('aria-label="Clear power for Warden"')
+  expect(html).toContain('aria-label="Edit power for Luminary"')
+  expect(html).not.toContain('Change power')
 })

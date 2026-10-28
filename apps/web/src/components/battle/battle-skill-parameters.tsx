@@ -102,6 +102,8 @@ export function BattleSkillParameters({
                     ({ effect, count, firstIndex: index }) => (
                       <div key={index}>
                         <CompactSkillEffectSummary
+                          aim={definition.target}
+                          tagPresentations={definition.tagPresentation}
                           effect={effect}
                           count={count}
                           skillEffects={definition.effects}

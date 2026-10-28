@@ -21,17 +21,48 @@ const roster = Array.from({ length: 1001 }, (_, index) => ({
   is_online: true,
 }))
 let failSubsequentPage = false
+let primaryDisciplineId = 'vanguard'
+let failNames = false
 
 beforeEach(() => {
   vi.clearAllMocks()
   failSubsequentPage = false
+  primaryDisciplineId = 'vanguard'
+  failNames = false
   rpc.mockImplementation((name: string, args?: { p_character_ids: string[] }) => {
+    if (name === 'get_current_discipline_catalog_v1') {
+      return {
+        select: (columns: string) => {
+          expect(columns).toBe('discipline_id,name')
+          return {
+            in: async (column: string, ids: string[]) => {
+              expect(column).toBe('discipline_id')
+              expect(ids.length).toBeLessThanOrEqual(100)
+              return {
+                error: failNames ? { code: '503' } : null,
+                data: failNames
+                  ? null
+                  : ids.map((id) => ({
+                      discipline_id: id,
+                      name: id.startsWith('discipline.')
+                        ? 'Super Saiyan'
+                        : id === 'vanguard'
+                          ? 'The Vanguard'
+                          : 'Lifebinder',
+                      authored_definition: 'private-definition-sentinel',
+                    })),
+              }
+            },
+          }
+        },
+      }
+    }
     if (name === 'get_character_public_active_disciplines_v1') {
       return Promise.resolve({
         error: null,
         data: args!.p_character_ids.slice(0, 1000).map((id) => ({
           character_id: id,
-          primary_discipline_id: 'vanguard',
+          primary_discipline_id: primaryDisciplineId,
           secondary_discipline_id: 'lifebinder',
         })),
       })
@@ -126,4 +157,32 @@ describe('large public character rosters', () => {
       await expect(list()).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
     },
   )
+})
+
+const customDisciplineId = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+it.each([listOnlineCharacters, listCharacterPresenceDirectory])(
+  'hydrates published custom and renamed builtin names in one bounded roster read',
+  async (list) => {
+    primaryDisciplineId = customDisciplineId
+    const rows = await list()
+    expect(rows[0]).toMatchObject({
+      disciplineId: customDisciplineId,
+      disciplineName: 'Super Saiyan',
+      secondaryDisciplineName: 'Lifebinder',
+    })
+    expect(rows[0]).not.toHaveProperty('authored_definition')
+    expect(
+      rpc.mock.calls.filter(([name]) => name === 'get_current_discipline_catalog_v1'),
+    ).toHaveLength(1)
+    primaryDisciplineId = 'vanguard'
+    expect((await list())[0]).toMatchObject({ disciplineName: 'The Vanguard' })
+  },
+)
+it('keeps presence available without inventing a name when catalogue hydration fails', async () => {
+  primaryDisciplineId = customDisciplineId
+  failNames = true
+  expect((await listOnlineCharacters())[0]).toMatchObject({
+    disciplineId: customDisciplineId,
+    disciplineName: null,
+  })
 })

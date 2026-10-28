@@ -1,0 +1,63 @@
+.page {
+  box-sizing: border-box;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #0b1e25;
+  color: #263e35;
+}
+.notice {
+  box-sizing: border-box;
+  width: min(100%, 34rem);
+  min-width: 0;
+  padding: clamp(1rem, 4vw, 2rem);
+  background: #f7f1e5;
+  border: 1px solid #a99879;
+  border-radius: 0.5rem;
+}
+.notice h1 {
+  margin: 0.5rem 0 1.25rem;
+  font-size: 1.6rem;
+  color: #263e35;
+}
+.notice h2 {
+  font-size: 1rem;
+  color: #263e35;
+  margin-bottom: 0.35rem;
+}
+.notice p {
+  line-height: 1.5;
+}
+.kicker {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+}
+.reason {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+.actions button {
+  min-height: 2.75rem;
+  font: inherit;
+  padding: 0.5rem 0.85rem;
+  color: #f7f1e5;
+  background: #34584c;
+  border: 1px solid #34584c;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+.actions button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.actions button:focus-visible {
+  outline: 3px solid #95601d;
+  outline-offset: 3px;
+}

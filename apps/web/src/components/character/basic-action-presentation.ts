@@ -51,6 +51,7 @@ export function basicActionEffectSummaryParts(
   if (id === PV1F_GUARD_ACTION_ID) {
     return {
       label: gameplayStatusName('guarded'),
+      target: 'Self',
       magnitude: `${(10_000 - PV1F_GUARDED_STATUS.damageTakenMultiplierBasisPoints!) / 100}%`,
       duration: `${PV1F_GUARDED_STATUS.durationOwnerTurnStarts} Turns`,
       ...(skillEffectInstantTiming(PV1F_GUARD_ACTION.effects[0]!, timingPolicy)
@@ -61,6 +62,7 @@ export function basicActionEffectSummaryParts(
   if (id === PV1F_BASIC_ATTACK_ID) {
     return {
       label: 'Dmg',
+      target: 'Enemy',
       magnitude: `${PV1F_BASIC_ATTACK_BASE_DAMAGE} + floor(${PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS / 100}% ${attackFamily(stats) === 'mystic' ? 'Mystic' : 'Physical'} Power)`,
       duration: null,
     }
@@ -68,6 +70,7 @@ export function basicActionEffectSummaryParts(
   if (id === 'basic.move') {
     return {
       label: 'Move',
+      target: 'Self',
       magnitude: '1',
       duration: null,
       timing: 'Instant',
@@ -75,6 +78,7 @@ export function basicActionEffectSummaryParts(
   }
   return {
     label: id === PV1F_RECOVER_ACTION_ID ? 'HP Recovery' : 'MP Recovery',
+    target: 'Self',
     magnitude: `${id === PV1F_RECOVER_ACTION_ID ? PV1F_RECOVER_PERCENT : PV1F_MP_RECOVER_PERCENT}%`,
     duration: null,
     ...(skillEffectInstantTiming(
@@ -93,12 +97,12 @@ function basicActionEffectsSummary(
   timingPolicy: SkillEffectTimingPolicy,
   stats: BasicActionCharacterStats = {},
 ): string {
-  const { label, magnitude, duration, timing } = basicActionEffectSummaryParts(
+  const { label, target, magnitude, duration, timing } = basicActionEffectSummaryParts(
     id,
     timingPolicy,
     stats,
   )
-  return `${label}${magnitude ? ` [${magnitude}]` : ''}${duration ? ` [${duration}]` : ''}${timing ? ` [${timing}]` : ''}`
+  return `${label}${magnitude ? ` [${magnitude}]` : ''}${duration ? ` [${duration}]` : ''}${timing ? ` [${timing}]` : ''}${target ? ` [${target}]` : ''}`
 }
 
 /** Inherent commands reuse Skill parameter grammar without fabricating authored Skill identities. */
@@ -116,8 +120,7 @@ export function basicActionCharacteristicRows(
       Requirements: 'N/A',
       Effects: basicActionEffectsSummary(id, timingPolicy, stats),
       Range: stats.move === undefined ? 'Character Move stat' : String(stats.move),
-      Target: 'Empty Ground',
-      'Target Method': 'Path',
+      'Target Method': 'Path · Empty Tile',
       'Target Elevation': stats.jump === undefined ? 'Character Jump stat' : String(stats.jump),
       'Line of Sight': 'Not required',
     })
@@ -194,10 +197,9 @@ export function commandCharacteristicRows(
       Cooldown: inspect ? 'N/A' : 'None',
       Requirements: inspect ? 'None' : 'Your active turn',
       Effects: inspect
-        ? 'Inspect visible character or tile information'
-        : 'Choose final facing and end your turn',
+        ? 'Inspect visible character or tile information [Character / Ground]'
+        : 'Choose final facing and end your turn [Self]',
       Range: 'N/A',
-      Target: inspect ? 'Character or Ground' : 'Self',
       'Target Method': inspect ? 'Single' : 'Facing',
       'Target Elevation': 'N/A',
       'Line of Sight': 'N/A',
@@ -210,7 +212,6 @@ export function commandCharacteristicRows(
     Requirements: 'Unavailable',
     Effects: 'Unavailable',
     Range: 'Unavailable',
-    Target: 'Unavailable',
     'Target Method': 'Unavailable',
     'Target Elevation': 'Unavailable',
     'Line of Sight': 'Unavailable',

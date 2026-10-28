@@ -1,3 +1,5 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
+import { redirect } from 'next/navigation'
 import { Kicker, Surface } from '@aurevane/ui'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import type { Route } from 'next'
@@ -133,7 +135,8 @@ export async function AuthenticatedShellFrame({
         ? (`/game/battle/spectate/${activeSpectating.battleKey}` as Route)
         : null
     activeCharacter = selectedCharacter
-  } catch {
+  } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     activeCharacter = null
     activeUserId = null
   }

@@ -14,6 +14,8 @@ export interface OnlineCharacter {
   portraitRef: string | null
   disciplineId: string | null
   secondaryDisciplineId: string | null
+  disciplineName?: string | null
+  secondaryDisciplineName?: string | null
   personalTitle: string | null
   imageUrl: string | null
 }
@@ -27,6 +29,8 @@ export interface CharacterPresenceDirectoryEntry {
   portraitRef: string | null
   disciplineId: string | null
   secondaryDisciplineId: string | null
+  disciplineName?: string | null
+  secondaryDisciplineName?: string | null
   personalTitle: string | null
   imageUrl: string | null
   isOnline: boolean
@@ -109,6 +113,8 @@ interface PublicCharacterIdentity {
   portraitRef: string | null
   disciplineId: string | null
   secondaryDisciplineId: string | null
+  disciplineName?: string | null
+  secondaryDisciplineName?: string | null
   personalTitle: string | null
 }
 
@@ -178,6 +184,38 @@ async function loadPublicCharacterPresentationMaps(characterIds: readonly string
     for (const [id, identity] of identityMap) identities.set(id, identity)
     for (const [id, image] of imageMap) images.set(id, image)
   }
+  // Read only names for already-public committed identities, once per distinct Discipline.
+  // Never send authored definitions, unlocks, grants or stats through the public roster.
+  const disciplineIds = [
+    ...new Set(
+      [...identities.values()].flatMap((identity) =>
+        [identity.disciplineId, identity.secondaryDisciplineId].filter(
+          (id): id is string => id !== null,
+        ),
+      ),
+    ),
+  ]
+  const names = new Map<string, string>()
+  const supabase = createSupabaseAdminClient()
+  for (let offset = 0; offset < disciplineIds.length; offset += 100) {
+    const { data, error } = await supabase
+      .rpc('get_current_discipline_catalog_v1')
+      .select('discipline_id,name')
+      .in('discipline_id', disciplineIds.slice(offset, offset + 100))
+    if (error || !Array.isArray(data)) continue
+    for (const row of data) {
+      if (typeof row.discipline_id === 'string' && typeof row.name === 'string' && row.name.trim())
+        names.set(row.discipline_id, row.name.trim())
+    }
+  }
+  for (const identity of identities.values()) {
+    identity.disciplineName = identity.disciplineId
+      ? (names.get(identity.disciplineId) ?? null)
+      : null
+    identity.secondaryDisciplineName = identity.secondaryDisciplineId
+      ? (names.get(identity.secondaryDisciplineId) ?? null)
+      : null
+  }
   return [identities, images] as const
 }
 
@@ -202,6 +240,8 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
         portraitRef: identity?.portraitRef ?? null,
         disciplineId: identity?.disciplineId ?? null,
         secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
+        disciplineName: identity?.disciplineName ?? null,
+        secondaryDisciplineName: identity?.secondaryDisciplineName ?? null,
         personalTitle: identity?.personalTitle ?? null,
         imageUrl: imageMap.get(row.characterId) ?? null,
       }
@@ -253,6 +293,8 @@ export async function listCharacterPresenceDirectory(): Promise<CharacterPresenc
       portraitRef: identity?.portraitRef ?? null,
       disciplineId: identity?.disciplineId ?? null,
       secondaryDisciplineId: identity?.secondaryDisciplineId ?? null,
+      disciplineName: identity?.disciplineName ?? null,
+      secondaryDisciplineName: identity?.secondaryDisciplineName ?? null,
       personalTitle: identity?.personalTitle ?? null,
       imageUrl: imageMap.get(row.characterId) ?? null,
     }

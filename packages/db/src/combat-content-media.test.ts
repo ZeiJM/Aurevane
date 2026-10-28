@@ -196,10 +196,15 @@ it('publishes canonical Tag wording and retains exact Skill publication snapshot
     enabled: true,
     media: {},
   }
+  const existing = (
+    await db.query<{ value: Saved }>(
+      'select public.read_combat_content_record_v1($1,null,$2) value',
+      [owner, tag.id],
+    )
+  ).rows[0]!.value
   let tagSaved = await writeMedia(tag.id, {
-    action: 'create',
-    requestId: '00000000-0000-4000-8000-000000000080',
-    contentKind: 'tag',
+    action: 'save',
+    expectedRevision: existing.revision,
     definition: tag,
   })
   tagSaved = await publishMedia(tag.id, tagSaved)
@@ -335,10 +340,20 @@ it.each([
 ])(
   'retains the original Tag draft envelope at %s but rejects noncanonical SQL publication',
   async (id, description) => {
+    const existing = (
+      await db.query<{ value: Saved | null }>(
+        'select public.read_combat_content_record_v1($1,null,$2) value',
+        [owner, id],
+      )
+    ).rows[0]!.value
     const saved = await writeMedia(id, {
-      action: 'create',
-      requestId: '00000000-0000-4000-8000-000000000093',
-      contentKind: 'tag',
+      ...(existing
+        ? { action: 'save', expectedRevision: existing.revision }
+        : {
+            action: 'create',
+            requestId: '00000000-0000-4000-8000-000000000093',
+            contentKind: 'tag',
+          }),
       definition: {
         schemaVersion: 1,
         id,
@@ -352,7 +367,7 @@ it.each([
         media: {},
       },
     })
-    expect(saved.revision).toBe(1)
+    expect(saved.revision).toBe(existing ? existing.revision + 1 : 1)
     await expect(publishMedia(id, saved)).rejects.toThrow(/CONTENT_TAG_(ID|TEXT)_INVALID/u)
   },
 )

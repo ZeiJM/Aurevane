@@ -191,3 +191,21 @@ it('passes current Tag wording from the same catalogue call into previews withou
   expect(source.read).toHaveBeenCalledTimes(1)
   expect(source.record).toHaveBeenCalledTimes(1)
 })
+
+it('loads a linked definition directly with Effects selected and isolates recovery from the original workspace', async () => {
+  source.record.mockResolvedValue({
+    ...(await source.record()),
+    contentKey: 'basic.guard',
+    contentKind: 'skill',
+  })
+  source.record.mockClear()
+  const html = renderToStaticMarkup(
+    await MasterCombatContentPage({
+      searchParams: Promise.resolve({ contentKey: 'basic.guard', tab: 'effects' }),
+    }),
+  )
+  expect(source.record).toHaveBeenCalledWith('basic.guard')
+  expect(html).toContain('initialAbilitySection')
+  expect(html).toContain('effects')
+  expect(html).toContain('owner:linked:basic.guard')
+})

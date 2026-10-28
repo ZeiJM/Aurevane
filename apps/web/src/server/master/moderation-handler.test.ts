@@ -58,3 +58,44 @@ it('denies signed-out requests before constructing a privileged service', async 
   expect(result.status).toBe(401)
   expect(createService).not.toHaveBeenCalled()
 })
+it('lists active bans without a target and generates the direct-lift audit reason on the server', async () => {
+  const listActive = vi.fn(async () => ({ bans: [], nextCursor: null })),
+    write = vi.fn(async () => ({ active: false }))
+  const dependencies = {
+    getActor: async () => ({ userId: 'verified' }),
+    createService: () => ({ listActive, write }) as never,
+  }
+  expect(
+    (await handleMasterModerationRequest(request({ operation: 'active' }), dependencies)).status,
+  ).toBe(200)
+  expect(listActive).toHaveBeenCalledWith('verified', null)
+  expect(
+    (
+      await handleMasterModerationRequest(
+        request({ operation: 'lift', targetUserId: target, expectedRevision: 'a'.repeat(32) }),
+        dependencies,
+      )
+    ).status,
+  ).toBe(200)
+  expect(write).toHaveBeenCalledWith('verified', {
+    targetUserId: target,
+    expectedRevision: 'a'.repeat(32),
+    action: 'lift',
+    reason: 'Ban lifted from the Moderation panel.',
+    minutes: null,
+    permanent: false,
+  })
+  expect(
+    (
+      await handleMasterModerationRequest(
+        request({
+          operation: 'lift',
+          targetUserId: target,
+          expectedRevision: 'a'.repeat(32),
+          reason: 'forged',
+        }),
+        dependencies,
+      )
+    ).status,
+  ).toBe(400)
+})

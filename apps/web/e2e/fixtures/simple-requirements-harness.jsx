@@ -78,7 +78,10 @@ function initialDefinition() {
             requirementMode: 'simple',
             requirements: null,
             effects: [
-              { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 1 } },
+              {
+                id: 'hit',
+                payload: { type: 'healing', recipient: 'primary-unit', amount: 1, ticks: 1 },
+              },
             ],
           },
         ],

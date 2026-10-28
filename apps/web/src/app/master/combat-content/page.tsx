@@ -5,20 +5,43 @@ import { createServerCombatContentResolver } from '@/server/combat/combat-conten
 import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
 import { requireMasterPanelPageAccess } from '@/server/master/master-panel-page-access'
 import { createSupabaseCombatContentAuthoringStore } from '@/server/master/supabase-combat-content-authoring-store'
+import { isAbilityEditorSection } from '@/lib/ability-editor-sections'
+import { BASIC_SKILL_IDS } from '@aurevane/game-core/combat/combat-basic-actions'
 export const dynamic = 'force-dynamic'
-export default async function MasterCombatContentPage() {
+export default async function MasterCombatContentPage({
+  searchParams,
+}: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
   const { actor, access } = await requireMasterPanelPageAccess('content.combat.author')
   const resolver = createServerCombatContentResolver()
   const store = createSupabaseCombatContentAuthoringStore(actor.userId)
   if (!resolver.resolveCurrentCatalogue)
     throw new Error('Authoritative combat catalogue is unavailable.')
+  const query = (await searchParams) ?? {}
+  const requestedKey =
+    typeof query.contentKey === 'string' && /^[a-z0-9][a-z0-9._-]{0,159}$/i.test(query.contentKey)
+      ? query.contentKey
+      : null
+  const initialAbilitySection = isAbilityEditorSection(query.tab) ? query.tab : undefined
+  const cataloguePromise = resolver.resolveCurrentCatalogue()
+  const linkedRecord = requestedKey ? await store.readRecord(requestedKey) : null
   const [catalogue, initialPage] = await Promise.all([
-    resolver.resolveCurrentCatalogue(),
-    store.listRecords({ kind: 'discipline', sort: 'name-asc', limit: 20 }),
+    cataloguePromise,
+    store.listRecords({
+      kind: linkedRecord?.contentKind ?? 'discipline',
+      sort: 'name-asc',
+      limit: 20,
+      ...(linkedRecord?.contentKind === 'skill'
+        ? {
+            category: (BASIC_SKILL_IDS as readonly string[]).includes(linkedRecord.contentKey)
+              ? ('basic' as const)
+              : ('discipline-skill' as const),
+          }
+        : {}),
+    }),
   ])
-  const initialRecord = initialPage.records[0]
-    ? await store.readRecord(initialPage.records[0].contentKey)
-    : null
+  const initialRecord =
+    linkedRecord ??
+    (initialPage.records[0] ? await store.readRecord(initialPage.records[0].contentKey) : null)
   const order = [
     'discipline',
     'basic',
@@ -57,7 +80,10 @@ export default async function MasterCombatContentPage() {
       >
         <CombatContentAuthoringWorkspace
           key={actor.userId}
-          recoveryScope={actor.userId}
+          recoveryScope={
+            linkedRecord ? `${actor.userId}:linked:${linkedRecord.contentKey}` : actor.userId
+          }
+          initialAbilitySection={initialAbilitySection}
           categories={categories}
           initialPage={initialPage}
           initialRecord={initialRecord}

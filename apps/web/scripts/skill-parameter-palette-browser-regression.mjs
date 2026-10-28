@@ -7,6 +7,52 @@ import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+async function openEffectParameters(scope) {
+  const panels = scope.locator(
+    'xpath=ancestor::details[@data-effect-collapsible] | .//details[@data-effect-collapsible]',
+  )
+  for (let i = 0; i < (await panels.count()); i++) {
+    const panel = panels.nth(i)
+    if ((await panel.getAttribute('open')) === null) await panel.locator(':scope > summary').click()
+  }
+}
+
+async function activateAbilitySection(scope, name) {
+  let tabs = scope.getByRole('tab', { name, exact: true })
+  if (!(await tabs.count()))
+    tabs = scope
+      .locator(
+        'xpath=ancestor-or-self::*[./*[@role="tablist" and @aria-label="Ability sections"]][1]',
+      )
+      .getByRole('tab', { name, exact: true })
+  if ((await tabs.count()) && (await tabs.first().getAttribute('aria-selected')) !== 'true')
+    await tabs.first().click()
+}
+async function abilityField(scope, label) {
+  const section = [
+    'AP cost',
+    'MP cost',
+    'HP cost',
+    'Move cost basis',
+    'Cooldown (owner turns; 0 means none)',
+  ].includes(label)
+    ? 'Action Economy'
+    : [
+          'Higher Power scaling (%)',
+          'Recovery rounding',
+          'Recovery percent',
+          'Move maximum tiles',
+        ].includes(label)
+      ? 'Effects'
+      : ['Accuracy rule', 'Fixed hit chance (%)'].includes(label)
+        ? 'Accuracy'
+        : 'Details & Text'
+  await activateAbilitySection(scope, section)
+  const field = scope.getByLabel(label, { exact: true })
+  await openEffectParameters(field.locator('..'))
+  return field
+}
+
 const require = createRequire(import.meta.url)
 const { createServer, build } = await import(
   pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
@@ -340,7 +386,6 @@ const fields = [
   'Requirements',
   'Effects',
   'Range',
-  'Target',
   'Target Method',
   'Target Elevation',
   'Line of Sight',
@@ -348,7 +393,7 @@ const fields = [
 async function colors(locator) {
   return locator.evaluate((element) =>
     Object.fromEntries(
-      ['label', 'magnitude', 'duration', 'timing'].flatMap((part) => {
+      ['label', 'magnitude', 'duration', 'timing', 'target'].flatMap((part) => {
         const value = element.querySelector(`[data-compact-effect-${part}]`)
         return value ? [[part, getComputedStyle(value).color]] : []
       }),
@@ -360,11 +405,13 @@ const palette = {
   magnitude: 'rgb(228, 189, 103)',
   duration: 'rgb(112, 215, 206)',
   timing: 'rgb(112, 215, 206)',
+  target: 'rgb(255, 180, 117)',
 }
 const paperPalette = {
   label: 'rgb(121, 85, 28)',
   magnitude: 'rgb(121, 85, 28)',
   timing: 'rgb(23, 103, 94)',
+  target: 'rgb(101, 49, 14)',
 }
 async function assertPaperEffects(panel) {
   for (const effect of await panel.locator('[data-compact-skill-effect]').all()) {
@@ -704,9 +751,9 @@ async function verifyBasicEditor(page, viewport) {
     await editor.locator(`[data-content-key="${id}"][aria-current="true"]:not(:disabled)`).waitFor()
   }
   await assertBasicContrast(editor.locator('[data-content-key][aria-current="true"]'))
-  await assertBasicContrast(editor.getByLabel('Name', { exact: true }))
+  await assertBasicContrast(await abilityField(editor, 'Name'))
   await assertBasicContrast(
-    editor.getByLabel('Name', { exact: true }).locator('..').locator('span').first(),
+    (await abilityField(editor, 'Name')).locator('..').locator('span').first(),
   )
   assert.deepEqual(
     await editor
@@ -715,12 +762,12 @@ async function verifyBasicEditor(page, viewport) {
     ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'],
   )
   assert.equal(await page.getByLabel('Content category').inputValue(), 'basic')
-  await editor.getByLabel('Move cost basis').selectOption('flat')
-  await editor.getByLabel('Name', { exact: true }).fill('Authored Move')
-  await editor.getByLabel('AP cost', { exact: true }).fill('11')
-  await editor.getByLabel('MP cost', { exact: true }).fill('2')
-  await editor.getByLabel('HP cost', { exact: true }).fill('1')
-  await editor.getByLabel('Move maximum tiles').fill('3')
+  await (await abilityField(editor, 'Move cost basis')).selectOption('flat')
+  await (await abilityField(editor, 'Name')).fill('Authored Move')
+  await (await abilityField(editor, 'AP cost')).fill('11')
+  await (await abilityField(editor, 'MP cost')).fill('2')
+  await (await abilityField(editor, 'HP cost')).fill('1')
+  await (await abilityField(editor, 'Move maximum tiles')).fill('3')
   await commitBasic(editor, viewport)
   await committedBasic(editor)
   const first = (await inspectBasics(page)).records.find((row) => row.id === 'basic.move').current
@@ -738,7 +785,7 @@ async function verifyBasicEditor(page, viewport) {
     first,
   )
   // Submit a real change: unchanged production commits intentionally do not advance CAS.
-  await editor.getByLabel('Name', { exact: true }).fill('Earlier submitted Move')
+  await (await abilityField(editor, 'Name')).fill('Earlier submitted Move')
   // Delay the actual accepted HTTP response, retaining a newer local edit and the new CAS revision.
   let release, accepted
   const held = new Promise((resolve) => {
@@ -756,29 +803,29 @@ async function verifyBasicEditor(page, viewport) {
   })
   await commitBasic(editor, viewport)
   await held
-  await editor.getByLabel('Name', { exact: true }).fill('Newer unsaved Move')
+  await (await abilityField(editor, 'Name')).fill('Newer unsaved Move')
   release()
   await editor.getByText('Saved; newer local edits remain uncommitted.', { exact: true }).waitFor()
-  assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), 'Newer unsaved Move')
+  assert.equal(await (await abilityField(editor, 'Name')).inputValue(), 'Newer unsaved Move')
   await page.unroute('**/api/master/combat-content')
   await commitBasic(editor, viewport)
   await committedBasic(editor)
-  await editor.getByLabel('AP cost', { exact: true }).scrollIntoViewIfNeeded()
+  await (await abilityField(editor, 'AP cost')).scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `basic-editor-move-${viewport.width}.png`) })
   await select('unarmed.basic')
-  await editor.getByLabel('AP cost', { exact: true }).fill('0')
+  await (await abilityField(editor, 'AP cost')).fill('0')
   await commitBasic(editor, viewport)
   const invalid = editor.getByRole('alert')
   await invalid.waitFor()
   assert.match(await invalid.innerText(), /Basic Attack requires a positive authored AP cost/)
-  assert.equal(await editor.getByLabel('AP cost', { exact: true }).inputValue(), '0')
+  assert.equal(await (await abilityField(editor, 'AP cost')).inputValue(), '0')
   assert.equal(
     (await inspectBasics(page)).records.find((row) => row.id === 'unarmed.basic').current
       .contentVersion,
     3,
   )
-  await editor.getByLabel('AP cost', { exact: true }).fill('17')
-  await editor.getByLabel('Higher Power scaling (%)').fill('42.25')
+  await (await abilityField(editor, 'AP cost')).fill('17')
+  await (await abilityField(editor, 'Higher Power scaling (%)')).fill('42.25')
   await commitBasic(editor, viewport)
   await committedBasic(editor)
   assert.equal(
@@ -786,25 +833,22 @@ async function verifyBasicEditor(page, viewport) {
       .execution.scalingBasisPoints,
     4225,
   )
-  await editor.getByLabel('Higher Power scaling (%)').scrollIntoViewIfNeeded()
+  await (await abilityField(editor, 'Higher Power scaling (%)')).scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `basic-editor-attack-${viewport.width}.png`) })
   for (const [index, id] of ['basic.guard', 'basic.recover', 'basic.recover.mp'].entries()) {
     await select(id)
     if (id === 'basic.guard')
-      assert.equal(
-        await editor.getByLabel('Name', { exact: true }).inputValue(),
-        'Saved Guard draft',
-      )
-    await editor.getByLabel('Name', { exact: true }).fill(`Edited ${id}`)
-    await editor.getByLabel('AP cost', { exact: true }).fill(String(9 + index))
-    await editor.getByLabel('Recovery rounding').selectOption('floor')
+      assert.equal(await (await abilityField(editor, 'Name')).inputValue(), 'Saved Guard draft')
+    await (await abilityField(editor, 'Name')).fill(`Edited ${id}`)
+    await (await abilityField(editor, 'AP cost')).fill(String(9 + index))
+    await (await abilityField(editor, 'Recovery rounding')).selectOption('floor')
     if (id !== 'basic.guard')
-      await editor.getByLabel('Recovery percent', { exact: true }).fill(String(21 + index))
+      await (await abilityField(editor, 'Recovery percent')).fill(String(21 + index))
     await commitBasic(editor, viewport)
     await committedBasic(editor)
   }
   await select('basic.move')
-  assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), 'Newer unsaved Move')
+  assert.equal(await (await abilityField(editor, 'Name')).inputValue(), 'Newer unsaved Move')
   const inspection = await inspectBasics(page)
   const commits = inspection.requests.filter(
     (row) => row.operation === 'record' && row.command.action === 'commit',
@@ -847,7 +891,7 @@ async function verifyBasicHeldRevert(page, viewport) {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const name = editor.getByLabel('Name', { exact: true })
+  const name = await abilityField(editor, 'Name')
   const originalName = await name.inputValue()
   const before = (await inspectBasics(page)).records.find((row) => row.id === 'basic.move')
   await name.fill('Earlier changed value committing')
@@ -930,18 +974,20 @@ async function verifyBasicPublication(page, viewport) {
     await editor.locator(`[data-content-key="${id}"]`).click()
     await editor.locator(`[data-content-key="${id}"][aria-current="true"]:not(:disabled)`).waitFor()
     const before = (await inspectBasics(page)).records.find((row) => row.id === id)
-    await editor.getByLabel('Name', { exact: true }).fill(`Publish ${id}`)
-    if (id === 'basic.move') await editor.getByLabel('Move cost basis').selectOption('flat')
-    await editor.getByLabel('AP cost', { exact: true }).fill('11')
-    await editor.getByLabel('MP cost', { exact: true }).fill('2')
-    await editor.getByLabel('HP cost', { exact: true }).fill('1')
+    await (await abilityField(editor, 'Name')).fill(`Publish ${id}`)
+    if (id === 'basic.move')
+      await (await abilityField(editor, 'Move cost basis')).selectOption('flat')
+    await (await abilityField(editor, 'AP cost')).fill('11')
+    await (await abilityField(editor, 'MP cost')).fill('2')
+    await (await abilityField(editor, 'HP cost')).fill('1')
     let groupId = 'use'
     if (id === 'basic.guard') {
+      await activateAbilitySection(editor, 'Details & Text')
       await editor.getByRole('button', { name: 'Add behavior group', exact: true }).click()
       const group = editor.locator('[data-ability-group="group-1"]')
-      await group.getByLabel('AP cost', { exact: true }).fill('17')
-      await group.getByLabel('MP cost', { exact: true }).fill('3')
-      await group.getByLabel('HP cost', { exact: true }).fill('2')
+      await (await abilityField(group, 'AP cost')).fill('17')
+      await (await abilityField(group, 'MP cost')).fill('3')
+      await (await abilityField(group, 'HP cost')).fill('2')
       groupId = 'group-1'
     }
     if (id === 'basic.recover.mp') {
@@ -963,7 +1009,7 @@ async function verifyBasicPublication(page, viewport) {
       await commitBasic(editor, viewport)
       await editor.getByRole('alert').waitFor()
       assert.match(await editor.getByRole('alert').innerText(), /Combat content changed/)
-      assert.equal(await editor.getByLabel('Name', { exact: true }).inputValue(), `Publish ${id}`)
+      assert.equal(await (await abilityField(editor, 'Name')).inputValue(), `Publish ${id}`)
       assert.deepEqual(
         (await inspectBasics(page)).records.find((row) => row.id === id),
         before,
@@ -1142,25 +1188,31 @@ async function verifyCanonicalEditor(page, viewport) {
     .getByLabel('Resource threshold', { exact: true })
     .fill('4')
   const walk = leap.locator('[data-ability-effect="walk"]')
+  await openEffectParameters(walk)
   await walk.getByLabel('Move maximum tiles', { exact: true }).fill('3')
   const hit = leap.locator('[data-ability-effect="hit"]')
+  await openEffectParameters(hit)
   await hit.getByLabel('Damage amount', { exact: true }).fill('17')
   assert.equal(await hit.getByLabel('Effect timing', { exact: true }).count(), 0)
   await leap.getByLabel('New group effect', { exact: true }).selectOption('pierce')
   await gesture(leap.getByRole('button', { name: 'Add group effect', exact: true }))
   const pierce = leap.locator('[data-ability-effect="effect-1"]')
+  await openEffectParameters(pierce)
   await pierce.getByLabel('Equipment Armor ignored (%)', { exact: true }).fill('33.33')
   await pierce.getByLabel('Damage amount', { exact: true }).fill('5')
   assert.equal(await pierce.getByLabel('Piercing', { exact: true }).count(), 0)
   assert.equal(await pierce.getByLabel('Vengeance enabled', { exact: true }).count(), 0)
   await gesture(walk.getByRole('button', { name: '↓ Down', exact: true }))
   assert.ok((await editor.getByRole('status').innerText()).includes('Move must occur once, first'))
-  assert.equal(
-    await walk.getByLabel('Effect description', { exact: true }).inputValue(),
-    'Walk <once> & return',
+  assert.equal(await walk.getByLabel('Effect description', { exact: true }).count(), 0)
+  assert.ok(
+    (await page.evaluate(() => window.inspectEditedAbility().notes)).includes(
+      'Walk <once> & return',
+    ),
   )
   await gesture(walk.getByRole('button', { name: '↑ Up', exact: true }))
   const maintained = editor.locator('[data-ability-group="maintain"]')
+  await openEffectParameters(maintained)
   await maintained.getByLabel('Outgoing damage bonus (%)', { exact: true }).fill('15.25')
   await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
   await gesture(
@@ -1253,7 +1305,7 @@ async function verifyAttunementPointer(page, viewport) {
     await panel.waitFor()
     assert.equal(await page.getByRole('dialog').count(), 1)
     assert.equal(await panel.evaluate((element) => element === document.activeElement), true)
-    assert.deepEqual((await panel.locator('dt').allTextContents()).slice(0, 10), fields)
+    assert.deepEqual((await panel.locator('dt').allTextContents()).slice(0, 9), fields)
     const artworkAfter = await trigger.locator('img').boundingBox()
     assert.equal(artworkAfter.width, artworkBefore.width)
     assert.equal(artworkAfter.height, artworkBefore.height)
@@ -1376,7 +1428,7 @@ async function verifyOriginalRpcAuthoring(page, viewport) {
     await rejectRetiredBasicRestoration(page, editor, original.id, 1)
     // Enter the explicit canonical name as a new authored edit. No restore command
     // or borrowed authorship is involved in choosing these fixture settings.
-    await editor.getByLabel('Name', { exact: true }).fill(original.name)
+    await (await abilityField(editor, 'Name')).fill(original.name)
     await verifyBasicApiParity(page, prior.current.definition, original)
     await activate('Commit Now')
     await committedBasic(editor)
@@ -1442,12 +1494,12 @@ async function verifyBasicServiceAuthoring(page, viewport) {
     const chosen = before.history.find((row) => row.contentVersion === 2).definition
     await rejectRetiredBasicRestoration(page, editor, id, 2)
     assert.equal(
-      await editor.getByLabel('Name', { exact: true }).inputValue(),
+      await (await abilityField(editor, 'Name')).inputValue(),
       before.current.definition.name,
     )
     // Ordinary current-setting authoring chooses explicit fixture values. The
     // historical definition is a test oracle, not an exposed restoration feature.
-    await editor.getByLabel('Name', { exact: true }).fill(chosen.name)
+    await (await abilityField(editor, 'Name')).fill(chosen.name)
     await editor
       .getByLabel('AP cost', { exact: true })
       .fill(
@@ -1755,7 +1807,7 @@ try {
     }
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
     const authoring = page.getByRole('region', { name: 'Master Blindside authoring' })
-    await authoring.getByLabel('New effect type').selectOption('blindside')
+    await authoring.getByLabel('New effect type').selectOption('status:blindside')
     await authoring.getByRole('button', { name: 'Add effect', exact: true }).click()
     assert.deepEqual(await page.evaluate(() => window.blindsideAuthoringEffects[1]), {
       type: 'apply-status',
@@ -1765,6 +1817,7 @@ try {
       durationTurns: 1,
     })
     const addedEffect = authoring.locator('[data-effect-type="apply-status"]').nth(1)
+    await openEffectParameters(addedEffect)
     assert.equal(
       await addedEffect.getByLabel('Side damage (%)', { exact: true }).inputValue(),
       '160',
@@ -1780,15 +1833,16 @@ try {
       { side: 17550, rear: 25000 },
     )
     const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
+    await openEffectParameters(firstEffect)
     await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside')
     const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
     assert.equal(converted.durationTurns, 1)
     assert.equal(converted.potencyBasisPoints, undefined)
     assert.equal(
-      await firstEffect.getByLabel('Effect duration (turns)', { exact: true }).inputValue(),
-      '1',
+      await firstEffect.getByLabel('Effect duration (turns)', { exact: true }).count(),
+      0,
     )
-    assert.ok(await firstEffect.getByLabel('Effect duration (turns)', { exact: true }).isDisabled())
+    assert.ok((await firstEffect.textContent()).includes('affected character’s turn'))
     await authoring.screenshot({
       path: resolve(output, `blindside-authoring-${viewport.width}.png`),
     })
@@ -1798,7 +1852,7 @@ try {
           name: `${surface} ${family} ${surface === 'Master' ? 'details' : 'parameters'}`,
         })
         const labels = await report.locator('dt').allTextContents()
-        assert.deepEqual(labels.slice(0, 10), fields)
+        assert.deepEqual(labels.slice(0, 9), fields)
         const token = report.locator(`[data-skill-attack-family="${family}"]`)
         assert.equal(await token.textContent(), family === 'physical' ? '[Physical]' : '[Mystic]')
         assert.equal(
@@ -1836,7 +1890,7 @@ try {
         await area.evaluate(
           (element) => element.closest('dd')?.previousElementSibling?.textContent,
         ),
-        'Target',
+        'Target Method',
       )
       const box = await report.boundingBox()
       assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
@@ -1882,6 +1936,7 @@ try {
       label: palette.label,
       magnitude: palette.magnitude,
       timing: palette.timing,
+      target: palette.target,
     })
     assert.equal(await inline.locator('dl > div').first().locator('dd').textContent(), 'Utility')
     await page.getByRole('button', { name: 'Read pinned Resonance', exact: true }).click()
@@ -1935,7 +1990,7 @@ try {
       const popup = page.getByRole('dialog', { name, exact: true })
       await popup.waitFor()
       assert.equal(await popup.locator('header > strong').textContent(), name)
-      assert.deepEqual((await popup.locator('dt').allTextContents()).slice(0, 10), fields)
+      assert.deepEqual((await popup.locator('dt').allTextContents()).slice(0, 9), fields)
       if (attunement === 'resonance') assert.deepEqual(await colors(popup), paperPalette)
       await assertPaperEffects(popup)
       await page.screenshot({ path: resolve(output, `nexus-${attunement}-${viewport.width}.png`) })
@@ -1972,6 +2027,7 @@ try {
         const editor = page
           .getByRole('region', { name: 'Master elemental authoring' })
           .locator('[data-effect-type="apply-status"]')
+        await openEffectParameters(editor)
         await editor
           .getByLabel('Effect duration (turns)', { exact: true })
           .fill(String(scenario.duration))
@@ -1980,7 +2036,7 @@ try {
           .fill(String(scenario.potency))
       }
       const master = page.getByRole('region', { name: 'Master elemental details' })
-      assert.deepEqual((await master.locator('dt').allTextContents()).slice(0, 10), fields)
+      assert.deepEqual((await master.locator('dt').allTextContents()).slice(0, 9), fields)
       if (!scenario.historical && scenario.elemental !== 1) {
         const status = await master.locator('ol li').nth(1).textContent()
         assert.ok(status.includes(scenario.lifetime))
@@ -2067,14 +2123,12 @@ try {
         statusIds: ['frozen'],
       })
       const cleanseEditor = fireEditor.locator('[data-effect-type="remove-status"]')
+      await openEffectParameters(cleanseEditor)
       assert.equal(
         await cleanseEditor.getByLabel('Status IDs', { exact: true }).inputValue(),
         'frozen',
       )
-      assert.equal(
-        await cleanseEditor.getByLabel('Status removal recipient', { exact: true }).inputValue(),
-        'actor',
-      )
+      assert.equal(await cleanseEditor.getByLabel('Target', { exact: true }).inputValue(), '')
       assert.equal(
         await cleanseEditor
           .getByRole('button', { name: 'Use standard Cleanse', exact: true })
@@ -2083,7 +2137,7 @@ try {
       )
       for (const name of ['Master Fire details', 'Nexus Fire parameters']) {
         const report = page.getByRole('region', { name })
-        assert.deepEqual((await report.locator('dt').allTextContents()).slice(0, 10), fields)
+        assert.deepEqual((await report.locator('dt').allTextContents()).slice(0, 9), fields)
         assert.ok((await report.textContent()).includes('Cleanse Chilled [Instant]'))
         assert.ok((await report.textContent()).includes('Enemy / Ground'))
       }

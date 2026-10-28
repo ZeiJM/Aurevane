@@ -27,6 +27,7 @@ export default async function MasterStaffPage() {
         roleOptions={DELEGATED_MASTER_PANEL_ROLE_DETAILS}
         staff={staff}
         roleDefaults={roleDefaults}
+        navigationOrder={access.navigation?.order}
       />
     </MasterPanelShell>
   )

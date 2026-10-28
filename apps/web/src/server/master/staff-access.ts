@@ -4,6 +4,7 @@ import {
   capabilitiesForMasterPanelPages,
   isMasterPanelPage,
   type MasterPanelPage,
+  type MasterPanelNavigationSettings,
 } from '@/lib/master-panel-pages'
 export { capabilitiesForMasterPanelPages } from '@/lib/master-panel-pages'
 
@@ -148,6 +149,7 @@ export interface MasterPanelAccessRecord {
 }
 
 export interface MasterPanelAccess extends MasterPanelAccessRecord {
+  readonly navigation?: MasterPanelNavigationSettings
   readonly effectiveCapabilities: readonly MasterPanelCapability[]
 }
 

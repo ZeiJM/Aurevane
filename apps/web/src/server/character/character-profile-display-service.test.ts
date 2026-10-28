@@ -60,7 +60,7 @@ describe('profile portrait write authority', () => {
       rpc: async (name: string, args: { p_user_id: string }) => ({
         data: slots,
         error:
-          slotsUnavailable || name !== 'get_character_slots_v2' || args.p_user_id !== userId
+          slotsUnavailable || name !== 'get_character_slots_v3' || args.p_user_id !== userId
             ? { code: 'PERSISTENCE_UNAVAILABLE' }
             : null,
       }),

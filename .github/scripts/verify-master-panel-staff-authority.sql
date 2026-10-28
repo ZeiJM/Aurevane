@@ -136,6 +136,23 @@ begin
   if to_regclass('app_private.usage_balance_sessions') is not null then
     new_actor_signatures := new_actor_signatures || array['public.read_master_usage_balance_v1(uuid,uuid,text)']::text[];
   end if;
+  if to_regprocedure('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.read_master_usage_balance_week_v1(uuid,uuid,text,date)']::text[];
+  end if;
+  if to_regclass('app_private.master_panel_navigation') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.read_master_panel_navigation_v1(uuid,uuid)','public.save_master_panel_navigation_v1(uuid,bigint,jsonb,uuid)']::text[];
+    foreach table_name in array array['master_panel_navigation','master_panel_navigation_audit'] loop
+      assert (select relrowsecurity from pg_class where oid=('app_private.'||table_name)::regclass), 'Navigation private RLS';
+      assert not has_table_privilege('service_role','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('authenticated','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('anon','app_private.'||table_name,'select,insert,update,delete'), 'Navigation private table ACL';
+    end loop;
+    assert not has_sequence_privilege('service_role','app_private.master_panel_navigation_audit_id_seq','USAGE,SELECT,UPDATE'), 'Navigation private audit sequence';
+  end if;
+  if exists(select 1 from pg_attribute where attrelid=to_regclass('app_private.combat_content_records') and attname='deleted_at' and not attisdropped) then
+    new_actor_signatures := new_actor_signatures || array['public.review_discipline_deletion_v1(uuid,uuid,text)','public.delete_discipline_v1(uuid,uuid,text,text)']::text[];
+  end if;
+  if exists(select 1 from pg_attribute where attrelid=to_regclass('app_private.master_moderation_audit') and attname='reviewed_revision' and not attisdropped) then
+    new_actor_signatures := new_actor_signatures || array['public.list_active_master_bans_v1(uuid,uuid,uuid)']::text[];
+  end if;
   foreach signature in array new_actor_signatures loop
     assert to_regprocedure(signature) is not null, 'Required workspace actor signature: '||signature;
     assert (select 'p_actor_character_id'=any(proargnames) from pg_proc where oid=signature::regprocedure), 'Explicit selected actor contract: '||signature;
@@ -267,6 +284,8 @@ begin
   -- All newly exposed page APIs must reject a revoked staff character, missing
   -- selection, an owned alternate and an actor belonging to a different account.
   for probe in select * from (values
+      ('public.read_master_panel_navigation_v1(uuid,uuid)','select public.read_master_panel_navigation_v1($1,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.save_master_panel_navigation_v1(uuid,bigint,jsonb,uuid)','select public.save_master_panel_navigation_v1($1,1,''[]'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','select public.read_master_panel_activity_v1($1,100,null,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.set_world_environment_v2(uuid,integer,jsonb,uuid)','select public.set_world_environment_v2($1,0,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v2($1,1,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
@@ -274,12 +293,16 @@ begin
       ('public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v2($1,1,''{}'',repeat(''a'',32),$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','select public.save_site_music_configuration_v1($1,$2,1,''{}'')','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.search_master_moderation_players_v1(uuid,text,uuid)','select public.search_master_moderation_players_v1($1,''native'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.list_active_master_bans_v1(uuid,uuid,uuid)','select public.list_active_master_bans_v1($1,$2,null)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.read_master_moderation_v1(uuid,uuid,uuid,bigint)','select public.read_master_moderation_v1($1,$3,$2,null)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)','select public.write_master_moderation_v1($1,$3,''invalid'',''ban'',''CI denied probe'',60,false,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.search_discipline_grant_players_v1(uuid,uuid,text)','select public.search_discipline_grant_players_v1($1,$2,''native'')','MASTER_FORBIDDEN'),
       ('public.read_discipline_player_grants_v1(uuid,uuid,text,uuid)','select public.read_discipline_player_grants_v1($1,$2,''vanguard'',null)','MASTER_FORBIDDEN'),
       ('public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)','select public.write_discipline_player_grants_v1($1,$2,''vanguard'',array[$3::uuid],''grant'',''CI denied probe'')','MASTER_FORBIDDEN'),
-      ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')','MASTER_PANEL_OPERATOR_REQUIRED')
+      ('public.review_discipline_deletion_v1(uuid,uuid,text)','select public.review_discipline_deletion_v1($1,$2,''vanguard'')','MASTER_PANEL_OPERATOR_REQUIRED'),
+      ('public.delete_discipline_v1(uuid,uuid,text,text)','select public.delete_discipline_v1($1,$2,''vanguard'',repeat(''a'',32))','MASTER_PANEL_OPERATOR_REQUIRED'),
+      ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')','MASTER_PANEL_OPERATOR_REQUIRED'),
+      ('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','select public.read_master_usage_balance_week_v1($1,$2,''vanguard'',null)','MASTER_PANEL_OPERATOR_REQUIRED')
   ) contracts(signature,command,denial) loop
     if not probe.signature=any(new_actor_signatures) then continue; end if;
     begin execute probe.command using staff_id,character_id,other_id; raise exception 'EXPECTED revoked workspace denial: %',probe.signature;
@@ -352,6 +375,8 @@ end; $$;
 set local role authenticated;
 do $$ declare probe record; begin
   for probe in select * from (values
+      ('public.read_master_panel_navigation_v1(uuid,uuid)','select public.read_master_panel_navigation_v1($1,$2)'),
+      ('public.save_master_panel_navigation_v1(uuid,bigint,jsonb,uuid)','select public.save_master_panel_navigation_v1($1,1,''[]'',$2)'),
       ('public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','select public.read_master_panel_activity_v1($1,100,null,$2)'),
       ('public.set_world_environment_v2(uuid,integer,jsonb,uuid)','select public.set_world_environment_v2($1,0,''{}'',$2)'),
       ('public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v2($1,1,''{}'',$2)'),
@@ -359,12 +384,16 @@ do $$ declare probe record; begin
       ('public.publish_combat_effect_timing_policy_v2(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v2($1,1,''{}'',repeat(''a'',32),$2)'),
       ('public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)','select public.save_site_music_configuration_v1($1,$2,1,''{}'')'),
       ('public.search_master_moderation_players_v1(uuid,text,uuid)','select public.search_master_moderation_players_v1($1,''native'',$2)'),
+      ('public.list_active_master_bans_v1(uuid,uuid,uuid)','select public.list_active_master_bans_v1($1,$2,null)'),
       ('public.read_master_moderation_v1(uuid,uuid,uuid,bigint)','select public.read_master_moderation_v1($1,$3,$2,null)'),
       ('public.write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)','select public.write_master_moderation_v1($1,$3,''invalid'',''ban'',''CI denied probe'',60,false,$2)'),
       ('public.search_discipline_grant_players_v1(uuid,uuid,text)','select public.search_discipline_grant_players_v1($1,$2,''native'')'),
       ('public.read_discipline_player_grants_v1(uuid,uuid,text,uuid)','select public.read_discipline_player_grants_v1($1,$2,''vanguard'',null)'),
       ('public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)','select public.write_discipline_player_grants_v1($1,$2,''vanguard'',array[$3::uuid],''grant'',''CI denied probe'')'),
+      ('public.review_discipline_deletion_v1(uuid,uuid,text)','select public.review_discipline_deletion_v1($1,$2,''vanguard'')'),
+      ('public.delete_discipline_v1(uuid,uuid,text,text)','select public.delete_discipline_v1($1,$2,''vanguard'',repeat(''a'',32))'),
       ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')'),
+      ('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','select public.read_master_usage_balance_week_v1($1,$2,''vanguard'',null)'),
       ('public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v1($1,1,''{}'',null,$2)')
   ) contracts(signature,command) loop
     if to_regprocedure(probe.signature) is null then continue; end if;
@@ -396,7 +425,7 @@ set local role service_role;
 do $$
 declare table_name text;
 begin
-  foreach table_name in array array['master_panel_character_access','master_panel_capability_grants','master_panel_access_audit','master_panel_role_defaults','master_moderation_audit','discipline_player_grants','discipline_player_grant_audit','usage_balance_sessions','usage_balance_actions'] loop
+  foreach table_name in array array['master_panel_navigation','master_panel_navigation_audit','master_panel_character_access','master_panel_capability_grants','master_panel_access_audit','master_panel_role_defaults','master_moderation_audit','discipline_player_grants','discipline_player_grant_audit','usage_balance_sessions','usage_balance_actions'] loop
     if not exists(select 1 from pg_catalog.pg_class c join pg_catalog.pg_namespace n on n.oid=c.relnamespace where n.nspname='app_private' and c.relname=table_name) then continue; end if;
     begin
       execute format('select 1 from app_private.%I limit 1',table_name);

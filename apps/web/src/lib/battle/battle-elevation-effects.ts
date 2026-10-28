@@ -1,7 +1,9 @@
+import type { BattleTagWording } from './battle-tag-wording'
 import type { CombatEffectPresentationStatus } from '@aurevane/game-core/combat/combat-effect-timing'
 
 /** Viewer-only rows. This metadata is never part of the persisted combat status lifetime. */
 export type BattlePresentedStatus = CombatEffectPresentationStatus & {
+  battleTag?: BattleTagWording
   effectStackingPolicyVersion?: 1
   elementalDamagePolicyVersion?: 1 | 2
   airbornePolicyVersion?: 1

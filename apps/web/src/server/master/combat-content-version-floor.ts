@@ -1,3 +1,4 @@
+import { defaultCombatTagDefinitions } from '@aurevane/game-core/combat/combat-tag-wording'
 import 'server-only'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -10,6 +11,8 @@ export function builtinCombatContentVersionFloor(
   kind: CombatContentKind,
   key: string,
 ): number | null {
+  if (kind === 'tag')
+    return defaultCombatTagDefinitions().find((tag) => tag.id === key)?.contentVersion ?? null
   if (kind === 'skill')
     return (
       defaultBasicSkills().find((row) => row.id === key)?.contentVersion ??

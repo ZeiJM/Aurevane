@@ -135,11 +135,11 @@ it('projects saved Basic costs, enabled state and complete reports for the contr
     'Requirements',
     'Effects',
     'Range',
-    'Target',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
   ])
+  expect(Object.fromEntries(attack.behaviors[0]!.rows).Effects).toContain('[Enemy]')
   const move = view.basicActions!.find((action) => action.actionId === 'basic.move')!
   expect(move.movement).toEqual({
     costBasis: 'per-terrain-point',

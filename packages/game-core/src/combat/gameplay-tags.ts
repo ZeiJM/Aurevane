@@ -203,6 +203,21 @@ export function hasGameplayTag(
   return combatantGameplayTags(state, combatantId, content).includes(tag)
 }
 
+/** All registered identities for a tag, independent of any current combatant. */
+export function statusDefinitionIdsForGameplayTag(
+  tag: GameplayTag,
+  content: CombatContentCatalog,
+): readonly string[] {
+  return [
+    ...new Set([
+      ...Object.entries(STATUS_TAG_ALIASES)
+        .filter(([, value]) => value === tag)
+        .map(([id]) => id),
+      ...content.statuses.filter((row) => row.gameplayTags?.includes(tag)).map((row) => row.id),
+    ]),
+  ]
+}
+
 export function statusIdsForGameplayTag(
   state: Pick<CombatEncounterState, 'statusState'>,
   combatantId: string,
@@ -240,7 +255,12 @@ export function validateGameplayActionMetadata(
     validateGameplayEffectMetadata(effect)
     if (
       effect.type === 'create-terrain' &&
-      !['ground-tile', 'empty-tile'].includes(action.target.kind)
+      !['ground-tile', 'empty-tile'].includes(action.target.kind) &&
+      !(
+        action.target.geometryVersion === 3 &&
+        action.target.categories?.includes('ground') &&
+        effect.target === 'ground'
+      )
     )
       throw new TypeError('Frozen terrain requires authored ground targeting and affected tiles.')
   }

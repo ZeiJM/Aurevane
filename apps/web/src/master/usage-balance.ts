@@ -8,6 +8,7 @@ export interface BalanceOutcomes {
 export interface UsageBalanceReport {
   contentKey: string
   subjectKind: 'discipline' | 'skill' | 'unsupported'
+  availableWeeks?: string[]
   asOf: string
   weekStartsAt: string
   weekEndsAt: string

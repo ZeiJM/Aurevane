@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { buildCharacterProfileReadModel } from '@aurevane/game-core/character/profile'
@@ -59,6 +60,7 @@ export default async function CharacterNexusPage() {
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }

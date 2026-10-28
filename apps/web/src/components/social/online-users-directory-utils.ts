@@ -1,3 +1,5 @@
+import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+
 export type LastSeenSortOrder = 'recent' | 'oldest'
 export type DirectorySortOrder =
   LastSeenSortOrder | 'alphabetical' | 'level-desc' | 'level-asc' | 'exp-desc' | 'exp-asc'
@@ -54,12 +56,27 @@ export function readableIdentity(value: string | null): string | null {
     .join(' ')
 }
 
+/** Published names win, including renamed builtins. Unknown identities never become UUID prose. */
+export function readableDisciplineName(
+  id: string | null,
+  publishedName?: string | null,
+): string | null {
+  if (!id) return null
+  return (
+    publishedName?.trim() ||
+    DISCIPLINE_ATLAS.find((row) => row.id === id)?.name ||
+    'Unknown Discipline'
+  )
+}
+
 export function readableDisciplinePair(
   primaryDisciplineId: string | null,
   secondaryDisciplineId: string | null,
+  primaryName?: string | null,
+  secondaryName?: string | null,
 ): string | null {
-  const primary = readableIdentity(primaryDisciplineId)
-  const secondary = readableIdentity(secondaryDisciplineId)
+  const primary = readableDisciplineName(primaryDisciplineId, primaryName)
+  const secondary = readableDisciplineName(secondaryDisciplineId, secondaryName)
   if (primary && secondary) return `${primary} | ${secondary}`
   return primary ?? secondary
 }

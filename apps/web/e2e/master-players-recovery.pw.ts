@@ -179,13 +179,12 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     const nextPrimary = original.disciplines.find(
       (row) => row.primary && row.id !== originalPrimary && row.id !== secondary,
     )!.id
-    // Wrapping label text includes every option; use the control's accessible name.
-    const correctionGroup = owner.getByRole('combobox', { name: 'Correction group', exact: true })
+    const correctionGroup = owner.getByRole('button', { name: 'Disciplines', exact: true })
     async function selectDisciplineGroup() {
       await test.step('Select the Discipline correction group', async () => {
         await expect(correctionGroup).toHaveCount(1)
-        await correctionGroup.selectOption('disciplines')
-        await expect(correctionGroup).toHaveValue('disciplines')
+        await correctionGroup.click()
+        await expect(correctionGroup).toHaveAttribute('aria-pressed', 'true')
       })
     }
     async function correctDisciplines(

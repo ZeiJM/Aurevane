@@ -4,6 +4,21 @@ export interface ModerationPlayer {
   name: string
   protected: boolean
 }
+export interface ActiveModerationBan {
+  userId: string
+  characterId: string | null
+  name: string
+  revision: string
+  active: true
+  permanent: boolean
+  expiresAt: string | null
+  protected: boolean
+  reason: string
+}
+export interface ActiveModerationBans {
+  bans: ActiveModerationBan[]
+  nextCursor: string | null
+}
 export interface ModerationRecord {
   userId: string
   revision: string

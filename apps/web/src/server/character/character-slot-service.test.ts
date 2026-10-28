@@ -84,7 +84,7 @@ function buildRow(secondary = false) {
 function responses(build: unknown, slots = [slotRow()]) {
   rpc.mockImplementation(async (name: string, args: Record<string, string>) => {
     if (args.p_user_id !== userId) throw new Error('Wrong owner')
-    if (name === 'get_character_slots_v2') return { data: slots, error: null }
+    if (name === 'get_character_slots_v3') return { data: slots, error: null }
     if (name === 'get_character_active_build_v4' && args.p_character_id === characterId)
       return { data: build, error: null }
     throw new Error('Unexpected authority read')
@@ -240,4 +240,13 @@ it('current active reader rejects forged artwork metadata rather than emitting a
   await expect(
     createSupabaseCharacterBuildRepository().findActiveBuild(userId, characterId),
   ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
+})
+
+it('uses current-profile entry for both owner-ID and legacy slot reads', async () => {
+  responses(buildRow(), [slotRow({ might: 20, vitality: 12 })])
+  const { createSupabaseCharacterRepository } = await import('./supabase-character-repository')
+  const repo = createSupabaseCharacterRepository()
+  expect(await repo.findByOwnerSlot(userId, 0)).toMatchObject({ might: 20, vitality: 12 })
+  expect(await repo.findByOwnerId!(userId, characterId)).toMatchObject({ might: 20, vitality: 12 })
+  expect(rpc).toHaveBeenCalledWith('get_character_slots_v3', { p_user_id: userId })
 })

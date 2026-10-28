@@ -171,7 +171,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         /\/api\/battles\/[^/]+\/audio\?/.test(response.url()),
       )
       const sound = page.waitForResponse((response) =>
-        response.url().includes('/media/audio/sfx/phase4/ironfist-action-'),
+        response.url().includes('/media/audio/sfx/skill-fx-v01/082-'),
       )
       await root.locator('#battlefield button[aria-label*="occupied by"]').first().click()
       const committedResponse = await committed
@@ -181,7 +181,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
         battleVersion: battle.battleVersion,
         cues: [
           {
-            assetId: `audio.phase4.ironfist-action-v02-${(battle.battleVersion % 3) + 1}`,
+            assetId: `audio.skill-fx.v01.082-${(battle.battleVersion % 3) + 1}`,
             priority: 70,
           },
         ],
@@ -358,7 +358,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     /\/api\/battles\/[^/]+\/audio\?/.test(response.url()),
   )
   const playedAsset = page.waitForResponse((response) =>
-    response.url().includes('/media/audio/sfx/phase4/bastion-action-'),
+    response.url().includes('/media/audio/sfx/skill-fx-v01/011-'),
   )
   await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
   const commitResponse = await committed
@@ -370,7 +370,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     battleVersion: battle.battleVersion,
     cues: [
       {
-        assetId: `audio.phase4.bastion-action-v02-${(battle.battleVersion % 3) + 1}`,
+        assetId: `audio.skill-fx.v01.011-${(battle.battleVersion % 3) + 1}`,
         priority: 70,
       },
     ],

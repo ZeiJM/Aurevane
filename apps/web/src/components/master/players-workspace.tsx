@@ -7,7 +7,12 @@ import type {
   PlayerCorrection,
   PlayerRecoveryResult,
 } from '@/master/players'
-import { PlayerCorrectionForm, PlayerCorrectionReview, playerLabel } from './player-correction-form'
+import {
+  PlayerCorrectionForm,
+  PlayerCorrectionReview,
+  playerContentLabel,
+  playerLabel,
+} from './player-correction-form'
 import styles from './players-workspace.module.css'
 import { MasterHelp } from './master-help'
 
@@ -186,83 +191,99 @@ export function PlayersWorkspace({
         {player ? (
           <>
             <div className={styles.heading}>
-              <h2 ref={heading} tabIndex={-1}>
-                {player.name}
-              </h2>
+              <div className={styles.identity}>
+                <h2 ref={heading} tabIndex={-1}>
+                  {player.name}
+                </h2>
+                <p>
+                  Level {player.facts.level} · {player.facts.xp} XP · Cycle {player.facts.cycle}
+                </p>
+                <span>{player.verifiedEmail ?? 'No verified email available'}</span>
+              </div>
               <button disabled={busy} onClick={() => select(player.characterId)}>
                 Refresh player
               </button>
             </div>
-            <p>
-              {player.verifiedEmail ?? 'No verified email available'} · Identity and account access
-              are protected.
-            </p>
             <dl className={styles.facts}>
-              <div>
-                <dt>Progression</dt>
-                <dd>
-                  Level {player.facts.level} · {player.facts.xp} XP · Cycle {player.facts.cycle}
-                </dd>
-              </div>
               <div>
                 <dt>Primary / Secondary</dt>
                 <dd>
-                  {playerLabel(player.facts.build.primary.disciplineId)} /{' '}
-                  {playerLabel(player.facts.build.secondary?.disciplineId ?? 'None')}
+                  {playerContentLabel(
+                    player,
+                    player.facts.build.primary.disciplineId,
+                    'Discipline',
+                  )}{' '}
+                  /{' '}
+                  {playerContentLabel(
+                    player,
+                    player.facts.build.secondary?.disciplineId,
+                    'Discipline',
+                  )}
                 </dd>
               </div>
               <div>
                 <dt>Active Skills</dt>
                 <dd>
                   {player.facts.build.disciplineSkills
-                    .map((skill) => `${playerLabel(skill.skillId)} v${skill.contentVersion}`)
+                    .map((skill) => playerContentLabel(player, skill.skillId, 'Skill'))
                     .join(', ') || 'None'}
                 </dd>
               </div>
               <div>
-                <dt>Support action</dt>
+                <dt>Resonance</dt>
                 <dd>
-                  {player.facts.build.supportActionId === 'basic.guard'
-                    ? 'Guard'
-                    : player.facts.build.supportActionId === 'basic.recover'
-                      ? 'Recover HP'
-                      : 'Recover MP'}
+                  {playerContentLabel(
+                    player,
+                    player.facts.build.extensions.resonance?.resonanceId,
+                    'Resonance',
+                  )}
                 </dd>
               </div>
               <div>
-                <dt>Calculated maximum resources</dt>
+                <dt>Essence</dt>
                 <dd>
-                  {player.calculated.maxHp} HP · {player.calculated.maxMp} MP
-                </dd>
-              </div>
-              <div>
-                <dt>World position</dt>
-                <dd>
-                  {player.world?.position
-                    ? `${player.world.position.sectorId} · ${player.world.position.x}, ${player.world.position.y}`
-                    : 'No saved position'}
-                </dd>
-              </div>
-              <div>
-                <dt>Training</dt>
-                <dd>{player.training?.plannedWindow ?? 'No planned window'}</dd>
-              </div>
-              <div>
-                <dt>Saved loadouts</dt>
-                <dd>{player.savedLoadouts.map((row) => row.name).join(', ') || 'None'}</dd>
-              </div>
-              <div>
-                <dt>Resonance / Essence</dt>
-                <dd>
-                  {playerLabel(player.facts.build.extensions.resonance?.resonanceId ?? 'None')} /{' '}
-                  {playerLabel(player.facts.build.extensions.essence?.essenceId ?? 'None')}
+                  {playerContentLabel(
+                    player,
+                    player.facts.build.extensions.essence?.essenceId,
+                    'Essence',
+                  )}
                 </dd>
               </div>
             </dl>
-            <p>
-              Current HP, MP and AP belong to an encounter. Persistent wallet, inventory and
-              equipment corrections are not available.
-            </p>
+            <details className={styles.moreDetails}>
+              <summary>More player details</summary>
+              <dl className={styles.facts}>
+                <div>
+                  <dt>Support action</dt>
+                  <dd>
+                    {player.facts.build.supportActionId === 'basic.guard'
+                      ? 'Guard'
+                      : player.facts.build.supportActionId === 'basic.recover'
+                        ? 'Recover HP'
+                        : 'Recover MP'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Calculated maximum resources</dt>
+                  <dd>
+                    {player.calculated.maxHp} HP · {player.calculated.maxMp} MP
+                  </dd>
+                </div>
+                <div>
+                  <dt>World position</dt>
+                  <dd>
+                    {player.world?.position
+                      ? `${player.world.position.sectorId} · ${player.world.position.x}, ${player.world.position.y}`
+                      : 'No saved position'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Saved loadouts</dt>
+                  <dd>{player.savedLoadouts.map((row) => row.name).join(', ') || 'None'}</dd>
+                </div>
+              </dl>
+              <p>Identity and account access are protected.</p>
+            </details>
             {player.deletionPending ? (
               <p role="status">Deletion pending. Gameplay corrections are unavailable.</p>
             ) : null}
@@ -360,16 +381,17 @@ export function PlayersWorkspace({
                   </button>
                 </div>
               </section>
-            ) : (
+            ) : null}
+            <div hidden={!!review}>
               <PlayerCorrectionForm
                 key={player.fingerprint}
                 player={player}
-                disabled={busy || player.deletionPending || !!player.battle}
+                disabled={busy || !!review || player.deletionPending || !!player.battle}
                 onReview={(command) =>
                   preview({ kind: 'edit', command, requestKey: crypto.randomUUID() })
                 }
               />
-            )}
+            </div>
           </>
         ) : (
           <p>Select a player to inspect their character and review a correction.</p>

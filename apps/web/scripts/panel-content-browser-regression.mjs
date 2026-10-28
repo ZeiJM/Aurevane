@@ -136,6 +136,70 @@ try {
   const origin = server.resolvedUrls.local[0]
   if (
     !process.env.AV_PANEL_CONTENT_SCENARIO ||
+    process.env.AV_PANEL_CONTENT_SCENARIO === 'new-discipline-skill'
+  ) {
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+    ]) {
+      const page = await browser.newPage({ viewport })
+      try {
+        await page.goto(origin + '?view=content', { waitUntil: 'domcontentloaded' })
+        const workspace = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+        await workspace
+          .getByRole('group', { name: 'Editor sections', exact: true })
+          .getByRole('button', { name: 'Skills', exact: true })
+          .click()
+        await expect(workspace).toContainText('1/8 Skills')
+        await workspace.getByText('New Skill', { exact: true }).click()
+        await workspace.getByRole('button', { name: 'Create Skill', exact: true }).click()
+        const dialog = page.getByRole('dialog')
+        await expect(dialog.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(
+          'New Skill',
+        )
+        await dialog
+          .getByRole('textbox', { name: 'Name', exact: true })
+          .fill('New independent Skill')
+        await dialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await expect(dialog).toContainText('Changes committed and available to the game.')
+        await dialog.getByRole('button', { name: 'Close skill editor', exact: true }).click()
+        await expect(workspace).toContainText('2/8 Skills')
+        const template = await page.evaluate(() => window.__contentFixture.skillId)
+        await workspace
+          .getByRole('combobox', { name: 'New Skill starting point', exact: true })
+          .selectOption(template)
+        await workspace.getByRole('button', { name: 'Create Skill', exact: true }).click()
+        await expect(dialog.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(
+          'New Skill',
+        )
+        const copies = await page.evaluate((sourceKey) => {
+          const source = window.__contentFixture.records.get(sourceKey).current.definition
+          const key = [...window.__contentFixture.creations.values()].at(-1).key
+          const copy = window.__contentFixture.records.get(key).draft.definition
+          return {
+            key,
+            sourceId: source.id,
+            copyId: copy.id,
+            sourceName: source.name,
+            copyName: copy.name,
+            sourceEffects: source.effects,
+            copyEffects: copy.effects,
+            parent: copy.sourceDisciplineId,
+          }
+        }, template)
+        assert.notEqual(copies.copyId, copies.sourceId)
+        assert.equal(copies.copyId, copies.key)
+        assert.equal(copies.parent, 'bastion')
+        assert.equal(copies.copyName, 'New Skill')
+        assert.deepEqual(copies.copyEffects, copies.sourceEffects)
+        evidence.push({ scenario: 'new-discipline-skill', viewport, blankAndTemplate: 'passed' })
+      } finally {
+        await page.close()
+      }
+    }
+  }
+  if (
+    !process.env.AV_PANEL_CONTENT_SCENARIO ||
     process.env.AV_PANEL_CONTENT_SCENARIO === 'hydration-guard'
   ) {
     const page = await browser.newPage({ viewport: { width: 1366, height: 768 } })
@@ -854,6 +918,28 @@ try {
         workspace.getByRole('heading', { name: 'Usage & Balance', exact: true }),
       ).toBeVisible()
       await expect(workspace).toContainText('Awaiting eligible completed battles')
+      await expect(workspace.locator('[data-chart="adoption"] meter').first()).toHaveAttribute(
+        'value',
+        '3',
+      )
+      await expect(workspace.locator('[data-chart="adoption"] meter').first()).toHaveAttribute(
+        'max',
+        '5',
+      )
+      const reportingWeek = workspace.getByLabel('Week', { exact: true })
+      await reportingWeek.selectOption('2026-10-19')
+      await expect(workspace).toContainText('2 player appearances')
+      await expect(workspace.locator('[data-chart="outcomes"]')).toHaveCount(1)
+      await expect(workspace.locator('[data-chart="skills"]')).toBeVisible()
+      await workspace.getByText('Exact Skill counts', { exact: true }).click()
+      await expect(workspace.getByRole('table')).toBeVisible()
+      await expect(workspace.locator('[data-chart="adoption"] meter').first()).toHaveAttribute(
+        'value',
+        '3',
+      )
+      await reportingWeek.selectOption('')
+      await expect(workspace).toContainText('Actual-use data unavailable')
+      await expect(workspace.locator('[data-chart="outcomes"]')).toHaveCount(0)
       await tabs.getByRole('button', { name: 'Skills', exact: true }).click()
       const skills = workspace.getByRole('region', { name: 'Discipline skills', exact: true })
       const skillTrigger = skills.getByRole('button').first()
@@ -864,12 +950,15 @@ try {
       await dialog
         .getByRole('spinbutton', { name: 'Required mastery stage', exact: true })
         .fill('3')
+      await dialog.getByRole('tab', { name: 'Action Economy', exact: true }).click()
       await expect(
         dialog.getByRole('spinbutton', { name: 'Action Economy (AP)', exact: true }),
       ).toHaveCount(1)
       await expect(dialog.getByRole('combobox', { name: 'Target kind', exact: true })).toHaveCount(
-        1,
+        0,
       )
+      await dialog.getByRole('tab', { name: 'Details & Text', exact: true }).click()
+      await dialog.getByText('Wording overrides', { exact: true }).click()
       await expect(
         dialog.getByRole('textbox', { name: 'In-battle text', exact: true }),
       ).toHaveCount(1)
@@ -885,14 +974,17 @@ try {
       await dialog
         .getByRole('textbox', { name: 'Description', exact: true })
         .fill('Full skill modal draft retained on close.')
-      const modalScroll = await dialog.evaluate((element) => {
-        const body = element.querySelector('fieldset').parentElement
-        return { clientHeight: body.clientHeight, scrollHeight: body.scrollHeight }
-      })
-      assert.ok(
-        modalScroll.scrollHeight > modalScroll.clientHeight,
-        'Full skill editor scrolls within the modal',
-      )
+      await expect(
+        dialog.getByRole('tablist', { name: 'Ability sections', exact: true }),
+      ).toBeVisible()
+      assert.deepEqual(await dialog.getByRole('tab').allTextContents(), [
+        'Details & Text',
+        'Media',
+        'Range & Area',
+        'Action Economy',
+        'Accuracy',
+        'Effects',
+      ])
       await page.keyboard.press('Escape')
       await expect(dialog).toHaveCount(0)
       await expect(skillTrigger).toBeFocused()
@@ -908,10 +1000,15 @@ try {
       await expect(
         dialog.getByRole('spinbutton', { name: 'Required mastery stage', exact: true }),
       ).toHaveValue('3')
-      await dialog
-        .locator('summary')
-        .filter({ hasText: /^Artwork and sound$/ })
-        .click()
+      await dialog.getByRole('tab', { name: 'Media', exact: true }).click()
+      const soundPool = dialog.getByLabel('Skill audio hook', { exact: true })
+      await expect(soundPool.locator('option')).toHaveCount(154)
+      await soundPool.selectOption('audio.skill-fx.v01.082')
+      await expect(soundPool).toHaveValue('audio.skill-fx.v01.082')
+      const groupPreview = dialog.getByLabel('Battle audio preview', { exact: true })
+      await expect(groupPreview).toHaveAttribute('src', '/media/audio/sfx/skill-fx-v01/082-1.mp3')
+      await groupPreview.evaluate((audio) => audio.load())
+      await expect.poll(() => groupPreview.evaluate((audio) => audio.readyState)).toBeGreaterThan(1)
       await dialog
         .getByLabel('Upload content media', { exact: true })
         .setInputFiles(resolve(fixture, 'fixture-finalized.png'))
@@ -979,10 +1076,13 @@ try {
         structuredClone(window.__contentFixture.records.get('bastion').current.definition),
       )
       await relationships
-        .getByRole('button', { name: 'Change power for Partner Discipline', exact: true })
+        .getByRole('button', { name: 'Clear power for Partner Discipline', exact: true })
+        .click()
+      await relationships
+        .getByRole('button', { name: 'Edit power for Partner Discipline', exact: true })
         .click()
       let associationDialog = page.getByRole('dialog', {
-        name: 'Change power · Partner Discipline',
+        name: 'Select power · Partner Discipline',
         exact: true,
       })
       await expect(
@@ -1000,20 +1100,13 @@ try {
       ).toHaveValue('Alternative Shared Power')
       await page.getByRole('button', { name: 'Close skill editor', exact: true }).click()
       await relationships
-        .getByRole('button', { name: 'Change power for Partner Discipline', exact: true })
-        .click()
-      associationDialog = page.getByRole('dialog', {
-        name: 'Change power · Partner Discipline',
-        exact: true,
-      })
-      await associationDialog
-        .getByRole('button', { name: 'Remove association', exact: true })
+        .getByRole('button', { name: 'Clear power for Partner Discipline', exact: true })
         .click()
       await relationships
-        .getByRole('button', { name: 'Choose power for Partner Discipline', exact: true })
+        .getByRole('button', { name: 'Edit power for Partner Discipline', exact: true })
         .click()
       associationDialog = page.getByRole('dialog', {
-        name: 'Change power · Partner Discipline',
+        name: 'Select power · Partner Discipline',
         exact: true,
       })
       await associationDialog
@@ -1021,10 +1114,13 @@ try {
         .selectOption(await page.evaluate(() => window.__contentFixture.resonanceId))
       await associationDialog.getByRole('button', { name: 'Apply selection', exact: true }).click()
       await relationships
-        .getByRole('button', { name: 'Change power for None (Essence)', exact: true })
+        .getByRole('button', { name: 'Clear power for None (Essence)', exact: true })
+        .click()
+      await relationships
+        .getByRole('button', { name: 'Edit power for None (Essence)', exact: true })
         .click()
       associationDialog = page.getByRole('dialog', {
-        name: 'Change power · None (Essence)',
+        name: 'Select power · None (Essence)',
         exact: true,
       })
       await expect(
@@ -1035,23 +1131,19 @@ try {
         .selectOption('essence.fixture.alternative')
       await associationDialog.getByRole('button', { name: 'Apply selection', exact: true }).click()
       await relationships
-        .getByRole('button', { name: 'Change power for None (Essence)', exact: true })
-        .click()
-      await page
-        .getByRole('dialog')
-        .getByRole('button', { name: 'Remove association', exact: true })
+        .getByRole('button', { name: 'Clear power for None (Essence)', exact: true })
         .click()
       await relationships
-        .getByRole('button', { name: 'Choose power for None (Essence)', exact: true })
+        .getByRole('button', { name: 'Edit power for None (Essence)', exact: true })
         .click()
-      await page
-        .getByRole('dialog')
+      associationDialog = page.getByRole('dialog', {
+        name: 'Select power · None (Essence)',
+        exact: true,
+      })
+      await associationDialog
         .getByRole('combobox', { name: 'Power', exact: true })
         .selectOption(await page.evaluate(() => window.__contentFixture.essenceId))
-      await page
-        .getByRole('dialog')
-        .getByRole('button', { name: 'Apply selection', exact: true })
-        .click()
+      await associationDialog.getByRole('button', { name: 'Apply selection', exact: true }).click()
       assert.equal(
         await page.evaluate(() => window.__contentCommitCount),
         associationWrites,

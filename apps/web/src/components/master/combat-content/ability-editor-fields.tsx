@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import styles from './combat-content-editor.module.css'
 
 export function AbilitySelect<T extends string>({
@@ -41,6 +42,7 @@ export function AbilityNumber({
   min = 0,
   max,
   step = 1,
+  invalid,
 }: {
   label: string
   value: number
@@ -48,21 +50,33 @@ export function AbilityNumber({
   min?: number
   max?: number
   step?: number
+  invalid?: boolean
 }) {
+  const [entry, setEntry] = useState<{ text: string; value: number } | null>(null)
   return (
     <label className={styles.field}>
       <span>{label}</span>
       <input
         aria-label={label}
+        aria-invalid={invalid}
         type="number"
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={entry?.value === value ? entry.text : value}
         onChange={(event) => {
-          const next = Number(event.currentTarget.value)
-          if (Number.isFinite(next)) onChange(next)
+          const text = event.currentTarget.value
+          if (text === '') {
+            setEntry({ text, value })
+            return
+          }
+          const next = Number(text)
+          if (Number.isFinite(next)) {
+            setEntry({ text, value: next })
+            onChange(next)
+          }
         }}
+        onBlur={() => setEntry(null)}
       />
     </label>
   )

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useEffect, useSyncExternalStore } from 'react'
 
 import styles from './authenticated-game-shell.module.css'
@@ -43,7 +44,10 @@ function heartbeatState(characterId: string): PresenceHeartbeatState {
   return state
 }
 
-async function requestPresenceHeartbeat(state: PresenceHeartbeatState): Promise<void> {
+async function requestPresenceHeartbeat(
+  state: PresenceHeartbeatState,
+  onBanned: () => void,
+): Promise<void> {
   if (Date.now() < state.nextHeartbeatAt) return
   if (state.sharedHeartbeat) return state.sharedHeartbeat
 
@@ -53,7 +57,15 @@ async function requestPresenceHeartbeat(state: PresenceHeartbeatState): Promise<
         method: 'POST',
         cache: 'no-store',
       })
-      const body = (await response.json()) as { count?: number }
+      const body = (await response.json()) as {
+        count?: number
+        error?: { accountBanned?: boolean }
+      }
+      if (response.status === 403 && body.error?.accountBanned === true) {
+        state.nextHeartbeatAt = Date.now() + HEARTBEAT_INTERVAL_MS
+        onBanned()
+        return
+      }
       if (
         !response.ok ||
         !Number.isSafeInteger(body.count) ||
@@ -80,7 +92,7 @@ async function requestPresenceHeartbeat(state: PresenceHeartbeatState): Promise<
   return state.sharedHeartbeat
 }
 
-function startPresenceHeartbeat(characterId: string): () => void {
+function startPresenceHeartbeat(characterId: string, onBanned: () => void): () => void {
   const state = heartbeatState(characterId)
   state.consumers += 1
 
@@ -92,7 +104,7 @@ function startPresenceHeartbeat(characterId: string): () => void {
     const heartbeat = async () => {
       clearTimer()
       if (state.consumers === 0 || !documentIsVisible()) return
-      await requestPresenceHeartbeat(state)
+      await requestPresenceHeartbeat(state, onBanned)
       clearTimer()
       if (state.consumers > 0 && documentIsVisible()) {
         state.timer = window.setTimeout(
@@ -123,7 +135,11 @@ function startPresenceHeartbeat(characterId: string): () => void {
 
 /** Activity keeps running while the Account menu (and its count link) is unmounted. */
 export function OnlinePresenceHeartbeat({ characterId }: { characterId: string }) {
-  useEffect(() => startPresenceHeartbeat(characterId), [characterId])
+  const router = useRouter()
+  useEffect(
+    () => startPresenceHeartbeat(characterId, () => router.replace('/account/banned')),
+    [characterId, router],
+  )
   return null
 }
 

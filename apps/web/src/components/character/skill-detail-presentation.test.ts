@@ -102,7 +102,7 @@ describe('Player-facing Skill targeting and effects', () => {
     const before = JSON.stringify(volley)
     expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle [1]', 'Dmg [10]'])
     expect(skillCompactRangeDescription(volley)).toBe('1')
-    expect(Object.fromEntries(skillParameterRows(volley)).Target).toBe('Enemy')
+    expect(Object.fromEntries(skillParameterRows(volley)).Effects).toContain('[Enemy]')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
     expect(skillTargetTags(breath)).toEqual([
       'Self',
@@ -209,8 +209,9 @@ it('explains elemental interactions and typed status aliases without changing hi
     }),
   ).toContain('Burn')
   expect(
-    Object.fromEntries(skillParameterRows(resolveMatureSkillVersion('frostweaver.chilling-mist')!))
-      .Target,
+    Object.fromEntries(skillParameterRows(resolveMatureSkillVersion('frostweaver.chilling-mist')!))[
+      'Target Method'
+    ],
   ).toContain('Frozen Ground: caster’s enemies only')
 })
 
@@ -304,22 +305,28 @@ it('classifies Techniques only as Attack, Heal, or Utility', () => {
 it('returns one effect summary per authored effect with positive durations only', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
   expect(skillEffectSummaries(siphon)).toEqual([
-    expect.stringMatching(/^Dmg \[\d+\]$/),
-    expect.stringMatching(/^MP Drain \[\d+\]$/),
-    expect.stringMatching(/^MP Recovery \[\d+%\] \[Instant\]$/),
+    expect.stringMatching(/^Dmg \[\d+\] \[Enemy\]$/),
+    expect.stringMatching(/^MP Drain \[\d+\] \[Enemy\]$/),
+    expect.stringMatching(/^MP Recovery \[\d+%\] \[Instant\] \[Self\]$/),
   ])
   const guard = resolveMatureSkillVersion('runeblade.rune-guard')!
-  expect(skillEffectSummaries(guard).some((line) => /\[\d+ Turns?\]$/.test(line))).toBe(true)
+  expect(skillEffectSummaries(guard).some((line) => /\[\d+ Turns?\] \[Self\]$/.test(line))).toBe(
+    true,
+  )
 })
 
 it('lists authored magnitudes as effects without leaking design tags', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
-  expect(skillEffectsSummary(siphon)).toBe('Dmg [13], MP Drain [7], MP Recovery [7%] [Instant]')
+  expect(skillEffectsSummary(siphon)).toBe(
+    'Dmg [13] [Enemy], MP Drain [7] [Enemy], MP Recovery [7%] [Instant] [Self]',
+  )
   expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
     skillEffectsSummary(siphon),
   )
   const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
-  expect(brand).toBe('Dmg [10], Vulnerable [14.26%] [2 Turns], Healing Down [20.74%] [2 Turns]')
+  expect(brand).toBe(
+    'Dmg [10] [Enemy], Vulnerable [14.26%] [2 Turns] [Enemy], Healing Down [20.74%] [2 Turns] [Enemy]',
+  )
   expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
     'Dmg',
   )
@@ -355,7 +362,12 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1000,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Marked', magnitude: '10%', duration: '2 Turns' })
+    ).toEqual({
+      target: 'Trigger Skill selected unit',
+      label: 'Marked',
+      magnitude: '10%',
+      duration: '2 Turns',
+    })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -366,7 +378,12 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1200,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Guard', magnitude: '12%', duration: '2 Turns' })
+    ).toEqual({
+      target: 'Trigger Skill selected unit',
+      label: 'Guard',
+      magnitude: '12%',
+      duration: '2 Turns',
+    })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -377,7 +394,12 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1400,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Vulnerable', magnitude: '14%', duration: '2 Turns' })
+    ).toEqual({
+      target: 'Trigger Skill selected unit',
+      label: 'Vulnerable',
+      magnitude: '14%',
+      duration: '2 Turns',
+    })
 
     expect(
       compactSkillEffectSummaryParts({
@@ -388,7 +410,12 @@ describe('Combat v5.1 compact effect summaries', () => {
         potencyBasisPoints: 1600,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Healing Down', magnitude: '16%', duration: '2 Turns' })
+    ).toEqual({
+      target: 'Trigger Skill selected unit',
+      label: 'Healing Down',
+      magnitude: '16%',
+      duration: '2 Turns',
+    })
   })
 
   it('formats Slow as a concise AP magnitude and separates duration', () => {
@@ -400,7 +427,12 @@ describe('Combat v5.1 compact effect summaries', () => {
         stacks: 1,
         durationTurns: 2,
       }),
-    ).toEqual({ label: 'Slow', magnitude: '+10 AP', duration: '2 Turns' })
+    ).toEqual({
+      target: 'Trigger Skill selected unit',
+      label: 'Slow',
+      magnitude: '+10 AP',
+      duration: '2 Turns',
+    })
   })
 
   it('omits a duration token for immediate effects', () => {
@@ -411,7 +443,12 @@ describe('Combat v5.1 compact effect summaries', () => {
         amount: 9,
         durationTurns: 0,
       }),
-    ).toEqual({ label: 'Dmg', magnitude: '9', duration: null })
+    ).toEqual({
+      target: 'Trigger Skill selected unit',
+      label: 'Dmg',
+      magnitude: '9',
+      duration: null,
+    })
   })
 })
 
@@ -472,7 +509,6 @@ it('reports the full minimum field set once in reference order, including Effect
     'Requirements',
     'Effects',
     'Range',
-    'Target',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
@@ -515,20 +551,19 @@ it('describes the authored Burn schedule rather than substituting the default st
 it('keeps area dimensions and distinct recipients in canonical parameter rows', () => {
   const volley = resolveMatureSkillVersion('farstrider.volley')!
   const rows = Object.fromEntries(skillParameterRows(volley))
-  expect(rows['Target Method']).toBe('Circle [1]')
-  expect(rows.Target).toBe('Enemy')
+  expect(rows['Target Method']).toMatch(/^Circle \[1\]/)
+  expect(rows.Effects).toContain('[Enemy]')
+  expect(rows).not.toHaveProperty('Target')
   const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')!
   const groundRows = Object.fromEntries(skillParameterRows(ground))
-  expect(groundRows.Target).toContain('Ground')
-  expect(groundRows.Target).toContain('Enemies only')
-  expect(groundRows.Target).toContain('Frozen Ground: caster’s enemies only')
+  expect(groundRows['Target Method']).toContain('Ground')
+  expect(groundRows.Effects).toContain('[Enemy]')
+  expect(groundRows['Target Method']).toContain('Frozen Ground: caster’s enemies only')
   const friendlyFire = {
     ...volley,
     target: { ...volley.target, friendlyFire: 'all-units' as const },
   }
-  expect(Object.fromEntries(skillParameterRows(friendlyFire)).Target).toBe(
-    'Enemy · All units, including allies',
-  )
+  expect(Object.fromEntries(skillParameterRows(friendlyFire)).Effects).toContain('[Enemy]')
 })
 
 it('derives All with no positional range/LoS while retaining elevation and ordered rows', () => {
@@ -633,11 +668,11 @@ it('puts current elemental duration and potency solely on the explicit status ta
   const skill = { effects }
   const timing = { version: 9, modes: { wet: 'delayed' as const } }
   expect(skillEffectSummaries(skill, timing)).toEqual([
-    'Water Dmg [10]',
-    'Drenched [42%] [4 Turns] [Delayed]',
+    'Water Dmg [10] [Trigger Skill selected unit]',
+    'Drenched [42%] [4 Turns] [Delayed] [Trigger Skill selected unit]',
   ])
   expect(skillEffectSummaries(skill, timing, { explicitElemental: false })[0]).toBe(
-    'Water Dmg [10] [3 Turns]',
+    'Water Dmg [10] [3 Turns] [Trigger Skill selected unit]',
   )
 })
 
@@ -651,7 +686,9 @@ it('advertises Ground Fire intent only for the canonical enemy unit target', () 
       element: 'fire' as const,
     },
   ]
-  expect(Object.fromEntries(skillParameterRows({ ...base, effects })).Target).toBe('Enemy / Ground')
+  expect(Object.fromEntries(skillParameterRows({ ...base, effects }))['Target Method']).toContain(
+    'Aim: Enemy / Ground',
+  )
   expect(
     Object.fromEntries(
       skillParameterRows({
@@ -659,7 +696,7 @@ it('advertises Ground Fire intent only for the canonical enemy unit target', () 
         effects,
         target: { ...base.target, teamPolicy: 'any', friendlyFire: 'all-units' },
       }),
-    ).Target,
+    )['Target Method'],
   ).not.toContain('/ Ground')
 })
 
@@ -673,9 +710,9 @@ it('keeps limited-cleanse Effects timing and historical tag aliases consistent',
     effectDescriptions: [],
   }
   const policy = { version: 7, modes: { 'remove-status': 'instant' as const } }
-  expect(skillEffectSummaries(skill, policy)).toEqual(['Cleanse Chilled [Instant]'])
+  expect(skillEffectSummaries(skill, policy)).toEqual(['Cleanse Chilled [Instant] [Self]'])
   expect(skillEffectSummaries(skill, policy, { explicitElemental: false })).toEqual([
-    'Cleanse [Instant]',
+    'Cleanse [Instant] [Self]',
   ])
   expect(skillTargetTags(skill)).toContain('Cleanse Chilled · Self')
   expect(skillTargetTags(skill, { explicitElemental: false })).toContain('Cleanse · Self')
@@ -685,8 +722,8 @@ it('shows both intents for current Flame Burst while preserving its captured Gro
   const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')!
   const before = JSON.stringify(skill)
   const rows = Object.fromEntries(skillParameterRows(skill))
-  expect(rows.Target).toBe('Enemy / Ground')
-  expect(rows['Target Method']).toBe('Circle [1]')
+  expect(rows['Target Method']).toContain('Aim: Enemy / Ground')
+  expect(rows['Target Method']).toMatch(/^Circle \[1\]/)
   expect(rows.Effects).toContain('Fire Dmg')
   expect(rows.Effects).toContain('Cleanse Chilled')
   expect(
@@ -694,8 +731,8 @@ it('shows both intents for current Flame Burst while preserving its captured Gro
       skillParameterRows(skill, skill, defaultCombatEffectTimingPolicy(), {
         explicitElemental: false,
       }),
-    ).Target,
-  ).toBe('Ground · Enemies only · Steam: both teams')
+    )['Target Method'],
+  ).toBe('Circle [1] · Aim: Ground · Steam: both teams')
   expect(JSON.stringify(skill)).toBe(before)
 })
 
@@ -703,4 +740,10 @@ it('uses an authored display name without changing the stable Skill identity', (
   const original = resolveMatureSkillVersion('vanguard.forceful-strike')!
   expect(skillDisplayName({ ...original, name: 'A chosen name' })).toBe('A chosen name')
   expect(skillDisplayName(original)).toBe('Forceful Strike')
+})
+
+it('reports combined native AP, MP and HP costs without inventing absent costs', () => {
+  expect(skillCostDescription({ apCost: 40, mpCost: 3, hpCost: 12 })).toBe('40 AP / 3 MP / 12 HP')
+  expect(skillCostDescription({ apCost: 40, hpCost: 12 })).toBe('40 AP / 12 HP')
+  expect(skillCostDescription({ apCost: 40 })).toBe('40 AP')
 })

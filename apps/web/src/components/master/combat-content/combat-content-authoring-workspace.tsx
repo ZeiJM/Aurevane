@@ -36,15 +36,25 @@ import {
   type WorkspaceRecovery,
 } from './content-workspace-recovery'
 import { CombatContentAuthoringClientError } from './combat-content-client'
+import { NewDisciplineSkill } from './new-discipline-skill'
+import { DeleteDiscipline } from './delete-discipline'
+import { NewRelationshipPower } from './new-relationship-power'
+import { disciplineRelationshipCommit } from './relationship-power-creation'
+import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
 import { ContentRecordModal } from './content-record-modal'
 import { UsageBalancePanel } from './usage-balance-panel'
 import { DisciplinePlayerGrants } from './discipline-player-grants'
 import { RelationshipOverrideFields } from './relationship-override-fields'
-import { DisciplineRelationshipList } from './discipline-relationship-list'
+import {
+  DisciplineRelationshipList,
+  withDisciplineRelationship,
+} from './discipline-relationship-list'
 import type { AuthoredDiscipline } from '@aurevane/game-core/content/authored-content'
 import styles from './game-content-workspace.module.css'
 
+import type { AbilityEditorSection } from '@/lib/ability-editor-sections'
 export interface CombatContentAuthoringWorkspaceProps {
+  initialAbilitySection?: AbilityEditorSection
   readonly categories?: readonly CombatContentEditorDescriptor[]
   readonly initialPage?: CombatContentListPage
   readonly initialRecord?: CompleteCombatContentRecord | null
@@ -66,6 +76,7 @@ export function CombatContentAuthoringWorkspace({
   initialRecord = null,
   references = [],
   recoveryScope = '',
+  initialAbilitySection,
 }: CombatContentAuthoringWorkspaceProps) {
   const [record, setRecord] = useState(initialRecord)
   const [definition, setDefinition] = useState<CombatContentDefinition | null>(
@@ -87,6 +98,9 @@ export function CombatContentAuthoringWorkspace({
   const [newDefinition, setNewDefinition] = useState<CombatContentDefinition | null>(null)
   const latestNewDefinition = useRef<CombatContentDefinition | null>(null)
   const [modalKey, setModalKey] = useState<string | null>(null)
+  const [modalRelationship, setModalRelationship] = useState<{ partner: string | null } | null>(
+    null,
+  )
   const [knownReferences, setKnownReferences] = useState<Record<string, ContentReference | null>>(
     {},
   )
@@ -107,9 +121,13 @@ export function CombatContentAuthoringWorkspace({
   const persistenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initialProps = useRef({ categories, initialPage, initialRecord })
   const storageKey = recoveryKey(recoveryScope)
-  const activeDefinition = newDefinition ?? definition
   const descriptor = categories.find((row) => row.category === category)
   const activeKind = newDefinition ? descriptor?.storedKind : record?.contentKind
+  const rawActiveDefinition = newDefinition ?? definition
+  const activeDefinition =
+    rawActiveDefinition && activeKind
+      ? skillAccuracyForAuthoring(activeKind, rawActiveDefinition)
+      : rawActiveDefinition
   const readOnly =
     !newDefinition && (!!record?.authoringBlocker || record?.lifecycle === 'archived')
   const dirty = !!record && !!definition && recordIsDirty(record, definition)
@@ -160,7 +178,7 @@ export function CombatContentAuthoringWorkspace({
   function accept(next: CompleteCombatContentRecord) {
     remember(next)
     let local: PendingContentEdit | undefined = pendingRef.current[next.contentKey]
-    if (local && !recordIsDirty(next, local.definition)) {
+    if (local && (next.lifecycle === 'archived' || !recordIsDirty(next, local.definition))) {
       pendingEdit(next.contentKey, null)
       local = undefined
     }
@@ -632,36 +650,49 @@ export function CombatContentAuthoringWorkspace({
               <button disabled={restoring || busy || !!newDefinition}>Search</button>
             </div>
             <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.commit}
-                disabled={
-                  restoring ||
-                  busy ||
-                  !activeDefinition ||
-                  readOnly ||
-                  conflict ||
-                  !!descriptor?.publicationBlocker
-                }
-                onClick={() => void commit()}
-              >
-                {busy ? 'Working…' : 'Commit Now'}
-              </button>
-              <button
-                type="button"
-                disabled={restoring || busy || !!newDefinition || !descriptor?.defaultDefinition}
-                onClick={() => {
-                  createRequestId.current = crypto.randomUUID()
-                  createAttempt.current = null
-                  const next = structuredClone(descriptor!.defaultDefinition!)
-                  latestNewDefinition.current = next
-                  setNewDefinition(next)
-                  setTab('Parameters')
-                  setError('')
-                }}
-              >
-                New
-              </button>
+              <div className={styles.commitControls}>
+                <button
+                  type="button"
+                  className={styles.commit}
+                  disabled={
+                    restoring ||
+                    busy ||
+                    !activeDefinition ||
+                    readOnly ||
+                    conflict ||
+                    !!descriptor?.publicationBlocker
+                  }
+                  onClick={() => void commit()}
+                >
+                  {busy ? 'Working…' : 'Commit Now'}
+                </button>
+                <span className={styles.saveStatus} role="status" aria-label="Save status">
+                  {newDefinition
+                    ? 'New content'
+                    : dirty
+                      ? 'Unsaved changes'
+                      : record?.draft
+                        ? 'Uncommitted changes'
+                        : 'Saved'}
+                </span>
+              </div>
+              {category !== 'tag' && (
+                <button
+                  type="button"
+                  disabled={restoring || busy || !!newDefinition || !descriptor?.defaultDefinition}
+                  onClick={() => {
+                    createRequestId.current = crypto.randomUUID()
+                    createAttempt.current = null
+                    const next = structuredClone(descriptor!.defaultDefinition!)
+                    latestNewDefinition.current = next
+                    setNewDefinition(next)
+                    setTab('Parameters')
+                    setError('')
+                  }}
+                >
+                  New
+                </button>
+              )}
             </div>
             {newDefinition ? (
               <button
@@ -674,7 +705,7 @@ export function CombatContentAuthoringWorkspace({
                   setNewDefinition(null)
                 }}
               >
-                Cancel new content
+                Discard new content
               </button>
             ) : null}
           </form>
@@ -684,69 +715,38 @@ export function CombatContentAuthoringWorkspace({
             <>
               <header className={styles.recordHeading}>
                 <h2>{contentRecordName(activeDefinition)}</h2>
-                <span className={styles.status} role="status" aria-label="Content version state">
-                  {newDefinition
-                    ? 'New content'
-                    : dirty
-                      ? 'Unsaved changes'
-                      : record?.draft
-                        ? 'Uncommitted changes'
-                        : 'Current'}
-                </span>
-                {!newDefinition && record ? (
-                  <details className={styles.recordActions}>
-                    <summary>Actions</summary>
-                    <div>
-                      <button
-                        type="button"
-                        disabled={
-                          restoring ||
-                          busy ||
-                          dirty ||
-                          readOnly ||
-                          category === 'basic' ||
-                          record.contentKind === 'tag'
+                {!newDefinition && record?.contentKind === 'discipline' && !readOnly ? (
+                  <DeleteDiscipline
+                    key={record.contentKey}
+                    contentKey={record.contentKey}
+                    name={contentRecordName(activeDefinition)}
+                    disabled={busy || restoring}
+                    onBusyChange={setWorking}
+                    onDeleted={(keys) => {
+                      for (const key of keys) pendingEdit(key, null)
+                      setKnownReferences((old) => ({
+                        ...old,
+                        ...Object.fromEntries(keys.map((key) => [key, null])),
+                      }))
+                      setPage((old) => ({
+                        ...old,
+                        records: old.records.filter((row) => !keys.includes(row.contentKey)),
+                      }))
+                      setRecord(null)
+                      setDefinition(null)
+                      setModalKey(null)
+                      setModalRelationship(null)
+                      setConflict(false)
+                      if (recoverySnapshot.current)
+                        recoverySnapshot.current = {
+                          ...recoverySnapshot.current,
+                          selectedKey: null,
+                          edits: pendingRef.current,
                         }
-                        onClick={() =>
-                          void work(async () => {
-                            const result = await contentRecordCommand<{
-                              record: CompleteCombatContentRecord
-                            }>({
-                              action: 'duplicate',
-                              sourceKey: record.contentKey,
-                              expectedSourceRevision: record.revision,
-                              requestId: crypto.randomUUID(),
-                            })
-                            accept(result.record)
-                            setNotice('Copy created. Review the settings and Commit Now.')
-                            setPage(await list(categoryOf(result.record)))
-                          })
-                        }
-                      >
-                        Duplicate
-                      </button>
-                      <button
-                        type="button"
-                        disabled={restoring || busy || dirty || readOnly || category === 'basic'}
-                        onClick={() =>
-                          void work(async () => {
-                            const result = await contentRecordCommand<{
-                              record: CompleteCombatContentRecord
-                            }>({
-                              action: 'archive',
-                              contentKey: record.contentKey,
-                              expectedRevision: record.revision,
-                            })
-                            accept(result.record)
-                            setNotice('Content archived.')
-                            setPage(await list())
-                          })
-                        }
-                      >
-                        Archive
-                      </button>
-                    </div>
-                  </details>
+                      flushRecovery()
+                      setNotice('Discipline deleted. Saved battle history is retained.')
+                    }}
+                  />
                 ) : null}
               </header>
               {conflict && record ? (
@@ -784,7 +784,7 @@ export function CombatContentAuthoringWorkspace({
                 {(
                   [
                     'Parameters',
-                    ...(activeKind === 'discipline' ? ['Skills', 'Resonances'] : []),
+                    ...(activeKind === 'discipline' ? ['Media', 'Skills', 'Resonances'] : []),
                     'Usage & Balance',
                   ] as ContentEditorTab[]
                 ).map((section) => (
@@ -794,7 +794,11 @@ export function CombatContentAuthoringWorkspace({
                     disabled={restoring || busy}
                     onClick={() => setTab(section)}
                   >
-                    {section === 'Parameters' ? contentDetailsLabel(category) : section}
+                    {section === 'Parameters'
+                      ? contentDetailsLabel(category)
+                      : section === 'Media' && activeKind === 'discipline'
+                        ? 'Artwork'
+                        : section}
                   </button>
                 ))}
               </div>
@@ -813,25 +817,64 @@ export function CombatContentAuthoringWorkspace({
                     <p>Commit the new item to see usage statistics.</p>
                   )
                 ) : tab === 'Skills' ? (
-                  <section className={styles.relatedList} aria-label="Discipline skills">
-                    {skills.map((key) => (
-                      <div key={key}>
-                        <button
-                          type="button"
-                          disabled={restoring || busy}
-                          onClick={() => setModalKey(key)}
-                        >
-                          {choices.find((row) => row.contentKey === key)?.name ?? key}
-                          <span aria-hidden="true">Edit →</span>
-                        </button>
-                        {activeDefinition && !disciplineSkillIsAvailable(activeDefinition, key) ? (
-                          <small>Not available in this Discipline</small>
-                        ) : null}
-                        {pending[key] ? <small>Uncommitted skill changes</small> : null}
-                      </div>
-                    ))}
-                    {!skills.length ? <p>No matching skills.</p> : null}
-                  </section>
+                  <>
+                    <NewDisciplineSkill
+                      key={record?.contentKey ?? 'new'}
+                      parent={newDefinition ? null : record}
+                      count={skills.length}
+                      choices={choices.filter(
+                        (row) =>
+                          row.contentKind === 'skill' &&
+                          !(BASIC_SKILL_IDS as readonly string[]).includes(row.contentKey),
+                      )}
+                      blank={
+                        categories.find((row) => row.category === 'skill')?.defaultDefinition ??
+                        null
+                      }
+                      disabled={restoring || busy || readOnly}
+                      recoveryScope={recoveryScope}
+                      onBusyChange={(active) =>
+                        setModalSaving((count) => Math.max(0, count + (active ? 1 : -1)))
+                      }
+                      onCreated={(child, parent) => {
+                        const body =
+                          pendingRef.current[parent.contentKey]?.definition ?? activeDefinition
+                        remember(child)
+                        if (body)
+                          pendingEdit(parent.contentKey, {
+                            revision: parent.revision,
+                            definition: withDisciplineSkill(body, child.contentKey, true),
+                          })
+                        accept(parent)
+                        setTab('Skills')
+                        setModalKey(child.contentKey)
+                        setModalRelationship(null)
+                      }}
+                    />
+                    <section className={styles.relatedList} aria-label="Discipline skills">
+                      {skills.map((key) => (
+                        <div key={key}>
+                          <button
+                            type="button"
+                            disabled={restoring || busy}
+                            onClick={() => {
+                              setModalRelationship(null)
+                              setModalKey(key)
+                            }}
+                          >
+                            {choices.find((row) => row.contentKey === key)?.name ?? key}
+                            <span aria-hidden="true">Edit →</span>
+                          </button>
+                          {activeDefinition &&
+                          !disciplineSkillIsAvailable(activeDefinition, key) ? (
+                            <small>Not available in this Discipline</small>
+                          ) : null}
+                          {pending[key] ? <small>Uncommitted skill changes</small> : null}
+                        </div>
+                      ))}
+                      {!skills.length ? <p>No Skills yet. Create the first Skill above.</p> : null}
+                    </section>
+                  </>
                 ) : tab === 'Resonances' ? (
                   <section aria-label="Discipline relationships">
                     <fieldset disabled={restoring || readOnly}>
@@ -847,13 +890,49 @@ export function CombatContentAuthoringWorkspace({
                       value={activeDefinition as unknown as AuthoredDiscipline}
                       choices={choices}
                       onChange={(next) => change(next as unknown as CombatContentDefinition)}
-                      onEdit={setModalKey}
+                      onEdit={(key, partner) => {
+                        setModalRelationship({ partner })
+                        setModalKey(key)
+                      }}
+                      renderCreate={(partner, close) => (
+                        <NewRelationshipPower
+                          parent={newDefinition ? null : record}
+                          partner={partner}
+                          blank={
+                            categories.find(
+                              (row) =>
+                                row.category === (partner === null ? 'essence' : 'resonance'),
+                            )?.defaultDefinition ?? null
+                          }
+                          recoveryScope={recoveryScope}
+                          disabled={restoring || busy || readOnly}
+                          onBusyChange={setWorking}
+                          onCreated={(child) => {
+                            remember(child)
+                            change(
+                              withDisciplineRelationship(
+                                activeDefinition as unknown as AuthoredDiscipline,
+                                partner,
+                                child.contentKey,
+                              ) as unknown as CombatContentDefinition,
+                            )
+                            close()
+                            setModalRelationship({ partner })
+                            setModalKey(child.contentKey)
+                          }}
+                        />
+                      )}
                       disabled={restoring || busy || readOnly}
                     />
                   </section>
                 ) : (
                   <fieldset disabled={restoring || readOnly}>
                     <ContentDefinitionFields
+                      initialAbilitySection={
+                        record?.contentKey === initialRecord?.contentKey
+                          ? initialAbilitySection
+                          : undefined
+                      }
                       kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
                       value={activeDefinition}
                       tab="Parameters"
@@ -902,7 +981,7 @@ export function CombatContentAuthoringWorkspace({
           onCommitStart={() => {
             setModalSaving((count) => count + 1)
             const finishParent =
-              disciplineSkillModal && record
+              (disciplineSkillModal || modalRelationship) && record
                 ? holdContentCommit(committingKeys.current, record.contentKey)
                 : () => {}
             let active = true
@@ -916,11 +995,18 @@ export function CombatContentAuthoringWorkspace({
           onCommitRelated={async () => {
             // This closure captures the association reviewed when Commit Now was
             // pressed; newer parent edits are rebased by commitSaved and kept local.
-            if (!disciplineSkillModal || !record || !activeDefinition)
+            if ((!disciplineSkillModal && !modalRelationship) || !record || !activeDefinition)
               return !!newDefinition || !!(record && pendingRef.current[record.contentKey])
             const base = editableDefinition(record)
             if (!base) return !!pendingRef.current[record.contentKey]
-            const patch = disciplineMasteryCommit(base, activeDefinition, modalKey)
+            const patch = disciplineSkillModal
+              ? disciplineMasteryCommit(base, activeDefinition, modalKey)
+              : disciplineRelationshipCommit(
+                  base,
+                  activeDefinition,
+                  modalKey,
+                  modalRelationship!.partner,
+                )
             if (!patch) {
               const local = pendingRef.current[record.contentKey]
               if (local && !recordIsDirty(record, local.definition))
@@ -939,7 +1025,10 @@ export function CombatContentAuthoringWorkspace({
           choices={choices}
           pending={pending[modalKey] ?? null}
           onChange={(key, edit) => pendingEdit(key, edit)}
-          onClose={() => setModalKey(null)}
+          onClose={() => {
+            setModalKey(null)
+            setModalRelationship(null)
+          }}
           onSaved={(saved) => {
             remember(saved)
             setNameOverrides((old) => ({

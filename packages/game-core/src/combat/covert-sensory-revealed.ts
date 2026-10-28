@@ -1,3 +1,4 @@
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { combatStatusMetadata } from './combat-effect-state'
 import type {
   CombatActionDefinition,
@@ -499,7 +500,14 @@ function primaryWouldBeCovertAtEffect(
 
   for (let index = 0; index < effectIndex; index += 1) {
     const effect = action.effects[index]
-    if (!effect || !effectHitsPrimary(effect, evaluation, primaryCombatantId)) continue
+    if (
+      !effect ||
+      !evaluation ||
+      !combatEvaluatedEffectRecipientIds(state, action, evaluation, index).includes(
+        primaryCombatantId,
+      )
+    )
+      continue
     if (effect.type === 'apply-status') {
       if (effect.statusId === REVEALED_STATUS_ID) revealed = true
       if (effect.statusId === COVERT_STATUS_ID && !revealed) covert = true
@@ -511,16 +519,6 @@ function primaryWouldBeCovertAtEffect(
     }
   }
   return covert
-}
-
-function effectHitsPrimary(
-  effect: CombatActionDefinition['effects'][number],
-  evaluation: CombatActionEvaluation | null,
-  primaryCombatantId: string,
-): boolean {
-  if (effect.recipient === 'primary-unit') return true
-  if (effect.recipient === 'actor') return evaluation?.actorId === primaryCombatantId
-  return evaluation?.affectedCombatantIds.includes(primaryCombatantId) === true
 }
 
 function isSensoryPurgeEligibleStatus(status: CombatStatusDefinition): boolean {

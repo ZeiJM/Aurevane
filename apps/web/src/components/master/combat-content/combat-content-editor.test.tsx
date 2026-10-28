@@ -44,7 +44,7 @@ it('keeps Essence action text independently editable from catalogue flavor', () 
   expect(html).toContain('value="Catalogue flavor stays separate."')
 })
 it.each(['skill', 'essence'] as const)(
-  'keeps finalized media and native mechanics together in %s Details',
+  'keeps finalized media and mechanics in the shared %s editor sections',
   (kind) => {
     const definition =
       kind === 'skill'
@@ -58,9 +58,11 @@ it.each(['skill', 'essence'] as const)(
         onChange={() => {}}
       />,
     )
-    for (const label of ['Upload content media', 'Skill artwork hook', 'Skill audio hook'])
+    for (const label of ['Upload content media', 'Skill audio hook'])
       expect(html).toContain(`aria-label="${label}"`)
-    expect(html).toContain('<summary>Artwork and sound</summary>')
+    expect(html).toContain('>Media</button>')
+    expect(html).toContain('Restore default artwork')
+    expect(html).not.toContain('Skill artwork hook')
     expect(html).toContain('Action Economy (AP)')
   },
 )
@@ -89,7 +91,7 @@ it.each(COMBAT_CONTENT_CATEGORIES.filter((row) => row.editor.defaultDefinition))
         onChange={() => {}}
       />,
     )
-    expect(html).toContain('Name')
+    expect(html).toContain(editor.storedKind === 'tag' ? 'Skill Manager description' : 'Name')
     expect(html).not.toContain('Complete compatibility settings')
   },
 )

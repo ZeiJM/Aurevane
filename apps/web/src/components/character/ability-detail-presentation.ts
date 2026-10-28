@@ -1,3 +1,4 @@
+import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import type { MechanicTextPart } from './mechanic-text'
 import {
@@ -20,7 +21,10 @@ import type {
   RequirementNode,
 } from '@aurevane/game-core/combat/combat-definition'
 import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
-import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
+import {
+  resolvedCombatEffectTagPresentation,
+  nativeCombatTagPayload,
+} from '@aurevane/game-core/combat/combat-tag-registry'
 import {
   canonicalAbilityTargetSpec,
   canonicalAbilitySupportsFireGroundIntent,
@@ -264,7 +268,6 @@ export interface AbilityEffectPresentation {
   readonly condition: string | null
   readonly conditionParts?: readonly MechanicTextPart[]
   readonly recipient: string
-  readonly recipientOverride?: string
   readonly repeatsOnEntry?: boolean
 }
 const recipients = {
@@ -274,40 +277,6 @@ const recipients = {
   'affected-tiles': 'Ground',
   'selected-tile': 'Ground',
 } as const
-
-function effectRecipientOverride(
-  behavior: AbilityBehavior,
-  effect: AbilityEffect,
-): string | undefined {
-  const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
-  const selected = target ? combatTargetCategories(target) : []
-  const payload = effect.payload
-  const actual =
-    payload.type === 'move' ||
-    payload.recipient === 'selected-tile' ||
-    payload.recipient === 'affected-tiles'
-      ? ['ground']
-      : payload.recipient === 'actor'
-        ? ['self']
-        : target?.friendlyFire === 'enemies-only'
-          ? ['enemy']
-          : target?.friendlyFire === 'allies-only'
-            ? selected.includes('self')
-              ? ['self', 'ally']
-              : ['ally']
-            : selected.filter((category) => category !== 'ground').length
-              ? selected.filter((category) => category !== 'ground')
-              : ['self', 'ally', 'enemy']
-  if (actual.every((category) => selected.some((value) => value === category))) return undefined
-  return actual
-    .map(
-      (category) =>
-        ({ self: 'Self', ally: 'Ally', enemy: 'Enemy', ground: 'Ground' })[
-          category as 'self' | 'ally' | 'enemy' | 'ground'
-        ],
-    )
-    .join(' / ')
-}
 
 const equipmentArmorExplanation =
   'The displayed bypass applies only to equipment Armor. Without equipment Armor, it provides no advantage.'
@@ -501,8 +470,8 @@ export function abilityBehaviorInformation(
         : [nativeCombatTagPayload(payload)],
     ),
   }
+  const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
   const effects = behavior.effects.map((effect) => {
-    const recipientOverride = effectRecipientOverride(behavior, effect)
     const described = effectPresentation(
       effect,
       timingPolicy,
@@ -511,19 +480,28 @@ export function abilityBehaviorInformation(
       controlledAction,
       effectContext,
     )
+    const tagPresentation = resolvedCombatEffectTagPresentation(
+      options.tagPresentation,
+      effect.payload,
+      described.description,
+    )
     return {
       ...described,
+      ...(tagPresentation ? { description: tagPresentation.full } : {}),
       presentation: {
         ...described.presentation,
-        tagPresentation: options.tagPresentation?.find((tag) => tag.tagId === effect.payload.type),
-        ...(recipientOverride ? { recipientOverride } : {}),
+        tagPresentation,
+        ...(tagPresentation ? { explanationParts: undefined } : {}),
+        parts: {
+          ...described.presentation.parts,
+          target: effectTargetLabel(effect.payload, target ?? undefined),
+        },
         ...(behavior.groundArea
           ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }
           : {}),
       },
     }
   })
-  const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
   const nativeMove =
     options.basic?.execution.kind === 'basic-move' &&
     options.basic.execution.costBasis === 'per-terrain-point'
@@ -538,8 +516,8 @@ export function abilityBehaviorInformation(
   // Display it in the Requirements characteristic, never as a prefix to Effects.
   const summary = effects
     .map(
-      ({ presentation: { parts, recipientOverride } }) =>
-        `${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${recipientOverride ? ` [${recipientOverride}]` : ''}`,
+      ({ presentation: { parts } }) =>
+        `${parts.label}${parts.magnitude ? ` [${parts.magnitude}]` : ''}${parts.duration ? ` [${parts.duration}]` : ''}${parts.timing ? ` [${parts.timing}]` : ''}${parts.target ? ` [${parts.target}]` : ''}`,
     )
     .join(', ')
   const primaryRequirement = nativeMove
@@ -574,6 +552,26 @@ export function abilityBehaviorInformation(
   const requirementParts = combinedRequirementParts.some((part) => typeof part !== 'string')
     ? combinedRequirementParts
     : undefined
+  const aimLabel = groundFire
+    ? 'Enemy / Ground'
+    : target
+      ? combatTargetCategories(target)
+          .map(
+            (category) =>
+              ({
+                self: 'Self',
+                ally: 'Ally',
+                enemy: 'Enemy',
+                ground: target.kind === 'empty-tile' ? 'Empty Tile' : 'Ground',
+              })[category],
+          )
+          .join(' / ')
+      : null
+  const aimNote =
+    aimLabel &&
+    (groundFire || effects.every(({ presentation }) => presentation.parts.target !== aimLabel))
+      ? ` · Aim: ${aimLabel}`
+      : ''
   const groundSummary = behavior.groundArea
     ? timingPolicy?.tagAuthority === 'global'
       ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
@@ -614,25 +612,16 @@ export function abilityBehaviorInformation(
         : target
           ? skillCompactRangeDescription({ target })
           : 'N/A',
-      Target: nativeMove
-        ? 'Empty Ground'
-        : target
-          ? (groundFire ? ['enemy' as const, 'ground' as const] : combatTargetCategories(target))
-              .map(
-                (category) =>
-                  ({
-                    self: 'Self',
-                    ally: 'Ally',
-                    enemy: 'Enemy',
-                    ground: target.kind === 'empty-tile' ? 'Empty Ground' : 'Ground',
-                  })[category],
-              )
-              .join(' / ') + (groundSummary ? ` · ${groundSummary}` : '')
-          : 'N/A',
       'Target Method': nativeMove
-        ? 'Path'
+        ? 'Path · Empty Tile'
         : target
           ? skillTargetMethodDescription({ target }) +
+            aimNote +
+            effectFriendlyFireNote(
+              behavior.effects.map(({ payload }) => payload),
+              target,
+            ) +
+            (groundSummary ? ` · ${groundSummary}` : '') +
             ((target.maximumSelections ?? 1) > 1
               ? ` · Up to ${target.maximumSelections} distinct targets`
               : '')

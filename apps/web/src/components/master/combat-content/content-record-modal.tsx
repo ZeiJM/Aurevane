@@ -10,6 +10,7 @@ import {
 } from './content-record-workflow'
 import type { PendingContentEdit } from './content-workspace-recovery'
 import styles from './game-content-workspace.module.css'
+import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
 
 /** Edits live in the parent recovery map, not the lifetime of a dialog. */
 export function ContentRecordModal({
@@ -61,7 +62,7 @@ export function ContentRecordModal({
     })
       .then((result) => {
         if (!live) return
-        if (!result.record) throw new Error('This skill is no longer available.')
+        if (!result.record) throw new Error('This content is no longer available.')
         setRecord(result.record)
       })
       .catch((cause) => {
@@ -72,7 +73,11 @@ export function ContentRecordModal({
       previous?.focus()
     }
   }, [contentKey])
-  const definition = pending?.definition ?? (record ? editableDefinition(record) : null)
+  const rawDefinition = pending?.definition ?? (record ? editableDefinition(record) : null)
+  const definition =
+    record && rawDefinition
+      ? skillAccuracyForAuthoring(record.contentKind, rawDefinition)
+      : rawDefinition
   const stale = !!record && !!pending && pending.revision !== record.revision
   async function commit() {
     if (committing.current || !record || !definition || stale) return
@@ -144,18 +149,27 @@ export function ContentRecordModal({
         <header className={styles.modalHeading}>
           <div>
             <span className={styles.eyebrow}>
-              {record?.contentKind === 'resonance'
-                ? 'Resonance'
-                : record?.contentKind === 'essence'
-                  ? 'Essence'
-                  : 'Skill'}{' '}
+              {record?.contentKind === 'tag'
+                ? 'Effect description'
+                : record?.contentKind === 'resonance'
+                  ? 'Resonance'
+                  : record?.contentKind === 'essence'
+                    ? 'Essence'
+                    : 'Skill'}{' '}
               editor
             </span>
             <h2 id="content-skill-editor-title">
               {definition ? contentRecordName(definition) : 'Loading…'}
             </h2>
           </div>
-          <button autoFocus type="button" aria-label="Close skill editor" onClick={onClose}>
+          <button
+            autoFocus
+            type="button"
+            aria-label={
+              contentKey.startsWith('tag.') ? 'Close description editor' : 'Close skill editor'
+            }
+            onClick={onClose}
+          >
             Close
           </button>
         </header>
@@ -240,6 +254,10 @@ export function ContentRecordModal({
               !record ||
               !definition ||
               stale ||
+              (record?.contentKind === 'tag' &&
+                !record.draft &&
+                !!definition &&
+                !recordIsDirty(record, definition)) ||
               !!record?.authoringBlocker ||
               record?.lifecycle === 'archived'
             }

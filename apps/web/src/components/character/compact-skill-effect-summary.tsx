@@ -15,6 +15,7 @@ import {
   type CompactSkillEffectSummaryParts,
 } from './skill-detail-presentation'
 import styles from './compact-skill-effect-summary.module.css'
+import { previewEffectWithTag } from './skill-effect-preview'
 import { MechanicTextView } from './mechanic-text-view'
 
 /** Effect names share their magnitude color in compact and expanded readers. */
@@ -47,7 +48,6 @@ export function EffectTagLabel({
         }
       >
         <p>{tagPresentation.compact}</p>
-        <p>{tagPresentation.full}</p>
       </BattleInfoPopover>
     )
 
@@ -62,17 +62,20 @@ export function CompactSkillEffectSummary({
   effect,
   count = 1,
   skillEffects,
+  tagPresentations,
+  aim,
 }: {
+  aim?: import('@aurevane/game-core/combat/actions').CombatTargetSpec
+  tagPresentations?: readonly CombatTagPresentationSnapshot[]
   skillEffects?: readonly MatureSkillEffectDefinition[]
   effect: MatureSkillEffectDefinition
   count?: number
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
-  const parts = compactSkillEffectSummaryParts(effect, timingPolicy, {
-    ...useSkillGroundInteractionRules(),
-    skillEffects,
-  })
-  return <CompactEffectSummary parts={parts} count={count} />
+  const options = { ...useSkillGroundInteractionRules(), skillEffects, aim }
+  const parts = compactSkillEffectSummaryParts(effect, timingPolicy, options)
+  const { tagPresentation } = previewEffectWithTag(effect, tagPresentations, options)
+  return <CompactEffectSummary parts={parts} count={count} tagPresentation={tagPresentation} />
 }
 
 /** Shared label, magnitude and duration markup for authored and inherent effects. */
@@ -111,6 +114,14 @@ export function CompactEffectSummary({
           {' '}
           <span className={styles.timing} data-compact-effect-timing="true">
             [{parts.timing}]
+          </span>
+        </>
+      ) : null}
+      {parts.target ? (
+        <>
+          {' '}
+          <span className={styles.target} data-compact-effect-target="true">
+            [{parts.target}]
           </span>
         </>
       ) : null}

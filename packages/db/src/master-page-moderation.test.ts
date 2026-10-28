@@ -86,9 +86,141 @@ beforeAll(async () => {
   await db.exec(
     sql(readdirSync(root).find((name) => name.endsWith('_master_page_access_and_moderation.sql'))!),
   )
+  await db.exec(
+    sql('20261026063220_master_panel_weekly_activity.sql').split(
+      'create function app_private.capture_master_panel_activity_v1()',
+    )[0] + 'commit;',
+  )
+  const navigation = readdirSync(root).find((name) => name.endsWith('_master_panel_navigation.sql'))
+  if (navigation) await db.exec(sql(navigation))
+  const activeBans = readdirSync(root).find((name) => name.endsWith('_moderation_active_bans.sql'))
+  if (activeBans) await db.exec(sql(activeBans))
+  const selfBan = readdirSync(root).find((name) => name.endsWith('_self_account_ban_status.sql'))
+  if (selfBan) await db.exec(sql(selfBan))
 }, 30000)
 afterAll(async () => {
   await db?.close()
+})
+it('returns only current self-ban facts, clears expired/lifted reasons and denies browser RPC execution', async () => {
+  await db.exec('begin')
+  try {
+    await assign()
+    await write('ban')
+    const status = async () =>
+      (
+        await db.query<{ value: Record<string, unknown> }>(
+          'select public.read_account_ban_status_v1($1) value',
+          [player],
+        )
+      ).rows[0]!.value
+    expect(await status()).toEqual({
+      active: true,
+      permanent: false,
+      expiresAt: expect.any(String),
+      reason: 'Reviewed misconduct',
+      serverTime: expect.any(String),
+    })
+    await write('lift')
+    expect(await status()).toMatchObject({ active: false, expiresAt: null, reason: null })
+    await write('ban', undefined, null, true)
+    expect(await status()).toMatchObject({ active: true, permanent: true, expiresAt: null })
+    await db.exec(
+      `update auth.users set banned_until=now()-interval '1 second' where id='${player}'`,
+    )
+    expect(await status()).toMatchObject({ active: false, reason: null })
+    const rights = (
+      await db.query<{ allowed: boolean }>(
+        "select has_function_privilege('authenticated','public.read_account_ban_status_v1(uuid)','execute') allowed",
+      )
+    ).rows[0]!
+    expect(rights.allowed).toBe(false)
+  } finally {
+    await db.exec('rollback')
+  }
+})
+
+it('lists each active banned account once, excludes expiry, and replays the exact lift without a second audit', async () => {
+  await db.exec('begin')
+  try {
+    await assign()
+    await db.exec(
+      `update auth.users set banned_until=null where id='${player}'; insert into public.characters values('cccccccc-cccc-4ccc-8ccc-cccccccccccc','${player}','Second Character')`,
+    )
+    await write('ban')
+    const list = () =>
+      db.query<{
+        value: {
+          bans: { userId: string; name: string; revision: string }[]
+          nextCursor: string | null
+        }
+      }>('select public.list_active_master_bans_v1($1,$2,null) value', [staff, chosen])
+    const rows = (await list()).rows[0]!.value
+    expect(rows.bans.filter((row) => row.userId === player)).toHaveLength(1)
+    const revision = (await read()).revision
+    await write('lift', revision)
+    const count = (await db.query('select * from app_private.master_moderation_audit')).rows.length
+    await write('lift', revision)
+    expect((await db.query('select * from app_private.master_moderation_audit')).rows.length).toBe(
+      count,
+    )
+    expect((await list()).rows[0]!.value.bans).toEqual([])
+    await write('ban', undefined, null, true)
+    expect((await list()).rows[0]!.value.bans).toHaveLength(1)
+    await db.exec('savepoint stale_lift')
+    await expect(write('lift', revision)).rejects.toThrow('MODERATION_VERSION_CONFLICT')
+    await db.exec('rollback to savepoint stale_lift')
+    expect((await read()).active).toBe(true)
+    await db.exec(
+      `update auth.users set banned_until=now()-interval '1 second' where id='${player}'`,
+    )
+    expect((await list()).rows[0]!.value.bans).toEqual([])
+  } finally {
+    await db.exec('rollback')
+  }
+})
+it('requires the correct selected moderation actor for active lists and denies browser execution', async () => {
+  await db.exec('begin')
+  try {
+    await assign()
+    await db.exec('savepoint denial')
+    await expect(
+      db.query('select public.list_active_master_bans_v1($1,$2,null)', [staff, alternate]),
+    ).rejects.toThrow('MASTER_PANEL_PAGE_ACCESS_REQUIRED')
+    await db.exec('rollback to savepoint denial')
+    const result = await db.query<{ allowed: boolean }>(
+      "select has_function_privilege('authenticated','public.list_active_master_bans_v1(uuid,uuid,uuid)','execute') allowed",
+    )
+    expect(result.rows[0]!.allowed).toBe(false)
+  } finally {
+    await db.exec('rollback')
+  }
+})
+it('paginates a bounded active-account list without repeats or losing accounts without characters', async () => {
+  await db.exec('begin')
+  try {
+    await assign()
+    await db.exec(
+      `insert into auth.users(id,email_confirmed_at,banned_until) select ('44444444-4444-4444-8444-'||lpad(n::text,12,'0'))::uuid,now(),'9999-12-31T23:59:59Z'::timestamptz from generate_series(1,51) n`,
+    )
+    const list = async (cursor: string | null) =>
+      (
+        await db.query<{
+          value: {
+            bans: { userId: string; characterId: string | null; permanent: boolean }[]
+            nextCursor: string | null
+          }
+        }>('select public.list_active_master_bans_v1($1,$2,$3) value', [staff, chosen, cursor])
+      ).rows[0]!.value
+    const first = await list(null),
+      second = await list(first.nextCursor)
+    expect(first.bans).toHaveLength(50)
+    expect(second.bans).toHaveLength(1)
+    expect(new Set([...first.bans, ...second.bans].map((row) => row.userId)).size).toBe(51)
+    expect(first.bans.every((row) => row.characterId === null && row.permanent)).toBe(true)
+    expect(second.nextCursor).toBeNull()
+  } finally {
+    await db.exec('rollback')
+  }
 })
 
 async function assign() {
@@ -352,4 +484,77 @@ it('denies browser RPC and direct private-table access', async () => {
     'permission denied',
   )
   await db.exec('reset role')
+})
+
+it('persists one Owner-controlled navigation order with stale-write protection and selected-reader authority', async () => {
+  const read = async (actor = owner, character: string | null = null) =>
+    (
+      await db.query<{ value: { revision: number; order: string[] } }>(
+        'select public.read_master_panel_navigation_v1($1,$2) value',
+        [actor, character],
+      )
+    ).rows[0]!.value
+  const initial = await read()
+  const order = [...initial.order].reverse()
+  const save = async (
+    actor: string,
+    revision: number,
+    next: unknown,
+    character: string | null = null,
+  ) =>
+    (
+      await db.query<{ value: { revision: number; order: string[] } }>(
+        'select public.save_master_panel_navigation_v1($1,$2,$3::jsonb,$4) value',
+        [actor, revision, JSON.stringify(next), character],
+      )
+    ).rows[0]!.value
+  const saved = await save(owner, initial.revision, order)
+  expect(saved).toEqual({ revision: initial.revision + 1, order })
+  expect(await read()).toEqual(saved)
+  expect(
+    (
+      await db.query<{ before_order: string[]; after_order: string[] }>(
+        'select before_order,after_order from app_private.master_panel_navigation_audit',
+      )
+    ).rows,
+  ).toEqual([{ before_order: initial.order, after_order: order }])
+  expect(
+    (
+      await db.query<{ action: string }>(
+        "select action from app_private.master_panel_activity where subject='Master Panel'",
+      )
+    ).rows,
+  ).toEqual([{ action: 'Reordered tabs' }])
+  expect(await save(owner, saved.revision, order)).toEqual(saved)
+  await expect(save(owner, initial.revision, initial.order)).rejects.toThrow(
+    'MASTER_NAVIGATION_VERSION_CONFLICT',
+  )
+  for (const invalid of [null, [], [...order, 'unknown'], [...order.slice(1), order[1]]])
+    await expect(save(owner, saved.revision, invalid)).rejects.toThrow('MASTER_NAVIGATION_INVALID')
+  await db.exec(
+    `update app_private.master_panel_character_access set enabled=true,expires_at=null where character_id='${chosen}'; update auth.users set banned_until=null where id='${staff}';`,
+  )
+  expect(await read(staff, chosen)).toEqual(saved)
+  await expect(read(staff, alternate)).rejects.toThrow('MASTER_PANEL_PAGE_ACCESS_REQUIRED')
+  await expect(save(staff, saved.revision, initial.order, chosen)).rejects.toThrow(
+    'MASTER_PANEL_PAGE_ACCESS_REQUIRED',
+  )
+  await save(owner, saved.revision, initial.order)
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          `select has_table_privilege('${role}','app_private.master_panel_navigation','SELECT,INSERT,UPDATE,DELETE') allowed`,
+        )
+      ).rows[0]!.allowed,
+    ).toBe(false)
+  }
+  for (const role of ['anon', 'authenticated'])
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          `select has_function_privilege('${role}','public.save_master_panel_navigation_v1(uuid,bigint,jsonb,uuid)','EXECUTE') allowed`,
+        )
+      ).rows[0]!.allowed,
+    ).toBe(false)
 })
