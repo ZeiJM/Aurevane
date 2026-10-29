@@ -1264,8 +1264,12 @@ async function verifyCanonicalEditor(page, viewport) {
     ),
   )
   const maintained = editor.locator('[data-ability-group="maintain"]')
-  await openEffectParameters(maintained)
-  await maintained.getByLabel('Outgoing damage bonus (%)', { exact: true }).fill('15.25')
+  const bonus = maintained.locator('[data-ability-effect="bonus"]')
+  await openEffectParameters(bonus)
+  assert.equal(await bonus.getByLabel('Outgoing damage bonus (%)', { exact: true }).count(), 0)
+  const damageUp = bonus.getByLabel('Damage Up (%)', { exact: true })
+  await damageUp.waitFor({ state: 'visible' })
+  await damageUp.fill('15.25')
   await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
   await gesture(
     editor
