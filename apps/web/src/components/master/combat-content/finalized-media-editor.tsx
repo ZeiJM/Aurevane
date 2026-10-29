@@ -20,12 +20,14 @@ export function FinalizedMediaEditor({
   allowAudio = true,
   fallbackArtwork,
   showArtworkRemoval = true,
+  onPendingMediaChange,
 }: {
   value: FinalizedContentMediaSlots
   onChange(value: FinalizedContentMediaSlots): void
   allowAudio?: boolean
   fallbackArtwork?: string
   showArtworkRemoval?: boolean
+  onPendingMediaChange?(pending: boolean): void
 }) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
@@ -33,7 +35,19 @@ export function FinalizedMediaEditor({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const canvas = useRef<HTMLCanvasElement>(null)
+  const mounted = useRef(false)
+  const uploading = useRef(false)
   const latest = useRef({ value, onChange })
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
+  }, [])
+  useEffect(() => {
+    onPendingMediaChange?.(!!file)
+    return () => onPendingMediaChange?.(false)
+  }, [file, onPendingMediaChange])
   useEffect(() => {
     latest.current = { value, onChange }
   }, [value, onChange])
@@ -83,7 +97,8 @@ export function FinalizedMediaEditor({
     })
   }
   async function upload() {
-    if (!file) return
+    if (!file || uploading.current) return
+    uploading.current = true
     setBusy(true)
     setError('')
     try {
@@ -100,13 +115,16 @@ export function FinalizedMediaEditor({
         )
       if (!isFinalizedContentMedia(result.media) || (!allowAudio && result.media.kind === 'audio'))
         throw new Error('The server did not return a supported finalized asset.')
+      if (!mounted.current) return
       choose(result.media)
       setFile(null)
       setPreview('')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Upload failed. Please retry.')
+      if (mounted.current)
+        setError(cause instanceof Error ? cause.message : 'Upload failed. Please retry.')
     } finally {
-      setBusy(false)
+      uploading.current = false
+      if (mounted.current) setBusy(false)
     }
   }
   return (
@@ -200,7 +218,23 @@ export function FinalizedMediaEditor({
           {busy ? 'Uploading…' : 'Upload file'}
         </button>
       </div>
-      {file && <p className={styles.mediaHint}>Selected: {file.name}</p>}
+      {file && (
+        <div className={styles.mediaUploadControls}>
+          <p className={styles.mediaHint}>Selected: {file.name}</p>
+          {!busy && (
+            <button
+              type="button"
+              onClick={() => {
+                setFile(null)
+                setPreview('')
+                setError('')
+              }}
+            >
+              Cancel selected file
+            </button>
+          )}
+        </div>
+      )}
       {file && !file.type.startsWith('image/') && preview && (
         <div className={styles.mediaSound}>
           <p>New sound</p>

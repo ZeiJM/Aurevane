@@ -139,7 +139,7 @@ describe('Discipline power association editing', () => {
   })
 })
 
-it('uses Edit/Clear for assigned relationships and keeps empty rows editable', () => {
+it('offers targeted replacement for assigned relationships and keeps empty rows editable', () => {
   const html = renderToStaticMarkup(
     <DisciplineRelationshipList
       value={discipline}
@@ -150,5 +150,5 @@ it('uses Edit/Clear for assigned relationships and keeps empty rows editable', (
   )
   expect(html).toContain('aria-label="Clear power for Warden"')
   expect(html).toContain('aria-label="Edit power for Luminary"')
-  expect(html).not.toContain('Change power')
+  expect(html).toContain('aria-label="Change power for Warden"')
 })

@@ -4,6 +4,7 @@ import { ContentRecordModal } from './content-record-modal'
 import { DeleteDiscipline } from './delete-discipline'
 import { DisciplinePlayerGrants } from './discipline-player-grants'
 import { FinalizedMediaEditor } from './finalized-media-editor'
+import { SkillMediaEditor } from './skill-media-editor'
 import type { FinalizedContentMediaSlots } from '@aurevane/game-core/combat/content-media'
 import { DisciplineRelationshipList } from './discipline-relationship-list'
 import { NewRelationshipPower } from './new-relationship-power'
@@ -439,6 +440,8 @@ it.each([null, 'discipline.partner'])(
     const modal = () => find(f.render(), (node) => node.type === ContentRecordModal)!
     expect(modal().props.contentKey).toBe(key)
     expect(modal().props.availableInDiscipline).toBeUndefined()
+    // Creating/opening is not publication: closing must not poison the parent.
+    expect(relationships().props.value).toEqual({ ...base, name: 'Uncommitted Discipline name' })
     const expected =
       partner === null
         ? { ...base, essenceId: key }
@@ -471,6 +474,174 @@ it.each([null, 'discipline.partner'])(
     expect(f.request).toHaveBeenCalledTimes(count)
   },
 )
+it.each([null, 'discipline.partner'])(
+  'closing an uncommitted %s power keeps unrelated Discipline edits committable',
+  async (partner) => {
+    const f = disciplineFixture()
+    const base = f.initial.current!.definition
+    const authored = {
+      ...base,
+      name: 'Keep my name and artwork',
+      media: { artwork: { id: 'retained' } },
+    }
+    f.change(authored)
+    await f.click('Resonances')
+    const relationships = find(f.render(), (node) => node.type === DisciplineRelationshipList)!
+    const create = (
+      relationships.props.renderCreate as (
+        partner: string | null,
+        close: () => void,
+      ) => ReactElement<Parameters<typeof NewRelationshipPower>[0]>
+    )(partner, () => {})
+    create.props.onCreated({
+      ...f.initial,
+      contentKey: partner === null ? 'essence.uncommitted' : 'resonance.uncommitted',
+      contentKind: partner === null ? 'essence' : 'resonance',
+      lifecycle: 'draft',
+      current: null,
+    })
+    const modal = find(f.render(), (node) => node.type === ContentRecordModal)!
+    ;(modal.props.onClose as () => void)()
+    expect(find(f.render(), (node) => node.type === ContentRecordModal)).toBeNull()
+    f.reply({
+      ...f.initial,
+      revision: 10,
+      current: { ...f.initial.current!, definition: authored },
+    })
+    await f.click('Commit Now')
+    expect(f.command()).toMatchObject({ action: 'commit', definition: authored })
+    await f.click('Resonances')
+    const current = find(f.render(), (node) => node.type === DisciplineRelationshipList)!
+    expect(current.props.choices).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          contentKey:
+            create.props.partner === null ? 'essence.uncommitted' : 'resonance.uncommitted',
+        }),
+      ]),
+    )
+  },
+)
+
+it.each([null, 'discipline.partner'])(
+  'a missing recovered %s power opens targeted recovery and preserves all other edits',
+  async (partner) => {
+    const f = disciplineFixture()
+    const base = f.initial.current!.definition
+    const authored = {
+      ...base,
+      name: 'Recovered identity',
+      ...(partner === null
+        ? { essenceId: 'essence.missing' }
+        : {
+            resonanceSelections: [{ withDisciplineId: partner, resonanceId: 'resonance.missing' }],
+          }),
+    }
+    f.change(authored)
+    f.request.mockResolvedValueOnce(Response.json({ record: null }))
+    await f.click('Commit Now')
+    expect(f.request.mock.calls.map((call) => JSON.parse(call[1].body).command.action)).toEqual([
+      'read',
+    ])
+    expect(f.button('Resonances').props['aria-pressed']).toBe(true)
+    const relationships = find(f.render(), (node) => node.type === DisciplineRelationshipList)!
+    expect(relationships.props.value).toEqual(authored)
+    expect(
+      String(find(f.render(), (node) => node.props.role === 'alert')!.props.children),
+    ).toContain('Change or clear')
+  },
+)
+
+it('retains a newer relationship selection made after a new power Commit starts', async () => {
+  const f = disciplineFixture()
+  const base = f.initial.current!.definition
+  await f.click('Resonances')
+  const relationships = () => find(f.render(), (node) => node.type === DisciplineRelationshipList)!
+  const create = (
+    relationships().props.renderCreate as (
+      partner: string | null,
+      close: () => void,
+    ) => ReactElement<Parameters<typeof NewRelationshipPower>[0]>
+  )(null, () => {})
+  create.props.onCreated({
+    ...f.initial,
+    contentKey: 'essence.reviewed',
+    contentKind: 'essence',
+    lifecycle: 'draft',
+    current: null,
+  })
+  const finish = find(f.render(), (node) => node.type === ContentRecordModal)!.props
+    .onCommitRelated as () => Promise<boolean>
+  // The child transaction may finish after Escape and a newer parent selection.
+  ;(relationships().props.onChange as (value: CombatContentDefinition) => void)({
+    ...base,
+    name: 'Newer identity',
+    essenceId: 'essence.later',
+  })
+  f.reply({
+    ...f.initial,
+    revision: 10,
+    current: { ...f.initial.current!, definition: { ...base, essenceId: 'essence.reviewed' } },
+  })
+  expect(await finish()).toBe(true)
+  expect(f.command().definition.essenceId).toBe('essence.reviewed')
+  expect(relationships().props.value).toMatchObject({
+    name: 'Newer identity',
+    essenceId: 'essence.later',
+  })
+})
+
+it('retains the published child association visibly after parent failure and retries through parent Commit', async () => {
+  const f = disciplineFixture()
+  const base = f.initial.current!.definition
+  f.change({ ...base, name: 'Keep this parent edit' })
+  await f.click('Resonances')
+  const relationships = () => find(f.render(), (node) => node.type === DisciplineRelationshipList)!
+  const create = (
+    relationships().props.renderCreate as (
+      partner: string | null,
+      close: () => void,
+    ) => ReactElement<Parameters<typeof NewRelationshipPower>[0]>
+  )(null, () => {})
+  const child = {
+    ...f.initial,
+    contentKey: 'essence.saved',
+    contentKind: 'essence' as const,
+    lifecycle: 'active' as const,
+    current: {
+      ...f.initial.current!,
+      definition: {
+        essenceId: 'essence.saved',
+        sourceDisciplineId: f.initial.contentKey,
+        name: 'Saved Essence',
+        enabled: true,
+      },
+    },
+  }
+  create.props.onCreated({ ...child, lifecycle: 'draft', current: null })
+  const modal = () => find(f.render(), (node) => node.type === ContentRecordModal)!
+  f.request.mockResolvedValueOnce(
+    Response.json(
+      { error: { code: 'STALE_VERSION', message: 'Parent save failed' } },
+      { status: 409 },
+    ),
+  )
+  await expect((modal().props.onCommitRelated as () => Promise<boolean>)()).rejects.toThrow(
+    'Parent save failed',
+  )
+  expect(relationships().props.value).toMatchObject({
+    name: 'Keep this parent edit',
+    essenceId: child.contentKey,
+  })
+  ;(modal().props.onClose as () => void)()
+  f.reply(child)
+  const authored = { ...base, name: 'Keep this parent edit', essenceId: child.contentKey }
+  f.reply({ ...f.initial, revision: 10, current: { ...f.initial.current!, definition: authored } })
+  await f.click('Commit Now')
+  expect(f.command()).toMatchObject({ action: 'commit', definition: authored })
+  expect(relationships().props.value).toEqual(authored)
+})
+
 it('retains a new unsaved definition until creation or explicit discard', async () => {
   const f = disciplineFixture()
   await f.click('New')
@@ -1066,6 +1237,7 @@ const uploadedArtwork = {
 function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width: 8, height: 4 }) {
   let value = initial
   const drawImage = vi.fn()
+  const pendingMedia = vi.fn()
   vi.stubGlobal('URL', { createObjectURL: () => 'blob:selected-image', revokeObjectURL() {} })
   vi.stubGlobal('window', {
     Image: class {
@@ -1085,6 +1257,7 @@ function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width:
       value,
       allowAudio: false,
       fallbackArtwork: '/builtin.webp',
+      onPendingMediaChange: pendingMedia,
       onChange(next) {
         value = next
       },
@@ -1109,7 +1282,16 @@ function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width:
     })
     await vi.waitFor(() => expect(uploadButton().props.disabled).toBe(false))
   }
-  return { render, control, uploadButton, select, request, drawImage, value: () => value }
+  return {
+    render,
+    control,
+    uploadButton,
+    select,
+    request,
+    drawImage,
+    pendingMedia,
+    value: () => value,
+  }
 }
 it.each(['builtin', 'custom'])(
   'keeps current %s artwork beside the selected crop without changing the definition',
@@ -1180,6 +1362,7 @@ it('adds only a successfully finalized upload to local edits and keeps the old a
   const initial = { artwork: uploadedArtwork }
   const f = mediaFixture(initial)
   await f.select()
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(true)
   f.request.mockResolvedValueOnce(
     Response.json({ error: { message: 'Upload rejected' } }, { status: 400 }),
   )
@@ -1190,6 +1373,7 @@ it('adds only a successfully finalized upload to local edits and keeps the old a
     ),
   )
   expect(f.value()).toBe(initial)
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(true)
   expect(f.control('Actual crop preview')).toBeTruthy()
   const next = { ...uploadedArtwork, id: '00000000-0000-4000-8000-000000000013' }
   f.request.mockResolvedValueOnce(Response.json({ media: next }))
@@ -1200,12 +1384,231 @@ it('adds only a successfully finalized upload to local edits and keeps the old a
     `/api/master/combat-content/media/${next.id}`,
   )
   expect(f.uploadButton().props.disabled).toBe(true)
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(false)
   expect(f.request.mock.calls.map(([url]) => url)).toEqual([
     '/api/master/combat-content/media',
     '/api/master/combat-content/media',
   ])
   expect(f.request.mock.calls[1]![1].body.get('crop')).toBe(JSON.stringify({ x: 2, y: 0, size: 4 }))
 })
+
+it('clears the pending media guard when the unuploaded file editor closes', async () => {
+  const f = mediaFixture({})
+  await f.select()
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(true)
+  for (const cleanup of hooks.cleanups) cleanup()
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(false)
+})
+
+it('cancels a failed selected upload without discarding the current artwork or blocking other edits', async () => {
+  const initial = { artwork: uploadedArtwork }
+  const f = mediaFixture(initial)
+  await f.select()
+  f.request.mockResolvedValueOnce(
+    Response.json({ error: { message: 'Upload rejected' } }, { status: 400 }),
+  )
+  ;(f.uploadButton().props.onClick as () => void)()
+  await vi.waitFor(() =>
+    expect(find(f.render(), (node) => node.props.role === 'alert')?.props.children).toBe(
+      'Upload rejected',
+    ),
+  )
+  const cancel = find(
+    f.render(),
+    (node) => node.type === 'button' && node.props.children === 'Cancel selected file',
+  )!
+  ;(cancel.props.onClick as () => void)()
+  expect(f.control('Actual crop preview')).toBeNull()
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(false)
+  expect(f.value()).toBe(initial)
+  expect(find(f.render(), (node) => node.props.role === 'alert')).toBeNull()
+})
+
+it('ignores an upload that finishes after its media editor closes and prevents duplicate uploads', async () => {
+  const initial = { artwork: uploadedArtwork }
+  const f = mediaFixture(initial)
+  await f.select()
+  let complete!: (response: Response) => void
+  f.request.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        complete = resolve
+      }),
+  )
+  const upload = f.uploadButton().props.onClick as () => void
+  upload()
+  upload()
+  expect(f.request).toHaveBeenCalledTimes(1)
+  for (const cleanup of hooks.cleanups) cleanup()
+  complete(
+    Response.json({ media: { ...uploadedArtwork, id: '00000000-0000-4000-8000-000000000013' } }),
+  )
+  await new Promise<void>((resolve) => setImmediate(resolve))
+  expect(f.value()).toBe(initial)
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(false)
+})
+
+it('blocks top-level Commit while a selected file is unuploaded and clears the block after discard', async () => {
+  const f = fixture()
+  const otherEdit = { ...f.definition, name: 'Keep these unrelated edits' }
+  f.change(otherEdit)
+  const fields = () => find(f.render(), (node) => node.type === ContentDefinitionFields)!
+  ;(fields().props.onPendingMediaChange as (pending: boolean) => void)(true)
+  const commit = () =>
+    find(f.render(), (node) => node.type === 'button' && node.props.children === 'Commit Now')!
+  expect(commit().props.disabled).toBe(true)
+  await (commit().props.onClick as () => Promise<void>)()
+  expect(
+    f.request.mock.calls.some(
+      ([, options]) => JSON.parse(options.body).command.action === 'commit',
+    ),
+  ).toBe(false)
+  expect(
+    find(f.render(), (node) => node.props['aria-label'] === 'Save status')?.props.children,
+  ).toContain('Upload the selected file')
+  ;(fields().props.onPendingMediaChange as (pending: boolean) => void)(false)
+  expect(commit().props.disabled).toBe(false)
+  f.reply({ ...f.initial, draft: null, current: { ...f.initial.current!, definition: otherEdit } })
+  await f.click('Commit Now')
+  expect(f.command()).toMatchObject({ action: 'commit', definition: otherEdit })
+})
+
+it('gives a newly selected content record a separate media editor lifetime', async () => {
+  const next = defaultBasicSkills().find((row) => row.id === 'basic.move')!
+  const f = fixture(
+    'basic.guard',
+    {},
+    {
+      initialPage: {
+        records: [
+          {
+            contentKey: 'basic.guard',
+            contentKind: 'skill',
+            lifecycle: 'active',
+            revision: 9,
+            name: 'Guard',
+          },
+          {
+            contentKey: 'basic.move',
+            contentKind: 'skill',
+            lifecycle: 'active',
+            revision: 3,
+            name: 'Move',
+          },
+        ],
+        nextCursor: null,
+      },
+    },
+  )
+  const previousIdentity = f.fields().key
+  f.reply({
+    ...f.initial,
+    contentKey: next.id,
+    draft: null,
+    revision: 3,
+    current: { ...f.initial.current!, definition: { ...next } },
+  })
+  await f.selectRecord(next.id)
+  expect(f.fields().props.value).toMatchObject({ id: next.id })
+  expect(f.fields().key).not.toBe(previousIdentity)
+})
+
+it.each(['skill', 'essence'] as const)(
+  'guards the nested %s media flow and commits the finalized artwork through reload',
+  async (kind) => {
+    const { latestEnabledMatureSkills } = await import('@aurevane/game-core/combat/mature-skills')
+    const { currentEssenceDefinitions } = await import('@aurevane/game-core/combat/essence')
+    const original = structuredClone(
+      kind === 'skill' ? latestEnabledMatureSkills()[0]! : currentEssenceDefinitions()[0]!,
+    ) as unknown as CombatContentDefinition
+    const key = String(original.id ?? original.essenceId)
+    let saved = {
+      ...fixture().initial,
+      contentKey: key,
+      contentKind: kind,
+      draft: null,
+      current: { ...fixture().initial.current!, definition: original },
+    }
+    let pending: Parameters<typeof ContentRecordModal>[0]['pending'] = null
+    const commits: Record<string, unknown>[] = []
+    vi.stubGlobal('document', { activeElement: null })
+    vi.stubGlobal('HTMLElement', class {})
+    vi.stubGlobal('fetch', async (_url: string, options: { body: string }) => {
+      const command = JSON.parse(options.body).command
+      if (command.action === 'commit') {
+        commits.push(command)
+        const parsed = COMBAT_CONTENT_CATEGORIES.find(
+          (category) => category.category === kind,
+        )!.parseAuthoring(command.definition)
+        saved = {
+          ...saved,
+          revision: saved.revision + 2,
+          current: { ...saved.current, definition: parsed },
+        }
+      }
+      return Response.json({ record: saved })
+    })
+    const render = () => {
+      hooks.index = 0
+      const tree = ContentRecordModal({
+        contentKey: key,
+        choices: [],
+        pending,
+        onChange(_key, edit) {
+          pending = edit
+        },
+        onClose() {},
+        onSaved() {},
+      })
+      hooks.effects.splice(0).forEach((effect) => effect())
+      return tree
+    }
+    const fields = () => find(render(), (node) => node.type === ContentDefinitionFields)
+    const commit = () =>
+      find(render(), (node) => node.type === 'button' && node.props.children === 'Commit Now')!
+    await vi.waitFor(() => expect(fields()).not.toBeNull())
+    const mediaFields = ContentDefinitionFields({
+      ...(fields()!.props as Parameters<typeof ContentDefinitionFields>[0]),
+      tab: 'Media',
+    })
+    if (!mediaFields) throw new Error('The media fields must be available for this content kind.')
+    const mediaEditor = SkillMediaEditor(
+      mediaFields.props as Parameters<typeof SkillMediaEditor>[0],
+    )
+    const upload = find(mediaEditor, (node) => node.type === FinalizedMediaEditor)!
+    ;(upload.props.onPendingMediaChange as (value: boolean) => void)(true)
+    expect(commit().props.disabled).toBe(true)
+    ;(commit().props.onClick as () => void)()
+    expect(commits).toEqual([])
+    expect(
+      find(render(), (node) => node.type === 'span' && node.props.role === 'status')?.props
+        .children,
+    ).toBe('Upload the selected file to keep it before closing or committing.')
+    ;(upload.props.onChange as (value: unknown) => void)({ artwork: uploadedArtwork })
+    ;(upload.props.onPendingMediaChange as (value: boolean) => void)(false)
+    expect(commit().props.disabled).toBe(false)
+    ;(commit().props.onClick as () => void)()
+    await vi.waitFor(() =>
+      expect(
+        find(render(), (node) => node.type === 'p' && node.props.role === 'status')?.props.children,
+      ).toBe('Changes committed and available to the game.'),
+    )
+    expect(commits).toHaveLength(1)
+    const body = kind === 'essence' ? saved.current.definition.skill : saved.current.definition
+    expect(body).toMatchObject({ media: { artwork: uploadedArtwork } })
+    expect(pending).toBeNull()
+    for (const cleanup of hooks.cleanups) cleanup()
+    hooks.cells = []
+    hooks.effects = []
+    hooks.cleanups.clear()
+    await vi.waitFor(() => expect(fields()).not.toBeNull())
+    const restored = fields()!.props.value as CombatContentDefinition
+    expect(kind === 'essence' ? restored.skill : restored).toMatchObject({
+      media: { artwork: uploadedArtwork },
+    })
+    expect(commit().props.disabled).toBe(false)
+  },
+)
 
 it.each([
   ['status', false],

@@ -1,6 +1,9 @@
 import { canonicalResonancePair } from '@aurevane/game-core/combat/resonance'
 import { newResonanceAbility } from './new-resonance-ability'
-import type { CombatContentDefinition } from '@aurevane/db/combat-content'
+import type {
+  CombatContentDefinition,
+  CompleteCombatContentRecord,
+} from '@aurevane/db/combat-content'
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type {
   AnyResonanceDefinition,
@@ -97,6 +100,62 @@ export function createRelationshipPowerDraft(
 }
 
 type Selection = { withDisciplineId: string; resonanceId: string }
+
+export class DisciplineRelationshipCommitError extends Error {}
+
+/** Preflight changed slots only; publication still rechecks everything atomically. */
+export async function assertDisciplineRelationshipsReady(
+  base: CombatContentDefinition | null,
+  next: CombatContentDefinition,
+  read: (key: string) => Promise<CompleteCombatContentRecord | null>,
+): Promise<void> {
+  const previous = (base?.resonanceSelections as Selection[] | undefined) ?? []
+  const selections: { partner: string | null; key: unknown; before: unknown }[] = [
+    { partner: null, key: next.essenceId, before: base?.essenceId },
+    ...((next.resonanceSelections as Selection[] | undefined) ?? []).map((row) => ({
+      partner: row.withDisciplineId,
+      key: row.resonanceId,
+      before: previous.find((old) => old.withDisciplineId === row.withDisciplineId)?.resonanceId,
+    })),
+  ]
+  const rows = selections.filter(
+    (row): row is { partner: string | null; key: string; before: unknown } =>
+      typeof row.key === 'string' && !!row.key && row.key !== row.before,
+  )
+  // This is a bounded authoring-only check, never a gameplay read or child write.
+  const records = await Promise.all(rows.map((row) => read(row.key)))
+  for (const [index, row] of rows.entries()) {
+    const record = records[index]
+    const definition = record?.current?.definition
+    const kind = row.partner === null ? 'essence' : 'resonance'
+    const owned =
+      row.partner === null
+        ? definition?.sourceDisciplineId === next.id
+        : Array.isArray(definition?.disciplinePair) &&
+          definition.disciplinePair.length === 2 &&
+          definition.disciplinePair.includes(next.id) &&
+          definition.disciplinePair.includes(row.partner)
+    if (
+      !record ||
+      record.contentKey !== row.key ||
+      record.contentKind !== kind ||
+      record.lifecycle !== 'active' ||
+      !definition ||
+      definition.enabled === false ||
+      !owned
+    ) {
+      const label = row.partner === null ? 'Essence' : 'Resonance'
+      const reason =
+        record?.lifecycle === 'draft' || (record && !record.current)
+          ? 'Commit the power in its editor first.'
+          : 'The selected power is missing, disabled or belongs to another relationship.'
+      throw new DisciplineRelationshipCommitError(
+        `${label} selection needs attention. ${reason} Change or clear this relationship in Resonances; your other edits are retained.`,
+      )
+    }
+  }
+}
+
 /** Save the reviewed slot only, even if the same power is referenced elsewhere. */
 export function disciplineRelationshipCommit(
   base: CombatContentDefinition,

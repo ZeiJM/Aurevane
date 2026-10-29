@@ -1171,6 +1171,86 @@ try {
         'Resonance modal retains its complete supported editor.',
       )
       await dialog.getByRole('button', { name: 'Close skill editor', exact: true }).click()
+      // A created power is independently recoverable; closing it cannot poison
+      // the Discipline with an unpublished reference. Exercise real callbacks.
+      for (const kind of ['Essence', 'Resonance']) {
+        const label = kind === 'Essence' ? 'None (Essence)' : 'Partner Discipline'
+        const before = await page.evaluate(() =>
+          structuredClone(window.__contentFixture.records.get('bastion').current.definition),
+        )
+        await relationships
+          .getByRole('button', { name: `Change power for ${label}`, exact: true })
+          .click()
+        let selection = page.getByRole('dialog', { name: `Select power · ${label}`, exact: true })
+        await selection.getByRole('button', { name: `Create new ${kind}`, exact: true }).click()
+        let powerDialog = page.getByRole('dialog')
+        await expect(powerDialog).toBeVisible()
+        const draftKey = await page.evaluate(
+          (kind) =>
+            [...window.__contentFixture.records.values()].find(
+              (row) => row.contentKind === kind.toLowerCase() && row.lifecycle === 'draft',
+            ).contentKey,
+          kind,
+        )
+        await powerDialog
+          .getByRole('textbox', { name: 'Name', exact: true })
+          .fill(`Recovered ${kind}`)
+        await powerDialog.getByRole('button', { name: 'Close skill editor', exact: true }).click()
+        assert.deepEqual(
+          await page.evaluate(
+            () => window.__contentFixture.records.get('bastion').current.definition,
+          ),
+          before,
+        )
+        await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await expect(
+          workspace.getByRole('status', { name: 'Save status', exact: true }),
+        ).toHaveText('Saved')
+        assert.deepEqual(
+          await page.evaluate(
+            () => window.__contentFixture.records.get('bastion').current.definition,
+          ),
+          before,
+        )
+        await relationships
+          .getByRole('button', { name: `Change power for ${label}`, exact: true })
+          .click()
+        selection = page.getByRole('dialog', { name: `Select power · ${label}`, exact: true })
+        await selection.getByRole('combobox', { name: 'Power', exact: true }).selectOption(draftKey)
+        await selection.getByRole('button', { name: 'Apply selection', exact: true }).click()
+        await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await expect(workspace.getByRole('alert')).toContainText(
+          'Commit the power in its editor first',
+        )
+        await relationships
+          .getByRole('button', { name: `Edit power for ${label}`, exact: true })
+          .click()
+        powerDialog = page.getByRole('dialog', { name: `Recovered ${kind}`, exact: true })
+        await expect(powerDialog.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(
+          `Recovered ${kind}`,
+        )
+        await powerDialog.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await expect(powerDialog.getByRole('status')).toContainText(
+          'Changes committed and available to the game.',
+        )
+        await powerDialog.getByRole('button', { name: 'Close skill editor', exact: true }).click()
+        const persisted = await page.evaluate(() =>
+          structuredClone(window.__contentFixture.records.get('bastion').current.definition),
+        )
+        assert.equal(
+          kind === 'Essence'
+            ? persisted.essenceId
+            : persisted.resonanceSelections.find(
+                (row) => row.withDisciplineId === before.resonanceSelections[0].withDisciplineId,
+              ).resonanceId,
+          draftKey,
+        )
+        await page.reload()
+        await expect(
+          workspace.getByRole('status', { name: 'Save status', exact: true }),
+        ).toHaveText('Saved')
+        await expect(relationships).toContainText(`Recovered ${kind}`)
+      }
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
         .toBe(true)

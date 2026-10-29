@@ -106,3 +106,78 @@ it('creates a valid Resonance when the selected new Discipline sorts after its p
   expect(draft.disciplinePair).toEqual(['aetherist', 'discipline.custom'])
   expect(() => combatContentCategory('resonance')!.parseAuthoring(draft)).not.toThrow()
 })
+
+it.each([null, 'discipline.partner'])(
+  'checks changed %s selections against current published ownership without mutating edits',
+  async (partner) => {
+    const { assertDisciplineRelationshipsReady } = await import('./relationship-power-creation')
+    const base = {
+      id: 'discipline.custom',
+      name: 'Custom',
+      essenceId: null,
+      resonanceSelections: [],
+    }
+    const key = partner === null ? 'essence.new' : 'resonance.new'
+    const definition =
+      partner === null
+        ? { essenceId: key, sourceDisciplineId: base.id, enabled: true, name: 'My Essence' }
+        : { id: key, disciplinePair: [base.id, partner], enabled: true, name: 'My Resonance' }
+    const next = {
+      ...base,
+      name: 'Recovered name',
+      ...(partner === null
+        ? { essenceId: key }
+        : { resonanceSelections: [{ withDisciplineId: partner, resonanceId: key }] }),
+    }
+    const snapshot = structuredClone(next)
+    const record = {
+      contentKey: key,
+      contentKind: partner === null ? 'essence' : 'resonance',
+      lifecycle: 'active',
+      current: { definition },
+      draft: { definition: { ...definition, enabled: false } },
+    } as unknown as import('@aurevane/db/combat-content').CompleteCombatContentRecord
+    const read = vi.fn().mockResolvedValue(record)
+    await assertDisciplineRelationshipsReady(base, next, read)
+    expect(read).toHaveBeenCalledExactlyOnceWith(key)
+    expect(next).toEqual(snapshot)
+    read.mockClear()
+    await assertDisciplineRelationshipsReady(next, next, read)
+    expect(read).not.toHaveBeenCalled()
+  },
+)
+
+it.each(['missing', 'draft', 'disabled', 'archived', 'wrong-source', 'wrong-kind'])(
+  'rejects a %s child with targeted recovery guidance and no implicit publication',
+  async (condition) => {
+    const { assertDisciplineRelationshipsReady } = await import('./relationship-power-creation')
+    const base = { id: 'discipline.custom', essenceId: null }
+    const next = { ...base, name: 'Keep identity', essenceId: 'essence.bad' }
+    const read = vi.fn().mockResolvedValue(
+      condition === 'missing'
+        ? null
+        : {
+            contentKey: 'essence.bad',
+            contentKind: condition === 'wrong-kind' ? 'skill' : 'essence',
+            lifecycle:
+              condition === 'draft' ? 'draft' : condition === 'archived' ? 'archived' : 'active',
+            current:
+              condition === 'draft'
+                ? null
+                : {
+                    definition: {
+                      name: 'My Essence',
+                      enabled: condition !== 'disabled',
+                      sourceDisciplineId:
+                        condition === 'wrong-source' ? 'discipline.other' : base.id,
+                    },
+                  },
+          },
+    )
+    await expect(assertDisciplineRelationshipsReady(base, next, read)).rejects.toThrow(
+      'Change or clear',
+    )
+    expect(next).toEqual({ ...base, name: 'Keep identity', essenceId: 'essence.bad' })
+    expect(read).toHaveBeenCalledExactlyOnceWith('essence.bad')
+  },
+)

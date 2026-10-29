@@ -17,6 +17,26 @@ async function openEffectParameters(scope) {
   }
 }
 
+async function assertCurrentEffectChoices(picker, required) {
+  const options = await picker
+    .locator('option')
+    .evaluateAll((elements) =>
+      elements.map((option) => ({ value: option.value, disabled: option.disabled })),
+    )
+  for (const retired of ['healing', 'damage-bonus', 'status:blindside', 'status:revealed'])
+    assert.equal(
+      options.some((option) => option.value === retired),
+      false,
+      `${retired} remains readable in captures but must not be a new-authoring choice`,
+    )
+  for (const value of required)
+    assert.deepEqual(
+      options.find((option) => option.value === value),
+      { value, disabled: false },
+      `${value} must be an enabled current effect choice`,
+    )
+}
+
 async function activateAbilitySection(scope, name) {
   let tabs = scope.getByRole('tab', { name, exact: true })
   if (!(await tabs.count()))
@@ -1234,6 +1254,13 @@ async function verifyCanonicalEditor(page, viewport) {
   await openEffectParameters(hit)
   await hit.getByLabel('Damage amount', { exact: true }).fill('17')
   assert.equal(await hit.getByLabel('Effect timing', { exact: true }).count(), 0)
+  await assertCurrentEffectChoices(leap.getByLabel('New group effect', { exact: true }), [
+    'pierce',
+    'hp-recovery',
+    'mp-recovery',
+    'status:blindside-vulnerability',
+    'reveal',
+  ])
   await leap.getByLabel('New group effect', { exact: true }).selectOption('pierce')
   await gesture(leap.getByRole('button', { name: 'Add group effect', exact: true }))
   const pierce = leap.locator('[data-ability-effect="effect-1"]')
@@ -1264,6 +1291,9 @@ async function verifyCanonicalEditor(page, viewport) {
     ),
   )
   const maintained = editor.locator('[data-ability-group="maintain"]')
+  await assertCurrentEffectChoices(maintained.getByLabel('New group effect', { exact: true }), [
+    'status:inspired',
+  ])
   const bonus = maintained.locator('[data-ability-effect="bonus"]')
   await openEffectParameters(bonus)
   assert.equal(await bonus.getByLabel('Outgoing damage bonus (%)', { exact: true }).count(), 0)
@@ -1863,12 +1893,19 @@ try {
     }
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
     const authoring = page.getByRole('region', { name: 'Master Blindside authoring' })
-    await authoring.getByLabel('New effect type').selectOption('status:blindside')
+    await assertCurrentEffectChoices(authoring.getByLabel('New effect type', { exact: true }), [
+      'status:blindside-vulnerability',
+      'hp-recovery',
+      'mp-recovery',
+      'status:inspired',
+      'reveal',
+    ])
+    await authoring.getByLabel('New effect type').selectOption('status:blindside-vulnerability')
     await authoring.getByRole('button', { name: 'Add effect', exact: true }).click()
     assert.deepEqual(await page.evaluate(() => window.blindsideAuthoringEffects[1]), {
       type: 'apply-status',
-      recipient: 'actor',
-      statusId: 'blindside',
+      recipient: 'primary-unit',
+      statusId: 'blindside-vulnerability',
       stacks: 1,
       durationTurns: 1,
     })
@@ -1890,8 +1927,12 @@ try {
     )
     const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
     await openEffectParameters(firstEffect)
-    await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside')
+    await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside-vulnerability')
+    await firstEffect.getByLabel('Target', { exact: true }).selectOption('enemy')
     const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
+    assert.equal(converted.statusId, 'blindside-vulnerability')
+    assert.equal(converted.recipient, 'primary-unit')
+    assert.equal(converted.target, 'enemy')
     assert.equal(converted.durationTurns, 1)
     assert.equal(converted.potencyBasisPoints, undefined)
     assert.equal(
@@ -2171,6 +2212,9 @@ try {
         waitUntil: 'networkidle',
       })
       const fireEditor = page.getByRole('region', { name: 'Master Fire authoring' })
+      await assertCurrentEffectChoices(fireEditor.getByLabel('New effect type', { exact: true }), [
+        'cleanse-chilled',
+      ])
       await fireEditor.getByLabel('New effect type').selectOption('cleanse-chilled')
       await fireEditor.getByRole('button', { name: 'Add effect', exact: true }).click()
       assert.deepEqual(await page.evaluate(() => window.fireAuthoringEffects[1]), {

@@ -22,9 +22,15 @@ export interface SkillMediaEditorProps {
   readonly contentId?: string
   readonly value: MatureSkillMediaHooks
   readonly onChange: (value: MatureSkillMediaHooks) => void
+  readonly onPendingMediaChange?: (pending: boolean) => void
 }
 
-export function SkillMediaEditor({ contentId, value, onChange }: SkillMediaEditorProps) {
+export function SkillMediaEditor({
+  contentId,
+  value,
+  onChange,
+  onPendingMediaChange,
+}: SkillMediaEditorProps) {
   const icon = resolveSkillIconHook(value.iconKey)
   const fallbackArtwork =
     icon?.previewSrc ??
@@ -49,6 +55,7 @@ export function SkillMediaEditor({ contentId, value, onChange }: SkillMediaEdito
         showArtworkRemoval={false}
         fallbackArtwork={fallbackArtwork}
         onChange={(media) => onChange({ ...value, artwork: media.artwork, audio: media.audio })}
+        onPendingMediaChange={onPendingMediaChange}
       />
 
       <div className={styles.mediaGrid}>

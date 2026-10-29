@@ -597,12 +597,14 @@ export function ContentDefinitionFields({
   choices = [],
   abilitySection,
   initialAbilitySection,
+  onPendingMediaChange,
 }: {
   kind: CombatContentKind
   value: CombatContentDefinition
   tab: ContentEditorTab
   abilitySection?: AbilityEditorSection
   initialAbilitySection?: AbilityEditorSection
+  onPendingMediaChange?(pending: boolean): void
   onChange(value: CombatContentDefinition): void
   choices?: readonly ContentReference[]
 }) {
@@ -630,6 +632,7 @@ export function ContentDefinitionFields({
                 value={value}
                 choices={choices}
                 onChange={onChange}
+                onPendingMediaChange={onPendingMediaChange}
                 tab={section.id === 'media' ? 'Media' : 'Parameters'}
                 abilitySection={section.id}
               />,
@@ -647,6 +650,7 @@ export function ContentDefinitionFields({
         contentId={String(body.id ?? value.id ?? value.essenceId)}
         value={body.media as MatureSkillDefinition['media']}
         onChange={(media) => setBody({ ...body, media })}
+        onPendingMediaChange={onPendingMediaChange}
       />
     ) : (
       <>
@@ -677,6 +681,7 @@ export function ContentDefinitionFields({
               : undefined
           }
           onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
+          onPendingMediaChange={onPendingMediaChange}
         />
       </>
     )
@@ -747,6 +752,7 @@ export function ContentDefinitionFields({
             value={objectValue(value.media)}
             allowAudio={false}
             onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
+            onPendingMediaChange={onPendingMediaChange}
           />
         </details>
       ) : null}
