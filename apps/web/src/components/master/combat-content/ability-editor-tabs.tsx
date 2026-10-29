@@ -13,7 +13,20 @@ export function AbilityEditorTabs({
   const id = useId()
   const [active, setActive] = useState<AbilityEditorSection>(initialSection)
   return (
-    <div className={styles.abilityWorkspace}>
+    <div
+      className={styles.abilityWorkspace}
+      onFocusCapture={(event) => {
+        const field = event.target as HTMLElement
+        if (!field.closest('[role="tabpanel"]')) return
+        const tabs = event.currentTarget.querySelector('[role="tablist"]')
+        if (!tabs) return
+        const fieldBox = field.getBoundingClientRect()
+        const tabsBox = tabs.getBoundingClientRect()
+        // Native focus scrolling does not account for the sticky section navigation.
+        if (fieldBox.top < tabsBox.bottom && fieldBox.bottom > tabsBox.top)
+          field.scrollIntoView({ block: 'center', inline: 'nearest' })
+      }}
+    >
       <div role="tablist" aria-label="Ability sections" className={styles.abilityTabs}>
         {ABILITY_EDITOR_SECTIONS.map((section, index) => (
           <button

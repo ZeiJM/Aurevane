@@ -49,3 +49,33 @@ it('keeps every draft panel mounted while click and keyboard selection change th
   expect(panel('details').props.children).toBe(original)
   expect(render().filter((node) => node.props.role === 'tabpanel')).toHaveLength(6)
 })
+
+it('reveals a focused field covered by sticky section tabs without moving unobscured fields or tabs', () => {
+  const root = AbilityEditorTabs({ panels: {} as never })
+  const onFocus = root.props.onFocusCapture as (event: unknown) => void
+  expect(onFocus).toBeTypeOf('function')
+  const scrollIntoView = vi.fn()
+  let insidePanel = true
+  let top = 12
+  const field = {
+    closest: () => (insidePanel ? {} : null),
+    getBoundingClientRect: () => ({ top, bottom: top + 44 }),
+    scrollIntoView,
+  }
+  const event = {
+    target: field,
+    currentTarget: {
+      querySelector: () => ({ getBoundingClientRect: () => ({ top: 0, bottom: 112 }) }),
+    },
+  }
+  onFocus(event)
+  expect(scrollIntoView).toHaveBeenCalledWith({ block: 'center', inline: 'nearest' })
+  scrollIntoView.mockClear()
+  top = 140
+  onFocus(event)
+  expect(scrollIntoView).not.toHaveBeenCalled()
+  top = 12
+  insidePanel = false
+  onFocus(event)
+  expect(scrollIntoView).not.toHaveBeenCalled()
+})

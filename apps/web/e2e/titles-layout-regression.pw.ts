@@ -50,8 +50,8 @@ test('default portrait gallery stays compact, cancels safely, and supports repea
   ]) {
     await dialog.getByRole('radio', { name: label!, exact: true }).check()
     const card = dialog
-      .locator('label')
-      .filter({ has: dialog.getByRole('radio', { name: label!, exact: true }) })
+      .getByRole('radio', { name: label!, exact: true })
+      .locator('xpath=ancestor::label[1]')
     await expect(card).toHaveAttribute('data-selected', 'true')
     await expect(confirm).toBeEnabled()
     await confirm.focus()
