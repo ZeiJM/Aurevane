@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import { SkillMediaEditor } from './skill-media-editor'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 
 describe('Master Panel Skill media editor', () => {
   it('renders registered artwork preview, produced audio audition, without unsupported VFX clutter', () => {
@@ -90,3 +91,32 @@ it('uses one artwork preview with Restore default and upload instead of browsing
   expect(html).not.toContain('Built-in artwork')
   expect(html.match(/<img /g) ?? []).toHaveLength(1)
 })
+
+it.each([
+  ['basic.move', '/media/skills/move.webp'],
+  ['unarmed.basic', '/media/skills/basic-attack-fist.webp'],
+  ['basic.guard', '/media/skills/guard.webp'],
+  ['basic.recover', '/media/skills/hp-recovery.webp'],
+  ['basic.recover.mp', '/media/skills/mp-recovery-dark-fantasy-v1.webp'],
+])(
+  'previews the existing builtin %s artwork in a single media group without intersecting legends',
+  (id, source) => {
+    const value = defaultBasicSkills().find((skill) => skill.id === id)!.media
+    const before = structuredClone(value)
+    const html = renderToStaticMarkup(
+      <SkillMediaEditor
+        contentId={id}
+        value={value}
+        onChange={() => {
+          throw new Error('Opening media must not edit content')
+        }}
+      />,
+    )
+    expect(html).toContain(`src="${source}"`)
+    expect(html).toContain('Current artwork')
+    expect(html).toContain('aria-label="Artwork and sound"')
+    expect(html).not.toContain('<legend')
+    expect(html.match(/<fieldset/g)).toHaveLength(1)
+    expect(value).toEqual(before)
+  },
+)

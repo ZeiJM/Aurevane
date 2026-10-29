@@ -18,7 +18,7 @@ import styles from './compact-skill-effect-summary.module.css'
 import { previewEffectWithTag } from './skill-effect-preview'
 import { MechanicTextView } from './mechanic-text-view'
 
-/** Effect names share their magnitude color in compact and expanded readers. */
+/** Effect names keep their label color independently of numerical parameter brackets. */
 export function EffectTagLabel({
   label,
   tagPresentation,

@@ -7,6 +7,8 @@ import { PlayersWorkspace } from '@/components/master/players-workspace'
 import { normalizeMasterPanelOrder } from '@/lib/master-panel-pages'
 import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { CombatEffectTimingEditor } from '@/components/master/combat-content/combat-effect-timing-editor'
+import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
+import { recordIsDirty } from '@/components/master/combat-content/content-record-workflow'
 import { BattlefieldElevationEditor } from '@/components/master/combat-content/battlefield-elevation-editor'
 import { WorldEnvironmentEditor } from '@/components/master/world-environment/world-environment-editor'
 import { SiteMusicManagement } from '@/components/master/music/site-music-management'
@@ -61,7 +63,7 @@ const tagRecords = new Map(
       createdAt: null,
       builtin: { contentVersion: 1, name: definition.name },
       builtinDefinition: definition,
-      current: null,
+      current: { contentVersion: 1, definition },
       draft: null,
       history: [],
       usedBy: [],
@@ -104,6 +106,8 @@ window.fetch = async (input, options) => {
   }
   if (input === '/api/master/combat-content') {
     const command = body.command
+    if (body.operation === 'record' && command.action === 'list' && command.kind === 'tag')
+      return Response.json({ records: tagPage(), nextCursor: null })
     const record = tagRecords.get(command.contentKey)
     if (body.operation !== 'record' || !record) throw new Error('Unexpected tag fixture request')
     if (command.action === 'read') return Response.json({ record })
@@ -111,6 +115,7 @@ window.fetch = async (input, options) => {
       if (command.expectedRevision !== record.revision)
         return Response.json({ error: { message: 'The description changed.' } }, { status: 409 })
       assertTagPublicationReady(command.definition)
+      if (!recordIsDirty(record, command.definition)) return Response.json({ record })
       const contentVersion = record.versionFloor + 1
       const saved = {
         ...record,
@@ -160,17 +165,27 @@ window.fetch = async (input, options) => {
   }
   if (input === '/api/master/world-environment') {
     const change = body.change
+    if (body.expectedVersion !== settings.version)
+      return Response.json({ error: { message: 'World settings changed.' } }, { status: 409 })
+    const intervalMs = change.weatherRollMinutes * 60_000
+    const now = Date.now()
+    const nextRoll = (Math.floor(now / intervalMs) + 1) * intervalMs
+    const activeOverride =
+      settings.weatherOverride &&
+      (settings.weatherOverrideUntil === null || settings.weatherOverrideUntil > now)
     settings = {
       ...settings,
       dayLengthMinutes: change.dayLengthMinutes,
+      weatherRollMinutes: change.weatherRollMinutes,
       timeOffsetMinutes: change.timeOffsetMinutes,
       frozenMinuteOfDay: change.frozenMinuteOfDay,
       ...(change.weather === 'unchanged'
-        ? {}
+        ? activeOverride
+          ? { weatherOverrideUntil: Math.min(settings.weatherOverrideUntil ?? nextRoll, nextRoll) }
+          : {}
         : {
             weatherOverride: change.weather,
-            weatherOverrideUntil:
-              change.weather === null ? null : Date.now() + change.durationMinutes * 60_000,
+            weatherOverrideUntil: change.weather === null ? null : nextRoll,
           }),
       version: settings.version + 1,
     }
@@ -201,6 +216,15 @@ const access = {
     'activity.read',
   ],
 }
+function tagPage() {
+  return [...tagRecords.values()].map((record) => ({
+    contentKey: record.contentKey,
+    contentKind: record.contentKind,
+    lifecycle: record.lifecycle,
+    revision: record.revision,
+    name: (record.current?.definition ?? record.builtinDefinition).name,
+  }))
+}
 function App() {
   const pathname = usePathname()
   const view = new URLSearchParams(location.search).get('view') ?? 'music'
@@ -220,31 +244,47 @@ function App() {
         activeSection={
           view === 'players'
             ? 'players'
-            : view === 'rules'
-              ? 'combat-timing'
-              : view === 'world'
-                ? 'world-environment'
-                : 'music'
+            : view === 'tags'
+              ? 'combat'
+              : view === 'rules'
+                ? 'combat-timing'
+                : view === 'world'
+                  ? 'world-environment'
+                  : 'music'
         }
         title={
           view === 'players'
             ? 'Players'
-            : view === 'rules'
-              ? 'Combat Rules'
-              : view === 'world'
-                ? 'World Environment'
-                : 'Site Music'
+            : view === 'tags'
+              ? 'Game Content'
+              : view === 'rules'
+                ? 'Combat Rules'
+                : view === 'world'
+                  ? 'World Environment'
+                  : 'Site Music'
         }
         description="Operational browser fixture"
       >
         {view === 'players' ? (
           <PlayersWorkspace />
+        ) : view === 'tags' ? (
+          <CombatContentAuthoringWorkspace
+            categories={[
+              {
+                category: 'tag',
+                storedKind: 'tag',
+                label: 'Tag Library',
+                group: 'Tag Library',
+                defaultDefinition: null,
+                publicationBlocker: null,
+              },
+            ]}
+            initialPage={{ records: tagPage(), nextCursor: null }}
+          />
         ) : view === 'rules' ? (
           <>
             <CombatEffectTimingEditor
               initialPolicy={defaultCombatEffectTimingPolicy()}
-              canEditWording
-              recoveryScope="fixture-owner"
               effectUsedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
               usedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
             />

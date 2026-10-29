@@ -181,6 +181,7 @@ export default async function CharacterNexusPage() {
         profile={buildCharacterProfileReadModel(character, levelCurve)}
         attributeAllocation={attributeAllocation}
         disciplineBuild={{
+          disciplineNames: disciplineBuild.disciplineNames,
           buildVersion: disciplineBuild.build.buildVersion,
           supportActionId: disciplineBuild.build.supportActionId,
           current: disciplineBuild.current,

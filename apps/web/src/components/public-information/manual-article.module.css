@@ -409,10 +409,13 @@
 }
 
 .article [data-compact-effect-label],
-.article [data-compact-effect-magnitude],
 .article [data-compact-effect-detail],
 .article [data-combat-tag-reference-trigger] {
   color: #3b2100;
+}
+.article [data-compact-effect-magnitude],
+.article [data-requirement-parameter='magnitude'] {
+  color: #4e226e;
 }
 .article [data-compact-effect-duration],
 .article [data-compact-effect-timing] {
@@ -438,6 +441,7 @@
   }
 }
 
-.article [data-compact-effect-target] {
+.article [data-compact-effect-target],
+.article [data-requirement-parameter='target'] {
   color: #65310e;
 }

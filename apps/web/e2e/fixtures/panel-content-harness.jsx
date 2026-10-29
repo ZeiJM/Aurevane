@@ -395,6 +395,7 @@ window.fetch = async (input, options) => {
       const key = command.contentKind + '.' + command.requestId
       const definition = { ...command.definition, id: key }
       const created = record(command.contentKind, definition)
+      created.lifecycle = 'draft'
       created.current = null
       created.history = []
       created.draft = {
@@ -468,6 +469,7 @@ window.fetch = async (input, options) => {
       JSON.stringify(comparable) === JSON.stringify(entry.current.definition)
     )
       return Response.json({ record: structuredClone(entry) })
+    entry.lifecycle = 'active'
     entry.current = version(command.definition, (entry.current?.contentVersion ?? 0) + 1)
     entry.history.unshift(entry.current)
     entry.revision++

@@ -196,7 +196,7 @@ it('places modular Requirements explanations before Effects while keeping their 
   }
 })
 
-it('shows an effect-specific requirement only in Requirements, keeping the effect itself unconditional in the list', () => {
+it('explains an effect-specific condition with linked effect prose while general Requirements remain empty', () => {
   const behavior = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
     .behaviors[0]!
   const conditioned = {
@@ -218,12 +218,13 @@ it('shows an effect-specific requirement only in Requirements, keeping the effec
   const report = abilityBehaviorInformation(conditioned)
   const requirements = report.rows.find(([label]) => label === 'Requirements')![1]
   const effects = report.rows.find(([label]) => label === 'Effects')![1]
-  expect(requirements).toContain('Drenched [Self]')
+  expect(requirements).toBe('None')
+  expect(report.effectDescriptions[0]).toContain('Applies only when Drenched [Self].')
   expect(effects).not.toContain('If ')
   expect(effects).not.toContain('Drenched')
   const html = renderToStaticMarkup(<AbilityParameters report={report} />)
-  expect(html.indexOf('aria-label="Requirement explanations"')).toBeLessThan(
-    html.indexOf('aria-label="Effect explanations"'),
-  )
-  expect(html).toContain('data-combat-tag-reference="wet"')
+  expect(html).not.toContain('aria-label="Requirement explanations"')
+  const explanations = html.slice(html.indexOf('aria-label="Effect explanations"'))
+  expect(explanations).toContain('data-combat-tag-reference="wet"')
+  expect(html.match(/data-combat-tag-reference="wet"/gu)).toHaveLength(1)
 })

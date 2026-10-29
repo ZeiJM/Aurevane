@@ -17,6 +17,26 @@ async function openEffectParameters(scope) {
   }
 }
 
+async function assertCurrentEffectChoices(picker, required) {
+  const options = await picker
+    .locator('option')
+    .evaluateAll((elements) =>
+      elements.map((option) => ({ value: option.value, disabled: option.disabled })),
+    )
+  for (const retired of ['healing', 'damage-bonus', 'status:blindside', 'status:revealed'])
+    assert.equal(
+      options.some((option) => option.value === retired),
+      false,
+      `${retired} remains readable in captures but must not be a new-authoring choice`,
+    )
+  for (const value of required)
+    assert.deepEqual(
+      options.find((option) => option.value === value),
+      { value, disabled: false },
+      `${value} must be an enabled current effect choice`,
+    )
+}
+
 async function activateAbilitySection(scope, name) {
   let tabs = scope.getByRole('tab', { name, exact: true })
   if (!(await tabs.count()))
@@ -421,14 +441,14 @@ async function colors(locator) {
 }
 const palette = {
   label: 'rgb(228, 189, 103)',
-  magnitude: 'rgb(228, 189, 103)',
+  magnitude: 'rgb(201, 167, 255)',
   duration: 'rgb(112, 215, 206)',
   timing: 'rgb(112, 215, 206)',
   target: 'rgb(255, 180, 117)',
 }
 const paperPalette = {
   label: 'rgb(121, 85, 28)',
-  magnitude: 'rgb(121, 85, 28)',
+  magnitude: 'rgb(78, 34, 110)',
   timing: 'rgb(23, 103, 94)',
   target: 'rgb(101, 49, 14)',
 }
@@ -440,7 +460,7 @@ async function assertPaperEffects(panel) {
     )
   }
 }
-async function assertModularReport(panel, { resonance = false } = {}) {
+async function assertModularReport(panel, { resonance = false, expectedPalette = palette } = {}) {
   const groups = panel.locator('[data-ability-behavior]')
   assert.equal(await groups.count(), 2)
   for (const group of await groups.all())
@@ -467,7 +487,21 @@ async function assertModularReport(panel, { resonance = false } = {}) {
     })),
   )
   assert.equal(tagColors.length, 3)
-  for (const row of tagColors) assert.equal(row.label, row.value)
+  for (const row of tagColors) {
+    assert.equal(row.label, expectedPalette.label)
+    assert.equal(row.value, expectedPalette.magnitude)
+    assert.notEqual(row.label, row.value)
+  }
+  for (const target of await panel.locator('[data-requirement-parameter="target"]').all())
+    assert.equal(
+      await target.evaluate((element) => getComputedStyle(element).color),
+      expectedPalette.target,
+    )
+  for (const amount of await panel.locator('[data-requirement-parameter="magnitude"]').all())
+    assert.equal(
+      await amount.evaluate((element) => getComputedStyle(element).color),
+      expectedPalette.magnitude,
+    )
   for (const label of await panel
     .getByRole('list', { name: 'Requirement explanations' })
     .locator('[data-effect-tag-label]')
@@ -513,7 +547,10 @@ async function verifyModularReaders(page, viewport) {
     await gesture(trigger)
     const panel = page.getByRole('dialog', { name, exact: true })
     await panel.waitFor()
-    await assertModularReport(panel, { resonance: attunement === 'resonance' })
+    await assertModularReport(panel, {
+      resonance: attunement === 'resonance',
+      expectedPalette: paperPalette,
+    })
     assert.equal(await page.getByRole('dialog').count(), 1)
     const box = await panel.boundingBox()
     assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
@@ -1217,6 +1254,13 @@ async function verifyCanonicalEditor(page, viewport) {
   await openEffectParameters(hit)
   await hit.getByLabel('Damage amount', { exact: true }).fill('17')
   assert.equal(await hit.getByLabel('Effect timing', { exact: true }).count(), 0)
+  await assertCurrentEffectChoices(leap.getByLabel('New group effect', { exact: true }), [
+    'pierce',
+    'hp-recovery',
+    'mp-recovery',
+    'status:blindside-vulnerability',
+    'reveal',
+  ])
   await leap.getByLabel('New group effect', { exact: true }).selectOption('pierce')
   await gesture(leap.getByRole('button', { name: 'Add group effect', exact: true }))
   const pierce = leap.locator('[data-ability-effect="effect-1"]')
@@ -1247,8 +1291,15 @@ async function verifyCanonicalEditor(page, viewport) {
     ),
   )
   const maintained = editor.locator('[data-ability-group="maintain"]')
-  await openEffectParameters(maintained)
-  await maintained.getByLabel('Outgoing damage bonus (%)', { exact: true }).fill('15.25')
+  await assertCurrentEffectChoices(maintained.getByLabel('New group effect', { exact: true }), [
+    'status:inspired',
+  ])
+  const bonus = maintained.locator('[data-ability-effect="bonus"]')
+  await openEffectParameters(bonus)
+  assert.equal(await bonus.getByLabel('Outgoing damage bonus (%)', { exact: true }).count(), 0)
+  const damageUp = bonus.getByLabel('Damage Up (%)', { exact: true })
+  await damageUp.waitFor({ state: 'visible' })
+  await damageUp.fill('15.25')
   await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
   await gesture(
     editor
@@ -1842,12 +1893,19 @@ try {
     }
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
     const authoring = page.getByRole('region', { name: 'Master Blindside authoring' })
-    await authoring.getByLabel('New effect type').selectOption('status:blindside')
+    await assertCurrentEffectChoices(authoring.getByLabel('New effect type', { exact: true }), [
+      'status:blindside-vulnerability',
+      'hp-recovery',
+      'mp-recovery',
+      'status:inspired',
+      'reveal',
+    ])
+    await authoring.getByLabel('New effect type').selectOption('status:blindside-vulnerability')
     await authoring.getByRole('button', { name: 'Add effect', exact: true }).click()
     assert.deepEqual(await page.evaluate(() => window.blindsideAuthoringEffects[1]), {
       type: 'apply-status',
-      recipient: 'actor',
-      statusId: 'blindside',
+      recipient: 'primary-unit',
+      statusId: 'blindside-vulnerability',
       stacks: 1,
       durationTurns: 1,
     })
@@ -1869,8 +1927,13 @@ try {
     )
     const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
     await openEffectParameters(firstEffect)
-    await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside')
+    await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside-vulnerability')
+    await firstEffect.getByLabel('Target', { exact: true }).selectOption('enemy')
     const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
+    assert.equal(converted.statusId, 'blindside-vulnerability')
+    // Explicit Enemy targets bind to the affected footprint in the shared engine.
+    assert.equal(converted.recipient, 'affected-units')
+    assert.equal(converted.target, 'enemy')
     assert.equal(converted.durationTurns, 1)
     assert.equal(converted.potencyBasisPoints, undefined)
     assert.equal(
@@ -2150,6 +2213,9 @@ try {
         waitUntil: 'networkidle',
       })
       const fireEditor = page.getByRole('region', { name: 'Master Fire authoring' })
+      await assertCurrentEffectChoices(fireEditor.getByLabel('New effect type', { exact: true }), [
+        'cleanse-chilled',
+      ])
       await fireEditor.getByLabel('New effect type').selectOption('cleanse-chilled')
       await fireEditor.getByRole('button', { name: 'Add effect', exact: true }).click()
       assert.deepEqual(await page.evaluate(() => window.fireAuthoringEffects[1]), {

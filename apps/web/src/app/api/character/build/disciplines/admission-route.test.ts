@@ -79,6 +79,8 @@ beforeEach(() => {
       name === 'get_character_discipline_skill_loadout_v2'
     )
       return { data: [], error: null }
+    if (name === 'read_combat_content_catalogue_token_v1')
+      return { data: 'a'.repeat(32), error: null }
     if (name === 'read_combat_content_catalogue_v1')
       return {
         data: {

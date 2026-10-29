@@ -17,7 +17,7 @@ it('shows real cycle controls and regional weather without reasons or history/ve
   )
   for (const text of [
     'Day length (real minutes)',
-    'Forced weather duration (minutes)',
+    'Automatic weather roll interval (real minutes)',
     'Snowstorm in Frostmere',
     'Save Changes',
     '18:00',
@@ -49,15 +49,14 @@ it('separates automatic roll cadence and shows local expiry with remaining time'
   expect(html).not.toContain('2026-10-26T')
 })
 
-it('lets the Owner enter a duration before selecting forced weather', () => {
+it('uses one timing control and explains when a manual selection ends', () => {
   const html = renderToStaticMarkup(
     <WorldEnvironmentEditor
       initialSettings={DEFAULT_WORLD_ENVIRONMENT_SETTINGS}
       initialNowMs={Date.UTC(2026, 9, 27, 12)}
     />,
   )
-  const input = html.match(/<input[^>]*value="60"[^>]*>/)?.[0]
-  expect(input).toBeDefined()
-  expect(input).not.toContain('disabled')
+  expect(html).not.toContain('Forced weather duration')
+  expect(html).toContain('Manual selections last until the next automatic roll.')
   expect(html).toContain('<option value="unchanged" selected="">Keep current weather</option>')
 })

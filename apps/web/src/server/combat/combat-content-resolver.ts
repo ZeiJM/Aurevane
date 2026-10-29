@@ -257,11 +257,21 @@ function parseVersionRows(data: unknown): readonly CombatContentVersionRecord[] 
   })
 }
 
+export type CombatCatalogueSnapshotCache = Map<
+  string,
+  Promise<PublishedCombatContentCatalogueSnapshot>
+>
+
+/** Server-private immutable data only; every hit requires fresh database authority. */
+export const serverCombatCatalogueSnapshotCache: CombatCatalogueSnapshotCache = new Map()
+
 export class RpcPublishedCombatContentSource implements PublishedCombatContentSource {
   readonly #rpc: RpcExecutor
+  readonly #snapshotCache?: CombatCatalogueSnapshotCache
 
-  constructor(rpc: RpcExecutor) {
+  constructor(rpc: RpcExecutor, snapshotCache?: CombatCatalogueSnapshotCache) {
     this.#rpc = rpc
+    this.#snapshotCache = snapshotCache
   }
 
   async readCurrentDisciplineSelection(
@@ -346,6 +356,34 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
   }
 
   async readCatalogueSnapshot(): Promise<PublishedCombatContentCatalogueSnapshot> {
+    const cache = this.#snapshotCache
+    if (!cache) return this.#readCatalogueSnapshot()
+    const { data: token, error } = await this.#rpc('read_combat_content_catalogue_token_v1', {})
+    if (error) mapRpcFailure(error)
+    if (typeof token !== 'string' || !/^[a-f0-9]{32}$/.test(token))
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'The current catalogue revision is invalid.',
+      )
+    let pending = cache.get(token)
+    if (!pending) {
+      pending = this.#readCatalogueSnapshot()
+      cache.set(token, pending)
+      while (cache.size > 2) cache.delete(cache.keys().next().value!)
+    }
+    try {
+      const snapshot = await pending
+      // A publication between token and snapshot reads can return a newer generation.
+      // It is valid for this request, but must never be cached under the older token.
+      if (snapshot.token !== token && cache.get(token) === pending) cache.delete(token)
+      return structuredClone(snapshot)
+    } catch (cause) {
+      if (cache.get(token) === pending) cache.delete(token)
+      throw cause
+    }
+  }
+
+  async #readCatalogueSnapshot(): Promise<PublishedCombatContentCatalogueSnapshot> {
     const { data, error } = await this.#rpc('read_combat_content_catalogue_v1', {})
     if (error) mapRpcFailure(error)
     try {
@@ -638,7 +676,8 @@ export function createCombatContentResolver(
               return row?.contentVersion === version ? row : null
             }
             // Coalesce only inside this captured generation. Fresh captures always
-            // consult authority again; there is no cross-request or TTL cache.
+            // consult authority again; shared immutable data is reused only after
+            // a fresh database token check, never using a TTL or stale fallback.
             const selections = new Map<string, Promise<CurrentDisciplineSelection>>()
             const frozen = createCombatContentResolver(
               {
@@ -931,6 +970,7 @@ export function createServerCombatContentResolver(): CombatContentResolver {
   const source = new RpcPublishedCombatContentSource(
     (functionName, parameters) =>
       client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
+    serverCombatCatalogueSnapshotCache,
   )
   return createCombatContentResolver(source)
 }

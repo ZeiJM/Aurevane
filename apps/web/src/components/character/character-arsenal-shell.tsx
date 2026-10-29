@@ -346,6 +346,7 @@ export function CharacterArsenalShell({
             key={skillBuildKey}
             characterId={attributeAllocation.characterId}
             initialBuildVersion={disciplineBuild.buildVersion}
+            disciplineNames={disciplineBuild.disciplineNames}
             initialSupportActionId={supportActionId}
             primaryDiscipline={{
               id: disciplineBuild.current.definition.id,

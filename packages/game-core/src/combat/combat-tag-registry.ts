@@ -4,6 +4,7 @@ import {
   COMBAT_PRESENTATION_TAG_IDS,
   isCombatPresentationTagId,
   combatEffectPresentationId,
+  currentCombatTagName,
 } from './combat-effect-identities'
 export { SUPPORTED_COMBAT_STATUS_IDS } from './combat-effect-identities'
 import { validateCombatEffectTarget } from './combat-effect-recipients'
@@ -679,6 +680,11 @@ export function combatEffectTagPresentation(
   presentations: readonly CombatTagPresentationSnapshot[] | undefined,
   payload: CombatTagPayload | CombatEffectDefinition | CombatSummonEffect,
 ): CombatTagPresentationSnapshot | undefined {
+  // Older mixed abilities captured a distinct bonus row alongside their timed buff row.
+  if (payload.type === 'damage-bonus') {
+    const historical = presentations?.find((row) => row.tagId === 'damage-bonus')
+    if (historical) return historical
+  }
   return (
     presentations?.find((row) => row.tagId === combatEffectPresentationId(payload)) ??
     presentations?.find((row) => row.tagId === payload.type)
@@ -753,7 +759,7 @@ export function captureCombatTagPresentation(row: {
     contentKey: row.id,
     contentVersion: row.contentVersion,
     tagId: row.tagId,
-    name: row.name,
+    name: currentCombatTagName(row.tagId, row.name),
     full: row.explanation,
     compact: row.description,
   }
@@ -804,7 +810,11 @@ export function bindCombatTagPresentations<T>(
             : [],
         ),
       )
-      const selected = presentations.filter((row) => ids.has(row.tagId))
+      const hasCurrentDamageUp =
+        ids.has('inspired') && presentations.some((row) => row.tagId === 'inspired')
+      const selected = presentations.filter(
+        (row) => ids.has(row.tagId) && !(hasCurrentDamageUp && row.tagId === 'damage-bonus'),
+      )
       if (selected.length || Object.hasOwn(result, 'tagPresentation'))
         result.tagPresentation = selected.map((row) => ({ ...row }))
     }

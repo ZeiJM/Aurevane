@@ -10,6 +10,7 @@ const require = createRequire(import.meta.url)
 const { createServer, build } = await import(
   pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
 )
+const { expect } = require('@playwright/test')
 const { chromium } = require(
   require.resolve('playwright', { paths: [require.resolve('@playwright/test')] }),
 )
@@ -133,9 +134,8 @@ try {
       ? ['players']
       : worldEnvironmentOnly
         ? ['world']
-        : ['rules', 'world', 'music', 'players']) {
-      if (view === 'world' && !worldEnvironmentOnly)
-        await page.clock.install({ time: new Date('2026-10-23T00:00:00Z') })
+        : ['rules', 'tags', 'world', 'music', 'players']) {
+      if (view === 'world') await page.clock.install({ time: new Date('2026-10-23T00:00:00Z') })
       await page.goto(`${origin}?view=${view}`)
       await page.locator('body').evaluate((body, zoom) => {
         body.style.zoom = zoom
@@ -145,11 +145,13 @@ try {
           name:
             view === 'players'
               ? 'Players'
-              : view === 'rules'
-                ? 'Combat Rules'
-                : view === 'world'
-                  ? 'World Environment'
-                  : 'Site Music',
+              : view === 'tags'
+                ? 'Game Content'
+                : view === 'rules'
+                  ? 'Combat Rules'
+                  : view === 'world'
+                    ? 'World Environment'
+                    : 'Site Music',
           exact: true,
         })
         .first()
@@ -241,15 +243,48 @@ try {
           await reader.getByRole('heading', { name: 'Reader Target', exact: true }).count(),
           1,
         )
-        const details = reader
-          .locator('summary', { hasText: /^More player details$/ })
-          .locator('..')
-        assert.equal(await details.getAttribute('open'), null)
-        await details.locator(':scope > summary').click()
-        assert.match(await reader.innerText(), /Identity and account access are protected\./)
-        await details.locator(':scope > summary').click()
-        assert.equal(await details.getAttribute('open'), null)
-        assert.equal(await reader.isVisible(), true)
+        assert.equal(
+          await reader.locator('summary', { hasText: /^More player details$/ }).count(),
+          0,
+        )
+        for (const label of [
+          'Primary / Secondary',
+          'Active Skills',
+          'Resonance',
+          'Essence',
+          'Support action',
+          'Calculated maximum resources',
+          'World position',
+          'Saved loadouts',
+        ]) {
+          const fact = reader
+            .locator('dt')
+            .filter({ hasText: new RegExp(`^${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) })
+            .locator('..')
+          await expect(fact).toBeVisible()
+        }
+        await expect(reader).toContainText('100 HP · 30 MP')
+        await expect(
+          reader.getByRole('textbox', { name: /account|identity|verified email/i }),
+        ).toHaveCount(0)
+        const sections = reader.getByRole('group', { name: 'Correction section', exact: true })
+        assert.deepEqual(await sections.getByRole('button').allTextContents(), [
+          'Stats & Progression',
+          'Disciplines',
+          'Skills',
+          'Support',
+          'Encounter',
+        ])
+        await sections.getByRole('button', { name: 'Encounter', exact: true }).click()
+        await expect(
+          sections.getByRole('button', { name: 'Encounter', exact: true }),
+        ).toHaveAttribute('aria-pressed', 'true')
+        await expect(reader.getByText('No active encounter.', { exact: true })).toBeVisible()
+        await expect(
+          reader.getByRole('button', { name: 'Review encounter recovery', exact: true }),
+        ).toHaveCount(0)
+        await sections.getByRole('button', { name: 'Stats & Progression', exact: true }).click()
+        await expect(reader.getByText('No active encounter.', { exact: true })).toBeHidden()
         const geometry = await reader.evaluate((element) => ({
           clientWidth: element.clientWidth,
           scrollWidth: element.scrollWidth,
@@ -271,46 +306,23 @@ try {
         await page.getByRole('dialog').press('Escape')
         await page.locator('#timing-damage').selectOption('delayed')
         await page.getByLabel('Search effect tags').fill('Dispel')
-        const editDescription = page.getByRole('button', {
-          name: 'Edit Dispel descriptions',
-          exact: true,
-        })
-        await editDescription.click()
-        let description = page
-          .getByRole('dialog')
-          .filter({ has: page.getByRole('heading', { name: 'Dispel', exact: true }) })
-        await description.getByLabel('Skill Manager description', { exact: true }).waitFor()
-        assert.equal(
-          await description.getByRole('button', { name: 'Commit Now', exact: true }).isDisabled(),
-          true,
-        )
-        await description
-          .getByLabel('Skill Manager description', { exact: true })
-          .fill('Remove the listed positive effects. {details}')
-        await description
-          .getByLabel('Battle description', { exact: true })
-          .fill('Remove positive effects.')
-        await description.press('Escape')
-        await editDescription.click()
-        description = page
-          .getByRole('dialog')
-          .filter({ has: page.getByRole('heading', { name: 'Dispel', exact: true }) })
-        assert.equal(
-          await description.getByLabel('Battle description', { exact: true }).inputValue(),
-          'Remove positive effects.',
-        )
-        await description.getByRole('button', { name: 'Commit Now', exact: true }).click()
-        await description.getByRole('status').filter({ hasText: 'Changes committed' }).waitFor()
-        const tagRequest = await page.evaluate(() => window.__operationsRequests.at(-1))
-        assert.equal(tagRequest.path, '/api/master/combat-content')
-        assert.equal(tagRequest.body.command.expectedRevision, 1)
-        assert.equal(tagRequest.body.command.definition.tagId, 'dispel')
-        assert.equal(tagRequest.body.command.definition.description, 'Remove positive effects.')
-        await description
-          .getByRole('button', { name: 'Close description editor', exact: true })
-          .click()
+        await expect(page.getByRole('button', { name: /Edit .* descriptions/ })).toHaveCount(0)
+        await expect(page.getByLabel('Skill Manager description', { exact: true })).toHaveCount(0)
+        await expect(page.getByLabel('Battle description', { exact: true })).toHaveCount(0)
+        const timing = page
+          .locator('form')
+          .filter({ has: page.getByRole('heading', { name: 'Effect tags', exact: true }) })
+        await timing.getByRole('button', { name: 'About Effect timing help', exact: true }).click()
+        await expect(timing).toContainText('Edit tag descriptions in Game Content → Tag Library.')
+        await page.getByRole('dialog', { name: 'Effect timing help', exact: true }).press('Escape')
         await page.getByLabel('Search effect tags').fill('damage')
         assert.equal(await page.locator('#timing-damage').inputValue(), 'delayed')
+        await timing.getByRole('button', { name: 'Save Changes', exact: true }).click()
+        await expect(timing.getByRole('status')).toHaveText('Timing updated.')
+        const timingRequest = await page.evaluate(() =>
+          window.__operationsRequests.findLast((row) => row.path === '/api/master/combat-timing'),
+        )
+        assert.equal(timingRequest.body.policy.modes.damage, 'delayed')
         const elevation = page.getByRole('form', { name: 'Elevation chances', exact: true })
         const chance = (level) =>
           elevation.getByLabel(`Elevation level ${level} chance (%)`, { exact: true })
@@ -338,6 +350,79 @@ try {
             level3BasisPoints: 10000,
           },
         })
+      } else if (view === 'tags') {
+        const workspace = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+        await expect(workspace.getByLabel('Content category')).toHaveValue('tag')
+        const dispel = workspace.locator('[data-content-key="tag.dispel"]')
+        const damage = workspace.locator('[data-content-key="tag.damage"]')
+        await dispel.click()
+        const full = workspace.getByLabel('Skill Manager description', { exact: true })
+        const short = workspace.getByLabel('Battle description', { exact: true })
+        await expect(full).toBeVisible()
+        await expect(short).toBeVisible()
+        const readDispel = () =>
+          page.evaluate(
+            async () =>
+              (
+                await (
+                  await fetch('/api/master/combat-content', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      operation: 'record',
+                      command: { action: 'read', contentKey: 'tag.dispel' },
+                    }),
+                  })
+                ).json()
+              ).record,
+          )
+        const before = await readDispel()
+        assert.equal(
+          await page.evaluate(
+            () =>
+              window.__operationsRequests.filter((row) => row.body.command?.action === 'commit')
+                .length,
+          ),
+          0,
+        )
+        await workspace.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await expect(workspace.getByRole('status', { name: 'Save status' })).toHaveText('Saved')
+        await workspace.getByRole('status').filter({ hasText: 'Changes committed' }).waitFor()
+        assert.deepEqual(
+          await readDispel(),
+          before,
+          'A no-op commit must retain publication/version and revision',
+        )
+        await full.fill('Remove the listed positive effects. {details}')
+        await short.fill('Remove positive effects.')
+        await expect(workspace.getByRole('status', { name: 'Save status' })).toHaveText(
+          'Unsaved changes',
+        )
+        await damage.click()
+        await expect(damage).toHaveAttribute('aria-current', 'true')
+        await dispel.click()
+        await expect(short).toHaveValue('Remove positive effects.')
+        await expect(full).toHaveValue('Remove the listed positive effects. {details}')
+        await workspace.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await expect(workspace.getByRole('status', { name: 'Save status' })).toHaveText('Saved')
+        const tagRequest = await page.evaluate(() =>
+          window.__operationsRequests.findLast((row) => row.body.command?.action === 'commit'),
+        )
+        assert.equal(tagRequest.path, '/api/master/combat-content')
+        assert.equal(tagRequest.body.command.expectedRevision, before.revision)
+        assert.equal(tagRequest.body.command.definition.tagId, 'dispel')
+        assert.equal(tagRequest.body.command.definition.description, 'Remove positive effects.')
+        assert.equal(
+          tagRequest.body.command.definition.explanation,
+          'Remove the listed positive effects. {details}',
+        )
+        const saved = await readDispel()
+        assert.equal(saved.current.contentVersion, before.current.contentVersion + 1)
+        await damage.click()
+        await expect(damage).toHaveAttribute('aria-current', 'true')
+        await dispel.click()
+        await expect(short).toHaveValue('Remove positive effects.')
+        await expect(full).toHaveValue('Remove the listed positive effects. {details}')
       } else if (view === 'world') {
         await page.getByLabel('Day length (real minutes)').fill(worldEnvironmentOnly ? '1' : '120')
         assert.equal(
@@ -348,14 +433,18 @@ try {
         const weather = page.getByRole('combobox', { name: 'Weather selection', exact: true })
         assert.equal(await weather.count(), 1)
         await weather.selectOption(worldEnvironmentOnly ? 'rain' : 'storm')
+        await expect(
+          page.getByLabel('Forced weather duration (minutes)', { exact: true }),
+        ).toHaveCount(0)
         await page
-          .getByLabel('Forced weather duration (minutes)')
+          .getByLabel('Automatic weather roll interval (real minutes)', { exact: true })
           .fill(worldEnvironmentOnly ? '1' : '37')
         await page.getByRole('button', { name: 'Save Changes', exact: true }).click()
         await page.getByRole('status').filter({ hasText: 'saved' }).waitFor()
         const body = await page.evaluate(() => window.__operationsRequests.at(-1).body)
         assert.equal(body.change.dayLengthMinutes, worldEnvironmentOnly ? 1 : 120)
-        assert.equal(body.change.durationMinutes, worldEnvironmentOnly ? 1 : 37)
+        assert.equal(body.change.weatherRollMinutes, worldEnvironmentOnly ? 1 : 37)
+        assert.equal('durationMinutes' in body.change, false)
         assert.equal('reason' in body, false)
         await page.getByTestId('world-environment-current').filter({ hasText: 'forced' }).waitFor()
         if (!worldEnvironmentOnly) {

@@ -49,7 +49,7 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
   page,
   baseURL,
 }, info) => {
-  test.setTimeout(150000)
+  test.setTimeout(210000)
   expect(['localhost', '127.0.0.1']).toContain(new URL(baseURL!).hostname)
   expect(['localhost', '127.0.0.1']).toContain(
     new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).hostname,
@@ -111,7 +111,11 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     await page
       .getByRole('combobox', { name: 'Weather selection', exact: true })
       .selectOption('rain')
-    await page.getByLabel('Forced weather duration (minutes)').fill('1')
+    await expect(page.getByLabel('Forced weather duration (minutes)')).toHaveCount(0)
+    // Start near a real minute boundary so the live World can observe the manual
+    // selection before its next scheduled roll. Do not replace server/browser time.
+    const remainingMs = 60_000 - (Date.now() % 60_000)
+    if (remainingMs < 45_000) await page.waitForTimeout(remainingMs + 100)
     const saved = page.waitForResponse(
       (r) =>
         new URL(r.url()).pathname === '/api/master/world-environment' &&
@@ -125,7 +129,11 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
     const settings: WorldEnvironmentSettings = (await savedResponse.json()).settings
     expect(settings.dayLengthMinutes).toBe(1)
     expect(settings.weatherRollMinutes).toBe(1)
-    expect(settings.weatherOverrideUntil).toBeGreaterThan(Date.now() + 50000)
+    const submitted = savedResponse.request().postDataJSON()
+    expect(submitted.change).not.toHaveProperty('durationMinutes')
+    expect(settings.weatherOverrideUntil! % 60_000).toBe(0)
+    expect(settings.weatherOverrideUntil).toBeGreaterThan(Date.now())
+    expect(settings.weatherOverrideUntil).toBeLessThanOrEqual(Date.now() + 60_000)
     stage = 'open-world'
     await page.goto('/game/world')
     await expect(page.locator('[data-world-workspace]')).toBeVisible()
@@ -248,7 +256,6 @@ test('saved short World cycle and weather expiry reach the live refresh, map and
               timeOffsetMinutes: original.timeOffsetMinutes,
               frozenMinuteOfDay: original.frozenMinuteOfDay,
               weather: null,
-              durationMinutes: 1,
             },
           },
         })

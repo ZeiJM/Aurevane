@@ -69,16 +69,16 @@
   line-height: 1.5;
 }
 
-.editor
-  :is(
-    [data-effect-tag-label],
-    [data-compact-effect-label],
-    [data-compact-effect-magnitude],
-    [data-compact-effect-duration]
-  ) {
+.editor :is([data-effect-tag-label], [data-compact-effect-label]) {
   color: #79551c;
 }
 
+.editor [data-compact-effect-magnitude],
+.editor [data-requirement-parameter='magnitude'] {
+  color: #4e226e;
+}
+
+.editor [data-compact-effect-duration],
 .editor [data-compact-effect-timing] {
   color: #17675e;
 }
@@ -91,6 +91,7 @@
   color: #6e3f86;
 }
 
-.editor [data-compact-effect-target] {
+.editor [data-compact-effect-target],
+.editor [data-requirement-parameter='target'] {
   color: #65310e;
 }

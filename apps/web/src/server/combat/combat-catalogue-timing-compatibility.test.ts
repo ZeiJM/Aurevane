@@ -307,3 +307,40 @@ it('reports actual Used-by from the same canonical timing inputs without changin
   expect(used.damage).toHaveLength(2)
   expect(validateCombatCatalogueTiming(catalogue([skill(automaticAbility())]))).toHaveLength(1)
 })
+
+it('groups attached Damage Up bonuses and timed buffs under one usage identity without rewriting mechanics', () => {
+  const bonus = skill(
+    source({
+      mode: 'modifier',
+      targeting: null,
+      effects: [
+        {
+          id: 'bonus',
+          payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 },
+        },
+      ],
+    }).definition,
+  )
+  const buff = {
+    ...skill(
+      source({
+        effects: [
+          {
+            id: 'buff',
+            payload: { type: 'apply-status', recipient: 'actor', statusId: 'inspired', stacks: 1 },
+          },
+        ],
+      }).definition,
+    ),
+    contentKey: 'custom.buff',
+  }
+  const current = catalogue([bonus, buff])
+  const before = JSON.stringify(current)
+  const used = combatEffectUsedBy(current)
+  expect(used.inspired?.map((entry) => entry.contentKey)).toEqual([
+    bonus.contentKey,
+    buff.contentKey,
+  ])
+  expect(used['damage-bonus']).toBeUndefined()
+  expect(JSON.stringify(current)).toBe(before)
+})

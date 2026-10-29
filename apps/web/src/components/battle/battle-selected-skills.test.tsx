@@ -645,3 +645,34 @@ it('limits read-only selection to an owned noncast ability or an unavailable Res
     ),
   ).toBeNull()
 })
+
+it.each(['pve', 'pvp'] as const)(
+  'uses the programmed source Discipline name for %s Skill footers without changing captured Skill text',
+  (kind) => {
+    const custom = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+    const html = renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={
+          {
+            ...runtime,
+            kind,
+            techniques: [
+              {
+                ...technique,
+                sourceDisciplineId: custom,
+                sourceDisciplineName: 'Super Saiyan',
+                name: 'Captured Technique',
+              },
+            ],
+          } as BattleRuntime
+        }
+        disabled={false}
+        actionEconomy={100}
+        onSelect={vi.fn()}
+      />,
+    )
+    expect(html).toContain('Super Saiyan')
+    expect(html).toContain('Captured Technique')
+    expect(html).not.toContain('F60c5dc7')
+  },
+)

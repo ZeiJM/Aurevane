@@ -835,15 +835,16 @@ try {
               assert.ok(tagColors.expanded > 0, 'expanded effect names use the shared label reader')
               assert.equal(
                 tagColors.magnitude,
-                'rgb(121, 85, 28)',
-                'paper magnitude retains its readable orange',
+                'rgb(78, 34, 110)',
+                'paper magnitude uses the readable purple parameter color',
               )
               assert.ok(tagColors.labels.length > 1)
+              assert.ok(tagColors.labels.every((color) => color !== tagColors.magnitude))
               for (const color of tagColors.labels)
                 assert.equal(
                   color,
-                  tagColors.magnitude,
-                  'compact and expanded tag names match their value color',
+                  'rgb(121, 85, 28)',
+                  'compact and expanded tag names retain their gold label color',
                 )
               await page.screenshot({
                 path: resolve(

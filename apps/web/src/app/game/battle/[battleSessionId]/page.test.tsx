@@ -10,8 +10,16 @@ import {
   rows,
 } from '@/server/battle/roster-legal-build.test-utils'
 
-const mocks = vi.hoisted(() => ({ session: vi.fn(), metadata: vi.fn(), resolver: vi.fn() }))
+const mocks = vi.hoisted(() => ({
+  session: vi.fn(),
+  metadata: vi.fn(),
+  resolver: vi.fn(),
+  names: vi.fn(),
+}))
 vi.mock('server-only', () => ({}))
+vi.mock('@/server/character/current-discipline-names', () => ({
+  loadCurrentDisciplineNames: mocks.names,
+}))
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ host: '127.0.0.1:3100' }) }))
 vi.mock('next/navigation', () => ({
   redirect: (path: string) => {
@@ -58,6 +66,7 @@ beforeAll(publishProposedRoster, 30_000)
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.resolver.mockReturnValue(resolver)
+  mocks.names.mockResolvedValue({})
 })
 
 it.each(['pve', 'pvp'] as const)(
@@ -176,3 +185,97 @@ it('shows the exact captured published Resonance instead of losing it to the bui
     contentVersion: row.after.contentVersion,
   })
 })
+
+it.each(['pve', 'pvp'] as const)(
+  'projects current custom source names alongside pinned %s Skill definitions',
+  async (mode) => {
+    const row = rows.find((entry) => entry.kind === 'skill')!
+    if (row.kind !== 'skill') throw new Error('Missing Skill fixture.')
+    const sourceId = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+    const pinned = { ...row.after, sourceDisciplineId: sourceId }
+    const resolvePinnedSkillDefinition = vi.fn(async () => pinned)
+    mocks.resolver.mockReturnValue({ ...resolver, resolvePinnedSkillDefinition })
+    mocks.names.mockResolvedValue({ [sourceId]: 'Super Saiyan' })
+    mocks.session.mockResolvedValue({
+      battleSessionId: '33333333-3333-4333-8333-333333333333',
+      battleVersion: 1,
+      snapshot: {
+        tactical: { battle: { lifecycle: 'active' } },
+        statBridge: {
+          combatants: [{ provenance: { kind: 'character-derived', sourceId: actorId } }],
+        },
+        buildAuthority: {
+          schemaVersion: 1,
+          catalogVersion: 3,
+          combatContext: mode,
+          combatants: [
+            {
+              combatantId: actorId,
+              characterId,
+              primary: { disciplineId: 'edgedancer' },
+              secondary: null,
+              disciplineSkills: [
+                {
+                  skillId: pinned.id,
+                  contentVersion: pinned.contentVersion,
+                  sourceDisciplineId: sourceId,
+                  slotIndex: 1,
+                },
+              ],
+              extensions: { essence: null, resonance: null },
+            },
+          ],
+        },
+      },
+    })
+    mocks.metadata.mockResolvedValue(
+      mode === 'pvp'
+        ? {
+            localCharacterId: characterId,
+            participants: [
+              {
+                characterId,
+                combatantId: actorId,
+                characterName: 'Wayfarer',
+                portraitRef: 'portrait.starter.wayfarer-01',
+              },
+            ],
+          }
+        : null,
+    )
+    const read = async () => {
+      const page = await BattleSessionPage({
+        params: Promise.resolve({ battleSessionId: '33333333-3333-4333-8333-333333333333' }),
+      })
+      return (
+        page as ReactElement<{
+          children: ReactElement<{
+            runtime: { techniques: { sourceDisciplineName?: string; definition: unknown }[] }
+          }>
+        }>
+      ).props.children.props.runtime
+    }
+    expect((await read()).techniques[0]).toMatchObject({
+      sourceDisciplineName: 'Super Saiyan',
+      definition: {
+        id: pinned.id,
+        contentVersion: pinned.contentVersion,
+        sourceDisciplineId: sourceId,
+        effects: pinned.effects,
+        apCost: pinned.apCost,
+      },
+    })
+    expect(mocks.names).toHaveBeenCalledWith([sourceId])
+    expect(resolvePinnedSkillDefinition).toHaveBeenCalledWith(pinned.id, pinned.contentVersion)
+    mocks.names.mockRejectedValueOnce(new Error('labels offline'))
+    expect((await read()).techniques[0]).toMatchObject({
+      definition: {
+        id: pinned.id,
+        contentVersion: pinned.contentVersion,
+        sourceDisciplineId: sourceId,
+        effects: pinned.effects,
+        apCost: pinned.apCost,
+      },
+    })
+  },
+)

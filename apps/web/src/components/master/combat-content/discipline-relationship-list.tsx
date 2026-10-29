@@ -210,6 +210,17 @@ export function DisciplineRelationshipList({
                 <button
                   type="button"
                   disabled={disabled}
+                  aria-haspopup="dialog"
+                  aria-label={`Change power for ${row.label}`}
+                  onClick={() => setEditing({ partner: row.partner, label: row.label })}
+                >
+                  Change
+                </button>
+              ) : null}
+              {row.power ? (
+                <button
+                  type="button"
+                  disabled={disabled}
                   aria-label={`Edit power for ${row.label}`}
                   onClick={() => onEdit(row.power, row.partner)}
                 >

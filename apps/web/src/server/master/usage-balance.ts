@@ -121,6 +121,9 @@ export function parseUsageBalanceReport(value: unknown, key: string): UsageBalan
 export function createUsageBalanceService(
   access: Pick<MasterPanelStaffAccessService, 'requireCapability'>,
   rpc: (name: string, parameters: Record<string, unknown>) => Promise<unknown>,
+  loadDisciplineNames: (
+    ids: readonly string[],
+  ) => Promise<Readonly<Record<string, string>>> = async () => ({}),
 ) {
   return {
     async read(userId: string, contentKey: string, week?: string): Promise<UsageBalanceReport> {
@@ -144,7 +147,27 @@ export function createUsageBalanceService(
         contentKey,
       )
       if (week && report.weekStartsAt.slice(0, 10) !== week) return unavailable()
-      return report
+      const ids = [
+        ...new Set([
+          ...report.pairs.flatMap((pair) =>
+            pair.secondary ? [pair.primary, pair.secondary] : [pair.primary],
+          ),
+          ...report.matchups.map((row) => row.opponent),
+        ]),
+      ]
+      if (!ids.length) return report
+      const names = await loadDisciplineNames(ids)
+      return {
+        ...report,
+        disciplineNames: Object.fromEntries(
+          ids.flatMap((id) => {
+            const name = names[id]
+            return typeof name === 'string' && name.trim() && name.length <= 160
+              ? [[id, name.trim()]]
+              : []
+          }),
+        ),
+      }
     },
   }
 }

@@ -1,0 +1,39 @@
+.editor {
+  display: grid;
+  gap: 1rem;
+  padding: 0.75rem;
+  min-width: 0;
+}
+.section {
+  padding: 0.9rem;
+  border: 1px solid #c4b496;
+  border-radius: 0.45rem;
+  background: #fbf7ef;
+  min-width: 0;
+}
+.section textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0.65rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.section small {
+  margin-top: 0.35rem;
+}
+.reset {
+  justify-self: start;
+}
+.editor p {
+  margin: 0;
+  max-width: 78ch;
+  line-height: 1.5;
+}
+@media (max-width: 600px) {
+  .editor {
+    padding: 0.25rem;
+  }
+  .section {
+    padding: 0.65rem;
+  }
+}

@@ -1,7 +1,10 @@
 .label,
-.magnitude,
 .reference {
   color: #e4bd67;
+}
+
+.magnitude {
+  color: #c9a7ff;
 }
 
 .label,
@@ -14,7 +17,7 @@
   font-weight: 650;
 }
 
-/* Inline terms keep the report's typography and the shared magnitude color. */
+/* Inline tag names keep the report's typography and label color. */
 .reference {
   display: inline;
   padding: 0;
@@ -40,9 +43,12 @@
 }
 
 :global(.av-master) .label,
-:global(.av-master) .magnitude,
 :global(.av-master) .reference {
   color: #503510;
+}
+
+:global(.av-master) .magnitude {
+  color: #4e226e;
 }
 
 :global(.av-master) .timing {

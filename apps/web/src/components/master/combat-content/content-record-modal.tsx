@@ -47,6 +47,7 @@ export function ContentRecordModal({
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pendingMedia, setPendingMedia] = useState(false)
   const committing = useRef(false)
   const latest = useRef({ pending, onChange })
   useEffect(() => {
@@ -80,7 +81,7 @@ export function ContentRecordModal({
       : rawDefinition
   const stale = !!record && !!pending && pending.revision !== record.revision
   async function commit() {
-    if (committing.current || !record || !definition || stale) return
+    if (committing.current || pendingMedia || !record || !definition || stale) return
     setBusy(true)
     committing.current = true
     setError('')
@@ -230,6 +231,7 @@ export function ContentRecordModal({
                 value={definition}
                 tab="Parameters"
                 choices={choices}
+                onPendingMediaChange={setPendingMedia}
                 onChange={(next) => {
                   const edit =
                     recordIsDirty(record, next) || committing.current
@@ -245,12 +247,17 @@ export function ContentRecordModal({
           )}
         </div>
         <footer className={styles.modalFooter}>
-          <span>Closing keeps your uncommitted edits.</span>
+          <span role={pendingMedia ? 'status' : undefined}>
+            {pendingMedia
+              ? 'Upload the selected file to keep it before closing or committing.'
+              : 'Closing keeps your uncommitted edits.'}
+          </span>
           <button
             type="button"
             className={styles.commit}
             disabled={
               busy ||
+              pendingMedia ||
               !record ||
               !definition ||
               stale ||

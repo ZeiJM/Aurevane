@@ -249,84 +249,37 @@ export function PlayersWorkspace({
                   )}
                 </dd>
               </div>
+              <div>
+                <dt>Support action</dt>
+                <dd>
+                  {player.facts.build.supportActionId === 'basic.guard'
+                    ? 'Guard'
+                    : player.facts.build.supportActionId === 'basic.recover'
+                      ? 'Recover HP'
+                      : 'Recover MP'}
+                </dd>
+              </div>
+              <div>
+                <dt>Calculated maximum resources</dt>
+                <dd>
+                  {player.calculated.maxHp} HP · {player.calculated.maxMp} MP
+                </dd>
+              </div>
+              <div>
+                <dt>World position</dt>
+                <dd>
+                  {player.world?.position
+                    ? `${player.world.position.sectorId} · ${player.world.position.x}, ${player.world.position.y}`
+                    : 'No saved position'}
+                </dd>
+              </div>
+              <div>
+                <dt>Saved loadouts</dt>
+                <dd>{player.savedLoadouts.map((row) => row.name).join(', ') || 'None'}</dd>
+              </div>
             </dl>
-            <details className={styles.moreDetails}>
-              <summary>More player details</summary>
-              <dl className={styles.facts}>
-                <div>
-                  <dt>Support action</dt>
-                  <dd>
-                    {player.facts.build.supportActionId === 'basic.guard'
-                      ? 'Guard'
-                      : player.facts.build.supportActionId === 'basic.recover'
-                        ? 'Recover HP'
-                        : 'Recover MP'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Calculated maximum resources</dt>
-                  <dd>
-                    {player.calculated.maxHp} HP · {player.calculated.maxMp} MP
-                  </dd>
-                </div>
-                <div>
-                  <dt>World position</dt>
-                  <dd>
-                    {player.world?.position
-                      ? `${player.world.position.sectorId} · ${player.world.position.x}, ${player.world.position.y}`
-                      : 'No saved position'}
-                  </dd>
-                </div>
-                <div>
-                  <dt>Saved loadouts</dt>
-                  <dd>{player.savedLoadouts.map((row) => row.name).join(', ') || 'None'}</dd>
-                </div>
-              </dl>
-              <p>Identity and account access are protected.</p>
-            </details>
             {player.deletionPending ? (
               <p role="status">Deletion pending. Gameplay corrections are unavailable.</p>
-            ) : null}
-            {player.battle ? (
-              <section className={styles.encounter}>
-                <h3>Active encounter · {player.battle.lifecycle}</h3>
-                <p>Participants: {player.battle.participants.map((row) => row.name).join(', ')}</p>
-                <ul>
-                  {player.battle.combatants.map((unit) => (
-                    <li key={unit.id}>
-                      <strong>
-                        {player.battle?.participants.find(
-                          (row) =>
-                            unit.id === `character:${row.characterId}` ||
-                            unit.id === row.characterId,
-                        )?.name ?? playerLabel(unit.id)}
-                      </strong>
-                      : {unit.hp} HP · {unit.mp} MP · {unit.ap ?? '—'} AP
-                      {unit.statuses.length
-                        ? ` · ${unit.statuses.map(playerLabel).join(', ')}`
-                        : ''}
-                    </li>
-                  ))}
-                </ul>
-                <details>
-                  <summary>Recent actions</summary>
-                  <ol>
-                    {player.battle.recentActions.map((action, index) => (
-                      <li key={index}>{playerLabel(action)}</li>
-                    ))}
-                  </ol>
-                </details>
-                <p>
-                  Recovery ends this entire encounter for every listed participant. It gives no
-                  rewards or refunds and preserves World progress.
-                </p>
-                <button
-                  disabled={busy || !!review}
-                  onClick={() => preview({ kind: 'recover', requestKey: crypto.randomUUID() })}
-                >
-                  Review encounter recovery
-                </button>
-              </section>
             ) : null}
             {review ? (
               <section className={styles.review}>
@@ -386,6 +339,57 @@ export function PlayersWorkspace({
               <PlayerCorrectionForm
                 key={player.fingerprint}
                 player={player}
+                navigationDisabled={busy || !!review}
+                encounter={
+                  player.battle ? (
+                    <section className={styles.encounter}>
+                      <h3>Active encounter · {player.battle.lifecycle}</h3>
+                      <p>
+                        Participants: {player.battle.participants.map((row) => row.name).join(', ')}
+                      </p>
+                      <ul>
+                        {player.battle.combatants.map((unit) => (
+                          <li key={unit.id}>
+                            <strong>
+                              {player.battle?.participants.find(
+                                (row) =>
+                                  unit.id === `character:${row.characterId}` ||
+                                  unit.id === row.characterId,
+                              )?.name ?? playerLabel(unit.id)}
+                            </strong>
+                            : {unit.hp} HP · {unit.mp} MP · {unit.ap ?? '—'} AP
+                            {unit.statuses.length
+                              ? ` · ${unit.statuses.map(playerLabel).join(', ')}`
+                              : ''}
+                          </li>
+                        ))}
+                      </ul>
+                      <details>
+                        <summary>Recent actions</summary>
+                        <ol>
+                          {player.battle.recentActions.map((action, index) => (
+                            <li key={index}>{playerLabel(action)}</li>
+                          ))}
+                        </ol>
+                      </details>
+                      <p>
+                        Recovery ends this entire encounter for every listed participant. It gives
+                        no rewards or refunds and preserves World progress.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={busy || !!review}
+                        onClick={() =>
+                          preview({ kind: 'recover', requestKey: crypto.randomUUID() })
+                        }
+                      >
+                        Review encounter recovery
+                      </button>
+                    </section>
+                  ) : (
+                    <p>No active encounter.</p>
+                  )
+                }
                 disabled={busy || !!review || player.deletionPending || !!player.battle}
                 onReview={(command) =>
                   preview({ kind: 'edit', command, requestKey: crypto.randomUUID() })

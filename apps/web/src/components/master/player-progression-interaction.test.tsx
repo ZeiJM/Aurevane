@@ -42,7 +42,7 @@ beforeEach(() => {
   )
 })
 afterEach(() => vi.unstubAllGlobals())
-function fixture() {
+function fixture(options: Partial<Parameters<typeof PlayerCorrectionForm>[0]> = {}) {
   const onReview = vi.fn()
   const player = {
     facts: {
@@ -67,7 +67,7 @@ function fixture() {
   } as unknown as MasterPlayerView
   const render = () => {
     hooks.index = 0
-    return PlayerCorrectionForm({ player, onReview, disabled: false })
+    return PlayerCorrectionForm({ player, onReview, disabled: false, ...options })
   }
   const input = (label: string) =>
     find(
@@ -112,14 +112,7 @@ it('Fit Level changes XP only after a deliberate click, using the actual pinned 
   const f = fixture()
   f.enter('xp', '237')
   expect(f.input('Level').props.value).toBe('2')
-  const button = find(
-    f.render(),
-    (node) =>
-      node.type === 'button' &&
-      Array.isArray(node.props.children) &&
-      node.props.children[0] === 'Fit Level to Stats',
-  )!
-  ;(button.props.onClick as () => void)()
+  f.click('Fit Level to Stats · Level 6')
   expect(f.input('Level').props.value).toBe('6')
   expect(f.input('xp').props.value).toBe('1185')
   f.submit()
@@ -136,4 +129,59 @@ it('allows empty numeric edits, strips leading zeros and retains the draft acros
   f.click('Disciplines')
   f.click('Stats & Progression')
   expect(f.input('might').props.value).toBe('15')
+})
+
+it('keeps refunded points by default and lowers Level/XP only when explicitly chosen', () => {
+  const f = fixture()
+  f.enter('might', String(policy.baseAttributes.might + 2))
+  expect(f.input('Level').props.value).toBe('6')
+  expect(f.input('xp').props.value).toBe('1185')
+  f.submit()
+  expect(f.onReview).toHaveBeenLastCalledWith({
+    kind: 'source',
+    xp: 1185,
+    attributes: {
+      ...policy.baseAttributes,
+      might: policy.baseAttributes.might + 2,
+      finesse: policy.baseAttributes.finesse + 3,
+    },
+  })
+  f.click('Lower to Level 1 and remove 5 banked points')
+  expect(f.input('Level').props.value).toBe('1')
+  expect(f.input('xp').props.value).toBe('0')
+  f.submit()
+  expect(f.onReview).toHaveBeenLastCalledWith({
+    kind: 'source',
+    xp: 0,
+    attributes: {
+      ...policy.baseAttributes,
+      might: policy.baseAttributes.might + 2,
+      finesse: policy.baseAttributes.finesse + 3,
+    },
+  })
+})
+
+it('opens Encounter while battle-blocked corrections remain disabled', () => {
+  const f = fixture({
+    disabled: true,
+    navigationDisabled: false,
+    encounter: <p>Active encounter</p>,
+  })
+  f.click('Encounter')
+  expect(
+    find(f.render(), (node) => node.props['data-player-encounter-panel'] === true)?.props.hidden,
+  ).toBe(false)
+  expect(find(f.render(), (node) => node.type === 'fieldset')?.props).toMatchObject({
+    hidden: true,
+    disabled: true,
+  })
+  f.submit()
+  expect(f.onReview).not.toHaveBeenCalled()
+  f.click('Stats & Progression')
+  expect(find(f.render(), (node) => node.type === 'fieldset')?.props).toMatchObject({
+    hidden: false,
+    disabled: true,
+  })
+  f.submit()
+  expect(f.onReview).not.toHaveBeenCalled()
 })

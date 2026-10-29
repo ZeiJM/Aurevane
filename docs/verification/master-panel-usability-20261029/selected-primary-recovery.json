@@ -1,0 +1,29 @@
+{
+  "status": "live-database-repair",
+  "appliedMigration": "20261029062148_preserve_selected_primary_profile_refresh",
+  "rootCause": "Unchanged selected Primary refresh incorrectly re-ran acquisition after current unlock changed to grant-only.",
+  "function": {
+    "name": "app_private.enforce_phase4_acquisition_v1()",
+    "oidPreserved": true,
+    "ownerAclSecurityAndSearchPathPreserved": true,
+    "anonAuthenticatedServiceDirectExecute": false,
+    "beforeSourceMd5": "b5e388dc2b89fe8a48690f687c1b86ab",
+    "afterSourceMd5": "450570b16805dffffafcd08a856ec2f4"
+  },
+  "verification": {
+    "sqlTestsPassed": 137,
+    "dbTypecheck": "passed",
+    "focusedLint": "passed",
+    "independentReview": "no Important or Critical findings",
+    "normalEntryReadableSlots": 1,
+    "repeatEntryIdempotent": true,
+    "characterPersonalBuildSelectionClocksGrantsAndMasteryPreserved": true,
+    "advisoryGroupsUnchanged": true,
+    "errorFatalWindow": {
+      "from": "2026-10-29T06:22:00Z",
+      "until": "2026-10-29T06:25:45.450Z",
+      "entries": 0
+    }
+  },
+  "uiBatch": "not yet deployed"
+}

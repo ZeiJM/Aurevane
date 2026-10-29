@@ -1,5 +1,6 @@
 'use client'
 
+import { readableDisciplineName } from '@/lib/discipline-display-name'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 
 import Image from 'next/image'
@@ -26,13 +27,6 @@ import {
 } from './battle-captured-action-cost'
 import type { BattleCapturedActionTarget } from './battle-preview-selection'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
-
-function disciplineName(id: string): string {
-  return id
-    .split(/[-_.]/)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
 
 function SkillControls({
   title,
@@ -233,7 +227,7 @@ export function BattleSelectedSkills({
                     />
                   </SkillControls>
                   <small className={styles.discipline}>
-                    {disciplineName(skill.sourceDisciplineId)}
+                    {readableDisciplineName(skill.sourceDisciplineId, skill.sourceDisciplineName)}
                     {castMode?.canCast === false ? ` · ${castMode.label}` : ''}
                   </small>
                 </>

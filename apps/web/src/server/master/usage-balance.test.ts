@@ -76,3 +76,42 @@ it('forwards a valid week only through the authorized bounded reporting RPC', as
     })
   expect(rpc).toHaveBeenCalledTimes(1)
 })
+
+it('projects current custom and renamed Discipline labels only after report authorization', async () => {
+  const custom = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+  const reportWithPairs = {
+    ...report,
+    pairs: [{ primary: custom, secondary: 'ironfist', players: 1, characters: 1 }],
+    matchups: [{ source: 'pvp', opponent: custom, appearances: 1, wins: 1, losses: 0, draws: 0 }],
+  }
+  const names = vi.fn().mockResolvedValue({
+    [custom]: 'Super Saiyan',
+    ironfist: 'Iron Hand',
+    privateDiscipline: 'Must not leak',
+  })
+  const service = createUsageBalanceService(
+    { requireCapability: vi.fn().mockResolvedValue({}) },
+    vi.fn().mockResolvedValue(reportWithPairs),
+    names,
+  )
+  const result = await service.read('actor', 'vanguard')
+  expect(result.disciplineNames).toEqual({ [custom]: 'Super Saiyan', ironfist: 'Iron Hand' })
+  expect(names).toHaveBeenCalledWith([custom, 'ironfist'])
+  expect(result.pairs).toEqual(reportWithPairs.pairs)
+  expect(result.matchups).toEqual(reportWithPairs.matchups)
+})
+it('does not load Discipline names for revoked access or empty report references', async () => {
+  const names = vi.fn()
+  const denied = createUsageBalanceService(
+    { requireCapability: vi.fn().mockRejectedValue(new Error('revoked')) },
+    vi.fn(),
+    names,
+  )
+  await expect(denied.read('actor', 'vanguard')).rejects.toThrow('revoked')
+  await createUsageBalanceService(
+    { requireCapability: vi.fn().mockResolvedValue({}) },
+    vi.fn().mockResolvedValue(report),
+    names,
+  ).read('actor', 'vanguard')
+  expect(names).not.toHaveBeenCalled()
+})

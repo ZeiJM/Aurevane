@@ -1,6 +1,8 @@
 import type { PGlite } from '@electric-sql/pglite'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest'
+import { latestEnabledMatureSkills } from '../../game-core/src/combat/mature-skills'
+import { currentEssenceDefinitions } from '../../game-core/src/combat/essence'
 const owner = '00000000-0000-4000-8000-000000000001'
 const other = '00000000-0000-4000-8000-000000000002'
 const character = '00000000-0000-4000-8000-000000000011'
@@ -76,6 +78,88 @@ it('does not expose finalized but unpublished bytes', async () => {
   ).rows[0]!
   expect(result.media).toBeNull()
 })
+it.each(['skill', 'essence'] as const)(
+  'commits finalized image bytes on an existing canonical %s and reloads its exact media',
+  async (kind) => {
+    const key = `${kind}.media-commit-regression`
+    const skill = structuredClone(latestEnabledMatureSkills()[0]!)
+    const essence = structuredClone(currentEssenceDefinitions()[0]!)
+    const definition =
+      kind === 'skill'
+        ? { ...skill, id: key }
+        : { ...essence, essenceId: key, skill: { ...essence.skill, id: key } }
+    let record = await writeMedia(key, {
+      action: 'create',
+      requestId: crypto.randomUUID(),
+      contentKind: kind,
+      definition,
+    })
+    record = await publishMedia(key, record)
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADklEQVQImWNg+A+FMAYAQ84H+QDi4rkAAAAASUVORK5CYII=',
+      'base64',
+    )
+    const artwork = (
+      await db.query<{ media: Record<string, unknown> }>(
+        'select public.finalize_combat_content_media_v1($1,null,$2,$3) media',
+        [
+          owner,
+          png,
+          {
+            kind: 'image',
+            contentType: 'image/png',
+            width: 2,
+            height: 2,
+            sourceWidth: 4,
+            sourceHeight: 2,
+            crop: { x: 1, y: 0, size: 2 },
+          },
+        ],
+      )
+    ).rows[0]!.media
+    const withImage =
+      kind === 'skill'
+        ? { ...definition, media: { ...skill.media, artwork } }
+        : {
+            ...definition,
+            skill: { ...essence.skill, id: key, media: { ...essence.skill.media, artwork } },
+          }
+    const token = (
+      await db.query<{ token: string }>(
+        'select public.read_combat_content_catalogue_token_v1() token',
+      )
+    ).rows[0]!.token
+    await db.query('select public.commit_combat_content_record_v1($1,null,$2,$3,$4,$5,1)', [
+      owner,
+      key,
+      record.revision,
+      withImage,
+      token,
+    ])
+    const reloaded = (
+      await db.query<{
+        value: {
+          draft: unknown
+          current: { definition: { media?: unknown; skill?: { media: unknown } } }
+        }
+      }>('select public.read_combat_content_record_v1($1,null,$2) value', [owner, key])
+    ).rows[0]!.value
+    expect(reloaded.draft).toBeNull()
+    expect(
+      kind === 'skill'
+        ? reloaded.current.definition.media
+        : reloaded.current.definition.skill?.media,
+    ).toMatchObject({ artwork })
+    const published = (
+      await db.query<{ media: { descriptor: unknown; bytes: string } }>(
+        'select public.read_published_combat_content_media_v1($1) media',
+        [artwork.id],
+      )
+    ).rows[0]!.media
+    expect(published.descriptor).toEqual(artwork)
+    expect(Buffer.from(published.bytes, 'base64')).toEqual(png)
+  },
+)
 interface Saved {
   revision: number
   draft: { draftVersion: number; baseVersion: number | null }

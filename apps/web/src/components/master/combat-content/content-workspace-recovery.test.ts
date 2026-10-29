@@ -4,6 +4,8 @@ import {
   recoveryKey,
   mergeContentPages,
   loadCompleteContentList,
+  normalizeContentRecoveryNavigation,
+  migrateLegacyTagWordingRecovery,
 } from './content-workspace-recovery'
 
 it('scopes refresh recovery to the authenticated account and rejects malformed state', () => {
@@ -258,4 +260,143 @@ it('keeps a parent commit held across nested child and parent saves with idempot
   expect(held.get('warden')).toBe(1)
   finishOther()
   expect(held.size).toBe(0)
+})
+
+it.each([
+  ['status', 'status.legacy', 'basic'],
+  ['effect-profile', 'legacy.profile', 'basic'],
+  ['tag', 'tag.healing', 'tag'],
+  ['tag', 'tag.damage-bonus', 'tag'],
+  ['tag', 'tag.blindside', 'tag'],
+  ['tag', 'tag.revealed', 'tag'],
+])(
+  'reopens stale %s navigation on a visible category while preserving pending drafts',
+  (category, selectedKey, expectedCategory) => {
+    const edits = {
+      [selectedKey]: { revision: 9, definition: { id: selectedKey, name: 'Keep local wording' } },
+    }
+    const saved = {
+      schema: 1 as const,
+      category,
+      selectedKey,
+      tab: 'Usage & Balance',
+      search: 'retired',
+      sort: 'name-asc' as const,
+      listScroll: 30,
+      editorScroll: 20,
+      edits,
+      newDefinition: null,
+    }
+    const recovered = normalizeContentRecoveryNavigation(saved, 'basic')
+    expect(recovered).toMatchObject({
+      category: expectedCategory,
+      selectedKey: null,
+      tab: 'Parameters',
+      search: '',
+      listScroll: 0,
+      editorScroll: 0,
+    })
+    expect(recovered.edits).toBe(edits)
+    expect(saved.selectedKey).toBe(selectedKey)
+    expect(normalizeContentRecoveryNavigation(saved, 'basic', selectedKey)).toBe(saved)
+  },
+)
+it('accepts Artwork navigation in refresh recovery without dropping pending edits', () => {
+  const saved = {
+    schema: 1,
+    category: 'discipline',
+    selectedKey: 'aetherist',
+    tab: 'Media',
+    search: '',
+    sort: 'name-asc',
+    listScroll: 0,
+    editorScroll: 0,
+    edits: {},
+    newDefinition: null,
+  }
+  expect(parseWorkspaceRecovery(JSON.stringify(saved))).toEqual(saved)
+})
+
+function legacyWordingStorage() {
+  const snapshot = {
+    schema: 1 as const,
+    category: 'tag',
+    selectedKey: 'tag.damage',
+    tab: 'Parameters',
+    search: '',
+    sort: 'name-asc' as const,
+    listScroll: 0,
+    editorScroll: 0,
+    newDefinition: null,
+    edits: {
+      'tag.damage': { revision: 2, definition: { id: 'tag.damage', name: 'Old draft' } },
+      'tag.burn': {
+        revision: 3,
+        definition: { id: 'tag.burn', description: 'Keep unsaved burn wording' },
+      },
+    },
+  }
+  const legacyKey = recoveryKey('owner:tag-wording')!
+  const baseKey = recoveryKey('owner')!
+  const values = new Map([[legacyKey, JSON.stringify(snapshot)]])
+  const storage = {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      values.set(key, value)
+    },
+    removeItem: (key: string) => {
+      values.delete(key)
+    },
+  }
+  return { snapshot, legacyKey, baseKey, values, storage }
+}
+it('imports old Combat Rules drafts into Game Content while newer main edits win', () => {
+  const f = legacyWordingStorage()
+  const main = {
+    ...f.snapshot,
+    category: 'discipline',
+    selectedKey: 'aetherist',
+    search: 'aeth',
+    edits: {
+      'tag.damage': { revision: 5, definition: { id: 'tag.damage', name: 'New main draft' } },
+    },
+  }
+  f.values.set(f.baseKey, JSON.stringify(main))
+  const result = migrateLegacyTagWordingRecovery(f.storage, 'owner')
+  expect(result).toEqual({ ...main, edits: { ...f.snapshot.edits, ...main.edits } })
+  expect(JSON.parse(f.values.get(f.baseKey)!)).toEqual(result)
+  expect(f.values.has(f.legacyKey)).toBe(false)
+  expect(migrateLegacyTagWordingRecovery(f.storage, 'owner')).toBeNull()
+})
+it('retains the legacy key if the merged workspace cannot be persisted', () => {
+  const f = legacyWordingStorage()
+  expect(() =>
+    migrateLegacyTagWordingRecovery(
+      {
+        ...f.storage,
+        setItem() {
+          throw new Error('Storage full')
+        },
+      },
+      'owner',
+    ),
+  ).toThrow('Storage full')
+  expect(JSON.parse(f.values.get(f.legacyKey)!)).toEqual(f.snapshot)
+  expect(f.values.has(f.baseKey)).toBe(false)
+})
+it('uses an explicit account scope without touching other accounts or linked navigation', () => {
+  const f = legacyWordingStorage()
+  const unrelated = 'unrelated saved content'
+  f.values.set(recoveryKey('other:tag-wording')!, unrelated)
+  f.values.set(recoveryKey('owner:linked:tag.damage')!, unrelated)
+  expect(migrateLegacyTagWordingRecovery(f.storage, 'owner')?.edits).toEqual(f.snapshot.edits)
+  expect(f.values.get(recoveryKey('other:tag-wording')!)).toBe(unrelated)
+  expect(f.values.get(recoveryKey('owner:linked:tag.damage')!)).toBe(unrelated)
+})
+it('never overwrites an unreadable main snapshot when importing legacy wording', () => {
+  const f = legacyWordingStorage()
+  f.values.set(f.baseKey, 'unreadable main snapshot')
+  expect(() => migrateLegacyTagWordingRecovery(f.storage, 'owner')).toThrow()
+  expect(f.values.get(f.baseKey)).toBe('unreadable main snapshot')
+  expect(f.values.has(f.legacyKey)).toBe(true)
 })

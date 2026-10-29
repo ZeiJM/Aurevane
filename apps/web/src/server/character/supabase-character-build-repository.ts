@@ -2,6 +2,7 @@ import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-medi
 import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
 import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
 import 'server-only'
+import { loadCurrentDisciplineNames } from './current-discipline-names'
 import { createServerCombatContentResolver } from '../combat/combat-content-resolver'
 import {
   isDisciplineSkillIdentity as stableId,
@@ -497,6 +498,8 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
       row.supportActionId = supportActionId
       return row
     },
+
+    loadDisciplineNames: loadCurrentDisciplineNames,
 
     async listDisciplines(userId, characterId) {
       const supabase = createSupabaseAdminClient()

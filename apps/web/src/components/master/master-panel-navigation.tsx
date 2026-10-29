@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Fragment, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   MASTER_PANEL_NAVIGATION,
@@ -38,13 +38,15 @@ export function MasterPanelNavigation({
   return (
     <nav className={styles.navigation} aria-label="Master Panel navigation">
       {items.map((item) => (
-        <Fragment key={item.id}>
-          <Link href={item.href} aria-current={activeSection === item.id ? 'page' : undefined}>
-            <span aria-hidden="true">{icons[item.id]}</span> {item.label}
-          </Link>
-          {item.id === 'activity' && canArrange && <NavigationOrder initial={settings} />}
-        </Fragment>
+        <Link
+          key={item.id}
+          href={item.href}
+          aria-current={activeSection === item.id ? 'page' : undefined}
+        >
+          <span aria-hidden="true">{icons[item.id]}</span> {item.label}
+        </Link>
       ))}
+      {canArrange && <NavigationOrder initial={settings} />}
     </nav>
   )
 }

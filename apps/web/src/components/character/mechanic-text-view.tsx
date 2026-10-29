@@ -4,6 +4,24 @@ import { BattleInfoPopover } from '../battle/battle-info-popover'
 import { isMechanicTag, plainMechanicText, type MechanicTextPart } from './mechanic-text'
 import styles from './compact-skill-effect-summary.module.css'
 
+function requirementParameterText(text: string) {
+  return text.split(/(\[[^\]]+\])/gu).map((part, index) => {
+    const target = /^\[(?:Self|Target|Area|Trigger|Affected unit|Selected unit)\]$/u.test(part)
+    const magnitude = /^\[[^\]]*\d[^\]]*\]$/u.test(part)
+    return target || magnitude ? (
+      <span
+        key={index}
+        className={target ? styles.target : styles.magnitude}
+        data-requirement-parameter={target ? 'target' : 'magnitude'}
+      >
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  })
+}
+
 /** Missing or stale optional metadata falls back to the exact escaped captured text. */
 export function MechanicTextView({
   text,
@@ -14,10 +32,15 @@ export function MechanicTextView({
   parts?: readonly MechanicTextPart[]
   emphasizeTags?: boolean
 }) {
-  if (!parts || plainMechanicText(parts) !== text) return text
+  if (!parts || plainMechanicText(parts) !== text)
+    return emphasizeTags ? requirementParameterText(text) : text
   return parts.map((part, index) =>
     typeof part === 'string' ? (
-      part
+      emphasizeTags ? (
+        requirementParameterText(part)
+      ) : (
+        part
+      )
     ) : isMechanicTag(part.tag) && part.explanation ? (
       <BattleInfoPopover
         key={index}

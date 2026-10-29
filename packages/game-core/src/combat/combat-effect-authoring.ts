@@ -22,6 +22,7 @@ export const DEFAULT_DISPEL_STATUS_IDS = [
 ] as const
 export interface EffectAuthoringContext {
   readonly summonProfile?: SummonProfileDefinition
+  readonly combination?: { activation: AbilityActivation; mode: AbilityMode }
 }
 export function createAuthorableEffectPayload(
   id: string,
@@ -29,6 +30,12 @@ export function createAuthorableEffectPayload(
 ): CombatTagPayload | null {
   const tag = AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id)
   if (!tag || tag.unavailableReason) return null
+  if (
+    id === 'status:inspired' &&
+    context.combination?.mode === 'modifier' &&
+    context.combination.activation !== 'automatic'
+  )
+    return { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 }
   if (tag.opcode === 'apply-status')
     return {
       type: 'apply-status',
@@ -163,7 +170,7 @@ export function effectAuthoringIssue(
 ): string | null {
   const unavailable = AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id)?.unavailableReason
   if (unavailable) return unavailable
-  const payload = createAuthorableEffectPayload(id, context)
+  const payload = createAuthorableEffectPayload(id, { ...context, combination })
   if (!payload)
     return id === 'summon'
       ? 'Choose a supported Summon profile before adding this tag.'

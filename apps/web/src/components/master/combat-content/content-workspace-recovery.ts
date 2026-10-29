@@ -1,3 +1,4 @@
+import { AUTHORABLE_EFFECT_TAGS } from '@aurevane/game-core/combat/combat-effect-identities'
 import type {
   CombatContentDefinition,
   CombatContentListPage,
@@ -21,6 +22,42 @@ export interface WorkspaceRecovery {
   newDefinition: CombatContentDefinition | null
   newRequestId?: string | null
   createAttempt?: ContentCreationAttempt | null
+}
+const visibleTagKeys = new Set(
+  AUTHORABLE_EFFECT_TAGS.map((tag) => `tag.${tag.id.replace(/^status:/u, '')}`),
+)
+export function isContentBrowserCategory(category: string): boolean {
+  return category !== 'status' && category !== 'effect-profile'
+}
+export function isContentBrowserRecord(row: { contentKind: string; contentKey: string }): boolean {
+  return (
+    isContentBrowserCategory(row.contentKind) &&
+    (row.contentKind !== 'tag' || visibleTagKeys.has(row.contentKey))
+  )
+}
+/** Retired navigation must not discard local definitions or alter saved server records. */
+export function normalizeContentRecoveryNavigation(
+  saved: WorkspaceRecovery,
+  fallbackCategory: string,
+  linkedKey?: string,
+): WorkspaceRecovery {
+  if (linkedKey && saved.selectedKey === linkedKey) return saved
+  const hiddenCategory = !isContentBrowserCategory(saved.category)
+  const hiddenTag =
+    saved.category === 'tag' && saved.selectedKey !== null && !visibleTagKeys.has(saved.selectedKey)
+  if (!hiddenCategory && !hiddenTag) return saved
+  return {
+    ...saved,
+    category: hiddenCategory ? fallbackCategory : saved.category,
+    selectedKey: null,
+    search: '',
+    tab: 'Parameters',
+    listScroll: 0,
+    editorScroll: 0,
+    newDefinition: null,
+    newRequestId: null,
+    createAttempt: null,
+  }
 }
 const object = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === 'object' && !Array.isArray(v)
@@ -53,7 +90,7 @@ export function parseWorkspaceRecovery(raw: string | null): WorkspaceRecovery | 
         (typeof v.selectedKey === 'string' && v.selectedKey.length <= 160)
       ) ||
       typeof v.tab !== 'string' ||
-      !['Parameters', 'Skills', 'Resonances', 'Usage & Balance'].includes(v.tab) ||
+      !['Parameters', 'Media', 'Skills', 'Resonances', 'Usage & Balance'].includes(v.tab) ||
       (v.newRequestId !== undefined &&
         v.newRequestId !== null &&
         (typeof v.newRequestId !== 'string' || !/^[a-f0-9-]{36}$/iu.test(v.newRequestId))) ||
@@ -105,6 +142,36 @@ export function parseWorkspaceRecovery(raw: string | null): WorkspaceRecovery | 
   } catch {
     return null
   }
+}
+/** Move the retired Combat Rules wording drafts only after the main workspace can recover them. */
+export function migrateLegacyTagWordingRecovery(
+  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>,
+  accountScope: string,
+): WorkspaceRecovery | null {
+  const mainKey = recoveryKey(accountScope)
+  if (!mainKey) return null
+  const legacyKey = recoveryKey(`${accountScope}:tag-wording`)!
+  const legacy = parseWorkspaceRecovery(storage.getItem(legacyKey))
+  if (!legacy) return null
+  const mainRaw = storage.getItem(mainKey)
+  const main = parseWorkspaceRecovery(mainRaw)
+  if (mainRaw && !main)
+    throw new Error(
+      'The existing Game Content recovery must be preserved before importing descriptions.',
+    )
+  const merged = { ...(main ?? legacy), edits: { ...legacy.edits, ...main?.edits } }
+  const serialized = JSON.stringify(merged)
+  if (!parseWorkspaceRecovery(serialized))
+    throw new Error(
+      'The combined description drafts exceed recovery limits. The original drafts are retained.',
+    )
+  storage.setItem(mainKey, serialized)
+  try {
+    storage.removeItem(legacyKey)
+  } catch {
+    // A duplicate legacy snapshot is safe; the successfully persisted main edits win next time.
+  }
+  return merged
 }
 export function mergeContentPages(
   a: CombatContentListPage,

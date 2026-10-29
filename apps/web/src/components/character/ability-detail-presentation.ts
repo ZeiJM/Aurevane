@@ -493,13 +493,30 @@ export function abilityBehaviorInformation(
       effect.payload,
       described.description,
     )
+    const baseDescription = tagPresentation?.full ?? described.description
+    const condition = described.presentation.condition
+    const description = condition
+      ? `${baseDescription} Applies only when ${condition}.`
+      : baseDescription
+    const explanationParts = condition
+      ? [
+          ...(tagPresentation
+            ? [baseDescription]
+            : (described.presentation.explanationParts ?? [baseDescription])),
+          ' Applies only when ',
+          ...(described.presentation.conditionParts ?? [condition]),
+          '.',
+        ]
+      : tagPresentation
+        ? undefined
+        : described.presentation.explanationParts
     return {
       ...described,
-      ...(tagPresentation ? { description: tagPresentation.full } : {}),
+      description,
       presentation: {
         ...described.presentation,
         tagPresentation,
-        ...(tagPresentation ? { explanationParts: undefined } : {}),
+        explanationParts,
         parts: {
           ...described.presentation.parts,
           target: effectTargetLabel(effect.payload, target ?? undefined),
@@ -520,8 +537,8 @@ export function abilityBehaviorInformation(
       : behavior.classification === 'recovery'
         ? 'Heal'
         : 'Utility'
-  // An effect's own condition still gates only that effect in shared combat legality.
-  // Display it in the Requirements characteristic, never as a prefix to Effects.
+  // Requirements describe the whole action. Existing conditional effects explain
+  // their own gates in their full descriptions without restricting the base cast.
   const summary = effects
     .map(
       ({ presentation: { parts } }) =>
@@ -540,17 +557,6 @@ export function abilityBehaviorInformation(
       text: primaryRequirement,
       parts: primaryParts ?? [primaryRequirement],
     })
-  for (const { presentation } of effects) {
-    if (!presentation.condition) continue
-    const text = `${presentation.parts.label}: ${presentation.condition}`
-    requirementEntries.push({
-      text,
-      parts: [
-        `${presentation.parts.label}: `,
-        ...(presentation.conditionParts ?? [presentation.condition]),
-      ],
-    })
-  }
   const requirementsSummary =
     requirementEntries.map(({ text }) => text).join('; ') || (nativeMove ? 'N/A' : 'None')
   const combinedRequirementParts = requirementEntries.flatMap(({ parts }, index) => [

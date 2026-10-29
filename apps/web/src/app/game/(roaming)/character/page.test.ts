@@ -1,3 +1,7 @@
+import { Children, isValidElement, type ReactNode } from 'react'
+import { CharacterArsenalShell } from '@/components/character/character-arsenal-shell'
+import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
+import CharacterNexusPage from '../nexus/page'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
@@ -229,6 +233,25 @@ describe('Profile persistence recovery diagnostics', () => {
   })
 
   afterEach(() => vi.restoreAllMocks())
+
+  it('carries locked cross-source names from the build context through Nexus and Arsenal to the Skill reader', async () => {
+    const disciplineNames = { 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2': 'Super Saiyan' }
+    mocks.disciplineBuild.mockResolvedValue({ ...disciplineBuild, disciplineNames })
+    const page = await CharacterNexusPage()
+    const shell = page.props.children
+    expect(shell.type).toBe(CharacterArsenalShell)
+    expect(shell.props.disciplineBuild.disciplineNames).toEqual(disciplineNames)
+    const panels: unknown[] = []
+    function visit(node: ReactNode) {
+      Children.forEach(node, (child) => {
+        if (!isValidElement<{ children?: ReactNode; disciplineNames?: unknown }>(child)) return
+        if (child.type === CharacterSkillBuildPanel) panels.push(child.props.disciplineNames)
+        visit(child.props.children)
+      })
+    }
+    visit(CharacterArsenalShell(shell.props))
+    expect(panels).toEqual([disciplineNames])
+  })
 
   it.each(recoveryStages)('records the %s stage when rendering recovery', async (stage, load) => {
     load.mockRejectedValue(

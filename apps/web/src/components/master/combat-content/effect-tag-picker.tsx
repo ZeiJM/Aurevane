@@ -82,7 +82,7 @@ export function EffectTagPicker({
         disabled={disabled || !!reason || !selected}
         onClick={() => {
           if (!selected || disabled || reason) return
-          const payload = createAuthorableEffectPayload(selected.id, context)
+          const payload = createAuthorableEffectPayload(selected.id, { ...context, combination })
           if (payload) onAdd(payload)
         }}
       >

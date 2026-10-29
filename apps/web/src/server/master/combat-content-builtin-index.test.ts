@@ -7,6 +7,7 @@ import {
   builtinCombatContentSelectionManifest,
   builtinCombatContentDefinition,
 } from './combat-content-builtin-index'
+import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
 import { assertTagPublicationReady } from '@aurevane/game-core/content/authored-content'
 it('supplies editable defaults for individual tags without creating publications on open', () => {
   for (const id of ['dispel', 'copy-buffs', 'copy-debuffs', 'guarded', 'vengeance']) {
@@ -25,7 +26,17 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
   const manifest = JSON.parse(
     readFileSync(resolve(process.cwd(), '../../supabase/content-builtin-manifest.json'), 'utf8'),
   )
-  expect(manifest).toEqual(builtinCombatContentManifest())
+  // The applied SQL manifest is immutable. Only the approved stock current
+  // label changes; identity, versions, floors and historical names stay intact.
+  expect(
+    manifest.map((row: { contentKind: string; contentKey: string; name: string }) => ({
+      ...row,
+      name:
+        row.contentKind === 'tag'
+          ? currentCombatTagName(row.contentKey.replace(/^tag\./u, ''), row.name)
+          : row.name,
+    })),
+  ).toEqual(builtinCombatContentManifest())
   const migration = readFileSync(
     resolve(
       process.cwd(),

@@ -75,8 +75,17 @@ it('keeps multi-group prerequisite prefixes and conditional effect links in the 
   expect(html.match(/data-combat-tag-reference="mark"/g) ?? []).toHaveLength(1)
   expect(html).toContain('exploit-opening: (')
   expect(html.replace(/<[^>]*>/gu, '')).toContain('; execution-cut: HP [≤ 35%] [Target]')
-  expect(html).toContain('Dmg: <button')
-  expect(html).not.toContain('execution-cut: If ')
+  const requirementRow = html.slice(
+    html.indexOf('<dt>Requirements</dt>'),
+    html.indexOf('<dt>Effects</dt>'),
+  )
+  expect(requirementRow).not.toContain('Dmg:')
+  const explanations = html.slice(html.indexOf('aria-label="Effect explanations"'))
+  expect(explanations).toContain('Applies only when <button')
+  expect(explanations).toContain('data-combat-tag-reference="exposed"')
+  expect(explanations.replace(/<[^>]*>/gu, '')).toContain(
+    'execution-cut: Deal 4 base damage to the selected unit. Applies only when Vulnerable.',
+  )
   expect(html).not.toContain('execution-cut: If ')
 })
 it('links only the selected captured group without borrowing other group prerequisites', () => {

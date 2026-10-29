@@ -1,5 +1,5 @@
 import { AccountBannedError } from '@aurevane/game-core/errors'
-import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
+import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -62,12 +62,14 @@ export default async function CharacterTitlesPage() {
   let titleState
   let portraitChoice
   let displayState
+  let activeBuild
   try {
     if (!character) redirect('/game')
-    ;[titleState, displayState, portraitChoice] = await Promise.all([
+    ;[titleState, displayState, portraitChoice, activeBuild] = await Promise.all([
       loadCharacterTitleState(actor.userId, character.id),
       loadCharacterProfileDisplay(actor.userId, character.id),
       loadCharacterPortraitChoice(actor.userId, character.id),
+      createSupabaseCharacterBuildRepository().findActiveBuild(actor.userId, character.id),
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
@@ -76,13 +78,11 @@ export default async function CharacterTitlesPage() {
     throw error
   }
 
-  const discipline = getFoundationDiscipline(character.foundationDisciplineId)
-
   return (
     <CharacterTitleSettings
       characterId={character.id}
       characterName={character.name}
-      disciplineName={discipline?.name ?? 'Adventurer'}
+      disciplineName={activeBuild?.primaryDefinition.name ?? 'Unavailable Discipline'}
       personalTitle={titleState.personalTitle}
       personalTitleSetAt={titleState.personalTitleSetAt}
       imageUrl={displayState.imageUrl}

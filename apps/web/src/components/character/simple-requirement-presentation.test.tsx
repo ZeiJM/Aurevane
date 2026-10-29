@@ -26,6 +26,7 @@ it('shows a linked status tag and its Target explicitly', () => {
   const html = renderToStaticMarkup(<AbilityParameters report={r} />)
   expect(html).toMatch(/<strong[^>]*data-combat-tag-reference="wet"[^>]*>Drenched<\/strong>/)
   expect(html).toContain('aria-label="Requirement explanations"')
+  expect(html).toMatch(/data-requirement-parameter="target">\[Target\]<\/span>/)
   expect(html).toContain('data-effect-tag-label="true">Drenched</span>')
   const explanation = r.requirementParts!.find((part) => typeof part !== 'string')!.explanation
   expect(html).toContain(renderToStaticMarkup(<>{explanation}</>))
@@ -50,6 +51,8 @@ it.each([
     expect(plainMechanicText(r.requirementParts!)).toBe(`${label} [40.5%] [Self]`)
     const html = renderToStaticMarkup(<AbilityParameters report={r} />)
     expect(html).toContain(`data-combat-tag-reference="${tag}"`)
+    expect(html).toMatch(/data-requirement-parameter="magnitude">\[40.5%\]<\/span>/)
+    expect(html).toMatch(/data-requirement-parameter="target">\[Self\]<\/span>/)
     expect(r.requirementParts!.find((part) => typeof part !== 'string')?.explanation).toContain(
       'strictly',
     )
@@ -102,11 +105,15 @@ it.each(candidate.records)(
         /^(None|[^\[\]&]+ \[(Self|Target)\]|(?:HP|MP) (?:less|more) than \[[\d.]+%\] \[(Self|Target)\])$/,
       )
       if (root !== 'None') expect(requirement).toContain(root)
-      for (const effect of result.effects)
+      expect(requirement).toBe(root)
+      result.effects.forEach((effect, index) => {
         if (effect.condition) {
-          expect(requirement).toContain(`${effect.parts.label}: ${effect.condition}`)
+          expect(result.effectDescriptions[index]).toContain(
+            `Applies only when ${effect.condition}.`,
+          )
           expect(Object.fromEntries(result.rows).Effects).not.toContain(effect.condition)
         }
+      })
       expect(requirement).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
       const html = renderToStaticMarkup(<AbilityParameters report={result} />)
       expect(html.match(/<dt>/g)).toHaveLength(9)
@@ -138,7 +145,7 @@ it.each([
     }
     const before = JSON.stringify(group)
     const result = abilityBehaviorInformation(group)
-    const expected = `Drenched [Self]; Heal: Drenched [${label}]`
+    const expected = 'Drenched [Self]'
     expect(Object.fromEntries(result.rows).Requirements).toBe(expected)
     expect(result.effects[0]!.condition).toBe(`Drenched [${label}]`)
     expect(plainMechanicText(result.requirementParts!)).toBe(expected)
@@ -146,6 +153,7 @@ it.each([
     const html = renderToStaticMarkup(<AbilityParameters report={result} />)
     expect(html.replace(/<[^>]*>/gu, '')).toContain(expected)
     expect(html).toContain('aria-label="Requirement explanations"')
+    expect(result.effectDescriptions[0]).toContain(`Applies only when Drenched [${label}].`)
     expect(JSON.stringify(group)).toBe(before)
   },
 )

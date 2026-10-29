@@ -172,6 +172,47 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       })
     }
     const original = await readPlayer()
+    await test.step('Raise stats then explicitly lower Level and remove the refunded bank', async () => {
+      async function saveSourceCorrection() {
+        await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
+        await owner
+          .getByRole('checkbox', {
+            name: `I confirm this correction for ${identities[1]!.characterName}.`,
+            exact: true,
+          })
+          .check()
+        const saved = owner.waitForResponse(
+          (response) =>
+            response.url().endsWith('/api/master/players') &&
+            response.request().postDataJSON()?.operation === 'edit',
+        )
+        await owner.getByRole('button', { name: 'Save confirmed correction', exact: true }).click()
+        expect((await saved).ok()).toBe(true)
+        await expect(owner.getByRole('status')).toContainText('Correction saved')
+      }
+      const might = original.facts.attributes.might
+      await owner.getByLabel('Might', { exact: true }).fill(String(might + 4))
+      await owner.getByRole('button', { name: 'Fit Level to Stats · Level 5', exact: true }).click()
+      await saveSourceCorrection()
+      expect((await readPlayer()).facts.level).toBe(5)
+      await owner.getByLabel('Might', { exact: true }).fill(String(might))
+      await owner
+        .getByRole('button', { name: 'Lower to Level 1 and remove 4 banked points', exact: true })
+        .click()
+      await expect(owner.getByLabel('Level', { exact: true })).toHaveValue('1')
+      await expect(owner.getByLabel('Total XP', { exact: true })).toHaveValue('0')
+      // Preserve the original fixture's one XP after proving the exact minimum-level proposal.
+      await owner.getByLabel('Total XP', { exact: true }).fill('1')
+      await saveSourceCorrection()
+      const after = await readPlayer()
+      expect(after.facts).toMatchObject({ level: 1, xp: 1, attributes: original.facts.attributes })
+      expect(after.calculated.personalPointPool).toBe(5)
+      expect(
+        sql(
+          `select unspent_points from public.get_character_attribute_allocation_v2('${accounts[1]!.userId}','${characterId}')`,
+        ),
+      ).toBe('0')
+    })
     const originalPrimary = original.facts.build.primary.disciplineId
     const secondary = original.disciplines.find(
       (row) => row.secondary && row.id !== originalPrimary,
@@ -294,6 +335,11 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     await expect(hostBattle).toHaveAttribute('data-local-turn', 'true')
     await expect(hostBattle).not.toHaveAttribute('aria-busy', 'true')
     await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
+    await expect(
+      owner.getByRole('button', { name: 'Review encounter recovery', exact: true }),
+    ).toBeHidden()
+    await owner.getByRole('button', { name: 'Encounter', exact: true }).click()
+    await expect(owner.getByLabel('Total XP', { exact: true })).toBeHidden()
     await owner.getByRole('button', { name: 'Review encounter recovery', exact: true }).click()
     await owner
       .getByRole('checkbox', {
@@ -354,6 +400,11 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     expect(watcher.url()).toContain('/spectate/')
     await watcher.unroute(`**/api/pvp/spectate/${key}`)
     await owner.getByRole('button', { name: 'Refresh player', exact: true }).click()
+    await expect(
+      owner.getByRole('button', { name: 'Review encounter recovery', exact: true }),
+    ).toBeHidden()
+    await owner.getByRole('button', { name: 'Encounter', exact: true }).click()
+    await expect(owner.getByLabel('Total XP', { exact: true })).toBeHidden()
     await owner.getByRole('button', { name: 'Review encounter recovery', exact: true }).click()
     await expect(
       owner.getByRole('heading', { name: 'Confirm all participants', exact: true }),

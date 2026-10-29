@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
+import { FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES } from '@aurevane/game-core/character/attribute-allocation'
 import { disciplineCorrectionFromForm } from '@/master/player-discipline-correction'
 import type { MasterPlayerFacts, MasterPlayerView } from '@/master/players'
 import { PlayerCorrectionForm, PlayerCorrectionReview } from './player-correction-form'
@@ -84,4 +85,38 @@ it('shows the actual pinned Primary bases and caps rather than inviting an illeg
   expect(html).toMatch(/<input(?=[^>]*name="might")(?=[^>]*min="7")(?=[^>]*max="60")[^>]*>/)
   expect(html).toMatch(/<input(?=[^>]*name="finesse")(?=[^>]*min="4")(?=[^>]*max="40")[^>]*>/)
   expect(html).toContain('5 / 5 personal points assigned')
+})
+
+it('offers lowering Level to remove banked points and includes their change in review', () => {
+  const policy = FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES[0]!
+  const player = {
+    facts: {
+      build: build(null),
+      xp: 948,
+      level: 5,
+      attributes: { ...policy.baseAttributes, might: policy.baseAttributes.might + 5 },
+    },
+    calculated: { personalPointPool: 9 },
+    learnedSkills: [],
+    attributePolicy: policy,
+    progressionCurve: {
+      version: 1,
+      maxLevel: 6,
+      cumulativeXpByLevel: [0, 237, 474, 711, 948, 1185],
+    },
+  } as unknown as MasterPlayerView
+  const html = renderToStaticMarkup(
+    createElement(PlayerCorrectionForm, { player, disabled: false, onReview: () => {} }),
+  )
+  expect(html).toContain('Lower to Level 1 and remove 4 banked points')
+  expect(html).toContain('Save as entered to keep these points')
+  const review = renderToStaticMarkup(
+    createElement(PlayerCorrectionReview, {
+      player,
+      command: { kind: 'source', xp: 0, attributes: player.facts.attributes },
+    }),
+  )
+  expect(review).toContain('<dt>Banked points</dt><dd>4 → <strong>0</strong>')
+  expect(review).toContain('<dt>Level</dt><dd>5 → <strong>1</strong>')
+  expect(review).toContain('<dt>Total XP</dt><dd>948 → <strong>0</strong>')
 })

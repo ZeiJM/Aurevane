@@ -41,6 +41,7 @@ export interface BattleSkillForecastPresentation {
 export interface BattleTechniquePresentation extends BattleSkillForecastPresentation {
   contentVersion: number
   sourceDisciplineId: string
+  sourceDisciplineName?: string
   cooldownOwnerTurns: number | null
   category: BattleTechniqueCategory
 }

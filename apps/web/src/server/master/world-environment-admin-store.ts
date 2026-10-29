@@ -22,7 +22,8 @@ export interface WorldEnvironmentChange {
   frozenMinuteOfDay: number | null
   /** null returns to live weather. */
   weather: WorldWeather | null | 'unchanged'
-  durationMinutes: number
+  /** Compatibility for older clients; current authoring uses the automatic roll interval. */
+  durationMinutes?: number
 }
 
 function invalid(message: string): never {
@@ -77,6 +78,7 @@ export async function setWorldEnvironment(input: {
   if (weather !== null && weather !== 'unchanged' && !isWorldWeather(weather))
     invalid('Unknown weather condition.')
   if (
+    change.durationMinutes !== undefined &&
     weather !== null &&
     weather !== 'unchanged' &&
     (!Number.isSafeInteger(change.durationMinutes) ||
@@ -84,13 +86,40 @@ export async function setWorldEnvironment(input: {
       Number(change.durationMinutes) > MAX_WEATHER_DURATION_MINUTES)
   )
     invalid(`Forced weather needs 1 to ${MAX_WEATHER_DURATION_MINUTES} whole minutes.`)
+  const scheduledWeather = change.durationMinutes === undefined
+  if (scheduledWeather && change.weatherRollMinutes === undefined)
+    invalid('An automatic weather roll interval is required.')
+  let retained: WorldEnvironmentSettings | undefined
+  if (scheduledWeather && weather === 'unchanged') {
+    retained = await readWorldEnvironmentAdminSettings()
+    if (retained.version !== input.expectedVersion)
+      throw new AurevaneError('STALE_VERSION', 'Refresh the world environment before changing it.')
+  }
+  const now = input.nowMs ?? Date.now()
+  const intervalMs = Number(change.weatherRollMinutes) * 60_000
+  // The runtime rolls at UTC interval boundaries, independent of the World day clock.
+  const nextRoll = (Math.floor(now / intervalMs) + 1) * intervalMs
   const until =
     weather !== null && weather !== 'unchanged'
-      ? (input.nowMs ?? Date.now()) + change.durationMinutes! * 60_000
+      ? scheduledWeather
+        ? nextRoll
+        : now + change.durationMinutes! * 60_000
       : null
-  const { data, error } = await createSelectedCharacterRpc((name, params) =>
+  let override =
+    weather === 'unchanged' ? {} : { weatherOverride: weather, weatherOverrideUntilMs: until }
+  if (
+    retained?.weatherOverride &&
+    (retained.weatherOverrideUntil === null || retained.weatherOverrideUntil > now)
+  ) {
+    override = {
+      weatherOverride: retained.weatherOverride,
+      weatherOverrideUntilMs: Math.min(retained.weatherOverrideUntil ?? nextRoll, nextRoll),
+    }
+  }
+  const writeSettings = createSelectedCharacterRpc((name, params) =>
     createSupabaseAdminClient().rpc(name, params),
-  )('set_world_environment_v2', {
+  )
+  const params = {
     p_actor: input.actorUserId,
     p_expected_version: input.expectedVersion as number,
     p_settings: {
@@ -100,11 +129,24 @@ export async function setWorldEnvironment(input: {
         : { weatherRollMinutes: change.weatherRollMinutes }),
       timeOffsetMinutes: change.timeOffsetMinutes,
       frozenMinuteOfDay: frozen,
-      ...(weather === 'unchanged'
-        ? {}
-        : { weatherOverride: weather, weatherOverrideUntilMs: until }),
+      ...override,
     },
-  })
+  }
+  let { data, error } = await writeSettings('set_world_environment_v2', params)
+  if (
+    scheduledWeather &&
+    error?.message?.includes('INVALID_WORLD_ENVIRONMENT') &&
+    typeof params.p_settings.weatherOverrideUntilMs === 'number' &&
+    params.p_settings.weatherOverrideUntilMs <= Date.now()
+  ) {
+    // The roll may occur while authorization/database work is in flight. The
+    // rejected transaction wrote nothing; settle into live weather once, retaining
+    // the original version and rechecking selected-character authorization.
+    ;({ data, error } = await writeSettings('set_world_environment_v2', {
+      ...params,
+      p_settings: { ...params.p_settings, weatherOverride: null, weatherOverrideUntilMs: null },
+    }))
+  }
   if (error?.message?.includes('WORLD_ENVIRONMENT_VERSION_CONFLICT'))
     throw new AurevaneError('STALE_VERSION', 'Refresh the world environment before changing it.')
   if (error?.message?.includes('INVALID_WORLD_ENVIRONMENT'))

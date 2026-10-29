@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type ReactNode } from 'react'
 import {
   CHARACTER_ATTRIBUTE_IDS,
   type CharacterAttributes,
@@ -39,12 +39,16 @@ export function PlayerCorrectionForm({
   player,
   onReview,
   disabled,
+  navigationDisabled = disabled,
+  encounter,
 }: {
   player: MasterPlayerView
   onReview(command: PlayerCorrection): void
   disabled: boolean
+  navigationDisabled?: boolean
+  encounter?: ReactNode
 }) {
-  const [kind, setKind] = useState<PlayerCorrection['kind']>('source')
+  const [kind, setKind] = useState<PlayerCorrection['kind'] | 'encounter'>('source')
   const [error, setError] = useState<string | null>(null)
   const [attributeText, setAttributeText] = useState(
     () =>
@@ -91,6 +95,7 @@ export function PlayerCorrectionForm({
   )
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (kind === 'encounter' || disabled) return
     setError(null)
     const data = new FormData(event.currentTarget)
     let command: PlayerCorrection
@@ -167,12 +172,13 @@ export function PlayerCorrectionForm({
             ['disciplines', 'Disciplines'],
             ['skills', 'Skills'],
             ['support', 'Support'],
+            ...(encounter ? ([['encounter', 'Encounter']] as const) : []),
           ] as const
         ).map(([value, label]) => (
           <button
             key={value}
             type="button"
-            disabled={disabled}
+            disabled={navigationDisabled}
             aria-pressed={kind === value}
             onClick={() => {
               setKind(value)
@@ -183,7 +189,10 @@ export function PlayerCorrectionForm({
           </button>
         ))}
       </div>
-      <fieldset disabled={disabled} key={kind}>
+      <div hidden={kind !== 'encounter'} data-player-encounter-panel>
+        {encounter}
+      </div>
+      <fieldset disabled={disabled} key={kind} hidden={kind === 'encounter'}>
         <legend>
           {kind === 'source'
             ? 'Stats & Progression'
@@ -205,7 +214,10 @@ export function PlayerCorrectionForm({
                 Remove {proposal.excess} personal points or raise Level before saving.
               </p>
             ) : proposal?.unspent ? (
-              <p>{proposal.unspent} points will remain available to allocate.</p>
+              <p>
+                {proposal.unspent} points will remain available to allocate. Save as entered to keep
+                these points.
+              </p>
             ) : null}
             <div data-player-fields>
               {CHARACTER_ATTRIBUTE_IDS.map((id) => (
@@ -294,7 +306,9 @@ export function PlayerCorrectionForm({
             ) : proposal?.issues[0] ? (
               <p role="status">{proposal.issues[0].message}</p>
             ) : null}
-            {proposal?.excess ? (
+            {proposal &&
+            (proposal.excess > 0 ||
+              (proposal.fitLevel !== null && proposal.fitLevel < proposal.level)) ? (
               <div data-correction-sections>
                 <button
                   type="button"
@@ -306,8 +320,19 @@ export function PlayerCorrectionForm({
                     }
                   }}
                 >
-                  Fit Level to Stats{proposal.fitLevel ? ` · Level ${proposal.fitLevel}` : ''}
+                  {proposal.fitLevel !== null && proposal.fitLevel < proposal.level
+                    ? `Lower to Level ${proposal.fitLevel} and remove ${proposal.unspent - (proposal.fitUnspent ?? 0)} banked points`
+                    : `Fit Level to Stats${proposal.fitLevel ? ` · Level ${proposal.fitLevel}` : ''}`}
                 </button>
+                {proposal.fitLevel !== null && proposal.fitLevel < proposal.level ? (
+                  <p>
+                    This also lowers total XP to {proposal.fitXp}. Stats stay as entered.
+                    {proposal.fitUnspent
+                      ? ` ${proposal.fitUnspent} starting points remain available at Level 1.`
+                      : ''}{' '}
+                    Review the changes before saving.
+                  </p>
+                ) : null}
                 {proposal.redistribution ? (
                   <details>
                     <summary>Preview balanced redistribution</summary>
@@ -431,7 +456,7 @@ export function PlayerCorrectionForm({
         )}
       </fieldset>
       {error ? <p role="alert">{error}</p> : null}
-      <button disabled={disabled} type="submit">
+      <button disabled={disabled} type="submit" hidden={kind === 'encounter'}>
         Review correction
       </button>
     </form>
@@ -445,6 +470,23 @@ export function PlayerCorrectionReview({
   player: MasterPlayerView
   command: PlayerCorrection
 }) {
+  const progression =
+    command.kind === 'source' && player.progressionCurve && player.attributePolicy
+      ? {
+          before: playerProgressionProposal(
+            player.facts.attributes,
+            player.facts.xp,
+            player.progressionCurve,
+            player.attributePolicy,
+          ),
+          after: playerProgressionProposal(
+            command.attributes,
+            command.xp,
+            player.progressionCurve,
+            player.attributePolicy,
+          ),
+        }
+      : null
   const rows =
     command.kind === 'source'
       ? [
@@ -454,6 +496,15 @@ export function PlayerCorrectionReview({
             after: command.attributes[id],
           })),
           { label: 'Total XP', before: player.facts.xp, after: command.xp },
+          ...(progression
+            ? [
+                {
+                  label: 'Banked points',
+                  before: progression.before.unspent,
+                  after: progression.after.unspent,
+                },
+              ]
+            : []),
           ...(player.progressionCurve
             ? [
                 {

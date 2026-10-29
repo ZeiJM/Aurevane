@@ -1,6 +1,9 @@
 /* One inherited artwork scale for playable PvP, PvE and spectator summaries. */
 .scale {
   --av-cockpit-art-size: 4.25rem;
+  /* Descendant galleries can reuse the resolved cockpit scale even when their
+     own layout overrides --av-cockpit-art-size for touch-specific controls. */
+  --av-shared-cockpit-art-size: var(--av-cockpit-art-size);
 }
 @media (min-width: 821px) {
   .scale {

@@ -175,3 +175,45 @@ it('binds native summon wording without requiring a fabricated materialized summ
     [wording('summon')],
   )
 })
+
+it('uses Damage Up for current attached bonuses and preserves historical bonus captures', () => {
+  const payload = {
+    type: 'damage-bonus',
+    recipient: 'actor',
+    multiplierBasisPoints: 11250,
+  } as const
+  const historical = [wording('damage-bonus')]
+  const before = JSON.stringify(historical)
+  expect(combatEffectPresentationId(payload)).toBe('inspired')
+  expect(combatEffectTagPresentation(historical, payload)).toEqual(historical[0])
+  expect(combatEffectTagPresentation([...historical, wording('inspired')], payload)?.tagId).toBe(
+    'damage-bonus',
+  )
+  expect(JSON.stringify(historical)).toBe(before)
+  const ability = { behaviors: [{ effects: [{ payload }] }] }
+  const bound = bindCombatTagPresentations(ability, [...historical, wording('inspired')])
+  expect(bound.behaviors).toEqual(ability.behaviors)
+  expect(
+    combatEffectTagPresentation(
+      (bound as typeof bound & { tagPresentation: ReturnType<typeof wording>[] }).tagPresentation,
+      payload,
+    )?.tagId,
+  ).toBe('inspired')
+})
+
+it('normalizes only the stock current Blindside label while retaining historical tag identities', () => {
+  const row = {
+    id: 'tag.blindside-vulnerability',
+    tagId: 'blindside-vulnerability',
+    contentVersion: 1,
+    name: 'Blindside (debuff)',
+    description: '{summary}',
+    explanation: '{details}',
+  }
+  expect(captureCombatTagPresentation(row).name).toBe('Blindside')
+  expect(captureCombatTagPresentation({ ...row, name: 'Exploited Position' }).name).toBe(
+    'Exploited Position',
+  )
+  for (const id of ['blindside', 'revealed', 'healing', 'damage-bonus'])
+    expect(combatTagPresentationIssues([wording(id)])).toEqual([])
+})

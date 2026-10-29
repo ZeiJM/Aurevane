@@ -54,6 +54,7 @@ export interface CharacterWorkspaceProps {
   profile: CharacterProfileReadModel
   attributeAllocation: AttributeAllocationView
   disciplineBuild: {
+    disciplineNames?: Readonly<Record<string, string>>
     supportActionId?: SupportActionId
     buildVersion: number
     current: PrimaryDisciplinePreview

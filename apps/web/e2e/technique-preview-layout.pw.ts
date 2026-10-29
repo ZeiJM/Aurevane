@@ -75,11 +75,17 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
     const duration = preview.locator('[data-compact-effect-duration="true"]').first()
     await expect(magnitude).toBeVisible()
     await expect(duration).toBeVisible()
-    const [magnitudeColor, durationColor] = await Promise.all([
-      magnitude.evaluate((element) => getComputedStyle(element).color),
-      duration.evaluate((element) => getComputedStyle(element).color),
-    ])
-    expect(durationColor).not.toBe(magnitudeColor)
+    const label = preview.locator('[data-compact-effect-label="true"]').first()
+    const target = preview.locator('[data-compact-effect-target="true"]').first()
+    const colors = await Promise.all(
+      [magnitude, duration, label, target].map((part) =>
+        part.evaluate((element) => getComputedStyle(element).color),
+      ),
+    )
+    expect(
+      new Set(colors).size,
+      'amount, duration, tag name and target stay visually distinct',
+    ).toBe(4)
   }
 })
 

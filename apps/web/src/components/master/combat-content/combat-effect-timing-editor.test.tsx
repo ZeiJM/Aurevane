@@ -2,13 +2,30 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { CombatEffectTimingEditor } from './combat-effect-timing-editor'
-it('offers description editing for each distinct gameplay tag when content authoring is allowed', () => {
+it('keeps timing and definition links while description editing lives only in Tag Library', () => {
   const html = renderToStaticMarkup(
-    <CombatEffectTimingEditor initialPolicy={{ version: 1, modes: {} }} canEditWording />,
+    <CombatEffectTimingEditor initialPolicy={{ version: 1, modes: {} }} />,
   )
-  for (const label of ['Copy Buffs', 'Copy Debuffs', 'Dispel', 'Cleanse', 'Vengeance', 'Guard'])
-    expect(html).toContain(`aria-label="Edit ${label} descriptions"`)
-  expect(html).not.toContain('Amplify / Curse copy')
+  expect(html).not.toContain('Edit descriptions')
+  expect(html).not.toContain('<th scope="col">Description</th>')
+  expect(html).not.toContain('uncommitted description')
+  expect(html).toContain('Tag Library')
+  expect(html).toContain('Timed buffs use this timing')
+})
+it('normalizes the retained stock Blindside label without overriding custom wording', () => {
+  for (const [name, expected] of [
+    ['Blindside (debuff)', 'Blindside'],
+    ['Flanked', 'Flanked'],
+  ]) {
+    const html = renderToStaticMarkup(
+      <CombatEffectTimingEditor
+        initialPolicy={{ version: 1, modes: {} }}
+        tagPresentations={[{ tagId: 'blindside-vulnerability', name } as never]}
+      />,
+    )
+    expect(html).toContain(`>${expected}</label>`)
+    expect(html).not.toContain('Blindside (debuff)')
+  }
 })
 it('offers compatible Controlled timing without exposed policy numbers or a reason form', () => {
   const markup = renderToStaticMarkup(
@@ -19,7 +36,9 @@ it('offers compatible Controlled timing without exposed policy numbers or a reas
   expect(markup).toContain('Normal')
   expect(markup).toContain('timing-push')
   expect(markup).toContain('timing-pull')
-  expect(markup).toMatch(/id="timing-blindside"[^]*?<option value="instant" selected="">Instant/)
+  expect(markup).toMatch(
+    /id="timing-blindside-blindside-vulnerability"[^]*?<option value="instant" selected="">Instant/,
+  )
   expect(markup).not.toContain('timing-displace')
   expect(markup).not.toContain('Reason for this change')
   expect(markup).not.toContain('policy v1')

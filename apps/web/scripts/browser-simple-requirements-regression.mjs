@@ -358,7 +358,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       assert.deepEqual((await snapshot()).validationIssues, [])
       evidence.push({
         viewport,
-        case: 'Circle/Line use one footprint; All is effect scope with per-recipient requirements',
+        case: 'Circle/Line use one footprint; All is effect scope with per-recipient conditions',
         passed: true,
       })
 
@@ -377,7 +377,23 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         statusId: 'wet',
         present: true,
       })
-      await assertReaders('Drenched [Target]')
+      // Circle/Line previously rebound the whole-Skill requirement to Self.
+      // This effect's independent selected-target condition must not replace it.
+      await expect(target).toHaveValue('owner')
+      assert.deepEqual(actorSaved.requirements, {
+        kind: 'status-presence',
+        subject: 'owner',
+        statusId: 'wet',
+        present: true,
+      })
+      await assertReaders('Drenched [Self]')
+      for (const name of readerNames) {
+        const reader = page.getByRole('region', { name, exact: true })
+        await expect(requirementLine(reader)).not.toContainText('[Target]')
+        const explanations = reader.getByRole('list', { name: 'Effect explanations' })
+        await expect(explanations).toContainText('Applies only when Drenched [Target].')
+        await expect(explanations.locator('[data-combat-tag-reference="wet"]')).toHaveCount(1)
+      }
       await effectTag.selectOption('none')
       await recipient.selectOption('enemy')
       await save()
