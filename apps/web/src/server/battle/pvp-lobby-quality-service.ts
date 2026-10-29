@@ -1,3 +1,4 @@
+import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
 import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
@@ -80,6 +81,7 @@ function unavailable(message = 'PvP staging services are unavailable right now.'
 }
 
 function mapRpcError(error: { code?: string; message?: string }): never {
+  throwCoreConversionAdmissionError(error)
   const message = error.message ?? ''
   if (error.code === '42501') {
     throw new AurevaneError('FORBIDDEN', 'That PvP lobby is not available to this account.')

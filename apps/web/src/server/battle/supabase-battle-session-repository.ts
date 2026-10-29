@@ -1,3 +1,4 @@
+import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
 import 'server-only'
 
 import type {
@@ -28,6 +29,7 @@ function persistenceUnavailable(message: string): AurevaneError {
 }
 
 function throwRpcError(error: { code?: string; message?: string }): never {
+  throwCoreConversionAdmissionError(error)
   if (error.code === '22023' && error.message?.includes('IDEMPOTENCY_CONFLICT')) {
     throw new AurevaneError(
       'IDEMPOTENCY_CONFLICT',
