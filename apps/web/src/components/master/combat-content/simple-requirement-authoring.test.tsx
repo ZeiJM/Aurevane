@@ -7,11 +7,7 @@ import { evaluateAbilityRequirements } from '@aurevane/game-core/combat/combat-r
 import { AbilityRequirementEditor } from './ability-requirement-editor'
 import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import { AbilityDefinitionEditor, rebindSimpleRequirement } from './ability-definition-editor'
-import {
-  AbilityEffectEditor,
-  defaultAbilityPayload,
-  rebindSimpleEffectRequirement,
-} from './ability-effect-editor'
+import { AbilityEffectEditor, defaultAbilityPayload } from './ability-effect-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 
 function behavior(requirements: RequirementNode | null): AbilityBehavior {
@@ -135,12 +131,9 @@ it('offers Conditional Cleanse in the canonical Master effect palette', () => {
   })
 })
 
-it.each([
-  ['actor', 'selected'],
-  ['affected-units', 'affected'],
-] as const)(
-  'rebinds a Target effect condition when its recipient becomes %s',
-  (recipient, subject) => {
+it.each(['actor', 'affected-units'] as const)(
+  'preserves a saved Target condition when its recipient becomes %s',
+  (recipient) => {
     const changed = vi.fn()
     const value = {
       id: 'hit',
@@ -159,12 +152,12 @@ it.each([
     payloadEditor.props.onChange({ ...value.payload, recipient })
     expect(changed.mock.calls.at(-1)![0]).toMatchObject({
       payload: { recipient },
-      requirements: { ...value.requirements, subject },
+      requirements: value.requirements,
     })
   },
 )
 
-it('preserves a selected enemy gate on a self benefit but rebinds it when geometry no longer selects a unit', () => {
+it('preserves a selected enemy gate on a self benefit when geometry no longer selects a unit', () => {
   const effect = {
     id: 'heal',
     payload: { type: 'healing' as const, recipient: 'actor' as const, amount: 1 },
@@ -176,7 +169,6 @@ it('preserves a selected enemy gate on a self benefit but rebinds it when geomet
     },
   }
   const single = behavior(null)
-  expect(rebindSimpleEffectRequirement(effect, single)).toEqual(effect)
   const circle = {
     ...single,
     targeting: {
@@ -184,10 +176,7 @@ it('preserves a selected enemy gate on a self benefit but rebinds it when geomet
       shape: { kind: 'circle' as const, radius: 1 },
     },
   }
-  expect(rebindSimpleEffectRequirement(effect, circle).requirements).toEqual({
-    ...effect.requirements,
-    subject: 'owner',
-  })
+  expect(rebindSimpleRequirement({ ...circle, effects: [effect] }).effects[0]).toEqual(effect)
 })
 
 it('rebinds an unavailable condition-entry target to Self', () => {

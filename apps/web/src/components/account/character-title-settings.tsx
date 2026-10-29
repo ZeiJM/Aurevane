@@ -47,7 +47,6 @@ export function CharacterTitleSettings({
   imageUrl,
   portraitRef,
   portraitChoiceAvailable = false,
-  portraitChoiceUsedAt = null,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
   const [draft, setDraft] = useState('')
@@ -131,20 +130,14 @@ export function CharacterTitleSettings({
   }
 
   const [portraitDraft, setPortraitDraft] = useState<CharacterPortraitRef | null>(null)
-  const [portraitConfirmed, setPortraitConfirmed] = useState(false)
   const [portraitPending, setPortraitPending] = useState(false)
-  const [portraitUsedAt, setPortraitUsedAt] = useState(portraitChoiceUsedAt)
+  const [currentPortrait, setCurrentPortrait] = useState(portraitRef)
   const [portraitMessage, setPortraitMessage] = useState<string | null>(null)
   const portraitDialog = useRef<HTMLDialogElement>(null)
+  const portraitSaving = useRef(false)
   async function saveDefaultPortrait() {
-    if (
-      !portraitDraft ||
-      !portraitConfirmed ||
-      portraitPending ||
-      portraitUsedAt ||
-      !portraitChoiceAvailable
-    )
-      return
+    if (!portraitDraft || portraitSaving.current || !portraitChoiceAvailable) return
+    portraitSaving.current = true
     setPortraitPending(true)
     setPortraitMessage(null)
     try {
@@ -154,23 +147,25 @@ export function CharacterTitleSettings({
         body: JSON.stringify({ characterId, portraitRef: portraitDraft }),
       })
       const body = (await response.json()) as {
-        choice?: { portraitRef?: string; changedAt?: string }
+        choice?: { portraitRef?: string; changedAt?: string | null }
         error?: { message?: string }
       }
-      if (!response.ok || !body.choice?.changedAt) {
+      if (!response.ok || body.choice?.portraitRef !== portraitDraft) {
         setPortraitMessage(body.error?.message ?? 'The portrait change could not be confirmed.')
         return
       }
-      setPortraitUsedAt(body.choice.changedAt)
+      setCurrentPortrait(portraitDraft)
+      setPortraitDraft(null)
       setImageDraft('')
       setImagePreviewFailed(false)
-      setPortraitMessage('Default portrait changed. Your one-time choice is now used.')
+      setPortraitMessage('Default portrait changed.')
       router.refresh()
     } catch {
       setPortraitMessage(
         'The portrait service could not be reached. Your choice was not confirmed.',
       )
     } finally {
+      portraitSaving.current = false
       setPortraitPending(false)
     }
   }
@@ -300,20 +295,19 @@ export function CharacterTitleSettings({
               type="button"
               className={styles.quietButton}
               disabled={portraitPending}
+              autoFocus
               onClick={() => portraitDialog.current?.close()}
             >
               Close
             </button>
           </header>
-          {portraitUsedAt ? (
-            <p>Default portrait choice used.</p>
-          ) : !portraitChoiceAvailable ? (
+          {!portraitChoiceAvailable ? (
             <p>Default portrait choices are temporarily unavailable.</p>
           ) : (
             <>
               <p>
-                This character can change its default portrait only once. Confirming replaces any
-                custom image with the portrait you choose.
+                Confirming replaces any custom image with the portrait you choose. You can change
+                your default portrait again later.
               </p>
               <fieldset className={styles.portraitGallery} disabled={portraitPending}>
                 <legend>Choose your default portrait</legend>
@@ -324,10 +318,8 @@ export function CharacterTitleSettings({
                       name="default-portrait"
                       aria-label={option.label}
                       checked={portraitDraft === option.ref}
-                      disabled={option.ref === portraitRef}
                       onChange={() => {
                         setPortraitDraft(option.ref)
-                        setPortraitConfirmed(false)
                         setPortraitMessage(null)
                       }}
                     />
@@ -337,44 +329,33 @@ export function CharacterTitleSettings({
                     />
                     <span>
                       {option.label}
-                      {option.ref === portraitRef ? ' (current)' : ''}
+                      {option.ref === currentPortrait ? ' (current)' : ''}
                     </span>
                   </label>
                 ))}
               </fieldset>
-              {portraitDraft ? (
-                <p>
-                  Selected:{' '}
-                  {
-                    STARTER_CHARACTER_PORTRAITS.find((option) => option.ref === portraitDraft)
-                      ?.label
-                  }
-                </p>
-              ) : null}
-              <label className={styles.confirmCheck}>
-                <input
-                  type="checkbox"
-                  checked={portraitConfirmed}
-                  disabled={!portraitDraft || portraitPending}
-                  onChange={(event) => setPortraitConfirmed(event.target.checked)}
-                />
-                <span>I understand this is my character’s one default portrait change.</span>
-              </label>
-              <button
-                type="button"
-                className={styles.confirmButton}
-                disabled={!portraitDraft || !portraitConfirmed || portraitPending}
-                onClick={() => void saveDefaultPortrait()}
+              <footer
+                className={styles.portraitFooter}
+                role="group"
+                aria-label="Portrait selection"
               >
-                {portraitPending ? 'Saving…' : 'Confirm Default Portrait'}
-              </button>
+                <p role="status">
+                  {portraitMessage ??
+                    (portraitDraft
+                      ? `Selected: ${STARTER_CHARACTER_PORTRAITS.find((option) => option.ref === portraitDraft)?.label}`
+                      : 'Choose a portrait to preview your selection.')}
+                </p>
+                <button
+                  type="button"
+                  className={styles.confirmButton}
+                  disabled={!portraitDraft || portraitPending}
+                  onClick={() => void saveDefaultPortrait()}
+                >
+                  {portraitPending ? 'Saving…' : 'Confirm Default Portrait'}
+                </button>
+              </footer>
             </>
           )}
-          {portraitMessage ? (
-            <p className={styles.message} role="status">
-              {portraitMessage}
-            </p>
-          ) : null}
         </dialog>
 
         <section className={styles.profileImage} aria-labelledby="profile-image-heading">
@@ -436,18 +417,21 @@ export function CharacterTitleSettings({
             >
               {imagePending ? 'Saving…' : 'Save Profile Image'}
             </button>
-            {portraitChoiceAvailable && !portraitUsedAt ? (
+            {portraitChoiceAvailable ? (
               <button
                 type="button"
                 className={styles.quietButton}
                 aria-haspopup="dialog"
-                onClick={() => portraitDialog.current?.showModal()}
+                onClick={() => {
+                  setPortraitDraft(null)
+                  setPortraitMessage(null)
+                  portraitDialog.current?.showModal()
+                }}
               >
                 Choose Default Portrait
               </button>
             ) : null}
           </div>
-          {portraitUsedAt ? <p className={styles.message}>Default portrait choice used.</p> : null}
           {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
           {imageMessage && imageMessage !== currentHostMessage ? (
             <p className={styles.message} role="status" aria-live="polite">

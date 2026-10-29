@@ -49,7 +49,7 @@ describe('Master Panel Skill media editor', () => {
     expect(markup).toContain('/media/audio/sfx/skill-fx-v01/140-1.mp3')
   })
 })
-it('offers PC upload with explicit finalization, crop and sound limits and immutable removal', () => {
+it('offers automatic PC upload with crop and sound limits and immutable removal', () => {
   const media = {
     id: '00000000-0000-4000-8000-000000000012',
     kind: 'image' as const,
@@ -69,7 +69,9 @@ it('offers PC upload with explicit finalization, crop and sound limits and immut
     }),
   )
   expect(markup).toContain('type="file"')
-  expect(markup).toContain('Upload file')
+  expect(markup).not.toContain('Upload file')
+  expect(markup).not.toContain('About Media uploads')
+  expect(markup).toContain('Selected files upload automatically')
   expect(markup).toContain('PCM16 WAV')
   expect(markup).toContain('2 MiB')
   expect(markup).toContain('Restore default artwork')

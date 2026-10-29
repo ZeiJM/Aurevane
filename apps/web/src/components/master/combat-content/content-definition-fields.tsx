@@ -1,5 +1,6 @@
 'use client'
 
+import { AreaRecipientRepair } from './area-recipient-repair'
 import { readMechanicsBody, writeMechanicsBody } from './essence-editor-mechanics'
 import { newResonanceAbility } from './new-resonance-ability'
 import { TagWordingFields } from './tag-wording-fields'
@@ -36,6 +37,7 @@ import { SkillGroundEditor, withSkillGroundArea } from './skill-ground-editor'
 import { SkillEconomyEditor } from './skill-economy-editor'
 import {
   deriveSharedEffectAim,
+  withAuthoredAreaRecipients,
   hasSelectedAimRequirement,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { SkillFormatUpgradeControl } from './skill-format-upgrade-control'
@@ -490,7 +492,13 @@ function SkillMechanics({
   value: MatureSkillDefinition
   onChange(value: MatureSkillDefinition): void
 }) {
-  const onChange = (next: MatureSkillDefinition) =>
+  const requiresSelectedUnit = hasSelectedAimRequirement(value.requirements)
+  const onChange = (next: MatureSkillDefinition) => {
+    if (!next.ability && next.target !== value.target)
+      next = {
+        ...next,
+        effects: withAuthoredAreaRecipients(next.target, next.effects, { requiresSelectedUnit }),
+      }
     update({
       ...next,
       target:
@@ -502,6 +510,7 @@ function SkillMechanics({
               requiresSelectedUnit: hasSelectedAimRequirement(next.requirements),
             }),
     })
+  }
   if (value.ability)
     return (
       <AbilityDefinitionEditor
@@ -515,11 +524,18 @@ function SkillMechanics({
     )
   return (
     <>
+      <AreaRecipientRepair
+        target={value.target}
+        effects={value.effects}
+        requiresSelectedUnit={requiresSelectedUnit}
+        onChange={(effects) => onChange({ ...value, effects })}
+      />
       {(!section || section === 'range') && (
         <>
           <SkillTargetingEditor
             value={value.target}
             effects={value.effects}
+            requiresSelectedUnit={requiresSelectedUnit}
             v51Rules={value.authoring.validationTags.includes('owner-rebalance-v5-1')}
             onChange={(target) => onChange({ ...value, target })}
           />
@@ -742,7 +758,7 @@ export function ContentDefinitionFields({
           ) : null}
         </fieldset>
       )}
-      {details && (
+      {details && !combat && (
         <ContentDescriptionFields kind={kind} value={value} choices={choices} onChange={onChange} />
       )}
       {!combat && kind !== 'discipline' && kind !== 'status' && kind !== 'tag' ? (
@@ -949,6 +965,9 @@ export function ContentDefinitionFields({
           )}
         </>
       ) : null}
+      {details && combat && (
+        <ContentDescriptionFields kind={kind} value={value} choices={choices} onChange={onChange} />
+      )}
       {kind === 'item' || kind === 'ascension' || kind === 'severence'
         ? (() => {
             const future = value as unknown as AuthoredItem | AuthoredTransformation
@@ -1060,87 +1079,90 @@ function ContentDescriptionFields({
     kind === 'skill' && (BASIC_SKILL_IDS as readonly string[]).includes(String(value.id))
   const combat = kind === 'skill' || kind === 'essence' || kind === 'resonance'
   return (
-    <>
-      <label>
-        Description
-        <textarea
-          aria-label="Description"
-          aria-describedby={`${hintId}-description`}
-          value={text(value.description)}
-          onChange={(event) =>
-            onChange(withContentIdentityText(kind, value, 'description', event.currentTarget.value))
-          }
-        />
-      </label>
-      <small id={`${hintId}-description`}>
-        {kind === 'resonance'
-          ? 'Shown in Resonance details and the Master player preview.'
-          : kind === 'skill' || kind === 'essence'
-            ? 'Shown above the mechanical parameters in full ability details and the Master player preview.'
-            : 'Shown on this content’s player-facing detail view and the Master preview.'}
-      </small>
+    <div className={styles.descriptionFields}>
+      <div className={styles.descriptionField}>
+        <label>
+          <span>Description</span>
+          <textarea
+            aria-label="Description"
+            aria-describedby={`${hintId}-description`}
+            value={text(value.description)}
+            onChange={(event) =>
+              onChange(
+                withContentIdentityText(kind, value, 'description', event.currentTarget.value),
+              )
+            }
+          />
+        </label>
+        <small id={`${hintId}-description`}>
+          {kind === 'resonance'
+            ? 'Shown in Resonance details.'
+            : kind === 'skill' || kind === 'essence'
+              ? 'Shown in the full ability details.'
+              : kind === 'discipline'
+                ? 'Shown in Discipline details.'
+                : 'Shown in this content’s details.'}
+        </small>
+      </div>
       {kind === 'tag' ? (
-        <>
+        <div className={styles.descriptionField}>
           <label>
-            Full Tag explanation
+            <span>Full Tag explanation</span>
             <textarea
               aria-label="Full Tag explanation"
               value={text(value.explanation)}
               onChange={(event) => set({ explanation: event.currentTarget.value })}
             />
           </label>
-          <p>
-            Compact wording: description (240 characters for publication). Full explanation: 2000
-            characters. Existing retained text is never truncated.
-          </p>
-        </>
+          <small>
+            Compact wording: up to 240 characters. Full explanation: up to 2000 characters.
+          </small>
+        </div>
       ) : null}
       {combat ? (
         <>
           {!basic ? (
-            <>
+            <div className={styles.writingField}>
               <AbilityText
                 label="Flavor line"
                 value={text(value.flavorLine)}
                 maxLength={160}
                 onChange={(flavorLine) => set({ flavorLine })}
               />
-              <small>
-                Shown on the ability selection card in Skills/Arsenal and in battle action details.
-              </small>
               <BattleFlavorTemplateHelp
+                label="Flavor line tags"
                 value={text(value.flavorLine)}
                 ability={name}
                 onChange={(flavorLine) => set({ flavorLine })}
               />
-            </>
+              <small>Shown on the Skill card.</small>
+            </div>
           ) : null}
-          <details>
-            <summary>Wording overrides</summary>
-            {kind !== 'resonance' ? (
-              <>
-                <AbilityText
-                  label="In-battle text"
-                  value={text(body.battleText)}
-                  maxLength={160}
-                  onChange={(battleText) => setBody({ ...body, battleText })}
-                />
-                <BattleFlavorTemplateHelp
-                  value={text(body.battleText)}
-                  ability={name}
-                  onChange={(battleText) => setBody({ ...body, battleText })}
-                />
-              </>
-            ) : null}
-            <AbilityPresentationEditor
-              definition={body}
-              name={name}
-              value={body.presentation as MatureSkillDefinition['presentation']}
-              onChange={(presentation) => setBody({ ...body, presentation })}
-            />
-          </details>
+          {kind !== 'resonance' ? (
+            <div className={styles.writingField}>
+              <AbilityText
+                label="In-battle text"
+                value={text(body.battleText)}
+                maxLength={160}
+                onChange={(battleText) => setBody({ ...body, battleText })}
+              />
+              <BattleFlavorTemplateHelp
+                label="In-battle text tags"
+                value={text(body.battleText)}
+                ability={name}
+                onChange={(battleText) => setBody({ ...body, battleText })}
+              />
+              <small>Shown in the battle log when this ability is used.</small>
+            </div>
+          ) : null}
+          <AbilityPresentationEditor
+            definition={body}
+            name={name}
+            value={body.presentation as MatureSkillDefinition['presentation']}
+            onChange={(presentation) => setBody({ ...body, presentation })}
+          />
         </>
       ) : null}
-    </>
+    </div>
   )
 }

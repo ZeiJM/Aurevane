@@ -46,6 +46,20 @@ it.each(SUPPORT_ACTION_IDS)(
     }
     const html = renderToStaticMarkup(<CombatContentAuthoringWorkspace {...props} />)
     expect(html).toContain('Commit Now')
+    const sidebar = html.slice(html.indexOf('<aside'), html.indexOf('</aside>'))
+    expect(sidebar.indexOf('Search content')).toBeLessThan(
+      sidebar.indexOf('aria-label="Content records"'),
+    )
+    expect(sidebar.indexOf('Sort content')).toBeLessThan(
+      sidebar.indexOf('aria-label="Content records"'),
+    )
+    expect(sidebar).toContain('>New</button>')
+    expect(sidebar.indexOf('>New</button>')).toBeLessThan(
+      sidebar.indexOf('aria-label="Content records"'),
+    )
+    expect(sidebar).not.toContain('Commit Now')
+    expect(html).toMatch(/<footer[^>]*role="group"[^>]*aria-label="Save content"/)
+    expect(html.match(/>Commit Now<\/button>/g)).toHaveLength(1)
     expect(html).not.toContain('Publish saved draft')
     expect(html).not.toContain('aria-label="Content previews"')
     expect(html).toContain('Skill Details')

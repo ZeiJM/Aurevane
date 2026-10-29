@@ -13,6 +13,7 @@ import styles from './combat-content-editor.module.css'
 export interface SkillTargetingEditorProps {
   readonly value: CombatTargetSpec
   readonly effects?: readonly TargetedEffect[]
+  readonly requiresSelectedUnit?: boolean
   readonly v51Rules?: boolean
   readonly onChange: (value: CombatTargetSpec) => void
 }
@@ -20,6 +21,7 @@ export interface SkillTargetingEditorProps {
 export function SkillTargetingEditor({
   value,
   effects,
+  requiresSelectedUnit = false,
   v51Rules = false,
   onChange,
 }: SkillTargetingEditorProps) {
@@ -28,6 +30,7 @@ export function SkillTargetingEditor({
   const inheritedAll = value.shape.kind === 'all'
   const selfOnly = value.kind === 'self'
   const singleRequired =
+    requiresSelectedUnit ||
     value.kind === 'empty-tile' ||
     effects?.some((effect) => ['copy-statuses', 'sensory', 'summon'].includes(effect.type))
   const shape = value.shape
@@ -53,6 +56,12 @@ export function SkillTargetingEditor({
       <p className={styles.fieldHint}>
         Choose each effect’s Target in Effects. This area controls their shared reach and footprint.
       </p>
+      {singleRequired ? (
+        <p className={styles.fieldHint}>
+          Single is required by this effect or its selected-target Requirement/Condition. Keep those
+          rules, or edit them explicitly before choosing an area.
+        </p>
+      ) : null}
       <div className={styles.rangeGrid}>
         {!selfOnly && !area ? (
           <>

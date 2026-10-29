@@ -23,7 +23,13 @@ async function assertCurrentEffectChoices(picker, required) {
     .evaluateAll((elements) =>
       elements.map((option) => ({ value: option.value, disabled: option.disabled })),
     )
-  for (const retired of ['healing', 'damage-bonus', 'status:blindside', 'status:revealed'])
+  for (const retired of [
+    'healing',
+    'damage-bonus',
+    'status:blindside',
+    'status:revealed',
+    'cleanse-chilled',
+  ])
     assert.equal(
       options.some((option) => option.value === retired),
       false,
@@ -1254,15 +1260,15 @@ async function verifyCanonicalEditor(page, viewport) {
   await openEffectParameters(hit)
   await hit.getByLabel('Damage amount', { exact: true }).fill('17')
   assert.equal(await hit.getByLabel('Effect timing', { exact: true }).count(), 0)
-  await assertCurrentEffectChoices(leap.getByLabel('New group effect', { exact: true }), [
+  await assertCurrentEffectChoices(leap.getByLabel('New effect', { exact: true }), [
     'pierce',
     'hp-recovery',
     'mp-recovery',
     'status:blindside-vulnerability',
     'reveal',
   ])
-  await leap.getByLabel('New group effect', { exact: true }).selectOption('pierce')
-  await gesture(leap.getByRole('button', { name: 'Add group effect', exact: true }))
+  await leap.getByLabel('New effect', { exact: true }).selectOption('pierce')
+  await gesture(leap.getByRole('button', { name: 'Add new effect', exact: true }))
   const pierce = leap.locator('[data-ability-effect="effect-1"]')
   await openEffectParameters(pierce)
   await pierce.getByLabel('Equipment Armor ignored (%)', { exact: true }).fill('33.33')
@@ -1291,7 +1297,7 @@ async function verifyCanonicalEditor(page, viewport) {
     ),
   )
   const maintained = editor.locator('[data-ability-group="maintain"]')
-  await assertCurrentEffectChoices(maintained.getByLabel('New group effect', { exact: true }), [
+  await assertCurrentEffectChoices(maintained.getByLabel('New effect', { exact: true }), [
     'status:inspired',
   ])
   const bonus = maintained.locator('[data-ability-effect="bonus"]')
@@ -2214,22 +2220,23 @@ try {
       })
       const fireEditor = page.getByRole('region', { name: 'Master Fire authoring' })
       await assertCurrentEffectChoices(fireEditor.getByLabel('New effect type', { exact: true }), [
-        'cleanse-chilled',
+        'conditional-cleanse',
       ])
-      await fireEditor.getByLabel('New effect type').selectOption('cleanse-chilled')
+      await fireEditor.getByLabel('New effect type').selectOption('conditional-cleanse')
       await fireEditor.getByRole('button', { name: 'Add effect', exact: true }).click()
+      const cleanseEditor = fireEditor.locator('[data-effect-type="remove-status"]')
+      await openEffectParameters(cleanseEditor)
+      await cleanseEditor
+        .getByLabel('Conditional Cleanse statuses', { exact: true })
+        .selectOption('frozen')
+      await cleanseEditor.getByLabel('Target', { exact: true }).selectOption('self')
       assert.deepEqual(await page.evaluate(() => window.fireAuthoringEffects[1]), {
         type: 'remove-status',
         recipient: 'actor',
         statusIds: ['frozen'],
+        removalMode: 'specified',
+        target: 'self',
       })
-      const cleanseEditor = fireEditor.locator('[data-effect-type="remove-status"]')
-      await openEffectParameters(cleanseEditor)
-      assert.equal(
-        await cleanseEditor.getByLabel('Status IDs', { exact: true }).inputValue(),
-        'frozen',
-      )
-      assert.equal(await cleanseEditor.getByLabel('Target', { exact: true }).inputValue(), '')
       assert.equal(
         await cleanseEditor
           .getByRole('button', { name: 'Use standard Cleanse', exact: true })
@@ -2239,7 +2246,8 @@ try {
       for (const name of ['Master Fire details', 'Nexus Fire parameters']) {
         const report = page.getByRole('region', { name })
         assert.deepEqual((await report.locator('dt').allTextContents()).slice(0, 9), fields)
-        assert.ok((await report.textContent()).includes('Cleanse Chilled [Instant]'))
+        assert.ok((await report.textContent()).includes('Conditional Cleanse'))
+        assert.ok((await report.textContent()).includes('Chilled'))
         assert.ok((await report.textContent()).includes('Enemy / Ground'))
       }
       await page.getByRole('button', { name: 'About Fire report', exact: true }).click()

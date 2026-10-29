@@ -219,6 +219,9 @@
 .identity p {
   margin: 0;
 }
+.identity h2:focus {
+  outline: none;
+}
 .identity span {
   display: block;
   font-size: 0.85rem;

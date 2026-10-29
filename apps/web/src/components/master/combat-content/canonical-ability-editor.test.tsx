@@ -75,7 +75,8 @@ function assertCanonicalEditor(html: string, { resonance = false } = {}) {
   } else {
     expect(html).toContain('Once per battle')
   }
-  expect(html).toContain('<legend>Usage limits</legend>')
+  expect(html).toContain('<legend>Usage limits')
+  expect(html).toContain('Once per round resets when the global round advances.')
   expect(html).not.toContain('aria-label="Action Economy (AP)"')
   expect(html).not.toContain('aria-label="Accuracy mode"')
 }
@@ -304,7 +305,7 @@ it('edits canonical Pierce through native controls without leaking trusted execu
   ).not.toThrow()
 })
 
-it('keeps AP explicit and offers optional HP/MP costs without dead zero inputs', () => {
+it('keeps all resource costs directly editable without extra add/remove controls', () => {
   const onChange = vi.fn()
   const definition = {
     ...ability,
@@ -314,10 +315,11 @@ it('keeps AP explicit and offers optional HP/MP costs without dead zero inputs',
     <AbilityDefinitionEditor value={definition} section="economy" onChange={onChange} />,
   )
   expect(html).toContain('AP cost')
-  expect(html).toContain('Add HP cost')
-  expect(html).toContain('Add MP cost')
-  expect(html).not.toContain('aria-label="HP cost"')
-  expect(html).not.toContain('aria-label="MP cost"')
+  expect(html).not.toContain('Add HP cost')
+  expect(html).not.toContain('Remove MP cost')
+  expect(html).toContain('aria-label="HP cost"')
+  expect(html).toContain('aria-label="MP cost"')
+  expect(html).toContain('Set MP or HP to 0 for no cost')
   expect(onChange).not.toHaveBeenCalled()
 })
 
@@ -360,7 +362,7 @@ it('offers the same two ordinary accuracy choices and preserves a retained fixed
   expect(JSON.stringify(ability)).toBe(before)
 })
 
-it('keeps each condition inside its own collapsed effect parameters rather than a separate empty panel', () => {
+it('keeps effect parameters collapsed and directs retained conditions to Details', () => {
   const definition = parseAbilityDefinition({
     schemaVersion: 1,
     behaviors: [
@@ -393,15 +395,12 @@ it('keeps each condition inside its own collapsed effect parameters rather than 
   for (const [index, id] of ['strike', 'mend'].entries()) {
     const card = cards[index]!
     expect(card).toContain(`data-ability-effect="${id}"`)
-    expect(card).toMatch(
-      new RegExp(
-        `<details[^>]*data-effect-collapsible="true"[^>]*>[\\s\\S]*data-effect-requirement="${id}"[\\s\\S]*</details>`,
-      ),
-    )
+    expect(card).toContain('data-effect-collapsible="true"')
+    expect(card).not.toContain('aria-label="Requirement tag"')
     expect(card).not.toMatch(/<details[^>]*\bopen=""/)
   }
-  expect(cards[0]).not.toContain('Conditional')
-  expect(cards[1]).toContain('Conditional')
+  expect(cards[0]).not.toContain('Retained condition')
+  expect(cards[1]).toContain('Retained condition (Details)')
   expect(html).not.toContain('<legend>Effect requirements</legend>')
   expect(JSON.stringify(definition)).toBe(before)
   expect(onChange).not.toHaveBeenCalled()

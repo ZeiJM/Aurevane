@@ -100,6 +100,28 @@ export function deriveSharedEffectAim<T extends CombatTargetSpec>(
   }
 }
 
+/** An explicit area edit gives ordinary unit packets the shared footprint. Never run on read.
+ * Unit-specific tags and selected-subject Conditions still require the author to use Single.
+ */
+export function withAuthoredAreaRecipients<T extends TargetedEffect>(
+  target: CombatTargetSpec,
+  effects: readonly T[],
+  options: { requiresSelectedUnit?: boolean } = {},
+): readonly T[] {
+  if (
+    target.shape.kind === 'single' ||
+    (target.geometryVersion !== 2 && target.geometryVersion !== 3) ||
+    (target.maximumSelections ?? 1) > 1 ||
+    options.requiresSelectedUnit ||
+    effects.some((effect) => ['copy-statuses', 'sensory', 'summon'].includes(effect.type)) ||
+    !effects.some((effect) => effect.recipient === 'primary-unit')
+  )
+    return effects
+  return effects.map((effect) =>
+    effect.recipient === 'primary-unit' ? { ...effect, recipient: 'affected-units' } : effect,
+  )
+}
+
 /** Native target prerequisites and canonical selected-subject conditions retain their aim. */
 export function hasSelectedAimRequirement(value: unknown, depth = 0): boolean {
   if (!value || typeof value !== 'object') return false

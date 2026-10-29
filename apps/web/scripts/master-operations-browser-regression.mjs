@@ -249,7 +249,6 @@ try {
         )
         for (const label of [
           'Primary / Secondary',
-          'Active Skills',
           'Resonance',
           'Essence',
           'Support action',
@@ -264,6 +263,13 @@ try {
           await expect(fact).toBeVisible()
         }
         await expect(reader).toContainText('100 HP · 30 MP')
+        await expect(reader.getByText('Active Skills', { exact: true })).toHaveCount(0)
+        const playerHeading = reader.getByRole('heading', { name: 'Reader Target', exact: true })
+        await expect(playerHeading).toBeFocused()
+        assert.equal(
+          await playerHeading.evaluate((element) => getComputedStyle(element).outlineStyle),
+          'none',
+        )
         await expect(
           reader.getByRole('textbox', { name: /account|identity|verified email/i }),
         ).toHaveCount(0)
@@ -275,6 +281,32 @@ try {
           'Support',
           'Encounter',
         ])
+        await sections.getByRole('button', { name: 'Skills', exact: true }).click()
+        const equipped = reader.getByRole('checkbox', {
+          name: 'Cleave · Vanguard · Unlocked',
+          exact: true,
+        })
+        const locked = reader.getByRole('checkbox', {
+          name: 'Brace · Vanguard · Locked',
+          exact: true,
+        })
+        const unequipped = reader.getByRole('checkbox', {
+          name: 'Rally · Vanguard · Unlocked',
+          exact: true,
+        })
+        await expect(equipped).toBeChecked()
+        await expect(locked).toBeChecked()
+        await expect(unequipped).not.toBeChecked()
+        await expect(
+          reader.getByText(/Unavailable Skill|Earned|unearned|active eligibility/),
+        ).toHaveCount(0)
+        await equipped.uncheck()
+        await unequipped.check()
+        await reader.getByRole('button', { name: 'Review correction', exact: true }).click()
+        await expect(
+          reader.getByText('Cleave, Brace → Brace, Rally', { exact: true }),
+        ).toBeVisible()
+        await reader.getByRole('button', { name: 'Cancel review', exact: true }).click()
         await sections.getByRole('button', { name: 'Encounter', exact: true }).click()
         await expect(
           sections.getByRole('button', { name: 'Encounter', exact: true }),

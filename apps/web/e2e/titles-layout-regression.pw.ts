@@ -4,7 +4,54 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test('default portrait gallery is modal, cancels safely, and locks after its one persisted choice', async ({
+async function expectPortraitGalleryLayout(page: Page) {
+  const metrics = await page
+    .getByRole('dialog', { name: 'Default portrait', exact: true })
+    .evaluate((dialog) => {
+      const gallery = dialog.querySelector('fieldset')!
+      const footer = dialog.querySelector('footer')!
+      const rect = (element: Element) => element.getBoundingClientRect().toJSON()
+      return {
+        dialog: rect(dialog),
+        gallery: rect(gallery),
+        footer: rect(footer),
+        viewport: { width: innerWidth, height: innerHeight },
+        overflow: dialog.scrollWidth - dialog.clientWidth,
+        cards: [...gallery.querySelectorAll('label')].map((card) => ({
+          card: rect(card),
+          image: rect(card.querySelector('img')!),
+          radio: rect(card.querySelector('input')!),
+          name: rect(card.querySelector('span')!),
+        })),
+      }
+    })
+  expect(metrics.dialog.left).toBeGreaterThanOrEqual(0)
+  expect(metrics.dialog.top).toBeGreaterThanOrEqual(0)
+  expect(metrics.dialog.right).toBeLessThanOrEqual(metrics.viewport.width + 1)
+  expect(metrics.dialog.bottom).toBeLessThanOrEqual(metrics.viewport.height + 1)
+  expect(metrics.overflow).toBeLessThanOrEqual(1)
+  expect(metrics.gallery.height).toBeGreaterThan(40)
+  expect(metrics.gallery.bottom).toBeLessThanOrEqual(metrics.footer.top + 1)
+  expect(metrics.footer.bottom).toBeLessThanOrEqual(metrics.dialog.bottom)
+  for (const { card, image, radio, name } of metrics.cards) {
+    expect(image.width).toBeGreaterThan(50)
+    expect(Math.abs(image.height - image.width), 'every portrait stays square').toBeLessThanOrEqual(
+      1,
+    )
+    expect(radio.width, 'native radio cannot stretch to card width').toBeLessThanOrEqual(24)
+    expect(radio.height, 'native radio cannot stretch to row height').toBeLessThanOrEqual(24)
+    expect(card.height, 'cards contain compact image and label tracks').toBeLessThan(
+      image.height + 120,
+    )
+    expect(name.top - image.bottom, 'name stays beside its own portrait').toBeLessThan(10)
+  }
+  const confirm = page
+    .getByRole('dialog', { name: 'Default portrait', exact: true })
+    .getByRole('button', { name: 'Confirm Default Portrait', exact: true })
+  await expect(confirm).toBeInViewport({ ratio: 1 })
+}
+
+test('default portrait gallery stays compact, cancels safely, and supports repeated persisted choices', async ({
   page,
 }) => {
   test.setTimeout(90_000)
@@ -19,32 +66,63 @@ test('default portrait gallery is modal, cancels safely, and locks after its one
   await page.goto('/game/account/titles')
   const choose = page.getByRole('button', { name: 'Choose Default Portrait', exact: true })
   const dialog = page.getByRole('dialog', { name: 'Default portrait', exact: true })
+  const confirm = dialog.getByRole('button', { name: 'Confirm Default Portrait', exact: true })
   await expect(dialog).toBeHidden()
   await choose.click()
   await expect(dialog.getByRole('radio')).toHaveCount(64)
+  await expect(dialog.getByRole('checkbox')).toHaveCount(0)
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
+  await expect(confirm).toBeDisabled()
+  const originalViewport = page.viewportSize()!
+  await expectPortraitGalleryLayout(page)
+  await page.setViewportSize({ width: 320, height: 568 })
+  await expectPortraitGalleryLayout(page)
+  await page.setViewportSize({ width: 800, height: 500 })
+  // CSS scaling stress; this is not a native browser zoom check.
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = '1.25'
+  })
+  await expectPortraitGalleryLayout(page)
+  await page.evaluate(() => {
+    document.documentElement.style.zoom = ''
+  })
+  await page.setViewportSize(originalViewport)
+  await page.keyboard.press('Shift+Tab')
+  expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+  await dialog.getByRole('radio', { name: 'Female adventurer 02', exact: true }).check()
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
   await expect(choose).toBeFocused()
   await choose.click()
-  await dialog.getByRole('radio', { name: 'Female adventurer 02', exact: true }).check()
-  await dialog.getByRole('checkbox', { name: /one default portrait change/ }).check()
-  const receipt = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/account/default-portrait') && response.status() === 200,
-  )
-  await dialog.getByRole('button', { name: 'Confirm Default Portrait', exact: true }).click()
-  const body = await (await receipt).json()
-  expect(body.choice.portraitRef).toBe('portrait.adventure.female-02')
-  expect(body.choice.changedAt).toEqual(expect.any(String))
-  await expect(dialog.getByText('Default portrait choice used.', { exact: true })).toBeVisible()
+  await expect(confirm).toBeDisabled()
+
+  for (const [label, ref] of [
+    ['Female adventurer 02', 'portrait.adventure.female-02'],
+    ['Male adventurer 03', 'portrait.adventure.male-03'],
+  ]) {
+    await dialog.getByRole('radio', { name: label!, exact: true }).check()
+    const card = dialog
+      .locator('label')
+      .filter({ has: dialog.getByRole('radio', { name: label!, exact: true }) })
+    await expect(card).toHaveAttribute('data-selected', 'true')
+    await expect(confirm).toBeEnabled()
+    const receipt = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/account/default-portrait') && response.status() === 200,
+    )
+    await confirm.click()
+    const body = await (await receipt).json()
+    expect(body.choice.portraitRef).toBe(ref)
+    await expect(dialog.getByText('Default portrait changed.', { exact: true })).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(choose).toBeFocused()
+    await page.reload()
+    await expect(choose).toBeVisible()
+    await choose.click()
+    await expect(dialog.getByRole('radio', { name: label!, exact: true })).toBeEnabled()
+    await expect(dialog.getByText(`${label} (current)`, { exact: true })).toBeVisible()
+  }
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
-  await page.reload()
-  await expect(choose).toHaveCount(0)
-  await expect(
-    page
-      .locator('section[aria-labelledby="profile-image-heading"]')
-      .getByText('Default portrait choice used.', { exact: true }),
-  ).toBeVisible()
   await expect(page.getByRole('button', { name: 'Save Profile Image', exact: true })).toBeVisible()
 })
 

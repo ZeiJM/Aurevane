@@ -15,7 +15,8 @@ function state(data: unknown): CharacterPortraitChoiceState | null {
   if (
     !row ||
     typeof row.portrait_ref !== 'string' ||
-    !isStarterCharacterPortraitRef(row.portrait_ref)
+    !isStarterCharacterPortraitRef(row.portrait_ref) ||
+    (row.changed_at !== null && typeof row.changed_at !== 'string')
   )
     return null
   return {
@@ -56,11 +57,6 @@ export async function setCharacterDefaultPortrait(input: {
   if (error) {
     if (error.message.includes('CHARACTER_NOT_PLAYABLE'))
       throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
-    if (error.message.includes('PORTRAIT_CHOICE_USED'))
-      throw new AurevaneError(
-        'INVALID_REQUEST',
-        'This character has already used its one default portrait change.',
-      )
     if (error.message.includes('PORTRAIT_INVALID'))
       throw new AurevaneError(
         'INVALID_REQUEST',
@@ -72,7 +68,7 @@ export async function setCharacterDefaultPortrait(input: {
     )
   }
   const result = state(data)
-  if (!result?.changedAt || result.portraitRef !== input.portraitRef)
+  if (!result || result.portraitRef !== input.portraitRef)
     throw new AurevaneError(
       'PERSISTENCE_UNAVAILABLE',
       'The default portrait change could not be confirmed.',

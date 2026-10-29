@@ -76,6 +76,26 @@ it('explains unsupported activation combinations and missing Summon context', ()
   expect(effectAuthoringIssue('damage', { activation: 'manual', mode: 'action' })).toBeNull()
 })
 
+it('replaces the retired Chilled companion with a configurable Conditional Cleanse in packet modifiers', () => {
+  const combination = { activation: 'manual' as const, mode: 'modifier' as const }
+  expect(effectAuthoringIssue('conditional-cleanse', combination)).toBeNull()
+  const payload = createAuthorableEffectPayload('conditional-cleanse', { combination })
+  expect(payload).toEqual({
+    type: 'remove-status',
+    recipient: 'actor',
+    statusIds: ['frozen'],
+    removalMode: 'specified',
+    target: 'self',
+  })
+  expect(validateCombatTagPayload(payload, combination)).toEqual([])
+  expect(
+    validateCombatTagPayload({ ...payload, recipient: 'primary-unit' }, combination),
+  ).not.toEqual([])
+  expect(
+    validateCombatTagPayload({ ...payload, statusIds: ['frozen', 'burn'] }, combination),
+  ).not.toEqual([])
+})
+
 it('identifies retained native Barrier-shattering damage as Pierce without reinterpreting its payload', () => {
   const payload = {
     type: 'damage' as const,
@@ -93,7 +113,13 @@ it('identifies retained native Barrier-shattering damage as Pierce without reint
 })
 
 it('offers one current Blindside, Reveal and Damage Up without obsolete authoring choices', () => {
-  for (const id of ['healing', 'damage-bonus', 'status:blindside', 'status:revealed']) {
+  for (const id of [
+    'healing',
+    'damage-bonus',
+    'status:blindside',
+    'status:revealed',
+    'cleanse-chilled',
+  ]) {
     expect(AUTHORABLE_EFFECT_TAGS.some((tag) => tag.id === id)).toBe(false)
     expect(createAuthorableEffectPayload(id)).toBeNull()
   }

@@ -269,6 +269,7 @@ it.each([
   ['tag', 'tag.damage-bonus', 'tag'],
   ['tag', 'tag.blindside', 'tag'],
   ['tag', 'tag.revealed', 'tag'],
+  ['tag', 'tag.cleanse-chilled', 'tag'],
 ])(
   'reopens stale %s navigation on a visible category while preserving pending drafts',
   (category, selectedKey, expectedCategory) => {

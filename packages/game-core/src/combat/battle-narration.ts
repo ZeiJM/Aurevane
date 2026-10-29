@@ -154,6 +154,46 @@ export function battleTextReferenceChoices(
   return choices
 }
 
+const SIMPLE_FLAVOR_ALIASES: Readonly<Record<string, string>> = {
+  name: 'actor',
+  skill: 'ability',
+  ability: 'ability',
+  subject: 'actor.subject',
+  object: 'actor.object',
+  possessive: 'actor.possessive',
+  reflexive: 'actor.reflexive',
+}
+
+/** Parenthetical shorthand is presentation syntax for the same allow-listed references. */
+export function battleTextReferenceTag(token: string): string {
+  const alias = Object.entries(SIMPLE_FLAVOR_ALIASES).find(([, value]) => value === token)?.[0]
+  return `(${alias ?? token.replace(/^actor\.gender:/u, 'gender:')})`
+}
+
+function canonicalFlavorTemplate(template: string): string {
+  // Preserve existing brace tokens verbatim, including parentheses in historical gender wording.
+  return template.replace(/\{[^{}]*\}|\(([^()]*)\)/gu, (match, candidate: string | undefined) => {
+    if (candidate === undefined) return match
+    const token = Object.hasOwn(SIMPLE_FLAVOR_ALIASES, candidate)
+      ? SIMPLE_FLAVOR_ALIASES[candidate]
+      : candidate.startsWith('gender:')
+        ? `actor.${candidate}`
+        : /^(actor|target|targets|trigger|outcome|value)(?:[.:]|$)/u.test(candidate)
+          ? candidate
+          : null
+    return token ? `{${token}}` : match
+  })
+}
+
+function hasUnclosedParentheticalTag(template: string): boolean {
+  const prose = template.replace(/\{[^{}]*\}/gu, '')
+  return (
+    /\((name|skill|ability|subject|object|possessive|reflexive|actor|target|targets|trigger)$/u.test(
+      prose,
+    ) || /\((?:gender:|(?:actor|target|targets|trigger|outcome|value)[.:])[^()]*$/u.test(prose)
+  )
+}
+
 /** Context validity is separate from syntax and never claims to verify arbitrary English. */
 export function battleTextContextIssues(
   template: string,
@@ -162,7 +202,7 @@ export function battleTextContextIssues(
 ): readonly string[] {
   const issues = [...battleFlavorTemplateIssues(template, maximum)]
   const allowed = new Set(battleTextReferenceChoices(context).map((choice) => choice.token))
-  for (const match of template.matchAll(FLAVOR_TOKEN_PATTERN)) {
+  for (const match of canonicalFlavorTemplate(template).matchAll(FLAVOR_TOKEN_PATTERN)) {
     if (!allowed.has(match[1]!) && !GENDER_TOKEN_PATTERN.test(match[1]!))
       issues.push(`Reference {${match[1]}} is unavailable in this ${context.field} context.`)
   }
@@ -184,8 +224,9 @@ export function battleFlavorTemplateIssues(template: unknown, maximum = 160): re
     )
   )
     issues.push('Narration must be one plain-text line.')
+  const source = canonicalFlavorTemplate(template)
   const allowed = new Set<string>(BATTLE_FLAVOR_TOKENS)
-  for (const match of template.matchAll(FLAVOR_TOKEN_PATTERN)) {
+  for (const match of source.matchAll(FLAVOR_TOKEN_PATTERN)) {
     const token = match[1]!
     if (
       !allowed.has(token) &&
@@ -196,7 +237,10 @@ export function battleFlavorTemplateIssues(template: unknown, maximum = 160): re
       issues.push(`Unknown narration token: {${token}}.`)
     }
   }
-  if (/[{}]/u.test(template.replace(FLAVOR_TOKEN_PATTERN, '')))
+  if (
+    /[{}]/u.test(source.replace(FLAVOR_TOKEN_PATTERN, '')) ||
+    hasUnclosedParentheticalTag(template)
+  )
     issues.push('Malformed narration token.')
   return issues
 }
@@ -209,8 +253,9 @@ export function renderBattleFlavorTemplate(
 ): string | null {
   if (battleFlavorTemplateIssues(template, maximum).length > 0 || typeof template !== 'string')
     return null
+  const source = canonicalFlavorTemplate(template)
   // Refuse the whole message when a required fact is absent. Never substitute fabricated zeros.
-  for (const match of template.matchAll(FLAVOR_TOKEN_PATTERN)) {
+  for (const match of source.matchAll(FLAVOR_TOKEN_PATTERN)) {
     const token = match[1]!
     if (token.startsWith('trigger') && !context.triggeringActor) return null
     if (token.startsWith('targets') && !context.affectedTargets) return null
@@ -221,7 +266,7 @@ export function renderBattleFlavorTemplate(
       if (value === undefined || !Number.isFinite(value) || value < 0) return null
     }
   }
-  return template.replace(FLAVOR_TOKEN_PATTERN, (_match, token: string) => {
+  return source.replace(FLAVOR_TOKEN_PATTERN, (_match, token: string) => {
     if (token.startsWith('value.')) return String(context.values![token.slice(6)])
     if (token.startsWith('outcome.'))
       return String(context.outcomes![token.slice(8) as 'damage' | 'healing'])

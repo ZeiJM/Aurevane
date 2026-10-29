@@ -687,35 +687,6 @@ export function CombatContentAuthoringWorkspace({
               ))}
             </select>
           </label>
-          <nav
-            ref={listRef}
-            aria-label="Content records"
-            className={styles.list}
-            onScroll={(event) => {
-              scroll.current.listScroll = event.currentTarget.scrollTop
-              scheduleRecovery()
-            }}
-          >
-            {visibleRecords.map((row) => (
-              <button
-                type="button"
-                key={row.contentKey}
-                data-content-key={row.contentKey}
-                aria-current={record?.contentKey === row.contentKey && !newDefinition}
-                disabled={restoring || busy || !!newDefinition}
-                onClick={() => void read(row.contentKey)}
-              >
-                {row.contentKind === 'tag'
-                  ? currentCombatTagName(
-                      row.contentKey.replace(/^tag\./u, ''),
-                      row.name ?? row.contentKey,
-                    )
-                  : (row.name ?? row.contentKey)}
-                {pending[row.contentKey] ? <small>Unsaved edits</small> : null}
-              </button>
-            ))}
-            {!visibleRecords.length ? <p>No matching content.</p> : null}
-          </nav>
           <form
             className={styles.toolbar}
             onSubmit={(event) => {
@@ -748,69 +719,69 @@ export function CombatContentAuthoringWorkspace({
               </label>
               <button disabled={restoring || busy || !!newDefinition}>Search</button>
             </div>
+          </form>
+          {category !== 'tag' && (
             <div className={styles.actions}>
-              <div className={styles.commitControls}>
-                <button
-                  type="button"
-                  className={styles.commit}
-                  disabled={
-                    restoring ||
-                    busy ||
-                    pendingMedia ||
-                    !activeDefinition ||
-                    readOnly ||
-                    conflict ||
-                    !!descriptor?.publicationBlocker
-                  }
-                  onClick={() => void commit()}
-                >
-                  {busy ? 'Working…' : 'Commit Now'}
-                </button>
-                <span className={styles.saveStatus} role="status" aria-label="Save status">
-                  {pendingMedia
-                    ? 'Upload the selected file before committing.'
-                    : newDefinition
-                      ? 'New content'
-                      : dirty
-                        ? 'Unsaved changes'
-                        : record?.draft
-                          ? 'Uncommitted changes'
-                          : 'Saved'}
-                </span>
-              </div>
-              {category !== 'tag' && (
-                <button
-                  type="button"
-                  disabled={restoring || busy || !!newDefinition || !descriptor?.defaultDefinition}
-                  onClick={() => {
-                    createRequestId.current = crypto.randomUUID()
-                    createAttempt.current = null
-                    const next = structuredClone(descriptor!.defaultDefinition!)
-                    latestNewDefinition.current = next
-                    setNewDefinition(next)
-                    setTab('Parameters')
-                    setError('')
-                  }}
-                >
-                  New
-                </button>
-              )}
-            </div>
-            {newDefinition ? (
               <button
                 type="button"
-                disabled={restoring || busy}
+                disabled={restoring || busy || !!newDefinition || !descriptor?.defaultDefinition}
                 onClick={() => {
-                  createRequestId.current = null
+                  createRequestId.current = crypto.randomUUID()
                   createAttempt.current = null
-                  latestNewDefinition.current = null
-                  setNewDefinition(null)
+                  const next = structuredClone(descriptor!.defaultDefinition!)
+                  latestNewDefinition.current = next
+                  setNewDefinition(next)
+                  setTab('Parameters')
+                  setError('')
                 }}
               >
-                Discard new content
+                New
               </button>
-            ) : null}
-          </form>
+            </div>
+          )}
+          {newDefinition ? (
+            <button
+              type="button"
+              disabled={restoring || busy}
+              onClick={() => {
+                createRequestId.current = null
+                createAttempt.current = null
+                latestNewDefinition.current = null
+                setNewDefinition(null)
+              }}
+            >
+              Discard new content
+            </button>
+          ) : null}
+          <nav
+            ref={listRef}
+            aria-label="Content records"
+            className={styles.list}
+            onScroll={(event) => {
+              scroll.current.listScroll = event.currentTarget.scrollTop
+              scheduleRecovery()
+            }}
+          >
+            {visibleRecords.map((row) => (
+              <button
+                type="button"
+                key={row.contentKey}
+                data-content-key={row.contentKey}
+                aria-current={record?.contentKey === row.contentKey && !newDefinition}
+                disabled={restoring || busy || !!newDefinition}
+                onClick={() => void read(row.contentKey)}
+              >
+                {row.contentKind === 'tag'
+                  ? currentCombatTagName(
+                      row.contentKey.replace(/^tag\./u, ''),
+                      row.name ?? row.contentKey,
+                    )
+                  : (row.name ?? row.contentKey)}
+                {pending[row.contentKey] ? <small>Unsaved edits</small> : null}
+              </button>
+            ))}
+            {!visibleRecords.length ? <p>No matching content.</p> : null}
+          </nav>
         </aside>
         <div className={styles.editor}>
           {activeDefinition ? (
@@ -996,7 +967,7 @@ export function CombatContentAuthoringWorkspace({
                         setModalRelationship({ partner })
                         setModalKey(key)
                       }}
-                      renderCreate={(partner, close) => (
+                      renderCreate={(partner, close, directEditLabel) => (
                         <NewRelationshipPower
                           parent={newDefinition ? null : record}
                           partner={partner}
@@ -1007,6 +978,8 @@ export function CombatContentAuthoringWorkspace({
                             )?.defaultDefinition ?? null
                           }
                           recoveryScope={recoveryScope}
+                          compact={!!directEditLabel}
+                          triggerLabel={directEditLabel}
                           disabled={restoring || busy || readOnly}
                           onBusyChange={setWorking}
                           onCreated={(child) => {
@@ -1047,6 +1020,35 @@ export function CombatContentAuthoringWorkspace({
                   </fieldset>
                 )}
               </div>
+              <footer className={styles.editorFooter} role="group" aria-label="Save content">
+                <span className={styles.saveStatus} role="status" aria-label="Save status">
+                  {pendingMedia
+                    ? 'Preparing selected media. Wait for upload to finish, or retry or cancel if it fails.'
+                    : newDefinition
+                      ? 'New content'
+                      : dirty
+                        ? 'Unsaved changes'
+                        : record?.draft
+                          ? 'Uncommitted changes'
+                          : 'Saved'}
+                </span>
+                <button
+                  type="button"
+                  className={styles.commit}
+                  disabled={
+                    restoring ||
+                    busy ||
+                    pendingMedia ||
+                    !activeDefinition ||
+                    readOnly ||
+                    conflict ||
+                    !!descriptor?.publicationBlocker
+                  }
+                  onClick={() => void commit()}
+                >
+                  {busy ? 'Working…' : 'Commit Now'}
+                </button>
+              </footer>
             </>
           ) : (
             <div className={styles.empty}>

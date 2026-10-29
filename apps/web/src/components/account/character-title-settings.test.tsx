@@ -16,7 +16,7 @@ const character = {
 }
 
 describe('Portrait & Title settings', () => {
-  it('offers the default gallery and permanent-choice confirmation only while available', () => {
+  it('offers repeatable default portrait selection even after an earlier saved choice', () => {
     const markup = renderToStaticMarkup(
       createElement(CharacterTitleSettings, {
         ...character,
@@ -27,7 +27,11 @@ describe('Portrait & Title settings', () => {
     )
     expect(markup).toContain('Confirm Default Portrait')
     expect(markup).toContain('name="default-portrait"')
-    expect(markup).toContain('This character can change its default portrait only once.')
+    expect(markup).toContain('Confirming replaces any custom image with the portrait you choose.')
+    expect(markup).not.toContain('only once')
+    const portraitDialog = markup.slice(markup.indexOf('<dialog'), markup.indexOf('</dialog>'))
+    expect(portraitDialog).not.toContain('type="checkbox"')
+    expect(portraitDialog).toContain('aria-label="Portrait selection"')
     expect(markup.match(/name="default-portrait"/gu)).toHaveLength(64)
     expect(markup).toContain('Choose Default Portrait')
     expect(markup).toContain('<dialog')
@@ -39,8 +43,9 @@ describe('Portrait & Title settings', () => {
         portraitChoiceUsedAt: '2026-10-03T00:00:00Z',
       }),
     )
-    expect(locked).not.toContain('Confirm Default Portrait')
-    expect(locked).toContain('Default portrait choice used')
+    expect(locked).toContain('Confirm Default Portrait')
+    expect(locked).toContain('Choose Default Portrait')
+    expect(locked).not.toContain('Default portrait choice used')
     expect(locked).toContain('Save Profile Image')
   })
   it('opens directly on editable title and portrait controls without a duplicate identity summary', () => {

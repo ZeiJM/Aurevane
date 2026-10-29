@@ -64,3 +64,23 @@ it('keeps the Essence display text and executable skill text in sync when edited
   ).toMatchObject({ description: 'New description' })
   expect(definition.skill.name).toBe('Old power')
 })
+
+it('spaces the description and flavor fields and explains their in-game locations without expandable wording controls', async () => {
+  const { latestEnabledMatureSkills } = await import('@aurevane/game-core/combat/mature-skills')
+  const value = { ...latestEnabledMatureSkills()[0]! }
+  const html = renderToStaticMarkup(
+    <ContentDefinitionFields kind="skill" tab="Text" value={value} onChange={() => {}} />,
+  )
+  expect(html).toContain('descriptionFields')
+  expect(html).toContain('writingField')
+  expect(html).toContain('Shown in the full ability details.')
+  expect(html).toContain('Shown on the Skill card.')
+  expect(html).toContain('aria-label="In-battle text"')
+  expect(html).toContain('aria-label="Full public description"')
+  expect(html).toContain('About Flavor line tags')
+  expect(html).not.toContain('Wording overrides')
+  expect(html).not.toContain('References and writing preview')
+  expect(html).not.toContain('mechanical parameters')
+  expect(html).not.toContain('Master preview')
+  expect(html).not.toContain('Master player preview')
+})

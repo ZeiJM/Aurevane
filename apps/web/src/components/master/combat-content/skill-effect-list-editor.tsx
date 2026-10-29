@@ -4,6 +4,7 @@ import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-co
 import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { useState } from 'react'
 import { reconcileEffectRowIdentity, type EffectRowIdentity } from './effect-row-identity'
+import { withAuthoredAreaRecipients } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 import { EffectTagPicker } from './effect-tag-picker'
@@ -272,7 +273,15 @@ export function SkillEffectListEditor({
         nativeOnly
         disabled={maxEffects !== undefined && value.length >= maxEffects}
         onAdd={(payload) =>
-          onChange([...value, nativeCombatTagPayload(payload)], [...alignedDescriptions, null])
+          onChange(
+            [
+              ...value,
+              aim
+                ? withAuthoredAreaRecipients(aim, [nativeCombatTagPayload(payload)])[0]!
+                : nativeCombatTagPayload(payload),
+            ],
+            [...alignedDescriptions, null],
+          )
         }
       />
 
