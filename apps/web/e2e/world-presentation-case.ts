@@ -196,7 +196,20 @@ export async function verifyWorldPresentation(
   await expect(page.getByRole('button', { name: 'View 360°', exact: true })).toHaveCount(0)
   await canvas.press('d')
   await expect
-    .poll(async () => (await world(page)).position, { timeout: 12000 })
+    .poll(
+      async () => {
+        // Movement may invalidate both bounded scene-read attempts. Wait for a
+        // coherent snapshot; every other failed response remains a hard failure.
+        const response = await page.request.get('/api/world')
+        if (response.status() === 409) {
+          expect((await response.json()).error?.code).toBe('STALE_VERSION')
+          return null
+        }
+        expect(response.ok(), `World movement snapshot status ${response.status()}`).toBe(true)
+        return ((await response.json()) as WorldView).position
+      },
+      { timeout: 12000 },
+    )
     .toEqual({ sectorId: 'atlas:58:28', x: 7, y: 4 })
   await expect
     .poll(async () => Number(await canvas.getAttribute('data-camera-x')), { timeout: 5000 })

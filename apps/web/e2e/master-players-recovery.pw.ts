@@ -245,7 +245,10 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       expect(after.facts.build.buildVersion).toBeGreaterThan(before.facts.build.buildVersion)
       expect(after.facts.xp).toBe(1)
     }
-    await expect(correctionGroup).toHaveValue('source')
+    await expect(
+      owner.getByRole('button', { name: 'Stats & Progression', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(correctionGroup).toHaveAttribute('aria-pressed', 'false')
     await selectDisciplineGroup()
     await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
     const correctionAlert = owner

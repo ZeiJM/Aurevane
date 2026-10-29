@@ -137,7 +137,10 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     await page.getByLabel(/Confirm access change for/).check()
     await page.getByRole('button', { name: 'Revoke access', exact: true }).click()
     await expect(page.getByRole('status')).toContainText('access revoked')
-    await expect(row.getByRole('button', { name: 'Edit', exact: true })).toBeFocused()
+    await expect(row).toHaveCount(0)
+    await expect(
+      page.getByRole('textbox', { name: 'Character name or verified email', exact: true }),
+    ).toBeFocused()
     expect(await (await target.request.get('/api/master/access')).json()).toMatchObject({
       hasAccess: false,
     })

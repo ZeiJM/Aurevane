@@ -776,6 +776,13 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       const backlash = page.getByLabel('Backlash (% of burning unit’s hostile damage)', {
         exact: true,
       })
+      const showBurnParameters = async () => {
+        await page.getByRole('tab', { name: 'Effects', exact: true }).click()
+        const panel = backlash.locator('xpath=ancestor::details[@data-effect-collapsible]')
+        if ((await panel.getAttribute('open')) === null)
+          await panel.locator(':scope > summary').click()
+        await expect(backlash).toBeVisible()
+      }
       const original = {
         duration: await duration.inputValue(),
         preset: await preset.inputValue(),
@@ -783,6 +790,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       }
       await duration.fill('4')
       await preset.selectOption('frost')
+      await showBurnParameters()
       await backlash.fill('12.34')
       const publication = await commitContent(page)
       const groundServices = await verifyAuthoringServices(
@@ -819,7 +827,9 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await expect(duration).toHaveValue('4')
       await expect(preset).toHaveValue('frost')
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
+      await showBurnParameters()
       await expect(backlash).toHaveValue('12.34')
+      await page.getByRole('tab', { name: 'Range & Area', exact: true }).click()
       await duration.scrollIntoViewIfNeeded()
       const fieldBox = await duration.boundingBox()
       expect(fieldBox).not.toBeNull()
@@ -899,6 +909,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await expect(duration).toHaveValue(original.duration)
       await expect(preset).toHaveValue(original.preset)
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
+      await showBurnParameters()
       await expect(backlash).toHaveValue(original.backlash)
     }
     // Audited elevation publication, stale rejection and old/new battle pinning.
