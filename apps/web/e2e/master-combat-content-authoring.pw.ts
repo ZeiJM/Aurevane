@@ -1060,11 +1060,17 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
   try {
     grantLocalMasterOperator(email)
     await page.goto('/master/combat-content')
-    await selectContentRecord(page, 'basic.guard', 'basic')
+    await selectContentRecord(page, 'unarmed.basic', 'basic')
     await page.getByRole('button', { name: 'Skill Details', exact: true }).click()
     await page.getByRole('tab', { name: 'Media', exact: true }).click()
     const panel = page.getByRole('group', { name: /^Artwork and sound/ })
     const input = panel.getByLabel('Upload content media')
+    const builtin = panel.getByAltText('Current artwork')
+    await expect(builtin).toHaveAttribute('src', '/media/skills/basic-attack-fist.webp')
+    await expect
+      .poll(() => builtin.evaluate((image: HTMLImageElement) => image.naturalWidth))
+      .toBeGreaterThan(0)
+    await expect(page.locator('[data-ability-section="media"] legend')).toHaveCount(0)
     // Four real RGBA pixels: selecting y=0 versus y=1 must change the final pixel/hash.
     const sharp = (await import('sharp')).default
     const png = await sharp(
@@ -1091,6 +1097,7 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
       }
     }
     await input.setInputFiles(file)
+    await expect(builtin).toBeVisible()
     await expect(panel.getByLabel('Crop size')).toHaveValue('2')
     await panel.getByLabel('Crop size').fill('1')
     await panel.getByLabel('Crop x').fill('0')
@@ -1124,6 +1131,7 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
     ).toEqual([255, 0, 0, 255])
     // Identical filename/bytes must dispatch a new selection and allow a different crop.
     await input.setInputFiles(file)
+    await expect(preview).toBeVisible()
     await expect(panel.getByLabel('Crop size')).toHaveValue('2')
     await panel.getByLabel('Crop size').fill('1')
     await panel.getByLabel('Crop y').fill('1')
@@ -1175,6 +1183,62 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
       buffer: Buffer.from('invalid'),
     })
     await expect(panel.getByRole('alert')).toContainText('sound could not be played')
+
+    // Discipline Artwork must route to the same image-only workflow, independent of Details.
+    await selectContentRecord(page, 'aetherist', 'discipline')
+    const baseline = await commitContent(page)
+    try {
+      await page.getByRole('button', { name: 'Artwork', exact: true }).click()
+      const artwork = page.getByRole('group', { name: 'Artwork', exact: true })
+      await expect(artwork).toBeVisible()
+      await expect(page.getByRole('group', { name: 'Identity', exact: true })).toHaveCount(0)
+      await expect(page.getByLabel('Name', { exact: true })).toHaveCount(0)
+      await expect(artwork.getByLabel('Upload content media')).toHaveAttribute(
+        'accept',
+        'image/png,image/jpeg,image/webp',
+      )
+      await page.getByRole('button', { name: 'Restore default artwork', exact: true }).click()
+      const current = artwork.getByAltText('Current artwork')
+      await expect(current).toHaveAttribute(
+        'src',
+        '/media/art/discipline-sigils/aetherist-sigil-v01.webp',
+      )
+      await expect
+        .poll(() => current.evaluate((image: HTMLImageElement) => image.naturalWidth))
+        .toBeGreaterThan(0)
+      const before = await readContentRecord(page)
+      await artwork.getByLabel('Upload content media').setInputFiles(file)
+      await expect(artwork.getByLabel('Crop size')).toHaveValue('2')
+      await expect(current).toBeVisible()
+      await expect(artwork.getByLabel('Actual crop preview')).toBeVisible()
+      expect(await readContentRecord(page)).toEqual(before)
+      const pending = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/master/combat-content/media',
+      )
+      await artwork.getByRole('button', { name: 'Upload file', exact: true }).click()
+      const finalized = await pending
+      expect(finalized.status()).toBe(200)
+      const image = (await finalized.json()).media as { id: string }
+      const custom = artwork.getByAltText('Finalized artwork crop')
+      await expect(custom).toHaveAttribute('src', `/api/master/combat-content/media/${image.id}`)
+      await expect
+        .poll(() => custom.evaluate((element: HTMLImageElement) => element.naturalWidth))
+        .toBe(2)
+      expect(await readContentRecord(page)).toEqual(before)
+      const committed = publishedSnapshot(await commitContent(page))
+      expect(committed.definition).toMatchObject({ media: { artwork: { id: image.id } } })
+      await page.reload()
+      await selectContentRecord(page, 'aetherist', 'discipline')
+      await page.getByRole('button', { name: 'Artwork', exact: true }).click()
+      await expect(custom).toHaveAttribute('src', `/api/master/combat-content/media/${image.id}`)
+      await expect
+        .poll(() => custom.evaluate((element: HTMLImageElement) => element.naturalWidth))
+        .toBe(2)
+    } finally {
+      await commitAuthoredBaseline(page, baseline)
+    }
   } finally {
     const escapedEmail = escapeSqlLiteral(email)
     queryLocalDatabase(

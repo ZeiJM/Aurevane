@@ -156,15 +156,19 @@
 
 .panel [data-combat-tag-reference],
 .panel [data-effect-tag-label],
-.panel [data-compact-effect-label],
-.panel [data-compact-effect-magnitude],
-.panel [data-compact-effect-duration] {
+.panel [data-compact-effect-label] {
   color: #79551c;
 }
+.panel [data-compact-effect-magnitude],
+.panel [data-requirement-parameter='magnitude'] {
+  color: #4e226e;
+}
+.panel [data-compact-effect-duration],
 .panel [data-compact-effect-timing] {
   color: #17675e;
 }
 
-.panel [data-compact-effect-target] {
+.panel [data-compact-effect-target],
+.panel [data-requirement-parameter='target'] {
   color: #65310e;
 }

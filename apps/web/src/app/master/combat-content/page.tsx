@@ -83,6 +83,7 @@ export default async function MasterCombatContentPage({
           recoveryScope={
             linkedRecord ? `${actor.userId}:linked:${linkedRecord.contentKey}` : actor.userId
           }
+          legacyWordingRecoveryScope={actor.userId}
           initialAbilitySection={initialAbilitySection}
           categories={categories}
           initialPage={initialPage}

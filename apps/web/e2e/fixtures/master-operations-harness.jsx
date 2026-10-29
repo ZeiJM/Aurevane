@@ -243,8 +243,6 @@ function App() {
           <>
             <CombatEffectTimingEditor
               initialPolicy={defaultCombatEffectTimingPolicy()}
-              canEditWording
-              recoveryScope="fixture-owner"
               effectUsedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
               usedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}
             />

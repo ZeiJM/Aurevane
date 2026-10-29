@@ -65,3 +65,19 @@ it.each([-1, 1.5, 0, 101, NaN])('rejects invalid Level %s', (level) => {
 it('rejects XP beyond the actual cycle cap instead of showing a saveable preview', () => {
   expect(() => playerProgressionProposal(attributes, 237 * 100, curve, policy)).toThrow()
 })
+
+it.each([
+  [5, 1, 0],
+  [7, 3, 474],
+  [2, 1, 0],
+])(
+  'offers an explicit lower Level for %i allocated points while preserving starter points',
+  (spent, fitLevel, fitXp) => {
+    const reduced = { ...policy.baseAttributes, might: policy.baseAttributes.might + spent }
+    const current = playerProgressionProposal(reduced, 948, curve, policy)
+    expect(current).toMatchObject({ level: 5, unspent: 9 - spent, fitLevel, fitXp })
+    const lowered = playerProgressionProposal(reduced, fitXp, curve, policy)
+    expect(lowered).toMatchObject({ level: fitLevel, unspent: Math.max(0, 5 - spent), issues: [] })
+    expect(reduced.might).toBe(policy.baseAttributes.might + spent)
+  },
+)

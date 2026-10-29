@@ -2793,3 +2793,97 @@ it('current character entry never refreshes an unowned account and keeps profile
     ).rows[0]!.allowed,
   ).toBe(false)
 })
+
+it.each(['new grant requirement', 'revoked grant'])(
+  'current Primary refresh preserves entry after %s without granting future acquisition',
+  async (scenario) => {
+    if (scenario === 'revoked grant') {
+      await db.query('select public.write_discipline_player_grants_v1($1,null,$2,$3,$4,$5)', [
+        owner,
+        'vanguard',
+        [other],
+        'grant',
+        'Existing Primary grant',
+      ])
+    }
+    const preserved = async () =>
+      (
+        await db.query(
+          `select to_jsonb(c) as character, to_jsonb(p) - 'updated_at' - 'primary_profile_version' as personal,
+            b.primary_attunement_locked_until,b.secondary_attunement_locked_until,
+            (select jsonb_agg(to_jsonb(d) order by d.discipline_id) from app_private.character_discipline_progress d where d.character_id=c.id) as mastery
+           from public.characters c join app_private.character_attribute_personal_allocations p on p.character_id=c.id
+           join app_private.character_active_builds b on b.character_id=c.id where c.id=$1`,
+          [character],
+        )
+      ).rows
+    const before = await preserved()
+    const published = await publishNativeDiscipline('vanguard', { unlock: { kind: 'unavailable' } })
+    if (scenario === 'revoked grant') {
+      await db.query('select public.write_discipline_player_grants_v1($1,null,$2,$3,$4,$5)', [
+        owner,
+        'vanguard',
+        [other],
+        'revoke',
+        'Future selection revoked',
+      ])
+    }
+    expect(
+      (
+        await db.query('select app_private.discipline_unlocked_v1($1,$2) as unlocked', [
+          character,
+          'vanguard',
+        ])
+      ).rows,
+    ).toEqual([{ unlocked: false }])
+
+    expect(
+      (await db.query('select * from public.get_character_slots_v3($1)', [other])).rows,
+    ).toHaveLength(1)
+    expect(await preserved()).toEqual(before)
+    expect(
+      (
+        await db.query(
+          'select primary_discipline_id,primary_definition_version,primary_profile_version,build_version::int from app_private.character_active_builds where character_id=$1',
+          [character],
+        )
+      ).rows,
+    ).toEqual([
+      {
+        primary_discipline_id: 'vanguard',
+        primary_definition_version: published.current.contentVersion,
+        primary_profile_version: published.current.contentVersion,
+        build_version: 2,
+      },
+    ])
+    await db.query('select * from public.get_character_slots_v3($1)', [other])
+    expect(
+      (
+        await db.query(
+          'select build_version::int from app_private.character_active_builds where character_id=$1',
+          [character],
+        )
+      ).rows,
+    ).toEqual([{ build_version: 2 }])
+    expect(
+      (await db.query('select * from public.get_account_discipline_grants_v1($1)', [other])).rows,
+    ).toEqual([{ get_account_discipline_grants_v1: [] }])
+
+    await db.query(
+      'select * from public.change_character_disciplines_v3($1,$2,2,true,$3,false,null,$4,$5)',
+      [other, character, 'aetherist', crypto.randomUUID(), 'leave-selected-primary'],
+    )
+    await db.query(
+      'update app_private.character_active_builds set primary_attunement_locked_until=null where character_id=$1',
+      [character],
+    )
+    await denied(
+      () =>
+        db.query(
+          'select * from public.change_character_disciplines_v3($1,$2,3,true,$3,false,null,$4,$5)',
+          [other, character, 'vanguard', crypto.randomUUID(), 'cannot-reacquire-primary'],
+        ),
+      /PRIMARY_DISCIPLINE_MASTERY_REQUIRED/,
+    )
+  },
+)

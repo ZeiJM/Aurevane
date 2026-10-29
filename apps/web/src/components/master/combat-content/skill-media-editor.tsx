@@ -12,7 +12,11 @@ import { restoreContentArtworkDefault } from '@/media/content-artwork-defaults'
 import { FinalizedMediaEditor } from './finalized-media-editor'
 
 import styles from './combat-content-editor.module.css'
-import { phase4SkillArtwork } from '@/components/battle/phase4-combat-art'
+import {
+  BATTLE_COMMAND_ARTWORK,
+  battleSkillArtwork,
+} from '@/components/battle/battle-skill-presentation'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 
 export interface SkillMediaEditorProps {
   readonly contentId?: string
@@ -22,12 +26,18 @@ export interface SkillMediaEditorProps {
 
 export function SkillMediaEditor({ contentId, value, onChange }: SkillMediaEditorProps) {
   const icon = resolveSkillIconHook(value.iconKey)
+  const fallbackArtwork =
+    icon?.previewSrc ??
+    (contentId === 'basic.move'
+      ? BATTLE_COMMAND_ARTWORK.move
+      : contentId
+        ? battleSkillArtwork(contentId === 'unarmed.basic' ? PV1F_BASIC_ATTACK_ID : contentId)
+        : undefined)
   const audio = resolveSkillAudioCueHook(value.audioCueKey)
   const unregisteredAudio = value.audioCueKey && !audio ? value.audioCueKey : null
 
   return (
-    <fieldset className={styles.typedGroup}>
-      <legend>Media</legend>
+    <div className={styles.mediaEditor}>
       <button
         type="button"
         onClick={() => onChange(restoreContentArtworkDefault(contentId, value))}
@@ -37,9 +47,7 @@ export function SkillMediaEditor({ contentId, value, onChange }: SkillMediaEdito
       <FinalizedMediaEditor
         value={value}
         showArtworkRemoval={false}
-        fallbackArtwork={
-          icon?.previewSrc ?? (contentId ? (phase4SkillArtwork(contentId) ?? undefined) : undefined)
-        }
+        fallbackArtwork={fallbackArtwork}
         onChange={(media) => onChange({ ...value, artwork: media.artwork, audio: media.audio })}
       />
 
@@ -92,6 +100,6 @@ export function SkillMediaEditor({ contentId, value, onChange }: SkillMediaEdito
           )}
         </div>
       </div>
-    </fieldset>
+    </div>
   )
 }

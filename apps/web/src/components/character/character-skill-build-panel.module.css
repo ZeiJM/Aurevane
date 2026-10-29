@@ -604,7 +604,7 @@
 }
 
 .effectSummaryList [data-compact-effect-magnitude='true'] {
-  color: #e4bd67;
+  color: #c9a7ff;
 }
 
 .effectSummaryList [data-compact-effect-duration='true'],
@@ -1627,14 +1627,14 @@
   }
 }
 
-/* Preserve desktop artwork without overriding the compact touch-landscape chooser. */
+/* Use the actual cockpit scale, retaining each card's available-width limit. */
 @media (min-width: 981px),
   (min-width: 821px) and (min-height: 501px),
   (min-width: 821px) and (pointer: fine) {
   .skill,
   .lockedSkill,
   .supportGrid .skill {
-    --av-gameplay-art-size: 4rem;
+    --av-gameplay-art-size: var(--av-shared-cockpit-art-size);
   }
 }
 

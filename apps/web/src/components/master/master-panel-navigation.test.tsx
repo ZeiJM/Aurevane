@@ -1,4 +1,5 @@
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[], refresh: vi.fn() }))
 vi.mock('react', async (original) => ({
@@ -21,7 +22,7 @@ vi.mock('react', async (original) => ({
 }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: hooks.refresh }) }))
 import { MASTER_PANEL_NAVIGATION } from '@/lib/master-panel-pages'
-import { NavigationOrder } from './master-panel-navigation'
+import { MasterPanelNavigation, NavigationOrder } from './master-panel-navigation'
 type Props = {
   children?: ReactNode
   'aria-label'?: string
@@ -107,4 +108,31 @@ it('loads the persisted order after a fresh mount', () => {
   const fixture = mount(defaults.toReversed(), 4)
   expect(fixture.labels()).toEqual(MASTER_PANEL_NAVIGATION.map((p) => p.label).toReversed())
   expect(fixture.button('Move Activity Log up').disabled).toBe(true)
+})
+
+it.each([
+  MASTER_PANEL_NAVIGATION,
+  MASTER_PANEL_NAVIGATION.toReversed(),
+  [
+    MASTER_PANEL_NAVIGATION.find((item) => item.id === 'activity')!,
+    ...MASTER_PANEL_NAVIGATION.filter((item) => item.id !== 'activity'),
+  ],
+])('keeps the arrange control after all tabs regardless of their order', (...items) => {
+  const html = renderToStaticMarkup(
+    <MasterPanelNavigation items={items} activeSection="activity" canArrange />,
+  )
+  const gear = html.indexOf('aria-label="Arrange Master Panel tabs"')
+  expect(gear).toBeGreaterThan(html.lastIndexOf('</a>'))
+  expect(html.match(/aria-label="Arrange Master Panel tabs"/g)).toHaveLength(1)
+})
+
+it('does not grant an arrange control to staff without permission', () => {
+  const html = renderToStaticMarkup(
+    <MasterPanelNavigation
+      items={MASTER_PANEL_NAVIGATION}
+      activeSection="activity"
+      canArrange={false}
+    />,
+  )
+  expect(html).not.toContain('aria-label="Arrange Master Panel tabs"')
 })

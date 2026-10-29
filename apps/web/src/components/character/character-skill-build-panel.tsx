@@ -35,6 +35,7 @@ import {
 import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
+import artworkScaleStyles from '../battle/battle-artwork-scale.module.css'
 import {
   skillDisplayName,
   skillParameterRows,
@@ -767,7 +768,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       {open && mounted
         ? createPortal(
             <div
-              className={styles.backdrop}
+              className={`${styles.backdrop} ${artworkScaleStyles.scale}`}
               data-techniques-overlay="true"
               role="presentation"
               onPointerDown={() => setPanelOpen(false)}

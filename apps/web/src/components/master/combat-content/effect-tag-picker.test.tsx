@@ -29,7 +29,13 @@ it.each(['native', 'canonical'])(
       expect(html).toContain(`>${tag}</option>`)
     expect(html).toContain('aria-label="Search effect tags"')
     expect(html).not.toContain('Copy Buffs / Copy Debuffs</option>')
-    expect(html).toContain('Revealed is applied by Reveal')
+    for (const retired of [
+      'Revealed is applied by Reveal',
+      'HP Recovery (fixed amount)',
+      'Damage Bonus',
+      'Blindside (debuff)',
+    ])
+      expect(html).not.toContain(retired)
   },
 )
 it.each(['native', 'canonical'])(

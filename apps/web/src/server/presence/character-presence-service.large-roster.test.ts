@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createClient } from '@supabase/supabase-js'
 
 const { rpc, from, images } = vi.hoisted(() => ({
   rpc: vi.fn(),
@@ -31,31 +32,29 @@ beforeEach(() => {
   failNames = false
   rpc.mockImplementation((name: string, args?: { p_character_ids: string[] }) => {
     if (name === 'get_current_discipline_catalog_v1') {
-      return {
-        select: (columns: string) => {
-          expect(columns).toBe('discipline_id,name')
-          return {
-            in: async (column: string, ids: string[]) => {
-              expect(column).toBe('discipline_id')
-              expect(ids.length).toBeLessThanOrEqual(100)
-              return {
-                error: failNames ? { code: '503' } : null,
-                data: failNames
-                  ? null
-                  : ids.map((id) => ({
-                      discipline_id: id,
-                      name: id.startsWith('discipline.')
-                        ? 'Super Saiyan'
-                        : id === 'vanguard'
-                          ? 'The Vanguard'
-                          : 'Lifebinder',
-                      authored_definition: 'private-definition-sentinel',
-                    })),
-              }
-            },
-          }
+      // The hosted function returns one JSONB array, not a set of database rows.
+      // Keep the real client/query serialization: table projections and filters
+      // on this scalar RPC fail at the gateway instead of hydrating names.
+      return createClient('https://catalogue.example.test', 'test-public-key', {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        global: {
+          fetch: async (input) => {
+            const url = new URL(String(input))
+            if (failNames || url.searchParams.size > 0)
+              return Response.json({ message: 'Catalogue query unavailable' }, { status: 400 })
+            return Response.json([
+              {
+                discipline_id: customDisciplineId,
+                name: 'Super Saiyan',
+                authored_definition: { secret: 'private-definition-sentinel' },
+              },
+              { discipline_id: 'vanguard', name: 'The Vanguard' },
+              { discipline_id: 'lifebinder', name: 'Lifebinder' },
+              { discipline_id: 'unselected.discipline', name: 'Unrelated Discipline' },
+            ])
+          },
         },
-      }
+      }).rpc(name)
     }
     if (name === 'get_character_public_active_disciplines_v1') {
       return Promise.resolve({
@@ -161,7 +160,7 @@ describe('large public character rosters', () => {
 
 const customDisciplineId = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
 it.each([listOnlineCharacters, listCharacterPresenceDirectory])(
-  'hydrates published custom and renamed builtin names in one bounded roster read',
+  'hydrates custom and renamed builtin names from the scalar JSON catalogue without exposing definitions',
   async (list) => {
     primaryDisciplineId = customDisciplineId
     const rows = await list()

@@ -1,4 +1,3 @@
-import { hasMasterPanelCapability } from '@/lib/master-panel-access'
 import { BattlefieldElevationEditor } from '@/components/master/combat-content/battlefield-elevation-editor'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { CombatEffectTimingEditor } from '@/components/master/combat-content/combat-effect-timing-editor'
@@ -21,8 +20,6 @@ export default async function MasterCombatTimingPage() {
     >
       <CombatEffectTimingEditor
         key={actor.userId}
-        recoveryScope={actor.userId}
-        canEditWording={hasMasterPanelCapability(access, 'content.combat.author')}
         effectUsedBy={timing.effectUsedBy}
         initialPolicy={timing.policy}
         usedBy={timing.usedBy}

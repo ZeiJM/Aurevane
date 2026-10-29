@@ -52,7 +52,7 @@ const variants: readonly AuthorableEffectTag[] = [
   { id: 'damage-bonus', label: 'Damage Bonus', opcode: 'damage-bonus' },
   { id: 'summon', label: 'Summon', opcode: 'summon' },
 ]
-export const AUTHORABLE_EFFECT_TAGS: readonly AuthorableEffectTag[] = Object.freeze([
+export const REGISTERED_EFFECT_TAGS: readonly AuthorableEffectTag[] = Object.freeze([
   ...variants,
   ...SUPPORTED_COMBAT_STATUS_IDS.filter(
     (statusId) => !['burn', 'poison', 'bleed'].includes(statusId),
@@ -64,15 +64,28 @@ export const AUTHORABLE_EFFECT_TAGS: readonly AuthorableEffectTag[] = Object.fre
       ...(statusId === 'revealed'
         ? { unavailableReason: 'Revealed is applied by Reveal. Choose Reveal to set its duration.' }
         : {}),
-      label: `${combatStatusDetails(statusId).name}${statusId === BLINDSIDE_DEBUFF_STATUS_ID ? ' (debuff)' : ''}`,
+      label: combatStatusDetails(statusId).name,
     }))
     .sort((a, b) => a.label.localeCompare(b.label)),
 ])
+/** Retained payloads and captured wording remain readable; these are not new-authoring choices. */
+export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
+  REGISTERED_EFFECT_TAGS.filter(
+    (tag) => !['healing', 'damage-bonus', 'status:blindside', 'status:revealed'].includes(tag.id),
+  ),
+)
+export function currentCombatTagName(tagId: string, name: string): string {
+  return tagId === BLINDSIDE_DEBUFF_STATUS_ID && name === 'Blindside (debuff)' ? 'Blindside' : name
+}
+
 export function combatEffectIdentity(
   payload: CombatTagPayload | CombatEffectDefinition | CombatSummonEffect,
 ): AuthorableEffectTag {
   let id: string = payload.type
   switch (payload.type) {
+    case 'damage-bonus':
+      id = 'status:inspired'
+      break
     case 'damage':
       id = payload.vengeance
         ? 'vengeance'
@@ -123,7 +136,7 @@ export function combatEffectIdentity(
       break
   }
   return (
-    AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id) ?? {
+    REGISTERED_EFFECT_TAGS.find((tag) => tag.id === id) ?? {
       id,
       label: payload.type,
       opcode: payload.type,
@@ -139,7 +152,7 @@ export function combatEffectPresentationId(
 }
 export const COMBAT_PRESENTATION_TAG_IDS: readonly string[] = Object.freeze([
   ...new Set(
-    AUTHORABLE_EFFECT_TAGS.flatMap((tag) => [tag.id.replace(/^status:/u, ''), tag.opcode]),
+    REGISTERED_EFFECT_TAGS.flatMap((tag) => [tag.id.replace(/^status:/u, ''), tag.opcode]),
   ),
 ])
 export function isCombatPresentationTagId(id: unknown): id is string {

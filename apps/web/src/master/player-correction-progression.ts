@@ -42,7 +42,7 @@ export function playerProgressionProposal(
   let fitLevel: number | null = null
   let redistribution: CharacterAttributes | null = null
   if (issues.every((issue) => issue.code === 'point-pool-exceeded')) {
-    for (let candidate = level; candidate <= curve.maxLevel; candidate++) {
+    for (let candidate = 1; candidate <= curve.maxLevel; candidate++) {
       if (!validateAttributeAllocation({ attributes, level: candidate, policy }).length) {
         fitLevel = candidate
         break
@@ -79,6 +79,8 @@ export function playerProgressionProposal(
     issues,
     fitLevel,
     fitXp: fitLevel === null ? null : xpForPlayerLevel(fitLevel, curve),
+    fitUnspent:
+      fitLevel === null ? null : personalAttributePointPoolForLevel(fitLevel) - personalSpent,
     redistribution,
   }
 }

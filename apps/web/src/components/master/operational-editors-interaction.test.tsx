@@ -117,7 +117,7 @@ it('saves elevation without reason while retaining the exact concurrency version
     policy: { ...policy, model: 'independent-highest' },
   })
 })
-it('submits manual weather minutes and cycle without reason or history and preserves keep-current choice', async () => {
+it('submits one weather cadence with manual selection and preserves keep-current choice', async () => {
   const settings = { ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS, version: 4 }
   const request = vi
     .fn()
@@ -131,7 +131,6 @@ it('submits manual weather minutes and cycle without reason or history and prese
   change(control(render(), 'Day length (real minutes)'), '120')
   change(control(render(), 'Automatic weather roll interval (real minutes)'), '15')
   change(control(render(), 'Weather selection'), 'storm')
-  change(control(render(), 'Forced weather duration (minutes)'), '37')
   const submit = () =>
     (
       find(render(), (node) => node.type === 'form').props.onSubmit as (e: unknown) => Promise<void>
@@ -145,14 +144,13 @@ it('submits manual weather minutes and cycle without reason or history and prese
       timeOffsetMinutes: 0,
       frozenMinuteOfDay: null,
       weather: 'storm',
-      durationMinutes: 37,
     },
   })
   await submit()
   expect(JSON.parse(request.mock.calls[1]![1].body).change.weather).toBe('unchanged')
   expect(JSON.parse(request.mock.calls[1]![1].body).expectedVersion).toBe(5)
   change(control(render(), 'Weather selection'), 'rain')
-  change(control(render(), 'Forced weather duration (minutes)'), '0')
+  change(control(render(), 'Automatic weather roll interval (real minutes)'), '0')
   await submit()
   expect(request).toHaveBeenCalledTimes(2)
 })

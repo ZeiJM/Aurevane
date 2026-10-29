@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
+import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
 import { BASIC_SKILL_IDS } from '@aurevane/game-core/combat/combat-basic-actions'
 import type {
   CombatContentDefinition,
@@ -22,6 +23,10 @@ import {
 } from './content-record-workflow'
 import {
   loadCompleteContentList,
+  isContentBrowserCategory,
+  isContentBrowserRecord,
+  normalizeContentRecoveryNavigation,
+  migrateLegacyTagWordingRecovery,
   disciplineMasteryCommit,
   holdContentCommit,
   disciplineSkillCandidates,
@@ -61,6 +66,7 @@ export interface CombatContentAuthoringWorkspaceProps {
   readonly references?: readonly ContentReference[]
   readonly tagPresentations?: readonly CombatTagPresentationSnapshot[]
   readonly recoveryScope?: string
+  readonly legacyWordingRecoveryScope?: string
 }
 const categoryOf = (record: Pick<CompleteCombatContentRecord, 'contentKind' | 'contentKey'>) =>
   record.contentKind === 'skill' &&
@@ -76,14 +82,16 @@ export function CombatContentAuthoringWorkspace({
   initialRecord = null,
   references = [],
   recoveryScope = '',
+  legacyWordingRecoveryScope = '',
   initialAbilitySection,
 }: CombatContentAuthoringWorkspaceProps) {
+  const visibleCategories = categories.filter((row) => isContentBrowserCategory(row.category))
   const [record, setRecord] = useState(initialRecord)
   const [definition, setDefinition] = useState<CombatContentDefinition | null>(
     initialRecord ? editableDefinition(initialRecord) : null,
   )
   const [category, setCategory] = useState(
-    initialRecord ? categoryOf(initialRecord) : (categories[0]?.category ?? 'discipline'),
+    initialRecord ? categoryOf(initialRecord) : (visibleCategories[0]?.category ?? 'discipline'),
   )
   const [page, setPage] = useState(initialPage)
   const [search, setSearch] = useState('')
@@ -117,10 +125,17 @@ export function CombatContentAuthoringWorkspace({
   const loadId = useRef(0)
   const hydrated = useRef(false)
   const recoveryWarning = useRef(false)
+  const recoveryWriteBlocked = useRef(false)
   const recoverySnapshot = useRef<WorkspaceRecovery | null>(null)
   const persistenceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const initialProps = useRef({ categories, initialPage, initialRecord })
+  const initialProps = useRef({
+    categories,
+    initialPage,
+    initialRecord,
+    legacyWordingRecoveryScope,
+  })
   const storageKey = recoveryKey(recoveryScope)
+  const visibleRecords = page.records.filter(isContentBrowserRecord)
   const descriptor = categories.find((row) => row.category === category)
   const activeKind = newDefinition ? descriptor?.storedKind : record?.contentKind
   const rawActiveDefinition = newDefinition ?? definition
@@ -362,7 +377,13 @@ export function CombatContentAuthoringWorkspace({
     })
   }
   function flushRecovery() {
-    if (!storageKey || !hydrated.current || !recoverySnapshot.current) return
+    if (
+      !storageKey ||
+      !hydrated.current ||
+      !recoverySnapshot.current ||
+      recoveryWriteBlocked.current
+    )
+      return
     try {
       sessionStorage.setItem(
         storageKey,
@@ -395,8 +416,50 @@ export function CombatContentAuthoringWorkspace({
     queueMicrotask(async () => {
       if (!live) return
       let saved: WorkspaceRecovery | null = null
+      let resetSelection = false
+      const props = initialProps.current
       try {
-        saved = parseWorkspaceRecovery(sessionStorage.getItem(storageKey))
+        recoveryWriteBlocked.current = true
+        const migrated = migrateLegacyTagWordingRecovery(
+          sessionStorage,
+          props.legacyWordingRecoveryScope,
+        )
+        recoveryWriteBlocked.current = false
+        const local = parseWorkspaceRecovery(sessionStorage.getItem(storageKey))
+        const previous = local
+          ? { ...local, edits: { ...migrated?.edits, ...local.edits } }
+          : migrated
+            ? {
+                ...migrated,
+                category: props.initialRecord ? categoryOf(props.initialRecord) : migrated.category,
+                selectedKey: props.initialRecord?.contentKey ?? migrated.selectedKey,
+                tab: 'Parameters',
+                search: '',
+                listScroll: 0,
+                editorScroll: 0,
+                newDefinition: null,
+                newRequestId: null,
+                createAttempt: null,
+              }
+            : null
+        if (previous) {
+          saved = normalizeContentRecoveryNavigation(
+            previous,
+            props.categories.find((row) => isContentBrowserCategory(row.category))?.category ??
+              'discipline',
+            props.initialRecord?.contentKey,
+          )
+          resetSelection = saved !== previous
+          if (resetSelection && previous.newDefinition) {
+            // Keep the original snapshot intact if the retained creation cannot be backed up.
+            recoveryWriteBlocked.current = true
+            sessionStorage.setItem(
+              `${storageKey}:retained-creation:${previous.category}`,
+              JSON.stringify(previous),
+            )
+            recoveryWriteBlocked.current = false
+          }
+        }
       } catch {
         if (live)
           setError(
@@ -420,12 +483,12 @@ export function CombatContentAuthoringWorkspace({
           setDefinition(null)
         }
       }
-      const props = initialProps.current
       const cat =
         saved?.category ??
         (props.initialRecord
           ? categoryOf(props.initialRecord)
-          : (props.categories[0]?.category ?? 'discipline'))
+          : (props.categories.find((row) => isContentBrowserCategory(row.category))?.category ??
+            'discipline'))
       const selected = props.categories.find((row) => row.category === cat)
       try {
         const result = await loadCompleteContentList((after) =>
@@ -445,10 +508,13 @@ export function CombatContentAuthoringWorkspace({
         )
         if (!live) return
         setPage(result)
-        if (saved?.selectedKey) {
+        const selectedKey =
+          saved?.selectedKey ??
+          (resetSelection ? result.records.find(isContentBrowserRecord)?.contentKey : null)
+        if (selectedKey) {
           const response = await contentRecordCommand<{
             record: CompleteCombatContentRecord | null
-          }>({ action: 'read', contentKey: saved.selectedKey })
+          }>({ action: 'read', contentKey: selectedKey })
           if (!live) return
           if (response.record) {
             let local: PendingContentEdit | undefined =
@@ -501,7 +567,7 @@ export function CombatContentAuthoringWorkspace({
     }
     if (!storageKey) return
     const timer = setTimeout(() => {
-      if (hydrated.current && recoverySnapshot.current) {
+      if (hydrated.current && recoverySnapshot.current && !recoveryWriteBlocked.current) {
         try {
           sessionStorage.setItem(storageKey, JSON.stringify(recoverySnapshot.current))
         } catch {
@@ -516,7 +582,7 @@ export function CombatContentAuthoringWorkspace({
   useEffect(() => {
     if (!storageKey) return
     const save = () => {
-      if (hydrated.current && recoverySnapshot.current) {
+      if (hydrated.current && recoverySnapshot.current && !recoveryWriteBlocked.current) {
         try {
           sessionStorage.setItem(
             storageKey,
@@ -586,7 +652,12 @@ export function CombatContentAuthoringWorkspace({
               disabled={restoring || busy || !!newDefinition}
               onChange={(event) => void browse(event.currentTarget.value as typeof category)}
             >
-              {categories.map((row) => (
+              {!isContentBrowserCategory(category) ? (
+                <option value={category} disabled>
+                  Linked retained record
+                </option>
+              ) : null}
+              {visibleCategories.map((row) => (
                 <option key={row.category} value={row.category}>
                   {row.group === 'Skills' ? `Skills · ${row.label}` : row.label}
                 </option>
@@ -602,7 +673,7 @@ export function CombatContentAuthoringWorkspace({
               scheduleRecovery()
             }}
           >
-            {page.records.map((row) => (
+            {visibleRecords.map((row) => (
               <button
                 type="button"
                 key={row.contentKey}
@@ -611,11 +682,16 @@ export function CombatContentAuthoringWorkspace({
                 disabled={restoring || busy || !!newDefinition}
                 onClick={() => void read(row.contentKey)}
               >
-                {row.name ?? row.contentKey}
+                {row.contentKind === 'tag'
+                  ? currentCombatTagName(
+                      row.contentKey.replace(/^tag\./u, ''),
+                      row.name ?? row.contentKey,
+                    )
+                  : (row.name ?? row.contentKey)}
                 {pending[row.contentKey] ? <small>Unsaved edits</small> : null}
               </button>
             ))}
-            {!page.records.length ? <p>No matching content.</p> : null}
+            {!visibleRecords.length ? <p>No matching content.</p> : null}
           </nav>
           <form
             className={styles.toolbar}
@@ -935,11 +1011,11 @@ export function CombatContentAuthoringWorkspace({
                       }
                       kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
                       value={activeDefinition}
-                      tab="Parameters"
+                      tab={tab}
                       onChange={change}
                       choices={choices}
                     />
-                    {record?.contentKind === 'discipline' ? (
+                    {record?.contentKind === 'discipline' && tab === 'Parameters' ? (
                       <DisciplinePlayerGrants disciplineId={record.contentKey} />
                     ) : null}
                   </fieldset>

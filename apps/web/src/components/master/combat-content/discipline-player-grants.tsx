@@ -1,5 +1,5 @@
 'use client'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 interface Player {
   accountId: string
   characterId?: string
@@ -25,10 +25,14 @@ function DisciplinePlayerGrantEditor({ disciplineId }: { disciplineId: string })
     [selected, setSelected] = useState<Player[]>([]),
     [grants, setGrants] = useState<Player[]>([]),
     [reason, setReason] = useState(''),
+    [reasonError, setReasonError] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [more, setMore] = useState(false)
   const active = useRef(false)
+  const pending = useRef(false)
+  const reasonInput = useRef<HTMLInputElement>(null)
+  const reasonId = useId()
   const refresh = useCallback(
     async (after?: string) => {
       const rows = await command<Player[]>({
@@ -52,6 +56,8 @@ function DisciplinePlayerGrantEditor({ disciplineId }: { disciplineId: string })
     }
   }, [refresh])
   async function search() {
+    if (pending.current) return
+    pending.current = true
     setBusy(true)
     setError('')
     try {
@@ -60,18 +66,32 @@ function DisciplinePlayerGrantEditor({ disciplineId }: { disciplineId: string })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed.')
     } finally {
+      pending.current = false
       setBusy(false)
     }
   }
   async function write(operation: 'grant' | 'revoke', players: Player[]) {
-    setBusy(true)
+    if (pending.current) return
     setError('')
+    setReasonError('')
+    const auditReason = reason.trim()
+    if (!auditReason) {
+      setReasonError(
+        operation === 'revoke'
+          ? 'Enter a reason to revoke this grant.'
+          : 'Enter a reason to grant access.',
+      )
+      reasonInput.current?.focus()
+      return
+    }
+    pending.current = true
+    setBusy(true)
     try {
       await command({
         operation,
         disciplineId,
         accountIds: players.map((p) => p.accountId),
-        reason,
+        reason: auditReason,
       })
       if (active.current) {
         setSelected([])
@@ -80,6 +100,7 @@ function DisciplinePlayerGrantEditor({ disciplineId }: { disciplineId: string })
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Grant change failed.')
     } finally {
+      pending.current = false
       setBusy(false)
     }
   }
@@ -119,12 +140,32 @@ function DisciplinePlayerGrantEditor({ disciplineId }: { disciplineId: string })
       ))}
       {selected.length > 0 && <p>{selected.map((p) => p.name).join(', ')}</p>}
       <label>
-        Reason
-        <input value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} />
+        Reason (required)
+        <input
+          ref={reasonInput}
+          value={reason}
+          maxLength={500}
+          disabled={busy}
+          aria-required="true"
+          aria-invalid={Boolean(reasonError)}
+          aria-describedby={`${reasonId}-help${reasonError ? ` ${reasonId}-error` : ''}`}
+          onChange={(event) => {
+            setReason(event.target.value)
+            setReasonError('')
+          }}
+        />
       </label>
+      <p id={`${reasonId}-help`}>
+        Required when granting or revoking access. Saved in the audit history.
+      </p>
+      {reasonError && (
+        <p id={`${reasonId}-error`} role="alert">
+          {reasonError}
+        </p>
+      )}
       <button
         type="button"
-        disabled={busy || !selected.length || selected.length > 50 || !reason.trim()}
+        disabled={busy || !selected.length || selected.length > 50}
         onClick={() => void write('grant', selected)}
       >
         Grant to selected players
@@ -133,11 +174,7 @@ function DisciplinePlayerGrantEditor({ disciplineId }: { disciplineId: string })
         {grants.map((player) => (
           <li key={player.accountId}>
             {player.name}{' '}
-            <button
-              type="button"
-              disabled={busy || !reason.trim()}
-              onClick={() => void write('revoke', [player])}
-            >
+            <button type="button" disabled={busy} onClick={() => void write('revoke', [player])}>
               Revoke grant
             </button>
           </li>

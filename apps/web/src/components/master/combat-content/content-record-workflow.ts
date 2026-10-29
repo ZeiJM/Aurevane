@@ -1,3 +1,4 @@
+import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
 import type {
   CombatContentDefinition,
   CompleteCombatContentRecord,
@@ -53,7 +54,8 @@ export async function contentRecordCommand<T>(command: Record<string, unknown>):
 }
 
 export function contentRecordName(definition: CombatContentDefinition): string {
-  if (typeof definition.name === 'string' && definition.name.trim()) return definition.name
+  if (typeof definition.name === 'string' && definition.name.trim())
+    return currentCombatTagName(String(definition.tagId ?? ''), definition.name)
   const id = String(definition.id ?? definition.essenceId ?? 'Content')
   return (id.includes('.') ? id.slice(id.indexOf('.') + 1) : id)
     .split(/[._-]/u)

@@ -107,6 +107,10 @@
 .heading {
   justify-content: space-between;
   flex-wrap: wrap;
+  margin-bottom: 0.85rem;
+}
+.heading h2 {
+  margin: 0;
 }
 .hint,
 .workspace small {

@@ -39,7 +39,7 @@ export function SkillCharacteristicRows({
       <dd title={label === 'Target Method' ? targetMethodExplanation : undefined}>
         {label === 'Effects' && effectSummary ? (
           effectSummary
-        ) : label === 'Requirements' && requirementParts ? (
+        ) : label === 'Requirements' ? (
           <MechanicTextView
             text={typeof value === 'string' ? value : value.join(', ') || 'N/A'}
             parts={requirementParts}

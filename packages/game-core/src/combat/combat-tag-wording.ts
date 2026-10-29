@@ -1,9 +1,9 @@
-import { AUTHORABLE_EFFECT_TAGS } from './combat-effect-identities'
+import { REGISTERED_EFFECT_TAGS } from './combat-effect-identities'
 import type { AuthoredTag } from '../content/authored-content'
 
 /** Defaults preserve the generated parameter-aware text until an Owner edits this tag. */
 export function defaultCombatTagDefinitions(): readonly AuthoredTag[] {
-  return AUTHORABLE_EFFECT_TAGS.map((tag) => {
+  return REGISTERED_EFFECT_TAGS.map((tag) => {
     const tagId = tag.id.replace(/^status:/u, '')
     return {
       schemaVersion: 1,

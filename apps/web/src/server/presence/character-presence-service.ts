@@ -184,28 +184,32 @@ async function loadPublicCharacterPresentationMaps(characterIds: readonly string
     for (const [id, identity] of identityMap) identities.set(id, identity)
     for (const [id, image] of imageMap) images.set(id, image)
   }
-  // Read only names for already-public committed identities, once per distinct Discipline.
+  // The catalogue RPC returns one JSONB array, so it cannot take table filters.
+  // Read it once on the server and project only names for already-public identities.
   // Never send authored definitions, unlocks, grants or stats through the public roster.
-  const disciplineIds = [
-    ...new Set(
-      [...identities.values()].flatMap((identity) =>
-        [identity.disciplineId, identity.secondaryDisciplineId].filter(
-          (id): id is string => id !== null,
-        ),
+  const disciplineIds = new Set(
+    [...identities.values()].flatMap((identity) =>
+      [identity.disciplineId, identity.secondaryDisciplineId].filter(
+        (id): id is string => id !== null,
       ),
     ),
-  ]
+  )
   const names = new Map<string, string>()
-  const supabase = createSupabaseAdminClient()
-  for (let offset = 0; offset < disciplineIds.length; offset += 100) {
-    const { data, error } = await supabase
-      .rpc('get_current_discipline_catalog_v1')
-      .select('discipline_id,name')
-      .in('discipline_id', disciplineIds.slice(offset, offset + 100))
-    if (error || !Array.isArray(data)) continue
-    for (const row of data) {
-      if (typeof row.discipline_id === 'string' && typeof row.name === 'string' && row.name.trim())
-        names.set(row.discipline_id, row.name.trim())
+  if (disciplineIds.size > 0) {
+    const { data, error } = await createSupabaseAdminClient().rpc(
+      'get_current_discipline_catalog_v1',
+    )
+    if (!error && Array.isArray(data)) {
+      for (const row of data) {
+        if (
+          row &&
+          typeof row.discipline_id === 'string' &&
+          disciplineIds.has(row.discipline_id) &&
+          typeof row.name === 'string' &&
+          row.name.trim()
+        )
+          names.set(row.discipline_id, row.name.trim())
+      }
     }
   }
   for (const identity of identities.values()) {

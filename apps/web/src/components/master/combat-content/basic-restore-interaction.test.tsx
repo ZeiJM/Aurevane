@@ -2,6 +2,9 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { ContentRecordPreview } from './content-record-preview'
 import { ContentRecordModal } from './content-record-modal'
 import { DeleteDiscipline } from './delete-discipline'
+import { DisciplinePlayerGrants } from './discipline-player-grants'
+import { FinalizedMediaEditor } from './finalized-media-editor'
+import type { FinalizedContentMediaSlots } from '@aurevane/game-core/combat/content-media'
 import { DisciplineRelationshipList } from './discipline-relationship-list'
 import { NewRelationshipPower } from './new-relationship-power'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
@@ -67,7 +70,10 @@ vi.mock('react', async (original) => ({
 }))
 vi.mock('server-only', () => ({}))
 import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
-import { CombatContentAuthoringWorkspace } from './combat-content-authoring-workspace'
+import {
+  CombatContentAuthoringWorkspace,
+  type CombatContentAuthoringWorkspaceProps,
+} from './combat-content-authoring-workspace'
 import { ContentDefinitionFields } from './content-definition-fields'
 import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { AbilityText } from './ability-editor-fields'
@@ -98,7 +104,11 @@ afterEach(() => {
   for (const cleanup of hooks.cleanups) cleanup()
   vi.unstubAllGlobals()
 })
-function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatContentRecord> = {}) {
+function fixture(
+  id: string = 'basic.guard',
+  override: Partial<CompleteCombatContentRecord> = {},
+  workspaceProps: Partial<CombatContentAuthoringWorkspaceProps> = {},
+) {
   const definition = { ...structuredClone(defaultBasicSkills().find((row) => row.id === id)!) }
   const version = (n: number) => ({
     contentVersion: n,
@@ -167,6 +177,7 @@ function fixture(id: string = 'basic.guard', override: Partial<CompleteCombatCon
         ],
         nextCursor: null,
       },
+      ...workspaceProps,
     })
     hooks.effects.splice(0).forEach((effect) => effect())
     return tree
@@ -347,6 +358,56 @@ function disciplineFixture() {
   })
   return f
 }
+it('routes Discipline Artwork to image editing and commits only finalized artwork through Commit Now', async () => {
+  const f = disciplineFixture()
+  const original = f.initial.current!.definition
+  expect(find(f.render(), (node) => node.type === DisciplinePlayerGrants)).toBeTruthy()
+  await f.click('Artwork')
+  expect(f.button('Artwork').props['aria-pressed']).toBe(true)
+  expect(f.fields().props.tab).toBe('Media')
+  expect(find(f.render(), (node) => node.type === DisciplinePlayerGrants)).toBeNull()
+  const fields = ContentDefinitionFields(
+    f.fields().props as unknown as Parameters<typeof ContentDefinitionFields>[0],
+  )
+  expect(find(fields, (node) => node.props.label === 'Name')).toBeNull()
+  const media = find(fields, (node) => node.type === FinalizedMediaEditor)!
+  expect(media.props.allowAudio).toBe(false)
+  expect(f.request).not.toHaveBeenCalled()
+  const artwork = {
+    id: '00000000-0000-4000-8000-000000000012',
+    kind: 'image',
+    contentType: 'image/png',
+    checksum: 'a'.repeat(64),
+    byteLength: 100,
+    width: 4,
+    height: 4,
+    sourceWidth: 8,
+    sourceHeight: 4,
+    crop: { x: 2, y: 0, size: 4 },
+  }
+  ;(media.props.onChange as (value: unknown) => void)({ artwork })
+  const changed = { ...original, media: { ...((original.media as object) ?? {}), artwork } }
+  expect(f.fields().props.value).toEqual(changed)
+  expect(f.request).not.toHaveBeenCalled()
+  await f.click('Discipline Details')
+  expect(f.fields().props.tab).toBe('Parameters')
+  expect(find(f.render(), (node) => node.type === DisciplinePlayerGrants)).toBeTruthy()
+  await f.click('Artwork')
+  expect(f.fields().props.value).toEqual(changed)
+  f.reply({
+    ...f.initial,
+    revision: 10,
+    current: { ...f.initial.current!, contentVersion: 6, definition: changed },
+  })
+  await f.click('Commit Now')
+  expect(f.command()).toEqual({
+    action: 'commit',
+    contentKey: f.initial.contentKey,
+    expectedRevision: 9,
+    definition: changed,
+  })
+  expect(f.fields().props.value).toEqual(changed)
+})
 it.each([null, 'discipline.partner'])(
   'opens a new relationship power and commits only its %s slot',
   async (partner) => {
@@ -989,3 +1050,303 @@ it('successful Discipline deletion removes the current selection and its pending
     'Discipline deleted. Saved battle history is retained.',
   )
 })
+
+const uploadedArtwork = {
+  id: '00000000-0000-4000-8000-000000000012',
+  kind: 'image' as const,
+  contentType: 'image/png' as const,
+  checksum: 'a'.repeat(64),
+  byteLength: 100,
+  width: 4,
+  height: 4,
+  sourceWidth: 8,
+  sourceHeight: 4,
+  crop: { x: 2, y: 0, size: 4 },
+}
+function mediaFixture(initial: FinalizedContentMediaSlots) {
+  let value = initial
+  vi.stubGlobal('URL', { createObjectURL: () => 'blob:selected-image', revokeObjectURL() {} })
+  vi.stubGlobal('window', {
+    Image: class {
+      naturalWidth = 8
+      naturalHeight = 4
+      onload: (() => void) | null = null
+      set src(_value: string) {
+        queueMicrotask(() => this.onload?.())
+      }
+    },
+  })
+  const request = vi.fn()
+  vi.stubGlobal('fetch', request)
+  function render() {
+    hooks.index = 0
+    const tree = FinalizedMediaEditor({
+      value,
+      allowAudio: false,
+      fallbackArtwork: '/builtin.webp',
+      onChange(next) {
+        value = next
+      },
+    })
+    hooks.effects.splice(0).forEach((effect) => effect())
+    return tree
+  }
+  const control = (label: string) => find(render(), (node) => node.props['aria-label'] === label)!
+  const uploadButton = () =>
+    find(render(), (node) => node.type === 'button' && node.props.children === 'Upload file')!
+  async function select() {
+    ;(control('Upload content media').props.onChange as (event: unknown) => void)({
+      currentTarget: {
+        files: [new File(['image'], 'selected.png', { type: 'image/png' })],
+        value: 'selected.png',
+      },
+    })
+    await vi.waitFor(() => expect(uploadButton().props.disabled).toBe(false))
+  }
+  return { render, control, uploadButton, select, request, value: () => value }
+}
+it.each(['builtin', 'custom'])(
+  'keeps current %s artwork beside the selected crop without changing the definition',
+  async (source) => {
+    const custom = source === 'custom'
+    const initial = custom ? { artwork: uploadedArtwork } : {}
+    const f = mediaFixture(initial)
+    const current = () =>
+      find(
+        f.render(),
+        (node) => node.props.alt === (custom ? 'Finalized artwork crop' : 'Current artwork'),
+      )
+    expect(current()).toBeTruthy()
+    await f.select()
+    expect(current()).toBeTruthy()
+    expect(f.control('Actual crop preview')).toBeTruthy()
+    expect(f.control('Crop size').props.value).toBe(4)
+    expect(f.value()).toBe(initial)
+    expect(f.request).not.toHaveBeenCalled()
+  },
+)
+it('adds only a successfully finalized upload to local edits and keeps the old artwork on upload failure', async () => {
+  const initial = { artwork: uploadedArtwork }
+  const f = mediaFixture(initial)
+  await f.select()
+  f.request.mockResolvedValueOnce(
+    Response.json({ error: { message: 'Upload rejected' } }, { status: 400 }),
+  )
+  ;(f.uploadButton().props.onClick as () => void)()
+  await vi.waitFor(() =>
+    expect(find(f.render(), (node) => node.props.role === 'alert')?.props.children).toBe(
+      'Upload rejected',
+    ),
+  )
+  expect(f.value()).toBe(initial)
+  expect(f.control('Actual crop preview')).toBeTruthy()
+  const next = { ...uploadedArtwork, id: '00000000-0000-4000-8000-000000000013' }
+  f.request.mockResolvedValueOnce(Response.json({ media: next }))
+  ;(f.uploadButton().props.onClick as () => void)()
+  await vi.waitFor(() => expect(f.value()).toEqual({ artwork: next }))
+  expect(f.control('Actual crop preview')).toBeNull()
+  expect(find(f.render(), (node) => node.props.alt === 'Finalized artwork crop')?.props.src).toBe(
+    `/api/master/combat-content/media/${next.id}`,
+  )
+  expect(f.uploadButton().props.disabled).toBe(true)
+  expect(f.request.mock.calls.map(([url]) => url)).toEqual([
+    '/api/master/combat-content/media',
+    '/api/master/combat-content/media',
+  ])
+  expect(f.request.mock.calls[1]![1].body.get('crop')).toBe(JSON.stringify({ x: 2, y: 0, size: 4 }))
+})
+
+it.each([
+  ['status', false],
+  ['tag', false],
+  ['status', true],
+] as const)(
+  'loads visible content after stale %s recovery and preserves hidden drafts (storage failure: %s)',
+  async (category, storageFailure) => {
+    const key = category === 'tag' ? 'tag.healing' : 'status.legacy'
+    const saved = {
+      schema: 1,
+      category,
+      selectedKey: key,
+      tab: 'Parameters',
+      search: 'old hidden selection',
+      sort: 'name-asc',
+      listScroll: 10,
+      editorScroll: 20,
+      edits: { [key]: { revision: 5, definition: { id: key, name: 'Keep old edits' } } },
+      newDefinition:
+        category === 'status' ? { id: 'status.new', name: 'Keep uncreated record' } : null,
+    }
+    const storageKey = 'aurevane.master.content.v1:recover-hidden'
+    const storage = new Map([[storageKey, JSON.stringify(saved)]])
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        if (storageFailure && key.includes(':retained-creation:')) throw new Error('Storage full')
+        storage.set(key, value)
+      },
+    })
+    const listeners = new Map<string, () => void>()
+    vi.stubGlobal('window', {
+      addEventListener: (event: string, callback: () => void) => listeners.set(event, callback),
+      removeEventListener: (event: string) => listeners.delete(event),
+    })
+    vi.stubGlobal('requestAnimationFrame', (callback: () => void) => callback())
+    const f = fixture('basic.guard', {}, { recoveryScope: 'recover-hidden' })
+    f.request.mockImplementation((_url, options) => {
+      const command = JSON.parse(options.body).command
+      if (command.action === 'list')
+        return Promise.resolve(
+          Response.json({
+            records: [
+              {
+                contentKey: 'basic.guard',
+                contentKind: 'skill',
+                lifecycle: 'active',
+                revision: 9,
+                name: 'Guard',
+              },
+            ],
+            nextCursor: null,
+          }),
+        )
+      if (command.action === 'read') return Promise.resolve(Response.json({ record: f.initial }))
+      throw new Error('Recovery must not mutate content')
+    })
+    await vi.waitFor(() => expect(f.render().props['aria-busy']).toBe(false))
+    expect(f.fields().props.value).toEqual(f.initial.draft!.definition)
+    const listCommand = JSON.parse(f.request.mock.calls[0]![1].body).command
+    expect(listCommand).toMatchObject({ search: '', kind: category === 'tag' ? 'tag' : 'skill' })
+    expect(f.request.mock.calls.map((call) => JSON.parse(call[1].body).command.action)).toEqual([
+      'list',
+      'read',
+    ])
+    f.render()
+    listeners.get('pagehide')!()
+    expect(JSON.parse(storage.get(storageKey)!).edits).toEqual(saved.edits)
+    if (storageFailure) expect(JSON.parse(storage.get(storageKey)!)).toEqual(saved)
+    else if (saved.newDefinition)
+      expect(
+        JSON.parse(storage.get(`${storageKey}:retained-creation:status`)!).newDefinition,
+      ).toEqual(saved.newDefinition)
+  },
+)
+
+it.each(['status', 'effect-profile'] as const)(
+  'keeps an explicitly linked %s record readable without exposing its category for browsing',
+  (contentKind) => {
+    const definition = COMBAT_CONTENT_CATEGORIES.find((entry) => entry.category === contentKind)!
+      .editor.defaultDefinition ?? { id: 'retained.profile', name: 'Retained profile' }
+    const f = fixture('basic.guard', {
+      contentKind,
+      contentKey: String(definition.id),
+      draft: null,
+      current: null,
+      builtinDefinition: definition,
+      history: [],
+    })
+    expect(f.fields().props.value).toEqual(definition)
+    expect(f.fields().props.kind).toBe(contentKind)
+    const option = find(
+      f.render(),
+      (node) => node.type === 'option' && node.props.value === contentKind,
+    )!
+    expect(option.props.disabled).toBe(true)
+    expect(option.props.children).toBe('Linked retained record')
+    if (contentKind === 'effect-profile') expect(f.button('Commit Now').props.disabled).toBe(true)
+    expect(f.request).not.toHaveBeenCalled()
+  },
+)
+
+it.each([false, true])(
+  'imports legacy Rules wording into the actual Game Content editor (linked: %s)',
+  async (linked) => {
+    const oldDefinition = {
+      id: 'tag.damage',
+      tagId: 'damage',
+      name: 'Old Rules draft',
+      description: 'Old wording',
+    }
+    const mainDefinition = { ...oldDefinition, name: 'Newer Game Content draft' }
+    const snapshot = {
+      schema: 1,
+      category: 'tag',
+      selectedKey: 'tag.damage',
+      tab: 'Parameters',
+      search: '',
+      sort: 'name-asc',
+      listScroll: 0,
+      editorScroll: 0,
+      newDefinition: null,
+      edits: {
+        'tag.damage': { revision: 9, definition: oldDefinition },
+        'tag.burn': { revision: 2, definition: { id: 'tag.burn', name: 'Keep old burn draft' } },
+      },
+    }
+    const baseKey = 'aurevane.master.content.v1:owner'
+    const legacyKey = `${baseKey}:tag-wording`
+    const scope = linked ? 'owner:linked:tag.damage' : 'owner'
+    const storage = new Map([
+      [legacyKey, JSON.stringify(snapshot)],
+      [
+        baseKey,
+        JSON.stringify({
+          ...snapshot,
+          edits: { 'tag.damage': { revision: 9, definition: mainDefinition } },
+        }),
+      ],
+    ])
+    vi.stubGlobal('sessionStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    })
+    const listeners = new Map<string, () => void>()
+    vi.stubGlobal('window', {
+      addEventListener: (event: string, callback: () => void) => listeners.set(event, callback),
+      removeEventListener: (event: string) => listeners.delete(event),
+    })
+    vi.stubGlobal('requestAnimationFrame', (callback: () => void) => callback())
+    const f = fixture(
+      'basic.guard',
+      { contentKind: 'tag', contentKey: 'tag.damage', draft: null },
+      { recoveryScope: scope, legacyWordingRecoveryScope: 'owner' },
+    )
+    f.request.mockImplementation((_url, options) => {
+      const command = JSON.parse(options.body).command
+      if (command.action === 'list')
+        return Promise.resolve(
+          Response.json({
+            records: [
+              {
+                contentKey: 'tag.damage',
+                contentKind: 'tag',
+                lifecycle: 'active',
+                revision: 9,
+                name: 'Damage',
+              },
+            ],
+            nextCursor: null,
+          }),
+        )
+      if (command.action === 'read') return Promise.resolve(Response.json({ record: f.initial }))
+      throw new Error('Recovery must not commit content')
+    })
+    await vi.waitFor(() => expect(f.render().props['aria-busy']).toBe(false))
+    expect(f.fields().props.value).toEqual(mainDefinition)
+    expect(storage.has(legacyKey)).toBe(false)
+    expect(JSON.parse(storage.get(baseKey)!).edits).toEqual({
+      ...snapshot.edits,
+      'tag.damage': { revision: 9, definition: mainDefinition },
+    })
+    f.render()
+    listeners.get('pagehide')!()
+    expect(JSON.parse(storage.get(`aurevane.master.content.v1:${scope}`)!).edits).toEqual(
+      JSON.parse(storage.get(baseKey)!).edits,
+    )
+    expect(f.request.mock.calls.map((call) => JSON.parse(call[1].body).command.action)).toEqual([
+      'list',
+      'read',
+    ])
+  },
+)

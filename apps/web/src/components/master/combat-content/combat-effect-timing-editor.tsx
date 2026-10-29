@@ -1,11 +1,8 @@
 'use client'
 import Link from 'next/link'
-import {
-  captureCombatTagPresentation,
-  type CombatTagPresentationSnapshot,
-} from '@aurevane/game-core/combat/combat-tag-registry'
-import type { AuthoredTag } from '@aurevane/game-core/content/authored-content'
-import { useEffect, useState, type FormEvent } from 'react'
+import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
+import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
+import { useState, type FormEvent } from 'react'
 import {
   CONTROLLED_COMBAT_TIMING_TAGS,
   combatEffectTimingMode,
@@ -14,15 +11,6 @@ import {
 } from '@aurevane/game-core/combat/combat-effect-timing'
 import { OperationalDialog } from '../operational-dialog'
 import { MasterHelp } from '../master-help'
-import dynamic from 'next/dynamic'
-const ContentRecordModal = dynamic(() =>
-  import('./content-record-modal').then((module) => module.ContentRecordModal),
-)
-import {
-  parseWorkspaceRecovery,
-  recoveryKey,
-  type PendingContentEdit,
-} from './content-workspace-recovery'
 import { EFFECT_RULE_ROWS } from './effect-rule-rows'
 import styles from './combat-effect-timing-editor.module.css'
 
@@ -32,67 +20,22 @@ export function CombatEffectTimingEditor({
   usedBy = {},
   effectUsedBy,
   tagPresentations = [],
-  canEditWording = false,
-  recoveryScope,
 }: {
   initialPolicy: CombatEffectTimingPolicy
   usedBy?: UsedBy
   effectUsedBy?: UsedBy
   tagPresentations?: readonly CombatTagPresentationSnapshot[]
-  canEditWording?: boolean
-  recoveryScope?: string
 }) {
   const [policy, setPolicy] = useState(initialPolicy)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('name-asc')
-  const [wording, setWording] = useState(tagPresentations)
-  const [descriptionKey, setDescriptionKey] = useState<string | null>(null)
-  const [pending, setPending] = useState<Record<string, PendingContentEdit>>({})
-  const [recoveryReady, setRecoveryReady] = useState(!recoveryScope)
-  const storageKey = recoveryScope ? recoveryKey(`${recoveryScope}:tag-wording`) : null
-  useEffect(() => {
-    let live = true
-    queueMicrotask(() => {
-      if (!live) return
-      if (storageKey) {
-        try {
-          setPending(parseWorkspaceRecovery(sessionStorage.getItem(storageKey))?.edits ?? {})
-        } catch {
-          /* Storage is optional; keep the in-memory editor usable. */
-        }
-      }
-      setRecoveryReady(true)
-    })
-    return () => {
-      live = false
-    }
-  }, [storageKey])
-  useEffect(() => {
-    if (!storageKey || !recoveryReady) return
-    try {
-      sessionStorage.setItem(
-        storageKey,
-        JSON.stringify({
-          schema: 1,
-          category: 'tag',
-          selectedKey: descriptionKey,
-          tab: 'Parameters',
-          search: '',
-          sort: 'name-asc',
-          listScroll: 0,
-          editorScroll: 0,
-          edits: pending,
-          newDefinition: null,
-        }),
-      )
-    } catch {
-      /* Keep the live draft if browser storage is unavailable. */
-    }
-  }, [storageKey, recoveryReady, pending, descriptionKey])
   const label = (id: string) =>
-    wording.find((row) => row.tagId === id)?.name ??
-    EFFECT_RULE_ROWS.find((row) => row.id === id)!.label
+    currentCombatTagName(
+      id,
+      tagPresentations.find((row) => row.tagId === id)?.name ??
+        EFFECT_RULE_ROWS.find((row) => row.id === id)!.label,
+    )
   const timingOrder = ['instant', 'next-round', 'delayed', 'controlled']
   const modeFor = (row: (typeof EFFECT_RULE_ROWS)[number]) =>
     row.timingTag ? combatEffectTimingMode(policy, row.timingTag) : 'instant'
@@ -144,7 +87,7 @@ export function CombatEffectTimingEditor({
           </p>
           <p>
             Tags that use the same engine operation share timing. Changing a shared timing updates
-            its matching rows here. Descriptions are edited independently for each tag.
+            its matching rows here. Edit tag descriptions in Game Content → Tag Library.
           </p>
           <p>
             Display order: Instant, Normal, Delayed, Controlled. Sorting does not change execution
@@ -183,14 +126,13 @@ export function CombatEffectTimingEditor({
           </select>
         </label>
       </div>
-      <div className={styles.rules} data-edit-wording={canEditWording || undefined}>
+      <div className={styles.rules}>
         <table>
           <thead>
             <tr>
               <th scope="col">Effect tag</th>
               <th scope="col">Timing</th>
               <th scope="col">Used by</th>
-              {canEditWording ? <th scope="col">Description</th> : null}
             </tr>
           </thead>
           <tbody>
@@ -236,6 +178,12 @@ export function CombatEffectTimingEditor({
                     ) : (
                       <span>{row.id === 'revealed' ? 'Uses Reveal timing' : 'Instant'}</span>
                     )}
+                    {row.id === 'inspired' ? (
+                      <small>
+                        Timed buffs use this timing. Attached bonuses apply to their action; ongoing
+                        bonuses follow their requirements.
+                      </small>
+                    ) : null}
                   </td>
                   <td>
                     {users.length ? (
@@ -263,22 +211,6 @@ export function CombatEffectTimingEditor({
                       'No current definitions'
                     )}
                   </td>
-                  {canEditWording ? (
-                    <td>
-                      {row.id !== 'ground-area' ? (
-                        <button
-                          type="button"
-                          disabled={!recoveryReady}
-                          aria-label={`Edit ${label(row.id)} descriptions`}
-                          onClick={() => setDescriptionKey(`tag.${row.id}`)}
-                        >
-                          Edit descriptions
-                        </button>
-                      ) : (
-                        <span>Area policy</span>
-                      )}
-                    </td>
-                  ) : null}
                 </tr>
               )
             })}
@@ -289,40 +221,6 @@ export function CombatEffectTimingEditor({
         {saving ? 'Saving…' : 'Save Changes'}
       </button>
       <p role="status">{message}</p>
-      {Object.keys(pending).length ? (
-        <p>
-          {Object.keys(pending).length} uncommitted description{' '}
-          {Object.keys(pending).length === 1 ? 'draft' : 'drafts'}. Closing an editor keeps your
-          wording.
-        </p>
-      ) : null}
-      {descriptionKey ? (
-        <ContentRecordModal
-          key={descriptionKey}
-          contentKey={descriptionKey}
-          choices={[]}
-          pending={pending[descriptionKey] ?? null}
-          onClose={() => setDescriptionKey(null)}
-          onChange={(key, edit) =>
-            setPending((previous) => {
-              const next = { ...previous }
-              if (edit) next[key] = edit
-              else delete next[key]
-              return next
-            })
-          }
-          onSaved={(record) => {
-            if (!record.current) return
-            const snapshot = captureCombatTagPresentation(
-              record.current.definition as unknown as AuthoredTag,
-            )
-            setWording((previous) => [
-              ...previous.filter((item) => item.tagId !== snapshot.tagId),
-              snapshot,
-            ])
-          }}
-        />
-      ) : null}
     </form>
   )
 }

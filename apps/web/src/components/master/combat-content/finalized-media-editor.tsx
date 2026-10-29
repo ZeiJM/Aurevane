@@ -112,14 +112,71 @@ export function FinalizedMediaEditor({
     }
   }
   return (
-    <fieldset className={styles.typedGroup} disabled={busy}>
-      <legend>
-        {allowAudio ? 'Artwork and sound' : 'Artwork'}{' '}
+    <fieldset
+      className={styles.mediaUpload}
+      data-media-editor
+      aria-label={allowAudio ? 'Artwork and sound' : 'Artwork'}
+      disabled={busy}
+    >
+      <div className={styles.mediaHeading}>
+        <strong>{allowAudio ? 'Artwork and sound' : 'Artwork'}</strong>
         <MasterHelp label="Media uploads">{CONTENT_MEDIA_GUIDANCE}</MasterHelp>
-      </legend>
-      {!value.artwork && fallbackArtwork && !(preview && file?.type.startsWith('image/')) ? (
-        <Image src={fallbackArtwork} alt="Current artwork" width={144} height={144} unoptimized />
-      ) : null}
+      </div>
+      <div className={styles.mediaPreviewGrid}>
+        {!value.artwork && fallbackArtwork ? (
+          <div>
+            <p>Current artwork</p>
+            <Image
+              src={fallbackArtwork}
+              alt="Current artwork"
+              width={192}
+              height={192}
+              unoptimized
+            />
+          </div>
+        ) : null}
+        {value.artwork && (
+          <div>
+            <p>Current artwork</p>
+            <Image
+              src={contentMediaSource(value.artwork, true)}
+              onError={() =>
+                setError(
+                  'The finalized artwork preview is unavailable. Check your access or try again.',
+                )
+              }
+              alt="Finalized artwork crop"
+              width={192}
+              height={192}
+              unoptimized
+            />
+            {showArtworkRemoval && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange({ ...value, artwork: undefined })
+                  }}
+                >
+                  Remove uploaded artwork
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {file?.type.startsWith('image/') && (
+          <div>
+            <p>Selected upload crop</p>
+            <canvas
+              ref={canvas}
+              width={192}
+              height={192}
+              aria-label="Actual crop preview"
+              style={{ maxWidth: '100%' }}
+            />
+          </div>
+        )}
+      </div>
       <label className={styles.field}>
         <span>Upload from computer</span>
         <input
@@ -163,13 +220,6 @@ export function FinalizedMediaEditor({
               />
             </label>
           ))}
-          <canvas
-            ref={canvas}
-            width={192}
-            height={192}
-            aria-label="Actual crop preview"
-            style={{ maxWidth: '100%' }}
-          />
         </div>
       )}
       {file && !file.type.startsWith('image/') && preview && (
@@ -191,34 +241,7 @@ export function FinalizedMediaEditor({
       >
         {busy ? 'Uploading…' : 'Upload file'}
       </button>
-      {value.artwork && !(preview && file?.type.startsWith('image/')) && (
-        <div>
-          <Image
-            src={contentMediaSource(value.artwork, true)}
-            onError={() =>
-              setError(
-                'The finalized artwork preview is unavailable. Check your access or try again.',
-              )
-            }
-            alt="Finalized artwork crop"
-            width={144}
-            height={144}
-            unoptimized
-          />
-          {showArtworkRemoval && (
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange({ ...value, artwork: undefined })
-                }}
-              >
-                Remove uploaded artwork
-              </button>
-            </>
-          )}
-        </div>
-      )}
+      <p>Upload file adds media to your edits. Use Commit Now to save it.</p>
       {value.audio && (
         <div>
           <audio

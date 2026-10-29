@@ -403,10 +403,15 @@ export async function exerciseMasterAtBrowserZoom(
     await activate(button(`Inspect ${identity.characterName}`), 'inspect-player')
     const reader = protectedPlayerReader(page)
     await expect(reader).toHaveCount(1)
-    const more = reader.locator('summary', { hasText: /^More player details$/ })
-    await expect(more.locator('..')).not.toHaveAttribute('open', '')
-    await activate(more, 'expand-protected-player-details')
-    await expect(reader).toContainText('Identity and account access are protected.')
+    await expect(reader.locator('summary', { hasText: /^More player details$/ })).toHaveCount(0)
+    for (const label of [
+      'Support action',
+      'Calculated maximum resources',
+      'World position',
+      'Saved loadouts',
+    ])
+      await expect(reader.locator('dt').filter({ hasText: new RegExp(`^${label}$`) })).toBeVisible()
+    await expect(reader).not.toContainText('Identity and account access are protected.')
     await state('protected-player-reader', reader)
     await activate(button('Refresh player'), 'refresh-player')
   } else if (route === '/master/events') {

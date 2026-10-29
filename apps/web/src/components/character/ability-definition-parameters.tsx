@@ -72,12 +72,24 @@ export function AbilityDefinitionParameters({
                   if (effect.tagPresentation || explanations?.[effectIndex] == null) return effect
                   const { explanationParts: _generated, ...authoredEffect } = effect
                   void _generated
-                  return authoredEffect
+                  return {
+                    ...authoredEffect,
+                    explanationParts: effect.condition
+                      ? [
+                          explanations![effectIndex]!,
+                          ' Applies only when ',
+                          ...(effect.conditionParts ?? [effect.condition]),
+                          '.',
+                        ]
+                      : undefined,
+                  }
                 }),
                 effectDescriptions: report.effectDescriptions.map((fallback, effectIndex) =>
                   report.effects[effectIndex]?.tagPresentation
                     ? fallback
-                    : (explanations?.[effectIndex] ?? fallback),
+                    : explanations?.[effectIndex] == null
+                      ? fallback
+                      : `${explanations[effectIndex]}${report.effects[effectIndex]?.condition ? ` Applies only when ${report.effects[effectIndex]!.condition}.` : ''}`,
                 ),
               }}
               characteristicsClassName={characteristicsClassName}

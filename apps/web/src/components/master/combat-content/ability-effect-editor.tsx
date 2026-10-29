@@ -105,7 +105,7 @@ export function AbilityEffectEditor({
   } else if (payload.type === 'damage-bonus') {
     controls = (
       <AbilityNumber
-        label="Outgoing damage bonus (%)"
+        label="Damage Up (%)"
         value={(payload.multiplierBasisPoints - 10000) / 100}
         step={0.01}
         onChange={(percent) =>

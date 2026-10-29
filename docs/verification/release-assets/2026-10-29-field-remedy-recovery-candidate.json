@@ -1,0 +1,789 @@
+{
+  "schemaVersion": 1,
+  "status": "unpublished-candidate-requires-fresh-live-catalogue-review",
+  "sourceManifests": [
+    {
+      "path": "docs/superpowers/specs/2026-10-18-modular-correction-cohort.json",
+      "sha256": "998a68515af8cfbb2ce38ecb949fd595a044eb617175bf14d7520ca400c8d02f"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-essence-resonance-identity-cohort.json",
+      "sha256": "d74c7e65bdf8b73560b5d890ba08c776b1a523c300fe3810e88013195a8892f1"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-resonance-modularity-cohort.json",
+      "sha256": "5b2a44f8b88489064e1e993af77023677c8cb83ed6e869d10fe6933b438c4534"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-19-simple-requirements-cohort.json",
+      "sha256": "7f2baf49ec379b3367dfe88a81058ae6865d76f7db49f0154b8b3a67efaa41fa"
+    },
+    {
+      "path": "docs/verification/release-assets/2026-10-22-resonance-trigger-fix.json",
+      "sha256": "9cc398ddc7614befe35179803dfe1d9adb544bc8e13d55d4f02df25f32b12562"
+    },
+    {
+      "path": "docs/verification/release-assets/2026-10-22-resonance-quality-candidate.json",
+      "sha256": "cf293826aabb6d64e56e864ba348f9760af41ccbc20052d051e06f773634fe0e"
+    },
+    {
+      "path": "docs/verification/release-assets/2026-10-22-passive-readiness-candidate.json",
+      "sha256": "9815b88291abe20f2fa6463d4e3db5e0d34eeaf8af5ea7d1ad8daeaf0dcffa89"
+    }
+  ],
+  "inventoryCount": 294,
+  "unchangedCurrentCount": 293,
+  "immutableHistoryPreserved": true,
+  "reason": "Owner requested unconditional capped HP Recovery after Cleanse; Requirements describe the whole Skill.",
+  "records": [
+    {
+      "id": "wildwarden.field-remedy",
+      "kind": "skill",
+      "beforeVersion": 7,
+      "beforeDigest": "402982675337670449872c14ec5bec399964b5f7095b88bf2f0c01f1c825e342",
+      "afterDigest": "cc09a1d7b747d2a91a5429992a967219eb440a257913203b91bed03f0614893f",
+      "before": {
+        "id": "wildwarden.field-remedy",
+        "sourceDisciplineId": "wildwarden",
+        "contentVersion": 7,
+        "enabled": true,
+        "nameRef": "skill.wildwarden.field-remedy.name",
+        "descriptionRef": "Remove common debuffs.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "apCost": 45,
+        "mpCost": 4,
+        "target": {
+          "geometryVersion": 3,
+          "kind": "self",
+          "teamPolicy": "self",
+          "friendlyFire": "allies-only",
+          "categories": ["self"],
+          "shape": {
+            "kind": "single"
+          },
+          "minimumRange": 0,
+          "maximumRange": 0,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": null,
+          "maximumSelections": 1
+        },
+        "effects": [
+          {
+            "type": "percentage-recovery",
+            "recipient": "actor",
+            "resource": "hp",
+            "percent": 12,
+            "ticks": 1,
+            "durationTurns": 0
+          },
+          {
+            "type": "remove-status",
+            "recipient": "actor",
+            "statusIds": [
+              "burn",
+              "bleed",
+              "poison",
+              "slow",
+              "root",
+              "exposed",
+              "mark",
+              "challenged"
+            ],
+            "durationTurns": 0
+          }
+        ],
+        "requirements": [],
+        "tags": ["discipline", "wildwarden", "heal", "cleanse", "cockpit:recovery"],
+        "cooldown": {
+          "key": "wildwarden.field-remedy",
+          "ownerTurns": 3
+        },
+        "ai": {
+          "enabled": true,
+          "baseUtility": 66,
+          "purposeTags": ["heal", "cleanse"]
+        },
+        "overrides": {},
+        "media": {
+          "iconKey": "skill.wildwarden.field-remedy.icon",
+          "audioCueKey": "skill.wildwarden.field-remedy.audio",
+          "vfxKey": "skill.wildwarden.field-remedy.vfx"
+        },
+        "authoring": {
+          "schemaVersion": 1,
+          "status": "representative",
+          "validationTags": [
+            "p4",
+            "wildwarden",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "captured-percentage-recovery"
+          ]
+        },
+        "accuracyMode": "automatic",
+        "flavorLine": "Clear an affliction and turn that repair into recovery.",
+        "ability": {
+          "schemaVersion": 1,
+          "behaviors": [
+            {
+              "id": "field-remedy",
+              "activation": "manual",
+              "mode": "action",
+              "classification": "recovery",
+              "costs": [
+                {
+                  "resource": "ap",
+                  "amount": 45
+                },
+                {
+                  "resource": "mp",
+                  "amount": 4
+                }
+              ],
+              "cooldown": {
+                "key": "wildwarden.field-remedy",
+                "ownerTurns": 3
+              },
+              "requirements": null,
+              "targeting": {
+                "geometryVersion": 3,
+                "kind": "self",
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "categories": ["self"],
+                "shape": {
+                  "kind": "single"
+                },
+                "minimumRange": 0,
+                "maximumRange": 0,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null,
+                "maximumSelections": 1
+              },
+              "effects": [
+                {
+                  "id": "remove-status",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "burn",
+                      "bleed",
+                      "poison",
+                      "slow",
+                      "root",
+                      "exposed",
+                      "mark",
+                      "challenged"
+                    ]
+                  }
+                },
+                {
+                  "id": "percentage-recovery",
+                  "payload": {
+                    "type": "percentage-recovery",
+                    "recipient": "actor",
+                    "resource": "hp",
+                    "percentageBasisPoints": 900,
+                    "ticks": 1,
+                    "durationTurns": 0
+                  },
+                  "requirements": {
+                    "kind": "any",
+                    "children": [
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "burn",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "bleed",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "poison",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "slow",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "root",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "exposed",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "mark",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "challenged",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "owner",
+                        "statusId": "suppress",
+                        "present": true
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "after": {
+        "id": "wildwarden.field-remedy",
+        "sourceDisciplineId": "wildwarden",
+        "contentVersion": 8,
+        "enabled": true,
+        "nameRef": "skill.wildwarden.field-remedy.name",
+        "descriptionRef": "Remove common debuffs.",
+        "unlockRequirement": {
+          "kind": "discipline-mastery",
+          "minimumStage": 1
+        },
+        "apCost": 45,
+        "mpCost": 4,
+        "target": {
+          "geometryVersion": 3,
+          "kind": "self",
+          "teamPolicy": "self",
+          "friendlyFire": "allies-only",
+          "categories": ["self"],
+          "shape": {
+            "kind": "single"
+          },
+          "minimumRange": 0,
+          "maximumRange": 0,
+          "requiresLineOfSight": false,
+          "maximumElevationDifference": null,
+          "maximumSelections": 1
+        },
+        "effects": [
+          {
+            "type": "percentage-recovery",
+            "recipient": "actor",
+            "resource": "hp",
+            "percent": 12,
+            "ticks": 1,
+            "durationTurns": 0
+          },
+          {
+            "type": "remove-status",
+            "recipient": "actor",
+            "statusIds": [
+              "burn",
+              "bleed",
+              "poison",
+              "slow",
+              "root",
+              "exposed",
+              "mark",
+              "challenged"
+            ],
+            "durationTurns": 0
+          }
+        ],
+        "requirements": [],
+        "tags": ["discipline", "wildwarden", "heal", "cleanse", "cockpit:recovery"],
+        "cooldown": {
+          "key": "wildwarden.field-remedy",
+          "ownerTurns": 3
+        },
+        "ai": {
+          "enabled": true,
+          "baseUtility": 66,
+          "purposeTags": ["heal", "cleanse"]
+        },
+        "overrides": {},
+        "media": {
+          "iconKey": "skill.wildwarden.field-remedy.icon",
+          "audioCueKey": "skill.wildwarden.field-remedy.audio",
+          "vfxKey": "skill.wildwarden.field-remedy.vfx"
+        },
+        "authoring": {
+          "schemaVersion": 1,
+          "status": "representative",
+          "validationTags": [
+            "p4",
+            "wildwarden",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "power-1-20",
+            "duration-aware",
+            "cooldown-1-3",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "captured-percentage-recovery"
+          ]
+        },
+        "accuracyMode": "automatic",
+        "flavorLine": "Clear common afflictions and recover HP.",
+        "ability": {
+          "schemaVersion": 1,
+          "behaviors": [
+            {
+              "id": "field-remedy",
+              "activation": "manual",
+              "mode": "action",
+              "classification": "recovery",
+              "costs": [
+                {
+                  "resource": "ap",
+                  "amount": 45
+                },
+                {
+                  "resource": "mp",
+                  "amount": 4
+                }
+              ],
+              "cooldown": {
+                "key": "wildwarden.field-remedy",
+                "ownerTurns": 3
+              },
+              "requirements": null,
+              "targeting": {
+                "geometryVersion": 3,
+                "kind": "self",
+                "teamPolicy": "self",
+                "friendlyFire": "allies-only",
+                "categories": ["self"],
+                "shape": {
+                  "kind": "single"
+                },
+                "minimumRange": 0,
+                "maximumRange": 0,
+                "requiresLineOfSight": false,
+                "maximumElevationDifference": null,
+                "maximumSelections": 1
+              },
+              "effects": [
+                {
+                  "id": "remove-status",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "actor",
+                    "statusIds": [
+                      "burn",
+                      "bleed",
+                      "poison",
+                      "slow",
+                      "root",
+                      "exposed",
+                      "mark",
+                      "challenged"
+                    ]
+                  }
+                },
+                {
+                  "id": "percentage-recovery",
+                  "payload": {
+                    "type": "percentage-recovery",
+                    "recipient": "actor",
+                    "resource": "hp",
+                    "percentageBasisPoints": 900,
+                    "ticks": 1,
+                    "durationTurns": 0
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "effectRequirementAudit": [
+    {
+      "kind": "skill",
+      "id": "shadehand.execution-cut",
+      "contentVersion": 8,
+      "behaviorId": "execution-cut",
+      "effectId": "damage-2",
+      "effectType": "damage",
+      "skillRequirements": {
+        "kind": "resource-state",
+        "subject": "selected",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "exposed",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "bastion.stalwart-strike",
+      "contentVersion": 6,
+      "behaviorId": "stalwart-strike",
+      "effectId": "damage-2",
+      "effectType": "damage",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "fortified",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.desperate-execution",
+      "contentVersion": 7,
+      "behaviorId": "desperate-execution",
+      "effectId": "damage-2",
+      "effectType": "damage",
+      "skillRequirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "hp",
+        "comparison": "less-than",
+        "basisPoints": 3500
+      },
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "owner",
+        "statusId": "reckless",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "ravager.open-wound",
+      "contentVersion": 7,
+      "behaviorId": "open-wound",
+      "effectId": "bleed",
+      "effectType": "bleed",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "bleed",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.field-remedy",
+      "contentVersion": 7,
+      "behaviorId": "field-remedy",
+      "effectId": "percentage-recovery",
+      "effectType": "percentage-recovery",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "any",
+        "children": [
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "bleed",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "slow",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "root",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "exposed",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "challenged",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "owner",
+            "statusId": "suppress",
+            "present": true
+          }
+        ]
+      },
+      "decision": "remove-recovery-gate"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.pursuit-shot",
+      "contentVersion": 6,
+      "behaviorId": "pursuit-shot",
+      "effectId": "damage-2",
+      "effectType": "damage",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "mark",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "wildwarden.close-quarry",
+      "contentVersion": 7,
+      "behaviorId": "close-quarry",
+      "effectId": "resource-change",
+      "effectType": "resource-change",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "mark",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "cinderweaver.scorch",
+      "contentVersion": 6,
+      "behaviorId": "scorch",
+      "effectId": "damage-2",
+      "effectType": "damage",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "burn",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.shatter",
+      "contentVersion": 9,
+      "behaviorId": "shatter",
+      "effectId": "damage-2",
+      "effectType": "damage",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "frostweaver.brittle-ice",
+      "contentVersion": 8,
+      "behaviorId": "brittle-ice",
+      "effectId": "apply-status",
+      "effectType": "apply-status",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "frozen",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "stormsinger.conductive-bolt",
+      "contentVersion": 9,
+      "behaviorId": "conductive-bolt",
+      "effectId": "damage-2",
+      "effectType": "damage",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "conductive",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "skill",
+      "id": "tidecaller.crushing-wave",
+      "contentVersion": 8,
+      "behaviorId": "crushing-wave",
+      "effectId": "displace",
+      "effectType": "displace",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "wet",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.aetherist.aether-nova",
+      "contentVersion": 9,
+      "behaviorId": "aether-nova",
+      "effectId": "stored-aether",
+      "effectType": "damage",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "resource-state",
+        "subject": "owner",
+        "resource": "mp",
+        "comparison": "more-than",
+        "basisPoints": 7500
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.farstrider.deadeye-barrage",
+      "contentVersion": 7,
+      "behaviorId": "deadeye-barrage",
+      "effectId": "prepared-lines",
+      "effectType": "damage",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "status-presence",
+        "subject": "selected",
+        "statusId": "mark",
+        "present": true
+      },
+      "decision": "retain-pending-individual-design-review"
+    },
+    {
+      "kind": "essence",
+      "id": "essence.dawnshield.dawns-oath",
+      "contentVersion": 7,
+      "behaviorId": "dawns-oath",
+      "effectId": "percentage-recovery",
+      "effectType": "percentage-recovery",
+      "skillRequirements": null,
+      "effectRequirements": {
+        "kind": "any",
+        "children": [
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "burn",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "bleed",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "poison",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "slow",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "root",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "exposed",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "mark",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "challenged",
+            "present": true
+          },
+          {
+            "kind": "status-presence",
+            "subject": "selected",
+            "statusId": "suppress",
+            "present": true
+          }
+        ]
+      },
+      "decision": "retain-pending-individual-design-review"
+    }
+  ]
+}

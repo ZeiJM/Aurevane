@@ -5,7 +5,6 @@ import {
   MAX_WORLD_DAY_MINUTES,
   MAX_WEATHER_ROLL_MINUTES,
   DEFAULT_WEATHER_ROLL_MINUTES,
-  MAX_WEATHER_DURATION_MINUTES,
   WORLD_WEATHER,
   resolveWorldEnvironment,
   worldTimeLabel,
@@ -44,7 +43,6 @@ export function WorldEnvironmentEditor({
   const [frozen, setFrozen] = useState(initialSettings.frozenMinuteOfDay !== null)
   const [clock, setClock] = useState(worldTimeLabel(initialSettings.frozenMinuteOfDay ?? 720))
   const [weather, setWeather] = useState<WorldWeather | 'live' | 'unchanged'>('unchanged')
-  const [duration, setDuration] = useState('60')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   useEffect(() => {
@@ -59,8 +57,6 @@ export function WorldEnvironmentEditor({
   const offsetValue = /^-?\d{1,4}$/.test(offset) ? Number(offset) : NaN
   const dayValue = /^\d+$/.test(dayLength) ? Number(dayLength) : NaN
   const rollValue = /^\d+$/.test(weatherRoll) ? Number(weatherRoll) : NaN
-  const durationValue = /^\d+$/.test(duration) ? Number(duration) : NaN
-  const forcingWeather = weather !== 'live' && weather !== 'unchanged'
   const frozenMinute = frozen ? parseClock(clock) : null
   const valid =
     Math.abs(offsetValue) <= MAX_TIME_OFFSET_MINUTES &&
@@ -70,11 +66,7 @@ export function WorldEnvironmentEditor({
     dayValue <= MAX_WORLD_DAY_MINUTES &&
     Number.isSafeInteger(rollValue) &&
     rollValue >= 1 &&
-    rollValue <= MAX_WEATHER_ROLL_MINUTES &&
-    (!forcingWeather ||
-      (Number.isSafeInteger(durationValue) &&
-        durationValue >= 1 &&
-        durationValue <= MAX_WEATHER_DURATION_MINUTES))
+    rollValue <= MAX_WEATHER_ROLL_MINUTES
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!valid || saving) return
@@ -92,7 +84,6 @@ export function WorldEnvironmentEditor({
             timeOffsetMinutes: offsetValue,
             frozenMinuteOfDay: frozenMinute,
             weather: weather === 'live' ? null : weather,
-            durationMinutes: durationValue,
           },
         }),
       })
@@ -128,9 +119,9 @@ export function WorldEnvironmentEditor({
             keep the same weather. Default: every 360 minutes (six hours).
           </p>
           <p>
-            Saving a forced selection starts its duration. Expiry returns to ordinary shared
-            weather. Rain renders as snow in Frostmere; Storm renders as Snowstorm there. Keep
-            current weather preserves its original expiry.
+            Manual selections last until the next automatic roll. Saving Keep current weather
+            preserves an earlier expiry and limits any longer override to the next roll. Rain
+            renders as snow in Frostmere; Storm renders as Snowstorm there.
           </p>
         </MasterHelp>
       </div>
@@ -227,19 +218,7 @@ export function WorldEnvironmentEditor({
               ))}
             </select>
           </label>
-          <label>
-            Forced weather duration (minutes)
-            <input
-              type="number"
-              min={1}
-              max={MAX_WEATHER_DURATION_MINUTES}
-              step="1"
-              required={forcingWeather}
-              value={duration}
-              onChange={(event) => setDuration(event.currentTarget.value)}
-            />
-            <small>Applies when you select a weather override.</small>
-          </label>
+          <small>Manual selections last until the next automatic roll.</small>
         </fieldset>
       </div>
       <button type="submit" disabled={saving || !valid}>

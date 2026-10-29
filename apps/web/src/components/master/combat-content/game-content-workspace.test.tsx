@@ -230,3 +230,36 @@ it('uses a compact sidebar without pagination/state controls or misplaced commit
   expect(html).not.toContain('All states')
   expect(html).not.toContain('Committing content')
 })
+
+it('hides internal categories and retired Tag Library rows while retaining current tag wording', () => {
+  const html = renderToStaticMarkup(
+    <CombatContentAuthoringWorkspace
+      categories={COMBAT_CONTENT_CATEGORIES.map((row) => row.editor)}
+      initialPage={{
+        nextCursor: null,
+        records: [
+          'healing',
+          'damage-bonus',
+          'blindside',
+          'revealed',
+          'blindside-vulnerability',
+          'damage',
+        ].map((tagId) => ({
+          contentKey: `tag.${tagId}`,
+          contentKind: 'tag',
+          lifecycle: 'active',
+          revision: 1,
+          name: tagId === 'blindside-vulnerability' ? 'Blindside (debuff)' : tagId,
+        })),
+      }}
+    />,
+  )
+  expect(html).not.toContain('<option value="status"')
+  expect(html).not.toContain('<option value="effect-profile"')
+  for (const id of ['healing', 'damage-bonus', 'blindside', 'revealed'])
+    expect(html).not.toContain(`data-content-key="tag.${id}"`)
+  expect(html).toContain('data-content-key="tag.blindside-vulnerability"')
+  expect(html).not.toContain('Blindside (debuff)')
+  expect(html).toContain('>Blindside<')
+  expect(html).toContain('data-content-key="tag.damage"')
+})
