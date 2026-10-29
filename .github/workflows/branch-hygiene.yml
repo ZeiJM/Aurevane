@@ -1,0 +1,59 @@
+name: Safe branch hygiene
+
+on:
+  push:
+    branches:
+      - maintenance/branch-hygiene-20261029
+    paths:
+      - .github/workflows/branch-hygiene.yml
+      - .github/scripts/branch-hygiene.mjs
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Remove only independently verified, aged, safe branches
+        type: boolean
+        default: false
+        required: true
+  schedule:
+    - cron: '23 7 * * 0'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: safe-branch-hygiene
+  cancel-in-progress: false
+
+jobs:
+  inspect-and-prune:
+    if: github.repository == 'ZeiJM/Aurevane'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Fetch full branch and commit history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+          persist-credentials: false
+
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Audit refs and only prune when explicitly enabled
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLEANUP_MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'apply' || (github.event_name == 'workflow_dispatch' && inputs.apply && 'apply') || 'dry-run' }}
+        run: node .github/scripts/branch-hygiene.mjs
+
+      - name: Retain complete audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-hygiene-report
+          path: branch-hygiene-report.json
+          if-no-files-found: warn
+          retention-days: 90
