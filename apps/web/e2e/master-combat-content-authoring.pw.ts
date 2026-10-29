@@ -1233,7 +1233,9 @@ test('finalized media automatically centers actual image bytes, replaces the sam
       expect(finalized.status()).toBe(200)
       const image = (await finalized.json()).media as { id: string }
       const custom = artwork.getByAltText('Finalized artwork crop')
-      await expect(custom).toHaveAttribute('src', `/api/master/combat-content/media/${image.id}`)
+      const expectedSource = new URL(`/api/master/combat-content/media/${image.id}`, page.url())
+        .href
+      await expect(custom).toHaveJSProperty('src', expectedSource)
       await expect
         .poll(() => custom.evaluate((element: HTMLImageElement) => element.naturalWidth))
         .toBe(2)
@@ -1243,12 +1245,16 @@ test('finalized media automatically centers actual image bytes, replaces the sam
       await page.reload()
       await selectContentRecord(page, 'aetherist', 'discipline')
       await page.getByRole('button', { name: 'Artwork', exact: true }).click()
-      await expect(custom).toHaveAttribute('src', `/api/master/combat-content/media/${image.id}`)
+      await expect(custom).toHaveJSProperty('src', expectedSource)
       await expect
         .poll(() => custom.evaluate((element: HTMLImageElement) => element.naturalWidth))
         .toBe(2)
     } finally {
-      await commitAuthoredBaseline(page, baseline)
+      // A failure before the artwork Commit leaves the baseline current. Do not
+      // mask that failure by demanding a new version from an unchanged commit.
+      if ((await currentContentVersion(page, 'aetherist')) > publishedVersion(baseline)) {
+        await commitAuthoredBaseline(page, baseline)
+      }
     }
   } finally {
     const escapedEmail = escapeSqlLiteral(email)
