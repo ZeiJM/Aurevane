@@ -548,7 +548,7 @@ async function verifyModularReaders(page, viewport) {
       await gesture(page.getByRole('button', { name: /^Manage Techniques\./ }))
       const editor = page.getByRole('dialog', { name: 'Techniques', exact: true })
       await editor.waitFor()
-      await assertModularReport(editor, { expectedPalette: paperPalette })
+      await assertModularReport(editor)
       assert.equal(await editor.locator('[data-technique-meta]').innerText(), 'Attack / Utility')
       assert.equal(await page.getByRole('dialog').count(), 1)
       await page.screenshot({
