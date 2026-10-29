@@ -1934,7 +1934,7 @@ try {
     const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
     await openEffectParameters(firstEffect)
     await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside-vulnerability')
-    await firstEffect.getByLabel('Target', { exact: true }).selectOption('enemy')
+    await firstEffect.getByRole('combobox', { name: 'Target', exact: true }).selectOption('enemy')
     const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
     assert.equal(converted.statusId, 'blindside-vulnerability')
     // Explicit Enemy targets bind to the affected footprint in the shared engine.
@@ -2229,7 +2229,9 @@ try {
       await cleanseEditor
         .getByLabel('Conditional Cleanse statuses', { exact: true })
         .selectOption('frozen')
-      await cleanseEditor.getByLabel('Target', { exact: true }).selectOption('self')
+      await cleanseEditor
+        .getByRole('combobox', { name: 'Target', exact: true })
+        .selectOption('self')
       assert.deepEqual(await page.evaluate(() => window.fireAuthoringEffects[1]), {
         type: 'remove-status',
         recipient: 'actor',

@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { chromium, expect, test } from '@playwright/test'
 import { exerciseMasterAtBrowserZoom } from './master-zoom-workflows'
+import { expectPortraitGalleryLayout } from './portrait-gallery-workflows'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import {
   acquirePlayersFixtureOwner,
@@ -42,7 +43,7 @@ function sql(query: string) {
   ).trim()
 }
 
-test('complete Master destinations fit desktop, touch and actual browser 200 percent', async ({
+test('complete Master destinations and portrait gallery fit desktop, touch and actual browser zoom', async ({
   baseURL,
 }, info) => {
   test.setTimeout(180000)
@@ -115,35 +116,37 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
     await page.goto('/master/combat-content')
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'))
     const setZoom = async (factor?: number) =>
-      worker.evaluate(async (factor) => {
-        // Chrome's extension API performs real browser zoom. No CSS, CDP page-scale,
-        // viewport emulation or device scale factor is used as zoom evidence.
-        const chromeApi = (
-          globalThis as unknown as {
-            chrome: {
-              tabs: {
-                query(q: object): Promise<{ id: number; url: string }[]>
-                setZoomSettings(id: number, s: object): Promise<void>
-                setZoom(id: number, n: number): Promise<void>
-                getZoom(id: number): Promise<number>
+      worker.evaluate(
+        async ({ factor, pageUrl }) => {
+          // Chrome's extension API performs real browser zoom. No CSS, CDP page-scale,
+          // viewport emulation or device scale factor is used as zoom evidence.
+          const chromeApi = (
+            globalThis as unknown as {
+              chrome: {
+                tabs: {
+                  query(q: object): Promise<{ id: number; url: string }[]>
+                  setZoomSettings(id: number, s: object): Promise<void>
+                  setZoom(id: number, n: number): Promise<void>
+                  getZoom(id: number): Promise<number>
+                }
               }
             }
+          ).chrome
+          const tabs = await chromeApi.tabs.query({})
+          const tab = tabs.find(
+            (t) => /^http:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(t.url) && t.url === pageUrl,
+          )
+          if (!tab) throw new Error('No matching disposable authenticated tab found')
+          if (factor !== undefined) {
+            // Preserve zoom across navigation and reloads on this local origin.
+            // The authenticated tab and browser profile are disposable.
+            await chromeApi.tabs.setZoomSettings(tab.id, { mode: 'automatic', scope: 'per-origin' })
+            await chromeApi.tabs.setZoom(tab.id, factor)
           }
-        ).chrome
-        const tabs = await chromeApi.tabs.query({})
-        const tab = tabs.find(
-          (t) =>
-            /^http:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(t.url) && t.url.includes('/master/'),
-        )
-        if (!tab) throw new Error('No disposable Master tab found')
-        if (factor !== undefined) {
-          // Per-tab zoom resets on navigation, including Site Music's persistence reload.
-          // This origin is local and its browser profile is disposable.
-          await chromeApi.tabs.setZoomSettings(tab.id, { mode: 'automatic', scope: 'per-origin' })
-          await chromeApi.tabs.setZoom(tab.id, factor)
-        }
-        return chromeApi.tabs.getZoom(tab.id)
-      }, factor)
+          return chromeApi.tabs.getZoom(tab.id)
+        },
+        { factor, pageUrl: page.url() },
+      )
     const metrics = () =>
       page.evaluate(() => ({
         innerWidth,
@@ -234,6 +237,32 @@ test('complete Master destinations fit desktop, touch and actual browser 200 per
           path: info.outputPath(`master-layout-${name}-${route.split('/').at(-1)}.png`),
           fullPage: true,
         })
+      }
+      if (factor === 2) {
+        await page.goto('/game/account/titles')
+        expect(await setZoom(1.25)).toBe(1.25)
+        await expect
+          .poll(async () => Math.abs((await metrics()).innerWidth - baseline.innerWidth / 1.25))
+          .toBeLessThanOrEqual(2)
+        const portraitZoom = await metrics()
+        expect(portraitZoom.cssZoom).toBe('1')
+        await page.getByRole('button', { name: 'Choose Default Portrait', exact: true }).click()
+        const portraitLayout = await expectPortraitGalleryLayout(page)
+        await info.attach('actual-portrait-browser-zoom.json', {
+          body: JSON.stringify({
+            baseline,
+            zoomed: portraitZoom,
+            readback: 1.25,
+            layout: portraitLayout,
+          }),
+          contentType: 'application/json',
+        })
+        await page.screenshot({ path: info.outputPath('portrait-layout-real125.png') })
+        await page
+          .getByRole('dialog', { name: 'Default portrait', exact: true })
+          .getByRole('button', { name: 'Close', exact: true })
+          .click()
+        expect(await setZoom(1)).toBe(1)
       }
     }
     await info.attach('master-layout-metrics.json', {
