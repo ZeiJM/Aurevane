@@ -160,3 +160,52 @@ it('submits once while saving and prevents dismissal until the request settles',
   )({ preventDefault: cancel })
   expect(cancel).not.toHaveBeenCalled()
 })
+
+it('wraps portrait keyboard focus at both boundaries and leaves interior navigation native', () => {
+  const f = fixture()
+  const close = { focus: vi.fn(), tabIndex: 0, getClientRects: () => [1], type: 'button' }
+  const radio = {
+    focus: vi.fn(),
+    tabIndex: 0,
+    getClientRects: () => [1],
+    type: 'radio',
+    name: 'default-portrait',
+    checked: true,
+  }
+  const other = { ...radio, focus: vi.fn(), checked: false }
+  const confirm = { ...close, focus: vi.fn() }
+  const doc = { activeElement: close }
+  vi.stubGlobal('document', doc)
+  const dialog = find(f.render(), (element) => element.type === 'dialog')!
+  const handler = dialog.props.onKeyDown as (event: unknown) => void
+  const preventDefault = vi.fn()
+  const send = (shiftKey: boolean, controls = [close, radio, other, confirm], key = 'Tab') =>
+    handler({
+      key,
+      shiftKey,
+      preventDefault,
+      currentTarget: { querySelectorAll: () => controls, focus: vi.fn() },
+    })
+  expect(handler).toBeTypeOf('function')
+  send(true)
+  expect(confirm.focus).toHaveBeenCalledOnce()
+  expect(preventDefault).toHaveBeenCalledOnce()
+  preventDefault.mockClear()
+  doc.activeElement = confirm
+  send(false)
+  expect(close.focus).toHaveBeenCalledOnce()
+  preventDefault.mockClear()
+  doc.activeElement = radio
+  send(false)
+  expect(preventDefault).not.toHaveBeenCalled()
+  // With Confirm disabled, the checked radio is the group's only tab stop.
+  send(false, [close, radio, other])
+  expect(close.focus).toHaveBeenCalledTimes(2)
+  doc.activeElement = close
+  send(true, [close, radio, other])
+  expect(radio.focus).toHaveBeenCalledOnce()
+  expect(other.focus).not.toHaveBeenCalled()
+  preventDefault.mockClear()
+  send(false, [close, radio, other], 'ArrowRight')
+  expect(preventDefault).not.toHaveBeenCalled()
+})

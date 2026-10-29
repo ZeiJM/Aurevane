@@ -34,6 +34,9 @@ test('default portrait gallery stays compact, cancels safely, and supports repea
   await page.setViewportSize(originalViewport)
   await page.keyboard.press('Shift+Tab')
   expect(await dialog.evaluate((element) => element.contains(document.activeElement))).toBe(true)
+  await expect(dialog.getByRole('radio').first()).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
   await dialog.getByRole('radio', { name: 'Female adventurer 02', exact: true }).check()
   await page.keyboard.press('Escape')
   await expect(dialog).toBeHidden()
@@ -51,6 +54,11 @@ test('default portrait gallery stays compact, cancels safely, and supports repea
       .filter({ has: dialog.getByRole('radio', { name: label!, exact: true }) })
     await expect(card).toHaveAttribute('data-selected', 'true')
     await expect(confirm).toBeEnabled()
+    await confirm.focus()
+    await page.keyboard.press('Tab')
+    await expect(dialog.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(confirm).toBeFocused()
     const receipt = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/account/default-portrait') && response.status() === 200,

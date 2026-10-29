@@ -285,6 +285,37 @@ export function CharacterTitleSettings({
           ref={portraitDialog}
           className={styles.defaultPortrait}
           aria-labelledby="default-portrait-heading"
+          tabIndex={-1}
+          onKeyDown={(event) => {
+            if (event.key !== 'Tab') return
+            const enabled = Array.from(
+              event.currentTarget.querySelectorAll<HTMLInputElement | HTMLButtonElement>(
+                'input:not(:disabled), button:not(:disabled)',
+              ),
+            ).filter((control) => control.tabIndex >= 0 && control.getClientRects().length > 0)
+            // A radio group contributes one tab stop; arrow keys retain native selection.
+            const controls = enabled.filter(
+              (control) =>
+                control.type !== 'radio' ||
+                control ===
+                  (enabled.find(
+                    (candidate) =>
+                      candidate.type === 'radio' && (candidate as HTMLInputElement).checked,
+                  ) ?? enabled.find((candidate) => candidate.type === 'radio')),
+            )
+            const first = controls[0]
+            const last = controls[controls.length - 1]
+            if (!first) {
+              event.preventDefault()
+              event.currentTarget.focus()
+            } else if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault()
+              last?.focus()
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault()
+              first.focus()
+            }
+          }}
           onCancel={(event) => {
             if (portraitPending) event.preventDefault()
           }}
