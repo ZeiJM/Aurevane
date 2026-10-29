@@ -10,7 +10,7 @@ Tech stack: existing pnpm 11.17.0 / Node 24 workspace, Next.js/React/TypeScript,
 
 Spec: [Master Panel usability design](../specs/2026-10-27-master-panel-usability-design.md).
 
-Status: implementation in progress on High. Verified slices and remaining scope are recorded in docs/verification/2026-10-27-master-panel-usability.md and the local execution ledger. Nick selected one shared aim and delegated routine choices. No batch deployment has occurred.
+Status: implemented, verified and LIVE for Owner testing through PR #986. Release evidence and remaining hands-on/device/load acceptance are in docs/verification/2026-10-29-master-panel-usability-release.md. The execution receipt below retains the historical development checkpoints.
 
 ## Global constraints
 

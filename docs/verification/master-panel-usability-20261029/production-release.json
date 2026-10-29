@@ -1,0 +1,817 @@
+{
+  "phase": "LIVE for Owner testing; final canonical checks passed",
+  "merge": "32c8b10fb64fd4fb40bbf5e33741af4e99cdf74b",
+  "testedHead": "47c1e4762d82d64b08a5a64a6baa1c801db67786",
+  "testedTree": "8cca34099b0d5ee41c240a20509f64202766676e",
+  "project": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "team": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "previousDeployment": "dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+  "holdId": "b5e1bc93-74b8-4e99-9641-d3b397116ea6",
+  "holdVersion": "3d3f19bd-99b2-4748-8418-202969065bc5",
+  "holdProof": {
+    "checkedAt": "2026-10-29T03:55:20.555667+00:00",
+    "passed": true,
+    "drainStartedAt": "2026-10-29T03:55:20.555667+00:00",
+    "drainNotBefore": "2026-10-29T04:27:50.555667+00:00",
+    "results": [
+      {
+        "name": "entry",
+        "status": 200,
+        "expected": 200,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "passed": true
+      },
+      {
+        "name": "master",
+        "status": 503,
+        "expected": 503,
+        "cacheControl": "no-store",
+        "passed": true
+      },
+      {
+        "name": "content",
+        "status": 503,
+        "expected": 503,
+        "cacheControl": "no-store",
+        "passed": true
+      },
+      {
+        "name": "master api",
+        "status": 503,
+        "expected": 503,
+        "cacheControl": "no-store",
+        "passed": true
+      },
+      {
+        "name": "unique host hold",
+        "status": 503,
+        "expected": 503,
+        "cacheControl": "no-store",
+        "passed": true
+      },
+      {
+        "name": "current pin entry",
+        "status": 200,
+        "expected": 200,
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "passed": true
+      }
+    ]
+  },
+  "databaseApplied": true,
+  "newProductionCreated": true,
+  "freshPredecessorContractsMatch": 24,
+  "automaticDomainAssignment": false,
+  "coordinatorSha256": "1a8fbccd29a6d3f41827a84557c85f45122475f68b0cf6ec5d20d70b020b98d9",
+  "coordinatorReview": "No findings after bounded per-row digest aggregation; positive plus five rejection/rollback probes pass",
+  "quality": {
+    "workflowsPassed": 20,
+    "vitestPassed": 13464,
+    "nodePassed": 7,
+    "staticPages": 74,
+    "repeatedAuthorityPassed": 16,
+    "chromiumPassed": 376,
+    "chromiumConfiguredSkipped": 284,
+    "edgePassed": 10,
+    "edgeConfiguredSkipped": 2
+  },
+  "databasePreflight": {
+    "contractChecksMatched": 24,
+    "canonicalMigrationsAlreadyApplied": 0,
+    "newPrivateTables": 2,
+    "coordinatorLocalRehearsalPassed": true,
+    "coordinatorRollbackNegativesPassed": 5,
+    "independentCoordinatorReview": "No findings",
+    "securityWarningGroups": [
+      "function_search_path_mutable",
+      "authenticated_security_definer_function_executable",
+      "auth_leaked_password_protection"
+    ]
+  },
+  "databaseVerifiedAt": "2026-10-29T04:29:24.806447+00:00",
+  "databasePostflight": {
+    "functionContractsMatched": 24,
+    "canonicalSourceHashesMatched": 9,
+    "newPrivateTablesWithRlsAndNoBrowserOrServiceGrants": 2,
+    "atomicPreservationGuardsPassed": true
+  },
+  "deployment": "dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+  "deploymentUrl": "aurevane-dq0fj4t3j-zeijms-projects.vercel.app",
+  "compatibleRouteVersion": "7647aa11-71b9-48e4-a506-57a2479a01c1",
+  "readyAt": "2026-10-29T04:32:04.161Z",
+  "sourceVerified": "32c8b10fb64fd4fb40bbf5e33741af4e99cdf74b",
+  "apiCacheDenials": {
+    "checkedAt": "2026-10-29T04:32:48.894317+00:00",
+    "anonymousOnly": true,
+    "passed": true,
+    "results": [
+      {
+        "rpc": "get_character_slots_v3",
+        "status": 401,
+        "code": "42501",
+        "message": "permission denied for function get_character_slots_v3",
+        "passed": true
+      },
+      {
+        "rpc": "read_account_ban_status_v1",
+        "status": 401,
+        "code": "42501",
+        "message": "permission denied for function read_account_ban_status_v1",
+        "passed": true
+      },
+      {
+        "rpc": "read_master_panel_navigation_v1",
+        "status": 401,
+        "code": "42501",
+        "message": "permission denied for function read_master_panel_navigation_v1",
+        "passed": true
+      }
+    ]
+  },
+  "candidateSmoke": {
+    "checkedAt": "2026-10-29T04:33:47.928338+00:00",
+    "phase": "held",
+    "origin": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app",
+    "deployment": "dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+    "passed": true,
+    "results": [
+      {
+        "name": "entry",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "manual",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/manual",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "rules",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/rules",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "news",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/news",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "master",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/master",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "content",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/master/combat-content",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "master API authorization",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/api/master/access",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current header pin",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current query pin",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/?dpl=dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current cookie pin",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "first MP3",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/media/audio/sfx/skill-fx-v01/001-1.mp3",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/mpeg",
+        "passed": true
+      },
+      {
+        "name": "first OGG",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/media/audio/sfx/skill-fx-v01/001-1.ogg",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/ogg",
+        "passed": true
+      },
+      {
+        "name": "last MP3",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/media/audio/sfx/skill-fx-v01/153-3.mp3",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/mpeg",
+        "passed": true
+      },
+      {
+        "name": "last OGG",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/media/audio/sfx/skill-fx-v01/153-3.ogg",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/ogg",
+        "passed": true
+      },
+      {
+        "name": "old built-in SFX removed",
+        "url": "https://aurevane-dq0fj4t3j-zeijms-projects.vercel.app/media/audio/sfx/phase4/attrition-action-v01-1.mp3",
+        "status": 404,
+        "expected": [404],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      }
+    ]
+  },
+  "promotedAt": "2026-10-29T04:34:38.602873+00:00",
+  "retirementVersion": "db1a0842-05ce-46e0-895a-b61be4941568",
+  "retirementProof": {
+    "checkedAt": "2026-10-29T04:36:18.310972+00:00",
+    "phase": "retired",
+    "origin": "https://aurevane.vercel.app",
+    "deployment": "dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+    "passed": true,
+    "results": [
+      {
+        "name": "entry",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "manual",
+        "url": "https://aurevane.vercel.app/manual",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "rules",
+        "url": "https://aurevane.vercel.app/rules",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "news",
+        "url": "https://aurevane.vercel.app/news",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "master",
+        "url": "https://aurevane.vercel.app/master",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "content",
+        "url": "https://aurevane.vercel.app/master/combat-content",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "master API authorization",
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current header pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current query pin",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current cookie pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "first MP3",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/001-1.mp3",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/mpeg",
+        "passed": true
+      },
+      {
+        "name": "first OGG",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/001-1.ogg",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/ogg",
+        "passed": true
+      },
+      {
+        "name": "last MP3",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/153-3.mp3",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/mpeg",
+        "passed": true
+      },
+      {
+        "name": "last OGG",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/153-3.ogg",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/ogg",
+        "passed": true
+      },
+      {
+        "name": "old built-in SFX removed",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/phase4/attrition-action-v01-1.mp3",
+        "status": 404,
+        "expected": [404],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired header dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired query dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired cookie dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true,
+        "retiredCookieCleared": true
+      },
+      {
+        "name": "retired header dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired query dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_invalid_retired_pin",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired cookie dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true,
+        "retiredCookieCleared": true
+      },
+      {
+        "name": "retired host",
+        "url": "https://aurevane-11uy9b7uk-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired host",
+        "url": "https://aurevane-git-0895e0b76adbe7805cd7b9c4559-100b4f-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      }
+    ]
+  },
+  "finalDrainStartedAt": "2026-10-29T04:36:18.310972+00:00",
+  "finalDrainNotBefore": "2026-10-29T05:08:48.310972+00:00",
+  "openedAt": "2026-10-29T05:11:27.167Z",
+  "liveRouteVersion": "d19d3cc5-dcf1-434d-a5d2-2160dafd9d83",
+  "finalDrainGate": {
+    "checked_at": "2026-10-29 05:10:39.594828+00",
+    "drain_elapsed": true,
+    "old_client_transactions": 0
+  },
+  "finalSourceVerified": true,
+  "finalRuntimeErrorScanClean": true,
+  "finalRuntimeScan": {
+    "deployment": "dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+    "sinceReady": "2026-10-29T04:32:04.161Z",
+    "sinceReadyErrorCount": 2,
+    "cutoverErrors": [
+      {
+        "at": "2026-10-29T04:34:47.608Z",
+        "path": "/game/loadout",
+        "code": "STALE_VERSION",
+        "publicMessage": "Game content is changing. Refresh and retry this request."
+      },
+      {
+        "at": "2026-10-29T04:34:47.642Z",
+        "path": "/game/loadout",
+        "code": "STALE_VERSION",
+        "publicMessage": "Game content is changing. Refresh and retry this request."
+      }
+    ],
+    "postOpenSince": "2026-10-29T05:11:27.167Z",
+    "postOpenErrorFatalCount": 0,
+    "checkedAt": "2026-10-29T05:13:54.910Z"
+  },
+  "finalSmoke": {
+    "checkedAt": "2026-10-29T05:12:42.257335+00:00",
+    "phase": "open",
+    "origin": "https://aurevane.vercel.app",
+    "deployment": "dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+    "passed": true,
+    "results": [
+      {
+        "name": "entry",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "manual",
+        "url": "https://aurevane.vercel.app/manual",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "rules",
+        "url": "https://aurevane.vercel.app/rules",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "news",
+        "url": "https://aurevane.vercel.app/news",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "master",
+        "url": "https://aurevane.vercel.app/master",
+        "status": 307,
+        "expected": [307, 303],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": "/",
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "content",
+        "url": "https://aurevane.vercel.app/master/combat-content",
+        "status": 307,
+        "expected": [307, 303],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": "/",
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "master API authorization",
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "status": 401,
+        "expected": [401],
+        "cacheControl": "private, no-store",
+        "location": null,
+        "contentType": "application/json",
+        "passed": true
+      },
+      {
+        "name": "moderation search authorization",
+        "url": "https://aurevane.vercel.app/api/master/moderation",
+        "status": 401,
+        "expected": [401],
+        "cacheControl": "private, no-store",
+        "location": null,
+        "contentType": "application/json",
+        "passed": true
+      },
+      {
+        "name": "current header pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current query pin",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_GwdeeomzR6G79nqUBD8SU58JcPSF",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "current cookie pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": [200],
+        "cacheControl": "private, no-cache, no-store, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "first MP3",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/001-1.mp3",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/mpeg",
+        "passed": true
+      },
+      {
+        "name": "first OGG",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/001-1.ogg",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/ogg",
+        "passed": true
+      },
+      {
+        "name": "last MP3",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/153-3.mp3",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/mpeg",
+        "passed": true
+      },
+      {
+        "name": "last OGG",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/skill-fx-v01/153-3.ogg",
+        "status": 206,
+        "expected": [200, 206],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "audio/ogg",
+        "passed": true
+      },
+      {
+        "name": "old built-in SFX removed",
+        "url": "https://aurevane.vercel.app/media/audio/sfx/phase4/attrition-action-v01-1.mp3",
+        "status": 404,
+        "expected": [404],
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "location": null,
+        "contentType": "text/html; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired header dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired query dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired cookie dpl_3VF7cNextXyhMffHL5F38hkTTCE6",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true,
+        "retiredCookieCleared": true
+      },
+      {
+        "name": "retired header dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired query dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_invalid_retired_pin",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired cookie dpl_invalid_retired_pin",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true,
+        "retiredCookieCleared": true
+      },
+      {
+        "name": "retired host",
+        "url": "https://aurevane-11uy9b7uk-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      },
+      {
+        "name": "retired host",
+        "url": "https://aurevane-git-0895e0b76adbe7805cd7b9c4559-100b4f-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": [503],
+        "cacheControl": "no-store",
+        "location": null,
+        "contentType": "text/plain; charset=utf-8",
+        "passed": true
+      }
+    ]
+  }
+}

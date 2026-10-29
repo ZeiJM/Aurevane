@@ -1,0 +1,362 @@
+{
+  "baseline": "aa46bcd04af053299dea582a6edfa0c37578b297",
+  "source": [
+    {
+      "path": "supabase/migrations/20261028032631_master_discipline_skill_capacity.sql",
+      "sha256": "10e7f3bc4e4e48d636db355c960bc2fb4c579ba14d403da833e003bc1d6ec97a",
+      "hostedApplied": false,
+      "version": "20261028032631"
+    },
+    {
+      "path": "supabase/migrations/20261028040228_master_panel_navigation.sql",
+      "sha256": "7eae36abb82df8c05225875427d2012c9ae6ed03fb0d49eec945beee8523b72b",
+      "hostedApplied": false,
+      "version": "20261028040228"
+    },
+    {
+      "path": "supabase/migrations/20261028041440_current_character_primary_profile_refresh.sql",
+      "sha256": "b363642cbfdc4810fdca2f6903d8b3d5c819bdc452e3ff65545e6386a856f628",
+      "hostedApplied": false,
+      "version": "20261028041440"
+    },
+    {
+      "path": "supabase/migrations/20261028060810_master_effect_tag_wording_defaults.sql",
+      "sha256": "69110e64610979fa9ac5aad0ec939cb446476b856ece7e93b2947f8aeaadf8d6",
+      "hostedApplied": false,
+      "version": "20261028060810"
+    },
+    {
+      "path": "supabase/migrations/20261028113418_discipline_delete_review.sql",
+      "sha256": "ce2d992ab02706054d2b2f093e30639e6fb2c41e8f18a1f52749fb058faeaef4",
+      "hostedApplied": false,
+      "version": "20261028113418"
+    },
+    {
+      "path": "supabase/migrations/20261028125028_player_correction_progression_curve.sql",
+      "sha256": "3f7362899df9d882596f0f04393b6a449ea6a2060c7b4ce90b0bd765cac270f8",
+      "hostedApplied": false,
+      "version": "20261028125028"
+    },
+    {
+      "path": "supabase/migrations/20261028130439_moderation_active_bans.sql",
+      "sha256": "9804065d5ed26d67ba2f17eed71c0844c7c081f0bd05205b48c45b8faa30ec51",
+      "hostedApplied": false,
+      "version": "20261028130439"
+    },
+    {
+      "path": "supabase/migrations/20261028131920_self_account_ban_status.sql",
+      "sha256": "4e62d2bafdec3e308387e19ff5eb78d9c35deda1ec5b76f7316a239e0e77fa03",
+      "hostedApplied": false,
+      "version": "20261028131920"
+    },
+    {
+      "path": "supabase/migrations/20261028195800_usage_balance_week_selection.sql",
+      "sha256": "91598e48569eed1de3162764ed4fe9a221223a2c94671bfba921de31392d75cc",
+      "hostedApplied": false,
+      "version": "20261028195800"
+    }
+  ],
+  "changed": [
+    {
+      "signature": "app_private.bind_content_tag_presentation_v1(jsonb, boolean, integer)",
+      "before": {
+        "signature": "app_private.bind_content_tag_presentation_v1(jsonb, boolean, integer)",
+        "hash": "374836d2faeda5299ecd35b39c0b422e",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.bind_content_tag_presentation_v1(jsonb, boolean, integer)",
+        "hash": "5f08cd574f16786a1e83dc45de548268",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.bound_content_links_v1()",
+      "before": {
+        "signature": "app_private.bound_content_links_v1()",
+        "hash": "8729adcc556283fed8c8a775eadb1567",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.bound_content_links_v1()",
+        "hash": "b53db90a47f8d5f2d6baba5477b9c7b3",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.capture_master_content_archive_activity_v1()",
+      "before": {
+        "signature": "app_private.capture_master_content_archive_activity_v1()",
+        "hash": "d02c9c5ac113d003fd189977b15a68b4",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.capture_master_content_archive_activity_v1()",
+        "hash": "dd052e08a129c776a5c376404c32e6c5",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.content_effect_presentation_id_v1(jsonb)",
+      "before": null,
+      "after": {
+        "signature": "app_private.content_effect_presentation_id_v1(jsonb)",
+        "hash": "a0937d773afb50d1d519d5ec295d0e5e",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.content_presentation_tag_ids_v1()",
+      "before": null,
+      "after": {
+        "signature": "app_private.content_presentation_tag_ids_v1()",
+        "hash": "784cee2855eecfaac2dc7c6c2d0413eb",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.content_tag_text_valid_v1(text, text)",
+      "before": null,
+      "after": {
+        "signature": "app_private.content_tag_text_valid_v1(text, text)",
+        "hash": "067035cfb027f0e3dc70f2369a9a58eb",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.discipline_deletion_impact_v1(text)",
+      "before": null,
+      "after": {
+        "signature": "app_private.discipline_deletion_impact_v1(text)",
+        "hash": "a4b6ff545e37ee8d4b5c1106ba2b719e",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.discipline_deletion_keys_v1(text)",
+      "before": null,
+      "after": {
+        "signature": "app_private.discipline_deletion_keys_v1(text)",
+        "hash": "0561e78f7355d0c31887701a9795b887",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.guard_deleted_content_v1()",
+      "before": null,
+      "after": {
+        "signature": "app_private.guard_deleted_content_v1()",
+        "hash": "769b5a30d4aeb557ab8fac796d0ca7ae",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.guard_player_battle_admission_v1()",
+      "before": {
+        "signature": "app_private.guard_player_battle_admission_v1()",
+        "hash": "ee097127382367454981f13d6c688b64",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.guard_player_battle_admission_v1()",
+        "hash": "f9c814183c3bf2078e9c613756bfeb6e",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.player_support_facts_v1(uuid)",
+      "before": {
+        "signature": "app_private.player_support_facts_v1(uuid)",
+        "hash": "e7b45ae79131445d29664b1d570b104d",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.player_support_facts_v1(uuid)",
+        "hash": "c867ac8a6749110d2bca2949f53081f8",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.refresh_character_primary_profile_v1(uuid, uuid)",
+      "before": null,
+      "after": {
+        "signature": "app_private.refresh_character_primary_profile_v1(uuid, uuid)",
+        "hash": "ea3f2c19858ffc36f3a38c036e7a78c4",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.validate_content_tag_presentation_v1()",
+      "before": {
+        "signature": "app_private.validate_content_tag_presentation_v1()",
+        "hash": "cfed6e090e48f77e12cab10df6c53219",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.validate_content_tag_presentation_v1()",
+        "hash": "9dcb5281a79b6b5fba27383531a44b59",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.validate_discipline_envelope_before_override_v1(jsonb)",
+      "before": {
+        "signature": "app_private.validate_discipline_envelope_before_override_v1(jsonb)",
+        "hash": "e1f50294877248096d691ffc23f14c00",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.validate_discipline_envelope_before_override_v1(jsonb)",
+        "hash": "50b6de6a5cde2cb34134c04681f71ee1",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "app_private.validate_noncombat_content_v1(text, jsonb)",
+      "before": {
+        "signature": "app_private.validate_noncombat_content_v1(text, jsonb)",
+        "hash": "209bd9e6005f4d27684bc8c402c524a0",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "app_private.validate_noncombat_content_v1(text, jsonb)",
+        "hash": "f69a975f501eb92951c1ea1b707069b2",
+        "acl": "{postgres=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.delete_discipline_v1(uuid, uuid, text, text)",
+      "before": null,
+      "after": {
+        "signature": "public.delete_discipline_v1(uuid, uuid, text, text)",
+        "hash": "4cfdc92e1a6a086fa24e651a8ef70371",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.get_character_slots_v3(uuid)",
+      "before": null,
+      "after": {
+        "signature": "public.get_character_slots_v3(uuid)",
+        "hash": "08e8467605b2848739e3c3b1f1ea3359",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.list_active_master_bans_v1(uuid, uuid, uuid)",
+      "before": null,
+      "after": {
+        "signature": "public.list_active_master_bans_v1(uuid, uuid, uuid)",
+        "hash": "be15fe2b3da19660448799fd0b6f7937",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.read_account_ban_status_v1(uuid)",
+      "before": null,
+      "after": {
+        "signature": "public.read_account_ban_status_v1(uuid)",
+        "hash": "c9a9c017c076fe6dbc42bd8b005c5b54",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.read_master_panel_navigation_v1(uuid, uuid)",
+      "before": null,
+      "after": {
+        "signature": "public.read_master_panel_navigation_v1(uuid, uuid)",
+        "hash": "12685a34bb0d6d9d23c45cbb43198566",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.read_master_usage_balance_week_v1(uuid, uuid, text, date)",
+      "before": null,
+      "after": {
+        "signature": "public.read_master_usage_balance_week_v1(uuid, uuid, text, date)",
+        "hash": "4b32a361f9477efffdcf8fcd3acab1be",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.review_discipline_deletion_v1(uuid, uuid, text)",
+      "before": null,
+      "after": {
+        "signature": "public.review_discipline_deletion_v1(uuid, uuid, text)",
+        "hash": "259b5905e2c7770c8afd13a4bc1d4b7c",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.save_master_panel_navigation_v1(uuid, bigint, jsonb, uuid)",
+      "before": null,
+      "after": {
+        "signature": "public.save_master_panel_navigation_v1(uuid, bigint, jsonb, uuid)",
+        "hash": "db4018d6c8fd904c7875c2a3d30f950e",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    },
+    {
+      "signature": "public.write_master_moderation_v1(uuid, uuid, text, text, text, integer, boolean, uuid)",
+      "before": {
+        "signature": "public.write_master_moderation_v1(uuid, uuid, text, text, text, integer, boolean, uuid)",
+        "hash": "9a86b3e9dec0e3924e0776e74cc76ce1",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      },
+      "after": {
+        "signature": "public.write_master_moderation_v1(uuid, uuid, text, text, text, integer, boolean, uuid)",
+        "hash": "c9c5ff758459108dd980bd1aad4ada48",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "owner": "postgres"
+      }
+    }
+  ],
+  "newTables": [
+    {
+      "name": "app_private.master_panel_navigation",
+      "rls": true,
+      "force_rls": false,
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "owner": "postgres"
+    },
+    {
+      "name": "app_private.master_panel_navigation_audit",
+      "rls": true,
+      "force_rls": false,
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "owner": "postgres"
+    }
+  ]
+}
