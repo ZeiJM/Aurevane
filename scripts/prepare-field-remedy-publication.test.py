@@ -15,7 +15,7 @@ class FieldRemedyPublication(unittest.TestCase):
     def setUp(self):
         self.candidate = module._candidate.candidate()
         self.row = self.candidate['records'][0]
-        self.live = {'content_version': 7, 'definition': deepcopy(self.row['before'])}
+        self.live = [{'content_key': row['id'], 'content_version': 7, 'definition': deepcopy(row['before'])} for row in self.candidate['records']]
 
     def test_binds_exact_live_before_and_current_character_signature(self):
         sql, receipt = module.prepare(live_definition=self.live, catalogue_token='a' * 32)
@@ -34,18 +34,30 @@ class FieldRemedyPublication(unittest.TestCase):
         self.assertEqual(json.loads(before), self.row['before'])
         self.assertEqual(json.loads(after), self.row['after'])
 
+    def test_binds_both_reviewed_records_atomically_and_rejects_missing_oath(self):
+        sql, receipt = module.prepare(live_definition=self.live, catalogue_token='a' * 32)
+        self.assertEqual([row['id'] for row in receipt['records']],
+                         ['wildwarden.field-remedy', 'essence.dawnshield.dawns-oath'])
+        self.assertEqual(sql.count('begin;'), 1)
+        self.assertEqual(sql.count('commit;'), 1)
+        self.assertIn('DAWNS_OATH_HAS_UNCOMMITTED_DRAFT', sql)
+        self.assertIn("public.publish_saved_combat_content_v1(actor,actor_character,'essence.dawnshield.dawns-oath'", sql)
+        self.assertEqual(sql.count('lock_combat_content_catalogue_v1('), 1)
+        with self.assertRaisesRegex(ValueError, 'both reviewed'):
+            module.prepare(live_definition=self.live[:1], catalogue_token='a' * 32)
+
     def test_recognizes_exact_published_retry_without_rewriting_candidate(self):
-        published = {'content_version': 8, 'definition': deepcopy(self.row['after'])}
+        published = [{'content_key': row['id'], 'content_version': 8, 'definition': deepcopy(row['after'])} for row in self.candidate['records']]
         sql, receipt = module.prepare(live_definition=published, catalogue_token='b' * 32)
         self.assertEqual(receipt['expectedOutcome'], 'already-published-no-op')
         replay_branch = sql.split("raise notice 'FIELD_REMEDY_ALREADY_PUBLISHED';")[0].split('if current_row.content_version=8')[1]
         self.assertNotIn('publish_saved_combat_content_v1(', replay_branch)
-        self.assertEqual(published['definition'], self.row['after'])
+        self.assertEqual(published[0]['definition'], self.row['after'])
 
     def test_rejects_changed_owner_definition_and_incorrect_version(self):
         changed = deepcopy(self.live)
-        changed['definition']['flavorLine'] = 'Owner changed this.'
-        for live in [changed, {**self.live, 'content_version': 8}, {}, None]:
+        changed[0]['definition']['flavorLine'] = 'Owner changed this.'
+        for live in [changed, [{**self.live[0], 'content_version': 8}, self.live[1]], {}, None]:
             with self.subTest(live=live):
                 with self.assertRaises(ValueError):
                     module.prepare(live_definition=live, catalogue_token='a' * 32)

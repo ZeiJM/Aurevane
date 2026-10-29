@@ -91,6 +91,8 @@ beforeEach(() => {
     if (name === 'read_master_panel_operator_v1')
       return { data: [{ user_id: 'owner', enabled: true, role: 'owner' }], error: null }
     if (name === 'read_combat_content_record_v1') return { data: saved, error: null }
+    if (name === 'read_combat_content_catalogue_token_v1')
+      return { data: 'a'.repeat(32), error: null }
     if (name === 'read_combat_content_catalogue_v1')
       return {
         data: {

@@ -35,6 +35,8 @@ import { assertCombatCatalogueTimingCompatible } from '@/server/combat/combat-ca
 import {
   RpcPublishedCombatContentSource,
   resolveCombatContentCatalogueSnapshot,
+  serverCombatCatalogueSnapshotCache,
+  type CombatCatalogueSnapshotCache,
 } from '@/server/combat/combat-content-resolver'
 import {
   builtinCombatContentDefinition,
@@ -343,10 +345,16 @@ function withBuiltinRestoreCapability(
 export class RpcCombatContentAuthoringStore implements CombatContentAuthoringStore {
   readonly #rpc: CombatAuthoringRpc
   readonly #actorUserId: string
+  readonly #catalogueCache?: CombatCatalogueSnapshotCache
 
-  constructor(rpc: CombatAuthoringRpc, actorUserId: string) {
+  constructor(
+    rpc: CombatAuthoringRpc,
+    actorUserId: string,
+    catalogueCache?: CombatCatalogueSnapshotCache,
+  ) {
     this.#rpc = rpc
     this.#actorUserId = actorUserId
+    this.#catalogueCache = catalogueCache
   }
 
   async getOperatorRole(userId: string): Promise<MasterPanelOperatorRole | null> {
@@ -835,7 +843,10 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     }
     const blocker = descriptor?.publicationBlocker
     if (target && blocker) throw new AurevaneError('INVALID_REQUEST', blocker.message)
-    const snapshot = await new RpcPublishedCombatContentSource(this.#rpc).readCatalogueSnapshot()
+    const snapshot = await new RpcPublishedCombatContentSource(
+      this.#rpc,
+      this.#catalogueCache,
+    ).readCatalogueSnapshot()
     if (
       snapshot.publications.some(
         (row) => row.contentKey === contentKey && row.contentKind !== contentKind,
@@ -873,5 +884,6 @@ export function createSupabaseCombatContentAuthoringStore(
         client.rpc(functionName, parameters) as unknown as PromiseLike<RpcResult>,
     ),
     actorUserId,
+    serverCombatCatalogueSnapshotCache,
   )
 }

@@ -32,9 +32,16 @@
     }
   ],
   "inventoryCount": 294,
-  "unchangedCurrentCount": 293,
+  "unchangedCurrentCount": 292,
+  "liveAudit": {
+    "path": "docs/verification/release-assets/2026-10-29-recovery-live-audit.json",
+    "sha256": "9e397229320e400f40c6607382eef07b9541a267e07fc947ea19cafb177b4cdc",
+    "capturedAt": "2026-10-29T08:22:12.286018+00:00",
+    "inventoryCount": 298,
+    "unchangedCurrentCount": 296
+  },
   "immutableHistoryPreserved": true,
-  "reason": "Owner requested unconditional capped HP Recovery after Cleanse; Requirements describe the whole Skill.",
+  "reason": "Owner requested unconditional capped HP Recovery after Cleanse for Field Remedy and similar Skills; Requirements describe the whole Skill.",
   "records": [
     {
       "id": "wildwarden.field-remedy",
@@ -60,7 +67,9 @@
           "kind": "self",
           "teamPolicy": "self",
           "friendlyFire": "allies-only",
-          "categories": ["self"],
+          "categories": [
+            "self"
+          ],
           "shape": {
             "kind": "single"
           },
@@ -96,7 +105,13 @@
           }
         ],
         "requirements": [],
-        "tags": ["discipline", "wildwarden", "heal", "cleanse", "cockpit:recovery"],
+        "tags": [
+          "discipline",
+          "wildwarden",
+          "heal",
+          "cleanse",
+          "cockpit:recovery"
+        ],
         "cooldown": {
           "key": "wildwarden.field-remedy",
           "ownerTurns": 3
@@ -104,7 +119,10 @@
         "ai": {
           "enabled": true,
           "baseUtility": 66,
-          "purposeTags": ["heal", "cleanse"]
+          "purposeTags": [
+            "heal",
+            "cleanse"
+          ]
         },
         "overrides": {},
         "media": {
@@ -159,7 +177,9 @@
                 "kind": "self",
                 "teamPolicy": "self",
                 "friendlyFire": "allies-only",
-                "categories": ["self"],
+                "categories": [
+                  "self"
+                ],
                 "shape": {
                   "kind": "single"
                 },
@@ -280,7 +300,9 @@
           "kind": "self",
           "teamPolicy": "self",
           "friendlyFire": "allies-only",
-          "categories": ["self"],
+          "categories": [
+            "self"
+          ],
           "shape": {
             "kind": "single"
           },
@@ -316,7 +338,13 @@
           }
         ],
         "requirements": [],
-        "tags": ["discipline", "wildwarden", "heal", "cleanse", "cockpit:recovery"],
+        "tags": [
+          "discipline",
+          "wildwarden",
+          "heal",
+          "cleanse",
+          "cockpit:recovery"
+        ],
         "cooldown": {
           "key": "wildwarden.field-remedy",
           "ownerTurns": 3
@@ -324,7 +352,10 @@
         "ai": {
           "enabled": true,
           "baseUtility": 66,
-          "purposeTags": ["heal", "cleanse"]
+          "purposeTags": [
+            "heal",
+            "cleanse"
+          ]
         },
         "overrides": {},
         "media": {
@@ -379,7 +410,9 @@
                 "kind": "self",
                 "teamPolicy": "self",
                 "friendlyFire": "allies-only",
-                "categories": ["self"],
+                "categories": [
+                  "self"
+                ],
                 "shape": {
                   "kind": "single"
                 },
@@ -423,6 +456,516 @@
           ]
         }
       }
+    },
+    {
+      "id": "essence.dawnshield.dawns-oath",
+      "kind": "essence",
+      "beforeVersion": 7,
+      "beforeDigest": "735f8ca35102d9aab29c2a2cd555957a90990f7f9b203fde310d38c174218bf5",
+      "afterDigest": "286534d450cf1607288279f7ec7e56f196d9fdf4c63e30f83a1488e66463a86b",
+      "before": {
+        "essenceId": "essence.dawnshield.dawns-oath",
+        "contentVersion": 7,
+        "enabled": true,
+        "sourceDisciplineId": "dawnshield",
+        "name": "Dawn’s Oath",
+        "description": "Remove common debuffs and grant Guard.",
+        "skill": {
+          "id": "essence.dawnshield.dawns-oath",
+          "sourceDisciplineId": "dawnshield",
+          "contentVersion": 7,
+          "enabled": true,
+          "nameRef": "essence.dawnshield.dawns-oath.name",
+          "descriptionRef": "Remove common debuffs and grant Guard.",
+          "unlockRequirement": {
+            "kind": "discipline-mastery",
+            "minimumStage": 1
+          },
+          "apCost": 65,
+          "mpCost": 10,
+          "target": {
+            "geometryVersion": 3,
+            "kind": "unit",
+            "teamPolicy": "any",
+            "friendlyFire": "allies-only",
+            "categories": [
+              "self",
+              "ally"
+            ],
+            "shape": {
+              "kind": "single"
+            },
+            "minimumRange": 0,
+            "maximumRange": 3,
+            "requiresLineOfSight": true,
+            "maximumElevationDifference": 0,
+            "maximumSelections": 1
+          },
+          "effects": [
+            {
+              "type": "remove-status",
+              "recipient": "primary-unit",
+              "statusIds": [
+                "burn",
+                "bleed",
+                "poison",
+                "slow",
+                "root",
+                "exposed",
+                "mark",
+                "challenged"
+              ],
+              "durationTurns": 0
+            },
+            {
+              "type": "percentage-recovery",
+              "recipient": "primary-unit",
+              "resource": "hp",
+              "percent": 15,
+              "ticks": 1,
+              "durationTurns": 0
+            },
+            {
+              "type": "apply-status",
+              "statusId": "guarded",
+              "recipient": "primary-unit",
+              "stacks": 1,
+              "durationTurns": 2,
+              "potencyBasisPoints": 1300
+            }
+          ],
+          "requirements": [],
+          "tags": [
+            "essence",
+            "dawnshield",
+            "heal",
+            "defense",
+            "support",
+            "cockpit:recovery"
+          ],
+          "cooldown": {
+            "key": "essence.dawnshield.dawns-oath",
+            "ownerTurns": 4
+          },
+          "ai": {
+            "enabled": true,
+            "baseUtility": 95,
+            "purposeTags": [
+              "heal",
+              "defense",
+              "support"
+            ]
+          },
+          "overrides": {},
+          "media": {
+            "iconKey": "essence.dawnshield.dawns-oath.icon",
+            "audioCueKey": "essence.dawnshield.dawns-oath.audio",
+            "vfxKey": "essence.dawnshield.dawns-oath.vfx"
+          },
+          "authoring": {
+            "schemaVersion": 1,
+            "status": "representative",
+            "validationTags": [
+              "p4",
+              "dawnshield",
+              "shared-combat-authority",
+              "phase4-discipline-rebalance",
+              "owner-rebalance-v5",
+              "power-1-20",
+              "duration-aware",
+              "cooldown-1-3",
+              "owner-rebalance-v5-1",
+              "target-budget-v5-1",
+              "captured-percentage-recovery"
+            ]
+          },
+          "accuracyMode": "automatic",
+          "flavorLine": "Call on Dawnshield discipline to turn a wounded moment back toward survival."
+        },
+        "authoring": {
+          "schemaVersion": 1,
+          "status": "representative",
+          "validationTags": [
+            "p4",
+            "dawnshield",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "duration-aware",
+            "power-1-20",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "captured-percentage-recovery"
+          ]
+        },
+        "flavorLine": "Cleanse and shield a friendly, restoring health when an affliction needed repair.",
+        "ability": {
+          "schemaVersion": 1,
+          "behaviors": [
+            {
+              "id": "dawns-oath",
+              "activation": "manual",
+              "mode": "action",
+              "classification": "recovery",
+              "costs": [
+                {
+                  "resource": "ap",
+                  "amount": 65
+                },
+                {
+                  "resource": "mp",
+                  "amount": 10
+                }
+              ],
+              "cooldown": {
+                "key": "essence.dawnshield.dawns-oath",
+                "ownerTurns": 4
+              },
+              "requirements": null,
+              "targeting": {
+                "geometryVersion": 3,
+                "kind": "unit",
+                "teamPolicy": "any",
+                "friendlyFire": "allies-only",
+                "categories": [
+                  "self",
+                  "ally"
+                ],
+                "shape": {
+                  "kind": "single"
+                },
+                "minimumRange": 0,
+                "maximumRange": 3,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0,
+                "maximumSelections": 1
+              },
+              "effects": [
+                {
+                  "id": "remove-status",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "primary-unit",
+                    "statusIds": [
+                      "burn",
+                      "bleed",
+                      "poison",
+                      "slow",
+                      "root",
+                      "exposed",
+                      "mark",
+                      "challenged"
+                    ]
+                  }
+                },
+                {
+                  "id": "percentage-recovery",
+                  "payload": {
+                    "type": "percentage-recovery",
+                    "recipient": "primary-unit",
+                    "resource": "hp",
+                    "percentageBasisPoints": 1400,
+                    "ticks": 1,
+                    "durationTurns": 0
+                  },
+                  "requirements": {
+                    "kind": "any",
+                    "children": [
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "burn",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "bleed",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "poison",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "slow",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "root",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "exposed",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "mark",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "challenged",
+                        "present": true
+                      },
+                      {
+                        "kind": "status-presence",
+                        "subject": "selected",
+                        "statusId": "suppress",
+                        "present": true
+                      }
+                    ]
+                  }
+                },
+                {
+                  "id": "apply-status",
+                  "payload": {
+                    "type": "apply-status",
+                    "recipient": "primary-unit",
+                    "statusId": "guarded",
+                    "stacks": 1,
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 1500
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "after": {
+        "essenceId": "essence.dawnshield.dawns-oath",
+        "contentVersion": 8,
+        "enabled": true,
+        "sourceDisciplineId": "dawnshield",
+        "name": "Dawn’s Oath",
+        "description": "Remove common debuffs and grant Guard.",
+        "skill": {
+          "id": "essence.dawnshield.dawns-oath",
+          "sourceDisciplineId": "dawnshield",
+          "contentVersion": 8,
+          "enabled": true,
+          "nameRef": "essence.dawnshield.dawns-oath.name",
+          "descriptionRef": "Remove common debuffs and grant Guard.",
+          "unlockRequirement": {
+            "kind": "discipline-mastery",
+            "minimumStage": 1
+          },
+          "apCost": 65,
+          "mpCost": 10,
+          "target": {
+            "geometryVersion": 3,
+            "kind": "unit",
+            "teamPolicy": "any",
+            "friendlyFire": "allies-only",
+            "categories": [
+              "self",
+              "ally"
+            ],
+            "shape": {
+              "kind": "single"
+            },
+            "minimumRange": 0,
+            "maximumRange": 3,
+            "requiresLineOfSight": true,
+            "maximumElevationDifference": 0,
+            "maximumSelections": 1
+          },
+          "effects": [
+            {
+              "type": "remove-status",
+              "recipient": "primary-unit",
+              "statusIds": [
+                "burn",
+                "bleed",
+                "poison",
+                "slow",
+                "root",
+                "exposed",
+                "mark",
+                "challenged"
+              ],
+              "durationTurns": 0
+            },
+            {
+              "type": "percentage-recovery",
+              "recipient": "primary-unit",
+              "resource": "hp",
+              "percent": 15,
+              "ticks": 1,
+              "durationTurns": 0
+            },
+            {
+              "type": "apply-status",
+              "statusId": "guarded",
+              "recipient": "primary-unit",
+              "stacks": 1,
+              "durationTurns": 2,
+              "potencyBasisPoints": 1300
+            }
+          ],
+          "requirements": [],
+          "tags": [
+            "essence",
+            "dawnshield",
+            "heal",
+            "defense",
+            "support",
+            "cockpit:recovery"
+          ],
+          "cooldown": {
+            "key": "essence.dawnshield.dawns-oath",
+            "ownerTurns": 4
+          },
+          "ai": {
+            "enabled": true,
+            "baseUtility": 95,
+            "purposeTags": [
+              "heal",
+              "defense",
+              "support"
+            ]
+          },
+          "overrides": {},
+          "media": {
+            "iconKey": "essence.dawnshield.dawns-oath.icon",
+            "audioCueKey": "essence.dawnshield.dawns-oath.audio",
+            "vfxKey": "essence.dawnshield.dawns-oath.vfx"
+          },
+          "authoring": {
+            "schemaVersion": 1,
+            "status": "representative",
+            "validationTags": [
+              "p4",
+              "dawnshield",
+              "shared-combat-authority",
+              "phase4-discipline-rebalance",
+              "owner-rebalance-v5",
+              "power-1-20",
+              "duration-aware",
+              "cooldown-1-3",
+              "owner-rebalance-v5-1",
+              "target-budget-v5-1",
+              "captured-percentage-recovery"
+            ]
+          },
+          "accuracyMode": "automatic",
+          "flavorLine": "Call on Dawnshield discipline to turn a wounded moment back toward survival."
+        },
+        "authoring": {
+          "schemaVersion": 1,
+          "status": "representative",
+          "validationTags": [
+            "p4",
+            "dawnshield",
+            "shared-combat-authority",
+            "phase4-discipline-rebalance",
+            "owner-rebalance-v5",
+            "duration-aware",
+            "power-1-20",
+            "owner-rebalance-v5-1",
+            "target-budget-v5-1",
+            "captured-percentage-recovery"
+          ]
+        },
+        "flavorLine": "Cleanse and shield a friendly, restoring health.",
+        "ability": {
+          "schemaVersion": 1,
+          "behaviors": [
+            {
+              "id": "dawns-oath",
+              "activation": "manual",
+              "mode": "action",
+              "classification": "recovery",
+              "costs": [
+                {
+                  "resource": "ap",
+                  "amount": 65
+                },
+                {
+                  "resource": "mp",
+                  "amount": 10
+                }
+              ],
+              "cooldown": {
+                "key": "essence.dawnshield.dawns-oath",
+                "ownerTurns": 4
+              },
+              "requirements": null,
+              "targeting": {
+                "geometryVersion": 3,
+                "kind": "unit",
+                "teamPolicy": "any",
+                "friendlyFire": "allies-only",
+                "categories": [
+                  "self",
+                  "ally"
+                ],
+                "shape": {
+                  "kind": "single"
+                },
+                "minimumRange": 0,
+                "maximumRange": 3,
+                "requiresLineOfSight": true,
+                "maximumElevationDifference": 0,
+                "maximumSelections": 1
+              },
+              "effects": [
+                {
+                  "id": "remove-status",
+                  "payload": {
+                    "type": "remove-status",
+                    "recipient": "primary-unit",
+                    "statusIds": [
+                      "burn",
+                      "bleed",
+                      "poison",
+                      "slow",
+                      "root",
+                      "exposed",
+                      "mark",
+                      "challenged"
+                    ]
+                  }
+                },
+                {
+                  "id": "percentage-recovery",
+                  "payload": {
+                    "type": "percentage-recovery",
+                    "recipient": "primary-unit",
+                    "resource": "hp",
+                    "percentageBasisPoints": 1400,
+                    "ticks": 1,
+                    "durationTurns": 0
+                  }
+                },
+                {
+                  "id": "apply-status",
+                  "payload": {
+                    "type": "apply-status",
+                    "recipient": "primary-unit",
+                    "statusId": "guarded",
+                    "stacks": 1,
+                    "durationTurns": 2,
+                    "potencyBasisPoints": 1500
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
     }
   ],
   "effectRequirementAudit": [
@@ -446,7 +989,7 @@
         "statusId": "exposed",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -462,7 +1005,7 @@
         "statusId": "fortified",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -484,7 +1027,7 @@
         "statusId": "reckless",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -500,7 +1043,7 @@
         "statusId": "bleed",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -585,7 +1128,7 @@
         "statusId": "mark",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -601,7 +1144,7 @@
         "statusId": "mark",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -617,7 +1160,7 @@
         "statusId": "burn",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -633,7 +1176,7 @@
         "statusId": "frozen",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -649,7 +1192,7 @@
         "statusId": "frozen",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -665,7 +1208,7 @@
         "statusId": "conductive",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "skill",
@@ -681,7 +1224,7 @@
         "statusId": "wet",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "essence",
@@ -698,7 +1241,7 @@
         "comparison": "more-than",
         "basisPoints": 7500
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "essence",
@@ -714,7 +1257,7 @@
         "statusId": "mark",
         "present": true
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "retain-meaningful-conditional-bonus"
     },
     {
       "kind": "essence",
@@ -783,7 +1326,7 @@
           }
         ]
       },
-      "decision": "retain-pending-individual-design-review"
+      "decision": "remove-recovery-gate"
     }
   ]
 }

@@ -1931,7 +1931,8 @@ try {
     await firstEffect.getByLabel('Target', { exact: true }).selectOption('enemy')
     const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
     assert.equal(converted.statusId, 'blindside-vulnerability')
-    assert.equal(converted.recipient, 'primary-unit')
+    // Explicit Enemy targets bind to the affected footprint in the shared engine.
+    assert.equal(converted.recipient, 'affected-units')
     assert.equal(converted.target, 'enemy')
     assert.equal(converted.durationTurns, 1)
     assert.equal(converted.potencyBasisPoints, undefined)

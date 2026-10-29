@@ -38,8 +38,8 @@ function setup(hp: number, historical = false) {
   return { source, state }
 }
 
-it('appends only Field Remedy with unchanged execution except its recovery gate', () => {
-  expect(candidate.records).toHaveLength(1)
+it('appends the two reviewed definitions and scopes Field Remedy to its recovery gate', () => {
+  expect(candidate.records).toHaveLength(2)
   expect(row.id).toBe('wildwarden.field-remedy')
   expect(row.before.contentVersion).toBe(7)
   expect(row.after.contentVersion).toBe(8)
@@ -124,3 +124,96 @@ it('retains the original recovery gate for historical v7 captures', () => {
   expect(source.contentVersion).toBe(7)
   expect(source.definition).toEqual(row.before.ability)
 })
+
+it.each([600, 990, 1000])(
+  'Dawn’s Oath restores unconditionally and caps at maximum from %s HP',
+  (hp) => {
+    const oath = candidate.records.find((entry) => entry.id === 'essence.dawnshield.dawns-oath')!
+    expect(oath).toBeDefined()
+    const source = identitySource(oath)
+    const state = identityState([source])
+    unit(state).hp = hp
+    const result = commitRosterCommand(
+      identityCommand(restoreRosterEncounter(state), source, {
+        kind: 'unit',
+        combatantId: 'actor',
+      }),
+    )
+    expect(unit(result.state).hp).toBe(Math.min(1000, hp + 140))
+    expect(ap(result.state)).toBe(35)
+    expect(unit(result.state).mp).toBe(240)
+    const retry = prepareCombatAbilityCommand(
+      identityCommand(result.state, source, { kind: 'unit', combatantId: 'actor' }),
+    )
+    expect(retry.evaluation.issues).toContainEqual(
+      expect.objectContaining({ code: 'cooldown-active' }),
+    )
+  },
+)
+
+it.each([
+  'burn',
+  'bleed',
+  'poison',
+  'slow',
+  'root',
+  'exposed',
+  'mark',
+  'challenged',
+  'suppress',
+  'frozen',
+])('Dawn’s Oath retains cleanse semantics and recovery with %s', (status) => {
+  const oath = candidate.records.find((entry) => entry.id === 'essence.dawnshield.dawns-oath')!
+  const source = identitySource(oath)
+  const state = identityState([source])
+  unit(state).hp = 600
+  give(state, status, 'actor')
+  const result = commitRosterCommand(
+    identityCommand(state, source, { kind: 'unit', combatantId: 'actor' }),
+  )
+  expect(unit(result.state).hp).toBe(740)
+  expect(hasStatus(result.state, status)).toBe(status === 'frozen')
+})
+
+it('preserves Dawn’s Oath v7 gated recovery and exactly scopes the v8 definition', () => {
+  const oath = candidate.records.find((entry) => entry.id === 'essence.dawnshield.dawns-oath')!
+  const expected = structuredClone(oath.before)
+  expected.contentVersion = 8
+  Object.assign(expected, {
+    flavorLine: 'Cleanse and shield a friendly, restoring health.',
+    skill: { ...expected.skill, contentVersion: 8 },
+  })
+  const behavior = expected.ability.behaviors[0]!
+  Object.assign(behavior, {
+    effects: behavior.effects.map((effect) =>
+      effect.payload.type === 'percentage-recovery'
+        ? { id: effect.id, payload: effect.payload }
+        : effect,
+    ),
+  })
+  expect(oath.after).toEqual(expected)
+  const source = identitySource({ ...oath, after: oath.before })
+  const state = identityState([source])
+  unit(state).hp = 600
+  const result = commitRosterCommand(
+    identityCommand(state, source, { kind: 'unit', combatantId: 'actor' }),
+  )
+  expect(unit(result.state).hp).toBe(600)
+})
+
+it.each([600, 990, 1000])(
+  'Dawn’s Oath recovers an eligible ally from %s HP without an affliction',
+  (hp) => {
+    const oath = candidate.records.find((entry) => entry.id === 'essence.dawnshield.dawns-oath')!
+    const source = identitySource(oath)
+    const state = identityState([source])
+    unit(state, 'ally').hp = hp
+    const result = commitRosterCommand(
+      identityCommand(state, source, { kind: 'unit', combatantId: 'ally' }),
+    )
+    expect(unit(result.state, 'ally').hp).toBe(Math.min(1000, hp + 140))
+    expect(unit(result.state).hp).toBe(unit(state).hp)
+    expect(ap(result.state)).toBe(35)
+    expect(unit(result.state).mp).toBe(240)
+  },
+)

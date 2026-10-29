@@ -1,7 +1,7 @@
-"""Bind the reviewed one-record publication SQL offline. Never executes SQL.
+"""Bind the reviewed two-record publication SQL offline. Never executes SQL.
 
-Requires a fresh catalogue CAS token plus the separately read current Field Remedy
-row. The SQL independently rechecks the current row and highest history version.
+Requires a fresh catalogue CAS token plus the separately read current Field Remedy and Dawn’s Oath
+rows. The SQL independently rechecks the current row and highest history version.
 """
 import argparse
 import importlib.util
@@ -22,27 +22,35 @@ def prepare(*, live_definition, catalogue_token):
         raise ValueError('Candidate differs from the deterministic reviewed preparation')
     if not isinstance(catalogue_token, str) or not re.fullmatch('[a-f0-9]{32}', catalogue_token):
         raise ValueError('A fresh 32-character catalogue CAS token is required')
-    record, = reviewed['records']
-    if not isinstance(live_definition, dict):
-        raise ValueError('A current Field Remedy row is required')
-    definition = live_definition.get('definition')
-    version = live_definition.get('content_version')
-    if version == 7 and definition == record['before']:
-        expected_outcome = 'append-v8'
-    elif version == 8 and definition == record['after']:
-        expected_outcome = 'already-published-no-op'
-    else:
-        raise ValueError('Current Field Remedy differs from the reviewed before/after definitions')
+    records = reviewed['records']
+    if (not isinstance(live_definition, list) or len(live_definition) != len(records) or
+            any(not isinstance(row, dict) for row in live_definition) or
+            {row.get('content_key') for row in live_definition} != {row['id'] for row in records}):
+        raise ValueError('Current rows for both reviewed recovery definitions are required')
     sql = TEMPLATE.read_text()
-    for token, value in [('__BEFORE_JSON__', record['before']), ('__AFTER_JSON__', record['after'])]:
-        payload = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
-        if any(delimiter in payload for delimiter in ('$field_remedy_before$', '$field_remedy_after$', '$publish_field_remedy$')):
-            raise ValueError('Unsafe SQL delimiter in candidate')
-        sql = sql.replace(token, payload)
+    outcomes = []
+    for record in records:
+        live = next(row for row in live_definition if row['content_key'] == record['id'])
+        if live.get('content_version') == 7 and live.get('definition') == record['before']:
+            outcome = 'append-v8'
+        elif live.get('content_version') == 8 and live.get('definition') == record['after']:
+            outcome = 'already-published-no-op'
+        else:
+            raise ValueError('Current recovery definition differs from reviewed before/after: ' + record['id'])
+        outcomes.append({'id': record['id'], 'beforeVersion': 7, 'afterVersion': 8, 'expectedOutcome': outcome})
+        prefix = '' if record['id'] == 'wildwarden.field-remedy' else 'OATH_'
+        for suffix, value in [('BEFORE', record['before']), ('AFTER', record['after'])]:
+            payload = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+            if any(delimiter in payload for delimiter in ('$field_remedy_before$', '$field_remedy_after$', '$publish_field_remedy$',
+                                                         '$dawns_oath_before$', '$dawns_oath_after$', '$publish_dawns_oath$')):
+                raise ValueError('Unsafe SQL delimiter in candidate')
+            sql = sql.replace('__' + prefix + suffix + '_JSON__', payload)
+    expected_outcome = ('already-published-no-op' if all(row['expectedOutcome'] == 'already-published-no-op' for row in outcomes)
+                        else 'append-v8')
     sql = sql.replace('__EXPECTED_CATALOGUE_TOKEN__', catalogue_token)
     if re.search(r'__[A-Z_]+__', sql):
         raise ValueError('Unbound SQL placeholder')
-    return sql, {'record': record['id'], 'beforeVersion': 7, 'afterVersion': 8,
+    return sql, {'records': outcomes,
                  'expectedOutcome': expected_outcome, 'candidateDigest': _candidate.digest(reviewed),
                  'bytes': len(sql.encode())}
 

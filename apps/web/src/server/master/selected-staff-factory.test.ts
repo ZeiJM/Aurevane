@@ -20,6 +20,7 @@ vi.mock('@/server/character/selected-character', () => ({
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { createSupabaseMasterPanelStaffAccessStore } from './supabase-staff-access-store'
 import { createSupabaseCombatContentAuthoringStore } from './supabase-combat-content-authoring-store'
+import { serverCombatCatalogueSnapshotCache } from '../combat/combat-content-resolver'
 import { createSupabaseEventAuthoringStore } from './supabase-event-authoring-store'
 import { createMasterPanelStaffAccessService } from './staff-access'
 import { createEventAuthoringService } from './event-authoring-service'
@@ -45,11 +46,13 @@ const eventRow = {
   published_at: '2026-10-20T12:00:00Z',
 }
 beforeEach(() => {
+  serverCombatCatalogueSnapshotCache.clear()
   state.userId = 'verified-user'
   state.characterId = 'first'
   state.roles = ['event-staff']
   state.actor.mockReset().mockImplementation(async () => ({ userId: state.userId }))
   state.rpc.mockReset().mockImplementation(async (name: string) => {
+    if (name === 'read_combat_content_catalogue_token_v1') return { data: token, error: null }
     if (name === 'read_combat_content_catalogue_v1')
       return { data: { token, policy: { version: 1, modes: {} }, publications: [] }, error: null }
     if (
@@ -159,9 +162,12 @@ it('real Combat publication and pointer validation compose actorless catalogue r
   )
   expect(
     state.rpc.mock.calls.filter(([name]) => name === 'read_combat_content_catalogue_v1'),
+  ).toEqual([['read_combat_content_catalogue_v1', {}]])
+  expect(
+    state.rpc.mock.calls.filter(([name]) => name === 'read_combat_content_catalogue_token_v1'),
   ).toEqual([
-    ['read_combat_content_catalogue_v1', {}],
-    ['read_combat_content_catalogue_v1', {}],
+    ['read_combat_content_catalogue_token_v1', {}],
+    ['read_combat_content_catalogue_token_v1', {}],
   ])
 })
 it('the production Event factory keeps current reads actorless through real workspace and scheduling composition', async () => {

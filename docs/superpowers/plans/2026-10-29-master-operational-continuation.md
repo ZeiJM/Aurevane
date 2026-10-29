@@ -9,6 +9,8 @@
 
 ## Global constraints
 
+October 29 expanded Owner scope: include Field Remedy and matching recovery skills plus the reported panel/server slowdown before this batch releases. The hourly release worker is paused while implementation continues; candidate 04be9704 must not be released as final. Fresh live audit, measured bottleneck, regression evidence and one combined successor are required.
+
 - Master Panel operational defects and requested UI refinements precede unrelated World/P5 work.
 - Preserve local edits, selected characters, progression, immutable captures and prior live repairs.
 - No weakened relationship validation, duplicate publication or deployment Preview.
@@ -53,3 +55,10 @@
 - [ ] Verify canonical source, public/protected routes, audio and bounded runtime errors; report actual remaining acceptance.
 
 Verification map: focused relationship/workspace/media Vitest, all-migrations DB authoring/media tests, web types/lint/format; final repository `pnpm check` and every configured exact-head workflow. No broad suite exclusion at release because this checkpoint spans shared UI, gameplay readers and persistence.
+
+### Expanded task: recovery parity and publication/read pressure
+
+- Audit the fresh live catalogue for matching cleanse-plus-recovery gates. Append guarded new versions of Field Remedy and Dawn's Oath; retain genuine resource/trigger/conditional bonus mechanics and all old captures.
+- Reproduce repeated full catalogue transfer/validation. Reuse only validated immutable snapshots after a fresh database token on every request; keep cache bounded, isolate injected sources, coalesce concurrent misses, clone returned values and fail closed on unavailable authority. No TTL or stale fallback.
+- Cover unchanged hits, publication/policy/archive/draft revision changes, concurrent misses, invalid/error responses, races and caller mutation. Verify real production factories pass the bounded cache; keep SQL/CAS/selected-character authorization unchanged.
+- Run focused cache/authoring/admission/freshness suites and a reproducible CPU/call-count benchmark, then the combined quality gate. All new exact-head GitHub gates remain required. Resume only the existing hourly worker with updated checkpoint and expanded publication guards after source work is stable.

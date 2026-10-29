@@ -11,11 +11,14 @@ const read = (name: string) =>
     new URL(`../../../docs/verification/release-assets/${name}`, import.meta.url),
     'utf8',
   )
-const candidate = JSON.parse(read('2026-10-29-field-remedy-recovery-candidate.json'))
-  .records[0] as {
+const candidates = JSON.parse(read('2026-10-29-field-remedy-recovery-candidate.json')).records as {
+  id: string
+  kind: string
   before: Record<string, unknown>
   after: Record<string, unknown>
-}
+}[]
+const candidate = candidates[0]!
+const oath = candidates[1]!
 const template = read('2026-10-29-field-remedy-recovery-publication.sql')
 let db: PGlite
 beforeAll(async () => {
@@ -30,6 +33,11 @@ beforeEach(async () => {
   await db.exec('begin')
   await seedPublication(key, { ...candidate.before, contentVersion: 6 }, 6)
   await seedPublication(key, candidate.before, 7)
+  await seedPublication(oath.id, oath.before, 7, 'essence')
+  await db.query(
+    "insert into app_private.combat_content_records(content_key,content_kind,lifecycle,version_floor) values($1,'essence','active',7) on conflict(content_key) do update set lifecycle='active',version_floor=7",
+    [oath.id],
+  )
   await seedPublication('owner.sentinel', { id: 'owner.sentinel', contentVersion: 1 }, 1)
   await db.query(
     `insert into app_private.combat_content_records(content_key,content_kind,lifecycle,version_floor)
@@ -44,19 +52,19 @@ beforeEach(async () => {
   )
 })
 afterEach(async () => db.exec('rollback'))
-async function seedPublication(id: string, definition: object, version: number) {
+async function seedPublication(id: string, definition: object, version: number, kind = 'skill') {
   // Import retained publication history as fixture data; production uses current saved revisions.
   const result = await db.query<{ id: string }>(
-    "insert into app_private.combat_content_versions(content_key,content_kind,content_version,definition,published_by) values($1,'skill',$2,$3,$4) returning id",
-    [id, version, definition, owner],
+    'insert into app_private.combat_content_versions(content_key,content_kind,content_version,definition,published_by) values($1,$5,$2,$3,$4) returning id',
+    [id, version, definition, owner, kind],
   )
   await db.query(
     'insert into app_private.combat_content_attribution(version_id,authored_by,authored_at) values($1,$2,now())',
     [result.rows[0]!.id, owner],
   )
   await db.query(
-    "insert into app_private.combat_content_publications(content_key,content_kind,version_id,updated_by) values($1,'skill',$2,$3) on conflict(content_key) do update set version_id=excluded.version_id",
-    [id, result.rows[0]!.id, owner],
+    'insert into app_private.combat_content_publications(content_key,content_kind,version_id,updated_by) values($1,$4,$2,$3) on conflict(content_key) do update set version_id=excluded.version_id',
+    [id, result.rows[0]!.id, owner, kind],
   )
 }
 async function pointAt(version: number) {
@@ -97,6 +105,8 @@ async function execute(expectedToken = '') {
   const sql = template
     .replace('__BEFORE_JSON__', JSON.stringify(candidate.before))
     .replace('__AFTER_JSON__', JSON.stringify(candidate.after))
+    .replace('__OATH_BEFORE_JSON__', JSON.stringify(oath.before))
+    .replace('__OATH_AFTER_JSON__', JSON.stringify(oath.after))
     .replace('__EXPECTED_CATALOGUE_TOKEN__', expectedToken || (await token()))
     .replace(/^begin;$/m, '')
     .replace(/^commit;$/m, '')
@@ -115,18 +125,38 @@ it('executes the current selected-character saved-record API and appends only th
   await execute()
   expect(await current()).toMatchObject({ content_version: 8, definition: candidate.after })
   const after = await snapshot()
-  expect(after.history).toHaveLength(before.history!.length + 1)
+  expect(after.history).toHaveLength(before.history!.length + 2)
   expect(after.history).toEqual(expect.arrayContaining(before.history!))
-  expect(after.attribution).toHaveLength(before.attribution!.length + 1)
+  expect(after.attribution).toHaveLength(before.attribution!.length + 2)
   expect(after.attribution).toEqual(expect.arrayContaining(before.attribution!))
   expect(after.drafts).toEqual(before.drafts)
-  expect(after.records!.filter((r) => (r as { content_key: string }).content_key !== key)).toEqual(
-    before.records!.filter((r) => (r as { content_key: string }).content_key !== key),
+  expect(
+    after.records!.filter(
+      (r) =>
+        (r as { content_key: string }).content_key !== key &&
+        (r as { content_key: string }).content_key !== oath.id,
+    ),
+  ).toEqual(
+    before.records!.filter(
+      (r) =>
+        (r as { content_key: string }).content_key !== key &&
+        (r as { content_key: string }).content_key !== oath.id,
+    ),
   )
   expect(after.policy).toEqual(before.policy)
   expect(
-    after.publications!.filter((p) => (p as { content_key: string }).content_key !== key),
-  ).toEqual(before.publications!.filter((p) => (p as { content_key: string }).content_key !== key))
+    after.publications!.filter(
+      (p) =>
+        (p as { content_key: string }).content_key !== key &&
+        (p as { content_key: string }).content_key !== oath.id,
+    ),
+  ).toEqual(
+    before.publications!.filter(
+      (p) =>
+        (p as { content_key: string }).content_key !== key &&
+        (p as { content_key: string }).content_key !== oath.id,
+    ),
+  )
 })
 it('returns a no-op for an exact-v8 retry using a fresh catalogue token', async () => {
   await execute()
@@ -193,4 +223,44 @@ it('rolls back an uncommitted append without altering prior immutable history', 
   await db.exec('rollback to savepoint publication')
   expect(await snapshot()).toEqual(before)
   expect(await current()).toMatchObject({ content_version: 7, definition: candidate.before })
+})
+
+it('rolls back Field Remedy too when Dawn’s Oath has an Owner draft', async () => {
+  await db.query(
+    `insert into app_private.combat_content_drafts(content_key,content_kind,definition,base_version,updated_by)
+    values($1,'essence',$2,7,$3)`,
+    [oath.id, oath.before, owner],
+  )
+  await rejected(() => execute(), /DAWNS_OATH_HAS_UNCOMMITTED_DRAFT/)
+  expect((await current()).content_version).toBe(7)
+})
+it('publishes both recovery definitions and preserves exact v8 retries', async () => {
+  await execute()
+  const actual = await db.query<{ content_version: number; definition: object }>(
+    "select * from public.read_current_combat_content_v1($1,'essence')",
+    [oath.id],
+  )
+  expect(actual.rows[0]).toMatchObject({ content_version: 8, definition: oath.after })
+  const before = await snapshot()
+  await execute()
+  expect(await snapshot()).toEqual(before)
+})
+it('rejects a divergent Dawn’s Oath v8 without retaining the preceding Field Remedy append', async () => {
+  await seedPublication(oath.id, { ...oath.after, flavorLine: 'Owner alternative' }, 8, 'essence')
+  await rejected(() => execute(), /DAWNS_OATH_BASELINE_CHANGED/)
+  expect((await current()).content_version).toBe(7)
+})
+
+it('rolls back both appends if Dawn’s Oath publication changes an unrelated Owner draft', async () => {
+  await db.exec(`create function pg_temp.corrupt_oath_sentinel() returns trigger language plpgsql as $$
+    begin
+      if new.content_key='essence.dawnshield.dawns-oath' and new.content_version=8 then
+        update app_private.combat_content_drafts set draft_version=draft_version+1 where content_key='owner.sentinel';
+      end if;
+      return new;
+    end; $$;
+    create trigger test_corrupt_oath_sentinel after insert on app_private.combat_content_versions
+      for each row execute function pg_temp.corrupt_oath_sentinel();`)
+  await rejected(() => execute(), /DAWNS_OATH_PRESERVATION_MISMATCH/)
+  expect((await current()).content_version).toBe(7)
 })
