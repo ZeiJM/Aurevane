@@ -52,13 +52,19 @@ it.each(rows)('$id uses the shared concise modular report and bold tags', (row) 
       'Line of Sight',
     ])
     for (const [index, description] of report.effectDescriptions.entries()) {
-      expect(description.length, `${row.id}: ${description}`).toBeLessThanOrEqual(300)
+      const condition = report.effects[index]!.condition
+      const conditionSuffix = condition ? ` Applies only when ${condition}.` : ''
+      if (condition) expect(description.endsWith(conditionSuffix), row.id).toBe(true)
+      const effectProse = conditionSuffix
+        ? description.slice(0, -conditionSuffix.length)
+        : description
+      expect(effectProse.length, `${row.id}: ${description}`).toBeLessThanOrEqual(300)
       expect(description, row.id).not.toMatch(
         /\blegal\b|captur|authored|packet|kernel|ordinals?|prepaid|settle/iu,
       )
       const payload = behavior.effects[index]!.payload
       if (!['damage', 'pierce'].includes(payload.type))
-        expect(description, row.id).not.toMatch(/\d/u)
+        expect(effectProse, row.id).not.toMatch(/\d/u)
     }
   }
   const html = renderToStaticMarkup(

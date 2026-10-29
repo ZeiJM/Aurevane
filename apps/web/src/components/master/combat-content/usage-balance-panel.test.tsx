@@ -147,3 +147,32 @@ it('charts pair counts and matchup outcomes while retaining exact sample counts'
   expect(html.match(/data-chart="outcomes"/g)).toHaveLength(2)
   expect(html).toContain('4 opposing-player pairings')
 })
+
+it('shows current programmed Discipline names in pairs and matchup labels without UUID prose', () => {
+  const id = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+  const html = renderToStaticMarkup(
+    <UsageBalanceReportView
+      report={{
+        ...report,
+        disciplineNames: { [id]: 'Super Saiyan', ironfist: 'Iron Hand' },
+        pairs: [{ primary: id, secondary: 'ironfist', players: 1, characters: 1 }],
+        matchups: [{ source: 'pvp', opponent: id, appearances: 1, wins: 1, losses: 0, draws: 0 }],
+      }}
+    />,
+  )
+  expect(html).toContain('Super Saiyan +')
+  expect(html).toContain('Iron Hand')
+  expect(html).not.toContain('F60c5dc7')
+  expect(html).not.toContain(id)
+})
+it('labels unavailable Discipline names honestly without exposing custom IDs', () => {
+  const id = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+  const html = renderToStaticMarkup(
+    <UsageBalanceReportView
+      report={{ ...report, pairs: [{ primary: id, secondary: null, players: 1, characters: 1 }] }}
+    />,
+  )
+  expect(html).toContain('Unavailable Discipline')
+  expect(html).not.toContain('F60c5dc7')
+  expect(html).toContain('None (Essence)')
+})

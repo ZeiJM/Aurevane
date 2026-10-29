@@ -1063,13 +1063,14 @@ const uploadedArtwork = {
   sourceHeight: 4,
   crop: { x: 2, y: 0, size: 4 },
 }
-function mediaFixture(initial: FinalizedContentMediaSlots) {
+function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width: 8, height: 4 }) {
   let value = initial
+  const drawImage = vi.fn()
   vi.stubGlobal('URL', { createObjectURL: () => 'blob:selected-image', revokeObjectURL() {} })
   vi.stubGlobal('window', {
     Image: class {
-      naturalWidth = 8
-      naturalHeight = 4
+      naturalWidth = dimensions.width
+      naturalHeight = dimensions.height
       onload: (() => void) | null = null
       set src(_value: string) {
         queueMicrotask(() => this.onload?.())
@@ -1088,22 +1089,27 @@ function mediaFixture(initial: FinalizedContentMediaSlots) {
         value = next
       },
     })
+    const previewCanvas = find(tree, (node) => node.type === 'canvas')
+    if (previewCanvas)
+      (previewCanvas.props.ref as { current: unknown }).current = {
+        getContext: () => ({ clearRect() {}, drawImage }),
+      }
     hooks.effects.splice(0).forEach((effect) => effect())
     return tree
   }
   const control = (label: string) => find(render(), (node) => node.props['aria-label'] === label)!
   const uploadButton = () =>
     find(render(), (node) => node.type === 'button' && node.props.children === 'Upload file')!
-  async function select() {
+  async function select(file = new File(['image'], 'selected.png', { type: 'image/png' })) {
     ;(control('Upload content media').props.onChange as (event: unknown) => void)({
       currentTarget: {
-        files: [new File(['image'], 'selected.png', { type: 'image/png' })],
+        files: [file],
         value: 'selected.png',
       },
     })
     await vi.waitFor(() => expect(uploadButton().props.disabled).toBe(false))
   }
-  return { render, control, uploadButton, select, request, value: () => value }
+  return { render, control, uploadButton, select, request, drawImage, value: () => value }
 }
 it.each(['builtin', 'custom'])(
   'keeps current %s artwork beside the selected crop without changing the definition',
@@ -1120,9 +1126,54 @@ it.each(['builtin', 'custom'])(
     await f.select()
     expect(current()).toBeTruthy()
     expect(f.control('Actual crop preview')).toBeTruthy()
-    expect(f.control('Crop size').props.value).toBe(4)
+    for (const label of ['Crop x', 'Crop y', 'Crop size']) expect(f.control(label)).toBeNull()
     expect(f.value()).toBe(initial)
     expect(f.request).not.toHaveBeenCalled()
+  },
+)
+it.each([
+  { width: 8, height: 4, crop: { x: 2, y: 0, size: 4 } },
+  { width: 4, height: 9, crop: { x: 0, y: 2, size: 4 } },
+])(
+  'automatically centers $width × $height artwork in the canvas and finalized bytes',
+  async ({ width, height, crop }) => {
+    const sharp = (await import('sharp')).default
+    const { normalizeContentMedia } = await import('@/server/master/combat-content-media')
+    const pixels = Buffer.alloc(width * height * 3)
+    for (let y = 0; y < height; y++)
+      for (let x = 0; x < width; x++) {
+        const inside = x >= crop.x && x < crop.x + 4 && y >= crop.y && y < crop.y + 4
+        pixels.set(inside ? [0, 255, 0] : [255, 0, 0], (y * width + x) * 3)
+      }
+    const png = await sharp(pixels, { raw: { width, height, channels: 3 } })
+      .png()
+      .toBuffer()
+    const f = mediaFixture({}, { width, height })
+    await f.select(new File([new Uint8Array(png)], 'automatic.png', { type: 'image/png' }))
+    await vi.waitFor(() => expect(f.drawImage).toHaveBeenCalled())
+    expect(f.drawImage.mock.calls.at(-1)?.slice(1)).toEqual([crop.x, crop.y, 4, 4, 0, 0, 192, 192])
+    let normalizedBytes: Buffer | undefined
+    f.request.mockImplementationOnce(async (_url, options) => {
+      const body = options.body as FormData
+      const normalized = await normalizeContentMedia(
+        Buffer.from(await (body.get('file') as File).arrayBuffer()),
+        'image/png',
+        JSON.parse(String(body.get('crop'))),
+      )
+      normalizedBytes = normalized.bytes
+      return Response.json({ media: { ...normalized.descriptor, id: uploadedArtwork.id } })
+    })
+    ;(f.uploadButton().props.onClick as () => void)()
+    await vi.waitFor(() => expect(f.value().artwork).toBeDefined())
+    expect(f.value().artwork).toMatchObject({
+      sourceWidth: width,
+      sourceHeight: height,
+      width: 4,
+      height: 4,
+      crop,
+    })
+    const decoded = await sharp(normalizedBytes!).removeAlpha().raw().toBuffer()
+    expect(Array.from(decoded)).toEqual(Array.from({ length: 16 }, () => [0, 255, 0]).flat())
   },
 )
 it('adds only a successfully finalized upload to local edits and keeps the old artwork on upload failure', async () => {

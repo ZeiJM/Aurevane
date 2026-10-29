@@ -749,6 +749,72 @@ describe('published current build consumers and earned eligibility', () => {
     expect(repo.saveDisciplineSkills).toHaveBeenCalledWith(expect.objectContaining({ skills: [] }))
     expect(await repo.listLearnedSkills(userId, character().id)).toEqual([learned])
   })
+  it('projects current names for learned and equipped cross-source Skills even when the source is unavailable for selection', async () => {
+    const sourceId = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+    const definition = { ...custom, sourceDisciplineId: sourceId }
+    const lockedSource = {
+      ...lifebinder,
+      definition: {
+        ...lifebinder.definition,
+        id: sourceId,
+        name: 'Super Saiyan',
+        enabledForPrimary: false,
+        enabledForSecondary: false,
+      },
+      profile: { ...lifebinder.profile, disciplineId: sourceId },
+      masteredAt: null,
+    }
+    const learned = {
+      ...shared,
+      sourceDisciplineId: sourceId,
+      skillId: custom.id,
+      contentVersion: 9,
+    }
+    const repo = repository({
+      listDisciplines: vi.fn(async () => [vanguard, aetherist, lockedSource]),
+      listLearnedSkills: vi.fn(async () => [learned]),
+      listEquippedDisciplineSkills: vi.fn(async () => [
+        { ...learned, slotIndex: 1, equippedAt: shared.learnedAt },
+      ]),
+      contentResolver: {
+        ...currentResolver(),
+        resolveCurrentSkillDefinition: vi.fn(async () => definition),
+        resolvePinnedSkillDefinition: vi.fn(async () => definition),
+      },
+    })
+    const view = await loadCharacterBuildContext(userId, character(), repo)
+    expect(view.disciplineSkills.learnedSkills[0]?.definition.sourceDisciplineId).toBe(sourceId)
+    expect(view.disciplineSkills.equippedSkills[0]?.definition.sourceDisciplineId).toBe(sourceId)
+    expect(view.availablePrimaries.map((row) => row.definition.id)).not.toContain(sourceId)
+    expect(view.availableSecondaries.map((row) => row.definition.id)).not.toContain(sourceId)
+    expect(view.disciplineNames).toEqual({ [sourceId]: 'Super Saiyan' })
+    expect(repo.listDisciplines).toHaveBeenCalledTimes(1)
+  })
+  it.each([false, true])(
+    'loads only missing source labels without blocking the build on label failure (%s)',
+    async (unavailable) => {
+      const loadDisciplineNames = unavailable
+        ? vi.fn(async () => {
+            throw new Error('names unavailable')
+          })
+        : vi.fn(async () => ({
+            lifebinder: 'Current Lifebinder',
+            aetherist: 'Unrelated private name',
+          }))
+      const repo = repository({
+        listDisciplines: vi.fn(async () => [vanguard]),
+        loadDisciplineNames,
+      })
+      const view = await loadCharacterBuildContext(userId, character(), repo)
+      expect(loadDisciplineNames).toHaveBeenCalledWith(['lifebinder'])
+      expect(view.disciplineNames).toEqual(
+        unavailable
+          ? { vanguard: 'Vanguard' }
+          : { vanguard: 'Vanguard', lifebinder: 'Current Lifebinder' },
+      )
+      expect(view.disciplineSkills.learnedSkills).toHaveLength(2)
+    },
+  )
   it('actual published resolver supplies custom Skills and explicit current E/R removal in the profile', async () => {
     const contentResolver = currentResolver()
     const repo = repository({

@@ -30,7 +30,6 @@ export function FinalizedMediaEditor({
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [crop, setCrop] = useState<ContentImageCrop>({ x: 0, y: 0, size: 1 })
-  const [dimensions, setDimensions] = useState({ width: 1, height: 1 })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const canvas = useRef<HTMLCanvasElement>(null)
@@ -45,7 +44,6 @@ export function FinalizedMediaEditor({
     const image = new window.Image()
     image.onload = () => {
       const size = Math.min(image.naturalWidth, image.naturalHeight)
-      setDimensions({ width: image.naturalWidth, height: image.naturalHeight })
       setCrop({
         x: Math.floor((image.naturalWidth - size) / 2),
         y: Math.floor((image.naturalHeight - size) / 2),
@@ -166,84 +164,64 @@ export function FinalizedMediaEditor({
         )}
         {file?.type.startsWith('image/') && (
           <div>
-            <p>Selected upload crop</p>
-            <canvas
-              ref={canvas}
-              width={192}
-              height={192}
-              aria-label="Actual crop preview"
-              style={{ maxWidth: '100%' }}
-            />
+            <p>New artwork</p>
+            <canvas ref={canvas} width={192} height={192} aria-label="Actual crop preview" />
           </div>
         )}
       </div>
-      <label className={styles.field}>
-        <span>Upload from computer</span>
-        <input
-          type="file"
-          aria-label="Upload content media"
-          accept={`image/png,image/jpeg,image/webp${allowAudio ? ',audio/wav,audio/x-wav' : ''}`}
-          onChange={(event) => {
-            const selected = event.currentTarget.files?.[0] ?? null
-            event.currentTarget.value = ''
-            setError('')
-            setPreview('')
-            if (selected && !allowAudio && !selected.type.startsWith('image/')) {
-              setError('This category supports images only; audio is unavailable.')
-              setFile(null)
-            } else if (selected && selected.size > CONTENT_MEDIA_MAX_BYTES) {
-              setError('Choose a file no larger than 2 MiB.')
-              setFile(null)
-            } else setFile(selected)
-          }}
-        />
-      </label>
-      {file?.type.startsWith('image/') && (
-        <div className={styles.typedGrid}>
-          {(['x', 'y', 'size'] as const).map((key) => (
-            <label key={key} className={styles.field}>
-              <span>Crop {key === 'size' ? 'square size' : key.toUpperCase()} (pixels)</span>
-              <input
-                type="number"
-                aria-label={`Crop ${key}`}
-                min={key === 'size' ? 1 : 0}
-                max={
-                  key === 'x'
-                    ? dimensions.width
-                    : key === 'y'
-                      ? dimensions.height
-                      : Math.min(dimensions.width, dimensions.height)
-                }
-                step={1}
-                value={crop[key]}
-                onChange={(event) => setCrop({ ...crop, [key]: Number(event.currentTarget.value) })}
-              />
-            </label>
-          ))}
+      <p className={styles.mediaHint}>Images are automatically centered and cropped to a square.</p>
+      <div className={styles.mediaUploadControls}>
+        <label className={styles.field}>
+          <span>Upload from computer</span>
+          <input
+            type="file"
+            aria-label="Upload content media"
+            accept={`image/png,image/jpeg,image/webp${allowAudio ? ',audio/wav,audio/x-wav' : ''}`}
+            onChange={(event) => {
+              const selected = event.currentTarget.files?.[0] ?? null
+              event.currentTarget.value = ''
+              setError('')
+              setPreview('')
+              if (selected && !allowAudio && !selected.type.startsWith('image/')) {
+                setError('This category supports images only; audio is unavailable.')
+                setFile(null)
+              } else if (selected && selected.size > CONTENT_MEDIA_MAX_BYTES) {
+                setError('Choose a file no larger than 2 MiB.')
+                setFile(null)
+              } else setFile(selected)
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          disabled={!file || busy || (file.type.startsWith('image/') && !preview)}
+          onClick={() => void upload()}
+        >
+          {busy ? 'Uploading…' : 'Upload file'}
+        </button>
+      </div>
+      {file && <p className={styles.mediaHint}>Selected: {file.name}</p>}
+      {file && !file.type.startsWith('image/') && preview && (
+        <div className={styles.mediaSound}>
+          <p>New sound</p>
+          <audio
+            controls
+            onError={() =>
+              setError(
+                'This sound could not be played. Use PCM16 WAV, mono or stereo, at 44.1 or 48 kHz.',
+              )
+            }
+            src={preview}
+            aria-label="Selected sound preview"
+          />
         </div>
       )}
-      {file && !file.type.startsWith('image/') && preview && (
-        <audio
-          controls
-          onError={() =>
-            setError(
-              'This sound could not be played. Use PCM16 WAV, mono or stereo, at 44.1 or 48 kHz.',
-            )
-          }
-          src={preview}
-          aria-label="Selected sound preview"
-        />
-      )}
-      <button
-        type="button"
-        disabled={!file || busy || (file.type.startsWith('image/') && !preview)}
-        onClick={() => void upload()}
-      >
-        {busy ? 'Uploading…' : 'Upload file'}
-      </button>
-      <p>Upload file adds media to your edits. Use Commit Now to save it.</p>
+      <p className={styles.mediaHint}>
+        Upload file adds media to your edits. Use Commit Now to save it.
+      </p>
       {value.audio && (
-        <div>
+        <div className={styles.mediaSound}>
+          <p>Current uploaded sound</p>
           <audio
             controls
             preload="none"

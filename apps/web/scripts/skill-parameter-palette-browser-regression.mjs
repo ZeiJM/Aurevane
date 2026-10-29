@@ -421,14 +421,14 @@ async function colors(locator) {
 }
 const palette = {
   label: 'rgb(228, 189, 103)',
-  magnitude: 'rgb(228, 189, 103)',
+  magnitude: 'rgb(201, 167, 255)',
   duration: 'rgb(112, 215, 206)',
   timing: 'rgb(112, 215, 206)',
   target: 'rgb(255, 180, 117)',
 }
 const paperPalette = {
   label: 'rgb(121, 85, 28)',
-  magnitude: 'rgb(121, 85, 28)',
+  magnitude: 'rgb(78, 34, 110)',
   timing: 'rgb(23, 103, 94)',
   target: 'rgb(101, 49, 14)',
 }
@@ -440,7 +440,7 @@ async function assertPaperEffects(panel) {
     )
   }
 }
-async function assertModularReport(panel, { resonance = false } = {}) {
+async function assertModularReport(panel, { resonance = false, expectedPalette = palette } = {}) {
   const groups = panel.locator('[data-ability-behavior]')
   assert.equal(await groups.count(), 2)
   for (const group of await groups.all())
@@ -467,7 +467,21 @@ async function assertModularReport(panel, { resonance = false } = {}) {
     })),
   )
   assert.equal(tagColors.length, 3)
-  for (const row of tagColors) assert.equal(row.label, row.value)
+  for (const row of tagColors) {
+    assert.equal(row.label, expectedPalette.label)
+    assert.equal(row.value, expectedPalette.magnitude)
+    assert.notEqual(row.label, row.value)
+  }
+  for (const target of await panel.locator('[data-requirement-parameter="target"]').all())
+    assert.equal(
+      await target.evaluate((element) => getComputedStyle(element).color),
+      expectedPalette.target,
+    )
+  for (const amount of await panel.locator('[data-requirement-parameter="magnitude"]').all())
+    assert.equal(
+      await amount.evaluate((element) => getComputedStyle(element).color),
+      expectedPalette.magnitude,
+    )
   for (const label of await panel
     .getByRole('list', { name: 'Requirement explanations' })
     .locator('[data-effect-tag-label]')
@@ -513,7 +527,10 @@ async function verifyModularReaders(page, viewport) {
     await gesture(trigger)
     const panel = page.getByRole('dialog', { name, exact: true })
     await panel.waitFor()
-    await assertModularReport(panel, { resonance: attunement === 'resonance' })
+    await assertModularReport(panel, {
+      resonance: attunement === 'resonance',
+      expectedPalette: paperPalette,
+    })
     assert.equal(await page.getByRole('dialog').count(), 1)
     const box = await panel.boundingBox()
     assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
@@ -531,7 +548,7 @@ async function verifyModularReaders(page, viewport) {
       await gesture(page.getByRole('button', { name: /^Manage Techniques\./ }))
       const editor = page.getByRole('dialog', { name: 'Techniques', exact: true })
       await editor.waitFor()
-      await assertModularReport(editor)
+      await assertModularReport(editor, { expectedPalette: paperPalette })
       assert.equal(await editor.locator('[data-technique-meta]').innerText(), 'Attack / Utility')
       assert.equal(await page.getByRole('dialog').count(), 1)
       await page.screenshot({

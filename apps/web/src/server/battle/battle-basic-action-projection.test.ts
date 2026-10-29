@@ -118,9 +118,8 @@ it('projects saved Basic costs, enabled state and complete reports for the contr
     Effects: expect.stringContaining('22%'),
   })
   expect(recovery.behaviors[0]!.effects[0]!.condition).toBe('Guard [Self]')
-  expect(Object.fromEntries(recovery.behaviors[0]!.rows).Requirements).toContain(
-    'HP Recovery: Guard [Self]',
-  )
+  expect(Object.fromEntries(recovery.behaviors[0]!.rows).Requirements).toBe('HP [≤ 99.99%] [Self]')
+  expect(recovery.behaviors[0]!.effectDescriptions[0]).toContain('Applies only when Guard [Self].')
   expect(Object.fromEntries(recovery.behaviors[0]!.rows).Effects).not.toContain('If ')
   expect(recovery.behaviors[0]!.effectDescriptions.join(' ')).not.toContain('If Guard [Self]:')
   const attack = view.basicActions!.find(

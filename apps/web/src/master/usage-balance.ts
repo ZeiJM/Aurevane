@@ -9,6 +9,7 @@ export interface UsageBalanceReport {
   contentKey: string
   subjectKind: 'discipline' | 'skill' | 'unsupported'
   availableWeeks?: string[]
+  disciplineNames?: Readonly<Record<string, string>>
   asOf: string
   weekStartsAt: string
   weekEndsAt: string

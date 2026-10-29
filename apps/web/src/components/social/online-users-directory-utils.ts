@@ -1,4 +1,5 @@
-import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
+import { readableDisciplineName } from '@/lib/discipline-display-name'
+export { readableDisciplineName } from '@/lib/discipline-display-name'
 
 export type LastSeenSortOrder = 'recent' | 'oldest'
 export type DirectorySortOrder =
@@ -54,19 +55,6 @@ export function readableIdentity(value: string | null): string | null {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
-}
-
-/** Published names win, including renamed builtins. Unknown identities never become UUID prose. */
-export function readableDisciplineName(
-  id: string | null,
-  publishedName?: string | null,
-): string | null {
-  if (!id) return null
-  return (
-    publishedName?.trim() ||
-    DISCIPLINE_ATLAS.find((row) => row.id === id)?.name ||
-    'Unknown Discipline'
-  )
 }
 
 export function readableDisciplinePair(

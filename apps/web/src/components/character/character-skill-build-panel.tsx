@@ -1,5 +1,6 @@
 'use client'
 
+import { readableDisciplineName } from '@/lib/discipline-display-name'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 
 import { AbilityDefinitionParameters } from './ability-definition-parameters'
@@ -72,6 +73,7 @@ interface EquippedSkillView {
 
 interface CharacterSkillBuildPanelProps {
   characterId: string
+  disciplineNames?: Readonly<Record<string, string>>
   initialBuildVersion: number
   initialSupportActionId?: SupportActionId
   primaryDiscipline: { id: string; name: string }
@@ -119,14 +121,6 @@ function skillPaletteStyle(disciplineId: string): CSSProperties {
     '--skill-accent': palette.accent,
     '--skill-deep': palette.deep,
   } as CSSProperties
-}
-
-function titleCase(value: string): string {
-  return value
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
 }
 
 function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[] {
@@ -266,7 +260,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       ? primaryDiscipline.name
       : secondaryDiscipline?.id === focusedSkill.definition.sourceDisciplineId
         ? secondaryDiscipline.name
-        : titleCase(focusedSkill.definition.sourceDisciplineId)
+        : readableDisciplineName(
+            focusedSkill.definition.sourceDisciplineId,
+            props.disciplineNames?.[focusedSkill.definition.sourceDisciplineId],
+          )
     : null
   const focusedCharacteristics: readonly SkillCharacteristic[] =
     focusedSkill && !focusedSkill.definition.ability

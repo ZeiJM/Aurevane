@@ -153,6 +153,7 @@ export interface CharacterBuildRepository {
   ): Promise<{ buildVersion: number; replayed: boolean }>
   findActiveBuild(userId: string, characterId: string): Promise<CharacterActiveBuildRecord | null>
   listDisciplines(userId: string, characterId: string): Promise<readonly DisciplineCatalogEntry[]>
+  loadDisciplineNames?(ids: readonly string[]): Promise<Readonly<Record<string, string>>>
   listLearnedSkills(
     userId: string,
     characterId: string,
@@ -216,6 +217,7 @@ export interface CharacterDisciplineSkillLoadoutView {
 }
 
 export interface CharacterBuildContext {
+  disciplineNames?: Readonly<Record<string, string>>
   build: CharacterActiveBuildRecord
   current: PrimaryDisciplinePreview
   currentSecondary: DisciplineDefinition | null
@@ -463,6 +465,33 @@ export async function loadCharacterBuildContext(
     throw persistenceUnavailable('The character build is unavailable right now.')
   }
   const { availablePrimaries, availableSecondaries } = availableCatalog(catalog)
+  const disciplineSkills = await buildDisciplineSkillView(
+    build,
+    learnedSkills,
+    equippedSkills,
+    repository.contentResolver,
+  )
+  const sourceIds = new Set(
+    [...disciplineSkills.learnedSkills, ...disciplineSkills.equippedSkills].map(
+      ({ definition }) => definition.sourceDisciplineId,
+    ),
+  )
+  // Selection availability does not hide the name of an already learned Skill's source.
+  const disciplineNames = Object.fromEntries(
+    catalog
+      .filter(({ definition }) => sourceIds.has(definition.id))
+      .map(({ definition }) => [definition.id, definition.name]),
+  )
+  const missingSourceIds = [...sourceIds].filter((id) => !Object.hasOwn(disciplineNames, id))
+  if (missingSourceIds.length && repository.loadDisciplineNames) {
+    const additionalNames = await repository
+      .loadDisciplineNames(missingSourceIds)
+      .catch(() => ({}) as Readonly<Record<string, string>>)
+    for (const id of missingSourceIds) {
+      const name = additionalNames[id]?.trim()
+      if (name && name.length <= 160) disciplineNames[id] = name
+    }
+  }
   return {
     build,
     current: calculatePreview(character, {
@@ -476,12 +505,8 @@ export async function loadCharacterBuildContext(
     availablePrimaries,
     availableSecondaries,
     attunement: buildAttunementView(build),
-    disciplineSkills: await buildDisciplineSkillView(
-      build,
-      learnedSkills,
-      equippedSkills,
-      repository.contentResolver,
-    ),
+    disciplineSkills,
+    disciplineNames,
   }
 }
 

@@ -57,6 +57,7 @@ function OutcomeBar({ row }: { row: BalanceOutcomes }) {
 }
 export function UsageBalanceReportView({ report }: { report: UsageBalanceReport }) {
   const { current, coverage } = report
+  const disciplineName = (id: string) => report.disciplineNames?.[id] ?? 'Unavailable Discipline'
   const hasSample = coverage.collectedBattles > 0
   const equippedMaximum = Math.max(0, ...report.skills.map((skill) => skill.equippedPlayers))
   const usesMaximum = Math.max(0, ...report.skills.map((skill) => skill.actualUses))
@@ -239,8 +240,8 @@ export function UsageBalanceReportView({ report }: { report: UsageBalanceReport 
                 {report.pairs.map((pair) => (
                   <li key={`${pair.primary}:${pair.secondary}`}>
                     <span>
-                      {label(pair.primary)} +{' '}
-                      {pair.secondary ? label(pair.secondary) : 'None (Essence)'}
+                      {disciplineName(pair.primary)} +{' '}
+                      {pair.secondary ? disciplineName(pair.secondary) : 'None (Essence)'}
                     </span>
                     <strong>
                       {pair.players} players · {pair.characters} characters
@@ -261,7 +262,7 @@ export function UsageBalanceReportView({ report }: { report: UsageBalanceReport 
               {report.matchups.map((row) => (
                 <li key={`${row.source}:${row.opponent}`}>
                   <span>
-                    {label(row.opponent)} · {source(row.source)}
+                    {disciplineName(row.opponent)} · {source(row.source)}
                   </span>
                   <OutcomeBar row={row} />
                   <strong>{rates(row)}</strong>

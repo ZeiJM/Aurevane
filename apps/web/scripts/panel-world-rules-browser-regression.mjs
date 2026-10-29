@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 const require = createRequire(import.meta.url)
-const { createServer } = await import(
+const { createServer, build } = await import(
   pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
 )
 const { expect } = require('@playwright/test')
@@ -31,16 +31,12 @@ entry = entry.replace(
   `let settings = JSON.parse(sessionStorage.getItem('world-test-settings') ?? 'null') ?? { ...DEFAULT_WORLD_ENVIRONMENT_SETTINGS }`,
 )
 entry = entry.replace(
-  'dayLengthMinutes: change.dayLengthMinutes,',
-  'dayLengthMinutes: change.dayLengthMinutes, weatherRollMinutes: change.weatherRollMinutes,',
-)
-entry = entry.replace(
   'return Response.json({ settings })',
   `sessionStorage.setItem('world-test-settings', JSON.stringify(settings)); return Response.json({ settings })`,
 )
 entry = entry.replace(
-  "usedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}",
-  `usedBy={{ damage: Array.from({length: 120}, (_, index) => ({contentKey: 'internal.fixture.' + index, name: 'Named Skill ' + (index + 1)})) }}`,
+  "effectUsedBy={{ damage: [{ contentKey: 'skill.fixture', name: 'Fixture Strike' }] }}",
+  `effectUsedBy={{ damage: Array.from({length: 120}, (_, index) => ({contentKey: 'internal.fixture.' + index, name: 'Named Skill ' + (index + 1)})) }}`,
 )
 await fs.writeFile(entryPath, entry)
 await fs.writeFile(
@@ -109,6 +105,15 @@ const config = {
   optimizeDeps: { include: ['react', 'react-dom/client'] },
 }
 
+if (process.env.AV_PANEL_WORLD_RULES_COMPILE_ONLY === '1') {
+  try {
+    await build({ ...config, build: { write: false, minify: false } })
+    console.log('Actual panel World/Rules fixture compiled; browser not run.')
+  } finally {
+    await fs.rm(fixture, { recursive: true, force: true })
+  }
+  process.exit(0)
+}
 const server = await createServer(config)
 await server.listen()
 const profile = await fs.mkdtemp(resolve(tmpdir(), 'panel-world-rules-browser-'))
@@ -139,6 +144,7 @@ async function verify(page, scenario) {
   const errors = []
   page.on('pageerror', (error) => errors.push(String(error)))
   const origin = server.resolvedUrls.local[0]
+  await page.clock.setFixedTime(new Date('2026-10-23T00:00:00Z'))
   await page.goto(origin + '?view=world')
   const world = page.getByRole('form', { name: 'World environment', exact: true })
   await expect(world).toBeVisible()
@@ -146,20 +152,30 @@ async function verify(page, scenario) {
     .getByLabel('Automatic weather roll interval (real minutes)', { exact: true })
     .fill('15')
   await world.getByRole('combobox', { name: 'Weather selection', exact: true }).selectOption('rain')
-  await world.getByLabel('Forced weather duration (minutes)', { exact: true }).fill('37')
+  await expect(world.getByLabel('Forced weather duration (minutes)', { exact: true })).toHaveCount(
+    0,
+  )
   await world.getByRole('button', { name: 'Save Changes', exact: true }).click()
   await expect(world.getByRole('status')).toContainText('World environment saved')
-  await expect(world).toContainText('37 min remaining')
+  await expect(world).toContainText('15 min remaining')
+  const forced = await page.evaluate(() =>
+    JSON.parse(sessionStorage.getItem('world-test-settings')),
+  )
+  assert.equal(forced.weatherOverride, 'rain')
+  assert.equal(forced.weatherOverrideUntil, Date.parse('2026-10-23T00:15:00Z'))
+  const forceRequest = await page.evaluate(() => window.__operationsRequests.at(-1))
+  assert.equal(forceRequest.body.change.weatherRollMinutes, 15)
+  assert.equal('durationMinutes' in forceRequest.body.change, false)
   await expect(world).toContainText('local time')
   await expect(world).not.toContainText(/\d{4}-\d{2}-\d{2}T/)
   await page.reload()
   await expect(
     world.getByLabel('Automatic weather roll interval (real minutes)', { exact: true }),
   ).toHaveValue('15')
-  await expect(world).toContainText('37 min remaining')
-  await expect(
-    world.getByLabel('Forced weather duration (minutes)', { exact: true }),
-  ).toBeDisabled()
+  await expect(world).toContainText('15 min remaining')
+  await expect(world.getByLabel('Forced weather duration (minutes)', { exact: true })).toHaveCount(
+    0,
+  )
   await world.getByRole('button', { name: 'Save Changes', exact: true }).click()
   const settings = await page.evaluate(() =>
     JSON.parse(sessionStorage.getItem('world-test-settings')),
@@ -173,6 +189,28 @@ async function verify(page, scenario) {
     ),
     savedUntil,
   )
+  const roll = world.getByLabel('Automatic weather roll interval (real minutes)', { exact: true })
+  await roll.fill('5')
+  await world.getByRole('button', { name: 'Save Changes', exact: true }).click()
+  await expect(world).toContainText('5 min remaining')
+  const shortenedUntil = await page.evaluate(
+    () => JSON.parse(sessionStorage.getItem('world-test-settings')).weatherOverrideUntil,
+  )
+  assert.equal(shortenedUntil, Date.parse('2026-10-23T00:05:00Z'))
+  assert.ok(shortenedUntil < savedUntil, 'An earlier next roll shortens the retained override')
+  await roll.fill('30')
+  await world.getByRole('button', { name: 'Save Changes', exact: true }).click()
+  await expect(world.getByRole('status')).toContainText('World environment saved')
+  assert.equal(
+    await page.evaluate(
+      () => JSON.parse(sessionStorage.getItem('world-test-settings')).weatherOverrideUntil,
+    ),
+    shortenedUntil,
+    'Keep current weather never extends the earlier expiry',
+  )
+  await page.reload()
+  await expect(roll).toHaveValue('30')
+  await expect(world).toContainText('5 min remaining')
   const worldGeometry = await world.evaluate((element) => {
     const r = element.getBoundingClientRect()
     return {
@@ -311,8 +349,10 @@ async function verify(page, scenario) {
     rulesGeometry,
     scroll,
     savedPolicy: policy,
-    weatherCadence: 15,
-    overrideMinutes: 37,
+    initialWeatherCadence: 15,
+    savedWeatherCadence: 30,
+    overrideUntil: shortenedUntil,
+    shortenedWithoutExtension: true,
     reload: true,
     escape: true,
     backdrop: true,

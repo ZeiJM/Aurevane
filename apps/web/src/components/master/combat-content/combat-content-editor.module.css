@@ -1960,15 +1960,86 @@
 }
 
 .mediaPreviewGrid > div {
+  display: grid;
+  gap: 0.4rem;
   min-width: 0;
+  width: 10rem;
   max-width: 100%;
+}
+
+.mediaPreviewGrid p,
+.mediaSound p {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
 }
 
 .mediaPreviewGrid img,
 .mediaPreviewGrid canvas {
   display: block;
+  width: 100%;
   max-width: 100%;
   height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-ink-900);
+}
+
+.mediaUploadControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.65rem;
+}
+
+.mediaUploadControls > label {
+  flex: 1 1 15rem;
+  min-width: 0;
+}
+
+.mediaUploadControls input[type='file'] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+.mediaUploadControls > button {
+  flex: 0 0 auto;
+}
+
+.mediaHint {
+  color: var(--av-text-dim);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.mediaSound {
+  display: grid;
+  min-width: 0;
+  gap: 0.5rem;
+}
+
+.mediaSound audio {
+  width: 100%;
+  max-width: 24rem;
+  min-width: 0;
+}
+
+.mediaSound > button {
+  justify-self: start;
+}
+
+.mediaEditor .mediaGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.mediaEditor .mediaAudioPreview {
+  padding: 0.65rem;
 }
 
 .mediaEditor > button,

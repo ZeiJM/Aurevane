@@ -39,6 +39,7 @@ import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { loadCurrentDisciplineNames } from '@/server/character/current-discipline-names'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 export const dynamic = 'force-dynamic'
@@ -77,9 +78,12 @@ async function battleBuildExtensions(
   const legacyPoisonMovement = battle.snapshot.dotTriggerPolicyVersion !== 2
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   const resolver = createServerCombatContentResolver()
-  const [resonanceDefinition, resolvedEssence] = await Promise.all([
+  const [resonanceDefinition, resolvedEssence, disciplineNames] = await Promise.all([
     resolvePinnedBattleResonanceDefinition(authority, combatantId, resolver),
     resolvePinnedBattleEssenceDefinition(authority, combatantId, resolver),
+    loadCurrentDisciplineNames([
+      ...new Set((build?.disciplineSkills ?? []).map((skill) => skill.sourceDisciplineId)),
+    ]).catch(() => ({}) as Readonly<Record<string, string>>),
   ])
   const capturedTags = <
     T extends {
@@ -126,6 +130,7 @@ async function battleBuildExtensions(
           id: definition.id,
           contentVersion: definition.contentVersion,
           sourceDisciplineId: definition.sourceDisciplineId,
+          sourceDisciplineName: disciplineNames[definition.sourceDisciplineId],
           name: titleCase(
             definition.id.includes('.')
               ? definition.id.slice(definition.id.indexOf('.') + 1)

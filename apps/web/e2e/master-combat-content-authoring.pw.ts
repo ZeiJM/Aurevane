@@ -1039,7 +1039,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
 })
 
 // Actual finalized-media proof remains independent of the publication scenario above.
-test('finalized media controls crop actual bytes, replace the same PC file, preview sound and report failed previews', async ({
+test('finalized media automatically centers actual image bytes, replaces the same PC file, previews sound and reports failed previews', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'One real Chromium media decoding proof.')
@@ -1071,11 +1071,14 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
       .poll(() => builtin.evaluate((image: HTMLImageElement) => image.naturalWidth))
       .toBeGreaterThan(0)
     await expect(page.locator('[data-ability-section="media"] legend')).toHaveCount(0)
-    // Four real RGBA pixels: selecting y=0 versus y=1 must change the final pixel/hash.
+    // A wide image with red/blue edges and a green center proves automatic square extraction.
     const sharp = (await import('sharp')).default
     const png = await sharp(
-      Buffer.from([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 255, 0, 255]),
-      { raw: { width: 2, height: 2, channels: 4 } },
+      Buffer.from([
+        255, 0, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 255, 0, 0, 255, 0, 255, 0,
+        255, 0, 255, 0, 255, 0, 0, 255, 255,
+      ]),
+      { raw: { width: 4, height: 2, channels: 4 } },
     )
       .png()
       .toBuffer()
@@ -1094,14 +1097,17 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
         checksum: string
         width?: number
         height?: number
+        sourceWidth?: number
+        sourceHeight?: number
+        crop?: { x: number; y: number; size: number }
       }
     }
     await input.setInputFiles(file)
     await expect(builtin).toBeVisible()
-    await expect(panel.getByLabel('Crop size')).toHaveValue('2')
-    await panel.getByLabel('Crop size').fill('1')
-    await panel.getByLabel('Crop x').fill('0')
-    await panel.getByLabel('Crop y').fill('0')
+    await expect(panel.getByLabel(/^Crop (x|y|size)$/)).toHaveCount(0)
+    await expect(
+      panel.getByText('Images are automatically centered and cropped to a square.'),
+    ).toBeVisible()
     await expect
       .poll(() =>
         panel
@@ -1112,13 +1118,19 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
             ),
           ),
       )
-      .toEqual([255, 0, 0, 255])
+      .toEqual([0, 255, 0, 255])
     const first = await finalize()
-    expect(first).toMatchObject({ width: 1, height: 1 })
+    expect(first).toMatchObject({
+      width: 2,
+      height: 2,
+      sourceWidth: 4,
+      sourceHeight: 2,
+      crop: { x: 1, y: 0, size: 2 },
+    })
     const preview = panel.getByAltText('Finalized artwork crop')
     await expect
       .poll(() => preview.evaluate((image) => (image as HTMLImageElement).naturalWidth))
-      .toBe(1)
+      .toBe(2)
     expect((await page.request.get(`/api/content-media/${first.id}`)).status()).toBe(404)
     const stored = await page.request.get(`/api/master/combat-content/media/${first.id}`)
     expect(stored.status()).toBe(200)
@@ -1128,16 +1140,15 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
           .raw()
           .toBuffer(),
       ),
-    ).toEqual([255, 0, 0, 255])
-    // Identical filename/bytes must dispatch a new selection and allow a different crop.
+    ).toEqual([0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255])
+    // Identical filename/bytes must dispatch a new selection with the same automatic crop.
     await input.setInputFiles(file)
     await expect(preview).toBeVisible()
-    await expect(panel.getByLabel('Crop size')).toHaveValue('2')
-    await panel.getByLabel('Crop size').fill('1')
-    await panel.getByLabel('Crop y').fill('1')
+    await expect(panel.getByLabel('Actual crop preview')).toBeVisible()
     const second = await finalize()
     expect(second.id).not.toBe(first.id)
-    expect(second.checksum).not.toBe(first.checksum)
+    expect(second.checksum).toBe(first.checksum)
+    expect(second.crop).toEqual({ x: 1, y: 0, size: 2 })
     await page.route(`**/api/master/combat-content/media/${second.id}*`, (route) => route.abort())
     await preview.evaluate((image) => {
       ;(image as HTMLImageElement).src += '?retry=1'
@@ -1208,7 +1219,7 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
         .toBeGreaterThan(0)
       const before = await readContentRecord(page)
       await artwork.getByLabel('Upload content media').setInputFiles(file)
-      await expect(artwork.getByLabel('Crop size')).toHaveValue('2')
+      await expect(artwork.getByLabel(/^Crop (x|y|size)$/)).toHaveCount(0)
       await expect(current).toBeVisible()
       await expect(artwork.getByLabel('Actual crop preview')).toBeVisible()
       expect(await readContentRecord(page)).toEqual(before)

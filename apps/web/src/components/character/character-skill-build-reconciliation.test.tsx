@@ -132,3 +132,42 @@ it('shows one shared Skill without an eligibility label or source dropdown', () 
     vi.unstubAllGlobals()
   }
 })
+
+it('uses current catalogue names for a granted Skill whose source is outside the active pair', () => {
+  hooks.state = 0
+  hooks.touch = false
+  vi.stubGlobal('document', { body: {} })
+  const source = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+  const definition = {
+    ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+    sourceDisciplineId: source,
+    flavorLine: undefined,
+  }
+  try {
+    const html = renderToStaticMarkup(
+      <CharacterSkillBuildPanel
+        characterId="character-1"
+        initialBuildVersion={2}
+        primaryDiscipline={{ id: 'ironfist', name: 'Ironfist' }}
+        secondaryDiscipline={null}
+        disciplineNames={{ [source]: 'Super Saiyan' }}
+        initialCapacity={4}
+        initialLearnedSkills={[
+          {
+            definition,
+            learnedAt: '2026-10-18T02:00:00Z',
+            activeSource: true,
+            eligibilityGrants: [{ eligibilityDisciplineId: 'ironfist', activeSource: true }],
+          },
+        ]}
+        initialEquippedSkills={[]}
+        initialResonance={null}
+        initialEssence={null}
+      />,
+    )
+    expect(html).toContain('Super Saiyan Technique')
+    expect(html).not.toContain('F60c5dc7')
+  } finally {
+    vi.unstubAllGlobals()
+  }
+})

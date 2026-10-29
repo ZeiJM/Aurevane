@@ -7,6 +7,7 @@ export function readableContentReference(
 ): string {
   const name = choices.find((entry) => entry.contentKey === key)?.name
   if (name && name !== key) return name
+  if (key.startsWith('discipline.')) return 'Unavailable Discipline'
   if (/^[a-f\d]{8}-[a-f\d-]{27,}$/i.test(key))
     return kind?.includes('discipline') ? 'Character using this Discipline' : 'Character build'
   if (key.endsWith('.linked-sequence')) {

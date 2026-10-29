@@ -5,6 +5,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createServerMasterPanelStaffAccessService } from './staff-access-server'
 import { createUsageBalanceService } from './usage-balance'
+import { loadCurrentDisciplineNames } from '@/server/character/current-discipline-names'
 export function createServerUsageBalanceService() {
   return createUsageBalanceService(
     createServerMasterPanelStaffAccessService(),
@@ -32,5 +33,6 @@ export function createServerUsageBalanceService() {
         )
       return data
     },
+    loadCurrentDisciplineNames,
   )
 }

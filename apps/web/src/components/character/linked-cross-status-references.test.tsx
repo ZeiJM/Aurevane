@@ -105,7 +105,9 @@ it('keeps conditional displacement and unrelated neighboring damage/status packe
     report.effects[1]!.explanationParts?.filter((part) => typeof part !== 'string').map(
       (part) => part.tag,
     ),
-  ).toEqual(['rooted'])
+  ).toEqual(['rooted', 'wet'])
+  expect(Object.fromEntries(report.rows).Requirements).toBe('None')
+  expect(report.effectDescriptions[1]).toContain('Applies only when Drenched.')
   expect(
     report.effects[1]!.conditionParts?.filter((part) => typeof part !== 'string').map(
       (part) => part.tag,
