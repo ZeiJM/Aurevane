@@ -1,6 +1,6 @@
 # Skill requirement scope and capped recovery audit
 
-Status: reviewed local two-record candidate, not published. The October 29 Owner clarification makes the Requirements row describe the whole Skill and authorizes correcting Field Remedy and genuinely similar recovery eligibility in this batch. Field Remedy and Dawn’s Oath both recover HP without an affliction after publication; ordinary resource maxima still cap recovery. Meaningful whole-Skill thresholds, passive setup/trigger requirements and conditional combat bonuses remain authoritative.
+Status: **Both reviewed v8 definitions are LIVE**, atomically published and independently verified at 13:14:47 UTC on October29. Current authority: [final release receipt](2026-10-29-master-operational-release.md). The following audit/preparation entries describe the preserved pre-publication evidence. The October 29 Owner clarification makes the Requirements row describe the whole Skill and authorizes correcting Field Remedy and genuinely similar recovery eligibility in this batch. Field Remedy and Dawn’s Oath both recover HP without an affliction after publication; ordinary resource maxima still cap recovery. Meaningful whole-Skill thresholds, passive setup/trigger requirements and conditional combat bonuses remain authoritative.
 
 ## Fresh live inventory and bounded decisions
 

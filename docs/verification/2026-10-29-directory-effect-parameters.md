@@ -1,8 +1,8 @@
 # Master Panel follow-up: names, readers, artwork, navigation and weather
 
-Status: implementation and verification in progress; this follow-up is not live.
+Status: **LIVE for testing** through PR #988. See the [final release receipt](2026-10-29-master-operational-release.md) for exact source, Production, recovery publication and acceptance limits. Earlier progress entries below are historical.
 
-The Owner observed `Unknown Discipline | Ironfist` after the Master Panel release and requested a separate purple color for numerical effect brackets. Current production remains the verified PR #986 build.
+The Owner observed `Unknown Discipline | Ironfist` after the Master Panel release and requested a separate purple color for numerical effect brackets. That report followed the PR #986 build; the verified PR #988 replacement is now live.
 
 The Owner also requested desktop Techniques artwork match the cockpit size and quality. Both already use the same original image URLs without Next image optimization; inspected Ironfist images are 128×128 sources. The gallery instead has an extra final 4rem display cap. Inherit the resolved shared cockpit scale at the portal backdrop and use it for desktop cards, retaining available-width limits and existing compact touch layouts. No generated upscaling or asset replacement is needed to match cockpit quality.
 
