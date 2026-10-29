@@ -198,3 +198,20 @@ it.each(['tag.damage', 'tag.00000000-0000-4000-8000-000000000091'])(
     ).toThrow('description')
   },
 )
+
+it('allows eight Discipline Skills and rejects a ninth', () => {
+  const skills = Array.from({ length: 8 }, (_, index) => `skill.example-${index + 1}`)
+  const definition = {
+    ...publishedDiscipline,
+    linkedSkills: skills,
+    skillStages: skills.map((skillId) => ({ skillId, minimumStage: 1 })),
+  }
+  expect(parseNoncombatContentDefinition('discipline', definition)).toEqual(definition)
+  expect(() =>
+    parseNoncombatContentDefinition('discipline', {
+      ...definition,
+      linkedSkills: [...skills, 'skill.example-9'],
+      skillStages: [...definition.skillStages, { skillId: 'skill.example-9', minimumStage: 1 }],
+    }),
+  ).toThrow(/8/)
+})

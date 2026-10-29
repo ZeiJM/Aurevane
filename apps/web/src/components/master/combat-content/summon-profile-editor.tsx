@@ -11,6 +11,7 @@ import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { SkillMediaEditor } from './skill-media-editor'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
+import { deriveSharedEffectAim } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 
 export interface SummonProfileEditorProps {
@@ -446,14 +447,22 @@ export function SummonProfileEditor({
             />
             <SkillTargetingEditor
               value={ability.target}
+              effects={ability.effects}
               v51Rules
               onChange={(target) => updateAbility(index, { ...ability, target })}
             />
 
             <SkillEffectListEditor
               canonicalDamage={canonical}
+              aim={ability.target}
               value={ability.effects}
-              onChange={(effects) => updateAbility(index, { ...ability, effects })}
+              onChange={(effects) =>
+                updateAbility(index, {
+                  ...ability,
+                  effects,
+                  target: deriveSharedEffectAim(ability.target, effects),
+                })
+              }
             />
           </article>
         ))}

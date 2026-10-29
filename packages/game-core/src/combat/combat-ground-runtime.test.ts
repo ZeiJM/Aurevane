@@ -1158,3 +1158,55 @@ it('native Ground expiry prunes completed-root history while preserving live roo
   expect(Object.hasOwn(out.abilityRuntime!.usage[0]!, 'pendingRootActionIds')).toBe(false)
   expect(validateCombatAbilityState(out)).toEqual([])
 })
+
+it('keeps mixed persistent Ground/unit entry effects independent for an Airborne entrant', () => {
+  const base = encounter()
+  const air = content.statuses.find((row) => row.id === 'airborne')!
+  const definition = groundAction(10, [
+    { type: 'damage', recipient: 'affected-units', target: 'enemy', amount: 7 },
+  ])
+  definition.target = {
+    ...definition.target,
+    geometryVersion: 3,
+    kind: 'unit',
+    categories: ['enemy', 'ground'],
+  }
+  definition.effects = definition.effects.map((effect, index) =>
+    index === 0 ? { ...effect, target: 'ground' } : effect,
+  )
+  let state = seedArea(
+    {
+      ...base,
+      airbornePolicyVersion: 1,
+      statusState: base.statusState.map((row) =>
+        row.combatantId === 'actor'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'airborne',
+                  statusVersion: air.version,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 3,
+                  sourceCombatantId: 'actor',
+                },
+              ],
+            }
+          : row,
+      ),
+    },
+    { x: 2, y: 1 },
+    definition,
+  )
+  state = JSON.parse(JSON.stringify(state))
+  const path = [
+    { x: 1, y: 1 },
+    { x: 2, y: 1 },
+  ]
+  const before = JSON.stringify(state)
+  expect(evaluatePv1fMovement(state, path).movement.legal).toBe(true)
+  expect(JSON.stringify(state)).toBe(before)
+  const result = move(state, path)
+  expect(hp(result.state)).toBe(hp(state) - 7)
+  expect(groundDamage(result.events)).toHaveLength(1)
+})

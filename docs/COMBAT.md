@@ -1,3 +1,9 @@
+## October28 Master Panel usability — local implementation, pending release
+
+The Owner-approved authoring model uses one shared aim per cast and explicit per-effect Self, Ally, Enemy, Anyone, All, Ground or Empty Tile recipients. All is effect scope, while authorable shapes are Single, Circle and Line. Range, line of sight, elevation, occupancy and engine-specific restrictions remain authoritative; unsupported target combinations are explained in the editor. Mixed Ground/unit delivery is supported per effect, including Airborne immunity, delayed packets, repeated packets, terrain creation and persistent-area entrants. Ground immunity does not suppress independent unit delivery. Legacy packets without explicit targets retain their captured recipient/geometry rules, and merely opening an editor does not rewrite them.
+
+Pierce and Vengeance are distinct authoring identities backed by existing handlers. Pierce retains Barrier removal before HP damage; Vengeance retains bounded prior-damage conversion and incompatible-scaling checks. Shared HP/MP costs are paid once; HP payment remains nonlethal. Ordinary accuracy authoring offers Accuracy Roll or Always Hit, while retained fixed rules and historical captures remain readable. Removed per-Skill accuracy modifiers cannot enter newly authored current publications; global/status accuracy remains separate. The nine-row full-report contract places an orange target bracket on every effect and omits the redundant overall Target row. Details, evidence and pending release gates: [usability receipt](verification/2026-10-27-master-panel-usability.md). Nothing in this section claims a live release.
+
 Owner UI audit continuation (pending release): the authorized batch is recorded in `docs/verification/2026-10-24-ui-audit-refinements.md`. Desktop End Turn follows the special slots; all facing arrows live only in the preview. Mobile hides cockpit hotkeys and Coming soon, moves full Skill readers to the preview menu, and replaces cockpit contents with Chronicle action details until the same action or red close control is selected. Terrain choices explain their current-snapshot effects in the preview on desktop/mobile. The mobile Chronicle badge stacks Current: above Round X without changing its allotted width or height. Preserve shared PvE/PvP presentation, combat authority, and the one-final-production/no-preview release gate.
 
 ## Owner independent Skill Move and passive readiness — 2026-10-22 (LIVE for testing)
@@ -46,7 +52,6 @@ Owner follow-ups — October8/9: summon inspect ability cards use the shared ten
 
 Owner Poison revision: new encounters pin dotTriggerPolicyVersion2. Percentage Poison ticks once per affected completed turn; every five actual traversed tiles, including Push/Pull, refreshes remaining duration to the captured initial duration instead of dealing extra damage. Partial movement carries across turns and repeated thresholds preserve the modulo-five remainder; instantaneous relocation does not count. Reapplication restarts duration and movement progress while retaining independent maxima of authored percentage and initial duration. A greater percentage supplies its associated captured hit basis/provenance; duration-only or weaker application retains the existing stronger power. Movement refresh uses the retained maximum duration. Historical v1/absent encounters retain their recorded extra-tick behavior. Publication, copying, delayed activation and restore must retain the metadata.
 
-
 Owner Blindside follow-up: formalize positional Skill damage as an Instant one-owner-turn positive buff. Front stays 100%; side/rear default to 160%/220% and are separately editable per Skill in Master, captured per active application, outside the ordinary conditional-modifier budget. New Perfect Opening retains one power-20 hit; Backstab, Exploit Opening, Execution Cut and Flanking Cut also replace hidden facing multipliers with the shared buff and keep their power/cost/cooldown/targeting. Append immutable versions; historical versions keep their original facing coefficients. The buff applies before its granting hit, benefits other Skills during that turn, leaves Basic Attack unchanged and expires at that owner turn end. Master authoring offers Blindside, separate Side damage (%) and Rear damage (%) fields, and Instant timing by default. Inputs use total damage (160% means +60%) with two decimal places; publication validates safe integer basis points of at least100%. Recorded profiles survive reapplication, Copy Buffs, pending activation and restore. Read the active status at actual damage settlement; expired buffs do not amplify delayed damage. Existing application-count stacking and Copy Buffs rules remain authoritative.
 
 ## October 8 combat/auth reconstruction — historical reconstruction checkpoint, subsequently released through PR #849
@@ -93,18 +98,18 @@ The shared playable cockpit adds locked **Items** immediately before Inspect, de
 
 Derived ruleset5 replaces current resource curves; explicit rulesets1–4 remain historical. New encounters pin `statBalancePolicyVersion: 1` independently of bridge4, so saved battles retain their original damage/movement/RNG. Primary Core bases and focus/non-focus caps60/40 remain; legacy Primary Adventure-stat offsets/caps no longer shift the new endpoints. Internal `armor`/`ward` identifiers remain, presented as **Physical Defense/Mystic Defense**.
 
-| Adventure Stat | Mathematical base | Core40 | Core60 |
-|---|---:|---:|---:|
-| Physical/Mystic Power and matching Defense |40|120|160|
-| Maximum HP |80|500|650|
-| Maximum MP |16|400|500|
-| Accuracy |85%|110%|140%|
-| Evasion |0%|25%|55%|
-| Critical Chance |0%|15%|20%|
-| Initiative |10|100|120|
-| Movement |2|4|4|
-| Jump |0|3|3|
-| Status Resistance |0%|10%|15%|
+| Adventure Stat                             | Mathematical base | Core40 | Core60 |
+| ------------------------------------------ | ----------------: | -----: | -----: |
+| Physical/Mystic Power and matching Defense |                40 |    120 |    160 |
+| Maximum HP                                 |                80 |    500 |    650 |
+| Maximum MP                                 |                16 |    400 |    500 |
+| Accuracy                                   |               85% |   110% |   140% |
+| Evasion                                    |                0% |    25% |    55% |
+| Critical Chance                            |                0% |    15% |    20% |
+| Initiative                                 |                10 |    100 |    120 |
+| Movement                                   |                 2 |      4 |      4 |
+| Jump                                       |                 0 |      3 |      3 |
+| Status Resistance                          |                0% |    10% |    15% |
 
 The relevant effective Core determines each baseline; Level does not add to these curves, while relative-Level combat damage scaling remains. Accuracy is a rating: subtract Evasion before clamping final probability to0–100%. Existing authored/status Accuracy modifiers remain. Piecewise formulas, provenance and delegated Power/Defense/HP/MP reasoning are recorded in `superpowers/plans/2026-10-05-stat-balance-spec.md`.
 
@@ -993,6 +998,5 @@ New PvE/PvP encounters and Master previews pin `airbornePolicyVersion: 1` and `d
 - Player-facing Skill annotations remain Attack, Utility and Heal. Resonance reports replace the internal Control matcher label with exact qualifying Skill names from the actual pinned loadout; they explain setup, next qualifying trigger, result and consumption without broadening matcher semantics. Shatter reads Target: Chilled while the historical Frozen tag ID remains unchanged.
 
 These refinements do not change Rewind targeting or behavior. Release/testing evidence: `verification/2026-10-08-ground-airborne-readers.md`.
-
 
 Owner-requested Master refinement candidate — October 26, 2026 (pending release): new independent-highest elevation policies roll each level independently; totals need not be 100%. Highest successful level wins, and no success is flat. Historical policies without this explicit model retain weighted draws and exact stored-map behavior. Standard-map placement admits only complete raised pairs after independent per-cell height rolls, preserving safe spawn footprints and connected flat routes; failed candidates are skipped, never normalized or rerolled after admission. Zero chances yield flat maps. Authored-map height randomization remains per-tile. Current/Previous is an editor presentation rule; referenced immutable captures remain authoritative. Unchanged validated timing/elevation saves retain their existing policy version.

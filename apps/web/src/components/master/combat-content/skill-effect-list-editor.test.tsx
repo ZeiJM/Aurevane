@@ -1,3 +1,4 @@
+import { AUTHORABLE_EFFECT_TAGS } from '@aurevane/game-core/combat/combat-effect-authoring'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -86,27 +87,10 @@ describe('Master Panel Skill effect list editor', () => {
     const markup = renderToStaticMarkup(
       createElement(SkillEffectListEditor, { value: effects, onChange: vi.fn() }),
     )
-    const effectTypes: readonly CombatEffectDefinition['type'][] = [
-      'damage',
-      'healing',
-      'resource-change',
-      'apply-status',
-      'remove-status',
-      'return-to-turn-start',
-      'create-terrain',
-      // Push/Pull choices produce the shared internal movement payload.
-      'poison',
-      'bleed',
-      'burn',
-      'barrier-change',
-      'copy-statuses',
-      'sensory',
-    ]
-
-    for (const type of effectTypes) expect(markup).toContain(`<option value="${type}"`)
-    expect(markup).toContain('Player-facing effect description')
-    expect(markup).toContain('aria-label="Effect 1 player-facing description"')
-    expect(markup).toContain('Leave blank to use the generated wording.')
+    for (const tag of AUTHORABLE_EFFECT_TAGS) expect(markup).toContain(`<option value="${tag.id}"`)
+    expect(markup).not.toContain('Player-facing effect description')
+    expect(markup).not.toContain('aria-label="Effect 1 player-facing description"')
+    expect(markup).toContain('data-effect-collapsible="true"')
     expect(markup).not.toContain('<textarea')
     expect(markup).not.toContain('Raw JSON')
     expect(markup).not.toContain('Script')

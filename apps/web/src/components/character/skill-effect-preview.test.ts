@@ -513,7 +513,7 @@ it('describes specified status consumption without promising full Cleanse or rem
   expect(result.explanation).not.toContain('Suppress')
 })
 
-it('labels an explicitly specified positive Covert list as Dispel and leaves Suppress alone', () => {
+it('keeps the Dispel summary short and lists its exact statuses only in the explanation', () => {
   const result = previewEffect({
     type: 'remove-status',
     recipient: 'primary-unit',
@@ -521,7 +521,8 @@ it('labels an explicitly specified positive Covert list as Dispel and leaves Sup
     removalMode: 'specified',
   })
   expect(result.label).toBe('Dispel')
-  expect(result.magnitude).toBe('Covert / Guard')
+  expect(result.magnitude).toBeUndefined()
+  expect(result.explanation).toContain('Covert, Guard')
   expect(result.explanation).not.toContain('Suppress')
 })
 

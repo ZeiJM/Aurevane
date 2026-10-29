@@ -7,6 +7,16 @@ import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
+async function openEffectParameters(scope) {
+  const panels = scope.locator(
+    'xpath=ancestor::details[@data-effect-collapsible] | .//details[@data-effect-collapsible]',
+  )
+  for (let i = 0; i < (await panels.count()); i++) {
+    const panel = panels.nth(i)
+    if ((await panel.getAttribute('open')) === null) await panel.locator(':scope > summary').click()
+  }
+}
+
 const require = createRequire(import.meta.url)
 const { createServer, build } = await import(
   pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
@@ -308,34 +318,23 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         name: 'Requirement target',
         exact: true,
       })
-      const shape = group.getByRole('combobox', { name: 'Target shape', exact: true })
+      const shape = group.getByRole('combobox', { name: 'Shape', exact: true })
+      await openEffectParameters(firstEffect)
+      const recipient = firstEffect.getByRole('combobox', { name: 'Target', exact: true })
       await effectTag.selectOption('wet')
       await effectTarget.selectOption('selected')
-      // Area geometry uses actor packets; primary-unit packets are invalid for Circle/All.
-      const recipient = firstEffect.getByRole('combobox', { name: 'Damage recipient', exact: true })
-      await recipient.selectOption('actor')
-      for (const nextShape of ['circle', 'all']) {
+      await recipient.selectOption('enemy')
+      await expect(effectTarget).toHaveValue('affected')
+      for (const nextShape of ['circle', 'line']) {
         await shape.selectOption(nextShape)
         await expect(target).toHaveValue('owner')
-        await expect(target.locator('option')).toHaveCount(1)
-        await expect(effectTarget).toHaveValue('owner')
-        await expect(effectTarget.locator('option')).toHaveCount(1)
+        await expect(effectTarget).toHaveValue('affected')
         await expect(group.locator('option').filter({ hasText: /\(incompatible\)/ })).toHaveCount(0)
         assert.deepEqual((await snapshot()).validationIssues, [])
         await save()
-        await assertReaders('Drenched [Self]')
-        for (const name of readerNames) {
-          const reader = page.getByRole('region', { name, exact: true })
-          await expect(requirementLine(reader)).toContainText(/Dmg.*Drenched \[Self\]/)
-          await expect(
-            reader
-              .locator('dt')
-              .filter({ hasText: /^Effects$/ })
-              .locator('xpath=following-sibling::dd[1]'),
-          ).not.toContainText(/^If /)
-        }
         const geometrySaved = (await snapshot()).saved.behaviors[0]
         assert.equal(geometrySaved.targeting.shape.kind, nextShape)
+        assert.equal(geometrySaved.effects[0].payload.target, 'enemy')
         assert.deepEqual(geometrySaved.requirements, {
           kind: 'status-presence',
           subject: 'owner',
@@ -344,41 +343,35 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         })
         assert.deepEqual(geometrySaved.effects[0].requirements, {
           kind: 'status-presence',
-          subject: 'owner',
+          subject: 'affected',
           statusId: 'wet',
           present: true,
         })
-        await shape.selectOption('single')
-        await target.selectOption('selected')
-        await effectTarget.selectOption('selected')
       }
+      await shape.selectOption('single')
+      await recipient.selectOption('all')
+      await save()
+      const globalSaved = (await snapshot()).saved.behaviors[0]
+      assert.equal(globalSaved.effects[0].payload.target, 'all')
+      assert.equal(globalSaved.targeting.shape.kind, 'single')
+      await expect(shape).toHaveCount(0)
+      assert.deepEqual((await snapshot()).validationIssues, [])
       evidence.push({
         viewport,
-        case: 'Circle and All geometry rebind root and actor effect Target to Self without incompatible rules',
+        case: 'Circle/Line use one footprint; All is effect scope with per-recipient requirements',
         passed: true,
       })
 
-      await recipient.selectOption('primary-unit')
-      await recipient.selectOption('affected-units')
-      await expect(effectTarget).toHaveValue('affected')
-      await expect(effectTarget.locator('option')).toHaveText(['Self', 'Target'])
-      assert.deepEqual((await snapshot()).validationIssues, [])
-      await save()
-      assert.deepEqual((await snapshot()).saved.behaviors[0].effects[0].requirements, {
-        kind: 'status-presence',
-        subject: 'affected',
-        statusId: 'wet',
-        present: true,
-      })
-      await recipient.selectOption('actor')
+      await recipient.selectOption('enemy')
+      await recipient.selectOption('self')
       await expect(effectTarget).toHaveValue('selected')
       await expect(effectTarget.locator('option')).toHaveText(['Self', 'Target'])
-      await expect(group.locator('option').filter({ hasText: /\(incompatible\)/ })).toHaveCount(0)
       assert.deepEqual((await snapshot()).validationIssues, [])
       await save()
-      const actorSaved = (await snapshot()).saved.behaviors[0].effects[0]
-      assert.equal(actorSaved.payload.recipient, 'actor')
-      assert.deepEqual(actorSaved.requirements, {
+      const actorSaved = (await snapshot()).saved.behaviors[0]
+      assert.equal(actorSaved.effects[0].payload.recipient, 'actor')
+      assert.equal(actorSaved.targeting.kind, 'unit')
+      assert.deepEqual(actorSaved.effects[0].requirements, {
         kind: 'status-presence',
         subject: 'selected',
         statusId: 'wet',
@@ -386,11 +379,11 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       })
       await assertReaders('Drenched [Target]')
       await effectTag.selectOption('none')
-      await recipient.selectOption('primary-unit')
+      await recipient.selectOption('enemy')
       await save()
       evidence.push({
         viewport,
-        case: 'Effect recipient rebinds selected to affected and preserves single-unit Target for actor effects',
+        case: 'Self recovery retains the unit aim required by its selected-target condition',
         passed: true,
       })
 
@@ -458,6 +451,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         .selectOption('conditional-cleanse')
       await group.getByRole('button', { name: 'Add group effect', exact: true }).click()
       const cleanse = group.locator('[data-ability-effect]').last()
+      await openEffectParameters(cleanse)
       await expect(cleanse).toContainText('Conditional Cleanse')
       await expect(
         cleanse.getByRole('combobox', { name: 'Status removal mode', exact: true }),
@@ -486,6 +480,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       const encodedBeforeReload = JSON.stringify((await snapshot()).saved)
       await page.reload({ waitUntil: 'networkidle' })
       await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      await openEffectParameters(cleanse)
       await expect
         .poll(() =>
           statuses.evaluate((node) =>

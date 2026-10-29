@@ -52,7 +52,7 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
     const effectsRow = preview.locator('dt', { hasText: 'Effects' }).locator('..')
     await expect(effectsRow.locator('ul')).toHaveCount(0)
     const compactEffects = effectsRow.locator('[data-compact-skill-effect="true"]')
-    await expect(compactEffects.first()).toHaveText(/^Dmg \[\d+\]$/)
+    await expect(compactEffects.first()).toHaveText(/^Dmg \[\d+\] \[Enemy\]$/)
     const shortGeometry = await effectGeometry(compactEffects.first())
     expect(shortGeometry.textHeight).toBeLessThanOrEqual(shortGeometry.lineHeight + 1)
     await expectEffectsContained(compactEffects)
@@ -60,7 +60,7 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
 
     // Longer authored values may wrap, while retaining every parameter.
     await dialog.getByRole('checkbox', { name: 'Select Brace', exact: true }).hover()
-    await expect(compactEffects.first()).toHaveText(/^Guard \[[\d.]+%\] \[2 Turns\]$/)
+    await expect(compactEffects.first()).toHaveText(/^Guard \[[\d.]+%\] \[2 Turns\] \[Self\]$/)
     await expectEffectsContained(compactEffects)
     await expectPreviewContained(preview)
     const flavor = preview.locator('small').first()

@@ -9,6 +9,7 @@ import type {
 } from '@aurevane/game-core/combat/mature-skills'
 import {
   isCombatGroundEntryEffect,
+  combatTargetSupportsGroundArea,
   type CombatGroundAreaDefinition,
 } from '@aurevane/game-core/combat/combat-ground-areas'
 import {
@@ -47,7 +48,7 @@ export function SkillGroundEditor({
   onChange: (value: CombatGroundAreaDefinition | undefined) => void
 }) {
   const available = groundAreaForEffects(effects, value)
-  const canEnable = target.kind === 'ground-tile' && Boolean(available)
+  const canEnable = combatTargetSupportsGroundArea(target) && Boolean(available)
   if (!canEnable && !value) return null
   return (
     <fieldset className={styles.typedGroup}>
@@ -173,7 +174,7 @@ export function AbilityGroundEditor({
     )
   }
   const target = canonicalAbilityTargetSpec(value.targeting)
-  if (target.kind !== 'ground-tile' && !value.groundArea) return null
+  if (!combatTargetSupportsGroundArea(target) && !value.groundArea) return null
   const entries = value.effects.filter(
     (effect) => !['move', 'summon', 'damage-bonus', 'pierce'].includes(effect.payload.type),
   )

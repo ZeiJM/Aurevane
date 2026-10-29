@@ -1,5 +1,5 @@
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
-import { createElement } from 'react'
+import { createElement, isValidElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -20,29 +20,19 @@ function target(overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec {
 }
 
 describe('Master Panel Skill targeting editor', () => {
-  it('offers only the canonical target-kind and team-policy union values', () => {
+  it('keeps Range & Area focused on geometry and moves target choices to Effects', () => {
+    const onChange = vi.fn()
     const markup = renderToStaticMarkup(
-      createElement(SkillTargetingEditor, { value: target(), onChange: vi.fn() }),
+      createElement(SkillTargetingEditor, { value: target(), onChange }),
     )
-
-    for (const [value, label] of [
-      ['self', 'Self'],
-      ['unit', 'Unit'],
-      ['ground-tile', 'Ground'],
-      ['empty-tile', 'Empty Tile'],
-    ]) {
-      expect(markup).toContain(`<option value="${value}"`)
-      expect(markup).toContain(`>${label}</option>`)
-    }
-    for (const [value, label] of [
-      ['self', 'Self'],
-      ['ally', 'Ally'],
-      ['enemy', 'Enemy'],
-      ['any', 'Anyone'],
-    ]) {
-      expect(markup).toContain(`<option value="${value}"`)
-      expect(markup).toContain(`>${label}</option>`)
-    }
+    expect(markup).toContain('Range &amp; Area')
+    expect(markup).toContain('Targetable Elevation')
+    expect(markup).not.toContain('Target kind')
+    expect(markup).not.toContain('Team policy')
+    expect(markup).not.toContain('>All</option>')
+    expect(markup).toContain('>On</option>')
+    expect(markup).toContain('>Off</option>')
+    expect(onChange).not.toHaveBeenCalled()
   })
 
   it('shows Circle radius only for Circle and Line length only for Line', () => {
@@ -85,41 +75,38 @@ it('applies Combat v5.1 maximum range and elevation authoring bounds without cha
     }),
   )
 
-  expect(currentMarkup).toMatch(/aria-label="Maximum range"[^>]*min="1"[^>]*max="5"/u)
-  expect(currentMarkup).toMatch(
-    /aria-label="Maximum elevation difference"[^>]*min="0"[^>]*max="2"/u,
-  )
+  expect(currentMarkup).toMatch(/aria-label="Maximum target range"[^>]*min="1"[^>]*max="5"/u)
+  expect(currentMarkup).toMatch(/aria-label="Targetable Elevation"[^>]*min="0"[^>]*max="2"/u)
   expect(currentMarkup).toContain('Elevation 0 is standard; 1 is uncommon; 2 is rare.')
   expect(currentMarkup).toContain('Skipping line of sight consumes targeting budget.')
 
   const historicalMarkup = renderToStaticMarkup(
     createElement(SkillTargetingEditor, { value: target(), onChange: vi.fn() }),
   )
-  expect(historicalMarkup).not.toMatch(/aria-label="Maximum range"[^>]*max="5"/u)
-  expect(historicalMarkup).not.toMatch(/aria-label="Maximum elevation difference"[^>]*max="2"/u)
+  expect(historicalMarkup).not.toMatch(/aria-label="Maximum target range"[^>]*max="5"/u)
+  expect(historicalMarkup).not.toMatch(/aria-label="Targetable Elevation"[^>]*max="2"/u)
 })
 
 import { normalizeCurrentCombatTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
-it('offers All without redundant range, X or line of sight and retains recipient controls', () => {
+it('preserves an existing global footprint without offering All as a new Shape', () => {
   const value = normalizeCurrentCombatTargetSpec(target({ shape: { kind: 'all' } }))
   const markup = renderToStaticMarkup(
     createElement(SkillTargetingEditor, { value, onChange: vi.fn() }),
   )
-  expect(markup).toContain('<option value="all" selected="">All</option>')
+  expect(markup).toContain(
+    '<option value="all" disabled="" selected="">Existing global footprint</option>',
+  )
   for (const name of [
-    'Maximum range',
-    'Minimum range',
+    'Maximum target range',
+    'Minimum target range',
     'Circle radius',
     'Line length',
     'Requires line of sight',
   ])
     expect(markup).not.toContain(`aria-label="${name}"`)
-  for (const name of [
-    'Target kind',
-    'Team policy',
-    'Friendly fire',
-    'Maximum elevation difference',
-  ])
+  for (const name of ['Target kind', 'Team policy'])
+    expect(markup).not.toContain(`aria-label="${name}"`)
+  for (const name of ['Friendly Fire', 'Targetable Elevation'])
     expect(markup).toContain(`aria-label="${name}"`)
   expect(value).toMatchObject({
     geometryVersion: 2,
@@ -136,12 +123,36 @@ it.each([
   const markup = renderToStaticMarkup(
     createElement(SkillTargetingEditor, { value, onChange: vi.fn() }),
   )
-  expect(markup).not.toContain('aria-label="Maximum range"')
-  expect(markup).not.toContain('aria-label="Minimum range"')
+  expect(markup).not.toContain('aria-label="Maximum target range"')
+  expect(markup).not.toContain('aria-label="Minimum target range"')
   expect(markup).toMatch(/aria-label="(?:Circle radius|Line length)"[^>]*min="1"[^>]*max="5"/u)
   expect(value).toMatchObject({
     geometryVersion: 2,
     minimumRange: 0,
     maximumRange: shape.kind === 'circle' ? shape.radius : shape.length,
   })
+})
+
+it('offers an explicit conversion from retained multiple selections without changing it on open', () => {
+  const value = target({ maximumSelections: 3 })
+  const onChange = vi.fn()
+  const tree = SkillTargetingEditor({ value, onChange })
+  const html = renderToStaticMarkup(tree)
+  expect(html).toContain('Use one shared aim')
+  expect(onChange).not.toHaveBeenCalled()
+  function find(node: ReactNode): { onClick: () => void } | undefined {
+    if (Array.isArray(node)) return node.map(find).find(Boolean)
+    if (!isValidElement<{ children?: ReactNode; onClick?: () => void }>(node)) return
+    if (node.type === 'button') return node.props as { onClick: () => void }
+    return find(node.props.children)
+  }
+  find(tree)!.onClick()
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({
+      maximumSelections: 1,
+      shape: value.shape,
+      maximumRange: value.maximumRange,
+    }),
+  )
+  expect(value.maximumSelections).toBe(3)
 })

@@ -6,11 +6,14 @@ import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 /** Only staff entrypoints take selected actor context. Player/history and worker RPCs do not. */
 const SELECTED_ACTOR_RPCS = new Set([
+  'review_discipline_deletion_v1',
+  'delete_discipline_v1',
   'search_discipline_grant_players_v1',
   'read_discipline_player_grants_v1',
   'write_discipline_player_grants_v1',
   'search_master_moderation_players_v1',
   'read_master_moderation_v1',
+  'list_active_master_bans_v1',
   'write_master_moderation_v1',
   'read_master_panel_activity_v1',
   'set_world_environment_v2',
@@ -29,6 +32,8 @@ const SELECTED_ACTOR_RPCS = new Set([
   'read_master_player_v1',
   'edit_master_player_v1',
   'recover_master_player_battle_v1',
+  'read_master_panel_navigation_v1',
+  'save_master_panel_navigation_v1',
   'read_master_panel_access_v1',
   'read_master_panel_access_v2',
   'read_master_panel_operator_v1',

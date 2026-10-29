@@ -159,6 +159,33 @@ try {
         `${view} horizontal overflow`,
       )
       assert.equal(await page.getByText(/Revision \d|Policy version|Reason for/).count(), 0)
+      if (view === 'rules') {
+        await page.getByRole('button', { name: 'Arrange Master Panel tabs', exact: true }).click()
+        const dialog = page.getByRole('dialog', { name: 'Arrange Master Panel tabs', exact: true })
+        await dialog.getByRole('button', { name: 'Move Activity Log up', exact: true }).click()
+        await page.screenshot({
+          path: resolve(output, `navigation-order-${viewport.width}-${viewport.zoom}.png`),
+          fullPage: true,
+        })
+        await dialog.getByRole('button', { name: 'Save order', exact: true }).click()
+        await dialog
+          .getByRole('status')
+          .filter({ hasText: 'Tab order saved for everyone.' })
+          .waitFor()
+        await dialog
+          .getByRole('button', { name: 'Close Arrange Master Panel tabs', exact: true })
+          .click()
+        await page.reload()
+        const labels = await page
+          .getByRole('navigation', { name: 'Master Panel navigation', exact: true })
+          .getByRole('link')
+          .allTextContents()
+        assert.ok(
+          labels.findIndex((label) => label.includes('Activity Log')) <
+            labels.findIndex((label) => label.includes('World Environment')),
+          'persisted navigation order survives refresh',
+        )
+      }
       if (view === 'players') {
         await page.getByLabel('Character name', { exact: true }).fill('Reader Target')
         await page.getByRole('button', { name: 'Find players', exact: true }).click()
@@ -214,7 +241,14 @@ try {
           await reader.getByRole('heading', { name: 'Reader Target', exact: true }).count(),
           1,
         )
+        const details = reader
+          .locator('summary', { hasText: /^More player details$/ })
+          .locator('..')
+        assert.equal(await details.getAttribute('open'), null)
+        await details.locator(':scope > summary').click()
         assert.match(await reader.innerText(), /Identity and account access are protected\./)
+        await details.locator(':scope > summary').click()
+        assert.equal(await details.getAttribute('open'), null)
         assert.equal(await reader.isVisible(), true)
         const geometry = await reader.evaluate((element) => ({
           clientWidth: element.clientWidth,
@@ -235,6 +269,48 @@ try {
         await page.getByRole('button', { name: '1 current definitions', exact: true }).click()
         await page.getByText('Fixture Strike', { exact: false }).first().waitFor()
         await page.getByRole('dialog').press('Escape')
+        await page.locator('#timing-damage').selectOption('delayed')
+        await page.getByLabel('Search effect tags').fill('Dispel')
+        const editDescription = page.getByRole('button', {
+          name: 'Edit Dispel descriptions',
+          exact: true,
+        })
+        await editDescription.click()
+        let description = page
+          .getByRole('dialog')
+          .filter({ has: page.getByRole('heading', { name: 'Dispel', exact: true }) })
+        await description.getByLabel('Skill Manager description', { exact: true }).waitFor()
+        assert.equal(
+          await description.getByRole('button', { name: 'Commit Now', exact: true }).isDisabled(),
+          true,
+        )
+        await description
+          .getByLabel('Skill Manager description', { exact: true })
+          .fill('Remove the listed positive effects. {details}')
+        await description
+          .getByLabel('Battle description', { exact: true })
+          .fill('Remove positive effects.')
+        await description.press('Escape')
+        await editDescription.click()
+        description = page
+          .getByRole('dialog')
+          .filter({ has: page.getByRole('heading', { name: 'Dispel', exact: true }) })
+        assert.equal(
+          await description.getByLabel('Battle description', { exact: true }).inputValue(),
+          'Remove positive effects.',
+        )
+        await description.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await description.getByRole('status').filter({ hasText: 'Changes committed' }).waitFor()
+        const tagRequest = await page.evaluate(() => window.__operationsRequests.at(-1))
+        assert.equal(tagRequest.path, '/api/master/combat-content')
+        assert.equal(tagRequest.body.command.expectedRevision, 1)
+        assert.equal(tagRequest.body.command.definition.tagId, 'dispel')
+        assert.equal(tagRequest.body.command.definition.description, 'Remove positive effects.')
+        await description
+          .getByRole('button', { name: 'Close description editor', exact: true })
+          .click()
+        await page.getByLabel('Search effect tags').fill('damage')
+        assert.equal(await page.locator('#timing-damage').inputValue(), 'delayed')
         const elevation = page.getByRole('form', { name: 'Elevation chances', exact: true })
         const chance = (level) =>
           elevation.getByLabel(`Elevation level ${level} chance (%)`, { exact: true })

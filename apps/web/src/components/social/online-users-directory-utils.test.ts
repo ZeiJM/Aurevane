@@ -6,6 +6,7 @@ import {
   formatLastSeenAt,
   readableDisciplinePair,
   readableIdentity,
+  readableDisciplineName,
 } from './online-users-directory-utils'
 
 describe('online users directory helpers', () => {
@@ -54,4 +55,11 @@ describe('online users directory helpers', () => {
     expect(compareLastSeenAt(null, older, 'recent')).toBeGreaterThan(0)
     expect(compareLastSeenAt(null, older, 'oldest')).toBeGreaterThan(0)
   })
+})
+
+it('never formats an unresolved generated Discipline id as its name', () => {
+  expect(readableDisciplineName('discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2', null)).toBe(
+    'Unknown Discipline',
+  )
+  expect(readableDisciplineName('ironfist')).toBe('Ironfist')
 })

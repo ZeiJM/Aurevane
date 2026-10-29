@@ -158,7 +158,7 @@ async function publish(
   key: string,
   revision: number,
   base: number | null,
-  floor = 1,
+  floor: number | null = 1,
   catalogueToken?: string,
 ) {
   return (
@@ -659,8 +659,12 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('retains all 48 legacy actor contracts plus exactly 14 workspace contracts with private helpers inaccessible', async () => {
+it('retains all 48 legacy actor contracts plus exactly 20 workspace contracts with private helpers inaccessible', async () => {
   const workspaceSignatures = [
+    'public.read_master_panel_navigation_v1(uuid,uuid)',
+    'public.save_master_panel_navigation_v1(uuid,bigint,jsonb,uuid)',
+    'public.review_discipline_deletion_v1(uuid,uuid,text)',
+    'public.delete_discipline_v1(uuid,uuid,text,text)',
     'public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)',
     'public.set_world_environment_v2(uuid,integer,jsonb,uuid)',
     'public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)',
@@ -669,12 +673,14 @@ it('retains all 48 legacy actor contracts plus exactly 14 workspace contracts wi
     'public.save_site_music_configuration_v1(uuid,uuid,bigint,jsonb)',
     'public.search_master_moderation_players_v1(uuid,text,uuid)',
     'public.read_master_moderation_v1(uuid,uuid,uuid,bigint)',
+    'public.list_active_master_bans_v1(uuid,uuid,uuid)',
     'public.write_master_moderation_v1(uuid,uuid,text,text,text,integer,boolean,uuid)',
     'public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)',
     'public.search_discipline_grant_players_v1(uuid,uuid,text)',
     'public.read_discipline_player_grants_v1(uuid,uuid,text,uuid)',
     'public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)',
     'public.read_master_usage_balance_v1(uuid,uuid,text)',
+    'public.read_master_usage_balance_week_v1(uuid,uuid,text,date)',
   ]
   const workspaceContracts = (
     await db.query<{
@@ -690,7 +696,7 @@ it('retains all 48 legacy actor contracts plus exactly 14 workspace contracts wi
     )
   ).rows
   expect(legacyActorSignatures).toHaveLength(48)
-  expect(workspaceContracts).toHaveLength(14)
+  expect(workspaceContracts).toHaveLength(20)
   expect(await actorSignatures()).toEqual(
     [...legacyActorSignatures, ...workspaceContracts.map((contract) => contract.signature)].sort(),
   )
@@ -710,6 +716,9 @@ it('retains all 48 legacy actor contracts plus exactly 14 workspace contracts wi
   ).rows
   expect(helpers.every((r) => !r.allowed)).toBe(true)
   const workspaceHelpers = [
+    'app_private.guard_deleted_content_v1()',
+    'app_private.discipline_deletion_keys_v1(text)',
+    'app_private.discipline_deletion_impact_v1(text)',
     'app_private.master_page_capabilities_v1(text[])',
     'app_private.assert_master_page_v1(uuid,uuid,text)',
     'app_private.prevent_moderation_history_change_v1()',
@@ -1021,12 +1030,12 @@ it('archived parent relationships can be removed without reactivating either rec
     /LINK_INVALID/,
   )
 })
-it('link limit keeps record reads bounded and failed create-with-parent leaves no orphan', async () => {
+it('eight-Skill limit rejects a ninth create-with-parent without leaving an orphan', async () => {
   const parent = await createDiscipline()
   await db.exec(
-    "insert into app_private.combat_content_records(content_key,content_kind,lifecycle) select 'content.limit-'||i,'skill','draft' from generate_series(1,256) i; insert into app_private.combat_content_links select 'discipline.test','content.limit-'||i from generate_series(1,256) i;",
+    "insert into app_private.combat_content_records(content_key,content_kind,lifecycle) select 'content.limit-'||i,'skill','draft' from generate_series(1,8) i; insert into app_private.combat_content_links select 'discipline.test','content.limit-'||i from generate_series(1,8) i;",
   )
-  expect((await record('discipline.test')).links).toHaveLength(256)
+  expect((await record('discipline.test')).links).toHaveLength(8)
   await denied(
     () =>
       write('content.orphan', {
@@ -1809,4 +1818,45 @@ it('Archive activity capture remains private rather than granting direct browser
     { role: 'authenticated', allowed: false },
     { role: 'service_role', allowed: false },
   ])
+})
+
+it('native Tag race preparation handles seeded metadata and an already published Tag without resetting history', async () => {
+  const prepare = readFileSync(
+    resolve(root, '../../.github/scripts/prepare-combat-tag-race.sql'),
+    'utf8',
+  )
+  const before = await record('tag.damage')
+  expect(before).not.toBeNull()
+  expect(before.current).toBeNull()
+  await db.query("select set_config('task13.owner',$1,true)", [owner])
+  await db.exec('set local role service_role')
+  await db.exec(prepare)
+  const first = await record('tag.damage')
+  expect(first.draft).not.toBeNull()
+  const published = await publish('tag.damage', first.draft.draftVersion, null, null)
+  expect(published.current.contentVersion).toBe(2)
+  const prior = published.current.definition
+  await db.exec(prepare)
+  const next = await record('tag.damage')
+  expect(next.draft).not.toBeNull()
+  const nextPublished = await publish(
+    'tag.damage',
+    next.draft.draftVersion,
+    published.current.contentVersion,
+    null,
+  )
+  expect(nextPublished.current.contentVersion).toBe(published.current.contentVersion + 1)
+  expect(nextPublished.history).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ contentVersion: published.current.contentVersion }),
+    ]),
+  )
+  expect(
+    (
+      await db.query<{ definition: unknown }>(
+        "select definition from public.read_combat_content_version_v1('tag.damage','tag',$1)",
+        [published.current.contentVersion],
+      )
+    ).rows[0]!.definition,
+  ).toEqual(prior)
 })

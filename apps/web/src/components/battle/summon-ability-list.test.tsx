@@ -59,7 +59,6 @@ describe('pinned summon ability characteristics', () => {
       'Requirements',
       'Effects',
       'Range',
-      'Target',
       'Target Method',
       'Target Elevation',
       'Line of Sight',

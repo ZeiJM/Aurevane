@@ -235,10 +235,10 @@ export function WorldEnvironmentEditor({
               max={MAX_WEATHER_DURATION_MINUTES}
               step="1"
               required={forcingWeather}
-              disabled={!forcingWeather}
               value={duration}
               onChange={(event) => setDuration(event.currentTarget.value)}
             />
+            <small>Applies when you select a weather override.</small>
           </label>
         </fieldset>
       </div>

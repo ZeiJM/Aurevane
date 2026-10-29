@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import 'server-only'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { redirect } from 'next/navigation'
@@ -14,6 +15,7 @@ export async function requireRoamingCharacter() {
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }

@@ -266,3 +266,23 @@ it('describes current elemental rails using their saved policy and strongest cap
   expect(old.description).toContain('10% once')
   expect(old.description).toContain('Fire removes Drenched')
 })
+
+it('uses admitted short text in the shared status report while retaining captured amount facts', async () => {
+  const { battleEffectInformation } = await import('./battle-effect-information')
+  const report = battleEffectInformation({
+    statusId: 'suppress',
+    statusVersion: 1,
+    stacks: 1,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'caster',
+    potencyBasisPoints: 2534,
+    battleTag: {
+      tagId: 'suppress',
+      contentVersion: 2,
+      name: 'Suppress',
+      compact: 'Battle wording. {summary}',
+    },
+  })
+  expect(report.description).toContain('Battle wording.')
+  expect(report.description).toContain('25.34%')
+})

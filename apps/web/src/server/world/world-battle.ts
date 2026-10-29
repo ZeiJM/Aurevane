@@ -43,11 +43,13 @@ export async function attackWorldPlayer(
       { userId, characterId },
       { userId: pair.targetUserId as string, characterId: targetId },
     ].map(async (entry, index) => {
-      const [character, buildSnapshot] = await Promise.all([
-        characters.findByOwnerId?.(entry.userId, entry.characterId),
-        loadCharacterCommittedBuildSnapshot(entry.userId, entry.characterId, builds),
-      ])
+      const character = await characters.findByOwnerId?.(entry.userId, entry.characterId)
       if (!character) throw new AurevaneError('INVALID_REQUEST', 'That character is unavailable.')
+      const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+        entry.userId,
+        entry.characterId,
+        builds,
+      )
       const member: PvpLobbyMemberView = {
         ...entry,
         characterName: character.name,

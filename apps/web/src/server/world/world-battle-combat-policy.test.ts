@@ -147,7 +147,7 @@ it('captures both map participants and atomically persists real startup costs an
   expect(args!.p_start_snapshot).not.toHaveProperty('abilityRuntime')
 })
 
-it('starts each participant build read before its owned-character read resolves and waits for both snapshots', async () => {
+it('refreshes each participant before capturing its build while preparing both participants concurrently', async () => {
   function deferred<T>() {
     let resolve!: (value: T) => void
     const promise = new Promise<T>((accept) => {
@@ -184,16 +184,18 @@ it('starts each participant build read before its owned-character read resolves 
   const attack = attackWorldPlayer('owner', 'actor', 'target', 2)
   try {
     await vi.waitFor(() => expect(findCharacter).toHaveBeenCalledTimes(2))
-    expect(loadBuildSnapshot).toHaveBeenCalledTimes(2)
-    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(1, 'owner', 'actor', expect.anything())
-    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(2, 'opponent', 'target', expect.anything())
+    expect(loadBuildSnapshot).not.toHaveBeenCalled()
     characters[0]!.resolve(characterRecord('actor', 'owner', 'Attacker'))
+    await vi.waitFor(() => expect(loadBuildSnapshot).toHaveBeenCalledTimes(1))
+    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(1, 'owner', 'actor', expect.anything())
     characters[1]!.resolve(characterRecord('target', 'opponent', 'Target'))
+    await vi.waitFor(() => expect(loadBuildSnapshot).toHaveBeenCalledTimes(2))
+    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(2, 'opponent', 'target', expect.anything())
     builds[0]!.resolve(pureSnapshot())
     await builds[0]!.promise
     expect(rpc.mock.calls.some(([name]) => name === 'start_world_encounter_v1')).toBe(false)
   } finally {
-    // Release real promise boundaries even on the expected pre-fix failure.
+    // Release all deferred reads even when an assertion fails.
     characters[0]!.resolve(characterRecord('actor', 'owner', 'Attacker'))
     characters[1]!.resolve(characterRecord('target', 'opponent', 'Target'))
     builds[0]!.resolve(pureSnapshot())

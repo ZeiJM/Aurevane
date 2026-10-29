@@ -16,6 +16,8 @@ import {
   readSimpleRequirement,
   simpleEffectRequirementSubjects,
 } from '@aurevane/game-core/combat/combat-simple-requirements'
+import { EffectTargetEditor } from './effect-target-editor'
+import { withAuthoredEffectTarget } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import styles from './combat-content-editor.module.css'
 
 /** Authoring templates, never inferred from prose or sent directly as combat actions. */
@@ -135,6 +137,7 @@ export function AbilityEffectEditor({
           />
         ) : null}
         <SkillEffectEditor
+          hideTarget
           value={native}
           canonicalDamage={
             payload.type === 'damage' || payload.type === 'pierce' ? payload.type : undefined
@@ -171,6 +174,12 @@ export function AbilityEffectEditor({
   }
   return (
     <div className={styles.effectList}>
+      <EffectTargetEditor
+        value={payload}
+        aim={behavior?.targeting ?? undefined}
+        siblings={behavior?.effects.map((row) => row.payload)}
+        onChange={(target) => update(withAuthoredEffectTarget(payload, target))}
+      />
       {controls}
       <p className={styles.fieldHint}>{tag?.fullExplanation}</p>
     </div>

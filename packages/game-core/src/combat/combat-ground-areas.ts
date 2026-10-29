@@ -89,10 +89,17 @@ export function isCombatGroundEntryEffect(effect: { type: string; recipient: str
     ENTRY_TYPES.has(effect.type) && ['primary-unit', 'affected-units'].includes(effect.recipient)
   )
 }
+export function combatTargetSupportsGroundArea(target: CombatTargetSpec): boolean {
+  return (
+    target.kind === 'ground-tile' ||
+    (target.geometryVersion === 3 && target.categories?.includes('ground') === true)
+  )
+}
+
 export function validateCombatGroundAreaDefinition(action: GroundAuthoring): void {
   const ground = action.groundArea
   if (ground === undefined) return
-  if (!ground || action.target.kind !== 'ground-tile')
+  if (!ground || !combatTargetSupportsGroundArea(action.target))
     throw new TypeError('Ground areas require Ground targeting.')
   if (
     !Number.isSafeInteger(ground.durationRounds) ||
@@ -120,6 +127,8 @@ export function validateCombatGroundAreaDefinition(action: GroundAuthoring): voi
   const entryEffects = ground.entryEffectOrdinals.map(
     (index) => action.effects[index] as CombatEffectDefinition,
   )
+  if (entryEffects.some((effect) => effect.target === 'all'))
+    throw new TypeError('Ground entry cannot use an arena-wide All target.')
   if (entryEffects.some(isPercentageDotEffect))
     validateCurrentPercentageDotAuthoring({
       tags: ['attack'],

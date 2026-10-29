@@ -67,8 +67,42 @@
   gap: 0.65rem;
 }
 .search input {
-  flex: 1;
-  width: 100%;
+  flex: 1 1 10rem;
+  width: 0;
+}
+.search {
+  flex-wrap: wrap;
+  padding: 0.25rem;
+  margin: 0.2rem -0.25rem 0;
+}
+.search button {
+  flex: 0 0 auto;
+}
+.activeBans {
+  display: grid;
+  gap: 0.65rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.activeBans li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid #64716c;
+  border-radius: 6px;
+}
+.activeBans li > div {
+  flex: 1 1 15rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.activeBans p {
+  margin: 0.4rem 0 0;
+  white-space: pre-wrap;
 }
 .heading {
   justify-content: space-between;

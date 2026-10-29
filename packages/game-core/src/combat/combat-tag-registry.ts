@@ -1,3 +1,12 @@
+import { combatTagWordingIsValid, renderCombatTagWording } from './combat-tag-wording'
+import {
+  SUPPORTED_COMBAT_STATUS_IDS,
+  COMBAT_PRESENTATION_TAG_IDS,
+  isCombatPresentationTagId,
+  combatEffectPresentationId,
+} from './combat-effect-identities'
+export { SUPPORTED_COMBAT_STATUS_IDS } from './combat-effect-identities'
+import { validateCombatEffectTarget } from './combat-effect-recipients'
 import type { CombatEffectDefinition, CombatEffectRecipient } from './actions'
 import type { AbilityDefinitionIssue, AbilityActivation, AbilityMode } from './combat-definition'
 import { ABILITY_DEFINITION_BUDGET, validateAbilityElementalCompanions } from './combat-definition'
@@ -15,9 +24,11 @@ import {
 import { validateBarrierEffect } from './combat-barrier'
 import { validateCombatDamageScaling } from './damage-scaling'
 import { validateDamageModifiers } from './damage-modifiers'
-import { PHASE4_STATUSES } from './status-content'
-import { isRetiredCombatStatusId } from './retired-combat-statuses'
-import { validateSummonProfileDefinition, type SummonProfileDefinition } from './summon-content'
+import {
+  validateSummonProfileDefinition,
+  type SummonProfileDefinition,
+  type CombatSummonEffect,
+} from './summon-content'
 
 /** Native legacy payloads remain authoritative; canonical percentages use basis points. */
 export type CombatTagPayload =
@@ -73,7 +84,7 @@ export interface CombatTagDefinition {
 }
 
 const UNIT_RECIPIENTS = ['actor', 'primary-unit', 'affected-units'] as const
-const nativeFields = ['durationTurns', 'power', 'potencyBasisPoints']
+const nativeFields = ['target', 'durationTurns', 'power', 'potencyBasisPoints']
 const packetModifierCombinations = Object.freeze([
   { activation: 'manual', mode: 'action' },
   { activation: 'automatic', mode: 'action' },
@@ -276,16 +287,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
 ])
 
 const registry = new Map(COMBAT_TAG_REGISTRY.map((definition) => [definition.id, definition]))
-const supportedStatuses = new Set(
-  [
-    'guarded',
-    'exposed',
-    'lowered-guard',
-    'covert',
-    'revealed',
-    ...PHASE4_STATUSES.map((status) => status.id),
-  ].filter((id) => !isRetiredCombatStatusId(id) && id !== 'displaced'),
-)
+const supportedStatuses = new Set(SUPPORTED_COMBAT_STATUS_IDS)
 export function combatTagDefinition(id: string): CombatTagDefinition | null {
   return registry.get(id as CombatTagPayload['type']) ?? null
 }
@@ -354,6 +356,7 @@ export function validateCombatTagPayload(
   ] as const)
     if (value[key] !== undefined) keys(value[key], allowed, `payload.${key}`)
   try {
+    validateCombatEffectTarget(value as unknown as Parameters<typeof validateCombatEffectTarget>[0])
     if (
       value.power !== undefined &&
       !['apply-status', 'poison', 'burn'].includes(value.type as string)
@@ -672,9 +675,35 @@ export interface CombatTagPresentationSnapshot {
   readonly full: string
   readonly compact: string
 }
+export function combatEffectTagPresentation(
+  presentations: readonly CombatTagPresentationSnapshot[] | undefined,
+  payload: CombatTagPayload | CombatEffectDefinition | CombatSummonEffect,
+): CombatTagPresentationSnapshot | undefined {
+  return (
+    presentations?.find((row) => row.tagId === combatEffectPresentationId(payload)) ??
+    presentations?.find((row) => row.tagId === payload.type)
+  )
+}
+/** Resolve captured templates without modifying the historical snapshot or the payload. */
+export function resolvedCombatEffectTagPresentation(
+  presentations: readonly CombatTagPresentationSnapshot[] | undefined,
+  payload: CombatTagPayload | CombatEffectDefinition | CombatSummonEffect,
+  generatedDescription: string,
+): CombatTagPresentationSnapshot | undefined {
+  const captured = combatEffectTagPresentation(presentations, payload)
+  if (!captured) return undefined
+  const generated = { details: generatedDescription, summary: generatedDescription }
+  return {
+    ...captured,
+    full: renderCombatTagWording(captured.full, generated),
+    compact: renderCombatTagWording(captured.compact, generated),
+  }
+}
+
 export function combatTagPresentationIssues(value: unknown): readonly string[] {
   if (value === undefined) return []
-  if (!Array.isArray(value) || value.length > COMBAT_TAG_REGISTRY.length) return ['tagPresentation']
+  if (!Array.isArray(value) || value.length > COMBAT_PRESENTATION_TAG_IDS.length)
+    return ['tagPresentation']
   const seen = new Set<string>()
   return value.flatMap((row, index) => {
     const path = `tagPresentation.${index}`
@@ -686,7 +715,7 @@ export function combatTagPresentationIssues(value: unknown): readonly string[] {
           !['contentKey', 'contentVersion', 'tagId', 'name', 'full', 'compact'].includes(key),
       ) ||
       typeof row.tagId !== 'string' ||
-      !combatTagDefinition(row.tagId) ||
+      !isCombatPresentationTagId(row.tagId) ||
       row.contentKey !== `tag.${row.tagId}` ||
       !Number.isSafeInteger(row.contentVersion) ||
       Number(row.contentVersion) < 1 ||
@@ -701,8 +730,11 @@ export function combatTagPresentationIssues(value: unknown): readonly string[] {
         text !== text.trim() ||
         !text ||
         text.length > { name: 120, full: 2000, compact: 240 }[key] ||
-        /[<>{}]/u.test(text) ||
-        [...text].some((c) => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)
+        !combatTagWordingIsValid(text, key) ||
+        [...text].some(
+          (c) =>
+            (c.charCodeAt(0) < 32 && !(key === 'full' && c === '\n')) || c.charCodeAt(0) === 127,
+        )
       )
     })
       ? [path]
@@ -740,13 +772,35 @@ export function bindCombatTagPresentations<T>(
     const result = Object.fromEntries(
       Object.entries(input).map(([key, child]) => [key, visit(child)]),
     )
-    if (Array.isArray(input.behaviors)) {
-      const ids = new Set(
-        input.behaviors.flatMap((group) =>
+    // Native definitions keep their authoritative payload shape. Essence embeds a Skill;
+    // Resonance retains its trigger packets. Do not bind native shadow fields of an ability.
+    const native =
+      !Object.hasOwn(input, 'ability') &&
+      typeof input.id === 'string' &&
+      Number.isSafeInteger(input.contentVersion)
+    const nativeEffects = native
+      ? Array.isArray(input.effects)
+        ? input.effects
+        : isRecord(input.trigger) && Array.isArray(input.trigger.resultEffects)
+          ? input.trigger.resultEffects
+          : isRecord(input.trigger) && Array.isArray(input.trigger.payoffEffects)
+            ? input.trigger.payoffEffects
+            : undefined
+      : undefined
+    const payloads = Array.isArray(input.behaviors)
+      ? input.behaviors.flatMap((group) =>
           isRecord(group) && Array.isArray(group.effects)
             ? group.effects.flatMap((effect) =>
-                isRecord(effect) && isRecord(effect.payload) ? [effect.payload.type] : [],
+                isRecord(effect) && isRecord(effect.payload) ? [effect.payload] : [],
               )
+            : [],
+        )
+      : nativeEffects
+    if (payloads) {
+      const ids = new Set(
+        payloads.flatMap((payload) =>
+          isRecord(payload) && typeof payload.type === 'string'
+            ? [payload.type, combatEffectPresentationId(payload as unknown as CombatTagPayload)]
             : [],
         ),
       )

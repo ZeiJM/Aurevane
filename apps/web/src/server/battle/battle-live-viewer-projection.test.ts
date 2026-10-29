@@ -1131,7 +1131,6 @@ it('projects a detached complete report from the actual owner Manual capture wit
     'Requirements',
     'Effects',
     'Range',
-    'Target',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
@@ -1141,11 +1140,14 @@ it('projects a detached complete report from the actual owner Manual capture wit
     Cooldown: '3 turns',
     Requirements: 'MP [≥ 3] [Self]',
     Range: '4',
-    Target: 'Enemy',
     'Target Method': 'Single · Up to 2 distinct targets',
   })
   expect(report.effects.map((effect) => effect.parts.label)).toEqual(['Move', 'Dmg'])
-  expect(report.effects[1]!.parts).toMatchObject({ magnitude: '13', timing: 'Controlled' })
+  expect(report.effects[1]!.parts).toMatchObject({
+    magnitude: '13',
+    timing: 'Controlled',
+    target: 'Enemy',
+  })
   expect(report.limits).toEqual(['Once per round'])
   expect(JSON.stringify(report)).not.toMatch(
     /accuracy|chanceBasisPoints|payload|private-report-source|sourceInstanceId/,
@@ -1523,4 +1525,56 @@ it('composed battle transport includes only controlled captured Tag wording and 
   expect(
     projectBattleSnapshot(state, createSpectatorBattleViewerEntitlement()).tagPresentations,
   ).toEqual([])
+})
+
+it('projects only admitted short wording for visible statuses without leaking the catalogue or changing state', () => {
+  const state = encounter()
+  state.statusState[0]!.statuses = [
+    {
+      statusId: 'guarded',
+      statusVersion: 1,
+      stacks: 1,
+      remainingOwnerTurnStarts: 2,
+      sourceCombatantId: PLAYER,
+    },
+  ]
+  const words = {
+    contentKey: 'tag.guarded',
+    contentVersion: 3,
+    tagId: 'guarded',
+    name: 'Guard',
+    compact: 'Short captured Guard.',
+    full: 'Private full Manager wording.',
+  }
+  const captured = {
+    ...state,
+    buildAuthority: {
+      schemaVersion: 1 as const,
+      combatContext: 'pve' as const,
+      combatants: [],
+      tagPresentations: [
+        words,
+        {
+          ...words,
+          contentKey: 'tag.copy-debuffs',
+          tagId: 'copy-debuffs',
+          compact: 'Unrelated tag.',
+        },
+      ],
+    },
+  }
+  const before = JSON.stringify(captured)
+  const rows = projectBattleStatusStateForViewer(
+    captured,
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  )
+  expect(rows[0]!.statuses[0]).toHaveProperty('battleTag', {
+    tagId: 'guarded',
+    contentVersion: 3,
+    name: 'Guard',
+    compact: 'Short captured Guard.',
+  })
+  expect(JSON.stringify(rows)).not.toContain('Private full Manager wording.')
+  expect(JSON.stringify(rows)).not.toContain('Unrelated tag.')
+  expect(JSON.stringify(captured)).toBe(before)
 })

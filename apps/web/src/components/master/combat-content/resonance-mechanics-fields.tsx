@@ -8,12 +8,15 @@ import {
   normalizedResonanceMechanics,
   type NormalizedResonanceMechanics,
 } from '@aurevane/game-core/combat/resonance-v2'
+import type { AbilityEditorSection } from './ability-editor-tabs'
 import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 export function ResonanceMechanicsFields({
   value,
   onChange,
+  section,
 }: {
+  section?: AbilityEditorSection
   value: AnyResonanceDefinition
   onChange(value: AnyResonanceDefinition): void
 }) {
@@ -99,56 +102,74 @@ export function ResonanceMechanicsFields({
   }
   return (
     <>
-      {v2 ? (
-        <AbilitySelect
-          label="Resonance mode"
-          value={mechanics.mode}
-          options={['sequence', 'immediate'] as const}
-          onChange={(mode) =>
-            update({
-              mode,
-              setup:
-                mode === 'immediate'
-                  ? null
-                  : (mechanics.setup ?? {
-                      sourceDisciplineId: value.disciplinePair[0],
-                      requiredTags: ['attack'],
-                    }),
-              aiSetupUtilityBonus: mode === 'immediate' ? 0 : mechanics.aiSetupUtilityBonus || 10,
-            })
-          }
-        />
-      ) : (
-        <p>Historical sequence schema is preserved.</p>
+      {(!section || section === 'details') && (
+        <>
+          {v2 ? (
+            <AbilitySelect
+              label="Resonance mode"
+              value={mechanics.mode}
+              options={['sequence', 'immediate'] as const}
+              onChange={(mode) =>
+                update({
+                  mode,
+                  setup:
+                    mode === 'immediate'
+                      ? null
+                      : (mechanics.setup ?? {
+                          sourceDisciplineId: value.disciplinePair[0],
+                          requiredTags: ['attack'],
+                        }),
+                  aiSetupUtilityBonus:
+                    mode === 'immediate' ? 0 : mechanics.aiSetupUtilityBonus || 10,
+                })
+              }
+            />
+          ) : (
+            <p>Historical sequence schema is preserved.</p>
+          )}
+          {mechanics.setup ? (
+            matcher('Setup', mechanics.setup, (setup) => update({ setup }))
+          ) : (
+            <p>Setup: None. Immediate activation uses the matching Trigger.</p>
+          )}
+          {matcher('Trigger', mechanics.trigger, (trigger) => update({ trigger }))}
+          <AbilityNumber
+            label="Resonance AI setup utility"
+            min={0}
+            max={100}
+            value={mechanics.aiSetupUtilityBonus}
+            onChange={(aiSetupUtilityBonus) => update({ aiSetupUtilityBonus })}
+          />
+          <AbilityNumber
+            label="Resonance AI trigger utility"
+            min={0}
+            max={100}
+            value={mechanics.aiTriggerUtilityBonus}
+            onChange={(aiTriggerUtilityBonus) => update({ aiTriggerUtilityBonus })}
+          />
+        </>
       )}
-      {mechanics.setup ? (
-        matcher('Setup', mechanics.setup, (setup) => update({ setup }))
-      ) : (
-        <p>Setup: None. Immediate activation uses the matching Trigger.</p>
+      {(!section || section === 'effects') && (
+        <fieldset>
+          <legend>Result</legend>
+          <SkillEffectListEditor
+            value={mechanics.resultEffects}
+            maxEffects={v2 ? 2 : 8}
+            onChange={(resultEffects) => update({ resultEffects })}
+          />
+        </fieldset>
       )}
-      {matcher('Trigger', mechanics.trigger, (trigger) => update({ trigger }))}
-      <AbilityNumber
-        label="Resonance AI setup utility"
-        min={0}
-        max={100}
-        value={mechanics.aiSetupUtilityBonus}
-        onChange={(aiSetupUtilityBonus) => update({ aiSetupUtilityBonus })}
-      />
-      <AbilityNumber
-        label="Resonance AI trigger utility"
-        min={0}
-        max={100}
-        value={mechanics.aiTriggerUtilityBonus}
-        onChange={(aiTriggerUtilityBonus) => update({ aiTriggerUtilityBonus })}
-      />
-      <fieldset>
-        <legend>Result</legend>
-        <SkillEffectListEditor
-          value={mechanics.resultEffects}
-          maxEffects={v2 ? 2 : 8}
-          onChange={(resultEffects) => update({ resultEffects })}
-        />
-      </fieldset>
+      {section && ['range', 'economy', 'accuracy'].includes(section) && (
+        <p>
+          This Resonance uses its triggering Skill’s combat context and has no independent{' '}
+          {section === 'range'
+            ? 'range selection'
+            : section === 'economy'
+              ? 'resource payment'
+              : 'accuracy roll'}
+          .
+        </p>
+      )}
     </>
   )
 }

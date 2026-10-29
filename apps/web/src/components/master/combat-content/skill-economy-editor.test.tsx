@@ -33,16 +33,13 @@ describe('Master Panel Skill economy editor', () => {
     expect(markup).toContain('max="3"')
   })
 
-  it('offers Automatic Hit and Accuracy Roll and exposes the signed modifier only for rolls', () => {
+  it('offers Always Hit and Accuracy Roll without per-Skill modifiers', () => {
     const roll = renderToStaticMarkup(
       createElement(SkillEconomyEditor, { value: draft(), onChange: vi.fn() }),
     )
-    expect(roll).toContain('<option value="automatic">Automatic Hit</option>')
+    expect(roll).toContain('<option value="automatic">Always Hit</option>')
     expect(roll).toContain('<option value="per-target" selected="">Accuracy Roll</option>')
-    expect(roll).toContain('aria-label="Accuracy modifier (basis points)"')
-    expect(roll).toContain('min="-3000"')
-    expect(roll).toContain('max="3000"')
-    expect(roll).toContain('value="-750"')
+    expect(roll).not.toContain('aria-label="Accuracy modifier (basis points)"')
 
     const automatic = renderToStaticMarkup(
       createElement(SkillEconomyEditor, {
@@ -73,4 +70,40 @@ it('uses explicit AP authoring bounds when the selected current ruleset supplies
   )
 
   expect(markup).toMatch(/aria-label="Action Economy \(AP\)"[^>]*min="45"[^>]*max="60"/u)
+})
+
+it('names the accuracy bypass Always Hit and omits per-Skill accuracy modifiers', () => {
+  const html = renderToStaticMarkup(
+    createElement(SkillEconomyEditor, {
+      value: {
+        apCost: 50,
+        mpCost: 10,
+        accuracyMode: 'per-target',
+        accuracyModifierBasisPoints: 100,
+        cooldown: null,
+      },
+      onChange: () => {},
+    }),
+  )
+  expect(html).toContain('>Always Hit</option>')
+  expect(html).not.toContain('Accuracy modifier')
+})
+
+it('offers optional HP and MP with nonlethal payment help and preserves values on open', () => {
+  const onChange = vi.fn()
+  const html = renderToStaticMarkup(
+    createElement(SkillEconomyEditor, { value: draft({ hpCost: 12 }), onChange }),
+  )
+  expect(html).toContain('aria-label="HP cost"')
+  expect(html).toContain('value="12"')
+  expect(html).toContain('Remove HP cost')
+  expect(html).toContain('Remove MP cost')
+  expect(html).toContain('at least 1 HP')
+  expect(onChange).not.toHaveBeenCalled()
+  const empty = renderToStaticMarkup(
+    createElement(SkillEconomyEditor, { value: draft({ mpCost: undefined }), onChange }),
+  )
+  expect(empty).toContain('Add HP cost')
+  expect(empty).toContain('Add MP cost')
+  expect(empty).not.toContain('aria-label="MP cost"')
 })

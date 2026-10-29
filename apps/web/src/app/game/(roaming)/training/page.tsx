@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -30,6 +31,7 @@ export default async function OfflineTrainingPage() {
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }

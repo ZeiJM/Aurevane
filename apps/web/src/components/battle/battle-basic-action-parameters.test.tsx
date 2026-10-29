@@ -56,7 +56,6 @@ describe('inherent action characteristics', () => {
         'Requirements',
         'Effects',
         'Range',
-        'Target',
         'Target Method',
         'Target Elevation',
         'Line of Sight',

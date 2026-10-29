@@ -1,3 +1,4 @@
+import { skillCostDescription } from '../character/skill-detail-presentation'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import type { SkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import { skillInformationRows } from '../character/skill-information-contract'
@@ -69,7 +70,7 @@ export function battleSkillParameterRows(
     'Skill Type': skill.tags.includes('attack')
       ? attackSkillTypeDescription(skill.tags)
       : 'Unavailable',
-    Cost: `${skill.apCost} AP${skill.mpCost > 0 ? ` / ${skill.mpCost} MP` : ''}`,
+    Cost: skillCostDescription(skill),
     Cooldown:
       skill.cooldownOwnerTurns === undefined
         ? 'Unavailable'
@@ -77,19 +78,12 @@ export function battleSkillParameterRows(
           ? 'None'
           : `${skill.cooldownOwnerTurns} ${skill.cooldownOwnerTurns === 1 ? 'turn' : 'turns'}`,
     Requirements: skill.requirementDescriptions.join(', ') || 'None',
-    Effects: skill.effectDescriptions.join(', ') || 'Unavailable',
+    Effects:
+      skill.effectDescriptions
+        .map((description) => `${description} [Target unavailable]`)
+        .join(', ') || 'Unavailable',
     Range: skill.targetKind === 'self' ? 'N/A' : String(skill.maximumRange),
-    Target:
-      skill.targetKind === 'self'
-        ? 'Self'
-        : skill.targetKind === 'ground-tile'
-          ? 'Ground'
-          : skill.targetKind === 'empty-tile'
-            ? 'Empty Ground'
-            : skill.targetTeamPolicy === 'any'
-              ? 'Any Unit'
-              : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase()),
-    'Target Method': 'Unavailable',
+    'Target Method': `Unavailable · Aim: ${skill.targetKind === 'self' ? 'Self' : skill.targetKind === 'ground-tile' ? 'Ground' : skill.targetKind === 'empty-tile' ? 'Empty Tile' : skill.targetTeamPolicy === 'any' ? 'Anyone' : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase())}`,
     'Target Elevation': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
     'Line of Sight': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
   })
@@ -254,6 +248,7 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     { label: `${preview.actionEconomyAfter} AP left`, tone: 'effect' },
   ]
   if (preview.mpCost > 0) chips.push({ label: `${preview.mpCost} MP`, tone: 'cost' })
+  if ((preview.hpCost ?? 0) > 0) chips.push({ label: `${preview.hpCost} HP`, tone: 'cost' })
   chips.push({
     label:
       preview.hitChanceBasisPoints === null

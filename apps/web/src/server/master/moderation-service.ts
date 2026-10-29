@@ -1,6 +1,6 @@
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import type { ModerationPlayer, ModerationRecord } from '@/master/moderation'
+import type { ActiveModerationBans, ModerationPlayer, ModerationRecord } from '@/master/moderation'
 import type { MasterPanelStaffAccessService } from './staff-access'
 
 export interface ModerationChange {
@@ -94,6 +94,50 @@ export function createMasterModerationService(
     return rpc(name, { p_actor_user_id: userId, ...parameters })
   }
   return {
+    async listActive(userId: string, after: string | null = null): Promise<ActiveModerationBans> {
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      if (after !== null && (typeof after !== 'string' || !uuid.test(after))) invalid()
+      const value = await call(userId, 'list_active_master_bans_v1', { p_after_user_id: after })
+      if (
+        !record(value) ||
+        !Array.isArray(value.bans) ||
+        value.bans.length > 50 ||
+        (value.nextCursor !== null &&
+          (typeof value.nextCursor !== 'string' || !uuid.test(value.nextCursor)))
+      )
+        unavailable()
+      const seen = new Set<string>()
+      const bans = value.bans.map((item: unknown) => {
+        if (
+          !record(item) ||
+          typeof item.userId !== 'string' ||
+          !uuid.test(item.userId) ||
+          seen.has(item.userId) ||
+          item.active !== true ||
+          typeof item.name !== 'string' ||
+          !item.name ||
+          typeof item.reason !== 'string' ||
+          item.reason.length > 1000 ||
+          (item.characterId !== null &&
+            (typeof item.characterId !== 'string' || !uuid.test(item.characterId)))
+        )
+          unavailable()
+        seen.add(item.userId)
+        const ban = parseModerationRecord({ ...item, history: [], nextCursor: null })
+        return {
+          userId: ban.userId,
+          characterId: item.characterId as string | null,
+          name: item.name,
+          revision: ban.revision,
+          active: true as const,
+          permanent: ban.permanent,
+          expiresAt: ban.expiresAt,
+          protected: ban.protected,
+          reason: item.reason,
+        }
+      })
+      return { bans, nextCursor: value.nextCursor as string | null }
+    },
     async search(userId: string, query: string): Promise<ModerationPlayer[]> {
       if (query.trim().length < 2 || query.trim().length > 80) invalid()
       const value = await call(userId, 'search_master_moderation_players_v1', {

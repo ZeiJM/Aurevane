@@ -65,6 +65,8 @@ export function createCombatContentRecordCommand(
       commit: ['contentKey', 'expectedRevision', 'definition'],
       restore: ['contentKey', 'expectedRevision', 'sourceVersion', 'sourceKind'],
       archive: ['contentKey', 'expectedRevision'],
+      'review-deletion': ['contentKey'],
+      'delete-discipline': ['contentKey', 'reviewToken'],
       link: ['contentKey', 'expectedRevision', 'requestId', 'childKey'],
       unlink: ['contentKey', 'expectedRevision', 'requestId', 'childKey'],
       publish: ['contentKey', 'expectedDraftVersion', 'expectedBaseVersion'],
@@ -196,6 +198,13 @@ export function createCombatContentRecordCommand(
       }
     }
     const contentKey = key(input.contentKey)
+    if (action === 'review-deletion')
+      return { plan: await store.reviewDisciplineDeletion(contentKey) }
+    if (action === 'delete-discipline') {
+      if (typeof input.reviewToken !== 'string' || !/^[a-f0-9]{32}$/.test(input.reviewToken))
+        invalid('Refresh the deletion review before deleting.')
+      return store.deleteDiscipline(contentKey, input.reviewToken)
+    }
     if (action === 'save' || action === 'publish' || action === 'commit') {
       const record = await store.readRecord(contentKey)
       if (!record) invalid('The content record does not exist.')

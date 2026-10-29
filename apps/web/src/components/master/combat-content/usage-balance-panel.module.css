@@ -156,3 +156,120 @@
     font-size: 0.75rem;
   }
 }
+
+.panel section,
+.panel article {
+  min-width: 0;
+}
+.panel meter {
+  width: 100%;
+  height: 0.8rem;
+  accent-color: #35624e;
+}
+.bar,
+.outcomes {
+  display: flex;
+  width: 100%;
+  height: 0.65rem;
+  overflow: hidden;
+  border-radius: 0.2rem;
+  background: #52625824;
+}
+.bar > span {
+  background: #35624e;
+}
+.bar > span[data-tone='uses'] {
+  background: #8a531e;
+}
+.outcomes > span[data-outcome='wins'] {
+  background: #35624e;
+}
+.outcomes > span[data-outcome='losses'] {
+  background: #984435;
+}
+.outcomes > span[data-outcome='draws'] {
+  background: #817155;
+}
+.skillCharts {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+}
+.skillCharts > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #8da99b66;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.skillCharts > li > div {
+  min-width: 0;
+}
+.chartHead {
+  font-weight: 700;
+}
+.chartValue {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.chartValue > span {
+  font-size: 0.75rem;
+}
+.panel summary {
+  cursor: pointer;
+  min-height: 2.75rem;
+  display: list-item;
+  align-content: center;
+}
+.panel summary:focus-visible {
+  outline: 2px solid #285f58;
+  outline-offset: 3px;
+}
+.refresh button {
+  min-height: 2.75rem;
+}
+@media (max-width: 480px) {
+  .skillCharts > li {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .skillCharts > li > strong {
+    grid-column: 1 / -1;
+  }
+  .skillCharts > .chartHead {
+    display: none;
+  }
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.refresh {
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.refresh label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+.refresh select {
+  min-height: 2.75rem;
+  max-width: 100%;
+  font: inherit;
+  color: #263e35;
+  background: #f5eddd;
+  border: 1px solid #887757;
+  border-radius: 0.25rem;
+  padding: 0.4rem;
+}
+.refresh select:focus-visible {
+  outline: 2px solid #285f58;
+  outline-offset: 3px;
+}

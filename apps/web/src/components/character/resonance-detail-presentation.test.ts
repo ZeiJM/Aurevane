@@ -13,7 +13,6 @@ const fields = [
   'Requirements',
   'Effects',
   'Range',
-  'Target',
   'Target Method',
   'Target Elevation',
   'Line of Sight',
@@ -43,7 +42,7 @@ describe('passive Resonance Skill information', () => {
     ])
       expect(details).toContain(name)
   })
-  it('shows the ten required fields and preserves sequence setup and unit-target constraints', () => {
+  it('shows the nine required fields and preserves sequence setup and unit-target constraints', () => {
     const definition = resolveResonanceForPair('lifebinder', 'vanguard')!
     const rows = resonanceCharacteristicRows(definition)
     expect(rows.map(([label]) => label)).toEqual(fields)
@@ -52,7 +51,6 @@ describe('passive Resonance Skill information', () => {
       Cost: 'N/A',
       Cooldown: 'N/A',
       Range: 'N/A',
-      Target: 'Trigger Skill selected unit; Self',
       'Target Method': 'N/A',
       'Target Elevation': 'N/A',
       'Line of Sight': 'N/A',
@@ -86,10 +84,12 @@ describe('passive Resonance Skill information', () => {
       },
     }
     const rows = Object.fromEntries(resonanceCharacteristicRows(definition))
-    expect(rows.Target).toBe('Self; Trigger Skill affected units')
+    expect(rows.Target).toBeUndefined()
+    expect(JSON.stringify(rows.Effects)).toContain('[Self]')
+    expect(JSON.stringify(rows.Effects)).toContain('[Trigger Skill affected units]')
     expect(rows.Effects).toEqual([
-      'Farstrider Skills tagged Attack + Ranged: Heal [3] [Instant]',
-      'Farstrider Skills tagged Attack + Ranged: Dmg [2] → Trigger Skill affected units',
+      'Farstrider Skills tagged Attack + Ranged: Heal [3] [Instant] [Self]',
+      'Farstrider Skills tagged Attack + Ranged: Dmg [2] [Trigger Skill affected units]',
     ])
     expect(rows.Range).toBe('N/A')
     expect(JSON.stringify(rows.Requirements)).not.toContain('next Discipline Skill')
@@ -122,8 +122,8 @@ describe('passive Resonance Skill information', () => {
       },
     }
     const rows = Object.fromEntries(resonanceCharacteristicRows(definition))
-    expect(rows.Target).toBe('Trigger Skill affected tiles')
-    expect(JSON.stringify(rows.Effects)).toContain('→ Trigger Skill affected tiles')
+    expect(rows.Target).toBeUndefined()
+    expect(JSON.stringify(rows.Effects)).toContain('[Ground]')
     expect(Object.fromEntries(resonanceSupplementalRows(definition)).Mode).toBeUndefined()
   })
 })

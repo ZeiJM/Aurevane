@@ -1,3 +1,6 @@
+import { battleTagForStatus } from '@/lib/battle/battle-tag-wording'
+import type { BattleBuildAuthoritySnapshot } from './battle-build-authority'
+import { combatEffectPresentationId } from '@aurevane/game-core/combat/combat-effect-identities'
 import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
@@ -405,15 +408,19 @@ export function projectBattleStatusStateForViewer(
     | 'capturedAbilitySources'
     | 'abilityRuntime'
     | 'effectTimingPolicy'
-  >,
+  > & { buildAuthority?: BattleBuildAuthoritySnapshot },
   viewer: BattleViewerEntitlement,
 ): BattleStatusState {
   const combatantById = new Map(
     state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant] as const),
   )
 
-  const presentInteractionPolicy = (status: BattlePresentedStatus): BattlePresentedStatus => ({
+  const presentInteractionPolicy = (
+    status: BattlePresentedStatus,
+    exactTagId?: string,
+  ): BattlePresentedStatus => ({
     ...status,
+    battleTag: battleTagForStatus(state.buildAuthority?.tagPresentations, status, exactTagId),
     ...(state.effectStackingPolicyVersion === 1 ? { effectStackingPolicyVersion: 1 as const } : {}),
     ...(status.statusId === 'blindside' && state.blindsideActivationPolicyVersion === 1
       ? { blindsideActivationPolicyVersion: 1 as const }
@@ -439,6 +446,15 @@ export function projectBattleStatusStateForViewer(
         pendingEffects: [effect],
         pendingSummons: [],
       })
+      for (const row of rows)
+        row.status = {
+          ...row.status,
+          battleTag: battleTagForStatus(
+            state.buildAuthority?.tagPresentations,
+            row.status,
+            combatEffectPresentationId(effect.effect),
+          ),
+        } as BattlePresentedStatus
       const visibility = effect.sourceCommandVisibility
       if (
         !visibility ||
@@ -561,7 +577,12 @@ export function projectBattleStatusStateForViewer(
         ...primedStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
-          .map((item) => presentInteractionPolicy(omitCombatExecutionMetadata(item.status))),
+          .map((item) =>
+            presentInteractionPolicy(
+              omitCombatExecutionMetadata(item.status),
+              (item.status as BattlePresentedStatus).battleTag?.tagId,
+            ),
+          ),
       ],
     }
     // Validated snapshots should always resolve this row; omission is safer than disclosure if they do not.

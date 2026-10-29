@@ -19,11 +19,13 @@ export function FinalizedMediaEditor({
   onChange,
   allowAudio = true,
   fallbackArtwork,
+  showArtworkRemoval = true,
 }: {
   value: FinalizedContentMediaSlots
   onChange(value: FinalizedContentMediaSlots): void
   allowAudio?: boolean
   fallbackArtwork?: string
+  showArtworkRemoval?: boolean
 }) {
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
@@ -112,9 +114,10 @@ export function FinalizedMediaEditor({
   return (
     <fieldset className={styles.typedGroup} disabled={busy}>
       <legend>
-        Artwork and sound <MasterHelp label="Media uploads">{CONTENT_MEDIA_GUIDANCE}</MasterHelp>
+        {allowAudio ? 'Artwork and sound' : 'Artwork'}{' '}
+        <MasterHelp label="Media uploads">{CONTENT_MEDIA_GUIDANCE}</MasterHelp>
       </legend>
-      {!value.artwork && fallbackArtwork ? (
+      {!value.artwork && fallbackArtwork && !(preview && file?.type.startsWith('image/')) ? (
         <Image src={fallbackArtwork} alt="Current artwork" width={144} height={144} unoptimized />
       ) : null}
       <label className={styles.field}>
@@ -188,7 +191,7 @@ export function FinalizedMediaEditor({
       >
         {busy ? 'Uploading…' : 'Upload file'}
       </button>
-      {value.artwork && (
+      {value.artwork && !(preview && file?.type.startsWith('image/')) && (
         <div>
           <Image
             src={contentMediaSource(value.artwork, true)}
@@ -202,14 +205,18 @@ export function FinalizedMediaEditor({
             height={144}
             unoptimized
           />
-          <button
-            type="button"
-            onClick={() => {
-              onChange({ ...value, artwork: undefined })
-            }}
-          >
-            Remove uploaded artwork
-          </button>
+          {showArtworkRemoval && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange({ ...value, artwork: undefined })
+                }}
+              >
+                Remove uploaded artwork
+              </button>
+            </>
+          )}
         </div>
       )}
       {value.audio && (

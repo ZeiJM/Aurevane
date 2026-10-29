@@ -1,3 +1,4 @@
+import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
 import type { MechanicTextPart } from './mechanic-text'
 import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import { groupSkillEffects } from './skill-effect-groups'
@@ -242,18 +243,22 @@ export function skillParameterTypeDescription(
 }
 
 export function skillCostDescription(
-  skill: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'>,
+  skill: Pick<MatureSkillDefinition, 'apCost' | 'mpCost' | 'hpCost'>,
 ): string {
-  return skill.mpCost ? `${skill.apCost} AP / ${skill.mpCost} MP` : `${skill.apCost} AP`
+  return [
+    `${skill.apCost} AP`,
+    ...(skill.mpCost ? [`${skill.mpCost} MP`] : []),
+    ...(skill.hpCost ? [`${skill.hpCost} HP`] : []),
+  ].join(' / ')
 }
 
 /** Parameter order and wording shared by Nexus and committed battle Skills. */
 export function skillParameterRows(
   skill: Pick<
     MatureSkillDefinition,
-    'tags' | 'effects' | 'apCost' | 'mpCost' | 'cooldown' | 'requirements' | 'target'
+    'tags' | 'effects' | 'apCost' | 'mpCost' | 'hpCost' | 'cooldown' | 'requirements' | 'target'
   >,
-  costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost'> & {
+  costs: Pick<MatureSkillDefinition, 'apCost' | 'mpCost' | 'hpCost'> & {
     cooldownOwnerTurns?: number | null
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
@@ -271,21 +276,7 @@ export function skillParameterRows(
     Requirements: skillRequirementsSummary(skill),
     Effects: skillEffectsSummary(skill, timingPolicy, options),
     Range: skillCompactRangeDescription(skill),
-    Target:
-      !options.legacyElemental &&
-      options.explicitElemental !== false &&
-      (skill.target.kind === 'unit' || skill.target.kind === 'ground-tile') &&
-      skill.target.teamPolicy === 'enemy' &&
-      skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
-        ? 'Enemy / Ground'
-        : skillTargetRecipientDescription(skill, options.legacyFrozenGround) +
-          (!options.legacyElemental &&
-          skill.target.kind === 'unit' &&
-          skill.target.teamPolicy === 'enemy' &&
-          skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
-            ? ' / Ground'
-            : ''),
-    'Target Method': skillTargetMethodDescription(skill),
+    'Target Method': skillTargetMethodDescription(skill) + skillDeliveryNotes(skill, options),
     'Target Elevation':
       options.airborneAttackElevation && skill.tags.includes('attack')
         ? '3'
@@ -300,10 +291,12 @@ interface ElementalEffectPresentationOptions {
   legacyElemental?: boolean
   explicitElemental?: boolean
   skillEffects?: readonly MatureSkillEffectDefinition[]
+  aim?: MatureSkillDefinition['target']
 }
 
 export interface CompactSkillEffectSummaryParts {
   label: string
+  target?: string
   magnitude: string | null
   duration: string | null
   timing?: 'Instant' | 'Delayed' | 'Controlled'
@@ -389,6 +382,7 @@ export function compactSkillEffectSummaryParts(
   const timing = skillEffectInstantTiming(effect, timingPolicy, options)
   return {
     label: preview.label,
+    target: effectTargetLabel(effect, options.aim),
     magnitude: compactMagnitude(effect, preview.magnitude),
     duration:
       effect.type === 'damage' && !options.legacyElemental && options.explicitElemental !== false
@@ -405,7 +399,7 @@ function compactEffectSummary(
   timingPolicy: SkillEffectTimingPolicy,
   options: ElementalEffectPresentationOptions,
 ): string {
-  const { label, magnitude, duration, timing } = compactSkillEffectSummaryParts(
+  const { label, target, magnitude, duration, timing } = compactSkillEffectSummaryParts(
     effect,
     timingPolicy,
     options,
@@ -415,19 +409,21 @@ function compactEffectSummary(
     magnitude ? `[${magnitude}]` : null,
     duration ? `[${duration}]` : null,
     timing ? `[${timing}]` : null,
+    target ? `[${target}]` : null,
   ]
     .filter((part): part is string => part !== null)
     .join(' ')
 }
 
 export function skillEffectSummaries(
-  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'>,
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'> &
+    Partial<Pick<MatureSkillDefinition, 'target'>>,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   options: ElementalEffectPresentationOptions = {},
 ): readonly string[] {
   return groupSkillEffects(skill.effects, skill.effectDescriptions).map(
     ({ effect, count }) =>
-      `${compactEffectSummary(effect, timingPolicy, { ...options, skillEffects: skill.effects })}${count > 1 ? ` ×${count}` : ''}`,
+      `${compactEffectSummary(effect, timingPolicy, { ...options, aim: skill.target ?? options.aim, skillEffects: skill.effects })}${count > 1 ? ` ×${count}` : ''}`,
   )
 }
 
@@ -474,29 +470,35 @@ export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'targe
   }
 }
 
-/** Include affected recipients only when they differ from the selected target policy. */
-function skillTargetRecipientDescription(
+/** Shared aim and terrain rules remain visible after recipient labels move to each effect. */
+function skillDeliveryNotes(
   skill: Pick<MatureSkillDefinition, 'target' | 'effects'>,
-  legacyFrozenGround = false,
+  options: { legacyFrozenGround?: boolean; legacyElemental?: boolean; explicitElemental?: boolean },
 ): string {
-  const target = skillTargetDescription(skill)
-  const { kind, teamPolicy, friendlyFire } = skill.target
-  const recipientsMatch =
-    (kind === 'self' && friendlyFire === 'allies-only') ||
-    (kind === 'unit' &&
-      ((teamPolicy === 'enemy' && friendlyFire === 'enemies-only') ||
-        (teamPolicy === 'ally' && friendlyFire === 'allies-only') ||
-        (teamPolicy === 'self' && friendlyFire === 'allies-only') ||
-        (teamPolicy === 'any' && friendlyFire === 'all-units')))
-  const recipients = recipientsMatch ? '' : ` · ${unitAffectedDescription(skill)}`
-  const terrain = skill.effects.some(
-    (effect) => effect.type === 'damage' && effect.element === 'fire',
-  )
+  const fire = skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
+  const fireGround =
+    fire &&
+    !options.legacyElemental &&
+    options.explicitElemental !== false &&
+    ['unit', 'ground-tile'].includes(skill.target.kind) &&
+    skill.target.teamPolicy === 'enemy'
+  const terrain = fire
     ? ' · Steam: both teams'
     : skill.effects.some((effect) => effect.type === 'create-terrain')
-      ? ` · Frozen Ground: ${legacyFrozenGround ? 'both teams' : 'caster’s enemies only'}`
+      ? ` · Frozen Ground: ${options.legacyFrozenGround ? 'both teams' : 'caster’s enemies only'}`
       : ''
-  return target + recipients + terrain
+  const aim = fireGround ? 'Enemy / Ground' : skillTargetDescription(skill)
+  const differs =
+    skill.effects.length > 0 &&
+    skill.effects.every(
+      (effect) =>
+        effectTargetLabel(effect, skill.target).replaceAll(' ', '') !== aim.replaceAll(' ', ''),
+    )
+  return (
+    (fireGround || differs ? ` · Aim: ${aim}` : '') +
+    effectFriendlyFireNote(skill.effects, skill.target) +
+    terrain
+  )
 }
 
 export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
@@ -546,19 +548,6 @@ export function skillCooldownDescription(
 ): string {
   if (ownerTurns === null) return 'None'
   return `${ownerTurns} ${ownerTurns === 1 ? 'turn' : 'turns'}`
-}
-
-function unitAffectedDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
-  switch (skill.target.friendlyFire) {
-    case 'enemies-only':
-      return 'Enemies only'
-    case 'allies-only':
-      return skill.target.kind === 'self' ? 'Yourself' : 'Allies only'
-    case 'all-units':
-      return 'All units, including allies'
-    case 'all-except-actor':
-      return 'All units except yourself, including allies'
-  }
 }
 
 function recoveryTiming(ticks: number | undefined): string {

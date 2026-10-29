@@ -75,7 +75,6 @@ test('Technique selection auto-saves and favorite controls are removed', async (
     'Requirements',
     'Effects',
     'Range',
-    'Target',
     'Target Method',
     'Target Elevation',
     'Line of Sight',

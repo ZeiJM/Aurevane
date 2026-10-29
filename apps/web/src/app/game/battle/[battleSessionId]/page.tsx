@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { essenceCombatSkill } from '@aurevane/game-core/combat/essence'
@@ -133,6 +134,7 @@ async function battleBuildExtensions(
           iconKey: contentArtworkKey(definition.media),
           apCost: override?.apCost ?? definition.apCost,
           mpCost: definition.mpCost ?? 0,
+          hpCost: definition.hpCost,
           cooldownOwnerTurns:
             definition.cooldown === null
               ? null
@@ -189,6 +191,7 @@ async function battleBuildExtensions(
           iconKey: contentArtworkKey(essenceDefinition.skill.media),
           apCost: essenceOverride?.apCost ?? essenceDefinition.skill.apCost,
           mpCost: essenceDefinition.skill.mpCost ?? 0,
+          hpCost: essenceDefinition.skill.hpCost,
           targetKind: essenceDefinition.skill.target.kind,
           targetTeamPolicy: essenceDefinition.skill.target.teamPolicy,
           minimumRange: essenceDefinition.skill.target.minimumRange,
@@ -240,6 +243,7 @@ export default async function BattleSessionPage({
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }

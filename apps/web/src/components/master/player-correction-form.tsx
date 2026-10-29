@@ -12,12 +12,28 @@ import {
 import { validateAttributeAllocation } from '@aurevane/game-core/character/attribute-allocation'
 import type { MasterPlayerView, PlayerCorrection } from '@/master/players'
 import { disciplineCorrectionFromForm } from '@/master/player-discipline-correction'
+import { playerProgressionProposal, xpForPlayerLevel } from '@/master/player-correction-progression'
+import { resolveLevelProgress } from '@aurevane/game-core/character/progression'
 
 export function playerLabel(value: string) {
   return value
     .split(/[._-]/u)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
+}
+export function playerContentLabel(
+  player: MasterPlayerView,
+  id: string | null | undefined,
+  kind: 'Discipline' | 'Skill' | 'Resonance' | 'Essence',
+) {
+  if (!id) return 'None'
+  if (kind === 'Discipline') {
+    const name = player.disciplines?.find((row) => row.id === id)?.name
+    if (name) return name
+    // Retain readable builtin IDs when an older support response lacks its catalogue.
+    return /^[a-z]+(?:-[a-z]+)*$/u.test(id) ? playerLabel(id) : 'Unavailable Discipline'
+  }
+  return player.contentNames?.[id] ?? `Unavailable ${kind}`
 }
 export function PlayerCorrectionForm({
   player,
@@ -30,8 +46,37 @@ export function PlayerCorrectionForm({
 }) {
   const [kind, setKind] = useState<PlayerCorrection['kind']>('source')
   const [error, setError] = useState<string | null>(null)
-  const [attributes, setAttributes] = useState(player.facts.attributes)
+  const [attributeText, setAttributeText] = useState(
+    () =>
+      Object.fromEntries(
+        CHARACTER_ATTRIBUTE_IDS.map((id) => [id, String(player.facts.attributes[id])]),
+      ) as Record<keyof CharacterAttributes, string>,
+  )
+  const [xpText, setXpText] = useState(String(player.facts.xp))
+  const [levelText, setLevelText] = useState(String(player.facts.level))
+  const attributes = Object.fromEntries(
+    CHARACTER_ATTRIBUTE_IDS.map((id) => [
+      id,
+      attributeText[id] === '' ? NaN : Number(attributeText[id]),
+    ]),
+  ) as CharacterAttributes
+  const numberText = (value: string) => value.replace(/^0+(?=\d)/u, '')
   const policy = player.attributePolicy
+  const curve = player.progressionCurve
+  let proposal: ReturnType<typeof playerProgressionProposal> | null = null
+  let progressionError: string | null = null
+  if (policy && curve) {
+    try {
+      proposal = playerProgressionProposal(
+        attributes,
+        xpText === '' ? NaN : Number(xpText),
+        curve,
+        policy,
+      )
+    } catch (cause) {
+      progressionError = cause instanceof Error ? cause.message : 'Enter valid progression values.'
+    }
+  }
   const baseTotal = policy
     ? CHARACTER_ATTRIBUTE_IDS.reduce((total, id) => total + policy.baseAttributes[id], 0)
     : 31
@@ -50,17 +95,27 @@ export function PlayerCorrectionForm({
     const data = new FormData(event.currentTarget)
     let command: PlayerCorrection
     if (kind === 'source') {
+      if (curve) {
+        try {
+          xpForPlayerLevel(Number(levelText), curve)
+        } catch {
+          setError('Enter a whole Level within the progression limit.')
+          return
+        }
+      }
       command = {
         kind,
-        xp: Number(data.get('xp')),
-        attributes: Object.fromEntries(
-          CHARACTER_ATTRIBUTE_IDS.map((id) => [id, Number(data.get(id))]),
-        ) as CharacterAttributes,
+        xp: xpText === '' ? NaN : Number(xpText),
+        attributes,
       }
-      if (policy && command.xp === player.facts.xp) {
+      if (policy) {
+        if (progressionError) {
+          setError(progressionError)
+          return
+        }
         const issue = validateAttributeAllocation({
           attributes: command.attributes,
-          level: player.facts.level,
+          level: proposal?.level ?? player.facts.level,
           policy,
         })[0]
         if (issue) {
@@ -105,27 +160,33 @@ export function PlayerCorrectionForm({
   return (
     <form onSubmit={submit}>
       <h3>Gameplay correction</h3>
-      <p>Review one group at a time. Active encounters and pending deletion block corrections.</p>
-      <label>
-        Correction group
-        <select
-          value={kind}
-          onChange={(event) => {
-            setKind(event.target.value as PlayerCorrection['kind'])
-            setError(null)
-          }}
-          disabled={disabled}
-        >
-          <option value="source">Core Stats & XP</option>
-          <option value="disciplines">Primary & Secondary</option>
-          <option value="skills">Available Skill loadout</option>
-          <option value="support">Support action</option>
-        </select>
-      </label>
+      <div role="group" aria-label="Correction section" data-correction-sections>
+        {(
+          [
+            ['source', 'Stats & Progression'],
+            ['disciplines', 'Disciplines'],
+            ['skills', 'Skills'],
+            ['support', 'Support'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            disabled={disabled}
+            aria-pressed={kind === value}
+            onClick={() => {
+              setKind(value)
+              setError(null)
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <fieldset disabled={disabled} key={kind}>
         <legend>
           {kind === 'source'
-            ? 'Source values'
+            ? 'Stats & Progression'
             : kind === 'disciplines'
               ? 'Disciplines'
               : kind === 'skills'
@@ -135,10 +196,17 @@ export function PlayerCorrectionForm({
         {kind === 'source' ? (
           <>
             <p>
-              {personalSpent} / {player.calculated.personalPointPool} personal points assigned at
-              Level {player.facts.level}. Level follows XP; raising a stat requires available points
-              or moving personal points from another stat. Fixed Primary bases stay in place.
+              {Number.isFinite(personalSpent) ? personalSpent : '—'} /{' '}
+              {proposal?.personalPool ?? player.calculated.personalPointPool} personal points
+              assigned at Level {proposal?.level ?? player.facts.level}. Primary bases stay fixed.
             </p>
+            {proposal?.excess ? (
+              <p role="status">
+                Remove {proposal.excess} personal points or raise Level before saving.
+              </p>
+            ) : proposal?.unspent ? (
+              <p>{proposal.unspent} points will remain available to allocate.</p>
+            ) : null}
             <div data-player-fields>
               {CHARACTER_ATTRIBUTE_IDS.map((id) => (
                 <label key={id}>
@@ -152,9 +220,12 @@ export function PlayerCorrectionForm({
                     max={policy?.attributeCaps[id] ?? 60}
                     step="1"
                     required
-                    value={attributes[id]}
+                    value={attributeText[id]}
                     onChange={(event) =>
-                      setAttributes((current) => ({ ...current, [id]: Number(event.target.value) }))
+                      setAttributeText((current) => ({
+                        ...current,
+                        [id]: numberText(event.target.value),
+                      }))
                     }
                   />
                   {policy ? (
@@ -165,17 +236,106 @@ export function PlayerCorrectionForm({
                 </label>
               ))}
               <label>
+                Level
+                <input
+                  aria-label="Level"
+                  type="number"
+                  min="1"
+                  max={curve?.maxLevel ?? 100}
+                  step="1"
+                  required
+                  disabled={!curve}
+                  value={levelText}
+                  onChange={(event) => {
+                    const value = numberText(event.target.value)
+                    setLevelText(value)
+                    if (curve) {
+                      try {
+                        setXpText(String(xpForPlayerLevel(Number(value), curve)))
+                      } catch {
+                        /* Allow an incomplete field while editing. */
+                      }
+                    }
+                  }}
+                />
+              </label>
+              <label>
                 Total XP
                 <input
                   name="xp"
                   type="number"
                   min="0"
+                  max={curve?.cumulativeXpByLevel[curve.maxLevel - 1]}
                   step="1"
                   required
-                  defaultValue={player.facts.xp}
+                  disabled={!curve}
+                  value={xpText}
+                  onChange={(event) => {
+                    const value = numberText(event.target.value)
+                    setXpText(value)
+                    if (curve && value !== '') {
+                      try {
+                        setLevelText(String(resolveLevelProgress(Number(value), curve).level))
+                      } catch {
+                        /* Invalid XP stays visible for correction. */
+                      }
+                    }
+                  }}
                 />
               </label>
             </div>
+            {!curve ? (
+              <p>
+                Progression editing is unavailable until the character’s XP curve can be loaded.
+              </p>
+            ) : null}
+            {progressionError ? (
+              <p role="status">{progressionError}</p>
+            ) : proposal?.issues[0] ? (
+              <p role="status">{proposal.issues[0].message}</p>
+            ) : null}
+            {proposal?.excess ? (
+              <div data-correction-sections>
+                <button
+                  type="button"
+                  disabled={proposal.fitLevel === null}
+                  onClick={() => {
+                    if (proposal && proposal.fitLevel !== null && proposal.fitXp !== null) {
+                      setLevelText(String(proposal.fitLevel))
+                      setXpText(String(proposal.fitXp))
+                    }
+                  }}
+                >
+                  Fit Level to Stats{proposal.fitLevel ? ` · Level ${proposal.fitLevel}` : ''}
+                </button>
+                {proposal.redistribution ? (
+                  <details>
+                    <summary>Preview balanced redistribution</summary>
+                    <p>
+                      {CHARACTER_ATTRIBUTE_IDS.map(
+                        (id) =>
+                          `${playerLabel(id)} ${attributes[id]} → ${proposal!.redistribution![id]}`,
+                      ).join(' · ')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAttributeText(
+                          Object.fromEntries(
+                            CHARACTER_ATTRIBUTE_IDS.map((id) => [
+                              id,
+                              String(proposal!.redistribution![id]),
+                            ]),
+                          ) as Record<keyof CharacterAttributes, string>,
+                        )
+                      }
+                    >
+                      Use this allocation
+                    </button>
+                  </details>
+                ) : null}
+              </div>
+            ) : null}
           </>
         ) : kind === 'disciplines' ? (
           <>
@@ -235,8 +395,13 @@ export function PlayerCorrectionForm({
                           (skill.eligibilityDisciplineId ?? skill.sourceDisciplineId),
                     )}
                   />
-                  {playerLabel(skill.skillId)} · v{skill.contentVersion} ·{' '}
-                  {playerLabel(skill.eligibilityDisciplineId ?? skill.sourceDisciplineId)} ·{' '}
+                  {playerContentLabel(player, skill.skillId, 'Skill')} ·{' '}
+                  {playerContentLabel(
+                    player,
+                    skill.eligibilityDisciplineId ?? skill.sourceDisciplineId,
+                    'Discipline',
+                  )}{' '}
+                  ·{' '}
                   {skill.earnedEligibility === true
                     ? 'Earned'
                     : skill.earnedEligibility === false
@@ -289,21 +454,44 @@ export function PlayerCorrectionReview({
             after: command.attributes[id],
           })),
           { label: 'Total XP', before: player.facts.xp, after: command.xp },
+          ...(player.progressionCurve
+            ? [
+                {
+                  label: 'Level',
+                  before: player.facts.level,
+                  after: resolveLevelProgress(command.xp, player.progressionCurve).level,
+                },
+              ]
+            : []),
         ]
       : command.kind === 'disciplines'
         ? [
             {
               label: 'Primary',
-              before: playerLabel(player.facts.build.primary.disciplineId),
-              after: playerLabel(command.primary ?? player.facts.build.primary.disciplineId),
+              before: playerContentLabel(
+                player,
+                player.facts.build.primary.disciplineId,
+                'Discipline',
+              ),
+              after: playerContentLabel(
+                player,
+                command.primary ?? player.facts.build.primary.disciplineId,
+                'Discipline',
+              ),
             },
             {
               label: 'Secondary',
-              before: playerLabel(player.facts.build.secondary?.disciplineId ?? 'None'),
-              after: playerLabel(
-                (command.secondary === undefined
+              before: playerContentLabel(
+                player,
+                player.facts.build.secondary?.disciplineId,
+                'Discipline',
+              ),
+              after: playerContentLabel(
+                player,
+                command.secondary === undefined
                   ? player.facts.build.secondary?.disciplineId
-                  : command.secondary) ?? 'None',
+                  : command.secondary,
+                'Discipline',
               ),
             },
           ]
@@ -320,11 +508,11 @@ export function PlayerCorrectionReview({
                 label: 'Earned Skills',
                 before:
                   player.facts.build.disciplineSkills
-                    .map((skill) => `${playerLabel(skill.skillId)} v${skill.contentVersion}`)
+                    .map((skill) => playerContentLabel(player, skill.skillId, 'Skill'))
                     .join(', ') || 'None',
                 after:
                   command.skills
-                    .map((skill) => `${playerLabel(skill.skillId)} v${skill.contentVersion}`)
+                    .map((skill) => playerContentLabel(player, skill.skillId, 'Skill'))
                     .join(', ') || 'None',
               },
             ]

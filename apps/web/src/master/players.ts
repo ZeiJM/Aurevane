@@ -2,6 +2,7 @@ import type { DisciplineAttributePolicy } from '@aurevane/game-core/character/at
 import type { CharacterAttributes } from '@aurevane/game-core/character/creation'
 import type { DisciplineSkillReference } from '@aurevane/game-core/character/discipline-skill-loadout'
 import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
+import type { LevelProgressionCurve } from '@aurevane/game-core/character/progression'
 
 export type PlayerCorrection =
   | { kind: 'source'; xp: number; attributes: CharacterAttributes }
@@ -39,9 +40,12 @@ export interface MasterPlayerView {
   portraitRef: string
   verifiedEmail: string | null
   fingerprint: string
+  /** Presentation names only; captured identities and versions remain in facts. */
+  contentNames?: Readonly<Record<string, string>>
   deletionPending: boolean
   facts: MasterPlayerFacts
   attributePolicy?: DisciplineAttributePolicy
+  progressionCurve?: LevelProgressionCurve
   calculated: { maxHp: number; maxMp: number; personalPointPool: number }
   disciplines: { id: string; name: string; primary: boolean; secondary: boolean }[]
   learnedSkills: DisciplineSkillReference[]

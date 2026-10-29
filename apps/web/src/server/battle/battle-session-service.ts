@@ -749,21 +749,20 @@ export function createBattleSessionService({
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
-      const [characterResult, committedBuildResult, committedBuildSnapshotResult] =
-        await Promise.allSettled([
-          findOwnedCharacter(characters, command.userId, command.characterId),
-          builds
-            ? builds.findActiveBuild(command.userId, command.characterId)
-            : Promise.resolve(null),
-          builds
-            ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds)
-            : Promise.resolve(null),
-        ])
-      if (characterResult.status === 'rejected') throw characterResult.reason
-      const character = characterResult.value
+      // Current character entry may refresh its published Primary profile. Capture only
+      // after it completes so Core totals and the immutable build share that version.
+      const character = await findOwnedCharacter(characters, command.userId, command.characterId)
       if (!character) {
         throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
       }
+      const [committedBuildResult, committedBuildSnapshotResult] = await Promise.allSettled([
+        builds
+          ? builds.findActiveBuild(command.userId, command.characterId)
+          : Promise.resolve(null),
+        builds
+          ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds)
+          : Promise.resolve(null),
+      ])
 
       if (committedBuildResult.status === 'rejected') throw committedBuildResult.reason
       if (committedBuildSnapshotResult.status === 'rejected') {

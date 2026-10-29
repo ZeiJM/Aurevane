@@ -170,3 +170,19 @@
     min-height: 2.75rem;
   }
 }
+
+.rules[data-edit-wording] table {
+  min-width: 42rem;
+}
+.rules[data-edit-wording] th:first-child {
+  width: 25%;
+}
+.rules[data-edit-wording] th:nth-child(2) {
+  width: 24%;
+}
+.rules[data-edit-wording] th:nth-child(3) {
+  width: 29%;
+}
+.rules[data-edit-wording] th:nth-child(4) {
+  width: 22%;
+}

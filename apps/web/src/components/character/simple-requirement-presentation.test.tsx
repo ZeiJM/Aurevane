@@ -109,10 +109,43 @@ it.each(candidate.records)(
         }
       expect(requirement).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
       const html = renderToStaticMarkup(<AbilityParameters report={result} />)
-      expect(html.match(/<dt>/g)).toHaveLength(10)
+      expect(html.match(/<dt>/g)).toHaveLength(9)
       if (requirement !== 'None') expect(html).toContain('data-combat-tag-reference=')
       if (result.automaticActivation)
         expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Automatic:')
     }
+  },
+)
+
+it.each([
+  ['actor', 'selected', 'Target'],
+  ['affected-units', 'affected', 'Target'],
+  ['actor', 'owner', 'Self'],
+] as const)(
+  'keeps a simple %s effect condition on %s explicit beside the distinct group condition',
+  (recipient, subject, label) => {
+    const group: AbilityBehavior = {
+      ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
+      requirementMode: 'simple',
+      requirements: { kind: 'status-presence', subject: 'owner', statusId: 'wet', present: true },
+      effects: [
+        {
+          id: 'mend',
+          payload: { type: 'healing', recipient, amount: 1 },
+          requirements: { kind: 'status-presence', subject, statusId: 'wet', present: true },
+        },
+      ],
+    }
+    const before = JSON.stringify(group)
+    const result = abilityBehaviorInformation(group)
+    const expected = `Drenched [Self]; Heal: Drenched [${label}]`
+    expect(Object.fromEntries(result.rows).Requirements).toBe(expected)
+    expect(result.effects[0]!.condition).toBe(`Drenched [${label}]`)
+    expect(plainMechanicText(result.requirementParts!)).toBe(expected)
+    expect(plainMechanicText(result.effects[0]!.conditionParts!)).toBe(`Drenched [${label}]`)
+    const html = renderToStaticMarkup(<AbilityParameters report={result} />)
+    expect(html.replace(/<[^>]*>/gu, '')).toContain(expected)
+    expect(html).toContain('aria-label="Requirement explanations"')
+    expect(JSON.stringify(group)).toBe(before)
   },
 )

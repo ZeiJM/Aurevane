@@ -1,3 +1,4 @@
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { planCombatStatusCopies } from './combat-status-copy'
 import { advanceBattleRng } from './battle-state'
 import type {
@@ -73,14 +74,13 @@ export function forecastCombatStatusResistance(
       effect.recipient === 'affected-tiles'
     )
       continue
-    const recipients =
-      effect.recipient === 'actor'
-        ? [evaluation.actorId]
-        : effect.recipient === 'primary-unit'
-          ? evaluation.primaryCombatantId
-            ? [evaluation.primaryCombatantId]
-            : []
-          : evaluation.affectedCombatantIds
+    const recipients = combatEvaluatedEffectRecipientIds(
+      state,
+      action,
+      evaluation,
+      ordinal,
+      content,
+    )
     for (const id of recipients) {
       const target = state.tactical.battle.combatants.find((unit) => unit.id === id)
       if (
@@ -105,12 +105,13 @@ export function forecastCombatStatusResistance(
               !isStatusResistanceEligibleEffect(action, index, content)
             )
               return false
-            return application.recipient === 'actor'
-              ? evaluation.actorId === id
-              : application.recipient === 'primary-unit'
-                ? evaluation.primaryCombatantId === id
-                : application.recipient === 'affected-units' &&
-                  evaluation.affectedCombatantIds.includes(id)
+            return combatEvaluatedEffectRecipientIds(
+              state,
+              action,
+              evaluation,
+              index,
+              content,
+            ).includes(id)
           })
         )
           continue

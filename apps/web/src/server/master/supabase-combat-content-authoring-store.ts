@@ -8,6 +8,11 @@ import type {
   CompleteCombatContentWrite,
 } from '@aurevane/db/combat-content'
 import 'server-only'
+import { parseDisciplineDeletePlan } from '@/lib/discipline-delete-plan'
+import {
+  hasRetiredSkillAccuracyModifier,
+  skillAccuracyForAuthoring,
+} from '@/lib/skill-accuracy-authoring'
 import { combatContentCategory } from '../combat/combat-content-categories'
 import { parseStoredStatusDefinition } from '../combat/combat-standalone-content'
 import { isCombatContentKind, parseCompleteCombatContentRecord } from './combat-content-record'
@@ -216,6 +221,11 @@ function disciplinePublicationMessage(error: RpcError, target?: PublicationTarge
 
 function mapRpcError(error: RpcError, target?: PublicationTarget): never {
   const message = error.message ?? ''
+  if (message === 'DISCIPLINE_DELETE_REVIEW_CHANGED')
+    throw new AurevaneError(
+      'STALE_VERSION',
+      'The deletion impact changed. Refresh the review before deleting.',
+    )
   if (
     error.code === '0A000' &&
     /COMBAT_CONTENT_(COMPLETE_RECORD_REQUIRED|SAVED_REVISION_REQUIRED|RESTORE_TO_DRAFT_REQUIRED)/u.test(
@@ -236,6 +246,10 @@ function mapRpcError(error: RpcError, target?: PublicationTarget): never {
       'Content changed. Refresh and review the complete record before retrying.',
     )
   const inputMessages: Readonly<Record<string, string>> = {
+    COMBAT_CONTENT_DELETED:
+      'This content has been deleted and cannot be restored. Saved battle history is retained.',
+    DISCIPLINE_DELETE_REVIEW_LIMIT:
+      'This Discipline has too many related definitions to delete together. Resolve its relationships first.',
     DISCIPLINE_PRESENTATION_LIMIT:
       'Use at most 80 characters for the Discipline name and 240 for its description.',
     DISCIPLINE_PUBLICATION_INCOMPLETE:
@@ -258,7 +272,7 @@ function mapRpcError(error: RpcError, target?: PublicationTarget): never {
     COMBAT_CONTENT_ESSENTIAL: 'This essential Basic action cannot be archived.',
     COMBAT_CONTENT_SOURCE_IMMUTABLE:
       'An existing Skill’s intrinsic source Discipline cannot change. Create a separate Skill instead.',
-    COMBAT_CONTENT_LINK_LIMIT: 'A Discipline can link at most 256 Skills.',
+    COMBAT_CONTENT_LINK_LIMIT: 'A Discipline can have at most 8 Skills.',
     COMBAT_CONTENT_RESTORE_REQUIRED:
       'Restore an immutable version to a fresh draft before publishing archived content.',
     COMBAT_CONTENT_NOT_FOUND: 'The content record could not be found. Refresh the content list.',
@@ -523,6 +537,37 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     if (error) mapRpcError(error)
     return withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
   }
+  async reviewDisciplineDeletion(contentKey: string) {
+    const { data, error } = await this.#rpc('review_discipline_deletion_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: contentKey,
+    })
+    if (error) mapRpcError(error)
+    return parseDisciplineDeletePlan(data)
+  }
+  async deleteDiscipline(
+    contentKey: string,
+    reviewToken: string,
+  ): Promise<{ deletedKeys: string[] }> {
+    const { data, error } = await this.#rpc('delete_discipline_v1', {
+      p_actor_user_id: this.#actorUserId,
+      p_content_key: contentKey,
+      p_review_token: reviewToken,
+    })
+    if (error) mapRpcError(error)
+    if (
+      !isObject(data) ||
+      !Array.isArray(data.deletedKeys) ||
+      data.deletedKeys.length > 257 ||
+      !data.deletedKeys.includes(contentKey) ||
+      !data.deletedKeys.every(requiredString)
+    )
+      throw new AurevaneError(
+        'PERSISTENCE_UNAVAILABLE',
+        'The deletion receipt could not be verified. Refresh the content list.',
+      )
+    return { deletedKeys: data.deletedKeys as string[] }
+  }
   /** Save and publish under one database transaction; a rejected publication saves nothing. */
   async commitRecord(
     contentKey: string,
@@ -537,6 +582,14 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       )
     const descriptor = combatContentCategory(record.contentKind, contentKey)!
     const parsed = descriptor.parseAuthoring(definition)
+    if (
+      record.contentKind === 'tag' &&
+      !record.draft &&
+      !record.current &&
+      record.builtinDefinition &&
+      isDeepStrictEqual(parsed, record.builtinDefinition)
+    )
+      return record
     if (!record.draft && record.current) {
       const comparable: Record<string, unknown> = {
         ...parsed,
@@ -544,7 +597,10 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       }
       if (record.contentKind === 'essence' && isObject(comparable.skill))
         comparable.skill = { ...comparable.skill, contentVersion: record.current.contentVersion }
-      if (isDeepStrictEqual(comparable, record.current.definition)) return record
+      const current = hasRetiredSkillAccuracyModifier(record.contentKind, record.current.definition)
+        ? record.current.definition
+        : skillAccuracyForAuthoring(record.contentKind, record.current.definition)
+      if (isDeepStrictEqual(comparable, current)) return record
     }
     const token = await this.#validatePublication(contentKey, record.contentKind, {
       id: 'prospective',
@@ -759,6 +815,11 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     contentKind: CombatContentKind,
     target: CombatContentVersionRecord | null,
   ): Promise<string> {
+    if (target && hasRetiredSkillAccuracyModifier(contentKind, target.definition))
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'This saved Skill still has a retired accuracy modifier. Open its editor and Commit Now to remove the modifier before publication.',
+      )
     const descriptor = combatContentCategory(contentKind, contentKey)
     if (target && descriptor?.validatePublication) {
       try {

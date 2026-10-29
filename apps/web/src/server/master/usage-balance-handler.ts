@@ -14,7 +14,11 @@ export async function handleUsageBalanceRequest(
     const actor = await dependencies.getActor()
     const report = await dependencies
       .createService()
-      .read(actor.userId, new URL(request.url).searchParams.get('contentKey') ?? '')
+      .read(
+        actor.userId,
+        new URL(request.url).searchParams.get('contentKey') ?? '',
+        new URL(request.url).searchParams.get('week') ?? undefined,
+      )
     return Response.json(report, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
     return toServerErrorResponse(error)

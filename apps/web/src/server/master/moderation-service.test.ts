@@ -19,7 +19,42 @@ it('checks live page authority before every moderation operation', async () => {
   allowed = false
   await expect(service.search('staff', 'Mira')).rejects.toMatchObject({ code: 'FORBIDDEN' })
   await expect(service.read('staff', 'target')).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  await expect(service.listActive('staff')).rejects.toMatchObject({ code: 'FORBIDDEN' })
   expect(calls).toEqual(['search_master_moderation_players_v1'])
+})
+it('parses bounded unique account ban pages and rejects malformed pagination and inactive rows', async () => {
+  const ban = {
+    userId: '11111111-1111-4111-8111-111111111111',
+    characterId: null,
+    name: 'Player',
+    active: true,
+    permanent: true,
+    expiresAt: null,
+    protected: false,
+    revision: 'a'.repeat(32),
+    reason: 'Reviewed conduct',
+  }
+  const rpc = vi.fn(async () => ({ bans: [ban], nextCursor: null as string | null }))
+  const service = createMasterModerationService(
+    { requireCapability: async () => ({}) } as never,
+    rpc,
+  )
+  expect(await service.listActive('staff')).toEqual({ bans: [ban], nextCursor: null })
+  expect(rpc).toHaveBeenCalledWith('list_active_master_bans_v1', {
+    p_actor_user_id: 'staff',
+    p_after_user_id: null,
+  })
+  rpc.mockResolvedValueOnce({ bans: [ban, ban], nextCursor: null })
+  await expect(service.listActive('staff')).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+  rpc.mockResolvedValueOnce({ bans: [{ ...ban, active: false }], nextCursor: null })
+  await expect(service.listActive('staff')).rejects.toMatchObject({
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+  await expect(service.listActive('staff', 'bad cursor')).rejects.toMatchObject({
+    code: 'INVALID_REQUEST',
+  })
 })
 it('rejects invalid durations, empty reasons and untrusted result data', async () => {
   const service = createMasterModerationService(

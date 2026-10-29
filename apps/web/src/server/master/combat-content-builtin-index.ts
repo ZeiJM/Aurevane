@@ -1,3 +1,4 @@
+import { defaultCombatTagDefinitions } from '@aurevane/game-core/combat/combat-tag-wording'
 import 'server-only'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -27,6 +28,11 @@ export function builtinCombatContentEntries() {
     ...currentEssenceDefinitions().map((definition) => ({
       contentKey: definition.essenceId,
       contentKind: 'essence' as const,
+      definition,
+    })),
+    ...defaultCombatTagDefinitions().map((definition) => ({
+      contentKey: definition.id,
+      contentKind: 'tag' as const,
       definition,
     })),
     ...currentResonanceDefinitions().map((definition) => ({

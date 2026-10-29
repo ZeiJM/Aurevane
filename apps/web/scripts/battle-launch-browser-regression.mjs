@@ -276,7 +276,22 @@ try {
     'Combatant steadies their blade for Forceful Strike.',
     'Nexus preview resolves authored flavor tokens with neutral identity',
   )
-  assert.equal(await preview.locator('dt').count(), 10)
+  assert.equal(await preview.locator('dt').count(), 9)
+  assert.equal(
+    await preview
+      .locator('dt')
+      .filter({ hasText: /^Target$/ })
+      .count(),
+    0,
+  )
+  assert.match(
+    await preview
+      .locator('dt')
+      .filter({ hasText: /^Effects$/ })
+      .locator('..')
+      .innerText(),
+    /\[Enemy\]/,
+  )
   assert.equal(await preview.getByLabel('Effect explanations').count(), 1)
   assert.doesNotMatch(await preview.innerText(), /Single target|Affects:/)
   await page.screenshot({ path: resolve(output, 'technique-neutral-flavor.png') })

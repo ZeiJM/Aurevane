@@ -605,6 +605,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
 
     expect(await currentContentVersion(page)).toBe(oldVersion)
 
+    await page.getByRole('tab', { name: 'Action Economy', exact: true }).click()
     const apInput = page.getByLabel('Action Economy (AP)')
     const originalAp = Number(await apInput.inputValue())
     expect(Number.isSafeInteger(originalAp)).toBe(true)
@@ -612,23 +613,20 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
     await apInput.fill(String(nextAp))
 
     await page.getByRole('button', { name: 'Skill Details', exact: true }).click()
-    await page
-      .locator('summary')
-      .filter({ hasText: /^Artwork and sound$/ })
-      .click()
-    await page.getByLabel('Skill artwork hook').selectOption('skill.lifebinder.mend.icon')
-    const artworkPreview = page.getByLabel('Skill artwork preview').locator('img')
+    await page.getByRole('tab', { name: 'Media', exact: true }).click()
+    await page.getByRole('button', { name: 'Restore default artwork', exact: true }).click()
+    const artworkPreview = page.getByRole('img', { name: 'Current artwork', exact: true })
     await expect(artworkPreview).toHaveAttribute(
       'src',
-      '/media/art/discipline-skills/lifebinder-mend-v01.webp',
+      '/media/art/discipline-skills/vanguard-forceful-strike-v01.webp',
     )
     await expect
       .poll(() => artworkPreview.evaluate((image: HTMLImageElement) => image.naturalWidth))
       .toBeGreaterThan(0)
-    await page.getByLabel('Skill audio hook').selectOption('skill.ironfist.breakfall.audio')
+    await page.getByLabel('Skill audio hook').selectOption('audio.skill-fx.v01.082')
     await expect(page.getByLabel('Battle audio preview')).toHaveAttribute(
       'src',
-      /ironfist-action-v02-1\.wav$/,
+      /skill-fx-v01\/082-1\.mp3$/,
     )
 
     const publishPayload = await commitContent(page)
@@ -638,15 +636,15 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       publishedSnapshot(publishPayload).definition,
     )
     expect(services.diff.changedPaths).toEqual(
-      expect.arrayContaining(['apCost', 'media.iconKey', 'media.audioCueKey']),
+      expect.arrayContaining(['apCost', 'media.audioCueKey']),
     )
     expect(services.preview.legal).toBe(true)
     expect(services.preview.costs).toMatchObject({ actionEconomy: nextAp })
     const newVersion = publishedVersion(publishPayload)
     expect(newVersion).toBeGreaterThan(oldVersion)
     expect(publishedMediaHooks(publishPayload)).toEqual({
-      iconKey: 'skill.lifebinder.mend.icon',
-      audioCueKey: 'skill.ironfist.breakfall.audio',
+      iconKey: 'skill.vanguard.forceful-strike.icon',
+      audioCueKey: 'audio.skill-fx.v01.082',
     })
 
     await expect.poll(() => currentContentVersion(page)).toBe(newVersion)
@@ -668,7 +666,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
     const publishedSkillArtwork = publishedSkillButton.locator('img')
     await expect(publishedSkillArtwork).toHaveAttribute(
       'src',
-      '/media/art/discipline-skills/lifebinder-mend-v01.webp',
+      '/media/art/discipline-skills/vanguard-forceful-strike-v01.webp',
     )
     await expect
       .poll(() => publishedSkillArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
@@ -707,6 +705,12 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       const selectGash = async () => {
         await selectContentRecord(page, 'ravager.gash')
         await expectSelectedContentHeading(page, 'Gash')
+        await page.getByRole('tab', { name: 'Effects', exact: true }).click()
+        const panel = page
+          .getByLabel('Damage per tick (% of attack damage)', { exact: true })
+          .locator('xpath=ancestor::details[@data-effect-collapsible]')
+        if ((await panel.count()) && (await panel.getAttribute('open')) === null)
+          await panel.locator(':scope > summary').click()
       }
       await selectGash()
       const gashBaseline = await commitContent(page)
@@ -761,6 +765,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       const selectFlame = async () => {
         await selectContentRecord(page, 'cinderweaver.flame-burst')
         await expectSelectedContentHeading(page, 'Flame Burst')
+        await page.getByRole('tab', { name: 'Range & Area', exact: true }).click()
       }
       await selectFlame()
       const flameBaseline = await commitContent(page)
@@ -771,6 +776,13 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       const backlash = page.getByLabel('Backlash (% of burning unit’s hostile damage)', {
         exact: true,
       })
+      const showBurnParameters = async () => {
+        await page.getByRole('tab', { name: 'Effects', exact: true }).click()
+        const panel = backlash.locator('xpath=ancestor::details[@data-effect-collapsible]')
+        if ((await panel.getAttribute('open')) === null)
+          await panel.locator(':scope > summary').click()
+        await expect(backlash).toBeVisible()
+      }
       const original = {
         duration: await duration.inputValue(),
         preset: await preset.inputValue(),
@@ -778,6 +790,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       }
       await duration.fill('4')
       await preset.selectOption('frost')
+      await showBurnParameters()
       await backlash.fill('12.34')
       const publication = await commitContent(page)
       const groundServices = await verifyAuthoringServices(
@@ -814,7 +827,9 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await expect(duration).toHaveValue('4')
       await expect(preset).toHaveValue('frost')
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
+      await showBurnParameters()
       await expect(backlash).toHaveValue('12.34')
+      await page.getByRole('tab', { name: 'Range & Area', exact: true }).click()
       await duration.scrollIntoViewIfNeeded()
       const fieldBox = await duration.boundingBox()
       expect(fieldBox).not.toBeNull()
@@ -894,6 +909,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await expect(duration).toHaveValue(original.duration)
       await expect(preset).toHaveValue(original.preset)
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
+      await showBurnParameters()
       await expect(backlash).toHaveValue(original.backlash)
     }
     // Audited elevation publication, stale rejection and old/new battle pinning.
@@ -1046,10 +1062,7 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
     await page.goto('/master/combat-content')
     await selectContentRecord(page, 'basic.guard', 'basic')
     await page.getByRole('button', { name: 'Skill Details', exact: true }).click()
-    await page
-      .locator('summary')
-      .filter({ hasText: /^Artwork and sound$/ })
-      .click()
+    await page.getByRole('tab', { name: 'Media', exact: true }).click()
     const panel = page.getByRole('group', { name: /^Artwork and sound/ })
     const input = panel.getByLabel('Upload content media')
     // Four real RGBA pixels: selecting y=0 versus y=1 must change the final pixel/hash.
@@ -1122,7 +1135,7 @@ test('finalized media controls crop actual bytes, replace the same PC file, prev
       ;(image as HTMLImageElement).src += '?retry=1'
     })
     await expect(panel.getByRole('alert')).toContainText('finalized artwork preview is unavailable')
-    await panel.getByRole('button', { name: 'Remove uploaded artwork' }).click()
+    await page.getByRole('button', { name: 'Restore default artwork', exact: true }).click()
     await expect(preview).toHaveCount(0)
 
     const wav = Buffer.alloc(44 + 8820)
@@ -1219,9 +1232,9 @@ test('all five Basics reject retired restoration and retain manually authored ve
       await page.reload()
       await selectContentRecord(page, basic.id, 'basic')
       await expect(name).toHaveValue(baselineDefinition.name)
-      await expect(
-        page.getByRole('status', { name: 'Content version state', exact: true }),
-      ).toHaveText('Current')
+      await expect(page.getByRole('status', { name: 'Save status', exact: true })).toHaveText(
+        'Saved',
+      )
       const currentRecord = await readContentRecord(page, basic.id)
       expect(currentRecord.history).toEqual([])
       expect(currentRecord).not.toHaveProperty('builtinRestoreVersion')

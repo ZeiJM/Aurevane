@@ -17,18 +17,15 @@ describe('Master Panel Skill media editor', () => {
       }),
     )
 
-    expect(markup).toContain('aria-label="Skill artwork hook"')
-    expect(markup).toContain(
-      '<option value="skill.lifebinder.mend.icon" selected="">Mend · lifebinder</option>',
-    )
-    expect(markup).toContain('aria-label="Skill artwork preview"')
+    expect(markup).toContain('Restore default artwork')
+    expect(markup).not.toContain('aria-label="Skill artwork hook"')
     expect(markup).toContain('src="/media/art/discipline-skills/lifebinder-mend-v01.webp"')
     expect(markup).toContain('aria-label="Skill audio hook"')
     expect(markup).toContain(
-      '<option value="skill.ironfist.breakfall.audio" selected="">Breakfall · ironfist</option>',
+      '<option value="audio.skill-fx.v01.082" selected="">Stone Pulse 082</option>',
     )
     expect(markup).toContain('aria-label="Battle audio preview"')
-    expect(markup).toContain('/media/audio/sfx/phase4/ironfist-action-v02-1.wav')
+    expect(markup).toContain('/media/audio/sfx/skill-fx-v01/082-1.mp3')
     expect(markup).not.toContain('data-media-hook-readonly="vfx"')
   })
 
@@ -45,10 +42,10 @@ describe('Master Panel Skill media editor', () => {
     )
 
     expect(markup).toContain(
-      '<option value="skill.vanguard.forceful-strike.audio" selected="">Forceful Strike · vanguard</option>',
+      '<option value="audio.skill-fx.v01.140" selected="">Steel Pulse 140</option>',
     )
     expect(markup).toContain('aria-label="Battle audio preview"')
-    expect(markup).toContain('/media/audio/sfx/phase4/vanguard-action-v02-1.wav')
+    expect(markup).toContain('/media/audio/sfx/skill-fx-v01/140-1.mp3')
   })
 })
 it('offers PC upload with explicit finalization, crop and sound limits and immutable removal', () => {
@@ -74,7 +71,22 @@ it('offers PC upload with explicit finalization, crop and sound limits and immut
   expect(markup).toContain('Upload file')
   expect(markup).toContain('PCM16 WAV')
   expect(markup).toContain('2 MiB')
-  expect(markup).toContain('Remove uploaded artwork')
+  expect(markup).toContain('Restore default artwork')
+  expect(markup).not.toContain('Remove uploaded artwork')
   expect(markup).toContain(`/api/master/combat-content/media/${media.id}`)
   expect(markup).not.toContain('Browse finalized assets')
+})
+
+it('uses one artwork preview with Restore default and upload instead of browsing other items artwork', () => {
+  const html = renderToStaticMarkup(
+    <SkillMediaEditor
+      contentId="lifebinder.mend"
+      value={{ iconKey: 'skill.lifebinder.mend.icon', audioCueKey: null, vfxKey: null }}
+      onChange={() => {}}
+    />,
+  )
+  expect(html).toContain('Restore default artwork')
+  expect(html).not.toContain('aria-label="Skill artwork hook"')
+  expect(html).not.toContain('Built-in artwork')
+  expect(html.match(/<img /g) ?? []).toHaveLength(1)
 })

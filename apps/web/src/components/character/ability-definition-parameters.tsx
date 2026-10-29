@@ -69,13 +69,15 @@ export function AbilityDefinitionParameters({
               report={{
                 ...report,
                 effects: report.effects.map((effect, effectIndex) => {
-                  if (explanations?.[effectIndex] == null) return effect
+                  if (effect.tagPresentation || explanations?.[effectIndex] == null) return effect
                   const { explanationParts: _generated, ...authoredEffect } = effect
                   void _generated
                   return authoredEffect
                 }),
-                effectDescriptions: report.effectDescriptions.map(
-                  (fallback, effectIndex) => explanations?.[effectIndex] ?? fallback,
+                effectDescriptions: report.effectDescriptions.map((fallback, effectIndex) =>
+                  report.effects[effectIndex]?.tagPresentation
+                    ? fallback
+                    : (explanations?.[effectIndex] ?? fallback),
                 ),
               }}
               characteristicsClassName={characteristicsClassName}

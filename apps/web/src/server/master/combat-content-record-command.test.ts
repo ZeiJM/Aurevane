@@ -73,6 +73,62 @@ beforeEach(() => {
     throw new Error(`Unexpected RPC ${name}`)
   })
 })
+it('deletion forwards only the reviewed server token and the selected operator', async () => {
+  const previous = rpc.getMockImplementation()!
+  rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+    if (name === 'delete_discipline_v1')
+      return { data: { deletedKeys: ['discipline.test'] }, error: null }
+    return previous(name, args)
+  })
+  const reviewToken = 'a'.repeat(32)
+  const response = await call({
+    action: 'delete-discipline',
+    contentKey: 'discipline.test',
+    reviewToken,
+  })
+  expect(response.status).toBe(200)
+  expect(await response.json()).toEqual({ deletedKeys: ['discipline.test'] })
+  expect(rpc).toHaveBeenCalledWith('delete_discipline_v1', {
+    p_actor_user_id: 'owner',
+    p_actor_character_id: 'selected',
+    p_content_key: 'discipline.test',
+    p_review_token: reviewToken,
+  })
+})
+it.each([
+  { action: 'delete-discipline', contentKey: 'discipline.test' },
+  {
+    action: 'delete-discipline',
+    contentKey: 'discipline.test',
+    reviewToken: 'a'.repeat(32),
+    deletedKeys: ['discipline.other'],
+  },
+  { action: 'review-deletion', contentKey: 'discipline.test', actor: 'owner' },
+])('rejects invalid or caller-expanded deletion commands', async (command) => {
+  expect((await call(command)).status).toBe(400)
+  expect(
+    rpc.mock.calls.some(([name]) =>
+      ['delete_discipline_v1', 'review_discipline_deletion_v1'].includes(name),
+    ),
+  ).toBe(false)
+})
+it('stale deletion review returns a conflict rather than a success receipt', async () => {
+  const previous = rpc.getMockImplementation()!
+  rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
+    if (name === 'delete_discipline_v1')
+      return { data: null, error: { code: '40001', message: 'DISCIPLINE_DELETE_REVIEW_CHANGED' } }
+    return previous(name, args)
+  })
+  expect(
+    (
+      await call({
+        action: 'delete-discipline',
+        contentKey: 'discipline.test',
+        reviewToken: 'a'.repeat(32),
+      })
+    ).status,
+  ).toBe(409)
+})
 it('actual record handler creates a finite future draft with server-derived identity and selected actor', async () => {
   const response = await call({ action: 'create', requestId, contentKind: 'item', definition })
   expect(response.status).toBe(200)

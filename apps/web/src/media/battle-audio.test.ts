@@ -1,10 +1,9 @@
-import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import assignments from './skill-fx-assignments.json'
 import { describe, expect, it } from 'vitest'
-import { PHASE4_AUDIO_DISCIPLINES, audioAssetRegistry } from '@aurevane/audio'
+import { sharedSkillFxGroups, audioAssetRegistry } from '@aurevane/audio'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { BattleAudioCursor, selectBattleAudioCues } from './battle-audio'
+import { resolveSkillAudioCueHook } from './skill-media-hooks'
 import { phase4DisciplineSigil, phase4SkillArtwork } from '../components/battle/phase4-combat-art'
 
 const now = Date.parse('2026-09-11T22:00:00Z')
@@ -30,8 +29,8 @@ describe('committed battle audio', () => {
       now,
     )
     expect(cues.map((cue) => cue.assetId)).toEqual([
-      'audio.phase4.bastion-essence-v02-3',
-      'audio.phase4.resonance-action-v01-3',
+      'audio.skill-fx.v01.050-3',
+      `${sharedSkillFxGroups.resonance}-3`,
     ])
   })
   it('ignores old versions, stale/future data, missing effects and previews', () => {
@@ -65,24 +64,23 @@ describe('committed battle audio', () => {
         8,
         now,
       ),
-    ).toEqual([{ assetId: 'audio.phase4.ironfist-action-v02-3', priority: 70 }])
+    ).toEqual([{ assetId: 'audio.skill-fx.v01.082-3', priority: 70 }])
   })
 
-  it('routes every published Discipline family through the current v02 action pack', () => {
-    for (const discipline of PHASE4_AUDIO_DISCIPLINES) {
+  it('routes every supplied cast assignment through the new pool and leaves unknown hooks silent', () => {
+    for (const [hook, group] of Object.entries(assignments)) {
+      const actionId = hook.startsWith('skill.') ? hook.slice(6, -6) : hook.slice(0, -6)
       expect(
-        selectBattleAudioCues(
-          [record({ event: 'combat_action_used', actionId: `${discipline}.audio-routing-test` })],
-          8,
-          now,
-        ),
-      ).toEqual([
-        {
-          assetId: `audio.phase4.${discipline}-action-v02-3`,
-          priority: 70,
-        },
-      ])
+        selectBattleAudioCues([record({ event: 'combat_action_used', actionId })], 8, now),
+      ).toEqual([{ assetId: `${group}-3`, priority: hook.startsWith('essence.') ? 90 : 70 }])
     }
+    expect(
+      selectBattleAudioCues(
+        [record({ event: 'combat_action_used', actionId: 'vanguard.unknown' })],
+        8,
+        now,
+      ),
+    ).toEqual([])
   })
 
   it('does not route retired temporary copied-Skill commands to current Skill audio', () => {
@@ -104,7 +102,7 @@ describe('committed battle audio', () => {
     const tick = { event: 'damage_applied', actionId: 'status.burn', amount: 3 }
     expect(selectBattleAudioCues([record(tick), record(tick)], 8, now)).toHaveLength(1)
     expect(selectBattleAudioCues([record(tick, 9)], 9, now)[0]?.assetId).toBe(
-      'audio.phase4.attrition-action-v01-1',
+      `${sharedSkillFxGroups.attrition}-1`,
     )
   })
   it('does not replay initial snapshots, duplicate responses, reconnect gaps or command retries', () => {
@@ -118,31 +116,13 @@ describe('committed battle audio', () => {
     expect(cursor.advance(13)).toBe(true)
     expect(cursor.advance(NaN)).toBe(false)
   })
-  it('ships every registered cue with recorded hashes and resolves approved Bastion artwork', () => {
-    const runtime = ['phase4-v01', 'phase4-ironfist-v01', 'phase4-chronist-v01'].flatMap((id) => {
-      const release = JSON.parse(
-        readFileSync(resolve(`../../content/media-releases/${id}.json`), 'utf8'),
-      ) as { runtime: { path: string; sha256: string }[] }
-      return release.runtime
-    })
-    for (const file of runtime) {
-      expect(
-        createHash('sha256')
-          .update(readFileSync(resolve('../..', file.path)))
-          .digest('hex'),
-      ).toBe(file.sha256)
-    }
-    const sounds = [...audioAssetRegistry.values()].filter((asset) =>
-      asset.id.startsWith('audio.phase4.'),
+  it('keeps only new sound cues while preserving the established artwork', () => {
+    expect([...audioAssetRegistry.values()].filter((asset) => asset.kind === 'sfx')).toHaveLength(
+      459,
     )
-    expect(sounds).toHaveLength(186)
-    const committedV01 = sounds.filter((asset) => asset.id.includes('-v01-'))
-    const generatedV02 = sounds.filter((asset) => asset.id.includes('-v02-'))
-    expect(committedV01).toHaveLength(84)
-    expect(generatedV02).toHaveLength(102)
-    for (const asset of committedV01)
-      expect(runtime.some((file) => file.path === `apps/web/public${asset.src}`)).toBe(true)
-    for (const asset of generatedV02) expect(asset.src).toMatch(/-v02-[123]\.wav$/u)
+    expect([...audioAssetRegistry.keys()].some((key) => key.startsWith('audio.phase4.'))).toBe(
+      false,
+    )
     expect(phase4DisciplineSigil('bastion')).toBe(
       '/media/art/discipline-sigils/bastion-sigil-v01.webp',
     )
@@ -154,13 +134,18 @@ describe('committed battle audio', () => {
     )
   })
   it('routes Ironfist regular and three-hit Essence actions to their own media family', () => {
-    for (const [actionId, role, priority] of [
+    for (const [actionId, , priority] of [
       ['ironfist.breakfall', 'action', 70],
       ['essence.ironfist.hundredfold-rush', 'essence', 90],
     ] as const) {
       expect(
         selectBattleAudioCues([record({ event: 'combat_action_used', actionId })], 8, now),
-      ).toEqual([{ assetId: `audio.phase4.ironfist-${role}-v02-3`, priority }])
+      ).toEqual([
+        {
+          assetId: `${resolveSkillAudioCueHook(actionId.startsWith('essence.') ? `${actionId}.audio` : `skill.${actionId}.audio`)!.audioGroup}-3`,
+          priority,
+        },
+      ])
     }
     expect(phase4SkillArtwork('essence.ironfist.hundredfold-rush')).toBe(
       '/media/art/essence-skills/ironfist-hundredfold-rush-v01.webp',
@@ -198,4 +183,27 @@ it('uses exact finalized sound identity from committed events and keeps replay/s
   ])
   expect(selectBattleAudioCues([record(event, 7)], 8, now)).toEqual([])
   expect(selectBattleAudioCues([record({ ...event, event: 'skill_preview' })], 8, now)).toEqual([])
+})
+
+it('honors explicit silence and resolves a selected neutral group with bounded variant rotation', () => {
+  expect(
+    selectBattleAudioCues(
+      [record({ event: 'combat_action_used', actionId: 'ironfist.breakfall', audioCueKey: null })],
+      8,
+      now,
+    ),
+  ).toEqual([])
+  expect(
+    selectBattleAudioCues(
+      [
+        record({
+          event: 'combat_action_used',
+          actionId: 'custom.strike',
+          audioCueKey: 'audio.skill-fx.v01.001',
+        }),
+      ],
+      8,
+      now,
+    ),
+  ).toEqual([{ assetId: 'audio.skill-fx.v01.001-3', priority: 70 }])
 })

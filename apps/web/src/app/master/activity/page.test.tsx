@@ -16,6 +16,9 @@ vi.mock('@/server/master/staff-access-server', () => ({
     requireCapability: dependencies.requireCapability,
   }),
 }))
+vi.mock('@/server/master/master-navigation-server', () => ({
+  createServerMasterNavigationService: () => ({ read: async () => ({ version: 1, pages: [] }) }),
+}))
 vi.mock('@/server/master/activity-log-server', () => ({
   createServerMasterActivityService: () => ({ read: dependencies.read }),
 }))

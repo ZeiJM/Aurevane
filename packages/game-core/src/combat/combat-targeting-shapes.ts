@@ -59,7 +59,18 @@ export function combatTargetUnitCategoryAllowed(
 }
 
 /** Current unit categories and Ground delivery have distinct recipient authority. */
-export function combatTargetAllowsHostileHit(spec: CombatTargetSpec): boolean {
+export function combatTargetAllowsHostileHit(
+  spec: CombatTargetSpec,
+  effects?: readonly { readonly recipient: string; readonly target?: unknown }[],
+): boolean {
+  if (
+    effects?.some(
+      (effect) =>
+        effect.recipient !== 'actor' &&
+        ['enemy', 'anyone', 'all', 'ground'].includes(effect.target as string),
+    )
+  )
+    return true
   const hostileGround = ['enemies-only', 'all-units', 'all-except-actor'].includes(
     spec.friendlyFire,
   )

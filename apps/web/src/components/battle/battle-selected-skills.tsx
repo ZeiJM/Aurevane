@@ -101,6 +101,7 @@ export function BattleSelectedSkills({
       [
         { resource: 'ap', amount: skill.apCost },
         { resource: 'mp', amount: skill.mpCost },
+        { resource: 'hp', amount: skill.hpCost ?? 0 },
       ],
       { ap: actionEconomy, mp: resources?.mp ?? Infinity, hp: resources?.hp ?? Infinity },
       selectedBehavior?.actionId === skill.id ? selectedBehavior.behaviorId : undefined,

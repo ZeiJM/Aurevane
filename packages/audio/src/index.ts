@@ -1,5 +1,4 @@
 export { AudioDirector, type AudioDirectorState } from './director'
-export { PHASE4_AUDIO_DISCIPLINES, PHASE4_DISCIPLINE_AUDIO_VERSION } from './phase4'
 export {
   audioAssetRegistry,
   getAudioAsset,
@@ -23,3 +22,5 @@ export {
   type AudioSettingsAction,
   type RoutedAudioChannel,
 } from './settings'
+
+export { skillFxGroups, skillFxAudioAssets, sharedSkillFxGroups } from './skill-fx'

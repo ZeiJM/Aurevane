@@ -1,5 +1,5 @@
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
-import { createElement } from 'react'
+import { createElement, isValidElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -11,6 +11,58 @@ function render(effect: CombatEffectDefinition): string {
     createElement(SkillEffectEditor, { value: effect, onChange: vi.fn() }),
   )
 }
+
+it.each<CombatEffectDefinition>([
+  { type: 'damage', recipient: 'primary-unit', amount: 10 },
+  { type: 'remove-status', recipient: 'primary-unit', statusIds: ['guarded'] },
+  { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' },
+  { type: 'apply-status', recipient: 'primary-unit', statusId: 'blindside', stacks: 1 },
+])('omits non-editable duration boxes for $type without rewriting the effect', (effect) => {
+  const before = JSON.stringify(effect)
+  const html = render(effect)
+  expect(html).not.toContain('aria-label="Effect duration (turns)"')
+  expect(html).not.toContain('[0 Turns]')
+  if (effect.type === 'create-terrain') expect(html).toContain('Lasts 2 rounds.')
+  if (effect.type === 'apply-status') expect(html).toContain('affected character’s turn')
+  expect(JSON.stringify(effect)).toBe(before)
+})
+
+it('uses Applications as the single percentage-recovery schedule control', () => {
+  const html = render({
+    type: 'percentage-recovery',
+    recipient: 'actor',
+    resource: 'hp',
+    percent: 15,
+    ticks: 3,
+    durationTurns: 2,
+  })
+  expect(html).toContain('aria-label="Recovery applications"')
+  expect(html).not.toContain('aria-label="Effect duration (turns)"')
+})
+
+it('keeps editable recovery duration within the engine’s four-application limit', () => {
+  const onChange = vi.fn()
+  const tree = SkillEffectEditor({
+    value: { type: 'healing', recipient: 'actor', amount: 5, ticks: 1 },
+    onChange,
+  })
+  function find(
+    node: ReactNode,
+  ): { onChange(event: { currentTarget: { value: string } }): void } | undefined {
+    if (Array.isArray(node)) return node.map(find).find(Boolean)
+    if (!isValidElement<{ children?: ReactNode; 'aria-label'?: string }>(node)) return
+    if (node.props['aria-label'] === 'Effect duration (turns)') return node.props as never
+    return find(node.props.children)
+  }
+  find(tree)!.onChange({ currentTarget: { value: '4' } })
+  expect(onChange).toHaveBeenCalledWith({
+    type: 'healing',
+    recipient: 'actor',
+    amount: 5,
+    ticks: 4,
+    durationTurns: 3,
+  })
+})
 
 describe('Master percentage DoT controls', () => {
   it('authors Barrier as a percentage of maximum HP rather than the 1–20 Skill power range', () => {
@@ -34,7 +86,7 @@ describe('Master percentage DoT controls', () => {
     })
     expect(html).toContain('placeholder="Until depleted (historical)"')
     expect(html).toContain('value=""')
-    expect(html).not.toContain('disabled=""')
+    expect(html).not.toMatch(/<input[^>]*aria-label="Effect duration \(turns\)"[^>]*disabled/u)
   })
   it.each(['poison', 'bleed', 'burn'] as const)(
     'edits %s percentages instead of fixed HP',
@@ -128,13 +180,12 @@ describe('Master Panel Skill effect editor', () => {
     })
     for (const label of [
       'Damage amount',
-      'Damage recipient',
+      'Target',
       'Defense kind',
-      'Piercing',
       'Element',
-      'Scaling source',
-      'Scaling coefficient (basis points)',
-      'Vengeance enabled',
+      'Damage scaling',
+      'Scaling (%)',
+      'Facing damage',
     ]) {
       expect(ordinary).toContain(`aria-label="${label}"`)
     }
@@ -149,7 +200,7 @@ describe('Master Panel Skill effect editor', () => {
         maximumDamage: 80,
       },
     })
-    expect(vengeance).toContain('aria-label="Vengeance conversion (basis points)"')
+    expect(vengeance).toContain('aria-label="Vengeance conversion (%)"')
     expect(vengeance).toContain('aria-label="Vengeance minimum damage"')
     expect(vengeance).toContain('aria-label="Vengeance maximum damage"')
   })
@@ -387,4 +438,32 @@ it('offers registered limited-removal statuses and retains unregistered stored I
   expect(markup).toContain(
     '<option value="historical-status" selected="">historical-status (unregistered)</option>',
   )
+})
+
+it('uses explicit damage profiles and percentage parameters instead of four generic switches', () => {
+  const html = render({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 8,
+    scaling: { source: 'physical-power', coefficientBasisPoints: 12500 },
+    facingModifiersBasisPoints: { front: 10000, side: 11000, rear: 12000 },
+  })
+  for (const label of [
+    'Piercing',
+    'Scaling enabled',
+    'Vengeance enabled',
+    'Facing modifiers enabled',
+  ])
+    expect(html).not.toContain(`aria-label="${label}"`)
+  expect(html).toContain('aria-label="Damage scaling"')
+  expect(html).toContain('aria-label="Scaling (%)"')
+  expect(html).toContain('value="125"')
+  const vengeance = render({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 0,
+    vengeance: { conversionBasisPoints: 2500, maximumDamage: 40 },
+  })
+  expect(vengeance).toContain('aria-label="Vengeance conversion (%)"')
+  expect(vengeance).toContain('value="25"')
 })

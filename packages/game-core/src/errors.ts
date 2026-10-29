@@ -30,6 +30,13 @@ export class StaleBattleVersionError extends AurevaneError {
   }
 }
 
+export class AccountBannedError extends AurevaneError {
+  constructor() {
+    super('FORBIDDEN', 'This account is banned. Open account status for the reason and expiry.')
+    this.name = 'AccountBannedError'
+  }
+}
+
 export function isAurevaneError(value: unknown): value is AurevaneError {
   return value instanceof AurevaneError
 }

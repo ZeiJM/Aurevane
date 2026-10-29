@@ -14,6 +14,7 @@ import {
 } from '@/server/combat/combat-content-resolver'
 import {
   combatTimingUsedBy,
+  combatEffectUsedBy,
   assertCombatCatalogueTimingCompatible,
 } from '@/server/combat/combat-catalogue-timing-compatibility'
 
@@ -94,6 +95,7 @@ export async function readCombatTimingWorkspace() {
   return {
     policy: catalogue.policy,
     usedBy: combatTimingUsedBy(catalogue),
+    effectUsedBy: combatEffectUsedBy(catalogue),
     tagPresentations: catalogue.tagPresentations ?? [],
   }
 }

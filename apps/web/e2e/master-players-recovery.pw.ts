@@ -179,13 +179,12 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
     const nextPrimary = original.disciplines.find(
       (row) => row.primary && row.id !== originalPrimary && row.id !== secondary,
     )!.id
-    // Wrapping label text includes every option; use the control's accessible name.
-    const correctionGroup = owner.getByRole('combobox', { name: 'Correction group', exact: true })
+    const correctionGroup = owner.getByRole('button', { name: 'Disciplines', exact: true })
     async function selectDisciplineGroup() {
       await test.step('Select the Discipline correction group', async () => {
         await expect(correctionGroup).toHaveCount(1)
-        await correctionGroup.selectOption('disciplines')
-        await expect(correctionGroup).toHaveValue('disciplines')
+        await correctionGroup.click()
+        await expect(correctionGroup).toHaveAttribute('aria-pressed', 'true')
       })
     }
     async function correctDisciplines(
@@ -246,7 +245,10 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       expect(after.facts.build.buildVersion).toBeGreaterThan(before.facts.build.buildVersion)
       expect(after.facts.xp).toBe(1)
     }
-    await expect(correctionGroup).toHaveValue('source')
+    await expect(
+      owner.getByRole('button', { name: 'Stats & Progression', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    await expect(correctionGroup).toHaveAttribute('aria-pressed', 'false')
     await selectDisciplineGroup()
     await owner.getByRole('button', { name: 'Review correction', exact: true }).click()
     const correctionAlert = owner

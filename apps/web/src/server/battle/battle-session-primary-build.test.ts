@@ -104,9 +104,14 @@ function committedSnapshot(): CharacterCommittedBuildSnapshotRecord {
 
 describe('battle session committed Primary stat authority', () => {
   it('pins current Core-derived battle values without legacy Primary offsets', async () => {
+    let profileReady = false
     const characterRecord = character()
     const characters: CharacterRepository = {
-      findByOwnerSlot: vi.fn(async () => characterRecord),
+      findByOwnerSlot: vi.fn(async () => {
+        await Promise.resolve()
+        profileReady = true
+        return characterRecord
+      }),
       createBaseCharacter: vi.fn(async () => {
         throw new Error('Not used.')
       }),
@@ -137,11 +142,17 @@ describe('battle session committed Primary stat authority', () => {
     const build = activeBuild()
     const snapshot = committedSnapshot()
     const builds: CharacterBuildRepository = {
-      findActiveBuild: vi.fn(async () => build),
+      findActiveBuild: vi.fn(async () => {
+        expect(profileReady, 'character profile must refresh before build capture').toBe(true)
+        return build
+      }),
       listDisciplines: vi.fn(async () => []),
       listLearnedSkills: vi.fn(async () => []),
       listEquippedDisciplineSkills: vi.fn(async () => []),
-      loadCommittedBuildSnapshot: vi.fn(async () => snapshot),
+      loadCommittedBuildSnapshot: vi.fn(async () => {
+        expect(profileReady, 'character profile must refresh before snapshot capture').toBe(true)
+        return snapshot
+      }),
       changeDisciplines: vi.fn(async () => {
         throw new Error('Not used.')
       }),

@@ -12,7 +12,7 @@ it('uses only authenticated identity and keeps reporting responses private', asy
     ),
     { getActor: async () => ({ userId: 'actual' }), createService: () => ({ read }) },
   )
-  expect(read).toHaveBeenCalledWith('actual', 'vanguard')
+  expect(read).toHaveBeenCalledWith('actual', 'vanguard', undefined)
   expect(response.headers.get('Cache-Control')).toBe('private, no-store')
   expect(response.status).toBe(200)
 })
@@ -32,4 +32,15 @@ it('denies revoked authority without exposing data or backend exceptions', async
   expect(await response.json()).toEqual({
     error: { code: 'FORBIDDEN', message: 'Access revoked.' },
   })
+})
+
+it('forwards the selected collected week without accepting a supplied actor', async () => {
+  const read = vi.fn().mockResolvedValue({})
+  await handleUsageBalanceRequest(
+    new Request(
+      'https://game.test/api/master/combat-content/usage-balance?contentKey=vanguard&week=2026-10-19&actorUserId=forged',
+    ),
+    { getActor: async () => ({ userId: 'actual' }), createService: () => ({ read }) },
+  )
+  expect(read).toHaveBeenCalledWith('actual', 'vanguard', '2026-10-19')
 })

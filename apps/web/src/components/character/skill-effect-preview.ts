@@ -1,3 +1,7 @@
+import {
+  resolvedCombatEffectTagPresentation,
+  type CombatTagPresentationSnapshot,
+} from '@aurevane/game-core/combat/combat-tag-registry'
 import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import {
   combatEffectTimingMode,
@@ -30,6 +34,7 @@ import {
 } from '../../lib/status-potency-presentation'
 
 export interface PreviewEffect {
+  tagPresentation?: CombatTagPresentationSnapshot
   label: string
   magnitude?: string
   explanation: string
@@ -398,9 +403,10 @@ export function previewEffect(
     case 'remove-status': {
       if (effect.removalMode === 'specified') {
         const names = effect.statusIds.map((id) => combatStatusDetails(id).name)
+        const label = combatEffectPresentationTags(effect)[0]!
         return {
-          label: combatEffectPresentationTags(effect)[0]!,
-          magnitude: names.join(' / '),
+          label,
+          ...(label === 'Dispel' ? {} : { magnitude: names.join(' / ') }),
           explanation: `Removes only ${names.join(', ')}. Other statuses remain.`,
         }
       }
@@ -454,8 +460,30 @@ export function previewEffect(
   }
 }
 
+/** Shared current/captured wording for native Skills, Essence packets and Resonance results. */
+export function previewEffectWithTag(
+  effect: MatureSkillEffectDefinition,
+  presentations?: readonly CombatTagPresentationSnapshot[],
+  options: NonNullable<Parameters<typeof previewEffect>[1]> = {},
+): PreviewEffect {
+  const generated = previewEffect(effect, options)
+  const tagPresentation = resolvedCombatEffectTagPresentation(
+    presentations,
+    effect,
+    generated.explanation,
+  )
+  return tagPresentation
+    ? {
+        ...generated,
+        label: tagPresentation.name,
+        explanation: tagPresentation.full,
+        tagPresentation,
+      }
+    : generated
+}
+
 export function skillPreviewEffects(
-  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions'>,
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions' | 'tagPresentation'>,
   options: {
     legacyTriggers?: boolean
     legacyPoisonMovement?: boolean
@@ -472,7 +500,11 @@ export function skillPreviewEffects(
   const seen = new Set<string>()
   return groupSkillEffects(skill.effects, skill.effectDescriptions)
     .map(({ effect, firstIndex: index }) => {
-      const entry = previewEffect(effect, { ...options, skillEffects: skill.effects })
+      const entry = previewEffectWithTag(effect, skill.tagPresentation, {
+        ...options,
+        skillEffects: skill.effects,
+      })
+      if (entry.tagPresentation) return entry
       const override = skill.effectDescriptions?.[index]?.trim()
       if (
         override &&

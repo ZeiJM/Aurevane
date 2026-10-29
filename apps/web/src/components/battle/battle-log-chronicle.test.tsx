@@ -969,3 +969,36 @@ describe('mobile Chronicle artwork identity', () => {
     expect(markup).not.toContain('/media/skills/inspect.webp')
   })
 })
+
+it('carries admitted short tag wording into Chronicle hovers and preserves recorded percentages', () => {
+  const popup = vi
+    .spyOn(popovers, 'BattleInfoPopover')
+    .mockImplementation(({ children, trigger }) => (
+      <aside>
+        {trigger}
+        {children}
+      </aside>
+    ))
+  try {
+    const entries = [
+      technique(1),
+      entry(1, 1, 'status_applied', {
+        statusId: 'suppress',
+        potencyBasisPoints: 2534,
+        targetCombatantId: enemy,
+        templateValues: { status: 'Suppress' },
+        battleTag: {
+          tagId: 'suppress',
+          contentVersion: 2,
+          name: 'Suppress',
+          compact: 'Recorded short wording. {summary}',
+        },
+      }),
+    ]
+    const html = render(entries)
+    expect(html).toContain('Recorded short wording.')
+    expect(html).toContain('25.34%')
+  } finally {
+    popup.mockRestore()
+  }
+})

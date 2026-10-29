@@ -1,3 +1,4 @@
+import { AccountBannedError } from '@aurevane/game-core/errors'
 import { loadPublishedFoundations } from '@/server/character/published-discipline-catalogue'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import Link from 'next/link'
@@ -24,6 +25,7 @@ export default async function CharacterCreationPage({
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
+    if (error instanceof AccountBannedError) redirect('/account/banned')
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }

@@ -28,6 +28,7 @@ export interface BattleSkillForecastPresentation {
   iconKey?: string | null
   apCost: number
   mpCost: number
+  hpCost?: number
   targetKind: CombatTargetKind
   targetTeamPolicy: CombatTargetTeamPolicy
   minimumRange: number

@@ -1,3 +1,8 @@
+import {
+  bindCombatTagPresentations,
+  combatTagPresentationIssues,
+  type CombatTagPresentationSnapshot,
+} from '@aurevane/game-core/combat/combat-tag-registry'
 import { parseDisciplineSkillReference } from '@/server/character/discipline-skill-reference-parser'
 import {
   captureBasicSkillSources,
@@ -98,6 +103,8 @@ export interface BattleBuildAuthorityCombatantSnapshot {
 }
 
 export interface BattleBuildAuthoritySnapshot {
+  /** Admitted wording only; never re-read current Tags for a running or historical battle. */
+  tagPresentations?: readonly CombatTagPresentationSnapshot[]
   /** Absent on frozen pre-Phase-4 battles, where Ironfist had no signatures. */
   catalogVersion?: 2 | 3
   schemaVersion: typeof BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION
@@ -425,6 +432,7 @@ export function parseBattleBuildAuthoritySnapshot(
   if (
     !isRecord(value) ||
     value.schemaVersion !== BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION ||
+    combatTagPresentationIssues(value.tagPresentations).length > 0 ||
     (value.catalogVersion !== undefined &&
       value.catalogVersion !== 2 &&
       value.catalogVersion !== 3) ||
@@ -456,6 +464,13 @@ export function parseBattleBuildAuthoritySnapshot(
         ? { catalogVersion: 3 as const }
         : {}),
     combatContext: value.combatContext,
+    ...(value.tagPresentations === undefined
+      ? {}
+      : {
+          tagPresentations: structuredClone(
+            value.tagPresentations,
+          ) as CombatTagPresentationSnapshot[],
+        }),
     combatants,
   }
 }
@@ -605,7 +620,23 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
     }),
   )
 
-  return createBattleBuildAuthoritySnapshotForCatalog(combatContext, resolvedInputs, 3)
+  const tagPresentations = await resolver.resolveCurrentTagPresentations?.()
+  if (combatTagPresentationIssues(tagPresentations).length)
+    throw new TypeError('Invalid admitted Tag wording.')
+  return {
+    ...createBattleBuildAuthoritySnapshotForCatalog(combatContext, resolvedInputs, 3),
+    ...(tagPresentations?.length ? { tagPresentations: structuredClone(tagPresentations) } : {}),
+  }
+}
+
+/** Copy presentation from the same admission snapshot; do not mutate definitions or consult today's tags. */
+function bindAdmittedBattleTagWording<T>(
+  authority: BattleBuildAuthoritySnapshot | null | undefined,
+  definition: T,
+): T {
+  return authority?.tagPresentations
+    ? bindCombatTagPresentations(definition, authority.tagPresentations)
+    : structuredClone(definition)
 }
 
 export function battleBuildAuthorityForCombatant(
@@ -627,7 +658,7 @@ async function resolvePinnedBattleSkillDefinition(
         ? await resolver.resolvePinnedSkillDefinition(skillId, contentVersion)
         : null
       : resolveMatureSkillVersion(skillId, contentVersion)
-  return definition ? structuredClone(definition) : null
+  return definition ? bindAdmittedBattleTagWording(authority, definition) : null
 }
 
 export async function resolveBattleDisciplineSkillDefinition(
@@ -753,7 +784,7 @@ export async function resolvePinnedBattleEssenceDefinition(
     expected.skillId === reference.skillId &&
     expected.skillContentVersion === reference.skillContentVersion
     ? {
-        ...structuredClone(definition),
+        ...bindAdmittedBattleTagWording(authority, definition),
         ...(reference.relationshipOverrideDisciplineId
           ? { relationshipOverrideDisciplineId: reference.relationshipOverrideDisciplineId }
           : {}),
@@ -785,7 +816,7 @@ export async function resolvePinnedBattleResonanceDefinition(
     expected.contentVersion === reference.contentVersion &&
     expected.disciplinePair[0] === reference.disciplinePair[0] &&
     expected.disciplinePair[1] === reference.disciplinePair[1]
-    ? structuredClone(definition)
+    ? bindAdmittedBattleTagWording(authority, definition)
     : null
 }
 

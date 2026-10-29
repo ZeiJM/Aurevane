@@ -48,8 +48,10 @@ it('reports parsed mixed Self/Enemy targets without hiding range or visibility',
   expect(skillCompactRangeDescription({ target })).toBe('4')
   expect(skillLineOfSightDescription({ target })).toBe('Required')
   const rows = Object.fromEntries(abilityBehaviorInformation(behavior).rows)
-  expect(rows).toMatchObject({ Target: 'Self / Enemy', Range: '4', 'Line of Sight': 'Required' })
-  expect(Object.keys(rows)).toHaveLength(10)
+  expect(rows).toMatchObject({ Range: '4', 'Line of Sight': 'Required' })
+  expect(rows.Effects).toContain('[Self / Enemy]')
+  expect(Object.keys(rows)).toHaveLength(9)
+  expect(rows).not.toHaveProperty('Target')
   const selfOnly = { ...target, categories: ['self' as const] }
   expect(skillCompactRangeDescription({ target: selfOnly })).toBe('N/A')
   expect(skillLineOfSightDescription({ target: selfOnly })).toBe('N/A')
@@ -74,7 +76,7 @@ it('describes current Circle geometry rather than historical aimed geometry', ()
   expect(skillTargetMethodExplanation({ target })).toContain('includes yourself')
 })
 
-it('puts persistent Ground delivery in the shared Target characteristic', () => {
+it('puts persistent Ground delivery in the shared Target Method characteristic', () => {
   const group = behaviorFor()
   const report = abilityBehaviorInformation({
     ...group,
@@ -87,10 +89,11 @@ it('puts persistent Ground delivery in the shared Target characteristic', () => 
     },
   })
   const rows = Object.fromEntries(report.rows)
-  expect(rows.Target).toContain('3 rounds')
-  expect(rows.Target).toContain('starting immediately')
-  expect(rows.Target).toContain('once per character’s turn')
-  expect(Object.keys(rows)).toHaveLength(10)
+  expect(rows['Target Method']).toContain('3 rounds')
+  expect(rows['Target Method']).toContain('starting immediately')
+  expect(rows['Target Method']).toContain('once per character’s turn')
+  expect(Object.keys(rows)).toHaveLength(9)
+  expect(rows).not.toHaveProperty('Target')
   expect(report.effects).toHaveLength(group.effects.length)
 })
 
@@ -137,7 +140,9 @@ it('marks only the selected repeated Ground packet when other unit and caster ef
   const before = JSON.stringify(behavior)
   const report = abilityBehaviorInformation(behavior)
   expect(report.effects.map((effect) => effect.repeatsOnEntry)).toEqual([false, true, false])
-  expect(Object.fromEntries(report.rows).Target).toContain('only the effects marked for entry')
+  expect(Object.fromEntries(report.rows)['Target Method']).toContain(
+    'only the effects marked for entry',
+  )
   expect(Object.fromEntries(report.rows).Effects).not.toContain('Repeats on entry')
   expect(JSON.stringify(report)).not.toContain('repeat-hit')
   expect(JSON.stringify(behavior)).toBe(before)

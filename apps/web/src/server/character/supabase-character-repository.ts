@@ -15,47 +15,16 @@ import {
 } from '@aurevane/validation/player/character'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
-
-const characterColumns =
-  'id, user_id, slot_index, rules_version, name, name_key, presentation_id, pronoun_preset_id, portrait_ref, starter_appearance_ref, foundation_discipline_id, might, finesse, vitality, agility, intellect, resolve, level, xp, progression_cycle, created_at, cycle_started_at, last_active_at'
 
 export function createSupabaseCharacterRepository(): CharacterRepository {
   return {
     async findByOwnerSlot(userId, slotIndex) {
-      const supabase = await createSupabaseServerClient()
-      const { data, error } = await supabase
-        .from('characters')
-        .select(characterColumns)
-        .eq('user_id', userId)
-        .eq('slot_index', slotIndex)
-        .maybeSingle()
-
-      if (error) throw unavailable()
-      if (!data) return null
-      const row = parseCharacterPersistenceRow(data)
-      if (!row) throw unavailable()
-      return toRecord(row)
-    },
-
-    async findByOwnerId(userId, characterId) {
-      const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
-      if (error || !Array.isArray(data)) throw unavailable()
-
-      const candidate = data.find(
-        (row) => row && typeof row === 'object' && !Array.isArray(row) && row.id === characterId,
+      return (
+        (await readCurrentOwnedRecords(userId)).find((row) => row.slotIndex === slotIndex) ?? null
       )
-      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null
-      const extended = candidate as Record<string, unknown>
-      if (typeof extended.deletion_execute_after === 'string') return null
-      const base = { ...extended }
-      delete base.deletion_requested_at
-      delete base.deletion_execute_after
-      delete base.reselect_available_at
-      const row = parseCharacterPersistenceRow(base)
-      if (!row) throw unavailable()
-      return toRecord(row)
+    },
+    async findByOwnerId(userId, characterId) {
+      return (await readCurrentOwnedRecords(userId)).find((row) => row.id === characterId) ?? null
     },
 
     async createBaseCharacter(input) {
@@ -125,6 +94,25 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
       return { result: toRecord(row), replayed: row.replayed }
     },
   }
+}
+
+async function readCurrentOwnedRecords(userId: string): Promise<CharacterRecord[]> {
+  const { data, error } = await createSupabaseAdminClient().rpc('get_character_slots_v3', {
+    p_user_id: userId,
+  })
+  if (error) throwCombatContentAdmissionError(error)
+  if (error || !Array.isArray(data) || data.length > 3) throw unavailable()
+  return data.flatMap((candidate) => {
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) throw unavailable()
+    if (typeof candidate.deletion_execute_after === 'string') return []
+    const base = { ...candidate }
+    delete base.deletion_requested_at
+    delete base.deletion_execute_after
+    delete base.reselect_available_at
+    const row = parseCharacterPersistenceRow(base)
+    if (!row || row.user_id !== userId) throw unavailable()
+    return [toRecord(row)]
+  })
 }
 
 function toRecord(row: CharacterPersistenceRow): CharacterRecord {

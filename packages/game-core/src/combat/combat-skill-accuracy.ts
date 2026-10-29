@@ -1,3 +1,5 @@
+import { accuracyActionForRecipient } from './combat-effect-delivery-eligibility'
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { validAccuracy, type CombatAccuracyRule } from './combat-definition'
 import {
   airborneGroundMiss,
@@ -46,7 +48,7 @@ export function validateCombatAccuracyDefinition(
     readonly nativeBasicAttackCommand?: true
     readonly sourceType?: string
     readonly target?: CombatActionDefinition['target']
-    readonly effects?: readonly { readonly recipient: string }[]
+    readonly effects?: readonly { readonly recipient: string; readonly target?: unknown }[]
   },
 ): void {
   if (
@@ -71,7 +73,7 @@ export function validateCombatAccuracyDefinition(
       throw new TypeError(
         'Canonical Basic Attack accuracy requires its canonical activation adapter.',
       )
-    if (definition.target && !combatTargetAllowsHostileHit(definition.target))
+    if (definition.target && !combatTargetAllowsHostileHit(definition.target, definition.effects))
       throw new TypeError('Canonical accuracy requires an applicable hostile recipient hit check.')
     if (
       definition.effects &&
@@ -222,13 +224,10 @@ export function forecastCombatSkillAccuracy(
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
   if (!actor) throw new TypeError('Combat accuracy requires the committed acting combatant.')
   const recipients = new Set<string>()
-  for (const effect of action.effects) {
+  for (const [ordinal, effect] of action.effects.entries()) {
     if (effect.type === 'create-terrain' || effect.recipient === 'actor') continue
-    if (effect.recipient === 'primary-unit') {
-      if (evaluation.primaryCombatantId) recipients.add(evaluation.primaryCombatantId)
-    } else {
-      for (const id of evaluation.affectedCombatantIds) recipients.add(id)
-    }
+    for (const id of combatEvaluatedEffectRecipientIds(state, action, evaluation, ordinal, content))
+      recipients.add(id)
   }
   const hostileIds = [...recipients]
     .filter((id) => {
@@ -236,14 +235,20 @@ export function forecastCombatSkillAccuracy(
       if (!target) throw new TypeError('Combat accuracy requires a committed recipient.')
       return (
         target.hp > 0 &&
-        (target.teamId !== actor.teamId || airborneGroundMiss(state, action, id, content))
+        (target.teamId !== actor.teamId ||
+          airborneGroundMiss(
+            state,
+            accuracyActionForRecipient(state, action, evaluation, id, content),
+            id,
+            content,
+          ))
       )
     })
     .sort((left, right) => (left < right ? -1 : left > right ? 1 : 0))
   const targetHitChances = hostileIds.flatMap((targetCombatantId) => {
     const chance = forecastCombatSkillAccuracyForTarget(
       state,
-      action,
+      accuracyActionForRecipient(state, action, evaluation, targetCombatantId, content),
       actorId,
       targetCombatantId,
       content,

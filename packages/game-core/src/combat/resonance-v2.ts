@@ -1,3 +1,7 @@
+import {
+  combatTagPresentationIssues,
+  type CombatTagPresentationSnapshot,
+} from './combat-tag-registry'
 import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues } from './content-media'
 import {
@@ -28,6 +32,7 @@ export interface ResonanceSkillTriggerV2 {
 export interface ResonanceDefinitionV2 {
   /** Captured server selection only; never changes the original power identity. */
   readonly relationshipOverrideDisciplineId?: string
+  readonly tagPresentation?: readonly CombatTagPresentationSnapshot[]
   readonly ability?: AbilityDefinition
   readonly id: string
   readonly contentVersion: number
@@ -163,6 +168,7 @@ export function validateResonanceDefinitionV2(
   const issues: string[] = [
     ...finalizedContentMediaIssues(definition.media),
     ...abilityPresentationTextIssues(definition),
+    ...combatTagPresentationIssues(definition.tagPresentation),
   ]
   const canonical = Object.hasOwn(definition, 'ability')
   if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')

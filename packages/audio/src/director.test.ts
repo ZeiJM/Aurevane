@@ -35,7 +35,7 @@ class FakeContext {
   }
 }
 const candidate: AudioAssetDescriptor = {
-  id: 'audio.phase4.bastion.action',
+  id: 'audio.skill-fx.v01.001-1',
   kind: 'sfx',
   channel: 'sfx',
   status: 'candidate',

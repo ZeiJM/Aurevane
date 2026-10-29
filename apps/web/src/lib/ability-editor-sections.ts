@@ -1,0 +1,13 @@
+export const ABILITY_EDITOR_SECTIONS = [
+  { id: 'details', label: 'Details & Text' },
+  { id: 'media', label: 'Media' },
+  { id: 'range', label: 'Range & Area' },
+  { id: 'economy', label: 'Action Economy' },
+  { id: 'accuracy', label: 'Accuracy' },
+  { id: 'effects', label: 'Effects' },
+] as const
+export type AbilityEditorSection = (typeof ABILITY_EDITOR_SECTIONS)[number]['id']
+
+export function isAbilityEditorSection(value: unknown): value is AbilityEditorSection {
+  return ABILITY_EDITOR_SECTIONS.some((section) => section.id === value)
+}

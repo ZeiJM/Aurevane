@@ -1824,3 +1824,110 @@
   aspect-ratio: 1;
   object-fit: cover;
 }
+
+.effectPicker {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(12rem, 2fr) auto;
+  align-items: end;
+  gap: 0.5rem;
+}
+.effectPicker > small {
+  grid-column: 1 / -1;
+}
+.effectPicker button {
+  min-height: 2.5rem;
+  margin-bottom: 0;
+}
+@media (max-width: 600px) {
+  .effectPicker {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .effectPicker > label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.effectBody {
+  padding: 0.35rem 0.65rem 0.55rem;
+}
+.effectBody > summary {
+  cursor: pointer;
+  color: #275e54;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+.effectBody[open] > summary {
+  margin-bottom: 0.6rem;
+}
+:global(.av-master) .effectCard [data-effect-tag-label],
+:global(.av-master) .effectCard [data-combat-tag-reference] {
+  color: #503510;
+}
+
+.abilityWorkspace {
+  min-width: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+.abilityTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid #b6a587;
+}
+.abilityTabs button {
+  min-height: 2.35rem;
+  padding: 0.35rem 0.65rem;
+  color: #315d54;
+  background: #f7f1e5;
+  border: 1px solid #b6a587;
+}
+.abilityTabs button[aria-selected='true'],
+.abilityWorkspace .abilityTabs button[aria-selected='true']:is(:hover, :focus-visible) {
+  background: #315d54;
+  color: #fff4dc;
+  border-color: #254b43;
+}
+.abilityWorkspace > [hidden] {
+  display: none;
+}
+@media (max-width: 600px) {
+  .abilityTabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .abilityTabs button {
+    flex-shrink: 0;
+    min-height: 2.75rem;
+  }
+}
+
+/* Recipient chips stay legible on the Master parchment palette. */
+.effectTarget {
+  color: #65310e;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.rangeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  align-items: start;
+}
+
+@media (max-width: 600px) {
+  .rangeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.rangeGrid .field :is(input, select) {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.55rem;
+  line-height: 1.3;
+}

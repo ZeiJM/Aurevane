@@ -1,3 +1,4 @@
+import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
 import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
@@ -80,6 +81,7 @@ function unavailable(message = 'PvP staging services are unavailable right now.'
 }
 
 function mapRpcError(error: { code?: string; message?: string }): never {
+  throwCoreConversionAdmissionError(error)
   const message = error.message ?? ''
   if (error.code === '42501') {
     throw new AurevaneError('FORBIDDEN', 'That PvP lobby is not available to this account.')
@@ -329,15 +331,17 @@ export async function startPvpLobbyWithQuality(
   const builds = createSupabaseCharacterBuildRepository()
   const roster: PvpRosterEntry[] = await Promise.all(
     lobby.members.map(async (member) => {
-      const [character, buildSnapshot] = await Promise.all([
-        characters.findByOwnerId
-          ? characters.findByOwnerId(member.userId, member.characterId)
-          : Promise.resolve(null),
-        loadCharacterCommittedBuildSnapshot(member.userId, member.characterId, builds),
-      ])
+      const character = characters.findByOwnerId
+        ? await characters.findByOwnerId(member.userId, member.characterId)
+        : null
       if (!character) {
         throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
       }
+      const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+        member.userId,
+        member.characterId,
+        builds,
+      )
       assertPreparedBattleSource(character, buildSnapshot)
       return { member, character, buildSnapshot }
     }),

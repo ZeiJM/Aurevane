@@ -9,7 +9,7 @@ import type {
   OnlineCharacter,
 } from '@/server/presence/character-presence-service'
 
-import { formatLastSeenAt, readableIdentity } from './online-users-directory-utils'
+import { formatLastSeenAt, readableDisciplineName } from './online-users-directory-utils'
 import styles from './public-character-profile.module.css'
 
 type PublicCharacter = OnlineCharacter | CharacterPresenceDirectoryEntry
@@ -67,8 +67,11 @@ export function PublicCharacterProfile({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const online = 'isOnline' in character ? character.isOnline : true
-  const primaryDiscipline = readableIdentity(character.disciplineId)
-  const secondaryDiscipline = readableIdentity(character.secondaryDisciplineId)
+  const primaryDiscipline = readableDisciplineName(character.disciplineId, character.disciplineName)
+  const secondaryDiscipline = readableDisciplineName(
+    character.secondaryDisciplineId,
+    character.secondaryDisciplineName,
+  )
   useEffect(() => {
     const dialog = dialogRef.current
     if (!dialog) return

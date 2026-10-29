@@ -14,13 +14,31 @@ holder_app="catalogue-holder-$owner_id"
 writer_app="catalogue-writer-$owner_id"
 holder_pid=''
 writer_pid=''
+active_race=''
 cleanup() {
   result=$?
   trap - EXIT
   sql "select pg_terminate_backend(pid) from pg_stat_activity where application_name in ('$holder_app','$writer_app') and pid<>pg_backend_pid();" >/dev/null || true
   if [ -n "$holder_pid" ]; then wait "$holder_pid" 2>/dev/null || true; fi
   if [ -n "$writer_pid" ]; then wait "$writer_pid" 2>/dev/null || true; fi
-  if [ "$result" -ne 0 ]; then cat "$race_tmp"/*.log >&2 2>/dev/null || true; fi
+  if [ "$result" -ne 0 ]; then
+    # Preserve exact fixture evidence without flooding the job log with every
+    # completed EXPECTED state snapshot. Large logs defeat remote log readers.
+    mkdir -p /tmp/aurevane-catalogue-race-failure
+    # Copy only regular logs; race input FIFOs must never enter an artifact.
+    for race_log in "$race_tmp"/*.log; do
+      if [ -f "$race_log" ]; then cp "$race_log" /tmp/aurevane-catalogue-race-failure/; fi
+    done
+    printf 'Catalogue failure during %s (exit %s)\n' "${active_race:-fixture setup}" "$result" >&2
+    if [ -n "$active_race" ]; then
+      for race_log in "$race_tmp/$active_race-holder.log" "$race_tmp/$active_race-writer.log"; do
+        if [ -f "$race_log" ]; then
+          printf '%s\n' "$(basename "$race_log")" >&2
+          awk 'length($0)>2000 { print substr($0,1,2000) " [diagnostic line truncated]"; next } { print }' "$race_log" | tail -30 >&2
+        fi
+      done
+    fi
+  fi
   rm -rf "$race_tmp"
   exit "$result"
 }
@@ -83,6 +101,7 @@ wait_for_query() {
 race() {
   local label="$1" holder_sql="$2" writer_sql="$3" finish="${4:-commit}"
   local expected_error="${5-COMBAT_CONTENT_CATALOGUE_CONFLICT}" schedule="${6:-blocking}"
+  active_race="$label"
   local writer_timeout='30s'
   if [ "$schedule" = immediate ]; then writer_timeout='3s'; fi
   local catalogue_token before_state writer_result expected_state
@@ -155,6 +174,7 @@ SQL
     test "$(sql "select $state_expression;")" = "$before_state"
   fi
   echo "Catalogue two-session $label: observed $schedule schedule, $finish, exact result and complete persisted state PASS."
+  active_race=''
 }
 
 sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,k,jsonb_build_object('action','create','requestId',gen_random_uuid(),'contentKind','skill','definition',jsonb_build_object('id',k))) from unnest(array['ci.catalogue-race','ci.catalogue-loser']) k;" >/dev/null
@@ -215,13 +235,22 @@ echo 'Stage B all seven actual guard tables: both physical catalogue/producer lo
 
 # Tag publication uses the same catalogue lock as complete Skill publication.
 # Observe both real blocking orders; the losing writer retains its entire draft.
-test "$(sql "select count(*) from app_private.combat_content_records where content_key='tag.damage';")" = 0
-sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,'tag.damage',jsonb_build_object('action','create','requestId',gen_random_uuid(),'contentKind','tag','definition','{\"schemaVersion\":1,\"id\":\"tag.damage\",\"contentVersion\":1,\"tagId\":\"damage\",\"name\":\"Impact\",\"description\":\"Relative power.\",\"explanation\":\"Damage uses power.\",\"sortOrder\":0,\"enabled\":true,\"media\":{}}'::jsonb));" >/dev/null
-tag_publish="select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',1,null,:'token',null);"
+prepare_tag_race() {
+  { printf '%s\n' 'begin;' "select set_config('task13.owner', :'actor', true);" 'set local role service_role;'; cat .github/scripts/prepare-combat-tag-race.sql; printf '%s\n' 'commit;'; } |
+    docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -v actor="$owner_id" -U postgres -d postgres >/dev/null
+}
+tag_publication() {
+  local draft_version base_version
+  draft_version="$(sql "select draft_version from app_private.combat_content_drafts where content_key='tag.damage';")"
+  base_version="$(sql "select coalesce(base_version::text,'null') from app_private.combat_content_drafts where content_key='tag.damage';")"
+  printf "select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',%s,%s,:'token',null);" "$draft_version" "$base_version"
+}
+prepare_tag_race
+tag_publish="$(tag_publication)"
 loser_publish="select public.publish_saved_combat_content_v1(:'actor',null,'ci.catalogue-loser',1,null,:'token',5);"
 race tag-before-skill "$tag_publish" "$loser_publish"
-sql "set role service_role; select public.write_combat_content_record_v1('$owner_id',null,'tag.damage',jsonb_build_object('action','save','expectedRevision',2,'definition',public.read_combat_content_record_v1('$owner_id',null,'tag.damage')#>'{current,definition}'));" >/dev/null
-tag_publish="select public.publish_saved_combat_content_v1(:'actor',null,'tag.damage',2,1,:'token',null);"
+prepare_tag_race
+tag_publish="$(tag_publication)"
 race skill-before-tag "$loser_publish" "$tag_publish"
 race tag-rollback "$tag_publish" "$timing" rollback ''
 echo 'Media/Tag lifecycle, pointer attribution, both actual Tag/Skill lock orders and whole rollback PASS.'

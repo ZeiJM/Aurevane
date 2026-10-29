@@ -898,6 +898,7 @@ function nativePv1fAbilityCommand(
       costs: [
         { resource: 'ap', amount: apCost },
         ...(action.cost.mp ? [{ resource: 'mp' as const, amount: action.cost.mp }] : []),
+        ...(action.cost.hp ? [{ resource: 'hp' as const, amount: action.cost.hp }] : []),
       ],
       classification: action.tags.includes('attack')
         ? 'attack'

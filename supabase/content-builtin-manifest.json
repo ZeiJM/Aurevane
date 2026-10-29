@@ -2152,6 +2152,398 @@
     "sourceDisciplineId": "stormsinger"
   },
   {
+    "contentKey": "tag.airborne",
+    "contentKind": "tag",
+    "name": "Airborne",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.barrier",
+    "contentKind": "tag",
+    "name": "Barrier",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.bleed",
+    "contentKind": "tag",
+    "name": "Bleed",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.blindside",
+    "contentKind": "tag",
+    "name": "Blindside",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.blindside-vulnerability",
+    "contentKind": "tag",
+    "name": "Blindside (debuff)",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.burn",
+    "contentKind": "tag",
+    "name": "Burn",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.challenged",
+    "contentKind": "tag",
+    "name": "Taunted",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.cleanse",
+    "contentKind": "tag",
+    "name": "Cleanse",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.cleanse-chilled",
+    "contentKind": "tag",
+    "name": "Cleanse Chilled",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.conditional-cleanse",
+    "contentKind": "tag",
+    "name": "Conditional Cleanse",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.conductive",
+    "contentKind": "tag",
+    "name": "Conductive",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.copy-buffs",
+    "contentKind": "tag",
+    "name": "Copy Buffs",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.copy-debuffs",
+    "contentKind": "tag",
+    "name": "Copy Debuffs",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.covert",
+    "contentKind": "tag",
+    "name": "Covert",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.damage",
+    "contentKind": "tag",
+    "name": "Damage",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.damage-bonus",
+    "contentKind": "tag",
+    "name": "Damage Bonus",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.dispel",
+    "contentKind": "tag",
+    "name": "Dispel",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.exposed",
+    "contentKind": "tag",
+    "name": "Vulnerable",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.fortified",
+    "contentKind": "tag",
+    "name": "Fortified",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.freeze-ground",
+    "contentKind": "tag",
+    "name": "Freeze Ground",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.frozen",
+    "contentKind": "tag",
+    "name": "Chilled",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.guarded",
+    "contentKind": "tag",
+    "name": "Guard",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.haste",
+    "contentKind": "tag",
+    "name": "Haste",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.healing",
+    "contentKind": "tag",
+    "name": "HP Recovery (fixed amount)",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.hexed",
+    "contentKind": "tag",
+    "name": "Healing Down",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.hp-recovery",
+    "contentKind": "tag",
+    "name": "HP Recovery",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.inspired",
+    "contentKind": "tag",
+    "name": "Damage Up",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.invisible",
+    "contentKind": "tag",
+    "name": "Invisible",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.lowered-guard",
+    "contentKind": "tag",
+    "name": "Defenseless",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.mark",
+    "contentKind": "tag",
+    "name": "Marked",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.move",
+    "contentKind": "tag",
+    "name": "Move",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.mp-drain",
+    "contentKind": "tag",
+    "name": "MP Drain",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.mp-recovery",
+    "contentKind": "tag",
+    "name": "MP Recovery",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.mp-restore",
+    "contentKind": "tag",
+    "name": "MP Restore",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.pierce",
+    "contentKind": "tag",
+    "name": "Pierce",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.poison",
+    "contentKind": "tag",
+    "name": "Poison",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.pull",
+    "contentKind": "tag",
+    "name": "Pull",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.push",
+    "contentKind": "tag",
+    "name": "Push",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.reckless",
+    "contentKind": "tag",
+    "name": "Reckless",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.reveal",
+    "contentKind": "tag",
+    "name": "Reveal",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.revealed",
+    "contentKind": "tag",
+    "name": "Revealed",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.rewind",
+    "contentKind": "tag",
+    "name": "Rewind",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.root",
+    "contentKind": "tag",
+    "name": "Rooted",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.slow",
+    "contentKind": "tag",
+    "name": "Slow",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.summon",
+    "contentKind": "tag",
+    "name": "Summon",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.suppress",
+    "contentKind": "tag",
+    "name": "Suppress",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.vengeance",
+    "contentKind": "tag",
+    "name": "Vengeance",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.warded",
+    "contentKind": "tag",
+    "name": "Burn Ward",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.wet",
+    "contentKind": "tag",
+    "name": "Drenched",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
     "contentKey": "tidecaller.cleansing-rain",
     "contentKind": "skill",
     "name": "Cleansing Rain",

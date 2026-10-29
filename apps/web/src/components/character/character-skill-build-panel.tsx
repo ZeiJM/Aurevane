@@ -930,6 +930,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                               focusedSkill.definition.effectDescriptions,
                                             ).map(({ effect, count, firstIndex: index }) => (
                                               <CompactSkillEffectSummary
+                                                aim={focusedSkill.definition.target}
                                                 skillEffects={focusedSkill.definition.effects}
                                                 effect={effect}
                                                 count={count}
@@ -947,7 +948,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                       ) : (
                                         'N/A'
                                       )}
-                                      {label === 'Target' ? (
+                                      {label === 'Target Method' ? (
                                         <SkillGroundAreaDetails skill={focusedSkill.definition} />
                                       ) : null}
                                     </dd>

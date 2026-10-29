@@ -36,6 +36,7 @@ function effect(value: unknown): value is CompactSkillEffectSummaryParts {
   return (
     record(value) &&
     typeof value.label === 'string' &&
+    (value.target === undefined || typeof value.target === 'string') &&
     (value.magnitude === null || typeof value.magnitude === 'string') &&
     (value.duration === null || typeof value.duration === 'string') &&
     (value.timing === undefined ||
@@ -57,7 +58,8 @@ function effectText(parts: CompactSkillEffectSummaryParts): string {
     parts.label +
     (parts.magnitude ? ' [' + parts.magnitude + ']' : '') +
     (parts.duration ? ' [' + parts.duration + ']' : '') +
-    (parts.timing ? ' [' + parts.timing + ']' : '')
+    (parts.timing ? ' [' + parts.timing + ']' : '') +
+    (parts.target ? ' [' + parts.target + ']' : '')
   )
 }
 /** Reject stale or unsupported optional metadata before rendering any part of its bullet. */
@@ -96,7 +98,6 @@ export function abilityManualInlineParts(
         if (entry.condition)
           effects.push('If ', ...linked(entry.condition, entry.conditionParts), ': ')
         effects.push({ kind: 'effect', parts: entry.parts })
-        if (entry.recipientOverride) effects.push(' [' + entry.recipientOverride + ']')
       })
       result.push(...(plainManualInlineParts(effects) === value ? effects : [value]))
     } else result.push(value)

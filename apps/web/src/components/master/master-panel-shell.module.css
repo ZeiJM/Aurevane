@@ -176,3 +176,41 @@
       calc(var(--av-mobile-dock-height, 3.25rem + env(safe-area-inset-bottom)) + 0.75rem);
   }
 }
+
+.navigation > button {
+  flex: 0 0 auto;
+  align-self: center;
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  color: #315d54;
+  background: #f7f1e5;
+  border: 1px solid #ae9975;
+  border-radius: 0.25rem;
+}
+.orderHint {
+  margin-top: 0;
+}
+.orderList {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0;
+  list-style: none;
+}
+.orderList li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.5rem 2.5rem;
+  align-items: center;
+  gap: 0.35rem;
+}
+.orderList button {
+  min-width: 2.5rem;
+  min-height: 2.5rem;
+  padding: 0.3rem;
+}
+.orderActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+}

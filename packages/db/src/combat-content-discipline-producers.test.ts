@@ -166,6 +166,251 @@ const authored = {
     power: { reliability: 3, flexibility: 3, setup: 3, ruleAccess: 3, execution: 3 },
   },
 }
+interface DisciplineDeleteImpact {
+  token: string
+  records: { contentKey: string; name: string; revision: number }[]
+  blockers: { kind: string; key: string; name: string; contentKey: string }[]
+  blockerCount: number
+}
+async function deleteImpact(key: string) {
+  return (
+    await db.query<{ value: DisciplineDeleteImpact }>(
+      'select public.review_discipline_deletion_v1($1,null,$2) value',
+      [owner, key],
+    )
+  ).rows[0]!.value
+}
+async function deleteDiscipline(key: string, impact: DisciplineDeleteImpact, actor = owner) {
+  return (
+    await db.query<{ value: { deletedKeys: string[] } }>(
+      'select public.delete_discipline_v1($1,null,$2,$3) value',
+      [actor, key, impact.token],
+    )
+  ).rows[0]!.value
+}
+it('deletion reviews the exact current Discipline, keeps immutable history and prevents restoration', async () => {
+  const saved = await authoredDraft()
+  const pub = await publish(authored.id, saved.draft.draftVersion, null)
+  const impact = await deleteImpact(authored.id)
+  expect(impact.records).toEqual([
+    expect.objectContaining({
+      contentKey: authored.id,
+      name: authored.name,
+      revision: pub.revision,
+    }),
+  ])
+  expect(impact.blockerCount).toBe(0)
+  expect(await deleteDiscipline(authored.id, impact)).toEqual({ deletedKeys: [authored.id] })
+  const removed = await record(authored.id)
+  expect(removed).toMatchObject({ lifecycle: 'archived', current: null, draft: null })
+  expect(removed.history).toEqual(pub.history)
+  expect(
+    (
+      await db.query(
+        'select 1 from app_private.current_discipline_definitions_v1() where discipline_id=$1',
+        [authored.id],
+      )
+    ).rows,
+  ).toEqual([])
+  expect(
+    (
+      await db.query('select 1 from app_private.discipline_definitions where discipline_id=$1', [
+        authored.id,
+      ])
+    ).rows,
+  ).toHaveLength(1)
+  await denied(
+    () =>
+      write(authored.id, {
+        action: 'restore',
+        expectedRevision: removed.revision,
+        sourceVersion: pub.current.contentVersion,
+      }),
+    /COMBAT_CONTENT_DELETED/,
+  )
+})
+it('deletion rejects a changed draft and does not remove the new edits', async () => {
+  const saved = await authoredDraft()
+  const impact = await deleteImpact(authored.id)
+  const changed = await write(authored.id, {
+    action: 'save',
+    expectedRevision: saved.revision,
+    definition: { ...authored, name: 'Newer edits' },
+  })
+  await denied(() => deleteDiscipline(authored.id, impact), /DISCIPLINE_DELETE_REVIEW_CHANGED/)
+  expect(await record(authored.id)).toEqual(changed)
+})
+it('deletion catches a grant added after review and gives its player name', async () => {
+  const saved = await authoredDraft()
+  await publish(authored.id, saved.draft.draftVersion, null)
+  const before = await deleteImpact(authored.id)
+  await db.query(
+    "select public.write_discipline_player_grants_v1($1,null,$2,$3,'grant','Deletion regression')",
+    [owner, authored.id, [other]],
+  )
+  await denied(() => deleteDiscipline(authored.id, before), /DISCIPLINE_DELETE_REVIEW_CHANGED/)
+  const impact = await deleteImpact(authored.id)
+  expect(impact.blockers).toContainEqual(
+    expect.objectContaining({ kind: 'player-grant', key: other, name: 'Test Player' }),
+  )
+  await denied(() => deleteDiscipline(authored.id, impact), /COMBAT_CONTENT_DEPENDENCIES/)
+  expect((await record(authored.id)).lifecycle).toBe('active')
+})
+it('deletion requires operator authority and its RPCs are unavailable to browser roles', async () => {
+  await authoredDraft()
+  const impact = await deleteImpact(authored.id)
+  await denied(() => deleteDiscipline(authored.id, impact, other), /MASTER_PANEL/)
+  for (const signature of [
+    'public.review_discipline_deletion_v1(uuid,uuid,text)',
+    'public.delete_discipline_v1(uuid,uuid,text,text)',
+  ]) {
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_function_privilege('anon',$1,'EXECUTE') or has_function_privilege('authenticated',$1,'EXECUTE') allowed",
+          [signature],
+        )
+      ).rows[0]!.allowed,
+    ).toBe(false)
+  }
+})
+it('deletion includes source-owned child drafts and replays without a second mutation', async () => {
+  await authoredDraft()
+  const child = await write('skill.delete-test', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000088',
+    contentKind: 'skill',
+    definition: {
+      id: 'skill.delete-test',
+      contentVersion: 1,
+      name: 'Owned child',
+      sourceDisciplineId: authored.id,
+    },
+  })
+  const impact = await deleteImpact(authored.id)
+  expect(impact.records.map((row) => row.contentKey)).toEqual([authored.id, child.contentKey])
+  expect(impact.blockerCount).toBe(0)
+  const result = await deleteDiscipline(authored.id, impact)
+  const after = await record(child.contentKey)
+  expect(after).toMatchObject({ lifecycle: 'archived', draft: null })
+  expect(await deleteDiscipline(authored.id, impact)).toEqual(result)
+  expect(await record(child.contentKey)).toEqual(after)
+})
+it('deletion blocks a shared owned Skill and leaves every reviewed record intact', async () => {
+  await authoredDraft()
+  const child = await write('skill.delete-test', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000088',
+    contentKind: 'skill',
+    definition: {
+      id: 'skill.delete-test',
+      contentVersion: 1,
+      name: 'Shared child',
+      sourceDisciplineId: authored.id,
+    },
+  })
+  const external = await createLegacyDiscipline()
+  await write(external.contentKey, {
+    action: 'link',
+    requestId: '00000000-0000-4000-8000-000000000089',
+    childKey: child.contentKey,
+    expectedRevision: external.revision,
+  })
+  const impact = await deleteImpact(authored.id)
+  expect(impact.blockers).toContainEqual(
+    expect.objectContaining({
+      kind: 'content-link',
+      name: 'Dependency Discipline',
+      key: external.contentKey,
+      contentKey: child.contentKey,
+    }),
+  )
+  const before = await record(authored.id)
+  const childBefore = await record(child.contentKey)
+  await denied(() => deleteDiscipline(authored.id, impact), /COMBAT_CONTENT_DEPENDENCIES/)
+  expect(await record(authored.id)).toEqual(before)
+  expect(await record(child.contentKey)).toEqual(childBefore)
+})
+it('deletion includes pair metadata even when no relationship was explicitly linked', async () => {
+  await authoredDraft()
+  const child = await write('resonance.delete-test', {
+    action: 'create',
+    requestId: '00000000-0000-4000-8000-000000000088',
+    contentKind: 'resonance',
+    definition: {
+      id: 'resonance.delete-test',
+      contentVersion: 1,
+      name: 'Pair child',
+      disciplinePair: [authored.id, 'vanguard'],
+    },
+  })
+  const impact = await deleteImpact(authored.id)
+  expect(impact.records.map((row) => row.contentKey)).toContain(child.contentKey)
+  expect(impact.blockerCount).toBe(0)
+  await deleteDiscipline(authored.id, impact)
+  expect((await record(child.contentKey)).lifecycle).toBe('archived')
+})
+it('deletion of an unused builtin removes its fallback children without touching their immutable sources', async () => {
+  const impact = await deleteImpact('stormsinger')
+  expect(impact.records.filter((row) => row.contentKey.startsWith('stormsinger.'))).toHaveLength(8)
+  expect(impact.blockerCount).toBe(0)
+  const versions = (
+    await db.query('select id from app_private.combat_content_versions order by id')
+  ).rows
+  await deleteDiscipline('stormsinger', impact)
+  expect(
+    (await db.query('select id from app_private.combat_content_versions order by id')).rows,
+  ).toEqual(versions)
+  expect(
+    (
+      await db.query(
+        "select 1 from app_private.current_discipline_definitions_v1() where discipline_id='stormsinger'",
+      )
+    ).rows,
+  ).toEqual([])
+  expect(
+    (
+      await db.query(
+        "select 1 from app_private.phase4_skill_catalog where discipline_id='stormsinger'",
+      )
+    ).rows,
+  ).toEqual([])
+  expect(
+    (
+      await db.query<{ body: { archivedKeys: string[] } }>(
+        'select public.read_combat_content_catalogue_v1() body',
+      )
+    ).rows[0]!.body.archivedKeys,
+  ).toEqual(expect.arrayContaining(impact.records.map((row) => row.contentKey)))
+})
+it('deletion reports active builds, Core profiles and earned Skills by character name', async () => {
+  const impact = await deleteImpact('vanguard')
+  expect(impact.blockers).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ kind: 'active-discipline', key: character, name: 'Test Player' }),
+      expect.objectContaining({
+        kind: 'personal-core-profile',
+        key: character,
+        name: 'Test Player',
+      }),
+      expect.objectContaining({ kind: 'earned-skill', key: character, name: 'Test Player' }),
+    ]),
+  )
+  await denied(() => deleteDiscipline('vanguard', impact), /COMBAT_CONTENT_DEPENDENCIES/)
+})
+it('deletion retains ownership of unused builtin pair powers after a Discipline is customized', async () => {
+  const original = await deleteImpact('stormsinger')
+  const originalPowers = original.records
+    .filter((row) => row.contentKey.startsWith('resonance.'))
+    .map((row) => row.contentKey)
+  expect(originalPowers.length).toBeGreaterThan(0)
+  await publishNativeDiscipline('stormsinger', { resonanceSelections: [], essenceId: null })
+  const customized = await deleteImpact('stormsinger')
+  expect(customized.records.map((row) => row.contentKey)).toEqual(
+    expect.arrayContaining(originalPowers),
+  )
+  expect(customized.blockerCount).toBe(0)
+})
 async function authoredDraft(def = authored) {
   return write(def.id, {
     action: 'create',
@@ -2402,4 +2647,149 @@ it('grant-only Foundation creation uses the account entitlement and cannot bypas
     'New slot entitlement',
   ])
   expect((await create()).rows).toHaveLength(1)
+})
+
+it('current character entry refreshes published bases without changing personal points, clocks or captured battles', async () => {
+  const personal = (
+    await db.query<{ personal_attributes: Record<string, number> }>(
+      'select personal_attributes from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]!.personal_attributes
+  await db.query(
+    "update app_private.character_active_builds set primary_attunement_locked_until=now()+interval '1 hour' where character_id=$1",
+    [character],
+  )
+  const clocks = (
+    await db.query(
+      'select primary_attunement_locked_until,secondary_attunement_locked_until from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]
+  const pinned = await newTrialSnapshot()
+  const admitted = await admitTrial(pinned)
+  const base = { might: 15, finesse: 1, vitality: 12, agility: 1, intellect: 1, resolve: 1 }
+  const published = await publishNativeDiscipline('vanguard', {
+    core: base,
+    focus: ['might', 'vitality'],
+  })
+  const enter = () =>
+    db.query<{ might: number; vitality: number }>(
+      'select * from public.get_character_slots_v3($1)',
+      [other],
+    )
+  const current = (await enter()).rows.find((row) => row.might === base.might + personal.might)
+  expect(current?.vitality).toBe(base.vitality + personal.vitality)
+  expect(
+    (
+      await db.query(
+        'select base_attributes,personal_attributes,conversion_required from public.get_character_attribute_allocation_v2($1,$2)',
+        [other, character],
+      )
+    ).rows[0],
+  ).toEqual({ base_attributes: base, personal_attributes: personal, conversion_required: false })
+  const build = (
+    await db.query<{ build_version: number; primary_profile_version: number }>(
+      'select build_version,primary_profile_version from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!
+  expect(build.primary_profile_version).toBe(published.current.contentVersion)
+  await enter()
+  expect(
+    (
+      await db.query(
+        'select build_version from app_private.character_active_builds where character_id=$1',
+        [character],
+      )
+    ).rows[0],
+  ).toEqual({ build_version: build.build_version })
+  expect(
+    (
+      await db.query(
+        'select primary_attunement_locked_until,secondary_attunement_locked_until from app_private.character_active_builds where character_id=$1',
+        [character],
+      )
+    ).rows[0],
+  ).toEqual(clocks)
+  expect(
+    (
+      await db.query<{ value: unknown }>(
+        'select current_snapshot value from app_private.battle_sessions where id=$1',
+        [admitted.battle_session_id],
+      )
+    ).rows[0]!.value,
+  ).toEqual(pinned)
+})
+it('current character entry requires explicit free reconciliation when published caps reject old personal investment', async () => {
+  await db.query('update public.characters set level=70,might=52 where id=$1', [character])
+  await db.query(
+    'update app_private.character_attribute_personal_allocations set might=45 where character_id=$1',
+    [character],
+  )
+  const personal = (
+    await db.query<{ personal_attributes: unknown }>(
+      'select personal_attributes from public.get_character_attribute_allocation_v2($1,$2)',
+      [other, character],
+    )
+  ).rows[0]!.personal_attributes
+  const base = { might: 15, finesse: 1, vitality: 12, agility: 1, intellect: 1, resolve: 1 }
+  await publishNativeDiscipline('vanguard', { core: base, focus: ['intellect', 'resolve'] })
+  await db.query('select * from public.get_character_slots_v3($1)', [other])
+  expect(
+    (
+      await db.query(
+        'select base_attributes,personal_attributes,conversion_required from public.get_character_attribute_allocation_v2($1,$2)',
+        [other, character],
+      )
+    ).rows[0],
+  ).toEqual({ base_attributes: base, personal_attributes: personal, conversion_required: true })
+  await denied(
+    async () => admitTrial(await newTrialSnapshot()),
+    /CHARACTER_CORE_CONVERSION_REQUIRED/,
+  )
+  await db.query(
+    "select * from public.commit_character_attribute_allocation_v2($1,$2,'convert',15,1,12,1,41,35,$3,'profile-reconcile')",
+    [other, character, crypto.randomUUID()],
+  )
+  await db.query('select * from public.get_character_slots_v3($1)', [other])
+  expect(
+    (
+      await db.query(
+        'select conversion_required,reset_used from public.get_character_attribute_allocation_v2($1,$2)',
+        [other, character],
+      )
+    ).rows[0],
+  ).toEqual({ conversion_required: false, reset_used: 0 })
+})
+it('current character entry never refreshes an unowned account and keeps profile-refresh RPCs private', async () => {
+  await publishNativeDiscipline('vanguard', {
+    core: { might: 15, finesse: 1, vitality: 12, agility: 1, intellect: 1, resolve: 1 },
+  })
+  expect((await db.query('select * from public.get_character_slots_v3($1)', [owner])).rows).toEqual(
+    [],
+  )
+  expect(
+    (
+      await db.query(
+        'select build_version from app_private.character_active_builds where character_id=$1',
+        [character],
+      )
+    ).rows[0],
+  ).toEqual({ build_version: 1 })
+  for (const role of ['anon', 'authenticated'])
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          `select has_function_privilege('${role}','public.get_character_slots_v3(uuid)','EXECUTE') allowed`,
+        )
+      ).rows[0]!.allowed,
+    ).toBe(false)
+  expect(
+    (
+      await db.query<{ allowed: boolean }>(
+        "select has_function_privilege('service_role','app_private.refresh_character_primary_profile_v1(uuid,uuid)','EXECUTE') allowed",
+      )
+    ).rows[0]!.allowed,
+  ).toBe(false)
 })

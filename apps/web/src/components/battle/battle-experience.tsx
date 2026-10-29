@@ -716,12 +716,13 @@ function BattleExperienceContent({
         tags: selectableSpecial.tags,
       }
     : undefined
-  const skillCostLabel = (skill: { id: string; apCost: number; mpCost: number }) =>
+  const skillCostLabel = (skill: { id: string; apCost: number; mpCost: number; hpCost?: number }) =>
     battleCapturedActionCost(
       battleCapturedActionChoices(manualActionTargets, skill.id, localCombatantId),
       [
         { resource: 'ap', amount: skill.apCost },
         { resource: 'mp', amount: skill.mpCost },
+        { resource: 'hp', amount: skill.hpCost ?? 0 },
       ],
       {
         ap: readEconomy(localCombatant),
@@ -1643,6 +1644,7 @@ function BattleExperienceContent({
             ? [
                 { resource: 'ap' as const, amount: skill.apCost },
                 { resource: 'mp' as const, amount: skill.mpCost },
+                { resource: 'hp' as const, amount: skill.hpCost ?? 0 },
               ]
             : price?.kind === 'flat'
               ? [{ resource: 'ap' as const, amount: price.amount }]

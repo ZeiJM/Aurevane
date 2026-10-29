@@ -165,7 +165,7 @@ it('adds only conflicting recipients to a Ground Move, enemy damage and self hea
   expect(html).not.toContain('[Ground]')
   const report = abilityBehaviorInformation(definition.behaviors[0]!)
   expect(Object.fromEntries(report.rows).Effects).toBe(
-    'Move [1] [Instant], Dmg [13] [Enemy], Heal [3] [Instant] [Self]',
+    'Move [1] [Instant] [Self], Dmg [13] [Enemy], Heal [3] [Instant] [Self]',
   )
 })
 

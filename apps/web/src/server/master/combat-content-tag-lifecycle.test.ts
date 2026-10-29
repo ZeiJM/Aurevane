@@ -129,6 +129,22 @@ async function command(input: unknown) {
 async function create(definition = tag, request = requestId) {
   return command({ action: 'create', requestId: request, contentKind: 'tag', definition })
 }
+/** Creation remains a recovery path for missing canonical metadata. The normal
+ * migrated registry already seeds these identities and must reject duplicates. */
+async function omitUnusedBaseline(key: string) {
+  expect(
+    (
+      await db.query('select 1 from app_private.combat_content_versions where content_key=$1', [
+        key,
+      ])
+    ).rows,
+  ).toEqual([])
+  const removed = await db.query(
+    'delete from app_private.combat_content_records where content_key=$1 and builtin_version is not null returning content_key',
+    [key],
+  )
+  expect(removed.rows).toEqual([{ content_key: key }])
+}
 async function publish(record: CompleteCombatContentRecord) {
   return command({
     action: 'publish',
@@ -148,6 +164,7 @@ async function exactTag(version: number) {
   ).json()
 }
 it('actual API create → saved publication → current/exact readers retains versions and operation retries', async () => {
+  await omitUnusedBaseline('tag.damage')
   const created = await create()
   expect(created.status, JSON.stringify(created.body)).toBe(200)
   expect(created.body.record.contentKey).toBe('tag.damage')
@@ -196,6 +213,7 @@ it('actual API create → saved publication → current/exact readers retains ve
   ])
 })
 it('canonical creation preserves request conflicts, one identity and stale save/publication CAS', async () => {
+  await omitUnusedBaseline('tag.damage')
   const first = await create()
   expect(first.status, JSON.stringify(first.body)).toBe(200)
   expect((await create({ ...tag, name: 'Changed retry' })).status).toBe(409)
@@ -275,6 +293,7 @@ it.each(['tag.healing', 'tag.00000000-0000-4000-8000-000000000091'])(
     if (key === 'tag.healing') expect((await publish(short.body.record)).status).toBe(200)
     else {
       expect((await publish(short.body.record)).status).toBe(400)
+      await omitUnusedBaseline('tag.pierce')
       const canonical = await create({ ...short.body.record.draft!.definition } as typeof tag)
       expect(canonical.status).toBe(200)
       expect(canonical.body.record.contentKey).toBe('tag.pierce')
@@ -286,6 +305,7 @@ it.each(['tag.healing', 'tag.00000000-0000-4000-8000-000000000091'])(
   },
 )
 it('missing selection and revoked live capability reject canonical writes and receipt replay', async () => {
+  await omitUnusedBaseline('tag.damage')
   session.selected = null
   expect((await create()).status).toBe(403)
   session.selected = selected
@@ -304,6 +324,23 @@ it('missing selection and revoked live capability reject canonical writes and re
       )
     ).rows,
   ).toEqual([{ n: 0 }])
+})
+it('the seeded canonical identity is edited in place and duplicate creation preserves it', async () => {
+  const before = await command({ action: 'read', contentKey: 'tag.damage' })
+  expect(before.status).toBe(200)
+  expect(before.body.record.builtin).toBeTruthy()
+  expect((await create()).status).toBe(409)
+  expect((await command({ action: 'read', contentKey: 'tag.damage' })).body.record).toEqual(
+    before.body.record,
+  )
+  const saved = await command({
+    action: 'save',
+    contentKey: 'tag.damage',
+    expectedRevision: before.body.record.revision,
+    definition: { ...tag, id: 'tag.damage' },
+  })
+  expect(saved.status, JSON.stringify(saved.body)).toBe(200)
+  expect((await publish(saved.body.record)).status).toBe(200)
 })
 
 import {

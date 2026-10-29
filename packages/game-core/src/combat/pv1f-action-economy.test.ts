@@ -907,3 +907,39 @@ it.each([
     )
   },
 )
+
+it('pays native Skill HP/MP/AP once and rejects lethal HP before any payment', () => {
+  const definition = {
+    ...resolveMatureSkillVersion('vanguard.forceful-strike', 2)!,
+    hpCost: 49,
+    mpCost: 3,
+  }
+  const state = currentPowerEncounter()
+  const before = JSON.stringify(state)
+  const target = { kind: 'unit' as const, combatantId: 'recruit' }
+  const quote = evaluatePv1fMatureSkill(state, definition, target)
+  expect(quote.evaluation.legal).toBe(true)
+  expect(quote.evaluation.hpCost).toBe(49)
+  const used = executePv1fMatureSkill(state, definition, target)
+  expect(used.state.tactical.battle.combatants.find((unit) => unit.id === 'player')).toMatchObject({
+    hp: 1,
+    mp: 17,
+  })
+  expect(readPv1fActionEconomy(used.state)?.current).toBe(
+    readPv1fActionEconomy(quote.prepared)!.current - quote.cost,
+  )
+  expect(
+    used.events.filter(
+      (event) =>
+        typeof event === 'object' &&
+        event !== null &&
+        'event' in event &&
+        event.event === 'hp_spent',
+    ),
+  ).toHaveLength(1)
+  expect(
+    evaluatePv1fMatureSkill(state, { ...definition, hpCost: 50 }, target).evaluation.issues,
+  ).toContainEqual(expect.objectContaining({ code: 'insufficient-hp' }))
+  expect(() => executePv1fMatureSkill(state, { ...definition, hpCost: 50 }, target)).toThrow(/HP/)
+  expect(JSON.stringify(state)).toBe(before)
+})

@@ -58,6 +58,21 @@ export function parseUsageBalanceReport(value: unknown, key: string): UsageBalan
     weekEndsAt = date(r.weekEndsAt)
   if (Date.parse(weekEndsAt) - Date.parse(weekStartsAt) !== 604800000) return unavailable()
   return {
+    ...(r.availableWeeks === undefined
+      ? {}
+      : {
+          availableWeeks: list(r.availableWeeks, 105, (v) => {
+            const value = text(v)
+            if (
+              !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+              !Number.isFinite(Date.parse(value)) ||
+              new Date(value).getUTCDay() !== 1 ||
+              new Date(value).toISOString().slice(0, 10) !== value
+            )
+              return unavailable()
+            return value
+          }),
+        }),
     contentKey: key,
     subjectKind: r.subjectKind as UsageBalanceReport['subjectKind'],
     asOf: date(r.asOf),
@@ -108,17 +123,28 @@ export function createUsageBalanceService(
   rpc: (name: string, parameters: Record<string, unknown>) => Promise<unknown>,
 ) {
   return {
-    async read(userId: string, contentKey: string): Promise<UsageBalanceReport> {
+    async read(userId: string, contentKey: string, week?: string): Promise<UsageBalanceReport> {
       await access.requireCapability(userId, 'content.combat.author')
       if (contentKey.length > 160 || !/^[a-z0-9]+([._-][a-z0-9]+)*$/.test(contentKey))
         throw new AurevaneError('INVALID_REQUEST', 'Choose valid content to inspect.')
-      return parseUsageBalanceReport(
-        await rpc('read_master_usage_balance_v1', {
+      if (
+        week !== undefined &&
+        (!/^\d{4}-\d{2}-\d{2}$/.test(week) ||
+          !Number.isFinite(Date.parse(week)) ||
+          new Date(week).getUTCDay() !== 1 ||
+          new Date(week).toISOString().slice(0, 10) !== week)
+      )
+        throw new AurevaneError('INVALID_REQUEST', 'Choose a collected UTC week.')
+      const report = parseUsageBalanceReport(
+        await rpc('read_master_usage_balance_week_v1', {
           p_actor_user_id: userId,
           p_content_key: contentKey,
+          p_week_start: week ?? null,
         }),
         contentKey,
       )
+      if (week && report.weekStartsAt.slice(0, 10) !== week) return unavailable()
+      return report
     },
   }
 }

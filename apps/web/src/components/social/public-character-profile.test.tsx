@@ -64,3 +64,29 @@ it('renders a selected starter portrait for a public character without a custom 
   expect(markup).toContain('/api/media/starter-portrait/portrait.starter.wayfarer-07')
   expect(markup).toContain('Starter Vale portrait')
 })
+
+it('uses current published Discipline names in the profile too', () => {
+  const markup = renderToStaticMarkup(
+    createElement(PublicCharacterProfile, {
+      character: {
+        characterId: 'character-custom',
+        name: 'Zei',
+        level: 2,
+        xp: 111,
+        lastSeenAt: null,
+        portraitRef: null,
+        disciplineId: 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2',
+        secondaryDisciplineId: 'ironfist',
+        disciplineName: 'Super Saiyan',
+        secondaryDisciplineName: 'Ironfist',
+        isOnline: true,
+        personalTitle: null,
+        imageUrl: null,
+      },
+      nowMs: 0,
+      onClose: () => undefined,
+    }),
+  )
+  expect(markup).toContain('>Super Saiyan</span>')
+  expect(markup).not.toContain('F60c5dc7')
+})

@@ -1,4 +1,10 @@
-import type { CombatActionDefinition, CombatContentCatalog, CombatEncounterState } from './actions'
+import { effectUsesGroundDelivery } from './combat-effect-delivery'
+import type {
+  CombatActionDefinition,
+  CombatContentCatalog,
+  CombatEncounterState,
+  CombatEffectDefinition,
+} from './actions'
 import { hasGameplayTag } from './gameplay-tags'
 import type { TacticalBattleState } from './board'
 
@@ -68,9 +74,28 @@ export function airborneGroundMiss(
   )
 }
 
-export function combatActionHasGroundDelivery(
+export function airborneEffectGroundMiss(
+  state: CombatEncounterState,
   action: Pick<CombatActionDefinition, 'target' | 'groundTargetedRecipientIds'>,
+  effect: Pick<CombatEffectDefinition, 'target'>,
+  targetId: string,
+  content: CombatContentCatalog,
 ): boolean {
+  return (
+    state.airbornePolicyVersion === 1 &&
+    effectUsesGroundDelivery(action, effect, targetId) &&
+    hasGameplayTag(state, targetId, 'Airborne', content)
+  )
+}
+
+export function combatActionHasGroundDelivery(
+  action: Pick<CombatActionDefinition, 'target' | 'groundTargetedRecipientIds'> &
+    Partial<Pick<CombatActionDefinition, 'effects'>>,
+): boolean {
+  if (
+    action.effects?.some((effect) => effect.target === 'ground' || effect.target === 'empty-tile')
+  )
+    return true
   return action.groundTargetedRecipientIds !== undefined
     ? action.groundTargetedRecipientIds.length > 0
     : action.target.kind === 'ground-tile'

@@ -93,3 +93,27 @@ it('uses one directory action that opens the selected character editor', () => {
   expect(markup).toContain('>Edit</button>')
   expect(markup).not.toContain('>Revoke</button>')
 })
+
+it('omits revoked characters and their count from the staff directory', () => {
+  const html = renderToStaticMarkup(
+    <StaffManagement
+      staff={[
+        {
+          userId: 'revoked',
+          email: 'revoked@example.test',
+          characterId: 'old-character',
+          characterName: 'Former Staff',
+          accessVersion: 3,
+          roles: ['moderator'],
+          specialCapabilities: [],
+          status: 'revoked',
+          expiresAt: null,
+        },
+      ]}
+      roleOptions={[]}
+    />,
+  )
+  expect(html).not.toContain('Former Staff')
+  expect(html).not.toContain('revoked@example.test')
+  expect(html).toContain('0 staff')
+})

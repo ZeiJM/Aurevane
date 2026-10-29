@@ -2,7 +2,11 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import { MASTER_PANEL_PAGES, type MasterPanelPage } from '@/lib/master-panel-pages'
+import {
+  orderedMasterPanelPages,
+  type MasterPanelPage,
+  type MasterPanelTab,
+} from '@/lib/master-panel-pages'
 import styles from './staff-management.module.css'
 import { MasterHelp } from './master-help'
 import type {
@@ -32,6 +36,7 @@ interface ResolvedAccount {
   readonly characters: readonly { characterId: string; name: string; playable: boolean }[]
 }
 interface StaffManagementProps {
+  readonly navigationOrder?: readonly MasterPanelTab[]
   readonly roleDefaults?: MasterPanelRoleDefaults
   readonly staff: readonly StaffMember[]
   readonly roleOptions: readonly Option[]
@@ -66,12 +71,23 @@ function errorMessage(value: unknown): string {
   }
   return 'Staff & Access could not complete this request.'
 }
-export function StaffManagement({ staff, roleOptions, roleDefaults }: StaffManagementProps) {
+export function StaffManagement({
+  staff,
+  roleOptions,
+  roleDefaults,
+  navigationOrder,
+}: StaffManagementProps) {
   const router = useRouter(),
     editorRef = useRef<HTMLHeadingElement>(null)
   const openerRef = useRef<HTMLElement | null>(null)
   const lookupRef = useRef<HTMLInputElement>(null)
   const restoreFocus = useRef(false)
+  const [revokedCharacters, setRevokedCharacters] = useState<readonly string[]>([])
+  const visibleStaff = staff.filter(
+    (member) =>
+      member.status !== 'revoked' &&
+      (!member.characterId || !revokedCharacters.includes(member.characterId)),
+  )
   const [query, setQuery] = useState(''),
     [identity, setIdentity] = useState<ResolvedAccount | null>(null)
   const [selected, setSelected] = useState(''),
@@ -86,7 +102,7 @@ export function StaffManagement({ staff, roleOptions, roleDefaults }: StaffManag
   const [defaults, setDefaults] = useState(roleDefaults)
   const [defaultDraft, setDefaultDraft] = useState(roleDefaults?.roles)
   const [defaultRole, setDefaultRole] = useState<DelegatedMasterPanelRole>('moderator')
-  const defaultCapabilityOptions = MASTER_PANEL_PAGES
+  const defaultCapabilityOptions = orderedMasterPanelPages(navigationOrder)
   const defaultsChanged = JSON.stringify(defaultDraft) !== JSON.stringify(defaults?.roles)
   async function saveDefaults() {
     if (!defaults || !defaultDraft || pending || !defaultsChanged) return
@@ -224,6 +240,9 @@ export function StaffManagement({ staff, roleOptions, roleDefaults }: StaffManag
         enabled,
         confirmed,
       })
+      setRevokedCharacters((current) =>
+        enabled ? current.filter((id) => id !== selected) : [...new Set([...current, selected])],
+      )
       setNotice(`${linked?.name ?? 'Character'} access ${enabled ? 'saved' : 'revoked'}.`)
       closeEditor()
       router.refresh()
@@ -242,7 +261,7 @@ export function StaffManagement({ staff, roleOptions, roleDefaults }: StaffManag
       <section className={styles.directory} aria-labelledby="staff-directory-title">
         <div className={styles.heading}>
           <h2 id="staff-directory-title">Staff directory</h2>
-          <span>{staff.length} staff</span>
+          <span>{visibleStaff.length} staff</span>
         </div>
         <form
           className={styles.lookup}
@@ -283,10 +302,10 @@ export function StaffManagement({ staff, roleOptions, roleDefaults }: StaffManag
             <span>Status</span>
             <span>Actions</span>
           </div>
-          {staff.length === 0 && (
+          {visibleStaff.length === 0 && (
             <p>No staff assignments yet. Find a verified identity to assign a linked character.</p>
           )}
-          {staff.map((member, index) => (
+          {visibleStaff.map((member, index) => (
             <article className={styles.row} key={member.characterId ?? `${member.userId}:${index}`}>
               <div className={styles.identity}>
                 <strong>

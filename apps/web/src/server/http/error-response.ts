@@ -1,4 +1,5 @@
 import {
+  AccountBannedError,
   isAurevaneError,
   isStaleBattleVersionError,
   type AurevaneErrorCode,
@@ -35,6 +36,7 @@ export function toServerErrorResponse(
         error: {
           code: error.code,
           message: error.publicMessage,
+          ...(error instanceof AccountBannedError ? { accountBanned: true } : {}),
           ...(isStaleBattleVersionError(error) ? { currentVersion: error.currentVersion } : {}),
         },
       },

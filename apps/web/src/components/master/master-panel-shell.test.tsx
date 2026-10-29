@@ -10,6 +10,7 @@ vi.mock('@/components/media/aurevane-image', () => ({
   AurevaneImage: ({ assetId }: { assetId: string }) =>
     createElement('img', { 'data-art': assetId, alt: '' }),
 }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 import { MasterPanelShell } from './master-panel-shell'
 const access: MasterPanelAccess = {
   userId: 'staff-1',
@@ -82,4 +83,47 @@ describe('Master workspace composition', () => {
     for (const href of ['/master/staff', '/master/events', '/master/music'])
       expect(markup).not.toContain(`href="${href}"`)
   })
+})
+
+it('uses the saved order after permission filtering and only offers ordering with Owner authority', () => {
+  const render = (owner: boolean) =>
+    renderToStaticMarkup(
+      <MasterPanelShell
+        access={{
+          ...access,
+          roles: owner ? ['game-owner'] : ['content-staff'],
+          effectiveCapabilities: [
+            'master.access',
+            'content.combat.author',
+            'activity.read',
+            ...(owner ? ['staff.manage' as const] : []),
+          ],
+          navigation: {
+            revision: 2,
+            order: [
+              'activity',
+              'combat',
+              'staff',
+              'combat-timing',
+              'events',
+              'moderation',
+              'players',
+              'music',
+              'world-environment',
+            ],
+          },
+        }}
+        activeSection="combat"
+        title="Master"
+        description="Review"
+      >
+        <p>Content</p>
+      </MasterPanelShell>,
+    )
+  expect(render(true).indexOf('href="/master/activity"')).toBeLessThan(
+    render(true).indexOf('href="/master/combat-content"'),
+  )
+  expect(render(true)).toContain('aria-label="Arrange Master Panel tabs"')
+  expect(render(false)).not.toContain('aria-label="Arrange Master Panel tabs"')
+  expect(render(false)).not.toContain('href="/master/staff"')
 })

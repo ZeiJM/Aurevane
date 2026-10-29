@@ -1,7 +1,8 @@
+import { isCombatPresentationTagId } from '../combat/combat-effect-identities'
 import { isFinalizedContentMedia, type FinalizedContentImage } from '../combat/content-media'
 import { parseAbilityDefinition, type AbilityDefinition } from '../combat/combat-definition'
 import { validateAbilityRequirements, type RequirementNode } from '../combat/combat-requirements'
-import { combatTagDefinition, captureCombatTagPresentation } from '../combat/combat-tag-registry'
+import { captureCombatTagPresentation } from '../combat/combat-tag-registry'
 import type { DisciplineAtlasEntry, DisciplineMasteryStage } from '../character/discipline-atlas'
 
 export const NONCOMBAT_CONTENT_KINDS = [
@@ -12,6 +13,7 @@ export const NONCOMBAT_CONTENT_KINDS = [
   'severence',
 ] as const
 export type NoncombatContentKind = (typeof NONCOMBAT_CONTENT_KINDS)[number]
+export const MAX_DISCIPLINE_SKILLS = 8
 interface AuthoredIdentity {
   readonly schemaVersion: 1
   readonly id: string
@@ -238,10 +240,10 @@ function parseNoncombatDefinition(
       invalid('enabledForPrimary', 'Explicit enable flags are required.')
     if (
       !Array.isArray(row.linkedSkills) ||
-      row.linkedSkills.length > 256 ||
+      row.linkedSkills.length > MAX_DISCIPLINE_SKILLS ||
       new Set(row.linkedSkills).size !== row.linkedSkills.length
     )
-      invalid('linkedSkills', 'Use at most 256 distinct Skill references.')
+      invalid('linkedSkills', `Use at most ${MAX_DISCIPLINE_SKILLS} distinct Skill references.`)
     row.linkedSkills.forEach((key, index) => id(key, `linkedSkills.${index}`))
     validateDisciplineUnlock(row.unlock, 'unlock', row.id)
     const extended = ['atlas', 'skillStages', 'essenceId', 'resonanceSelections']
@@ -317,7 +319,8 @@ function parseNoncombatDefinition(
     }
   } else if (kind === 'tag') {
     text(row.tagId, 'tagId', 160)
-    if (!combatTagDefinition(row.tagId)) invalid('tagId', 'Choose an implemented registry Tag.')
+    if (!isCombatPresentationTagId(row.tagId))
+      invalid('tagId', 'Choose an implemented gameplay Tag.')
     text(row.explanation, 'explanation', 2000)
   } else {
     const issues = validateAbilityRequirements(row.requirements)

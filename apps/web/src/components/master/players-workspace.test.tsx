@@ -39,15 +39,32 @@ it('reads calculated and protected facts, actual AP and every human affected by 
       attributes: { might: 12, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
       build: {
         buildVersion: 1,
-        primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+        primary: { disciplineId: 'discipline.custom-123', definitionVersion: 1, profileVersion: 1 },
         secondary: null,
-        disciplineSkills: [],
+        disciplineSkills: [
+          {
+            skillId: 'skill.custom-123',
+            contentVersion: 7,
+            sourceDisciplineId: 'discipline.custom-123',
+            slotIndex: 0,
+          },
+        ],
         supportActionId: 'basic.guard',
-        extensions: { resonance: null, essence: null },
+        extensions: {
+          resonance: { resonanceId: 'resonance.linked-sequence', contentVersion: 3 },
+          essence: { essenceId: 'essence.custom-123', contentVersion: 2 },
+        },
       },
     },
     calculated: { maxHp: 100, maxMp: 30, personalPointPool: 5 },
-    disciplines: [],
+    disciplines: [
+      { id: 'discipline.custom-123', name: 'Super Saiyan', primary: true, secondary: true },
+    ],
+    contentNames: {
+      'skill.custom-123': 'Solar Strike',
+      'resonance.linked-sequence': 'Golden Accord',
+      'essence.custom-123': 'Radiant Ascension',
+    },
     learnedSkills: [],
     savedLoadouts: [],
     world: null,
@@ -72,4 +89,8 @@ it('reads calculated and protected facts, actual AP and every human affected by 
   expect(html).toContain('Review encounter recovery')
   expect(html).toMatch(/<fieldset disabled=""/)
   expect(html).not.toContain('sourceHash')
+  for (const name of ['Super Saiyan', 'Solar Strike', 'Golden Accord', 'Radiant Ascension'])
+    expect(html).toContain(name)
+  expect(html).not.toMatch(/Linked Sequence|Custom 123|Solar Strike v7/)
+  expect(html).toContain('<summary>More player details</summary>')
 })

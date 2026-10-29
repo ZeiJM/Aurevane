@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { AurevaneError } from '@aurevane/game-core/errors'
+import { AccountBannedError, AurevaneError } from '@aurevane/game-core/errors'
 const mocks = vi.hoisted(() => ({
   actor: vi.fn(),
   battle: vi.fn(),
@@ -38,6 +38,12 @@ describe('Haven and Loadout session authority', () => {
     mocks.actor.mockRejectedValue(new AurevaneError('UNAUTHENTICATED', 'Sign in'))
     await expect(requireRoamingCharacter()).rejects.toThrow('redirect:/')
     expect(mocks.selected).not.toHaveBeenCalled()
+  })
+  it('routes a banned account to its self-only notice before loading gameplay state', async () => {
+    mocks.actor.mockRejectedValue(new AccountBannedError())
+    await expect(requireRoamingCharacter()).rejects.toThrow('redirect:/account/banned')
+    expect(mocks.selected).not.toHaveBeenCalled()
+    expect(mocks.battle).not.toHaveBeenCalled()
   })
   it('returns an account without a selected character to the roster', async () => {
     mocks.selected.mockResolvedValue(null)

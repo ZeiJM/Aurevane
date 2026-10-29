@@ -1,3 +1,4 @@
+import { battleTagDescription } from '@/lib/battle/battle-tag-wording'
 import type { ReactNode, RefObject } from 'react'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
@@ -63,7 +64,7 @@ export function battleEffectInformation(effect: BattlePresentedStatus) {
       ? 'Pending · Activation round unavailable'
       : details.timing
   const incoming = known ? summarizeBattleEffects([effective])[0]?.value : undefined
-  const applications =
+  const capturedApplications =
     known && perApplication && (effect.applicationModifiers?.length ?? 0) > 1
       ? effect.applicationModifiers!.map((application, index) => {
           const text = describeBattleEffect({
@@ -76,7 +77,11 @@ export function battleEffectInformation(effect: BattlePresentedStatus) {
           return `Application ${index + 1}: ${application.stacks} stack${application.stacks === 1 ? '' : 's'} · ${text}`
         })
       : []
-  const description = applications.length ? applications.join(' ') : baseDescription
+  const applications = effect.battleTag ? [] : capturedApplications
+  const description = battleTagDescription(
+    effect.battleTag,
+    capturedApplications.length ? capturedApplications.join(' ') : baseDescription,
+  )
   const summary = incoming ? `Incoming damage from this effect: ${incoming}.` : null
   const amountFacts = known ? battleEffectAmountInformation(effect) : { rows: [], notes: [] }
   const strengths = known ? battleEffectStrengthInformation(effect) : { rows: [], notes: [] }

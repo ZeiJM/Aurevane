@@ -1,0 +1,2680 @@
+{
+  "capturedAt": "2026-10-28",
+  "source": "Published game artwork at the Owner-requested default baseline; immutable versions retained.",
+  "records": [
+    {
+      "content_key": "aetherist",
+      "content_kind": "discipline",
+      "content_version": 11,
+      "body_id": "aetherist",
+      "media": {}
+    },
+    {
+      "content_key": "aetherist.arc-bolt",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "aetherist.arc-bolt",
+      "media": {
+        "iconKey": "skill.aetherist.arc-bolt.icon"
+      }
+    },
+    {
+      "content_key": "aetherist.arcane-field",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "aetherist.arcane-field",
+      "media": {
+        "iconKey": "skill.aetherist.arcane-field.icon"
+      }
+    },
+    {
+      "content_key": "aetherist.chain-spark",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "aetherist.chain-spark",
+      "media": {
+        "iconKey": "skill.aetherist.chain-spark.icon"
+      }
+    },
+    {
+      "content_key": "aetherist.channel",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "aetherist.channel",
+      "media": {
+        "iconKey": "skill.aetherist.channel.icon"
+      }
+    },
+    {
+      "content_key": "aetherist.mana-burst",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "aetherist.mana-burst",
+      "media": {
+        "iconKey": "skill.aetherist.mana-burst.icon"
+      }
+    },
+    {
+      "content_key": "aetherist.mana-shield",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "aetherist.mana-shield",
+      "media": {
+        "iconKey": "skill.aetherist.mana-shield.icon"
+      }
+    },
+    {
+      "content_key": "aetherist.overchannel",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "aetherist.overchannel",
+      "media": {
+        "iconKey": "skill.aetherist.overchannel.icon"
+      }
+    },
+    {
+      "content_key": "aetherist.ward-pierce",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "aetherist.ward-pierce",
+      "media": {
+        "iconKey": "skill.aetherist.ward-pierce.icon"
+      }
+    },
+    {
+      "content_key": "basic.guard",
+      "content_kind": "skill",
+      "content_version": 2,
+      "body_id": "basic.guard",
+      "media": {}
+    },
+    {
+      "content_key": "basic.move",
+      "content_kind": "skill",
+      "content_version": 2,
+      "body_id": "basic.move",
+      "media": {}
+    },
+    {
+      "content_key": "basic.recover",
+      "content_kind": "skill",
+      "content_version": 3,
+      "body_id": "basic.recover",
+      "media": {}
+    },
+    {
+      "content_key": "basic.recover.mp",
+      "content_kind": "skill",
+      "content_version": 3,
+      "body_id": "basic.recover.mp",
+      "media": {}
+    },
+    {
+      "content_key": "bastion.challenge",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "bastion.challenge",
+      "media": {
+        "iconKey": "skill.bastion.challenge.icon"
+      }
+    },
+    {
+      "content_key": "bastion.cover",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "bastion.cover",
+      "media": {
+        "iconKey": "skill.bastion.cover.icon"
+      }
+    },
+    {
+      "content_key": "bastion.fortress",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "bastion.fortress",
+      "media": {
+        "iconKey": "skill.bastion.fortress.icon"
+      }
+    },
+    {
+      "content_key": "bastion.hold-fast",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "bastion.hold-fast",
+      "media": {
+        "iconKey": "skill.bastion.hold-fast.icon"
+      }
+    },
+    {
+      "content_key": "bastion.shield-bash",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "bastion.shield-bash",
+      "media": {
+        "iconKey": "skill.bastion.shield-bash.icon"
+      }
+    },
+    {
+      "content_key": "bastion.shield-line",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "bastion.shield-line",
+      "media": {
+        "iconKey": "skill.bastion.shield-line.icon"
+      }
+    },
+    {
+      "content_key": "bastion.stalwart-strike",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "bastion.stalwart-strike",
+      "media": {
+        "iconKey": "skill.bastion.stalwart-strike.icon"
+      }
+    },
+    {
+      "content_key": "bastion.steady-footing",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "bastion.steady-footing",
+      "media": {
+        "iconKey": "skill.bastion.steady-footing.icon"
+      }
+    },
+    {
+      "content_key": "chronist.delay",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "chronist.delay",
+      "media": {
+        "iconKey": "skill.chronist.delay.icon"
+      }
+    },
+    {
+      "content_key": "chronist.haste",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "chronist.haste",
+      "media": {
+        "iconKey": "skill.chronist.haste.icon"
+      }
+    },
+    {
+      "content_key": "chronist.rewind-step",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "chronist.rewind-step",
+      "media": {
+        "iconKey": "skill.chronist.rewind-step.icon"
+      }
+    },
+    {
+      "content_key": "chronist.slow",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "chronist.slow",
+      "media": {
+        "iconKey": "skill.chronist.slow.icon"
+      }
+    },
+    {
+      "content_key": "chronist.stolen-moment",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "chronist.stolen-moment",
+      "media": {
+        "iconKey": "skill.chronist.stolen-moment.icon"
+      }
+    },
+    {
+      "content_key": "chronist.temporal-bolt",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "chronist.temporal-bolt",
+      "media": {
+        "iconKey": "skill.chronist.temporal-bolt.icon"
+      }
+    },
+    {
+      "content_key": "chronist.temporal-ward",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "chronist.temporal-ward",
+      "media": {
+        "iconKey": "skill.chronist.temporal-ward.icon"
+      }
+    },
+    {
+      "content_key": "chronist.time-lock",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "chronist.time-lock",
+      "media": {
+        "iconKey": "skill.chronist.time-lock.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.ash-ward",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "cinderweaver.ash-ward",
+      "media": {
+        "iconKey": "skill.cinderweaver.ash-ward.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.banked-embers",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "cinderweaver.banked-embers",
+      "media": {
+        "iconKey": "skill.cinderweaver.banked-embers.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.blistering-heat",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "cinderweaver.blistering-heat",
+      "media": {
+        "iconKey": "skill.cinderweaver.blistering-heat.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.cinder-bolt",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "cinderweaver.cinder-bolt",
+      "media": {
+        "iconKey": "skill.cinderweaver.cinder-bolt.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.ember-line",
+      "content_kind": "skill",
+      "content_version": 10,
+      "body_id": "cinderweaver.ember-line",
+      "media": {
+        "iconKey": "skill.cinderweaver.ember-line.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.flame-burst",
+      "content_kind": "skill",
+      "content_version": 11,
+      "body_id": "cinderweaver.flame-burst",
+      "media": {
+        "iconKey": "skill.cinderweaver.flame-burst.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.flashfire",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "cinderweaver.flashfire",
+      "media": {
+        "iconKey": "skill.cinderweaver.flashfire.icon"
+      }
+    },
+    {
+      "content_key": "cinderweaver.scorch",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "cinderweaver.scorch",
+      "media": {
+        "iconKey": "skill.cinderweaver.scorch.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.aegis",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "dawnshield.aegis",
+      "media": {
+        "iconKey": "skill.dawnshield.aegis.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.consecrated-light",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "dawnshield.consecrated-light",
+      "media": {
+        "iconKey": "skill.dawnshield.consecrated-light.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.judgment",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "dawnshield.judgment",
+      "media": {
+        "iconKey": "skill.dawnshield.judgment.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.last-light",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "dawnshield.last-light",
+      "media": {
+        "iconKey": "skill.dawnshield.last-light.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.purge",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "dawnshield.purge",
+      "media": {
+        "iconKey": "skill.dawnshield.purge.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.radiant-strike",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "dawnshield.radiant-strike",
+      "media": {
+        "iconKey": "skill.dawnshield.radiant-strike.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.renewal",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "dawnshield.renewal",
+      "media": {
+        "iconKey": "skill.dawnshield.renewal.icon"
+      }
+    },
+    {
+      "content_key": "dawnshield.sacred-guard",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "dawnshield.sacred-guard",
+      "media": {
+        "iconKey": "skill.dawnshield.sacred-guard.icon"
+      }
+    },
+    {
+      "content_key": "discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2",
+      "content_kind": "discipline",
+      "content_version": 3,
+      "body_id": "discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2",
+      "media": {
+        "artwork": {
+          "id": "f63abd95-14eb-4da5-8e89-131d0d2d4d68",
+          "crop": {
+            "x": 0,
+            "y": 0,
+            "size": 1440
+          },
+          "kind": "image",
+          "width": 1440,
+          "height": 1440,
+          "checksum": "4a9af85252c5f0863e7896224ca3e8b506742eccd7f4d577621b083f0fe951ea",
+          "byteLength": 681494,
+          "contentType": "image/png",
+          "sourceWidth": 1440,
+          "sourceHeight": 1440
+        }
+      }
+    },
+    {
+      "content_key": "edgedancer.finishing-thrust",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "edgedancer.finishing-thrust",
+      "media": {
+        "iconKey": "skill.edgedancer.finishing-thrust.icon"
+      }
+    },
+    {
+      "content_key": "edgedancer.flanking-cut",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "edgedancer.flanking-cut",
+      "media": {
+        "iconKey": "skill.edgedancer.flanking-cut.icon"
+      }
+    },
+    {
+      "content_key": "edgedancer.flourish",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "edgedancer.flourish",
+      "media": {
+        "iconKey": "skill.edgedancer.flourish.icon"
+      }
+    },
+    {
+      "content_key": "edgedancer.hamstring",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "edgedancer.hamstring",
+      "media": {
+        "iconKey": "skill.edgedancer.hamstring.icon"
+      }
+    },
+    {
+      "content_key": "edgedancer.lunge",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "edgedancer.lunge",
+      "media": {
+        "iconKey": "skill.edgedancer.lunge.icon"
+      }
+    },
+    {
+      "content_key": "edgedancer.poised-guard",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "edgedancer.poised-guard",
+      "media": {
+        "iconKey": "skill.edgedancer.poised-guard.icon"
+      }
+    },
+    {
+      "content_key": "edgedancer.riposte",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "edgedancer.riposte",
+      "media": {
+        "iconKey": "skill.edgedancer.riposte.icon"
+      }
+    },
+    {
+      "content_key": "edgedancer.severing-cut",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "edgedancer.severing-cut",
+      "media": {
+        "iconKey": "skill.edgedancer.severing-cut.icon"
+      }
+    },
+    {
+      "content_key": "essence.aetherist.aether-nova",
+      "content_kind": "essence",
+      "content_version": 9,
+      "body_id": "essence.aetherist.aether-nova",
+      "media": {
+        "iconKey": "essence.aetherist.aether-nova.icon"
+      }
+    },
+    {
+      "content_key": "essence.bastion.last-bastion",
+      "content_kind": "essence",
+      "content_version": 9,
+      "body_id": "essence.bastion.last-bastion",
+      "media": {
+        "iconKey": "essence.bastion.last-bastion.icon"
+      }
+    },
+    {
+      "content_key": "essence.chronist.borrowed-hour",
+      "content_kind": "essence",
+      "content_version": 8,
+      "body_id": "essence.chronist.borrowed-hour",
+      "media": {
+        "iconKey": "essence.chronist.borrowed-hour.icon"
+      }
+    },
+    {
+      "content_key": "essence.cinderweaver.phoenix-wake",
+      "content_kind": "essence",
+      "content_version": 8,
+      "body_id": "essence.cinderweaver.phoenix-wake",
+      "media": {
+        "iconKey": "essence.cinderweaver.phoenix-wake.icon"
+      }
+    },
+    {
+      "content_key": "essence.dawnshield.dawns-oath",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.dawnshield.dawns-oath",
+      "media": {
+        "iconKey": "essence.dawnshield.dawns-oath.icon"
+      }
+    },
+    {
+      "content_key": "essence.edgedancer.sevenfold-cut",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.edgedancer.sevenfold-cut",
+      "media": {
+        "iconKey": "essence.edgedancer.sevenfold-cut.icon"
+      }
+    },
+    {
+      "content_key": "essence.farstrider.deadeye-barrage",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.farstrider.deadeye-barrage",
+      "media": {
+        "iconKey": "essence.farstrider.deadeye-barrage.icon"
+      }
+    },
+    {
+      "content_key": "essence.frostweaver.absolute-winter",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.frostweaver.absolute-winter",
+      "media": {
+        "iconKey": "essence.frostweaver.absolute-winter.icon"
+      }
+    },
+    {
+      "content_key": "essence.ironfist.hundredfold-rush",
+      "content_kind": "essence",
+      "content_version": 6,
+      "body_id": "essence.ironfist.hundredfold-rush",
+      "media": {
+        "iconKey": "essence.ironfist.hundredfold-rush.icon"
+      }
+    },
+    {
+      "content_key": "essence.lifebinder.verdant-rupture",
+      "content_kind": "essence",
+      "content_version": 8,
+      "body_id": "essence.lifebinder.verdant-rupture",
+      "media": {
+        "iconKey": "essence.lifebinder.verdant-rupture.icon"
+      }
+    },
+    {
+      "content_key": "essence.ravager.red-tempest",
+      "content_kind": "essence",
+      "content_version": 9,
+      "body_id": "essence.ravager.red-tempest",
+      "media": {
+        "iconKey": "essence.ravager.red-tempest.icon"
+      }
+    },
+    {
+      "content_key": "essence.runeblade.runic-overdrive",
+      "content_kind": "essence",
+      "content_version": 9,
+      "body_id": "essence.runeblade.runic-overdrive",
+      "media": {
+        "iconKey": "essence.runeblade.runic-overdrive.icon"
+      }
+    },
+    {
+      "content_key": "essence.shadehand.perfect-opening",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.shadehand.perfect-opening",
+      "media": {
+        "iconKey": "essence.shadehand.perfect-opening.icon"
+      }
+    },
+    {
+      "content_key": "essence.stormsinger.skybreak",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.stormsinger.skybreak",
+      "media": {
+        "iconKey": "essence.stormsinger.skybreak.icon"
+      }
+    },
+    {
+      "content_key": "essence.tidecaller.tidal-crown",
+      "content_kind": "essence",
+      "content_version": 9,
+      "body_id": "essence.tidecaller.tidal-crown",
+      "media": {
+        "iconKey": "essence.tidecaller.tidal-crown.icon"
+      }
+    },
+    {
+      "content_key": "essence.vanguard.unbroken-strike",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.vanguard.unbroken-strike",
+      "media": {
+        "iconKey": "essence.vanguard.unbroken-strike.icon"
+      }
+    },
+    {
+      "content_key": "essence.wildwarden.apex-hunt",
+      "content_kind": "essence",
+      "content_version": 7,
+      "body_id": "essence.wildwarden.apex-hunt",
+      "media": {
+        "iconKey": "essence.wildwarden.apex-hunt.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.aimed-shot",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "farstrider.aimed-shot",
+      "media": {
+        "iconKey": "skill.farstrider.aimed-shot.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.fieldcraft",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "farstrider.fieldcraft",
+      "media": {
+        "iconKey": "skill.farstrider.fieldcraft.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.keen-focus",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "farstrider.keen-focus",
+      "media": {
+        "iconKey": "skill.farstrider.keen-focus.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.longshot",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "farstrider.longshot",
+      "media": {
+        "iconKey": "skill.farstrider.longshot.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.piercing-barrage",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "farstrider.piercing-barrage",
+      "media": {
+        "iconKey": "skill.farstrider.piercing-barrage.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.pinning-shot",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "farstrider.pinning-shot",
+      "media": {
+        "iconKey": "skill.farstrider.pinning-shot.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.scouts-mark",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "farstrider.scouts-mark",
+      "media": {
+        "iconKey": "skill.farstrider.scouts-mark.icon"
+      }
+    },
+    {
+      "content_key": "farstrider.volley",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "farstrider.volley",
+      "media": {
+        "iconKey": "skill.farstrider.volley.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.brittle-ice",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "frostweaver.brittle-ice",
+      "media": {
+        "iconKey": "skill.frostweaver.brittle-ice.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.chilling-mist",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "frostweaver.chilling-mist",
+      "media": {
+        "iconKey": "skill.frostweaver.chilling-mist.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.crystal-prison",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "frostweaver.crystal-prison",
+      "media": {
+        "iconKey": "skill.frostweaver.crystal-prison.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.frost-guard",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "frostweaver.frost-guard",
+      "media": {
+        "iconKey": "skill.frostweaver.frost-guard.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.ice-lance",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "frostweaver.ice-lance",
+      "media": {
+        "iconKey": "skill.frostweaver.ice-lance.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.ice-line",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "frostweaver.ice-line",
+      "media": {
+        "iconKey": "skill.frostweaver.ice-line.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.shatter",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "frostweaver.shatter",
+      "media": {
+        "iconKey": "skill.frostweaver.shatter.icon"
+      }
+    },
+    {
+      "content_key": "frostweaver.thaw",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "frostweaver.thaw",
+      "media": {
+        "iconKey": "skill.frostweaver.thaw.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.breakfall",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ironfist.breakfall",
+      "media": {
+        "iconKey": "skill.ironfist.breakfall.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.counter-palm",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "ironfist.counter-palm",
+      "media": {
+        "iconKey": "skill.ironfist.counter-palm.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.focus-breath",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "ironfist.focus-breath",
+      "media": {
+        "iconKey": "skill.ironfist.focus-breath.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.hammer-knuckle",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "ironfist.hammer-knuckle",
+      "media": {
+        "iconKey": "skill.ironfist.hammer-knuckle.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.last-stand",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "ironfist.last-stand",
+      "media": {
+        "iconKey": "skill.ironfist.last-stand.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.pressure-palm",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ironfist.pressure-palm",
+      "media": {
+        "iconKey": "skill.ironfist.pressure-palm.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.rising-fist",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "ironfist.rising-fist",
+      "media": {
+        "iconKey": "skill.ironfist.rising-fist.icon"
+      }
+    },
+    {
+      "content_key": "ironfist.sweep",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ironfist.sweep",
+      "media": {
+        "iconKey": "skill.ironfist.sweep.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.barrier",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "lifebinder.barrier",
+      "media": {
+        "iconKey": "skill.lifebinder.barrier.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.fortifying-light",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "lifebinder.fortifying-light",
+      "media": {
+        "iconKey": "skill.lifebinder.fortifying-light.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.mend",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "lifebinder.mend",
+      "media": {
+        "iconKey": "skill.lifebinder.mend.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.mending-light",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "lifebinder.mending-light",
+      "media": {
+        "iconKey": "skill.lifebinder.mending-light.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.renew",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "lifebinder.renew",
+      "media": {
+        "iconKey": "skill.lifebinder.renew.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.sanctuary",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "lifebinder.sanctuary",
+      "media": {
+        "iconKey": "skill.lifebinder.sanctuary.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.searing-bloom",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "lifebinder.searing-bloom",
+      "media": {
+        "iconKey": "skill.lifebinder.searing-bloom.icon"
+      }
+    },
+    {
+      "content_key": "lifebinder.vital-sever",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "lifebinder.vital-sever",
+      "media": {
+        "iconKey": "skill.lifebinder.vital-sever.icon"
+      }
+    },
+    {
+      "content_key": "ravager.blood-rush",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ravager.blood-rush",
+      "media": {
+        "iconKey": "skill.ravager.blood-rush.icon"
+      }
+    },
+    {
+      "content_key": "ravager.blood-siphon",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ravager.blood-siphon",
+      "media": {
+        "iconKey": "skill.ravager.blood-siphon.icon"
+      }
+    },
+    {
+      "content_key": "ravager.cleaving-blow",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ravager.cleaving-blow",
+      "media": {
+        "iconKey": "skill.ravager.cleaving-blow.icon"
+      }
+    },
+    {
+      "content_key": "ravager.desperate-execution",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ravager.desperate-execution",
+      "media": {
+        "iconKey": "skill.ravager.desperate-execution.icon"
+      }
+    },
+    {
+      "content_key": "ravager.frenzy",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "ravager.frenzy",
+      "media": {
+        "iconKey": "skill.ravager.frenzy.icon"
+      }
+    },
+    {
+      "content_key": "ravager.gash",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ravager.gash",
+      "media": {
+        "iconKey": "skill.ravager.gash.icon"
+      }
+    },
+    {
+      "content_key": "ravager.open-wound",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ravager.open-wound",
+      "media": {
+        "iconKey": "skill.ravager.open-wound.icon"
+      }
+    },
+    {
+      "content_key": "ravager.war-roar",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "ravager.war-roar",
+      "media": {
+        "iconKey": "skill.ravager.war-roar.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-bastion.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.aetherist-bastion.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-bastion.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-chronist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 8,
+      "body_id": "resonance.aetherist-chronist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-chronist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-cinderweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.aetherist-cinderweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-cinderweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.aetherist-dawnshield.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-dawnshield.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.aetherist-edgedancer.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-edgedancer.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-farstrider.arcane-hunt",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.aetherist-farstrider.arcane-hunt",
+      "media": {
+        "iconKey": "resonance.aetherist-farstrider.arcane-hunt.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.aetherist-frostweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-frostweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-ironfist.conductive-impact",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.aetherist-ironfist.conductive-impact",
+      "media": {
+        "iconKey": "resonance.aetherist-ironfist.conductive-impact.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-lifebinder.vital-circuit",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.aetherist-lifebinder.vital-circuit",
+      "media": {
+        "iconKey": "resonance.aetherist-lifebinder.vital-circuit.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 8,
+      "body_id": "resonance.aetherist-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.aetherist-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-shadehand.veiled-conduit",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.aetherist-shadehand.veiled-conduit",
+      "media": {
+        "iconKey": "resonance.aetherist-shadehand.veiled-conduit.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.aetherist-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.aetherist-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-vanguard.spellsteel-rhythm",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.aetherist-vanguard.spellsteel-rhythm",
+      "media": {
+        "iconKey": "resonance.aetherist-vanguard.spellsteel-rhythm.icon"
+      }
+    },
+    {
+      "content_key": "resonance.aetherist-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.aetherist-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.aetherist-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-chronist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-chronist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-chronist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-cinderweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-cinderweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-cinderweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.bastion-dawnshield.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-dawnshield.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.bastion-edgedancer.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-edgedancer.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 8,
+      "body_id": "resonance.bastion-farstrider.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-farstrider.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.bastion-frostweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-frostweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-ironfist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-ironfist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-lifebinder.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-lifebinder.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.bastion-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.bastion-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.bastion-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.bastion-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.bastion-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.bastion-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-cinderweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.chronist-cinderweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-cinderweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.chronist-dawnshield.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-dawnshield.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.chronist-edgedancer.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-edgedancer.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.chronist-farstrider.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-farstrider.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.chronist-frostweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-frostweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.chronist-ironfist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-ironfist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.chronist-lifebinder.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-lifebinder.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.chronist-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.chronist-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.chronist-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.chronist-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.chronist-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.chronist-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.chronist-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.chronist-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.chronist-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-dawnshield.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.cinderweaver-dawnshield.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-dawnshield.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.cinderweaver-edgedancer.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-edgedancer.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.cinderweaver-farstrider.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-farstrider.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.cinderweaver-frostweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-frostweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.cinderweaver-ironfist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-ironfist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.cinderweaver-lifebinder.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-lifebinder.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.cinderweaver-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.cinderweaver-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.cinderweaver-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.cinderweaver-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.cinderweaver-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.cinderweaver-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.cinderweaver-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.cinderweaver-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-edgedancer.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.dawnshield-edgedancer.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-edgedancer.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.dawnshield-farstrider.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-farstrider.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.dawnshield-frostweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-frostweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.dawnshield-ironfist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-ironfist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.dawnshield-lifebinder.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-lifebinder.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.dawnshield-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.dawnshield-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.dawnshield-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.dawnshield-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.dawnshield-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.dawnshield-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.dawnshield-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.dawnshield-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.dawnshield-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-farstrider.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.edgedancer-farstrider.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-farstrider.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.edgedancer-frostweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-frostweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.edgedancer-ironfist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-ironfist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.edgedancer-lifebinder.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-lifebinder.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.edgedancer-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.edgedancer-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.edgedancer-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.edgedancer-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.edgedancer-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.edgedancer-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.edgedancer-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.edgedancer-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.edgedancer-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-frostweaver.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.farstrider-frostweaver.linked-sequence",
+      "media": {
+        "iconKey": "resonance.farstrider-frostweaver.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-ironfist.marked-approach",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.farstrider-ironfist.marked-approach",
+      "media": {
+        "iconKey": "resonance.farstrider-ironfist.marked-approach.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-lifebinder.guided-renewal",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.farstrider-lifebinder.guided-renewal",
+      "media": {
+        "iconKey": "resonance.farstrider-lifebinder.guided-renewal.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.farstrider-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.farstrider-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.farstrider-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.farstrider-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-shadehand.marked-opening",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.farstrider-shadehand.marked-opening",
+      "media": {
+        "iconKey": "resonance.farstrider-shadehand.marked-opening.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.farstrider-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.farstrider-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.farstrider-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.farstrider-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-vanguard.covering-break",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.farstrider-vanguard.covering-break",
+      "media": {
+        "iconKey": "resonance.farstrider-vanguard.covering-break.icon"
+      }
+    },
+    {
+      "content_key": "resonance.farstrider-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.farstrider-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.farstrider-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-ironfist.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.frostweaver-ironfist.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-ironfist.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-lifebinder.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.frostweaver-lifebinder.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-lifebinder.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.frostweaver-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.frostweaver-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.frostweaver-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.frostweaver-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.frostweaver-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.frostweaver-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.frostweaver-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.frostweaver-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.frostweaver-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-lifebinder.renewed-force",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.ironfist-lifebinder.renewed-force",
+      "media": {
+        "iconKey": "resonance.ironfist-lifebinder.renewed-force.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.ironfist-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ironfist-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.ironfist-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ironfist-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-shadehand.broken-rhythm",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.ironfist-shadehand.broken-rhythm",
+      "media": {
+        "iconKey": "resonance.ironfist-shadehand.broken-rhythm.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.ironfist-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ironfist-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.ironfist-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ironfist-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-vanguard.tempered-response",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.ironfist-vanguard.tempered-response",
+      "media": {
+        "iconKey": "resonance.ironfist-vanguard.tempered-response.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ironfist-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.ironfist-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ironfist-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.lifebinder-ravager.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.lifebinder-ravager.linked-sequence",
+      "media": {
+        "iconKey": "resonance.lifebinder-ravager.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.lifebinder-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.lifebinder-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.lifebinder-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.lifebinder-shadehand.mercy-in-shadow",
+      "media": {
+        "iconKey": "resonance.lifebinder-shadehand.mercy-in-shadow.icon"
+      }
+    },
+    {
+      "content_key": "resonance.lifebinder-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.lifebinder-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.lifebinder-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.lifebinder-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.lifebinder-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.lifebinder-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.lifebinder-vanguard.mercys-edge",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.lifebinder-vanguard.mercys-edge",
+      "media": {
+        "iconKey": "resonance.lifebinder-vanguard.mercys-edge.icon"
+      }
+    },
+    {
+      "content_key": "resonance.lifebinder-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 10,
+      "body_id": "resonance.lifebinder-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.lifebinder-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ravager-runeblade.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 9,
+      "body_id": "resonance.ravager-runeblade.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ravager-runeblade.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ravager-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.ravager-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ravager-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ravager-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.ravager-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ravager-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ravager-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.ravager-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ravager-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ravager-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.ravager-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ravager-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.ravager-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.ravager-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.ravager-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.runeblade-shadehand.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.runeblade-shadehand.linked-sequence",
+      "media": {
+        "iconKey": "resonance.runeblade-shadehand.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.runeblade-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.runeblade-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.runeblade-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.runeblade-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.runeblade-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.runeblade-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.runeblade-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.runeblade-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.runeblade-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.runeblade-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.runeblade-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.runeblade-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.shadehand-stormsinger.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 13,
+      "body_id": "resonance.shadehand-stormsinger.linked-sequence",
+      "media": {
+        "iconKey": "resonance.shadehand-stormsinger.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.shadehand-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.shadehand-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.shadehand-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.shadehand-vanguard.broken-line",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.shadehand-vanguard.broken-line",
+      "media": {
+        "iconKey": "resonance.shadehand-vanguard.broken-line.icon"
+      }
+    },
+    {
+      "content_key": "resonance.shadehand-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.shadehand-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.shadehand-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.stormsinger-tidecaller.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.stormsinger-tidecaller.linked-sequence",
+      "media": {
+        "iconKey": "resonance.stormsinger-tidecaller.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.stormsinger-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.stormsinger-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.stormsinger-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.stormsinger-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.stormsinger-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.stormsinger-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.tidecaller-vanguard.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.tidecaller-vanguard.linked-sequence",
+      "media": {
+        "iconKey": "resonance.tidecaller-vanguard.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.tidecaller-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 12,
+      "body_id": "resonance.tidecaller-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.tidecaller-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "resonance.vanguard-wildwarden.linked-sequence",
+      "content_kind": "resonance",
+      "content_version": 11,
+      "body_id": "resonance.vanguard-wildwarden.linked-sequence",
+      "media": {
+        "iconKey": "resonance.vanguard-wildwarden.linked-sequence.icon"
+      }
+    },
+    {
+      "content_key": "runeblade",
+      "content_kind": "discipline",
+      "content_version": 4,
+      "body_id": "runeblade",
+      "media": {}
+    },
+    {
+      "content_key": "runeblade.aether-cut",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "runeblade.aether-cut",
+      "media": {
+        "iconKey": "skill.runeblade.aether-cut.icon"
+      }
+    },
+    {
+      "content_key": "runeblade.arc-edge",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "runeblade.arc-edge",
+      "media": {
+        "iconKey": "skill.runeblade.arc-edge.icon"
+      }
+    },
+    {
+      "content_key": "runeblade.rune-burst",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "runeblade.rune-burst",
+      "media": {
+        "iconKey": "skill.runeblade.rune-burst.icon"
+      }
+    },
+    {
+      "content_key": "runeblade.rune-guard",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "runeblade.rune-guard",
+      "media": {
+        "iconKey": "skill.runeblade.rune-guard.icon"
+      }
+    },
+    {
+      "content_key": "runeblade.rune-mending",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "runeblade.rune-mending",
+      "media": {
+        "iconKey": "skill.runeblade.rune-mending.icon"
+      }
+    },
+    {
+      "content_key": "runeblade.sigil-brand",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "runeblade.sigil-brand",
+      "media": {
+        "iconKey": "skill.runeblade.sigil-brand.icon"
+      }
+    },
+    {
+      "content_key": "runeblade.siphon-slash",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "runeblade.siphon-slash",
+      "media": {
+        "iconKey": "skill.runeblade.siphon-slash.icon"
+      }
+    },
+    {
+      "content_key": "runeblade.unbinding-rune",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "runeblade.unbinding-rune",
+      "media": {
+        "iconKey": "skill.runeblade.unbinding-rune.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.backstab",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "shadehand.backstab",
+      "media": {
+        "iconKey": "skill.shadehand.backstab.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.crippling-cut",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "shadehand.crippling-cut",
+      "media": {
+        "iconKey": "skill.shadehand.crippling-cut.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.execution-cut",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "shadehand.execution-cut",
+      "media": {
+        "iconKey": "skill.shadehand.execution-cut.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.exploit-opening",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "shadehand.exploit-opening",
+      "media": {
+        "iconKey": "skill.shadehand.exploit-opening.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.fan-of-knives",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "shadehand.fan-of-knives",
+      "media": {
+        "iconKey": "skill.shadehand.fan-of-knives.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.feint",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "shadehand.feint",
+      "media": {
+        "iconKey": "skill.shadehand.feint.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.quick-hands",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "shadehand.quick-hands",
+      "media": {
+        "iconKey": "skill.shadehand.quick-hands.icon"
+      }
+    },
+    {
+      "content_key": "shadehand.smoke-vial",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "shadehand.smoke-vial",
+      "media": {
+        "iconKey": "skill.shadehand.smoke-vial.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.arc-spark",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "stormsinger.arc-spark",
+      "media": {
+        "iconKey": "skill.stormsinger.arc-spark.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.conductive-bolt",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "stormsinger.conductive-bolt",
+      "media": {
+        "iconKey": "skill.stormsinger.conductive-bolt.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.grounding",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "stormsinger.grounding",
+      "media": {
+        "iconKey": "skill.stormsinger.grounding.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.lightning-line",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "stormsinger.lightning-line",
+      "media": {
+        "iconKey": "skill.stormsinger.lightning-line.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.static-burst",
+      "content_kind": "skill",
+      "content_version": 10,
+      "body_id": "stormsinger.static-burst",
+      "media": {
+        "iconKey": "skill.stormsinger.static-burst.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.static-drain",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "stormsinger.static-drain",
+      "media": {
+        "iconKey": "skill.stormsinger.static-drain.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.storm-breath",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "stormsinger.storm-breath",
+      "media": {
+        "iconKey": "skill.stormsinger.storm-breath.icon"
+      }
+    },
+    {
+      "content_key": "stormsinger.thunderclap",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "stormsinger.thunderclap",
+      "media": {
+        "iconKey": "skill.stormsinger.thunderclap.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.cleansing-rain",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "tidecaller.cleansing-rain",
+      "media": {
+        "iconKey": "skill.tidecaller.cleansing-rain.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.crushing-wave",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "tidecaller.crushing-wave",
+      "media": {
+        "iconKey": "skill.tidecaller.crushing-wave.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.flood-line",
+      "content_kind": "skill",
+      "content_version": 10,
+      "body_id": "tidecaller.flood-line",
+      "media": {
+        "iconKey": "skill.tidecaller.flood-line.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.mist-veil",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "tidecaller.mist-veil",
+      "media": {
+        "iconKey": "skill.tidecaller.mist-veil.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.springwater",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "tidecaller.springwater",
+      "media": {
+        "iconKey": "skill.tidecaller.springwater.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.still-water",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "tidecaller.still-water",
+      "media": {
+        "iconKey": "skill.tidecaller.still-water.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.undertow",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "tidecaller.undertow",
+      "media": {
+        "iconKey": "skill.tidecaller.undertow.icon"
+      }
+    },
+    {
+      "content_key": "tidecaller.water-lance",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "tidecaller.water-lance",
+      "media": {
+        "iconKey": "skill.tidecaller.water-lance.icon"
+      }
+    },
+    {
+      "content_key": "unarmed.basic",
+      "content_kind": "skill",
+      "content_version": 2,
+      "body_id": "unarmed.basic",
+      "media": {}
+    },
+    {
+      "content_key": "vanguard.brace",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "vanguard.brace",
+      "media": {
+        "iconKey": "skill.vanguard.brace.icon"
+      }
+    },
+    {
+      "content_key": "vanguard.cleave",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "vanguard.cleave",
+      "media": {
+        "iconKey": "skill.vanguard.cleave.icon"
+      }
+    },
+    {
+      "content_key": "vanguard.forceful-strike",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "vanguard.forceful-strike",
+      "media": {
+        "iconKey": "skill.vanguard.forceful-strike.icon"
+      }
+    },
+    {
+      "content_key": "vanguard.guard-break",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "vanguard.guard-break",
+      "media": {
+        "iconKey": "skill.vanguard.guard-break.icon"
+      }
+    },
+    {
+      "content_key": "vanguard.rally",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "vanguard.rally",
+      "media": {
+        "iconKey": "skill.vanguard.rally.icon"
+      }
+    },
+    {
+      "content_key": "vanguard.second-wind",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "vanguard.second-wind",
+      "media": {
+        "iconKey": "skill.vanguard.second-wind.icon"
+      }
+    },
+    {
+      "content_key": "vanguard.shield-bash",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "vanguard.shield-bash",
+      "media": {
+        "iconKey": "skill.vanguard.shield-bash.icon"
+      }
+    },
+    {
+      "content_key": "vanguard.sweeping-strike",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "vanguard.sweeping-strike",
+      "media": {
+        "iconKey": "skill.vanguard.sweeping-strike.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.close-quarry",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "wildwarden.close-quarry",
+      "media": {
+        "iconKey": "skill.wildwarden.close-quarry.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.field-remedy",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "wildwarden.field-remedy",
+      "media": {
+        "iconKey": "skill.wildwarden.field-remedy.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.hunters-mark",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "wildwarden.hunters-mark",
+      "media": {
+        "iconKey": "skill.wildwarden.hunters-mark.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.pursuit-shot",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "wildwarden.pursuit-shot",
+      "media": {
+        "iconKey": "skill.wildwarden.pursuit-shot.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.renewing-herbs",
+      "content_kind": "skill",
+      "content_version": 8,
+      "body_id": "wildwarden.renewing-herbs",
+      "media": {
+        "iconKey": "skill.wildwarden.renewing-herbs.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.snare",
+      "content_kind": "skill",
+      "content_version": 6,
+      "body_id": "wildwarden.snare",
+      "media": {
+        "iconKey": "skill.wildwarden.snare.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.thorn-line",
+      "content_kind": "skill",
+      "content_version": 7,
+      "body_id": "wildwarden.thorn-line",
+      "media": {
+        "iconKey": "skill.wildwarden.thorn-line.icon"
+      }
+    },
+    {
+      "content_key": "wildwarden.venom-shot",
+      "content_kind": "skill",
+      "content_version": 9,
+      "body_id": "wildwarden.venom-shot",
+      "media": {
+        "iconKey": "skill.wildwarden.venom-shot.icon"
+      }
+    }
+  ]
+}

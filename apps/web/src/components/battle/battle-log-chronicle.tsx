@@ -1,5 +1,7 @@
 'use client'
 
+import { battleTagDescription } from '@/lib/battle/battle-tag-wording'
+
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { createPortal } from 'react-dom'
@@ -71,17 +73,20 @@ function ChronicleTechnique({
                   trigger={result.text}
                 >
                   <p>
-                    {result.statusId === 'suppress'
-                      ? result.potencyBasisPoints === undefined
-                        ? 'Recorded Suppress percentage unavailable.'
-                        : statusPotencyDescription(result.statusId, result.potencyBasisPoints)
-                      : ['wet', 'frozen', 'conductive'].includes(result.statusId)
-                        ? statusPotencyDescription(result.statusId, result.potencyBasisPoints, {
-                            legacyElemental: elementalDamagePolicyVersion == null,
-                            explicitElemental: elementalDamagePolicyVersion === 2,
-                            elementalPotencyUnavailable: result.potencyBasisPoints === undefined,
-                          })
-                        : combatStatusDetails(result.statusId).description}
+                    {battleTagDescription(
+                      result.battleTag,
+                      result.statusId === 'suppress'
+                        ? result.potencyBasisPoints === undefined
+                          ? 'Recorded Suppress percentage unavailable.'
+                          : statusPotencyDescription(result.statusId, result.potencyBasisPoints)
+                        : ['wet', 'frozen', 'conductive'].includes(result.statusId)
+                          ? statusPotencyDescription(result.statusId, result.potencyBasisPoints, {
+                              legacyElemental: elementalDamagePolicyVersion == null,
+                              explicitElemental: elementalDamagePolicyVersion === 2,
+                              elementalPotencyUnavailable: result.potencyBasisPoints === undefined,
+                            })
+                          : combatStatusDetails(result.statusId).description,
+                    )}
                   </p>
                   {result.duration ? <p>Recorded duration: {result.duration}.</p> : null}
                 </BattleInfoPopover>

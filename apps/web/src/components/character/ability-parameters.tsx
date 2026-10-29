@@ -28,10 +28,9 @@ export function AbilityParameters({
           requirementParts={report.requirementParts}
           effectSummary={
             report.effects.length
-              ? report.effects.map(({ parts, recipientOverride, tagPresentation }, index) => (
+              ? report.effects.map(({ parts, tagPresentation }, index) => (
                   <div key={index}>
                     <CompactEffectSummary parts={parts} tagPresentation={tagPresentation} />
-                    {recipientOverride ? ` [${recipientOverride}]` : null}
                   </div>
                 ))
               : 'N/A'

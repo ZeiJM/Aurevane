@@ -518,11 +518,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           'invalid-accuracy',
           'Accuracy is Standard or Fixed integer 0–10000 basis points, without legacy fields.',
         )
-      if (
-        !record(target) ||
-        !combatTargetAllowsHostileHit(target as unknown as CombatTargetSpec) ||
-        candidate.mode !== 'action'
-      )
+      if (!record(target) || candidate.mode !== 'action')
         issue(
           `${path}.accuracy`,
           'accuracy-inapplicable',
@@ -691,6 +687,16 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         path,
         'unsupported-combination',
         'Controlled Rewind requires a captured cast-position anchor.',
+      )
+    if (
+      candidate.accuracy !== undefined &&
+      record(target) &&
+      !combatTargetAllowsHostileHit(target as unknown as CombatTargetSpec, payloads)
+    )
+      issue(
+        `${path}.accuracy`,
+        'accuracy-inapplicable',
+        'Private accuracy requires an applicable hostile recipient hit check.',
       )
     if (
       candidate.accuracy !== undefined &&

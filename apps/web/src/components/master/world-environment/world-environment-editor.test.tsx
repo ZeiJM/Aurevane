@@ -48,3 +48,16 @@ it('separates automatic roll cadence and shows local expiry with remaining time'
   expect(html).toContain('local time')
   expect(html).not.toContain('2026-10-26T')
 })
+
+it('lets the Owner enter a duration before selecting forced weather', () => {
+  const html = renderToStaticMarkup(
+    <WorldEnvironmentEditor
+      initialSettings={DEFAULT_WORLD_ENVIRONMENT_SETTINGS}
+      initialNowMs={Date.UTC(2026, 9, 27, 12)}
+    />,
+  )
+  const input = html.match(/<input[^>]*value="60"[^>]*>/)?.[0]
+  expect(input).toBeDefined()
+  expect(input).not.toContain('disabled')
+  expect(html).toContain('<option value="unchanged" selected="">Keep current weather</option>')
+})

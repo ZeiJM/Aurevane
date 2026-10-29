@@ -73,7 +73,8 @@ export async function loadCharacterSlots(userId: string): Promise<CharacterSlotC
 
 async function loadOwnedCharacterSlots(userId: string): Promise<OwnedCharacterSlot[]> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
+  const { data, error } = await supabase.rpc('get_character_slots_v3', { p_user_id: userId })
+  if (error) throwCombatContentAdmissionError(error)
   if (error || !Array.isArray(data) || data.length > CHARACTER_SLOT_COUNT) throw unavailable()
 
   return data.map((candidate) => {

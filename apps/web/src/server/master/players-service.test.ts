@@ -110,6 +110,32 @@ it('denies delegated support before any protected SQL call', async () => {
   await expect(service.read('moderator', 'target')).rejects.toThrow('Owner required')
   expect(rpc).not.toHaveBeenCalled()
 })
+it('accepts stable custom Discipline identities while rejecting malformed paths', () => {
+  const primary = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
+  expect(parsePlayerCorrection({ kind: 'disciplines', primary })).toEqual({
+    kind: 'disciplines',
+    primary,
+  })
+  for (const value of ['../discipline', 'discipline..invalid', '', 'x'.repeat(161)])
+    expect(() => parsePlayerCorrection({ kind: 'disciplines', primary: value })).toThrow()
+})
+it('projects the exact pinned XP curve but rejects malformed progression data', async () => {
+  const progressionCurve = { version: 5, maxLevel: 3, cumulativeXpByLevel: [0, 33, 500] }
+  const service = createMasterPlayersService(access, async () => ({
+    ...raw(),
+    facts: { ...facts, progressionCurve },
+  }))
+  expect((await service.read('owner', 'target')).progressionCurve).toEqual(progressionCurve)
+  await expect(
+    createMasterPlayersService(access, async () => ({
+      ...raw(),
+      facts: {
+        ...facts,
+        progressionCurve: { ...progressionCurve, cumulativeXpByLevel: [0, 33, 12] },
+      },
+    })).read('owner', 'target'),
+  ).rejects.toThrow('Player support data is unavailable')
+})
 it('retries terminal recovery through durable SQL receipt even after neutral active-battle read is empty', async () => {
   const rpc = vi.fn(async (name: string) =>
     name === 'read_master_player_v1'
@@ -168,4 +194,30 @@ it('projects only the pinned correction policy and derives its real focus/nonfoc
     attributeCaps: { might: 40, intellect: 60, resolve: 60 },
   })
   expect(JSON.stringify(view.attributePolicy)).not.toContain('privateOwner')
+})
+
+it('resolves display names only after authorized reading and again after correction', async () => {
+  const names = vi.fn(async () => ({ 'skill.custom': 'Solar Strike' }))
+  const rpc = vi.fn(async () => raw())
+  const service = createMasterPlayersService(access, rpc, names)
+  expect((await service.read('owner', 'target')).contentNames).toEqual({
+    'skill.custom': 'Solar Strike',
+  })
+  expect(names).toHaveBeenCalledTimes(1)
+  await service.edit('owner', 'target', 'f'.repeat(64), 'request', {
+    kind: 'support',
+    supportActionId: 'basic.guard',
+  })
+  expect(names).toHaveBeenCalledTimes(2)
+  const denied = createMasterPlayersService(
+    {
+      requireCapability: vi.fn(async () => {
+        throw new Error('Denied')
+      }),
+    },
+    rpc,
+    names,
+  )
+  await expect(denied.read('owner', 'target')).rejects.toThrow('Denied')
+  expect(names).toHaveBeenCalledTimes(2)
 })

@@ -14,12 +14,12 @@ describe('authoritative inherent action descriptors', () => {
     expect(guard['Skill Type']).toBe('Utility')
     expect(guard.Cost).toBe('30 AP')
     expect(guard.Cooldown).toBe('2 turns')
-    expect(guard.Effects).toBe('Guard [15%] [2 Turns]')
+    expect(guard.Effects).toBe('Guard [15%] [2 Turns] [Self]')
     expect(guard.Effects).toContain('2 Turns')
     expect(basicActionEffectExplanation('basic.guard')).toContain(
       'Take less damage per application',
     )
-    expect(guard.Target).toBe('Self')
+    expect(guard.Effects).toContain('[Self]')
     expect(guard.Range).toBe('N/A')
     expect(guard['Target Elevation']).toBe('N/A')
     expect(guard['Line of Sight']).toBe('N/A')
@@ -32,8 +32,8 @@ describe('authoritative inherent action descriptors', () => {
     expect(mp.Requirements).toBe('Missing MP')
     expect(hp.Cooldown).toBe('2 turns')
     expect(mp.Cooldown).toBe(hp.Cooldown)
-    expect(hp.Effects).toBe('HP Recovery [10%] [Instant]')
-    expect(mp.Effects).toBe('MP Recovery [10%] [Instant]')
+    expect(hp.Effects).toBe('HP Recovery [10%] [Instant] [Self]')
+    expect(mp.Effects).toBe('MP Recovery [10%] [Instant] [Self]')
     expect(hp.Effects).toContain('[Instant]')
     expect(basicActionEffectExplanation('basic.recover.mp')).toContain('share a cooldown')
   })
@@ -44,7 +44,7 @@ describe('authoritative inherent action descriptors', () => {
     expect(attack.Effects).toContain('6 + floor(15% Physical Power)')
     expect(attack.Effects).not.toMatch(/Instant|Immediate/)
     expect(attack.Range).toBe('1')
-    expect(attack.Target).toBe('Enemy')
+    expect(attack.Effects).toContain('[Enemy]')
     expect(attack['Target Method']).toBe('Single')
     expect(attack['Target Elevation']).toBe('1')
     expect(attack['Line of Sight']).toBe('Not required')
@@ -58,7 +58,7 @@ describe('authoritative inherent action descriptors', () => {
     const move = values('basic.move')
     expect(move.Cost).toBe('20 AP')
     expect(move.Range).toBe('Character Move stat')
-    expect(move.Effects).toBe('Move [1] [Instant]')
+    expect(move.Effects).toBe('Move [1] [Instant] [Self]')
     expect(move.Requirements).toBe('N/A')
     expect(move['Target Elevation']).toBe('Character Jump stat')
     expect(move['Target Elevation']).not.toBe('1')
@@ -94,7 +94,7 @@ it('uses the configured Guard and recovery timing in Support Action reports', ()
     },
   }
   expect(Object.fromEntries(basicActionCharacteristicRows('basic.guard', policy)).Effects).toBe(
-    'Guard [15%] [2 Turns] [Instant]',
+    'Guard [15%] [2 Turns] [Instant] [Self]',
   )
   expect(
     Object.fromEntries(basicActionCharacteristicRows('basic.recover', policy)).Effects,

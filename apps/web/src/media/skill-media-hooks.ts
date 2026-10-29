@@ -1,8 +1,5 @@
-import {
-  PHASE4_AUDIO_DISCIPLINES,
-  PHASE4_DISCIPLINE_AUDIO_VERSION,
-  audioAssetRegistry,
-} from '@aurevane/audio'
+import { skillFxGroups, audioAssetRegistry } from '@aurevane/audio'
+import skillFxAssignments from './skill-fx-assignments.json'
 import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
@@ -26,6 +23,7 @@ export interface SkillAudioCueHookOption {
   label: string
   available: boolean
   audioFamily: string | null
+  audioGroup?: string
   sampleAssetId: string | null
   sampleSrc: string | null
 }
@@ -84,47 +82,43 @@ export function isRegisteredSkillIconHook(key: string | null | undefined): boole
   return key === null || key === undefined || iconHookByKey.has(key)
 }
 
-const audioDisciplines = new Set<string>(PHASE4_AUDIO_DISCIPLINES)
-
-export const skillAudioCueHookOptions: readonly SkillAudioCueHookOption[] = currentSkills
-  .flatMap((definition) => {
-    const key = definition.media.audioCueKey
-    if (!key) return []
-    const available = audioDisciplines.has(definition.sourceDisciplineId)
-    const role = definition.id.startsWith('essence.') ? 'essence' : 'action'
-    const sampleAssetId = available
-      ? `audio.phase4.${definition.sourceDisciplineId}-${role}-${PHASE4_DISCIPLINE_AUDIO_VERSION}-1`
-      : null
-    const sample = sampleAssetId ? audioAssetRegistry.get(sampleAssetId) : undefined
-    return [
-      {
-        key,
-        skillId: definition.id,
-        sourceDisciplineId: definition.sourceDisciplineId,
-        label: `${titleSkill(definition.id)} · ${definition.sourceDisciplineId}`,
-        available: Boolean(available && sample),
-        audioFamily: available ? definition.sourceDisciplineId : null,
-        sampleAssetId: sample?.id ?? null,
-        sampleSrc: sample?.src ?? null,
-      },
-    ]
-  })
-  .sort(
-    (left, right) =>
-      left.sourceDisciplineId.localeCompare(right.sourceDisciplineId) ||
-      left.skillId.localeCompare(right.skillId),
-  )
-
+export const skillAudioCueHookOptions: readonly SkillAudioCueHookOption[] = skillFxGroups.map(
+  (group) => {
+    const sample = audioAssetRegistry.get(`${group.key}-1`)
+    return {
+      key: group.key,
+      skillId: '',
+      sourceDisciplineId: '',
+      label: group.label,
+      available: Boolean(sample?.src),
+      audioFamily: null,
+      audioGroup: group.key,
+      sampleAssetId: sample?.id ?? null,
+      sampleSrc: sample?.src ?? null,
+    }
+  },
+)
 const audioHookByKey = new Map(
   skillAudioCueHookOptions.map((option) => [option.key, option] as const),
 )
-
+const initialAssignments: Readonly<Record<string, string>> = skillFxAssignments
 export function resolveSkillAudioCueHook(
   key: string | null | undefined,
 ): SkillAudioCueHookOption | null {
-  return key ? (audioHookByKey.get(key) ?? null) : null
+  if (!key) return null
+  const group = audioHookByKey.get(key)
+  if (group) return group
+  const assigned = initialAssignments[key]
+  const option = assigned ? audioHookByKey.get(assigned) : undefined
+  if (!option) return null
+  const original = currentSkills.find((skill) => skill.media.audioCueKey === key)
+  return {
+    ...option,
+    key,
+    skillId: original?.id ?? '',
+    sourceDisciplineId: original?.sourceDisciplineId ?? '',
+  }
 }
-
 export function isRegisteredSkillAudioCueHook(key: string | null | undefined): boolean {
-  return key === null || key === undefined || audioHookByKey.has(key)
+  return key === null || key === undefined || resolveSkillAudioCueHook(key) !== null
 }

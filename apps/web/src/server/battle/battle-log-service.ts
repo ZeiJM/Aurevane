@@ -1,3 +1,4 @@
+import { battleTagForStatus, type BattleTagWording } from '@/lib/battle/battle-tag-wording'
 import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
 import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
@@ -32,6 +33,7 @@ export interface BattleLogFact {
 }
 
 export interface BattleLogEntry {
+  battleTag?: BattleTagWording
   /** Terrain fields copied only from a sanitized, viewer-visible recorded event. */
   terrainChange?: CombatTerrainProjection
   battleVersion: number
@@ -773,19 +775,21 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         ],
       })
     }
+    case 'hp_spent':
     case 'mp_spent': {
+      const resource = eventType === 'hp_spent' ? 'HP' : 'MP'
       const actorCombatantId = stringValue(event.combatantId)
       const amount = numberValue(event.amount)
       const remaining = numberValue(event.remaining)
       return createEntry(record, eventType, {
-        message: `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} MP${remaining === null ? '' : `; ${remaining} remains`}.`,
-        messageTemplate: '{actor} spent {amount} MP.',
+        message: `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} ${resource}${remaining === null ? '' : `; ${remaining} remains`}.`,
+        messageTemplate: `{actor} spent {amount} ${resource}.`,
         templateValues: { amount: String(amount ?? 'resolved') },
         actorCombatantId,
         kind: 'resource',
-        headline: 'MP',
+        headline: resource,
         facts: [
-          ...fact(amount === null ? null : `−${amount} MP`),
+          ...fact(amount === null ? null : `−${amount} ${resource}`),
           ...fact(remaining === null ? null : `${remaining} left`),
         ],
       })
@@ -1322,8 +1326,19 @@ export function createViewerSafeBattleLogService(
             }
           : undefined,
       )
+      const view = buildBattleLogView(battleSessionId, projected)
+      const admitted = {
+        ...view,
+        entries: view.entries.map((entry) => {
+          const statusId = entry.statusId ?? entry.periodicStatusId
+          const battleTag = statusId
+            ? battleTagForStatus(authority.buildAuthority?.tagPresentations, { statusId })
+            : undefined
+          return battleTag ? { ...entry, battleTag } : entry
+        }),
+      }
       return attachRecordedBattleLogSkillContext(
-        buildBattleLogView(battleSessionId, projected),
+        admitted,
         projected,
         authority.buildAuthority,
         resolver,

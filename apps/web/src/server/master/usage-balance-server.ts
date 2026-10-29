@@ -19,10 +19,16 @@ export function createServerUsageBalanceService() {
       })
       if (error)
         throw new AurevaneError(
-          error.code === '42501' ? 'FORBIDDEN' : 'PERSISTENCE_UNAVAILABLE',
+          error.code === '42501'
+            ? 'FORBIDDEN'
+            : error.code === '22023'
+              ? 'INVALID_REQUEST'
+              : 'PERSISTENCE_UNAVAILABLE',
           error.code === '42501'
             ? 'Game Content access is not available to this character.'
-            : 'Usage & Balance could not be loaded. Try refreshing.',
+            : error.code === '22023'
+              ? 'Choose an available collected week.'
+              : 'Usage & Balance could not be loaded. Try refreshing.',
         )
       return data
     },

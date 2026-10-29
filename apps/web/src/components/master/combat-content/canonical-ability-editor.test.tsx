@@ -8,7 +8,7 @@ import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { ContentDefinitionFields } from './content-definition-fields'
 import { ContentRecordPreview } from './content-record-preview'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
-import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { AbilityDefinitionEditor, withSharedEffectAim } from './ability-definition-editor'
 import { defaultAbilityPayload, AbilityEffectEditor } from './ability-effect-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { COMBAT_TAG_REGISTRY } from '@aurevane/game-core/combat/combat-tag-registry'
@@ -65,11 +65,10 @@ function assertCanonicalEditor(html: string, { resonance = false } = {}) {
     'Move maximum tiles',
     'Requirement kind',
     'Accuracy rule',
-    'Fixed hit chance (%)',
   ])
     expect(html).toContain(`aria-label="${label}"`)
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]')
-  expect(html).toContain('value="45"')
+  expect(html).toContain('Stored fixed hit chance: 45%')
   if (resonance) {
     expect(html).not.toContain('Once per battle')
     expect(html).not.toContain('aria-label="Usage limits"')
@@ -287,7 +286,7 @@ it('edits canonical Pierce through native controls without leaking trusted execu
   const value = { id: 'pierce', payload: defaultAbilityPayload('pierce') }
   const onChange = vi.fn()
   const tree = AbilityEffectEditor({ value, onChange })
-  const controls = tree.props.children[0]
+  const controls = tree.props.children[1]
   const editor = controls.props.children.find(
     (child: { type: unknown } | null) => child?.type === SkillEffectEditor,
   )
@@ -303,4 +302,107 @@ it('edits canonical Pierce through native controls without leaking trusted execu
   expect(() =>
     parseAbilityDefinition({ schemaVersion: 1, behaviors: [{ ...base, effects: [edited] }] }),
   ).not.toThrow()
+})
+
+it('keeps AP explicit and offers optional HP/MP costs without dead zero inputs', () => {
+  const onChange = vi.fn()
+  const definition = {
+    ...ability,
+    behaviors: [{ ...ability.behaviors[0]!, costs: [{ resource: 'ap' as const, amount: 10 }] }],
+  }
+  const html = renderToStaticMarkup(
+    <AbilityDefinitionEditor value={definition} section="economy" onChange={onChange} />,
+  )
+  expect(html).toContain('AP cost')
+  expect(html).toContain('Add HP cost')
+  expect(html).toContain('Add MP cost')
+  expect(html).not.toContain('aria-label="HP cost"')
+  expect(html).not.toContain('aria-label="MP cost"')
+  expect(onChange).not.toHaveBeenCalled()
+})
+
+it('rebinds automatic delivery when an effect changes to Self, preserving valid captured rules', () => {
+  const next = withSharedEffectAim({
+    ...base,
+    requirementMode: 'simple',
+    activation: 'automatic',
+    automaticTrigger: 'damage-taken',
+    automaticTarget: { subject: 'triggering' },
+    requirements: null,
+    effects: [
+      {
+        id: 'recover',
+        payload: { type: 'healing', recipient: 'actor', target: 'self', amount: 1, ticks: 1 },
+      },
+    ],
+  })
+  expect(next.targeting?.kind).toBe('self')
+  expect(next.automaticTarget).toEqual({ subject: 'owner' })
+  expect(() => parseAbilityDefinition({ schemaVersion: 1, behaviors: [next] })).not.toThrow()
+})
+
+it('offers the same two ordinary accuracy choices and preserves a retained fixed rule without editing it', () => {
+  const before = JSON.stringify(ability)
+  const retained = renderToStaticMarkup(
+    <AbilityDefinitionEditor
+      value={ability}
+      section="accuracy"
+      onChange={() => {
+        throw new Error('Must not rewrite on open')
+      }}
+    />,
+  )
+  expect(retained).not.toContain('>Fixed chance</option>')
+  expect(retained).not.toContain('aria-label="Fixed hit chance (%)"')
+  expect(retained).toContain('Stored fixed hit chance: 45%')
+  expect(retained).toContain('>Accuracy Roll</option>')
+  expect(retained).toContain('>Always Hit</option>')
+  expect(JSON.stringify(ability)).toBe(before)
+})
+
+it('keeps each condition inside its own collapsed effect parameters rather than a separate empty panel', () => {
+  const definition = parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...base,
+        requirementMode: 'simple',
+        effects: [
+          { id: 'strike', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } },
+          {
+            id: 'mend',
+            payload: { type: 'healing', recipient: 'actor', amount: 1 },
+            requirements: {
+              kind: 'status-presence',
+              subject: 'selected',
+              statusId: 'wet',
+              present: true,
+            },
+          },
+        ],
+      },
+    ],
+  })
+  const before = JSON.stringify(definition)
+  const onChange = vi.fn()
+  const html = renderToStaticMarkup(
+    <AbilityDefinitionEditor value={definition} section="effects" onChange={onChange} />,
+  )
+  const cards = html.match(/<article\b[\s\S]*?<\/article>/gu)!
+  expect(cards).toHaveLength(2)
+  for (const [index, id] of ['strike', 'mend'].entries()) {
+    const card = cards[index]!
+    expect(card).toContain(`data-ability-effect="${id}"`)
+    expect(card).toMatch(
+      new RegExp(
+        `<details[^>]*data-effect-collapsible="true"[^>]*>[\\s\\S]*data-effect-requirement="${id}"[\\s\\S]*</details>`,
+      ),
+    )
+    expect(card).not.toMatch(/<details[^>]*\bopen=""/)
+  }
+  expect(cards[0]).not.toContain('Conditional')
+  expect(cards[1]).toContain('Conditional')
+  expect(html).not.toContain('<legend>Effect requirements</legend>')
+  expect(JSON.stringify(definition)).toBe(before)
+  expect(onChange).not.toHaveBeenCalled()
 })

@@ -468,7 +468,10 @@ export function prepareCombatAbilityCommand(
   }
   const { cooldown: _cooldown, ...prepaid } = action
   void _cooldown
-  action = { ...prepaid, cost: { ...action.cost, mp: 0 } }
+  action = {
+    ...prepaid,
+    cost: { ...action.cost, mp: 0, ...(action.cost.hp !== undefined ? { hp: 0 } : {}) },
+  }
   const moveEffect = participant.behavior?.effects.find((effect) => effect.payload.type === 'move')
   const movement = moveEffect
     ? prepareCombatMove(
@@ -645,6 +648,7 @@ export function prepareCombatAbilityCommand(
     evaluation: {
       ...forecast,
       mpCost: costs.find((cost) => cost.resource === 'mp')?.amount ?? 0,
+      hpCost: costs.find((cost) => cost.resource === 'hp')?.amount ?? 0,
       legal: issues.length === 0,
       issues,
       projectedEffects: [

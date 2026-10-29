@@ -1,3 +1,4 @@
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { advanceBattleRng } from './battle-state'
 import type {
   CombatActionDefinition,
@@ -147,14 +148,7 @@ function criticalPlan(
   for (const [effectOrdinal, effect] of action.effects.entries()) {
     if (!isCriticalEligibleDamage(effect)) continue
 
-    const recipientIds =
-      effect.recipient === 'actor'
-        ? []
-        : effect.recipient === 'primary-unit'
-          ? evaluation.primaryCombatantId
-            ? [evaluation.primaryCombatantId]
-            : []
-          : evaluation.affectedCombatantIds
+    const recipientIds = combatEvaluatedEffectRecipientIds(state, action, evaluation, effectOrdinal)
 
     for (const targetCombatantId of recipientIds) {
       if (missedCombatantIds.has(targetCombatantId)) continue

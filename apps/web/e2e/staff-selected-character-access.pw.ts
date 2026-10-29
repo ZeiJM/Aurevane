@@ -137,7 +137,10 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     await page.getByLabel(/Confirm access change for/).check()
     await page.getByRole('button', { name: 'Revoke access', exact: true }).click()
     await expect(page.getByRole('status')).toContainText('access revoked')
-    await expect(row.getByRole('button', { name: 'Edit', exact: true })).toBeFocused()
+    await expect(row).toHaveCount(0)
+    await expect(
+      page.getByRole('textbox', { name: 'Character name or verified email', exact: true }),
+    ).toBeFocused()
     expect(await (await target.request.get('/api/master/access')).json()).toMatchObject({
       hasAccess: false,
     })
@@ -155,6 +158,7 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     expect(denied.status()).toBe(403)
     await page.goto('/master/moderation')
     await expect(page.getByRole('heading', { name: 'Moderation', exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Active bans', exact: true })).toBeVisible()
     await page.getByLabel('Character name', { exact: true }).fill(`Aurelia ${suffix}`)
     await page.getByRole('button', { name: 'Search', exact: true }).click()
     await page.getByRole('button', { name: `Aurelia ${suffix}`, exact: true }).click()
@@ -179,8 +183,7 @@ test('selected-character Staff & Access keeps authority, UTC duration, focus and
     await page.getByLabel('Confirm this account moderation change.').check()
     await page.getByRole('button', { name: 'Save ban changes', exact: true }).click()
     await expect(page.getByText('Permanently banned', { exact: true })).toBeVisible()
-    await page.getByLabel('Reason', { exact: true }).fill('Disposable acceptance complete')
-    await page.getByLabel('Confirm this account moderation change.').check()
+    await expect(page.getByRole('button', { name: 'Lift ban', exact: true })).toBeEnabled()
     await page.getByRole('button', { name: 'Lift ban', exact: true }).click()
     await expect(page.getByText('No active ban', { exact: true })).toBeVisible()
     await expect(page.getByText('Ban lifted', { exact: true })).toBeVisible()

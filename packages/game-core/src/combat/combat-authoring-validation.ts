@@ -1,3 +1,4 @@
+import { validateCombatEffectTarget } from './combat-effect-recipients'
 import { validateCombatGroundAreaDefinition } from './combat-ground-areas'
 import {
   validateCurrentAreaTargetRecipients,
@@ -95,6 +96,7 @@ export function validateCombatActionDefinition(
     positiveSafeInteger(action.target.shape.length, 'line length')
   }
   nonNegativeSafeInteger(action.cost.mp, 'MP cost')
+  if (action.cost.hp !== undefined) nonNegativeSafeInteger(action.cost.hp, 'HP cost')
 
   validateCombatAccuracyDefinition(action)
 
@@ -131,6 +133,7 @@ export function validateCombatActionDefinition(
   }
 
   for (const effect of action.effects) {
+    validateCombatEffectTarget(effect, action.target)
     validateRecoveryEffect(effect)
     validateBarrierEffect(effect)
     knownString(
@@ -206,7 +209,7 @@ export function validateCombatActionDefinition(
     }
     if (
       effect.type === 'return-to-turn-start' &&
-      (effect.recipient !== 'actor' || action.target.kind !== 'self')
+      (effect.recipient !== 'actor' || (effect.target !== 'self' && action.target.kind !== 'self'))
     ) {
       throw new TypeError('Rewind is a self-only effect.')
     }
