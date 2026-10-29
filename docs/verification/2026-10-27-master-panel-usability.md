@@ -1,6 +1,6 @@
 # Master Panel usability execution receipt
 
-Status: implementation in progress, not deployed. Branch agent/master-panel-usability-20261027; baseline aa46bcd04af053299dea582a6edfa0c37578b297, design b3e3b58.
+Status: released for Owner testing through PR #986. See [production source, migration and live-check evidence](2026-10-29-master-panel-usability-release.md). The following execution ledger preserves historical local/CI checkpoints; their earlier pending statements are not the current release status.
 
 Scope: docs/superpowers/specs/2026-10-27-master-panel-usability-design.md and matching implementation plan. Owner accepted shared aim and switched to High. Latest additions include numeric zero-prefix editing and published Discipline bases not reaching current character stats.
 
