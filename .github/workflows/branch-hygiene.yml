@@ -46,7 +46,7 @@ jobs:
       - name: Audit refs and only prune when explicitly enabled
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          CLEANUP_MODE: ${{ github.event_name == 'schedule' && 'apply' || (github.event_name == 'workflow_dispatch' && inputs.apply && 'apply') || 'dry-run' }}
+          CLEANUP_MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'apply' || (github.event_name == 'workflow_dispatch' && inputs.apply && 'apply') || 'dry-run' }}
         run: node .github/scripts/branch-hygiene.mjs
 
       - name: Retain complete audit report
