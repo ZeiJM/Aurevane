@@ -2268,7 +2268,7 @@ try {
       assert.ok(!(await fireRows.first().textContent()).includes('cleanses Chilled'))
       assert.equal(
         await fireRows.nth(1).textContent(),
-        'Cleanse Chilled — Removes Chilled from the caster only; other statuses remain.',
+        'Conditional Cleanse — Removes only Chilled. Other statuses remain.',
       )
       await firePopup.screenshot({
         path: resolve(output, `fire-limited-cleanse-${fireIntent}-${viewport.width}.png`),
