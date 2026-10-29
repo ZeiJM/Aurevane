@@ -46,6 +46,15 @@ export async function exerciseMasterAtBrowserZoom(
         height: innerHeight,
         unobscured: hit === element || element.contains(hit),
         hitElement: hit?.tagName ?? null,
+        focused: element.ownerDocument.activeElement === element,
+        scrollMarginBlockStart: getComputedStyle(element).scrollMarginBlockStart,
+        stickyTabs: (() => {
+          const tabs = element
+            .closest('[data-ability-section]')
+            ?.parentElement?.querySelector(':scope > [role="tablist"]')
+          const box = tabs?.getBoundingClientRect()
+          return box ? { top: box.top, bottom: box.bottom, height: box.height } : null
+        })(),
         hitWithinPrimaryDock: !!hit?.closest('[data-av-game-rail]'),
         clippedBy,
       }

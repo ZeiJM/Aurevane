@@ -1933,6 +1933,9 @@
 .abilityWorkspace > [hidden] {
   display: none;
 }
+.abilityWorkspace [role='tabpanel'] :is(a, button, input, select, textarea, summary, [tabindex]) {
+  scroll-margin-block-start: calc(var(--ability-tabs-height, 0px) + 0.75rem);
+}
 @media (max-width: 600px) {
   .abilityTabs {
     flex-wrap: nowrap;
