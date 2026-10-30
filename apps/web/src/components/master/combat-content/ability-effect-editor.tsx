@@ -11,11 +11,6 @@ import { createDefaultCombatEffect } from './skill-effect-list-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { AbilityNumber } from './ability-editor-fields'
-import {
-  createSimpleRequirement,
-  readSimpleRequirement,
-  simpleEffectRequirementSubjects,
-} from '@aurevane/game-core/combat/combat-simple-requirements'
 import { EffectTargetEditor } from './effect-target-editor'
 import { withAuthoredEffectTarget } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import styles from './combat-content-editor.module.css'
@@ -42,35 +37,6 @@ export function defaultAbilityPayload(
   return effect
 }
 
-/** Keep the visible Target bound to an executable child-geometry role after retargeting. */
-export function rebindSimpleEffectRequirement(
-  value: AbilityEffect,
-  behavior?: AbilityBehavior,
-): AbilityEffect {
-  const selection = readSimpleRequirement(value.requirements ?? null)
-  const allowed = effectSubjects(value.payload, behavior)
-  if (!selection || selection.tagId === 'none' || allowed.includes(selection.subject)) return value
-  return {
-    ...value,
-    requirements: allowed.length
-      ? createSimpleRequirement(
-          selection.tagId,
-          allowed.find((subject) => subject !== 'owner') ?? 'owner',
-          selection.percent ?? 50,
-        )
-      : null,
-  }
-}
-export function effectSubjects(payload: CombatTagPayload, behavior?: AbilityBehavior) {
-  return behavior
-    ? simpleEffectRequirementSubjects(behavior, payload)
-    : payload.recipient === 'affected-units'
-      ? (['owner', 'affected'] as const)
-      : payload.recipient === 'actor' || payload.recipient === 'primary-unit'
-        ? (['owner', 'selected'] as const)
-        : (['owner'] as const)
-}
-
 export function AbilityEffectEditor({
   value,
   onChange,
@@ -82,8 +48,7 @@ export function AbilityEffectEditor({
 }) {
   const payload = value.payload
   const tag = combatTagDefinition(payload.type)
-  const update = (next: CombatTagPayload) =>
-    onChange(rebindSimpleEffectRequirement({ ...value, payload: next }, behavior))
+  const update = (next: CombatTagPayload) => onChange({ ...value, payload: next })
   let controls
   if (payload.type === 'move') {
     controls = (

@@ -1,6 +1,10 @@
 import { expect, it } from 'vitest'
 import type { CombatTargetSpec } from './actions'
-import { deriveSharedEffectAim, withAuthoredEffectTarget } from './combat-effect-target-authoring'
+import {
+  deriveSharedEffectAim,
+  withAuthoredEffectTarget,
+  withAuthoredAreaRecipients,
+} from './combat-effect-target-authoring'
 
 const aim: CombatTargetSpec = {
   geometryVersion: 2,
@@ -114,4 +118,32 @@ it('keeps Cleanse Chilled caster-only rather than silently widening its tag', ()
       'ally',
     ),
   ).toThrow(/Cleanse Chilled.*Self/)
+})
+
+it('binds ordinary inherited unit packets to an explicitly authored area without altering targets or payloads', () => {
+  const effects = [
+    { type: 'damage', recipient: 'primary-unit', amount: 20 },
+    { type: 'healing', recipient: 'actor', amount: 3 },
+  ]
+  const area = { ...aim, geometryVersion: 2 as const, shape: { kind: 'line' as const, length: 1 } }
+  expect(withAuthoredAreaRecipients(area, effects)).toEqual([
+    { ...effects[0], recipient: 'affected-units' },
+    effects[1],
+  ])
+  expect(effects[0]!.recipient).toBe('primary-unit')
+  expect(withAuthoredAreaRecipients(aim, effects)).toBe(effects)
+})
+it('never rewrites selected requirements, unit-only tags, or multiple selections into area recipients', () => {
+  const area = {
+    ...aim,
+    geometryVersion: 3 as const,
+    shape: { kind: 'circle' as const, radius: 2 },
+  }
+  const effects = [{ type: 'damage', recipient: 'primary-unit', amount: 20 }]
+  expect(withAuthoredAreaRecipients(area, effects, { requiresSelectedUnit: true })).toBe(effects)
+  for (const type of ['copy-statuses', 'sensory', 'summon']) {
+    const retained = [{ type, recipient: 'primary-unit' }]
+    expect(withAuthoredAreaRecipients(area, retained)).toBe(retained)
+  }
+  expect(withAuthoredAreaRecipients({ ...area, maximumSelections: 2 }, effects)).toBe(effects)
 })

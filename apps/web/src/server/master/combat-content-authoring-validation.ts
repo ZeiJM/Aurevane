@@ -8,7 +8,10 @@ import { isBasicSkillId } from '../combat/combat-content-published-validation'
 import { validateCurrentCombatTargetAuthoring } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { validateCurrentPercentageDotAuthoring } from '@aurevane/game-core/combat/combat-percentage-dots'
 import { validateCombatActionDefinition } from '@aurevane/game-core/combat/combat-authoring-validation'
-import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
+import {
+  validateAbilityDefinition,
+  type AbilityDefinition,
+} from '@aurevane/game-core/combat/combat-definition'
 import {
   hasCanonicalCleanseStatuses,
   isCleanseEffect,
@@ -176,6 +179,14 @@ function normalizeMessage(error: unknown): string {
   return error instanceof Error && error.message ? error.message : 'Combat definition is invalid.'
 }
 
+function canonicalAbilityIssues(value: unknown): CombatContentValidationIssue[] {
+  return validateAbilityDefinition(value).map((issue) => ({
+    path: `ability.${issue.path}`,
+    code: 'INVALID_ABILITY_DEFINITION',
+    message: `${issue.path}: ${issue.message}`,
+  }))
+}
+
 /** Called only after the actual Ability parser has accepted every group and payload. */
 function canonicalCleanseIssues(definition: AbilityDefinition): CombatContentValidationIssue[] {
   return definition.behaviors.flatMap((behavior, group) =>
@@ -243,6 +254,9 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
       message: normalizeMessage(error),
     })
   }
+
+  if (canonical && issues.some((issue) => issue.path === 'ability'))
+    issues.push(...canonicalAbilityIssues(candidate.ability))
 
   if (issues.length === 0) {
     if (canonical) issues.push(...canonicalCleanseIssues(candidate.ability!))
@@ -339,7 +353,8 @@ export function validateEssenceAuthoringDefinition(
     })
   }
 
-  if (issues.length === 0) {
+  if (isRecord(candidate.skill)) {
+    // Include actionable nested issues even when the Essence envelope already reports skill.definition.
     // Authoring permits disabled versions; runtime usability is a separate gate.
     const skillValidation = validateSkillDefinition(
       Object.hasOwn(candidate, 'ability')
@@ -389,6 +404,9 @@ export function validateResonanceAuthoringDefinition(
       message: normalizeMessage(error),
     })
   }
+
+  if (issues.some((issue) => issue.path === 'ability'))
+    issues.push(...canonicalAbilityIssues(candidate.ability))
 
   if (issues.length === 0) {
     if (candidate.ability) issues.push(...canonicalCleanseIssues(candidate.ability))

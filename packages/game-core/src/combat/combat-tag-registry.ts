@@ -337,7 +337,7 @@ export function validateCombatTagPayload(
     issue(
       'payload',
       'unsupported-combination',
-      'Packet modifiers permit only required elemental companion statuses or actor Cleanse Chilled.',
+      'Packet modifiers permit only required elemental companion statuses or Self Conditional Cleanse selecting only Chilled.',
     )
   function keys(row: unknown, allowed: readonly string[], path: string): void {
     if (!isRecord(row)) {

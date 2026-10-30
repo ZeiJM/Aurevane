@@ -41,6 +41,7 @@ export function CombatEffectTimingEditor({
     row.timingTag ? combatEffectTimingMode(policy, row.timingTag) : 'instant'
   const rows = EFFECT_RULE_ROWS.filter(
     (row) =>
+      (row.id !== 'ground-area' || (usedBy[row.id]?.length ?? 0) > 0) &&
       `${label(row.id)} ${row.id}`.toLowerCase().includes(search.toLowerCase()) &&
       (filter === 'all' || modeFor(row) === filter),
   ).toSorted((a, b) => {
@@ -178,12 +179,6 @@ export function CombatEffectTimingEditor({
                     ) : (
                       <span>{row.id === 'revealed' ? 'Uses Reveal timing' : 'Instant'}</span>
                     )}
-                    {row.id === 'inspired' ? (
-                      <small>
-                        Timed buffs use this timing. Attached bonuses apply to their action; ongoing
-                        bonuses follow their requirements.
-                      </small>
-                    ) : null}
                   </td>
                   <td>
                     {users.length ? (

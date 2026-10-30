@@ -137,6 +137,14 @@ jobs:
       - name: Rebuild database from migrations
         run: pnpm exec supabase db reset --local
 
+      - name: Verify repeatable portrait choices on PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t portrait_db_containers < <(docker ps --filter 'name=supabase_db_' --format '{{.Names}}')
+          test "${#portrait_db_containers[@]}" -eq 1
+          docker exec -i "${portrait_db_containers[0]}" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres < supabase/tests/repeatable_default_portrait_choice.sql
+
       - name: Verify private World live presence on the migrated database
         run: pnpm exec supabase test db --local supabase/tests/world_live_presence.sql
 

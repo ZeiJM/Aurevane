@@ -17,6 +17,8 @@ it('offers seven readable targets, with engine restrictions and no edit merely f
     expect(html).toContain(label)
   expect(html).toMatch(/value="self"[^>]*disabled/)
   expect(html).toContain('Direct damage cannot target Self')
+  expect(html).toContain('aria-label="About Target"')
+  expect(html).not.toContain('<summary>Target limits</summary>')
   expect(onChange).not.toHaveBeenCalled()
 })
 it('replaces opcode recipient selectors with the common per-effect Target', () => {

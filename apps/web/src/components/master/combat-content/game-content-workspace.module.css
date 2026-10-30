@@ -155,8 +155,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  border-top: 1px solid #d8cbb4;
-  padding-top: 0.6rem;
+  border-bottom: 1px solid #d8cbb4;
+  padding-bottom: 0.6rem;
   flex: none;
 }
 .searchActions {
@@ -477,29 +477,17 @@
   }
   .sidebar {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.55rem;
     padding: 0.6rem;
   }
-  .sidebar > label {
-    grid-column: 1/-1;
-  }
   .list {
-    grid-column: 1;
-    grid-row: 2;
     max-height: 13rem;
     min-height: 10rem;
   }
   .toolbar {
-    grid-column: 2;
-    grid-row: 2;
     min-width: 0;
-    border: 0;
-    padding: 0;
-    justify-content: end;
-  }
-  .searchActions {
-    grid-template-columns: minmax(0, 1fr);
+    padding: 0 0 0.55rem;
   }
   .workspace button {
     min-height: 2.65rem;
@@ -615,10 +603,33 @@
   }
 }
 
-.commitControls {
-  display: grid;
-  flex: 1 1 auto;
-  gap: 0.25rem;
+.editorFooter {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #dfd3bc;
+  background: #faf5ea;
+}
+.editorFooter .saveStatus {
+  flex: 1 1 12rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.editorFooter > button {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+@media (max-width: 760px) {
+  .editorFooter {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }
 .saveStatus {
   color: #4a6258;
@@ -626,6 +637,28 @@
   line-height: 1.25;
 }
 
-.commitControls + button {
-  align-self: flex-start;
+.descriptionFields {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+.descriptionField,
+.descriptionField > label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.descriptionField textarea {
+  box-sizing: border-box;
+  width: 100%;
+}
+.writingField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 0.35rem;
+}
+.writingField > small,
+.writingField > ul {
+  grid-column: 1 / -1;
 }

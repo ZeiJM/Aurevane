@@ -11,6 +11,7 @@ import {
   type TargetedEffect,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import styles from './combat-content-editor.module.css'
+import { MasterHelp } from '../master-help'
 
 import {
   EFFECT_TARGET_LABELS,
@@ -55,7 +56,7 @@ export function EffectTargetEditor({
     return { target, reason }
   })
   return (
-    <div className={styles.field}>
+    <div className={styles.effectTargetEditor}>
       <label className={styles.field}>
         <span>Target</span>
         <select
@@ -73,9 +74,9 @@ export function EffectTargetEditor({
           ))}
         </select>
       </label>
-      {options.some((option) => option.reason) ? (
-        <details className={styles.fieldHint}>
-          <summary>Target limits</summary>
+      <MasterHelp label="Target">
+        <p>All effects use the same aim. Existing rules stay in place until you choose a target.</p>
+        {options.some((option) => option.reason) ? (
           <ul>
             {[...new Set(options.flatMap((option) => (option.reason ? [option.reason] : [])))].map(
               (reason) => (
@@ -83,13 +84,8 @@ export function EffectTargetEditor({
               ),
             )}
           </ul>
-        </details>
-      ) : null}
-      {value.target === undefined && value.recipient !== 'actor' ? (
-        <small className={styles.fieldHint}>
-          Existing rules are retained until you choose a target. All effects use the same aim.
-        </small>
-      ) : null}
+        ) : null}
+      </MasterHelp>
     </div>
   )
 }

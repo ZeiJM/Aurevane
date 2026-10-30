@@ -1,6 +1,7 @@
 import 'server-only'
 import type { MasterPlayerView } from '@/master/players'
 import type { CombatContentResolver } from '../combat/combat-content-resolver'
+import { skillDisplayName } from '@/components/character/skill-detail-presentation'
 
 /** Resolve current presentation once; never export unrelated definitions or change saved references. */
 export async function readPlayerContentNames(
@@ -18,12 +19,13 @@ export async function readPlayerContentNames(
   if (!keys.size) return {}
   const catalogue = await resolver.resolveCurrentCatalogue?.()
   return Object.fromEntries(
-    (catalogue?.entries ?? []).flatMap((entry) =>
-      keys.has(entry.contentKey) &&
-      'name' in entry.definition &&
-      typeof entry.definition.name === 'string'
+    (catalogue?.entries ?? []).flatMap((entry) => {
+      if (!keys.has(entry.contentKey)) return []
+      if (entry.category === 'skill')
+        return [[entry.contentKey, skillDisplayName(entry.definition)]]
+      return 'name' in entry.definition && typeof entry.definition.name === 'string'
         ? [[entry.contentKey, entry.definition.name]]
-        : [],
-    ),
+        : []
+    }),
   )
 }

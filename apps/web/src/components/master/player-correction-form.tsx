@@ -145,7 +145,7 @@ export function PlayerCorrectionForm({
         skills.length > 4 ||
         new Set(skills.map((skill) => skill.skillId)).size !== skills.length
       ) {
-        setError('Choose up to four distinct Skills, with one eligibility choice per Skill.')
+        setError('Choose up to four different Skills, selecting each Skill only once.')
         return
       }
       command = {
@@ -199,7 +199,7 @@ export function PlayerCorrectionForm({
             : kind === 'disciplines'
               ? 'Disciplines'
               : kind === 'skills'
-                ? 'Exact available Skills'
+                ? 'Equipped Skills'
                 : 'Support action'}
         </legend>
         {kind === 'source' ? (
@@ -399,10 +399,7 @@ export function PlayerCorrectionForm({
           </>
         ) : kind === 'skills' ? (
           <>
-            <p>
-              Choose up to four distinct available Skills and one active eligibility for each.
-              Testing access remains unearned.
-            </p>
+            <p>Tick up to four different Skills to equip.</p>
             {available.length ? (
               available.map((skill, index) => (
                 <label
@@ -426,12 +423,7 @@ export function PlayerCorrectionForm({
                     skill.eligibilityDisciplineId ?? skill.sourceDisciplineId,
                     'Discipline',
                   )}{' '}
-                  ·{' '}
-                  {skill.earnedEligibility === true
-                    ? 'Earned'
-                    : skill.earnedEligibility === false
-                      ? 'Available (unearned)'
-                      : 'Earned status unavailable'}
+                  · {skill.earnedEligibility === false ? 'Locked' : 'Unlocked'}
                 </label>
               ))
             ) : (
@@ -556,7 +548,7 @@ export function PlayerCorrectionReview({
             ]
           : [
               {
-                label: 'Earned Skills',
+                label: 'Equipped Skills',
                 before:
                   player.facts.build.disciplineSkills
                     .map((skill) => playerContentLabel(player, skill.skillId, 'Skill'))

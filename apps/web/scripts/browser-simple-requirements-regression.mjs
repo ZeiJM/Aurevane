@@ -307,29 +307,53 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
             .locator('[data-combat-tag-reference="wet"]'),
         ).toHaveCount(1)
       const firstEffect = group.locator('[data-ability-effect="hit"]')
-      const effectRequirement = group
-        .locator('[data-effect-requirement="hit"]')
-        .locator('[data-simple-requirements]')
-      const effectTag = effectRequirement.getByRole('combobox', {
-        name: 'Requirement tag',
-        exact: true,
-      })
-      const effectTarget = effectRequirement.getByRole('combobox', {
-        name: 'Requirement target',
-        exact: true,
-      })
-      const shape = group.getByRole('combobox', { name: 'Shape', exact: true })
+      await expect(
+        firstEffect.getByRole('combobox', { name: 'Requirement tag', exact: true }),
+      ).toHaveCount(0)
+      // Seed an old saved definition, then exercise the actual editor's explicit migration.
+      const legacy = structuredClone((await snapshot()).saved)
+      legacy.behaviors[0].requirements = null
+      legacy.behaviors[0].effects[0].requirements = {
+        kind: 'status-presence',
+        subject: 'owner',
+        statusId: 'wet',
+        present: true,
+      }
+      await page.evaluate((definition) => {
+        localStorage.setItem('simple-requirements-native-definition', JSON.stringify(definition))
+      }, legacy)
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      const retained = group.locator('[data-legacy-effect-requirements]')
+      await expect(retained).toContainText('Drenched [Self]')
       await openEffectParameters(firstEffect)
+      await firstEffect.getByRole('spinbutton', { name: 'Healing amount', exact: true }).fill('2')
+      await save()
+      assert.deepEqual(
+        (await snapshot()).saved.behaviors[0].effects[0].requirements,
+        legacy.behaviors[0].effects[0].requirements,
+      )
+      await retained
+        .getByRole('button', { name: 'Apply matching conditions to whole ability', exact: true })
+        .click()
+      await save()
+      await expect(retained).toHaveCount(0)
+      const promoted = (await snapshot()).saved.behaviors[0]
+      assert.deepEqual(promoted.requirements, legacy.behaviors[0].effects[0].requirements)
+      assert.equal(promoted.effects[0].requirements, undefined)
+      await assertReaders('Drenched [Self]')
+      evidence.push({
+        viewport,
+        case: 'Legacy predicates survive unrelated edits and move to whole-ability Requirements only explicitly',
+        passed: true,
+      })
+
+      const shape = group.getByRole('combobox', { name: 'Shape', exact: true })
       const recipient = firstEffect.getByRole('combobox', { name: 'Target', exact: true })
-      await effectTag.selectOption('wet')
-      await effectTarget.selectOption('selected')
       await recipient.selectOption('enemy')
-      await expect(effectTarget).toHaveValue('affected')
       for (const nextShape of ['circle', 'line']) {
         await shape.selectOption(nextShape)
         await expect(target).toHaveValue('owner')
-        await expect(effectTarget).toHaveValue('affected')
-        await expect(group.locator('option').filter({ hasText: /\(incompatible\)/ })).toHaveCount(0)
         assert.deepEqual((await snapshot()).validationIssues, [])
         await save()
         const geometrySaved = (await snapshot()).saved.behaviors[0]
@@ -341,12 +365,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
           statusId: 'wet',
           present: true,
         })
-        assert.deepEqual(geometrySaved.effects[0].requirements, {
-          kind: 'status-presence',
-          subject: 'affected',
-          statusId: 'wet',
-          present: true,
-        })
+        assert.equal(geometrySaved.effects[0].requirements, undefined)
       }
       await shape.selectOption('single')
       await recipient.selectOption('all')
@@ -358,48 +377,30 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       assert.deepEqual((await snapshot()).validationIssues, [])
       evidence.push({
         viewport,
-        case: 'Circle/Line use one footprint; All is effect scope with per-recipient conditions',
+        case: 'Circle/Line and All effects retain the first-tab whole-ability Requirement',
         passed: true,
       })
 
       await recipient.selectOption('enemy')
       await recipient.selectOption('self')
-      await expect(effectTarget).toHaveValue('selected')
-      await expect(effectTarget.locator('option')).toHaveText(['Self', 'Target'])
-      assert.deepEqual((await snapshot()).validationIssues, [])
       await save()
       const actorSaved = (await snapshot()).saved.behaviors[0]
       assert.equal(actorSaved.effects[0].payload.recipient, 'actor')
-      assert.equal(actorSaved.targeting.kind, 'unit')
-      assert.deepEqual(actorSaved.effects[0].requirements, {
-        kind: 'status-presence',
-        subject: 'selected',
-        statusId: 'wet',
-        present: true,
-      })
-      // Circle/Line previously rebound the whole-Skill requirement to Self.
-      // This effect's independent selected-target condition must not replace it.
+      assert.equal(actorSaved.effects[0].requirements, undefined)
       await expect(target).toHaveValue('owner')
-      assert.deepEqual(actorSaved.requirements, {
-        kind: 'status-presence',
-        subject: 'owner',
-        statusId: 'wet',
-        present: true,
-      })
       await assertReaders('Drenched [Self]')
       for (const name of readerNames) {
         const reader = page.getByRole('region', { name, exact: true })
         await expect(requirementLine(reader)).not.toContainText('[Target]')
-        const explanations = reader.getByRole('list', { name: 'Effect explanations' })
-        await expect(explanations).toContainText('Applies only when Drenched [Target].')
-        await expect(explanations.locator('[data-combat-tag-reference="wet"]')).toHaveCount(1)
+        await expect(reader.getByRole('list', { name: 'Effect explanations' })).not.toContainText(
+          'Applies only when',
+        )
       }
-      await effectTag.selectOption('none')
       await recipient.selectOption('enemy')
       await save()
       evidence.push({
         viewport,
-        case: 'Self recovery retains the unit aim required by its selected-target condition',
+        case: 'Self recovery uses the first-tab whole-ability Requirement with no tag-dependent condition authoring',
         passed: true,
       })
 
@@ -463,9 +464,9 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       })
 
       await group
-        .getByRole('combobox', { name: 'New group effect', exact: true })
+        .getByRole('combobox', { name: 'New effect', exact: true })
         .selectOption('conditional-cleanse')
-      await group.getByRole('button', { name: 'Add group effect', exact: true }).click()
+      await group.getByRole('button', { name: 'Add new effect', exact: true }).click()
       const cleanse = group.locator('[data-ability-effect]').last()
       await openEffectParameters(cleanse)
       await expect(cleanse).toContainText('Conditional Cleanse')

@@ -37,7 +37,7 @@ export function TagWordingFields({
             }
           />
           <small id={`${hintId}-full`} className={styles.fieldHint}>
-            Shown below Effects in full ability details and the Master preview.
+            Shown below Effects in full ability details.
           </small>
         </label>
       </section>

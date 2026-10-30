@@ -34,7 +34,7 @@ function controls(value: unknown): ReactElement<Record<string, unknown>>[] {
 }
 
 it.each(['owner', 'selected'] as const)(
-  'keeps the explicitly authored general %s requirement separate from a Target effect condition through geometry edits and saved readers',
+  'keeps the first-tab %s requirement whole-ability through geometry edits and saved readers',
   (generalSubject) => {
     let draft: AbilityDefinition = parseAbilityDefinition({
       schemaVersion: 1,
@@ -74,25 +74,24 @@ it.each(['owner', 'selected'] as const)(
     }
     change('Requirement tag', 'wet')
     change('Requirement target', 'selected')
-    change('Requirement tag', 'wet', 1)
-    change('Requirement target', 'selected', 1)
     change('Target', 'enemy')
+    change('Requirement target', 'owner')
     for (const shape of ['circle', 'line']) {
       change('Shape', shape)
       expect(draft.behaviors[0]!.requirements).toMatchObject({ subject: 'owner' })
-      expect(draft.behaviors[0]!.effects[0]!.requirements).toMatchObject({ subject: 'affected' })
+      expect(draft.behaviors[0]!.effects[0]!.requirements).toBeUndefined()
       expect(validateAbilityDefinition(draft)).toEqual([])
     }
     change('Shape', 'single')
     change('Target', 'all')
     change('Target', 'enemy')
-    change('Target', 'self')
-    expect(draft.behaviors[0]!.requirements).toMatchObject({ subject: 'owner' })
-    expect(draft.behaviors[0]!.effects[0]!.requirements).toMatchObject({ subject: 'selected' })
     change('Requirement target', generalSubject)
+    change('Target', 'self')
+    expect(draft.behaviors[0]!.requirements).toMatchObject({ subject: generalSubject })
+    expect(draft.behaviors[0]!.effects[0]!.requirements).toBeUndefined()
     const saved = parseAbilityDefinition(JSON.parse(JSON.stringify(draft)))
     const group = saved.behaviors[0]!
-    expect(group.targeting!.kind).toBe('unit')
+    expect(group.targeting!.kind).toBe(generalSubject === 'selected' ? 'unit' : 'self')
     expect(group.effects[0]!.payload.recipient).toBe('actor')
     expect(group.requirements).toEqual({
       kind: 'status-presence',
@@ -100,20 +99,14 @@ it.each(['owner', 'selected'] as const)(
       statusId: 'wet',
       present: true,
     })
-    expect(group.effects[0]!.requirements).toEqual({
-      kind: 'status-presence',
-      subject: 'selected',
-      statusId: 'wet',
-      present: true,
-    })
+    expect(group.effects[0]!.requirements).toBeUndefined()
     const report = abilityBehaviorInformation(group)
     const subjectLabel = generalSubject === 'owner' ? 'Self' : 'Target'
     expect(Object.fromEntries(report.rows).Requirements).toBe(`Drenched [${subjectLabel}]`)
-    expect(report.effectDescriptions[0]).toContain('Applies only when Drenched [Target].')
+    expect(report.effectDescriptions[0]).not.toContain('Applies only when')
     const html = renderToStaticMarkup(<AbilityParameters report={report} />)
     const effectNotes = html.slice(html.indexOf('aria-label="Effect explanations"'))
-    expect(effectNotes).toContain('data-combat-tag-reference="wet"')
-    expect(effectNotes.replace(/<[^>]*>/gu, '')).toContain('Applies only when Drenched [Target].')
+    expect(effectNotes.replace(/<[^>]*>/gu, '')).not.toContain('Applies only when')
     expect(validateAbilityDefinition(saved)).toEqual([])
   },
 )

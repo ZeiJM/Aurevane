@@ -2,6 +2,7 @@ import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import type { MasterPlayerView } from '@/master/players'
 import type { CombatContentCatalogue } from '../combat/combat-content-resolver'
+import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { readPlayerContentNames } from './player-content-names'
 
 it('uses one current catalogue for relevant names without changing captured versions or leaking definitions', async () => {
@@ -54,4 +55,34 @@ it('avoids loading a catalogue for a player with no content references', async (
   } as unknown as MasterPlayerView
   expect(await readPlayerContentNames(player, { resolveCurrentCatalogue })).toEqual({})
   expect(resolveCurrentCatalogue).not.toHaveBeenCalled()
+})
+
+it('resolves built-in Skill names without an authored override alongside custom names', async () => {
+  const builtin = latestEnabledMatureSkills().find((skill) => skill.id === 'vanguard.cleave')!
+  expect(builtin).toBeDefined()
+  const player = {
+    facts: { build: { disciplineSkills: [], extensions: {} } },
+    learnedSkills: [{ skillId: builtin.id }, { skillId: 'skill.custom' }],
+  } as unknown as MasterPlayerView
+  const catalogue = {
+    entries: [
+      { contentKey: builtin.id, category: 'skill', definition: builtin },
+      {
+        contentKey: 'skill.custom',
+        category: 'skill',
+        definition: { ...builtin, id: 'skill.custom', name: 'Solar Strike' },
+      },
+      {
+        contentKey: 'skill.unrelated',
+        category: 'skill',
+        definition: { ...builtin, id: 'skill.unrelated' },
+      },
+    ],
+  } as unknown as CombatContentCatalogue
+  expect(
+    await readPlayerContentNames(player, { resolveCurrentCatalogue: async () => catalogue }),
+  ).toEqual({
+    'vanguard.cleave': 'Cleave',
+    'skill.custom': 'Solar Strike',
+  })
 })

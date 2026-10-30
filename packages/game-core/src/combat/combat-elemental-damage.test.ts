@@ -1128,11 +1128,16 @@ describe('current elemental settlement', () => {
 
 describe('explicit elemental policy 2', () => {
   const current = (): CombatEncounterState => ({ ...encounter(), elementalDamagePolicyVersion: 2 })
-  const fire = (): CombatActionDefinition => ({
+  const fire = (specified = false): CombatActionDefinition => ({
     ...skill('fire'),
     effects: [
       ...skill('fire').effects,
-      { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+      {
+        type: 'remove-status',
+        recipient: 'actor',
+        statusIds: ['frozen'],
+        ...(specified ? { removalMode: 'specified' as const, target: 'self' as const } : {}),
+      },
     ],
   })
   const explicit = (
@@ -1500,6 +1505,93 @@ describe('explicit elemental policy 2', () => {
         'west',
       ).state
     expect(statuses(state, 'actor').map((s) => s.statusId)).toEqual(['airborne'])
+  })
+  it.each(['instant', 'next-round', 'delayed'] as const)(
+    'Conditional Cleanse Chilled preserves an Airborne caster on Ground with %s timing after restore',
+    (timing) => {
+      const afflicted = status(
+        status(
+          status(status(current(), 'frozen', 'actor'), 'airborne', 'actor'),
+          'suppress',
+          'actor',
+          2500,
+        ),
+        'frozen',
+        'enemy',
+      )
+      const base = {
+        ...afflicted,
+        statusState: afflicted.statusState.map((row) => ({
+          ...row,
+          statuses: row.statuses.map((value) => ({
+            ...value,
+            remainingOwnerTurnStarts: value.statusId === 'suppress' ? 4 : 20,
+          })),
+        })),
+        airbornePolicyVersion: 1 as const,
+        effectTimingPolicy: { version: 7, modes: { 'remove-status': timing } },
+      }
+      const out = executeCombatAction(
+        base,
+        fire(true),
+        { kind: 'tile', position: { x: 0, y: 1 } },
+        PV1F_COMBAT_CONTENT,
+      )
+      let state = out.state
+      const removed: string[] = out.events
+        .filter((event) => event.event === 'status_removed')
+        .map((event) => event.statusId)
+      if (timing !== 'instant') {
+        expect(
+          state.pendingEffects?.some((pending) => pending.effect.type === 'remove-status'),
+        ).toBe(true)
+        for (let i = 0; i < (timing === 'delayed' ? 8 : 4); i++) {
+          const advanced = finishPv1fTurn(
+            JSON.parse(JSON.stringify(state)) as ReturnType<typeof percentageDotEncounter>,
+            'west',
+          )
+          state = advanced.state
+          removed.push(
+            ...advanced.events.flatMap((event) =>
+              event !== null &&
+              typeof event === 'object' &&
+              'event' in event &&
+              event.event === 'status_removed' &&
+              'statusId' in event &&
+              typeof event.statusId === 'string'
+                ? [event.statusId]
+                : [],
+            ),
+          )
+        }
+      }
+      expect(statuses(state, 'actor').map((s) => s.statusId)).not.toContain('frozen')
+      expect(statuses(state, 'enemy').map((s) => s.statusId)).toContain('frozen')
+      expect(removed).toEqual(['frozen'])
+    },
+  )
+  it('retains captured specified removal without explicit Self under historical Ground delivery', () => {
+    const base = {
+      ...status(status(current(), 'frozen', 'actor'), 'airborne', 'actor'),
+      airbornePolicyVersion: 1 as const,
+    }
+    const captured = fire(true)
+    const effects = captured.effects.map((effect) => {
+      const retained = { ...effect }
+      delete retained.target
+      return retained
+    })
+    const out = executeCombatAction(
+      base,
+      { ...captured, effects },
+      { kind: 'tile', position: { x: 0, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(statuses(out.state, 'actor').map((value) => value.statusId)).toEqual([
+      'airborne',
+      'frozen',
+    ])
+    expect(out.events.filter((event) => event.event === 'status_removed')).toEqual([])
   })
   it('persistent Fire Ground entry never repeats the cast-only cleanse', () => {
     const base = status({ ...current(), groundEffectPolicyVersion: 1 as const }, 'frozen', 'actor')

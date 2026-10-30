@@ -249,7 +249,7 @@ export function ContentRecordModal({
         <footer className={styles.modalFooter}>
           <span role={pendingMedia ? 'status' : undefined}>
             {pendingMedia
-              ? 'Upload the selected file to keep it before closing or committing.'
+              ? 'Preparing selected media. Wait for upload to finish, or retry or cancel if it fails.'
               : 'Closing keeps your uncommitted edits.'}
           </span>
           <button

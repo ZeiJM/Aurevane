@@ -222,14 +222,6 @@ export function PlayersWorkspace({
                 </dd>
               </div>
               <div>
-                <dt>Active Skills</dt>
-                <dd>
-                  {player.facts.build.disciplineSkills
-                    .map((skill) => playerContentLabel(player, skill.skillId, 'Skill'))
-                    .join(', ') || 'None'}
-                </dd>
-              </div>
-              <div>
                 <dt>Resonance</dt>
                 <dd>
                   {playerContentLabel(

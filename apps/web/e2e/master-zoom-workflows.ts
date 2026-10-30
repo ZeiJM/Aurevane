@@ -46,6 +46,15 @@ export async function exerciseMasterAtBrowserZoom(
         height: innerHeight,
         unobscured: hit === element || element.contains(hit),
         hitElement: hit?.tagName ?? null,
+        focused: element.ownerDocument.activeElement === element,
+        scrollMarginBlockStart: getComputedStyle(element).scrollMarginBlockStart,
+        stickyTabs: (() => {
+          const tabs = element
+            .closest('[data-ability-section]')
+            ?.parentElement?.querySelector(':scope > [role="tablist"]')
+          const box = tabs?.getBoundingClientRect()
+          return box ? { top: box.top, bottom: box.bottom, height: box.height } : null
+        })(),
         hitWithinPrimaryDock: !!hit?.closest('[data-av-game-rail]'),
         clippedBy,
       }
@@ -128,6 +137,17 @@ export async function exerciseMasterAtBrowserZoom(
       'aria-current',
       'true',
     )
+    const browser = workspace.getByRole('complementary', { name: 'Content browser', exact: true })
+    const save = workspace.getByRole('group', { name: 'Save content', exact: true })
+    await expect(browser.getByRole('button', { name: 'Commit Now', exact: true })).toHaveCount(0)
+    await expect(save.getByRole('button', { name: 'Commit Now', exact: true })).toBeVisible()
+    expect(
+      await browser.evaluate((element) => {
+        const search = element.querySelector('input[type="search"]')!
+        const records = element.querySelector('nav')!
+        return !!(search.compareDocumentPosition(records) & Node.DOCUMENT_POSITION_FOLLOWING)
+      }),
+    ).toBe(true)
     const name = page.getByLabel('Name', { exact: true }),
       ap = page.getByLabel('AP cost', { exact: true })
     async function showAbilitySection(label: string) {
@@ -145,6 +165,19 @@ export async function exerciseMasterAtBrowserZoom(
       await control(target, `ability-section-${label.replaceAll(' ', '-').toLowerCase()}`)
     }
     await expect(name).toBeEnabled()
+    expect(
+      await workspace
+        .getByRole('tabpanel', { name: 'Details & Text', exact: true })
+        .evaluate((panel) => {
+          const requirements = [...panel.querySelectorAll('fieldset')].find(
+            (field) => field.querySelector(':scope > legend')?.textContent === 'Requirements',
+          )!
+          const description = panel.querySelector('[aria-label="Description"]')!
+          return !!(
+            requirements.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING
+          )
+        }),
+    ).toBe(true)
     const originalAP = await ap.inputValue()
     const originalName = await name.inputValue()
     await name.fill(

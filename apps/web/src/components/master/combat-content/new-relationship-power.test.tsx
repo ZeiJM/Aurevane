@@ -48,6 +48,7 @@ function mount({
   failOnce = false,
   deleted = false,
   active = true,
+  compact = false,
   partner = null as string | null,
 } = {}) {
   const commands: Record<string, unknown>[] = []
@@ -89,6 +90,8 @@ function mount({
           : { ...currentResonanceDefinitions()[0]! },
       recoveryScope: 'owner',
       disabled: false,
+      compact,
+      triggerLabel: compact ? 'Edit power for None (Essence)' : undefined,
       onCreated: created,
       onBusyChange: busy,
     })
@@ -149,4 +152,12 @@ it('requires a committed Discipline before creating a relationship power', () =>
   expect(f.button().props.disabled).toBe(true)
   f.button().props.onClick!()
   expect(f.commands).toHaveLength(0)
+})
+
+it('the direct Edit trigger creates and opens a new power without a separate selector or Apply step', async () => {
+  const f = mount({ compact: true })
+  expect(f.button().props.children).toBe('Edit')
+  f.button().props.onClick!()
+  await vi.waitFor(() => expect(f.created).toHaveBeenCalledOnce())
+  expect(f.commands.map((command) => command.action)).toEqual(['create', 'read'])
 })

@@ -7,15 +7,18 @@ import { SkillTargetingEditor } from './skill-targeting-editor'
 export function AbilityTargetingEditor({
   value,
   effects,
+  requiresSelectedUnit,
   onChange,
 }: {
   value: AbilityTargeting
   effects?: readonly AbilityEffect[]
+  requiresSelectedUnit?: boolean
   onChange(value: AbilityTargeting): void
 }) {
   return (
     <SkillTargetingEditor
       value={value}
+      requiresSelectedUnit={requiresSelectedUnit}
       effects={effects?.map((effect) => effect.payload)}
       onChange={(next) =>
         onChange({

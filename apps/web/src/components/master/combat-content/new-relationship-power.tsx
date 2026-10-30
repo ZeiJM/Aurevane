@@ -21,6 +21,8 @@ export function NewRelationshipPower({
   blank,
   recoveryScope,
   disabled,
+  compact = false,
+  triggerLabel,
   onCreated,
   onBusyChange,
 }: {
@@ -29,6 +31,8 @@ export function NewRelationshipPower({
   blank: CombatContentDefinition | null
   recoveryScope: string
   disabled: boolean
+  compact?: boolean
+  triggerLabel?: string
   onCreated(record: CompleteCombatContentRecord): void
   onBusyChange(value: boolean): void
 }) {
@@ -161,16 +165,25 @@ export function NewRelationshipPower({
     <div>
       <button
         type="button"
+        aria-label={triggerLabel}
+        aria-haspopup="dialog"
+        title={!ready ? 'Commit the Discipline before creating its powers.' : undefined}
         disabled={disabled || busy || !ready || !blank}
         onClick={() => void create()}
       >
-        {busy ? 'Creating…' : retryAvailable ? 'Retry creation' : `Create new ${label}`}
+        {busy
+          ? 'Creating…'
+          : retryAvailable
+            ? 'Retry creation'
+            : compact
+              ? 'Edit'
+              : `Create new ${label}`}
       </button>
-      {!ready ? (
+      {!compact && !ready ? (
         <p>Commit the Discipline before creating its powers.</p>
-      ) : (
+      ) : !compact ? (
         <p>Creates a draft for this relationship and opens its editor.</p>
-      )}
+      ) : null}
       {error ? <p role="alert">{error}</p> : null}
     </div>
   )

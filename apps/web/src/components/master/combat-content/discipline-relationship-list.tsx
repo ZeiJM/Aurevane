@@ -166,7 +166,7 @@ export function DisciplineRelationshipList({
   onChange(next: AuthoredDiscipline): void
   onEdit(contentKey: string, partner: string | null): void
   disabled?: boolean
-  renderCreate?(partner: string | null, close: () => void): ReactNode
+  renderCreate?(partner: string | null, close: () => void, directEditLabel?: string): ReactNode
 }) {
   const [editing, setEditing] = useState<{ partner: string | null; label: string } | null>(null)
   const partners = new Map(
@@ -227,19 +227,23 @@ export function DisciplineRelationshipList({
                   Edit
                 </button>
               ) : null}
-              <button
-                type="button"
-                disabled={disabled}
-                aria-haspopup={row.power ? undefined : 'dialog'}
-                aria-label={`${row.power ? 'Clear' : 'Edit'} power for ${row.label}`}
-                onClick={() =>
-                  row.power
-                    ? onChange(withDisciplineRelationship(value, row.partner, ''))
-                    : setEditing({ partner: row.partner, label: row.label })
-                }
-              >
-                {row.power ? 'Clear' : 'Edit'}
-              </button>
+              {!row.power && renderCreate ? (
+                renderCreate(row.partner, () => {}, `Edit power for ${row.label}`)
+              ) : (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  aria-haspopup={row.power ? undefined : 'dialog'}
+                  aria-label={`${row.power ? 'Clear' : 'Edit'} power for ${row.label}`}
+                  onClick={() =>
+                    row.power
+                      ? onChange(withDisciplineRelationship(value, row.partner, ''))
+                      : setEditing({ partner: row.partner, label: row.label })
+                  }
+                >
+                  {row.power ? 'Clear' : 'Edit'}
+                </button>
+              )}
             </div>
           </div>
         ))}

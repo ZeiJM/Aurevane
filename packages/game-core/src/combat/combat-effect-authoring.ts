@@ -133,9 +133,10 @@ export function createAuthorableEffectPayload(
     case 'conditional-cleanse':
       return {
         type: 'remove-status',
-        recipient: 'primary-unit',
-        statusIds: ['burn'],
+        recipient: context.combination?.mode === 'modifier' ? 'actor' : 'primary-unit',
+        statusIds: [context.combination?.mode === 'modifier' ? 'frozen' : 'burn'],
         removalMode: 'specified',
+        ...(context.combination?.mode === 'modifier' ? { target: 'self' as const } : {}),
       }
     case 'cleanse-chilled':
       return { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }

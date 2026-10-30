@@ -3,53 +3,64 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 
-describe('Master battle narration preview', () => {
-  it('previews allowed names and neutral pronouns and exposes explicit sample gender controls', () => {
+describe('compact writing tag help', () => {
+  it('places the usable identity tags and neutral behavior in an i dialog without expandable samples', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleFlavorTemplateHelp, {
-        value: '{actor} draws {actor.possessive} blade before {target}.',
+        value: '(name) draws (possessive) blade before (target).',
         ability: 'Quiet Edge',
         onChange: () => {},
       }),
     )
+    expect(markup).toContain('aria-label="About Writing tags"')
+    expect(markup).toContain('<dialog')
+    for (const tag of [
+      '(name)',
+      '(target)',
+      '(skill)',
+      '(subject)',
+      '(object)',
+      '(possessive)',
+      '(reflexive)',
+      '(gender:he|she|they)',
+      '(target.gender:he|she|they)',
+    ])
+      expect(markup).toContain(tag)
     expect(markup).toContain('Asha draws their blade before Bryn.')
-    expect(markup).toContain('Combatant draws their blade before Combatant.')
-    expect(markup).toContain('aria-label="Actor narration sample pronouns"')
-    expect(markup).toContain('aria-label="Target narration sample gender"')
-    expect(markup).toContain('{actor.gender:he|she|they}')
-    expect(markup).not.toContain('aria-label="Battle narration validation"')
+    expect(markup).toContain('missing identity uses neutral wording')
+    expect(markup).not.toContain('<details')
+    expect(markup).not.toContain('References and writing preview')
+    expect(markup).not.toContain('narration sample pronouns')
+    expect(markup).not.toContain('narration sample gender')
   })
 
-  it('provides readable contextual insertion and never offers unavailable outcomes', () => {
+  it('offers context-aware insertion with simple tags and preserves numerical boundaries', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleFlavorTemplateHelp, {
-        value: '{value.0.power} power',
+        value: '(value.0.power) power',
         ability: 'Arc',
         onChange: () => {},
         context: { field: 'activation', values: { '0.power': 12 }, affectedTargets: true },
       }),
     )
-    expect(markup).toContain('Insert Reference')
-    expect(markup).toContain('>User</option>')
-    expect(markup).toContain('>Affected Targets</option>')
-    expect(markup).toContain('Effect 1 · power')
+    expect(markup).toContain('value="(name)"')
+    expect(markup).toContain('value="(targets)"')
+    expect(markup).toContain('value="(value.0.power)"')
     expect(markup).toContain('12 power')
     expect(markup).not.toContain('Actual damage')
-    expect(markup).toContain('does not verify arbitrary English')
+    expect(markup).toContain('ordinary parentheses stay as text')
   })
 
-  it('shows invalid-token diagnostics and a generic preview without rendering forbidden content', () => {
+  it('keeps invalid-token diagnostics visible and does not preview forbidden references', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleFlavorTemplateHelp, {
-        value: 'Strike {private_build}.',
+        value: 'Strike (actor.private).',
         ability: 'Quiet Edge',
         onChange: () => {},
       }),
     )
-    expect(markup).toContain('Unknown narration token: {private_build}.')
+    expect(markup).toContain('Unknown narration token: {actor.private}.')
+    expect(markup).toContain('aria-label="Battle narration validation"')
     expect(markup).toContain('aria-label="Battle narration sample">Asha calls on Quiet Edge.')
-    expect(markup).toContain(
-      'aria-label="Neutral historical narration preview">Combatant calls on Quiet Edge.',
-    )
   })
 })

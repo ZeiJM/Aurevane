@@ -57,7 +57,10 @@ function validated(validator: (value: unknown) => CombatContentValidationResult)
   return (value: unknown): CombatContentDefinition => {
     const result = validator(value)
     if (!result.valid)
-      throw new TypeError(result.issues[0]?.message ?? 'The complete definition is invalid.')
+      throw new TypeError(
+        [...new Set(result.issues.map((issue) => issue.message))].slice(0, 4).join(' ') ||
+          'The complete definition is invalid.',
+      )
     object(value)
     return structuredClone(value)
   }
