@@ -296,7 +296,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     await page.getByRole('button', { name: "About Mercy's Edge", exact: true }).click()
     const report = page.getByRole('dialog', { name: "Mercy's Edge", exact: true })
     await page.setViewportSize({ width: 844, height: 400 })
-    // Give the compact report a clear fit margin, independent of fractional font metrics.
+    // Keep the normal-width report inside the viewport; content may scroll internally.
     await expect(report).toHaveAttribute('data-battle-info-page', 'false')
     await expect
       .poll(() =>
@@ -306,7 +306,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
             getComputedStyle(panel).position === 'fixed' &&
             bounds.top >= 8 &&
             bounds.bottom <= innerHeight - 7 &&
-            panel.scrollHeight <= panel.clientHeight + 1
+            getComputedStyle(panel).overflowY === 'auto'
           )
         }),
       )

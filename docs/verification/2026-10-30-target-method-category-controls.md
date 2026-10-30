@@ -52,3 +52,9 @@ Category rules apply to current writes/publication, while retained read-only pre
 - Local Chromium execution remains blocked by `socket() failed: Operation not permitted`. Native desktop/mobile, popup geometry, actual zoom and browser audio interaction checks require the configured exact-head GitHub workflows. No local browser/listening pass is claimed.
 
 No deployment, database mutation, content republication, history rewrite or Owner draft mutation was performed. Production remains the previously verified PR #992 release.
+
+## Native CI follow-up
+
+The first candidate `835ec350d1f6606c0f613180eb34e5e2ddbf98a2` passed Skill Engine, Essence, Resonance, shared snapshots, controlled combat, modular readers, desktop experience/page fit and combat/mobile regressions. Representative Buildcraft run `41017502380` passed 20 cases with six configured skips and failed four assertions: three viewport variants still expected the removed `Range1` row in `phase4-roster.pw.ts`, and the short-height Mercy's Edge check still required all text to fit without internal scrolling. The actual report showed `Target MethodSingle [1]`, consistent with the approved display contract.
+
+The test-only follow-up asserts `Target MethodSingle [1]` and no standalone Range label. The popup check retains fixed positioning, viewport boundaries, normal width, one column, body locking and bottom-content access while allowing the requested internal scroll. Focused formatting/ESLint and Playwright collection pass (12 cases across the two files). No production source changed, so the earlier full quality/build proof remains applicable to the implementation; the updated exact-head native workflows must pass before release. Local Chromium execution is still unavailable.
