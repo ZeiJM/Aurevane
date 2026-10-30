@@ -43,7 +43,7 @@ function SummonAbilityParameters({
           ...groundRules,
           airborneAttackElevation: airborne && !groundRules.legacyAirborne,
         })}
-        targetMethodExplanation={skillTargetMethodExplanation(ability)}
+        targetMethodExplanation={skillTargetMethodExplanation(ability, groundRules)}
         effectSummary={
           ability.effects.length
             ? groupSkillEffects(ability.effects).map(({ effect, count, firstIndex }) => (

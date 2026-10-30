@@ -3,7 +3,7 @@
 import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { BasicActionCharacterStats } from './basic-action-presentation'
 import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
-import { skillDisplayName } from './skill-detail-presentation'
+import { skillDisplayName, skillTargetMethodExplanation } from './skill-detail-presentation'
 
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
@@ -57,6 +57,7 @@ export function SkillParameters({
       <SkillCharacteristicRows
         rows={skillParameterRows(skill, skill, timingPolicy, groundRules)}
         targetDetails={<SkillGroundAreaDetails skill={skill} />}
+        targetMethodExplanation={skillTargetMethodExplanation(skill, groundRules)}
         effectSummary={
           skill.effects.length
             ? groupSkillEffects(skill.effects, skill.effectDescriptions).map(

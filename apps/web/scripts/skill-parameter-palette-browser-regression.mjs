@@ -473,7 +473,7 @@ async function assertModularReport(panel, { resonance = false, expectedPalette =
   const text = await panel.innerText()
   assert.match(text, /11 AP \/ 2 MP \/ 1 HP/)
   assert.match(text, /MP \[≥ 3\] \[Self\]/)
-  assert.match(text, /Move \[2\]/)
+  assert.match(text, /Move \[2\] \[Instant\] \[Ground\]/)
   assert.match(text, /Dmg \[13\] \[Controlled\]/)
   if (resonance) {
     assert.doesNotMatch(text, /Once per battle/)
@@ -1255,6 +1255,18 @@ async function verifyCanonicalEditor(page, viewport) {
   const walk = leap.locator('[data-ability-effect="walk"]')
   await openEffectParameters(walk)
   await walk.getByLabel('Move maximum tiles', { exact: true }).fill('3')
+  assert.equal(await walk.getByLabel('Destination', { exact: true }).isDisabled(), true)
+  assert.equal(await walk.getByLabel('Destination', { exact: true }).inputValue(), 'ground')
+  assert.deepEqual(
+    await page.evaluate(
+      () => window.inspectEditedAbility().definition.behaviors[0].effects[0].payload,
+    ),
+    {
+      type: 'move',
+      recipient: 'actor',
+      maximumTiles: 3,
+    },
+  )
   const hit = leap.locator('[data-ability-effect="hit"]')
   await openEffectParameters(hit)
   await hit.getByLabel('Damage amount', { exact: true }).fill('17')

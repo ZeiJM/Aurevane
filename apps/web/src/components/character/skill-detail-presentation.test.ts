@@ -16,6 +16,7 @@ import {
   skillTargetDescription,
   skillTargetElevationDescription,
   skillTargetMethodDescription,
+  skillTargetMethodExplanation,
   skillTargetTags,
   skillTypeDescription,
   skillParameterRows,
@@ -209,9 +210,7 @@ it('explains elemental interactions and typed status aliases without changing hi
     }),
   ).toContain('Burn')
   expect(
-    Object.fromEntries(skillParameterRows(resolveMatureSkillVersion('frostweaver.chilling-mist')!))[
-      'Target Method'
-    ],
+    skillTargetMethodExplanation(resolveMatureSkillVersion('frostweaver.chilling-mist')!),
   ).toContain('Frozen Ground: caster’s enemies only')
 })
 
@@ -555,9 +554,10 @@ it('keeps area dimensions and distinct recipients in canonical parameter rows', 
   expect(rows).not.toHaveProperty('Target')
   const ground = resolveMatureSkillVersion('frostweaver.chilling-mist')!
   const groundRows = Object.fromEntries(skillParameterRows(ground))
-  expect(groundRows['Target Method']).toContain('Ground')
+  expect(groundRows['Target Method']).toBe('Circle [1]')
+  expect(skillTargetMethodExplanation(ground)).toContain('Ground')
   expect(groundRows.Effects).toContain('[Enemy]')
-  expect(groundRows['Target Method']).toContain('Frozen Ground: caster’s enemies only')
+  expect(skillTargetMethodExplanation(ground)).toContain('Frozen Ground: caster’s enemies only')
   const friendlyFire = {
     ...volley,
     target: { ...volley.target, friendlyFire: 'all-units' as const },
@@ -587,7 +587,6 @@ it('derives All with no positional range/LoS while retaining elevation and order
   expect(skillTargetTags(skill)).toContain('All')
 })
 
-import { skillTargetMethodExplanation } from './skill-detail-presentation'
 it('explains current caster geometry and keeps the historical aimed explanation', () => {
   const current = resolveMatureSkillVersion('farstrider.volley')!
   const old = resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
@@ -685,9 +684,7 @@ it('advertises Ground Fire intent only for the canonical enemy unit target', () 
       element: 'fire' as const,
     },
   ]
-  expect(Object.fromEntries(skillParameterRows({ ...base, effects }))['Target Method']).toContain(
-    'Aim: Enemy / Ground',
-  )
+  expect(skillTargetMethodExplanation({ ...base, effects })).toContain('Aim: Enemy / Ground')
   expect(
     Object.fromEntries(
       skillParameterRows({
@@ -721,7 +718,8 @@ it('shows both intents for current Flame Burst while preserving its captured Gro
   const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')!
   const before = JSON.stringify(skill)
   const rows = Object.fromEntries(skillParameterRows(skill))
-  expect(rows['Target Method']).toContain('Aim: Enemy / Ground')
+  expect(rows['Target Method']).toBe('Circle [1]')
+  expect(skillTargetMethodExplanation(skill)).toContain('Aim: Enemy / Ground')
   expect(rows['Target Method']).toMatch(/^Circle \[1\]/)
   expect(rows.Effects).toContain('Fire Dmg')
   expect(rows.Effects).toContain('Cleanse Chilled')
@@ -731,7 +729,7 @@ it('shows both intents for current Flame Burst while preserving its captured Gro
         explicitElemental: false,
       }),
     )['Target Method'],
-  ).toBe('Circle [1] · Aim: Ground · Steam: both teams')
+  ).toBe('Circle [1]')
   expect(JSON.stringify(skill)).toBe(before)
 })
 

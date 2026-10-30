@@ -48,7 +48,7 @@ Execute inline; no competing workers. Existing dirty original checkout is protec
   First pin pure Move from enemy template, mixed follow-ups, selected-target
   Requirements, add/remove/reorder, save/reload and commit preservation regressions.
 - [ ] Apply disabled controls/options and concise help across shared editors.
-- [ ] Ground destination / method-only presentation across current and pinned readers.
+- [x] Ground destination / method-only presentation across current and pinned readers (native gates pending).
 - [x] Implement selectable single-unit utility/healing highlights; native verification pending.
   Trace confirmed: battle-experience.tsx inFootprint feeds data-buff-path without
   skillTarget; actual target selector rejects empty unit targets. Movement destination
@@ -92,3 +92,41 @@ gates; do not bypass or assume that the old-head failure has been resolved.
 
 Remaining source: compatibility projection/disabled choices and Ground/method-only
 reader presentation. No merge, deployment, migration or catalogue publication.
+
+
+## Reader and destination checkpoint
+
+Move payloads display Ground as destination without changing actor/self recipient
+or path mechanics. The destination selector is locked to Ground and explains the
+caster/follow-up distinction. Pure Move with no selected-target Requirement shows
+Single without duplicated reach; mixed actions and selected-target Requirements
+retain their range. Native walking retains Path and its actual Move stat bound.
+
+Target Method rows contain only the method/range. Typed aim, friendly fire, ground
+duration and selection limits move into report help, with accessible existing info
+popovers across Master, Nexus, Character HQ, battle and summon readers. The Manual
+keeps these constraints in explanation prose. Historical reports retain their own
+stored delivery text in help; shortening each separate group preserves all group
+labels. Missing captures do not acquire current metadata. Existing Ground rule
+supplements remain in place. No authored definition or historical capture is rewritten.
+
+Nine focused assertions fail before the main reader patch; Manual preservation and
+historical multi-group presentation each have another failing-first regression.
+Final adjacent run: 193/193 tests across 12 suites pass. Full web lint passed before
+the small multi-group correction, with focused lint repeated on its final files;
+script syntax/format/diff checks pass. Production build after clearing only the known
+invalid generated Turbopack cache passed before the final multi-group refinement;
+final exact-source production build also passes after moving only the invalid generated cache aside. Extended native palette
+checks assert Ground brackets, locked Destination and unchanged actor payload.
+Native runtime evidence remains required from CI, not claimed from this host.
+
+Bounded CI read on previous head4927b166: eight workflows including central CI
+succeeded; Browser smoke41072942318 still in progress. The recurring database port
+conflict did not occur on that head; no blind retry or CI changes were made. These
+results do not validate subsequent source. Main remains c6b91fabb76b9401d7fad8f0bba8ef776af485b1.
+
+Remaining source is the context-aware compatibility projection and disabled choices
+(items1/6), including persistent draft recovery and commit/preview exclusion. Full
+batch is still incomplete. Do not merge, deploy, migrate or publish content yet.
+
+React review: reused the existing accessible popover; no new state, subscriptions, data reads or gameplay mutations. Shared report help is an optional serializable string, and legacy multi-group labels remain separate through display projection. Self-reviewed inline per the sole-worker instruction.

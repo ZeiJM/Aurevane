@@ -43,7 +43,7 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
             ...groundRules,
             airborneAttackElevation,
           })}
-          targetMethodExplanation={skillTargetMethodExplanation(skill)}
+          targetMethodExplanation={skillTargetMethodExplanation(skill, groundRules)}
           targetDetails={<SkillGroundAreaDetails skill={skill} />}
           effectSummary={
             skill.effects.length

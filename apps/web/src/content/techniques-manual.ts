@@ -22,6 +22,7 @@ import { previewEffect } from '@/components/character/skill-effect-preview'
 import {
   skillDisplayName,
   skillParameterRows,
+  skillTargetMethodExplanation,
 } from '@/components/character/skill-detail-presentation'
 import {
   defaultBasicSkills,
@@ -301,7 +302,7 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
                   catalogue.timingPolicy,
                 )
                   .map(([label, value]) => `${label}: ${value}`)
-                  .join('. ')}.`,
+                  .join('. ')}. Delivery: ${skillTargetMethodExplanation(skill)}.`,
                 parts: null,
               }
             })

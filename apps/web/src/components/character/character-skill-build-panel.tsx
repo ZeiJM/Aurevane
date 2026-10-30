@@ -40,6 +40,7 @@ import artworkScaleStyles from '../battle/battle-artwork-scale.module.css'
 import {
   skillDisplayName,
   skillParameterRows,
+  skillTargetMethodExplanation,
   skillTypeDescription,
 } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
@@ -916,42 +917,52 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           ) : (
                             <>
                               <dl className={styles.characteristics}>
-                                {focusedCharacteristics.map(([label, value]) => (
-                                  <div key={label}>
-                                    <dt>{label}</dt>
-                                    <dd>
-                                      {label === 'Effects' && focusedSkill ? (
-                                        focusedSkill.definition.effects.length > 0 ? (
-                                          <div className={styles.effectSummaryList}>
-                                            {groupSkillEffects(
-                                              focusedSkill.definition.effects,
-                                              focusedSkill.definition.effectDescriptions,
-                                            ).map(({ effect, count, firstIndex: index }) => (
-                                              <CompactSkillEffectSummary
-                                                aim={focusedSkill.definition.target}
-                                                skillEffects={focusedSkill.definition.effects}
-                                                effect={effect}
-                                                count={count}
-                                                key={`${index}:${effect.type}`}
-                                              />
-                                            ))}
-                                          </div>
+                                {focusedCharacteristics.map(([label, value]) =>
+                                  label === 'Target Method' ? (
+                                    <SkillCharacteristicRows
+                                      key={label}
+                                      rows={[[label, value]]}
+                                      targetMethodExplanation={skillTargetMethodExplanation(
+                                        focusedSkill.definition,
+                                      )}
+                                      targetDetails={
+                                        <SkillGroundAreaDetails skill={focusedSkill.definition} />
+                                      }
+                                    />
+                                  ) : (
+                                    <div key={label}>
+                                      <dt>{label}</dt>
+                                      <dd>
+                                        {label === 'Effects' && focusedSkill ? (
+                                          focusedSkill.definition.effects.length > 0 ? (
+                                            <div className={styles.effectSummaryList}>
+                                              {groupSkillEffects(
+                                                focusedSkill.definition.effects,
+                                                focusedSkill.definition.effectDescriptions,
+                                              ).map(({ effect, count, firstIndex: index }) => (
+                                                <CompactSkillEffectSummary
+                                                  aim={focusedSkill.definition.target}
+                                                  skillEffects={focusedSkill.definition.effects}
+                                                  effect={effect}
+                                                  count={count}
+                                                  key={`${index}:${effect.type}`}
+                                                />
+                                              ))}
+                                            </div>
+                                          ) : (
+                                            'N/A'
+                                          )
+                                        ) : typeof value === 'string' ? (
+                                          value
+                                        ) : value.length > 0 ? (
+                                          value.join(', ')
                                         ) : (
                                           'N/A'
-                                        )
-                                      ) : typeof value === 'string' ? (
-                                        value
-                                      ) : value.length > 0 ? (
-                                        value.join(', ')
-                                      ) : (
-                                        'N/A'
-                                      )}
-                                      {label === 'Target Method' ? (
-                                        <SkillGroundAreaDetails skill={focusedSkill.definition} />
-                                      ) : null}
-                                    </dd>
-                                  </div>
-                                ))}
+                                        )}
+                                      </dd>
+                                    </div>
+                                  ),
+                                )}
                               </dl>
                               <ul
                                 className={styles.effectExplanations}

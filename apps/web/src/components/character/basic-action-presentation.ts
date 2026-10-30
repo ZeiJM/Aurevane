@@ -70,7 +70,7 @@ export function basicActionEffectSummaryParts(
   if (id === 'basic.move') {
     return {
       label: 'Move',
-      target: 'Self',
+      target: 'Ground',
       magnitude: '1',
       duration: null,
       timing: 'Instant',
@@ -119,7 +119,7 @@ export function basicActionCharacteristicRows(
       Cooldown: 'None',
       Requirements: 'N/A',
       Effects: basicActionEffectsSummary(id, timingPolicy, stats),
-      'Target Method': `Path [${stats.move === undefined ? 'Character Move stat' : stats.move}] · Empty Tile`,
+      'Target Method': `Path [${stats.move === undefined ? 'Character Move stat' : stats.move}]`,
       'Target Elevation': stats.jump === undefined ? 'Character Jump stat' : String(stats.jump),
       'Line of Sight': 'Not required',
     })
@@ -175,7 +175,7 @@ export function basicActionEffectExplanation(id: BasicActionPresentationId): str
   if (id === PV1F_BASIC_ATTACK_ID) {
     return 'Uses your higher Physical or Mystic Attack stat. Equal stats use Physical.'
   }
-  return 'Move to a reachable tile. Terrain can increase AP cost.'
+  return 'Move to a reachable, unoccupied Ground tile. Terrain can increase AP cost.'
 }
 
 /** Read-only Inspect and Final Facing use the same report, without inventing Skill content. */

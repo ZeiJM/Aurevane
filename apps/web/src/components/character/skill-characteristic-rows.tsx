@@ -1,3 +1,4 @@
+import { BattleInfoPopover } from '../battle/battle-info-popover'
 import type { ReactNode } from 'react'
 import type { SkillCharacteristic } from './basic-action-presentation'
 import styles from './skill-characteristic-rows.module.css'
@@ -33,23 +34,53 @@ export function SkillCharacteristicRows({
   targetMethodExplanation?: string
   targetDetails?: ReactNode
 }) {
-  return rows.map(([label, value]) => (
-    <div key={label}>
-      <dt>{label}</dt>
-      <dd title={label === 'Target Method' ? targetMethodExplanation : undefined}>
-        {label === 'Effects' && effectSummary ? (
-          effectSummary
-        ) : label === 'Requirements' ? (
-          <MechanicTextView
-            text={typeof value === 'string' ? value : value.join(', ') || 'N/A'}
-            parts={requirementParts}
-            emphasizeTags
-          />
-        ) : (
-          parameterValue(label, value)
-        )}
-        {label === 'Target Method' ? targetDetails : null}
-      </dd>
-    </div>
-  ))
+  return rows.map(([label, value]) => {
+    const values = typeof value === 'string' ? [value] : value
+    const capturedDelivery =
+      label === 'Target Method' ? values.filter((entry) => entry.includes(' · ')).join('; ') : ''
+    const explanation = [targetMethodExplanation, capturedDelivery].filter(Boolean).join(' · ')
+    const displayValue =
+      label === 'Target Method' ? values.map((entry) => entry.split(' · ')[0]!).join('; ') : value
+    return (
+      <div key={label}>
+        <dt>{label}</dt>
+        <dd title={label === 'Target Method' ? explanation || undefined : undefined}>
+          {label === 'Effects' && effectSummary ? (
+            effectSummary
+          ) : label === 'Requirements' ? (
+            <MechanicTextView
+              text={typeof value === 'string' ? value : value.join(', ') || 'N/A'}
+              parts={requirementParts}
+              emphasizeTags
+            />
+          ) : (
+            parameterValue(label, displayValue)
+          )}
+          {label === 'Target Method' && explanation ? (
+            <BattleInfoPopover
+              hover
+              label="Explain target method"
+              title="Target Method"
+              trigger={
+                <svg
+                  aria-hidden="true"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <circle cx="8" cy="8" r="7" />
+                  <path d="M8 7v5M8 4v1" />
+                </svg>
+              }
+            >
+              {explanation ? <p>{explanation}</p> : null}
+            </BattleInfoPopover>
+          ) : null}
+          {label === 'Target Method' ? targetDetails : null}
+        </dd>
+      </div>
+    )
+  })
 }

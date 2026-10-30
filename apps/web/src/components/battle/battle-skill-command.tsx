@@ -156,18 +156,20 @@ export function BattleSkillCommand({
     basicAction === null
       ? MINIMUM_SKILL_INFORMATION_FIELDS.map((field) => [field, 'Unavailable'] as const)
       : basicAction
-        ? MINIMUM_SKILL_INFORMATION_FIELDS.map(
-            (field) =>
-              [
-                field,
-                reports
-                  .map(
-                    (behavior) =>
-                      `${reports.length > 1 ? `${behavior.behaviorId}: ` : ''}${behavior.rows.find((row) => row[0] === field)?.[1] ?? 'Unavailable'}`,
-                  )
-                  .join('; ') || 'Unavailable',
-              ] as const,
-          )
+        ? MINIMUM_SKILL_INFORMATION_FIELDS.map((field) => {
+            const values = reports.map(
+              (behavior) =>
+                `${reports.length > 1 ? `${behavior.behaviorId}: ` : ''}${behavior.rows.find((row) => row[0] === field)?.[1] ?? 'Unavailable'}`,
+            )
+            return [
+              field,
+              values.length
+                ? field === 'Target Method'
+                  ? values
+                  : values.join('; ')
+                : 'Unavailable',
+            ] as const
+          })
         : undefined
 
   const closeSelector = useCallback((restoreFocus = false) => {
@@ -320,6 +322,12 @@ export function BattleSkillCommand({
           <strong>Parameters</strong>
           <dl>
             <SkillCharacteristicRows
+              targetMethodExplanation={
+                reports
+                  .map((report) => report.targetMethodExplanation)
+                  .filter(Boolean)
+                  .join(' · ') || undefined
+              }
               requirementParts={
                 reports.some((report) => report.requirementParts)
                   ? reports.flatMap((report, index) => [

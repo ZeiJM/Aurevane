@@ -68,3 +68,16 @@ it('allows Ground alongside an explicit unit packet and on inherited modifier fo
   const modifier = renderToStaticMarkup(<EffectTargetEditor value={value} onChange={() => {}} />)
   expect(modifier).toMatch(/<option value="ground">Ground<\/option>/)
 })
+
+it('shows a locked Ground destination for Move without authoring a ground recipient', () => {
+  const onChange = vi.fn()
+  const payload = { type: 'move', recipient: 'actor', maximumTiles: 15 }
+  const before = JSON.stringify(payload)
+  const html = renderToStaticMarkup(createElement(EffectTargetEditor, { value: payload, onChange }))
+  expect(html).toContain('aria-label="Destination"')
+  expect(html).toMatch(/<select[^>]*disabled/)
+  expect(html).toContain('Ground')
+  expect(html).not.toContain('>Enemy</option>')
+  expect(JSON.stringify(payload)).toBe(before)
+  expect(onChange).not.toHaveBeenCalled()
+})
