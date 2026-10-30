@@ -1,6 +1,20 @@
 # Master authoring and Wayfarer portrait follow-up
 
-Status: **local candidate; not live**. The Owner explicitly authorized this complete collected batch live after verification and asked to pause at GitHub with hourly checks. Baseline main is `2ed45e7950117c5d11073c2c2b3530ec4c4a1c42`; the earlier PR #991 app remains live at Production `dpl_8vhURf84Goyo6tzkvk7wtsHJ3pPU` until this candidate is verified and promoted.
+Status: **LIVE for Owner testing** at https://aurevane.vercel.app/master. PR #992 merged as `20acdee4eaab2e11f95c9b9f811e73e3ac0ff15b`; its complete tree is identical to tested successor `7a406a5fb30c6495a50911b9e1e0c6f6f87f5738`, tree `f2ab45ccc958fe2974928e428ff4988ab836452f`. Earlier pending and CI-diagnosis entries below are historical.
+
+## Verified production release — October 30
+
+All 12 configured applicable workflows and all applicable jobs passed on the exact successor. Browser smoke run `40998756430` actually executed the full selected native coverage: 379 Chromium and 10 Edge cases passed, with configured skips. It includes shared combat authoring, actual browser zoom and all 39 replacement public portrait decodes. Modular readers run `40998756519` passed the repaired desktop/mobile Requirements flow. No obsolete-head success authorized release.
+
+Fresh main was unchanged at `2ed45e7950117c5d11073c2c2b3530ec4c4a1c42` before expected-head merge. Both local Git and the integrated tree comparison confirm no application drift. Git automatic deployments remain locked. The deployment tool does not expose the per-build `autoAssignCustomDomains` field, so project-level automatic custom-domain assignment was explicitly disabled first. One Git-backed Production build, `dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE`, became READY at `2026-10-30T05:12:29.292Z`. Canonical stayed on PR #991 until explicit promotion, then independently resolved to the exact new source. No Preview or duplicate build was created.
+
+Routing add version `3bae0f1b-56d5-4528-93eb-4b6aa65cb8ed` preserved all nine original rules and added only the new unique/Git hosts and ID to four allowlists. Preflight passed before application promotion. After canonical source verification, final version `1cffe1ab-7456-43bc-9ddc-79a8177d49a2` narrowed compatible hosts to canonical, stable team alias and this release's unique/Git hosts, and pins to this deployment ID. All nine rules, IDs, names, other fields and cookie-clearing behavior were compared exactly before both promotions.
+
+Canonical account entry, Manual, Rules and News return 200; unsigned Master redirects and protected access returns 401. New header/query/cookie pins work. Prior unique/Git hosts and old header/query/cookie pins return 503 with no-store; the old cookie clears. First/middle/last Wayfarer02/21/40 WebPs have expected MIME, lengths and SHA256 hashes; versioned aliases redirect correctly and revalidate. Native all-39 decodes already passed in CI. The first probe was premature and saw Vercel's building placeholder; post-READY preflight and final postflight are the release evidence.
+
+A bounded deployment-specific error/fatal scan from READY through `2026-10-30T05:13:51.996Z` found no logs. No migration, fixture SQL, Chilled/Field Remedy/Dawn's Oath republication, bulk catalogue publication or Owner data overwrite occurred. Current authored damage projection requires an explicit Save/Commit for drafts retaining older hidden settings; historical captures remain unchanged. Refresh the app; start a new battle after committing new definitions. Owner hands-on, physical-device/audio/multiplayer/sustained-load acceptance and separate World/presence/movement work remain open. This does not close Phase5.
+
+Machine evidence: [production receipt](release-assets/2026-10-30-master-authoring-production.json). This documentation-only follow-through requires no second application build.
 
 ## Collected requirements
 
