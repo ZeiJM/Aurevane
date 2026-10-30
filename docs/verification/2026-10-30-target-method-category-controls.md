@@ -1,6 +1,18 @@
 # Target Method range and category controls
 
-Status: local implementation, not live. Baseline main: `35ec32504ed23dcaac18b3916af2750ad27c2990`.
+Status: **LIVE for Owner testing**, October 30, 2026. Baseline main: `35ec32504ed23dcaac18b3916af2750ad27c2990`.
+
+## Production release receipt
+
+Owner explicitly authorized making PR #994 live. All 13 workflows and 19 jobs passed on head `b361175d2a9ae999b1c8811ac30b6d31a738c80f`. Fresh main remained the verified baseline. Expected-head merge `f18c89b0cd15658e4a5f932e291a50501675efd2` has the identical tested tree `b80dda9ef609bbcc1a6407832d9b936817d7e1ed`; no conflict reconciliation or source changes occurred.
+
+One Git-backed Production deployment `dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU` reached READY at 10:29:21.227 UTC (06:29:21 Trinidad). Canonical traffic was explicitly promoted at 10:30:54.946 UTC (06:30:54 Trinidad), after 14 staged HTTP/media/pin checks passed. The canonical alias and deployment metadata identify the intended merge. All 19 postflight checks pass: public pages, Master/game sign-in gateways, access and read-only Moderation authentication denials, current pins, retired pins/hosts with cookie clearing, and representative HQ portrait delivery. A first probe used GET on the POST-only Moderation endpoint and correctly received 405; the corrected read-only active-list POST receives 401. No application change or build retry was needed.
+
+All nine retirement rules remain active. Transition version `a2359e16-91b0-48cb-860c-b9f66bf125c7` allowed both old/new hosts and deployment IDs before promotion. Final version `19a7f056-2ba9-4b78-a299-ed4b575210b2` allows only canonical/team aliases and this release's unique/Git hosts and deployment ID; the remaining five rules are unchanged. Previous PR #992 pins/unique hosts return 503/no-store; retired cookies clear. Automatic Git deployments stay disabled. No Preview, database migration, content republication, Owner draft/history/progression mutation or local workspace upload occurred.
+
+The deployment-specific error/fatal scan from READY through 10:31:33.633 UTC found no errors. This bounded initial scan does not establish sustained-load acceptance. Refresh the app and start a new battle to capture updated saved names and sound selections. Existing captures keep their pinned definitions. Real audible playback, Owner signed-in acceptance, physical-device/multiplayer/sustained-load acceptance and separate World work remain open; no Phase5 closure.
+
+[Machine-readable release receipt](release-assets/2026-10-30-target-method-production.json). This documentation follow-through needs no second application deployment. The implementation and local/CI notes below describe the pre-release sequence; their “not live” statements are historical.
 
 ## Scope
 

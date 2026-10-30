@@ -1,0 +1,1260 @@
+{
+  "testedHead": "b361175d2a9ae999b1c8811ac30b6d31a738c80f",
+  "tree": "b80dda9ef609bbcc1a6407832d9b936817d7e1ed",
+  "merge": "f18c89b0cd15658e4a5f932e291a50501675efd2",
+  "workflows": [
+    {
+      "id": 41019569536,
+      "name": "UI layout review",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2193,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569536/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569536/logs",
+      "workflow_id": 358723765,
+      "jobs": [
+        {
+          "id": 123949554642,
+          "name": "review",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569572,
+      "name": "CI",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 13134,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569572/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569572/logs",
+      "workflow_id": 335177451,
+      "jobs": [
+        {
+          "id": 123943562735,
+          "name": "Select CI coverage",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 123943655157,
+          "name": "Execute Database foundation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 123943655199,
+          "name": "Execute Quality gates",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 123945167919,
+          "name": "Database foundation",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 123949274275,
+          "name": "Quality gates",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569531,
+      "name": "Desktop experience",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2041,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569531/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569531/logs",
+      "workflow_id": 355411640,
+      "jobs": [
+        {
+          "id": 123943562543,
+          "name": "desktop-experience",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569510,
+      "name": "Controlled combat browser",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 242,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569510/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569510/logs",
+      "workflow_id": 385297185,
+      "jobs": [
+        {
+          "id": 123943562685,
+          "name": "controlled",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569509,
+      "name": "Skill Engine",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1869,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569509/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569509/logs",
+      "workflow_id": 349515249,
+      "jobs": [
+        {
+          "id": 123943562620,
+          "name": "skill-engine",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569528,
+      "name": "Resonance Build",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2023,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569528/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569528/logs",
+      "workflow_id": 349567136,
+      "jobs": [
+        {
+          "id": 123943562524,
+          "name": "quality",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569500,
+      "name": "Essence Build",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2193,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569500/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569500/logs",
+      "workflow_id": 349610571,
+      "jobs": [
+        {
+          "id": 123943562436,
+          "name": "quality",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569562,
+      "name": "Shared Build Snapshots",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1444,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569562/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569562/logs",
+      "workflow_id": 349845983,
+      "jobs": [
+        {
+          "id": 123943562694,
+          "name": "quality",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569609,
+      "name": "Combat and mobile layout regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 106,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569609/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569609/logs",
+      "workflow_id": 393322614,
+      "jobs": [
+        {
+          "id": 123943563208,
+          "name": "mobile-regressions",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569574,
+      "name": "Modular ability readers browser",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 235,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569574/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569574/logs",
+      "workflow_id": 385594055,
+      "jobs": [
+        {
+          "id": 123943562814,
+          "name": "readers",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569566,
+      "name": "Desktop page fit",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 1844,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569566/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569566/logs",
+      "workflow_id": 355392339,
+      "jobs": [
+        {
+          "id": 123943562585,
+          "name": "verify",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569507,
+      "name": "Representative Buildcraft",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 2728,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569507/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569507/logs",
+      "workflow_id": 350260916,
+      "jobs": [
+        {
+          "id": 123943562782,
+          "name": "representative-buildcraft",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": 41019569599,
+      "name": "Browser smoke",
+      "status": "completed",
+      "conclusion": "success",
+      "run_number": 7132,
+      "jobs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569599/jobs",
+      "logs_url": "https://api.github.com/repos/ZeiJM/Aurevane/actions/runs/41019569599/logs",
+      "workflow_id": 335250790,
+      "jobs": [
+        {
+          "id": 123944189112,
+          "name": "Select Browser smoke coverage",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 123944264051,
+          "name": "Execute Responsive browser smoke",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 123980837581,
+          "name": "Responsive browser smoke",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "routingBefore": {
+    "routes": [
+      {
+        "id": "bb343d6a-005e-41f5-96ff-33e15c2c04b3",
+        "name": "Retire incompatible deployment hosts",
+        "description": "Only the canonical domains and exact compatible deployment aliases may serve this project. Update allowed-host regex with every future approved production cutover.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "missing": [
+            {
+              "type": "host",
+              "value": "^(aurevane\\.vercel\\.app|aurevane-zeijms-projects\\.vercel\\.app|aurevane-6wbtae6eg-zeijms-projects\\.vercel\\.app|aurevane-git-20acdee4eaab2e11f95c9b9f811-8a5f76-zeijms-projects\\.vercel\\.app)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "d53aa166-cf3f-42db-a6fd-1a27b3fe8298",
+        "name": "Retire incompatible header pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id"
+            }
+          ],
+          "missing": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "^(dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "04259482-8b0f-4b01-85bf-b5bd35dbb910",
+        "name": "Retire incompatible query pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "^(dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "66ba7749-1a6b-4ccd-9202-be7a7bb8ff76",
+        "name": "Retire incompatible cookie pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "^(dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "1762a69d-d88b-464d-9986-a3885460cc13",
+        "name": "Retired Master baseline cookie",
+        "description": "Retire the old deployment cookie and clear its pin so a refresh can load the compatible production app.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "301121a1-fbd1-41cf-a045-228548908639",
+        "name": "Retired Master baseline query",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "49bed491-bc3d-4736-a8dc-9894c31f2b9e",
+        "name": "Retired Master baseline header",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "fd8c5790-8c24-44fa-ae75-06f845fcf546",
+        "name": "Retired Master baseline 2",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-git-a759c6ea651a8e14dff0ec4cdc3-614017-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "aa0fbb3e-fad0-4071-9d3f-ba1befb4c00e",
+        "name": "Retired Master baseline 1",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-fdhf3oe1n-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      }
+    ],
+    "version": {
+      "id": "1cffe1ab-7456-43bc-9ddc-79a8177d49a2",
+      "s3Key": "f098c4287a6729fb",
+      "createdBy": "Nicholas JM",
+      "lastModified": 1793337225479,
+      "ruleCount": 9,
+      "alias": "aurevane-a6cff6-routes-zeijms-projects.vercel.app"
+    },
+    "limit": {
+      "maxRoutes": 100,
+      "currentRoutes": 9
+    }
+  },
+  "routingTransition": "a2359e16-91b0-48cb-860c-b9f66bf125c7",
+  "previousDeployment": "dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE",
+  "deploymentId": "dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU",
+  "notes": [
+    "No database migration, content republication or Owner draft/history/progression mutation.",
+    "Local workspace has unrelated changes; deployment is pinned to verified Git source, without uploading local files."
+  ],
+  "deployment": {
+    "id": "dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU",
+    "name": "aurevane",
+    "url": "aurevane-eqtdra0c1-zeijms-projects.vercel.app",
+    "type": "LAMBDAS",
+    "state": "READY",
+    "createdAt": 1793356058471,
+    "creator": {
+      "uid": "VwTLakFObK5PLogxt6E3lfFr",
+      "username": "zeijm"
+    },
+    "project": {
+      "id": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+      "name": "aurevane",
+      "framework": "nextjs"
+    },
+    "meta": {
+      "githubCommitRef": "f18c89b0cd15658e4a5f932e291a50501675efd2",
+      "githubCommitSha": "f18c89b0cd15658e4a5f932e291a50501675efd2",
+      "githubCommitMessage": "Merge pull request #994 from ZeiJM/agent/target-method-range-20261030\n\nFix Skill authoring, previews and battle feedback",
+      "githubRepo": "Aurevane",
+      "githubOrg": "ZeiJM"
+    },
+    "alias": [
+      "aurevane-zeijms-projects.vercel.app",
+      "aurevane-git-f18c89b0cd15658e4a5f932e291-05bfe3-zeijms-projects.vercel.app"
+    ],
+    "target": "production",
+    "regions": ["cle1"],
+    "buildingAt": 1793356059540,
+    "ready": 1793356161227,
+    "readyState": "READY",
+    "aliasError": null
+  },
+  "routingFinal": {
+    "routes": [
+      {
+        "id": "bb343d6a-005e-41f5-96ff-33e15c2c04b3",
+        "name": "Retire incompatible deployment hosts",
+        "description": "Only the canonical domains and exact compatible deployment aliases may serve this project. Update allowed-host regex with every future approved production cutover.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "missing": [
+            {
+              "type": "host",
+              "value": "^(aurevane\\.vercel\\.app|aurevane-zeijms-projects\\.vercel\\.app|aurevane-eqtdra0c1-zeijms-projects\\.vercel\\.app|aurevane-git-f18c89b0cd15658e4a5f932e291-05bfe3-zeijms-projects\\.vercel\\.app)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "d53aa166-cf3f-42db-a6fd-1a27b3fe8298",
+        "name": "Retire incompatible header pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id"
+            }
+          ],
+          "missing": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "^(dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "04259482-8b0f-4b01-85bf-b5bd35dbb910",
+        "name": "Retire incompatible query pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "^(dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "66ba7749-1a6b-4ccd-9202-be7a7bb8ff76",
+        "name": "Retire incompatible cookie pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "^(dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "1762a69d-d88b-464d-9986-a3885460cc13",
+        "name": "Retired Master baseline cookie",
+        "description": "Retire the old deployment cookie and clear its pin so a refresh can load the compatible production app.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "301121a1-fbd1-41cf-a045-228548908639",
+        "name": "Retired Master baseline query",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "49bed491-bc3d-4736-a8dc-9894c31f2b9e",
+        "name": "Retired Master baseline header",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "fd8c5790-8c24-44fa-ae75-06f845fcf546",
+        "name": "Retired Master baseline 2",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-git-a759c6ea651a8e14dff0ec4cdc3-614017-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "aa0fbb3e-fad0-4071-9d3f-ba1befb4c00e",
+        "name": "Retired Master baseline 1",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-fdhf3oe1n-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      }
+    ],
+    "version": {
+      "id": "19a7f056-2ba9-4b78-a299-ed4b575210b2",
+      "s3Key": "34937fd44cf80833",
+      "createdBy": "Nicholas JM",
+      "lastModified": 1793356270582,
+      "ruleCount": 9,
+      "alias": "aurevane-a6cff6-routes-zeijms-projects.vercel.app"
+    },
+    "limit": {
+      "maxRoutes": 100,
+      "currentRoutes": 9
+    }
+  },
+  "preflight": {
+    "checkedAt": "2026-10-30T10:30:38.825033+00:00",
+    "origin": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app",
+    "phase": "preflight",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "95b292b081940c7c36be9861b2a971f855ce506d11cdd88b5636208c1880ab9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/manual",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 43451,
+        "sha256": "4122a499bf65ce6dc8536ceb04c057d362bd53c2cfaa1d4067fb5cf82d3e44e2",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/rules",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 33365,
+        "sha256": "fc59708781fb92ac1624cd44b8794c8ec3615c789960c6276a7f17abfdfc980d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/news",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 14821,
+        "sha256": "cce48b3cbaed2ed70a556b103183e800be7836170e62e71e7969edad2c747c36",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/master",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/master",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6940,
+        "sha256": "2cbc97e601386ec0f2e48f697ae218ee11f1dfaf7f2c569d1d5e15e3e738bf84",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/game",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/game",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6677,
+        "sha256": "2a324302590f5a400a9adbf4f91ca66d239ac4aa692068a1c199c5da3a6c96d2",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/api/master/access",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/api/master/access",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "/api/master/moderation",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/api/master/moderation",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "new header",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "95b292b081940c7c36be9861b2a971f855ce506d11cdd88b5636208c1880ab9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new query",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/?dpl=dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16675,
+        "sha256": "1e154577f62472762d479246d7031743434fff192c0ddfbf399848dfe2ee1486",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new cookie",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "95b292b081940c7c36be9861b2a971f855ce506d11cdd88b5636208c1880ab9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "portrait 02",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 202230,
+        "sha256": "117a7cf005a9933ff53309cbab235b76d88740119587f889c1b32c8483f1ad4f",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 21",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 207770,
+        "sha256": "b13bc447eb97429bba56026adf40b81cb54299c9a04de35aff6e64e594519676",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 40",
+        "url": "https://aurevane-eqtdra0c1-zeijms-projects.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 169684,
+        "sha256": "7fca1e51656efb6abd4dd38b0297653fe6706e5bb59b5b2fc8486fbe429b59ab",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      }
+    ]
+  },
+  "postflight": {
+    "checkedAt": "2026-10-30T10:31:21.321147+00:00",
+    "origin": "https://aurevane.vercel.app",
+    "phase": "postflight",
+    "passed": true,
+    "results": [
+      {
+        "name": "/",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "95b292b081940c7c36be9861b2a971f855ce506d11cdd88b5636208c1880ab9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/manual",
+        "url": "https://aurevane.vercel.app/manual",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 43451,
+        "sha256": "4122a499bf65ce6dc8536ceb04c057d362bd53c2cfaa1d4067fb5cf82d3e44e2",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/rules",
+        "url": "https://aurevane.vercel.app/rules",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 33365,
+        "sha256": "fc59708781fb92ac1624cd44b8794c8ec3615c789960c6276a7f17abfdfc980d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/news",
+        "url": "https://aurevane.vercel.app/news",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 14821,
+        "sha256": "cce48b3cbaed2ed70a556b103183e800be7836170e62e71e7969edad2c747c36",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "/master",
+        "url": "https://aurevane.vercel.app/master",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6940,
+        "sha256": "2cbc97e601386ec0f2e48f697ae218ee11f1dfaf7f2c569d1d5e15e3e738bf84",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/game",
+        "url": "https://aurevane.vercel.app/game",
+        "status": 307,
+        "expected": 307,
+        "passed": true,
+        "bytes": 6677,
+        "sha256": "2a324302590f5a400a9adbf4f91ca66d239ac4aa692068a1c199c5da3a6c96d2",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8",
+          "location": "/"
+        }
+      },
+      {
+        "name": "/api/master/access",
+        "url": "https://aurevane.vercel.app/api/master/access",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "/api/master/moderation",
+        "url": "https://aurevane.vercel.app/api/master/moderation",
+        "status": 401,
+        "expected": 401,
+        "passed": true,
+        "bytes": 73,
+        "sha256": "4bfe04de1cef70ace710731d4ee1e093cb59bc1a05c8615830afe1a343309c07",
+        "headers": {
+          "cache-control": "private, no-store",
+          "content-type": "application/json"
+        }
+      },
+      {
+        "name": "new header",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "95b292b081940c7c36be9861b2a971f855ce506d11cdd88b5636208c1880ab9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new query",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16675,
+        "sha256": "1e154577f62472762d479246d7031743434fff192c0ddfbf399848dfe2ee1486",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "new cookie",
+        "url": "https://aurevane.vercel.app/",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 16601,
+        "sha256": "95b292b081940c7c36be9861b2a971f855ce506d11cdd88b5636208c1880ab9d",
+        "headers": {
+          "cache-control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      {
+        "name": "old header",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "0847277bb2c98817fb6a4778d04658980270fc4967086ea06375618a53b9085a",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old query",
+        "url": "https://aurevane.vercel.app/?dpl=dpl_3mfkmqUsANdB44zA1Be8xd3HTYcE",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "ed62e92baac53122a846bffa253e84d64999e93de6ef624b4ffdb37f141859d3",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old cookie",
+        "url": "https://aurevane.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "55112fcc082dca38534d3a74c6c1c84f7d60661c6bf70164fd76cf9e30efe19d",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8",
+          "set-cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+        }
+      },
+      {
+        "name": "old host",
+        "url": "https://aurevane-6wbtae6eg-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "3866006786393d982fedec3dcd6332d08f146b6db848e046bccc0ea480a994b4",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "old host",
+        "url": "https://aurevane-git-20acdee4eaab2e11f95c9b9f811-8a5f76-zeijms-projects.vercel.app/",
+        "status": 503,
+        "expected": 503,
+        "passed": true,
+        "bytes": 101,
+        "sha256": "2e278c770871f212faa206dfd629977e78a4317794148c69f22c6c262584b545",
+        "headers": {
+          "cache-control": "no-store",
+          "content-type": "text/plain; charset=utf-8"
+        }
+      },
+      {
+        "name": "portrait 02",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-02-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 202230,
+        "sha256": "117a7cf005a9933ff53309cbab235b76d88740119587f889c1b32c8483f1ad4f",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 21",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-21-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 207770,
+        "sha256": "b13bc447eb97429bba56026adf40b81cb54299c9a04de35aff6e64e594519676",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      },
+      {
+        "name": "portrait 40",
+        "url": "https://aurevane.vercel.app/media/art/wayfarer/portrait-40-v02.webp",
+        "status": 200,
+        "expected": 200,
+        "passed": true,
+        "bytes": 169684,
+        "sha256": "7fca1e51656efb6abd4dd38b0297653fe6706e5bb59b5b2fc8486fbe429b59ab",
+        "headers": {
+          "cache-control": "public, max-age=0, must-revalidate",
+          "content-type": "image/webp"
+        }
+      }
+    ]
+  },
+  "promotion": {
+    "canonicalAlias": "aurevane.vercel.app",
+    "deploymentId": "dpl_5fkEjru5kvsHHzgqwdMysYQCR8nU",
+    "at": "2026-10-30T10:30:54.946Z"
+  },
+  "errorScan": {
+    "since": "2026-10-30T10:29:21.227Z",
+    "until": "2026-10-30T10:31:33.633Z",
+    "levels": ["error", "fatal"],
+    "count": 0
+  },
+  "probeCorrection": "An initial GET probe of POST-only /api/master/moderation correctly returned 405; the read-only POST active-list probe returned 401. No application change or deployment retry was made."
+}
