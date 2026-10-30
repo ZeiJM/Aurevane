@@ -53,7 +53,8 @@ Execute inline; no competing workers. Existing dirty original checkout is protec
       Trace confirmed: battle-experience.tsx inFootprint feeds data-buff-path without
       skillTarget; actual target selector rejects empty unit targets. Movement destination
       stage must remain separate from post-move target stage.
-- [ ] Full final gates, release, production verification, receipt and watcher shutdown.
+- [x] Full application gates, release and production verification.
+- [ ] Merge documentation follow-through and stop watcher.
 
 ## Checkpoint
 
@@ -234,3 +235,9 @@ collection and diff checks; no full application rebuild is needed for a wrapper
 count change. Collection is not native execution, and Chromium remains unavailable
 locally. Every configured exact-new-head workflow/job must still pass. Main freshly
 remains c6b91fabb76b9401d7fad8f0bba8ef776af485b1; no merge/deployment yet.
+
+## Verified Production release
+
+October 30 Skill compatibility and legal highlights — **LIVE for Owner testing**: PR #996 merge `545481a00649b7fafd9edc61b5bfe400deac45db`, exact tested tree `60e13e183072d80d8011f5d11862d596e6195068`, Production `dpl_98NEWgarZCPxzWM9jLPuUb1KqtMQ`, https://aurevane.vercel.app/master. All 13 exact-head workflows and 19 jobs pass, including 38 canonical Move cases and the full native browser gate. Shared editors disable incompatible controls while preserving raw draft recovery; Move displays Ground, Target Method is compact, utility/healing highlights follow selectable units, generic missing-result prose is removed, self-only [0] is hidden and effect choices sort A–Z. All 14 staged and 19 production probes pass; nine retirement rules remain. No migration, catalogue republication or Owner data/history/progression mutation. Owner/device/audio/multiplayer/load acceptance and separate World timing work remain open; no Phase5 closure. Receipt: `docs/verification/2026-10-30-skill-compatibility-release.md`.
+
+The pre-release ledger above is historical. Documentation-only follow-through must pass its configured gates before merge, without another application deployment.
