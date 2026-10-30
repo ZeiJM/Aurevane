@@ -17,11 +17,7 @@ import {
   type ChronicleAction,
   type ChronicleNames,
 } from './battle-log-chronicle-model'
-import {
-  chronicleActionNarration,
-  chronicleActionTitle,
-  chronicleMissingResult,
-} from './battle-log-chronicle-text'
+import { chronicleActionNarration, chronicleActionTitle } from './battle-log-chronicle-text'
 import styles from './battle-log-chronicle.module.css'
 import { chronicleActionArtwork } from './battle-chronicle-artwork'
 
@@ -42,7 +38,6 @@ function ChronicleTechnique({
 }) {
   const narration = chronicleActionNarration(action, actorName)
   const title = chronicleActionTitle(action)
-  const missingResult = chronicleMissingResult(action)
   return (
     <article
       className={styles.technique}
@@ -99,8 +94,6 @@ function ChronicleTechnique({
             </span>
           ))}
         </p>
-      ) : missingResult ? (
-        <p className={styles.outcomes}>{missingResult}</p>
       ) : null}
       {action.specials.map((special) => (
         <ChronicleTechnique

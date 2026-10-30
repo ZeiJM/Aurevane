@@ -7,11 +7,7 @@ import {
   type ChronicleAction,
   type ChronicleNames,
 } from './battle-log-chronicle-model'
-import {
-  chronicleActionNarration,
-  chronicleActionTitle,
-  chronicleMissingResult,
-} from './battle-log-chronicle-text'
+import { chronicleActionNarration, chronicleActionTitle } from './battle-log-chronicle-text'
 
 interface BattleLogClipboardOptions extends ChronicleNames {
   currentRound?: number
@@ -22,7 +18,6 @@ interface BattleLogClipboardOptions extends ChronicleNames {
 function actionLines(action: ChronicleAction, actorName: string): string[] {
   const title = chronicleActionTitle(action)
   const narration = chronicleActionNarration(action, actorName)
-  const missingResult = chronicleMissingResult(action)
   const outcomes = action.outcomes
     .map((result) => `${result.text}${result.recipient ?? ''}`)
     .join(' · ')
@@ -30,7 +25,6 @@ function actionLines(action: ChronicleAction, actorName: string): string[] {
     ...(title ? [title] : []),
     ...(narration ? [narration] : []),
     ...(outcomes ? [outcomes] : []),
-    ...(missingResult ? [missingResult] : []),
     ...action.specials.flatMap((special) => actionLines(special, actorName)),
   ]
 }

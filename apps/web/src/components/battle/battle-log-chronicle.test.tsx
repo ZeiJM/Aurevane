@@ -399,7 +399,7 @@ describe('approved Battle Chronicle', () => {
     ])
     expect(html.match(/data-chronicle-action=/gu)).toHaveLength(2)
     expect(html).toContain('The skill misses Weon.')
-    expect(html.match(/Action recorded; no effect result available\./gu)).toHaveLength(1)
+    expect(html).not.toContain('Action recorded; no effect result available.')
     expect(html.indexOf('Hollow Reflection')).toBeLessThan(html.indexOf('The skill misses'))
   })
 
@@ -449,14 +449,14 @@ describe('approved Battle Chronicle', () => {
     expect(html).toContain('data-outcome-tone="neutral"')
   })
 
-  it('shows a recorded hit even if it has no damage event, and marks missing results honestly', () => {
+  it('shows a recorded hit even if it has no damage event, without adding generic missing-result copy', () => {
     const html = render([
       entry(1, 0, 'stat_driven_attack_resolved', { templateValues: { outcome: 'HIT' } }),
       { ...technique(1), eventIndex: 1 },
       technique(2),
     ])
     expect(html).toContain('The strike hits Weon.')
-    expect(html).toContain('Action recorded; no effect result available.')
+    expect(html).not.toContain('Action recorded; no effect result available.')
     expect(html).not.toContain('0 damage')
   })
   it('renders pinned identities and authorized outcome pronouns without rewriting old scenes', () => {
@@ -678,7 +678,7 @@ describe('approved Battle Chronicle', () => {
     expect(html).toContain('Renewing Herbs')
     expect(html).toContain('Zei follows a pale plane into the opening.')
     expect(html).not.toContain('Action recorded; no effect result available.')
-    expect(render([cast])).toContain('Action recorded; no effect result available.')
+    expect(render([cast])).not.toContain('Action recorded; no effect result available.')
     expect(html).not.toContain('summon_spawned')
     expect(
       render([
@@ -688,7 +688,7 @@ describe('approved Battle Chronicle', () => {
     ).not.toContain('no effect result available')
     expect(
       render([cast, entry(1, 1, 'summon_spawned', { actionId: 'unrelated.skill' })]),
-    ).toContain('no effect result available')
+    ).not.toContain('no effect result available')
   })
 
   it('reports the full recorded affected round range for a pending multi-turn effect', () => {

@@ -319,7 +319,7 @@ describe('Battle Chronicle clipboard transcript', () => {
     )
   })
 
-  it('keeps successful summons and missing-result wording exactly as the reader', () => {
+  it('keeps cast text without generic missing-result wording in both reader and copy', () => {
     expectDisplayParity(
       [
         technique(1),
@@ -333,7 +333,6 @@ describe('Battle Chronicle clipboard transcript', () => {
         'Storm follows a pale plane into the opening.',
         'Hollow Reflection',
         'Storm follows a pale plane into the opening.',
-        'Action recorded; no effect result available.',
       ],
     )
   })
