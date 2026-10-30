@@ -104,6 +104,7 @@ export function abilityManualInlineParts(
   })
   result.push('. ')
   const tail: ManualInlinePart[][] = [
+    ...(report.targetMethodExplanation ? [[`Delivery: ${report.targetMethodExplanation}`]] : []),
     ...report.limits.map((limit) => [limit]),
     ...(report.maintenance ? [[report.maintenance]] : []),
     ...report.effectDescriptions.map((text, index) => [

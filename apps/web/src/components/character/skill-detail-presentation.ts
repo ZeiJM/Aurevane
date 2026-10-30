@@ -275,7 +275,7 @@ export function skillParameterRows(
     Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
     Requirements: skillRequirementsSummary(skill),
     Effects: skillEffectsSummary(skill, timingPolicy, options),
-    'Target Method': skillTargetMethodDescription(skill) + skillDeliveryNotes(skill, options),
+    'Target Method': skillTargetMethodDescription(skill),
     'Target Elevation':
       options.airborneAttackElevation && skill.tags.includes('attack')
         ? '3'
@@ -502,7 +502,9 @@ function skillDeliveryNotes(
 
 export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   const kind = skill.target.shape.kind
-  return kind === 'all' ? 'All' : `${title(kind)} [${skillCompactRangeDescription(skill)}]`
+  if (kind === 'all') return 'All'
+  if (skill.target.maximumRange === 0 && skillTargetsOnlySelf(skill.target)) return title(kind)
+  return `${title(kind)} [${skillCompactRangeDescription(skill)}]`
 }
 
 export function skillTargetElevationDescription(
@@ -557,7 +559,7 @@ export function skillDisplayName(skill: MatureSkillDefinition): string {
     .join(' ')
 }
 
-export function skillTargetMethodExplanation(skill: Pick<MatureSkillDefinition, 'target'>): string {
+function skillTargetShapeExplanation(skill: Pick<MatureSkillDefinition, 'target'>): string {
   const shape = skill.target.shape
   if (shape.kind === 'single') return 'Single selects exactly one legal unit or tile.'
   if (shape.kind === 'all') {
@@ -574,4 +576,17 @@ export function skillTargetMethodExplanation(skill: Pick<MatureSkillDefinition, 
   if (skill.target.geometryVersion === 3 && combatTargetCategories(skill.target).includes('self'))
     return `Circle radius ${shape.radius} covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you and includes yourself. Inner rings are included; authored visibility and elevation rules apply to surrounding tiles.`
   return `Circle radius ${shape.radius} covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.`
+}
+
+/** Delivery help uses only this definition or capture, never a newer catalogue. */
+export function skillTargetMethodExplanation(
+  skill: Pick<MatureSkillDefinition, 'target'> & Partial<Pick<MatureSkillDefinition, 'effects'>>,
+  options: Parameters<typeof skillDeliveryNotes>[1] = {},
+): string {
+  return (
+    skillTargetShapeExplanation(skill) +
+    (skill.effects
+      ? skillDeliveryNotes({ target: skill.target, effects: skill.effects }, options)
+      : '')
+  )
 }

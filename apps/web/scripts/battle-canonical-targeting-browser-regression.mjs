@@ -321,7 +321,14 @@ try {
       ]) {
         const touch = viewport.width === 390
         const options = { viewport, ...(touch ? { isMobile: true, hasTouch: true } : {}) }
-        for (const scenario of ['move-paid', 'move-mixed', 'move-stationary', 'move-stale']) {
+        for (const scenario of [
+          'move-paid',
+          'move-mixed',
+          'move-stationary',
+          'move-stale',
+          'move-utility',
+          'move-healing',
+        ]) {
           const page = await browser.newPage(options)
           page.on('pageerror', (error) => {
             errors.push(error.message)
@@ -378,13 +385,38 @@ try {
             )
             await gesture(tile(3, 2))
           }
+          if (scenario === 'move-utility' || scenario === 'move-healing') {
+            const attribute = scenario === 'move-healing' ? 'data-heal-target' : 'data-buff-path'
+            assert.equal(
+              await tile(4, 2).getAttribute(attribute),
+              'true',
+              'selectable enemy stays highlighted',
+            )
+            for (const [x, y] of [
+              [3, 1],
+              [2, 2],
+            ]) {
+              assert.equal(
+                await tile(x, y).getAttribute(attribute),
+                null,
+                'empty unit-target tiles are not highlighted',
+              )
+            }
+            await gesture(tile(3, 1))
+            assert.equal((await commands()).length, 0, 'empty unit target cannot submit a command')
+            // Rejected selection retains the chosen route and eligible target.
+            assert.equal(await tile(4, 2).getAttribute(attribute), 'true')
+          }
           await page.screenshot({
             path: resolve(output, `${mode}-${viewport.width}-${scenario}-target.png`),
           })
           await gesture(tile(4, scenario === 'move-stationary' ? 3 : 2))
-          await page.waitForFunction(() =>
-            window.receipts?.some((event) => event.event === 'damage_applied'),
-          )
+          if (scenario === 'move-utility' || scenario === 'move-healing')
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion > 1)
+          else
+            await page.waitForFunction(() =>
+              window.receipts?.some((event) => event.event === 'damage_applied'),
+            )
           const result = await page.evaluate(() => ({
             calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
             receipts: window.receipts,
@@ -396,6 +428,10 @@ try {
             ),
           }))
           assert.equal(result.calls.length, 1)
+          assert.equal(
+            result.receipts.some((event) => event.event === 'damage_applied'),
+            !['move-utility', 'move-healing'].includes(scenario),
+          )
           assert.equal(result.calls[0].body.intent.behaviorId, 'strike')
           assert.deepEqual(result.calls[0].body.intent.target, {
             kind: 'unit',

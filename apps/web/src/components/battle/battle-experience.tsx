@@ -3154,12 +3154,11 @@ function BattleExperienceContent({
                     currentDescriptor.targetKind === 'empty-tile' ||
                     targetSpec?.categories?.includes('ground')
                   const skillTarget =
-                    activeTechnique &&
-                    (groundTarget ||
-                      (placement &&
-                        (targetSpec?.geometryVersion === 3 ||
-                          currentDescriptor.targetKind !== 'self' ||
-                          placement.combatantId === localCombatantId)))
+                    groundTarget ||
+                    (placement &&
+                      (targetSpec?.geometryVersion === 3 ||
+                        currentDescriptor.targetKind !== 'self' ||
+                        placement.combatantId === localCombatantId))
                       ? selectBattleSkillPreviewIntent(currentDescriptor, {
                           actorId: localCombatantId,
                           selectedCombatantId: placement?.combatantId ?? null,
@@ -3167,7 +3166,14 @@ function BattleExperienceContent({
                           combatants: previewCombatants,
                         })
                       : null
-                  const inFootprint = potentialPath.has(key)
+                  // Single-unit utility/healing shows candidates, not empty geometric reach.
+                  // Movement destinations are handled separately by reachable paths above.
+                  const inFootprint =
+                    potentialPath.has(key) &&
+                    (groundTarget ||
+                      damagingSelection ||
+                      targetSpec?.shape.kind !== 'single' ||
+                      !!skillTarget)
                   const targetRelation = !inFootprint
                     ? undefined
                     : activeTechnique
@@ -3221,9 +3227,7 @@ function BattleExperienceContent({
                           inFootprint &&
                           healingSelection &&
                           !damagingSelection &&
-                          (targetSpec?.shape.kind !== 'single' ||
-                            !placement ||
-                            targetRelation === 'friendly')) ||
+                          (targetSpec?.shape.kind !== 'single' || !!skillTarget)) ||
                         undefined
                       }
                       data-terrain={terrain}

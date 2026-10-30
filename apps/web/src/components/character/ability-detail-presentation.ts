@@ -1,3 +1,4 @@
+import { hasSelectedAimRequirement } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import type { MechanicTextPart } from './mechanic-text'
@@ -42,6 +43,7 @@ import {
   compactSkillEffectSummaryParts,
   skillEffectDescription,
   skillTargetMethodDescription,
+  skillTargetMethodExplanation,
   skillTargetElevationDescription,
   skillLineOfSightDescription,
   type CompactSkillEffectSummaryParts,
@@ -580,17 +582,42 @@ export function abilityBehaviorInformation(
           )
           .join(' / ')
       : null
-  const aimNote =
-    aimLabel &&
-    (groundFire || effects.every(({ presentation }) => presentation.parts.target !== aimLabel))
-      ? ` · Aim: ${aimLabel}`
-      : ''
   const groundSummary = behavior.groundArea
     ? timingPolicy?.tagAuthority === 'global'
       ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
       : `${groundFire ? 'Ground casts: ' : ''}${combatGroundAreaDescription(behavior.groundArea, timingPolicy?.modes['ground-area'] === 'instant' || timingPolicy?.modes['ground-area'] === 'delayed' ? timingPolicy.modes['ground-area'] : 'next-round', true)}`
     : null
+  const moveOnly =
+    behavior.effects.length > 0 &&
+    behavior.effects.every(({ payload }) => payload.type === 'move') &&
+    !hasSelectedAimRequirement([
+      behavior.requirements,
+      ...behavior.effects.map(({ requirements }) => requirements),
+    ])
+  const deliveryNotes = target
+    ? [
+        skillTargetMethodExplanation({ target }),
+        aimLabel ? `Aim: ${aimLabel}` : '',
+        target.maximumRange > 0
+          ? `Aim reach: ${target.minimumRange}–${target.maximumRange} tiles`
+          : '',
+        effectFriendlyFireNote(
+          behavior.effects.map(({ payload }) => payload),
+          target,
+        ).replace(/^ · /u, ''),
+        groundSummary ?? '',
+        (target.maximumSelections ?? 1) > 1
+          ? `Up to ${target.maximumSelections} distinct targets`
+          : '',
+        nativeMove
+          ? 'Destination: reachable, unoccupied Ground. Movement and Jump limits apply.'
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
   return {
+    ...(deliveryNotes ? { targetMethodExplanation: deliveryNotes } : {}),
     ...(requirementParts ? { requirementParts } : {}),
     ...(behavior.requirementMode === 'simple' && behavior.activation === 'automatic'
       ? {
@@ -617,18 +644,11 @@ export function abilityBehaviorInformation(
       Requirements: requirementsSummary,
       Effects: summary,
       'Target Method': nativeMove
-        ? `Path [${options.stats?.move === undefined ? 'Character Move stat' : Math.min(options.stats.move, move?.type === 'move' ? move.maximumTiles : Infinity)}] · Empty Tile`
+        ? `Path [${options.stats?.move === undefined ? 'Character Move stat' : Math.min(options.stats.move, move?.type === 'move' ? move.maximumTiles : Infinity)}]`
         : target
-          ? skillTargetMethodDescription({ target }) +
-            aimNote +
-            effectFriendlyFireNote(
-              behavior.effects.map(({ payload }) => payload),
-              target,
-            ) +
-            (groundSummary ? ` · ${groundSummary}` : '') +
-            ((target.maximumSelections ?? 1) > 1
-              ? ` · Up to ${target.maximumSelections} distinct targets`
-              : '')
+          ? moveOnly
+            ? 'Single'
+            : skillTargetMethodDescription({ target })
           : 'N/A',
       'Target Elevation': nativeMove
         ? options.stats?.jump === undefined

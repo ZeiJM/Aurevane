@@ -26,6 +26,7 @@ export function AbilityParameters({
       <dl className={characteristicsClassName}>
         <SkillCharacteristicRows
           rows={report.rows}
+          targetMethodExplanation={report.targetMethodExplanation}
           requirementParts={report.requirementParts}
           effectSummary={
             report.effects.length

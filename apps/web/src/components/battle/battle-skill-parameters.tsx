@@ -93,7 +93,7 @@ export function BattleSkillParameters({
           rows={rows}
           targetDetails={definition ? <SkillGroundAreaDetails skill={definition} /> : undefined}
           targetMethodExplanation={
-            definition ? skillTargetMethodExplanation(definition) : undefined
+            definition ? skillTargetMethodExplanation(definition, groundRules) : undefined
           }
           effectSummary={
             definition

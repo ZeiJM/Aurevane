@@ -57,18 +57,20 @@ describe('authoritative inherent action descriptors', () => {
   it('states movement limits without treating spare AP as unlimited movement or hardcoding Jump', () => {
     const move = values('basic.move')
     expect(move.Cost).toBe('20 AP')
-    expect(move['Target Method']).toBe('Path [Character Move stat] · Empty Tile')
-    expect(move.Effects).toBe('Move [1] [Instant] [Self]')
+    expect(move['Target Method']).toBe('Path [Character Move stat]')
+    expect(move.Effects).toBe('Move [1] [Instant] [Ground]')
     expect(move.Requirements).toBe('N/A')
     expect(move['Target Elevation']).toBe('Character Jump stat')
     expect(move['Target Elevation']).not.toBe('1')
-    expect(basicActionEffectExplanation('basic.move')).toContain('reachable tile')
+    expect(basicActionEffectExplanation('basic.move')).toContain(
+      'reachable, unoccupied Ground tile',
+    )
   })
 
   it('uses the character Move, Jump and stronger attack family in battle reports', () => {
     const stats = { move: 4, jump: 3, physicalPower: 20, mysticPower: 40 }
     const move = Object.fromEntries(basicActionCharacteristicRows('basic.move', undefined, stats))
-    expect(move['Target Method']).toBe('Path [4] · Empty Tile')
+    expect(move['Target Method']).toBe('Path [4]')
     expect(move['Target Elevation']).toBe('3')
     const attack = Object.fromEntries(
       basicActionCharacteristicRows('basic.attack.unarmed.basic', undefined, stats),

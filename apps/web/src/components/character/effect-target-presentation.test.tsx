@@ -5,6 +5,8 @@ import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-acti
 import { SkillParameters } from './skill-parameters'
 import { abilityBehaviorInformation } from './ability-detail-presentation'
 import { AbilityParameters } from './ability-parameters'
+import { abilityManualInlineParts, plainManualInlineParts } from '@/content/manual-mechanic-text'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
 import { effectTargetLabel } from './effect-target-presentation'
 
 it('shows independent targets in native effect brackets without an overall Target row', () => {
@@ -91,4 +93,88 @@ it('keeps geometry-three categories and geometry-two team filters distinct from 
       friendlyFire: 'all-units',
     }),
   ).toBe('Anyone except Self')
+})
+
+it('shows Move destination as Ground without changing its actor recipient or captures', () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'basic.move')!.ability.behaviors[0]!
+  const behavior = {
+    ...base,
+    effects: [
+      {
+        id: 'move',
+        payload: { type: 'move' as const, recipient: 'actor' as const, maximumTiles: 15 },
+      },
+    ],
+  }
+  const before = JSON.stringify(behavior)
+  const report = abilityBehaviorInformation(behavior)
+  expect(report.effects[0]!.parts.target).toBe('Ground')
+  expect(Object.fromEntries(report.rows)['Target Method']).toBe('Single')
+  expect(JSON.stringify(behavior)).toBe(before)
+  expect(effectTargetLabel({ type: 'move', recipient: 'actor', target: 'self' })).toBe('Ground')
+})
+
+it('keeps separate reach for mixed Move effects and selected-target Requirements', () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
+  const move = {
+    id: 'move',
+    payload: { type: 'move' as const, recipient: 'actor' as const, maximumTiles: 15 },
+  }
+  const mixed = abilityBehaviorInformation({ ...base, effects: [move, ...base.effects] })
+  expect(Object.fromEntries(mixed.rows)['Target Method']).toBe('Single [1]')
+  expect(mixed.targetMethodExplanation).toContain('Aim: Enemy')
+  expect(mixed.targetMethodExplanation).toContain('Aim reach: 1–1 tiles')
+  const selected = abilityBehaviorInformation({
+    ...base,
+    effects: [move],
+    requirements: {
+      kind: 'status-presence',
+      subject: 'selected',
+      statusId: 'guarded',
+      present: true,
+    },
+  })
+  expect(Object.fromEntries(selected.rows)['Target Method']).toBe('Single [1]')
+})
+
+it('keeps historical delivery notes in help without rewriting captured rows or inventing data', () => {
+  const rows = [['Target Method', 'Single [4] · Aim: Enemy · Up to 2 distinct targets']] as const
+  const before = JSON.stringify(rows)
+  const html = renderToStaticMarkup(
+    <dl>
+      <SkillCharacteristicRows rows={rows} />
+    </dl>,
+  )
+  expect(html).toContain('title="Single [4] · Aim: Enemy · Up to 2 distinct targets"')
+  expect(html).toContain('Single [4]')
+  expect(html).not.toContain('>Single [4] · Aim:')
+  expect(JSON.stringify(rows)).toBe(before)
+  const missing = renderToStaticMarkup(
+    <dl>
+      <SkillCharacteristicRows rows={[['Target Method', 'Unavailable']]} />
+    </dl>,
+  )
+  expect(missing).not.toContain('Aim:')
+})
+
+it('retains typed delivery constraints in the text-only Manual explanation', () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
+  const report = abilityBehaviorInformation(base)
+  const text = plainManualInlineParts(abilityManualInlineParts(report, 'Manual Action'))!
+  expect(text).toContain('Target Method: Single [1]')
+  expect(text).toContain('Delivery: ' + report.targetMethodExplanation)
+})
+
+it('preserves every historical behavior group while moving each delivery note to help', () => {
+  const rows = [
+    ['Target Method', ['first: Single [4] · Aim: Enemy', 'second: Circle [2] · Aim: Ground']],
+  ] as const
+  const html = renderToStaticMarkup(
+    <dl>
+      <SkillCharacteristicRows rows={rows} />
+    </dl>,
+  )
+  expect(html).toContain('>first: Single [4]; second: Circle [2]<button')
+  expect(html).toContain('Aim: Enemy')
+  expect(html).toContain('Aim: Ground')
 })

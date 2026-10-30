@@ -1,5 +1,6 @@
 'use client'
 
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   MAXIMUM_COMBAT_LINE_LENGTH,
@@ -9,12 +10,14 @@ import {
 import { skillTargetMethodExplanation } from '../../character/skill-detail-presentation'
 import type { TargetedEffect } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { AbilityNumber } from './ability-editor-fields'
+import { MasterHelp } from '../master-help'
 import styles from './combat-content-editor.module.css'
 
 export interface SkillTargetingEditorProps {
   readonly value: CombatTargetSpec
   readonly effects?: readonly TargetedEffect[]
   readonly requiresSelectedUnit?: boolean
+  readonly disabled?: boolean
   readonly v51Rules?: boolean
   readonly onChange: (value: CombatTargetSpec) => void
 }
@@ -23,6 +26,7 @@ export function SkillTargetingEditor({
   value,
   effects,
   requiresSelectedUnit = false,
+  disabled = false,
   v51Rules = false,
   onChange,
 }: SkillTargetingEditorProps) {
@@ -49,11 +53,41 @@ export function SkillTargetingEditor({
       onChange({ ...next, ...(reach !== null ? { minimumRange: 0, maximumRange: reach } : {}) })
     } else onChange(normalizeCurrentCombatTargetSpec(next))
   }
+  const friendlyFireApplicable =
+    (area || effects?.some((effect) => effect.target === 'all')) &&
+    (!effects ||
+      effects.some((effect) => {
+        if (effect.recipient === 'actor' || effect.target === 'self' || effect.target === 'ally')
+          return false
+        if (
+          ['damage', 'pierce', 'poison', 'bleed', 'burn', 'displace', 'sensory'].includes(
+            effect.type,
+          )
+        )
+          return true
+        if (effect.type === 'resource-change')
+          return !('delta' in effect) || typeof effect.delta !== 'number' || effect.delta < 0
+        if (effect.type === 'apply-status') {
+          const status =
+            'statusId' in effect && typeof effect.statusId === 'string'
+              ? PHASE4_STATUSES.find((row) => row.id === effect.statusId)
+              : undefined
+          return !status || status.polarity === 'negative'
+        }
+        return false
+      }))
   const friendlyFireOn =
     value.friendlyFire === 'all-units' || value.friendlyFire === 'all-except-actor'
   return (
-    <fieldset className={styles.typedGroup}>
-      <legend>Range &amp; Area</legend>
+    <fieldset className={styles.typedGroup} aria-label="Range & Area" disabled={disabled}>
+      <legend>
+        Range &amp; Area{' '}
+        <MasterHelp label="Range availability">
+          Move uses its own Ground path, distance and Jump limits. A Move-only group needs no attack
+          aim unless a Requirement selects a unit. Disabled values remain in the draft and return
+          with follow-up effects.
+        </MasterHelp>
+      </legend>
       <p className={styles.fieldHint}>
         Choose each effect’s Target in Effects. This area controls their shared reach and footprint.
       </p>
@@ -143,6 +177,7 @@ export function SkillTargetingEditor({
             <span>Friendly Fire</span>
             <select
               aria-label="Friendly Fire"
+              disabled={!friendlyFireApplicable}
               value={friendlyFireOn ? 'on' : 'off'}
               onChange={(event) =>
                 change({

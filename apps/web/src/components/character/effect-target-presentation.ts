@@ -18,6 +18,7 @@ export function effectTargetLabel(
   effect: { type: string; recipient?: string; target?: CombatEffectTarget },
   aim?: CombatTargetSpec,
 ): string {
+  if (effect.type === 'move') return 'Ground'
   if (effect.target) return EFFECT_TARGET_LABELS[effect.target]
   if (effect.recipient === 'actor') return 'Self'
   if (effect.type === 'summon') return 'Empty Tile'

@@ -27,12 +27,3 @@ export function chronicleActionNarration(action: ChronicleAction, actorName: str
     }) ?? action.fallbackNarration
   )
 }
-
-export function chronicleMissingResult(action: ChronicleAction): string | null {
-  return action.outcomes.length === 0 &&
-    action.family !== 'movement' &&
-    action.family !== 'idle' &&
-    !action.hasRecordedResult
-    ? 'Action recorded; no effect result available.'
-    : null
-}

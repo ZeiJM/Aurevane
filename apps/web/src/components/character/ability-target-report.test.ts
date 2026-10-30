@@ -76,7 +76,7 @@ it('describes current Circle geometry rather than historical aimed geometry', ()
   expect(skillTargetMethodExplanation({ target })).toContain('includes yourself')
 })
 
-it('puts persistent Ground delivery in the shared Target Method characteristic', () => {
+it('keeps persistent Ground delivery in Target Method help', () => {
   const group = behaviorFor()
   const report = abilityBehaviorInformation({
     ...group,
@@ -89,9 +89,10 @@ it('puts persistent Ground delivery in the shared Target Method characteristic',
     },
   })
   const rows = Object.fromEntries(report.rows)
-  expect(rows['Target Method']).toContain('3 rounds')
-  expect(rows['Target Method']).toContain('starting immediately')
-  expect(rows['Target Method']).toContain('once per character’s turn')
+  expect(rows['Target Method']).toBe('Single [4]')
+  expect(report.targetMethodExplanation).toContain('3 rounds')
+  expect(report.targetMethodExplanation).toContain('starting immediately')
+  expect(report.targetMethodExplanation).toContain('once per character’s turn')
   expect(Object.keys(rows)).toHaveLength(8)
   expect(rows).not.toHaveProperty('Target')
   expect(report.effects).toHaveLength(group.effects.length)
@@ -140,9 +141,7 @@ it('marks only the selected repeated Ground packet when other unit and caster ef
   const before = JSON.stringify(behavior)
   const report = abilityBehaviorInformation(behavior)
   expect(report.effects.map((effect) => effect.repeatsOnEntry)).toEqual([false, true, false])
-  expect(Object.fromEntries(report.rows)['Target Method']).toContain(
-    'only the effects marked for entry',
-  )
+  expect(report.targetMethodExplanation).toContain('only the effects marked for entry')
   expect(Object.fromEntries(report.rows).Effects).not.toContain('Repeats on entry')
   expect(JSON.stringify(report)).not.toContain('repeat-hit')
   expect(JSON.stringify(behavior)).toBe(before)

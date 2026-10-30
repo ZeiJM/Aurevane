@@ -1,5 +1,16 @@
 'use client'
 
+import {
+  activeAbilityForAuthoring,
+  moveWithoutSeparateAim,
+  moveUsesLocalOrGlobalEffects,
+  authoringAccuracyApplicable,
+  authoringAddedEffectIssue,
+  authoringReorderIssue,
+  reorderedAuthoringEffects,
+  insertAuthoringEffect,
+} from '@/lib/combat-ability-authoring-compatibility'
+
 import { newResonanceAbility } from './new-resonance-ability'
 import { MasterHelp } from '../master-help'
 import {
@@ -24,6 +35,7 @@ import {
   deriveSharedEffectAim,
   withAuthoredAreaRecipients,
   hasSelectedAimRequirement,
+  withAuthoredEffectTarget,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { inheritedEffectTargetLabel } from './effect-target-editor'
 import { AbilityTargetingEditor } from './ability-targeting-editor'
@@ -104,6 +116,7 @@ export function rebindSimpleRequirement(value: AbilityBehavior): AbilityBehavior
 }
 
 export function withSharedEffectAim(next: AbilityBehavior): AbilityBehavior {
+  if (moveWithoutSeparateAim(next)) return next
   const requiresSelectedUnit = hasSelectedAimRequirement([
     next.requirements,
     ...next.effects.map((effect) => effect.requirements),
@@ -242,6 +255,11 @@ function AbilityGroupEditor({
           <>
             <AbilitySelect
               label="Group activation"
+              disabledOptions={
+                value.effects.some((row) => ['move', 'summon'].includes(row.payload.type))
+                  ? ['automatic', 'ongoing']
+                  : []
+              }
               displayLabel="Activation"
               disabled={Boolean(category)}
               optionLabels={{
@@ -274,6 +292,11 @@ function AbilityGroupEditor({
             />
             <AbilitySelect
               label="Group mode"
+              disabledOptions={
+                value.effects.some((row) => ['move', 'summon'].includes(row.payload.type))
+                  ? ['modifier']
+                  : []
+              }
               displayLabel="Ability type"
               disabled={Boolean(category)}
               optionLabels={{
@@ -373,8 +396,13 @@ function AbilityGroupEditor({
         ) : null}
         {show('accuracy') && (
           <>
+            <MasterHelp label="Accuracy availability">
+              Accuracy is used only by an applicable hostile hit-dependent effect. Inactive values
+              remain in this draft and return when compatible effects are added.
+            </MasterHelp>
             <AbilitySelect
               label="Accuracy rule"
+              disabled={!authoringAccuracyApplicable(value)}
               value={
                 value.accuracy?.kind === 'fixed' && value.accuracy.chanceBasisPoints === 10000
                   ? 'always'
@@ -501,6 +529,47 @@ function AbilityGroupEditor({
               </div>
             ) : null}
           </fieldset>
+          {moveUsesLocalOrGlobalEffects(value) && requiresSelectedUnit && value.targeting ? (
+            <>
+              <AbilitySelect
+                label="Unit for Target Requirements"
+                displayLabel="Target unit"
+                value={
+                  value.targeting.kind === 'self'
+                    ? 'self'
+                    : value.targeting.kind === 'unit'
+                      ? value.targeting.teamPolicy
+                      : 'unavailable'
+                }
+                options={['self', 'enemy', 'ally', 'any']}
+                optionLabels={{ self: 'Self', enemy: 'Enemy', ally: 'Ally', any: 'Any other unit' }}
+                onChange={(team) => {
+                  if (!['self', 'enemy', 'ally', 'any'].includes(team) || !value.targeting) return
+                  const policy = team as 'self' | 'enemy' | 'ally' | 'any'
+                  const range = policy === 'self' ? 0 : Math.max(1, value.targeting.maximumRange)
+                  onChange({
+                    ...value,
+                    targeting: {
+                      ...value.targeting,
+                      geometryVersion: 3,
+                      kind: policy === 'self' ? 'self' : 'unit',
+                      teamPolicy: policy,
+                      categories: policy === 'any' ? ['ally', 'enemy'] : [policy],
+                      shape: { kind: 'single' },
+                      maximumSelections: 1,
+                      minimumRange:
+                        policy === 'self' ? 0 : Math.min(value.targeting.minimumRange, range),
+                      maximumRange: range,
+                    },
+                  })
+                }}
+              />
+              <MasterHelp label="Target unit">
+                This unit is used by Target-based Requirements. Move still selects Ground and moves
+                the caster; its destination is separate.
+              </MasterHelp>
+            </>
+          ) : null}
           <AbilityRequirementEditor
             behavior={value}
             value={value.requirements}
@@ -526,13 +595,27 @@ function AbilityGroupEditor({
           value={value.targeting}
           effects={value.effects}
           requiresSelectedUnit={requiresSelectedUnit}
+          disabled={moveWithoutSeparateAim(value)}
           onChange={(targeting) => onChange({ ...value, targeting })}
         />
       ) : null}
       {show('effects') && (
         <>
-          <fieldset className={styles.typedGroup}>
-            <legend>Effects</legend>
+          <fieldset className={styles.typedGroup} aria-label="Effects">
+            <legend>
+              Effects{' '}
+              <MasterHelp label="Effect compatibility">
+                {value.effects.some((row) => ['move', 'summon'].includes(row.payload.type)) ? (
+                  <>
+                    Move is Manual Action, Instant, once and first. Summon is last and uses one
+                    Empty Tile. They cannot share a group.{' '}
+                  </>
+                ) : null}
+                Copy and Reveal need a single unit. Choices follow this group’s activation and
+                selected targets. Disabled choices cannot use the current combination; edit those
+                settings explicitly or use another group.
+              </MasterHelp>
+            </legend>
             <div className={styles.effectList}>
               {value.effects.map((effect, index) => (
                 <article
@@ -556,28 +639,31 @@ function AbilityGroupEditor({
                     <div className={styles.effectActions}>
                       <button
                         type="button"
-                        disabled={index === 0}
+                        disabled={index === 0 || !!authoringReorderIssue(value, index, -1)}
+                        title={authoringReorderIssue(value, index, -1)}
                         onClick={() => {
-                          const effects = [...value.effects]
-                          ;[effects[index - 1], effects[index]] = [
-                            effects[index]!,
-                            effects[index - 1]!,
-                          ]
-                          onChange({ ...value, effects })
+                          if (authoringReorderIssue(value, index, -1)) return
+                          onChange({
+                            ...value,
+                            effects: reorderedAuthoringEffects(value.effects, index, index - 1),
+                          })
                         }}
                       >
                         ↑ Up
                       </button>
                       <button
                         type="button"
-                        disabled={index === value.effects.length - 1}
+                        disabled={
+                          index === value.effects.length - 1 ||
+                          !!authoringReorderIssue(value, index, 1)
+                        }
+                        title={authoringReorderIssue(value, index, 1)}
                         onClick={() => {
-                          const effects = [...value.effects]
-                          ;[effects[index + 1], effects[index]] = [
-                            effects[index]!,
-                            effects[index + 1]!,
-                          ]
-                          onChange({ ...value, effects })
+                          if (authoringReorderIssue(value, index, 1)) return
+                          onChange({
+                            ...value,
+                            effects: reorderedAuthoringEffects(value.effects, index, index + 1),
+                          })
                         }}
                       >
                         ↓ Down
@@ -614,33 +700,39 @@ function AbilityGroupEditor({
             <EffectTagPicker
               label="New effect"
               addLabel="Add new effect"
+              additionalIssue={(id) => authoringAddedEffectIssue(value, id)}
               combination={{ activation: value.activation, mode: value.mode }}
               context={{
                 summonProfile: latestEnabledMatureSkills().find((skill) => skill.summonProfile)
                   ?.summonProfile,
               }}
               disabled={value.effects.length >= ABILITY_DEFINITION_BUDGET.maximumEffectsPerBehavior}
-              onAdd={(payload) =>
+              onAdd={(payload) => {
+                if (payload.type === 'summon')
+                  payload = withAuthoredEffectTarget(payload, 'empty-tile')
                 onChange({
                   ...value,
-                  effects: [
-                    ...value.effects,
-                    {
-                      id: nextId('effect', value.effects),
-                      payload: value.targeting
-                        ? withAuthoredAreaRecipients(value.targeting, [payload], {
-                            requiresSelectedUnit,
-                          })[0]!
-                        : payload,
-                    },
-                  ],
+                  effects: insertAuthoringEffect(value.effects, {
+                    id: nextId('effect', value.effects),
+                    payload: value.targeting
+                      ? withAuthoredAreaRecipients(value.targeting, [payload], {
+                          requiresSelectedUnit,
+                        })[0]!
+                      : payload,
+                  }),
                 })
-              }
+              }}
             />
           </fieldset>
         </>
       )}
-      {show('range') && <AbilityGroundEditor value={value} onChange={onChange} />}
+      {show('range') && (
+        <AbilityGroundEditor
+          disabled={moveWithoutSeparateAim(value)}
+          value={value}
+          onChange={onChange}
+        />
+      )}
     </div>
   )
 }
@@ -667,7 +759,7 @@ export function AbilityDefinitionEditor({
       </p>
     )
   const groups: readonly AbilityBehavior[] = value.behaviors
-  const issues = validateAbilityDefinition(value)
+  const issues = validateAbilityDefinition(activeAbilityForAuthoring(value))
   const total = groups.reduce((sum, behavior) => sum + behavior.effects.length, 0)
   const notes = Object.fromEntries(
     groups.flatMap((behavior, index) => {

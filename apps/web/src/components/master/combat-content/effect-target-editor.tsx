@@ -30,6 +30,21 @@ export function EffectTargetEditor({
   siblings?: readonly TargetedEffect[]
   onChange(target: CombatEffectTarget): void
 }) {
+  if (value.type === 'move')
+    return (
+      <div className={styles.effectTargetEditor}>
+        <label className={styles.field}>
+          <span>Destination</span>
+          <select aria-label="Destination" value="ground" disabled>
+            <option value="ground">Ground</option>
+          </select>
+        </label>
+        <MasterHelp label="Destination">
+          Move selects reachable, unoccupied Ground within its distance and Jump limits. The caster
+          moves; any follow-up effect keeps its separate target.
+        </MasterHelp>
+      </div>
+    )
   const options = COMBAT_EFFECT_TARGETS.map((target) => {
     let reason: string | undefined
     try {
