@@ -864,6 +864,18 @@ describe('canonical Ability definition', () => {
         },
       } as never)
       expect(validateAbilityDefinition(value)).toEqual([])
+      for (const durationTurns of [1, 3, 4]) {
+        Object.assign(value.behaviors[0]!.effects[1]!.payload, {
+          durationTurns,
+          ...(element === 'ice' ? {} : { potencyBasisPoints: 3525 }),
+        })
+        expect(validateAbilityDefinition(value)).toEqual([])
+      }
+      for (const durationTurns of [0, 5]) {
+        Object.assign(value.behaviors[0]!.effects[1]!.payload, { durationTurns })
+        expect(validateAbilityDefinition(value).length).toBeGreaterThan(0)
+      }
+      Object.assign(value.behaviors[0]!.effects[1]!.payload, { durationTurns: 2 })
       value.behaviors[0]!.effects.push({
         ...value.behaviors[0]!.effects[1]!,
         id: 'duplicate-companion',

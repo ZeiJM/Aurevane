@@ -42,24 +42,28 @@ export function selectBattleAudioCues(
     const action = storedAction
     let group: string | null = null
     let priority = 20
-    if (event.event === 'combat_action_used') {
+    if (event.event === 'combat_action_used' || event.event === 'resonance_activated') {
       if (Object.hasOwn(event, 'audioCueKey') && event.audioCueKey === null) continue
       const authoredAudio =
         typeof event.audioCueKey === 'string'
           ? resolveSkillAudioCueHook(event.audioCueKey)
-          : resolveSkillAudioCueHook(
-              action.startsWith('essence.') ? `${action}.audio` : `skill.${action}.audio`,
-            )
+          : event.event === 'combat_action_used'
+            ? resolveSkillAudioCueHook(
+                action.startsWith('essence.') ? `${action}.audio` : `skill.${action}.audio`,
+              )
+            : null
       if (authoredAudio?.audioGroup && authoredAudio.available) {
         selected.set(authoredAudio.audioGroup, {
           assetId: `${authoredAudio.audioGroup}-${(version % 3) + 1}`,
-          priority: action.startsWith('essence.') ? 90 : 70,
+          priority:
+            event.event === 'resonance_activated' ? 80 : action.startsWith('essence.') ? 90 : 70,
         })
         continue
       }
-    } else if (event.event === 'resonance_activated') {
-      group = sharedSkillFxGroups.resonance
-      priority = 80
+      if (event.event === 'resonance_activated' && !Object.hasOwn(event, 'audioCueKey')) {
+        group = sharedSkillFxGroups.resonance
+        priority = 80
+      }
     } else if (event.event === 'status_removed') {
       group = sharedSkillFxGroups.cleanse
       priority = 50

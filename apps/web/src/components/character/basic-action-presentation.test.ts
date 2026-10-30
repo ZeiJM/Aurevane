@@ -20,7 +20,7 @@ describe('authoritative inherent action descriptors', () => {
       'Take less damage per application',
     )
     expect(guard.Effects).toContain('[Self]')
-    expect(guard.Range).toBe('N/A')
+    expect(guard).not.toHaveProperty('Range')
     expect(guard['Target Elevation']).toBe('N/A')
     expect(guard['Line of Sight']).toBe('N/A')
   })
@@ -43,9 +43,9 @@ describe('authoritative inherent action descriptors', () => {
     expect(attack['Skill Type']).toBe('Attack [Physical]')
     expect(attack.Effects).toContain('6 + floor(15% Physical Power)')
     expect(attack.Effects).not.toMatch(/Instant|Immediate/)
-    expect(attack.Range).toBe('1')
+    expect(attack).not.toHaveProperty('Range')
     expect(attack.Effects).toContain('[Enemy]')
-    expect(attack['Target Method']).toBe('Single')
+    expect(attack['Target Method']).toBe('Single [1]')
     expect(attack['Target Elevation']).toBe('1')
     expect(attack['Line of Sight']).toBe('Not required')
     expect(attack.Cooldown).toBe('None')
@@ -57,7 +57,7 @@ describe('authoritative inherent action descriptors', () => {
   it('states movement limits without treating spare AP as unlimited movement or hardcoding Jump', () => {
     const move = values('basic.move')
     expect(move.Cost).toBe('20 AP')
-    expect(move.Range).toBe('Character Move stat')
+    expect(move['Target Method']).toBe('Path [Character Move stat] · Empty Tile')
     expect(move.Effects).toBe('Move [1] [Instant] [Self]')
     expect(move.Requirements).toBe('N/A')
     expect(move['Target Elevation']).toBe('Character Jump stat')
@@ -68,7 +68,7 @@ describe('authoritative inherent action descriptors', () => {
   it('uses the character Move, Jump and stronger attack family in battle reports', () => {
     const stats = { move: 4, jump: 3, physicalPower: 20, mysticPower: 40 }
     const move = Object.fromEntries(basicActionCharacteristicRows('basic.move', undefined, stats))
-    expect(move.Range).toBe('4')
+    expect(move['Target Method']).toBe('Path [4] · Empty Tile')
     expect(move['Target Elevation']).toBe('3')
     const attack = Object.fromEntries(
       basicActionCharacteristicRows('basic.attack.unarmed.basic', undefined, stats),

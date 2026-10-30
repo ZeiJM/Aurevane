@@ -158,7 +158,7 @@ it('actual reference parser, preview and atomic CAS commit share plural geometry
       report: expect.objectContaining({
         rows: expect.arrayContaining([
           ['Cost', '11 AP / 2 MP / 1 HP'],
-          ['Range', '20'],
+          ['Target Method', expect.stringContaining('Single [20]')],
         ]),
         effects: [
           expect.objectContaining({

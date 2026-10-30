@@ -110,7 +110,7 @@ describe('Player-facing Skill targeting and effects', () => {
       'HP Recovery [12%]',
       'MP Recovery [7%]',
     ])
-    expect(skillCompactRangeDescription(breath)).toBe('N/A')
+    expect(skillCompactRangeDescription(breath)).toBe('0')
     expect(JSON.stringify(volley)).toBe(before)
   })
   it('describes prerequisites, negative resource changes, and facing explicitly', () => {
@@ -286,7 +286,7 @@ it('presents the standardized Technique characteristic schema without prose expa
   expect(skillEffectsSummary(timeLock)).toContain('Slow')
   expect(skillRequirementsSummary(stolenMoment)).toContain('Slow')
   expect(skillTargetDescription(timeLock)).toBe('Enemy')
-  expect(skillTargetMethodDescription(timeLock)).toBe('Single')
+  expect(skillTargetMethodDescription(timeLock)).toBe('Single [4]')
   expect(skillTargetElevationDescription(timeLock)).not.toBe('N/A')
   expect(skillCompactRangeDescription(timeLock)).toBe(String(timeLock.target.maximumRange))
   expect(skillLineOfSightDescription(timeLock)).toBe('Required')
@@ -475,21 +475,21 @@ describe('Combat v5.1 compact targeting labels', () => {
       }),
     ).toBe('1')
     expect(skillCompactRangeDescription(resolveMatureSkillVersion('ironfist.focus-breath')!)).toBe(
-      'N/A',
+      '0',
     )
   })
 
-  it('shows targeting shape without repeating geometry reach', () => {
+  it('shows maximum reach beside the targeting shape', () => {
     expect(
       skillTargetMethodDescription({
         ...base,
         target: { ...base.target, shape: { kind: 'single' } },
       }),
-    ).toBe('Single')
+    ).toBe('Single [1]')
     expect(
       skillTargetMethodDescription({
         ...base,
-        target: { ...base.target, shape: { kind: 'line', length: 3 } },
+        target: { ...base.target, maximumRange: 3, shape: { kind: 'line', length: 3 } },
       }),
     ).toBe('Line [3]')
     expect(
@@ -508,7 +508,6 @@ it('reports the full minimum field set once in reference order, including Effect
     'Cooldown',
     'Requirements',
     'Effects',
-    'Range',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
@@ -518,7 +517,7 @@ it('reports the full minimum field set once in reference order, including Effect
   expect(rows.map(([label]) => label)).toEqual(labels)
   expect(Object.fromEntries(rows)).toMatchObject({
     Effects: skillEffectsSummary(skill),
-    Range: 'N/A',
+    'Target Method': expect.stringContaining('Single [0]'),
     'Line of Sight': 'N/A',
   })
   expect(rows.every(([, value]) => value.trim().length > 0)).toBe(true)
@@ -532,7 +531,7 @@ it('distinguishes zero cost and no cooldown from inapplicable self-target constr
   expect(rows.Cost).toBe('0 AP')
   expect(rows.Cooldown).toBe('None')
   expect(rows.Requirements).toBe('None')
-  expect(rows.Range).toBe('N/A')
+  expect(rows).not.toHaveProperty('Range')
   expect(rows['Line of Sight']).toBe('N/A')
 })
 
@@ -746,4 +745,31 @@ it('reports combined native AP, MP and HP costs without inventing absent costs',
   expect(skillCostDescription({ apCost: 40, mpCost: 3, hpCost: 12 })).toBe('40 AP / 3 MP / 12 HP')
   expect(skillCostDescription({ apCost: 40, hpCost: 12 })).toBe('40 AP / 12 HP')
   expect(skillCostDescription({ apCost: 40 })).toBe('40 AP')
+})
+
+it('places maximum range in Target Method brackets without a separate Range row', () => {
+  const base = resolveMatureSkillVersion('farstrider.volley')!
+  const before = JSON.stringify(base)
+  for (const [shape, expected] of [
+    [{ kind: 'single' }, 'Single [4]'],
+    [{ kind: 'line', length: 2 }, 'Line [4]'],
+    [{ kind: 'circle', radius: 1 }, 'Circle [4]'],
+    [{ kind: 'all' }, 'All'],
+  ] as const) {
+    const skill = { ...base, target: { ...base.target, maximumRange: 4, shape } }
+    expect(skillTargetMethodDescription(skill)).toBe(expected)
+    const rows = Object.fromEntries(skillParameterRows(skill))
+    expect(rows).not.toHaveProperty('Range')
+    expect(rows['Target Method']).toMatch(
+      new RegExp(`^${expected.replaceAll('[', '\\[').replaceAll(']', '\\]')}`),
+    )
+  }
+  expect(JSON.stringify(base)).toBe(before)
+})
+
+it('does not expose a generated UUID when an old custom Skill has no captured name', () => {
+  const original = resolveMatureSkillVersion('vanguard.forceful-strike')!
+  expect(
+    skillDisplayName({ ...original, id: 'skill.5e18336c-eb31-45e5-a86a-43edc4d2cb21', name: '' }),
+  ).toBe('Unnamed Skill')
 })

@@ -82,8 +82,7 @@ export function battleSkillParameterRows(
       skill.effectDescriptions
         .map((description) => `${description} [Target unavailable]`)
         .join(', ') || 'Unavailable',
-    Range: skill.targetKind === 'self' ? 'N/A' : String(skill.maximumRange),
-    'Target Method': `Unavailable · Aim: ${skill.targetKind === 'self' ? 'Self' : skill.targetKind === 'ground-tile' ? 'Ground' : skill.targetKind === 'empty-tile' ? 'Empty Tile' : skill.targetTeamPolicy === 'any' ? 'Anyone' : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase())}`,
+    'Target Method': `Unavailable [${skill.maximumRange}] · Aim: ${skill.targetKind === 'self' ? 'Self' : skill.targetKind === 'ground-tile' ? 'Ground' : skill.targetKind === 'empty-tile' ? 'Empty Tile' : skill.targetTeamPolicy === 'any' ? 'Anyone' : skill.targetTeamPolicy.replace(/^./, (letter) => letter.toUpperCase())}`,
     'Target Elevation': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
     'Line of Sight': skill.targetKind === 'self' ? 'N/A' : 'Unavailable',
   })

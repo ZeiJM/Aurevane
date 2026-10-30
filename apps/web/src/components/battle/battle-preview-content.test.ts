@@ -81,8 +81,7 @@ describe('copy-statuses player forecast presentation', () => {
       'Cooldown: 2 turns',
       'Requirements: None',
       'Effects: Dmg [12] [Enemy]',
-      'Range: 1',
-      'Target Method: Single',
+      'Target Method: Single [1]',
       'Target Elevation: 1',
       'Line of Sight: Not required',
     ])
@@ -334,7 +333,6 @@ it('keeps legacy rows complete without inferring missing pinned mechanics', () =
     'Cooldown',
     'Requirements',
     'Effects',
-    'Range',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
@@ -342,7 +340,7 @@ it('keeps legacy rows complete without inferring missing pinned mechanics', () =
   expect(Object.fromEntries(rows)).toMatchObject({
     Effects: 'Recorded effect [Target unavailable]',
     Cooldown: 'Unavailable',
-    'Target Method': 'Unavailable · Aim: Ground',
+    'Target Method': 'Unavailable [3] · Aim: Ground',
     'Line of Sight': 'Unavailable',
   })
 })

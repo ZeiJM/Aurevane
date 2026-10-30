@@ -19,6 +19,7 @@ export interface CapturedCombatAbilitySource {
   readonly sourceDisciplineId?: string
   readonly tags: readonly string[]
   readonly definition: AbilityDefinition
+  readonly audioCueKey?: string | null
   readonly media?: FinalizedContentMediaSlots
   readonly basic?: BasicSkillDefinition
 }
@@ -44,6 +45,7 @@ export function captureCombatAbilitySource(
           'definition',
           'basic',
           'media',
+          'audioCueKey',
         ].includes(key),
     ) ||
     !Array.isArray(input.tags) ||
@@ -57,6 +59,15 @@ export function captureCombatAbilitySource(
       finalizedContentMediaIssues(input.media).length)
   )
     throw new TypeError('invalid-captured-media')
+  if (
+    input.audioCueKey !== undefined &&
+    input.audioCueKey !== null &&
+    (typeof input.audioCueKey !== 'string' ||
+      !input.audioCueKey.trim() ||
+      input.audioCueKey.trim() !== input.audioCueKey ||
+      input.audioCueKey.length > 256)
+  )
+    throw new TypeError('invalid-captured-audio-cue')
   const result: CapturedCombatAbilitySource = {
     schemaVersion: 1,
     sourceInstanceId: actionDefinitionId(input.sourceInstanceId),
@@ -68,6 +79,7 @@ export function captureCombatAbilitySource(
       ? {}
       : { sourceDisciplineId: actionDefinitionId(input.sourceDisciplineId) }),
     tags: [...input.tags],
+    ...(input.audioCueKey === undefined ? {} : { audioCueKey: input.audioCueKey }),
     definition: parseAbilityDefinition(input.definition),
     ...(input.media
       ? { media: JSON.parse(JSON.stringify(input.media)) as FinalizedContentMediaSlots }

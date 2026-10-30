@@ -121,45 +121,50 @@ describe('sanitized battle log service', () => {
     },
   )
   it.each([
+    [undefined, '21 piercing damage', 'piercing'],
     ['fire', '21 fire damage'],
     ['water', '21 water damage'],
     ['storm', '21 storm damage'],
     [undefined, '21 damage'],
     ['private-unknown-element', '21 damage'],
-  ])('preserves only recorded canonical damage types: %s', (element, wording) => {
-    const view = buildBattleLogView(SESSION_ID, [
-      {
-        battleVersion: 1,
-        eventIndex: 0,
-        createdAt: '2026-10-06T00:00:00Z',
-        event: {
-          event: 'damage_applied',
-          actionId: 'cinderweaver.cinder-bolt',
-          sourceCombatantId: 'character:zei',
-          targetCombatantId: 'recruit:weon',
-          amount: 21,
-          hpAfter: 50,
-          element,
+  ])(
+    'preserves only recorded canonical damage types: %s',
+    (element, wording, damageKind?: string) => {
+      const view = buildBattleLogView(SESSION_ID, [
+        {
+          battleVersion: 1,
+          eventIndex: 0,
+          createdAt: '2026-10-06T00:00:00Z',
+          event: {
+            event: 'damage_applied',
+            actionId: 'cinderweaver.cinder-bolt',
+            sourceCombatantId: 'character:zei',
+            targetCombatantId: 'recruit:weon',
+            amount: 21,
+            hpAfter: 50,
+            element,
+            damageKind,
+          },
         },
-      },
-    ])
-    expect(view.entries[0].message).toContain(`took ${wording}`)
-    const chronicle = buildBattleChronicle(view.entries, {
-      combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
-    })
-    expect(
-      chronicle.flatMap((round) =>
-        round.actors.flatMap((actor) =>
-          actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+      ])
+      expect(view.entries[0].message).toContain(`took ${wording}`)
+      const chronicle = buildBattleChronicle(view.entries, {
+        combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+      })
+      expect(
+        chronicle.flatMap((round) =>
+          round.actors.flatMap((actor) =>
+            actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+          ),
         ),
-      ),
-    ).toContain(wording)
-    const presentation = buildBattleLogPresentation(view.entries, {
-      combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
-    })
-    expect(JSON.stringify(presentation)).toContain(wording)
-    expect(JSON.stringify(view)).not.toContain('private-unknown-element')
-  })
+      ).toContain(wording)
+      const presentation = buildBattleLogPresentation(view.entries, {
+        combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+      })
+      expect(JSON.stringify(presentation)).toContain(wording)
+      expect(JSON.stringify(view)).not.toContain('private-unknown-element')
+    },
+  )
   it('shows a resisted ordinary debuff beneath its cast without exposing RNG or suppressing damage', () => {
     const result = buildBattleLogView(
       SESSION_ID,

@@ -1,5 +1,6 @@
 'use client'
 
+import { newResonanceAbility } from './new-resonance-ability'
 import { MasterHelp } from '../master-help'
 import {
   isAuthoredElementalCompanion,
@@ -126,44 +127,13 @@ export function withSharedEffectAim(next: AbilityBehavior): AbilityBehavior {
   })
 }
 
-/** Deliberate conversion only: never reinterpret an area/tile Requirement on read. */
-function selectedUnitRequirementDraft(
-  value: AbilityBehavior,
-  teamPolicy: 'enemy' | 'ally' | 'any',
-): AbilityBehavior | null {
-  const selected = readSimpleRequirement(value.requirements)
-  const target = value.targeting
-  if (
-    value.activation !== 'manual' ||
-    value.mode !== 'action' ||
-    !target ||
-    !selected ||
-    selected.tagId === 'none' ||
-    (target.maximumSelections ?? 1) > 1
-  )
-    return null
-  const next: AbilityBehavior = {
-    ...value,
-    requirements: createSimpleRequirement(selected.tagId, 'selected', selected.percent ?? 50),
-    targeting: {
-      ...target,
-      geometryVersion: 3,
-      kind: 'unit',
-      teamPolicy,
-      categories: teamPolicy === 'any' ? ['self', 'ally', 'enemy'] : [teamPolicy],
-      shape: { kind: 'single' },
-      maximumSelections: 1,
-      maximumRange: Math.max(1, target.maximumRange),
-    },
-  }
-  return validateAbilityDefinition({ schemaVersion: 1, behaviors: [next] }).length ? null : next
-}
-
 function AbilityGroupEditor({
   value,
   onChange: update,
   section,
+  category,
 }: {
+  category?: 'manual' | 'passive'
   section?: AbilityEditorSection
   value: AbilityBehavior
   onChange: (next: AbilityBehavior) => void
@@ -202,14 +172,44 @@ function AbilityGroupEditor({
       : (['owner', 'triggering', 'selected', 'affected'] as const)
   const automaticArea =
     value.targeting?.shape.kind === 'circle' || value.targeting?.shape.kind === 'all'
-  const unitRequirementChoices = show('details')
-    ? (['enemy', 'ally', 'any'] as const).flatMap((policy) => {
-        const draft = selectedUnitRequirementDraft(value, policy)
-        return draft ? [{ policy, draft }] : []
-      })
-    : []
+  const categoryMismatch =
+    category === 'manual'
+      ? value.activation !== 'manual' || value.mode !== 'action'
+      : category === 'passive' && value.activation === 'manual'
   return (
     <div className={styles.effectList}>
+      {categoryMismatch ? (
+        <aside role="status">
+          <p>
+            This draft uses different category settings. Apply the required settings and review its
+            effects before committing.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              const next = { ...value }
+              if (category === 'manual') {
+                next.activation = 'manual'
+                next.mode = 'action'
+                next.targeting ??= base().targeting
+                delete next.automaticTrigger
+                delete next.automaticTarget
+              } else {
+                next.activation = 'automatic'
+                if (next.mode === 'action') {
+                  next.automaticTrigger = 'turn-started'
+                  next.automaticTarget = {
+                    subject: next.targeting?.kind === 'self' ? 'owner' : 'selected',
+                  }
+                }
+              }
+              onChange(rebindSimpleRequirement(next))
+            }}
+          >
+            Apply category settings
+          </button>
+        </aside>
+      ) : null}
       {elementRepair !== value ? (
         <aside role="status">
           <p>
@@ -243,9 +243,14 @@ function AbilityGroupEditor({
             <AbilitySelect
               label="Group activation"
               displayLabel="Activation"
-              optionLabels={{ manual: 'Manual', automatic: 'Automatic', ongoing: 'Ongoing' }}
+              disabled={Boolean(category)}
+              optionLabels={{
+                manual: 'Manual',
+                automatic: category === 'passive' ? 'Passive' : 'Automatic',
+                ongoing: category === 'passive' ? 'Passive' : 'Ongoing',
+              }}
               value={value.activation}
-              options={['manual', 'automatic', 'ongoing']}
+              options={category ? [value.activation] : ['manual', 'automatic', 'ongoing']}
               onChange={(activation) => {
                 const next = { ...value, activation }
                 if (activation === 'ongoing') {
@@ -270,9 +275,19 @@ function AbilityGroupEditor({
             <AbilitySelect
               label="Group mode"
               displayLabel="Ability type"
-              optionLabels={{ action: 'Action', modifier: 'Passive modifier' }}
+              disabled={Boolean(category)}
+              optionLabels={{
+                action: category === 'passive' ? 'Passive action' : 'Action',
+                modifier: 'Passive modifier',
+              }}
               value={value.mode}
-              options={value.activation === 'ongoing' ? ['modifier'] : ['action', 'modifier']}
+              options={
+                category
+                  ? [value.mode]
+                  : value.activation === 'ongoing'
+                    ? ['modifier']
+                    : ['action', 'modifier']
+              }
               onChange={(mode) => {
                 const next = {
                   ...value,
@@ -496,45 +511,6 @@ function AbilityGroupEditor({
             behavior groups keep their own activation and Requirements.
           </p>
           <LegacyEffectRequirements value={value} onChange={onChange} />
-          {unitRequirementChoices.length ? (
-            <>
-              <AbilitySelect
-                label="Target Requirement aim"
-                value="current"
-                options={['current', ...unitRequirementChoices.map(({ policy }) => policy)]}
-                optionLabels={{
-                  current: 'Keep current targeting',
-                  enemy: 'Select Enemy · Single',
-                  ally: 'Select Ally · Single',
-                  any: 'Select Anyone · Single',
-                }}
-                onChange={(policy) => {
-                  const choice = unitRequirementChoices.find((choice) => choice.policy === policy)
-                  if (choice) onChange(choice.draft)
-                }}
-              />
-              <p className={styles.fieldHint}>
-                Choosing a unit changes this action to Single targeting and checks its Requirement
-                on that unit. An area becomes one tile. Effect targets and retained conditions stay
-                as authored; All effects still cover the arena. Adjust reach in Range &amp; Area.
-              </p>
-            </>
-          ) : value.activation === 'manual' &&
-            value.mode === 'action' &&
-            value.targeting?.kind === 'unit' &&
-            value.targeting.shape.kind !== 'single' ? (
-            <button
-              type="button"
-              onClick={() =>
-                onChange({
-                  ...value,
-                  targeting: { ...value.targeting!, shape: { kind: 'single' } },
-                })
-              }
-            >
-              Use Single targeting
-            </button>
-          ) : null}
           {value.requirementMode !== 'simple' ? (
             <button
               type="button"
@@ -675,8 +651,10 @@ export function AbilityDefinitionEditor({
   effectDescriptions,
   onChange,
   section,
+  category,
 }: {
   value: AbilityDefinition
+  category?: 'manual' | 'passive'
   section?: AbilityEditorSection
   allowEffectDescriptions?: boolean
   effectDescriptions?: readonly (string | null)[]
@@ -801,6 +779,7 @@ export function AbilityDefinitionEditor({
           <AbilityGroupEditor
             value={behavior}
             section={section}
+            category={category}
             onChange={(next) =>
               commit({
                 ...value,
@@ -821,7 +800,10 @@ export function AbilityDefinitionEditor({
                 ...value,
                 behaviors: [
                   ...value.behaviors,
-                  { ...base(), id: nextId('group', value.behaviors) },
+                  {
+                    ...(category === 'passive' ? newResonanceAbility().behaviors[0]! : base()),
+                    id: nextId('group', value.behaviors),
+                  },
                 ],
               })
             }

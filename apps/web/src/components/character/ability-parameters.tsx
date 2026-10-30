@@ -20,6 +20,7 @@ export function AbilityParameters({
   effectExplanationsClassName?: string
   showActivationNotes?: boolean
 }) {
+  const visibleLimits = report.limits.filter((limit) => limit !== 'Once per round')
   return (
     <div data-ability-parameters="true">
       <dl className={characteristicsClassName}>
@@ -75,9 +76,9 @@ export function AbilityParameters({
           ))}
         </ul>
       ) : null}
-      {showActivationNotes && report.limits.length ? (
+      {showActivationNotes && visibleLimits.length ? (
         <ul aria-label="Usage limits">
-          {report.limits.map((limit) => (
+          {visibleLimits.map((limit) => (
             <li key={limit}>{limit}</li>
           ))}
         </ul>

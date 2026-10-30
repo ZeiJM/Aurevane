@@ -53,7 +53,7 @@ function report() {
     ],
   })
 }
-it('renders all ten fields and effect/requirement/limit details from the captured group instead of its old legacy envelope', () => {
+it('renders all eight fields and effect/requirement/limit details from the captured group instead of its old legacy envelope', () => {
   const captured = report()
   const before = JSON.stringify({ captured, legacy })
   const html = renderToStaticMarkup(
@@ -65,7 +65,6 @@ it('renders all ten fields and effect/requirement/limit details from the capture
     'Cooldown',
     'Requirements',
     'Effects',
-    'Range',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
@@ -73,13 +72,15 @@ it('renders all ten fields and effect/requirement/limit details from the capture
   expect(html).toContain('<dt>Cost</dt><dd>7 AP / 3 MP / 2 HP</dd>')
   expect(html).toContain('<dt>Cooldown</dt><dd>3 turns</dd>')
   expect(html.replace(/<[^>]*>/gu, '')).toContain('MP [≥ 3] [Self]')
-  expect(html).toContain('<dt>Range</dt><dd>4</dd>')
+  expect(html).not.toContain('<dt>Range</dt>')
+  expect(html).toContain('Single [4]')
   expect(html).toMatch(
     /<strong[^>]*data-compact-effect-label="true"[^>]*><span[^>]*data-effect-tag-label="true"[^>]*>Move<\/span><\/strong>/,
   )
   expect(html).toContain('data-compact-effect-magnitude="true">[13]</span>')
   expect(html).toContain('data-compact-effect-timing="true">[Controlled]</span>')
-  expect(html).toContain('Once per round')
+  expect(html).not.toContain('Once per round')
+  expect(captured.limits).toContain('Once per round')
   expect(html).not.toContain('Wrong legacy')
   expect(html).not.toContain('15 AP')
   expect(JSON.stringify({ captured, legacy })).toBe(before)

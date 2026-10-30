@@ -11,7 +11,6 @@ const fields = [
   'Cooldown',
   'Requirements',
   'Effects',
-  'Range',
   'Target Method',
   'Target Elevation',
   'Line of Sight',
@@ -110,9 +109,8 @@ test('shared compact readers retain complete reports and consume the first armed
   }))
   expect(typography.body).toBe('13px')
   expect(typography.heading).toBe('16px')
-  if ((await panels.getAttribute('data-battle-info-layout')) === 'compact') {
-    expect(typography.width).toBeLessThanOrEqual(320)
-  }
+  await expect(panels).toHaveAttribute('data-battle-info-layout', 'compact')
+  expect(typography.width).toBeLessThanOrEqual(320)
   await page.keyboard.press('Space')
   await expectUnchangedBattle()
   await page.keyboard.press('Escape')

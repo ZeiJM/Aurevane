@@ -1,4 +1,5 @@
 'use client'
+import { AUTHORABLE_EFFECT_TAGS } from '@aurevane/game-core/combat/combat-effect-authoring'
 
 import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
@@ -7,11 +8,7 @@ import {
 } from '@aurevane/game-core/combat/gameplay-tags'
 import { SIMPLE_REQUIREMENT_TAG_OPTIONS } from '@aurevane/game-core/combat/combat-simple-requirements'
 import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
-import {
-  CLEANSE_STATUS_IDS,
-  isCleanseEffect,
-  isCleanseChilledEffect,
-} from '@aurevane/game-core/combat/combat-cleanse'
+import { CLEANSE_STATUS_IDS, isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import {
   DEFAULT_BLINDSIDE_MODIFIERS,
   isBlindsideStatusId,
@@ -31,6 +28,7 @@ import {
   type TargetedEffect,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { AbilityNumber } from './ability-editor-fields'
+import { EffectTagHelp } from './effect-tag-help'
 
 type DamageEffect = Extract<CombatEffectDefinition, { type: 'damage' }>
 
@@ -81,7 +79,11 @@ function curseCopyableField(value: boolean | undefined, onChange: (next: boolean
   )
 }
 
-function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefinition) => void) {
+function damageEditor(
+  value: DamageEffect,
+  onChange: (next: CombatEffectDefinition) => void,
+  nonElemental = false,
+) {
   const vengeance = value.vengeance
 
   return (
@@ -102,25 +104,27 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         />
       </label>
 
-      <label className={styles.field}>
-        <span>Element</span>
-        <select
-          aria-label="Element"
-          value={value.element ?? ''}
-          onChange={(event) => {
-            const element = event.currentTarget.value
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'element')
-            onChange(element ? { ...rest, element: element as CombatElement } : rest)
-          }}
-        >
-          <option value="">None</option>
-          <option value="ice">Ice</option>
-          <option value="water">Water</option>
-          <option value="storm">Storm</option>
-          <option value="fire">Fire</option>
-        </select>
-      </label>
+      {!nonElemental ? (
+        <label className={styles.field}>
+          <span>Element</span>
+          <select
+            aria-label="Element"
+            value={value.element ?? ''}
+            onChange={(event) => {
+              const element = event.currentTarget.value
+              const rest = { ...value }
+              Reflect.deleteProperty(rest, 'element')
+              onChange(element ? { ...rest, element: element as CombatElement } : rest)
+            }}
+          >
+            <option value="">None</option>
+            <option value="ice">Ice</option>
+            <option value="water">Water</option>
+            <option value="storm">Storm</option>
+            <option value="fire">Fire</option>
+          </select>
+        </label>
+      ) : null}
 
       {vengeance ? (
         <>
@@ -338,12 +342,17 @@ export function SkillEffectEditor({
   aim,
   siblings,
   hideTarget = false,
+  canonicalDamage,
 }: SkillEffectEditorProps) {
   let controls
 
   switch (value.type) {
     case 'damage':
-      controls = damageEditor(value, onChange)
+      controls = damageEditor(
+        value,
+        onChange,
+        canonicalDamage === 'pierce' || value.piercing === true || value.shattersBarrier === true,
+      )
       break
 
     case 'percentage-recovery':
@@ -497,10 +506,9 @@ export function SkillEffectEditor({
       controls = (
         <div className={styles.typedGrid}>
           <label className={styles.field}>
-            <span>Status ID</span>
-            <input
-              aria-label="Status ID"
-              type="text"
+            <span>Status</span>
+            <select
+              aria-label="Status"
               value={value.statusId}
               onChange={(event) => {
                 const next = { ...value, statusId: event.currentTarget.value }
@@ -517,10 +525,22 @@ export function SkillEffectEditor({
                 if (!isBlindsideStatusId(next.statusId)) delete next.blindsideModifiersBasisPoints
                 onChange(next)
               }}
-            />
-            <small className={styles.fieldHint}>
-              Includes authored statuses such as Covert; Revealed is Reveal-owned.
-            </small>
+            >
+              {!AUTHORABLE_EFFECT_TAGS.some((tag) => tag.statusId === value.statusId) ? (
+                <option value={value.statusId}>
+                  {isBlindsideStatusId(value.statusId) ? 'Blindside' : 'Retained status'}
+                </option>
+              ) : null}
+              {AUTHORABLE_EFFECT_TAGS.flatMap((tag) =>
+                tag.opcode === 'apply-status' && tag.statusId
+                  ? [
+                      <option key={tag.id} value={tag.statusId}>
+                        {tag.label}
+                      </option>,
+                    ]
+                  : [],
+              )}
+            </select>
           </label>
           <label className={styles.field}>
             <span>Status stacks</span>
@@ -571,9 +591,6 @@ export function SkillEffectEditor({
                   />
                 </label>
               ))}
-              <small className={styles.fieldHint}>
-                160% damage means a 60% increase. Front damage stays at 100%.
-              </small>
             </>
           ) : null}
         </div>
@@ -649,13 +666,6 @@ export function SkillEffectEditor({
                 }
               />
             )}
-            <small className={styles.fieldHint}>
-              {value.removalMode === 'specified'
-                ? 'Select one to eight statuses. Remove only the listed statuses. Other statuses remain, including Suppress unless explicitly listed.'
-                : isCleanseChilledEffect(value)
-                  ? 'Cleanse Chilled removes only Chilled from the authored recipient; other statuses remain.'
-                  : 'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Dispel removes authored positive statuses.'}
-            </small>
             {isCleanseEffect(value) ? (
               <button
                 type="button"
@@ -903,6 +913,7 @@ export function SkillEffectEditor({
 
   return (
     <div className={styles.effectEditor} data-effect-type={value.type}>
+      <EffectTagHelp effect={value} />
       {!hideTarget ? (
         <EffectTargetEditor
           value={value}
@@ -919,68 +930,40 @@ export function SkillEffectEditor({
       {editableDuration || hasPotency ? (
         <div className={styles.effectTuningGrid}>
           {editableDuration ? (
-            <label className={styles.field}>
-              <span>Effect duration (turns)</span>
-              <input
-                aria-label="Effect duration (turns)"
-                type="number"
-                min={minimumDuration}
-                max={maximumDuration}
-                step={1}
-                value={
-                  value.type === 'barrier-change' && value.durationTurns === undefined
-                    ? ''
-                    : durationTurns
-                }
-                placeholder={
-                  value.type === 'barrier-change' ? 'Until depleted (historical)' : undefined
-                }
-                onChange={(event) =>
-                  changeDuration(integer(event.currentTarget.value, durationTurns))
-                }
-              />
-              <small className={styles.fieldHint}>
-                {value.type === 'barrier-change'
-                  ? 'Instant lasts for affected completed turns; Normal and Delayed last complete rounds after activation. Historical blank durations last until depleted.'
-                  : 'Positive durations persist through that many future turns.'}
-              </small>
-            </label>
+            <AbilityNumber
+              label="Effect duration (turns)"
+              value={
+                value.type === 'barrier-change' && value.durationTurns === undefined
+                  ? undefined
+                  : durationTurns
+              }
+              min={minimumDuration}
+              max={maximumDuration}
+              placeholder={
+                value.type === 'barrier-change' ? 'Until depleted (historical)' : undefined
+              }
+              onChange={changeDuration}
+            />
           ) : null}
-
-          {value.type === 'apply-status' && PERCENTAGE_STATUS_IDS.has(value.statusId) ? (
-            <label className={styles.field}>
-              <span>Status potency (%)</span>
-              <input
-                aria-label="Status potency (percent)"
-                type="number"
-                min={1}
-                max={value.statusId === 'suppress' ? 100 : 50}
-                step={['suppress', 'wet', 'conductive'].includes(value.statusId) ? 0.01 : 1}
-                value={
-                  (value.potencyBasisPoints ??
-                    (value.statusId === 'suppress'
-                      ? 2500
-                      : ['wet', 'conductive'].includes(value.statusId)
-                        ? 2000
-                        : 1500)) / 100
-                }
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    potencyBasisPoints: ['suppress', 'wet', 'conductive'].includes(value.statusId)
-                      ? Math.round(Number(event.currentTarget.value) * 100)
-                      : Math.max(1, Math.min(50, integer(event.currentTarget.value, 15))) * 100,
-                  })
-                }
-              />
-              <small className={styles.fieldHint}>
-                {value.statusId === 'suppress'
-                  ? 'Outgoing direct-damage reduction. Never stacks; retains the highest percentage and longest remaining duration. 25 = 25%.'
-                  : ['wet', 'conductive'].includes(value.statusId)
-                    ? 'Additional Storm damage captured on this explicit status tag. Default 20%. Matching elemental damage requires positive hostile actual HP loss after Barrier and a surviving recipient.'
-                    : 'Used by percentage-based statuses such as Guard or Vulnerable. 15 = 15%.'}
-              </small>
-            </label>
+          {hasPotency && value.type === 'apply-status' ? (
+            <AbilityNumber
+              label="Status potency (percent)"
+              displayLabel="Status potency (%)"
+              value={
+                (value.potencyBasisPoints ??
+                  (value.statusId === 'suppress'
+                    ? 2500
+                    : ['wet', 'conductive'].includes(value.statusId)
+                      ? 2000
+                      : 1500)) / 100
+              }
+              min={1}
+              max={value.statusId === 'suppress' ? 100 : 50}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, potencyBasisPoints: Math.round(percent * 100) })
+              }
+            />
           ) : null}
         </div>
       ) : null}

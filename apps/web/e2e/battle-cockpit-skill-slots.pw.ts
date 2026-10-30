@@ -178,12 +178,10 @@ test('keeps square empty Skill slots and consistent cockpit info controls withou
         }),
       )
       .toBe(true)
-    const height = await panel.evaluate((element) => element.getBoundingClientRect().height)
-    if (height > viewport.height - 16) {
-      await expect(panel).toHaveAttribute('data-battle-info-page', 'true')
-      expect(
-        await panel.evaluate((element) => element.scrollHeight <= element.clientHeight + 1),
-      ).toBe(true)
+    await expect(panel).toHaveAttribute('data-battle-info-layout', 'compact')
+    await expect(panel).toHaveAttribute('data-battle-info-page', 'false')
+    if (await panel.evaluate((element) => element.scrollHeight > element.clientHeight + 1)) {
+      expect(await panel.evaluate((element) => getComputedStyle(element).overflowY)).toBe('auto')
       await panel.locator('header').scrollIntoViewIfNeeded()
       await expect(panel.locator('header')).toBeInViewport()
       await panel.locator(':scope > :last-child').scrollIntoViewIfNeeded()

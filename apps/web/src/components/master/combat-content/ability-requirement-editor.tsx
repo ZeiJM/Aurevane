@@ -126,7 +126,7 @@ export function AbilityRequirementEditor({
           behavior &&
           behavior.activation === 'manual' &&
           !simpleRequirementSubjects(behavior).includes('selected')
-            ? 'A whole-ability Requirement can check Self here because this action selects an area or tile, not a unit. Use Target Requirement aim below to explicitly choose a Single unit, when supported. Tile-only effects keep their required targeting.'
+            ? 'A whole-ability Requirement can check Self here because this action selects an area or tile, not a unit. Choose Single in Range & Area and a unit Target in Effects to check Target. Tile-only effects keep their required targeting.'
             : undefined
         }
         allowedSubjects={behavior ? simpleRequirementSubjects(behavior) : allowedSubjects}

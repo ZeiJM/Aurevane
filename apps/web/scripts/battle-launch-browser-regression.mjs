@@ -276,7 +276,7 @@ try {
     'Combatant steadies their blade for Forceful Strike.',
     'Nexus preview resolves authored flavor tokens with neutral identity',
   )
-  assert.equal(await preview.locator('dt').count(), 9)
+  assert.equal(await preview.locator('dt').count(), 8)
   assert.equal(
     await preview
       .locator('dt')

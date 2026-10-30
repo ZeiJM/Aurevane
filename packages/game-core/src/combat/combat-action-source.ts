@@ -68,6 +68,9 @@ export function capturedMatureSkillAbilitySource(
     sourceDisciplineId: definition.sourceDisciplineId,
     tags: definition.tags,
     definition: definition.ability!,
+    ...(definition.media.audioCueKey === undefined
+      ? {}
+      : { audioCueKey: definition.media.audioCueKey }),
     ...(definition.media.artwork || definition.media.audio
       ? {
           media: {
@@ -124,6 +127,9 @@ export function capturedResonanceAbilitySource(
     sourceKind: 'resonance',
     tags: [],
     definition: definition.ability!,
+    ...(definition.media.audioCueKey === undefined
+      ? {}
+      : { audioCueKey: definition.media.audioCueKey }),
     ...(definition.media.artwork || definition.media.audio
       ? {
           media: {

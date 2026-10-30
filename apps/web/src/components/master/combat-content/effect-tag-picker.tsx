@@ -1,4 +1,5 @@
 'use client'
+import { MasterHelp } from '../master-help'
 import { useState } from 'react'
 import {
   AUTHORABLE_EFFECT_TAGS,
@@ -88,9 +89,12 @@ export function EffectTagPicker({
       >
         {addLabel}
       </button>
-      <small className={styles.fieldHint}>
-        {reason ?? (selected ? combatTagDefinition(selected.opcode)?.conciseExplanation : '')}
-      </small>
+      {selected ? (
+        <MasterHelp label={selected.label}>
+          <p>{combatTagDefinition(selected.opcode)?.fullExplanation}</p>
+        </MasterHelp>
+      ) : null}
+      {reason ? <small className={styles.fieldHint}>{reason}</small> : null}
     </div>
   )
 }

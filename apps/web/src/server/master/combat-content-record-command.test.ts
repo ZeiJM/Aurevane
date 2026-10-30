@@ -304,6 +304,17 @@ it.each(
       behaviors: [
         {
           ...behavior,
+          ...(kind === 'resonance'
+            ? {
+                activation: 'automatic' as const,
+                requirements: {
+                  kind: 'event' as const,
+                  eventType: 'combat_action_used' as const,
+                  phase: 'after' as const,
+                },
+                automaticTarget: { subject: 'selected' as const },
+              }
+            : {}),
           attackFamily: family,
           effects: [
             {
@@ -365,3 +376,128 @@ it.each(
     )
   },
 )
+
+it('Commit Now creation corrects a nearby power entry and reports the repair from the authoritative boundary', async () => {
+  const ability = structuredClone(
+    defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability,
+  )
+  const correctedAbility = {
+    ...ability,
+    behaviors: [
+      {
+        ...ability.behaviors[0]!,
+        effects: [
+          { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 21 } },
+        ],
+      },
+    ],
+  }
+  const response = await call({
+    action: 'create',
+    requestId,
+    contentKind: 'skill',
+    definition: {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      ability: correctedAbility,
+    },
+  })
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({
+    corrections: ['Damage power: 21 → 20.'],
+    record: {
+      draft: {
+        definition: {
+          ability: { behaviors: [{ effects: [{ id: 'hit', payload: { amount: 20 } }] }] },
+        },
+      },
+    },
+  })
+})
+it('does not persist a guessed replacement for an unsupported effect', async () => {
+  const ability = structuredClone(
+    defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability,
+  )
+  const invalidAbility = {
+    ...ability,
+    behaviors: [
+      {
+        ...ability.behaviors[0],
+        effects: [{ id: 'intent', payload: { type: 'invented', recipient: 'actor' } }],
+      },
+    ],
+  }
+  const response = await call({
+    action: 'create',
+    requestId,
+    contentKind: 'skill',
+    definition: {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      ability: invalidAbility,
+    },
+  })
+  expect(response.status).toBe(400)
+  expect(rpc.mock.calls.some(([name]) => name === 'write_combat_content_record_v1')).toBe(false)
+})
+it('rejects malformed recognized tags with a useful client error before any write', async () => {
+  const ability = structuredClone(
+    defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability,
+  )
+  const invalidAbility = {
+    ...ability,
+    behaviors: [
+      {
+        ...ability.behaviors[0],
+        effects: [
+          {
+            id: 'fire',
+            payload: { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'fire' },
+          },
+          { id: 'cleanse', payload: { type: 'remove-status', recipient: 'actor' } },
+        ],
+      },
+    ],
+  }
+  const response = await call({
+    action: 'create',
+    requestId,
+    contentKind: 'skill',
+    definition: {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      ability: invalidAbility,
+    },
+  })
+  expect(response.status).toBe(400)
+  expect(rpc.mock.calls.some(([name]) => name === 'write_combat_content_record_v1')).toBe(false)
+})
+it('commits the authored effect note alongside an added required companion', async () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+  const ability = {
+    ...base,
+    behaviors: [
+      {
+        ...base.behaviors[0]!,
+        effects: [
+          {
+            id: 'hit',
+            payload: { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'storm' },
+          },
+        ],
+      },
+    ],
+  }
+  const response = await call({
+    action: 'create',
+    requestId,
+    contentKind: 'skill',
+    definition: {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      effectDescriptions: ['Authored note'],
+      ability,
+    },
+  })
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({
+    corrections: ['Added required Conductive for the selected damage element.'],
+    record: { draft: { definition: { effectDescriptions: ['Authored note', null] } } },
+  })
+})

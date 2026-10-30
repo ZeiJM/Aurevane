@@ -20,6 +20,7 @@ import {
 } from '@/components/battle/battle-return-navigation'
 import type { BattleTechniqueCategory } from '@/components/battle/battle-runtime'
 import {
+  skillDisplayName,
   skillEffectDescription,
   skillRequirementDescription,
   skillTargetTags,
@@ -43,14 +44,6 @@ import { loadCurrentDisciplineNames } from '@/server/character/current-disciplin
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
 
 export const dynamic = 'force-dynamic'
-
-function titleCase(value: string): string {
-  return value
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
 
 function techniqueCategory(tags: readonly string[]): BattleTechniqueCategory {
   if (tags.includes('cockpit:recovery')) return 'heal'
@@ -131,11 +124,7 @@ async function battleBuildExtensions(
           contentVersion: definition.contentVersion,
           sourceDisciplineId: definition.sourceDisciplineId,
           sourceDisciplineName: disciplineNames[definition.sourceDisciplineId],
-          name: titleCase(
-            definition.id.includes('.')
-              ? definition.id.slice(definition.id.indexOf('.') + 1)
-              : definition.id,
-          ),
+          name: skillDisplayName(definition),
           iconKey: contentArtworkKey(definition.media),
           apCost: override?.apCost ?? definition.apCost,
           mpCost: definition.mpCost ?? 0,

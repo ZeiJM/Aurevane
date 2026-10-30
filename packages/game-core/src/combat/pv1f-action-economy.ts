@@ -1220,7 +1220,7 @@ export function executePv1fMatureSkill(
     (!resonanceRequiresHit || resolved.hitDependentEffectsActivated === true)
   const resolutionEvents = resolved.events
   const mediaResolutionEvents = resolutionEvents.map((event) =>
-    (definition.media.audioCueKey || definition.media.audio) &&
+    (Object.hasOwn(definition.media, 'audioCueKey') || definition.media.audio) &&
     typeof event === 'object' &&
     event !== null &&
     'event' in event &&
@@ -1337,6 +1337,9 @@ export function executePv1fMatureSkill(
         ? [
             {
               event: 'resonance_activated',
+              ...(resonance.definition.media.audioCueKey === undefined
+                ? {}
+                : { audioCueKey: resonance.definition.media.audioCueKey }),
               ...(resonance.definition.media.audio
                 ? { audioMedia: resonance.definition.media.audio }
                 : {}),

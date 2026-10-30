@@ -115,7 +115,6 @@ describe('cockpit Skill Parameters', () => {
       'Cooldown',
       'Requirements',
       'Effects',
-      'Range',
       'Target Method',
       'Target Elevation',
       'Line of Sight',
@@ -135,7 +134,8 @@ describe('cockpit Skill Parameters', () => {
     }
     expect(markup).not.toContain('Do not replace pinned Nexus effects')
     expect(markup).not.toContain('Legal range')
-    expect(markup).toContain('<dt>Range</dt><dd>1</dd>')
+    expect(markup).not.toContain('<dt>Range</dt>')
+    expect(markup).toContain('Single [1]')
     expect(markup).not.toContain('<dt>Target</dt>')
     expect(markup).toContain('data-compact-effect-target="true">[Enemy]</span>')
     expect(markup).not.toContain('Single target')

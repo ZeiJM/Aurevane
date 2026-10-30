@@ -430,7 +430,6 @@ const fields = [
   'Cooldown',
   'Requirements',
   'Effects',
-  'Range',
   'Target Method',
   'Target Elevation',
   'Line of Sight',
@@ -1397,7 +1396,7 @@ async function verifyAttunementPointer(page, viewport) {
     await panel.waitFor()
     assert.equal(await page.getByRole('dialog').count(), 1)
     assert.equal(await panel.evaluate((element) => element === document.activeElement), true)
-    assert.deepEqual((await panel.locator('dt').allTextContents()).slice(0, 9), fields)
+    assert.deepEqual((await panel.locator('dt').allTextContents()).slice(0, fields.length), fields)
     const artworkAfter = await trigger.locator('img').boundingBox()
     assert.equal(artworkAfter.width, artworkBefore.width)
     assert.equal(artworkAfter.height, artworkBefore.height)
@@ -1933,7 +1932,7 @@ try {
     )
     const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
     await openEffectParameters(firstEffect)
-    await firstEffect.getByLabel('Status ID', { exact: true }).fill('blindside-vulnerability')
+    await firstEffect.getByLabel('Status', { exact: true }).selectOption('blindside-vulnerability')
     await firstEffect.getByRole('combobox', { name: 'Target', exact: true }).selectOption('enemy')
     const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
     assert.equal(converted.statusId, 'blindside-vulnerability')
@@ -1956,7 +1955,7 @@ try {
           name: `${surface} ${family} ${surface === 'Master' ? 'details' : 'parameters'}`,
         })
         const labels = await report.locator('dt').allTextContents()
-        assert.deepEqual(labels.slice(0, 9), fields)
+        assert.deepEqual(labels.slice(0, fields.length), fields)
         const token = report.locator(`[data-skill-attack-family="${family}"]`)
         assert.equal(await token.textContent(), family === 'physical' ? '[Physical]' : '[Mystic]')
         assert.equal(
@@ -2094,7 +2093,10 @@ try {
       const popup = page.getByRole('dialog', { name, exact: true })
       await popup.waitFor()
       assert.equal(await popup.locator('header > strong').textContent(), name)
-      assert.deepEqual((await popup.locator('dt').allTextContents()).slice(0, 9), fields)
+      assert.deepEqual(
+        (await popup.locator('dt').allTextContents()).slice(0, fields.length),
+        fields,
+      )
       if (attunement === 'resonance') assert.deepEqual(await colors(popup), paperPalette)
       await assertPaperEffects(popup)
       await page.screenshot({ path: resolve(output, `nexus-${attunement}-${viewport.width}.png`) })
@@ -2140,7 +2142,10 @@ try {
           .fill(String(scenario.potency))
       }
       const master = page.getByRole('region', { name: 'Master elemental details' })
-      assert.deepEqual((await master.locator('dt').allTextContents()).slice(0, 9), fields)
+      assert.deepEqual(
+        (await master.locator('dt').allTextContents()).slice(0, fields.length),
+        fields,
+      )
       if (!scenario.historical && scenario.elemental !== 1) {
         const status = await master.locator('ol li').nth(1).textContent()
         assert.ok(status.includes(scenario.lifetime))
@@ -2247,7 +2252,10 @@ try {
       )
       for (const name of ['Master Fire details', 'Nexus Fire parameters']) {
         const report = page.getByRole('region', { name })
-        assert.deepEqual((await report.locator('dt').allTextContents()).slice(0, 9), fields)
+        assert.deepEqual(
+          (await report.locator('dt').allTextContents()).slice(0, fields.length),
+          fields,
+        )
         assert.ok((await report.textContent()).includes('Conditional Cleanse'))
         assert.ok((await report.textContent()).includes('Chilled'))
         assert.ok((await report.textContent()).includes('Enemy / Ground'))

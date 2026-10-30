@@ -142,8 +142,8 @@ it('publishes the Techniques guide with ordinary per-packet Power scaling', () =
 it('documents Combat v5.1 reach, elevation, LOS, and compact targeting presentation', () => {
   const text = articleText('techniques-damage-effects')
 
-  expect(text).toContain('Range shows only the maximum reach')
-  expect(text).toContain('Target Method shows Single, Line [X], Circle [X] or All')
+  expect(text).toContain('X is the maximum range in tiles')
+  expect(text).toContain('Target Method shows Single [X], Line [X], Circle [X] or All')
   expect(text).toContain('range 1–5')
   expect(text).toContain('eight surrounding tiles')
   expect(text).toContain('elevation 0')

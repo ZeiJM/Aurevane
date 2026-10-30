@@ -367,13 +367,15 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         })
         assert.equal(geometrySaved.effects[0].requirements, undefined)
       }
-      // The first-tab Target choice must have an explicit, executable authoring path.
+      // Configure geometry in Range & Area, then choose the first-tab requirement subject.
       const areaBeforeUnitAim = (await snapshot()).draft.behaviors[0]
       // Playwright’s generic enabled state does not inspect native option.disabled.
       await expect(target.locator('option[value="selected"]')).toHaveJSProperty('disabled', true)
-      await group
-        .getByRole('combobox', { name: 'Target Requirement aim', exact: true })
-        .selectOption('enemy')
+      await expect(
+        group.getByRole('combobox', { name: 'Target Requirement aim', exact: true }),
+      ).toHaveCount(0)
+      await shape.selectOption('single')
+      await target.selectOption('selected')
       await expect(target).toHaveValue('selected')
       await expect(shape).toHaveValue('single')
       assert.deepEqual((await snapshot()).validationIssues, [])
@@ -469,8 +471,11 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       for (const name of readerNames.slice(0, 2)) {
         const reader = page.getByRole('region', { name, exact: true })
         await expect(reader).toContainText('Automatic: Damage Taken')
-        await expect(reader.getByRole('list', { name: 'Usage limits' })).toContainText(
+        await expect(reader.getByRole('list', { name: 'Usage limits' })).not.toContainText(
           'Once per round',
+        )
+        await expect(reader.getByRole('list', { name: 'Usage limits' })).toContainText(
+          'Once per action',
         )
       }
       const resonance = page.getByRole('region', { name: readerNames[2], exact: true })

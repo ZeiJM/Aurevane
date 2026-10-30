@@ -482,6 +482,30 @@ function DisciplineFields({
     </>
   )
 }
+function FixedCategoryControls({ passive = false }: { passive?: boolean }) {
+  return (
+    <div className={styles.fields}>
+      <AbilitySelect
+        label="Group activation"
+        displayLabel="Activation"
+        value={passive ? 'passive' : 'manual'}
+        options={passive ? ['passive'] : ['manual']}
+        optionLabels={{ passive: 'Passive', manual: 'Manual' }}
+        disabled
+        onChange={() => {}}
+      />
+      <AbilitySelect
+        label="Group mode"
+        displayLabel="Ability type"
+        value={passive ? 'passive' : 'action'}
+        options={passive ? ['passive'] : ['action']}
+        optionLabels={{ passive: 'Passive modifier', action: 'Action' }}
+        disabled
+        onChange={() => {}}
+      />
+    </div>
+  )
+}
 function SkillMechanics({
   value,
   onChange: update,
@@ -514,6 +538,7 @@ function SkillMechanics({
     return (
       <AbilityDefinitionEditor
         value={value.ability}
+        category="manual"
         section={section}
         effectDescriptions={value.effectDescriptions}
         onChange={(ability, effectDescriptions) =>
@@ -523,6 +548,7 @@ function SkillMechanics({
     )
   return (
     <>
+      {(!section || section === 'details') && <FixedCategoryControls />}
       <AreaRecipientRepair
         target={value.target}
         effects={value.effects}
@@ -936,6 +962,7 @@ export function ContentDefinitionFields({
           {value.ability ? (
             <AbilityDefinitionEditor
               value={value.ability as AbilityDefinition}
+              category="passive"
               section={abilitySection}
               allowEffectDescriptions={false}
               onChange={(ability) => set({ ability })}
@@ -955,6 +982,7 @@ export function ContentDefinitionFields({
                   </button>
                 </details>
               )}
+              {details && <FixedCategoryControls passive />}
               <ResonanceMechanicsFields
                 value={value as unknown as AnyResonanceDefinition}
                 section={abilitySection}

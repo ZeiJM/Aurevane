@@ -5,7 +5,6 @@ export const MINIMUM_SKILL_INFORMATION_FIELDS = [
   'Cooldown',
   'Requirements',
   'Effects',
-  'Range',
   'Target Method',
   'Target Elevation',
   'Line of Sight',

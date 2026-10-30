@@ -126,6 +126,17 @@ describe('Line authoring through fifteen across content kinds', () => {
         behaviors: [
           {
             ...group,
+            ...(kind === 'resonance'
+              ? {
+                  activation: 'automatic' as const,
+                  requirements: {
+                    kind: 'event' as const,
+                    eventType: 'combat_action_used' as const,
+                    phase: 'after' as const,
+                  },
+                  automaticTarget: { subject: 'selected' as const },
+                }
+              : {}),
             targeting: {
               ...group.targeting!,
               geometryVersion: 3 as const,
@@ -2099,6 +2110,17 @@ describe('automatic Damage formula authoring persistence', () => {
         behaviors: [
           {
             ...base,
+            ...(kind === 'resonance'
+              ? {
+                  activation: 'automatic' as const,
+                  requirements: {
+                    kind: 'event' as const,
+                    eventType: 'combat_action_used' as const,
+                    phase: 'after' as const,
+                  },
+                  automaticTarget: { subject: 'selected' as const },
+                }
+              : {}),
             attackFamily: family,
             effects: [
               {

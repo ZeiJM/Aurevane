@@ -3,6 +3,7 @@ import { createElement, isValidElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
+import { AbilityNumber } from './ability-editor-fields'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { createDefaultCombatEffect } from './skill-effect-list-editor'
 
@@ -46,15 +47,14 @@ it('keeps editable recovery duration within the engine’s four-application limi
     value: { type: 'healing', recipient: 'actor', amount: 5, ticks: 1 },
     onChange,
   })
-  function find(
-    node: ReactNode,
-  ): { onChange(event: { currentTarget: { value: string } }): void } | undefined {
+  function find(node: ReactNode): { onChange(value: number): void } | undefined {
     if (Array.isArray(node)) return node.map(find).find(Boolean)
-    if (!isValidElement<{ children?: ReactNode; 'aria-label'?: string }>(node)) return
-    if (node.props['aria-label'] === 'Effect duration (turns)') return node.props as never
+    if (!isValidElement<{ children?: ReactNode; label?: string }>(node)) return
+    if (node.type === AbilityNumber && node.props.label === 'Effect duration (turns)')
+      return node.props as never
     return find(node.props.children)
   }
-  find(tree)!.onChange({ currentTarget: { value: '4' } })
+  find(tree)!.onChange(4)
   expect(onChange).toHaveBeenCalledWith({
     type: 'healing',
     recipient: 'actor',
@@ -178,10 +178,14 @@ describe('Master Panel Skill effect editor', () => {
       element: 'fire',
       scaling: { source: 'physical-power', coefficientBasisPoints: 7_500 },
     })
-    for (const label of ['Damage amount', 'Target', 'Element']) {
+    for (const label of ['Damage amount', 'Target']) {
       expect(ordinary).toContain(`aria-label="${label}"`)
     }
 
+    expect(ordinary).not.toContain('aria-label="Element"')
+    expect(
+      render({ type: 'damage', recipient: 'primary-unit', amount: 9, element: 'fire' }),
+    ).toContain('aria-label="Element"')
     for (const label of ['Defense kind', 'Damage scaling', 'Scaling (%)'])
       expect(ordinary).not.toContain(`aria-label="${label}"`)
 
@@ -224,7 +228,7 @@ describe('Master Panel Skill effect editor', () => {
       statusId: 'covert',
       stacks: 1,
     })
-    expect(applied).toContain('aria-label="Status ID"')
+    expect(applied).toContain('aria-label="Status"')
     expect(applied).toContain('value="covert"')
     expect(applied).toContain('aria-label="Status stacks"')
     expect(applied).toContain('aria-label="Effect duration (turns)"')
@@ -248,9 +252,7 @@ describe('Master Panel Skill effect editor', () => {
     expect(removed).toContain('aria-label="Status IDs"')
     expect(removed).toContain('value="burn, poison"')
     expect(removed).toContain('Use standard Cleanse')
-    expect(removed).toContain(
-      'Cleanse removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted.',
-    )
+    expect(removed).toContain('aria-label="About Cleanse"')
     const dispel = render({
       type: 'remove-status',
       recipient: 'primary-unit',
@@ -401,7 +403,7 @@ it('keeps elemental status duration and potency controls on the separate status 
 
 it('keeps limited Chilled removal independent from standard Cleanse authoring', () => {
   const markup = render({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
-  expect(markup).toContain('Cleanse Chilled removes only Chilled')
+  expect(markup).toContain('aria-label="About Conditional Cleanse"')
   expect(markup).toContain('value="frozen"')
   expect(markup).not.toContain('Use standard Cleanse')
   expect(markup).not.toContain('Cleanse removes Burn')
@@ -482,5 +484,47 @@ it('keeps positional damage controls on Blindside instead of ordinary Damage', (
   expect(blindside).toContain('aria-label="Rear damage (%)"')
   expect(blindside).toContain('value="175"')
   expect(blindside).toContain('value="225"')
-  expect(blindside).toContain('Front damage stays at 100%')
+  expect(blindside).toContain('Front hits')
+})
+
+it('puts selected tag help in a popup and omits per-field explanatory text', () => {
+  const html = render({
+    type: 'apply-status',
+    recipient: 'affected-units',
+    statusId: 'conductive',
+    stacks: 1,
+    durationTurns: 2,
+    potencyBasisPoints: 2000,
+  })
+  expect(html).toContain('aria-label="About Conductive"')
+  expect(html).toContain('aria-haspopup="dialog"')
+  expect(html).not.toContain('Additional Storm damage captured')
+  expect(html).not.toContain('Includes authored statuses')
+  expect(html).not.toContain('Positive durations persist')
+})
+
+it('does not offer an Element control for canonical Pierce', () => {
+  const html = renderToStaticMarkup(
+    createElement(SkillEffectEditor, {
+      value: { type: 'damage', recipient: 'affected-units', amount: 1, shattersBarrier: true },
+      canonicalDamage: 'pierce',
+      onChange: vi.fn(),
+    }),
+  )
+  expect(html).not.toContain('aria-label="Element"')
+})
+
+it('shows readable Status names without exposing an editable internal Status ID', () => {
+  const html = render({
+    type: 'apply-status',
+    recipient: 'actor',
+    statusId: 'inspired',
+    stacks: 1,
+    durationTurns: 2,
+    potencyBasisPoints: 1500,
+  })
+  expect(html).toContain('aria-label="Status"')
+  expect(html).toContain('>Damage Up</option>')
+  expect(html).not.toContain('aria-label="Status ID"')
+  expect(html).not.toContain('>inspired<')
 })

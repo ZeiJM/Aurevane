@@ -58,7 +58,6 @@ describe('pinned summon ability characteristics', () => {
       'Cooldown',
       'Requirements',
       'Effects',
-      'Range',
       'Target Method',
       'Target Elevation',
       'Line of Sight',
@@ -79,7 +78,8 @@ describe('pinned summon ability characteristics', () => {
     } as const
     const markup = renderToStaticMarkup(<Readers policies={policies} abilities={[captured]} />)
     expect(markup).toContain('<dt>Cost</dt><dd>17 AP</dd>')
-    expect(markup).toContain('<dt>Range</dt><dd>4</dd>')
+    expect(markup).not.toContain('<dt>Range</dt>')
+    expect(markup).toContain('Single [4]')
     expect(markup).toContain('[9]')
   })
 

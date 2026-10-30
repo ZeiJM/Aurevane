@@ -80,8 +80,6 @@ export function BattleInfoPopover({
   const hovered = useRef(false)
   const mounted = useRef(true)
   const [open, setOpen] = useState(false)
-  const [wideReport, setWideReport] = useState(false)
-  const [pageReport, setPageReport] = useState(false)
   const [position, setPosition] = useState({ left: 8, top: 8 })
   const buttonRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -156,20 +154,6 @@ export function BattleInfoPopover({
       const anchor = buttonRef.current?.getBoundingClientRect()
       const panel = panelRef.current?.getBoundingClientRect()
       if (!anchor || !panel) return
-      if (wideReport && window.innerWidth < 720) {
-        setWideReport(false)
-        return
-      }
-      if (!wideReport && panel.height > window.innerHeight - 16 && window.innerWidth >= 720) {
-        setWideReport(true)
-        return
-      }
-      const needsPage = panel.height > window.innerHeight - 16
-      if (pageReport !== needsPage) {
-        setPageReport(needsPage)
-        return
-      }
-      const pagePositioned = getComputedStyle(panelRef.current!).position === 'absolute'
       setPosition(
         battleInfoPopoverPosition(
           anchor,
@@ -178,7 +162,7 @@ export function BattleInfoPopover({
             width: Math.min(window.innerWidth, document.documentElement.clientWidth),
             height: window.innerHeight,
           },
-          pagePositioned ? { x: window.scrollX, y: window.scrollY } : undefined,
+          undefined,
           effectiveLayer === 'inspect' ? 'beside' : placement,
         ),
       )
@@ -190,16 +174,7 @@ export function BattleInfoPopover({
         focusOnOpen.current = false
       } else panelRef.current?.focus()
     }
-    const placeOnScroll = () => {
-      const panel = panelRef.current
-      if (
-        panel &&
-        getComputedStyle(panel).position === 'absolute' &&
-        panel.scrollHeight > window.innerHeight - 16
-      )
-        return
-      place()
-    }
+    const placeOnScroll = place
     window.addEventListener('resize', place)
     window.addEventListener('scroll', placeOnScroll, true)
     const observer = new ResizeObserver(place)
@@ -209,7 +184,7 @@ export function BattleInfoPopover({
       window.removeEventListener('resize', place)
       window.removeEventListener('scroll', placeOnScroll, true)
     }
-  }, [open, wideReport, pageReport, placement, effectiveLayer, id])
+  }, [open, placement, effectiveLayer, id])
 
   useEffect(() => {
     if (!open) return
@@ -256,10 +231,6 @@ export function BattleInfoPopover({
   const openHover = () => {
     cancelClose()
     focusOnOpen.current = false
-    if (!open) {
-      setWideReport(false)
-      setPageReport(false)
-    }
     show()
   }
 
@@ -341,10 +312,6 @@ export function BattleInfoPopover({
           focusOnOpen.current = true
           const next = hover && !pinned.current ? true : !open
           pinned.current = next
-          if (next && !open) {
-            setWideReport(false)
-            setPageReport(false)
-          }
           if (next) show()
           else close()
           if (next && open) panelRef.current?.focus()
@@ -361,8 +328,8 @@ export function BattleInfoPopover({
             aria-label={title}
             tabIndex={-1}
             data-battle-info-panel="true"
-            data-battle-info-layout={wideReport ? 'wide' : 'compact'}
-            data-battle-info-page={pageReport}
+            data-battle-info-layout="compact"
+            data-battle-info-page="false"
             data-battle-info-modal-owned={Boolean(effectivePortalHost?.current)}
             onKeyDown={(event) => {
               if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return

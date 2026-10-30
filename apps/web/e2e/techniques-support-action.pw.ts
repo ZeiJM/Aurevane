@@ -38,7 +38,6 @@ test('Techniques saves one Support Action separately from four Discipline Skills
     'Cooldown',
     'Requirements',
     'Effects',
-    'Range',
     'Target Method',
     'Target Elevation',
     'Line of Sight',

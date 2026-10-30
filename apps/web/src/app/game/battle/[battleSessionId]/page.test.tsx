@@ -192,7 +192,12 @@ it.each(['pve', 'pvp'] as const)(
     const row = rows.find((entry) => entry.kind === 'skill')!
     if (row.kind !== 'skill') throw new Error('Missing Skill fixture.')
     const sourceId = 'discipline.f60c5dc7-abf2-4e03-8b10-428dee7fc4c2'
-    const pinned = { ...row.after, sourceDisciplineId: sourceId }
+    const pinned = {
+      ...row.after,
+      id: 'skill.5e18336c-eb31-45e5-a86a-43edc4d2cb21',
+      name: 'Kaio-ken',
+      sourceDisciplineId: sourceId,
+    }
     const resolvePinnedSkillDefinition = vi.fn(async () => pinned)
     mocks.resolver.mockReturnValue({ ...resolver, resolvePinnedSkillDefinition })
     mocks.names.mockResolvedValue({ [sourceId]: 'Super Saiyan' })
@@ -256,6 +261,7 @@ it.each(['pve', 'pvp'] as const)(
       ).props.children.props.runtime
     }
     expect((await read()).techniques[0]).toMatchObject({
+      name: 'Kaio-ken',
       sourceDisciplineName: 'Super Saiyan',
       definition: {
         id: pinned.id,

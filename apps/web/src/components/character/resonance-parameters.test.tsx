@@ -14,7 +14,6 @@ const fields = [
   'Cooldown',
   'Requirements',
   'Effects',
-  'Range',
   'Target Method',
   'Target Elevation',
   'Line of Sight',
@@ -67,14 +66,13 @@ describe('shared Resonance parameter report', () => {
     const definition = resolveResonanceForPair('wildwarden', 'edgedancer')!
     const before = JSON.stringify(definition)
     const markup = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
-    expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 9).map((match) => match[1])).toEqual(
+    expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 8).map((match) => match[1])).toEqual(
       fields,
     )
     expect(markup).toContain('<dt>Skill Type</dt><dd>Utility</dd>')
     for (const label of [
       'Cost',
       'Cooldown',
-      'Range',
       'Target Method',
       'Target Elevation',
       'Line of Sight',
@@ -147,7 +145,7 @@ describe('shared Resonance parameter report', () => {
   it('keeps missing pinned metadata unavailable without fabricated effects or trigger details', () => {
     const markup = renderToStaticMarkup(<ResonanceParameters definition={null} />)
     expect([...markup.matchAll(/<dt>(.*?)<\/dt>/g)].map((match) => match[1])).toEqual(fields)
-    expect(markup.match(/<dd>Unavailable<\/dd>/g)).toHaveLength(9)
+    expect(markup.match(/<dd>Unavailable<\/dd>/g)).toHaveLength(8)
     expect(markup).not.toContain('data-compact-skill-effect')
     expect(markup).not.toContain('Effect explanations')
     expect(markup).not.toContain('Trigger targeting')

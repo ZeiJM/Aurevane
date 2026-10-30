@@ -133,7 +133,6 @@ it('projects saved Basic costs, enabled state and complete reports for the contr
     'Cooldown',
     'Requirements',
     'Effects',
-    'Range',
     'Target Method',
     'Target Elevation',
     'Line of Sight',
@@ -145,7 +144,7 @@ it('projects saved Basic costs, enabled state and complete reports for the contr
     apPerTraversalPoint: 35,
     maximumTiles: 2,
   })
-  expect(Object.fromEntries(move.behaviors[0]!.rows).Range).toBe('2')
+  expect(Object.fromEntries(move.behaviors[0]!.rows)['Target Method']).toBe('Path [2] · Empty Tile')
   expect(
     view.basicActions!.some(
       (action) => action.actionId === 'basic.guard' || action.actionId === 'basic.recover.mp',

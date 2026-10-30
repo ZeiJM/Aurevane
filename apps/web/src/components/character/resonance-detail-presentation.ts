@@ -55,7 +55,6 @@ export function resonanceCharacteristicRows(
       Cooldown: 'Unavailable',
       Requirements: 'Unavailable',
       Effects: 'Unavailable',
-      Range: 'Unavailable',
       'Target Method': 'Unavailable',
       'Target Elevation': 'Unavailable',
       'Line of Sight': 'Unavailable',
@@ -70,14 +69,13 @@ export function resonanceCharacteristicRows(
     Effects: skillEffectSummaries({ effects: mechanics.resultEffects }, timingPolicy).map(
       (summary) => `${resonanceMatcher(mechanics.trigger, knownSkills)}: ${summary}`,
     ),
-    Range: 'N/A',
     'Target Method': 'N/A',
     'Target Elevation': 'N/A',
     'Line of Sight': 'N/A',
   })
 }
 
-/** Effect explanations follow the shared ten-field report. */
+/** Effect explanations follow the shared eight-field report. */
 export function resonanceSupplementalRows(
   definition: AnyResonanceDefinition | null | undefined,
 ): readonly SkillCharacteristic[] {

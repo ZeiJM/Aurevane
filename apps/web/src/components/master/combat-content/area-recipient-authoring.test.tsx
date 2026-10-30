@@ -213,7 +213,7 @@ it('binds a newly added canonical damage effect to an existing area while unrela
   expect(result.behaviors[0]!.effects[0]!.payload.recipient).toBe('primary-unit')
 })
 
-it('offers explicit unit Requirement targeting while retaining the prerequisite tag and effects', () => {
+it('keeps targeting in Range & Area without a duplicate first-tab conversion control', () => {
   const skill = upgradeSkillFormat(source(), 'base')
   const base = skill.ability!.behaviors[0]!
   const requirements = {
@@ -222,38 +222,31 @@ it('offers explicit unit Requirement targeting while retaining the prerequisite 
     statusId: 'invisible',
     present: true,
   }
-  let ability = {
+  const ability = {
     ...skill.ability!,
-    behaviors: [{ ...base, targeting: { ...base.targeting!, ...area }, requirements }],
+    behaviors: [
+      {
+        ...base,
+        effects: [
+          {
+            id: 'hit',
+            payload: { type: 'damage' as const, recipient: 'affected-units' as const, amount: 1 },
+          },
+        ],
+        targeting: { ...base.targeting!, ...area },
+        requirements,
+      },
+    ],
   }
-  const tree = AbilityDefinitionEditor({
-    value: ability,
-    section: 'details',
-    onChange: (next) => {
-      ability = next as typeof ability
-    },
-  })
-  expect(renderToStaticMarkup(tree)).toContain('whole-ability Requirement')
-  const group = elements(tree).find(
-    (entry) => typeof entry.type === 'function' && 'section' in entry.props,
-  )!
-  const rendered = (group.type as (props: unknown) => ReactNode)(group.props)
-  const aim = elements(rendered).find(
-    (entry) => entry.type === AbilitySelect && entry.props.label === 'Target Requirement aim',
-  )!
-  expect(aim).toBeDefined()
-  expect(ability.behaviors[0]!.requirements).toBe(requirements)
-  const effects = ability.behaviors[0]!.effects
-  ;(aim.props.onChange as (policy: string) => void)('enemy')
-  expect(ability.behaviors[0]!.targeting!.shape).toEqual({ kind: 'single' })
-  expect(ability.behaviors[0]!.requirements).toEqual({ ...requirements, subject: 'selected' })
-  expect(requirements.subject).toBe('owner')
-  expect(ability.behaviors[0]!.effects).toEqual(effects)
-  expect(() => parseAbilityDefinition(ability)).not.toThrow()
+  const before = structuredClone(ability)
   const html = renderToStaticMarkup(
     <AbilityDefinitionEditor value={ability} section="details" onChange={() => {}} />,
   )
-  expect(html).toContain('>Target</option>')
+  expect(html).toContain('Range &amp; Area')
+  expect(html).not.toContain('Target Requirement aim')
+  expect(html).not.toContain('Use Single targeting')
+  expect(ability).toEqual(before)
+  expect(() => parseAbilityDefinition(ability)).not.toThrow()
 })
 
 it.each(['skill', 'resonance'] as const)(

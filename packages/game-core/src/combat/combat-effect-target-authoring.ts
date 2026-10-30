@@ -16,7 +16,7 @@ export function withAuthoredEffectTarget<T extends TargetedEffect>(
   if ((effect.type === 'damage' || effect.type === 'pierce') && target === 'self')
     throw new TypeError('Direct damage cannot target Self.')
   if (isCleanseChilledEffect(effect) && target !== 'self')
-    throw new TypeError('Cleanse Chilled supports only Self.')
+    throw new TypeError('This retained Chilled-only cleanse supports only Self.')
   const recipient =
     effect.type === 'summon'
       ? 'selected-tile'

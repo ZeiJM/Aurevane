@@ -46,7 +46,6 @@ it.each(rows)('$id uses the shared concise modular report and bold tags', (row) 
       'Cooldown',
       'Requirements',
       'Effects',
-      'Range',
       'Target Method',
       'Target Elevation',
       'Line of Sight',
