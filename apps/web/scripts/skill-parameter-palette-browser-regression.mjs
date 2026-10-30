@@ -2309,7 +2309,26 @@ try {
         )
         assert.ok((await report.textContent()).includes('Conditional Cleanse'))
         assert.ok((await report.textContent()).includes('Chilled'))
-        assert.ok((await report.textContent()).includes('Enemy / Ground'))
+        const method = report
+          .locator('dt')
+          .filter({ hasText: /^Target Method$/ })
+          .locator('+ dd')
+        const methodLabel = await method.evaluate((element) =>
+          Array.from(element.childNodes)
+            .filter((node) => node.nodeType === Node.TEXT_NODE)
+            .map((node) => node.textContent)
+            .join('')
+            .trim(),
+        )
+        assert.match(methodLabel, /^(Single|All|Line|Circle)(?: \[\d+\])?$/u)
+        assert.ok(!(await method.textContent()).includes('Enemy / Ground'))
+        assert.ok((await method.getAttribute('title')).includes('Aim: Enemy / Ground'))
+        await method.getByRole('button', { name: 'Explain target method', exact: true }).click()
+        const deliveryHelp = page.getByRole('dialog', { name: 'Target Method', exact: true })
+        await deliveryHelp.waitFor()
+        assert.ok((await deliveryHelp.textContent()).includes('Aim: Enemy / Ground'))
+        await page.keyboard.press('Escape')
+        await deliveryHelp.waitFor({ state: 'detached' })
       }
       await page.getByRole('button', { name: 'About Fire report', exact: true }).click()
       const firePopup = page.getByRole('dialog', { name: 'Fire report', exact: true })

@@ -187,3 +187,28 @@ and production release remain outstanding. No native browser success is claimed
 from this host. Keep PR draft and do not deploy until every required final check
 passes. Main was freshly rechecked as c6b91fabb76b9401d7fad8f0bba8ef776af485b1
 before publication; no concurrent main changes required reconciliation.
+
+## Hosted reader assertion follow-through
+
+One bounded CI inspection on head49d9c3ef5030bc18143f98a99cdb607531df72c1
+(tree7e805a4baf3bf943945650e9263d63aa649f21c1): twelve of thirteen workflows
+succeeded, including central CI, Controlled combat and Modular ability readers.
+Browser smoke41094604468 failed at job124197102457, parameter-palette script line
+2312: the Fire reader still expected Enemy / Ground in ordinary report text.
+The captured Move destination/combined-follow-up browser step passed before this
+failure. Later Browser smoke steps were skipped, so the full browser gate remains
+unverified. No retries requested; database CI passed.
+
+The repair changes only that native assertion: verify the standalone method label,
+absence of inline aim, the preserved delivery title and the real opened Target Method
+help dialog. Separate Ground supplements remain intact and are not mistaken for the
+method label. Existing Fire Cleanse, Ground duration and effect explanation checks
+remain. This is a test-expectation repair for the deliberate reader design, with no
+app/gameplay source changes. CI supplies the failing-first runtime evidence. Local
+adjacent reader/timing/effect-target suites pass 56/56 across three suites; script
+syntax, formatting and diff checks pass. Native runtime revalidation still requires
+hosted CI (Chromium absent locally). The previous full local gate and production
+build validate the unchanged app source; repeating a full build for this native-only
+assertion repair is excluded. Every required exact-new-head hosted gate is mandatory.
+Fresh main remains c6b91fabb76b9401d7fad8f0bba8ef776af485b1. Keep draft; no merge
+or deployment until all checks pass.
