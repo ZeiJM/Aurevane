@@ -41,17 +41,19 @@ export function SkillGroundEditor({
   effects,
   value,
   onChange,
+  disabled = false,
 }: {
   target: CombatTargetSpec
   effects: readonly MatureSkillEffectDefinition[]
   value?: CombatGroundAreaDefinition
+  disabled?: boolean
   onChange: (value: CombatGroundAreaDefinition | undefined) => void
 }) {
   const available = groundAreaForEffects(effects, value)
   const canEnable = combatTargetSupportsGroundArea(target) && Boolean(available)
   if (!canEnable && !value) return null
   return (
-    <fieldset className={styles.typedGroup}>
+    <fieldset className={styles.typedGroup} disabled={disabled}>
       <legend>Persistent ground effect</legend>
       {!canEnable ? (
         <p role="alert">
@@ -148,14 +150,16 @@ export function SkillGroundEditor({
 export function AbilityGroundEditor({
   value,
   onChange,
+  disabled = false,
 }: {
   value: AbilityBehavior
+  disabled?: boolean
   onChange: (value: AbilityBehavior) => void
 }) {
   if (!value.targeting || value.mode !== 'action') {
     if (!value.groundArea) return null
     return (
-      <fieldset className={styles.typedGroup}>
+      <fieldset className={styles.typedGroup} disabled={disabled}>
         <legend>Persistent ground effect</legend>
         <p role="alert">
           Ground areas need action targeting. Disable this area or restore its action target.
@@ -182,6 +186,7 @@ export function AbilityGroundEditor({
   const area = value.groundArea
   return (
     <SkillGroundEditor
+      disabled={disabled}
       target={target}
       effects={effects}
       value={

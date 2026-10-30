@@ -1,3 +1,4 @@
+import { activeAbilityForAuthoring } from '@/lib/combat-ability-authoring-compatibility'
 import React from 'react'
 import {
   defaultBasicSkills,
@@ -563,9 +564,16 @@ function CanonicalEditor() {
   const [definition, setDefinition] = React.useState(() => structuredClone(modularAbility))
   const [notes, setNotes] = React.useState(['Walk <once> & return', null, 'Maintain guard'])
   React.useEffect(() => {
-    window.inspectEditedAbility = () => ({ definition: parseAbilityDefinition(definition), notes })
+    window.inspectEditedAbility = () => ({
+      definition: parseAbilityDefinition(activeAbilityForAuthoring(definition)),
+      notes,
+    })
+    window.inspectRawEditedAbility = () => structuredClone({ definition, notes })
+    window.parseAbilityForTest = parseAbilityDefinition
     return () => {
       delete window.inspectEditedAbility
+      delete window.inspectRawEditedAbility
+      delete window.parseAbilityForTest
     }
   }, [definition, notes])
   return (

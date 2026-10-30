@@ -1,3 +1,4 @@
+import { activeCombatContentForAuthoring } from './combat-ability-authoring-compatibility'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
 import type { CombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
@@ -27,7 +28,12 @@ export function correctCombatContentEntries<T>(
   const corrections: string[] = []
   if (!['skill', 'essence', 'resonance'].includes(kind) || !object(input))
     return { definition: input, corrections }
-  const definition = structuredClone(input)
+  const active = activeCombatContentForAuthoring(kind, input)
+  if (JSON.stringify(active) !== JSON.stringify(input))
+    corrections.push(
+      'Excluded inactive targeting and accuracy settings from the active definition.',
+    )
+  const definition = structuredClone(active)
   const root = definition as Record<string, unknown>
   const owner =
     kind === 'essence' && !Object.hasOwn(root, 'ability') && object(root.skill) ? root.skill : root

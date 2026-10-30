@@ -1,4 +1,5 @@
 'use client'
+import { activeCombatContentForAuthoring } from '@/lib/combat-ability-authoring-compatibility'
 import { Component, useState, type ReactNode } from 'react'
 import {
   bindCombatTagPresentations,
@@ -266,7 +267,12 @@ export function ContentRecordPreview({
   const [actor, setActor] = useState('Sample author'),
     [target, setTarget] = useState('Sample target'),
     [amount, setAmount] = useState(37)
-  const selected = view === 'saved' ? saved : view === 'current' ? current : working
+  const selected =
+    view === 'saved'
+      ? saved
+      : view === 'current'
+        ? current
+        : activeCombatContentForAuthoring(kind, working)
   return (
     <>
       <h3>Preview</h3>

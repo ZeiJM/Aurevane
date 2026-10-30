@@ -1138,8 +1138,9 @@ it('projects a detached complete report from the actual owner Manual capture wit
     Cost: '7 AP / 3 MP / 2 HP',
     Cooldown: '3 turns',
     Requirements: 'MP [≥ 3] [Self]',
-    'Target Method': 'Single [4] · Up to 2 distinct targets',
+    'Target Method': 'Single [4]',
   })
+  expect(report.targetMethodExplanation).toContain('Up to 2 distinct targets')
   expect(report.effects.map((effect) => effect.parts.label)).toEqual(['Move', 'Dmg'])
   expect(report.effects[1]!.parts).toMatchObject({
     magnitude: '13',

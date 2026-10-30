@@ -1255,8 +1255,14 @@ async function verifyCanonicalEditor(page, viewport) {
   const walk = leap.locator('[data-ability-effect="walk"]')
   await openEffectParameters(walk)
   await walk.getByLabel('Move maximum tiles', { exact: true }).fill('3')
-  assert.equal(await walk.getByLabel('Destination', { exact: true }).isDisabled(), true)
-  assert.equal(await walk.getByLabel('Destination', { exact: true }).inputValue(), 'ground')
+  assert.equal(
+    await walk.getByRole('combobox', { name: 'Destination', exact: true }).isDisabled(),
+    true,
+  )
+  assert.equal(
+    await walk.getByRole('combobox', { name: 'Destination', exact: true }).inputValue(),
+    'ground',
+  )
   assert.deepEqual(
     await page.evaluate(
       () => window.inspectEditedAbility().definition.behaviors[0].effects[0].payload,
@@ -1276,8 +1282,15 @@ async function verifyCanonicalEditor(page, viewport) {
     'hp-recovery',
     'mp-recovery',
     'status:blindside-vulnerability',
-    'reveal',
   ])
+  for (const value of ['reveal', 'move', 'summon'])
+    assert.equal(
+      await leap
+        .getByLabel('New effect', { exact: true })
+        .locator(`option[value="${value}"]`)
+        .evaluate((option) => option.disabled),
+      true,
+    )
   await leap.getByLabel('New effect', { exact: true }).selectOption('pierce')
   await gesture(leap.getByRole('button', { name: 'Add new effect', exact: true }))
   const pierce = leap.locator('[data-ability-effect="effect-1"]')
@@ -1286,13 +1299,15 @@ async function verifyCanonicalEditor(page, viewport) {
   await pierce.getByLabel('Damage amount', { exact: true }).fill('5')
   assert.equal(await pierce.getByLabel('Piercing', { exact: true }).count(), 0)
   assert.equal(await pierce.getByLabel('Vengeance enabled', { exact: true }).count(), 0)
-  await gesture(walk.getByRole('button', { name: '↓ Down', exact: true }))
-  assert.ok((await editor.getByRole('status').innerText()).includes('Move must occur once, first'))
+  assert.equal(await walk.getByRole('button', { name: '↓ Down', exact: true }).isDisabled(), true)
   assert.equal(await walk.getByLabel('Effect description', { exact: true }).count(), 0)
   assert.equal(
     await page.evaluate(() => {
       try {
-        window.inspectEditedAbility()
+        const value = structuredClone(window.inspectEditedAbility().definition)
+        const effects = value.behaviors[0].effects
+        ;[effects[0], effects[1]] = [effects[1], effects[0]]
+        window.parseAbilityForTest(value)
         return false
       } catch (error) {
         return error.message.includes('Move must occur once, first')
@@ -1301,7 +1316,6 @@ async function verifyCanonicalEditor(page, viewport) {
     true,
     'The engine must reject the deliberately invalid Move ordering',
   )
-  await gesture(walk.getByRole('button', { name: '↑ Up', exact: true }))
   assert.ok(
     (await page.evaluate(() => window.inspectEditedAbility().notes)).includes(
       'Walk <once> & return',
@@ -1351,6 +1365,31 @@ async function verifyCanonicalEditor(page, viewport) {
       path: resolve(output, `canonical-editor-${name}-${viewport.width}.png`),
     })
   }
+  // Remove both external packets through production controls. The raw template remains
+  // recoverable while validation and commit preparation consume its active projection.
+  await gesture(hit.getByRole('button', { name: 'Remove effect', exact: true }))
+  await gesture(pierce.getByRole('button', { name: 'Remove effect', exact: true }))
+  assert.equal(await leap.getByLabel('Accuracy rule', { exact: true }).isDisabled(), true)
+  assert.equal(await leap.getByLabel('Maximum target range', { exact: true }).isDisabled(), true)
+  const pure = await page.evaluate(() => ({
+    raw: window.inspectRawEditedAbility(),
+    active: window.inspectEditedAbility(),
+  }))
+  assert.equal(pure.raw.definition.behaviors[0].targeting.maximumRange, 4)
+  assert.equal(pure.raw.definition.behaviors[0].accuracy.chanceBasisPoints, 10000)
+  assert.equal(pure.active.definition.behaviors[0].targeting.kind, 'self')
+  assert.equal(pure.active.definition.behaviors[0].targeting.maximumRange, 0)
+  assert.equal(pure.active.definition.behaviors[0].accuracy, undefined)
+  assert.equal(await editor.getByRole('status').count(), 0)
+  await leap.getByLabel('New effect', { exact: true }).selectOption('damage')
+  await gesture(leap.getByRole('button', { name: 'Add new effect', exact: true }))
+  assert.equal(await leap.getByLabel('Accuracy rule', { exact: true }).isDisabled(), false)
+  assert.equal(await leap.getByLabel('Maximum target range', { exact: true }).isDisabled(), false)
+  const restored = await page.evaluate(() => window.inspectEditedAbility().definition.behaviors[0])
+  assert.equal(restored.targeting.maximumRange, 4)
+  assert.equal(restored.accuracy.chanceBasisPoints, 10000)
+  assert.equal(restored.effects[0].payload.type, 'move')
+  assert.equal(restored.effects[1].payload.type, 'damage')
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   assert.deepEqual(await page.evaluate(() => window.requests), [])
 }

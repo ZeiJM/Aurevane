@@ -72,3 +72,13 @@ it('requires an explicit save of automatic Damage settings before publishing an 
   expect(savedPublicationCommand(saved, editable)).toMatchObject({ action: 'publish' })
   expect(definition.effects[0]!.scaling.coefficientBasisPoints).toBe(19999)
 })
+
+it('compares JSON content values without treating an omitted undefined field as a newer edit', () => {
+  const record = {
+    contentKind: 'skill',
+    current: { definition: { id: 'custom.guard', name: 'Guard' } },
+  } as unknown as CompleteCombatContentRecord
+  expect(recordIsDirty(record, { id: 'custom.guard', name: 'Guard', description: undefined })).toBe(
+    false,
+  )
+})

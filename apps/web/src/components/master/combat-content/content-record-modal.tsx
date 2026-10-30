@@ -11,6 +11,7 @@ import {
 } from './content-record-workflow'
 import type { PendingContentEdit } from './content-workspace-recovery'
 import styles from './game-content-workspace.module.css'
+import { hasInactiveCombatSettings } from '@/lib/combat-ability-authoring-compatibility'
 import { combatContentForAuthoring } from '@/lib/combat-content-for-authoring'
 
 /** Edits live in the parent recovery map, not the lifetime of a dialog. */
@@ -104,7 +105,9 @@ export function ContentRecordModal({
         !!edit && JSON.stringify(edit.definition) !== JSON.stringify(definition)
       onChange(
         contentKey,
-        changedWhileSaving && recordIsDirty(result.record, edit.definition)
+        edit &&
+          (hasInactiveCombatSettings(record.contentKind, edit.definition) ||
+            (changedWhileSaving && recordIsDirty(result.record, edit.definition)))
           ? { revision: result.record.revision, definition: edit.definition }
           : null,
       )

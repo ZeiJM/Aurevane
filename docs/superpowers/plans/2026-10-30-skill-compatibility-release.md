@@ -41,18 +41,18 @@ Execute inline; no competing workers. Existing dirty original checkout is protec
 
 - [x] Existing PR #996: self-only zero-range suffix and alphabetical tag choices.
 - [x] Remove generic missing-result copy from displayed and copied Chronicle.
-  Four focused tests fail before the change; 94/94 pass after. Real hits/misses,
-  movement and failures, flavor, actor privacy and ordering remain asserted.
-  Delete the unused text helper and both consumer branches; retain recorded model.
-- [ ] Implement canonical compatibility derivation and recoverable active projection.
-  First pin pure Move from enemy template, mixed follow-ups, selected-target
-  Requirements, add/remove/reorder, save/reload and commit preservation regressions.
-- [ ] Apply disabled controls/options and concise help across shared editors.
+      Four focused tests fail before the change; 94/94 pass after. Real hits/misses,
+      movement and failures, flavor, actor privacy and ordering remain asserted.
+      Delete the unused text helper and both consumer branches; retain recorded model.
+- [x] Implement canonical compatibility derivation and recoverable active projection (native gates pending).
+      First pin pure Move from enemy template, mixed follow-ups, selected-target
+      Requirements, add/remove/reorder, save/reload and commit preservation regressions.
+- [x] Apply disabled controls/options and concise help across shared editors (native gates pending).
 - [x] Ground destination / method-only presentation across current and pinned readers (native gates pending).
 - [x] Implement selectable single-unit utility/healing highlights; native verification pending.
-  Trace confirmed: battle-experience.tsx inFootprint feeds data-buff-path without
-  skillTarget; actual target selector rejects empty unit targets. Movement destination
-  stage must remain separate from post-move target stage.
+      Trace confirmed: battle-experience.tsx inFootprint feeds data-buff-path without
+      skillTarget; actual target selector rejects empty unit targets. Movement destination
+      stage must remain separate from post-move target stage.
 - [ ] Full final gates, release, production verification, receipt and watcher shutdown.
 
 ## Checkpoint
@@ -62,7 +62,6 @@ Fresh main c6b91fabb76b9401d7fad8f0bba8ef776af485b1. One bounded CI read on
 41051848917 in progress. CI41051849002 succeeded on its justified retry; no further
 rerun requested. This is old-head evidence only after the next publication.
 The complete batch is not implemented and must not merge or deploy yet.
-
 
 ## Highlight patch checkpoint
 
@@ -92,7 +91,6 @@ gates; do not bypass or assume that the old-head failure has been resolved.
 
 Remaining source: compatibility projection/disabled choices and Ground/method-only
 reader presentation. No merge, deployment, migration or catalogue publication.
-
 
 ## Reader and destination checkpoint
 
@@ -125,8 +123,67 @@ succeeded; Browser smoke41072942318 still in progress. The recurring database po
 conflict did not occur on that head; no blind retry or CI changes were made. These
 results do not validate subsequent source. Main remains c6b91fabb76b9401d7fad8f0bba8ef776af485b1.
 
-Remaining source is the context-aware compatibility projection and disabled choices
-(items1/6), including persistent draft recovery and commit/preview exclusion. Full
-batch is still incomplete. Do not merge, deploy, migrate or publish content yet.
+At this reader checkpoint, compatibility projection and disabled choices (items1/6)
+remained. The compatibility checkpoint below supersedes that source status. Do not
+merge, deploy, migrate or publish content until the final gates pass.
 
 React review: reused the existing accessible popover; no new state, subscriptions, data reads or gameplay mutations. Shared report help is an optional serializable string, and legacy multi-group labels remain separate through display projection. Self-reviewed inline per the sole-worker instruction.
+
+## Compatibility source checkpoint
+
+The current-only active projection now separates raw recoverable authoring values
+from validation, working previews and Commit Now. Move with only actor/global
+packets and no selected-target Requirement has self-bound Single zero reach, no
+attack accuracy or persistent attack area. Mixed external follow-ups and selected
+Requirements retain their own aim. Requirements themselves, effects, costs,
+cooldowns and authored identities are preserved. A separate Target unit control
+supports unit-based Requirements on a fresh self-bound Move without confusing that
+unit with the Ground destination. Historical/captured readers never use this helper.
+
+Raw inactive values stay in the existing pending/recovery map, including after
+successful commit and revision rebasing. Dirty comparison uses active semantic JSON
+values, retaining array order and ignoring object key order/undefined omission, so
+an inactive backup is not falsely labelled an uncommitted gameplay edit. No private
+backup fields are written into the catalogue, database history or active definition.
+
+Shared controls disable inactive range/elevation/shape/LoS/Ground fields, accuracy,
+non-hostile friendly fire, duplicate Move, Move/Summon conflicts, incompatible
+Copy/Reveal choices and invalid Move/Summon reorder steps. New Move inserts first;
+other new packets insert before an existing final Summon. Activation/mode choices
+respect Move/Summon's Manual Action constraint. Existing invalid orders can move
+toward a legal order; unsupported retained mechanics still fail strict validation.
+No effect or Requirement is silently dropped. Help is contextual to the group.
+Order checks reuse the authoritative validator and avoid validating ordinary swaps.
+
+Regressions cover pure Move from an enemy template, mixed restoration after draft
+JSON round-trip, actor-only follow-ups, selected-target Requirements, all three
+content containers, exact active commit preparation, raw recovery, effect order,
+visible disabled controls, real Requirement aim callbacks, object key reordering and
+JSON undefined omission. Seven assertions fail with the projection removed; restore
+passes focused checks. Final repair loop passes 53 adjacent tests before full gate.
+Native palette tests now cover remove-follow-ups -> pure Move -> add-Damage
+restoration, retain direct engine invalid-order rejection, and precisely select the
+Destination combobox rather than its help dialog. Native execution remains pending.
+
+One bounded hosted inspection on14926b077: ten of thirteen workflows succeeded;
+central quality failed on four old reader expectations (delivery moved to help and
+Move now Ground); Modular readers and Browser smoke failed because getByLabel
+Destination matched both select and dialog. Those assertions/selectors are repaired
+without removing the underlying delivery, recipient, ordering or privacy guards.
+Database execution did not fail. No unchanged-source retries were requested.
+
+The first full local gate found contextual help mentioning Manual Action in an
+Automatic-only editor (fixed by contextual help), plus a test loaded during the
+Requirement-target refinement. Object-order/undefined draft comparisons also have
+failing-first regression guards. The final settled-source `pnpm check` passes,
+including formatting, all workspace lint/type checks/tests, and the production web
+build: web 525 files / 7,466 tests, game-core 207 / 5,841, database 46 / 461,
+worker 1 / 2 and realtime 1 / 3. No tests failed. Unchanged package checks may use
+Turbo cache; web checks and build executed on this source. Script syntax and diff
+checks also pass.
+
+All requested source scope is implemented. Hosted native/full exact-head checks
+and production release remain outstanding. No native browser success is claimed
+from this host. Keep PR draft and do not deploy until every required final check
+passes. Main was freshly rechecked as c6b91fabb76b9401d7fad8f0bba8ef776af485b1
+before publication; no concurrent main changes required reconciliation.

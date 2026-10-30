@@ -50,6 +50,7 @@ import {
   assertDisciplineRelationshipsReady,
   DisciplineRelationshipCommitError,
 } from './relationship-power-creation'
+import { hasInactiveCombatSettings } from '@/lib/combat-ability-authoring-compatibility'
 import { combatContentForAuthoring } from '@/lib/combat-content-for-authoring'
 import { ContentRecordModal } from './content-record-modal'
 import { UsageBalancePanel } from './usage-balance-panel'
@@ -200,7 +201,12 @@ export function CombatContentAuthoringWorkspace({
   function accept(next: CompleteCombatContentRecord) {
     remember(next)
     let local: PendingContentEdit | undefined = pendingRef.current[next.contentKey]
-    if (local && (next.lifecycle === 'archived' || !recordIsDirty(next, local.definition))) {
+    if (
+      local &&
+      (next.lifecycle === 'archived' ||
+        (!recordIsDirty(next, local.definition) &&
+          !hasInactiveCombatSettings(next.contentKind, local.definition)))
+    ) {
       pendingEdit(next.contentKey, null)
       local = undefined
     }
@@ -224,7 +230,9 @@ export function CombatContentAuthoringWorkspace({
       if (record)
         pendingEdit(
           record.contentKey,
-          recordIsDirty(record, next) || committingKeys.current.has(record.contentKey)
+          recordIsDirty(record, next) ||
+            hasInactiveCombatSettings(record.contentKind, next) ||
+            committingKeys.current.has(record.contentKey)
             ? {
                 revision: pendingRef.current[record.contentKey]?.revision ?? record.revision,
                 definition: next,
@@ -310,7 +318,12 @@ export function CombatContentAuthoringWorkspace({
       })
       corrections?.push(...(result.corrections ?? []))
       const latest = pendingRef.current[source.contentKey]
-      if (
+      if (latest && hasInactiveCombatSettings(source.contentKind, latest.definition))
+        pendingEdit(source.contentKey, {
+          revision: result.record.revision,
+          definition: latest.definition,
+        })
+      else if (
         !latest ||
         JSON.stringify(latest.definition) === JSON.stringify(body) ||
         !recordIsDirty(result.record, latest.definition)
@@ -390,7 +403,10 @@ export function CombatContentAuthoringWorkspace({
         const newer = latestNewDefinition.current
         if (newer) {
           const adopted = adoptCreatedContentIdentity(newer, saved.contentKey, saved.contentKind)
-          if (recordIsDirty(saved, adopted))
+          if (
+            recordIsDirty(saved, adopted) ||
+            hasInactiveCombatSettings(saved.contentKind, adopted)
+          )
             pendingEdit(saved.contentKey, { revision: saved.revision, definition: adopted })
         }
         accept(saved)
@@ -404,7 +420,8 @@ export function CombatContentAuthoringWorkspace({
       accept(saved)
       setNotice(
         contentCommitNotice(
-          pendingRef.current[saved.contentKey]
+          pendingRef.current[saved.contentKey] &&
+            recordIsDirty(saved, pendingRef.current[saved.contentKey]!.definition)
             ? 'Saved; newer local edits remain uncommitted.'
             : 'Changes committed and available to the game.',
           corrections,

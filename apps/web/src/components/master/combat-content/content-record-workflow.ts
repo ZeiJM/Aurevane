@@ -1,3 +1,4 @@
+import { activeCombatContentForAuthoring } from '@/lib/combat-ability-authoring-compatibility'
 import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
 import type {
   CombatContentDefinition,
@@ -13,13 +14,49 @@ export function editableDefinition(
     record.draft?.definition ?? record.current?.definition ?? record.builtinDefinition ?? null
   return definition ? combatContentForAuthoring(record.contentKind, definition) : null
 }
+/** Persisted JSON object key order is irrelevant; array order and authored values are not. */
+function sameContentValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true
+  if (
+    !left ||
+    !right ||
+    typeof left !== 'object' ||
+    typeof right !== 'object' ||
+    Array.isArray(left) !== Array.isArray(right)
+  )
+    return false
+  if (Array.isArray(left) && Array.isArray(right)) {
+    if (left.length !== right.length) return false
+    for (let index = 0; index < left.length; index++)
+      if (
+        !sameContentValue(
+          left[index] === undefined ? null : left[index],
+          right[index] === undefined ? null : right[index],
+        )
+      )
+        return false
+    return true
+  }
+  const a = left as Record<string, unknown>,
+    b = right as Record<string, unknown>
+  const keys = Object.keys(a).filter((key) => a[key] !== undefined)
+  return (
+    keys.length === Object.keys(b).filter((key) => b[key] !== undefined).length &&
+    keys.every((key) => Object.hasOwn(b, key) && sameContentValue(a[key], b[key]))
+  )
+}
 export function recordIsDirty(
   record: CompleteCombatContentRecord,
   definition: CombatContentDefinition,
 ): boolean {
   const editable = (value: CombatContentDefinition | null) => {
     if (!value) return null
-    const next = { ...skillAccuracyForAuthoring(record.contentKind, value) }
+    const next = {
+      ...skillAccuracyForAuthoring(
+        record.contentKind,
+        activeCombatContentForAuthoring(record.contentKind, value),
+      ),
+    }
     delete next.contentVersion
     if (
       typeof next.essenceId === 'string' &&
@@ -33,13 +70,11 @@ export function recordIsDirty(
     }
     return next
   }
-  return (
-    JSON.stringify(editable(combatContentForAuthoring(record.contentKind, definition))) !==
-    JSON.stringify(
-      editable(
-        record.draft?.definition ?? record.current?.definition ?? record.builtinDefinition ?? null,
-      ),
-    )
+  return !sameContentValue(
+    editable(combatContentForAuthoring(record.contentKind, definition)),
+    editable(
+      record.draft?.definition ?? record.current?.definition ?? record.builtinDefinition ?? null,
+    ),
   )
 }
 export function savedPublicationCommand(

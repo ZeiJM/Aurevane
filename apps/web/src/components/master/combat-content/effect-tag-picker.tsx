@@ -22,6 +22,7 @@ export function EffectTagPicker({
   combination = { activation: 'manual', mode: 'action' },
   context,
   onAdd,
+  additionalIssue,
 }: {
   label?: string
   addLabel?: string
@@ -29,6 +30,7 @@ export function EffectTagPicker({
   nativeOnly?: boolean
   combination?: { activation: AbilityActivation; mode: AbilityMode }
   context?: EffectAuthoringContext
+  additionalIssue?: (id: string) => string | undefined
   onAdd(payload: CombatTagPayload): void
 }) {
   const [query, setQuery] = useState('')
@@ -44,7 +46,7 @@ export function EffectTagPicker({
     const tag = AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id)
     if (nativeOnly && tag && ['move', 'summon', 'damage-bonus'].includes(tag.opcode))
       return 'Available in modular abilities.'
-    return effectAuthoringIssue(id, combination, context)
+    return effectAuthoringIssue(id, combination, context) ?? additionalIssue?.(id)
   }
   const reason = selected ? issue(selected.id) : 'No matching tags.'
   return (
