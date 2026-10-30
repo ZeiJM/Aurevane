@@ -82,9 +82,7 @@ function curseCopyableField(value: boolean | undefined, onChange: (next: boolean
 }
 
 function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefinition) => void) {
-  const scaling = value.scaling
   const vengeance = value.vengeance
-  const facing = value.facingModifiersBasisPoints
 
   return (
     <div className={styles.typedGrid}>
@@ -102,24 +100,6 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
             onChange({ ...value, amount: integer(event.currentTarget.value, value.amount) })
           }
         />
-      </label>
-
-      <label className={styles.field}>
-        <span>Defense kind</span>
-        <select
-          aria-label="Defense kind"
-          value={value.defenseKind ?? ''}
-          onChange={(event) => {
-            const defenseKind = event.currentTarget.value
-            const rest = { ...value }
-            Reflect.deleteProperty(rest, 'defenseKind')
-            onChange(defenseKind ? { ...rest, defenseKind: defenseKind as 'armor' | 'ward' } : rest)
-          }}
-        >
-          <option value="">None</option>
-          <option value="armor">Physical Defense</option>
-          <option value="ward">Mystic Defense</option>
-        </select>
       </label>
 
       <label className={styles.field}>
@@ -142,45 +122,6 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
         </select>
       </label>
 
-      {!vengeance ? (
-        <>
-          <label className={styles.field}>
-            <span>Damage scaling</span>
-            <select
-              aria-label="Damage scaling"
-              value={scaling?.source ?? 'none'}
-              onChange={(event) => {
-                const next = { ...value }
-                if (event.currentTarget.value === 'none') delete next.scaling
-                else
-                  next.scaling = {
-                    source: event.currentTarget.value as 'physical-power' | 'mystic-power',
-                    coefficientBasisPoints: scaling?.coefficientBasisPoints ?? 10000,
-                  }
-                onChange(next)
-              }}
-            >
-              <option value="none">Skill power</option>
-              <option value="physical-power">Physical Power</option>
-              <option value="mystic-power">Mystic Power</option>
-            </select>
-          </label>
-          {scaling ? (
-            <AbilityNumber
-              label="Scaling (%)"
-              value={scaling.coefficientBasisPoints / 100}
-              max={200}
-              step={0.01}
-              onChange={(percent) =>
-                onChange({
-                  ...value,
-                  scaling: { ...scaling, coefficientBasisPoints: Math.round(percent * 100) },
-                })
-              }
-            />
-          ) : null}
-        </>
-      ) : null}
       {vengeance ? (
         <>
           <AbilityNumber
@@ -242,40 +183,6 @@ function damageEditor(value: DamageEffect, onChange: (next: CombatEffectDefiniti
           </label>
         </>
       ) : null}
-
-      <label className={styles.field}>
-        <span>Facing damage</span>
-        <select
-          aria-label="Facing damage"
-          value={facing ? 'custom' : 'standard'}
-          onChange={(event) => {
-            const next = { ...value }
-            if (event.currentTarget.value === 'standard') delete next.facingModifiersBasisPoints
-            else next.facingModifiersBasisPoints = { front: 10000, side: 10000, rear: 10000 }
-            onChange(next)
-          }}
-        >
-          <option value="standard">Standard rules</option>
-          <option value="custom">Custom percentages</option>
-        </select>
-      </label>
-      {facing
-        ? (['front', 'side', 'rear'] as const).map((direction) => (
-            <AbilityNumber
-              key={direction}
-              label={`${direction[0]!.toUpperCase()}${direction.slice(1)} damage (%)`}
-              value={facing[direction] / 100}
-              max={220}
-              step={0.01}
-              onChange={(percent) =>
-                onChange({
-                  ...value,
-                  facingModifiersBasisPoints: { ...facing, [direction]: Math.round(percent * 100) },
-                })
-              }
-            />
-          ))
-        : null}
     </div>
   )
 }

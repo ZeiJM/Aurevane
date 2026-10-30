@@ -2,6 +2,7 @@
 
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
+  MAXIMUM_COMBAT_LINE_LENGTH,
   maximumSupportedCombatRange,
   normalizeCurrentCombatTargetSpec,
 } from '@aurevane/game-core/combat/combat-targeting-shapes'
@@ -169,7 +170,7 @@ export function SkillTargetingEditor({
             label={shape.kind === 'circle' ? 'Circle radius' : 'Line length'}
             value={shape.kind === 'circle' ? shape.radius : shape.length}
             min={modern ? 1 : shape.kind === 'circle' ? 0 : 1}
-            max={modern ? 5 : undefined}
+            max={shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : modern ? 5 : undefined}
             onChange={(reach) =>
               change({
                 ...value,

@@ -28,7 +28,6 @@ import {
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
 import { AbilityNumber, AbilitySelect, AbilityText } from './ability-editor-fields'
-import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { SkillMediaEditor } from './skill-media-editor'
 import { FinalizedMediaEditor } from './finalized-media-editor'
@@ -670,6 +669,18 @@ export function ContentDefinitionFields({
       />
     ) : (
       <>
+        <FinalizedMediaEditor
+          value={objectValue(value.media)}
+          allowAudio={false}
+          showArtworkRemoval={kind !== 'discipline'}
+          fallbackArtwork={
+            kind === 'discipline'
+              ? (disciplineSigilArtwork(String(value.id)) ?? undefined)
+              : undefined
+          }
+          onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
+          onPendingMediaChange={onPendingMediaChange}
+        />
         {kind === 'discipline' && (
           <button
             type="button"
@@ -687,18 +698,6 @@ export function ContentDefinitionFields({
             Restore default artwork
           </button>
         )}
-        <FinalizedMediaEditor
-          value={objectValue(value.media)}
-          allowAudio={false}
-          showArtworkRemoval={kind !== 'discipline'}
-          fallbackArtwork={
-            kind === 'discipline'
-              ? (disciplineSigilArtwork(String(value.id)) ?? undefined)
-              : undefined
-          }
-          onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
-          onPendingMediaChange={onPendingMediaChange}
-        />
       </>
     )
   }
@@ -1155,12 +1154,6 @@ function ContentDescriptionFields({
               <small>Shown in the battle log when this ability is used.</small>
             </div>
           ) : null}
-          <AbilityPresentationEditor
-            definition={body}
-            name={name}
-            value={body.presentation as MatureSkillDefinition['presentation']}
-            onChange={(presentation) => setBody({ ...body, presentation })}
-          />
         </>
       ) : null}
     </div>

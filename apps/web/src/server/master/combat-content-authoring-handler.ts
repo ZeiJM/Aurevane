@@ -1,3 +1,7 @@
+import {
+  combatDamageForAuthoring,
+  automaticDamageDefinitionIssues,
+} from '@/lib/combat-damage-authoring'
 import 'server-only'
 
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -86,6 +90,13 @@ async function readBody(request: Request): Promise<JsonObject> {
   return body
 }
 
+function currentDefinition(body: JsonObject, kind: AuthoringContentKind) {
+  const definition = combatDamageForAuthoring(kind, requireProperty(body, 'definition'))
+  const issues = automaticDamageDefinitionIssues(kind, definition)
+  if (body.operation !== 'validate' && issues.length) invalid(issues[0]!.message)
+  return definition
+}
+
 function success(body: unknown): Response {
   return Response.json(body, {
     headers: { 'Cache-Control': 'private, no-store' },
@@ -130,14 +141,20 @@ export async function handleCombatContentAuthoringRequest(
     const contentKind = readAuthoringContentKind(body.contentKind)
 
     if (operation === 'validate') {
-      const definition = requireProperty(body, 'definition')
+      const definition = currentDefinition(body, contentKind)
       const validation =
         contentKind === 'skill'
           ? service.validateSkillDefinition(definition)
           : contentKind === 'essence'
             ? service.validateEssenceDefinition(definition)
             : service.validateResonanceDefinition(definition)
-      return success({ validation })
+      const issues = [
+        ...validation.issues,
+        ...automaticDamageDefinitionIssues(contentKind, definition),
+      ]
+      return success({
+        validation: { ...validation, valid: validation.valid && !issues.length, issues },
+      })
     }
 
     if (operation === 'diff') {
@@ -147,7 +164,7 @@ export async function handleCombatContentAuthoringRequest(
     }
 
     if (operation === 'preview') {
-      const definition = requireProperty(body, 'definition')
+      const definition = currentDefinition(body, contentKind)
       const seed = readOptionalPreviewSeed(body.seed)
       const combatContext = readOptionalCombatContext(body.combatContext)
       const behaviorId =
@@ -182,7 +199,7 @@ export async function handleCombatContentAuthoringRequest(
     }
 
     if (operation === 'save-draft') {
-      const definition = requireProperty(body, 'definition')
+      const definition = currentDefinition(body, contentKind)
       const baseVersion = readNullablePositiveInteger(
         requireProperty(body, 'baseVersion'),
         'baseVersion',
@@ -207,7 +224,7 @@ export async function handleCombatContentAuthoringRequest(
     }
 
     if (operation === 'publish') {
-      const definition = requireProperty(body, 'definition')
+      const definition = currentDefinition(body, contentKind)
       const expectedBaseVersion = readNullablePositiveInteger(
         requireProperty(body, 'expectedBaseVersion'),
         'expectedBaseVersion',

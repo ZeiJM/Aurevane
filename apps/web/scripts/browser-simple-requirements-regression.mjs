@@ -367,6 +367,32 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         })
         assert.equal(geometrySaved.effects[0].requirements, undefined)
       }
+      // The first-tab Target choice must have an explicit, executable authoring path.
+      const areaBeforeUnitAim = (await snapshot()).draft.behaviors[0]
+      await expect(target.locator('option[value="selected"]')).toBeDisabled()
+      await group
+        .getByRole('combobox', { name: 'Target Requirement aim', exact: true })
+        .selectOption('enemy')
+      await expect(target).toHaveValue('selected')
+      await expect(shape).toHaveValue('single')
+      assert.deepEqual((await snapshot()).validationIssues, [])
+      await save()
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      const unitAimSaved = (await snapshot()).saved.behaviors[0]
+      assert.equal(unitAimSaved.requirements.subject, 'selected')
+      assert.equal(unitAimSaved.targeting.kind, 'unit')
+      assert.equal(unitAimSaved.targeting.shape.kind, 'single')
+      assert.deepEqual(unitAimSaved.targeting.categories, ['enemy'])
+      assert.deepEqual(unitAimSaved.effects, areaBeforeUnitAim.effects)
+      await expect(target.locator('option[value="selected"]')).toBeEnabled()
+      await assertReaders('Drenched [Target]')
+      evidence.push({
+        viewport,
+        case: 'Explicit Single-unit Target Requirement survives save/reload and shared Skill/Battle/Resonance readers without rewriting effects',
+        passed: true,
+      })
+      await target.selectOption('owner')
       await shape.selectOption('single')
       await recipient.selectOption('all')
       await save()
@@ -522,6 +548,82 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         case: 'Conditional Cleanse specified Burn and Drenched survives JSON reload',
         passed: true,
         errors,
+      })
+      // The read-only Kamehameha mechanics: adding an element must produce a saveable beam.
+      const beam = (await snapshot()).saved
+      beam.behaviors = [
+        {
+          id: 'simple-browser',
+          activation: 'manual',
+          mode: 'action',
+          classification: 'attack',
+          attackFamily: 'physical',
+          costs: [
+            { resource: 'ap', amount: 40 },
+            { resource: 'hp', amount: 20 },
+            { resource: 'mp', amount: 20 },
+          ],
+          cooldown: { key: 'beam', ownerTurns: 1 },
+          requirementMode: 'simple',
+          requirements: {
+            kind: 'status-presence',
+            subject: 'owner',
+            statusId: 'inspired',
+            present: true,
+          },
+          targeting: {
+            geometryVersion: 2,
+            kind: 'unit',
+            teamPolicy: 'enemy',
+            friendlyFire: 'enemies-only',
+            shape: { kind: 'line', length: 5 },
+            minimumRange: 0,
+            maximumRange: 5,
+            maximumSelections: 1,
+            maximumElevationDifference: 3,
+            requiresLineOfSight: false,
+          },
+          effects: [
+            {
+              id: 'hit',
+              payload: {
+                type: 'damage',
+                recipient: 'affected-units',
+                amount: 20,
+                durationTurns: 0,
+              },
+            },
+          ],
+        },
+      ]
+      await page.evaluate(
+        (definition) =>
+          localStorage.setItem('simple-requirements-native-definition', JSON.stringify(definition)),
+        beam,
+      )
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      await openEffectParameters(firstEffect)
+      for (const element of ['ice', 'water', 'storm', 'fire', '']) {
+        await firstEffect
+          .getByRole('combobox', { name: 'Element', exact: true })
+          .selectOption(element)
+        assert.deepEqual((await snapshot()).validationIssues, [])
+        await save()
+        const editedBeam = (await snapshot()).saved.behaviors[0]
+        assert.equal(editedBeam.effects.length, element ? 2 : 1)
+        assert.deepEqual(editedBeam.targeting, beam.behaviors[0].targeting)
+        assert.deepEqual(editedBeam.costs, beam.behaviors[0].costs)
+      }
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      assert.deepEqual((await snapshot()).validationIssues, [])
+      assert.equal((await snapshot()).saved.behaviors[0].effects.length, 1)
+      assert.deepEqual(errors, [])
+      evidence.push({
+        viewport,
+        case: 'Beam element changes add/delete required companion tags and save/reload without clearing costs or geometry',
+        passed: true,
       })
       await page.close()
     }

@@ -49,7 +49,7 @@ import {
   assertDisciplineRelationshipsReady,
   DisciplineRelationshipCommitError,
 } from './relationship-power-creation'
-import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
+import { combatContentForAuthoring } from '@/lib/combat-content-for-authoring'
 import { ContentRecordModal } from './content-record-modal'
 import { UsageBalancePanel } from './usage-balance-panel'
 import { DisciplinePlayerGrants } from './discipline-player-grants'
@@ -147,7 +147,7 @@ export function CombatContentAuthoringWorkspace({
   const rawActiveDefinition = newDefinition ?? definition
   const activeDefinition =
     rawActiveDefinition && activeKind
-      ? skillAccuracyForAuthoring(activeKind, rawActiveDefinition)
+      ? combatContentForAuthoring(activeKind, rawActiveDefinition)
       : rawActiveDefinition
   const readOnly =
     !newDefinition && (!!record?.authoringBlocker || record?.lifecycle === 'archived')

@@ -83,7 +83,6 @@ import {
   type CombatContentAuthoringWorkspaceProps,
 } from './combat-content-authoring-workspace'
 import { ContentDefinitionFields } from './content-definition-fields'
-import { AbilityPresentationEditor } from './ability-presentation-editor'
 import { AbilityText } from './ability-editor-fields'
 type Props = Record<string, unknown> & { children?: ReactNode }
 function find(
@@ -865,9 +864,10 @@ it('keeps retained archived data readable and prevents publication without expos
 })
 
 it.each(BASIC_SKILL_IDS)(
-  'keeps %s Details text callbacks parse/commit-valid including optional clearing',
+  'keeps %s Details text callbacks parse/commit-valid while preserving saved contextual text',
   async (id) => {
     const f = fixture(id)
+    f.change({ ...f.definition, presentation: { compact: 'Retained contextual text.' } })
     await f.click('Skill Details')
     const tree = () =>
       ContentDefinitionFields({
@@ -886,27 +886,13 @@ it.each(BASIC_SKILL_IDS)(
       (n) => n.type === AbilityText && n.props.label === 'In-battle text',
     )!
     ;(battle.props.onChange as (value: string) => void)('{actor} uses {ability}.')
-    const presentation = () =>
-      AbilityPresentationEditor(
-        find(tree(), (n) => n.type === AbilityPresentationEditor)!.props as unknown as Parameters<
-          typeof AbilityPresentationEditor
-        >[0],
-      )
-    const changeCompact = (value: string) =>
-      (
-        find(presentation(), (n) => n.props['aria-label'] === 'Compact battle description')!.props
-          .onChange as (event: unknown) => void
-      )({ currentTarget: { value } })
-    changeCompact('Distinct {ability} compact text.')
-    expect(() => parseBasicSkillDefinition(f.fields().props.value)).not.toThrow()
-    changeCompact('')
     const changed = f.fields().props.value as CombatContentDefinition
     expect(parseBasicSkillDefinition(changed)).toMatchObject({
       description: 'Supported description retained.',
       battleText: '{actor} uses {ability}.',
     })
     expect(changed).not.toHaveProperty('flavorLine')
-    expect(changed.presentation).not.toHaveProperty('compact')
+    expect(changed.presentation).toEqual({ compact: 'Retained contextual text.' })
     f.reply({
       ...f.initial,
       revision: 10,

@@ -8,6 +8,7 @@ it('starts new Resonances in the full shared editor with explicit automatic acti
     activation: 'automatic',
     mode: 'action',
     automaticTrigger: 'turn-started',
+    activationLimits: ['once-per-round'],
     targeting: { kind: 'self' },
     effects: [{ payload: { target: 'self', type: 'barrier-change' } }],
   })

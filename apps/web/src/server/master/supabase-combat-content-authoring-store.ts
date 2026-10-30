@@ -1,3 +1,7 @@
+import {
+  combatDamageForAuthoring,
+  automaticDamageDefinitionIssues,
+} from '@/lib/combat-damage-authoring'
 import { DISCIPLINE_ATLAS } from '@aurevane/game-core/character/discipline-atlas'
 import { isDeepStrictEqual } from 'node:util'
 import { parseNoncombatContentDefinition } from '@aurevane/game-core/content/authored-content'
@@ -666,6 +670,18 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       if (!descriptor.authoringBlocker) descriptor.parseAuthoring(saved.draft.definition)
       throw new AurevaneError('INVALID_REQUEST', descriptor.publicationBlocker.message)
     }
+    const damageIssues = automaticDamageDefinitionIssues(saved.contentKind, saved.draft.definition)
+    if (damageIssues.length) throw new AurevaneError('INVALID_REQUEST', damageIssues[0]!.message)
+    if (
+      !isDeepStrictEqual(
+        combatDamageForAuthoring(saved.contentKind, saved.draft.definition),
+        saved.draft.definition,
+      )
+    )
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'This saved draft still has older damage formula settings. Open its editor and Commit Now to save the automatic damage formula before publication.',
+      )
     const floor = Math.max(
       saved.versionFloor,
       builtinCombatContentVersionFloor(saved.contentKind, saved.contentKey) ?? 0,

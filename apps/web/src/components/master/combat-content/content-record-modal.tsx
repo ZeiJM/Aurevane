@@ -10,7 +10,7 @@ import {
 } from './content-record-workflow'
 import type { PendingContentEdit } from './content-workspace-recovery'
 import styles from './game-content-workspace.module.css'
-import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
+import { combatContentForAuthoring } from '@/lib/combat-content-for-authoring'
 
 /** Edits live in the parent recovery map, not the lifetime of a dialog. */
 export function ContentRecordModal({
@@ -77,7 +77,7 @@ export function ContentRecordModal({
   const rawDefinition = pending?.definition ?? (record ? editableDefinition(record) : null)
   const definition =
     record && rawDefinition
-      ? skillAccuracyForAuthoring(record.contentKind, rawDefinition)
+      ? combatContentForAuthoring(record.contentKind, rawDefinition)
       : rawDefinition
   const stale = !!record && !!pending && pending.revision !== record.revision
   async function commit() {

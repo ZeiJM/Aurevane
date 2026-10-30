@@ -120,6 +120,9 @@
 .rules th:nth-child(2) {
   width: 28%;
 }
+.rules :is(th, td):nth-child(3) {
+  padding-left: clamp(1.4rem, 3vw, 2.6rem);
+}
 .rules tbody th {
   font-weight: 600;
 }
@@ -159,6 +162,9 @@
   .rules th,
   .rules td {
     padding: 0.4rem 0.3rem;
+  }
+  .rules :is(th, td):nth-child(3) {
+    padding-left: 0.65rem;
   }
   .rules th:first-child {
     width: 30%;

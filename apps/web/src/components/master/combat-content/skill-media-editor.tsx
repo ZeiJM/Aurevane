@@ -44,12 +44,6 @@ export function SkillMediaEditor({
 
   return (
     <div className={styles.mediaEditor}>
-      <button
-        type="button"
-        onClick={() => onChange(restoreContentArtworkDefault(contentId, value))}
-      >
-        Restore default artwork
-      </button>
       <FinalizedMediaEditor
         value={value}
         showArtworkRemoval={false}
@@ -57,6 +51,12 @@ export function SkillMediaEditor({
         onChange={(media) => onChange({ ...value, artwork: media.artwork, audio: media.audio })}
         onPendingMediaChange={onPendingMediaChange}
       />
+      <button
+        type="button"
+        onClick={() => onChange(restoreContentArtworkDefault(contentId, value))}
+      >
+        Restore default artwork
+      </button>
 
       <div className={styles.mediaGrid}>
         <label className={styles.field}>

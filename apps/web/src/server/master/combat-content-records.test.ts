@@ -1,3 +1,4 @@
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { expect, it, vi } from 'vitest'
 import type { CompleteCombatContentRecord } from '@aurevane/db/combat-content'
 import { DISCIPLINE_ATLAS_BY_ID } from '@aurevane/game-core/character/discipline-atlas'
@@ -360,4 +361,47 @@ it('restores the exact system Basic baseline without accepting a caller definiti
     )
     expect((await store.readRecord(original.id))?.builtinRestoreVersion).toBe(1)
   }
+})
+
+it('blocks old saved damage overrides until the Owner explicitly saves the automatic formula', async () => {
+  const definition = {
+    ...skill,
+    effects: skill.effects.map((effect) =>
+      effect.type === 'damage'
+        ? {
+            ...effect,
+            defenseKind: 'ward',
+            scaling: { source: 'mystic-power', coefficientBasisPoints: 19999 },
+          }
+        : effect,
+    ),
+  }
+  const legacy = { ...record, draft: { ...record.draft, definition } }
+  const rpc = vi.fn(async () => ({ data: legacy, error: null }))
+  const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+  await expect(store.publishSaved(legacy, 4, null)).rejects.toMatchObject({
+    code: 'INVALID_REQUEST',
+    message: expect.stringMatching(/automatic.*damage|damage.*formula/i),
+  })
+  expect(rpc.mock.calls).toHaveLength(1)
+  expect(legacy.draft.definition.effects).toEqual(definition.effects)
+})
+
+it('gives repair guidance for a saved utility damage group without inferring its attack family', async () => {
+  const { attackFamily: _family, ...behavior } = defaultBasicSkills().find(
+    (row) => row.id === 'unarmed.basic',
+  )!.ability.behaviors[0]!
+  void _family
+  const definition = {
+    ...skill,
+    ability: { schemaVersion: 1, behaviors: [{ ...behavior, classification: 'utility' }] },
+  }
+  const legacy = { ...record, draft: { ...record.draft, definition } }
+  const rpc = vi.fn(async () => ({ data: legacy, error: null }))
+  const store = new RpcCombatContentAuthoringStore(rpc, 'owner')
+  await expect(store.publishSaved(legacy, 4, null)).rejects.toMatchObject({
+    code: 'INVALID_REQUEST',
+    message: expect.stringMatching(/Attack classification.*Physical or Mystic/),
+  })
+  expect(rpc.mock.calls).toHaveLength(1)
 })

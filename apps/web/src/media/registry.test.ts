@@ -54,7 +54,7 @@ describe('image registry', () => {
 
   it('routes every starter portrait choice through a square runtime descriptor', () => {
     for (const [index, portrait] of STARTER_CHARACTER_PORTRAITS.entries()) {
-      const size = portrait.ref.startsWith('portrait.adventure.') ? 384 : index === 0 ? 400 : 96
+      const size = portrait.ref.startsWith('portrait.adventure.') ? 384 : index === 0 ? 400 : 1024
       const asset = getImageAsset(getStarterPortraitImageAssetId(portrait.ref))
       expect(asset).toMatchObject({
         status: 'approved',
@@ -65,10 +65,20 @@ describe('image registry', () => {
     }
   })
 
-  it('uses the deterministic approved-sheet recovery for portrait 07', () => {
-    expect(dataImageSha256(getImageAsset('character.creation.portrait-07').src)).toBe(
-      '6172c4abdd64f8e694adddcbae8375c9e6816e6f8e83497c17c8e4a64ff9e29b',
+  it('keeps portrait 01 byte-identical while resolving every replacement through a new static URL', () => {
+    expect(dataImageSha256(getImageAsset('character.creation.square-portrait-01').src)).toBe(
+      '52ccf2550c6480d48210a88baf318e258d93b245f527fa552a4ccdbb437809e3',
     )
+    for (let number = 2; number <= 40; number += 1) {
+      const suffix = String(number).padStart(2, '0')
+      const ref =
+        `portrait.starter.wayfarer-${suffix}` as (typeof STARTER_CHARACTER_PORTRAITS)[number]['ref']
+      expect(getImageAsset(getStarterPortraitImageAssetId(ref))).toMatchObject({
+        src: `/media/art/wayfarer/portrait-${suffix}-v02.webp`,
+        width: 1024,
+        height: 1024,
+      })
+    }
   })
 
   it('describes the visible traits distinguishing each starter portrait', () => {

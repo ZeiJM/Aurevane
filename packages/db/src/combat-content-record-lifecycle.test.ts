@@ -1860,3 +1860,70 @@ it('native Tag race preparation handles seeded metadata and an already published
     ).rows[0]!.definition,
   ).toEqual(prior)
 })
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'round-trips long Line %s saved publications without changing historical geometry',
+  async (contentKind) => {
+    const key = `line.${contentKind}`
+    const target = {
+      geometryVersion: 3,
+      kind: 'unit',
+      teamPolicy: 'enemy',
+      categories: ['enemy'],
+      maximumSelections: 1,
+      friendlyFire: 'enemies-only',
+      shape: { kind: 'line', length: 6 },
+      minimumRange: 0,
+      maximumRange: 6,
+      maximumElevationDifference: 3,
+      requiresLineOfSight: true,
+    }
+    const initial = {
+      ...definition,
+      id: key,
+      target,
+      ...(contentKind === 'essence'
+        ? { essenceId: key, skill: { id: key, contentVersion: 1, target } }
+        : {}),
+    }
+    const first = await write(key, {
+      action: 'create',
+      requestId: '00000000-0000-4000-8000-000000000099',
+      contentKind,
+      definition: initial,
+    })
+    const firstPublished = await publish(key, first.draft.draftVersion, null)
+    const changedTarget = { ...target, shape: { kind: 'line', length: 15 }, maximumRange: 15 }
+    const changed = {
+      ...initial,
+      contentVersion: firstPublished.current.contentVersion,
+      target: changedTarget,
+      ...(contentKind === 'essence'
+        ? {
+            skill: {
+              id: key,
+              contentVersion: firstPublished.current.contentVersion,
+              target: changedTarget,
+            },
+          }
+        : {}),
+    }
+    const saved = await write(key, {
+      action: 'save',
+      expectedRevision: firstPublished.revision,
+      definition: changed,
+    })
+    const published = await publish(
+      key,
+      saved.draft.draftVersion,
+      firstPublished.current.contentVersion,
+    )
+    expect(published.current.definition.target).toEqual(changedTarget)
+    expect((await record(key)).current.definition.target).toEqual(changedTarget)
+    const history = await db.query<{ definition: Record<string, unknown> }>(
+      'select definition from app_private.combat_content_versions where content_key=$1 and content_version=$2',
+      [key, firstPublished.current.contentVersion],
+    )
+    expect(history.rows[0]!.definition).toEqual(firstPublished.current.definition)
+  },
+)

@@ -16,7 +16,7 @@ export function newResonanceAbility(): AbilityDefinition {
         requirementMode: 'simple',
         automaticTrigger: 'turn-started',
         automaticTarget: { subject: 'owner' },
-        activationLimits: ['once-per-owner-turn'],
+        activationLimits: ['once-per-round'],
         targeting: {
           kind: 'self',
           teamPolicy: 'self',

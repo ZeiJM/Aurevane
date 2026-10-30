@@ -8,7 +8,7 @@ interface RouteContext {
 }
 
 const CACHE_HEADERS = {
-  'Cache-Control': 'public, max-age=31536000, immutable',
+  'Cache-Control': 'public, max-age=0, must-revalidate',
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -32,7 +32,10 @@ export async function GET(request: Request, context: RouteContext) {
   }
 
   if (source.startsWith('/')) {
-    return Response.redirect(new URL(source, request.url), 307)
+    return new Response(null, {
+      status: 307,
+      headers: { ...CACHE_HEADERS, Location: new URL(source, request.url).toString() },
+    })
   }
 
   return new Response(null, { status: 404, headers: CACHE_HEADERS })

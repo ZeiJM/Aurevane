@@ -4,6 +4,7 @@ import { resolveTargetShapeTiles, type CombatTargetSpec } from './actions'
 import {
   enumerateCombatTargetSelections,
   resolveCombatTargetFootprint,
+  validateVersionedCombatTargetSpec,
 } from './combat-targeting-shapes'
 const state = percentageDotEncounter()
 const tactical = {
@@ -175,4 +176,104 @@ it('validates explicit All and rejects unversioned All or malformed geometry ver
       target: { ...action.target, geometryVersion: 4 as never },
     }),
   ).toThrow()
+})
+
+// Long authored lanes retain the existing footprint and spatial policies.
+describe('Line lengths through fifteen', () => {
+  it.each([2, 3] as const)(
+    'accepts every length 1–15 and rejects invalid geometry%s reach',
+    (geometryVersion) => {
+      for (let length = 1; length <= 15; length++) {
+        expect(() =>
+          validateVersionedCombatTargetSpec({ ...spec({ kind: 'line', length }), geometryVersion }),
+        ).not.toThrow()
+      }
+      for (const length of [0, 16, 1.5, Number.NaN]) {
+        const invalid = { ...spec({ kind: 'line', length }), geometryVersion }
+        expect(() => validateVersionedCombatTargetSpec(invalid)).toThrow()
+        expect(() =>
+          resolveCombatTargetFootprint(tactical, origin, invalid, {
+            kind: 'direction',
+            direction: 'east',
+          }),
+        ).toThrow()
+      }
+      expect(() =>
+        validateVersionedCombatTargetSpec({
+          ...spec({ kind: 'circle', radius: 6 }),
+          geometryVersion,
+        }),
+      ).toThrow()
+    },
+  )
+  for (const geometryVersion of [2, 3] as const) {
+    for (const length of [6, 15]) {
+      it.each([
+        { direction: 'north', origin: { x: 2, y: 1 }, expected: [{ x: 2, y: 0 }] },
+        {
+          direction: 'east',
+          origin: { x: 2, y: 1 },
+          expected: [
+            { x: 3, y: 1 },
+            { x: 4, y: 1 },
+            { x: 5, y: 1 },
+            { x: 6, y: 1 },
+          ],
+        },
+        { direction: 'south', origin: { x: 2, y: 1 }, expected: [{ x: 2, y: 2 }] },
+        {
+          direction: 'west',
+          origin: { x: 2, y: 1 },
+          expected: [
+            { x: 1, y: 1 },
+            { x: 0, y: 1 },
+          ],
+        },
+        { direction: 'north', origin: { x: 0, y: 0 }, expected: [] },
+        { direction: 'east', origin: { x: 6, y: 2 }, expected: [] },
+        { direction: 'south', origin: { x: 6, y: 2 }, expected: [] },
+        { direction: 'west', origin: { x: 0, y: 0 }, expected: [] },
+      ] as const)(
+        `clips geometry${geometryVersion} Line[${length}] $direction at a 7×3 board edge`,
+        ({ direction, origin, expected }) => {
+          const board = {
+            width: 7,
+            height: 3,
+            tiles: Array.from({ length: 21 }, (_, i) => ({
+              position: { x: i % 7, y: Math.floor(i / 7) },
+              elevation: 0,
+              terrainId: 'open',
+            })),
+          }
+          expect(
+            resolveCombatTargetFootprint(
+              board,
+              origin,
+              { ...spec({ kind: 'line', length }), geometryVersion },
+              { kind: 'direction', direction },
+            ),
+          ).toEqual(expected)
+        },
+      )
+    }
+  }
+  it.each([6, 15])('reaches exactly %i tiles when the actual board is long enough', (length) => {
+    const board = {
+      width: 18,
+      height: 1,
+      tiles: Array.from({ length: 18 }, (_, x) => ({
+        position: { x, y: 0 },
+        elevation: 0,
+        terrainId: 'open',
+      })),
+    }
+    const positions = resolveCombatTargetFootprint(
+      board,
+      { x: 1, y: 0 },
+      spec({ kind: 'line', length }),
+      { kind: 'direction', direction: 'east' },
+    )
+    expect(positions).toHaveLength(length)
+    expect(positions.at(-1)).toEqual({ x: 1 + length, y: 0 })
+  })
 })
