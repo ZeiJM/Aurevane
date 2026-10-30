@@ -1,3 +1,4 @@
+import { correctCombatContentEntries } from '@/lib/combat-content-corrector'
 import { combatContentCategory } from '../combat/combat-content-categories'
 import type {
   CombatContentDefinition,
@@ -159,8 +160,10 @@ export function createCombatContentRecordCommand(
           essenceId: contentKey,
           skill: { ...(object(definition.skill) ? definition.skill : {}), id: contentKey },
         }
-      definition = validate(input.contentKind, definition)
+      const prepared = correctCombatContentEntries(input.contentKind, definition)
+      definition = validate(input.contentKind, prepared.definition)
       return {
+        ...(prepared.corrections.length ? { corrections: prepared.corrections } : {}),
         record: await store.writeRecord(contentKey, {
           action: 'create',
           requestId: request,
@@ -208,14 +211,17 @@ export function createCombatContentRecordCommand(
     if (action === 'save' || action === 'publish' || action === 'commit') {
       const record = await store.readRecord(contentKey)
       if (!record) invalid('The content record does not exist.')
-      if (action === 'commit')
+      if (action === 'commit') {
+        const prepared = correctCombatContentEntries(record.contentKind, input.definition)
         return {
+          ...(prepared.corrections.length ? { corrections: prepared.corrections } : {}),
           record: await store.commitRecord(
             contentKey,
             revision(input.expectedRevision),
-            validate(record.contentKind, input.definition),
+            validate(record.contentKind, prepared.definition),
           ),
         }
+      }
       if (action === 'publish')
         return {
           record: await store.publishSaved(

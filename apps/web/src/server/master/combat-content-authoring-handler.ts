@@ -1,3 +1,4 @@
+import { combatCategoryForAuthoring, combatCategoryIssues } from '@/lib/combat-category-authoring'
 import {
   combatDamageForAuthoring,
   automaticDamageDefinitionIssues,
@@ -91,8 +92,13 @@ async function readBody(request: Request): Promise<JsonObject> {
 }
 
 function currentDefinition(body: JsonObject, kind: AuthoringContentKind) {
-  const definition = combatDamageForAuthoring(kind, requireProperty(body, 'definition'))
-  const issues = automaticDamageDefinitionIssues(kind, definition)
+  const retained = combatDamageForAuthoring(kind, requireProperty(body, 'definition'))
+  const definition =
+    body.operation === 'preview' ? retained : combatCategoryForAuthoring(kind, retained)
+  const issues = [
+    ...automaticDamageDefinitionIssues(kind, definition),
+    ...(body.operation === 'preview' ? [] : combatCategoryIssues(kind, definition)),
+  ]
   if (body.operation !== 'validate' && issues.length) invalid(issues[0]!.message)
   return definition
 }
@@ -151,6 +157,7 @@ export async function handleCombatContentAuthoringRequest(
       const issues = [
         ...validation.issues,
         ...automaticDamageDefinitionIssues(contentKind, definition),
+        ...combatCategoryIssues(contentKind, definition),
       ]
       return success({
         validation: { ...validation, valid: validation.valid && !issues.length, issues },

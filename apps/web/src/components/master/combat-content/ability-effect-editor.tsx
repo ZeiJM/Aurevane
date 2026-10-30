@@ -10,6 +10,8 @@ import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-ski
 import { createDefaultCombatEffect } from './skill-effect-list-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { SummonProfileEditor } from './summon-profile-editor'
+import { MasterHelp } from '../master-help'
+import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 import { AbilityNumber } from './ability-editor-fields'
 import { EffectTargetEditor } from './effect-target-editor'
 import { withAuthoredEffectTarget } from '@aurevane/game-core/combat/combat-effect-target-authoring'
@@ -60,11 +62,6 @@ export function AbilityEffectEditor({
           max={20}
           onChange={(maximumTiles) => update({ ...payload, maximumTiles })}
         />
-        <p className={styles.fieldHint}>
-          Skill Move is included in the Skill cost and is independent of ordinary walking. Its
-          authored distance, legal terrain, Jump, occupancy and Root still apply. Basic Move retains
-          its own execution price and Movement allowance.
-        </p>
       </>
     )
   } else if (payload.type === 'damage-bonus') {
@@ -116,11 +113,13 @@ export function AbilityEffectEditor({
                 piercing: _piercing,
                 vengeance: _vengeance,
                 shattersBarrier: _barrier,
+                element: _element,
                 ...rest
               } = next
               void _piercing
               void _vengeance
               void _barrier
+              void _element
               update({
                 ...rest,
                 type: 'pierce',
@@ -146,7 +145,11 @@ export function AbilityEffectEditor({
         onChange={(target) => update(withAuthoredEffectTarget(payload, target))}
       />
       {controls}
-      <p className={styles.fieldHint}>{tag?.fullExplanation}</p>
+      {['move', 'damage-bonus', 'summon'].includes(payload.type) ? (
+        <MasterHelp label={effectAuthoringTag(payload).label}>
+          <p>{tag?.fullExplanation}</p>
+        </MasterHelp>
+      ) : null}
     </div>
   )
 }

@@ -892,10 +892,17 @@ export function commitCombatAbilityCommand(
       : undefined,
     prepared.returnAnchor,
   )
+  const audioCueKey =
+    input.root.kind === 'canonical'
+      ? input.root.source.audioCueKey !== undefined
+        ? input.root.source.audioCueKey
+        : input.root.source.basic?.media.audioCueKey
+      : undefined
   const attempt: CombatResolutionEvent = {
     event: 'combat_action_used',
     actionId: prepared.action.id,
     actorId: input.actorId,
+    ...(audioCueKey === undefined ? {} : { audioCueKey }),
     ...(input.trigger?.triggeringCombatantId
       ? { triggeringActorId: input.trigger.triggeringCombatantId }
       : {}),

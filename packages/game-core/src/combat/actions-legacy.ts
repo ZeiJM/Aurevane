@@ -784,6 +784,7 @@ export type CombatResolutionEvent = (
       damageTrigger?: 'burn-backlash' | 'poison-movement' | 'scheduled-tick'
       /** Element of this resolved hit; omitted on untyped and historical receipts. */
       element?: CombatElement
+      damageKind?: 'piercing'
       sourceCombatantId: string
       targetCombatantId: string
       amount: number
@@ -5406,6 +5407,9 @@ function applyEffectNative(
       event: 'damage_applied',
       actionId,
       ...(effect.element ? { element: effect.element } : {}),
+      ...(effect.shattersBarrier === true || effect.piercing === true
+        ? { damageKind: 'piercing' as const }
+        : {}),
       sourceCombatantId: actorId,
       targetCombatantId: recipientId,
       amount: target.hp - hpAfter,

@@ -2191,3 +2191,74 @@
   flex: 0 0 auto;
   margin: 0;
 }
+
+/* Keep effect controls aligned without stretching a row to its longest hint. */
+.effectEditor .typedGrid,
+.effectTuningGrid {
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.effectEditor .field,
+.effectTuningGrid .field {
+  align-content: start;
+  min-width: 0;
+}
+.effectEditor .field > :is(input, select),
+.effectTuningGrid .field > :is(input, select) {
+  box-sizing: border-box;
+  min-height: 2.4rem;
+}
+.effectReference {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+@media (max-width: 600px) {
+  .effectEditor .typedGrid,
+  .effectTuningGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.effectEditor {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.35rem;
+}
+.effectEditor > .typedGrid,
+.effectEditor > .effectTuningGrid {
+  display: contents;
+}
+.effectEditor > .effectReference,
+.effectEditor > .effectTargetEditor,
+.effectEditor > .effectNote {
+  grid-column: 1 / -1;
+}
+.effectHeader {
+  padding: 0.4rem 0.5rem;
+}
+.effectActions button {
+  min-height: 2rem;
+  padding: 0.25rem 0.5rem;
+}
+@media (max-width: 1000px) {
+  .effectEditor {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .effectEditor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .effectActions button {
+    min-height: 2.75rem;
+  }
+}
+
+.abilityTabs {
+  gap: 0.4rem;
+  padding-top: 0.55rem;
+  padding-bottom: 0.6rem;
+}

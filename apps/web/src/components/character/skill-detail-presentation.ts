@@ -275,7 +275,6 @@ export function skillParameterRows(
     Cooldown: skillCooldownDescription(skill, costs.cooldownOwnerTurns),
     Requirements: skillRequirementsSummary(skill),
     Effects: skillEffectsSummary(skill, timingPolicy, options),
-    Range: skillCompactRangeDescription(skill),
     'Target Method': skillTargetMethodDescription(skill) + skillDeliveryNotes(skill, options),
     'Target Elevation':
       options.airborneAttackElevation && skill.tags.includes('attack')
@@ -502,16 +501,8 @@ function skillDeliveryNotes(
 }
 
 export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
-  switch (skill.target.shape.kind) {
-    case 'all':
-      return 'All'
-    case 'single':
-      return 'Single'
-    case 'circle':
-      return `Circle [${skill.target.shape.radius}]`
-    case 'line':
-      return `Line [${skill.target.shape.length}]`
-  }
+  const kind = skill.target.shape.kind
+  return kind === 'all' ? 'All' : `${title(kind)} [${skillCompactRangeDescription(skill)}]`
 }
 
 export function skillTargetElevationDescription(
@@ -523,7 +514,7 @@ export function skillTargetElevationDescription(
 }
 
 export function skillCompactRangeDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
-  if (skillTargetsOnlySelf(skill.target) || skill.target.shape.kind === 'all') return 'N/A'
+  if (skill.target.shape.kind === 'all') return 'N/A'
   return String(skill.target.maximumRange)
 }
 
@@ -558,6 +549,7 @@ function recoveryTiming(ticks: number | undefined): string {
 export function skillDisplayName(skill: MatureSkillDefinition): string {
   if (skill.name?.trim()) return skill.name
   const tail = skill.id.includes('.') ? skill.id.slice(skill.id.indexOf('.') + 1) : skill.id
+  if (/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(tail)) return 'Unnamed Skill'
   return tail
     .split(/[._-]/g)
     .filter(Boolean)
@@ -578,8 +570,8 @@ export function skillTargetMethodExplanation(skill: Pick<MatureSkillDefinition, 
       ? 'Historical Circle spreads around the selected tile.'
       : 'Historical Line ends at the selected tile.'
   if (shape.kind === 'line')
-    return `Line [${shape.length}] covers the complete cardinal lane from you, including empty tiles. Combatants do not stop it; authored terrain, line of sight and elevation rules apply.`
+    return `Line length ${shape.length} covers the complete cardinal lane from you, including empty tiles. Combatants do not stop it; authored terrain, line of sight and elevation rules apply.`
   if (skill.target.geometryVersion === 3 && combatTargetCategories(skill.target).includes('self'))
-    return `Circle [${shape.radius}] covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you and includes yourself. Inner rings are included; authored visibility and elevation rules apply to surrounding tiles.`
-  return `Circle [${shape.radius}] covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.`
+    return `Circle radius ${shape.radius} covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you and includes yourself. Inner rings are included; authored visibility and elevation rules apply to surrounding tiles.`
+  return `Circle radius ${shape.radius} covers ${(shape.radius * 2 + 1) ** 2 - 1} surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.`
 }

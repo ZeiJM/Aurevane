@@ -874,7 +874,9 @@ export function validateAbilityElementalCompanions(
       status !== 'cleanse-chilled' &&
       record(companion.payload) &&
       (companion.payload.stacks !== 1 ||
-        companion.payload.durationTurns !== 2 ||
+        !nonnegative(companion.payload.durationTurns) ||
+        companion.payload.durationTurns < 1 ||
+        companion.payload.durationTurns > 4 ||
         (status === 'frozen'
           ? companion.payload.potencyBasisPoints !== undefined
           : companion.payload.potencyBasisPoints === undefined))
@@ -882,7 +884,7 @@ export function validateAbilityElementalCompanions(
       issue(
         path,
         'elemental-companion',
-        'Policy-2 companions require one application, two turns and the captured Storm vulnerability percentage where applicable.',
+        'Element companions require one application, an explicit duration and the captured Storm vulnerability percentage where applicable.',
       )
   }
   return issues

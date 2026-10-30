@@ -1,3 +1,4 @@
+import { combatCategoryIssues } from '@/lib/combat-category-authoring'
 import {
   contentEditorDefaults,
   type CombatContentEditorDescriptor,
@@ -135,6 +136,10 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
     catalogueProjection: 'combat',
     authoringBlocker: null,
     publicationBlocker: null,
+    validatePublication(value) {
+      const issues = combatCategoryIssues('skill', value)
+      if (issues.length) throw new TypeError(issues[0]!.message)
+    },
     parseAuthoring: skillAuthoring,
     parsePublished: (record) => ({ ...validatePublishedSkill(record, record.contentKey) }),
   }),
@@ -146,6 +151,10 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
     catalogueProjection: 'combat',
     authoringBlocker: null,
     publicationBlocker: null,
+    validatePublication(value) {
+      const issues = combatCategoryIssues('essence', value)
+      if (issues.length) throw new TypeError(issues[0]!.message)
+    },
     parseAuthoring: essenceAuthoring,
     parsePublished: (record) => ({ ...validatePublishedEssence(record, record.contentKey) }),
   }),
@@ -157,6 +166,10 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
     catalogueProjection: 'combat',
     authoringBlocker: null,
     publicationBlocker: null,
+    validatePublication(value) {
+      const issues = combatCategoryIssues('resonance', value)
+      if (issues.length) throw new TypeError(issues[0]!.message)
+    },
     parseAuthoring: (value) => {
       object(value)
       return validated(validateResonanceAuthoringDefinition)(

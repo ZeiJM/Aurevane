@@ -29,7 +29,7 @@ function findStatusInput(node: ReactNode): ReactElement<{
     }
   }
   if (!isValidElement<{ 'aria-label'?: string; children?: ReactNode }>(node)) return null
-  if (node.props['aria-label'] === 'Status ID') return node as ReturnType<typeof findStatusInput>
+  if (node.props['aria-label'] === 'Status') return node as ReturnType<typeof findStatusInput>
   return findStatusInput(node.props.children)
 }
 it.each(['airborne', 'root', 'covert', 'invisible', 'frozen'])(

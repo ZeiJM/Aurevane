@@ -719,8 +719,9 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       )
       const amount = numberValue(event.amount)
       const hpAfter = numberValue(event.hpAfter)
-      const damageLabel = battleDamageLabel(event.element)
-      const element = damageLabel === 'damage' ? undefined : String(event.element)
+      const damageLabel = battleDamageLabel(event.element, event.damageKind)
+      const element =
+        battleDamageLabel(event.element) === 'damage' ? undefined : String(event.element)
       const label = actionId
         ? actionLabel(actionId)
         : periodic
@@ -738,7 +739,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       return createEntry(record, eventType, {
         message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} ${damageLabel}${cause}${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
         messageTemplate: `{target} took {amount} ${damageLabel}${cause}.`,
-        templateValues: { amount: String(amount ?? 'resolved'), ...(element ? { element } : {}) },
+        templateValues: {
+          amount: String(amount ?? 'resolved'),
+          ...(element ? { element } : {}),
+          ...(event.damageKind === 'piercing' ? { damageKind: 'piercing' } : {}),
+        },
         actorCombatantId,
         targetCombatantId,
         actionId,

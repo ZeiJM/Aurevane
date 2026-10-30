@@ -219,7 +219,6 @@ try {
       'Cooldown',
       'Requirements',
       'Effects',
-      'Range',
       'Target Method',
       'Target Elevation',
       'Line of Sight',

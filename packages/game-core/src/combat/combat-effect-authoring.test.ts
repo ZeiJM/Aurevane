@@ -165,3 +165,17 @@ it('preserves the existing automatic modifier restriction for Damage Up', () => 
     'Packet modifiers permit only required elemental companion statuses',
   )
 })
+
+it('uses Conditional Cleanse for retained Chilled-only payloads in current authoring without mutating history', () => {
+  const payload = {
+    type: 'remove-status' as const,
+    recipient: 'actor' as const,
+    statusIds: ['frozen'],
+  }
+  const before = structuredClone(payload)
+  expect(effectAuthoringTag(payload)).toMatchObject({
+    id: 'conditional-cleanse',
+    label: 'Conditional Cleanse',
+  })
+  expect(payload).toEqual(before)
+})

@@ -24,9 +24,11 @@
   box-sizing: border-box;
   width: var(--battle-info-width);
   left: clamp(8px, var(--battle-info-left, 8px), calc(100% - var(--battle-info-width) - 8px));
-  max-height: none;
+  max-height: calc(100dvh - 16px);
   padding: 9px;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   border: 1px solid #a88548;
   border-radius: 4px;
   color: #172d3c;
@@ -63,6 +65,7 @@
 }
 .panel dl {
   display: grid;
+  columns: auto !important;
   gap: 0;
   margin: 4px 0 6px;
 }
@@ -121,39 +124,6 @@
   margin: 4px 0;
   padding-left: 17px;
 }
-.panel[data-battle-info-layout='wide'] {
-  --battle-info-width: min(760px, calc(100% - 16px));
-}
-.panel[data-battle-info-layout='wide'] dl,
-.panel[data-battle-info-layout='wide'] :global([data-resonance-parameters]) dl {
-  display: block !important;
-  columns: 2 !important;
-  column-gap: 20px;
-}
-.panel[data-battle-info-layout='wide'] dl > div {
-  break-inside: avoid;
-}
-.panel[data-battle-info-page='true'] {
-  position: absolute;
-}
-
-/* A complete oversized child stays in its modal's existing scroll flow. */
-.panel[data-battle-info-page='true'][data-battle-info-modal-owned='true'] {
-  position: relative;
-  grid-column: 1 / -1;
-  width: 100%;
-  left: auto;
-  top: auto !important;
-}
-
-/* Exceptional complete reports remain readable without an inner scrollbar. */
-:global(html:has([data-battle-info-page='true'])),
-:global(body:has([data-battle-info-page='true'])) {
-  height: auto !important;
-  overflow-y: auto !important;
-  overscroll-behavior-y: auto !important;
-}
-
 .panel [data-combat-tag-reference],
 .panel [data-effect-tag-label],
 .panel [data-compact-effect-label] {

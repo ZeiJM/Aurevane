@@ -113,6 +113,7 @@ describe('Battle Log V2 presentation', () => {
       { amount: '5', element: 'fire' },
       { amount: '6', element: 'water' },
       { amount: '7' },
+      { amount: '8', damageKind: 'piercing' },
     ]
     const damages = hitValues.map((templateValues, index) =>
       entry({
@@ -126,7 +127,7 @@ describe('Battle Log V2 presentation', () => {
     const action = buildBattleLogPresentation([entry(), ...damages], { combatantNames: names })[0]
       .actions[0]
     const visible = sentence(action.primary) + sentence(action.secondary ?? [])
-    for (const wording of ['5 fire damage', '6 water damage', '7 damage'])
+    for (const wording of ['5 fire damage', '6 water damage', '7 damage', '8 piercing damage'])
       expect(visible).toContain(wording)
   })
   it('reports a command critical separately from its critical-ineligible Vengeance hit', () => {

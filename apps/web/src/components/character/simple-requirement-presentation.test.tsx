@@ -116,7 +116,7 @@ it.each(candidate.records)(
       })
       expect(requirement).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
       const html = renderToStaticMarkup(<AbilityParameters report={result} />)
-      expect(html.match(/<dt>/g)).toHaveLength(9)
+      expect(html.match(/<dt>/g)).toHaveLength(8)
       if (requirement !== 'None') expect(html).toContain('data-combat-tag-reference=')
       if (result.automaticActivation)
         expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Automatic:')

@@ -4,7 +4,7 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { SkillDetails } from './skill-details'
 import { MINIMUM_SKILL_INFORMATION_FIELDS } from './skill-information-contract'
 
-it('shows the minimum report in order once, preserving Range and PvP overrides', () => {
+it('shows the minimum report in order once, combining range with Target Method and preserving PvP overrides', () => {
   const base = resolveMatureSkillVersion('farstrider.volley')!
   const skill = {
     ...base,
@@ -21,9 +21,9 @@ it('shows the minimum report in order once, preserving Range and PvP overrides',
     previous = index
   }
   expect(markup).not.toContain('Legal range')
-  expect(markup).toContain('<dt>Range</dt><dd>1</dd>')
+  expect(markup).not.toContain('<dt>Range</dt>')
   expect(markup).toContain(
-    '<dt>Target Method</dt><dd title="Circle [1] covers 8 surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.">Circle [1]</dd>',
+    '<dt>Target Method</dt><dd title="Circle radius 1 covers 8 surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.">Circle [1]</dd>',
   )
   expect(markup).not.toContain('<p>Circle radius:')
   expect(markup).not.toContain('Affects:')
@@ -36,7 +36,7 @@ it('provides the caster-origin explanation within the Target Method row', () => 
   const current = resolveMatureSkillVersion('farstrider.volley')!
   const markup = renderToStaticMarkup(<SkillDetails skill={current} expanded />)
   expect(markup).toContain(
-    'title="Circle [1] covers 8 surrounding tiles from you, excluding your tile.',
+    'title="Circle radius 1 covers 8 surrounding tiles from you, excluding your tile.',
   )
 })
 

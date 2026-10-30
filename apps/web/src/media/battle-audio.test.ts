@@ -207,3 +207,39 @@ it('honors explicit silence and resolves a selected neutral group with bounded v
     ),
   ).toEqual([{ assetId: 'audio.skill-fx.v01.001-3', priority: 70 }])
 })
+
+it('carries a selected sound group through real immutable canonical capture and activation', async () => {
+  const { source } =
+    await import('../../../../packages/game-core/src/combat/combat-behavior.test-utils')
+  const { percentageDotEncounter } =
+    await import('../../../../packages/game-core/src/combat/combat-percentage-dots.test-utils')
+  const { captureCombatAbilitySource } =
+    await import('@aurevane/game-core/combat/combat-behavior-capture')
+  const { activateCombatAbility, reconcileCombatAbilitySources, combatAbilityCommandContext } =
+    await import('@aurevane/game-core/combat/combat-behavior-runtime')
+  const { preparePv1fTurnEconomy, PV1F_COMBAT_CONTENT } =
+    await import('@aurevane/game-core/combat/pv1f-action-economy')
+  for (const cue of ['skill.ironfist.breakfall.audio', null] as const) {
+    const original = { ...source(), abilityId: 'custom.sound-test', audioCueKey: cue }
+    const captured = captureCombatAbilitySource(original)
+    const restored = captureCombatAbilitySource(JSON.parse(JSON.stringify(captured)))
+    const state = reconcileCombatAbilitySources(preparePv1fTurnEconomy(percentageDotEncounter()), [
+      restored,
+    ])
+    const result = activateCombatAbility({
+      state,
+      actorId: 'actor',
+      source: restored,
+      selection: { kind: 'unit', combatantId: 'enemy' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(state, restored),
+    })
+    const event = result.events.find((event) => event.event === 'combat_action_used')!
+    expect(event).toMatchObject({ audioCueKey: cue })
+    expect(selectBattleAudioCues([record(event)], 8, now)).toEqual(
+      cue ? [{ assetId: 'audio.skill-fx.v01.082-3', priority: 70 }] : [],
+    )
+    original.audioCueKey = null
+    expect(captured.audioCueKey).toBe(cue)
+  }
+})

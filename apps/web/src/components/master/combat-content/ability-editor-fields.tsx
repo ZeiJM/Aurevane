@@ -9,11 +9,13 @@ export function AbilitySelect<T extends string>({
   value,
   options,
   disabledOptions = [],
+  disabled = false,
   optionLabels,
   onChange,
 }: {
   label: string
   displayLabel?: string
+  disabled?: boolean
   disabledOptions?: readonly T[]
   value: T
   options: readonly T[]
@@ -26,7 +28,10 @@ export function AbilitySelect<T extends string>({
       <select
         aria-label={label}
         value={value}
-        onChange={(event) => onChange(event.currentTarget.value as T)}
+        disabled={disabled}
+        onChange={(event) => {
+          if (!disabled) onChange(event.currentTarget.value as T)
+        }}
       >
         {!options.includes(value) ? <option value={value}>{value} (incompatible)</option> : null}
         {options.map((option) => (
@@ -42,6 +47,8 @@ export function AbilitySelect<T extends string>({
 export function AbilityNumber({
   label,
   value,
+  displayLabel = label,
+  placeholder,
   onChange,
   min = 0,
   max,
@@ -49,17 +56,19 @@ export function AbilityNumber({
   invalid,
 }: {
   label: string
-  value: number
+  value: number | undefined
+  displayLabel?: string
+  placeholder?: string
   onChange: (value: number) => void
   min?: number
   max?: number
   step?: number
   invalid?: boolean
 }) {
-  const [entry, setEntry] = useState<{ text: string; value: number } | null>(null)
+  const [entry, setEntry] = useState<{ text: string; value: number | undefined } | null>(null)
   return (
     <label className={styles.field}>
-      <span>{label}</span>
+      <span>{displayLabel}</span>
       <input
         aria-label={label}
         aria-invalid={invalid}
@@ -67,7 +76,8 @@ export function AbilityNumber({
         min={min}
         max={max}
         step={step}
-        value={entry?.value === value ? entry.text : value}
+        placeholder={placeholder}
+        value={entry && entry.value === value ? entry.text : (value ?? '')}
         onChange={(event) => {
           const text = event.currentTarget.value
           if (text === '') {

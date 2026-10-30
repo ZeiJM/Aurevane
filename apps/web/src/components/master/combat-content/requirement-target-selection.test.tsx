@@ -16,6 +16,7 @@ import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh() {} }) }))
+import { AbilityTargetingEditor } from './ability-targeting-editor'
 import { AbilitySelect } from './ability-editor-fields'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { defaultAbilityPayload } from './ability-effect-editor'
@@ -55,7 +56,7 @@ function controls(value: unknown): ReactElement<Record<string, unknown>>[] {
 }
 function editor(group: AbilityBehavior) {
   let draft: AbilityDefinition = { schemaVersion: 1, behaviors: [group] }
-  const tree = (section: 'details' | 'effects' = 'details') => (
+  const tree = (section: 'details' | 'effects' | 'range' = 'details') => (
     <AbilityDefinitionEditor
       value={draft}
       section={section}
@@ -67,6 +68,14 @@ function editor(group: AbilityBehavior) {
   return {
     draft: () => draft,
     tree,
+    singleTarget() {
+      const control = controls(tree('range')).find((node) => node.type === AbilityTargetingEditor)!
+      expect(control).toBeDefined()
+      ;(control.props.onChange as (value: unknown) => void)({
+        ...draft.behaviors[0]!.targeting,
+        shape: { kind: 'single' },
+      })
+    },
     change(label: string, value: string) {
       const control = controls(tree()).find(
         (node) => node.type === AbilitySelect && node.props.label === label,
@@ -79,7 +88,7 @@ function editor(group: AbilityBehavior) {
 const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
 
 it.each(['circle', 'line', 'tile'] as const)(
-  'offers an explicit first-tab unit Requirement aim from %s without altering saved effects',
+  'uses Range & Area to select Single before authoring a Target Requirement from %s',
   (shape) => {
     const group: AbilityBehavior = {
       ...base,
@@ -101,7 +110,10 @@ it.each(['circle', 'line', 'tile'] as const)(
               : { kind: 'single' },
       },
       effects: [
-        { id: 'self', payload: { type: 'healing', recipient: 'actor', target: 'self', amount: 1 } },
+        {
+          id: 'unit',
+          payload: { type: 'healing', recipient: 'affected-units', target: 'enemy', amount: 1 },
+        },
         {
           id: 'all',
           payload: { type: 'healing', recipient: 'affected-units', target: 'all', amount: 1 },
@@ -115,15 +127,13 @@ it.each(['circle', 'line', 'tile'] as const)(
     expect(e.draft()).toEqual(before)
     e.change('Requirement tag', 'wet')
     expect(e.draft().behaviors[0]!.targeting).toEqual(group.targeting)
-    e.change('Target Requirement aim', 'enemy')
+    e.singleTarget()
+    e.change('Requirement target', 'selected')
     const selected = e.draft().behaviors[0]!
-    expect(selected.targeting).toEqual({
-      ...group.targeting,
+    expect(selected.targeting).toMatchObject({
       kind: 'unit',
-      teamPolicy: 'enemy',
-      categories: ['enemy'],
-      maximumSelections: 1,
       shape: { kind: 'single' },
+      maximumRange: 2,
     })
     expect(selected.requirements).toEqual({
       kind: 'status-presence',
@@ -223,10 +233,10 @@ it('the explicitly authored Target gate rejects before costs and permits all eff
     costs: [{ resource: 'mp', amount: 1 }],
     targeting: {
       ...base.targeting!,
-      geometryVersion: 2,
+      geometryVersion: 3,
       minimumRange: 0,
       maximumRange: 2,
-      shape: { kind: 'circle', radius: 2 },
+      shape: { kind: 'single' },
     },
     requirements: {
       kind: 'resource-state',
@@ -240,7 +250,7 @@ it('the explicitly authored Target gate rejects before costs and permits all eff
       payload: { type: 'healing', recipient: 'actor', target: 'self', amount },
     })),
   })
-  e.change('Target Requirement aim', 'enemy')
+  e.change('Requirement target', 'selected')
   const saved = parseAbilityDefinition(JSON.parse(JSON.stringify(e.draft())))
   const root = captureCombatAbilitySource(
     source({ ...saved.behaviors[0]!, attackFamily: undefined }),
@@ -300,7 +310,7 @@ it.each(['skill', 'essence', 'resonance'] as const)(
             ...base.targeting!,
             minimumRange: 0,
             maximumRange: 2,
-            shape: { kind: 'circle', radius: 2 },
+            shape: { kind: 'single' },
           },
         },
       ],
@@ -327,10 +337,10 @@ it.each(['skill', 'essence', 'resonance'] as const)(
       />
     )
     const control = controls(tree()).find(
-      (node) => node.type === AbilitySelect && node.props.label === 'Target Requirement aim',
+      (node) => node.type === AbilitySelect && node.props.label === 'Requirement target',
     )!
     expect(control).toBeDefined()
-    ;(control.props.onChange as (value: string) => void)('enemy')
+    ;(control.props.onChange as (value: string) => void)('selected')
     definition = JSON.parse(JSON.stringify(definition)) as CombatContentDefinition
     const saved = (
       kind === 'essence'
@@ -351,3 +361,19 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(html).not.toContain('aria-label="Once per owner turn"')
   },
 )
+
+it('omits the duplicate Target Requirement aim control and keeps Range & Area available', () => {
+  const e = editor({
+    ...base,
+    requirementMode: 'simple',
+    requirements: { kind: 'status-presence', subject: 'owner', statusId: 'burn', present: true },
+  })
+  const html = renderToStaticMarkup(e.tree())
+  expect(html).not.toContain('Target Requirement aim')
+  expect(html).not.toContain('Choosing a unit changes this action')
+  expect(
+    renderToStaticMarkup(
+      <AbilityDefinitionEditor value={e.draft()} section="range" onChange={() => {}} />,
+    ),
+  ).toContain('Range &amp; Area')
+})

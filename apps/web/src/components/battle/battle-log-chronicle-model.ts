@@ -434,7 +434,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       if (cause)
         return {
           ...base,
-          text: `${target} took ${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element)} from ${cause}`,
+          text: `${target} took ${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element, value.damageKind)} from ${cause}`,
           tone: 'damage',
           statusId: cause === 'Burn backlash' ? 'burn' : 'poison',
         }
@@ -448,14 +448,14 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
               : `Flames scorch ${target}`
         return {
           ...base,
-          text: `${narration} · ${label} deals ${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element)}`,
+          text: `${narration} · ${label} deals ${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element, value.damageKind)}`,
           tone: 'damage',
           statusId: entry.periodicStatusId,
         }
       }
       return {
         ...base,
-        text: `${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element)}`,
+        text: `${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element, value.damageKind)}`,
         recipient: ` to ${target}`,
         tone: 'damage',
       }

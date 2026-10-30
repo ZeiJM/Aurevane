@@ -17,6 +17,7 @@ import {
 } from './content-definition-fields'
 import {
   contentRecordCommand,
+  contentCommitNotice,
   contentRecordName,
   editableDefinition,
   recordIsDirty,
@@ -291,15 +292,23 @@ export function CombatContentAuthoringWorkspace({
       listRef.current?.scrollTo({ top: 0 })
     })
   }
-  async function commitSaved(source: CompleteCombatContentRecord, body: CombatContentDefinition) {
+  async function commitSaved(
+    source: CompleteCombatContentRecord,
+    body: CombatContentDefinition,
+    corrections?: string[],
+  ) {
     const finishCommit = holdContentCommit(committingKeys.current, source.contentKey)
     try {
-      const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
+      const result = await contentRecordCommand<{
+        record: CompleteCombatContentRecord
+        corrections?: string[]
+      }>({
         action: 'commit',
         contentKey: source.contentKey,
         expectedRevision: source.revision,
         definition: body,
       })
+      corrections?.push(...(result.corrections ?? []))
       const latest = pendingRef.current[source.contentKey]
       if (
         !latest ||
@@ -336,6 +345,7 @@ export function CombatContentAuthoringWorkspace({
               })
             ).record,
         )
+      const corrections: string[] = []
       let saved: CompleteCombatContentRecord
       if (newDefinition) {
         const submitted = structuredClone(newDefinition)
@@ -348,9 +358,12 @@ export function CombatContentAuthoringWorkspace({
         )
         createAttempt.current = attempt
         flushRecovery()
-        let result: { record: CompleteCombatContentRecord }
+        let result: { record: CompleteCombatContentRecord; corrections?: string[] }
         try {
-          result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
+          result = await contentRecordCommand<{
+            record: CompleteCombatContentRecord
+            corrections?: string[]
+          }>({
             action: 'create',
             requestId: attempt.requestId,
             contentKind: attempt.contentKind,
@@ -372,6 +385,7 @@ export function CombatContentAuthoringWorkspace({
           throw cause
         }
         // Adopt the assigned identity before committing, so a failed second request cannot duplicate it.
+        corrections.push(...(result.corrections ?? []))
         saved = result.record
         const newer = latestNewDefinition.current
         if (newer) {
@@ -381,16 +395,20 @@ export function CombatContentAuthoringWorkspace({
         }
         accept(saved)
         const intent = adoptCreatedContentIdentity(submitted, saved.contentKey, saved.contentKind)
-        if (saved.draft || recordIsDirty(saved, intent)) saved = await commitSaved(saved, intent)
+        if (saved.draft || recordIsDirty(saved, intent))
+          saved = await commitSaved(saved, intent, corrections)
       } else {
         if (!record) return
-        saved = await commitSaved(record, activeDefinition)
+        saved = await commitSaved(record, activeDefinition, corrections)
       }
       accept(saved)
       setNotice(
-        pendingRef.current[saved.contentKey]
-          ? 'Saved; newer local edits remain uncommitted.'
-          : 'Changes committed and available to the game.',
+        contentCommitNotice(
+          pendingRef.current[saved.contentKey]
+            ? 'Saved; newer local edits remain uncommitted.'
+            : 'Changes committed and available to the game.',
+          corrections,
+        ),
       )
       try {
         setPage(await list(categoryOf(saved)))

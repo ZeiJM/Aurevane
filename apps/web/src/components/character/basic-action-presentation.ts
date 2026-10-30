@@ -119,8 +119,7 @@ export function basicActionCharacteristicRows(
       Cooldown: 'None',
       Requirements: 'N/A',
       Effects: basicActionEffectsSummary(id, timingPolicy, stats),
-      Range: stats.move === undefined ? 'Character Move stat' : String(stats.move),
-      'Target Method': 'Path · Empty Tile',
+      'Target Method': `Path [${stats.move === undefined ? 'Character Move stat' : stats.move}] · Empty Tile`,
       'Target Elevation': stats.jump === undefined ? 'Character Jump stat' : String(stats.jump),
       'Line of Sight': 'Not required',
     })
@@ -199,7 +198,6 @@ export function commandCharacteristicRows(
       Effects: inspect
         ? 'Inspect visible character or tile information [Character / Ground]'
         : 'Choose final facing and end your turn [Self]',
-      Range: 'N/A',
       'Target Method': inspect ? 'Single' : 'Facing',
       'Target Elevation': 'N/A',
       'Line of Sight': 'N/A',
@@ -211,7 +209,6 @@ export function commandCharacteristicRows(
     Cooldown: 'Unavailable',
     Requirements: 'Unavailable',
     Effects: 'Unavailable',
-    Range: 'Unavailable',
     'Target Method': 'Unavailable',
     'Target Elevation': 'Unavailable',
     'Line of Sight': 'Unavailable',

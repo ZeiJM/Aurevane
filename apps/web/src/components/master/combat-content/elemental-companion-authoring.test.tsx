@@ -6,6 +6,7 @@ import {
   type AbilityBehavior,
   type AbilityDefinition,
 } from '@aurevane/game-core/combat/combat-definition'
+import { AbilityNumber } from './ability-editor-fields'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { ContentDefinitionFields } from './content-definition-fields'
 import type { CombatContentDefinition } from '@aurevane/db/combat-content'
@@ -106,10 +107,14 @@ function editor(group = kamehameha()) {
     change(label: string, value: string, index = 0) {
       const control = controls(tree()).filter(
         (node) =>
-          (node.type === 'select' || node.type === 'input') && node.props['aria-label'] === label,
+          ((node.type === 'select' || node.type === 'input') &&
+            node.props['aria-label'] === label) ||
+          (node.type === AbilityNumber && node.props.label === label),
       )[index]
       expect(control, label).toBeDefined()
-      ;(control!.props.onChange as (event: unknown) => void)({ currentTarget: { value } })
+      if (control!.type === AbilityNumber)
+        (control!.props.onChange as (value: number) => void)(Number(value))
+      else (control!.props.onChange as (event: unknown) => void)({ currentTarget: { value } })
     },
   }
 }
@@ -130,7 +135,12 @@ it.each([
     expect(group.effects).toHaveLength(2)
     expect(group.effects[1]!.payload).toMatchObject(
       status === 'cleanse'
-        ? { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }
+        ? {
+            type: 'remove-status',
+            recipient: 'actor',
+            statusIds: ['frozen'],
+            removalMode: 'specified',
+          }
         : {
             type: 'apply-status',
             recipient: 'affected-units',
@@ -406,7 +416,7 @@ it('does not let a generated tag broaden the shared aim beyond mixed Ally/Enemy 
 it('preserves an intentionally changed generated status as an independent authored tag', () => {
   const e = editor()
   e.change('Element', 'ice')
-  e.change('Status ID', 'mark')
+  e.change('Status', 'mark')
   const effects = e.draft().behaviors[0]!.effects
   expect(effects).toHaveLength(3)
   expect(effects[1]!.payload).toMatchObject({ statusId: 'mark' })
@@ -415,3 +425,38 @@ it('preserves an intentionally changed generated status as an independent author
   expect(e.draft().behaviors[0]!.effects).toHaveLength(2)
   expect(e.draft().behaviors[0]!.effects[1]!.payload).toMatchObject({ statusId: 'mark' })
 })
+
+it('shows the Fire companion as Conditional Cleanse with only Chilled selected', () => {
+  const e = editor()
+  e.change('Element', 'fire')
+  const html = renderToStaticMarkup(e.tree())
+  expect(html).toContain('Conditional Cleanse')
+  expect(html).not.toContain('Cleanse Chilled')
+  expect(e.draft().behaviors[0]!.effects[1]!.payload).toMatchObject({
+    type: 'remove-status',
+    recipient: 'actor',
+    target: 'self',
+    removalMode: 'specified',
+    statusIds: ['frozen'],
+  })
+  expect(validateAbilityDefinition(e.draft())).toEqual([])
+})
+
+it.each(['ice', 'water', 'storm'] as const)(
+  'retains edited %s companion duration and potency through unrelated edits and reload',
+  (element) => {
+    const e = editor()
+    e.change('Element', element)
+    e.change('Effect duration (turns)', '3')
+    if (element !== 'ice') e.change('Status potency (percent)', '35.25')
+    e.change('Damage amount', '18')
+    const companion = e.draft().behaviors[0]!.effects[1]!.payload
+    expect(companion).toMatchObject({
+      durationTurns: 3,
+      ...(element === 'ice' ? {} : { potencyBasisPoints: 3525 }),
+    })
+    const saved = JSON.parse(JSON.stringify(e.draft())) as AbilityDefinition
+    expect(saved.behaviors[0]!.effects[1]!.payload).toEqual(companion)
+    expect(validateAbilityDefinition(saved)).toEqual([])
+  },
+)

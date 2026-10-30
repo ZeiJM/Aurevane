@@ -4,6 +4,7 @@ import type { CompleteCombatContentRecord } from '@aurevane/db/combat-content'
 import { ContentDefinitionFields, type ContentReference } from './content-definition-fields'
 import {
   contentRecordCommand,
+  contentCommitNotice,
   contentRecordName,
   editableDefinition,
   recordIsDirty,
@@ -89,7 +90,10 @@ export function ContentRecordModal({
     let finishCommit: (() => void) | undefined
     try {
       finishCommit = onCommitStart?.()
-      const result = await contentRecordCommand<{ record: CompleteCombatContentRecord }>({
+      const result = await contentRecordCommand<{
+        record: CompleteCombatContentRecord
+        corrections?: string[]
+      }>({
         action: 'commit',
         contentKey,
         expectedRevision: record.revision,
@@ -115,11 +119,14 @@ export function ContentRecordModal({
         )
       }
       setNotice(
-        changedWhileSaving
-          ? 'Saved; newer edits remain uncommitted.'
-          : relatedPending
-            ? 'Saved; discipline edits remain uncommitted.'
-            : 'Changes committed and available to the game.',
+        contentCommitNotice(
+          changedWhileSaving
+            ? 'Saved; newer edits remain uncommitted.'
+            : relatedPending
+              ? 'Saved; discipline edits remain uncommitted.'
+              : 'Changes committed and available to the game.',
+          result.corrections,
+        ),
       )
     } catch (cause) {
       setError(

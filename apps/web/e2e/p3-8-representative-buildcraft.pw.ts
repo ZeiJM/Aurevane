@@ -157,7 +157,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
           resonancePreview.evaluate((panel) => {
             const rect = panel.getBoundingClientRect()
             return (
-              panel.scrollHeight <= panel.clientHeight + 1 &&
+              panel.clientHeight <= innerHeight - 16 &&
               rect.top >= 7 &&
               rect.bottom <= innerHeight - 7 &&
               rect.left >= 7 &&
@@ -224,14 +224,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
     'Restores a captured 4% of your maximum HP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.',
   )
-  for (const field of [
-    'Cost',
-    'Cooldown',
-    'Range',
-    'Target Method',
-    'Target Elevation',
-    'Line of Sight',
-  ]) {
+  for (const field of ['Cost', 'Cooldown', 'Target Method', 'Target Elevation', 'Line of Sight']) {
     await expect(resonanceField(field)).toHaveText('N/A')
   }
   await expect(resonancePreview).not.toContainText('Payoff')
@@ -325,29 +318,38 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
         ),
       ),
     ).toBe(true)
-    // Retain the complete oversized-report fallback in a genuinely shorter viewport.
+    // Long reports keep one column and scroll inside the normal-width popup.
     await page.setViewportSize({ width: 844, height: 200 })
-    await expect(report).toHaveAttribute('data-battle-info-page', 'true')
-    await expect
-      .poll(() =>
-        page.evaluate(() =>
-          [document.documentElement, document.body].every(
-            (node) => getComputedStyle(node).overflowY === 'auto',
-          ),
+    await expect(report).toHaveAttribute('data-battle-info-page', 'false')
+    await expect(report).toHaveAttribute('data-battle-info-layout', 'compact')
+    const dimensions = await report.evaluate((panel) => ({
+      width: panel.getBoundingClientRect().width,
+      top: panel.getBoundingClientRect().top,
+      bottom: panel.getBoundingClientRect().bottom,
+      scrollable: panel.scrollHeight > panel.clientHeight,
+      columns: [...panel.querySelectorAll('dl')].map(
+        (table) => getComputedStyle(table).columnCount,
+      ),
+    }))
+    expect(dimensions.width).toBeLessThanOrEqual(320)
+    expect(dimensions.top).toBeGreaterThanOrEqual(8)
+    expect(dimensions.bottom).toBeLessThanOrEqual(193)
+    expect(dimensions.scrollable).toBe(true)
+    expect(dimensions.columns.every((value) => value === 'auto' || value === '1')).toBe(true)
+    expect(
+      await page.evaluate(() =>
+        [document.documentElement, document.body].every(
+          (node) => getComputedStyle(node).overflowY === 'hidden',
         ),
-      )
-      .toBe(true)
-    expect(await report.evaluate((panel) => panel.scrollHeight <= panel.clientHeight + 1)).toBe(
-      true,
-    )
-    await page.mouse.move(400, 80)
-    await page.mouse.wheel(0, 1000)
-    await expect
-      .poll(() =>
-        report.evaluate((panel) => panel.getBoundingClientRect().bottom <= innerHeight + 1),
-      )
-      .toBe(true)
-    await expect(report.getByRole('list', { name: 'Effect explanations' })).toBeInViewport()
+      ),
+    ).toBe(true)
+    await report.evaluate((panel) => {
+      panel.scrollTop = panel.scrollHeight
+    })
+    expect(await report.evaluate((panel) => panel.scrollTop)).toBeGreaterThan(0)
+    await expect(
+      report.getByRole('list', { name: 'Effect explanations' }).locator('li').last(),
+    ).toBeInViewport()
     await page.keyboard.press('Escape')
     await expect(report).toHaveCount(0)
     expect(
@@ -385,9 +387,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(
     barrierParameters
       .locator('dl > div')
-      .filter({ has: page.getByText('Range', { exact: true }) })
+      .filter({ has: page.getByText('Target Method', { exact: true }) })
       .locator('dd'),
-  ).toHaveText('3')
+  ).toHaveText('Single [3]')
   expect(
     await barrierParameters
       .locator('dl > div')

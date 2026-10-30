@@ -69,3 +69,8 @@ export function contentRecordName(definition: CombatContentDefinition): string {
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }
+
+export function contentCommitNotice(message: string, corrections: readonly string[] = []): string {
+  const changes = [...new Set(corrections)]
+  return changes.length ? `${message} Adjusted: ${changes.join(' ')}` : message
+}

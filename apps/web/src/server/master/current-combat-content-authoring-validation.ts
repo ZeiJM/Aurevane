@@ -1,3 +1,4 @@
+import { combatCategoryForAuthoring, combatCategoryIssues } from '@/lib/combat-category-authoring'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
 import {
   automaticDamageDefinitionIssues,
@@ -16,9 +17,13 @@ function current(
   definition: unknown,
   validate: (value: unknown) => CombatContentValidationResult,
 ): CombatContentValidationResult {
-  const projected = combatDamageForAuthoring(kind, definition)
+  const projected = combatCategoryForAuthoring(kind, combatDamageForAuthoring(kind, definition))
   const result = validate(projected)
-  const issues = [...result.issues, ...automaticDamageDefinitionIssues(kind, projected)]
+  const issues = [
+    ...result.issues,
+    ...automaticDamageDefinitionIssues(kind, projected),
+    ...combatCategoryIssues(kind, projected),
+  ]
   return { ...result, valid: result.valid && !issues.length, issues }
 }
 export const validateSkillDefinition = (definition: unknown) =>

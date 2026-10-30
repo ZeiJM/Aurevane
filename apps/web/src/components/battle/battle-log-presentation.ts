@@ -612,7 +612,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
         ),
     )
     const outcome = amount
-      ? `${amount} ${battleDamageLabel(damage.templateValues.element)}`
+      ? `${amount} ${battleDamageLabel(damage.templateValues.element, damage.templateValues.damageKind)}`
       : 'Damage dealt'
     const selfDamage =
       damage.actorCombatantId !== null &&
@@ -669,7 +669,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
         .sort((a, b) => a.eventIndex - b.eventIndex)
         .map(
           (entry) =>
-            `${entry.templateValues.amount ?? 'Resolved'} ${battleDamageLabel(entry.templateValues.element)} to ${combatantName(entry.targetCombatantId, options) ?? 'the target'}`,
+            `${entry.templateValues.amount ?? 'Resolved'} ${battleDamageLabel(entry.templateValues.element, entry.templateValues.damageKind)} to ${combatantName(entry.targetCombatantId, options) ?? 'the target'}`,
         ),
     ]
     if (extraOutcomes.length > 0) {

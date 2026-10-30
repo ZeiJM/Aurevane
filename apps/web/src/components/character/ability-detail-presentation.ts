@@ -43,7 +43,6 @@ import {
   skillEffectDescription,
   skillTargetMethodDescription,
   skillTargetElevationDescription,
-  skillCompactRangeDescription,
   skillLineOfSightDescription,
   type CompactSkillEffectSummaryParts,
 } from './skill-detail-presentation'
@@ -617,17 +616,8 @@ export function abilityBehaviorInformation(
         : 'None',
       Requirements: requirementsSummary,
       Effects: summary,
-      Range: nativeMove
-        ? options.stats?.move === undefined
-          ? 'Character Move stat'
-          : String(
-              Math.min(options.stats.move, move?.type === 'move' ? move.maximumTiles : Infinity),
-            )
-        : target
-          ? skillCompactRangeDescription({ target })
-          : 'N/A',
       'Target Method': nativeMove
-        ? 'Path · Empty Tile'
+        ? `Path [${options.stats?.move === undefined ? 'Character Move stat' : Math.min(options.stats.move, move?.type === 'move' ? move.maximumTiles : Infinity)}] · Empty Tile`
         : target
           ? skillTargetMethodDescription({ target }) +
             aimNote +

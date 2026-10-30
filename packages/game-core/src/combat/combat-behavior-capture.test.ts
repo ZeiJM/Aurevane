@@ -330,3 +330,16 @@ it('actual restored captured command emits its exact finalized sound without mut
   Object.assign(original.media.audio, { id: '00000000-0000-4000-8000-000000000013' })
   expect(captured.media?.audio?.id).toBe('00000000-0000-4000-8000-000000000012')
 })
+
+it('rejects malformed captured cue keys and preserves absence versus explicit silence', () => {
+  expect(captureCombatAbilitySource(source())).not.toHaveProperty('audioCueKey')
+  expect(captureCombatAbilitySource({ ...source(), audioCueKey: null })).toHaveProperty(
+    'audioCueKey',
+    null,
+  )
+  for (const audioCueKey of ['', ' bad ', 7, {}, 'a'.repeat(257)]) {
+    expect(() => captureCombatAbilitySource({ ...source(), audioCueKey } as never)).toThrow(
+      'invalid-captured-audio-cue',
+    )
+  }
+})

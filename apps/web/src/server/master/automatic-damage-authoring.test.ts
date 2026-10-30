@@ -30,6 +30,17 @@ function fixture(kind: 'skill' | 'essence' | 'resonance', family: 'physical' | '
     behaviors: [
       {
         ...base,
+        ...(kind === 'resonance'
+          ? {
+              activation: 'automatic' as const,
+              requirements: {
+                kind: 'event' as const,
+                eventType: 'combat_action_used' as const,
+                phase: 'after' as const,
+              },
+              automaticTarget: { subject: 'selected' as const },
+            }
+          : {}),
         attackFamily: family,
         costs: [{ resource: 'ap', amount: 50 }],
         effects: [

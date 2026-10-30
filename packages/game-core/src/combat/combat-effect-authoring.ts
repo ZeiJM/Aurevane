@@ -1,14 +1,19 @@
-export {
-  AUTHORABLE_EFFECT_TAGS,
-  combatEffectIdentity as effectAuthoringTag,
-  type AuthorableEffectTag,
-} from './combat-effect-identities'
-import { AUTHORABLE_EFFECT_TAGS } from './combat-effect-identities'
+export { AUTHORABLE_EFFECT_TAGS, type AuthorableEffectTag } from './combat-effect-identities'
+import { AUTHORABLE_EFFECT_TAGS, combatEffectIdentity } from './combat-effect-identities'
+import type { CombatEffectDefinition } from './actions'
 import type { AbilityActivation, AbilityMode } from './combat-definition'
 import { validateCombatTagPayload, type CombatTagPayload } from './combat-tag-registry'
 import { isBlindsideStatusId } from './combat-blindside'
 import { CLEANSE_STATUS_IDS } from './combat-cleanse'
 import type { SummonProfileDefinition } from './summon-content'
+
+/** Current authoring consolidates retained Chilled-only removal without changing captured identities. */
+export function effectAuthoringTag(payload: CombatTagPayload | CombatEffectDefinition) {
+  const tag = combatEffectIdentity(payload)
+  return tag.id === 'cleanse-chilled'
+    ? AUTHORABLE_EFFECT_TAGS.find((entry) => entry.id === 'conditional-cleanse')!
+    : tag
+}
 
 export const DEFAULT_DISPEL_STATUS_IDS = [
   'guarded',

@@ -111,13 +111,13 @@ it('retains a selected aim needed by a requirement even when every effect is glo
   ).toBe(aim)
 })
 
-it('keeps Cleanse Chilled caster-only rather than silently widening its tag', () => {
+it('keeps retained Chilled-only cleansing caster-only', () => {
   expect(() =>
     withAuthoredEffectTarget(
       { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
       'ally',
     ),
-  ).toThrow(/Cleanse Chilled.*Self/)
+  ).toThrow(/Chilled-only.*Self/)
 })
 
 it('binds ordinary inherited unit packets to an explicitly authored area without altering targets or payloads', () => {

@@ -239,3 +239,17 @@ describe('P4.K4 Pierce damage', () => {
     expect(combatActionPresentationTags(damageAction(true))).toContain('Pierce')
   })
 })
+
+it('records piercing damage explicitly without labelling ordinary packets as Pierce', () => {
+  for (const piercing of [false, true]) {
+    const result = executeCombatAction(
+      encounter({}),
+      damageAction(piercing),
+      { kind: 'unit', combatantId: 'recruit' },
+      CONTENT,
+    )
+    const hit = result.events.find((event) => event.event === 'damage_applied')!
+    if (piercing) expect(hit).toMatchObject({ damageKind: 'piercing' })
+    else expect(hit).not.toHaveProperty('damageKind')
+  }
+})

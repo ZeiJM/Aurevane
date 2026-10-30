@@ -179,3 +179,29 @@ describe('canonical Resonance capture admission', () => {
     expect(capturedResonanceAbilitySource(state, 'actor', legacy, legacy.disciplinePair)).toBeNull()
   })
 })
+
+it('captures selected Skill and Resonance sound groups and retains them after catalogue edits', () => {
+  const state = preparePv1fTurnEconomy(percentageDotEncounter())
+  const legacy = P35_REPRESENTATIVE_RESONANCES[0]!
+  const definition = {
+    ...legacy,
+    ability: source().definition,
+    media: { ...legacy.media, audioCueKey: 'audio.skill-fx.v01.001' },
+  }
+  const captured = capturedResonanceAbilitySource(
+    state,
+    'actor',
+    definition,
+    legacy.disciplinePair,
+  )!
+  expect(captured.audioCueKey).toBe('audio.skill-fx.v01.001')
+  const restored = JSON.parse(JSON.stringify(reconcileCombatAbilitySources(state, [captured])))
+  expect(
+    capturedResonanceAbilitySource(
+      restored,
+      'actor',
+      { ...definition, media: { ...definition.media, audioCueKey: null } },
+      legacy.disciplinePair,
+    )!.audioCueKey,
+  ).toBe(captured.audioCueKey)
+})

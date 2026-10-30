@@ -12,7 +12,6 @@ const fields = [
   'Cooldown',
   'Requirements',
   'Effects',
-  'Range',
   'Target Method',
   'Target Elevation',
   'Line of Sight',
@@ -50,7 +49,6 @@ describe('passive Resonance Skill information', () => {
       'Skill Type': 'Utility',
       Cost: 'N/A',
       Cooldown: 'N/A',
-      Range: 'N/A',
       'Target Method': 'N/A',
       'Target Elevation': 'N/A',
       'Line of Sight': 'N/A',
@@ -91,7 +89,7 @@ describe('passive Resonance Skill information', () => {
       'Farstrider Skills tagged Attack + Ranged: Heal [3] [Instant] [Self]',
       'Farstrider Skills tagged Attack + Ranged: Dmg [2] [Trigger Skill affected units]',
     ])
-    expect(rows.Range).toBe('N/A')
+    expect(rows).not.toHaveProperty('Range')
     expect(JSON.stringify(rows.Requirements)).not.toContain('next Discipline Skill')
     expect(rows.Requirements).toBe('N/A')
     expect(Object.keys(Object.fromEntries(resonanceSupplementalRows(definition)))).toEqual([
