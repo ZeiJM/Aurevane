@@ -395,6 +395,8 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       })
       await target.selectOption('owner')
       await shape.selectOption('single')
+      // Reload resets the native disclosure; reopen it before editing effect controls.
+      await openEffectParameters(firstEffect)
       await recipient.selectOption('all')
       await save()
       const globalSaved = (await snapshot()).saved.behaviors[0]
