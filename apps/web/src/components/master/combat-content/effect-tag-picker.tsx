@@ -35,7 +35,7 @@ export function EffectTagPicker({
   const [requested, setRequested] = useState('damage')
   const choices = AUTHORABLE_EFFECT_TAGS.filter((tag) =>
     `${tag.label} ${tag.id}`.toLowerCase().includes(query.trim().toLowerCase()),
-  )
+  ).sort((a, b) => a.label.localeCompare(b.label, 'en'))
   const selected =
     choices.find((tag) => tag.id === requested) ??
     choices.find((tag) => !issue(tag.id)) ??
