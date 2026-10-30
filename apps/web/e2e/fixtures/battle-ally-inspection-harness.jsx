@@ -768,6 +768,7 @@ if (canonicalCase) {
   const controlledSelf =
     controlled && canonicalCase !== 'controlled-move' && canonicalCase !== 'modifier-controlled'
   const movement = canonicalCase.startsWith('move-') || canonicalCase === 'controlled-move'
+  const unitUtility = ['move-utility', 'move-healing'].includes(canonicalCase)
   const mixed = canonicalCase === 'move-mixed'
   const stationary = canonicalCase === 'move-stationary'
   const source = canonicalSourceFixture({
@@ -787,7 +788,7 @@ if (canonicalCase) {
             maximumSelections: 1,
             minimumRange: mixed ? 0 : 1,
             maximumRange: 1,
-            categories: mixed ? ['self', 'enemy'] : ['enemy', 'ground'],
+            categories: unitUtility ? ['enemy'] : mixed ? ['self', 'enemy'] : ['enemy', 'ground'],
             ...(mixed ? { kind: 'self', teamPolicy: 'self' } : {}),
           }
         : target,
@@ -800,7 +801,8 @@ if (canonicalCase) {
           ],
         }
       : {}),
-    accuracy: controlledSelf ? undefined : { kind: 'fixed', chanceBasisPoints: 10000 },
+    accuracy:
+      controlledSelf || unitUtility ? undefined : { kind: 'fixed', chanceBasisPoints: 10000 },
     effects: [
       ...(movement
         ? [
@@ -829,10 +831,24 @@ if (canonicalCase) {
         : {
             id: 'hit',
             ...(controlled ? { timing: 'controlled' } : {}),
-            payload: { type: 'damage', recipient: 'affected-units', amount: 10 },
+            payload: unitUtility
+              ? canonicalCase === 'move-healing'
+                ? { type: 'healing', recipient: 'affected-units', amount: 10 }
+                : {
+                    type: 'apply-status',
+                    recipient: 'affected-units',
+                    statusId: 'guarded',
+                    stacks: 1,
+                  }
+              : { type: 'damage', recipient: 'affected-units', amount: 10 },
           },
     ],
   })
+  if (unitUtility) {
+    source.definition.behaviors[0].classification =
+      canonicalCase === 'move-healing' ? 'recovery' : 'utility'
+    delete source.definition.behaviors[0].attackFamily
+  }
   source.ownerCombatantId = ids[0]
   source.abilityId = definition.id
   if (canonicalCase === 'choices' || canonicalCase === 'controlled-choices')
@@ -906,6 +922,7 @@ if (canonicalCase) {
   canonicalTargets = canonicalCapture.definition.behaviors.map((behavior) => ({
     actionId: source.abilityId,
     behaviorId: behavior.id,
+    ...(unitUtility ? { classification: behavior.classification, dealsDamage: false } : {}),
     target: behavior.targeting,
     ...(movement
       ? {

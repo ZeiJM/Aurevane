@@ -83,6 +83,8 @@ function fixture(
     delayed?: boolean
     stale?: boolean
     blocked?: boolean
+    withMove?: boolean
+    targetPreview?: 'utility' | 'healing' | 'damage' | 'circle' | 'ground'
   } = {},
 ) {
   const input = capturedBasicBattle(support)
@@ -97,6 +99,65 @@ function fixture(
         ),
       },
     },
+  }
+  if (options.targetPreview) {
+    const kind = options.targetPreview
+    const sources = state.capturedAbilitySources!.map((source) => {
+      if (source.abilityId !== support) return source
+      const definition = parseAbilityDefinition({
+        ...source.definition,
+        behaviors: source.definition.behaviors.map((behavior) => ({
+          ...behavior,
+          classification:
+            kind === 'healing' ? 'recovery' : kind === 'damage' ? 'attack' : 'utility',
+          ...(kind === 'damage' ? { attackFamily: 'physical' } : {}),
+          targeting: {
+            ...behavior.targeting,
+            geometryVersion: 3,
+            kind: kind === 'ground' ? 'ground-tile' : 'unit',
+            categories: [kind === 'ground' ? 'ground' : 'enemy'],
+            teamPolicy: kind === 'ground' ? 'any' : 'enemy',
+            minimumRange: 0,
+            maximumRange: 3,
+            shape: kind === 'circle' ? { kind: 'circle', radius: 3 } : { kind: 'single' },
+            requiresLineOfSight: false,
+          },
+          effects: [
+            ...(options.withMove
+              ? [
+                  {
+                    id: 'move',
+                    timing: 'instant',
+                    payload: { type: 'move', recipient: 'actor', maximumTiles: 3 },
+                  },
+                ]
+              : []),
+            {
+              id: 'targeted',
+              payload:
+                kind === 'damage'
+                  ? { type: 'damage', recipient: 'affected-units', amount: 5 }
+                  : kind === 'healing'
+                    ? { type: 'healing', recipient: 'affected-units', amount: 5 }
+                    : {
+                        type: 'apply-status',
+                        recipient: 'affected-units',
+                        statusId: 'guarded',
+                        stacks: 1,
+                      },
+            },
+          ],
+        })),
+      })
+      return { ...source, definition, basic: { ...source.basic!, ability: definition } }
+    })
+    state = {
+      ...reconcileCombatAbilitySources(
+        { ...state, capturedAbilitySources: undefined, abilityRuntime: undefined },
+        sources,
+      ),
+      statBridge: state.statBridge,
+    }
   }
   // Build a separate initial Controlled encounter; captured definitions cannot be edited in place.
   if (options.controlledAttack) {
@@ -400,6 +461,111 @@ for (const mode of ['pve', 'pvp'] as const) {
         (node) => node.type === BattleSkillCommand && node.props.slot === 'attack',
       )!.props.controlledReady,
     ).toBe(false)
+    expect(input.commit).not.toHaveBeenCalled()
+  })
+}
+
+for (const mode of ['pve', 'pvp'] as const) {
+  it.each(['utility', 'healing'] as const)(
+    mode + ' highlights only selectable single-unit %s tiles',
+    (kind) => {
+      const input = fixture(kind === 'healing' ? 'basic.recover' : 'basic.guard', mode, {
+        targetPreview: kind,
+      })
+      input.begin('guard')
+      const tree = input.render()
+      const enemy = input.state.tactical.placements.find((row) => row.combatantId === 'enemy')!
+      const tileAt = (x: number, y: number) =>
+        find(
+          tree,
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith(`Tile ${x + 1}, ${y + 1};`),
+        )!
+      const enemyTile = tileAt(enemy.position.x, enemy.position.y)
+      expect(enemyTile).not.toBeNull()
+      expect(
+        enemyTile.props[kind === 'healing' ? 'data-heal-target' : 'data-buff-path'],
+        String(enemyTile.props['aria-label']),
+      ).toBe(true)
+      const emptyTile = find(
+        tree,
+        (node) =>
+          node.type === 'button' &&
+          String(node.props['aria-label']).startsWith('Tile ') &&
+          !String(node.props['aria-label']).includes('occupied by') &&
+          (node.props['data-buff-path'] === true || node.props['data-heal-target'] === true),
+      )
+      expect(emptyTile).toBeNull()
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+}
+
+for (const mode of ['pve', 'pvp'] as const) {
+  it.each(['damage', 'circle', 'ground'] as const)(
+    mode + ' retains empty-tile %s footprints',
+    (kind) => {
+      const input = fixture('basic.guard', mode, {
+        targetPreview: kind,
+      })
+      input.begin('guard')
+      const tree = input.render()
+      const attr =
+        kind === 'damage'
+          ? 'data-attack-path'
+          : kind === 'ground'
+            ? 'data-ground-path'
+            : 'data-buff-path'
+      expect(
+        find(
+          tree,
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith('Tile ') &&
+            !String(node.props['aria-label']).includes('occupied by') &&
+            node.props[attr] === true,
+        ),
+      ).not.toBeNull()
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+  it(mode + ' separates legal Move destinations from post-move unit-only aim', () => {
+    const input = fixture('basic.guard', mode, { targetPreview: 'utility', withMove: true })
+    input.begin('guard')
+    const tree = input.render()
+    const enemy = find(
+      tree,
+      (node) => node.type === 'button' && String(node.props['aria-label']).startsWith('Tile 3, 2;'),
+    )!
+    expect(enemy.props['data-reachable']).not.toBe(true)
+    const destination = find(
+      tree,
+      (node) =>
+        node.type === 'button' &&
+        node.props['data-reachable'] === true &&
+        String(node.props['aria-label']).startsWith('Tile 2, 1;'),
+    )!
+    expect(destination).not.toBeNull()
+    ;(destination.props.onClick as () => void)()
+    const aimed = input.render()
+    expect(
+      find(
+        aimed,
+        (node) =>
+          node.type === 'button' && String(node.props['aria-label']).startsWith('Tile 3, 2;'),
+      )!.props['data-buff-path'],
+    ).toBe(true)
+    expect(
+      find(
+        aimed,
+        (node) =>
+          node.type === 'button' &&
+          String(node.props['aria-label']).startsWith('Tile ') &&
+          !String(node.props['aria-label']).includes('occupied by') &&
+          node.props['data-buff-path'] === true,
+      ),
+    ).toBeNull()
     expect(input.commit).not.toHaveBeenCalled()
   })
 }

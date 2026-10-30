@@ -49,7 +49,7 @@ Execute inline; no competing workers. Existing dirty original checkout is protec
   Requirements, add/remove/reorder, save/reload and commit preservation regressions.
 - [ ] Apply disabled controls/options and concise help across shared editors.
 - [ ] Ground destination / method-only presentation across current and pinned readers.
-- [ ] Fix selectable single-unit utility/healing highlights with mounted regression.
+- [x] Implement selectable single-unit utility/healing highlights; native verification pending.
   Trace confirmed: battle-experience.tsx inFootprint feeds data-buff-path without
   skillTarget; actual target selector rejects empty unit targets. Movement destination
   stage must remain separate from post-move target stage.
@@ -62,3 +62,33 @@ Fresh main c6b91fabb76b9401d7fad8f0bba8ef776af485b1. One bounded CI read on
 41051848917 in progress. CI41051849002 succeeded on its justified retry; no further
 rerun requested. This is old-head evidence only after the next publication.
 The complete batch is not implemented and must not merge or deploy yet.
+
+
+## Highlight patch checkpoint
+
+Single-unit non-damaging highlights now require a candidate returned by the same
+selector used for target gestures, in addition to the existing reach/LoS footprint.
+Basic/Support actions also use that selector. Ground, area, damaging potential
+footprints and separate legal Move path selection remain unchanged. Healing single
+unit tint follows the selected recipient rather than assuming every heal is allied.
+
+Six component assertions fail on original source, then all 30 captured-feedback
+cases pass after the fix. Six adjacent suites pass 192 tests, including preview
+selection/range, corpse occupancy and Chronicle display/copy. Focused web lint,
+formatting, script syntax and web typecheck pass. No full final build claimed.
+New native Move+utility and Move+healing cases exercise real production controls in
+PvE/PvP at desktop/mobile sizes, rejecting empty target clicks while retaining route,
+then committing one unit-target command with original path/cost assertions. Existing
+damage scenarios retain their damage receipt checks. Native execution is pending:
+this host has no installed Playwright Chromium executable, so no mounted browser
+success is claimed. Browser Smoke already executes this script with AV_CANONICAL_MOVE=1.
+
+Bounded CI read for 098972a97e1c10048650bf6161aceade2a265a98: seven workflows passed,
+Browser smoke41064306468 pending, central CI41064306513 failed only at database
+startup. Job124091723697 again could not bind host port54322 before any database
+test. This is a recurring runner conflict, not a product test failure; no rerun was
+requested. Quality gates passed. Final candidate still requires all native/database
+gates; do not bypass or assume that the old-head failure has been resolved.
+
+Remaining source: compatibility projection/disabled choices and Ground/method-only
+reader presentation. No merge, deployment, migration or catalogue publication.
