@@ -369,7 +369,8 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       }
       // The first-tab Target choice must have an explicit, executable authoring path.
       const areaBeforeUnitAim = (await snapshot()).draft.behaviors[0]
-      await expect(target.locator('option[value="selected"]')).toBeDisabled()
+      // Playwright’s generic enabled state does not inspect native option.disabled.
+      await expect(target.locator('option[value="selected"]')).toHaveJSProperty('disabled', true)
       await group
         .getByRole('combobox', { name: 'Target Requirement aim', exact: true })
         .selectOption('enemy')
@@ -385,7 +386,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       assert.equal(unitAimSaved.targeting.shape.kind, 'single')
       assert.deepEqual(unitAimSaved.targeting.categories, ['enemy'])
       assert.deepEqual(unitAimSaved.effects, areaBeforeUnitAim.effects)
-      await expect(target.locator('option[value="selected"]')).toBeEnabled()
+      await expect(target.locator('option[value="selected"]')).toHaveJSProperty('disabled', false)
       await assertReaders('Drenched [Target]')
       evidence.push({
         viewport,
