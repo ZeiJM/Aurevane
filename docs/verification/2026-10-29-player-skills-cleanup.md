@@ -51,7 +51,7 @@ Only after verified app deployment, freshly read all seven Chilled targets with 
 
 ## Release status
 
-Implementation and local verification are complete. The full batch is ready for exact-head GitHub/native verification on `agent/player-skills-20261029`. Pause at the GitHub stage and check hourly as requested. No production write, merge, deployment or Chilled publication has been performed for this follow-up batch.
+**LIVE for Owner testing.** All 14 workflows passed at exact head `e721d465c125614a18f59a5a9663e4674a743f2a`. PR #991 is merged, the portrait migration is applied, the verified application is promoted and all seven Chilled conversions are exact-readback verified. See [the production receipt](2026-10-29-player-skills-production-release.md). Earlier development and successor notes below are historical.
 
 ## Native verification correction after PR #991
 
@@ -84,7 +84,6 @@ Downloaded Browser smoke diagnostic artifact `12935042159` was inspected. The ac
 Scoped verification selected before implementation: focused failing-first sticky-focus regression and adjacent section/portrait tests, web types/lint/format, production build, native discovery and unchanged mandatory hosted gates. Four focused files pass **14 tests**; the new focus regression failed before implementation. The first local build failed opening Turbopack persistence (`invalid digit found in string`); moving only generated `.next/cache` aside resolved it, and the unchanged-source clean-cache build exited 0 (two successful tasks, 43.427 seconds). Web TypeScript, scoped web ESLint with zero warnings, Prettier, diff checks and both production build tasks pass. Titles/Master discovery lists twelve project cases; no local native execution is claimed. Broad application/database/browser verification remains mandatory on the new exact successor; previous-head results cannot release it. The new successor will naturally run the unchanged Battle Session DB workflow again alongside all applicable gates; investigate startup recurrence rather than repeatedly retrying a product failure.
 
 Fresh main is still `9b1629b1de9f7300d1c05f77f7fc2af34604e95e`; remote parent is `e596bc6e8a0e5887f7ac436843dd24f3686be9e5`. Exactly four files change in this correction: shared AbilityEditorTabs, its interaction regression, Titles native locator and this receipt. No migration, authored definition, history, permission, workflow selection or deployment configuration changes. Keep every existing release/migration/publication/routing/PR #990 guard and hourly bounded-check cadence. No merge, production write or deployment occurred.
-
 
 ## Native focus-scroll ordering correction after 1bcf053
 
