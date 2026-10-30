@@ -212,3 +212,25 @@ build validate the unchanged app source; repeating a full build for this native-
 assertion repair is excluded. Every required exact-new-head hosted gate is mandatory.
 Fresh main remains c6b91fabb76b9401d7fad8f0bba8ef776af485b1. Keep draft; no merge
 or deployment until all checks pass.
+
+## Expanded Move matrix wrapper follow-through
+
+Bounded hosted inspection of head3f2639ac81bd25bfdcb5ed13fefc154aa9b22a93:
+12/13 workflows pass. Browser smoke41098725933/job124211286758 progressed through
+all custom editor/reader/Move checks, then the full native suite reported one failure:
+`battle-canonical-targeting.pw.ts` still expected 30 Move cases while the successful
+child process reported 38. The eight additions are utility/healing across two modes
+and two viewports. Both the stdout and results.json exact-count assertions now
+require38; no cases, errors assertions, authority guards or browser checks removed.
+Hosted output confirms38 child cases completed and378 full browser tests passed;
+the full gate remains failed until the corrected wrapper passes on the new head.
+No unchanged-source retry. Registry rate-limit warnings recovered during startup;
+there was no port conflict or database-test failure on this head.
+
+This patch changes only two test assertions and their explanation plus this ledger.
+App source is unchanged, retaining the prior full local gate/build evidence. Local
+verification selects focused test formatting/lint, web typecheck, Playwright test
+collection and diff checks; no full application rebuild is needed for a wrapper
+count change. Collection is not native execution, and Chromium remains unavailable
+locally. Every configured exact-new-head workflow/job must still pass. Main freshly
+remains c6b91fabb76b9401d7fad8f0bba8ef776af485b1; no merge/deployment yet.
