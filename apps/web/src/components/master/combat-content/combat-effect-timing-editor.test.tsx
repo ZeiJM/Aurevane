@@ -10,7 +10,26 @@ it('keeps timing and definition links while description editing lives only in Ta
   expect(html).not.toContain('<th scope="col">Description</th>')
   expect(html).not.toContain('uncommitted description')
   expect(html).toContain('Tag Library')
-  expect(html).toContain('Timed buffs use this timing')
+  expect(html).not.toContain('Timed buffs use this timing')
+})
+
+it('hides the unused Ground area timing row but shows it when a current definition needs it', () => {
+  const unused = renderToStaticMarkup(
+    <CombatEffectTimingEditor
+      initialPolicy={{ version: 1, modes: { 'ground-area': 'delayed' } }}
+    />,
+  )
+  expect(unused).not.toContain('id="timing-ground-area"')
+  const used = renderToStaticMarkup(
+    <CombatEffectTimingEditor
+      initialPolicy={{ version: 1, modes: { 'ground-area': 'delayed' } }}
+      usedBy={{ 'ground-area': [{ contentKey: 'skill.zone', name: 'Sanctuary' }] }}
+      effectUsedBy={{}}
+    />,
+  )
+  expect(used).toContain('id="timing-ground-area"')
+  expect(used).toMatch(/id="timing-ground-area"[^]*?<option value="delayed" selected="">Delayed/)
+  expect(used).toContain('Sanctuary')
 })
 it('normalizes the retained stock Blindside label without overriding custom wording', () => {
   for (const [name, expected] of [

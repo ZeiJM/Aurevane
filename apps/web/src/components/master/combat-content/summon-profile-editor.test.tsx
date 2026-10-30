@@ -41,7 +41,9 @@ describe('Master Panel summon profile editor', () => {
 
     expect(markup).toContain('aria-label="Summon ability 1 in-battle text"')
     expect(markup).toContain('aria-label="Summon ability 2 in-battle text"')
-    expect(markup).toContain('<span>Insert Reference</span>')
+    expect(markup).toContain('<span>Insert tag</span>')
+    expect(markup).toContain('About Writing tags')
+    expect(markup).not.toContain('References and writing preview')
     expect(markup).toContain('Thorn Rake')
     expect(markup).toContain('Verdant Mend')
     expect(markup).toContain('aria-label="Summon ability 1 AP cost"')

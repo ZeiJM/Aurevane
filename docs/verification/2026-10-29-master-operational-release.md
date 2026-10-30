@@ -1,6 +1,8 @@
 # Master operational batch — October 29, 2026
 
-Status: **LIVE for testing** at https://aurevane.vercel.app/master. Application promotion was verified at 13:14 UTC (09:14 Trinidad); both recovery publications completed at 13:14:47 UTC.
+Historical PR #988 receipt; superseded as current application authority by [the PR #991 release](2026-10-29-player-skills-production-release.md). This preserves the original verified release evidence.
+
+Original status: **LIVE for testing** at https://aurevane.vercel.app/master. Application promotion was verified at 13:14 UTC (09:14 Trinidad); both recovery publications completed at 13:14:47 UTC.
 
 ## Source and release authority
 

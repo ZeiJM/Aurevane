@@ -5,6 +5,7 @@ import {
   battleFlavorTemplateIssues,
   renderBattleFlavorTemplate,
   defaultSkillBattleText,
+  battleTextContextIssues,
 } from './battle-narration'
 
 describe('versioned battle flavor templates', () => {
@@ -87,5 +88,92 @@ describe('versioned battle flavor templates', () => {
       'The blade holds its old promise.',
     )
     expect(battleFlavorTemplateIssues('x'.repeat(161))).not.toEqual([])
+  })
+})
+
+describe('simple writing tags', () => {
+  it('renders actor aliases, target pronouns and explicit gender wording through the existing identities', () => {
+    const template =
+      '(name) uses (skill) on (target); (subject) steadies (possessive) hand, protects (object) and braces (reflexive). (gender:King|Queen|Sovereign) meets (target.subject).'
+    const context = {
+      actor: { name: 'Asha', pronounPresetId: 'she_her' as const, gender: 'feminine' as const },
+      target: { name: 'Bryn', pronounPresetId: 'he_him' as const },
+      ability: 'Quiet Edge',
+    }
+    expect(battleFlavorTemplateIssues(template, 300)).toEqual([])
+    expect(renderBattleFlavorTemplate(template, context, 300)).toBe(
+      'Asha uses Quiet Edge on Bryn; she steadies her hand, protects her and braces herself. Queen meets he.',
+    )
+    expect(
+      renderBattleFlavorTemplate(
+        '(name) uses (ability). (subject) braces (reflexive); (gender:his|her|their) blade waits.',
+        { ability: 'Quiet Edge' },
+      ),
+    ).toBe('Combatant uses Quiet Edge. they braces themself; their blade waits.')
+  })
+
+  it('retains context restrictions and never invents values or recorded outcomes for simple tags', () => {
+    const template = '(name) deals (outcome.damage) to (targets) with (value.0.power).'
+    expect(battleTextContextIssues(template, { field: 'activation' }).length).toBeGreaterThan(0)
+    expect(
+      battleTextContextIssues(template, {
+        field: 'result',
+        outcomes: ['damage'],
+        affectedTargets: true,
+        values: { '0.power': 12 },
+      }),
+    ).toEqual([])
+    expect(renderBattleFlavorTemplate(template, { ability: 'Arc' })).toBeNull()
+    expect(
+      renderBattleFlavorTemplate(template, {
+        ability: 'Arc',
+        outcomes: { damage: 37 },
+        affectedTargets: [{ name: 'Bryn' }],
+        values: { '0.power': 12 },
+      }),
+    ).toBe('Combatant deals 37 to Bryn with 12.')
+    expect(renderBattleFlavorTemplate('(trigger) answers.', { ability: 'Arc' })).toBeNull()
+  })
+
+  it('leaves ordinary parentheses and historical brace contents intact without recursively expanding inserted names', () => {
+    expect(
+      renderBattleFlavorTemplate('A pale arc (once per turn) crosses the field (optional).', {
+        ability: 'Arc',
+      }),
+    ).toBe('A pale arc (once per turn) crosses the field (optional).')
+    expect(
+      renderBattleFlavorTemplate('{actor} is {actor.gender:(king)|(queen)|(sovereign)}.', {
+        actor: { name: '(target)', gender: 'feminine' },
+        ability: 'Arc',
+      }),
+    ).toBe('(target) is (queen).')
+    expect(
+      renderBattleFlavorTemplate('(name) uses {ability} (with care).', {
+        actor: { name: '(target)' },
+        ability: 'Arc',
+      }),
+    ).toBe('(target) uses Arc (with care).')
+  })
+
+  it.each([
+    '(actor.private)',
+    '(target.gender:he|she)',
+    '(gender:he|she)',
+    '(outcome.secret)',
+    '(value.0.secret)',
+    '(name',
+    '(gender:he|she|they',
+    '(name)\nstrikes',
+    '<b>(name)</b>',
+  ])('rejects unsafe or malformed recognized tags: %s', (template) => {
+    expect(battleFlavorTemplateIssues(template).length).toBeGreaterThan(0)
+    expect(renderBattleFlavorTemplate(template, { ability: 'Arc' })).toBeNull()
+  })
+
+  it('enforces authored character limits before expanding aliases', () => {
+    expect(battleFlavorTemplateIssues('(name)', 6)).toEqual([])
+    expect(battleFlavorTemplateIssues('(name)', 5)).toContain(
+      'Narration must be 5 characters or fewer.',
+    )
   })
 })

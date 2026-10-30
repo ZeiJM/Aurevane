@@ -9,11 +9,12 @@ function controls(node: ReactNode): { type: unknown; props: Record<string, unkno
   if (!isValidElement<{ children?: ReactNode }>(node)) return []
   return [{ type: node.type, props: node.props }, ...controls(node.props.children)]
 }
-it('adds HP alongside MP, edits each amount, and removes only the selected resource', () => {
+it('edits optional costs directly, preserving payment order and untouched captured zero costs', () => {
   let costs: AbilityBehavior['costs'] = [
+    { resource: 'mp', amount: 0 },
     { resource: 'ap', amount: 10 },
-    { resource: 'mp', amount: 4 },
   ]
+  const before = structuredClone(costs)
   const render = () =>
     controls(
       AbilityCostEditor({
@@ -23,32 +24,29 @@ it('adds HP alongside MP, edits each amount, and removes only the selected resou
         },
       }),
     )
-  const add = render().find(
-    (control) =>
-      control.type === 'button' &&
-      control.props.children instanceof Array &&
-      control.props.children.join('') === 'Add HP cost',
-  )!
-  ;(add.props.onClick as () => void)()
+  const edit = (label: string, amount: number) => {
+    const control = render().find(
+      (entry) => entry.type === AbilityNumber && entry.props.label === label,
+    )!
+    ;(control.props.onChange as (amount: number) => void)(amount)
+  }
+  expect(render().filter((entry) => entry.type === AbilityNumber)).toHaveLength(3)
+  expect(render().some((entry) => entry.type === 'button')).toBe(false)
+  expect(costs).toEqual(before)
+  edit('HP cost', 6)
+  expect(costs).toEqual([...before, { resource: 'hp', amount: 6 }])
+  edit('AP cost', 20)
+  expect(costs[0]).toEqual(before[0])
+  edit('HP cost', 0)
   expect(costs).toEqual([
-    { resource: 'ap', amount: 10 },
+    { resource: 'mp', amount: 0 },
+    { resource: 'ap', amount: 20 },
+  ])
+  edit('MP cost', 4)
+  expect(costs).toEqual([
     { resource: 'mp', amount: 4 },
-    { resource: 'hp', amount: 1 },
+    { resource: 'ap', amount: 20 },
   ])
-  const hp = render().find(
-    (control) => control.type === AbilityNumber && control.props.label === 'HP cost',
-  )!
-  ;(hp.props.onChange as (amount: number) => void)(6)
-  expect(costs.at(-1)).toEqual({ resource: 'hp', amount: 6 })
-  const remove = render().find(
-    (control) =>
-      control.type === 'button' &&
-      Array.isArray(control.props.children) &&
-      control.props.children.join('') === 'Remove MP cost',
-  )!
-  ;(remove.props.onClick as () => void)()
-  expect(costs).toEqual([
-    { resource: 'ap', amount: 10 },
-    { resource: 'hp', amount: 6 },
-  ])
+  edit('MP cost', 0)
+  expect(costs).toEqual([{ resource: 'ap', amount: 20 }])
 })

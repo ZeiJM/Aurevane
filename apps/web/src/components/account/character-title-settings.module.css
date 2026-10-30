@@ -311,12 +311,23 @@
   border: 1px solid var(--av-border-strong);
   color: #30382e;
   background: #d3c5ac;
-  overflow: auto;
+  overflow: hidden;
+}
+.defaultPortrait[open] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.defaultPortrait > p {
+  flex: 0 0 auto;
+  margin: 0;
+  line-height: 1.4;
 }
 .defaultPortrait::backdrop {
   background: #02080dd1;
 }
 .portraitHeading {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -336,26 +347,95 @@
 }
 .portraitGallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr));
+  align-content: start;
+  align-items: start;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0.5rem;
   gap: 0.5rem;
-  max-height: 24rem;
+  max-height: 26rem;
   overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 .portraitGallery label {
   display: grid;
-  gap: 0.25rem;
-  padding: 0.3rem;
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  justify-items: start;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.35rem;
   border: 2px solid transparent;
+  border-radius: var(--av-radius-sm);
   cursor: pointer;
 }
 .portraitGallery label[data-selected='true'] {
   border-color: #743f31;
+  background: #efe4cf;
+}
+.portraitGallery label:has(input:focus-visible) {
+  outline: 2px solid #743f31;
+  outline-offset: -2px;
+}
+.portraitGallery input[type='radio'] {
+  appearance: auto;
+  align-self: start;
+  justify-self: start;
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  min-height: 1rem;
+  max-width: 1rem;
+  max-height: 1rem;
+  margin: 0;
+  padding: 0;
+  accent-color: #743f31;
 }
 .portraitGallery img {
+  display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 1;
   object-fit: cover;
 }
 .portraitGallery span {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.portraitFooter {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.portraitFooter p {
+  flex: 1 1 12rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.portraitFooter button {
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+@media (max-width: 480px) {
+  .defaultPortrait {
+    width: calc(100vw - 1rem);
+    max-height: calc(100dvh - 1rem);
+    padding: 0.65rem;
+  }
+  .portraitGallery {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 5.5rem), 1fr));
+    padding: 0.35rem;
+    gap: 0.35rem;
+  }
 }

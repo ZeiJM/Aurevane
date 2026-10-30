@@ -1083,13 +1083,23 @@ test('finalized media automatically centers actual image bytes, replaces the sam
       .png()
       .toBuffer()
     const file = { name: 'same-image.png', mimeType: 'image/png', buffer: png }
+    // Hold the HTTP boundary so the transient replacement preview is observable without sleeps.
+    let releaseUpload: (() => void) | undefined
+    await page.route('**/api/master/combat-content/media', async (route) => {
+      await new Promise<void>((resolve) => {
+        releaseUpload = resolve
+      })
+      await route.continue()
+    })
     async function finalize() {
       const pending = page.waitForResponse(
         (response) =>
           response.request().method() === 'POST' &&
           new URL(response.url()).pathname === '/api/master/combat-content/media',
       )
-      await panel.getByRole('button', { name: 'Upload file', exact: true }).click()
+      await expect.poll(() => typeof releaseUpload).toBe('function')
+      releaseUpload!()
+      releaseUpload = undefined
       const response = await pending
       expect(response.status()).toBe(200)
       return (await response.json()).media as {
@@ -1103,7 +1113,9 @@ test('finalized media automatically centers actual image bytes, replaces the sam
       }
     }
     await input.setInputFiles(file)
-    await expect(builtin).toBeVisible()
+    await expect(builtin).toHaveCount(0)
+    await expect(panel.getByRole('button', { name: 'Upload file', exact: true })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Commit Now', exact: true })).toBeDisabled()
     await expect(panel.getByLabel(/^Crop (x|y|size)$/)).toHaveCount(0)
     await expect(
       panel.getByText('Images are automatically centered and cropped to a square.'),
@@ -1143,7 +1155,7 @@ test('finalized media automatically centers actual image bytes, replaces the sam
     ).toEqual([0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255])
     // Identical filename/bytes must dispatch a new selection with the same automatic crop.
     await input.setInputFiles(file)
-    await expect(preview).toBeVisible()
+    await expect(preview).toHaveCount(0)
     await expect(panel.getByLabel('Actual crop preview')).toBeVisible()
     const second = await finalize()
     expect(second.id).not.toBe(first.id)
@@ -1194,6 +1206,16 @@ test('finalized media automatically centers actual image bytes, replaces the sam
       buffer: Buffer.from('invalid'),
     })
     await expect(panel.getByRole('alert')).toContainText('sound could not be played')
+    const rejectedUpload = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/master/combat-content/media',
+    )
+    await expect.poll(() => typeof releaseUpload).toBe('function')
+    releaseUpload!()
+    releaseUpload = undefined
+    expect((await rejectedUpload).status()).toBe(400)
+    await panel.getByRole('button', { name: 'Cancel selected file', exact: true }).click()
 
     // Discipline Artwork must route to the same image-only workflow, independent of Details.
     await selectContentRecord(page, 'aetherist', 'discipline')
@@ -1220,18 +1242,10 @@ test('finalized media automatically centers actual image bytes, replaces the sam
       const before = await readContentRecord(page)
       await artwork.getByLabel('Upload content media').setInputFiles(file)
       await expect(artwork.getByLabel(/^Crop (x|y|size)$/)).toHaveCount(0)
-      await expect(current).toBeVisible()
+      await expect(current).toHaveCount(0)
       await expect(artwork.getByLabel('Actual crop preview')).toBeVisible()
       expect(await readContentRecord(page)).toEqual(before)
-      const pending = page.waitForResponse(
-        (response) =>
-          response.request().method() === 'POST' &&
-          new URL(response.url()).pathname === '/api/master/combat-content/media',
-      )
-      await artwork.getByRole('button', { name: 'Upload file', exact: true }).click()
-      const finalized = await pending
-      expect(finalized.status()).toBe(200)
-      const image = (await finalized.json()).media as { id: string }
+      const image = await finalize()
       const custom = artwork.getByAltText('Finalized artwork crop')
       const expectedSource = new URL(`/api/master/combat-content/media/${image.id}`, page.url())
         .href

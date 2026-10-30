@@ -17,11 +17,13 @@ export function SimpleAbilityRequirementEditor({
   value,
   onChange,
   label = 'Requirements',
+  targetUnavailableReason,
   allowedSubjects = ['owner', 'selected'],
 }: {
   value: RequirementNode | null
   onChange: (value: RequirementNode | null) => void
   label?: string
+  targetUnavailableReason?: string
   allowedSubjects?: readonly AbilityRequirementSubject[]
 }) {
   const selected = readSimpleRequirement(value)
@@ -52,10 +54,15 @@ export function SimpleAbilityRequirementEditor({
             <AbilitySelect
               label="Requirement target"
               value={subject}
-              options={allowedSubjects}
+              options={
+                targetUnavailableReason && !allowedSubjects.includes('selected')
+                  ? [...allowedSubjects, 'selected']
+                  : allowedSubjects
+              }
+              disabledOptions={targetUnavailableReason ? ['selected'] : []}
               optionLabels={{
                 owner: 'Self',
-                selected: 'Target',
+                selected: targetUnavailableReason ? 'Target (requires a selected unit)' : 'Target',
                 affected: 'Target',
                 triggering: 'Target',
               }}
@@ -86,6 +93,9 @@ export function SimpleAbilityRequirementEditor({
           </>
         ) : null}
       </div>
+      {targetUnavailableReason ? (
+        <p className={styles.fieldHint}>{targetUnavailableReason}</p>
+      ) : null}
       {!selected ? (
         <p role="alert">Choose a requirement tag to replace this unsupported rule.</p>
       ) : null}

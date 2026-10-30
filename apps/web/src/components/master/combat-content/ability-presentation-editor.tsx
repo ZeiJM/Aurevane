@@ -7,6 +7,7 @@ import {
 } from '@aurevane/game-core/combat/battle-narration'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import styles from './combat-content-editor.module.css'
+import layout from './game-content-workspace.module.css'
 export function AbilityPresentationEditor({
   definition,
   name,
@@ -24,13 +25,17 @@ export function AbilityPresentationEditor({
     activation: 'Activation message',
     result: 'Recorded result message',
   }
+  const locations = {
+    public: 'Shown in the full ability details.',
+    compact: 'Shown in the compact battle details.',
+    activation: 'Shown in the battle log when this ability is used.',
+    result: 'Shown in the battle log after the result is known.',
+  }
   return (
-    <fieldset>
+    <fieldset className={layout.descriptionFields}>
       <legend>Contextual text</legend>
       <p className={styles.fieldHint}>
-        Optional wording uses the exact saved definition. Empty fields retain existing descriptions.
-        Result messages require a recorded result; they are never used as activation messages.
-        Samples are illustrative.
+        Optional text for each in-game location. Leave a field blank to keep its usual wording.
       </p>
       {Object.entries(labels).map(([key, label]) => {
         const field = key as BattleTextField
@@ -41,7 +46,7 @@ export function AbilityPresentationEditor({
           onChange(next)
         }
         return (
-          <div key={field}>
+          <div key={field} className={layout.writingField}>
             <label className={styles.field}>
               <span>{label}</span>
               <textarea
@@ -52,11 +57,13 @@ export function AbilityPresentationEditor({
               />
             </label>
             <BattleFlavorTemplateHelp
+              label={`${label} tags`}
               value={value?.[field] ?? ''}
               ability={name}
               context={abilityPresentationContext(definition, field)}
               onChange={change}
             />
+            <small>{locations[field]}</small>
           </div>
         )
       })}

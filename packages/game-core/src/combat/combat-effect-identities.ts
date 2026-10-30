@@ -71,7 +71,14 @@ export const REGISTERED_EFFECT_TAGS: readonly AuthorableEffectTag[] = Object.fre
 /** Retained payloads and captured wording remain readable; these are not new-authoring choices. */
 export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
   REGISTERED_EFFECT_TAGS.filter(
-    (tag) => !['healing', 'damage-bonus', 'status:blindside', 'status:revealed'].includes(tag.id),
+    (tag) =>
+      ![
+        'healing',
+        'damage-bonus',
+        'status:blindside',
+        'status:revealed',
+        'cleanse-chilled',
+      ].includes(tag.id),
   ),
 )
 export function currentCombatTagName(tagId: string, name: string): string {

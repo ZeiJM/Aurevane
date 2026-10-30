@@ -122,6 +122,13 @@ export function AbilityRequirementEditor({
         value={value}
         onChange={onChange}
         label={label}
+        targetUnavailableReason={
+          behavior &&
+          behavior.activation === 'manual' &&
+          !simpleRequirementSubjects(behavior).includes('selected')
+            ? 'A whole-ability Requirement can check Self here because this action selects an area or tile, not a unit. Choose Single unit targeting for a Target Requirement.'
+            : undefined
+        }
         allowedSubjects={behavior ? simpleRequirementSubjects(behavior) : allowedSubjects}
       />
     )

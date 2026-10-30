@@ -1,5 +1,7 @@
 'use client'
 
+import { MasterHelp } from '../master-help'
+import { AreaRecipientRepair } from './area-recipient-repair'
 import { AbilityCostEditor } from './ability-cost-editor'
 import type { AbilityEditorSection } from './ability-editor-tabs'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -11,10 +13,11 @@ import {
 } from '@aurevane/game-core/combat/combat-definition'
 import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
-import { effectSubjects } from './ability-effect-editor'
-import { AbilityEffectEditor, rebindSimpleEffectRequirement } from './ability-effect-editor'
+import { AbilityEffectEditor } from './ability-effect-editor'
+import { LegacyEffectRequirements } from './legacy-effect-requirements'
 import {
   deriveSharedEffectAim,
+  withAuthoredAreaRecipients,
   hasSelectedAimRequirement,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { inheritedEffectTargetLabel } from './effect-target-editor'
@@ -92,13 +95,18 @@ export function rebindSimpleRequirement(value: AbilityBehavior): AbilityBehavior
       }
     }
   }
-  return {
-    ...next,
-    effects: next.effects.map((effect) => rebindSimpleEffectRequirement(effect, next)),
-  }
+  return next
 }
 
 export function withSharedEffectAim(next: AbilityBehavior): AbilityBehavior {
+  if (
+    next.targeting?.shape.kind !== 'single' &&
+    hasSelectedAimRequirement([
+      next.requirements,
+      ...next.effects.map((effect) => effect.requirements),
+    ])
+  )
+    return next
   return rebindSimpleRequirement({
     ...next,
     targeting: next.targeting
@@ -125,13 +133,31 @@ function AbilityGroupEditor({
   value: AbilityBehavior
   onChange: (next: AbilityBehavior) => void
 }) {
-  const onChange = (next: AbilityBehavior) =>
+  const requiresSelectedUnit = hasSelectedAimRequirement([
+    value.requirements,
+    ...value.effects.map((effect) => effect.requirements),
+  ])
+  const onChange = (next: AbilityBehavior) => {
+    if (next.targeting && next.targeting !== value.targeting) {
+      const payloads = withAuthoredAreaRecipients(
+        next.targeting,
+        next.effects.map((effect) => effect.payload),
+        { requiresSelectedUnit },
+      )
+      next = {
+        ...next,
+        effects: next.effects.map((effect, index) =>
+          payloads[index] === effect.payload ? effect : { ...effect, payload: payloads[index]! },
+        ),
+      }
+    }
     update(
       (next.targeting?.maximumSelections ?? 1) > 1 ||
         (next.targeting === value.targeting && next.effects === value.effects)
         ? next
         : withSharedEffectAim(next),
     )
+  }
   const show = (key: AbilityEditorSection) => !section || section === key
   const automaticSubjects =
     value.requirementMode === 'simple'
@@ -141,11 +167,29 @@ function AbilityGroupEditor({
     value.targeting?.shape.kind === 'circle' || value.targeting?.shape.kind === 'all'
   return (
     <div className={styles.effectList}>
-      <div className={styles.typedGrid}>
+      {value.targeting ? (
+        <AreaRecipientRepair
+          target={value.targeting}
+          effects={value.effects.map((effect) => effect.payload)}
+          requiresSelectedUnit={requiresSelectedUnit}
+          onChange={(payloads) =>
+            onChange({
+              ...value,
+              effects: value.effects.map((effect, index) => ({
+                ...effect,
+                payload: payloads[index]!,
+              })),
+            })
+          }
+        />
+      ) : null}
+      <div className={`${styles.typedGrid} ${show('economy') ? styles.economyGrid : ''}`}>
         {show('details') && (
           <>
             <AbilitySelect
               label="Group activation"
+              displayLabel="Activation"
+              optionLabels={{ manual: 'Manual', automatic: 'Automatic', ongoing: 'Ongoing' }}
               value={value.activation}
               options={['manual', 'automatic', 'ongoing']}
               onChange={(activation) => {
@@ -171,6 +215,8 @@ function AbilityGroupEditor({
             />
             <AbilitySelect
               label="Group mode"
+              displayLabel="Ability type"
+              optionLabels={{ action: 'Action', modifier: 'Passive modifier' }}
               value={value.mode}
               options={value.activation === 'ongoing' ? ['modifier'] : ['action', 'modifier']}
               onChange={(mode) => {
@@ -191,6 +237,8 @@ function AbilityGroupEditor({
             />
             <AbilitySelect
               label="Group classification"
+              displayLabel="Purpose"
+              optionLabels={{ attack: 'Attack', recovery: 'Recovery', utility: 'Utility' }}
               value={value.classification}
               options={['attack', 'recovery', 'utility']}
               onChange={(classification) => {
@@ -203,6 +251,8 @@ function AbilityGroupEditor({
             {value.classification === 'attack' ? (
               <AbilitySelect
                 label="Attack family"
+                displayLabel="Damage type"
+                optionLabels={{ physical: 'Physical', mystic: 'Mystic' }}
                 value={value.attackFamily ?? 'physical'}
                 options={['physical', 'mystic']}
                 onChange={(attackFamily) => onChange({ ...value, attackFamily })}
@@ -332,8 +382,16 @@ function AbilityGroupEditor({
       ) : null}
       {show('details') && (
         <>
-          <fieldset className={styles.typedGroup}>
-            <legend>Usage limits</legend>
+          <fieldset className={`${styles.typedGroup} ${styles.usageLimits}`}>
+            <legend>
+              Usage limits{' '}
+              <MasterHelp label="Usage limits">
+                Once per action resets for each command. Once per owner turn resets for the owner’s
+                next turn cycle. Once per round resets when the global round advances. Automatic
+                reactions can occur during another unit’s turn, so the last two limits can reset at
+                different times.
+              </MasterHelp>
+            </legend>
             <div className={styles.typedGrid}>
               {limits.map((limit, index) => (
                 <label className={styles.checkField} key={limit}>
@@ -360,6 +418,27 @@ function AbilityGroupEditor({
             value={value.requirements}
             onChange={(requirements) => onChange({ ...value, requirements })}
           />
+          <p className={styles.fieldHint}>
+            Requirements gate this behavior group’s complete activation and every effect. Other
+            behavior groups keep their own activation and Requirements.
+          </p>
+          <LegacyEffectRequirements value={value} onChange={onChange} />
+          {value.activation === 'manual' &&
+          value.mode === 'action' &&
+          value.targeting?.kind === 'unit' &&
+          value.targeting.shape.kind !== 'single' ? (
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...value,
+                  targeting: { ...value.targeting!, shape: { kind: 'single' } },
+                })
+              }
+            >
+              Use Single targeting
+            </button>
+          ) : null}
           {value.requirementMode !== 'simple' ? (
             <button
               type="button"
@@ -374,7 +453,8 @@ function AbilityGroupEditor({
         <AbilityTargetingEditor
           value={value.targeting}
           effects={value.effects}
-          onChange={(targeting) => onChange(rebindSimpleRequirement({ ...value, targeting }))}
+          requiresSelectedUnit={requiresSelectedUnit}
+          onChange={(targeting) => onChange({ ...value, targeting })}
         />
       ) : null}
       {show('effects') && (
@@ -396,7 +476,7 @@ function AbilityGroupEditor({
                         {' '}
                         [{inheritedEffectTargetLabel(effect.payload, value.targeting ?? undefined)}]
                       </span>
-                      {effect.requirements ? <small> · Conditional</small> : null}
+                      {effect.requirements ? <small> · Retained condition (Details)</small> : null}
                     </strong>
                     <div className={styles.effectActions}>
                       <button
@@ -452,31 +532,13 @@ function AbilityGroupEditor({
                         })
                       }
                     />
-                    {effectSubjects(effect.payload, value).length ? (
-                      <div data-effect-requirement={effect.id}>
-                        <AbilityRequirementEditor
-                          label="Condition"
-                          value={effect.requirements ?? null}
-                          simple={readSimpleRequirement(effect.requirements ?? null) !== null}
-                          allowedSubjects={effectSubjects(effect.payload, value)}
-                          onChange={(requirements) =>
-                            onChange({
-                              ...value,
-                              effects: value.effects.map((row) =>
-                                row.id === effect.id ? { ...row, requirements } : row,
-                              ),
-                            })
-                          }
-                        />
-                      </div>
-                    ) : null}
                   </details>
                 </article>
               ))}
             </div>
             <EffectTagPicker
-              label="New group effect"
-              addLabel="Add group effect"
+              label="New effect"
+              addLabel="Add new effect"
               combination={{ activation: value.activation, mode: value.mode }}
               context={{
                 summonProfile: latestEnabledMatureSkills().find((skill) => skill.summonProfile)
@@ -486,7 +548,17 @@ function AbilityGroupEditor({
               onAdd={(payload) =>
                 onChange({
                   ...value,
-                  effects: [...value.effects, { id: nextId('effect', value.effects), payload }],
+                  effects: [
+                    ...value.effects,
+                    {
+                      id: nextId('effect', value.effects),
+                      payload: value.targeting
+                        ? withAuthoredAreaRecipients(value.targeting, [payload], {
+                            requiresSelectedUnit,
+                          })[0]!
+                        : payload,
+                    },
+                  ],
                 })
               }
             />
@@ -546,10 +618,12 @@ export function AbilityDefinitionEditor({
     )
   return (
     <section aria-label="Modular ability editor" className={styles.effectList}>
-      <p className={styles.fieldHint}>
-        Each group has its own activation, costs, Requirements and ordered effects. Changes affect
-        this draft; existing battles keep their captured versions.
-      </p>
+      {(!section || section === 'details') && (
+        <p className={styles.fieldHint}>
+          Set activation and Requirements here. Each behavior group applies them to every effect in
+          its own action.
+        </p>
+      )}
       {issues.length ? (
         <div role="status">
           <strong>Resolve compatibility before publishing</strong>
@@ -570,13 +644,17 @@ export function AbilityDefinitionEditor({
           data-ability-group={behavior.id}
         >
           <summary>
-            Group {index + 1} · {behavior.activation} {behavior.mode}
+            Behavior {index + 1} ·{' '}
+            {{ manual: 'Manual', automatic: 'Automatic', ongoing: 'Ongoing' }[behavior.activation]}{' '}
+            {behavior.mode === 'action' ? 'action' : 'modifier'}
           </summary>
           {(!section || section === 'details') && (
             <>
-              <div className={styles.effectActions}>
+              <div className={styles.groupActions}>
                 <button
                   type="button"
+                  aria-label="Move group up"
+                  title="Move behavior up"
                   disabled={index === 0}
                   onClick={() => {
                     const behaviors = [...value.behaviors]
@@ -587,10 +665,12 @@ export function AbilityDefinitionEditor({
                     commit({ ...value, behaviors })
                   }}
                 >
-                  Move group up
+                  ↑
                 </button>
                 <button
                   type="button"
+                  aria-label="Move group down"
+                  title="Move behavior down"
                   disabled={index === value.behaviors.length - 1}
                   onClick={() => {
                     const behaviors = [...value.behaviors]
@@ -601,10 +681,11 @@ export function AbilityDefinitionEditor({
                     commit({ ...value, behaviors })
                   }}
                 >
-                  Move group down
+                  ↓
                 </button>
                 <button
                   type="button"
+                  aria-label="Remove group"
                   disabled={value.behaviors.length <= 1}
                   onClick={() =>
                     commit({
@@ -613,7 +694,7 @@ export function AbilityDefinitionEditor({
                     })
                   }
                 >
-                  Remove group
+                  Remove
                 </button>
               </div>
             </>
@@ -634,6 +715,7 @@ export function AbilityDefinitionEditor({
         <>
           <button
             type="button"
+            aria-label="Add behavior group"
             disabled={value.behaviors.length >= ABILITY_DEFINITION_BUDGET.maximumBehaviors}
             onClick={() =>
               commit({
@@ -645,7 +727,7 @@ export function AbilityDefinitionEditor({
               })
             }
           >
-            Add behavior group
+            Add behavior
           </button>{' '}
         </>
       )}

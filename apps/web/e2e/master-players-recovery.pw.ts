@@ -172,6 +172,42 @@ test('Owner corrections and whole encounter recovery reach actual PvE, both PvP 
       })
     }
     const original = await readPlayer()
+    await test.step('Skills show names and equipped ticks with only Locked/Unlocked status', async () => {
+      await owner.getByRole('button', { name: 'Skills', exact: true }).click()
+      const choices = owner.getByRole('group', { name: 'Equipped Skills', exact: true })
+      await expect(choices).toBeVisible()
+      await expect(
+        choices.getByText(/Unavailable Skill|Earned|unearned|active eligibility/),
+      ).toHaveCount(0)
+      const activeDisciplines = new Set([
+        original.facts.build.primary.disciplineId,
+        original.facts.build.secondary?.disciplineId,
+      ])
+      const available = original.learnedSkills.filter((skill) =>
+        activeDisciplines.has(skill.eligibilityDisciplineId ?? skill.sourceDisciplineId),
+      )
+      expect(available.length).toBeGreaterThan(0)
+      await expect(choices.getByRole('checkbox')).toHaveCount(available.length)
+      for (const [index, skill] of available.entries()) {
+        const label = original.contentNames?.[skill.skillId]
+        expect(label).toBeTruthy()
+        const choice = choices.getByRole('checkbox').nth(index)
+        await expect(choice).toHaveAccessibleName(
+          new RegExp(`${skill.earnedEligibility === false ? 'Locked' : 'Unlocked'}$`),
+        )
+        await expect(choice.locator('..')).toContainText(label!)
+        await expect(choice).toBeChecked({
+          checked: original.facts.build.disciplineSkills.some(
+            (equipped) =>
+              equipped.skillId === skill.skillId &&
+              equipped.contentVersion === skill.contentVersion &&
+              (equipped.eligibilityDisciplineId ?? equipped.sourceDisciplineId) ===
+                (skill.eligibilityDisciplineId ?? skill.sourceDisciplineId),
+          ),
+        })
+      }
+      await owner.getByRole('button', { name: 'Stats & Progression', exact: true }).click()
+    })
     await test.step('Raise stats then explicitly lower Level and remove the refunded bank', async () => {
       async function saveSourceCorrection() {
         await owner.getByRole('button', { name: 'Review correction', exact: true }).click()

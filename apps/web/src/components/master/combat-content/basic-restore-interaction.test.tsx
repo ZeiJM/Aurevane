@@ -29,6 +29,13 @@ const hooks = vi.hoisted(() => ({
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
   useId: () => ':description-test:',
+  useCallback(callback: unknown, dependencies: unknown[]) {
+    const index = hooks.index++
+    const old = hooks.cells[index] as { dependencies: unknown[]; callback: unknown } | undefined
+    if (!old || dependencies.some((value, i) => !Object.is(value, old.dependencies[i])))
+      hooks.cells[index] = { dependencies, callback }
+    return (hooks.cells[index] as { callback: unknown }).callback
+  },
   useMemo(factory: () => unknown) {
     return factory()
   },
@@ -423,10 +430,13 @@ it.each([null, 'discipline.partner'])(
       relationships().props.renderCreate as (
         partner: string | null,
         close: () => void,
+        directEditLabel?: string,
       ) => ReactElement<Parameters<typeof NewRelationshipPower>[0]>
-    )(partner, close)
+    )(partner, close, 'Edit power for test relationship')
     expect(create.type).toBe(NewRelationshipPower)
     expect(create.props.partner).toBe(partner)
+    expect(create.props.compact).toBe(true)
+    expect(create.props.triggerLabel).toBe('Edit power for test relationship')
     const key = partner === null ? 'essence.new' : 'resonance.new'
     const child = {
       ...f.initial,
@@ -1194,13 +1204,28 @@ it('preserves a revert to the previously saved value while an earlier changed va
   })
 })
 
-it('keeps save feedback with Commit Now and removes Duplicate and Archive menu actions', () => {
+it('keeps Commit and save feedback in the editor footer outside browsing and removes retired menu actions', () => {
   const f = disciplineFixture()
   const root = f.render()
   const status = find(root, (node) => node.props['aria-label'] === 'Save status')
   expect(status?.props.children).toBe('Saved')
   const sidebar = find(root, (node) => node.type === 'aside')!
-  expect(find(sidebar, (node) => node.props['aria-label'] === 'Save status')).not.toBeNull()
+  expect(find(sidebar, (node) => node.props['aria-label'] === 'Save status')).toBeNull()
+  expect(
+    find(sidebar, (node) => node.type === 'button' && node.props.children === 'Commit Now'),
+  ).toBeNull()
+  const footer = find(
+    root,
+    (node) => node.type === 'footer' && node.props['aria-label'] === 'Save content',
+  )!
+  expect(footer.props.role).toBe('group')
+  expect(find(footer, (node) => node.props['aria-label'] === 'Save status')).toBe(status)
+  expect(
+    find(footer, (node) => node.type === 'button' && node.props.children === 'Commit Now'),
+  ).not.toBeNull()
+  expect(
+    find(sidebar, (node) => node.type === 'button' && node.props.children === 'New'),
+  ).not.toBeNull()
   const heading = find(root, (node) => node.type === 'header')!
   expect(find(heading, (node) => node.props.role === 'status')).toBeNull()
   for (const label of ['Duplicate', 'Archive'])
@@ -1249,7 +1274,9 @@ function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width:
       }
     },
   })
-  const request = vi.fn()
+  const request = vi.fn<(url: string, options: { body: FormData }) => Promise<Response>>(
+    () => new Promise<Response>(() => {}),
+  )
   vi.stubGlobal('fetch', request)
   function render() {
     hooks.index = 0
@@ -1272,7 +1299,7 @@ function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width:
   }
   const control = (label: string) => find(render(), (node) => node.props['aria-label'] === label)!
   const uploadButton = () =>
-    find(render(), (node) => node.type === 'button' && node.props.children === 'Upload file')!
+    find(render(), (node) => node.type === 'button' && node.props.children === 'Retry upload')!
   async function select(file = new File(['image'], 'selected.png', { type: 'image/png' })) {
     ;(control('Upload content media').props.onChange as (event: unknown) => void)({
       currentTarget: {
@@ -1280,7 +1307,10 @@ function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width:
         value: 'selected.png',
       },
     })
-    await vi.waitFor(() => expect(uploadButton().props.disabled).toBe(false))
+    await vi.waitFor(() => {
+      render()
+      expect(request).toHaveBeenCalledTimes(1)
+    })
   }
   return {
     render,
@@ -1291,10 +1321,14 @@ function mediaFixture(initial: FinalizedContentMediaSlots, dimensions = { width:
     drawImage,
     pendingMedia,
     value: () => value,
+    change(next: FinalizedContentMediaSlots) {
+      value = next
+      render()
+    },
   }
 }
 it.each(['builtin', 'custom'])(
-  'keeps current %s artwork beside the selected crop without changing the definition',
+  'replaces current %s artwork with the selected crop and automatically finalizes without changing the definition early',
   async (source) => {
     const custom = source === 'custom'
     const initial = custom ? { artwork: uploadedArtwork } : {}
@@ -1306,11 +1340,11 @@ it.each(['builtin', 'custom'])(
       )
     expect(current()).toBeTruthy()
     await f.select()
-    expect(current()).toBeTruthy()
+    expect(current()).toBeNull()
     expect(f.control('Actual crop preview')).toBeTruthy()
     for (const label of ['Crop x', 'Crop y', 'Crop size']) expect(f.control(label)).toBeNull()
     expect(f.value()).toBe(initial)
-    expect(f.request).not.toHaveBeenCalled()
+    expect(f.request).toHaveBeenCalledTimes(1)
   },
 )
 it.each([
@@ -1331,10 +1365,11 @@ it.each([
       .png()
       .toBuffer()
     const f = mediaFixture({}, { width, height })
-    await f.select(new File([new Uint8Array(png)], 'automatic.png', { type: 'image/png' }))
-    await vi.waitFor(() => expect(f.drawImage).toHaveBeenCalled())
-    expect(f.drawImage.mock.calls.at(-1)?.slice(1)).toEqual([crop.x, crop.y, 4, 4, 0, 0, 192, 192])
     let normalizedBytes: Buffer | undefined
+    let finish!: () => void
+    const drawn = new Promise<void>((resolve) => {
+      finish = resolve
+    })
     f.request.mockImplementationOnce(async (_url, options) => {
       const body = options.body as FormData
       const normalized = await normalizeContentMedia(
@@ -1343,9 +1378,16 @@ it.each([
         JSON.parse(String(body.get('crop'))),
       )
       normalizedBytes = normalized.bytes
+      await drawn
       return Response.json({ media: { ...normalized.descriptor, id: uploadedArtwork.id } })
     })
-    ;(f.uploadButton().props.onClick as () => void)()
+    await f.select(new File([new Uint8Array(png)], 'automatic.png', { type: 'image/png' }))
+    await vi.waitFor(() => {
+      f.render()
+      expect(f.drawImage).toHaveBeenCalled()
+    })
+    expect(f.drawImage.mock.calls.at(-1)?.slice(1)).toEqual([crop.x, crop.y, 4, 4, 0, 0, 192, 192])
+    finish()
     await vi.waitFor(() => expect(f.value().artwork).toBeDefined())
     expect(f.value().artwork).toMatchObject({
       sourceWidth: width,
@@ -1361,12 +1403,11 @@ it.each([
 it('adds only a successfully finalized upload to local edits and keeps the old artwork on upload failure', async () => {
   const initial = { artwork: uploadedArtwork }
   const f = mediaFixture(initial)
-  await f.select()
-  expect(f.pendingMedia).toHaveBeenLastCalledWith(true)
   f.request.mockResolvedValueOnce(
     Response.json({ error: { message: 'Upload rejected' } }, { status: 400 }),
   )
-  ;(f.uploadButton().props.onClick as () => void)()
+  await f.select()
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(true)
   await vi.waitFor(() =>
     expect(find(f.render(), (node) => node.props.role === 'alert')?.props.children).toBe(
       'Upload rejected',
@@ -1383,13 +1424,42 @@ it('adds only a successfully finalized upload to local edits and keeps the old a
   expect(find(f.render(), (node) => node.props.alt === 'Finalized artwork crop')?.props.src).toBe(
     `/api/master/combat-content/media/${next.id}`,
   )
-  expect(f.uploadButton().props.disabled).toBe(true)
+  expect(f.uploadButton()).toBeNull()
   expect(f.pendingMedia).toHaveBeenLastCalledWith(false)
   expect(f.request.mock.calls.map(([url]) => url)).toEqual([
     '/api/master/combat-content/media',
     '/api/master/combat-content/media',
   ])
   expect(f.request.mock.calls[1]![1].body.get('crop')).toBe(JSON.stringify({ x: 2, y: 0, size: 4 }))
+})
+
+it('merges automatically finalized artwork into the latest media edits while keeping selected data local', async () => {
+  const f = mediaFixture({ artwork: uploadedArtwork })
+  let complete!: (response: Response) => void
+  f.request.mockImplementationOnce(
+    () =>
+      new Promise<Response>((resolve) => {
+        complete = resolve
+      }),
+  )
+  await f.select()
+  const audio = {
+    id: '00000000-0000-4000-8000-000000000014',
+    kind: 'audio' as const,
+    contentType: 'audio/wav' as const,
+    checksum: 'b'.repeat(64),
+    byteLength: 100,
+    durationMs: 100,
+    channels: 1 as const,
+    sampleRate: 44100 as const,
+  }
+  f.change({ artwork: uploadedArtwork, audio })
+  expect(JSON.stringify(f.value())).not.toContain('blob:')
+  const next = { ...uploadedArtwork, id: '00000000-0000-4000-8000-000000000013' }
+  complete(Response.json({ media: next }))
+  await vi.waitFor(() => expect(f.value()).toEqual({ artwork: next, audio }))
+  f.render()
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(false)
 })
 
 it('clears the pending media guard when the unuploaded file editor closes', async () => {
@@ -1403,11 +1473,11 @@ it('clears the pending media guard when the unuploaded file editor closes', asyn
 it('cancels a failed selected upload without discarding the current artwork or blocking other edits', async () => {
   const initial = { artwork: uploadedArtwork }
   const f = mediaFixture(initial)
-  await f.select()
   f.request.mockResolvedValueOnce(
     Response.json({ error: { message: 'Upload rejected' } }, { status: 400 }),
   )
-  ;(f.uploadButton().props.onClick as () => void)()
+  await f.select()
+  expect(f.pendingMedia).toHaveBeenLastCalledWith(true)
   await vi.waitFor(() =>
     expect(find(f.render(), (node) => node.props.role === 'alert')?.props.children).toBe(
       'Upload rejected',
@@ -1424,10 +1494,9 @@ it('cancels a failed selected upload without discarding the current artwork or b
   expect(find(f.render(), (node) => node.props.role === 'alert')).toBeNull()
 })
 
-it('ignores an upload that finishes after its media editor closes and prevents duplicate uploads', async () => {
+it('ignores automatic finalization after its editor closes and does not repeat it on rerender', async () => {
   const initial = { artwork: uploadedArtwork }
   const f = mediaFixture(initial)
-  await f.select()
   let complete!: (response: Response) => void
   f.request.mockImplementationOnce(
     () =>
@@ -1435,9 +1504,9 @@ it('ignores an upload that finishes after its media editor closes and prevents d
         complete = resolve
       }),
   )
-  const upload = f.uploadButton().props.onClick as () => void
-  upload()
-  upload()
+  await f.select()
+  f.render()
+  f.render()
   expect(f.request).toHaveBeenCalledTimes(1)
   for (const cleanup of hooks.cleanups) cleanup()
   complete(
@@ -1465,7 +1534,7 @@ it('blocks top-level Commit while a selected file is unuploaded and clears the b
   ).toBe(false)
   expect(
     find(f.render(), (node) => node.props['aria-label'] === 'Save status')?.props.children,
-  ).toContain('Upload the selected file')
+  ).toContain('Preparing selected media')
   ;(fields().props.onPendingMediaChange as (pending: boolean) => void)(false)
   expect(commit().props.disabled).toBe(false)
   f.reply({ ...f.initial, draft: null, current: { ...f.initial.current!, definition: otherEdit } })
@@ -1583,7 +1652,7 @@ it.each(['skill', 'essence'] as const)(
     expect(
       find(render(), (node) => node.type === 'span' && node.props.role === 'status')?.props
         .children,
-    ).toBe('Upload the selected file to keep it before closing or committing.')
+    ).toBe('Preparing selected media. Wait for upload to finish, or retry or cancel if it fails.')
     ;(upload.props.onChange as (value: unknown) => void)({ artwork: uploadedArtwork })
     ;(upload.props.onPendingMediaChange as (value: boolean) => void)(false)
     expect(commit().props.disabled).toBe(false)

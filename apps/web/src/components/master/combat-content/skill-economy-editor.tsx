@@ -42,7 +42,7 @@ export function SkillEconomyEditor({
             : 'Action Economy & Accuracy'}
       </legend>
 
-      <div className={styles.typedGrid}>
+      <div className={`${styles.typedGrid} ${styles.economyGrid}`}>
         {section !== 'accuracy' && (
           <>
             <AbilityCostEditor

@@ -1,5 +1,5 @@
 'use client'
-import { useId, useState, type ReactNode } from 'react'
+import { useCallback, useId, useState, type ReactNode } from 'react'
 import styles from './combat-content-editor.module.css'
 import { ABILITY_EDITOR_SECTIONS, type AbilityEditorSection } from '@/lib/ability-editor-sections'
 export { ABILITY_EDITOR_SECTIONS, type AbilityEditorSection } from '@/lib/ability-editor-sections'
@@ -12,9 +12,44 @@ export function AbilityEditorTabs({
 }) {
   const id = useId()
   const [active, setActive] = useState<AbilityEditorSection>(initialSection)
+  const measureTabs = useCallback((tabs: HTMLDivElement | null) => {
+    if (!tabs) return
+    const workspace = tabs.parentElement!
+    const measure = () =>
+      workspace.style.setProperty(
+        '--ability-tabs-height',
+        `${tabs.getBoundingClientRect().height}px`,
+      )
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(tabs)
+    return () => observer.disconnect()
+  }, [])
   return (
-    <div className={styles.abilityWorkspace}>
-      <div role="tablist" aria-label="Ability sections" className={styles.abilityTabs}>
+    <div
+      className={styles.abilityWorkspace}
+      onFocusCapture={(event) => {
+        const field = event.target as HTMLElement
+        if (!field.closest('[role="tabpanel"]')) return
+        const workspace = event.currentTarget
+        // Focus capture precedes native focus scrolling. Check the final position afterward.
+        requestAnimationFrame(() => {
+          if (!workspace.contains(field) || field.ownerDocument.activeElement !== field) return
+          const tabs = workspace.querySelector('[role="tablist"]')
+          if (!tabs) return
+          const fieldBox = field.getBoundingClientRect()
+          const tabsBox = tabs.getBoundingClientRect()
+          if (fieldBox.top < tabsBox.bottom && fieldBox.bottom > tabsBox.top)
+            field.scrollIntoView({ block: 'center', inline: 'nearest' })
+        })
+      }}
+    >
+      <div
+        ref={measureTabs}
+        role="tablist"
+        aria-label="Ability sections"
+        className={styles.abilityTabs}
+      >
         {ABILITY_EDITOR_SECTIONS.map((section, index) => (
           <button
             key={section.id}

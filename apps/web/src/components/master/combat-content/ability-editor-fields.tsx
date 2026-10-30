@@ -5,12 +5,16 @@ import styles from './combat-content-editor.module.css'
 
 export function AbilitySelect<T extends string>({
   label,
+  displayLabel = label,
   value,
   options,
+  disabledOptions = [],
   optionLabels,
   onChange,
 }: {
   label: string
+  displayLabel?: string
+  disabledOptions?: readonly T[]
   value: T
   options: readonly T[]
   optionLabels?: Readonly<Partial<Record<T, string>>>
@@ -18,7 +22,7 @@ export function AbilitySelect<T extends string>({
 }) {
   return (
     <label className={styles.field}>
-      <span>{label}</span>
+      <span>{displayLabel}</span>
       <select
         aria-label={label}
         value={value}
@@ -26,7 +30,7 @@ export function AbilitySelect<T extends string>({
       >
         {!options.includes(value) ? <option value={value}>{value} (incompatible)</option> : null}
         {options.map((option) => (
-          <option key={option} value={option}>
+          <option key={option} value={option} disabled={disabledOptions.includes(option)}>
             {optionLabels?.[option] ?? (option || 'Any')}
           </option>
         ))}

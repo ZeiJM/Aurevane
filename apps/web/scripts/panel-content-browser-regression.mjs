@@ -126,8 +126,7 @@ const server = await createServer(config)
 await server.listen()
 const browser = await chromium.launch({
   headless: true,
-  executablePath:
-    process.env.AV_PANEL_CONTENT_BROWSER_EXECUTABLE || '/tmp/task13-recovery-browser/chromium',
+  executablePath: process.env.AV_PANEL_CONTENT_BROWSER_EXECUTABLE || chromium.executablePath(),
 })
 const evidence = [],
   failures = []
@@ -282,7 +281,10 @@ try {
     const name = workspace.getByRole('textbox', { name: 'Name', exact: true })
     await name.fill('First creation request')
     await page.evaluate(() => (window.__contentFixture.loseCreateResponse = true))
-    await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+    await page
+      .getByRole('group', { name: 'Save content', exact: true })
+      .getByRole('button', { name: 'Commit Now', exact: true })
+      .click()
     await expect(workspace.getByRole('alert')).toContainText(
       'Fixture response was lost after creation.',
     )
@@ -291,7 +293,10 @@ try {
     await name.fill('Newer local creation edits')
     await page.reload({ waitUntil: 'domcontentloaded' })
     await expect(name).toHaveValue('Newer local creation edits')
-    await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+    await page
+      .getByRole('group', { name: 'Save content', exact: true })
+      .getByRole('button', { name: 'Commit Now', exact: true })
+      .click()
     await expect(
       workspace
         .getByRole('status')
@@ -343,13 +348,19 @@ try {
     const might = workspace.getByRole('spinbutton', { name: 'might base', exact: true })
     const initialMight = Number(await might.inputValue())
     await might.fill(String(initialMight + 1))
-    await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+    await page
+      .getByRole('group', { name: 'Save content', exact: true })
+      .getByRole('button', { name: 'Commit Now', exact: true })
+      .click()
     await expect(workspace.getByRole('alert')).toContainText(
       'Six positive integer bases must total 31',
     )
     assert.equal(await page.evaluate(() => window.__contentFixture.creations.size), 0)
     await might.fill(String(initialMight))
-    await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+    await page
+      .getByRole('group', { name: 'Save content', exact: true })
+      .getByRole('button', { name: 'Commit Now', exact: true })
+      .click()
     await expect(
       workspace
         .getByRole('status')
@@ -389,6 +400,17 @@ try {
       const category = sidebar.getByRole('combobox', { name: 'Content category', exact: true })
       const records = workspace.getByRole('navigation', { name: 'Content records', exact: true })
       await expect(records.getByRole('button')).toHaveCount(127)
+      await expect(sidebar.getByRole('button', { name: 'Commit Now', exact: true })).toHaveCount(0)
+      await expect(commit).toBeVisible()
+      assert.equal(
+        await sidebar.evaluate((browser) => {
+          const search = browser.querySelector('input[type="search"]')
+          const list = browser.querySelector('nav')
+          return !!(search.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING)
+        }),
+        true,
+        'Search precedes the content list',
+      )
       await category.selectOption('skill')
       await sidebar.getByRole('button', { name: 'New', exact: true }).click()
       await workspace
@@ -397,7 +419,10 @@ try {
       await workspace
         .getByRole('combobox', { name: 'Source Discipline', exact: true })
         .selectOption('bastion')
-      await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+      await page
+        .getByRole('group', { name: 'Save content', exact: true })
+        .getByRole('button', { name: 'Commit Now', exact: true })
+        .click()
       await expect(
         workspace
           .getByRole('status')
@@ -782,10 +807,13 @@ try {
       const records = page.getByRole('navigation', { name: 'Content records', exact: true })
       const tabs = workspace.getByRole('group', { name: 'Editor sections', exact: true })
       const description = workspace.getByRole('textbox', { name: 'Description', exact: true })
-      const commit = sidebar.getByRole('button', { name: 'Commit Now', exact: true })
+      const commit = page
+        .getByRole('group', { name: 'Save content', exact: true })
+        .getByRole('button', { name: 'Commit Now', exact: true })
       await expect(records.getByRole('button')).toHaveCount(127)
       assert.deepEqual(await tabs.getByRole('button').allTextContents(), [
         'Discipline Details',
+        'Artwork',
         'Skills',
         'Resonances',
         'Usage & Balance',
@@ -841,9 +869,11 @@ try {
       ).toBeVisible()
       await records.locator('[data-content-key="bastion"]').click()
       await expect(description).toHaveValue('Current Bastion text.')
+      await tabs.getByRole('button', { name: 'Artwork', exact: true }).click()
       await workspace
         .getByRole('img', { name: 'Current artwork', exact: true })
         .evaluate((image) => image.decode())
+      await tabs.getByRole('button', { name: 'Discipline Details', exact: true }).click()
       assert.equal(await workspace.getByRole('textbox', { name: 'Name', exact: true }).count(), 1)
       await description.fill('Recovered local discipline draft. No automatic commit.')
       await workspace
@@ -958,7 +988,7 @@ try {
         0,
       )
       await dialog.getByRole('tab', { name: 'Details & Text', exact: true }).click()
-      await dialog.getByText('Wording overrides', { exact: true }).click()
+      await expect(dialog.getByText('Wording overrides', { exact: true })).toHaveCount(0)
       await expect(
         dialog.getByRole('textbox', { name: 'In-battle text', exact: true }),
       ).toHaveCount(1)
@@ -1012,26 +1042,15 @@ try {
       await dialog
         .getByLabel('Upload content media', { exact: true })
         .setInputFiles(resolve(fixture, 'fixture-finalized.png'))
-      await expect(dialog.getByLabel('Actual crop preview', { exact: true })).toBeVisible()
-      await dialog.getByRole('button', { name: 'Upload file', exact: true }).click()
+      await expect(dialog.getByRole('button', { name: 'Upload file', exact: true })).toHaveCount(0)
       await dialog
         .getByRole('img', { name: 'Finalized artwork crop', exact: true })
         .evaluate((image) => image.decode())
+      await expect(dialog.getByRole('img', { name: 'Current artwork', exact: true })).toHaveCount(0)
+      await expect(dialog.getByRole('button', { name: 'Commit Now', exact: true })).toBeEnabled()
       await dialog
         .getByLabel('Upload content media', { exact: true })
         .setInputFiles(resolve(fixture, 'fixture-sound.wav'))
-      const selectedSound = dialog.getByLabel('Selected sound preview', { exact: true })
-      await selectedSound.evaluate((audio) => {
-        audio.load()
-      })
-      await expect
-        .poll(() => selectedSound.evaluate((audio) => audio.readyState))
-        .toBeGreaterThanOrEqual(1)
-      await selectedSound.evaluate(async (audio) => {
-        await audio.play()
-        audio.pause()
-      })
-      await dialog.getByRole('button', { name: 'Upload file', exact: true }).click()
       const finalizedSound = dialog.getByLabel('Finalized sound preview', { exact: true })
       await finalizedSound.evaluate((audio) => {
         audio.load()
@@ -1071,15 +1090,33 @@ try {
         exact: true,
       })
       await expect(relationships).toContainText('None (Essence)')
+      // An empty relationship opens its new editor in one click.
+      await relationships
+        .getByRole('button', { name: 'Edit power for Additional Discipline 001', exact: true })
+        .click()
+      await expect(page.getByRole('dialog', { name: /^Select power/ })).toHaveCount(0)
+      const directEditor = page.getByRole('dialog')
+      await expect(
+        directEditor.getByRole('heading', { name: 'New Resonance', exact: true }),
+      ).toBeVisible()
+      await directEditor
+        .getByRole('textbox', { name: 'Name', exact: true })
+        .fill('Directly created Resonance')
+      await directEditor.getByRole('button', { name: 'Commit Now', exact: true }).click()
+      await expect(directEditor.getByRole('status')).toContainText('Changes committed')
+      await directEditor.getByRole('button', { name: 'Close skill editor', exact: true }).click()
+      await expect(
+        relationships.getByRole('button', {
+          name: 'Change power for Additional Discipline 001',
+          exact: true,
+        }),
+      ).toBeVisible()
       const associationWrites = await page.evaluate(() => window.__contentCommitCount)
       const parentBefore = await page.evaluate(() =>
         structuredClone(window.__contentFixture.records.get('bastion').current.definition),
       )
       await relationships
-        .getByRole('button', { name: 'Clear power for Partner Discipline', exact: true })
-        .click()
-      await relationships
-        .getByRole('button', { name: 'Edit power for Partner Discipline', exact: true })
+        .getByRole('button', { name: 'Change power for Partner Discipline', exact: true })
         .click()
       let associationDialog = page.getByRole('dialog', {
         name: 'Select power · Partner Discipline',
@@ -1100,10 +1137,7 @@ try {
       ).toHaveValue('Alternative Shared Power')
       await page.getByRole('button', { name: 'Close skill editor', exact: true }).click()
       await relationships
-        .getByRole('button', { name: 'Clear power for Partner Discipline', exact: true })
-        .click()
-      await relationships
-        .getByRole('button', { name: 'Edit power for Partner Discipline', exact: true })
+        .getByRole('button', { name: 'Change power for Partner Discipline', exact: true })
         .click()
       associationDialog = page.getByRole('dialog', {
         name: 'Select power · Partner Discipline',
@@ -1114,10 +1148,7 @@ try {
         .selectOption(await page.evaluate(() => window.__contentFixture.resonanceId))
       await associationDialog.getByRole('button', { name: 'Apply selection', exact: true }).click()
       await relationships
-        .getByRole('button', { name: 'Clear power for None (Essence)', exact: true })
-        .click()
-      await relationships
-        .getByRole('button', { name: 'Edit power for None (Essence)', exact: true })
+        .getByRole('button', { name: 'Change power for None (Essence)', exact: true })
         .click()
       associationDialog = page.getByRole('dialog', {
         name: 'Select power · None (Essence)',
@@ -1131,10 +1162,7 @@ try {
         .selectOption('essence.fixture.alternative')
       await associationDialog.getByRole('button', { name: 'Apply selection', exact: true }).click()
       await relationships
-        .getByRole('button', { name: 'Clear power for None (Essence)', exact: true })
-        .click()
-      await relationships
-        .getByRole('button', { name: 'Edit power for None (Essence)', exact: true })
+        .getByRole('button', { name: 'Change power for None (Essence)', exact: true })
         .click()
       associationDialog = page.getByRole('dialog', {
         name: 'Select power · None (Essence)',
@@ -1202,7 +1230,10 @@ try {
           ),
           before,
         )
-        await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await page
+          .getByRole('group', { name: 'Save content', exact: true })
+          .getByRole('button', { name: 'Commit Now', exact: true })
+          .click()
         await expect(
           workspace.getByRole('status', { name: 'Save status', exact: true }),
         ).toHaveText('Saved')
@@ -1218,7 +1249,10 @@ try {
         selection = page.getByRole('dialog', { name: `Select power · ${label}`, exact: true })
         await selection.getByRole('combobox', { name: 'Power', exact: true }).selectOption(draftKey)
         await selection.getByRole('button', { name: 'Apply selection', exact: true }).click()
-        await sidebar.getByRole('button', { name: 'Commit Now', exact: true }).click()
+        await page
+          .getByRole('group', { name: 'Save content', exact: true })
+          .getByRole('button', { name: 'Commit Now', exact: true })
+          .click()
         await expect(workspace.getByRole('alert')).toContainText(
           'Commit the power in its editor first',
         )
