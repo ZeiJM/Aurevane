@@ -502,7 +502,9 @@ function skillDeliveryNotes(
 
 export function skillTargetMethodDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   const kind = skill.target.shape.kind
-  return kind === 'all' ? 'All' : `${title(kind)} [${skillCompactRangeDescription(skill)}]`
+  if (kind === 'all') return 'All'
+  if (skill.target.maximumRange === 0 && skillTargetsOnlySelf(skill.target)) return title(kind)
+  return `${title(kind)} [${skillCompactRangeDescription(skill)}]`
 }
 
 export function skillTargetElevationDescription(

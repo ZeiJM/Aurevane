@@ -517,7 +517,7 @@ it('reports the full minimum field set once in reference order, including Effect
   expect(rows.map(([label]) => label)).toEqual(labels)
   expect(Object.fromEntries(rows)).toMatchObject({
     Effects: skillEffectsSummary(skill),
-    'Target Method': expect.stringContaining('Single [0]'),
+    'Target Method': 'Single',
     'Line of Sight': 'N/A',
   })
   expect(rows.every(([, value]) => value.trim().length > 0)).toBe(true)
