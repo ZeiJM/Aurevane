@@ -9,6 +9,9 @@ import type {
 import type { GridPosition, TacticalBattleState } from './board'
 import { P2_7_TACTICAL_HALL_ARENAS } from './tactical-hall-arenas'
 
+/** Authorable Line reach; footprint resolution clips to the actual board. */
+export const MAXIMUM_COMBAT_LINE_LENGTH = 15
+
 /** Production PvE and both PvP constructors consume this same registry. */
 export function maximumSupportedCombatRange(): number {
   return Math.max(...P2_7_TACTICAL_HALL_ARENAS.map((arena) => arena.width - 1 + arena.height - 1))
@@ -241,8 +244,12 @@ export function resolveCombatTargetFootprint(
   if (shape.kind === 'line') {
     if (selection.kind !== 'direction' || !combatCardinalDirections.includes(selection.direction))
       throw new TypeError('Line requires a cardinal direction.')
-    if (!Number.isSafeInteger(shape.length) || shape.length < 1 || shape.length > 5)
-      throw new RangeError('Line length must be from one to five.')
+    if (
+      !Number.isSafeInteger(shape.length) ||
+      shape.length < 1 ||
+      shape.length > MAXIMUM_COMBAT_LINE_LENGTH
+    )
+      throw new RangeError(`Line length must be from one to ${MAXIMUM_COMBAT_LINE_LENGTH}.`)
     const dx = selection.direction === 'east' ? 1 : selection.direction === 'west' ? -1 : 0
     const dy = selection.direction === 'south' ? 1 : selection.direction === 'north' ? -1 : 0
     const tiles: GridPosition[] = []
@@ -374,8 +381,9 @@ export function validateVersionedCombatTargetSpec(spec: CombatTargetSpec): void 
     if (spec.shape.kind === 'all') return
     if (spec.shape.kind !== 'single') {
       const reach = spec.shape.kind === 'line' ? spec.shape.length : spec.shape.radius
-      if (!Number.isSafeInteger(reach) || reach < 1 || reach > 5)
-        throw new RangeError('Area reach must be an integer from one to five.')
+      const maximum = spec.shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : 5
+      if (!Number.isSafeInteger(reach) || reach < 1 || reach > maximum)
+        throw new RangeError(`Area reach must be an integer from one to ${maximum}.`)
       if (spec.minimumRange !== 0 || spec.maximumRange !== reach)
         throw new TypeError('Line/Circle range must be 0 through its authored reach.')
     }
@@ -395,8 +403,9 @@ export function validateVersionedCombatTargetSpec(spec: CombatTargetSpec): void 
     return
   }
   const reach = spec.shape.kind === 'line' ? spec.shape.length : spec.shape.radius
-  if (!Number.isSafeInteger(reach) || reach < 1 || reach > 5)
-    throw new RangeError('Area reach must be an integer from one to five.')
+  const maximum = spec.shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : 5
+  if (!Number.isSafeInteger(reach) || reach < 1 || reach > maximum)
+    throw new RangeError(`Area reach must be an integer from one to ${maximum}.`)
   if (spec.minimumRange !== 0 || spec.maximumRange !== reach)
     throw new TypeError('Line/Circle range must be 0 through its authored reach.')
 }

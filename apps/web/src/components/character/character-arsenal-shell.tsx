@@ -38,7 +38,13 @@ export function EssenceHoverPreview({ essence }: { essence: EssenceDefinition })
       hover
       trigger={
         <span className={styles.attunementArt} data-gameplay-art="attunement">
-          <Image src={battleSkillArtwork(skill.id)} width={160} height={160} unoptimized alt="" />
+          <Image
+            src={battleSkillArtwork(skill.id, contentArtworkKey(skill.media))}
+            width={160}
+            height={160}
+            unoptimized
+            alt=""
+          />
         </span>
       }
     >
@@ -158,7 +164,7 @@ function TechniqueLane({
             >
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
-                  src={battleSkillArtwork(skill.id)}
+                  src={battleSkillArtwork(skill.id, contentArtworkKey(skill.media))}
                   width={160}
                   height={160}
                   unoptimized

@@ -1,0 +1,1400 @@
+{
+  "schemaVersion": 1,
+  "requestId": "ART-CHR-WAYFARER-HQ-20261030",
+  "artworkSetVersion": "wayfarer-v02",
+  "operation": "Each low-resolution identity was redrawn by the built-in imagegen tool. Runtime derivatives only use deterministic square Lanczos downsampling and WebP encoding; no crop, retouch or generative processing follows the master. Original reference IDs, options and order are retained.",
+  "encoding": {
+    "outputDimensions": [1024, 1024],
+    "resample": "Pillow LANCZOS",
+    "quality": 90,
+    "method": 6,
+    "exact": true,
+    "pillowVersion": "12.3.0",
+    "libwebpVersion": "1.6.0"
+  },
+  "preservedAssets": [
+    {
+      "portraitRef": "portrait.starter.wayfarer-01",
+      "assetId": "character.creation.square-portrait-01",
+      "sha256": "52ccf2550c6480d48210a88baf318e258d93b245f527fa552a4ccdbb437809e3",
+      "dimensions": [400, 400]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-01",
+      "assetId": "character.adventure.male-01",
+      "runtimePath": "/media/art/adventure/male-01-v01.webp",
+      "sha256": "df4276640c7f5237c86f601783a7c46aa10edb39e6f28f50a7ca9f5251241dc5",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-02",
+      "assetId": "character.adventure.male-02",
+      "runtimePath": "/media/art/adventure/male-02-v01.webp",
+      "sha256": "b584417aaf11c4216b8c2908665a5c21f11657b0bb1574e8c1723e1e19309d1a",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-03",
+      "assetId": "character.adventure.male-03",
+      "runtimePath": "/media/art/adventure/male-03-v01.webp",
+      "sha256": "0b156e38a5f53540253afa4cc8e8bebd72b798b1d48235f2daca9403b9d914af",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-04",
+      "assetId": "character.adventure.male-04",
+      "runtimePath": "/media/art/adventure/male-04-v01.webp",
+      "sha256": "763135045323fefdcb508b308e6372523550114ad87f20ca5bfe56755a65d8df",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-05",
+      "assetId": "character.adventure.male-05",
+      "runtimePath": "/media/art/adventure/male-05-v01.webp",
+      "sha256": "bb7de5c901ef4771127524780b1e64572fcb82806ed74ebf72de0eb1230b129a",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-06",
+      "assetId": "character.adventure.male-06",
+      "runtimePath": "/media/art/adventure/male-06-v01.webp",
+      "sha256": "4919423f112b1dcb426e30d979931815ff72e57919a1d1f3915e15418719322d",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-07",
+      "assetId": "character.adventure.male-07",
+      "runtimePath": "/media/art/adventure/male-07-v01.webp",
+      "sha256": "06fd79d7ce547886ff3a01e681a85ac103832d9090420a82a4824e455ccaa4c3",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-08",
+      "assetId": "character.adventure.male-08",
+      "runtimePath": "/media/art/adventure/male-08-v01.webp",
+      "sha256": "4eb3d10c9d732f3c68bf7ad5d6cf1ce8d48f2d34501c71e8694f70ceaa2059b1",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-09",
+      "assetId": "character.adventure.male-09",
+      "runtimePath": "/media/art/adventure/male-09-v01.webp",
+      "sha256": "c0d5a5bed3169ac9f389ee8cec9ddaf012952ecea8f372ba86d1d40bd5727074",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-10",
+      "assetId": "character.adventure.male-10",
+      "runtimePath": "/media/art/adventure/male-10-v01.webp",
+      "sha256": "cb00512c439129722b001db428e669af171899e2a429249f094154ff17d6fc6e",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-11",
+      "assetId": "character.adventure.male-11",
+      "runtimePath": "/media/art/adventure/male-11-v01.webp",
+      "sha256": "43595c65eaa569f55ab117adf1695452ff4b1b46e942c080da179bb044f13d79",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.male-12",
+      "assetId": "character.adventure.male-12",
+      "runtimePath": "/media/art/adventure/male-12-v01.webp",
+      "sha256": "5f835e4fd452f4c1c245c7b7a5cc7fc28e859fc3d940a06bb11c572f06f99bf7",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-01",
+      "assetId": "character.adventure.female-01",
+      "runtimePath": "/media/art/adventure/female-01-v01.webp",
+      "sha256": "84392b2b9d8327ae712274ae95d4d8dc74d2b7eb6e378d9f30c0f74de8afac1d",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-02",
+      "assetId": "character.adventure.female-02",
+      "runtimePath": "/media/art/adventure/female-02-v01.webp",
+      "sha256": "ad646fa1641efbc97fa385d038a1d15e7127c1e26541d2fe5dbc6a52a72fa1b7",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-03",
+      "assetId": "character.adventure.female-03",
+      "runtimePath": "/media/art/adventure/female-03-v01.webp",
+      "sha256": "5c725c566d99e2599a5f627a9bac6395564d8bb8725f595b151ee0913e8a0544",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-04",
+      "assetId": "character.adventure.female-04",
+      "runtimePath": "/media/art/adventure/female-04-v01.webp",
+      "sha256": "d5f45bd0cfec10f8ae0892e217d94d070adbfbc0062dc91494cb27e8f713c30c",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-05",
+      "assetId": "character.adventure.female-05",
+      "runtimePath": "/media/art/adventure/female-05-v01.webp",
+      "sha256": "248a0468dafc0a6717f83bbc451b54954067798698a21c287109e2deb4de2b9b",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-06",
+      "assetId": "character.adventure.female-06",
+      "runtimePath": "/media/art/adventure/female-06-v01.webp",
+      "sha256": "6fdbdc219379a3b361b7eebb7af4205736211923decaa597f682a8a813993a42",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-07",
+      "assetId": "character.adventure.female-07",
+      "runtimePath": "/media/art/adventure/female-07-v01.webp",
+      "sha256": "f46c0d7ff4aba7acb23e2794790f492a183cddf7c7f5e22bce63050cca557af4",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-08",
+      "assetId": "character.adventure.female-08",
+      "runtimePath": "/media/art/adventure/female-08-v01.webp",
+      "sha256": "abe7ba2f93279e54c3e9e51147fff13d7d8fac1ab05a9708cd04f4f1a9c79948",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-09",
+      "assetId": "character.adventure.female-09",
+      "runtimePath": "/media/art/adventure/female-09-v01.webp",
+      "sha256": "9f9d2437b4afd40d3824ae6265f314073e69f7ff5282257a503b5a9bff9958dc",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-10",
+      "assetId": "character.adventure.female-10",
+      "runtimePath": "/media/art/adventure/female-10-v01.webp",
+      "sha256": "fc3ff4426eee582bdc6029fa2beac62d2ecfcb122b796b9af6dc2e9c47740a71",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-11",
+      "assetId": "character.adventure.female-11",
+      "runtimePath": "/media/art/adventure/female-11-v01.webp",
+      "sha256": "4d42c355c5d7ce9e92024b0da1da478f12e2646ac8c7cc656cfa792d1b029741",
+      "dimensions": [384, 384]
+    },
+    {
+      "portraitRef": "portrait.adventure.female-12",
+      "assetId": "character.adventure.female-12",
+      "runtimePath": "/media/art/adventure/female-12-v01.webp",
+      "sha256": "5ce2e330ac410aa39fd12936329be4834c57cc908c08ec42c9fea5c3cc71f89b",
+      "dimensions": [384, 384]
+    }
+  ],
+  "records": [
+    {
+      "number": 2,
+      "portraitRef": "portrait.starter.wayfarer-02",
+      "assetId": "character.creation.square-portrait-02",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-dc290b86-0724-4907-9d47-9607a7c18805",
+      "prompt": "Use case: identity-preserve. Repaint this tiny low-resolution original fantasy game portrait as ONE high-quality square 1024x1024 character avatar, with actual newly rendered sharp detail, not an enlarged blurred thumbnail. Preserve this character's identity, pale complexion, silver-white softly curled hair with small flower ornament, gentle feminine face, gray-lavender eyes, dark fantasy embroidered clothing and muted cool atmosphere. Refine in the same premium painterly semi-realistic anime fantasy style. Center the entire head and shoulders, face midpoint horizontally centered, top of hair fully inside frame with 6–10% breathing room, shoulders symmetrical within frame, eye line around 42% height, show enough neck/shoulders for a flattering avatar. Face large and clear; unobtrusive blurred atmospheric background. Improve crisp eyes, skin, strands and fabric; soft readable light. Remove all UI borders, crop artifacts, text and thumbnails. No frame, watermark, lettering, extra faces, hands or weapons. Only one portrait.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-02.png",
+          "sha256": "e090b7efccc91350112c9f6d5e3cb44b8d5487b71bc6032fd23cb888b8aea0c9",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-dc290b86-0724-4907-9d47-9607a7c18805.png",
+        "sha256": "c26007b1ac20edd70d95317f318611ac1eb4eef7f7d975abba65622bc6a5390d",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-02-v02.webp",
+        "sha256": "117a7cf005a9933ff53309cbab235b76d88740119587f889c1b32c8483f1ad4f",
+        "decodedPixelSha256": "5bf53e94a2f50cfdb8159dfebdc6be23b5077cc74c669d9d6781223231099ba4",
+        "byteLength": 202230,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 3,
+      "portraitRef": "portrait.starter.wayfarer-03",
+      "assetId": "character.creation.square-portrait-03",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-a4ddd788-9e0e-4314-8975-88e7a134e0e7",
+      "prompt": "Use case identity-preserve. Image 1 is the tiny avatar to redraw; Image 2 is ONLY the painterly quality/style reference, never its person's identity. Make ONE new high-detail square game avatar of the person in Image 1: androgynous young adult with wavy black hair, dark round glasses, light olive skin, a small gold hair ornament and reserved thoughtful expression. Preserve original character's face, complexion, hair color/length, distinctive accessories and general fantasy clothing. Render sharp eyes, believable face, fine hair strands and tactile cloth/leather in premium semi-realistic anime fantasy illustration matching image2. Reframe with CAMERA PULLED BACK: entire crown of hair and both shoulders visible, a clear gap above the head (8% of square), FACE CENTERED HORIZONTALLY, eye line about40% of image height, neck and upper chest visible. Straight-on or very slight three-quarter face toward viewer. Background quiet atmospheric blur. Readable soft light without losing darker skin details. No border, frame, text, panel, watermark, hands, extra people or copied thumbnail blur. One 1024x1024 square portrait with genuinely reconstructed detail.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-03.png",
+          "sha256": "6ebdcbc8a29bdb4402ea2fdcd9fe8537b76ab7967bb46eeeedd8e5af0862cb47",
+          "dimensions": [96, 96]
+        },
+        {
+          "role": "style reference only",
+          "filename": "exec-dc290b86-0724-4907-9d47-9607a7c18805.png",
+          "sha256": "c26007b1ac20edd70d95317f318611ac1eb4eef7f7d975abba65622bc6a5390d",
+          "dimensions": [1254, 1254]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-a4ddd788-9e0e-4314-8975-88e7a134e0e7.png",
+        "sha256": "b5517e3247e2929b7083e48703498ca582b5a4e2550516f86031ded2f2b8f795",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-03-v02.webp",
+        "sha256": "f94ff65a536d41e08be1705ebee7045a8f722e8b2ee0b10f92a700c022b3d7fd",
+        "decodedPixelSha256": "35d5150110e15f97b8228371acbd267388c334d4417a738388d01ea72121905f",
+        "byteLength": 202348,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 4,
+      "portraitRef": "portrait.starter.wayfarer-04",
+      "assetId": "character.creation.square-portrait-04",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-c1c9a493-398c-4bde-ab11-64c46f37564c",
+      "prompt": "Use case identity-preserve. Image 1 is the tiny avatar to redraw; Image 2 is ONLY the painterly quality/style reference, never its person's identity. Make ONE new high-detail square game avatar of the person in Image 1: young adult man with deep brown skin, short tousled black hair, small gold hair details, warm brown eyes and a confident calm expression. Preserve original character's face, complexion, hair color/length, distinctive accessories and general fantasy clothing. Render sharp eyes, believable face, fine hair strands and tactile cloth/leather in premium semi-realistic anime fantasy illustration matching image2. Reframe with CAMERA PULLED BACK: entire crown of hair and both shoulders visible, a clear gap above the head (8% of square), FACE CENTERED HORIZONTALLY, eye line about40% of image height, neck and upper chest visible. Straight-on or very slight three-quarter face toward viewer. Background quiet atmospheric blur. Readable soft light without losing darker skin details. No border, frame, text, panel, watermark, hands, extra people or copied thumbnail blur. One 1024x1024 square portrait with genuinely reconstructed detail.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-04.png",
+          "sha256": "aa63fec8e53cd54649bc45522c5b5a613da882b0d2cb88b6b1cc0d6aef5c6edb",
+          "dimensions": [96, 96]
+        },
+        {
+          "role": "style reference only",
+          "filename": "exec-dc290b86-0724-4907-9d47-9607a7c18805.png",
+          "sha256": "c26007b1ac20edd70d95317f318611ac1eb4eef7f7d975abba65622bc6a5390d",
+          "dimensions": [1254, 1254]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-c1c9a493-398c-4bde-ab11-64c46f37564c.png",
+        "sha256": "a934eb83b579b3bdfd2814783d99936f8cb1ed64a1aeb8b5d778adec8bebbe6c",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-04-v02.webp",
+        "sha256": "fb3c6b4e8490dfbbce953492b1ff5c9986ca56ef58ee5a532cb8d4521cf5f8a8",
+        "decodedPixelSha256": "c3abc547c646d964606a9a99c55d17917c8370b85242688eccae78fef6ad0156",
+        "byteLength": 181174,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 5,
+      "portraitRef": "portrait.starter.wayfarer-05",
+      "assetId": "character.creation.portrait-05",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-31d41391-d491-4c63-bd5d-7477a1705d78",
+      "prompt": "Use case identity-preserve. Image 1 is the tiny avatar to redraw; Image 2 is ONLY the painterly quality/style reference, never its person's identity. Make ONE new high-detail square game avatar of the person in Image 1: young adult woman with deep warm brown skin, long braided dark hair with restrained gold beads, brown eyes and a poised serious expression. Preserve original character's face, complexion, hair color/length, distinctive accessories and general fantasy clothing. Render sharp eyes, believable face, fine hair strands and tactile cloth/leather in premium semi-realistic anime fantasy illustration matching image2. Reframe with CAMERA PULLED BACK: entire crown of hair and both shoulders visible, a clear gap above the head (8% of square), FACE CENTERED HORIZONTALLY, eye line about40% of image height, neck and upper chest visible. Straight-on or very slight three-quarter face toward viewer. Background quiet atmospheric blur. Readable soft light without losing darker skin details. No border, frame, text, panel, watermark, hands, extra people or copied thumbnail blur. One 1024x1024 square portrait with genuinely reconstructed detail.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-05.png",
+          "sha256": "37b001760a4191833a27cc2a95c5810ff991c77d7621c17d423d99427b7350e2",
+          "dimensions": [96, 96]
+        },
+        {
+          "role": "style reference only",
+          "filename": "exec-dc290b86-0724-4907-9d47-9607a7c18805.png",
+          "sha256": "c26007b1ac20edd70d95317f318611ac1eb4eef7f7d975abba65622bc6a5390d",
+          "dimensions": [1254, 1254]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-31d41391-d491-4c63-bd5d-7477a1705d78.png",
+        "sha256": "4e688ab042a800a2051e682cf6d85a4f03c475d58ab281d9be079151098d2c16",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-05-v02.webp",
+        "sha256": "a9ed20db5f1afe16761a3868665c7a601e71aa4e063b06e789b039dbcfffbe37",
+        "decodedPixelSha256": "967c34c648ccdba6d6cea8b5b6bbcce0f23ab2538f1a9dd3f9bbdf6bfb07e74d",
+        "byteLength": 191534,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 6,
+      "portraitRef": "portrait.starter.wayfarer-06",
+      "assetId": "character.creation.portrait-06",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-1694f210-64b9-4149-8052-877389a3a74c",
+      "prompt": "Use case identity-preserve. Image 1 is the tiny avatar to redraw; Image 2 is ONLY the painterly quality/style reference, never its person's identity. Make ONE new high-detail square game avatar of the person in Image 1: young adult woman with fair warm skin, long deep red hair, subtle gold hair ornaments, warm brown eyes and a calm expression. Preserve original character's face, complexion, hair color/length, distinctive accessories and general fantasy clothing. Render sharp eyes, believable face, fine hair strands and tactile cloth/leather in premium semi-realistic anime fantasy illustration matching image2. Reframe with CAMERA PULLED BACK: entire crown of hair and both shoulders visible, a clear gap above the head (8% of square), FACE CENTERED HORIZONTALLY, eye line about40% of image height, neck and upper chest visible. Straight-on or very slight three-quarter face toward viewer. Background quiet atmospheric blur. Readable soft light without losing darker skin details. No border, frame, text, panel, watermark, hands, extra people or copied thumbnail blur. One 1024x1024 square portrait with genuinely reconstructed detail.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-06.png",
+          "sha256": "0a2fc56a9d0a588012ce4af889879ae3164db0b81b1d91d1db834c0794ad7011",
+          "dimensions": [96, 96]
+        },
+        {
+          "role": "style reference only",
+          "filename": "exec-dc290b86-0724-4907-9d47-9607a7c18805.png",
+          "sha256": "c26007b1ac20edd70d95317f318611ac1eb4eef7f7d975abba65622bc6a5390d",
+          "dimensions": [1254, 1254]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-1694f210-64b9-4149-8052-877389a3a74c.png",
+        "sha256": "a1ff5907752c3a65e21ebbcfd8a7ed41c0798db7c801063dafe7229df2fba099",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-06-v02.webp",
+        "sha256": "6c360efe3deee8632a01315e7d8b39a5a63306cd4e6ba57a419d03393c0185cb",
+        "decodedPixelSha256": "672f8c8a3399c142e2b2232bf06228eb6b973cdcd7f4e471c6bfdf73513b5662",
+        "byteLength": 201868,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 7,
+      "portraitRef": "portrait.starter.wayfarer-07",
+      "assetId": "character.creation.portrait-07",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-2407d2e8-aba3-4373-a219-132c9a683f26",
+      "prompt": "Use case identity-preserve. Image 1 is the tiny avatar to redraw; Image 2 is ONLY the painterly quality/style reference, never its person's identity. Make ONE new high-detail square game avatar of the person in Image 1: young adult woman with fair olive skin, short swept silver-gray hair, small restrained hair ornaments, gray eyes and a calm focused expression. Preserve original character's face, complexion, hair color/length, distinctive accessories and general fantasy clothing. Render sharp eyes, believable face, fine hair strands and tactile cloth/leather in premium semi-realistic anime fantasy illustration matching image2. Reframe with CAMERA PULLED BACK: entire crown of hair and both shoulders visible, a clear gap above the head (8% of square), FACE CENTERED HORIZONTALLY, eye line about40% of image height, neck and upper chest visible. Straight-on or very slight three-quarter face toward viewer. Background quiet atmospheric blur. Readable soft light without losing darker skin details. No border, frame, text, panel, watermark, hands, extra people or copied thumbnail blur. One 1024x1024 square portrait with genuinely reconstructed detail.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-07.png",
+          "sha256": "c598cde241176910e411c0161be69377e8c5079aa70bb7fef0b62d6f1e39ce0c",
+          "dimensions": [96, 96],
+          "previousRuntimeWebPSha256": "6172c4abdd64f8e694adddcbae8375c9e6816e6f8e83497c17c8e4a64ff9e29b"
+        },
+        {
+          "role": "style reference only",
+          "filename": "exec-dc290b86-0724-4907-9d47-9607a7c18805.png",
+          "sha256": "c26007b1ac20edd70d95317f318611ac1eb4eef7f7d975abba65622bc6a5390d",
+          "dimensions": [1254, 1254]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-2407d2e8-aba3-4373-a219-132c9a683f26.png",
+        "sha256": "638ba86bf63cea9e5b091dd7331b756d9af2268448de399e18c450a13a406274",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-07-v02.webp",
+        "sha256": "df70594fb681cd5b3af22012f836c83be1848d3e765178c9330bcc056209fa65",
+        "decodedPixelSha256": "b68f9d184c5e55d83da6e8ae2063d1b65c64538262b107a809b278a0cc97abd3",
+        "byteLength": 242094,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 8,
+      "portraitRef": "portrait.starter.wayfarer-08",
+      "assetId": "character.creation.portrait-08",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-5f27f45d-eb06-4774-934c-829beb473cd6",
+      "prompt": "Use case identity-preserve. Image 1 is the tiny avatar to redraw; Image 2 is ONLY the painterly quality/style reference, never its person's identity. Make ONE new high-detail square game avatar of the person in Image 1: young adult man with dark brown skin, short curly rose-red hair, strong dark eyebrows, brown eyes and a serious composed expression. Preserve original character's face, complexion, hair color/length, distinctive accessories and general fantasy clothing. Render sharp eyes, believable face, fine hair strands and tactile cloth/leather in premium semi-realistic anime fantasy illustration matching image2. Reframe with CAMERA PULLED BACK: entire crown of hair and both shoulders visible, a clear gap above the head (8% of square), FACE CENTERED HORIZONTALLY, eye line about40% of image height, neck and upper chest visible. Straight-on or very slight three-quarter face toward viewer. Background quiet atmospheric blur. Readable soft light without losing darker skin details. No border, frame, text, panel, watermark, hands, extra people or copied thumbnail blur. One 1024x1024 square portrait with genuinely reconstructed detail.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-08.png",
+          "sha256": "3959809822e9584768950ed5b598948fa76e001809bcb4be9d8d2e69474862ef",
+          "dimensions": [96, 96]
+        },
+        {
+          "role": "style reference only",
+          "filename": "exec-dc290b86-0724-4907-9d47-9607a7c18805.png",
+          "sha256": "c26007b1ac20edd70d95317f318611ac1eb4eef7f7d975abba65622bc6a5390d",
+          "dimensions": [1254, 1254]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-5f27f45d-eb06-4774-934c-829beb473cd6.png",
+        "sha256": "b86b1d30d3c0741314023624d8977a285a1b9658089e1a0a0eb7483478a41743",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-08-v02.webp",
+        "sha256": "2ba5d3cac205c4d81ac72329fdb6617d1c717d03c31ba88a2c72326b775e681f",
+        "decodedPixelSha256": "aaf09741c5d5a384c41a15261e0d84646e5ed636aa4508f5d395f10e4bed6801",
+        "byteLength": 191242,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 9,
+      "portraitRef": "portrait.starter.wayfarer-09",
+      "assetId": "character.creation.portrait-09",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-9dbc1e41-7e95-4a56-b638-410f1afd047e",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution avatar as one premium high-resolution square fantasy game portrait: a fair-skinned woman with slate-gray swept hair, small dark floral hair ornaments, gray eyes and a cool calm expression. Preserve the character's defining facial identity, hair color and length, skin tone and primary adornments from this reference. Reconstruct crisp eyes, natural face anatomy, clean hair strands and believable costume detail in a refined painterly semi-realistic anime fantasy style. Important new composition: a centered HEAD-AND-SHOULDERS BUST, not an extreme facial close-up. The complete head including hair is INSIDE the square with the crown at12% of height, chin at65%, shoulders and upper chest visible below, eyes at40%, face horizontally centered. Face toward viewer or slight three-quarter angle. Soft restrained atmospheric backdrop and flattering readable cinematic light. No visible frame, border, UI, lettering, watermark, hands, weapons or other people. Produce actual freshly drawn detail, not blurred enlargement. One square1024x1024 image.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-09.png",
+          "sha256": "2d8c4d3a0c14e864540ead0b026bf2b941bcfc6ff280ea2327c386b71266cb84",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-9dbc1e41-7e95-4a56-b638-410f1afd047e.png",
+        "sha256": "ca13f2546d99c333893bd88305a20da5059de322a44fddcdbedf2ee44f1c3b42",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-09-v02.webp",
+        "sha256": "b7900934a4ede92ed94760315356cb284a498c2a81df79b9003e871af90fe881",
+        "decodedPixelSha256": "1977512a1c174d12b304d68fd5fd3bf167db4ccc8623b6d12281c787372bda5b",
+        "byteLength": 180180,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 10,
+      "portraitRef": "portrait.starter.wayfarer-10",
+      "assetId": "character.creation.portrait-10",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-10626689-8a49-448b-a9ad-5d486f9e16a7",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution avatar as one premium high-resolution square fantasy game portrait: a fair olive-skinned youthful man with tousled short black hair, warm dark eyes, a neat dark fantasy jacket and a reserved gentle expression. Preserve the character's defining facial identity, hair color and length, skin tone and primary adornments from this reference. Reconstruct crisp eyes, natural face anatomy, clean hair strands and believable costume detail in a refined painterly semi-realistic anime fantasy style. Important new composition: a centered HEAD-AND-SHOULDERS BUST, not an extreme facial close-up. The complete head including hair is INSIDE the square with the crown at12% of height, chin at65%, shoulders and upper chest visible below, eyes at40%, face horizontally centered. Face toward viewer or slight three-quarter angle. Soft restrained atmospheric backdrop and flattering readable cinematic light. No visible frame, border, UI, lettering, watermark, hands, weapons or other people. Produce actual freshly drawn detail, not blurred enlargement. One square1024x1024 image.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-10.png",
+          "sha256": "9f7b3d6c69e1add45e96ec46e6fcf90aa8349db667283d37222643402f533ed1",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-10626689-8a49-448b-a9ad-5d486f9e16a7.png",
+        "sha256": "1bfb55bdc4f733eded382226acc29d418507a7cc583ea5b7d2451115006f28d1",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-10-v02.webp",
+        "sha256": "23812be977bdcd8d0cfe6fb3e848b2c815fa108cb587fbf9c7f17bf440c5be0d",
+        "decodedPixelSha256": "ff978ffab903eadf0e2af32a0d2c09d5e8fd8696ec6012299d132b93a5994b97",
+        "byteLength": 105930,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 11,
+      "portraitRef": "portrait.starter.wayfarer-11",
+      "assetId": "character.creation.portrait-11",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-a95eed5b-59d7-4bfa-a43f-a537b6956582",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution avatar as one premium high-resolution square fantasy game portrait: a fair-skinned woman with ash-brown wavy hair, a small flower hair ornament, warm eyes and an assured soft smile. Preserve the character's defining facial identity, hair color and length, skin tone and primary adornments from this reference. Reconstruct crisp eyes, natural face anatomy, clean hair strands and believable costume detail in a refined painterly semi-realistic anime fantasy style. Important new composition: a centered HEAD-AND-SHOULDERS BUST, not an extreme facial close-up. The complete head including hair is INSIDE the square with the crown at12% of height, chin at65%, shoulders and upper chest visible below, eyes at40%, face horizontally centered. Face toward viewer or slight three-quarter angle. Soft restrained atmospheric backdrop and flattering readable cinematic light. No visible frame, border, UI, lettering, watermark, hands, weapons or other people. Produce actual freshly drawn detail, not blurred enlargement. One square1024x1024 image.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-11.png",
+          "sha256": "8506c6f87ea07832410e10656638df2392555e2f1a8d065682145267f2de2b71",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-a95eed5b-59d7-4bfa-a43f-a537b6956582.png",
+        "sha256": "ef127bb229db2d91447bf79e505759b7b7b8dade8d618afa23e585c5fcc05169",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-11-v02.webp",
+        "sha256": "b704a8d678d38edf9fc8bd977291c9320dc2c8ee81fd13cc50c7776cc542ae05",
+        "decodedPixelSha256": "ecfc8e5c798dca8ec3694c861e1bbbeb752a0926ccf12fdeffd029c8f5b2f686",
+        "byteLength": 188622,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 12,
+      "portraitRef": "portrait.starter.wayfarer-12",
+      "assetId": "character.creation.portrait-12",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-719721a5-d6d3-4e17-8bd8-972bf840b0b3",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution avatar as one premium high-resolution square fantasy game portrait: a fair-skinned youthful man with ivory-blond layered hair, light gray eyes, a pale fantasy collar and a serene expression. Preserve the character's defining facial identity, hair color and length, skin tone and primary adornments from this reference. Reconstruct crisp eyes, natural face anatomy, clean hair strands and believable costume detail in a refined painterly semi-realistic anime fantasy style. Important new composition: a centered HEAD-AND-SHOULDERS BUST, not an extreme facial close-up. The complete head including hair is INSIDE the square with the crown at12% of height, chin at65%, shoulders and upper chest visible below, eyes at40%, face horizontally centered. Face toward viewer or slight three-quarter angle. Soft restrained atmospheric backdrop and flattering readable cinematic light. No visible frame, border, UI, lettering, watermark, hands, weapons or other people. Produce actual freshly drawn detail, not blurred enlargement. One square1024x1024 image.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-12.png",
+          "sha256": "c392363c9c6a1a966a515280f05d29616cfe22544de803cd3b6641ed1f8f4f0b",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-719721a5-d6d3-4e17-8bd8-972bf840b0b3.png",
+        "sha256": "36ca1442e9154f9a1737ac75197d6b04510a986e196bff22cf8f62d089528d46",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-12-v02.webp",
+        "sha256": "0abf28a9dda17ef8719b2796e82fa1cb7a26a2c1dc02be4042250e77c6fce7f9",
+        "decodedPixelSha256": "d2a8956414ba6eedc15753327d16336e8fd23e74bcc5fc8184c569f69fba4ab4",
+        "byteLength": 163502,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 13,
+      "portraitRef": "portrait.starter.wayfarer-13",
+      "assetId": "character.creation.portrait-13",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-fb7e9c57-3810-481c-bdcd-8073a762fe13",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution avatar as one premium high-resolution square fantasy game portrait: a fair olive-skinned man with long black hair partly tied back, a small gold hair ornament, dark eyes and a sharp composed expression. Preserve the character's defining facial identity, hair color and length, skin tone and primary adornments from this reference. Reconstruct crisp eyes, natural face anatomy, clean hair strands and believable costume detail in a refined painterly semi-realistic anime fantasy style. Important new composition: a centered HEAD-AND-SHOULDERS BUST, not an extreme facial close-up. The complete head including hair is INSIDE the square with the crown at12% of height, chin at65%, shoulders and upper chest visible below, eyes at40%, face horizontally centered. Face toward viewer or slight three-quarter angle. Soft restrained atmospheric backdrop and flattering readable cinematic light. No visible frame, border, UI, lettering, watermark, hands, weapons or other people. Produce actual freshly drawn detail, not blurred enlargement. One square1024x1024 image.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-13.png",
+          "sha256": "b607cac7703d3aa57a694cbe7ca5fd665ddfbcab0a09ecb41863476936e9d718",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-fb7e9c57-3810-481c-bdcd-8073a762fe13.png",
+        "sha256": "498762dd1862a08edb2681fa0c241c7a0150acc358bdd2dfbb348a8eae58cf59",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-13-v02.webp",
+        "sha256": "de583063fb69ef702241cbd299b6c63650931ca172058788236d9fe93e99eb13",
+        "decodedPixelSha256": "b9e2a42ef854bbb5e0bec3fc9629b29709d6e5351a34dcfb3fbe3549f64f9e28",
+        "byteLength": 138396,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 14,
+      "portraitRef": "portrait.starter.wayfarer-14",
+      "assetId": "character.creation.portrait-14",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-e3ade84a-59e5-4629-ad76-4cded46298d1",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution avatar as one premium high-resolution square fantasy game portrait: a warm brown-skinned youthful man with swept silver-gray hair, dark eyes, fine fantasy details and a serious expression. Preserve the character's defining facial identity, hair color and length, skin tone and primary adornments from this reference. Reconstruct crisp eyes, natural face anatomy, clean hair strands and believable costume detail in a refined painterly semi-realistic anime fantasy style. Important new composition: a centered HEAD-AND-SHOULDERS BUST, not an extreme facial close-up. The complete head including hair is INSIDE the square with the crown at12% of height, chin at65%, shoulders and upper chest visible below, eyes at40%, face horizontally centered. Face toward viewer or slight three-quarter angle. Soft restrained atmospheric backdrop and flattering readable cinematic light. No visible frame, border, UI, lettering, watermark, hands, weapons or other people. Produce actual freshly drawn detail, not blurred enlargement. One square1024x1024 image.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-14.png",
+          "sha256": "338fd8f497dd5193fbf05455dacc621fbb896a0868b7bd65ca536a90633b7750",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-e3ade84a-59e5-4629-ad76-4cded46298d1.png",
+        "sha256": "13f45129c58cec93f755dcdf0206bf8f0285615ee9b0689b91c1d230b8057c95",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-14-v02.webp",
+        "sha256": "ebff0bad181d0dbfdb206fd861f84ec9231c6aa2082d7a7ab8e70d29bac2b440",
+        "decodedPixelSha256": "8916e9aa75004065a98c094e8248a8b6b4f0864bc9b99e3481b972360e35a5c9",
+        "byteLength": 164562,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 15,
+      "portraitRef": "portrait.starter.wayfarer-15",
+      "assetId": "character.creation.portrait-15",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-b0394234-6d54-4b5f-86ce-946fb223055f",
+      "prompt": "Use case identity-preserve. Repaint this tiny supplied avatar as ONE high-detail centered square fantasy RPG character portrait: a mature rugged man with warm medium brown skin, swept-back dark gray hair, a short beard and moustache, strong face and steady eyes. Preserve original face, skin color, hair, age, distinctive accessories, and dark practical fantasy clothing rather than making a different character. Reconstruct sharp eyes, believable facial anatomy, detailed hair and fabric in premium painterly semi-realistic anime fantasy art. New framing: centered head-and-shoulders bust, both shoulders visible, crown of hair or hood fully inside the square with10% clear headroom, eyes near40% height, entire chin and neck visible. Keep the face centered horizontally and looking toward viewer at slight three-quarter angle. Quiet atmospheric backdrop, soft readable light that keeps dark complexions legible. Not an extreme face crop. No text, UI, frame, border, watermark, hands, weapons or extra people. Freshly drawn crisp high-resolution detail, never enlarge old blur. One square1024x1024 portrait.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-15.png",
+          "sha256": "da17b20e97afcafbf1f15e2ee54f0081557bf6412dd078afb5143aab932d7606",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-b0394234-6d54-4b5f-86ce-946fb223055f.png",
+        "sha256": "85e6822c4151d38dc9ca58f09beeadb5207785294adb3c477232535b8a6503ef",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-15-v02.webp",
+        "sha256": "355e75dc8d89e18c946d86809885afa3682d1174eb7e43d4006a504b9422dd3c",
+        "decodedPixelSha256": "3b2d72065ebbee5f1a25075593480030343df6b46c9d7ba33ab1e3c891a8c7bf",
+        "byteLength": 186068,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 16,
+      "portraitRef": "portrait.starter.wayfarer-16",
+      "assetId": "character.creation.portrait-16",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-f0a944c0-9196-4387-b068-c128f29ff603",
+      "prompt": "Use case identity-preserve. Repaint this tiny supplied avatar as ONE high-detail centered square fantasy RPG character portrait: a fair olive-skinned woman under a simple dark hood, dark hair, brown eyes and a direct watchful calm expression. Preserve original face, skin color, hair, age, distinctive accessories, and dark practical fantasy clothing rather than making a different character. Reconstruct sharp eyes, believable facial anatomy, detailed hair and fabric in premium painterly semi-realistic anime fantasy art. New framing: centered head-and-shoulders bust, both shoulders visible, crown of hair or hood fully inside the square with10% clear headroom, eyes near40% height, entire chin and neck visible. Keep the face centered horizontally and looking toward viewer at slight three-quarter angle. Quiet atmospheric backdrop, soft readable light that keeps dark complexions legible. Not an extreme face crop. No text, UI, frame, border, watermark, hands, weapons or extra people. Freshly drawn crisp high-resolution detail, never enlarge old blur. One square1024x1024 portrait.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-16.png",
+          "sha256": "6a2dc8d00723d746deee0438f6cfb81a14298807c975bfaee5f07aa432e38c34",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-f0a944c0-9196-4387-b068-c128f29ff603.png",
+        "sha256": "d00f7b1983fd0bba84325995f665d10cff09e04f564ffe895c425f8968404290",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-16-v02.webp",
+        "sha256": "a02030c148a85612bbac6a3445db30123050ce18c85b561607327b18dffac7cf",
+        "decodedPixelSha256": "46841f1cd5b469984aabeeb61f6c039240c829c10580d97a925f064fe6383dff",
+        "byteLength": 118090,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 17,
+      "portraitRef": "portrait.starter.wayfarer-17",
+      "assetId": "character.creation.portrait-17",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-c0c2ff5a-a056-42b1-988c-b1a40f94abac",
+      "prompt": "Use case identity-preserve. Repaint this tiny supplied avatar as ONE high-detail centered square fantasy RPG character portrait: a deep brown-skinned woman with long black loosely braided hair, small subtle gold beads, warm eyes and a thoughtful expression. Preserve original face, skin color, hair, age, distinctive accessories, and dark practical fantasy clothing rather than making a different character. Reconstruct sharp eyes, believable facial anatomy, detailed hair and fabric in premium painterly semi-realistic anime fantasy art. New framing: centered head-and-shoulders bust, both shoulders visible, crown of hair or hood fully inside the square with10% clear headroom, eyes near40% height, entire chin and neck visible. Keep the face centered horizontally and looking toward viewer at slight three-quarter angle. Quiet atmospheric backdrop, soft readable light that keeps dark complexions legible. Not an extreme face crop. No text, UI, frame, border, watermark, hands, weapons or extra people. Freshly drawn crisp high-resolution detail, never enlarge old blur. One square1024x1024 portrait.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-17.png",
+          "sha256": "abe05b124b57bc02381304afd025d8603e42fe5360193f1a8c06b0ba94ef962d",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-c0c2ff5a-a056-42b1-988c-b1a40f94abac.png",
+        "sha256": "181a330ae5e239833d087b05bf7b703b96f2371cd6c9dd630043cdb0a7ab1e44",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-17-v02.webp",
+        "sha256": "0a622ab1524b70a1787ec7aaf82376bbeaaf41ac376a52f1f570c740c1f1ce50",
+        "decodedPixelSha256": "5b21d16e89cd912b82f0234e10d0830d64c2b9c1be815846976afd53d4c11993",
+        "byteLength": 143676,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 18,
+      "portraitRef": "portrait.starter.wayfarer-18",
+      "assetId": "character.creation.portrait-18",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-df9e6112-b72a-4d44-b12a-17f323195a48",
+      "prompt": "Use case identity-preserve. Repaint this tiny supplied avatar as ONE high-detail centered square fantasy RPG character portrait: a fair-skinned woman with shoulder-length pale blond hair, small flower-like ornament, light hazel eyes and a soft composed expression. Preserve original face, skin color, hair, age, distinctive accessories, and dark practical fantasy clothing rather than making a different character. Reconstruct sharp eyes, believable facial anatomy, detailed hair and fabric in premium painterly semi-realistic anime fantasy art. New framing: centered head-and-shoulders bust, both shoulders visible, crown of hair or hood fully inside the square with10% clear headroom, eyes near40% height, entire chin and neck visible. Keep the face centered horizontally and looking toward viewer at slight three-quarter angle. Quiet atmospheric backdrop, soft readable light that keeps dark complexions legible. Not an extreme face crop. No text, UI, frame, border, watermark, hands, weapons or extra people. Freshly drawn crisp high-resolution detail, never enlarge old blur. One square1024x1024 portrait.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-18.png",
+          "sha256": "6ecf804906ca3d4d8081612fa0a77d6c6c63608edda8ef43b18e9741823451ff",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-df9e6112-b72a-4d44-b12a-17f323195a48.png",
+        "sha256": "0ba94c9cf950f5b16c9352720cb172990326098ffd9bbb50e4b15e0df416d17c",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-18-v02.webp",
+        "sha256": "1a4566db2162a534c7314f2c65d093fb72bd4b6e3e60004a44b7839768a3af5c",
+        "decodedPixelSha256": "b07281d4b9f7615670512b3ad670aed8e84e88b717cb4f8b7085171a4509e392",
+        "byteLength": 187538,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 19,
+      "portraitRef": "portrait.starter.wayfarer-19",
+      "assetId": "character.creation.portrait-19",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-c14649f3-da84-45b2-8744-f0e18911e8f9",
+      "prompt": "Use case identity-preserve. Repaint this tiny supplied avatar as ONE high-detail centered square fantasy RPG character portrait: a deep brown-skinned woman with swept-back black braids, silver crescent-like hair accessory, dark eyes and an elegant calm expression. Preserve original face, skin color, hair, age, distinctive accessories, and dark practical fantasy clothing rather than making a different character. Reconstruct sharp eyes, believable facial anatomy, detailed hair and fabric in premium painterly semi-realistic anime fantasy art. New framing: centered head-and-shoulders bust, both shoulders visible, crown of hair or hood fully inside the square with10% clear headroom, eyes near40% height, entire chin and neck visible. Keep the face centered horizontally and looking toward viewer at slight three-quarter angle. Quiet atmospheric backdrop, soft readable light that keeps dark complexions legible. Not an extreme face crop. No text, UI, frame, border, watermark, hands, weapons or extra people. Freshly drawn crisp high-resolution detail, never enlarge old blur. One square1024x1024 portrait.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-19.png",
+          "sha256": "083a6d0c129225f51768b26f133e9df4cd3d632c00fa652a870fca6d189ad58d",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-c14649f3-da84-45b2-8744-f0e18911e8f9.png",
+        "sha256": "5174e7e3fba164bb5b6895ad406832c037128a03cff569117f03b7af3d961a9b",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-19-v02.webp",
+        "sha256": "eb06ac510af5825192ce38e343dc0d06d4811a334cb32d0c08e9df1f0090f470",
+        "decodedPixelSha256": "be8efc1de0dab18adbf3a756820e4149bb993148f214636bee140c783cc8110a",
+        "byteLength": 163196,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 20,
+      "portraitRef": "portrait.starter.wayfarer-20",
+      "assetId": "character.creation.portrait-20",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-4bb2c8e3-9c24-40a7-9181-a34ede74cf6e",
+      "prompt": "Use case identity-preserve. Repaint this tiny supplied avatar as ONE high-detail centered square fantasy RPG character portrait: a pale olive-skinned woman with shoulder-length side-swept black hair, dark round spectacles, gray eyes and an intelligent reserved expression. Preserve original face, skin color, hair, age, distinctive accessories, and dark practical fantasy clothing rather than making a different character. Reconstruct sharp eyes, believable facial anatomy, detailed hair and fabric in premium painterly semi-realistic anime fantasy art. New framing: centered head-and-shoulders bust, both shoulders visible, crown of hair or hood fully inside the square with10% clear headroom, eyes near40% height, entire chin and neck visible. Keep the face centered horizontally and looking toward viewer at slight three-quarter angle. Quiet atmospheric backdrop, soft readable light that keeps dark complexions legible. Not an extreme face crop. No text, UI, frame, border, watermark, hands, weapons or extra people. Freshly drawn crisp high-resolution detail, never enlarge old blur. One square1024x1024 portrait.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-20.png",
+          "sha256": "dc5b079d4f2b6e02fe86e3edd438e3821b8416fc10c3189a20cabafa10786f07",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-4bb2c8e3-9c24-40a7-9181-a34ede74cf6e.png",
+        "sha256": "7895400a1e4edff5fd1ccb63414d6b1b38734de7f30df5c816d9ded3e10d0085",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-20-v02.webp",
+        "sha256": "c162731afe45b7376ea690f6523c6874c1073ee1bb44cb532f17f996daadc486",
+        "decodedPixelSha256": "898c39a37bc25f8965830b802a297feb5a5919227ee9d17fd558d36d791f310a",
+        "byteLength": 126756,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 21,
+      "portraitRef": "portrait.starter.wayfarer-21",
+      "assetId": "character.creation.portrait-21",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-024e6213-a230-4719-afd1-46cf8e872b19",
+      "prompt": "Use case identity-preserve. Repaint this low-resolution fantasy avatar into ONE crisp detailed square game portrait: a fair-skinned woman with tousled shoulder-length platinum-blond hair, a tiny flower and leaf ornament, gray eyes, a playful confident smile. Preserve defining identity from the supplied original: skin tone, face, hair color/length, age, adornments, practical dark fantasy outfit. Premium painterly semi-realistic anime illustration with sharp expressive eyes, natural anatomy, detailed hair strands, tactile fabric and coherent jewelry. CENTERED head-and-shoulders bust with full head within square,10% breathing space above crown/hood, eye line near40%, complete chin, neck and both shoulders visible; face horizontally centered and looking toward viewer or slight three-quarter angle. Restrained atmospheric blurred background, readable soft light, rich detail without haze. No extreme face crop, UI, border, frame, words, watermark, hands, weapons or extra people. Actual newly drawn detail, not pixel enlargement. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-21.png",
+          "sha256": "181f7d2579d695c0f4ebd7a21e248e555bf260de265501ffe4bc76347943d5a9",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-024e6213-a230-4719-afd1-46cf8e872b19.png",
+        "sha256": "cf662b40d373f1631c16817c117e7496b2a81bbb12189937940c655ead1493e1",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-21-v02.webp",
+        "sha256": "b13bc447eb97429bba56026adf40b81cb54299c9a04de35aff6e64e594519676",
+        "decodedPixelSha256": "7db7f076c29edbe799e8c6975f4777d4df5f5eb76f2bd54e2b9ea96082530fd3",
+        "byteLength": 207770,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 22,
+      "portraitRef": "portrait.starter.wayfarer-22",
+      "assetId": "character.creation.portrait-22",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-7271a399-3a95-44fd-8ec0-6a05aac0b75d",
+      "prompt": "Use case identity-preserve. Repaint this low-resolution fantasy avatar into ONE crisp detailed square game portrait: a warm dark brown-skinned androgynous young adult with short curly black hair partly swept back, brown eyes, dark high-collared fantasy clothing, a thoughtful direct gaze. Preserve defining identity from the supplied original: skin tone, face, hair color/length, age, adornments, practical dark fantasy outfit. Premium painterly semi-realistic anime illustration with sharp expressive eyes, natural anatomy, detailed hair strands, tactile fabric and coherent jewelry. CENTERED head-and-shoulders bust with full head within square,10% breathing space above crown/hood, eye line near40%, complete chin, neck and both shoulders visible; face horizontally centered and looking toward viewer or slight three-quarter angle. Restrained atmospheric blurred background, readable soft light, rich detail without haze. No extreme face crop, UI, border, frame, words, watermark, hands, weapons or extra people. Actual newly drawn detail, not pixel enlargement. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-22.png",
+          "sha256": "c0e094abbe7cf61c2b9a0601ca38d7af6f654d9539599c7d90f60628041f14c7",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-7271a399-3a95-44fd-8ec0-6a05aac0b75d.png",
+        "sha256": "76cddbc5503adfb443d5b21d5cf8438f5302fe3bc52dec74c4593dbbfce388a7",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-22-v02.webp",
+        "sha256": "846e9f9d194b99e6fe7f8296c6b0d8a9503978e03765416773c95f8350b9b7cd",
+        "decodedPixelSha256": "c717434d0c3efdc55ef54751dc7fd5a7cfae1eb66f5fb4eedbdb457bf7cdffe5",
+        "byteLength": 146742,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 23,
+      "portraitRef": "portrait.starter.wayfarer-23",
+      "assetId": "character.creation.portrait-23",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-bfb61a0e-23cb-4e0a-b5d8-00dfebfeca85",
+      "prompt": "Use case identity-preserve. Repaint this low-resolution fantasy avatar into ONE crisp detailed square game portrait: a deep brown-skinned woman with long black braids, delicate gold bead accents, brown eyes and a serene dignified expression. Preserve defining identity from the supplied original: skin tone, face, hair color/length, age, adornments, practical dark fantasy outfit. Premium painterly semi-realistic anime illustration with sharp expressive eyes, natural anatomy, detailed hair strands, tactile fabric and coherent jewelry. CENTERED head-and-shoulders bust with full head within square,10% breathing space above crown/hood, eye line near40%, complete chin, neck and both shoulders visible; face horizontally centered and looking toward viewer or slight three-quarter angle. Restrained atmospheric blurred background, readable soft light, rich detail without haze. No extreme face crop, UI, border, frame, words, watermark, hands, weapons or extra people. Actual newly drawn detail, not pixel enlargement. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-23.png",
+          "sha256": "35a4936c6b88d3be5a2278a4939884c37a4a3c64aca080c370a775e88101f35a",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-bfb61a0e-23cb-4e0a-b5d8-00dfebfeca85.png",
+        "sha256": "3bd04928fdfe3c65b2ea02b52df50fce01abb768a496d7512fa80a94cb18022b",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-23-v02.webp",
+        "sha256": "361384932cfa52624453fb926bc011c90d930ef852bf4a0321a70df420683eab",
+        "decodedPixelSha256": "101e1ea6a38bbd747147b588d31d0530587278f2f59788096f2a97df5fa78875",
+        "byteLength": 178080,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 24,
+      "portraitRef": "portrait.starter.wayfarer-24",
+      "assetId": "character.creation.portrait-24",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-3e6cb387-7457-4c1d-a0c1-619cc16d1940",
+      "prompt": "Use case identity-preserve. Repaint this low-resolution fantasy avatar into ONE crisp detailed square game portrait: a fair-skinned woman in a pale gray hood, dark hair partly showing beside her cheek, gray eyes, a composed watchful expression. Preserve defining identity from the supplied original: skin tone, face, hair color/length, age, adornments, practical dark fantasy outfit. Premium painterly semi-realistic anime illustration with sharp expressive eyes, natural anatomy, detailed hair strands, tactile fabric and coherent jewelry. CENTERED head-and-shoulders bust with full head within square,10% breathing space above crown/hood, eye line near40%, complete chin, neck and both shoulders visible; face horizontally centered and looking toward viewer or slight three-quarter angle. Restrained atmospheric blurred background, readable soft light, rich detail without haze. No extreme face crop, UI, border, frame, words, watermark, hands, weapons or extra people. Actual newly drawn detail, not pixel enlargement. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-24.png",
+          "sha256": "00368a50266bb14fd94d39e7f71b763f8277bbe26f7b595db7fcdd65305e9d66",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-3e6cb387-7457-4c1d-a0c1-619cc16d1940.png",
+        "sha256": "513e45cce7aecadf6947e16ebc60e1c6d6e6a7501f74208892651316b88edd32",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-24-v02.webp",
+        "sha256": "d789c73e3d4dad634b69855bf5f4420f01af9926b33ebb4dae094615e541ebb5",
+        "decodedPixelSha256": "4b556112334969da09c0d07bdbbf8473a91f9e320e64e925070277723202e7eb",
+        "byteLength": 156840,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 25,
+      "portraitRef": "portrait.starter.wayfarer-25",
+      "assetId": "character.creation.portrait-25",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-cfb456d1-f21c-4dd4-9c1f-5f4d21f00ada",
+      "prompt": "Use case identity-preserve. Repaint this low-resolution fantasy avatar into ONE crisp detailed square game portrait: a fair olive-skinned woman with loose shoulder-length black hair, warm hazel eyes, a small forehead jewel and a gentle serious expression. Preserve defining identity from the supplied original: skin tone, face, hair color/length, age, adornments, practical dark fantasy outfit. Premium painterly semi-realistic anime illustration with sharp expressive eyes, natural anatomy, detailed hair strands, tactile fabric and coherent jewelry. CENTERED head-and-shoulders bust with full head within square,10% breathing space above crown/hood, eye line near40%, complete chin, neck and both shoulders visible; face horizontally centered and looking toward viewer or slight three-quarter angle. Restrained atmospheric blurred background, readable soft light, rich detail without haze. No extreme face crop, UI, border, frame, words, watermark, hands, weapons or extra people. Actual newly drawn detail, not pixel enlargement. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-25.png",
+          "sha256": "467d430113d68a7b62233b425f4ad536483b27c2a1bc1f88759fbf068159f4a3",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-cfb456d1-f21c-4dd4-9c1f-5f4d21f00ada.png",
+        "sha256": "4594440ae7d32d47d41bc9aac22203da11de6f95a3763fc4d678c1d5617e7760",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-25-v02.webp",
+        "sha256": "edcf27fbbba471be06bb560b5a5b180c7dce4821141fd3da0988fb19a02eee7b",
+        "decodedPixelSha256": "8b9517c0c4c880bdde92594667e8547dc052e1043ec7cc70a862a3b704768575",
+        "byteLength": 191670,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 26,
+      "portraitRef": "portrait.starter.wayfarer-26",
+      "assetId": "character.creation.portrait-26",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-4b7b2a98-0aca-40b3-ae8d-d24312b1374e",
+      "prompt": "Use case identity-preserve. Repaint this low-resolution fantasy avatar into ONE crisp detailed square game portrait: a fair-skinned woman with wavy rose-pink hair, warm eyes, a small gold floral hair ornament and a tranquil expression. Preserve defining identity from the supplied original: skin tone, face, hair color/length, age, adornments, practical dark fantasy outfit. Premium painterly semi-realistic anime illustration with sharp expressive eyes, natural anatomy, detailed hair strands, tactile fabric and coherent jewelry. CENTERED head-and-shoulders bust with full head within square,10% breathing space above crown/hood, eye line near40%, complete chin, neck and both shoulders visible; face horizontally centered and looking toward viewer or slight three-quarter angle. Restrained atmospheric blurred background, readable soft light, rich detail without haze. No extreme face crop, UI, border, frame, words, watermark, hands, weapons or extra people. Actual newly drawn detail, not pixel enlargement. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-26.png",
+          "sha256": "0c6f57db431d47255c22c0a4fb90fbd38bff47699a8ec735927136bb2801d3cb",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-4b7b2a98-0aca-40b3-ae8d-d24312b1374e.png",
+        "sha256": "b11bf6ba0420fe8c66cd5b132c6dab3db0df865b66be09fc0b58140ee73cc9fe",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-26-v02.webp",
+        "sha256": "4c7d0386491eab35d0a7d3dd21058601b335b94c35f8ea9aded9cd05667983ee",
+        "decodedPixelSha256": "15299180e457ba1208af7bbb75a0049ea974c1ba0d13e65464bfd999ab68b2dc",
+        "byteLength": 221786,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 27,
+      "portraitRef": "portrait.starter.wayfarer-27",
+      "assetId": "character.creation.portrait-27",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-059ca5ab-eecb-49af-8215-29c6fdb870cc",
+      "prompt": "Use case identity-preserve. Redraw this tiny original avatar into ONE high-resolution square fantasy RPG portrait: a fair-skinned youthful man with tousled honey-brown hair, warm brown eyes, small restrained golden hair detail and a gentle confident expression. Preserve recognizable facial identity, exact skin/hair colors, hairstyle, approximate age, adornments and practical fantasy wardrobe from supplied image. Reconstruct fine crisp eyes, hair and fabric in premium painterly semi-realistic anime style. Centered head-and-shoulders bust, entire head/hair inside square with10% headroom, eyes at40% height, neck/upper chest and both shoulders visible, face centered horizontally and looking slightly toward viewer. Readable soft portrait light with uncluttered atmospheric background; no washed-out haze. No extreme close-up or side-cropped face. Remove original thumbnail border/UI artifacts. No text, watermark, frame, hands, weapons, duplicate faces or extra people. One square1024x1024, genuinely newly rendered fine detail rather than enlarged pixel blur.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-27.png",
+          "sha256": "403735f12662f2d2d01f0dddd17cdc1c97e41c30787a1bd565591cc60db0e0d0",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-059ca5ab-eecb-49af-8215-29c6fdb870cc.png",
+        "sha256": "e66db49fa350432251818b08800de6223d08f68485e2c00f27ca94e34967ecc8",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-27-v02.webp",
+        "sha256": "ffb17a07416cf3e310ea7096f3d39452ebbabfce8d52e2ec1f6b2fd001475080",
+        "decodedPixelSha256": "b07f2b98f12807d6d5be5236645911b86d07f5e375e1a13598d4cbba8c95438e",
+        "byteLength": 168716,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 28,
+      "portraitRef": "portrait.starter.wayfarer-28",
+      "assetId": "character.creation.portrait-28",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-76e76ef6-0e3c-4471-a46e-e2ab6c41409a",
+      "prompt": "Use case identity-preserve. Redraw this tiny original avatar into ONE high-resolution square fantasy RPG portrait: a fair-skinned young adult man with chestnut brown layered hair, a tiny leaf hair ornament, dark eyes and a soft focused expression. Preserve recognizable facial identity, exact skin/hair colors, hairstyle, approximate age, adornments and practical fantasy wardrobe from supplied image. Reconstruct fine crisp eyes, hair and fabric in premium painterly semi-realistic anime style. Centered head-and-shoulders bust, entire head/hair inside square with10% headroom, eyes at40% height, neck/upper chest and both shoulders visible, face centered horizontally and looking slightly toward viewer. Readable soft portrait light with uncluttered atmospheric background; no washed-out haze. No extreme close-up or side-cropped face. Remove original thumbnail border/UI artifacts. No text, watermark, frame, hands, weapons, duplicate faces or extra people. One square1024x1024, genuinely newly rendered fine detail rather than enlarged pixel blur.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-28.png",
+          "sha256": "8822f6074f351d1de7cef224da10f29102cccce6e946c21135480564ede11b5a",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-76e76ef6-0e3c-4471-a46e-e2ab6c41409a.png",
+        "sha256": "f53ca07a44cab2ddb3a9243e2bbe38d0f3cf8ea48120255c6eb4cd086b933e57",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-28-v02.webp",
+        "sha256": "565a7671981c9b33cf27665262523b3a18cbb1c9c857584d2985d79ceff8af07",
+        "decodedPixelSha256": "bdcc46b63ff8d2a3091b50eae87f4592b5549580dc9c682e2e4eca41c0b08164",
+        "byteLength": 207938,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 29,
+      "portraitRef": "portrait.starter.wayfarer-29",
+      "assetId": "character.creation.portrait-29",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-ffad991d-c6ae-4fbf-8609-e7a818b2f1ab",
+      "prompt": "Use case identity-preserve. Redraw this tiny original avatar into ONE high-resolution square fantasy RPG portrait: a warm olive-skinned youthful man with short black hair, small floral-gold hair ornament, dark eyes and an assured expression. Preserve recognizable facial identity, exact skin/hair colors, hairstyle, approximate age, adornments and practical fantasy wardrobe from supplied image. Reconstruct fine crisp eyes, hair and fabric in premium painterly semi-realistic anime style. Centered head-and-shoulders bust, entire head/hair inside square with10% headroom, eyes at40% height, neck/upper chest and both shoulders visible, face centered horizontally and looking slightly toward viewer. Readable soft portrait light with uncluttered atmospheric background; no washed-out haze. No extreme close-up or side-cropped face. Remove original thumbnail border/UI artifacts. No text, watermark, frame, hands, weapons, duplicate faces or extra people. One square1024x1024, genuinely newly rendered fine detail rather than enlarged pixel blur.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-29.png",
+          "sha256": "5552e7920e1d347358c44f49847c0a37c51a0900651e5781ff537d0b59ecae1f",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-ffad991d-c6ae-4fbf-8609-e7a818b2f1ab.png",
+        "sha256": "b3eeffb8c27281a56be9525ae3eb28304398ed7e997eead95dcd56f0cb6cbdef",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-29-v02.webp",
+        "sha256": "f01a8b28110e0a46104530359a7515601d5bcfdf82cc7cf7e2d8a9ce86d170b7",
+        "decodedPixelSha256": "9bd2874c7b4909352485acbb66af6f16540b8b791a3cfc28fe7579887946f2a6",
+        "byteLength": 186066,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 30,
+      "portraitRef": "portrait.starter.wayfarer-30",
+      "assetId": "character.creation.portrait-30",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-a047ddf0-25b9-4ec8-825a-05e98bc7a047",
+      "prompt": "Use case identity-preserve. Redraw this tiny original avatar into ONE high-resolution square fantasy RPG portrait: a dark brown-skinned woman with long silver-gray wavy hair, brown eyes, a small forehead jewel and a regal tranquil expression. Preserve recognizable facial identity, exact skin/hair colors, hairstyle, approximate age, adornments and practical fantasy wardrobe from supplied image. Reconstruct fine crisp eyes, hair and fabric in premium painterly semi-realistic anime style. Centered head-and-shoulders bust, entire head/hair inside square with10% headroom, eyes at40% height, neck/upper chest and both shoulders visible, face centered horizontally and looking slightly toward viewer. Readable soft portrait light with uncluttered atmospheric background; no washed-out haze. No extreme close-up or side-cropped face. Remove original thumbnail border/UI artifacts. No text, watermark, frame, hands, weapons, duplicate faces or extra people. One square1024x1024, genuinely newly rendered fine detail rather than enlarged pixel blur.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-30.png",
+          "sha256": "392f9999aadb1709f97ed36867d10d4324d7cd0979c673dd40fd1c5ffa5d5bbf",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-a047ddf0-25b9-4ec8-825a-05e98bc7a047.png",
+        "sha256": "0794bee3b754b4c028764a4bee0b7ba0a9f4a2000f4a7bc77eddb8d6bd222994",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-30-v02.webp",
+        "sha256": "d749ea3d7bceb700cfd20837b90a8cfb951f7d5c89073161b4a0a3ada1e9bc1f",
+        "decodedPixelSha256": "557bebd136b40e0b487d058419e7b687676793733dc9c08f72fdac44e69996c2",
+        "byteLength": 208906,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 31,
+      "portraitRef": "portrait.starter.wayfarer-31",
+      "assetId": "character.creation.portrait-31",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-39426b18-a836-41ef-906f-ea804eadc170",
+      "prompt": "Use case identity-preserve. Redraw this tiny original avatar into ONE high-resolution square fantasy RPG portrait: a fair-skinned woman with deep red wavy hair, gold floral hair ornaments, warm brown eyes and a gentle direct expression. Preserve recognizable facial identity, exact skin/hair colors, hairstyle, approximate age, adornments and practical fantasy wardrobe from supplied image. Reconstruct fine crisp eyes, hair and fabric in premium painterly semi-realistic anime style. Centered head-and-shoulders bust, entire head/hair inside square with10% headroom, eyes at40% height, neck/upper chest and both shoulders visible, face centered horizontally and looking slightly toward viewer. Readable soft portrait light with uncluttered atmospheric background; no washed-out haze. No extreme close-up or side-cropped face. Remove original thumbnail border/UI artifacts. No text, watermark, frame, hands, weapons, duplicate faces or extra people. One square1024x1024, genuinely newly rendered fine detail rather than enlarged pixel blur.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-31.png",
+          "sha256": "6e84c5cc18897ab70cbf2f2b487d9c253c40239fdc33db008bca0ffa0da22f9f",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-39426b18-a836-41ef-906f-ea804eadc170.png",
+        "sha256": "a6d62e13495cf885369aa2d488617be5e37b01a103c1921b84d076f9b4b1d97c",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-31-v02.webp",
+        "sha256": "c3426f4b9461154c67e1dcefc6000d5ff27facd126b867f1710f931d574dadd3",
+        "decodedPixelSha256": "0175052d577b4910eca17ce90d945bcc6928fbfbb587a5dbf4ad32a44dbeea53",
+        "byteLength": 193130,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 32,
+      "portraitRef": "portrait.starter.wayfarer-32",
+      "assetId": "character.creation.portrait-32",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-236f8987-0c25-40ba-9fb3-4f78d18afe5b",
+      "prompt": "Use case identity-preserve. Redraw this tiny original avatar into ONE high-resolution square fantasy RPG portrait: a light olive-skinned young adult with wavy black hair, thin dark round glasses, small gold floral hairpin, brown eyes and a thoughtful expression. Preserve recognizable facial identity, exact skin/hair colors, hairstyle, approximate age, adornments and practical fantasy wardrobe from supplied image. Reconstruct fine crisp eyes, hair and fabric in premium painterly semi-realistic anime style. Centered head-and-shoulders bust, entire head/hair inside square with10% headroom, eyes at40% height, neck/upper chest and both shoulders visible, face centered horizontally and looking slightly toward viewer. Readable soft portrait light with uncluttered atmospheric background; no washed-out haze. No extreme close-up or side-cropped face. Remove original thumbnail border/UI artifacts. No text, watermark, frame, hands, weapons, duplicate faces or extra people. One square1024x1024, genuinely newly rendered fine detail rather than enlarged pixel blur.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-32.png",
+          "sha256": "c28441be98d874207803e03815b9eba9e2cfd7f176d7d6387919ca907f163da5",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-236f8987-0c25-40ba-9fb3-4f78d18afe5b.png",
+        "sha256": "468b7c377c59f3491eadae267132168cada179374f1bbd27ef2615e0473d142b",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-32-v02.webp",
+        "sha256": "9292f06d22dc97cda6b886b06b1368cca18d755ea832639f4e2782c0b51a4262",
+        "decodedPixelSha256": "a0ed619736137eec3c9b2d769c64695a34326b4420a39e4e0c0c6384d235c222",
+        "byteLength": 158460,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 33,
+      "portraitRef": "portrait.starter.wayfarer-33",
+      "assetId": "character.creation.portrait-33",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-1df7aaac-6483-4a78-b653-353a2f8b1498",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a dark brown-skinned youthful man with short tousled black hair, strong dark eyebrows, dark eyes and a serious composed expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-33.png",
+          "sha256": "4965aad79c146b8341828ccefb152dd7121369f79d464c0a5fd958f80cf8cc1f",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-1df7aaac-6483-4a78-b653-353a2f8b1498.png",
+        "sha256": "87456eaf5a0ef34b0e634fed6ea5fed9cb53b6d4512868a89767b8b8c6266c11",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-33-v02.webp",
+        "sha256": "87c4d0c3b92fb460ef4c78bc7910bff00e80f46c44547edb1cbe6366bec79d8a",
+        "decodedPixelSha256": "e3c898d27a2d02f142375387e1050aeb22398f4a908e24d94b326e11f20954ab",
+        "byteLength": 196122,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 34,
+      "portraitRef": "portrait.starter.wayfarer-34",
+      "assetId": "character.creation.portrait-34",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-f28a7cab-c5b8-403a-930f-c17663481229",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a fair olive-skinned youthful man with short loosely swept black hair, soft brown eyes and a calm gentle expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-34.png",
+          "sha256": "f366710a80242d18bcd0ea485ec8bfe6e176ecb05f997a8d3f44ca1f109dd7e5",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-f28a7cab-c5b8-403a-930f-c17663481229.png",
+        "sha256": "f8969fd445ec410f70f45458f11351aa7c4b3410088c9dc8db590af6d6b66c49",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-34-v02.webp",
+        "sha256": "e468c9eaf4b71fd62c60efbddec31354aab8236e8ec858668b16c3a544f06fa0",
+        "decodedPixelSha256": "7d46cd36062ad81dfa7d56fe86cd784e5bbbc9c29d45ef46dbcbcd27a918e0f5",
+        "byteLength": 183162,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 35,
+      "portraitRef": "portrait.starter.wayfarer-35",
+      "assetId": "character.creation.portrait-35",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-d872da61-dd65-40aa-b65a-693095766811",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a fair-skinned woman with long white-silver hair, a small pale floral hair ornament, gray eyes and a soft poised expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-35.png",
+          "sha256": "ded91b002129187cf1a4d3d063d77c25ddba9ac423e4d64097576954fdb756f7",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-d872da61-dd65-40aa-b65a-693095766811.png",
+        "sha256": "edaee824e4094e88d809556a50b8860abe2f4af3c79aa1d8b73dcd67193db533",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-35-v02.webp",
+        "sha256": "0a06d642463933b1d7510638745d33e77843805593a5b7641eb17011760be779",
+        "decodedPixelSha256": "fece163975f0b9d98e4f60324d081b8c7480621140a778ddeef5fb715da077c7",
+        "byteLength": 170126,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 36,
+      "portraitRef": "portrait.starter.wayfarer-36",
+      "assetId": "character.creation.portrait-36",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-782ec0fb-ff8c-457b-8a9a-3fc67f822fdc",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a light olive-skinned woman with long black hair partly tied, small star-and-flower gold hair ornaments, dark eyes and a reserved composed expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-36.png",
+          "sha256": "c881ca8fea3d1d092889ab9286a5cc2c1a6bfdece5ea2eb2d92e2f9154ef9d0b",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-782ec0fb-ff8c-457b-8a9a-3fc67f822fdc.png",
+        "sha256": "f2ec4161ec2baa87b21e3a8bd3d19b9ef7916ff5d5368866484590d02a587c23",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-36-v02.webp",
+        "sha256": "e38c968727a606e7c0b372027f82b4ac3cfea83d65c0c9342fcd45b359498b1b",
+        "decodedPixelSha256": "e73774aaccbb0d6c9a37227fffcda1b5eb4a12a282e4912d40396ea7ad2406a0",
+        "byteLength": 182474,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 37,
+      "portraitRef": "portrait.starter.wayfarer-37",
+      "assetId": "character.creation.portrait-37",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-b701869b-a2d5-4045-bb1a-2c0f0fbd58c1",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a fair olive-skinned woman with short swept silver-gray hair, gray eyes, a small leaf ornament and an alert calm expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-37.png",
+          "sha256": "79ba02386b73dd280c1f9b5f18fc70db30be0417028859bea36a8f75572cea10",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-b701869b-a2d5-4045-bb1a-2c0f0fbd58c1.png",
+        "sha256": "c8a103aeb7cf6e065981f88370ffd63d8a911a0a9ce9ed4fe445d763e43c1b82",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-37-v02.webp",
+        "sha256": "6affcde46d16222499d94c3012553aaf5c20c816514100d8f0f06d2095263466",
+        "decodedPixelSha256": "1cc40f8cc58957d33ec43e2468555dbaa7d4a10646630eb85a66f81a119e335b",
+        "byteLength": 158540,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 38,
+      "portraitRef": "portrait.starter.wayfarer-38",
+      "assetId": "character.creation.portrait-38",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-bf131517-1060-4bc5-82de-ad88ba788c83",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a fair-skinned youthful man with pale blond softly wavy hair, warm eyes, small restrained hair adornment and a calm expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-38.png",
+          "sha256": "f5a0b4631832b85b9fee690555fbc0546f7ccd07573e330399a437ec5fd15eea",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-bf131517-1060-4bc5-82de-ad88ba788c83.png",
+        "sha256": "b5baa9ce25c790f9c289c8dd2e489199f76f3b02013ac68ec621476d31f30b05",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-38-v02.webp",
+        "sha256": "154137f1ca87c40ffcbff5de60486268c970224ce9a18ef96415e390406c873c",
+        "decodedPixelSha256": "6f307bc7bfc07f566fbfa8be7a7d6937ba81d0e2d84eea3fab1402fe219ae434",
+        "byteLength": 172926,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 39,
+      "portraitRef": "portrait.starter.wayfarer-39",
+      "assetId": "character.creation.portrait-39",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-8d4af9af-bdf5-4914-a2a3-b361eb304575",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a fair olive-skinned youthful man with short tousled black hair, dark eyes, understated dark fantasy collar and a thoughtful serious expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-39.png",
+          "sha256": "bed39070b67e1f488a30c31bf37dcce3e3312b9849f146fc883549bafdec7488",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-8d4af9af-bdf5-4914-a2a3-b361eb304575.png",
+        "sha256": "936aba4d8fa0cb202d6830aab729d64a3af15d8c17932c861019af568c656cc7",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-39-v02.webp",
+        "sha256": "42bbd9f4ab6e3fd8064d387693ebd349976b246b9a13a282e8867ab4af15a7fa",
+        "decodedPixelSha256": "046d1389532455cdf53932d69cae2d38ee432b099440966fc738ed306834ee13",
+        "byteLength": 169906,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    },
+    {
+      "number": 40,
+      "portraitRef": "portrait.starter.wayfarer-40",
+      "assetId": "character.creation.portrait-40",
+      "origin": "OpenAI built-in imagegen",
+      "generationRequestId": "exec-9ecfb147-7fe3-42e7-8f02-705b113e817c",
+      "prompt": "Use case identity-preserve. Repaint the supplied low-resolution fantasy avatar as ONE beautiful high-detail square RPG portrait: a deep brown-skinned woman under a simple dark hood, long dark hair, brown eyes and a steady confident watchful expression. Preserve distinctive facial identity, skin tone, hair color/style/length, age, ornaments and practical fantasy clothing. Render crisp natural eyes, anatomically believable face, fine hair strands and tactile fabric in premium painterly semi-realistic anime fantasy art. Important centered composition: head-and-shoulders bust with full crown of hair or hood INSIDE the frame,10% space above it, eye line near40% height, complete chin and neck plus both shoulders visible. Face horizontally centered with a direct or gentle three-quarter gaze toward viewer. Quiet atmospheric blurred background with flattering legible light, including for dark skin. Not an extreme facial crop. No border, UI, frame, text, watermark, hands, weapons or extra faces/people. Freshly drawn sharp detail, never simply upscale the old pixels. One square1024x1024.",
+      "inputs": [
+        {
+          "role": "identity reference",
+          "filename": "old-40.png",
+          "sha256": "59709278178d5b1a2eaff26a4ba7a1edceb2400a8d7502d430156bbe66f93425",
+          "dimensions": [96, 96]
+        }
+      ],
+      "generatedMaster": {
+        "filename": "exec-9ecfb147-7fe3-42e7-8f02-705b113e817c.png",
+        "sha256": "01d078515fafd1816a50fb17bb37b62754e92c26c99e3cbd998575f1968796fd",
+        "dimensions": [1254, 1254],
+        "format": "PNG"
+      },
+      "runtime": {
+        "path": "/media/art/wayfarer/portrait-40-v02.webp",
+        "sha256": "7fca1e51656efb6abd4dd38b0297653fe6706e5bb59b5b2fc8486fbe429b59ab",
+        "decodedPixelSha256": "c7deb46c9613f789662cbfc359c27a37aacf73845c971328278833efc4e4b179",
+        "byteLength": 169684,
+        "dimensions": [1024, 1024],
+        "format": "WebP"
+      }
+    }
+  ]
+}

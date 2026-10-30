@@ -1,6 +1,10 @@
 'use client'
 
 import { MasterHelp } from '../master-help'
+import {
+  isAuthoredElementalCompanion,
+  withAuthoredElementalCompanions,
+} from './elemental-companion-authoring'
 import { AreaRecipientRepair } from './area-recipient-repair'
 import { AbilityCostEditor } from './ability-cost-editor'
 import type { AbilityEditorSection } from './ability-editor-tabs'
@@ -36,8 +40,8 @@ import {
   simpleAutomaticTargetSubjects,
 } from '@aurevane/game-core/combat/combat-simple-requirements'
 
-const limits = ['once-per-action', 'once-per-owner-turn', 'once-per-round'] as const
-const limitNames = ['Once per action', 'Once per owner turn', 'Once per round']
+const limits = ['once-per-action', 'once-per-round'] as const
+const limitNames = ['Once per action', 'Once per round']
 const base = () => ({
   ...structuredClone(
     defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
@@ -99,29 +103,60 @@ export function rebindSimpleRequirement(value: AbilityBehavior): AbilityBehavior
 }
 
 export function withSharedEffectAim(next: AbilityBehavior): AbilityBehavior {
-  if (
-    next.targeting?.shape.kind !== 'single' &&
-    hasSelectedAimRequirement([
-      next.requirements,
-      ...next.effects.map((effect) => effect.requirements),
-    ])
-  )
-    return next
+  const requiresSelectedUnit = hasSelectedAimRequirement([
+    next.requirements,
+    ...next.effects.map((effect) => effect.requirements),
+  ])
+  if (next.targeting?.shape.kind !== 'single' && requiresSelectedUnit) return next
+  // A selected-unit prerequisite owns its canonical aim independently of effect recipients.
+  if (next.targeting?.kind === 'unit' && requiresSelectedUnit) return rebindSimpleRequirement(next)
   return rebindSimpleRequirement({
     ...next,
     targeting: next.targeting
       ? deriveSharedEffectAim(
           next.targeting,
-          next.effects.map((effect) => effect.payload),
+          next.effects
+            .filter((effect) => !isAuthoredElementalCompanion(effect))
+            .map((effect) => effect.payload),
           {
-            requiresSelectedUnit: hasSelectedAimRequirement([
-              next.requirements,
-              ...next.effects.map((effect) => effect.requirements),
-            ]),
+            requiresSelectedUnit,
           },
         )
       : null,
   })
+}
+
+/** Deliberate conversion only: never reinterpret an area/tile Requirement on read. */
+function selectedUnitRequirementDraft(
+  value: AbilityBehavior,
+  teamPolicy: 'enemy' | 'ally' | 'any',
+): AbilityBehavior | null {
+  const selected = readSimpleRequirement(value.requirements)
+  const target = value.targeting
+  if (
+    value.activation !== 'manual' ||
+    value.mode !== 'action' ||
+    !target ||
+    !selected ||
+    selected.tagId === 'none' ||
+    (target.maximumSelections ?? 1) > 1
+  )
+    return null
+  const next: AbilityBehavior = {
+    ...value,
+    requirements: createSimpleRequirement(selected.tagId, 'selected', selected.percent ?? 50),
+    targeting: {
+      ...target,
+      geometryVersion: 3,
+      kind: 'unit',
+      teamPolicy,
+      categories: teamPolicy === 'any' ? ['self', 'ally', 'enemy'] : [teamPolicy],
+      shape: { kind: 'single' },
+      maximumSelections: 1,
+      maximumRange: Math.max(1, target.maximumRange),
+    },
+  }
+  return validateAbilityDefinition({ schemaVersion: 1, behaviors: [next] }).length ? null : next
 }
 
 function AbilityGroupEditor({
@@ -151,6 +186,7 @@ function AbilityGroupEditor({
         ),
       }
     }
+    next = withAuthoredElementalCompanions(value, next)
     update(
       (next.targeting?.maximumSelections ?? 1) > 1 ||
         (next.targeting === value.targeting && next.effects === value.effects)
@@ -158,6 +194,7 @@ function AbilityGroupEditor({
         : withSharedEffectAim(next),
     )
   }
+  const elementRepair = withAuthoredElementalCompanions(value, value)
   const show = (key: AbilityEditorSection) => !section || section === key
   const automaticSubjects =
     value.requirementMode === 'simple'
@@ -165,8 +202,25 @@ function AbilityGroupEditor({
       : (['owner', 'triggering', 'selected', 'affected'] as const)
   const automaticArea =
     value.targeting?.shape.kind === 'circle' || value.targeting?.shape.kind === 'all'
+  const unitRequirementChoices = show('details')
+    ? (['enemy', 'ally', 'any'] as const).flatMap((policy) => {
+        const draft = selectedUnitRequirementDraft(value, policy)
+        return draft ? [{ policy, draft }] : []
+      })
+    : []
   return (
     <div className={styles.effectList}>
+      {elementRepair !== value ? (
+        <aside role="status">
+          <p>
+            This recovered draft needs its required elemental tags synchronized. Other edits are
+            kept.
+          </p>
+          <button type="button" onClick={() => onChange(elementRepair)}>
+            Add required elemental tags
+          </button>
+        </aside>
+      ) : null}
       {value.targeting ? (
         <AreaRecipientRepair
           target={value.targeting}
@@ -386,10 +440,8 @@ function AbilityGroupEditor({
             <legend>
               Usage limits{' '}
               <MasterHelp label="Usage limits">
-                Once per action resets for each command. Once per owner turn resets for the owner’s
-                next turn cycle. Once per round resets when the global round advances. Automatic
-                reactions can occur during another unit’s turn, so the last two limits can reset at
-                different times.
+                Once per action resets for each command. Once per round resets when the global round
+                advances.
               </MasterHelp>
             </legend>
             <div className={styles.typedGrid}>
@@ -412,6 +464,27 @@ function AbilityGroupEditor({
                 </label>
               ))}
             </div>
+            {value.activationLimits?.includes('once-per-owner-turn') ? (
+              <div className={styles.fieldHint}>
+                <p>
+                  Retained: once per owner turn. This existing limit resets on the owner’s next turn
+                  cycle.
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    onChange({
+                      ...value,
+                      activationLimits: value.activationLimits?.filter(
+                        (limit) => limit !== 'once-per-owner-turn',
+                      ),
+                    })
+                  }
+                >
+                  Remove retained owner-turn limit
+                </button>
+              </div>
+            ) : null}
           </fieldset>
           <AbilityRequirementEditor
             behavior={value}
@@ -423,10 +496,33 @@ function AbilityGroupEditor({
             behavior groups keep their own activation and Requirements.
           </p>
           <LegacyEffectRequirements value={value} onChange={onChange} />
-          {value.activation === 'manual' &&
-          value.mode === 'action' &&
-          value.targeting?.kind === 'unit' &&
-          value.targeting.shape.kind !== 'single' ? (
+          {unitRequirementChoices.length ? (
+            <>
+              <AbilitySelect
+                label="Target Requirement aim"
+                value="current"
+                options={['current', ...unitRequirementChoices.map(({ policy }) => policy)]}
+                optionLabels={{
+                  current: 'Keep current targeting',
+                  enemy: 'Select Enemy · Single',
+                  ally: 'Select Ally · Single',
+                  any: 'Select Anyone · Single',
+                }}
+                onChange={(policy) => {
+                  const choice = unitRequirementChoices.find((choice) => choice.policy === policy)
+                  if (choice) onChange(choice.draft)
+                }}
+              />
+              <p className={styles.fieldHint}>
+                Choosing a unit changes this action to Single targeting and checks its Requirement
+                on that unit. An area becomes one tile. Effect targets and retained conditions stay
+                as authored; All effects still cover the arena. Adjust reach in Range &amp; Area.
+              </p>
+            </>
+          ) : value.activation === 'manual' &&
+            value.mode === 'action' &&
+            value.targeting?.kind === 'unit' &&
+            value.targeting.shape.kind !== 'single' ? (
             <button
               type="button"
               onClick={() =>
@@ -476,6 +572,9 @@ function AbilityGroupEditor({
                         {' '}
                         [{inheritedEffectTargetLabel(effect.payload, value.targeting ?? undefined)}]
                       </span>
+                      {isAuthoredElementalCompanion(effect) ? (
+                        <small> · Required by element</small>
+                      ) : null}
                       {effect.requirements ? <small> · Retained condition (Details)</small> : null}
                     </strong>
                     <div className={styles.effectActions}>

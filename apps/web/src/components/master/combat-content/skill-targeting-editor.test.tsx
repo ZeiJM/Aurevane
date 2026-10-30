@@ -125,7 +125,12 @@ it.each([
   )
   expect(markup).not.toContain('aria-label="Maximum target range"')
   expect(markup).not.toContain('aria-label="Minimum target range"')
-  expect(markup).toMatch(/aria-label="(?:Circle radius|Line length)"[^>]*min="1"[^>]*max="5"/u)
+  expect(markup).toMatch(
+    new RegExp(
+      `aria-label="(?:Circle radius|Line length)"[^>]*min="1"[^>]*max="${shape.kind === 'line' ? 15 : 5}"`,
+      'u',
+    ),
+  )
   expect(value).toMatchObject({
     geometryVersion: 2,
     minimumRange: 0,
@@ -156,3 +161,17 @@ it('offers an explicit conversion from retained multiple selections without chan
   )
   expect(value.maximumSelections).toBe(3)
 })
+
+it.each([2, 3] as const)(
+  'allows Line length fifteen in the shared geometry%s form',
+  (geometryVersion) => {
+    const value = {
+      ...normalizeCurrentCombatTargetSpec(target({ shape: { kind: 'line', length: 15 } })),
+      geometryVersion,
+    }
+    const markup = renderToStaticMarkup(
+      createElement(SkillTargetingEditor, { value, v51Rules: true, onChange: vi.fn() }),
+    )
+    expect(markup).toMatch(/aria-label="Line length"[^>]*min="1"[^>]*max="15"[^>]*value="15"/u)
+  },
+)

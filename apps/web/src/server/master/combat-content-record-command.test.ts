@@ -1,3 +1,7 @@
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
+import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 const rpc = vi.hoisted(() => vi.fn())
@@ -285,3 +289,79 @@ it('passes global sort and bounded cursor to the same authorized list RPC', asyn
   )
   expect((await call({ action: 'list', sort: 'sql-order' })).status).toBe(400)
 })
+
+it.each(
+  (['skill', 'essence', 'resonance'] as const).flatMap((kind) =>
+    (['physical', 'mystic'] as const).map((family) => ({ kind, family })),
+  ),
+)(
+  'the real record create boundary enforces $kind $family formula despite forged payload overrides',
+  async ({ kind, family }) => {
+    const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+      .behaviors[0]!
+    const ability = {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...behavior,
+          attackFamily: family,
+          effects: [
+            {
+              id: 'hit',
+              payload: {
+                type: 'damage',
+                recipient: 'primary-unit',
+                amount: 7,
+                defenseKind: family === 'mystic' ? 'armor' : 'ward',
+                scaling: {
+                  source: family === 'mystic' ? 'physical-power' : 'mystic-power',
+                  coefficientBasisPoints: 0,
+                },
+                facingModifiersBasisPoints: { front: 20000, side: 20000, rear: 20000 },
+              },
+            },
+          ],
+        },
+      ],
+    }
+    const skill = { ...resolveMatureSkillVersion('vanguard.forceful-strike')!, ability }
+    const definition =
+      kind === 'skill'
+        ? skill
+        : kind === 'essence'
+          ? {
+              ...currentEssenceDefinitions()[0]!,
+              ability,
+              skill: { ...currentEssenceDefinitions()[0]!.skill, ability },
+            }
+          : { ...currentResonanceDefinitions()[0]!, ability }
+    const response = await call({ action: 'create', requestId, contentKind: kind, definition })
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    const payload = body.record.draft.definition.ability.behaviors[0].effects[0].payload
+    expect(payload).toEqual({
+      type: 'damage',
+      recipient: 'primary-unit',
+      amount: 7,
+      defenseKind: family === 'physical' ? 'armor' : 'ward',
+      scaling: {
+        source: family === 'physical' ? 'physical-power' : 'mystic-power',
+        coefficientBasisPoints: 2500,
+      },
+    })
+    expect(rpc).toHaveBeenCalledWith(
+      'write_combat_content_record_v1',
+      expect.objectContaining({
+        p_command: expect.objectContaining({
+          definition: expect.objectContaining({
+            ability: expect.objectContaining({
+              behaviors: expect.arrayContaining([
+                expect.objectContaining({ effects: [{ id: 'hit', payload }] }),
+              ]),
+            }),
+          }),
+        }),
+      }),
+    )
+  },
+)

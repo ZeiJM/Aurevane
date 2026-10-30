@@ -366,3 +366,42 @@ it.each([{ kind: 'single' }, { kind: 'circle', radius: 1 }] as const)(
     )
   },
 )
+
+it.each([6, 15])(
+  'previews actual authored Line[%i] through the Master service on its smaller board',
+  async (length) => {
+    const original = records.find((row) => row.id === 'farstrider.piercing-barrage')!.after
+    const group = original.ability!.behaviors[0]!
+    const definition = {
+      ...original,
+      ability: parseAbilityDefinition({
+        ...original.ability,
+        behaviors: [
+          {
+            ...group,
+            targeting: {
+              ...group.targeting!,
+              shape: { kind: 'line', length },
+              minimumRange: 0,
+              maximumRange: length,
+            },
+          },
+        ],
+      }),
+    }
+    const api = service()
+    expect(api.validateSkillDefinition(definition).issues).toEqual([])
+    const before = JSON.stringify(definition)
+    const preview = await api.previewSkillDefinition({
+      actorUserId: owner,
+      definition,
+      behaviorId: group.id,
+    })
+    expect(preview.issues).toEqual([])
+    expect(preview.legal).toBe(true)
+    expect(preview.targeting.selection).toEqual({ kind: 'direction', direction: 'east' })
+    expect(preview.targeting.affectedCombatantIds).toContain('master-preview-enemy')
+    expect(preview.simulation.rngConsumed).toBe(false)
+    expect(JSON.stringify(definition)).toBe(before)
+  },
+)

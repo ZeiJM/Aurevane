@@ -386,3 +386,120 @@ it('actual captured Recruit AI selects and commits the plural set through the sh
     ),
   ).toHaveLength(1)
 })
+
+it.each([6, 15])(
+  'previews and commits Line[%i] on a short board without off-board recipients',
+  (length) => {
+    const captured = captureCombatAbilitySource(
+      source({
+        targeting: {
+          ...target({ shape: { kind: 'line', length }, minimumRange: 0, maximumRange: length }),
+          maximumSelections: 1,
+        },
+        accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+        effects: [
+          { id: 'hit', payload: { type: 'damage', recipient: 'affected-units', amount: 10 } },
+        ],
+      }),
+    )
+    const state = reconcileCombatAbilitySources(preparePv1fTurnEconomy(percentageDotEncounter()), [
+      captured,
+    ])
+    state.tactical.placements = state.tactical.placements.map((row) =>
+      row.combatantId === 'ally' ? { ...row, position: { x: 4, y: 1 } } : row,
+    )
+    const before = JSON.stringify(state)
+    const command = {
+      state,
+      actorId: 'actor',
+      root: { kind: 'canonical' as const, source: captured },
+      selection: { kind: 'direction' as const, direction: 'east' as const },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(state, captured),
+    }
+    const quote = prepareCombatAbilityCommand(command)
+    expect(quote.evaluation.issues).toEqual([])
+    expect(quote.evaluation.affectedTiles).toEqual([
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
+      { x: 4, y: 1 },
+    ])
+    expect(quote.evaluation.affectedCombatantIds).toEqual(['enemy', 'other'])
+    expect(JSON.stringify(state)).toBe(before)
+    const committed = commitCombatAbilityCommand(command)
+    expect(
+      committed.events
+        .filter((row) => row.event === 'damage_applied')
+        .map((row) => row.targetCombatantId),
+    ).toEqual(['enemy', 'other'])
+  },
+)
+
+it.each([6, 15])(
+  'retains explicit elevation filtering for Line[%i] without shortening the footprint',
+  (length) => {
+    const state = percentageDotEncounter()
+    const tactical = {
+      ...state.tactical,
+      tiles: state.tactical.tiles.map((tile) =>
+        tile.position.x === 3 && tile.position.y === 1 ? { ...tile, elevation: 3 } : tile,
+      ),
+    }
+    const spec = target({
+      shape: { kind: 'line', length },
+      minimumRange: 0,
+      maximumRange: length,
+      maximumSelections: 1,
+      maximumElevationDifference: 1,
+    })
+    const positions = resolveCombatTargetFootprint(tactical, { x: 1, y: 1 }, spec, {
+      kind: 'direction',
+      direction: 'east',
+    })
+    expect(positions).toEqual([
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
+      { x: 4, y: 1 },
+    ])
+    expect(filterCombatTargetSpatialFootprint(tactical, { x: 1, y: 1 }, spec, positions)).toEqual([
+      { x: 2, y: 1 },
+      { x: 4, y: 1 },
+    ])
+  },
+)
+
+it.each([6, 15])('retains terrain and optional Steam visibility for Line[%i]', (length) => {
+  const state = percentageDotEncounter()
+  const origin = { x: 1, y: 1 }
+  const spec = target({
+    shape: { kind: 'line', length },
+    minimumRange: 0,
+    maximumRange: length,
+    maximumSelections: 1,
+  })
+  const positions = resolveCombatTargetFootprint(state.tactical, origin, spec, {
+    kind: 'direction',
+    direction: 'east',
+  })
+  const steam = [{ kind: 'steam', position: { x: 2, y: 1 } }]
+  expect(
+    filterCombatTargetSpatialFootprint(state.tactical, origin, spec, positions, steam),
+  ).toEqual(positions)
+  expect(
+    filterCombatTargetSpatialFootprint(
+      state.tactical,
+      origin,
+      { ...spec, requiresLineOfSight: true },
+      positions,
+      steam,
+    ),
+  ).toEqual([{ x: 2, y: 1 }])
+  const wall = {
+    ...state.tactical,
+    terrains: [...state.tactical.terrains, { id: 'wall', traversalCost: null }],
+    tiles: state.tactical.tiles.map((tile) =>
+      tile.position.x === 2 && tile.position.y === 1 ? { ...tile, terrainId: 'wall' } : tile,
+    ),
+  }
+  expect(filterCombatTargetSpatialFootprint(wall, origin, spec, positions)).toEqual([])
+})

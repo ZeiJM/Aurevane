@@ -1,3 +1,4 @@
+import { handleCombatContentAuthoringRequest } from './combat-content-authoring-handler'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
   parseAbilityDefinition,
@@ -73,8 +74,108 @@ function canonicalAuthoringFixture(
         ? service.publishEssence(input)
         : service.publishResonance(input)
   }
-  return { store, definition, validate, publish }
+  return { store, service, definition, validate, publish }
 }
+
+describe('native v5.1 Line authoring compatibility', () => {
+  it.each([6, 15])('validates and compiles native Skill and Essence Line[%i]', (length) => {
+    const { service } = serviceFixture()
+    function line(skill: MatureSkillDefinition): MatureSkillDefinition {
+      return {
+        ...skill,
+        target: {
+          ...skill.target,
+          geometryVersion: 2,
+          shape: { kind: 'line', length },
+          minimumRange: 0,
+          maximumRange: length,
+        },
+        requirements: [],
+        effects: [{ type: 'damage', recipient: 'affected-units', amount: 10 }],
+      }
+    }
+    const skill = line(staticSkill())
+    const essence = staticEssence()
+    expect(skill.authoring.validationTags).toContain('owner-rebalance-v5-1')
+    expect(service.validateSkillDefinition(skill).issues).toEqual([])
+    expect(
+      service.validateEssenceDefinition({ ...essence, skill: line(essence.skill) }).issues,
+    ).toEqual([])
+    expect(
+      service.validateSkillDefinition({
+        ...skill,
+        target: { ...skill.target, shape: { kind: 'line', length: 16 }, maximumRange: 16 },
+      }).valid,
+    ).toBe(false)
+    expect(
+      service.validateSkillDefinition({
+        ...skill,
+        target: { ...skill.target, shape: { kind: 'circle', radius: 6 }, maximumRange: 6 },
+      }).valid,
+    ).toBe(false)
+  })
+})
+
+describe('Line authoring through fifteen across content kinds', () => {
+  for (const kind of ['skill', 'essence', 'resonance'] as const) {
+    it.each([6, 15])(`validates and round-trips ${kind} Line[%i] publication`, async (length) => {
+      const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+      const group = base.behaviors[0]!
+      const ability = {
+        ...base,
+        behaviors: [
+          {
+            ...group,
+            targeting: {
+              ...group.targeting!,
+              geometryVersion: 3 as const,
+              categories: ['enemy' as const],
+              maximumSelections: 1,
+              shape: { kind: 'line' as const, length },
+              minimumRange: 0,
+              maximumRange: length,
+            },
+            effects: [
+              {
+                id: 'hit',
+                payload: {
+                  type: 'damage' as const,
+                  recipient: 'affected-units' as const,
+                  amount: 10,
+                },
+              },
+            ],
+          },
+        ],
+      }
+      const fixture = canonicalAuthoringFixture(kind, ability)
+      expect(fixture.validate()).toMatchObject({ valid: true, issues: [] })
+      const receipt = await fixture.publish()
+      expect(await fixture.store.findPublished(receipt.contentKey, kind)).toEqual(receipt)
+      const saved =
+        kind === 'essence'
+          ? (receipt.definition.skill as { ability: unknown }).ability
+          : receipt.definition.ability
+      expect(saved).toEqual(ability)
+      const rejected = canonicalAuthoringFixture(kind, {
+        ...ability,
+        behaviors: [
+          {
+            ...ability.behaviors[0]!,
+            targeting: {
+              ...ability.behaviors[0]!.targeting,
+              shape: { kind: 'line', length: 16 },
+              maximumRange: 16,
+            },
+          },
+        ],
+      })
+      expect(rejected.validate().valid).toBe(false)
+      await expect(rejected.publish()).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+      expect(await rejected.store.findPublished(receipt.contentKey, kind)).toBeNull()
+    })
+  }
+})
 
 describe('canonical authoring uses the supported behavior definition', () => {
   const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
@@ -1982,3 +2083,112 @@ it.each([
     ).toBe(primed)
   },
 )
+
+describe('automatic Damage formula authoring persistence', () => {
+  it.each(
+    (['skill', 'essence', 'resonance'] as const).flatMap((kind) =>
+      (['physical', 'mystic'] as const).map((family) => ({ kind, family })),
+    ),
+  )(
+    'saves, previews and publishes $kind $family through the real shared service',
+    async ({ kind, family }) => {
+      const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+        .behaviors[0]!
+      const ability: AbilityDefinition = {
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...base,
+            attackFamily: family,
+            effects: [
+              {
+                id: 'hit',
+                payload: {
+                  type: 'damage',
+                  recipient: 'primary-unit',
+                  amount: 9,
+                  defenseKind: family === 'physical' ? 'ward' : 'armor',
+                  scaling: {
+                    source: family === 'physical' ? 'mystic-power' : 'physical-power',
+                    coefficientBasisPoints: 0,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      }
+      const { store, service, definition } = canonicalAuthoringFixture(kind, ability)
+      const before = structuredClone(definition)
+      const key = 'essenceId' in definition ? definition.essenceId : definition.id
+      const request = async (operation: string, body: Record<string, unknown>) => {
+        const response = await handleCombatContentAuthoringRequest(
+          new Request('http://localhost/api/master/combat-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              operation,
+              contentKind: operation === 'preview' && kind === 'essence' ? 'skill' : kind,
+              ...body,
+            }),
+          }),
+          { getActor: async () => ({ userId: OWNER }), createService: () => service },
+        )
+        expect(response.status).toBe(200)
+        return response.json()
+      }
+      const input = {
+        actorUserId: OWNER,
+        definition,
+        baseVersion: definition.contentVersion,
+        expectedDraftVersion: null,
+      }
+      const { draft: saved } = (await request('save-draft', input)) as {
+        draft: import('@aurevane/db/combat-content').CombatContentDraftRecord
+      }
+      expect(await store.findDraft(key)).toEqual(saved)
+      const savedAbility = (
+        kind === 'essence'
+          ? (saved.definition.skill as { ability: AbilityDefinition }).ability
+          : saved.definition.ability
+      ) as AbilityDefinition
+      expect(savedAbility.behaviors[0]!.effects[0]!.payload).toEqual({
+        type: 'damage',
+        recipient: 'primary-unit',
+        amount: 9,
+        defenseKind: family === 'physical' ? 'armor' : 'ward',
+        scaling: {
+          source: family === 'physical' ? 'physical-power' : 'mystic-power',
+          coefficientBasisPoints: 2500,
+        },
+      })
+      const previewInput = {
+        actorUserId: OWNER,
+        contentKind: kind === 'resonance' ? ('resonance' as const) : ('skill' as const),
+        definition: kind === 'essence' ? (definition as EssenceDefinition).skill : definition,
+      }
+      const { preview: rawPreview } = await request('preview', previewInput)
+      const { preview: savedPreview } = await request('preview', {
+        ...previewInput,
+        definition: kind === 'essence' ? saved.definition.skill : saved.definition,
+      })
+      expect(rawPreview).toEqual(savedPreview)
+      expect(rawPreview.legal).toBe(true)
+      const publishInput = {
+        actorUserId: OWNER,
+        definition,
+        expectedBaseVersion: definition.contentVersion,
+      }
+      const { published } = (await request('publish', publishInput)) as {
+        published: import('@aurevane/db/combat-content').CombatContentVersionRecord
+      }
+      expect(await store.findPublished(key)).toEqual(published)
+      const publishedAbility =
+        kind === 'essence'
+          ? (published.definition.skill as { ability: AbilityDefinition }).ability
+          : published.definition.ability
+      expect(publishedAbility).toEqual(savedAbility)
+      expect(definition).toEqual(before)
+    },
+  )
+})

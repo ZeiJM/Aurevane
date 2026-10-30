@@ -168,7 +168,7 @@ describe('Master Panel Skill effect editor', () => {
     },
   )
 
-  it('edits direct damage, defenses, elements, scaling, and Vengeance through typed controls', () => {
+  it('edits direct power, elements and Vengeance while Defense and scaling are automatic', () => {
     const ordinary = render({
       type: 'damage',
       recipient: 'primary-unit',
@@ -178,17 +178,12 @@ describe('Master Panel Skill effect editor', () => {
       element: 'fire',
       scaling: { source: 'physical-power', coefficientBasisPoints: 7_500 },
     })
-    for (const label of [
-      'Damage amount',
-      'Target',
-      'Defense kind',
-      'Element',
-      'Damage scaling',
-      'Scaling (%)',
-      'Facing damage',
-    ]) {
+    for (const label of ['Damage amount', 'Target', 'Element']) {
       expect(ordinary).toContain(`aria-label="${label}"`)
     }
+
+    for (const label of ['Defense kind', 'Damage scaling', 'Scaling (%)'])
+      expect(ordinary).not.toContain(`aria-label="${label}"`)
 
     const vengeance = render({
       type: 'damage',
@@ -455,9 +450,8 @@ it('uses explicit damage profiles and percentage parameters instead of four gene
     'Facing modifiers enabled',
   ])
     expect(html).not.toContain(`aria-label="${label}"`)
-  expect(html).toContain('aria-label="Damage scaling"')
-  expect(html).toContain('aria-label="Scaling (%)"')
-  expect(html).toContain('value="125"')
+  expect(html).not.toContain('aria-label="Damage scaling"')
+  expect(html).not.toContain('aria-label="Scaling (%)"')
   const vengeance = render({
     type: 'damage',
     recipient: 'primary-unit',
@@ -466,4 +460,27 @@ it('uses explicit damage profiles and percentage parameters instead of four gene
   })
   expect(vengeance).toContain('aria-label="Vengeance conversion (%)"')
   expect(vengeance).toContain('value="25"')
+})
+
+it('keeps positional damage controls on Blindside instead of ordinary Damage', () => {
+  const ordinary = render({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 8,
+    facingModifiersBasisPoints: { front: 10000, side: 16000, rear: 22000 },
+  })
+  for (const label of ['Facing damage', 'Front damage (%)', 'Side damage (%)', 'Rear damage (%)'])
+    expect(ordinary).not.toContain(`aria-label="${label}"`)
+  const blindside = render({
+    type: 'apply-status',
+    recipient: 'primary-unit',
+    statusId: 'blindside-vulnerability',
+    stacks: 1,
+    blindsideModifiersBasisPoints: { side: 17500, rear: 22500 },
+  })
+  expect(blindside).toContain('aria-label="Side damage (%)"')
+  expect(blindside).toContain('aria-label="Rear damage (%)"')
+  expect(blindside).toContain('value="175"')
+  expect(blindside).toContain('value="225"')
+  expect(blindside).toContain('Front damage stays at 100%')
 })

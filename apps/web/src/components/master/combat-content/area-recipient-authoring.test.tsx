@@ -213,7 +213,7 @@ it('binds a newly added canonical damage effect to an existing area while unrela
   expect(result.behaviors[0]!.effects[0]!.payload.recipient).toBe('primary-unit')
 })
 
-it('explains missing area Requirement targets and offers an explicit Single conversion without changing the Requirement', () => {
+it('offers explicit unit Requirement targeting while retaining the prerequisite tag and effects', () => {
   const skill = upgradeSkillFormat(source(), 'base')
   const base = skill.ability!.behaviors[0]!
   const requirements = {
@@ -238,17 +238,22 @@ it('explains missing area Requirement targets and offers an explicit Single conv
     (entry) => typeof entry.type === 'function' && 'section' in entry.props,
   )!
   const rendered = (group.type as (props: unknown) => ReactNode)(group.props)
-  const button = elements(rendered).find(
-    (entry) => entry.type === 'button' && entry.props.children === 'Use Single targeting',
+  const aim = elements(rendered).find(
+    (entry) => entry.type === AbilitySelect && entry.props.label === 'Target Requirement aim',
   )!
-  expect(button).toBeDefined()
-  ;(button.props.onClick as () => void)()
-  expect(ability.behaviors[0]!.targeting!.shape).toEqual({ kind: 'single' })
+  expect(aim).toBeDefined()
   expect(ability.behaviors[0]!.requirements).toBe(requirements)
+  const effects = ability.behaviors[0]!.effects
+  ;(aim.props.onChange as (policy: string) => void)('enemy')
+  expect(ability.behaviors[0]!.targeting!.shape).toEqual({ kind: 'single' })
+  expect(ability.behaviors[0]!.requirements).toEqual({ ...requirements, subject: 'selected' })
+  expect(requirements.subject).toBe('owner')
+  expect(ability.behaviors[0]!.effects).toEqual(effects)
+  expect(() => parseAbilityDefinition(ability)).not.toThrow()
   const html = renderToStaticMarkup(
     <AbilityDefinitionEditor value={ability} section="details" onChange={() => {}} />,
   )
-  expect(html).toContain('<option value="selected">Target</option>')
+  expect(html).toContain('>Target</option>')
 })
 
 it.each(['skill', 'resonance'] as const)(

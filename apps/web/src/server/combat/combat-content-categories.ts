@@ -31,9 +31,9 @@ import {
   validateSkillDefinition,
   validateEssenceAuthoringDefinition,
   validateResonanceAuthoringDefinition,
-} from '../master/combat-content-authoring-validation'
+} from '../master/current-combat-content-authoring-validation'
 import type { CombatContentValidationResult } from '../master/combat-content-authoring-service'
-import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
+import { combatContentForAuthoring } from '@/lib/combat-content-for-authoring'
 
 export interface CombatContentCategoryDescriptor {
   readonly editor: CombatContentEditorDescriptor
@@ -105,11 +105,11 @@ const authorSkill = validated(validateSkillDefinition)
 const authorEssence = validated(validateEssenceAuthoringDefinition)
 const skillAuthoring = (value: unknown) => {
   object(value)
-  return authorSkill(skillAccuracyForAuthoring('skill', value))
+  return authorSkill(combatContentForAuthoring('skill', value))
 }
 const essenceAuthoring = (value: unknown) => {
   object(value)
-  return authorEssence(skillAccuracyForAuthoring('essence', value))
+  return authorEssence(combatContentForAuthoring('essence', value))
 }
 export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor[] = Object.freeze([
   descriptor({
@@ -157,7 +157,12 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
     catalogueProjection: 'combat',
     authoringBlocker: null,
     publicationBlocker: null,
-    parseAuthoring: validated(validateResonanceAuthoringDefinition),
+    parseAuthoring: (value) => {
+      object(value)
+      return validated(validateResonanceAuthoringDefinition)(
+        combatContentForAuthoring('resonance', value),
+      )
+    },
     parsePublished: (record) => ({ ...validatePublishedResonance(record, record.contentKey) }),
   }),
   descriptor({

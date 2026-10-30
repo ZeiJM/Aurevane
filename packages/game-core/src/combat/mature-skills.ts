@@ -17,7 +17,10 @@ import {
   type CombatGroundAreaDefinition,
 } from './combat-ground-areas'
 import { createCurrentTargetingSkillVersion } from './combat-targeting-roster'
-import { validateCurrentAreaTargetRecipients } from './combat-targeting-shapes'
+import {
+  MAXIMUM_COMBAT_LINE_LENGTH,
+  validateCurrentAreaTargetRecipients,
+} from './combat-targeting-shapes'
 import { createPercentageDotSkillVersion } from './combat-percentage-dot-roster'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import { createCanonicalCleanseSkillVersion } from './combat-cleanse'
@@ -1376,9 +1379,14 @@ export function validateMatureSkillDefinition(
         issues.push('apCost')
       }
       if (definition.target.kind !== 'self') {
+        const maximumRange =
+          (definition.target.geometryVersion === 2 || definition.target.geometryVersion === 3) &&
+          definition.target.shape.kind === 'line'
+            ? MAXIMUM_COMBAT_LINE_LENGTH
+            : 5
         if (
           !(definition.target.geometryVersion === 2 && definition.target.shape.kind === 'all') &&
-          (definition.target.maximumRange < 1 || definition.target.maximumRange > 5)
+          (definition.target.maximumRange < 1 || definition.target.maximumRange > maximumRange)
         ) {
           issues.push('target.maximumRange')
         }

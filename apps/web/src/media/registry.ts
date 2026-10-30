@@ -8,7 +8,6 @@ import { GENERATED_STARTER_PORTRAITS_4 } from './generated-starter-portraits-4'
 import { GENERATED_STARTER_PORTRAITS_5 } from './generated-starter-portraits-5'
 import { GENERATED_STARTER_PORTRAITS_6 } from './generated-starter-portraits-6'
 import { GENERATED_STARTER_PORTRAITS_7 } from './generated-starter-portraits-7'
-import { RESTORED_STARTER_PORTRAIT_07 } from './restored-starter-portrait-07'
 
 export type ImageAssetStatus = 'requested' | 'approved'
 export type ImageAssetKind = 'environment' | 'character' | 'ui' | 'icon'
@@ -224,28 +223,26 @@ const IMAGE_ASSETS = [
     kind: 'character' as const,
     status: 'approved' as const,
     requestId: 'ART-CHR-001',
-    generationRequestId: conceptUiGenerationRequestId,
+    generationRequestId:
+      index === 0 ? conceptUiGenerationRequestId : 'ART-CHR-WAYFARER-HQ-20261030',
     decorative: false,
     alt: portrait.alt,
     src: portrait.src,
-    // The matching large HQ preview is available for the first identity.
-    width: index === 0 ? 400 : 96,
-    height: index === 0 ? 400 : 96,
+    // The existing first identity retains its original large preview.
+    width: index === 0 ? 400 : 1024,
+    height: index === 0 ? 400 : 1024,
   })),
   ...generatedStarterPortraits.slice(4).map((portrait) => ({
     id: portrait.id,
     kind: 'character' as const,
     status: 'approved' as const,
     requestId: 'ART-CHR-001',
-    generationRequestId: conceptUiGenerationRequestId,
+    generationRequestId: 'ART-CHR-WAYFARER-HQ-20261030',
     decorative: false,
     alt: portrait.alt,
-    src:
-      portrait.id === RESTORED_STARTER_PORTRAIT_07.id
-        ? RESTORED_STARTER_PORTRAIT_07.src
-        : portrait.src,
-    width: 96,
-    height: 96,
+    src: portrait.src,
+    width: 1024,
+    height: 1024,
   })),
   {
     id: 'character.creation.appearance-reference',

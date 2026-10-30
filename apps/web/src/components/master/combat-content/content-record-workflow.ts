@@ -5,12 +5,13 @@ import type {
 } from '@aurevane/db/combat-content'
 import { postCombatContentAuthoring } from './combat-content-client'
 import { skillAccuracyForAuthoring } from '@/lib/skill-accuracy-authoring'
+import { combatContentForAuthoring } from '@/lib/combat-content-for-authoring'
 export function editableDefinition(
   record: CompleteCombatContentRecord,
 ): CombatContentDefinition | null {
   const definition =
     record.draft?.definition ?? record.current?.definition ?? record.builtinDefinition ?? null
-  return definition ? skillAccuracyForAuthoring(record.contentKind, definition) : null
+  return definition ? combatContentForAuthoring(record.contentKind, definition) : null
 }
 export function recordIsDirty(
   record: CompleteCombatContentRecord,
@@ -33,7 +34,12 @@ export function recordIsDirty(
     return next
   }
   return (
-    JSON.stringify(editable(definition)) !== JSON.stringify(editable(editableDefinition(record)))
+    JSON.stringify(editable(combatContentForAuthoring(record.contentKind, definition))) !==
+    JSON.stringify(
+      editable(
+        record.draft?.definition ?? record.current?.definition ?? record.builtinDefinition ?? null,
+      ),
+    )
   )
 }
 export function savedPublicationCommand(

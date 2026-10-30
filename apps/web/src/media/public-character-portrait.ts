@@ -1,4 +1,5 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
+import { starterPortraitArtworkVersion } from './starter-portrait-version'
 
 export function resolvePublicCharacterImageUrl(
   profileImageUrl: string | null | undefined,
@@ -8,5 +9,6 @@ export function resolvePublicCharacterImageUrl(
   if (custom) return custom
   if (!portraitRef || !isStarterCharacterPortraitRef(portraitRef)) return null
 
-  return `/api/media/starter-portrait/${encodeURIComponent(portraitRef)}`
+  const version = starterPortraitArtworkVersion(portraitRef)
+  return `/api/media/starter-portrait/${encodeURIComponent(portraitRef)}${version ? `?v=${version}` : ''}`
 }
