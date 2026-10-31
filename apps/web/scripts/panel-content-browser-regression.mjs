@@ -980,10 +980,13 @@ try {
       await dialog
         .getByRole('spinbutton', { name: 'Required mastery stage', exact: true })
         .fill('3')
-      await dialog.getByRole('tab', { name: 'Action Economy', exact: true }).click()
+      await dialog.getByRole('tab', { name: 'Execution Characteristics', exact: true }).click()
       await expect(
         dialog.getByRole('spinbutton', { name: 'Action Economy (AP)', exact: true }),
       ).toHaveCount(1)
+      await expect(
+        dialog.getByRole('combobox', { name: 'Accuracy mode', exact: true }),
+      ).toBeVisible()
       await expect(dialog.getByRole('combobox', { name: 'Target kind', exact: true })).toHaveCount(
         0,
       )
@@ -1011,8 +1014,7 @@ try {
         'Details & Text',
         'Media',
         'Range & Area',
-        'Action Economy',
-        'Accuracy',
+        'Execution Characteristics',
         'Effects',
       ])
       await page.keyboard.press('Escape')

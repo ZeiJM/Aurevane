@@ -183,7 +183,7 @@ export async function exerciseMasterAtBrowserZoom(
     await name.fill(
       'A long Basic Attack title demonstrating wrapped authoring and reader content at actual browser zoom',
     )
-    await showAbilitySection('Action Economy')
+    await showAbilitySection('Execution Characteristics')
     await ap.fill('0')
     await expect(page.getByRole('status', { name: 'Save status' })).toContainText('Unsaved changes')
     await expect(button('Commit Now')).toBeEnabled()
@@ -222,7 +222,7 @@ export async function exerciseMasterAtBrowserZoom(
     await expect(page.getByRole('status', { name: 'Save status' })).toContainText('Unsaved changes')
     await validation.scrollIntoViewIfNeeded()
     await state('validation-error', workspace)
-    await showAbilitySection('Action Economy')
+    await showAbilitySection('Execution Characteristics')
     await ap.fill(originalAP)
     await showAbilitySection('Details & Text')
     await activate(button('Commit Now'), 'commit-content')

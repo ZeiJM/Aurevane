@@ -605,8 +605,10 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
 
     expect(await currentContentVersion(page)).toBe(oldVersion)
 
-    await page.getByRole('tab', { name: 'Action Economy', exact: true }).click()
+    await page.getByRole('tab', { name: 'Execution Characteristics', exact: true }).click()
     const apInput = page.getByLabel('Action Economy (AP)')
+    await expect(apInput).toBeVisible()
+    await expect(page.getByLabel('Accuracy mode', { exact: true })).toBeVisible()
     const originalAp = Number(await apInput.inputValue())
     expect(Number.isSafeInteger(originalAp)).toBe(true)
     const nextAp = originalAp === 100 ? 99 : originalAp + 1
