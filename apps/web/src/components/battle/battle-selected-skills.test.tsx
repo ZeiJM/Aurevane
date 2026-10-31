@@ -676,3 +676,46 @@ it.each(['pve', 'pvp'] as const)(
     expect(html).not.toContain('F60c5dc7')
   },
 )
+
+it('keeps an armed Reversal cancellation enabled despite paid resources and active cooldown', () => {
+  const captured = [
+    {
+      ownerCombatantId: 'actor',
+      actionId: technique.id,
+      behaviorId: 'prepare',
+      target: {
+        kind: 'self' as const,
+        teamPolicy: 'self' as const,
+        friendlyFire: 'allies-only' as const,
+        shape: { kind: 'single' as const },
+        minimumRange: 0,
+        maximumRange: 0,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+      },
+      costs: [{ resource: 'ap' as const, amount: 35 }],
+      controlled: {
+        kind: 'reversal' as const,
+        phase: 'primed' as const,
+        canPrime: false,
+        canCancel: true,
+      },
+    },
+  ]
+  const html = renderToStaticMarkup(
+    <BattleSelectedSkills
+      runtime={{ ...runtime, techniques: [technique] }}
+      manualActionTargets={captured}
+      actorId="actor"
+      actionEconomy={0}
+      resources={{ mp: 0, hp: 1 }}
+      cooldowns={{ [technique.id]: 3 }}
+      readyActionId={technique.id}
+      disabled={false}
+      onSelect={() => undefined}
+    />,
+  )
+  expect(html).toContain('Cancel Reversal')
+  expect(html).not.toContain('ready to release')
+  expect(html).not.toMatch(/data-battle-skill-hotkey="4"[^>]*disabled/)
+})

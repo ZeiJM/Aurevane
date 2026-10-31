@@ -1,3 +1,15 @@
+import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
+import {
+  isReversalPresentationEffect,
+  reversalDescription,
+  reversalMagnitude,
+} from '../../lib/reversal-presentation'
+import type { CombatStatusTuning } from '@aurevane/game-core/combat/actions'
+import { endureDescription } from '../../lib/combat-effect-descriptions'
+import {
+  selectableCombatStatusIds,
+  combatStatusSelectionSummary,
+} from '@aurevane/game-core/combat/combat-status-selection'
 import {
   resolvedCombatEffectTagPresentation,
   type CombatTagPresentationSnapshot,
@@ -18,7 +30,13 @@ import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terra
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { combatEffectPresentationTags } from '@aurevane/game-core/combat/gameplay-tags'
-import { blindsideDamageDescription } from '@aurevane/game-core/combat/combat-blindside'
+import {
+  blindsideDamageDescription,
+  blindsideDebuffDescription,
+  BLINDSIDE_DEBUFF_STATUS_ID,
+  DEFAULT_BLINDSIDE_MODIFIERS,
+} from '@aurevane/game-core/combat/combat-blindside'
+import { counterDescription } from '@aurevane/game-core/combat/combat-counter'
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
   CURRENT_BURN_DAMAGE_BY_STAGE,
@@ -47,7 +65,7 @@ export function elementalStatusOverlapsDamage(
   effect: MatureSkillEffectDefinition,
   skillEffects: readonly MatureSkillEffectDefinition[] = [],
 ): boolean {
-  if (effect.type !== 'apply-status') return false
+  if (effect.type !== 'apply-status' || effect.applicationOrigin === 'frozen-ground') return false
   const element = ({ frozen: 'ice', wet: 'water', conductive: 'storm' } as Record<string, string>)[
     effect.statusId
   ]
@@ -160,6 +178,7 @@ function statusPreview(
   legacyHealingDown = false,
   legacyElemental = false,
   explicitElemental = true,
+  tuning: CombatStatusTuning = {},
 ): PreviewEffect {
   const details = {
     ...combatStatusDetails(id),
@@ -167,6 +186,7 @@ function statusPreview(
       legacyHealingDown,
       legacyElemental,
       explicitElemental,
+      ...tuning,
     }),
   }
   const status = PV1F_COMBAT_CONTENT.statuses.find((entry) => entry.id === id)
@@ -204,10 +224,10 @@ function statusPreview(
           `${signed((statusDamageMultiplierBasisPoints(modifier.multiplierBasisPoints, potencyBasisPoints) - 10_000) / 100)}% ${modifier.direction}`,
       )
       .join(' / ')
-    result.explanation = details.description.split('. ')[0] + '.'
+    result.explanation = details.description
   } else if (status && status.damageTakenMultiplierBasisPoints !== 10_000) {
     result.magnitude = `${signed((statusDamageMultiplierBasisPoints(status.damageTakenMultiplierBasisPoints, potencyBasisPoints) - 10_000) / 100)}% incoming`
-    result.explanation = `Recipient takes ${result.magnitude}.`
+    result.explanation = details.description
   } else if (status?.endOfTurn) {
     result.magnitude = `${status.endOfTurn.amount} × ${status.durationOwnerTurnStarts} ticks`
   }
@@ -220,6 +240,25 @@ function statusPreview(
     }
     result.explanation = details.description
   }
+  if (tuning.defenseIncreaseBasisPoints !== undefined)
+    result.magnitude = `+${tuning.defenseIncreaseBasisPoints / 100}% Defense / −${tuning.defenseIncreaseBasisPoints / 100}% outgoing`
+  if (tuning.movementApAdjustment !== undefined)
+    result.magnitude = `${id === 'haste' ? '−' : '+'}${tuning.movementApAdjustment} AP`
+  if (tuning.damageTakenMultiplierBasisPoints !== undefined)
+    result.magnitude = `${tuning.damageTakenMultiplierBasisPoints / 100}% incoming`
+  if (tuning.initiativeReductionBasisPoints !== undefined)
+    result.magnitude = `−${tuning.initiativeReductionBasisPoints / 100}% Initiative / +${(potencyBasisPoints ?? 2000) / 100}% Storm`
+  if (
+    Object.keys(tuning).some((key) =>
+      [
+        'defenseIncreaseBasisPoints',
+        'movementApAdjustment',
+        'damageTakenMultiplierBasisPoints',
+        'initiativeReductionBasisPoints',
+      ].includes(key),
+    )
+  )
+    result.explanation = details.description
   return result
 }
 
@@ -247,7 +286,37 @@ export function previewEffect(
         : effect.recipient === 'selected-tile'
           ? 'the selected empty tile'
           : 'the target'
+  if (isReversalPresentationEffect(effect))
+    return {
+      label: 'Reversal',
+      magnitude: reversalMagnitude(effect),
+      explanation: reversalDescription(effect),
+    }
   switch (effect.type) {
+    case 'weak-point':
+      return {
+        label: 'Weak Point',
+        magnitude: `> ${effect.debuffThreshold} debuffs`,
+        explanation: attackTagDescription(effect),
+      }
+    case 'spike':
+      return {
+        label: 'Spike',
+        magnitude: '2× critical damage',
+        explanation: attackTagDescription(effect),
+      }
+    case 'ruin':
+      return {
+        label: 'Ruin',
+        magnitude: `+${effect.bonusPerDebuffBasisPoints / 100}% per debuff`,
+        explanation: attackTagDescription(effect),
+      }
+    case 'endure':
+      return {
+        label: 'Endure',
+        magnitude: `${effect.releaseBasisPoints / 100}%`,
+        explanation: `${endureDescription(effect)} Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`,
+      }
     case 'summon':
       return {
         label: 'Summon',
@@ -272,7 +341,7 @@ export function previewEffect(
       return {
         label: effect.resource === 'hp' ? 'HP Recovery' : 'MP Recovery',
         magnitude: `${effect.percent}%`,
-        explanation: `Restores a captured ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. ${effect.resource === 'hp' || !options.legacyHealingDown ? 'The maximum and Healing Down adjustment are captured when cast' : 'The maximum is captured when cast'}; actual gains cap at the current maximum and never revive.`,
+        explanation: `Restores ${effect.percent}% of ${target === 'you' ? 'your' : `${target}’s`} maximum ${effect.resource.toUpperCase()}${(effect.ticks ?? 1) > 1 ? ` per application, ${effect.ticks} times` : ''}. The amount is fixed when cast${effect.resource === 'hp' || !options.legacyHealingDown ? '; Healing Down reduces it' : ''}. Cannot exceed the maximum or revive.`,
       }
     case 'healing':
       return {
@@ -292,13 +361,29 @@ export function previewEffect(
     case 'resource-change':
       return {
         label: effect.delta < 0 ? 'MP Drain' : 'MP Restore',
-        magnitude: String(Math.abs(effect.delta)),
+        magnitude: `${Math.abs(effect.delta)}${effect.basis === 'maximum-mp-percent' ? '%' : ''}`,
         explanation:
           effect.delta < 0
-            ? `Removes MP from ${target}.`
+            ? effect.basis === 'maximum-mp-percent'
+              ? `Removes ${Math.abs(effect.delta)}% of ${target === 'you' ? 'your' : `${target}’s`} maximum MP, down to a minimum of zero.`
+              : `Removes ${Math.abs(effect.delta)} MP from ${target}, down to a minimum of zero.`
             : `Restores MP to ${target}${effect.ticks && effect.ticks > 1 ? ` per application, ${effect.ticks} times (first when the effect activates)` : ''}.`,
       }
     case 'apply-status':
+      if (effect.statusId === 'counter' && effect.counter)
+        return {
+          label: 'Counter',
+          magnitude: `${effect.counter.kind === 'mystic' ? 'Mystical' : effect.counter.kind === 'physical' ? 'Physical' : 'Full'} ${effect.counter.basisPoints / 100}%`,
+          explanation: `${counterDescription(effect.counter)} Lasts ${effect.durationTurns ?? 2} turns after activation.`,
+        }
+      if (effect.statusId === BLINDSIDE_DEBUFF_STATUS_ID) {
+        const profile = effect.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS
+        return {
+          label: 'Blindside',
+          magnitude: `${profile.side / 100}% side / ${profile.rear / 100}% rear`,
+          explanation: blindsideDebuffDescription(profile),
+        }
+      }
       if (effect.statusId === 'blindside')
         return {
           label: 'Blindside',
@@ -319,6 +404,7 @@ export function previewEffect(
               options.legacyHealingDown,
               options.legacyElemental,
               options.explicitElemental,
+              effect,
             )
       if (
         !options.legacyElemental &&
@@ -401,13 +487,17 @@ export function previewEffect(
       }
     }
     case 'remove-status': {
+      if (effect.removalMode === 'all-debuffs')
+        return { label: 'Cleanse', explanation: 'Removes All Debuffs.' }
       if (effect.removalMode === 'specified') {
-        const names = effect.statusIds.map((id) => combatStatusDetails(id).name)
         const label = combatEffectPresentationTags(effect)[0]!
         return {
           label,
-          ...(label === 'Dispel' ? {} : { magnitude: names.join(' / ') }),
-          explanation: `Removes only ${names.join(', ')}. Other statuses remain.`,
+          magnitude: combatStatusSelectionSummary(
+            effect.statusIds,
+            label === 'Dispel' ? 'buffs' : 'debuffs',
+          ).replaceAll(', ', ' / '),
+          explanation: `Removes ${combatStatusSelectionSummary(effect.statusIds, effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')}.`,
         }
       }
       if (
@@ -431,6 +521,13 @@ export function previewEffect(
       }
     }
     case 'create-terrain':
+      if (effect.skillApSurcharge !== undefined)
+        return {
+          label: 'Frozen Ground',
+          magnitude: `+${effect.skillApSurcharge} Skill AP`,
+          explanation:
+            'Raises the AP cost of Skills used by grounded enemies on the affected tiles. Airborne ignores it. Fire turns it into sight-blocking Steam.',
+        }
       return {
         label: 'Frozen Ground',
         magnitude: `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`,
@@ -440,22 +537,34 @@ export function previewEffect(
       return {
         label: 'Rewind',
         explanation:
-          effect.anchorMode === 'cast-position'
-            ? 'Returns you to the tile captured when cast if legal; refunds no resources.'
-            : 'Returns you to your turn-start tile if legal; refunds no resources.',
+          effect.target !== undefined && effect.target !== 'self'
+            ? 'Returns each recipient to its own tile captured at the initial legal cast if still legal; restores position only and refunds no resources.'
+            : effect.anchorMode === 'cast-position'
+              ? 'Returns you to the tile captured when cast if legal; refunds no resources.'
+              : 'Returns you to your turn-start tile if legal; refunds no resources.',
       }
-    case 'copy-statuses':
+    case 'copy-statuses': {
+      const kind = effect.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs'
+      const selected = combatStatusSelectionSummary(
+        effect.statusIds ?? selectableCombatStatusIds(kind),
+        kind,
+      )
       return {
         label: effect.mode === 'amplify' ? 'Copy Buffs' : 'Copy Debuffs',
+        ...(effect.statusIds !== undefined ? { magnitude: selected } : {}),
         explanation:
           effect.mode === 'amplify'
-            ? 'Copies eligible positive statuses from the target to you.'
-            : 'Copies eligible negative statuses from you to the target.',
+            ? `Copies ${selected} from the target to you. Originals remain; remaining durations are preserved.`
+            : `Copies ${selected} from you to the target. Originals remain; remaining durations are preserved.`,
       }
+    }
     case 'sensory':
       return {
         label: 'Reveal',
-        explanation: 'On a hit against Covert, strips eligible buffs and applies Revealed.',
+        explanation:
+          effect.increasedDamageTakenBasisPoints === undefined
+            ? 'On a hit against Covert, strips eligible buffs and applies Revealed.'
+            : `A successful hit against Invisible or Covert removes both concealments and applies Revealed for ${effect.revealedDurationOwnerTurnStarts} turns: take ${effect.increasedDamageTakenBasisPoints / 100}% more damage; incoming attacks have 100% Accuracy.`,
       }
   }
 }

@@ -1,3 +1,8 @@
+import {
+  COMBAT_STATUS_TUNING_FIELDS,
+  combatStatusTuning,
+} from '@aurevane/game-core/combat/combat-status-tuning'
+import { combatReversalStatusProfiles } from '@aurevane/game-core/combat/combat-reversal'
 import { battleTagForStatus } from '@/lib/battle/battle-tag-wording'
 import type { BattleBuildAuthoritySnapshot } from './battle-build-authority'
 import { combatEffectPresentationId } from '@aurevane/game-core/combat/combat-effect-identities'
@@ -46,7 +51,7 @@ import {
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
-  terrainAdjustedDefense,
+  terrainDefenseReductionBasisPoints,
   terrainEvasionBonusBasisPoints,
 } from '@aurevane/game-core/combat/combat-stat-balance'
 import {
@@ -143,6 +148,7 @@ export function projectBattleManualActionTargets(
             actorId: source.ownerCombatantId,
             sourceInstanceId: source.sourceInstanceId,
             behaviorId: behavior.id,
+            content: PV1F_COMBAT_CONTENT,
           })
           const spec = canonicalAbilityTargetSpec(behavior.targeting!)
           const move =
@@ -176,7 +182,16 @@ export function projectBattleManualActionTargets(
                     effectContext: capturedAbilityEffectContext(state),
                   }),
                 }),
-            ...(controlled ? { controlled } : {}),
+            ...(controlled
+              ? {
+                  controlled: {
+                    ...controlled,
+                    ...(behavior.effects.some((effect) => effect.payload.type === 'reversal')
+                      ? { kind: 'reversal' as const }
+                      : {}),
+                  },
+                }
+              : {}),
             ...(move?.payload.type === 'move'
               ? {
                   move: {
@@ -359,6 +374,8 @@ export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
     'sourceCommandVisibility',
     'privateSharedLifetime',
     'abilityCommandFacts',
+    'counterReturnBasisPoints',
+    'summonDamageCommandId',
     'provenance',
   ])
     Reflect.deleteProperty(projected, key)
@@ -407,6 +424,7 @@ export function projectBattleStatusStateForViewer(
     | 'skillPacketPolicyVersion'
     | 'capturedAbilitySources'
     | 'abilityRuntime'
+    | 'reversalState'
     | 'effectTimingPolicy'
   > & { buildAuthority?: BattleBuildAuthoritySnapshot },
   viewer: BattleViewerEntitlement,
@@ -499,8 +517,7 @@ export function projectBattleStatusStateForViewer(
             { statusId: TERRAIN_EVASION_STATUS_ID, potencyBasisPoints: terrainBonus },
             {
               statusId: TERRAIN_DEFENSE_STATUS_ID,
-              potencyBasisPoints:
-                10000 - terrainAdjustedDefense(state, activeRow.combatantId, 10000),
+              potencyBasisPoints: terrainDefenseReductionBasisPoints(state, activeRow.combatantId),
             },
           ].map((effect) => ({
             ...effect,
@@ -514,9 +531,49 @@ export function projectBattleStatusStateForViewer(
           }))
         : []
     const relationship = combatant ? battleViewerRelationship(viewer, combatant) : 'enemy'
+    const reversalProfiles = combatReversalStatusProfiles(state, activeRow.combatantId)
+    const reversalStatuses: BattlePresentedStatus[] = reversalProfiles.flatMap((profile) => {
+      if (
+        profile.kind === 'armed' &&
+        relationship !== 'self' &&
+        relationship !== 'ally' &&
+        pendingCovertConcealsInstance(state, {
+          sourceCombatantId: profile.combatantId,
+          sourceCommandVisibility: profile.sourceCommandVisibility,
+        })
+      )
+        return []
+      return [
+        {
+          statusId: profile.kind === 'armed' ? 'reversal' : 'reversal-strain',
+          statusVersion: 1,
+          stacks: 1,
+          remainingOwnerTurnStarts: 1,
+          sourceCombatantId: profile.combatantId,
+          timingState: 'active',
+          presentationDuration:
+            profile.kind === 'armed' ? 'until-reversal-ends' : 'next-complete-owner-turn',
+          ...(profile.kind === 'armed'
+            ? {
+                reversal: {
+                  family: profile.family,
+                  reflectionBasisPoints: profile.reflectionBasisPoints,
+                  attackerMaxHpCapBasisPoints: profile.attackerMaxHpCapBasisPoints,
+                  defenderMaxHpCapBasisPoints: profile.defenderMaxHpCapBasisPoints,
+                },
+              }
+            : {}),
+        },
+      ]
+    })
     const primedStatuses: BattlePresentedStatus[] =
       (relationship === 'self' || relationship === 'ally') &&
-      combatPrimedAbilityIds(state, activeRow.combatantId).length > 0
+      combatPrimedAbilityIds(state, activeRow.combatantId).some(
+        (id) =>
+          !reversalProfiles.some(
+            (profile) => profile.kind === 'armed' && profile.sourceAbilityId === id,
+          ),
+      )
         ? [
             {
               statusId: 'primed',
@@ -564,6 +621,10 @@ export function projectBattleStatusStateForViewer(
               stacks: applications.reduce((sum, application) => sum + application.stacks, 0),
               sourceCombatantId: last.sourceCombatantId,
             }
+            for (const field of COMBAT_STATUS_TUNING_FIELDS) delete visible[field]
+            Object.assign(visible, combatStatusTuning(last))
+            delete visible.counter
+            if (last.counter) visible.counter = last.counter
             delete visible.potencyBasisPoints
             delete visible.blindsideModifiersBasisPoints
             if (last.potencyBasisPoints !== undefined)
@@ -575,6 +636,7 @@ export function projectBattleStatusStateForViewer(
           .map((status) => presentInteractionPolicy(omitCombatExecutionMetadata(status))),
         ...terrainStatuses,
         ...primedStatuses,
+        ...reversalStatuses,
         ...pending
           .filter((item) => item.combatantId === activeRow.combatantId)
           .map((item) =>
@@ -614,6 +676,11 @@ export function projectBattleStatusStateForViewer(
     return {
       ...row,
       statuses: row.statuses.filter((status) => {
+        if (
+          status.statusId === 'reversal-strain' &&
+          status.presentationDuration === 'next-complete-owner-turn'
+        )
+          return true
         const terrainEffect = terrainBattleEffectPresentation(status)
         if (terrainEffect) return terrainEffect.kind !== 'Buff'
         const definition = STATUS_DEFINITION_BY_KEY.get(
@@ -625,6 +692,24 @@ export function projectBattleStatusStateForViewer(
       }),
     }
   })
+}
+
+function omitPrivateSummonDamageState<T extends object>(effects: T): T {
+  const projected = { ...effects }
+  for (const key of ['summonDamageSources', 'summonDamageCommands', 'nextSummonDamageCommandId'])
+    Reflect.deleteProperty(projected, key)
+  for (const key of ['poison', 'burn', 'bleed']) {
+    const rows = Reflect.get(projected, key)
+    if (Array.isArray(rows))
+      Object.assign(projected, {
+        [key]: rows.map((row: object) => {
+          const publicRow = { ...row }
+          Reflect.deleteProperty(publicRow, 'summonDamageCommandId')
+          return publicRow
+        }),
+      })
+  }
+  return projected
 }
 
 export function projectBattleEffectStateForViewer(
@@ -675,7 +760,7 @@ export function projectBattleEffectStateForViewer(
     return omitCombatExecutionMetadata(publicEffect)
   }
   return {
-    ...state.effectState,
+    ...omitPrivateSummonDamageState(state.effectState),
     poison: state.effectState.poison.map(publicInstance),
     burn: state.effectState.burn.map(publicInstance),
     bleed: state.effectState.bleed.map(publicInstance),
@@ -700,8 +785,10 @@ export function projectBattleEffectStateForViewer(
 const PRIVATE_BATTLE_STATE_KEYS = [
   'nextGroundAreaId',
   'nextSkillPacketCommandId',
+  'nextReversalAttackCommandId',
   'capturedAbilitySources',
   'abilityRuntime',
+  'reversalState',
   'modifierSuppressions',
   'nativeBasicAttackCommand',
   'groundTargetedRecipientIds',
@@ -736,6 +823,12 @@ export function omitPendingBattlePayloads<
     ...state,
   }
   for (const key of PRIVATE_BATTLE_STATE_KEYS) Reflect.deleteProperty(projected, key)
+  if (
+    'effectState' in projected &&
+    projected.effectState &&
+    typeof projected.effectState === 'object'
+  )
+    Object.assign(projected, { effectState: omitPrivateSummonDamageState(projected.effectState) })
   if (state.groundAreas)
     projected.groundAreas = projectPublicCombatGroundAreas(
       state.groundAreas,

@@ -41,6 +41,7 @@ import {
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { SkillFormatUpgradeControl } from './skill-format-upgrade-control'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
+import { withRemappedGroundEntries } from '@/lib/combat-ground-entry-authoring'
 import { ResonanceMechanicsFields } from './resonance-mechanics-fields'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
@@ -517,6 +518,25 @@ function SkillMechanics({
 }) {
   const requiresSelectedUnit = hasSelectedAimRequirement(value.requirements)
   const onChange = (next: MatureSkillDefinition) => {
+    next = withRemappedGroundEntries(value, next)
+    if (
+      !next.ability &&
+      next.effects !== value.effects &&
+      next.effects.some((effect) => ['burn', 'bleed', 'poison'].includes(effect.type))
+    )
+      next = {
+        ...next,
+        tags: [
+          ...new Set([
+            ...next.tags,
+            'attack' as const,
+            ...(!next.tags.some((tag) => tag === 'physical' || tag === 'mystic')
+              ? ['physical' as const]
+              : []),
+          ]),
+        ],
+      }
+
     if (!next.ability && next.target !== value.target)
       next = {
         ...next,
@@ -572,7 +592,7 @@ function SkillMechanics({
           />
         </>
       )}
-      {(!section || section === 'economy' || section === 'accuracy') && (
+      {(!section || section === 'execution' || section === 'economy' || section === 'accuracy') && (
         <SkillEconomyEditor
           value={value}
           section={
@@ -878,7 +898,8 @@ export function ContentDefinitionFields({
               <>
                 {(!abilitySection ||
                   abilitySection ===
-                    (skill.execution.kind === 'basic-move' ? 'economy' : 'effects')) && (
+                    (skill.execution.kind === 'basic-move' ? 'economy' : 'effects') ||
+                  (skill.execution.kind === 'basic-move' && abilitySection === 'execution')) && (
                   <>
                     <fieldset>
                       <legend>Native execution</legend>

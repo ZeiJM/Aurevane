@@ -81,7 +81,7 @@ async function abilityField(scope, label) {
     'Move cost basis',
     'Cooldown (owner turns; 0 means none)',
   ].includes(label)
-    ? 'Action Economy'
+    ? 'Execution Characteristics'
     : [
           'Higher Power scaling (%)',
           'Recovery rounding',
@@ -91,7 +91,7 @@ async function abilityField(scope, label) {
         ].includes(label)
       ? 'Effects'
       : ['Accuracy rule', 'Fixed hit chance (%)'].includes(label)
-        ? 'Accuracy'
+        ? 'Execution Characteristics'
         : 'Details & Text'
   await activateAbilitySection(scope, section)
   const field = scope.getByLabel(label, { exact: true })
@@ -1029,6 +1029,118 @@ async function verifyBasicHeldRevert(page, viewport) {
   await page.screenshot({ path: resolve(output, `basic-held-revert-${viewport.width}.png`) })
 }
 
+async function verifyTagBatchEditors(page, viewport) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=tag-batch`, { waitUntil: 'networkidle' })
+  const summon = page.getByRole('region', { name: 'Summon authoring', exact: true })
+  for (const hidden of [
+    'profile ID',
+    'portrait key',
+    'max HP',
+    'max MP',
+    'initiative',
+    'movement budget',
+    'AI profile',
+    'tags',
+    'AI purpose tags',
+    'description',
+    'flavor line',
+  ])
+    assert.equal(await summon.getByLabel(`Summon ${hidden}`, { exact: true }).count(), 0)
+  await summon.getByLabel('Summon Might', { exact: true }).fill('20')
+  await summon.getByLabel('Summon potency (%)', { exact: true }).fill('55.5')
+  await summon.getByLabel('Never moves', { exact: true }).check()
+  await summon.getByLabel('Summon ability 1 HP cost', { exact: true }).fill('7')
+  await summon.getByLabel('Summon ability 1 damage type', { exact: true }).selectOption('mystic')
+  const captured = await page.evaluate(() => window.inspectTagBatch().profile)
+  assert.equal(captured.coreAttributes.might, 20)
+  assert.equal(captured.derivedStatRulesVersion, 5)
+  assert.equal(captured.potencyBasisPoints, 5550)
+  assert.equal(captured.neverMoves, true)
+  assert.equal(captured.abilities[0].hpCost, 7)
+  assert.ok(captured.abilities[0].tags.includes('mystic'))
+  const body = summon.locator('[data-summon-skill-body]').first()
+  const cardBox = await body.boundingBox()
+  const fieldBox = await summon.getByLabel('Summon ability 1 name', { exact: true }).boundingBox()
+  assert.ok(cardBox && fieldBox && fieldBox.x >= cardBox.x + 8, 'Skill fields have inner padding')
+  await body
+    .locator(':scope > details > summary')
+    .filter({ hasText: /^Artwork & sound$/u })
+    .click()
+  await browserExpect(body.getByAltText('Current artwork')).toBeVisible()
+  assert.ok(
+    await body.getByAltText('Current artwork').evaluate((img) =>
+      img.decode().then(
+        () => img.naturalWidth > 0,
+        () => false,
+      ),
+    ),
+  )
+
+  const editor = page.getByRole('region', { name: 'New tag authoring', exact: true })
+  for (const tag of ['weak-point', 'spike', 'ruin', 'endure']) {
+    await editor.getByLabel('New effect type', { exact: true }).selectOption(tag)
+    await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
+  }
+  for (const type of ['weak-point', 'spike', 'ruin', 'endure']) {
+    const controls = editor.locator(`[data-effect-type="${type}"]`)
+    await openEffectParameters(controls)
+    assert.equal(await controls.getByLabel('Target', { exact: true }).count(), 0)
+    if (type !== 'endure')
+      assert.equal(await controls.getByLabel('Effect duration (turns)', { exact: true }).count(), 0)
+  }
+  await editor.getByLabel('Debuff threshold', { exact: true }).fill('3')
+  await editor.getByLabel('Damage increase per debuff (%)', { exact: true }).fill('12.5')
+  await editor.getByLabel('Damage returned (%)', { exact: true }).fill('175')
+  await editor.getByLabel('Burst range (tiles)', { exact: true }).fill('5')
+  await editor.getByLabel('Endure burst targets', { exact: true }).selectOption('all')
+  await editor.getByLabel('Effect duration (turns)', { exact: true }).fill('3')
+  const effects = await page.evaluate(() => window.inspectTagBatch().effects)
+  assert.equal(effects.filter((row) => row.type === 'damage').length, 1)
+  assert.equal(effects.find((row) => row.type === 'weak-point').debuffThreshold, 3)
+  assert.equal(effects.find((row) => row.type === 'ruin').bonusPerDebuffBasisPoints, 1250)
+  assert.equal(effects.find((row) => row.type === 'endure').releaseBasisPoints, 17500)
+  assert.equal(effects.find((row) => row.type === 'endure').radiusTiles, 5)
+  assert.equal(effects.find((row) => row.type === 'endure').targetTeams, 'all')
+  assert.equal(effects.find((row) => row.type === 'endure').durationTurns, 3)
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  const reversal = page.getByRole('region', { name: 'Reversal authoring', exact: true })
+  await reversal.getByLabel('New effect', { exact: true }).selectOption('reversal')
+  await reversal.getByRole('button', { name: 'Add new effect', exact: true }).click()
+  const parameters = reversal.locator('[data-effect-type="reversal"]')
+  await openEffectParameters(parameters)
+  await parameters.getByLabel('Reversal family', { exact: true }).selectOption('mystic')
+  await parameters.getByLabel('Reflection potency (%)', { exact: true }).fill('175')
+  await parameters.getByLabel('Attacker HP cap (%)', { exact: true }).fill('15')
+  await parameters.getByLabel('User HP cap (%)', { exact: true }).fill('30')
+  assert.equal(await parameters.getByLabel('Target', { exact: true }).count(), 0)
+  assert.equal(await parameters.getByLabel('Effect duration (turns)', { exact: true }).count(), 0)
+  assert.equal(await parameters.locator('option[value="full"], option[value="both"]').count(), 0)
+  assert.equal(
+    await reversal
+      .getByLabel('New effect', { exact: true })
+      .locator('option[value="damage"]')
+      .isDisabled(),
+    true,
+  )
+  const prepared = await page.evaluate(() => window.inspectReversalEditor().behaviors[0])
+  assert.equal(prepared.classification, 'utility')
+  assert.equal(prepared.attackFamily, undefined)
+  assert.equal(prepared.targeting.kind, 'self')
+  assert.deepEqual(prepared.costs, [
+    { resource: 'ap', amount: 50 },
+    { resource: 'mp', amount: 5 },
+  ])
+  assert.equal(prepared.cooldown.ownerTurns, 3)
+  const row = prepared.effects.find((row) => row.payload.type === 'reversal')
+  assert.equal(row.timing, 'controlled')
+  assert.equal(row.payload.family, 'mystic')
+  assert.equal(row.payload.reflectionBasisPoints, 17500)
+  assert.equal(row.payload.attackerMaxHpCapBasisPoints, 1500)
+  assert.equal(row.payload.defenderMaxHpCapBasisPoints, 3000)
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  await page.screenshot({ path: resolve(output, `tag-batch-editor-${viewport.width}.png`) })
+}
+
 async function verifyBasicPublication(page, viewport) {
   console.log('verifyBasicPublication', viewport.width)
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
@@ -1270,27 +1382,12 @@ async function verifyCanonicalEditor(page, viewport) {
   await openEffectParameters(walk)
   await walk.getByLabel('Move maximum tiles', { exact: true }).fill('3')
   const moveDistance = walk.getByLabel('Move maximum tiles', { exact: true })
-  await assertLabelHelp(moveDistance, 'Move')
-  await assertLabelHelp(
-    walk.getByRole('combobox', { name: 'Destination', exact: true }),
-    'Destination',
-  )
+  assert.equal(await walk.getByRole('button', { name: /^About / }).count(), 0)
   const distanceBox = await moveDistance.boundingBox()
   const rootFontSize = await page.evaluate(() =>
     parseFloat(getComputedStyle(document.documentElement).fontSize),
   )
   assert.ok(distanceBox.width <= 12 * rootFontSize + 1, 'Move distance stays compact')
-  await walk.getByRole('button', { name: 'About Move', exact: true }).click()
-  const moveHelp = page.getByRole('dialog', { name: 'Move', exact: true })
-  await moveHelp.waitFor({ state: 'visible' })
-  await page.keyboard.press('Escape')
-  await moveHelp.waitFor({ state: 'hidden' })
-  assert.equal(
-    await walk
-      .getByRole('button', { name: 'About Move', exact: true })
-      .evaluate((button) => button === document.activeElement),
-    true,
-  )
   assert.equal(
     await walk.getByRole('combobox', { name: 'Destination', exact: true }).isDisabled(),
     true,
@@ -1965,6 +2062,7 @@ try {
       await page.close()
       continue
     }
+    await verifyTagBatchEditors(page, viewport)
     await verifyModularReaders(page, viewport)
     await verifyModularManual(page, viewport)
     await verifyCanonicalEditor(page, viewport)
@@ -2226,7 +2324,7 @@ try {
           .getByLabel('Effect duration (turns)', { exact: true })
           .fill(String(scenario.duration))
         await editor
-          .getByLabel('Status potency (percent)', { exact: true })
+          .getByLabel('Storm damage increase (%)', { exact: true })
           .fill(String(scenario.potency))
       }
       const master = page.getByRole('region', { name: 'Master elemental details' })

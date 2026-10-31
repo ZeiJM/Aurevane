@@ -1,3 +1,22 @@
+import { combatReversalPayload } from './combat-reversal'
+import { prepareCombatAbilityCommand } from './combat-ability-command'
+import { combatAbilityCommandContext } from './combat-behavior-runtime'
+import {
+  captureCombatRewindAnchors,
+  copyCombatRewindAnchors,
+  validCombatRewindAnchors,
+  type CombatRewindAnchors,
+} from './combat-rewind'
+import {
+  evaluateCombatAction,
+  type CombatTargetSelection,
+  type CombatContentCatalog,
+} from './actions'
+import { materializeCombatAbilityAction, combatAbilitySubject } from './combat-behavior-runtime'
+import {
+  evaluateAbilityRequirements,
+  evaluateAbilitySelectedRequirements,
+} from './combat-requirements'
 import { readSkillCooldown } from './skill-cooldowns'
 import { applyAbilityTimingDefaults } from './combat-definition'
 import type { CombatEncounterState, CombatEncounterIssue } from './actions'
@@ -34,6 +53,8 @@ export interface CombatControlledAbilityRecord {
   readonly contentVersion: number
   readonly behaviorId: string
   readonly returnAnchor?: GridPosition
+  readonly returnAnchors?: CombatRewindAnchors
+  readonly rewindSelection?: CombatTargetSelection
   /** Definitions remain in the encounter's immutable captured-source inventory. */
   readonly manualModifiers?: readonly ControlledManualModifierCapture[]
 }
@@ -145,12 +166,16 @@ export interface CombatControlledAbilityInput {
   readonly sourceInstanceId: string
   readonly behaviorId: string
   readonly manualModifiers?: readonly ManualCombatModifierSelection[]
+  readonly selection?: CombatTargetSelection
+  readonly content?: CombatContentCatalog
 }
 
 /** Owner-only command presentation. Release readiness still requires a complete legal intent. */
 export function combatControlledAbilityAvailability(input: CombatControlledAbilityInput):
   | {
       readonly phase: 'unprimed' | 'primed' | 'spent'
+      readonly releaseTarget?: CombatTargetSelection
+      readonly requiresTarget?: true
       readonly canPrime: boolean
       readonly canCancel: boolean
       readonly manualModifiers?: readonly ManualCombatModifierSelection[]
@@ -170,15 +195,32 @@ export function combatControlledAbilityAvailability(input: CombatControlledAbili
     abilityId: source.abilityId,
   })
   const used =
+    !combatReversalPayload(behavior) &&
     input.state.effectTimingPolicy?.tagAuthority !== 'global' &&
     input.state.abilityRuntime?.controlled?.used.some(
       (row) => combatControlledAbilityKey(row) === key,
     )
   const allowed = (operation: 'prime' | 'cancel') => {
     try {
+      if (operation === 'prime' && combatReversalPayload(behavior)) {
+        return (
+          !!input.content &&
+          prepareCombatAbilityCommand({
+            state: input.state,
+            actorId: input.actorId,
+            root: { kind: 'canonical', source, behaviorId: behavior.id },
+            selection: { kind: 'self' },
+            content: input.content,
+            context: combatAbilityCommandContext(input.state, source),
+            reversalPreparation: true,
+            manualModifiers: input.manualModifiers,
+          }).evaluation.legal
+        )
+      }
       updateCombatControlledAbility(
         operation === 'cancel' ? { ...input, manualModifiers: undefined } : input,
         operation,
+        true,
       )
       return true
     } catch {
@@ -186,6 +228,12 @@ export function combatControlledAbilityAvailability(input: CombatControlledAbili
     }
   }
   return {
+    ...(needsRecipientRewindCapture(behavior) ? { requiresTarget: true as const } : {}),
+    ...(prime?.rewindSelection
+      ? {
+          releaseTarget: JSON.parse(JSON.stringify(prime.rewindSelection)) as CombatTargetSelection,
+        }
+      : {}),
     phase: prime ? 'primed' : used ? 'spent' : 'unprimed',
     canPrime: !prime && !used && allowed('prime'),
     canCancel: !!prime && allowed('cancel'),
@@ -200,10 +248,12 @@ export function combatControlledAbilityAvailability(input: CombatControlledAbili
   }
 }
 
-/** Free prime admits a structural bundle without targets, payment, clocks or action-use hooks. */
+/** Free prime admits a structural bundle without payment or action-use hooks.
+ * Recipient Rewind additionally validates and captures its initial aim; old self primes stay structural. */
 export function updateCombatControlledAbility(
   input: CombatControlledAbilityInput,
   operation: 'prime' | 'cancel',
+  availabilityOnly = false,
 ): CombatEncounterState {
   const { state } = input
   const tracking = state.abilityRuntime
@@ -240,6 +290,8 @@ export function updateCombatControlledAbility(
     ).active
   )
     throw new TypeError('controlled-cooldown-active')
+  if (operation === 'prime' && combatReversalPayload(behavior))
+    throw new TypeError('Reversal requires paid Controlled preparation.')
   if (operation === 'cancel' && input.manualModifiers !== undefined)
     throw new TypeError('controlled-cancel-modifiers-invalid')
   const manualModifiers =
@@ -257,6 +309,54 @@ export function updateCombatControlledAbility(
           },
         )
       : []
+  const recipientRewind = needsRecipientRewindCapture(behavior)
+  let returnAnchors: CombatRewindAnchors | undefined
+  if (operation === 'prime' && recipientRewind && !availabilityOnly) {
+    if (!input.selection || !input.content) throw new TypeError('controlled-rewind-target-required')
+    const action = materializeCombatAbilityAction(source, behavior)
+    const evaluation = evaluateCombatAction(state, action, input.selection, input.content)
+    const owner = combatAbilitySubject(state, input.actorId)
+    const selected = combatAbilitySubject(state, evaluation.primaryCombatantId)
+    const context = { owner, selected }
+    if (
+      !evaluation.legal ||
+      !evaluateAbilitySelectedRequirements(
+        behavior.requirements,
+        context,
+        (
+          evaluation.selectedCombatantIds ??
+          (evaluation.primaryCombatantId ? [evaluation.primaryCombatantId] : [])
+        ).map((id) => combatAbilitySubject(state, id)),
+      )
+    )
+      throw new TypeError('controlled-rewind-target-invalid')
+    const effects = behavior.effects.filter(
+      (effect) => !['move', 'summon'].includes(effect.payload.type),
+    )
+    action.effectEligibleRecipientIds = effects.map((effect) =>
+      state.tactical.battle.combatants
+        .filter((unit) =>
+          evaluateAbilityRequirements(effect.requirements ?? null, {
+            ...context,
+            affected: combatAbilitySubject(state, unit.id),
+          }),
+        )
+        .map((unit) => unit.id),
+    )
+    returnAnchors = captureCombatRewindAnchors(state, action, evaluation)
+    if (
+      returnAnchors &&
+      action.effects.some(
+        (effect) => effect.type === 'return-to-turn-start' && effect.recipient === 'actor',
+      )
+    )
+      returnAnchors = copyCombatRewindAnchors({
+        ...returnAnchors,
+        [input.actorId]: state.tactical.placements.find((row) => row.combatantId === input.actorId)!
+          .position,
+      })
+    if (!returnAnchors) throw new TypeError('controlled-rewind-target-ineligible')
+  }
   const record: CombatControlledAbilityRecord = {
     battleId: state.tactical.battle.battleId,
     ownerCombatantId: input.actorId,
@@ -265,7 +365,14 @@ export function updateCombatControlledAbility(
     contentVersion: source.contentVersion,
     behaviorId: behavior.id,
     ...(manualModifiers.length ? { manualModifiers: Object.freeze(manualModifiers) } : {}),
-    ...(behavior.effects.some((effect) => effect.payload.type === 'return-to-turn-start')
+    ...(returnAnchors
+      ? {
+          returnAnchors,
+          rewindSelection: JSON.parse(JSON.stringify(input.selection)) as CombatTargetSelection,
+        }
+      : {}),
+    ...(!recipientRewind &&
+    behavior.effects.some((effect) => effect.payload.type === 'return-to-turn-start')
       ? {
           returnAnchor: {
             ...state.tactical.placements.find(
@@ -307,6 +414,14 @@ export function updateCombatControlledAbility(
                 {
                   ...record,
                   ...(record.returnAnchor ? { returnAnchor: { ...record.returnAnchor } } : {}),
+                  ...(record.returnAnchors
+                    ? {
+                        returnAnchors: copyCombatRewindAnchors(record.returnAnchors),
+                        rewindSelection: JSON.parse(
+                          JSON.stringify(record.rewindSelection),
+                        ) as CombatTargetSelection,
+                      }
+                    : {}),
                 },
               ],
             }
@@ -395,7 +510,7 @@ export function validateCombatControlledAbilities(
       typeof record !== 'object' ||
       Object.keys(record).some(
         (key) =>
-          !['returnAnchor', 'manualModifiers'].includes(key) &&
+          !['returnAnchor', 'returnAnchors', 'rewindSelection', 'manualModifiers'].includes(key) &&
           !CONTROLLED_RECORD_FIELDS.includes(key as never),
       )
     )
@@ -438,10 +553,12 @@ export function validateCombatControlledAbilities(
       Object.keys(prime).length !== Object.keys(used).length ||
       Object.keys(prime).some(
         (key) =>
-          !['returnAnchor', 'manualModifiers'].includes(key) &&
+          !['returnAnchor', 'returnAnchors', 'rewindSelection', 'manualModifiers'].includes(key) &&
           !CONTROLLED_RECORD_FIELDS.includes(key as never),
       ) ||
       CONTROLLED_RECORD_FIELDS.some((key) => prime[key] !== used[key]) ||
+      JSON.stringify(prime.returnAnchors) !== JSON.stringify(used.returnAnchors) ||
+      JSON.stringify(prime.rewindSelection) !== JSON.stringify(used.rewindSelection) ||
       prime.returnAnchor?.x !== used.returnAnchor?.x ||
       prime.returnAnchor?.y !== used.returnAnchor?.y ||
       !sameControlledModifiers(prime.manualModifiers, used.manualModifiers) ||
@@ -464,6 +581,28 @@ function validControlledAnchor(
   behavior: AbilityBehavior,
 ): boolean {
   const needed = behavior.effects.some((effect) => effect.payload.type === 'return-to-turn-start')
+  if (needsRecipientRewindCapture(behavior)) {
+    if (
+      record.returnAnchor !== undefined ||
+      !record.returnAnchors ||
+      !record.rewindSelection ||
+      !validCombatRewindAnchors(state, record.returnAnchors)
+    )
+      return false
+    const selection = record.rewindSelection
+    return (
+      Object.keys(record).length ===
+        CONTROLLED_RECORD_FIELDS.length + 2 + (record.manualModifiers !== undefined ? 1 : 0) &&
+      ((selection.kind === 'unit' &&
+        Object.keys(selection).length === 2 &&
+        Object.hasOwn(record.returnAnchors, selection.combatantId)) ||
+        (['self', 'activate'].includes(selection.kind) && Object.keys(selection).length === 1) ||
+        (selection.kind === 'direction' &&
+          Object.keys(selection).length === 2 &&
+          ['north', 'south', 'east', 'west'].includes(selection.direction)))
+    )
+  }
+  if (record.returnAnchors !== undefined || record.rewindSelection !== undefined) return false
   if (
     Object.keys(record).length !==
     CONTROLLED_RECORD_FIELDS.length +
@@ -554,3 +693,12 @@ function validControlledModifiers(
 }
 
 /** Canonical area activation and Ground-only selection never identify an explicit unit. */
+
+function needsRecipientRewindCapture(behavior: AbilityBehavior): boolean {
+  return behavior.effects.some(
+    (effect) =>
+      effect.payload.type === 'return-to-turn-start' &&
+      effect.payload.target !== undefined &&
+      effect.payload.target !== 'self',
+  )
+}

@@ -78,3 +78,23 @@ it('reports Pull distance and failed Pull without calling it a Push', () => {
     }),
   ).toContain('Pull failed')
 })
+
+it('preserves captured Skill AP in terrain inspection and recorded terrain descriptions', () => {
+  const overlay = {
+    kind: 'frozen' as const,
+    position: { x: 1, y: 2 },
+    remainingRoundBoundaries: 2,
+    sourceCombatantId: 'actor',
+    skillApSurcharge: 27,
+  }
+  expect(terrainOverlayDescription(overlay)).toContain('27 AP to Skills')
+  expect(terrainOverlayDescription(overlay)).not.toContain('per entered tile')
+  expect(
+    combatInteractionDescription({
+      event: 'terrain_overlay_changed',
+      ...overlay,
+      before: null,
+      after: 'frozen',
+    }),
+  ).toContain('27 AP to Skills')
+})

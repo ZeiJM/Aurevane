@@ -6,6 +6,7 @@ import { BattleMapKey } from './battle-map-key'
 import {
   BATTLE_TERRAIN_KEY_DETAILS,
   presentBattleTerrainKeys,
+  presentBattleTerrainKey,
   type BattleTerrainKeySnapshot,
 } from './battle-terrain-key-presentation'
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
@@ -132,4 +133,10 @@ describe('live battle terrain key', () => {
       )
     }
   })
+})
+
+it('describes the captured Skill AP profile in the shared terrain key', () => {
+  const snapshot = { ...board(), terrainOverlays: [{ ...overlay('frozen'), skillApSurcharge: 27 }] }
+  expect(presentBattleTerrainKey(snapshot, 'frozen').description).toContain('27 AP to Skills')
+  expect(presentBattleTerrainKey(snapshot, 'frozen').description).not.toContain('per entered tile')
 })

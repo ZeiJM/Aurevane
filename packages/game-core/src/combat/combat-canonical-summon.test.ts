@@ -1,3 +1,4 @@
+import { withCurrentSummonCoreAttributes } from './summon-content'
 import { describe, expect, it } from 'vitest'
 import { validateCombatEncounterState } from './actions'
 import {
@@ -52,7 +53,7 @@ function summoning(
   prefix: readonly AbilityEffect[] = [],
 ): MatureSkillDefinition {
   const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
-  const profile = { ...native.summonProfile!, name: 'Captured Companion' }
+  const profile = { ...native.summonProfile!, name: 'Captured Companion', neverMoves: true }
   return {
     ...native,
     contentVersion: 20,
@@ -342,7 +343,10 @@ describe('canonical Summon command routing', () => {
     if (payload.type !== 'summon') throw new Error('Expected Summon.')
     Object.assign(payload.profile, { name: 'Later replacement' })
     const result = executePv1fMatureSkill(state, changed, tile)
-    expect(result.state.effectState?.summons?.[0]?.profile.name).toBe('Captured Companion')
+    expect(result.state.effectState?.summons?.[0]?.profile).toMatchObject({
+      name: 'Captured Companion',
+      neverMoves: true,
+    })
     expect(
       result.state.capturedAbilitySources?.find((row) => row.abilityId === definition.id)
         ?.definition,
@@ -428,8 +432,17 @@ describe('canonical Summon command routing', () => {
       expect(result.state.effectState?.summons ?? []).toHaveLength(0)
       expect(result.state.pendingSummons?.[0]).toMatchObject({
         activationRound: round,
-        input: { sourceSkillVersion: 20, profile: { name: 'Captured Companion' } },
+        input: {
+          sourceSkillVersion: 20,
+          profile: { name: 'Captured Companion', neverMoves: true },
+        },
       })
+      const restored = JSON.parse(JSON.stringify(result.state))
+      expect(validateStatDrivenCombatEncounterState(restored)).toEqual([])
+      restored.pendingSummons[0].input.profile.neverMoves = 'true'
+      expect(validateStatDrivenCombatEncounterState(restored)).toContainEqual(
+        expect.objectContaining({ field: 'pendingSummons' }),
+      )
       expect(readPv1fActionEconomy(result.state, 'actor')?.current).toBe(77)
       const allEvents = [...recordedEvents(result)]
       for (let n = 0; n < 16 && result.state.tactical.battle.round < round; n++) {
@@ -438,7 +451,10 @@ describe('canonical Summon command routing', () => {
       }
       expect(result.state.tactical.battle.round).toBe(round)
       expect(result.state.effectState?.summons).toHaveLength(1)
-      expect(result.state.effectState?.summons?.[0]?.profile.name).toBe('Captured Companion')
+      expect(result.state.effectState?.summons?.[0]?.profile).toMatchObject({
+        name: 'Captured Companion',
+        neverMoves: true,
+      })
       expect(result.state.pendingSummons ?? []).toHaveLength(0)
       expect(allEvents.filter((event) => event.event === 'summon_spawned')).toHaveLength(1)
       expect(validateStatDrivenCombatEncounterState(result.state)).toEqual([])
@@ -572,4 +588,51 @@ describe('canonical Summon command routing', () => {
       }),
     )
   })
+})
+
+it('captures and executes Core-authored canonical Summon payloads through strict serialized definitions', () => {
+  const base = summoning()
+  const behavior = base.ability!.behaviors[0]!
+  const effect = behavior.effects[0]!
+  if (effect.payload.type !== 'summon') throw new Error('Expected Summon payload')
+  const profile = withCurrentSummonCoreAttributes(effect.payload.profile, {
+    might: 10,
+    finesse: 60,
+    vitality: 40,
+    agility: 60,
+    intellect: 50,
+    resolve: 20,
+  })
+  const definition = {
+    ...base,
+    ability: parseAbilityDefinition(
+      JSON.parse(
+        JSON.stringify({
+          ...base.ability,
+          behaviors: [
+            { ...behavior, effects: [{ ...effect, payload: { ...effect.payload, profile } }] },
+          ],
+        }),
+      ),
+    ),
+  }
+  const legacy = encounter()
+  const state = {
+    ...legacy,
+    statBalancePolicyVersion: 1 as const,
+    statBridge: {
+      ...legacy.statBridge,
+      combatants: legacy.statBridge.combatants.map((row) => ({ ...row, statusResistance: 0 })),
+    },
+  }
+  const before = JSON.stringify(state)
+  expect(evaluatePv1fMatureSkill(state, definition, tile).evaluation.legal).toBe(true)
+  const used = executePv1fMatureSkill(state, definition, tile)
+  const summon = used.state.effectState!.summons![0]!
+  expect(summon.profile).toEqual(profile)
+  expect(
+    used.state.statBridge.combatants.find((row) => row.combatantId === summon.combatantId),
+  ).toMatchObject(profile.stats)
+  expect(validateStatDrivenCombatEncounterState(JSON.parse(JSON.stringify(used.state)))).toEqual([])
+  expect(JSON.stringify(state)).toBe(before)
 })

@@ -1,3 +1,15 @@
+import { prepareSummonReversal } from './combat-reversal-summon'
+import {
+  calculatePv1fBasicAttackDamage,
+  createPv1fBasicAttackDefinition,
+} from './pv1f-basic-attack'
+export {
+  calculatePv1fBasicAttackDamage,
+  createPv1fBasicAttackDefinition,
+  PV1F_BASIC_ATTACK_BASE_DAMAGE,
+  PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS,
+} from './pv1f-basic-attack'
+import { frozenGroundSkillApCost } from './terrain-overlays'
 import { capturedBasicSkillSource } from './combat-basic-actions'
 export type { Pv1fPoisonMovementForecast } from './combat-walking'
 import {
@@ -66,7 +78,6 @@ import {
 import { revealedSkillApCost } from './covert-sensory-revealed'
 import {
   combatSourceCommandVisibility,
-  createBasicAttackDefinition,
   endCombatTurn,
   evaluateCombatAction,
   executeCombatAction,
@@ -140,8 +151,6 @@ export const PV1F_GUARD_COOLDOWN: SkillCooldownDefinition = {
 }
 
 export const PV1F_BASIC_ATTACK_DAMAGE_KEY = 'pv1f.basic-attack-damage' as const
-export const PV1F_BASIC_ATTACK_BASE_DAMAGE = 6 as const
-export const PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS = 1_500 as const
 
 import { PV1F_COMBAT_CONTENT, PV1F_GUARDED_STATUS } from './pv1f-combat-content'
 export {
@@ -189,44 +198,6 @@ export interface Pv1fTransition {
   state: StatDrivenCombatEncounterState
   events: readonly unknown[]
   hitDependentEffectsActivated?: boolean
-}
-
-export function calculatePv1fBasicAttackDamage(input: { physicalPower: number }): number {
-  if (!Number.isSafeInteger(input.physicalPower) || input.physicalPower < 0) {
-    throw new RangeError('physicalPower must be a non-negative safe integer.')
-  }
-  return calculateScaledRawDamage(
-    PV1F_BASIC_ATTACK_BASE_DAMAGE,
-    {
-      source: 'physical-power',
-      coefficientBasisPoints: PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS,
-    },
-    input.physicalPower,
-  )
-}
-
-export function createPv1fBasicAttackDefinition(
-  damage: number,
-  family: 'physical' | 'mystic' = 'physical',
-): CombatActionDefinition {
-  if (!Number.isSafeInteger(damage) || damage < 1) {
-    throw new RangeError('Basic Attack damage must be a positive safe integer.')
-  }
-  const action = createBasicAttackDefinition({
-    id: 'unarmed.basic',
-    version: 1,
-    damage,
-    minimumRange: 1,
-    maximumRange: 1,
-    requiresLineOfSight: false,
-    maximumElevationDifference: 1,
-    facingModifiersBasisPoints: {
-      front: 10_000,
-      side: 11_000,
-      rear: 12_500,
-    },
-  })
-  return { ...action, tags: [...action.tags, family] }
 }
 
 export function createPv1fRecoverAction(maxHp: number): CombatActionDefinition {
@@ -659,7 +630,7 @@ function summonAbilityDefinition(
     (effect) =>
       effect.type === 'healing' ||
       effect.type === 'barrier-change' ||
-      effect.type === 'resource-change',
+      (effect.type === 'resource-change' && effect.basis !== 'maximum-mp-percent'),
   ).length
   const damageScaling =
     state.statBridge.rulesVersion === 4 && damageCount > 0
@@ -691,7 +662,7 @@ function summonAbilityDefinition(
         ),
       }
     }
-    if (effect.type === 'resource-change') {
+    if (effect.type === 'resource-change' && effect.basis !== 'maximum-mp-percent') {
       const sign = effect.delta < 0 ? -1 : 1
       return {
         ...effect,
@@ -712,10 +683,20 @@ function summonAbilityDefinition(
     id: ability.id,
     version: 1,
     sourceType: 'discipline-skill',
-    tags: ability.tags,
+    // Historical captures can omit family tags; keep the existing power binding authoritative.
+    tags: ability.tags.some((tag) => tag === 'physical' || tag === 'mystic')
+      ? ability.tags
+      : [...ability.tags, source === 'mystic-power' ? 'mystic' : 'physical'],
     target: ability.target,
-    cost: { spendsAction: true, mp: ability.mpCost },
+    cost: {
+      spendsAction: true,
+      mp: ability.mpCost,
+      ...(ability.hpCost !== undefined ? { hp: ability.hpCost } : {}),
+    },
     requirements: ability.requirements,
+    ...(ability.cooldownOwnerTurns
+      ? { cooldown: { key: ability.id, ownerTurns: ability.cooldownOwnerTurns } }
+      : {}),
     effects,
   }
 }
@@ -757,14 +738,24 @@ export function evaluatePv1fSummonAbility(
   cost: number
   evaluation: CombatActionEvaluation
 } {
-  const prepared = preparePv1fTurnEconomy(state)
+  let prepared = preparePv1fTurnEconomy(state)
   const current = authoritativeSummon(prepared, summon)
   const ability = current.profile.abilities.find((candidate) => candidate.id === actionId)
   if (!ability) throw new Error('That summon does not have the requested authored ability.')
 
-  const action = summonAbilityDefinition(prepared, ability)
-  const cost = ability.apCost
-  const baseEvaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  const reversal = ability.effects.some((effect) => effect.type === 'reversal')
+    ? prepareSummonReversal(prepared, current, ability, target, PV1F_COMBAT_CONTENT)
+    : undefined
+  if (reversal) prepared = reversal.prepared
+  const action = reversal?.quote.action ?? summonAbilityDefinition(prepared, ability)
+  const cost = reversal
+    ? (reversal.quote.costs.find((row) => row.resource === 'ap')?.amount ?? 0)
+    : ability.apCost > 0
+      ? frozenGroundSkillApCost(prepared, current.combatantId, ability.apCost)
+      : ability.apCost
+  const baseEvaluation =
+    reversal?.quote.evaluation ??
+    evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   const evaluation = summonAbilityUsedThisTurn(prepared, current.combatantId)
     ? {
         ...baseEvaluation,
@@ -804,26 +795,42 @@ export function executePv1fSummonAbility(
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Summon ability execution requires an active turn.')
 
-  const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  const ability = summon.profile.abilities.find((ability) => ability.id === actionId)!
+  const reversal = ability.effects.some((effect) => effect.type === 'reversal')
+    ? prepareSummonReversal(
+        prepared,
+        authoritativeSummon(prepared, summon),
+        ability,
+        target,
+        PV1F_COMBAT_CONTENT,
+      )
+    : undefined
+  const executionState = reversal ? prepared : markPv1fTurnActivity(prepared, actorId)
+  const resolved = reversal
+    ? commitCombatAbilityCommand(reversal.command)
+    : executeCombatAction(executionState, action, target, PV1F_COMBAT_CONTENT)
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+  if (!reversal) next = spendPv1fActionEconomyForActor(next, actorId, cost)
+  const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   const defeatedSummons = removeDefeatedCombatSummons(next)
-  next = spendPv1fActionEconomyForActor(defeatedSummons.state, actorId, cost)
-  next = clearLastMatureSkill(next, actorId)
+  next = defeatedSummons.state
 
   const turnNumber = prepared.tactical.battle.turnNumber
-  const actor = getCombatant(next, actorId)
-  next = withCombatant(next, {
-    ...actor,
-    temporaryResources: replaceResources(actor.temporaryResources, [
-      {
-        key: PV1F_SUMMON_ABILITY_USED_TURN_KEY,
-        current: turnNumber,
-        maximum: Number.MAX_SAFE_INTEGER,
-      },
-    ]),
-  })
+  if (next.tactical.battle.combatants.some((unit) => unit.id === actorId)) {
+    next = clearLastMatureSkill(next, actorId)
+    const actor = getCombatant(next, actorId)
+    next = withCombatant(next, {
+      ...actor,
+      temporaryResources: replaceResources(actor.temporaryResources, [
+        {
+          key: PV1F_SUMMON_ABILITY_USED_TURN_KEY,
+          current: turnNumber,
+          maximum: Number.MAX_SAFE_INTEGER,
+        },
+      ]),
+    })
+  }
 
-  const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
@@ -1127,7 +1134,11 @@ export function evaluatePv1fMatureSkill(
     actorId,
     action,
     target,
-    revealedSkillApCost(prepared, actorId, authoredCost),
+    frozenGroundSkillApCost(
+      prepared,
+      actorId,
+      revealedSkillApCost(prepared, actorId, authoredCost),
+    ),
     options.manualModifiers,
     definition.sourceDisciplineId,
   )
@@ -1146,7 +1157,11 @@ export function evaluatePv1fMatureSkill(
   return {
     prepared,
     action,
-    cost: revealedSkillApCost(prepared, actorId, authoredCost),
+    cost: frozenGroundSkillApCost(
+      prepared,
+      actorId,
+      revealedSkillApCost(prepared, actorId, authoredCost),
+    ),
     evaluation: evaluatedWithVengeance,
     repeatPenaltyApplied,
   }
@@ -1640,7 +1655,7 @@ function applyCurrentMatureSkillPowerScaling(
         (effect) =>
           effect.type === 'healing' ||
           effect.type === 'barrier-change' ||
-          effect.type === 'resource-change',
+          (effect.type === 'resource-change' && effect.basis !== 'maximum-mp-percent'),
       ).length
     : 0
   const recoveryScaling =
@@ -1673,7 +1688,7 @@ function applyCurrentMatureSkillPowerScaling(
         ),
       }
     }
-    if (effect.type === 'resource-change') {
+    if (effect.type === 'resource-change' && effect.basis !== 'maximum-mp-percent') {
       const sign = effect.delta < 0 ? -1 : 1
       return {
         ...effect,
@@ -1759,8 +1774,14 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'poison' ||
       effect.type === 'burn' ||
       effect.type === 'copy-statuses' ||
-      effect.type === 'sensory'
+      effect.type === 'sensory' ||
+      effect.type === 'endure' ||
+      effect.type === 'reversal'
     ) {
+      continue
+    }
+    if (effect.type === 'weak-point' || effect.type === 'spike' || effect.type === 'ruin') {
+      scaled.push(effect)
       continue
     }
     const stacks = Math.floor(effect.stacks / 2)

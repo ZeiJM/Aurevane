@@ -1,3 +1,4 @@
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { skillEffectInstantTiming } from './skill-detail-presentation'
 import { expect, it } from 'vitest'
 import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
@@ -111,4 +112,28 @@ it('compact timing labels expose Controlled for a configured tag', () => {
       { version: 12, modes: { healing: 'controlled' } },
     ),
   ).toBe('Controlled')
+})
+
+it('reports the authored Summon ceiling against the summoner Basic Attack', () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
+  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const behavior = {
+    ...base,
+    effects: [
+      {
+        id: 'companion',
+        payload: {
+          type: 'summon' as const,
+          recipient: 'selected-tile' as const,
+          profile: { ...profile, potencyBasisPoints: 4000 },
+        },
+      },
+    ],
+  }
+  const report = abilityBehaviorInformation(behavior)
+  expect(report.effectDescriptions[0]).toContain('40%')
+  expect(report.effectDescriptions[0]).toContain(
+    'summoner’s normal noncritical Basic Attack damage against the same target, before Barrier',
+  )
+  expect(report.effectDescriptions[0]).toContain('Repeated hits share this limit')
 })

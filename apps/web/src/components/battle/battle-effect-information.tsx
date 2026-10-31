@@ -4,6 +4,7 @@ import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-econ
 import {
   terrainBattleEffectPresentation,
   primedBattleEffectPresentation,
+  reversalBattleEffectPresentation,
   type BattlePresentedStatus,
 } from '@/lib/battle/battle-elevation-effects'
 import { mechanicTagExplanation } from '../character/mechanic-tag-explanation'
@@ -49,7 +50,8 @@ export function battleEffectInformation(effect: BattlePresentedStatus) {
     ) ||
     (effect.statusVersion === 1 && presentationFamilies.has(effect.statusId)) ||
     terrainBattleEffectPresentation(effect) !== null ||
-    primedBattleEffectPresentation(effect) !== null,
+    primedBattleEffectPresentation(effect) !== null ||
+    reversalBattleEffectPresentation(effect) !== null,
   )
   const label = known ? details.label : gameplayStatusName(effect.statusId)
   const baseDescription = !known

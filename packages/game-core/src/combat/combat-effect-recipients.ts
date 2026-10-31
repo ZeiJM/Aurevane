@@ -33,11 +33,16 @@ export function validateCombatEffectTarget(
     throw new TypeError('Empty Tile effects require an empty shared aim.')
   if (!COMBAT_EFFECT_TARGETS.includes(effect.target as CombatEffectTarget))
     throw new TypeError('Unknown effect target.')
-  if (['move', 'return-to-turn-start', 'damage-bonus'].includes(effect.type)) {
+  if (['move', 'damage-bonus', 'endure', 'reversal'].includes(effect.type)) {
     if (effect.target !== 'self' || effect.recipient !== 'actor')
       throw new TypeError('This effect supports only the Self target.')
     return
   }
+  if (
+    effect.type === 'return-to-turn-start' &&
+    ['ground', 'empty-tile'].includes(effect.target as string)
+  )
+    throw new TypeError('Rewind requires a unit target.')
   if (effect.type === 'summon') {
     if (effect.target !== 'empty-tile') throw new TypeError('Summon requires Empty Tile target.')
     return

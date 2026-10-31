@@ -1,3 +1,4 @@
+import { recordCombatEndureMutation } from './combat-endure'
 import { filterBlockedCovertApplication } from './covert-sensory-revealed'
 import type { CombatEncounterState, CombatResolutionTransition } from './actions-legacy'
 import type { CombatTriggerGuard } from './combat-kernel-types'
@@ -43,6 +44,7 @@ export function observeCombatNativeMutation<Transition extends CombatResolutionT
   transition: Transition,
   facts: CombatNativeMutationFacts,
 ): Transition {
+  transition = { ...transition, state: recordCombatEndureMutation(before, transition) }
   if (!hooks) return transition
   // Settle the existing native Covert block before recording an actual mutation witness.
   const filtered = filterBlockedCovertApplication({

@@ -1,3 +1,4 @@
+import { combatReversalPayload } from '@aurevane/game-core/combat/combat-reversal'
 import 'server-only'
 import {
   capturedMatureSkillAbilitySource,
@@ -445,7 +446,10 @@ function sensoryConditions(definition: Pick<MatureSkillDefinition, 'effects'>) {
             type: 'sensory' as const,
             condition: 'target-is-covert' as const,
             revealedDurationOwnerTurnStarts: effect.revealedDurationOwnerTurnStarts,
-            description: `If the target is Covert: purge eligible positive buffs and apply Revealed ${effect.revealedDurationOwnerTurnStarts}.`,
+            description:
+              effect.increasedDamageTakenBasisPoints === undefined
+                ? `If the target is Covert: purge eligible positive buffs and apply Revealed ${effect.revealedDurationOwnerTurnStarts}.`
+                : `A successful hit against Invisible or Covert removes both and applies Revealed for ${effect.revealedDurationOwnerTurnStarts} turns: take ${effect.increasedDamageTakenBasisPoints / 100}% more damage; incoming attacks have 100% Accuracy.`,
           },
         ]
       : [],
@@ -482,12 +486,16 @@ function evaluateCanonicalPreview(
       effectTimingPolicy: {
         version: 1,
         modes: Object.fromEntries(
-          COMBAT_EFFECT_TIMING_TAGS.map((tag) => [tag, 'instant' as const]),
+          COMBAT_EFFECT_TIMING_TAGS.map((tag) => [
+            tag,
+            tag === 'reversal' ? ('controlled' as const) : ('instant' as const),
+          ]),
         ),
       },
     }
   }
-  let preparation: 'free-controlled-prime' | undefined
+  const reversal = combatReversalPayload(behavior)
+  let preparation: 'free-controlled-prime' | 'paid-controlled-prime' | undefined
   if (isControlledCombatAbility(behavior)) {
     const sources = [
       ...(prepared.capturedAbilitySources ?? []).filter(
@@ -505,8 +513,10 @@ function evaluateCanonicalPreview(
       sourceInstanceId: source.sourceInstanceId,
       behaviorId: behavior.id,
       ...(manualModifiers ? { manualModifiers } : {}),
+      content: PV1F_COMBAT_CONTENT,
     }
-    if (combatControlledAbilityAvailability(input)?.canPrime) {
+    if (reversal) preparation = 'paid-controlled-prime'
+    else if (combatControlledAbilityAvailability(input)?.canPrime) {
       prepared = reattachStatDrivenCombatBridge(
         primeCombatControlledAbility(input).state,
         prepared.statBridge,
@@ -518,6 +528,7 @@ function evaluateCanonicalPreview(
     state: prepared,
     actorId: ACTOR_ID,
     root: { kind: 'canonical', source, behaviorId: behavior.id },
+    ...(reversal ? { reversalPreparation: true as const } : {}),
     selection,
     ...(movementPath ? { movementPath } : {}),
     ...(manualModifiers ? { manualModifiers } : {}),
@@ -546,10 +557,20 @@ function projectPreviewSummon(
       flavorLine: summonProfile.flavorLine,
       portraitKey: summonProfile.portraitKey,
       tags: [...summonProfile.tags],
+      ...(summonProfile.coreAttributes
+        ? { coreAttributes: { ...summonProfile.coreAttributes } }
+        : {}),
+      ...(summonProfile.derivedStatRulesVersion !== undefined
+        ? { derivedStatRulesVersion: summonProfile.derivedStatRulesVersion }
+        : {}),
+      ...(summonProfile.potencyBasisPoints === undefined
+        ? {}
+        : { potencyBasisPoints: summonProfile.potencyBasisPoints }),
       maxHp: summonProfile.maxHp,
       maxMp: summonProfile.maxMp,
       initiative: summonProfile.initiative,
       movementBudget: summonProfile.movementBudget,
+      ...(summonProfile.neverMoves === undefined ? {} : { neverMoves: summonProfile.neverMoves }),
       stats: structuredClone(summonProfile.stats),
       aiProfile: summonProfile.aiProfile,
       aiPurposeTags: [...summonProfile.aiPurposeTags],
@@ -561,6 +582,10 @@ function projectPreviewSummon(
       description: ability.description,
       apCost: ability.apCost,
       mpCost: ability.mpCost,
+      ...(ability.hpCost !== undefined ? { hpCost: ability.hpCost } : {}),
+      ...(ability.cooldownOwnerTurns !== undefined
+        ? { cooldownOwnerTurns: ability.cooldownOwnerTurns }
+        : {}),
       tags: [...ability.tags],
       target: structuredClone(ability.target),
       effects: ability.effects.map((effect) => structuredClone(effect)),

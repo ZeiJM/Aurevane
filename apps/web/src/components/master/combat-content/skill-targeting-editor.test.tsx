@@ -66,7 +66,7 @@ describe('Master Panel Skill targeting editor', () => {
   })
 })
 
-it('applies Combat v5.1 maximum range and elevation authoring bounds without changing historical defaults', () => {
+it('allows the supported map range while retaining Combat v5.1 elevation bounds', () => {
   const currentMarkup = renderToStaticMarkup(
     createElement(SkillTargetingEditor, {
       value: target(),
@@ -75,7 +75,7 @@ it('applies Combat v5.1 maximum range and elevation authoring bounds without cha
     }),
   )
 
-  expect(currentMarkup).toMatch(/aria-label="Maximum target range"[^>]*min="1"[^>]*max="5"/u)
+  expect(currentMarkup).toMatch(/aria-label="Maximum target range"[^>]*min="1"[^>]*max="20"/u)
   expect(currentMarkup).toMatch(/aria-label="Targetable Elevation"[^>]*min="0"[^>]*max="2"/u)
   expect(currentMarkup).toContain('Elevation 0 is standard; 1 is uncommon; 2 is rare.')
   expect(currentMarkup).toContain('Skipping line of sight consumes targeting budget.')

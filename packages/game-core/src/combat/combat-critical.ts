@@ -1,4 +1,5 @@
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
+import { hasWeakPointCritical } from './combat-attack-tags'
 import { advanceBattleRng } from './battle-state'
 import type {
   CombatActionDefinition,
@@ -93,6 +94,11 @@ export function rollCombatCritical(
       critical = rollBasisPoints < plan.criticalChanceBasisPoints
     }
 
+    const guaranteed = target.effectOrdinals.some((ordinal) => {
+      const effect = action.effects[ordinal]!
+      return effect.type === 'damage' && hasWeakPointCritical(effect, target.targetCombatantId)
+    })
+    critical ||= guaranteed
     if (critical) {
       criticalEffectOrdinalsByTarget.set(target.targetCombatantId, new Set(target.effectOrdinals))
     }
@@ -101,7 +107,7 @@ export function rollCombatCritical(
       actionId: action.id,
       sourceCombatantId: plan.actorId,
       targetCombatantId: target.targetCombatantId,
-      criticalChanceBasisPoints: plan.criticalChanceBasisPoints,
+      criticalChanceBasisPoints: guaranteed ? BASIS_POINTS : plan.criticalChanceBasisPoints,
       rollBasisPoints,
       critical,
       criticalRulesVersion: COMBAT_CRITICAL_RULES_VERSION,
@@ -134,7 +140,15 @@ function criticalPlan(
   criticalChanceBasisPoints: number
   targets: readonly { targetCombatantId: string; effectOrdinals: readonly number[] }[]
 } {
-  if (state.statBridge?.rulesVersion !== 4 || !evaluation?.legal || !evaluation.actorId) {
+  const hasWeakPoint = action.effects.some(
+    (effect) =>
+      effect.type === 'damage' && effect.attackTagCapture?.weakPointDebuffThreshold !== undefined,
+  )
+  if (
+    (state.statBridge?.rulesVersion !== 4 && !hasWeakPoint) ||
+    !evaluation?.legal ||
+    !evaluation.actorId
+  ) {
     return { actorId: evaluation?.actorId ?? '', criticalChanceBasisPoints: 0, targets: [] }
   }
 
@@ -142,7 +156,8 @@ function criticalPlan(
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
   if (!actor) throw new TypeError('Combat critical resolution requires the committed actor.')
 
-  const criticalChanceBasisPoints = committedCriticalChance(state, actorId)
+  const criticalChanceBasisPoints =
+    state.statBridge?.rulesVersion === 4 ? committedCriticalChance(state, actorId) : 0
   const ordinalsByTarget = new Map<string, number[]>()
 
   for (const [effectOrdinal, effect] of action.effects.entries()) {

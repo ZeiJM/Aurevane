@@ -22,11 +22,12 @@ it.each(['native', 'canonical'])(
       'HP Recovery',
       'MP Recovery',
       'Pierce',
-      'Vengeance',
+      'Counter',
       'Dispel',
       'Suppress',
     ])
       expect(html).toContain(`>${tag}</option>`)
+    expect(html).not.toContain('>Vengeance</option>')
     expect(html).toContain('aria-label="Search effect tags"')
     expect(html).not.toContain('Copy Buffs / Copy Debuffs</option>')
     for (const retired of [

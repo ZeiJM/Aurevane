@@ -25,8 +25,14 @@ export interface AuthorableEffectTag {
   readonly statusId?: string
 }
 const variants: readonly AuthorableEffectTag[] = [
+  { id: 'weak-point', label: 'Weak Point', opcode: 'weak-point' },
+  { id: 'spike', label: 'Spike', opcode: 'spike' },
+  { id: 'ruin', label: 'Ruin', opcode: 'ruin' },
+  { id: 'endure', label: 'Endure', opcode: 'endure' },
   { id: 'damage', label: 'Damage', opcode: 'damage' },
+  { id: 'reversal', label: 'Reversal', opcode: 'reversal' },
   { id: 'pierce', label: 'Pierce', opcode: 'pierce' },
+  { id: 'counter', label: 'Counter', opcode: 'apply-status', statusId: 'counter' },
   { id: 'vengeance', label: 'Vengeance', opcode: 'damage' },
   { id: 'hp-recovery', label: 'HP Recovery', opcode: 'percentage-recovery' },
   { id: 'mp-recovery', label: 'MP Recovery', opcode: 'percentage-recovery' },
@@ -55,7 +61,7 @@ const variants: readonly AuthorableEffectTag[] = [
 export const REGISTERED_EFFECT_TAGS: readonly AuthorableEffectTag[] = Object.freeze([
   ...variants,
   ...SUPPORTED_COMBAT_STATUS_IDS.filter(
-    (statusId) => !['burn', 'poison', 'bleed'].includes(statusId),
+    (statusId) => !['burn', 'poison', 'bleed', 'counter', 'endure'].includes(statusId),
   )
     .map((statusId) => ({
       id: `status:${statusId}`,
@@ -73,6 +79,7 @@ export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
   REGISTERED_EFFECT_TAGS.filter(
     (tag) =>
       ![
+        'vengeance',
         'healing',
         'damage-bonus',
         'status:blindside',
@@ -82,6 +89,7 @@ export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
   ),
 )
 export function currentCombatTagName(tagId: string, name: string): string {
+  if (tagId === 'challenged' && name === 'Taunted') return 'Taunt'
   return tagId === BLINDSIDE_DEBUFF_STATUS_ID && name === 'Blindside (debuff)' ? 'Blindside' : name
 }
 
@@ -102,7 +110,7 @@ export function combatEffectIdentity(
           : 'damage'
       break
     case 'apply-status':
-      id = ['burn', 'poison', 'bleed'].includes(payload.statusId)
+      id = ['burn', 'poison', 'bleed', 'counter'].includes(payload.statusId)
         ? payload.statusId
         : `status:${payload.statusId}`
       break

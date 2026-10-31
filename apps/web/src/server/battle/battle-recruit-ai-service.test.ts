@@ -847,8 +847,10 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleCombatantEffects, { compact: true, name: 'Recruit', statuses }),
     )
-    expect(markup).toContain('>BUR</i>')
-    expect(markup).toContain('>POI</i>')
+    expect(markup).toContain('data-battle-effect-icon="burn"')
+    expect(markup).toContain('Explain Burn')
+    expect(markup).toContain('data-battle-effect-icon="poison"')
+    expect(markup).toContain('Explain Poison')
     expect(markup).not.toContain('No combat effects')
     const viewer = deriveParticipantBattleViewerEntitlement(
       fixture.currentState().tactical.battle.combatants,

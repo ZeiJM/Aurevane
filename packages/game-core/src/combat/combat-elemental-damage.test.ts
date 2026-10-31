@@ -1855,3 +1855,286 @@ describe('policy 2 actual Flame Burst Enemy and Ground intent', () => {
     expect(out.state.groundAreas).toHaveLength(1)
   })
 })
+
+it('keeps linked Frozen Ground Chilled independent of Ice damage absorbed by Barrier', () => {
+  const initial = {
+    ...encounter(),
+    elementalDamagePolicyVersion: 2 as const,
+    effectTimingPolicy: {
+      ...defaultCombatEffectTimingPolicy(),
+      modes: {
+        damage: 'instant' as const,
+        frozen: 'instant' as const,
+        'create-terrain': 'instant' as const,
+      },
+    },
+  }
+  const state = grantBarrier(initial, 'actor', 'enemy', 'test.barrier', 100).state
+  const action: CombatActionDefinition = {
+    ...skill('ice'),
+    target: { ...skill('ice').target, kind: 'ground-tile' },
+    effects: [
+      ...skill('ice')
+        .effects.filter((effect) => effect.type === 'damage')
+        .map((effect) => ({
+          ...effect,
+          recipient: 'affected-units' as const,
+          target: 'ground' as const,
+        })),
+      {
+        type: 'create-terrain',
+        recipient: 'affected-tiles',
+        terrain: 'frozen',
+        skillApSurcharge: 10,
+        authoringLink: 'frozen-ground.1',
+      },
+      {
+        type: 'apply-status',
+        recipient: 'affected-units',
+        target: 'ground',
+        statusId: 'frozen',
+        stacks: 1,
+        durationTurns: 2,
+        authoringLink: 'frozen-ground.1',
+        applicationOrigin: 'frozen-ground',
+      },
+    ],
+  }
+  const result = executeCombatAction(
+    state,
+    action,
+    {
+      kind: 'tile',
+      position: state.tactical.placements.find((placement) => placement.combatantId === 'enemy')!
+        .position,
+    },
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(result.events).toContainEqual(expect.objectContaining({ event: 'barrier_absorbed' }))
+  expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp).toBe(
+    state.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp,
+  )
+  expect(statuses(result.state).some((entry) => entry.statusId === 'frozen')).toBe(true)
+})
+
+const groundChilledSelection = { kind: 'tile' as const, position: { x: 2, y: 1 } }
+function independentGroundChilledAction(): CombatActionDefinition {
+  return {
+    ...skill('ice'),
+    target: { ...skill('ice').target, kind: 'ground-tile' },
+    effects: [
+      { type: 'damage', amount: 10, element: 'ice', recipient: 'affected-units', target: 'ground' },
+      {
+        type: 'create-terrain',
+        recipient: 'affected-tiles',
+        terrain: 'frozen',
+        target: 'ground',
+        skillApSurcharge: 10,
+      },
+      {
+        type: 'apply-status',
+        recipient: 'affected-units',
+        target: 'ground',
+        statusId: 'frozen',
+        stacks: 1,
+        durationTurns: 2,
+        applicationOrigin: 'frozen-ground',
+      },
+    ],
+  }
+}
+function independentGroundChilledState(): CombatEncounterState {
+  return {
+    ...encounter(),
+    elementalDamagePolicyVersion: 2,
+    effectTimingPolicy: {
+      ...defaultCombatEffectTimingPolicy(),
+      modes: { damage: 'instant', frozen: 'instant', 'create-terrain': 'instant' },
+    },
+  }
+}
+it('applies one authored Ground-origin Chilled when Ice deals positive HP damage', () => {
+  const result = executeCombatAction(
+    independentGroundChilledState(),
+    independentGroundChilledAction(),
+    groundChilledSelection,
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(
+    result.events.filter(
+      (event) =>
+        event.event === 'status_applied' &&
+        event.statusId === 'frozen' &&
+        event.targetCombatantId === 'enemy',
+    ),
+  ).toHaveLength(1)
+  expect(statuses(result.state).find((entry) => entry.statusId === 'frozen')?.stacks).toBe(1)
+})
+it('keeps ordinary Ice Chilled damage-gated even when it has an editor-only link', () => {
+  const state = grantBarrier(
+    independentGroundChilledState(),
+    'actor',
+    'enemy',
+    'test.barrier',
+    100,
+  ).state
+  const action = independentGroundChilledAction()
+  const historical = {
+    ...action,
+    effects: action.effects.map((effect) => {
+      if (effect.type !== 'apply-status') return effect
+      const { applicationOrigin: _origin, ...ordinary } = effect
+      void _origin
+      return { ...ordinary, authoringLink: 'frozen-ground.1' }
+    }),
+  }
+  const result = executeCombatAction(state, historical, groundChilledSelection, PV1F_COMBAT_CONTENT)
+  expect(result.events.some((event) => event.event === 'barrier_absorbed')).toBe(true)
+  expect(statuses(result.state).some((entry) => entry.statusId === 'frozen')).toBe(false)
+})
+it('preserves a delayed Ground-origin Chilled separately from an authored instant Ice companion', () => {
+  const action = independentGroundChilledAction()
+  const withCompanion: CombatActionDefinition = {
+    ...action,
+    effects: [
+      action.effects[0]!,
+      {
+        type: 'apply-status',
+        recipient: 'affected-units',
+        target: 'ground',
+        statusId: 'frozen',
+        stacks: 1,
+        durationTurns: 1,
+      },
+      ...action.effects.slice(1),
+    ],
+    effectTimingModes: ['instant', 'instant', 'instant', 'next-round'],
+  }
+  const first = executeCombatAction(
+    independentGroundChilledState(),
+    withCompanion,
+    groundChilledSelection,
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(
+    first.events.filter(
+      (event) =>
+        event.event === 'status_applied' &&
+        event.statusId === 'frozen' &&
+        event.targetCombatantId === 'enemy',
+    ),
+  ).toHaveLength(1)
+  expect(
+    first.state.pendingEffects?.filter(
+      (pending) =>
+        pending.effect.type === 'apply-status' &&
+        pending.effect.applicationOrigin === 'frozen-ground',
+    ),
+  ).toHaveLength(1)
+  let current = JSON.parse(JSON.stringify(first.state)) as typeof first.state
+  const events = [] as (typeof first.events)[number][]
+  for (let i = 0; i < 4; i++) {
+    const next = finishPv1fTurn(
+      { ...current, statBridge: percentageDotEncounter().statBridge },
+      'west',
+    )
+    current = next.state
+    events.push(...(next.events as typeof first.events))
+  }
+  expect(
+    events.filter(
+      (event) =>
+        event.event === 'status_applied' &&
+        event.statusId === 'frozen' &&
+        event.targetCombatantId === 'enemy',
+    ),
+  ).toHaveLength(1)
+  expect(current.pendingEffects ?? []).toHaveLength(0)
+  expect(validateCombatEncounterState(current)).toEqual([])
+})
+it('does not apply Ground-origin Chilled to Airborne occupants or ineligible conditional recipients', () => {
+  const action = independentGroundChilledAction()
+  const airborne = {
+    ...status(independentGroundChilledState(), 'airborne'),
+    airbornePolicyVersion: 1 as const,
+  }
+  const result = executeCombatAction(airborne, action, groundChilledSelection, PV1F_COMBAT_CONTENT)
+  expect(statuses(result.state).some((entry) => entry.statusId === 'frozen')).toBe(false)
+  const conditional = { ...action, effectEligibleRecipientIds: [undefined, undefined, []] }
+  const skipped = executeCombatAction(
+    independentGroundChilledState(),
+    conditional,
+    groundChilledSelection,
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(statuses(skipped.state).some((entry) => entry.statusId === 'frozen')).toBe(false)
+})
+
+it.each([0, 100])(
+  'keeps a separately authored Ice Chilled damage-gated beside Ground Chilled (Barrier %i)',
+  (barrier) => {
+    const base = independentGroundChilledState()
+    const state = barrier
+      ? grantBarrier(base, 'actor', 'enemy', 'test.barrier', barrier).state
+      : base
+    const action = independentGroundChilledAction()
+    const ordinary = {
+      type: 'apply-status' as const,
+      recipient: 'affected-units' as const,
+      target: 'ground' as const,
+      statusId: 'frozen',
+      stacks: 1,
+      durationTurns: 1,
+    }
+    const result = executeCombatAction(
+      state,
+      { ...action, effects: [action.effects[0]!, ordinary, ...action.effects.slice(1)] },
+      groundChilledSelection,
+      PV1F_COMBAT_CONTENT,
+    )
+    const expected = barrier ? 1 : 2
+    expect(
+      result.events.filter(
+        (event) =>
+          event.event === 'status_applied' &&
+          event.statusId === 'frozen' &&
+          event.targetCombatantId === 'enemy',
+      ),
+    ).toHaveLength(expected)
+    expect(
+      statuses(result.state)
+        .filter((entry) => entry.statusId === 'frozen')
+        .reduce((sum, entry) => sum + entry.stacks, 0),
+    ).toBe(expected)
+  },
+)
+it('does not let an ineligible Ground wrapper replace the eligible ordinary Ice companion', () => {
+  const action = independentGroundChilledAction()
+  const ordinary = {
+    type: 'apply-status' as const,
+    recipient: 'affected-units' as const,
+    target: 'ground' as const,
+    statusId: 'frozen',
+    stacks: 1,
+    durationTurns: 1,
+  }
+  const result = executeCombatAction(
+    independentGroundChilledState(),
+    {
+      ...action,
+      effects: [action.effects[0]!, ordinary, ...action.effects.slice(1)],
+      effectEligibleRecipientIds: [undefined, ['enemy'], undefined, []],
+    },
+    groundChilledSelection,
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(
+    result.events.filter(
+      (event) =>
+        event.event === 'status_applied' &&
+        event.statusId === 'frozen' &&
+        event.targetCombatantId === 'enemy',
+    ),
+  ).toHaveLength(1)
+  expect(statuses(result.state).find((entry) => entry.statusId === 'frozen')?.stacks).toBe(1)
+})

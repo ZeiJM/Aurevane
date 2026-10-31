@@ -5,11 +5,11 @@ describe('Staged status-copy descriptions', () => {
   it.each([
     [
       'amplify',
-      'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; remaining durations are not restarted.',
+      'Copies All Buffs from the target to you. Originals remain; remaining durations are preserved.',
     ],
     [
       'curse',
-      'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; remaining durations are not restarted.',
+      'Copies All Debuffs from you to the target. Originals remain; remaining durations are preserved.',
     ],
   ] as const)('describes %s without implying theft or refreshed durations', (mode, expected) => {
     const effect = {

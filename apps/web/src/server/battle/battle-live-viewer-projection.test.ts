@@ -44,6 +44,7 @@ vi.mock('server-only', () => ({}))
 
 import {
   omitPendingBattlePayloads,
+  omitCombatExecutionMetadata,
   projectBattleManualActionTargets,
   projectBattleEffectStateForViewer,
   projectBattleStatusStateForViewer,
@@ -57,6 +58,7 @@ import {
 it('strips private captured Ability and command execution authority from actual public state', () => {
   const privateState = {
     pendingEffects: [],
+    nextReversalAttackCommandId: 12,
     visible: 'yes',
     capturedAbilitySources: [{ definition: { secret: 'private' } }],
     abilityRuntime: { usage: [1] },
@@ -1576,4 +1578,166 @@ it('projects only admitted short wording for visible statuses without leaking th
   expect(JSON.stringify(rows)).not.toContain('Private full Manager wording.')
   expect(JSON.stringify(rows)).not.toContain('Unrelated tag.')
   expect(JSON.stringify(captured)).toBe(before)
+})
+
+it('omits private Counter settlement rates from public damage receipts', () => {
+  const receipt = { event: 'damage_applied', amount: 7, counterReturnBasisPoints: '17500' }
+  expect(omitCombatExecutionMetadata(receipt)).toEqual({ event: 'damage_applied', amount: 7 })
+  expect(receipt.counterReturnBasisPoints).toBe('17500')
+})
+
+it('retains a captured stationary summon flag in public effect state', () => {
+  const state = encounter()
+  state.effectState!.summons = [
+    {
+      combatantId: ALLY,
+      ownerCombatantId: PLAYER,
+      sourceSkillId: 'wildwarden.renewing-herbs',
+      sourceSkillVersion: 1,
+      spawnedRound: 1,
+      turnsCompleted: 0,
+      profile: {
+        ...resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!,
+        neverMoves: true,
+      },
+    },
+  ]
+  const projected = projectBattleEffectStateForViewer(
+    state,
+    createSpectatorBattleViewerEntitlement(),
+  )
+  expect(JSON.parse(JSON.stringify(projected)).summons[0].profile.neverMoves).toBe(true)
+})
+
+it('keeps captured Summon cap budgets and provenance private from every viewer', () => {
+  const state = {
+    tactical: { battle: { combatants: [] } },
+    statusState: [],
+    effectState: {
+      poison: [
+        {
+          targetCombatantId: 'enemy',
+          sourceCombatantId: 'expired.summon',
+          sourceActionId: 'summon.poison',
+          summonDamageCommandId: 1,
+        },
+      ],
+      burn: [],
+      bleed: [],
+      ongoingRecovery: [],
+      damageHistory: [],
+      summonDamageSources: [
+        { combatantId: 'expired.summon', ownerCombatantId: 'owner', potencyBasisPoints: 4000 },
+      ],
+      summonDamageCommands: [
+        {
+          id: 1,
+          sourceCombatantId: 'expired.summon',
+          turnNumber: 2,
+          budgetByRecipient: { enemy: 3 },
+          spentByRecipient: {},
+        },
+      ],
+      nextSummonDamageCommandId: 2,
+    },
+  } as unknown as StatDrivenCombatEncounterState
+  const visible = projectBattleEffectStateForViewer(state, createSpectatorBattleViewerEntitlement())
+  expect(visible).not.toHaveProperty('summonDamageSources')
+  expect(visible).not.toHaveProperty('summonDamageCommands')
+  expect(visible).not.toHaveProperty('nextSummonDamageCommandId')
+  expect(visible!.poison[0]).not.toHaveProperty('summonDamageCommandId')
+  expect(omitPendingBattlePayloads(state).effectState!.poison[0]).not.toHaveProperty(
+    'summonDamageCommandId',
+  )
+  expect(omitPendingBattlePayloads(state).effectState).not.toHaveProperty('summonDamageCommands')
+  expect(state.effectState).toHaveProperty('summonDamageCommands')
+})
+
+it('keeps elevated terrain markers independent of Fortified potency', () => {
+  const initial = encounter()
+  const state = {
+    ...initial,
+    statBalancePolicyVersion: 1 as const,
+    tactical: {
+      ...initial.tactical,
+      tiles: initial.tactical.tiles.map((tile) => ({ ...tile, elevation: 1 })),
+    },
+    statusState: initial.statusState.map((row) =>
+      row.combatantId === ENEMY
+        ? {
+            ...row,
+            statuses: [
+              status('covert', ENEMY),
+              { ...status('fortified', ENEMY), defenseIncreaseBasisPoints: 5000 },
+            ],
+          }
+        : row,
+    ),
+  }
+  const rows = projectBattleStatusStateForViewer(
+    state,
+    createSpectatorBattleViewerEntitlement(),
+  ).find((row) => row.combatantId === ENEMY)!.statuses
+  expect(rows.find((row) => row.statusId === 'terrain-defense')?.potencyBasisPoints).toBe(2000)
+})
+
+it('rebuilds visible Haste tuning without leaking a concealed stacked application', () => {
+  const state = encounter()
+  state.effectStackingPolicyVersion = 1
+  const visibility = { kind: 'team-only' as const, teamId: 'team:b' }
+  state.pendingEffects = [
+    {
+      actorId: ENEMY,
+      actionId: 'hidden.covert',
+      recipientIds: [ENEMY],
+      affectedTiles: [],
+      effect: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+      activationRound: 2,
+      content: PV1F_COMBAT_CONTENT,
+      sourceCommandVisibility: visibility,
+    },
+  ]
+  state.statusState = state.statusState.map((row) =>
+    row.combatantId === PLAIN_ENEMY
+      ? {
+          ...row,
+          statuses: [
+            {
+              ...status('haste', PLAIN_ENEMY),
+              stacks: 2,
+              movementApAdjustment: 27,
+              applicationModifiers: [
+                { stacks: 1, sourceCombatantId: PLAIN_ENEMY, movementApAdjustment: 10 },
+                {
+                  stacks: 1,
+                  sourceCombatantId: ENEMY,
+                  movementApAdjustment: 27,
+                  sourceCommandVisibility: visibility,
+                },
+              ],
+            },
+          ],
+        }
+      : row,
+  )
+  const before = JSON.stringify(state)
+  for (const viewer of [
+    createSpectatorBattleViewerEntitlement(),
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  ]) {
+    const visible = projectBattleStatusStateForViewer(state, viewer)
+      .find((row) => row.combatantId === PLAIN_ENEMY)!
+      .statuses.find((row) => row.statusId === 'haste')!
+    expect(visible).toMatchObject({ stacks: 1, movementApAdjustment: 10 })
+    expect(visible.applicationModifiers).toHaveLength(1)
+    expect(JSON.stringify(visible)).not.toContain('27')
+  }
+  const own = projectBattleStatusStateForViewer(
+    state,
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAIN_ENEMY]),
+  )
+    .find((row) => row.combatantId === PLAIN_ENEMY)!
+    .statuses.find((row) => row.statusId === 'haste')!
+  expect(own).toMatchObject({ stacks: 2, movementApAdjustment: 27 })
+  expect(JSON.stringify(state)).toBe(before)
 })

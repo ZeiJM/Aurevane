@@ -725,7 +725,8 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
               (payload) =>
                 payload.type !== 'summon' &&
                 payload.type !== 'damage-bonus' &&
-                payload.type !== 'move',
+                payload.type !== 'move' &&
+                payload.type !== 'reversal',
             )
             .map(nativeCombatTagPayload),
         })
@@ -737,6 +738,50 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         )
       }
     }
+    const reversals = payloads.filter((payload) => payload.type === 'reversal')
+    if (
+      reversals.length &&
+      candidate.effects.some(
+        (effect) =>
+          record(effect) &&
+          record(effect.payload) &&
+          effect.payload.type !== 'reversal' &&
+          effect.timing === 'controlled',
+      )
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Reversal cannot share preparation with another Controlled effect.',
+      )
+    if (
+      reversals.length &&
+      (reversals.length !== 1 ||
+        candidate.activation !== 'manual' ||
+        candidate.mode !== 'action' ||
+        candidate.classification !== 'utility' ||
+        candidate.attackFamily !== undefined ||
+        candidate.groundArea !== undefined ||
+        !record(target) ||
+        target.kind !== 'self' ||
+        payloads.some((payload) =>
+          ['damage', 'pierce', 'damage-bonus', 'poison', 'burn', 'bleed', 'summon'].includes(
+            payload.type as string,
+          ),
+        ) ||
+        candidate.effects.some(
+          (effect) =>
+            record(effect) &&
+            record(effect.payload) &&
+            effect.payload.type === 'reversal' &&
+            effect.timing !== 'controlled',
+        ))
+    )
+      issue(
+        path,
+        'unsupported-combination',
+        'Reversal requires one Controlled Manual Self utility preparation, with one family and no offensive packets.',
+      )
     const moves = payloads.filter((payload) => payload.type === 'move')
     if (
       moves.length &&
@@ -920,7 +965,8 @@ export function applyAbilityTimingDefaults(
     if (
       (policy.tagAuthority !== 'global' && effect.timing !== undefined) ||
       effect.payload.type === 'move' ||
-      effect.payload.type === 'damage-bonus'
+      effect.payload.type === 'damage-bonus' ||
+      ['weak-point', 'spike', 'ruin', 'reversal'].includes(effect.payload.type)
     )
       return effect
     const tag =

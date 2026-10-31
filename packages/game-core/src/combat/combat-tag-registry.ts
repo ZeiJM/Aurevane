@@ -1,3 +1,9 @@
+import { validateCombatEndureEffect } from './combat-endure'
+import { validateCombatReversalPayload, type CombatReversalPayload } from './combat-reversal'
+import {
+  validateCombatRemovalSelection,
+  validateCombatStatusSelection,
+} from './combat-status-selection'
 import { combatTagWordingIsValid, renderCombatTagWording } from './combat-tag-wording'
 import {
   SUPPORTED_COMBAT_STATUS_IDS,
@@ -22,6 +28,8 @@ import {
   validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
+import { isAttackTag, validateAttackTag } from './combat-attack-tags'
+import { validateCombatCounterEffect } from './combat-counter'
 import { validateBarrierEffect } from './combat-barrier'
 import { validateCombatDamageScaling } from './damage-scaling'
 import { validateDamageModifiers } from './damage-modifiers'
@@ -33,6 +41,7 @@ import {
 
 /** Native legacy payloads remain authoritative; canonical percentages use basis points. */
 export type CombatTagPayload =
+  | CombatReversalPayload
   | Exclude<CombatEffectDefinition, { type: 'damage' | 'percentage-recovery' }>
   | Omit<Extract<CombatEffectDefinition, { type: 'damage' }>, 'piercing' | 'shattersBarrier'>
   | (Omit<
@@ -85,7 +94,18 @@ export interface CombatTagDefinition {
 }
 
 const UNIT_RECIPIENTS = ['actor', 'primary-unit', 'affected-units'] as const
-const nativeFields = ['target', 'durationTurns', 'power', 'potencyBasisPoints']
+const nativeFields = [
+  'target',
+  'durationTurns',
+  'power',
+  'potencyBasisPoints',
+  'authoringLink',
+  'initiativeReductionBasisPoints',
+  'defenseIncreaseBasisPoints',
+  'movementApAdjustment',
+  'damageTakenMultiplierBasisPoints',
+  'increasedDamageTakenBasisPoints',
+]
 const packetModifierCombinations = Object.freeze([
   { activation: 'manual', mode: 'action' },
   { activation: 'automatic', mode: 'action' },
@@ -96,6 +116,11 @@ const nativeUnits = {
   durationTurns: 'turns',
   power: 'power',
   potencyBasisPoints: 'basis-points',
+  initiativeReductionBasisPoints: 'basis-points',
+  defenseIncreaseBasisPoints: 'basis-points',
+  movementApAdjustment: 'resource',
+  damageTakenMultiplierBasisPoints: 'basis-points',
+  increasedDamageTakenBasisPoints: 'basis-points',
 } as const
 function tag(
   id: CombatTagPayload['type'],
@@ -124,11 +149,82 @@ function tag(
 }
 
 export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze([
+  ...(['weak-point', 'spike', 'ruin'] as const).map((id) =>
+    tag(
+      id,
+      id === 'weak-point'
+        ? ['debuffThreshold']
+        : id === 'ruin'
+          ? ['bonusPerDebuffBasisPoints']
+          : [],
+      id === 'weak-point'
+        ? { debuffThreshold: 'applications' }
+        : id === 'ruin'
+          ? { bonusPerDebuffBasisPoints: 'basis-points' }
+          : {},
+      id === 'weak-point'
+        ? 'Guarantee critical Damage when the enemy has more than the configured number of active debuffs; the attack must still hit.'
+        : id === 'spike'
+          ? 'Double the complete damage of critical hits.'
+          : 'Increase Damage by the configured percentage per active debuff on the enemy.',
+      {
+        payloadFields: [
+          'type',
+          'recipient',
+          ...(id === 'weak-point'
+            ? ['debuffThreshold']
+            : id === 'ruin'
+              ? ['bonusPerDebuffBasisPoints']
+              : []),
+        ],
+        recipients: ['actor'],
+        timing: ['instant'],
+      },
+    ),
+  ),
+  tag(
+    'endure',
+    ['releaseBasisPoints', 'radiusTiles', 'targetTeams'],
+    { releaseBasisPoints: 'basis-points', radiusTiles: 'tiles' },
+    'Prevents damage-dealing actions while active, then releases a saved share of HP damage received to nearby chosen teams on natural expiry.',
+    { recipients: ['actor'], combinations: [{ activation: 'manual', mode: 'action' }] },
+  ),
+  tag(
+    'reversal',
+    [
+      'version',
+      'family',
+      'reflectionBasisPoints',
+      'attackerMaxHpCapBasisPoints',
+      'defenderMaxHpCapBasisPoints',
+    ],
+    {
+      reflectionBasisPoints: 'basis-points',
+      attackerMaxHpCapBasisPoints: 'basis-points',
+      defenderMaxHpCapBasisPoints: 'basis-points',
+    },
+    'Prepare one Physical or Mystic counter until your next actual turn. Front and side hits can be reversed; rear hits bypass it. Ending incurs Reversal Strain.',
+    {
+      payloadFields: [
+        'type',
+        'recipient',
+        'version',
+        'family',
+        'reflectionBasisPoints',
+        'attackerMaxHpCapBasisPoints',
+        'defenderMaxHpCapBasisPoints',
+        'target',
+      ],
+      recipients: ['actor'],
+      combinations: [{ activation: 'manual', mode: 'action' }],
+      timing: ['controlled'],
+    },
+  ),
   tag(
     'move',
     ['maximumTiles'],
     { maximumTiles: 'tiles' },
-    "Walk across legal Ground tiles before follow-up effects, as part of the skill's overall cost and using the position actually reached.",
+    'Move across reachable Ground tiles before the Skill’s other effects. The Skill’s total cost includes this movement; follow-up effects use the position reached.',
     {
       payloadFields: ['type', 'recipient', 'maximumTiles'],
       recipients: ['actor'],
@@ -141,7 +237,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     'damage',
     ['amount', 'defenseKind', 'element', 'scaling', 'vengeance', 'facingModifiersBasisPoints'],
     { amount: 'power' },
-    'Deal authored power through the existing scaling, defense and damage pipeline.',
+    'Deals damage using the Skill’s power, attack stats and target defenses.',
     { combinations: packetModifierCombinations },
   ),
   tag(
@@ -155,7 +251,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
       'armorIgnoredBasisPoints',
     ],
     { amount: 'power', armorIgnoredBasisPoints: 'basis-points' },
-    'Deal power and ignore the configured percentage of explicit equipment Armor only. Without equipment Armor this bypass provides no advantage.',
+    'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply.',
     {
       runtimeCapability: 'equipment-armor-boundary-required',
       combinations: packetModifierCombinations,
@@ -165,46 +261,52 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     'healing',
     ['amount', 'ticks'],
     { amount: 'power', ticks: 'applications' },
-    'Recover HP through existing healing modifiers and caps; never revive.',
+    'Restores HP without exceeding the maximum. Cannot revive a defeated unit.',
   ),
   tag(
     'percentage-recovery',
     ['resource', 'percentageBasisPoints', 'ticks'],
     { percentageBasisPoints: 'basis-points', ticks: 'applications', resource: 'resource' },
-    'Capture a percentage of maximum HP or MP once for one to four recovery applications.',
+    'Restore HP or MP by a percentage of the recipient’s maximum. Cannot exceed the maximum or revive.',
   ),
   tag(
     'resource-change',
-    ['resource', 'delta', 'ticks'],
+    ['resource', 'delta', 'ticks', 'basis'],
     { delta: 'resource', ticks: 'applications' },
-    'Restore or drain MP using the existing resource handler.',
+    'Restore a fixed amount of MP, or drain MP by the saved flat amount or percentage of maximum MP.',
   ),
   tag(
     'apply-status',
-    ['statusId', 'stacks', 'blindsideModifiersBasisPoints'],
+    ['statusId', 'stacks', 'blindsideModifiersBasisPoints', 'counter', 'applicationOrigin'],
     { statusId: 'identity', stacks: 'applications' },
-    'Apply a supported status with its captured magnitude, timing and native stacking policy.',
+    'Applies the chosen status with its saved potency, duration and stacking rules.',
     { combinations: packetModifierCombinations },
   ),
   tag(
     'remove-status',
-    ['statusIds', 'removalMode'],
-    { statusIds: 'identity', removalMode: 'identity' },
-    'Remove only the explicitly named supported statuses.',
+    ['statusIds', 'removalMode', 'selectionKind'],
+    { statusIds: 'identity', removalMode: 'identity', selectionKind: 'identity' },
+    'Cleanse removes every negative status. Conditional Cleanse and Dispel remove selected negative or positive statuses.',
     { combinations: packetModifierCombinations },
   ),
   tag(
     'return-to-turn-start',
     ['anchorMode'],
     {},
-    'Return the actor to its captured Rewind anchor subject to ordinary movement legality.',
-    { recipients: ['actor'], combinations: [{ activation: 'manual', mode: 'action' }] },
+    'Returns each target to its saved tile if the return remains legal. Restores position only; refunds no HP, MP or AP.',
+    {
+      recipients: ['actor', 'primary-unit', 'affected-units'],
+      combinations: [
+        { activation: 'manual', mode: 'action' },
+        { activation: 'automatic', mode: 'action' },
+      ],
+    },
   ),
   tag(
     'create-terrain',
-    ['terrain'],
-    {},
-    'Create Frozen Ground on the affected tiles with existing terrain lifetime rules.',
+    ['terrain', 'skillApSurcharge'],
+    { skillApSurcharge: 'resource' },
+    'Creates Frozen Ground on the affected tiles for its saved duration.',
     { recipients: ['affected-tiles'], combinations: [{ activation: 'manual', mode: 'action' }] },
   ),
   tag(
@@ -221,19 +323,19 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     'poison',
     ['curseCopyable', 'damageProfile'],
     {},
-    'Apply Poison with its captured damage profile and historical or pinned trigger policy.',
+    'Poisons the target, causing damage at turn end. Movement follows the saved refresh or additional-damage rules.',
   ),
   tag(
     'burn',
     ['curseCopyable', 'damageProfile', 'backlashBasisPoints'],
     { backlashBasisPoints: 'basis-points' },
-    'Apply Burn with its captured damage profile, decay and authored outgoing damage backlash.',
+    'Burns the target, causing damage at turn end and backlash after it damages an enemy. Tick damage follows the saved decay.',
   ),
   tag(
     'bleed',
     ['curseCopyable', 'damageProfile', 'ticks', 'damagePerTick'],
     { ticks: 'turns', damagePerTick: 'power' },
-    'Apply an independent Bleed application with its captured tick profile.',
+    'Applies Bleed with its own damage and duration. Each application ticks separately at turn end.',
   ),
   tag(
     'barrier-change',
@@ -243,35 +345,29 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'copy-statuses',
-    ['mode', 'allowNoEligibleEffects'],
+    ['mode', 'allowNoEligibleEffects', 'statusIds'],
     {},
-    'Copy Buffs or Copy Debuffs using the existing copy-first, single-unit eligibility and provenance rules.',
+    'Copy selected eligible statuses and preserve their remaining durations. Original statuses remain.',
     { recipients: ['primary-unit'], combinations: [{ activation: 'manual', mode: 'action' }] },
   ),
   tag(
     'sensory',
     ['revealedDurationOwnerTurnStarts'],
     { revealedDurationOwnerTurnStarts: 'turns' },
-    'Reveal a selected unit through the existing Covert/Sensory authority.',
+    'A successful hit against Invisible or Covert removes both concealments and applies Revealed.',
     { recipients: ['primary-unit'], combinations: [{ activation: 'manual', mode: 'action' }] },
   ),
-  tag(
-    'summon',
-    ['profile'],
-    {},
-    'Spawn a real allied summon from a validated immutable profile on a legal empty selected tile.',
-    {
-      payloadFields: ['type', 'recipient', 'profile'],
-      recipients: ['selected-tile'],
-      handler: 'combat-summons',
-      combinations: [{ activation: 'manual', mode: 'action' }],
-    },
-  ),
+  tag('summon', ['profile'], {}, 'Creates the chosen allied summon on a legal, unoccupied tile.', {
+    payloadFields: ['type', 'recipient', 'profile'],
+    recipients: ['selected-tile'],
+    handler: 'combat-summons',
+    combinations: [{ activation: 'manual', mode: 'action' }],
+  }),
   tag(
     'damage-bonus',
     ['multiplierBasisPoints'],
     { multiplierBasisPoints: 'basis-points' },
-    'Manual modifies the selected Attack for this command and its prepaid packets. Ongoing maintains an owner outgoing damage bonus while its Requirements hold. Each captured source owns its contribution.',
+    'A manual modifier increases the selected Attack’s damage. An ongoing modifier increases outgoing damage while its requirements hold.',
     {
       payloadFields: ['type', 'recipient', 'multiplierBasisPoints'],
       recipients: ['actor'],
@@ -308,6 +404,12 @@ export function validateCombatTagPayload(
     return [
       { path: 'payload.type', code: 'unsupported-tag', message: 'Unsupported combat Tag handler.' },
     ]
+  if (
+    value.authoringLink !== undefined &&
+    (typeof value.authoringLink !== 'string' ||
+      !/^(?:dot-damage|frozen-ground)\.[1-9][0-9]*$/.test(value.authoringLink))
+  )
+    issue('payload.authoringLink', 'invalid-payload', 'Invalid generated companion link.')
   for (const key of Object.keys(value))
     if (!definition.payloadFields.includes(key))
       issue(`payload.${key}`, 'unknown-key', 'Unknown mechanical payload key.')
@@ -357,6 +459,12 @@ export function validateCombatTagPayload(
   ] as const)
     if (value[key] !== undefined) keys(value[key], allowed, `payload.${key}`)
   try {
+    if (isAttackTag(value as { type: string })) {
+      validateAttackTag(value as unknown as CombatEffectDefinition)
+      return issues
+    }
+    validateCombatCounterEffect(value as unknown as CombatEffectDefinition)
+    validateCombatEndureEffect(value)
     validateCombatEffectTarget(value as unknown as Parameters<typeof validateCombatEffectTarget>[0])
     if (
       value.power !== undefined &&
@@ -374,12 +482,21 @@ export function validateCombatTagPayload(
           typeof value.allowNoEligibleEffects !== 'boolean'))
     )
       throw new TypeError('Copy requires Amplify/Curse and a boolean no-op permission.')
+    if (value.type === 'copy-statuses' && value.statusIds !== undefined)
+      validateCombatStatusSelection(
+        value.statusIds,
+        value.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs',
+      )
     if (
       value.type === 'return-to-turn-start' &&
       value.anchorMode !== undefined &&
       value.anchorMode !== 'cast-position'
     )
       throw new TypeError('Rewind supports only its captured cast-position anchor.')
+    if (value.type === 'reversal') {
+      validateCombatReversalPayload(value as unknown as CombatReversalPayload)
+      return issues
+    }
     if (value.type === 'move') {
       integer(value.maximumTiles, 1, 20, 'Move maximum entered tiles')
       return issues
@@ -409,10 +526,14 @@ export function validateCombatTagPayload(
           'flavorLine',
           'portraitKey',
           'tags',
+          'coreAttributes',
+          'derivedStatRulesVersion',
+          'potencyBasisPoints',
           'maxHp',
           'maxMp',
           'initiative',
           'movementBudget',
+          'neverMoves',
           'stats',
           'aiProfile',
           'aiPurposeTags',
@@ -421,9 +542,25 @@ export function validateCombatTagPayload(
         ],
         'payload.profile',
       )
+      if (profile.coreAttributes)
+        keys(
+          profile.coreAttributes,
+          ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'],
+          'payload.profile.coreAttributes',
+        )
       keys(
         profile.stats,
-        ['accuracy', 'evasion', 'armor', 'ward', 'jump', 'physicalPower', 'mysticPower'],
+        [
+          'accuracy',
+          'evasion',
+          'armor',
+          'ward',
+          'jump',
+          'physicalPower',
+          'mysticPower',
+          'criticalChance',
+          'statusResistance',
+        ],
         'payload.profile.stats',
       )
       for (const [index, ability] of profile.abilities.entries()) {
@@ -438,6 +575,8 @@ export function validateCombatTagPayload(
             'presentation',
             'apCost',
             'mpCost',
+            'hpCost',
+            'cooldownOwnerTurns',
             'tags',
             'target',
             'requirements',
@@ -520,7 +659,11 @@ export function validateCombatTagPayload(
           sourceType: 'discipline-skill',
           tags: ability.tags,
           target: ability.target,
-          cost: { mp: ability.mpCost, spendsAction: true },
+          cost: {
+            mp: ability.mpCost,
+            ...(ability.hpCost !== undefined ? { hp: ability.hpCost } : {}),
+            spendsAction: true,
+          },
           requirements: ability.requirements,
           effects: ability.effects,
         })
@@ -558,7 +701,12 @@ export function validateCombatTagPayload(
       integer(value.amount, 1, 100, 'Barrier percentage')
     if (value.type === 'resource-change') {
       if (value.resource !== 'mp') throw new TypeError('Only MP changes are implemented.')
-      integer(value.delta, -20, 20, 'MP change')
+      integer(
+        value.delta,
+        value.basis === 'maximum-mp-percent' ? -100 : -20,
+        value.basis === 'maximum-mp-percent' ? -1 : 20,
+        'MP change',
+      )
     }
     if (value.type === 'percentage-recovery') {
       integer(value.percentageBasisPoints, 100, 10000, 'Recovery percentage')
@@ -574,7 +722,11 @@ export function validateCombatTagPayload(
       integer(value.stacks, 1, Number.MAX_SAFE_INTEGER, 'Status stacks')
     }
     if (value.type === 'remove-status') {
-      if (value.removalMode !== undefined && value.removalMode !== 'specified')
+      validateCombatRemovalSelection(value)
+      if (
+        value.removalMode !== undefined &&
+        !['specified', 'all-debuffs'].includes(value.removalMode as string)
+      )
         throw new TypeError('Unsupported status removal mode.')
       if (
         !Array.isArray(value.statusIds) ||
@@ -605,7 +757,12 @@ export function validateCombatTagPayload(
 export function nativeCombatTagPayload(
   payload: Exclude<CombatTagPayload, { type: 'damage-bonus' | 'summon' }> | CombatTagPayload,
 ): CombatEffectDefinition {
-  if (payload.type === 'summon' || payload.type === 'damage-bonus' || payload.type === 'move')
+  if (
+    payload.type === 'summon' ||
+    payload.type === 'damage-bonus' ||
+    payload.type === 'move' ||
+    payload.type === 'reversal'
+  )
     throw new TypeError('Tag requires its specialized canonical resolver.')
   if (payload.type === 'pierce') {
     const { armorIgnoredBasisPoints: _ignored, ...damage } = payload
@@ -663,7 +820,9 @@ export function combatTagPayloadExplanation(payload: CombatTagPayload): {
           ? `Pierce [${payload.amount}] · Armor Ignored [${payload.armorIgnoredBasisPoints / 100}%]`
           : payload.type === 'summon'
             ? 'Summon'
-            : combatEffectPresentationTags(nativeCombatTagPayload(payload)).join(' · ')
+            : payload.type === 'reversal'
+              ? 'Reversal'
+              : combatEffectPresentationTags(nativeCombatTagPayload(payload)).join(' · ')
   return { concise, full: definition.fullExplanation }
 }
 

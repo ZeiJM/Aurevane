@@ -1,3 +1,4 @@
+import { captureAttackTagDamage } from './combat-attack-tags'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import {
   validateCombatNativeCommandFacts,
@@ -154,6 +155,8 @@ export function createCombatGroundArea(
     state.tactical.battle.lifecycle !== 'active'
   )
     return state
+  const ground = action.groundArea
+  action = captureAttackTagDamage(state, action, content, false, actorId)
   validateCombatGroundAreaDefinition(action)
   validateCombatActionDefinition(action, content)
   validateCombatContentCatalog(content)
@@ -164,10 +167,9 @@ export function createCombatGroundArea(
   const ordinal = state.nextGroundAreaId ?? 1
   if (!Number.isSafeInteger(ordinal) || ordinal < 1 || ordinal === Number.MAX_SAFE_INTEGER)
     throw new RangeError('Ground area identity overflow.')
-  const timing =
-    action.groundArea.timing ?? state.effectTimingPolicy?.modes['ground-area'] ?? 'next-round'
+  const timing = ground.timing ?? state.effectTimingPolicy?.modes['ground-area'] ?? 'next-round'
   const activationRound = state.tactical.battle.round + combatEffectTimingRoundOffset(timing)
-  const expiresAtRound = activationRound + action.groundArea.durationRounds
+  const expiresAtRound = activationRound + ground.durationRounds
   if (!Number.isSafeInteger(expiresAtRound)) throw new RangeError('Ground expiry overflow.')
   const statProfile = state.statBridge?.combatants.find((unit) => unit.combatantId === actorId)
   const area: CombatGroundAreaInstance = JSON.parse(
@@ -179,21 +181,21 @@ export function createCombatGroundArea(
         : combatSourceCommandVisibility(state, actorId),
       ...(action.effectOrigins
         ? {
-            entryEffectOrigins: action.groundArea.entryEffectOrdinals.map(
+            entryEffectOrigins: ground.entryEffectOrdinals.map(
               (index) => action.effectOrigins![index] ?? null,
             ),
           }
         : {}),
       ...(action.effectTimingModes
         ? {
-            entryEffectTimingModes: action.groundArea.entryEffectOrdinals.map(
+            entryEffectTimingModes: ground.entryEffectOrdinals.map(
               (index) => action.effectTimingModes![index] ?? null,
             ),
           }
         : {}),
       ...(action.effectEligibleRecipientIds
         ? {
-            entryEffectEligibleRecipientIds: action.groundArea.entryEffectOrdinals.map(
+            entryEffectEligibleRecipientIds: ground.entryEffectOrdinals.map(
               (index) => action.effectEligibleRecipientIds![index] ?? null,
             ),
           }
@@ -206,8 +208,8 @@ export function createCombatGroundArea(
       tiles,
       activationRound,
       expiresAtRound,
-      visualPresetId: action.groundArea.visualPresetId,
-      entryEffects: action.groundArea.entryEffectOrdinals.map((index) => action.effects[index]!),
+      visualPresetId: ground.visualPresetId,
+      entryEffects: ground.entryEffectOrdinals.map((index) => action.effects[index]!),
       caster: {
         combatant: actor,
         placement,
@@ -311,7 +313,10 @@ export function validateCombatGroundAreas(
         throw new TypeError('Invalid Ground identity.')
       ids.add(area.id)
       if (
-        !state.tactical.battle.combatants.some((unit) => unit.id === area.sourceCombatantId) ||
+        (!state.tactical.battle.combatants.some((unit) => unit.id === area.sourceCombatantId) &&
+          !state.effectState?.summonDamageSources?.some(
+            (source) => source.combatantId === area.sourceCombatantId,
+          )) ||
         area.sourceCombatantId !== area.caster?.combatant?.id ||
         area.sourceTeamId !== area.caster.combatant.teamId ||
         area.caster.placement.combatantId !== area.sourceCombatantId ||

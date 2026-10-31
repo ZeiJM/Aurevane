@@ -207,3 +207,21 @@ it.each([
     }),
   ).toEqual([label])
 })
+
+it.each([
+  ['buffs', 'Dispel'],
+  ['debuffs', 'Conditional Cleanse'],
+] as const)(
+  'retains explicit %s identity with an empty removal selection',
+  (selectionKind, label) => {
+    expect(
+      combatEffectPresentationTags({
+        type: 'remove-status',
+        recipient: 'actor',
+        statusIds: [],
+        removalMode: 'specified',
+        selectionKind,
+      }),
+    ).toEqual([label])
+  },
+)

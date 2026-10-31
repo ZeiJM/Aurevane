@@ -450,7 +450,7 @@
   {
     "contentKey": "essence.dawnshield.dawns-oath",
     "contentKind": "essence",
-    "name": "Dawn’s Oath",
+    "name": "Dawn\u2019s Oath",
     "contentVersion": 5,
     "versionFloor": 5,
     "sourceDisciplineId": "dawnshield"
@@ -2256,6 +2256,14 @@
     "sourceDisciplineId": null
   },
   {
+    "contentKey": "tag.counter",
+    "contentKind": "tag",
+    "name": "Counter",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
     "contentKey": "tag.covert",
     "contentKind": "tag",
     "name": "Covert",
@@ -2283,6 +2291,14 @@
     "contentKey": "tag.dispel",
     "contentKind": "tag",
     "name": "Dispel",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.endure",
+    "contentKind": "tag",
+    "name": "Endure",
     "contentVersion": 1,
     "versionFloor": 1,
     "sourceDisciplineId": null
@@ -2480,6 +2496,14 @@
     "sourceDisciplineId": null
   },
   {
+    "contentKey": "tag.reversal",
+    "contentKind": "tag",
+    "name": "Reversal",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
     "contentKey": "tag.rewind",
     "contentKind": "tag",
     "name": "Rewind",
@@ -2496,9 +2520,25 @@
     "sourceDisciplineId": null
   },
   {
+    "contentKey": "tag.ruin",
+    "contentKind": "tag",
+    "name": "Ruin",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
     "contentKey": "tag.slow",
     "contentKind": "tag",
     "name": "Slow",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.spike",
+    "contentKind": "tag",
+    "name": "Spike",
     "contentVersion": 1,
     "versionFloor": 1,
     "sourceDisciplineId": null
@@ -2531,6 +2571,14 @@
     "contentKey": "tag.warded",
     "contentKind": "tag",
     "name": "Burn Ward",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
+    "contentKey": "tag.weak-point",
+    "contentKind": "tag",
+    "name": "Weak Point",
     "contentVersion": 1,
     "versionFloor": 1,
     "sourceDisciplineId": null

@@ -1,4 +1,5 @@
 'use client'
+import { PendingMediaBoundary } from './pending-media-boundary'
 import { useEffect, useRef, useState } from 'react'
 import type { CompleteCombatContentRecord } from '@aurevane/db/combat-content'
 import { ContentDefinitionFields, type ContentReference } from './content-definition-fields'
@@ -236,21 +237,23 @@ export function ContentRecordModal({
           ) : null}
           {record && definition ? (
             <fieldset disabled={!!record.authoringBlocker || record.lifecycle === 'archived'}>
-              <ContentDefinitionFields
-                kind={record.contentKind}
-                value={definition}
-                tab="Parameters"
-                choices={choices}
-                onPendingMediaChange={setPendingMedia}
-                onChange={(next) => {
-                  const edit =
-                    recordIsDirty(record, next) || committing.current
-                      ? { revision: pending?.revision ?? record.revision, definition: next }
-                      : null
-                  latest.current.pending = edit
-                  onChange(contentKey, edit)
-                }}
-              />
+              <PendingMediaBoundary onChange={setPendingMedia}>
+                <ContentDefinitionFields
+                  kind={record.contentKind}
+                  value={definition}
+                  tab="Parameters"
+                  choices={choices}
+                  onPendingMediaChange={setPendingMedia}
+                  onChange={(next) => {
+                    const edit =
+                      recordIsDirty(record, next) || committing.current
+                        ? { revision: pending?.revision ?? record.revision, definition: next }
+                        : null
+                    latest.current.pending = edit
+                    onChange(contentKey, edit)
+                  }}
+                />
+              </PendingMediaBoundary>
             </fieldset>
           ) : (
             <p role="status">Loading saved settings…</p>

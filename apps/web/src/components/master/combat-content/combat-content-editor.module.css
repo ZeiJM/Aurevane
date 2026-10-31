@@ -2333,3 +2333,62 @@
   padding-top: 0.55rem;
   padding-bottom: 0.6rem;
 }
+
+.effectEditor > fieldset.typedGrid {
+  display: grid;
+  grid-column: 1 / -1;
+  min-inline-size: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+}
+.effectEditor > fieldset.typedGrid legend {
+  max-inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+.summonSkillBody {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.8rem;
+}
+.summonCoreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.summonSection {
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+}
+.summonSection > summary {
+  cursor: pointer;
+  color: var(--av-text);
+  font-weight: 650;
+}
+.summonSection[open] > summary {
+  margin-bottom: 0.75rem;
+}
+@media (max-width: 600px) {
+  .summonCoreGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.summonCheckbox {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  align-self: center;
+}
+.summonCheckbox input {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+}
+
+.summonProfile {
+  display: grid;
+  gap: 0.85rem;
+}

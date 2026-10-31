@@ -1,3 +1,4 @@
+import { hasConfiguredRevealed } from './combat-status-tuning'
 import { accuracyActionForRecipient } from './combat-effect-delivery-eligibility'
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { validAccuracy, type CombatAccuracyRule } from './combat-definition'
@@ -137,6 +138,9 @@ export function forecastCombatSkillAccuracyForTarget(
     throw new TypeError('Combat accuracy requires committed actor and target combatants.')
   }
   if (target.hp <= 0 || target.teamId === actor.teamId) return null
+
+  if (hasConfiguredRevealed(state, targetCombatantId))
+    return { targetCombatantId, hitChanceBasisPoints: 10000 }
 
   if (action.accuracyRule?.kind === 'fixed')
     return { targetCombatantId, hitChanceBasisPoints: action.accuracyRule.chanceBasisPoints }

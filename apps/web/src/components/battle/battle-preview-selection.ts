@@ -6,7 +6,7 @@ import {
   combatCardinalDirections,
   combatTargetCategories,
 } from '@aurevane/game-core/combat/combat-targeting-shapes'
-import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
+import type { CombatTargetSelection, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
 import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-actions'
 import type { CombatModifierRootFacts } from '@aurevane/game-core/combat/combat-modifier-compatibility'
@@ -21,7 +21,10 @@ interface PreviewSelectionCombatant {
 }
 
 export interface BattleControlledActionAvailability {
+  readonly kind?: 'reversal'
   readonly phase: 'unprimed' | 'primed' | 'spent'
+  readonly releaseTarget?: CombatTargetSelection
+  readonly requiresTarget?: true
   readonly canPrime: boolean
   readonly canCancel: boolean
   readonly manualModifiers?: Readonly<
@@ -68,12 +71,13 @@ export interface BattleCapturedActionTarget {
   report?: BattleAbilityBehaviorReport
 }
 
-/** Free commands contain captured references only; an ambiguous Manual group requires a choice. */
+/** Preparation and Reversal cancellation submit captured references; payment stays server-owned. */
 export function selectBattleControlledPrimeIntent(
   captures: readonly BattleCapturedActionTarget[],
   actionId: string,
   behaviorId?: string,
   manualModifiers?: readonly ManualCombatModifierSelection[],
+  target?: Extract<BattleIntent, { kind: 'action' }>['target'],
 ): Extract<BattleIntent, { kind: 'ability-prime' | 'ability-cancel-prime' }> | null {
   const choices = captures.filter((row) => row.actionId === actionId)
   const choice = behaviorId
@@ -81,11 +85,14 @@ export function selectBattleControlledPrimeIntent(
     : choices.length === 1
       ? choices[0]
       : undefined
-  return choice?.controlled?.canPrime
+  if (choice?.controlled?.kind === 'reversal' && choice.controlled.canCancel)
+    return { kind: 'ability-cancel-prime', actionId, behaviorId: choice.behaviorId }
+  return choice?.controlled?.canPrime && (!choice.controlled.requiresTarget || target !== undefined)
     ? {
         kind: 'ability-prime',
         actionId,
         behaviorId: choice.behaviorId,
+        ...(choice.controlled.requiresTarget ? { target } : {}),
         ...(manualModifiers !== undefined
           ? { manualModifiers: battleManualModifierReferences(manualModifiers) }
           : {}),
@@ -231,7 +238,11 @@ function movedBattleSkillIntent(
   selection: PreviewSelection,
   choose: (skill: BattlePreviewSkill, context: PreviewSelection) => ActionIntent | null,
 ): ActionIntent | null {
-  if (skill.unavailable) return null
+  if (
+    skill.unavailable ||
+    (skill.controlled?.kind === 'reversal' && skill.controlled.phase === 'primed')
+  )
+    return null
   const path = skill.movementPath
   if (skill.move && (path === undefined || (path.length === 0 && !skill.move.conditional)))
     return null
@@ -252,6 +263,14 @@ export function selectInitialBattleSkillPreviewIntent(
   skill: BattlePreviewSkill,
   selection: PreviewSelection,
 ): ActionIntent | null {
+  if (skill.controlled?.kind === 'reversal' && skill.controlled.phase === 'primed') return null
+  if (skill.controlled?.phase === 'primed' && skill.controlled.releaseTarget)
+    return {
+      kind: 'action',
+      actionId: skill.id,
+      target: JSON.parse(JSON.stringify(skill.controlled.releaseTarget)) as ActionIntent['target'],
+      ...battleSkillIntentMetadata(skill),
+    }
   return movedBattleSkillIntent(skill, selection, initialBattleSkillPreviewIntent)
 }
 /** Destination selection commits only when it also determines the sole recipient. */

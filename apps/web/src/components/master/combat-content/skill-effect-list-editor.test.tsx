@@ -41,10 +41,11 @@ describe('Master Panel Skill effect list editor', () => {
     expect(markup).not.toContain('<option value="displace"')
   })
   it('creates a complete canonical Cleanse by default', () => {
-    expect(createDefaultCombatEffect('remove-status')).toEqual({
+    expect(createDefaultCombatEffect('remove-status')).toMatchObject({
       type: 'remove-status',
       recipient: 'primary-unit',
-      statusIds: ['burn', 'bleed', 'poison', 'slow', 'root', 'exposed', 'mark', 'challenged'],
+      removalMode: 'all-debuffs',
+      statusIds: expect.arrayContaining(['revealed', 'lowered-guard', 'hexed', 'wet']),
     })
   })
   it('renders authored effects in exact visible order', () => {

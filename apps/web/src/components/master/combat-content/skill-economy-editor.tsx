@@ -39,7 +39,7 @@ export function SkillEconomyEditor({
           ? 'Action Economy'
           : section === 'accuracy'
             ? 'Accuracy'
-            : 'Action Economy & Accuracy'}
+            : 'Execution Characteristics'}
       </legend>
 
       <div className={`${styles.typedGrid} ${styles.economyGrid}`}>

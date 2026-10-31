@@ -1,4 +1,6 @@
+import { capSummonDamage } from './combat-summon-potency'
 import type {
+  CombatContentCatalog,
   CombatEffectDefinition,
   CombatEncounterIssue,
   CombatEncounterState,
@@ -67,10 +69,23 @@ export function absorbIndirectDamageWithBarrier(
   targetCombatantId: string,
   actionId: string,
   requested: number | bigint,
+  capContext?: { content: CombatContentCatalog; commandId?: number },
 ): CombatBarrierAbsorptionResult & { events: readonly CombatResolutionEvent[] } {
   if (typeof requested === 'number' && (!Number.isSafeInteger(requested) || requested < 0))
     throw new RangeError('Damage must be a non-negative safe integer.')
-  const damage = BigInt(requested)
+  const capped =
+    sourceCombatantId === targetCombatantId
+      ? { state, amount: requested }
+      : capSummonDamage(
+          state,
+          sourceCombatantId,
+          targetCombatantId,
+          requested,
+          capContext?.content,
+          capContext?.commandId,
+        )
+  state = capped.state
+  const damage = BigInt(capped.amount)
   if (damage < 0n) throw new RangeError('Damage must be non-negative.')
   const target = getCombatant(state, targetCombatantId)
   const before = currentBarrierAmount(state, targetCombatantId)

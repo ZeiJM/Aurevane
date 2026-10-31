@@ -23,7 +23,7 @@ const labels = {
   reckless: 'Reckless',
   bleed: 'Bleed',
   poison: 'Poison',
-  challenged: 'Taunted',
+  challenged: 'Taunt',
   suppress: 'Suppress',
   conductive: 'Conductive',
   wet: 'Drenched',

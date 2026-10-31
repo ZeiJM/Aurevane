@@ -35,6 +35,8 @@ export function applyCommittedReflect(
   guard?: CombatTriggerGuard,
   allowOutOfTurnSource = false,
   nativeHooks?: CombatNativeExecutionHooks,
+  counterOnly = false,
+  allowCompletedResolution = false,
 ): CombatResolutionTransition & { triggerGuard: CombatTriggerGuard } {
   const battle = state.tactical.battle
   let triggerGuard =
@@ -51,7 +53,8 @@ export function applyCommittedReflect(
     })
   const attacker = battle.combatants.find((unit) => unit.id === command.sourceCombatantId)
   if (
-    battle.lifecycle !== 'active' ||
+    (battle.lifecycle !== 'active' &&
+      !(allowCompletedResolution && battle.lifecycle === 'completed')) ||
     !attacker ||
     attacker.hp <= 0 ||
     (!allowOutOfTurnSource && battle.currentTurn?.combatantId !== attacker.id)
@@ -67,9 +70,21 @@ export function applyCommittedReflect(
       (unit) => unit.id === attacker.id,
     )
     if (!currentAttacker || currentAttacker.hp <= 0) break
-    const rate = activeReflectBasisPoints(state, content, defenderId)
+    const rate = counterOnly ? 0 : activeReflectBasisPoints(state, content, defenderId)
     // Reflect floors once per defender, with no Absorb-specific minimum-1 rule.
-    const requested = (BigInt(damage) * BigInt(rate)) / BigInt(REFLECT_BASIS_POINTS)
+    const counterDamage = committedEvents.reduce((total, event) => {
+      if (
+        event.event !== 'damage_applied' ||
+        event.amount <= 0 ||
+        event.targetCombatantId !== defenderId ||
+        event.sourceCombatantId !== attacker.id ||
+        event.actionId !== command.actionId ||
+        event.actionId === REFLECT_ACTION_ID
+      )
+        return total
+      return total + BigInt(event.amount) * BigInt(event.counterReturnBasisPoints ?? '0')
+    }, 0n)
+    const requested = (BigInt(damage) * BigInt(rate) + counterDamage) / BigInt(REFLECT_BASIS_POINTS)
     const amount = Number(
       requested < BigInt(currentAttacker.hp) ? requested : BigInt(currentAttacker.hp),
     )
@@ -88,6 +103,7 @@ export function applyCommittedReflect(
       attacker.id,
       REFLECT_ACTION_ID,
       nextState.modularSkillPolicyVersion === 1 ? requested : amount,
+      { content },
     )
     nextState = barrier.state
     const hpAfter = currentAttacker.hp - barrier.remainingDamage
@@ -178,4 +194,40 @@ function activeReflectBasisPoints(
     return Number(rate)
   }
   return Number(rate < BigInt(REFLECT_BASIS_POINTS) ? rate : BigInt(REFLECT_BASIS_POINTS))
+}
+
+/** Sourced periodic packets share Counter settlement without enabling historical Reflect on DoTs. */
+export function applyPeriodicCounterReturns(
+  state: CombatEncounterState,
+  receipts: readonly CombatResolutionEvent[],
+  content: CombatContentCatalog,
+  nativeHooks?: CombatNativeExecutionHooks,
+  allowCompletedResolution = false,
+): CombatResolutionTransition {
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
+  const commands = new Map<string, CommittedCombatCommand>()
+  for (const event of receipts) {
+    if (event.event !== 'damage_applied' || !event.counterReturnBasisPoints || event.amount <= 0)
+      continue
+    const command = { sourceCombatantId: event.sourceCombatantId, actionId: event.actionId }
+    commands.set(JSON.stringify(command), command)
+  }
+  for (const command of commands.values()) {
+    const returned = applyCommittedReflect(
+      nextState,
+      receipts,
+      content,
+      command,
+      nativeHooks?.getGuard(),
+      true,
+      nativeHooks,
+      true,
+      allowCompletedResolution,
+    )
+    nextState = returned.state
+    nativeHooks?.setGuard(returned.triggerGuard)
+    events.push(...returned.events)
+  }
+  return { state: nextState, events }
 }

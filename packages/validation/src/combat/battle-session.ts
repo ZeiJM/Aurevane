@@ -86,6 +86,7 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
   z
     .object({
       kind: z.literal('ability-prime'),
+      target: combatTargetSelectionSchema.optional(),
       actionId: z.string().trim().min(1).max(160),
       behaviorId: exactReferenceIdSchema,
       manualModifiers: manualModifiersSchema.optional(),

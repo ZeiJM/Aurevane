@@ -1,6 +1,9 @@
+import { combatStatusApplications } from './combat-status-applications'
 import type { CombatEncounterState } from './actions'
 
 type TerrainStatState = {
+  statusState?: CombatEncounterState['statusState']
+  effectStackingPolicyVersion?: 1
   statBalancePolicyVersion?: 1
   tactical: Pick<CombatEncounterState['tactical'], 'placements' | 'tiles'>
 }
@@ -18,14 +21,38 @@ export function terrainEvasionBonusBasisPoints(
   return height === 1 ? 1_500 : height === 2 ? 2_000 : height >= 3 ? 2_500 : 0
 }
 
+/** Terrain markers describe elevation alone, independently of status-composed defense. */
+export function terrainDefenseReductionBasisPoints(
+  state: TerrainStatState,
+  targetId: string,
+): number {
+  return state.statBalancePolicyVersion === 1 && combatantElevation(state, targetId) > 0 ? 2000 : 0
+}
+
 export function terrainAdjustedDefense(
   state: TerrainStatState,
   targetId: string,
   defense: number,
 ): number {
-  return state.statBalancePolicyVersion === 1 && combatantElevation(state, targetId) > 0
-    ? Math.floor((defense * 8_000) / 10_000)
-    : defense
+  for (const status of state.statusState?.find((row) => row.combatantId === targetId)?.statuses ??
+    []) {
+    if (status.statusId !== 'fortified' || status.timingState === 'pending') continue
+    for (const application of state.effectStackingPolicyVersion === 1
+      ? combatStatusApplications(status)
+      : [status]) {
+      if (application.defenseIncreaseBasisPoints === undefined) continue
+      for (let stack = 0; stack < application.stacks; stack++) {
+        const scaled =
+          (BigInt(defense) * BigInt(10000 + application.defenseIncreaseBasisPoints)) / 10000n
+        if (scaled > BigInt(Number.MAX_SAFE_INTEGER))
+          throw new RangeError('Fortified defense exceeds safe range.')
+        if (Number(scaled) === defense) break
+        defense = Number(scaled)
+      }
+    }
+  }
+  const terrainReduction = terrainDefenseReductionBasisPoints(state, targetId)
+  return terrainReduction > 0 ? Math.floor((defense * (10000 - terrainReduction)) / 10000) : defense
 }
 
 function combatantElevation(state: TerrainStatState, combatantId: string): number {

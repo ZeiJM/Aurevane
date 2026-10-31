@@ -1,3 +1,5 @@
+import { combatReversalKnowledgeState } from '@aurevane/game-core/combat/combat-reversal'
+import { combatReversalPayload } from '@aurevane/game-core/combat/combat-reversal'
 import 'server-only'
 import type {
   CombatEffectProjection,
@@ -75,6 +77,7 @@ export interface BattleActionPreview {
   legal: boolean
   /** Owner-only, bound to this version and complete current target/Move/modifier intent. */
   controlledReady?: boolean
+  preparation?: 'paid-controlled-prime'
   actionId: string
   actorId: string | null
   primaryCombatantId: string | null
@@ -207,6 +210,26 @@ async function previewIntent(
   intent: BattleIntent,
   combatContentResolver?: CombatContentResolver,
 ): Promise<BattleIntentPreview> {
+  state = combatReversalKnowledgeState(state, state.tactical.battle.currentTurn?.combatantId)
+
+  if (intent.kind === 'ability-prime') {
+    const actionId = intent.actionId
+    const actorId = state.tactical.battle.currentTurn?.combatantId
+    const source = state.capturedAbilitySources?.find(
+      (row) => row.ownerCombatantId === actorId && row.abilityId === actionId,
+    )
+    const behavior = source
+      ? combatAbilityBehavior(source, intent.behaviorId, state.effectTimingPolicy)
+      : undefined
+    if (behavior && combatReversalPayload(behavior))
+      intent = {
+        kind: 'action',
+        actionId: intent.actionId,
+        behaviorId: behavior.id,
+        target: { kind: 'self' },
+        ...(intent.manualModifiers ? { manualModifiers: intent.manualModifiers } : {}),
+      }
+  }
   if (intent.kind === 'ability-prime' || intent.kind === 'ability-cancel-prime')
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -274,6 +297,11 @@ async function previewIntent(
         : null
     if (!capturedSource && taggedTechnique && !matureDefinition) throw persistenceInvalid()
     const preparedState = preparePv1fTurnEconomy(state)
+    const reversalPreparation =
+      capturedSource &&
+      combatReversalPayload(
+        combatAbilityBehavior(capturedSource, intent.behaviorId, preparedState.effectTimingPolicy),
+      )
     const canonical =
       capturedSource && actorId
         ? prepareCombatAbilityCommand({
@@ -285,6 +313,7 @@ async function previewIntent(
             selection: intent.target,
             content: PV1F_COMBAT_CONTENT,
             context: combatAbilityCommandContext(preparedState, capturedSource),
+            ...(reversalPreparation ? { reversalPreparation: true as const } : {}),
           })
         : null
     const resolved = canonical
@@ -382,6 +411,7 @@ async function previewIntent(
             state,
             actorId,
             sourceInstanceId: controlledSource.sourceInstanceId,
+            content: PV1F_COMBAT_CONTENT,
             behaviorId: combatAbilityBehavior(
               controlledSource,
               intent.behaviorId,
@@ -399,7 +429,10 @@ async function previewIntent(
             resolved.quote ? { quote: resolved.quote } : { native: { action, apCost: cost } },
           )
         : {}),
-      ...(controlled ? { controlledReady: controlled.phase === 'primed' && legal } : {}),
+      ...(controlled && !reversalPreparation
+        ? { controlledReady: controlled.phase === 'primed' && legal }
+        : {}),
+      ...(reversalPreparation ? { preparation: 'paid-controlled-prime' as const } : {}),
       actionId: evaluation.actionId,
       actorId: evaluation.actorId,
       primaryCombatantId: evaluation.primaryCombatantId,

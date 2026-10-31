@@ -1,12 +1,19 @@
 'use client'
 
 import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
-import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { useState } from 'react'
+import {
+  reconcileAuthoredEffectDependencies,
+  authoredReversalCombinationIssue,
+} from '@/lib/combat-effect-dependencies'
 import { reconcileEffectRowIdentity, type EffectRowIdentity } from './effect-row-identity'
+import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import { withAuthoredAreaRecipients } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { nativeCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
-import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
+import {
+  effectAuthoringTag,
+  createAuthorableEffectPayload,
+} from '@aurevane/game-core/combat/combat-effect-authoring'
 import { EffectTagPicker } from './effect-tag-picker'
 
 import { inheritedEffectTargetLabel } from './effect-target-editor'
@@ -35,6 +42,33 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
         stacks: 1,
         durationTurns: 1,
       }
+    case 'reversal':
+      return {
+        type,
+        recipient: 'actor',
+        target: 'self',
+        version: 1,
+        family: 'physical',
+        reflectionBasisPoints: 10000,
+        attackerMaxHpCapBasisPoints: 2000,
+        defenderMaxHpCapBasisPoints: 2500,
+      }
+    case 'endure':
+      return {
+        type,
+        recipient: 'actor',
+        target: 'self',
+        durationTurns: 2,
+        releaseBasisPoints: 15000,
+        radiusTiles: 3,
+        targetTeams: 'enemies',
+      }
+    case 'weak-point':
+      return { type, recipient: 'actor', debuffThreshold: 2 }
+    case 'spike':
+      return { type, recipient: 'actor' }
+    case 'ruin':
+      return { type, recipient: 'actor', bonusPerDebuffBasisPoints: 1000 }
     case 'damage':
       return { type, recipient: 'primary-unit', amount: 0 }
     case 'percentage-recovery':
@@ -55,11 +89,11 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
         removalMode: 'specified',
       }
     case 'remove-status':
-      return { type, recipient: 'primary-unit', statusIds: [...CLEANSE_STATUS_IDS] }
+      return nativeCombatTagPayload(createAuthorableEffectPayload('cleanse')!)
     case 'return-to-turn-start':
       return { type, recipient: 'actor', anchorMode: 'cast-position' }
     case 'create-terrain':
-      return { type, recipient: 'affected-tiles', terrain: 'frozen' }
+      return nativeCombatTagPayload(createAuthorableEffectPayload('freeze-ground')!)
     case 'push':
     case 'pull':
       return { type: 'displace', recipient: 'primary-unit', direction: type, distance: 1 }
@@ -94,9 +128,9 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
     case 'barrier-change':
       return { type, recipient: 'actor', amount: 1, basis: 'maximum-hp-percent', durationTurns: 2 }
     case 'copy-statuses':
-      return { type, recipient: 'primary-unit', mode: 'amplify' }
+      return nativeCombatTagPayload(createAuthorableEffectPayload('copy-buffs')!)
     case 'sensory':
-      return { type, recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 }
+      return nativeCombatTagPayload(createAuthorableEffectPayload('reveal')!)
     default:
       return assertNever(type)
   }
@@ -178,8 +212,24 @@ export function SkillEffectListEditor({
   effectDescriptions,
   maxEffects,
   canonicalDamage = false,
-  onChange,
+  onChange: update,
 }: SkillEffectListEditorProps) {
+  const onChange: SkillEffectListEditorProps['onChange'] = (proposed, notes) => {
+    const sourceIndices = new Map(proposed.map((effect, index) => [effect, index]))
+    const effects = reconcileAuthoredEffectDependencies(value, proposed, {
+      onLinked: (source, linked) => {
+        const index = sourceIndices.get(source)
+        if (index !== undefined) sourceIndices.set(linked, index)
+      },
+    })
+    update(
+      effects,
+      effects.map((effect) => {
+        const index = sourceIndices.get(effect) ?? -1
+        return index < 0 ? null : (notes[index] ?? null)
+      }),
+    )
+  }
   const [rowIdentity, setRowIdentity] = useState<EffectRowIdentity<CombatEffectDefinition>>({
     value,
     keys: value.map((_, index) => index),
@@ -203,7 +253,7 @@ export function SkillEffectListEditor({
             <header className={styles.effectHeader}>
               <div>
                 <span className={styles.effectOrdinal}>Effect {index + 1}</span>
-                <strong>{effectAuthoringTag(effect).label}</strong>
+                <strong>{effectAuthoringTag(currentTagForAuthoring(effect)).label}</strong>
                 <span className={styles.effectTarget}>
                   [{inheritedEffectTargetLabel(effect, aim)}]
                 </span>
@@ -271,6 +321,21 @@ export function SkillEffectListEditor({
 
       <EffectTagPicker
         nativeOnly
+        additionalIssue={(id) => {
+          const payload = createAuthorableEffectPayload(id)
+          const reversalIssue = authoredReversalCombinationIssue(value, payload?.type)
+          if (reversalIssue) return reversalIssue
+          if (maxEffects === undefined) return undefined
+          if (!payload || ['move', 'summon', 'damage-bonus'].includes(payload.type))
+            return undefined
+          const proposed = reconcileAuthoredEffectDependencies(value, [
+            ...value,
+            nativeCombatTagPayload(payload),
+          ])
+          return proposed.length > maxEffects
+            ? `This effect and its required tags exceed the ${maxEffects}-effect limit.`
+            : undefined
+        }}
         disabled={maxEffects !== undefined && value.length >= maxEffects}
         onAdd={(payload) =>
           onChange(
@@ -286,11 +351,8 @@ export function SkillEffectListEditor({
       />
 
       <p className={styles.effectNote}>
-        Effect order is authoritative.
-        {maxEffects === undefined ? '' : ` This section allows at most ${maxEffects} effects.`}
-        {
-          ' Validation catches composition rules such as Copy Buffs/Copy Debuffs placement, Reveal targeting, and Rewind self-only requirements.'
-        }
+        Effects resolve in the order shown.
+        {maxEffects === undefined ? '' : ` At most ${maxEffects} effects.`}
       </p>
     </fieldset>
   )

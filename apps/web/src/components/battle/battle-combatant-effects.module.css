@@ -64,11 +64,11 @@
   color: var(--av-text-muted);
   font: 500 0.625rem/1.2 var(--av-font-mono);
 }
-[data-tone='positive'] .identity i,
+[data-tone='positive'] .identity :is(i, svg),
 .modifier[data-tone='positive'] b {
   color: #8bd9ae;
 }
-[data-tone='negative'] .identity i,
+[data-tone='negative'] .identity :is(i, svg),
 .modifier[data-tone='negative'] b {
   color: #f09b91;
 }
@@ -207,11 +207,23 @@
   color: #f5dd96;
   background: linear-gradient(135deg, #5b4a20, #2e2717);
 }
-.list > [data-effect-timing='primed'] .identity i,
-.list > [data-effect-timing='pending'] .identity i {
+.list > [data-effect-timing='primed'] .identity :is(i, svg),
+.list > [data-effect-timing='pending'] .identity :is(i, svg) {
   color: #f5dd96;
 }
 .icon i {
   max-width: 100%;
   overflow: hidden;
+}
+
+/* Artwork only: retain button/grid geometry and duration overlays. */
+.icon svg {
+  width: 88%;
+  height: 88%;
+  pointer-events: none;
+}
+.identity svg {
+  flex: 0 0 1rem;
+  width: 1rem;
+  height: 1rem;
 }

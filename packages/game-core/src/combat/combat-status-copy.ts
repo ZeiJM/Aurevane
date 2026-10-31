@@ -1,3 +1,5 @@
+import { combatStatusTuning } from './combat-status-tuning'
+import { combatStatusIsCopyable, validateCombatStatusSelection } from './combat-status-selection'
 import { mergeSuppressStatus } from './combat-suppress'
 import { usesPercentageCombatDots } from './combat-dots'
 import type {
@@ -36,6 +38,8 @@ export interface CombatStatusCopyEffect {
   type: 'copy-statuses'
   recipient: 'primary-unit'
   mode: 'amplify' | 'curse'
+  /** Omitted retains historical copying of every eligible active status. */
+  statusIds?: readonly string[]
   /** Composed commands may explicitly permit an empty clone block while later effects still matter. */
   allowNoEligibleEffects?: boolean
 }
@@ -46,7 +50,10 @@ function assertCurrentStatusCopyEffect(effect: CombatStatusCopyEffect): void {
 }
 
 /** Copying remains single-unit and copy-first while composition is introduced incrementally. */
-export function validateCombatStatusCopyAction(action: CombatActionDefinition): void {
+export function validateCombatStatusCopyAction(
+  action: CombatActionDefinition,
+  content?: CombatContentCatalog,
+): void {
   const copyEntries = action.effects
     .map((effect, index) => ({ effect, index }))
     .filter(
@@ -61,6 +68,24 @@ export function validateCombatStatusCopyAction(action: CombatActionDefinition): 
   const entry = copyEntries[0]!
   const effect = entry.effect
   assertCurrentStatusCopyEffect(effect)
+  if (effect.statusIds !== undefined) {
+    validateCombatStatusSelection(
+      effect.statusIds,
+      effect.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs',
+    )
+    if (
+      content &&
+      effect.statusIds.some(
+        (id) =>
+          !['burn', 'poison', 'bleed'].includes(id) &&
+          !content.statuses.some(
+            (definition) =>
+              definition.id === id && combatStatusIsCopyable(definition, effect.mode, true),
+          ),
+      )
+    )
+      throw new TypeError('Selected status is not copyable in the pinned content.')
+  }
   if (
     effect.allowNoEligibleEffects !== undefined &&
     typeof effect.allowNoEligibleEffects !== 'boolean'
@@ -89,19 +114,9 @@ function isCopyable(
   effect: CombatStatusCopyEffect,
   elemental = false,
 ): boolean {
-  const mode = effect.mode
-  const permitted =
-    mode === 'amplify'
-      ? definition.amplifyCopyable
-      : (definition.curseCopyable ??
-        (elemental && ['wet', 'frozen', 'conductive'].includes(definition.id)))
   return (
-    permitted === true &&
-    definition.polarity === (mode === 'amplify' ? 'positive' : 'negative') &&
-    (definition.reactionClass === undefined ||
-      definition.reactionClass === 'ordinary' ||
-      definition.reactionClass === 'periodic' ||
-      definition.reactionClass === 'reactive')
+    (effect.statusIds === undefined || effect.statusIds.includes(definition.id)) &&
+    combatStatusIsCopyable(definition, effect.mode, elemental)
   )
 }
 
@@ -120,7 +135,7 @@ function assertPinnedStatus(
     instance.remainingOwnerTurnStarts >
       (instance.remainingOwnerTurnEnds !== undefined
         ? 4
-        : instance.statusId === 'suppress'
+        : ['suppress', 'counter'].includes(instance.statusId)
           ? 5
           : definition.durationOwnerTurnStarts)
   ) {
@@ -170,9 +185,13 @@ function planBleedCopies(
   state: CombatEncounterState,
   donorId: string,
   receiverId: string,
-  mode: CombatStatusCopyEffect['mode'],
+  effect: CombatStatusCopyEffect,
 ): readonly BleedCopy[] {
-  if (mode !== 'curse') return []
+  if (
+    effect.mode !== 'curse' ||
+    (effect.statusIds !== undefined && !effect.statusIds.includes('bleed'))
+  )
+    return []
   const donors = currentBleedStacks(state, donorId).filter((stack) => stack.curseCopyable === true)
   if (donors.length === 0) return []
 
@@ -335,6 +354,8 @@ export function planCombatStatusCopies(
         ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
         statusId: donor.statusId,
         statusVersion: donor.statusVersion,
+        ...combatStatusTuning(donor),
+        ...(donor.counter ? { counter: { ...donor.counter } } : {}),
         ...(donor.blindsideModifiersBasisPoints === undefined
           ? {}
           : { blindsideModifiersBasisPoints: { ...donor.blindsideModifiersBasisPoints } }),
@@ -408,7 +429,8 @@ export function planCombatStatusCopies(
   const independent = usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
   const persistentDots = normalizeCombatEffectState(state.effectState)
   const poisonDonors =
-    effect.mode === 'curse'
+    effect.mode === 'curse' &&
+    (effect.statusIds === undefined || effect.statusIds.includes('poison'))
       ? (independent
           ? currentPoisonInstances(state, donorId)
           : [currentPoisonInstance(state, donorId)].filter(
@@ -417,7 +439,7 @@ export function planCombatStatusCopies(
         ).filter((row) => row.curseCopyable === true)
       : []
   const burnDonors =
-    effect.mode === 'curse'
+    effect.mode === 'curse' && (effect.statusIds === undefined || effect.statusIds.includes('burn'))
       ? (independent
           ? currentBurnInstances(state, donorId)
           : [currentBurnInstance(state, donorId)].filter(
@@ -452,7 +474,7 @@ export function planCombatStatusCopies(
   }))
   const poison = poisons[0]
   const burn = burns[0]
-  const bleed = planBleedCopies(state, donorId, receiverId, effect.mode)
+  const bleed = planBleedCopies(state, donorId, receiverId, effect)
   return { receiverId, copies, poison, burn, poisons, burns, bleed }
 }
 

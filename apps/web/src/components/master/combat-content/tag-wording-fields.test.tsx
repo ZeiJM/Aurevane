@@ -39,8 +39,8 @@ it('shows readable automatic wording without silently replacing parameter-aware 
       onChange={onChange}
     />,
   )
-  expect(html).toContain('Deal 10% more damage per application.')
-  expect(html).toContain('Automatic wording is shown using default effect values')
+  expect(html).toContain('Increases outgoing damage for the chosen duration.')
+  expect(html).toContain('Automatic wording describes the tag’s rule')
   expect(html).toContain('Restore automatic descriptions')
   expect(html).not.toMatch(/<textarea[^>]*><\/textarea>/)
   expect(onChange).not.toHaveBeenCalled()
@@ -73,7 +73,7 @@ it.each(['burn', 'bleed', 'poison'])('shows current percentage-aware defaults fo
   expect(text.short).not.toMatch(/fixed \d+ HP|ignores.*modifiers/iu)
   expect(text.short.length).toBeGreaterThan(20)
 })
-it('explains the custom limit without truncating a longer automatic example', () => {
+it('keeps concise automatic wording within the custom limit', () => {
   const value = defaultCombatTagDefinitions().find((row) => row.tagId === 'airborne')!
   const html = renderToStaticMarkup(
     <ContentDefinitionFields
@@ -85,6 +85,18 @@ it('explains the custom limit without truncating a longer automatic example', ()
     />,
   )
   expect(html).toContain('maxLength="240"')
-  expect(html).toContain('select and replace or shorten it to customize')
+  expect(html).toContain(tagWordingDefaults('airborne').short)
+  expect(html).not.toContain('The automatic example is longer')
   expect(html).toContain('0/240 characters')
+})
+
+it('uses one generic description per current tag without injecting factory potencies', () => {
+  expect(tagWordingDefaults('inspired')).toEqual({
+    full: 'Increases outgoing damage for the chosen duration.',
+    short: 'Increases outgoing damage for the chosen duration.',
+  })
+  expect(tagWordingDefaults('fortified').full).toContain('Physical and Mystic Defense')
+  expect(tagWordingDefaults('fortified').full).not.toMatch(/\d/)
+  expect(tagWordingDefaults('reveal').full).toContain('Invisible and Covert')
+  expect(tagWordingDefaults('not-a-registered-tag')).toEqual({ full: '', short: '' })
 })

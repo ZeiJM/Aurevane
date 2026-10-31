@@ -1,3 +1,4 @@
+import { combatReversalKnowledgeState } from './combat-reversal'
 import { capturedBasicSkillSource } from './combat-basic-actions'
 import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import { hasGameplayTag } from './gameplay-tags'
@@ -40,6 +41,7 @@ export type RecruitAiIntent =
     }
   | {
       kind: 'ability-prime'
+      target?: CombatTargetSelection
       actionId: string
       behaviorId: string
       manualModifiers?: readonly ManualCombatModifierSelection[]
@@ -197,6 +199,13 @@ export function chooseRecruitAiDecision(input: {
   tieBreakSeed: number
   capabilities?: RecruitAiCapabilities
 }): RecruitAiDecision {
+  input = {
+    ...input,
+    state: combatReversalKnowledgeState(
+      input.state,
+      input.state.tactical.battle.currentTurn?.combatantId,
+    ),
+  }
   const profile = input.profile ?? RECRUIT_STANDARD_PROFILE
   assertRecruitAiProfile(profile)
   if (!Number.isSafeInteger(input.tieBreakSeed)) {

@@ -141,7 +141,7 @@ function resolveRecruitIntent(
     return executeBuildAwareRecruitAiAction(
       state,
       intent.actionId,
-      { kind: 'self' },
+      intent.kind === 'ability-prime' ? (intent.target ?? { kind: 'self' }) : { kind: 'self' },
       skillOptions,
       {
         behaviorId: intent.behaviorId,

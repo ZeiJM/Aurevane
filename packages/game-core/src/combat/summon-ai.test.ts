@@ -1,23 +1,36 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCombatEncounterState } from './actions'
+import {
+  createCombatEncounterState,
+  executeCombatAction,
+  evaluateCombatAction,
+  type CombatActionDefinition,
+} from './actions'
 import { createPendingBattle, endTurn, selectFinalFacing, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import type { CombatSummonInstance } from './combat-effect-state'
-import { spawnCombatSummon } from './combat-summons'
+import { spawnCombatSummon, removeCombatSummon } from './combat-summons'
 import {
+  executePv1fAction,
+  evaluatePv1fAction,
+  PV1F_BASIC_ATTACK_ID,
   executePv1fMovement,
+  evaluatePv1fMovement,
+  PV1F_COMBAT_CONTENT,
   executePv1fSummonAbility,
+  evaluatePv1fSummonAbility,
   finishPv1fTurn,
   preparePv1fTurnEconomy,
   readPv1fActionEconomy,
   spendPv1fActionEconomy,
 } from './pv1f-action-economy'
+import { evaluatePreparedCombatWalking } from './combat-walking'
 import { chooseSummonAiDecision, type SummonAiDecision } from './summon-ai'
 import {
   createCurrentStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
+  validateStatDrivenCombatEncounterState,
 } from './stat-driven-combat'
 import { SUMMON_PROFILE_SCHEMA_VERSION, type SummonProfileDefinition } from './summon-content'
 
@@ -230,6 +243,250 @@ function chosenAbility(decision: SummonAiDecision): string | null {
 }
 
 describe('Combat v5.1 summon AI', () => {
+  it('round-trips neverMoves and rejects a malformed captured flag', () => {
+    const active = summonTurn(50, summonProfile({ neverMoves: true }))
+    const restored = JSON.parse(JSON.stringify(active.state)) as StatDrivenCombatEncounterState
+    expect(restored.effectState?.summons?.[0]?.profile.neverMoves).toBe(true)
+    expect(validateStatDrivenCombatEncounterState(restored)).toEqual([])
+    const malformed = JSON.parse(JSON.stringify(restored))
+    malformed.effectState.summons[0].profile.neverMoves = 'true'
+    expect(validateStatDrivenCombatEncounterState(malformed)).toContainEqual(
+      expect.objectContaining({ field: 'effectState.summons' }),
+    )
+  })
+
+  it('moves toward an injured ally to make a support-only ability legal', () => {
+    const heal = summonProfile().abilities[1]!
+    const active = summonTurn(
+      20,
+      summonProfile({ abilities: [{ ...heal, target: { ...heal.target, maximumRange: 1 } }] }),
+    )
+    const state = {
+      ...active.state,
+      tactical: {
+        ...active.state.tactical,
+        placements: active.state.tactical.placements.map((row) =>
+          row.combatantId === 'player'
+            ? { ...row, position: { x: 3, y: 0 } }
+            : row.combatantId === 'enemy'
+              ? { ...row, position: { x: 0, y: 0 } }
+              : row,
+        ),
+      },
+    }
+    const decision = chooseSummonAiDecision({ ...active, state, tieBreakSeed: 22 })
+    expect(decision.intent).toEqual({
+      kind: 'move',
+      path: [
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ],
+    })
+    if (decision.intent.kind !== 'move') throw new Error('Expected support positioning.')
+    const moved = executePv1fMovement(state, decision.intent.path).state
+    expect(
+      chooseSummonAiDecision({ ...active, state: moved, tieBreakSeed: 23 }).intent,
+    ).toMatchObject({
+      kind: 'action',
+      actionId: heal.id,
+      target: { kind: 'unit', combatantId: 'player' },
+    })
+  })
+
+  it('steps away from an adjacent enemy to respect an ability minimum range', () => {
+    const attack = summonProfile().abilities[0]!
+    const active = summonTurn(
+      50,
+      summonProfile({
+        abilities: [{ ...attack, target: { ...attack.target, minimumRange: 2, maximumRange: 2 } }],
+      }),
+    )
+    const state = {
+      ...active.state,
+      tactical: {
+        ...active.state.tactical,
+        placements: active.state.tactical.placements.map((row) =>
+          row.combatantId === 'player'
+            ? { ...row, position: { x: 3, y: 0 } }
+            : row.combatantId === 'enemy'
+              ? { ...row, position: { x: 2, y: 0 } }
+              : row,
+        ),
+      },
+    }
+    expect(chooseSummonAiDecision({ ...active, state, tieBreakSeed: 22 }).intent).toEqual({
+      kind: 'move',
+      path: [
+        { x: 1, y: 0 },
+        { x: 0, y: 0 },
+      ],
+    })
+  })
+
+  it('passes deterministically from its summoned tile when neverMoves and no ability reaches', () => {
+    const base = summonProfile().abilities[0]!
+    const active = summonTurn(
+      50,
+      summonProfile({
+        neverMoves: true,
+        abilities: [{ ...base, target: { ...base.target, maximumRange: 1 } }],
+      }),
+    )
+    const decision = chooseSummonAiDecision({ ...active, tieBreakSeed: 22 })
+    expect(decision.intent.kind).toBe('face')
+    expect(chooseSummonAiDecision({ ...active, tieBreakSeed: 22 })).toEqual(decision)
+    if (decision.intent.kind !== 'face') throw new Error('Expected bounded pass.')
+    const finished = finishPv1fTurn(active.state, decision.intent.facing)
+    expect(finished.state.tactical.battle.currentTurn?.combatantId).toBe('player')
+    expect(
+      finished.state.tactical.placements.find(
+        (row) => row.combatantId === active.summon.combatantId,
+      )?.position,
+    ).toEqual({ x: 1, y: 0 })
+  })
+
+  it('neverMoves rejects walking and independent Skill Move while retaining a legal ranged action', () => {
+    const active = summonTurn(50, summonProfile({ neverMoves: true }))
+    const path = [
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+    ]
+    expect(evaluatePv1fMovement(active.state, path).movement.legal).toBe(false)
+    expect(
+      evaluatePreparedCombatWalking(active.state, path, PV1F_COMBAT_CONTENT, {
+        independentAllowance: true,
+      }).movement.legal,
+    ).toBe(false)
+    expect(() => executePv1fMovement(active.state, path)).toThrow()
+    expect(chosenAbility(chooseSummonAiDecision({ ...active, tieBreakSeed: 22 }))).toBe(
+      'wildwarden.verdant-stalker.thorn-rake',
+    )
+  })
+
+  it.each(['push', 'pull'] as const)('neverMoves rejects forced %s displacement', (direction) => {
+    const active = summonTurn(50, summonProfile({ neverMoves: true }))
+    const action: CombatActionDefinition = {
+      id: 'test.anchor',
+      version: 1,
+      sourceType: 'test',
+      tags: ['test'],
+      target: {
+        ...summonProfile().abilities[0]!.target,
+        teamPolicy: 'ally',
+        friendlyFire: 'allies-only',
+        maximumRange: 4,
+      },
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      effects: [{ type: 'displace', recipient: 'primary-unit', direction, distance: 1 }],
+    }
+    const state = finishPv1fTurn(active.state, 'east').state
+    const result = executeCombatAction(
+      state,
+      action,
+      { kind: 'unit', combatantId: active.summon.combatantId },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'displacement_failed', reason: 'status-restricted' }),
+    )
+    expect(
+      result.state.tactical.placements.find((row) => row.combatantId === active.summon.combatantId)
+        ?.position,
+    ).toEqual({ x: 1, y: 0 })
+  })
+
+  it('rejects self Rewind and blocks an incoming captured position return', () => {
+    const active = summonTurn(50, summonProfile({ neverMoves: true }))
+    const action: CombatActionDefinition = {
+      id: 'test.anchor-rewind',
+      version: 1,
+      sourceType: 'test',
+      tags: ['test'],
+      target: {
+        ...summonProfile().abilities[0]!.target,
+        kind: 'self',
+        minimumRange: 0,
+        maximumRange: 0,
+        teamPolicy: 'self',
+        friendlyFire: 'allies-only',
+      },
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      effects: [{ type: 'return-to-turn-start', recipient: 'actor', anchorMode: 'cast-position' }],
+    }
+    expect(
+      evaluateCombatAction(active.state, action, { kind: 'self' }, PV1F_COMBAT_CONTENT).legal,
+    ).toBe(false)
+    const state = finishPv1fTurn(active.state, 'east').state
+    const incoming = {
+      ...action,
+      target: { ...summonProfile().abilities[1]!.target },
+      effects: [
+        {
+          type: 'return-to-turn-start' as const,
+          recipient: 'primary-unit' as const,
+          target: 'ally' as const,
+          anchorMode: 'cast-position' as const,
+        },
+      ],
+    }
+    const result = executeCombatAction(
+      state,
+      incoming,
+      { kind: 'unit', combatantId: active.summon.combatantId },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'combatant_rewind_blocked',
+        reason: 'rooted',
+        combatantId: active.summon.combatantId,
+      }),
+    )
+  })
+
+  it('uses high AI for explicit current settings and preserves captured historical profiles', () => {
+    const historical = summonTurn(50, summonProfile({ aiProfile: 'standard' }))
+    expect(chooseSummonAiDecision({ ...historical, tieBreakSeed: 22 }).profileId).toBe(
+      'recruit-standard-v2',
+    )
+    const current = summonTurn(50, summonProfile({ aiProfile: 'standard', neverMoves: false }))
+    expect(chooseSummonAiDecision({ ...current, tieBreakSeed: 22 }).profileId).toBe(
+      'recruit-high-v2',
+    )
+  })
+
+  it('rejects harmful legal healing even when authored base utility is high', () => {
+    const heal = summonProfile().abilities[1]!
+    const active = summonTurn(
+      50,
+      summonProfile({
+        neverMoves: true,
+        abilities: [
+          {
+            ...heal,
+            target: { ...heal.target, teamPolicy: 'enemy', friendlyFire: 'enemies-only' },
+            ai: { ...heal.ai, baseUtility: 1000 },
+          },
+        ],
+      }),
+    )
+    const state = {
+      ...active.state,
+      tactical: {
+        ...active.state.tactical,
+        battle: {
+          ...active.state.tactical.battle,
+          combatants: active.state.tactical.battle.combatants.map((row) =>
+            row.id === 'enemy' ? { ...row, hp: 20 } : row,
+          ),
+        },
+      },
+    }
+    expect(chooseSummonAiDecision({ ...active, state, tieBreakSeed: 22 }).intent.kind).toBe('face')
+  })
+
   it('finishes its turn deterministically when no ability or movement is affordable', () => {
     const active = summonTurn(20)
     const state = spendPv1fActionEconomy(active.state, 85)
@@ -389,4 +646,250 @@ it('uses a shared full cardinal lane for a versioned summon ability', () => {
     actionId: base.id,
     target: { kind: 'direction', direction: 'east' },
   })
+})
+
+it('quotes and pays summon Skill HP/MP/AP once, without mutating previews or permitting lethal costs', () => {
+  const base = summonProfile()
+  const ability = { ...base.abilities[0]!, hpCost: 35, mpCost: 3 }
+  const { state, summon } = summonTurn(50, { ...base, abilities: [ability] })
+  const before = JSON.stringify(state)
+  const target = { kind: 'unit' as const, combatantId: 'enemy' }
+  const quote = evaluatePv1fSummonAbility(state, summon, ability.id, target)
+  expect(quote.evaluation.legal).toBe(true)
+  expect(quote.evaluation.hpCost).toBe(35)
+  expect(chooseSummonAiDecision({ state, summon, tieBreakSeed: 2 }).intent).toMatchObject({
+    kind: 'action',
+    actionId: ability.id,
+  })
+  const used = executePv1fSummonAbility(state, summon, ability.id, target)
+  expect(
+    used.state.tactical.battle.combatants.find((unit) => unit.id === summon.combatantId),
+  ).toMatchObject({ hp: 1, mp: 9 })
+  expect(readPv1fActionEconomy(used.state, summon.combatantId)?.current).toBe(
+    readPv1fActionEconomy(quote.prepared, summon.combatantId)!.current - ability.apCost,
+  )
+  expect(
+    used.events.filter(
+      (event) =>
+        typeof event === 'object' &&
+        event !== null &&
+        'event' in event &&
+        event.event === 'hp_spent',
+    ),
+  ).toHaveLength(1)
+  expect(JSON.stringify(state)).toBe(before)
+
+  const lethal = summonTurn(50, { ...base, abilities: [{ ...ability, hpCost: 36 }] })
+  const lethalBefore = JSON.stringify(lethal.state)
+  expect(
+    evaluatePv1fSummonAbility(lethal.state, lethal.summon, ability.id, target).evaluation.issues,
+  ).toContainEqual(expect.objectContaining({ code: 'insufficient-hp' }))
+  expect(() => executePv1fSummonAbility(lethal.state, lethal.summon, ability.id, target)).toThrow(
+    /HP/,
+  )
+  expect(chooseSummonAiDecision({ ...lethal, tieBreakSeed: 2 }).intent.kind).not.toBe('action')
+  expect(JSON.stringify(lethal.state)).toBe(lethalBefore)
+})
+
+it('uses Endure as a real summon ability and rejects damage while its window is active', () => {
+  const base = summonProfile()
+  const ability = {
+    ...base.abilities[0]!,
+    id: 'test.endure.summon',
+    name: 'Endure',
+    tags: ['support'],
+    target: {
+      ...base.abilities[0]!.target,
+      kind: 'self' as const,
+      teamPolicy: 'self' as const,
+      minimumRange: 0,
+      maximumRange: 0,
+      friendlyFire: 'allies-only' as const,
+    },
+    effects: [
+      {
+        type: 'endure' as const,
+        recipient: 'actor' as const,
+        durationTurns: 2,
+        releaseBasisPoints: 15000,
+        radiusTiles: 3,
+        targetTeams: 'enemies' as const,
+      },
+    ],
+    ai: { baseUtility: 100, purposeTags: ['support'] },
+  }
+  const { state, summon } = summonTurn(50, { ...base, abilities: [ability, base.abilities[0]!] })
+  const decision = chooseSummonAiDecision({ state, summon, tieBreakSeed: 45 })
+  expect(decision.intent).toMatchObject({ kind: 'action', actionId: ability.id })
+  const result = executePv1fSummonAbility(state, summon, ability.id, { kind: 'self' })
+  const evaluated = evaluatePv1fSummonAbility(
+    result.state as typeof state,
+    summon,
+    base.abilities[0]!.id,
+    { kind: 'unit', combatantId: 'enemy' },
+  )
+  expect(evaluated.evaluation.legal).toBe(false)
+  expect(evaluated.evaluation.issues).toContainEqual(
+    expect.objectContaining({ code: 'endure-active' }),
+  )
+  const next = chooseSummonAiDecision({
+    state: result.state as typeof state,
+    summon,
+    tieBreakSeed: 45,
+  })
+  expect(next.intent.kind !== 'action' || next.intent.actionId !== base.abilities[0]!.id).toBe(true)
+  const ended = finishPv1fTurn(result.state as typeof state, 'west').state
+  const removed = removeCombatSummon(ended as typeof state, summon.combatantId, 'expired')
+  expect(removed.state.endureState?.applications).toEqual([])
+})
+
+function summonOnFrozenGround(reversal = false) {
+  const base = summonProfile()
+  const ability = reversal
+    ? {
+        ...base.abilities[0]!,
+        tags: ['utility'],
+        target: {
+          ...base.abilities[0]!.target,
+          kind: 'self' as const,
+          teamPolicy: 'self' as const,
+          minimumRange: 0,
+          maximumRange: 0,
+          friendlyFire: 'allies-only' as const,
+        },
+        effects: [
+          {
+            type: 'reversal' as const,
+            recipient: 'actor' as const,
+            version: 1 as const,
+            family: 'physical' as const,
+            reflectionBasisPoints: 10000,
+            attackerMaxHpCapBasisPoints: 2000,
+            defenderMaxHpCapBasisPoints: 2500,
+          },
+        ],
+      }
+    : base.abilities[0]!
+  const active = summonTurn(50, { ...base, abilities: [ability] })
+  return {
+    ...active,
+    ability,
+    state: {
+      ...active.state,
+      frozenGroundPolicyVersion: 1 as const,
+      terrainOverlays: [
+        {
+          kind: 'frozen' as const,
+          frozenGroundPolicyVersion: 1 as const,
+          position: active.state.tactical.placements.find(
+            (row) => row.combatantId === active.summon.combatantId,
+          )!.position,
+          remainingRoundBoundaries: 2,
+          sourceCombatantId: 'enemy',
+          skillApSurcharge: 27,
+        },
+      ],
+    },
+  }
+}
+it.each([false, true])(
+  'quotes and pays the Frozen Ground surcharge once for a Summon Skill (Reversal %s)',
+  (reversal) => {
+    const { state, summon, ability } = summonOnFrozenGround(reversal)
+    const target = reversal
+      ? { kind: 'self' as const }
+      : { kind: 'unit' as const, combatantId: 'enemy' }
+    const before = JSON.stringify(state)
+    const quote = evaluatePv1fSummonAbility(state, summon, ability.id, target)
+    expect(quote.evaluation.legal).toBe(true)
+    expect(quote.cost).toBe(ability.apCost + 27)
+    expect(JSON.stringify(state)).toBe(before)
+    const used = executePv1fSummonAbility(state, summon, ability.id, target)
+    expect(readPv1fActionEconomy(used.state, summon.combatantId)?.current).toBe(100 - quote.cost)
+    expect(
+      (used.events as { event: string }[]).filter(
+        (event) => event.event === 'action_economy_spent',
+      ),
+    ).toEqual([expect.objectContaining({ amount: quote.cost, remaining: 100 - quote.cost })])
+    const poor = spendPv1fActionEconomy(state, 100 - ability.apCost)
+    expect(evaluatePv1fSummonAbility(poor, summon, ability.id, target).cost).toBe(quote.cost)
+    expect(() => executePv1fSummonAbility(poor, summon, ability.id, target)).toThrow(/Economy|AP/)
+  },
+)
+it.each([false, true])(
+  'exempts friendly and Airborne Summon Skills and preserves historical Frozen costs (Reversal %s)',
+  (reversal) => {
+    const { state, summon, ability } = summonOnFrozenGround(reversal)
+    const target = reversal
+      ? { kind: 'self' as const }
+      : { kind: 'unit' as const, combatantId: 'enemy' }
+    const friendly = {
+      ...state,
+      terrainOverlays: state.terrainOverlays.map((row) => ({
+        ...row,
+        sourceCombatantId: 'player',
+      })),
+    }
+    const airborne = {
+      ...state,
+      statusState: state.statusState.map((row) =>
+        row.combatantId !== summon.combatantId
+          ? row
+          : {
+              ...row,
+              statuses: [
+                ...row.statuses,
+                {
+                  statusId: 'airborne',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                  sourceCombatantId: summon.combatantId,
+                },
+              ],
+            },
+      ),
+    }
+    const historical = {
+      ...state,
+      terrainOverlays: state.terrainOverlays.map(({ skillApSurcharge: _profile, ...row }) => {
+        void _profile
+        return row
+      }),
+    }
+    for (const exempt of [friendly, airborne, historical]) {
+      expect(evaluatePv1fSummonAbility(exempt, summon, ability.id, target).cost).toBe(
+        ability.apCost,
+      )
+      expect(
+        readPv1fActionEconomy(
+          executePv1fSummonAbility(exempt, summon, ability.id, target).state,
+          summon.combatantId,
+        )?.current,
+      ).toBe(100 - ability.apCost)
+    }
+  },
+)
+
+it('keeps the native Summon Basic Attack exempt from Frozen Ground Skill AP', () => {
+  const { state, summon } = summonOnFrozenGround()
+  const adjacent = {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      placements: state.tactical.placements.map((row) =>
+        row.combatantId === 'enemy' ? { ...row, position: { x: 2, y: 0 } } : row,
+      ),
+    },
+  }
+  const target = { kind: 'unit' as const, combatantId: 'enemy' }
+  const quote = evaluatePv1fAction(adjacent, PV1F_BASIC_ATTACK_ID, target)
+  expect(quote.evaluation.legal).toBe(true)
+  expect(quote.cost).toBe(30)
+  expect(
+    readPv1fActionEconomy(
+      executePv1fAction(adjacent, PV1F_BASIC_ATTACK_ID, target).state,
+      summon.combatantId,
+    )?.current,
+  ).toBe(70)
 })

@@ -82,7 +82,7 @@ function elementlessPierceGroup(behavior: Record<string, unknown>) {
       const target = fire ? 'self' : old.payload.target
       if (payload.recipient !== recipient || payload.target !== target) continue
       const expectedKeys = fire
-        ? ['type', 'recipient', 'target', 'statusIds', 'removalMode']
+        ? ['type', 'recipient', 'target', 'statusIds', 'removalMode', 'selectionKind']
         : [
             'type',
             'recipient',

@@ -1,3 +1,4 @@
+import { withCurrentSummonCoreAttributes } from '@aurevane/game-core/combat/summon-content'
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -74,7 +75,11 @@ it.each(['instant', 'next-round', 'delayed'] as const)(
     const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
     const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
       .behaviors[0]!
-    const profile = { ...native.summonProfile!, name: 'Canonical Preview Companion' }
+    const profile = {
+      ...native.summonProfile!,
+      name: 'Canonical Preview Companion',
+      neverMoves: true,
+    }
     const definition = {
       ...native,
       ability: parseAbilityDefinition({
@@ -100,6 +105,7 @@ it.each(['instant', 'next-round', 'delayed'] as const)(
     expect(preview.legal).toBe(true)
     expect(preview.simulation.rngConsumed).toBe(false)
     expect(preview.summon?.profile.name).toBe(profile.name)
+    expect(preview.summon?.profile).toHaveProperty('neverMoves', true)
     expect(preview.summon?.abilities).toHaveLength(profile.abilities.length)
     expect(preview.projections.effects).toContainEqual(
       expect.objectContaining({
@@ -455,3 +461,39 @@ it.each(['pve', 'pvp'] as const)(
     expect(JSON.stringify(definition)).toBe(before)
   },
 )
+
+it('previews the captured Core-derived summon stats and optional HP costs', () => {
+  const base = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+  const profile = withCurrentSummonCoreAttributes(base.summonProfile!)
+  const definition = {
+    ...base,
+    summonProfile: {
+      ...profile,
+      abilities: profile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
+    },
+  }
+  const preview = previewCombatContentDefinition(definition)
+  expect(preview.legal).toBe(true)
+  expect(preview.summon?.profile).toMatchObject({
+    coreAttributes: profile.coreAttributes,
+    derivedStatRulesVersion: 5,
+    maxHp: profile.maxHp,
+    stats: profile.stats,
+  })
+  expect(preview.summon?.abilities.every((ability) => ability.hpCost === 3)).toBe(true)
+})
+
+it('retains optional authored Summon potency in the Master preview', () => {
+  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+  const profile = { ...native.summonProfile!, potencyBasisPoints: 4000 }
+  const definition = {
+    ...native,
+    summonProfile: profile,
+    effects: native.effects.map((effect) =>
+      effect.type === 'summon' ? { ...effect, profile } : effect,
+    ),
+  }
+  const preview = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+  expect(preview.summon?.profile.potencyBasisPoints).toBe(4000)
+  expect(preview.simulation.rngConsumed).toBe(false)
+})

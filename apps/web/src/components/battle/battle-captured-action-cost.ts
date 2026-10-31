@@ -161,6 +161,9 @@ export function battleCapturedControlledAvailability(
       : undefined
   const selectedSpent = selected?.controlled?.phase === 'spent'
   return {
+    ...(selected?.controlled?.kind === 'reversal'
+      ? { controlledKind: 'reversal' as const, canCancel: selected.controlled.canCancel }
+      : {}),
     controlledPrimed: choices.some((row) => row.controlled?.phase === 'primed'),
     controlledSpent:
       selectedSpent ||
@@ -209,4 +212,36 @@ export function battleCapturedActionCost(
       : !behaviorId &&
         choices.some((row) => row.costs && canAffordBattleCosts(row.costs, resources)),
   }
+}
+
+/** Server-derived preparation kind changes wording and selection, never the submitted command authority. */
+export function battleControlledActionCostLabel(
+  availability:
+    { controlledKind?: 'reversal'; canCancel?: boolean; chooseAction?: boolean } | undefined,
+  primeAvailable: boolean,
+  cost: string,
+): string {
+  if (availability?.chooseAction) return 'choose another action'
+  if (availability?.controlledKind === 'reversal')
+    return availability.canCancel ? `Cancel Reversal; preparation paid ${cost}` : `Prepare: ${cost}`
+  return primeAvailable ? 'prime without payment' : cost
+}
+
+export function battleCapturedActionCanSelect(
+  payment: {
+    controlledKind?: 'reversal'
+    canCancel?: boolean
+    chooseAction?: boolean
+    affordable: boolean
+  },
+  primeAvailable: boolean,
+  cooldownTurns: number,
+): boolean {
+  if (payment.controlledKind === 'reversal')
+    return (
+      payment.canCancel === true || (primeAvailable && payment.affordable && cooldownTurns <= 0)
+    )
+  return (
+    primeAvailable || payment.chooseAction === true || (payment.affordable && cooldownTurns <= 0)
+  )
 }

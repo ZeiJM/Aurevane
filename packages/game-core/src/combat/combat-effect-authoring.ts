@@ -1,10 +1,10 @@
+import { selectableCombatStatusIds } from './combat-status-selection'
 export { AUTHORABLE_EFFECT_TAGS, type AuthorableEffectTag } from './combat-effect-identities'
 import { AUTHORABLE_EFFECT_TAGS, combatEffectIdentity } from './combat-effect-identities'
 import type { CombatEffectDefinition } from './actions'
 import type { AbilityActivation, AbilityMode } from './combat-definition'
 import { validateCombatTagPayload, type CombatTagPayload } from './combat-tag-registry'
 import { isBlindsideStatusId } from './combat-blindside'
-import { CLEANSE_STATUS_IDS } from './combat-cleanse'
 import type { SummonProfileDefinition } from './summon-content'
 
 /** Current authoring consolidates retained Chilled-only removal without changing captured identities. */
@@ -16,6 +16,7 @@ export function effectAuthoringTag(payload: CombatTagPayload | CombatEffectDefin
 }
 
 export const DEFAULT_DISPEL_STATUS_IDS = [
+  'counter',
   'guarded',
   'inspired',
   'haste',
@@ -41,15 +42,55 @@ export function createAuthorableEffectPayload(
     context.combination.activation !== 'automatic'
   )
     return { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 }
+  if (id === 'counter')
+    return {
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'counter',
+      stacks: 1,
+      durationTurns: 2,
+      counter: { kind: 'full', basisPoints: 10000 },
+    }
   if (tag.opcode === 'apply-status')
     return {
       type: 'apply-status',
       recipient: tag.statusId === 'blindside' ? 'actor' : 'primary-unit',
       statusId: tag.statusId!,
       stacks: 1,
+      ...(tag.statusId === 'wet' ? { initiativeReductionBasisPoints: 1000 } : {}),
+      ...(tag.statusId === 'fortified' ? { defenseIncreaseBasisPoints: 1500 } : {}),
+      ...(['haste', 'slow'].includes(tag.statusId!) ? { movementApAdjustment: 10 } : {}),
+      ...(tag.statusId === 'lowered-guard' ? { damageTakenMultiplierBasisPoints: 15000 } : {}),
       durationTurns: isBlindsideStatusId(tag.statusId!) ? 1 : 2,
     }
   switch (id) {
+    case 'weak-point':
+      return { type: 'weak-point', recipient: 'actor', debuffThreshold: 2 }
+    case 'spike':
+      return { type: 'spike', recipient: 'actor' }
+    case 'ruin':
+      return { type: 'ruin', recipient: 'actor', bonusPerDebuffBasisPoints: 1000 }
+    case 'endure':
+      return {
+        type: 'endure',
+        recipient: 'actor',
+        target: 'self',
+        durationTurns: 2,
+        releaseBasisPoints: 15000,
+        radiusTiles: 3,
+        targetTeams: 'enemies',
+      }
+    case 'reversal':
+      return {
+        type: 'reversal',
+        recipient: 'actor',
+        target: 'self',
+        version: 1,
+        family: 'physical',
+        reflectionBasisPoints: 10000,
+        attackerMaxHpCapBasisPoints: 2000,
+        defenderMaxHpCapBasisPoints: 2500,
+      }
     case 'damage':
       return { type: 'damage', recipient: 'primary-unit', amount: 1 }
     case 'pierce':
@@ -80,6 +121,7 @@ export function createAuthorableEffectPayload(
         resource: 'mp',
         delta: id === 'mp-drain' ? -1 : 1,
         ticks: 1,
+        ...(id === 'mp-drain' ? { basis: 'maximum-mp-percent' as const } : {}),
       }
     case 'barrier':
       return {
@@ -121,12 +163,16 @@ export function createAuthorableEffectPayload(
         type: 'copy-statuses',
         recipient: 'primary-unit',
         mode: id === 'copy-buffs' ? 'amplify' : 'curse',
+        statusIds: [
+          ...selectableCombatStatusIds(id === 'copy-buffs' ? 'copy-buffs' : 'copy-debuffs'),
+        ],
       }
     case 'cleanse':
       return {
         type: 'remove-status',
         recipient: 'primary-unit',
-        statusIds: [...CLEANSE_STATUS_IDS],
+        statusIds: [...selectableCombatStatusIds('debuffs')],
+        removalMode: 'all-debuffs',
       }
     case 'dispel':
       return {
@@ -134,6 +180,7 @@ export function createAuthorableEffectPayload(
         recipient: 'primary-unit',
         statusIds: [...DEFAULT_DISPEL_STATUS_IDS],
         removalMode: 'specified',
+        selectionKind: 'buffs',
       }
     case 'conditional-cleanse':
       return {
@@ -141,16 +188,27 @@ export function createAuthorableEffectPayload(
         recipient: context.combination?.mode === 'modifier' ? 'actor' : 'primary-unit',
         statusIds: [context.combination?.mode === 'modifier' ? 'frozen' : 'burn'],
         removalMode: 'specified',
+        selectionKind: 'debuffs',
         ...(context.combination?.mode === 'modifier' ? { target: 'self' as const } : {}),
       }
     case 'cleanse-chilled':
       return { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }
     case 'reveal':
-      return { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 }
+      return {
+        type: 'sensory',
+        recipient: 'primary-unit',
+        revealedDurationOwnerTurnStarts: 2,
+        increasedDamageTakenBasisPoints: 1500,
+      }
     case 'rewind':
       return { type: 'return-to-turn-start', recipient: 'actor', anchorMode: 'cast-position' }
     case 'freeze-ground':
-      return { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }
+      return {
+        type: 'create-terrain',
+        recipient: 'affected-tiles',
+        terrain: 'frozen',
+        skillApSurcharge: 10,
+      }
     case 'push':
     case 'pull':
       return { type: 'displace', recipient: 'primary-unit', direction: id, distance: 1 }

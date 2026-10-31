@@ -893,7 +893,9 @@ function BattleExperienceContent({
   )
   const actionCooldownTurns = useCallback(
     (actionId: string) =>
-      canPrimeAction(actionId) || controlledAvailabilityForAction(actionId).chooseAction
+      canPrimeAction(actionId) ||
+      controlledAvailabilityForAction(actionId).chooseAction ||
+      controlledAvailabilityForAction(actionId).canCancel
         ? 0
         : battleActionCooldownTurns(
             battleRef.current,
@@ -1498,9 +1500,29 @@ function BattleExperienceContent({
         }
 
         if (intent.kind === 'ability-prime') {
-          setNotice('Ability prepared. Choose a legal target to release it at its full cost.')
+          setNotice(
+            manualActionTargets.some(
+              (row) =>
+                row.actionId === intent.actionId &&
+                row.behaviorId === intent.behaviorId &&
+                row.controlled?.kind === 'reversal',
+            )
+              ? 'Reversal prepared and paid. It automatically counters one qualifying hit until your next actual turn. Offensive attacks are unavailable while armed.'
+              : intent.target
+                ? 'Rewind positions captured. Release on the same selection at its full cost.'
+                : 'Ability prepared. Choose a legal target to release it at its full cost.',
+          )
         } else if (intent.kind === 'ability-cancel-prime') {
-          setNotice('Preparation cancelled. This ability cannot be primed again in this battle.')
+          setNotice(
+            manualActionTargets.some(
+              (row) =>
+                row.actionId === intent.actionId &&
+                row.behaviorId === intent.behaviorId &&
+                row.controlled?.kind === 'reversal',
+            )
+              ? 'Reversal cancelled. Paid costs and cooldown remain. Reversal Strain restricts Attack Skills through your next complete turn; normal Basic Attack remains available.'
+              : 'Preparation cancelled. This ability cannot be primed again in this battle.',
+          )
         } else if (runtime.kind === 'pvp') {
           if (nextBattleState.lifecycle === 'completed') {
             setNotice('Battle complete.')
@@ -1573,6 +1595,7 @@ function BattleExperienceContent({
       handleApiFailure,
       localCombatantId,
       localTurn,
+      manualActionTargets,
       runtime,
       viewModel,
       setBattle,
@@ -1760,6 +1783,7 @@ function BattleExperienceContent({
               intent.actionId,
               intent.behaviorId,
               intent.manualModifiers,
+              intent.target,
             ) ?? intent)
           : intent
       if (command.kind === 'action' && actionCooldownTurns(command.actionId) > 0) return
@@ -1884,9 +1908,11 @@ function BattleExperienceContent({
       })
       if (
         descriptor.controlled?.phase === 'primed' &&
+        intent !== null &&
         !descriptor.move &&
         (battleSkillTargetSpec(descriptor)?.maximumSelections ?? 1) === 1 &&
-        (intent?.target.kind === 'self' ||
+        (descriptor.controlled.releaseTarget !== undefined ||
+          intent?.target.kind === 'self' ||
           (intent?.target.kind === 'unit' && intent.target.combatantId === localCombatantId))
       ) {
         void executeIntent(intent)
@@ -2097,6 +2123,7 @@ function BattleExperienceContent({
     pendingIntent?.kind === 'action' &&
     preview?.battleVersion === battle.battleVersion &&
     preview.preview.kind === 'action' &&
+    currentDescriptor.controlled?.kind !== 'reversal' &&
     preview.preview.controlledReady &&
     JSON.stringify(preview.intent) === JSON.stringify(pendingIntent)
       ? pendingIntent.actionId
@@ -3782,7 +3809,9 @@ function BattleExperienceContent({
               className={styles.cancelAction}
               aria-label={
                 currentDescriptor.controlled?.canCancel && !planningDisabled
-                  ? 'Cancel prime'
+                  ? currentDescriptor.controlled.kind === 'reversal'
+                    ? 'Cancel Reversal'
+                    : 'Cancel prime'
                   : 'Cancel Action'
               }
               data-battle-cancel-action="true"
@@ -3808,7 +3837,9 @@ function BattleExperienceContent({
             >
               <span data-battle-full-label="true">
                 {currentDescriptor.controlled?.canCancel && !planningDisabled
-                  ? 'Cancel prime'
+                  ? currentDescriptor.controlled.kind === 'reversal'
+                    ? 'Cancel Reversal'
+                    : 'Cancel prime'
                   : 'Cancel Action'}
               </span>
               <span data-battle-compact-label="true" aria-hidden="true">

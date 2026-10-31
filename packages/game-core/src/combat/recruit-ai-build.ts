@@ -1,3 +1,5 @@
+import { activeCombatEndure } from './combat-endure'
+import { combatReversalKnowledgeState, combatReversalPayload } from './combat-reversal'
 import { moveCurrentCombatant, type GridPosition } from './board'
 import { airborneMovementTactical } from './combat-airborne'
 import { capturedBasicSkillSource } from './combat-basic-actions'
@@ -90,6 +92,13 @@ export function chooseBuildAwareRecruitAiDecision(input: {
   tieBreakSeed: number
   skillOptions?: BuildAwareRecruitAiSkillOptions
 }): RecruitAiDecision {
+  input = {
+    ...input,
+    state: combatReversalKnowledgeState(
+      input.state,
+      input.state.tactical.battle.currentTurn?.combatantId,
+    ),
+  }
   const baseline = chooseRecruitAiDecision(input)
   const actorId = input.state.tactical.battle.currentTurn?.combatantId
   if (!actorId) return baseline
@@ -482,7 +491,11 @@ export function executeBuildAwareRecruitAiAction(
         sourceInstanceId: source.sourceInstanceId,
         behaviorId: behavior.id,
         ...(commandOptions.controlledOperation === 'prime'
-          ? { manualModifiers: commandOptions.manualModifiers }
+          ? {
+              manualModifiers: commandOptions.manualModifiers,
+              selection: target,
+              content: PV1F_COMBAT_CONTENT,
+            }
           : {}),
       })
       return {
@@ -631,6 +644,43 @@ function canonicalSkillCandidates(
       if (rangedBudget && (rangedBudget.remaining <= 0 || !rangedAction(behavior))) return []
       const targeting = canonicalAbilityTargetSpec(behavior.targeting)
       const existingPrime = combatControlledPrime(initial, source, behavior)
+      if (combatReversalPayload(behavior)) {
+        if (existingPrime) return []
+        const placement = initial.tactical.placements.find((row) => row.combatantId === actorId)
+        const distance = placement
+          ? visibleEnemyDistance(initial, actorId, placement.position)
+          : undefined
+        if (distance === undefined || distance > 3) return []
+        try {
+          const quote = prepareCombatAbilityCommand({
+            state: initial,
+            actorId,
+            root: { kind: 'canonical', source, behaviorId: behavior.id },
+            selection: { kind: 'self' },
+            content: PV1F_COMBAT_CONTENT,
+            context: combatAbilityCommandContext(initial, source),
+            reversalPreparation: true,
+          })
+          if (!quote.evaluation.legal) return []
+          return [
+            {
+              controlledOperation: 'prime' as const,
+              actionId: canonicalSourceActionId(source),
+              behaviorId: behavior.id,
+              target: { kind: 'self' as const },
+              evaluation: quote.evaluation,
+              apCost: quote.costs
+                .filter((cost) => cost.resource === 'ap')
+                .reduce((total, cost) => total + cost.amount, 0),
+              effectUtility: 28,
+              utility: profile.guardUtility + 28,
+              stableKey: JSON.stringify(['reversal', source.sourceInstanceId, behavior.id]),
+            },
+          ]
+        } catch {
+          return []
+        }
+      }
       const bundles = existingPrime
         ? [
             (existingPrime.manualModifiers ?? []).map(({ sourceInstanceId, behaviorId }) => ({
@@ -654,6 +704,7 @@ function canonicalSkillCandidates(
               sourceInstanceId: source.sourceInstanceId,
               behaviorId: behavior.id,
               manualModifiers,
+              content: PV1F_COMBAT_CONTENT,
             })
             prepared = reattachStatDrivenCombatBridge(primed.state, initial.statBridge)
             controlledOperation = 'prime'
@@ -1053,6 +1104,8 @@ export function projectedCombatEffectUtility(
                   state.tactical.battle.round,
               ))
         )
+      if (effect.effectType === 'endure')
+        return utility + (activeCombatEndure(state, effect.combatantId) ? 0 : 8 * sign)
       if (effect.statusId === 'suppress')
         return (
           utility - 8 * sign * ((effect.potencyBasisPoints ?? 2500) / 10000) * debuffProbability

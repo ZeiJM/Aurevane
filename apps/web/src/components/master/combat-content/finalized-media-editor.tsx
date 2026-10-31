@@ -9,6 +9,7 @@ import {
   type ContentImageCrop,
   type FinalizedContentMediaSlots,
 } from '@aurevane/game-core/combat/content-media'
+import { usePendingMediaReport } from './pending-media-boundary'
 import styles from './combat-content-editor.module.css'
 
 /** Reusable for independent Skills and image-only containers. No draft points at a local preview. */
@@ -27,6 +28,7 @@ export function FinalizedMediaEditor({
   showArtworkRemoval?: boolean
   onPendingMediaChange?(pending: boolean): void
 }) {
+  const reportPending = usePendingMediaReport(onPendingMediaChange)
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
   const [crop, setCrop] = useState<ContentImageCrop>({ x: 0, y: 0, size: 1 })
@@ -43,9 +45,9 @@ export function FinalizedMediaEditor({
     }
   }, [])
   useEffect(() => {
-    onPendingMediaChange?.(!!file)
-    return () => onPendingMediaChange?.(false)
-  }, [file, onPendingMediaChange])
+    reportPending(!!file)
+    return () => reportPending(false)
+  }, [file, reportPending])
   useEffect(() => {
     latest.current = { value, onChange }
   }, [value, onChange])

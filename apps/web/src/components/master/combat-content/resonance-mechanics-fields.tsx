@@ -159,12 +159,12 @@ export function ResonanceMechanicsFields({
           />
         </fieldset>
       )}
-      {section && ['range', 'economy', 'accuracy'].includes(section) && (
+      {section && ['range', 'execution', 'economy', 'accuracy'].includes(section) && (
         <p>
           This Resonance uses its triggering Skill’s combat context and has no independent{' '}
           {section === 'range'
             ? 'range selection'
-            : section === 'economy'
+            : section === 'economy' || section === 'execution'
               ? 'resource payment'
               : 'accuracy roll'}
           .

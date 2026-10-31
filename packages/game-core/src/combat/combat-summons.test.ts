@@ -15,7 +15,11 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfileV4,
 } from './stat-driven-combat'
-import { SUMMON_PROFILE_SCHEMA_VERSION, type SummonProfileDefinition } from './summon-content'
+import {
+  SUMMON_PROFILE_SCHEMA_VERSION,
+  withCurrentSummonCoreAttributes,
+  type SummonProfileDefinition,
+} from './summon-content'
 import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 
 function profile(combatantId: string, team: 'players' | 'opponents'): StatDrivenCombatProfileV4 {
@@ -494,4 +498,49 @@ it('removes queued summon references while preserving remaining area recipients'
   const removed = removeCombatSummon(state, id, 'expired').state
   expect(removed.pendingEffects?.[0]?.recipientIds).toEqual(['enemy'])
   expect(validateStatDrivenCombatEncounterState(removed)).toEqual([])
+})
+
+it('spawns pinned Core-derived resources, mobility, critical chance and resistance and preserves serialized captures', () => {
+  const base = encounter()
+  const current = {
+    ...base,
+    statBalancePolicyVersion: 1 as const,
+    statBridge: {
+      ...base.statBridge,
+      combatants: base.statBridge.combatants.map((row) => ({ ...row, statusResistance: 0 })),
+    },
+  }
+  const authored = withCurrentSummonCoreAttributes(summonProfile(), {
+    might: 12,
+    finesse: 60,
+    vitality: 40,
+    agility: 60,
+    intellect: 50,
+    resolve: 20,
+  })
+  const spawned = spawn(current, authored)
+  const saved = JSON.parse(JSON.stringify(spawned.state)) as StatDrivenCombatEncounterState
+  const captured = saved.effectState!.summons![0]!
+  expect(captured.profile).toEqual(authored)
+  expect(
+    saved.tactical.battle.combatants.find((row) => row.id === captured.combatantId),
+  ).toMatchObject({
+    hp: authored.maxHp,
+    maxHp: authored.maxHp,
+    mp: authored.maxMp,
+    maxMp: authored.maxMp,
+    initiative: authored.initiative,
+    baseMovementBudget: authored.movementBudget,
+  })
+  expect(
+    saved.statBridge.combatants.find((row) => row.combatantId === captured.combatantId),
+  ).toMatchObject(authored.stats)
+  expect(
+    saved.tactical.movementProfiles.find((row) => row.id === `summon.${authored.id}.movement`)
+      ?.maxElevationStep,
+  ).toBe(authored.stats.jump)
+  expect(validateStatDrivenCombatEncounterState(saved)).toEqual([])
+  expect(spawn(encounter()).state.effectState!.summons![0]!.profile).not.toHaveProperty(
+    'coreAttributes',
+  )
 })

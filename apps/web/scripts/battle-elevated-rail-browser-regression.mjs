@@ -170,6 +170,31 @@ if (process.env.AV_ELEVATED_RAIL_COMPILE_ONLY === '1') {
         )
         evidence.push({ viewport, mode, covert: true, privacy: 'passed' })
       }
+      await page.evaluate(() => window.elevatedRail.setShowIconGallery(true))
+      const gallery = page.getByRole('region', { name: 'Effect icon gallery' })
+      await expect(gallery).toBeVisible()
+      const vectors = gallery.locator('svg[data-battle-effect-icon]')
+      assert.ok((await vectors.count()) > 40, 'all current effect families use pictograms')
+      assert.equal(
+        await gallery.locator('i').count(),
+        0,
+        'known effects never fall back to initials',
+      )
+      const shapes = await vectors.evaluateAll((icons) => icons.map((icon) => icon.innerHTML))
+      // Four pending examples intentionally repeat the same identity in its pending palette.
+      assert.equal(new Set(shapes).size, shapes.length - 4)
+      for (const icon of await vectors.all()) {
+        const svgBox = await icon.boundingBox()
+        const buttonBox = await icon.locator('..').boundingBox()
+        assert.ok(svgBox && buttonBox && svgBox.width > 0 && svgBox.height > 0)
+        assert.ok(svgBox.x >= buttonBox.x && svgBox.y >= buttonBox.y)
+        assert.ok(svgBox.x + svgBox.width <= buttonBox.x + buttonBox.width + 1)
+        assert.ok(svgBox.y + svgBox.height <= buttonBox.y + buttonBox.height + 1)
+      }
+      await page.screenshot({
+        path: resolve(output, `effect-icons-${viewport.width}.png`),
+        fullPage: true,
+      })
       assert.deepEqual(errors, [])
       await page.close()
     }

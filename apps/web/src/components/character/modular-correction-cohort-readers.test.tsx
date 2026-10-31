@@ -34,8 +34,8 @@ it.each(rows)('$id uses the shared concise modular report and bold tags', (row) 
     const report = abilityBehaviorInformation(behavior, { timingPolicy })
     expect(Object.fromEntries(report.rows)).not.toHaveProperty('Target')
     for (const effect of report.effects) {
-      expect(effect.parts.target.length).toBeGreaterThan(0)
-      expect(effect.parts.target.length).toBeLessThanOrEqual(80)
+      expect(effect.parts.target?.length).toBeGreaterThan(0)
+      expect(effect.parts.target?.length).toBeLessThanOrEqual(80)
     }
     expect(Object.fromEntries(report.rows)['Skill Type']).toMatch(
       /^(Attack \[(Physical|Mystic)\]|Utility|Heal)$/,

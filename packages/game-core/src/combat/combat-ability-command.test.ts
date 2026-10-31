@@ -2166,3 +2166,194 @@ it.each([false, true])(
     )
   },
 )
+
+it.each(['discipline-skill', 'essence', 'resonance', 'tactical-entity', 'basic'] as const)(
+  'quotes and commits the captured Frozen Ground Skill AP surcharge for %s',
+  (sourceKind) => {
+    const initial = command(100)
+    if (initial.root.kind !== 'canonical') throw new Error('canonical fixture required')
+    const root = captureCombatAbilitySource({
+      ...initial.root.source,
+      sourceKind,
+      sourceInstanceId: `frozen-${sourceKind}`,
+    })
+    const state = reconcileCombatAbilitySources(
+      {
+        ...initial.state,
+        frozenGroundPolicyVersion: 1,
+        terrainOverlays: [
+          {
+            kind: 'frozen',
+            position: initial.state.tactical.placements.find((row) => row.combatantId === 'actor')!
+              .position,
+            sourceCombatantId: 'enemy',
+            remainingRoundBoundaries: 2,
+            skillApSurcharge: 27,
+          },
+        ],
+      },
+      [root],
+    )
+    const input = {
+      ...initial,
+      state,
+      root: { kind: 'canonical' as const, source: root },
+      manualModifiers: [],
+    }
+    const expected = ['discipline-skill', 'essence', 'resonance', 'tactical-entity'].includes(
+      sourceKind,
+    )
+      ? 38
+      : 11
+    const quote = prepareCombatAbilityCommand(input)
+    expect(quote.evaluation.legal).toBe(true)
+    expect(quote.costs.find((row) => row.resource === 'ap')?.amount).toBe(expected)
+    expect(
+      readPv1fActionEconomy(
+        reattachStatDrivenCombatBridge(
+          commitCombatAbilityCommand(input).state,
+          percentageDotEncounter().statBridge,
+        ),
+      )?.current,
+    ).toBe(100 - expected)
+    const insufficient = {
+      ...input,
+      state: {
+        ...state,
+        tactical: {
+          ...state.tactical,
+          battle: {
+            ...state.tactical.battle,
+            combatants: state.tactical.battle.combatants.map((row) =>
+              row.id === 'actor'
+                ? {
+                    ...row,
+                    temporaryResources: row.temporaryResources.map((resource) =>
+                      resource.key === 'pv1f.action-economy'
+                        ? { ...resource, current: expected - 1 }
+                        : resource,
+                    ),
+                  }
+                : row,
+            ),
+          },
+        },
+      },
+    }
+    expect(prepareCombatAbilityCommand(insufficient).evaluation.legal).toBe(false)
+    expect(() => commitCombatAbilityCommand(insufficient)).toThrow()
+  },
+)
+
+it.each([0, 5])(
+  'surcharges automatic Resonance actions only when they already spend AP (%i)',
+  (ap) => {
+    const initial = command(100)
+    const automatic = captureCombatAbilitySource({
+      ...source(
+        {
+          id: 'after-buff',
+          activation: 'automatic',
+          classification: 'utility',
+          attackFamily: undefined,
+          costs: ap === 0 ? [] : [{ resource: 'ap', amount: ap }],
+          activationLimits: ['once-per-action'],
+          targeting: {
+            kind: 'self',
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 0,
+            maximumRange: 0,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            maximumSelections: 1,
+          },
+          requirements: { kind: 'event', eventType: 'combat_action_used', phase: 'after' },
+          effects: [
+            {
+              id: 'child-buff',
+              payload: {
+                type: 'apply-status',
+                recipient: 'actor',
+                statusId: 'inspired',
+                stacks: 1,
+              },
+            },
+          ],
+        },
+        'frost-reaction',
+      ),
+      sourceKind: 'resonance',
+      abilityId: 'test.frost-reaction',
+    })
+    const state = reconcileCombatAbilitySources(
+      {
+        ...initial.state,
+        frozenGroundPolicyVersion: 1,
+        terrainOverlays: [
+          {
+            kind: 'frozen',
+            position: initial.state.tactical.placements.find((row) => row.combatantId === 'actor')!
+              .position,
+            sourceCombatantId: 'enemy',
+            remainingRoundBoundaries: 2,
+            skillApSurcharge: 27,
+          },
+        ],
+      },
+      [...initial.state.capturedAbilitySources!, automatic],
+    )
+    const out = commitCombatAbilityCommand({ ...initial, state, manualModifiers: [] })
+    const spends = out.events.flatMap((row) => (row.event === 'ap_spent' ? [row.amount] : []))
+    expect(spends).toEqual(ap === 0 ? [38] : [38, 32])
+    expect(
+      out.events.some(
+        (row) => row.event === 'combat_action_used' && row.actionId === automatic.abilityId,
+      ),
+    ).toBe(true)
+  },
+)
+
+it('keeps zero-AP tactical entity actions free on captured Frozen Ground', () => {
+  const initial = command(100, 20, { costs: [{ resource: 'ap', amount: 0 }] })
+  if (initial.root.kind !== 'canonical') throw new Error('canonical fixture required')
+  const root = captureCombatAbilitySource({
+    ...initial.root.source,
+    sourceKind: 'tactical-entity',
+    sourceInstanceId: 'frozen-zero-tactical',
+  })
+  const state = reconcileCombatAbilitySources(
+    {
+      ...initial.state,
+      frozenGroundPolicyVersion: 1,
+      terrainOverlays: [
+        {
+          kind: 'frozen',
+          frozenGroundPolicyVersion: 1,
+          position: initial.state.tactical.placements.find((row) => row.combatantId === 'actor')!
+            .position,
+          sourceCombatantId: 'enemy',
+          remainingRoundBoundaries: 2,
+          skillApSurcharge: 27,
+        },
+      ],
+    },
+    [root],
+  )
+  const input = {
+    ...initial,
+    state,
+    root: { kind: 'canonical' as const, source: root },
+    manualModifiers: [],
+  }
+  expect(
+    prepareCombatAbilityCommand(input).costs.find((row) => row.resource === 'ap')?.amount ?? 0,
+  ).toBe(0)
+  const out = commitCombatAbilityCommand(input)
+  expect(
+    readPv1fActionEconomy(
+      reattachStatDrivenCombatBridge(out.state, percentageDotEncounter().statBridge),
+    )?.current,
+  ).toBe(100)
+})

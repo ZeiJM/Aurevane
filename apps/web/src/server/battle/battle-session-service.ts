@@ -609,7 +609,13 @@ async function resolveIntent(
         actorId,
         sourceInstanceId: source.sourceInstanceId,
         behaviorId: intent.behaviorId,
-        ...(intent.kind === 'ability-prime' ? { manualModifiers: intent.manualModifiers } : {}),
+        ...(intent.kind === 'ability-prime'
+          ? {
+              manualModifiers: intent.manualModifiers,
+              selection: intent.target,
+              content: PV1F_COMBAT_CONTENT,
+            }
+          : {}),
       })
       return preserveBuildAuthority(state, {
         state: reattachStatDrivenCombatBridge(transition.state, state.statBridge),

@@ -1,5 +1,7 @@
 'use client'
 
+import { battleControlledActionCostLabel } from './battle-captured-action-cost'
+
 import { MechanicTextView } from '../character/mechanic-text-view'
 
 import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
@@ -148,10 +150,20 @@ export function BattleSkillCommand({
     slot === 'items' ||
     (controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction) ||
     disabled ||
-    (!primeAvailable && !controlledAvailability?.chooseAction && cooldownTurns > 0) ||
+    (!primeAvailable &&
+      !controlledAvailability?.chooseAction &&
+      !controlledAvailability?.canCancel &&
+      cooldownTurns > 0) ||
+    (controlledAvailability?.controlledKind === 'reversal' &&
+      !primeAvailable &&
+      !controlledAvailability.canCancel) ||
     (basicAction !== undefined && (!basicAction?.enabled || reports.length === 0))
   const ready =
-    controlledReady && !actionDisabled && !primeAvailable && !controlledAvailability?.chooseAction
+    controlledAvailability?.controlledKind !== 'reversal' &&
+    controlledReady &&
+    !actionDisabled &&
+    !primeAvailable &&
+    !controlledAvailability?.chooseAction
   const capturedRows =
     basicAction === null
       ? MINIMUM_SKILL_INFORMATION_FIELDS.map((field) => [field, 'Unavailable'] as const)
@@ -269,7 +281,7 @@ export function BattleSkillCommand({
         disabled={actionDisabled}
         data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
-        aria-label={`${label}, ${controlledAvailability?.chooseAction ? 'choose another action' : primeAvailable && !controlledAvailability?.controlledSpent ? 'prime without payment' : cost}${battleCooldownLabel(cooldownTurns)}${controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction ? ', already used this battle' : ''}${controlledAvailability?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}
+        aria-label={`${label}, ${battleControlledActionCostLabel(controlledAvailability, primeAvailable && !controlledAvailability?.controlledSpent, cost)}${battleCooldownLabel(cooldownTurns)}${controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction ? ', already used this battle' : ''}${controlledAvailability?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}
       >
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
@@ -306,7 +318,12 @@ export function BattleSkillCommand({
             />
           )}
           <BattleSkillCooldown turns={cooldownTurns} />
-          <BattleControlledReady ready={ready} primed={controlledAvailability?.controlledPrimed} />
+          <BattleControlledReady
+            ready={ready}
+            primed={controlledAvailability?.controlledPrimed}
+            kind={controlledAvailability?.controlledKind}
+            canPrepare={primeAvailable}
+          />
         </span>
         <strong>{label}</strong>
       </button>

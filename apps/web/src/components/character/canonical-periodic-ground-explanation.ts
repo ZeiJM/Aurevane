@@ -21,7 +21,10 @@ export function canonicalPeriodicGroundExplanation(
 } | null {
   if (effect.type === 'create-terrain') {
     const frozen = COMBAT_TERRAIN_OVERLAY_DETAILS.frozen
-    const main = mechanicText`Create ${mechanicTag('frozen-ground')} that raises movement AP costs. ${mechanicTag('airborne')} ignores the surcharge. ${mechanicTag('fire')} turns it into ${mechanicTag('steam')}, which blocks sight for both teams.`
+    const main =
+      effect.skillApSurcharge !== undefined
+        ? mechanicText`Create ${mechanicTag('frozen-ground')} that raises Skill AP costs for grounded enemies on the affected tiles. ${mechanicTag('airborne')} ignores the surcharge. ${mechanicTag('fire')} turns it into ${mechanicTag('steam')}, which blocks sight for both teams.`
+        : mechanicText`Create ${mechanicTag('frozen-ground')} that raises movement AP costs. ${mechanicTag('airborne')} ignores the surcharge. ${mechanicTag('fire')} turns it into ${mechanicTag('steam')}, which blocks sight for both teams.`
     const lifetime = options.legacyElemental
       ? mechanicText` ${mechanicTag('steam')} starts with its configured lifetime.`
       : {
@@ -35,12 +38,21 @@ export function canonicalPeriodicGroundExplanation(
         duration: `${frozen.roundBoundaries} global round boundaries`,
         details: [
           {
-            label: 'Movement surcharge',
-            value: `+${frozen.additionalApPerTile} AP per entered tile`,
+            label:
+              effect.skillApSurcharge !== undefined ? 'Skill AP surcharge' : 'Movement surcharge',
+            value:
+              effect.skillApSurcharge !== undefined
+                ? `+${effect.skillApSurcharge} AP per Skill`
+                : `+${frozen.additionalApPerTile} AP per entered tile`,
           },
           {
             label: 'Affected units',
-            value: options.legacyFrozenGround ? 'Both teams' : 'Caster’s enemies',
+            value:
+              effect.skillApSurcharge !== undefined
+                ? 'Caster’s grounded enemies'
+                : options.legacyFrozenGround
+                  ? 'Both teams'
+                  : 'Caster’s enemies',
           },
           { label: 'Blocks line of sight', value: frozen.blocksLineOfSight ? 'Yes' : 'No' },
           {
@@ -57,8 +69,7 @@ export function canonicalPeriodicGroundExplanation(
   if (!isPercentageDotEffect(effect) || options.legacyTriggers) return null
   if (effect.type === 'burn')
     return {
-      description:
-        'Burn deals decreasing damage based on the attack’s HP damage. The bearer also suffers backlash after damaging an enemy. Reapplying replaces Burn.',
+      description: `Burn deals ${(effect.damageProfile?.decayBasisPointsPerTick ?? 0) > 0 ? 'decreasing' : 'repeated'} damage based on the attack’s HP damage. The bearer also suffers backlash after damaging an enemy. Reapplying replaces Burn.`,
       parts: {
         details: [
           {

@@ -1,3 +1,4 @@
+import { reconcileCombatReversalState } from '@aurevane/game-core/combat/combat-reversal'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
@@ -105,6 +106,10 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
 } {
   try {
     const transition = abortPracticeBattle(state.tactical.battle)
+    const reversalEnd = reconcileCombatReversalState({
+      ...state,
+      tactical: { ...state.tactical, battle: transition.state },
+    })
     const encounter = createCombatEncounterState(
       { ...state.tactical, battle: transition.state },
       state.statusState,
@@ -122,6 +127,7 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
             ),
             capturedAbilitySources: state.capturedAbilitySources,
             abilityRuntime: state.abilityRuntime,
+            ...(state.reversalState ? { reversalState: reversalEnd.state.reversalState } : {}),
           },
           [],
         )
@@ -141,7 +147,7 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
         },
         state.statBridge,
       ),
-      events: transition.events,
+      events: [...transition.events, ...reversalEnd.events],
     }
   } catch (error) {
     if (error instanceof AurevaneError) throw error

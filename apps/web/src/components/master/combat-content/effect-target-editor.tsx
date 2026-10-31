@@ -12,7 +12,6 @@ import {
   type TargetedEffect,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import styles from './combat-content-editor.module.css'
-import { MasterHelp } from '../master-help'
 
 import {
   EFFECT_TARGET_LABELS,
@@ -32,16 +31,13 @@ export function EffectTargetEditor({
   onChange(target: CombatEffectTarget): void
 }) {
   const id = useId()
+  if ('applicationOrigin' in value && value.applicationOrigin === 'frozen-ground') return null
   if (value.type === 'move')
     return (
       <div className={styles.effectTargetEditor}>
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <label htmlFor={id}>Destination</label>
-            <MasterHelp label="Destination">
-              Move selects reachable, unoccupied Ground within its distance and Jump limits. The
-              caster moves; any follow-up effect keeps its separate target.
-            </MasterHelp>
           </div>
           <select id={id} aria-label="Destination" value="ground" disabled>
             <option value="ground">Ground</option>
@@ -79,20 +75,6 @@ export function EffectTargetEditor({
       <div className={styles.field}>
         <div className={styles.fieldLabel}>
           <label htmlFor={id}>Target</label>
-          <MasterHelp label="Target">
-            <p>
-              All effects use the same aim. Existing rules stay in place until you choose a target.
-            </p>
-            {options.some((option) => option.reason) ? (
-              <ul>
-                {[
-                  ...new Set(options.flatMap((option) => (option.reason ? [option.reason] : []))),
-                ].map((reason) => (
-                  <li key={reason}>{reason}</li>
-                ))}
-              </ul>
-            ) : null}
-          </MasterHelp>
         </div>
         <select
           id={id}

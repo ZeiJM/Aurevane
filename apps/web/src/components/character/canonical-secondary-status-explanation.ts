@@ -97,10 +97,11 @@ export function canonicalSecondaryStatusExplanation(
       parts,
     }
   }
-  const current = options.explicitElemental !== false
+  const current =
+    options.explicitElemental !== false || effect.initiativeReductionBasisPoints !== undefined
   details.push({
     label: 'Initiative',
-    value: `−${DRENCHED_INITIATIVE_PERCENT_PER_APPLICATION}% ${current ? 'per application' : 'once'}`,
+    value: `−${(effect.initiativeReductionBasisPoints ?? DRENCHED_INITIATIVE_PERCENT_PER_APPLICATION * 100) / 100}% ${current ? 'per application' : 'once'}`,
   })
   if (!current)
     return {

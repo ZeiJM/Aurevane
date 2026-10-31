@@ -1,3 +1,6 @@
+import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
+import { isReversalPresentationEffect, reversalDescription } from '../../lib/reversal-presentation'
+import { combatStatusSelectionSummary } from '@aurevane/game-core/combat/combat-status-selection'
 import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
 import type { MechanicTextPart } from './mechanic-text'
 import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
@@ -72,10 +75,17 @@ export function skillEffectDescription(
     timingPolicy?: SkillEffectTimingPolicy
   } = {},
 ): string {
+  if (isReversalPresentationEffect(effect)) return reversalDescription(effect)
   const target = recipient(effect)
   if (isPercentageDotEffect(effect))
     return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, options)}`
   switch (effect.type) {
+    case 'weak-point':
+    case 'spike':
+    case 'ruin':
+      return attackTagDescription(effect)
+    case 'endure':
+      return previewEffect(effect, options).explanation
     case 'summon':
       return 'Summon the authored allied unit onto the selected empty tile.'
     case 'damage': {
@@ -93,9 +103,11 @@ export function skillEffectDescription(
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
     }
     case 'create-terrain':
+      if (effect.skillApSurcharge !== undefined)
+        return `Create Frozen Ground on affected tiles for two round boundaries. The caster’s grounded enemies pay ${effect.skillApSurcharge} AP more per Skill used on those tiles; Airborne ignores this surcharge. Fire converts it to Steam, which blocks sight for both teams and preserves the remaining lifetime.`
       return `Create Frozen Ground on affected tiles for two round boundaries. ${options.legacyFrozenGround ? 'Both teams' : 'Only the caster’s enemies'} pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen Ground to Steam, which blocks line of sight for both teams.`
     case 'displace':
-      return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`
+      return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Rooted prevents displacement. Failure grants no refund.`
     case 'poison':
       return `Apply Poison to ${target}.`
     case 'burn': {
@@ -106,6 +118,8 @@ export function skillEffectDescription(
     case 'bleed':
       return `Apply Bleed to ${target} for ${effect.ticks} ${effect.ticks === 1 ? 'end-turn tick' : 'end-turn ticks'} at ${effect.damagePerTick} damage per tick.`
     case 'return-to-turn-start':
+      if (effect.target !== undefined && effect.target !== 'self')
+        return `Return each recipient to its own tile saved at the initial legal ${options.rewindPrimeAnchor ? 'prime' : 'cast'}. Rooted, occupancy, terrain and elevation still govern each return. Restores position only; refunds no resources.`
       return options.rewindPrimeAnchor
         ? 'Return to where this Skill was primed. Rooted prevents the return.'
         : effect.anchorMode === 'cast-position'
@@ -120,14 +134,18 @@ export function skillEffectDescription(
         ? `Protect ${target} with a share of maximum HP that absorbs damage before HP. Pierce breaks the Barrier.`
         : `Grant up to ${effect.amount} Barrier to ${target}.`
     case 'resource-change':
+      if (effect.basis === 'maximum-mp-percent') return previewEffect(effect, options).explanation
       return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.${effect.delta >= 0 ? recoveryTiming(effect.ticks) : ''}`
     case 'copy-statuses':
-      return effect.mode === 'amplify'
-        ? 'Copy eligible positive active statuses from the selected unit onto yourself. The selected unit keeps its statuses; remaining durations are not restarted.'
-        : 'Copy eligible negative active statuses from yourself onto the selected unit. You keep the original statuses; remaining durations are not restarted.'
+      return previewEffect(effect, options).explanation
     case 'sensory':
+      if (effect.increasedDamageTakenBasisPoints !== undefined)
+        return `Reveal ${target} on a successful hit against Invisible, Covert or armed Reversal. Remove both concealments, disarm Reversal with Reversal Strain, and apply Revealed for ${effect.revealedDurationOwnerTurnStarts} turns: take ${effect.increasedDamageTakenBasisPoints / 100}% more damage; incoming attacks have 100% Accuracy.`
       return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
+      if (effect.removalMode === 'all-debuffs') return `Remove All Debuffs from ${target}.`
+      if (effect.removalMode === 'specified')
+        return `Remove ${combatStatusSelectionSummary(effect.statusIds, effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')} from ${target}.`
       if (
         isCleanseChilledEffect(effect) &&
         !options.legacyElemental &&
@@ -144,6 +162,8 @@ export function skillEffectDescription(
       return `Remove ${statusNames.join(', ')} from ${target}.`
     }
     case 'apply-status': {
+      if (effect.statusId === 'counter' && effect.counter)
+        return `Apply Counter to ${target}. ${previewEffect(effect, options).explanation}`
       if (effect.statusId === 'suppress')
         return `Apply Suppress to ${target}. ${previewEffect(effect, options).explanation} Lasts ${effect.durationTurns ?? 2} turns.`
       if (
@@ -152,19 +172,12 @@ export function skillEffectDescription(
         ['frozen', 'wet', 'conductive'].includes(effect.statusId)
       )
         return `Apply ${gameplayStatusName(effect.statusId)} to ${target}. ${previewEffect(effect, options).explanation}`
-      const status = combatStatusDetails(effect.statusId)
       const preview = previewEffect(effect, options)
       const duration =
         (effect.durationTurns ?? 0) > 0
           ? `Lasts ${effect.durationTurns} ${effect.durationTurns === 1 ? 'turn' : 'turns'}.`
           : combatStatusDuration(effect.statusId)
-      const explanation =
-        effect.potencyBasisPoints !== undefined ||
-        effect.statusId === 'airborne' ||
-        effect.statusId === 'hexed' ||
-        effect.statusId === 'blindside'
-          ? preview.explanation
-          : status.description
+      const explanation = preview.explanation
       return `Apply ${effect.stacks} ${gameplayStatusName(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${explanation} ${duration}`
     }
   }
@@ -316,6 +329,8 @@ export function skillEffectInstantTiming(
   policy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   options: ElementalEffectPresentationOptions = {},
 ): 'Instant' | 'Delayed' | 'Controlled' | undefined {
+  if (effect.type === 'weak-point' || effect.type === 'spike' || effect.type === 'ruin')
+    return undefined
   const tag = effect.type === 'summon' ? 'summon' : currentCombatEffectTimingTag(effect)
   const mode =
     options.timingMode ??
@@ -335,6 +350,7 @@ export function skillEffectInstantTiming(
 }
 
 function compactDuration(effect: MatureSkillEffectDefinition): string | null {
+  if (isReversalPresentationEffect(effect)) return 'Until next owner turn'
   const percentage = isPercentageDotEffect(effect)
   const turns =
     effect.type === 'percentage-recovery'
@@ -378,6 +394,12 @@ export function compactSkillEffectSummaryParts(
   options: ElementalEffectPresentationOptions = {},
 ): CompactSkillEffectSummaryParts {
   const preview = previewEffect(effect, options)
+  if (effect.type === 'weak-point' || effect.type === 'spike' || effect.type === 'ruin')
+    return {
+      label: preview.label,
+      magnitude: compactMagnitude(effect, preview.magnitude),
+      duration: null,
+    }
   const timing = skillEffectInstantTiming(effect, timingPolicy, options)
   return {
     label: preview.label,
@@ -386,7 +408,9 @@ export function compactSkillEffectSummaryParts(
     duration:
       effect.type === 'damage' && !options.legacyElemental && options.explicitElemental !== false
         ? null
-        : timing === 'Instant' && /^1 turn$/iu.test(compactDuration(effect) ?? '')
+        : effect.type !== 'endure' &&
+            timing === 'Instant' &&
+            /^1 turn$/iu.test(compactDuration(effect) ?? '')
           ? null
           : compactDuration(effect),
     ...(timing ? { timing } : {}),
@@ -517,7 +541,9 @@ export function skillTargetElevationDescription(
 
 export function skillCompactRangeDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {
   if (skill.target.shape.kind === 'all') return 'N/A'
-  return String(skill.target.maximumRange)
+  return skill.target.minimumRange > 1
+    ? `${skill.target.minimumRange}–${skill.target.maximumRange}`
+    : String(skill.target.maximumRange)
 }
 
 export function skillLineOfSightDescription(skill: Pick<MatureSkillDefinition, 'target'>): string {

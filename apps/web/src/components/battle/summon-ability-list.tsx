@@ -34,8 +34,12 @@ function SummonAbilityParameters({
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
-  // Summon abilities have no authored cooldown; one ability per turn is a separate rule.
-  const definition = { ...ability, cooldown: null }
+  const definition = {
+    ...ability,
+    cooldown: ability.cooldownOwnerTurns
+      ? { key: ability.id, ownerTurns: ability.cooldownOwnerTurns }
+      : null,
+  }
   return (
     <dl>
       <SkillCharacteristicRows

@@ -98,8 +98,13 @@ describe('battle effect identity', () => {
     },
   )
 
-  it('retains canonical descriptions when historical instances have no recorded potency', () => {
-    for (const statusId of ['guarded', 'warded', 'mark', 'inspired', 'fortified']) {
+  it('retains historical magnitudes without copying generic tag descriptions', () => {
+    for (const [statusId, magnitude] of [
+      ['guarded', '15%'],
+      ['warded', '20%'],
+      ['mark', '15 percentage points'],
+      ['inspired', '10%'],
+    ]) {
       expect(
         describeBattleEffect({
           statusId,
@@ -108,8 +113,19 @@ describe('battle effect identity', () => {
           remainingOwnerTurnStarts: 2,
           sourceCombatantId: 'caster',
         }).description,
-      ).toBe(combatStatusDetails(statusId).description)
+      ).toContain(magnitude)
     }
+  })
+  it('preserves historical Fortified tradeoffs when defense tuning was not captured', () => {
+    expect(
+      describeBattleEffect({
+        statusId: 'fortified',
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: 2,
+        sourceCombatantId: 'caster',
+      }).description,
+    ).toContain('Take 30% less damage and deal 20% less damage.')
   })
   it('gives every pending family a simple distinct code separate from named statuses', () => {
     const ids = [...PHASE4_STATUSES.map((status) => status.id), ...pendingFamilies, 'barrier']
@@ -285,4 +301,23 @@ it('uses admitted short text in the shared status report while retaining capture
   })
   expect(report.description).toContain('Battle wording.')
   expect(report.description).toContain('25.34%')
+})
+
+it('shows saved Blindside debuff percentages in active and pending status rails', () => {
+  for (const timingState of ['active', 'pending'] as const) {
+    const effect = {
+      statusId: 'blindside-vulnerability',
+      statusVersion: 1,
+      stacks: 1,
+      remainingOwnerTurnStarts: 1,
+      sourceCombatantId: 'caster',
+      timingState,
+      blindsideModifiersBasisPoints: { side: 17550, rear: 25000 },
+    }
+    expect(describeBattleEffect(effect).description).toContain('175.5%')
+    expect(describeBattleEffect(effect).description).toContain('250%')
+    expect(describeBattleEffect(effect).description).toContain(
+      'Front hits and Basic Attack are unchanged',
+    )
+  }
 })

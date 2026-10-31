@@ -19,12 +19,14 @@ export function SimpleAbilityRequirementEditor({
   label = 'Requirements',
   targetUnavailableReason,
   allowedSubjects = ['owner', 'selected'],
+  damageTargets = false,
 }: {
   value: RequirementNode | null
   onChange: (value: RequirementNode | null) => void
   label?: string
   targetUnavailableReason?: string
   allowedSubjects?: readonly AbilityRequirementSubject[]
+  damageTargets?: boolean
 }) {
   const selected = readSimpleRequirement(value)
   const subject = selected?.subject ?? allowedSubjects[0] ?? 'owner'
@@ -62,8 +64,12 @@ export function SimpleAbilityRequirementEditor({
               disabledOptions={targetUnavailableReason ? ['selected'] : []}
               optionLabels={{
                 owner: 'Self',
-                selected: targetUnavailableReason ? 'Target (requires a selected unit)' : 'Target',
-                affected: 'Target',
+                selected: damageTargets
+                  ? 'Selected target'
+                  : targetUnavailableReason
+                    ? 'Target (requires a selected unit)'
+                    : 'Target',
+                affected: damageTargets ? 'Damage target' : 'Target',
                 triggering: 'Target',
               }}
               onChange={(next) => {

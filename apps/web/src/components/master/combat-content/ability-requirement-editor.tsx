@@ -110,6 +110,10 @@ export function AbilityRequirementEditor({
   allowedSubjects?: readonly (typeof subjects)[number][]
 }) {
   const node = value
+  const damageTargets =
+    behavior?.effects.some((effect) =>
+      ['weak-point', 'spike', 'ruin'].includes(effect.payload.type),
+    ) ?? false
   if (
     !primitiveOnly &&
     depth === 0 &&
@@ -124,11 +128,13 @@ export function AbilityRequirementEditor({
         label={label}
         targetUnavailableReason={
           behavior &&
+          !damageTargets &&
           behavior.activation === 'manual' &&
           !simpleRequirementSubjects(behavior).includes('selected')
             ? 'A whole-ability Requirement can check Self here because this action selects an area or tile, not a unit. Choose Single in Range & Area and a unit Target in Effects to check Target. Tile-only effects keep their required targeting.'
             : undefined
         }
+        damageTargets={damageTargets}
         allowedSubjects={behavior ? simpleRequirementSubjects(behavior) : allowedSubjects}
       />
     )

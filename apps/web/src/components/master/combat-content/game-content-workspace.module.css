@@ -421,7 +421,8 @@
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  padding: 0.2rem 0.4rem 0.4rem 0;
+  padding: 0.4rem 0.65rem 0.6rem 0.35rem;
+  scrollbar-gutter: stable;
 }
 .modalBody > fieldset {
   padding: 0;
@@ -661,4 +662,11 @@
 .writingField > small,
 .writingField > ul {
   grid-column: 1 / -1;
+}
+
+/* Leave room for input borders and focus rings inside the scrolling editor. */
+.modalBody :is(fieldset, input, select, textarea) {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  box-sizing: border-box;
 }

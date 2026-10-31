@@ -7,11 +7,13 @@ export function AbilityEditorTabs({
   panels,
   initialSection = 'details',
 }: {
-  panels: Readonly<Record<AbilityEditorSection, ReactNode>>
+  panels: Readonly<Partial<Record<AbilityEditorSection, ReactNode>>>
   initialSection?: AbilityEditorSection
 }) {
   const id = useId()
-  const [active, setActive] = useState<AbilityEditorSection>(initialSection)
+  const [active, setActive] = useState<AbilityEditorSection>(
+    ['economy', 'accuracy'].includes(initialSection) ? 'execution' : initialSection,
+  )
   const measureTabs = useCallback((tabs: HTMLDivElement | null) => {
     if (!tabs) return
     const workspace = tabs.parentElement!

@@ -90,13 +90,25 @@ export function presentBattleTerrainKey(
   active = presentBattleTerrainKeys(snapshot).includes(kind),
 ) {
   const terrain = BATTLE_TERRAIN_KEY_DETAILS[kind]
+  const frozenProfiles = [
+    ...new Set(
+      (snapshot.terrainOverlays ?? [])
+        .filter((overlay) => overlay.kind === 'frozen' && overlay.remainingRoundBoundaries > 0)
+        .map((overlay) =>
+          frozenGroundDescription(
+            overlay.frozenGroundPolicyVersion ?? snapshot.frozenGroundPolicyVersion ?? null,
+            overlay.skillApSurcharge,
+          ),
+        ),
+    ),
+  ]
   return {
     ...terrain,
     kind,
     active,
     description:
       kind === 'frozen'
-        ? `${frozenGroundDescription(snapshot.frozenGroundPolicyVersion ?? null)} Preserves base terrain and expires after 2 round boundaries.`
+        ? `${frozenProfiles.length ? frozenProfiles.join(' ') : snapshot.frozenGroundPolicyVersion === 1 ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description : frozenGroundDescription(null)} Preserves base terrain and expires after 2 round boundaries.`
         : terrain.description,
   }
 }

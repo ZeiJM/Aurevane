@@ -37,7 +37,7 @@ describe('passive Resonance Skill information', () => {
       'Rooted',
       'Vulnerable',
       'Marked',
-      'Taunted',
+      'Taunt',
     ])
       expect(details).toContain(name)
   })

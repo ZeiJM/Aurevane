@@ -1,3 +1,5 @@
+import { validateCombatEndureEffect } from './combat-endure'
+import { validateCombatStatusTuning } from './combat-status-tuning'
 import { validateRecoveryEffect } from './combat-recovery'
 import { validateBlindsideModifiers, isBlindsideStatusId } from './combat-blindside'
 import { percentageDotMagnitude } from './combat-percentage-dots'
@@ -17,7 +19,7 @@ export function isCleanseChilledEffect(effect: {
 }): boolean {
   return (
     effect.type === 'remove-status' &&
-    effect.removalMode !== 'specified' &&
+    effect.removalMode === undefined &&
     effect.statusIds?.length === 1 &&
     effect.statusIds[0] === 'frozen'
   )
@@ -89,7 +91,7 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   poison: 'Poison',
   reckless: 'Reckless',
   fortified: 'Fortified',
-  challenged: 'Taunted',
+  challenged: 'Taunt',
   mark: 'Marked',
   warded: 'Burn Ward',
   'lowered-guard': 'Defenseless',
@@ -118,7 +120,12 @@ const HISTORICAL_DISPEL_STATUS_IDS = new Set([
   'reflect',
   'amplify',
 ])
-const POSITIVE_STATUS_IDS = new Set([...HISTORICAL_DISPEL_STATUS_IDS, 'covert'])
+const POSITIVE_STATUS_IDS = new Set([
+  ...HISTORICAL_DISPEL_STATUS_IDS,
+  'endure',
+  'covert',
+  'counter',
+])
 
 type PresentationEffect = {
   type: string
@@ -268,7 +275,21 @@ export function validateGameplayActionMetadata(
 
 /** Shared content-boundary validation; the containing action supplies target-dependent legality. */
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
+  if (
+    'applicationOrigin' in effect &&
+    effect.applicationOrigin !== undefined &&
+    (effect.type !== 'apply-status' ||
+      effect.applicationOrigin !== 'frozen-ground' ||
+      effect.statusId !== 'frozen' ||
+      effect.target !== 'ground' ||
+      effect.recipient === 'actor')
+  )
+    throw new TypeError(
+      'Independent Frozen Ground origin requires Ground-targeted Chilled on non-actor recipients.',
+    )
   validateRecoveryEffect(effect)
+  validateCombatEndureEffect(effect)
+  validateCombatStatusTuning(effect, effect.type === 'apply-status' ? effect.statusId : effect.type)
   if (effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined) {
     if (!isBlindsideStatusId(effect.statusId))
       throw new TypeError('Blindside percentages require Blindside.')
@@ -335,6 +356,14 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     (effect.recipient !== 'affected-tiles' || effect.terrain !== 'frozen')
   )
     throw new TypeError('Frozen terrain requires affected tiles.')
+  if (
+    effect.type === 'create-terrain' &&
+    effect.skillApSurcharge !== undefined &&
+    (!Number.isSafeInteger(effect.skillApSurcharge) ||
+      effect.skillApSurcharge < 0 ||
+      effect.skillApSurcharge > 100)
+  )
+    throw new RangeError('Frozen Ground Skill AP surcharge must be an integer from 0 to 100.')
   if (effect.type === 'displace') {
     const authored = effect as unknown as { direction?: unknown; distance?: unknown }
     if (!['primary-unit', 'affected-units'].includes(effect.recipient))
@@ -416,19 +445,25 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   if (effect.type === 'healing') return [`Heal [${positiveDisplayInteger(effect.amount, 1)}]`]
   if (effect.type === 'resource-change') {
     return typeof effect.delta === 'number' && effect.delta < 0
-      ? [`MP Drain [${positiveDisplayInteger(Math.abs(effect.delta), 1)}]`]
+      ? [
+          `MP Drain [${positiveDisplayInteger(Math.abs(effect.delta), 1)}${effect.basis === 'maximum-mp-percent' ? '%' : ''}]`,
+        ]
       : [`MP Restore [${positiveDisplayInteger(effect.delta, 1)}]`]
   }
   if (effect.type === 'remove-status') {
     const ids = Array.isArray(effect.statusIds)
       ? effect.statusIds.filter((id): id is string => typeof id === 'string')
       : []
-    if (effect.removalMode === 'specified')
+    if (effect.removalMode === 'all-debuffs') return ['Cleanse']
+    if (effect.removalMode === 'specified') {
+      if (effect.selectionKind === 'buffs') return ['Dispel']
+      if (effect.selectionKind === 'debuffs') return ['Conditional Cleanse']
       return [
         ids.length > 0 && ids.every((id) => POSITIVE_STATUS_IDS.has(id))
           ? 'Dispel'
           : 'Conditional Cleanse',
       ]
+    }
     if (isCleanseChilledEffect(effect)) return ['Cleanse Chilled']
     return [
       ids.length > 0 && ids.every((id) => HISTORICAL_DISPEL_STATUS_IDS.has(id))
@@ -441,6 +476,17 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   if (effect.type === 'displace') {
     const direction = effect.direction === 'pull' ? 'Pull' : 'Push'
     return [`${direction} [${positiveDisplayInteger(effect.distance, 1)}]`]
+  }
+  if (
+    effect.type === 'apply-status' &&
+    effect.statusId === 'counter' &&
+    effect.counter &&
+    typeof effect.counter === 'object'
+  ) {
+    const counter = effect.counter as { kind: string; basisPoints: number }
+    return [
+      `Counter [${counter.kind === 'mystic' ? 'Mystical' : counter.kind === 'physical' ? 'Physical' : 'Full'} ${counter.basisPoints / 100}%]`,
+    ]
   }
   if (effect.type === 'apply-status' && typeof effect.statusId === 'string') {
     return [
@@ -456,6 +502,9 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   }
 
   const directLabels: Readonly<Record<string, string>> = {
+    'weak-point': `Weak Point [>${effect.debuffThreshold} debuffs]`,
+    spike: 'Spike [2× critical damage]',
+    ruin: `Ruin [+${Number(effect.bonusPerDebuffBasisPoints) / 100}% per debuff]`,
     'barrier-change': 'Barrier',
     'absorb-hp': 'HP Leech',
     'absorb-mp': 'MP Leech',

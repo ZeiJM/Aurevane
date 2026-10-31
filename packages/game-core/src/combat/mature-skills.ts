@@ -19,6 +19,7 @@ import {
 import { createCurrentTargetingSkillVersion } from './combat-targeting-roster'
 import {
   MAXIMUM_COMBAT_LINE_LENGTH,
+  maximumSupportedCombatRange,
   validateCurrentAreaTargetRecipients,
 } from './combat-targeting-shapes'
 import { createPercentageDotSkillVersion } from './combat-percentage-dot-roster'
@@ -1383,7 +1384,9 @@ export function validateMatureSkillDefinition(
           (definition.target.geometryVersion === 2 || definition.target.geometryVersion === 3) &&
           definition.target.shape.kind === 'line'
             ? MAXIMUM_COMBAT_LINE_LENGTH
-            : 5
+            : definition.target.shape.kind === 'single'
+              ? maximumSupportedCombatRange()
+              : 5
         if (
           !(definition.target.geometryVersion === 2 && definition.target.shape.kind === 'all') &&
           (definition.target.maximumRange < 1 || definition.target.maximumRange > maximumRange)
@@ -1421,6 +1424,7 @@ export function validateMatureSkillDefinition(
     }
 
     for (const [index, effect] of definition.effects.entries()) {
+      if ('attackTagCapture' in effect) issues.push(`effects[${index}].attackTagCapture`)
       const durationTurns = effect.durationTurns ?? 0
       if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
         issues.push(`effects[${index}].durationTurns`)
@@ -1454,7 +1458,13 @@ export function validateMatureSkillDefinition(
       }
       if (usesV5BalanceRules && effect.type === 'resource-change') {
         const magnitude = Math.abs(effect.delta)
-        if (!Number.isSafeInteger(magnitude) || magnitude < 1 || magnitude > 20) {
+        const percentageDrain = effect.basis === 'maximum-mp-percent'
+        if (
+          !Number.isSafeInteger(magnitude) ||
+          magnitude < 1 ||
+          magnitude > (percentageDrain ? 100 : 20) ||
+          (percentageDrain && effect.delta >= 0)
+        ) {
           issues.push(`effects[${index}].delta`)
         }
       }

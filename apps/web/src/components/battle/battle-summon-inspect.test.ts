@@ -26,6 +26,7 @@ describe('battle summon Inspect metadata', () => {
               flavorLine: 'Roots twist into a watchful hunter.',
               portraitKey: 'summon.wildwarden.verdant-stalker.portrait',
               tags: ['summon', 'verdant'],
+              potencyBasisPoints: 4000,
               maxHp: 36,
               maxMp: 12,
               initiative: 28,
@@ -81,6 +82,8 @@ describe('battle summon Inspect metadata', () => {
 
     expect(readSummonInspectMetadata(snapshot, 'summon:test')).toMatchObject({
       name: 'Verdant Stalker',
+      potencyBasisPoints: 4000,
+      potencyDescription: expect.stringContaining('40%'),
       ownerCombatantId: 'character:owner',
       sourceSkillId: 'wildwarden.renewing-herbs',
       sourceSkillVersion: 6,
@@ -91,6 +94,9 @@ describe('battle summon Inspect metadata', () => {
     })
     const captured = readSummonInspectMetadata(snapshot, 'summon:test')!
     expect(captured.abilities).toHaveLength(1)
+    expect(captured.potencyDescription).toContain(
+      'normal noncritical Basic Attack damage against the same target, before Barrier',
+    )
     expect(captured.policies.effectTimingPolicy).toEqual(snapshot.effectTimingPolicy)
     expect(captured.policies.airbornePolicyVersion).toBe(1)
     Object.assign(captured.policies.effectTimingPolicy!.modes, { healing: 'instant' })

@@ -101,7 +101,7 @@ export interface CombatContentPreviewSummary {
   readonly behaviorId?: string
   readonly issues?: readonly { readonly code: string; readonly message: string }[]
   readonly simulation?: {
-    readonly preparation?: 'free-controlled-prime'
+    readonly preparation?: 'free-controlled-prime' | 'paid-controlled-prime'
     readonly [key: string]: unknown
   }
   readonly groundAreas?: readonly PublicCombatGroundArea[]

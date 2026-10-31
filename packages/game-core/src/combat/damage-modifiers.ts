@@ -161,10 +161,29 @@ export function conditionalDamageMultiplier(
         (candidate) =>
           candidate.id === status.statusId && candidate.version === status.statusVersion,
       )
+      if (status.timingState === 'pending') continue
       for (const application of state.effectStackingPolicyVersion === 1
         ? combatStatusApplications(status)
         : [{ ...status, stacks: 1 }]) {
+        if (
+          status.statusId === 'revealed' &&
+          application.increasedDamageTakenBasisPoints !== undefined &&
+          direction === 'incoming'
+        ) {
+          ;[numerator, denominator] = multiplyRepeatedRatio(
+            numerator,
+            denominator,
+            10000 + application.increasedDamageTakenBasisPoints,
+            application.stacks,
+          )
+        }
         for (const modifier of definition?.damageModifiers ?? []) {
+          if (
+            status.statusId === 'fortified' &&
+            application.defenseIncreaseBasisPoints !== undefined
+          ) {
+            if (modifier.direction === 'incoming') continue
+          }
           if (modifier.direction !== direction) continue
           if (
             direction === 'incoming' &&
@@ -187,12 +206,14 @@ export function conditionalDamageMultiplier(
             continue
           // Current encounters preserve every application's magnitude; legacy rows apply once.
           const multiplier =
-            application.potencyBasisPoints === undefined ||
-            modifier.multiplierBasisPoints === 10_000
-              ? modifier.multiplierBasisPoints
-              : modifier.multiplierBasisPoints < 10_000
-                ? Math.max(0, 10_000 - application.potencyBasisPoints)
-                : 10_000 + application.potencyBasisPoints
+            status.statusId === 'fortified' && application.defenseIncreaseBasisPoints !== undefined
+              ? 10000 - application.defenseIncreaseBasisPoints
+              : application.potencyBasisPoints === undefined ||
+                  modifier.multiplierBasisPoints === 10_000
+                ? modifier.multiplierBasisPoints
+                : modifier.multiplierBasisPoints < 10_000
+                  ? Math.max(0, 10_000 - application.potencyBasisPoints)
+                  : 10_000 + application.potencyBasisPoints
           ;[numerator, denominator] = multiplyRepeatedRatio(
             numerator,
             denominator,
@@ -204,7 +225,19 @@ export function conditionalDamageMultiplier(
     }
   }
   const result = numerator / denominator
-  if (state.effectStackingPolicyVersion === 1) {
+  const hasConfiguredModifier = [
+    ...(outgoingState.statusState.find((row) => row.combatantId === attackerId)?.statuses ?? []),
+    ...(state.statusState.find((row) => row.combatantId === recipientId)?.statuses ?? []),
+  ].some(
+    (status) =>
+      status.timingState !== 'pending' &&
+      combatStatusApplications(status).some(
+        (application) =>
+          application.defenseIncreaseBasisPoints !== undefined ||
+          application.increasedDamageTakenBasisPoints !== undefined,
+      ),
+  )
+  if (state.effectStackingPolicyVersion === 1 || hasConfiguredModifier) {
     if (result > BigInt(Number.MAX_SAFE_INTEGER))
       throw new RangeError('Combined damage multiplier exceeds the safe integer range.')
     return Number(result)
