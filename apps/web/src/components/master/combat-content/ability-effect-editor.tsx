@@ -60,6 +60,11 @@ export function AbilityEffectEditor({
           value={payload.maximumTiles}
           min={1}
           max={20}
+          help={
+            <MasterHelp label="Move">
+              <p>{tag?.fullExplanation}</p>
+            </MasterHelp>
+          }
           onChange={(maximumTiles) => update({ ...payload, maximumTiles })}
         />
       </>
@@ -70,6 +75,11 @@ export function AbilityEffectEditor({
         label="Damage Up (%)"
         value={(payload.multiplierBasisPoints - 10000) / 100}
         step={0.01}
+        help={
+          <MasterHelp label={effectAuthoringTag(payload).label}>
+            <p>{tag?.fullExplanation}</p>
+          </MasterHelp>
+        }
         onChange={(percent) =>
           update({ ...payload, multiplierBasisPoints: 10000 + Math.round(percent * 100) })
         }
@@ -137,7 +147,15 @@ export function AbilityEffectEditor({
     )
   }
   return (
-    <div className={styles.effectList}>
+    <div className={styles.effectParameters}>
+      {payload.type === 'summon' ? (
+        <div className={styles.effectReference}>
+          <strong>{effectAuthoringTag(payload).label}</strong>
+          <MasterHelp label={effectAuthoringTag(payload).label}>
+            <p>{tag?.fullExplanation}</p>
+          </MasterHelp>
+        </div>
+      ) : null}
       <EffectTargetEditor
         value={payload}
         aim={behavior?.targeting ?? undefined}
@@ -145,11 +163,6 @@ export function AbilityEffectEditor({
         onChange={(target) => update(withAuthoredEffectTarget(payload, target))}
       />
       {controls}
-      {['move', 'damage-bonus', 'summon'].includes(payload.type) ? (
-        <MasterHelp label={effectAuthoringTag(payload).label}>
-          <p>{tag?.fullExplanation}</p>
-        </MasterHelp>
-      ) : null}
     </div>
   )
 }

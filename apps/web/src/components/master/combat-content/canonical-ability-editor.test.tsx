@@ -287,7 +287,7 @@ it('edits canonical Pierce through native controls without leaking trusted execu
   const value = { id: 'pierce', payload: defaultAbilityPayload('pierce') }
   const onChange = vi.fn()
   const tree = AbilityEffectEditor({ value, onChange })
-  const controls = tree.props.children[1]
+  const controls = tree.props.children.at(-1)
   const editor = controls.props.children.find(
     (child: { type: unknown } | null) => child?.type === SkillEffectEditor,
   )

@@ -81,3 +81,12 @@ it('shows a locked Ground destination for Move without authoring a ground recipi
   expect(JSON.stringify(payload)).toBe(before)
   expect(onChange).not.toHaveBeenCalled()
 })
+
+// These callback tests walk elements without mounting them in a React renderer.
+vi.mock('react', async (original) => {
+  let nextId = 0
+  return {
+    ...(await original<typeof import('react')>()),
+    useId: () => `callback-test-${++nextId}`,
+  }
+})

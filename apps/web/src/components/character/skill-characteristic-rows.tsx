@@ -1,4 +1,3 @@
-import { BattleInfoPopover } from '../battle/battle-info-popover'
 import type { ReactNode } from 'react'
 import type { SkillCharacteristic } from './basic-action-presentation'
 import styles from './skill-characteristic-rows.module.css'
@@ -56,28 +55,6 @@ export function SkillCharacteristicRows({
           ) : (
             parameterValue(label, displayValue)
           )}
-          {label === 'Target Method' && explanation ? (
-            <BattleInfoPopover
-              hover
-              label="Explain target method"
-              title="Target Method"
-              trigger={
-                <svg
-                  aria-hidden="true"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                >
-                  <circle cx="8" cy="8" r="7" />
-                  <path d="M8 7v5M8 4v1" />
-                </svg>
-              }
-            >
-              {explanation ? <p>{explanation}</p> : null}
-            </BattleInfoPopover>
-          ) : null}
           {label === 'Target Method' ? targetDetails : null}
         </dd>
       </div>

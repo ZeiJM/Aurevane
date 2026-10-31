@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import styles from './combat-content-editor.module.css'
 
 export function AbilitySelect<T extends string>({
@@ -11,6 +11,7 @@ export function AbilitySelect<T extends string>({
   disabledOptions = [],
   disabled = false,
   optionLabels,
+  help,
   onChange,
 }: {
   label: string
@@ -20,12 +21,18 @@ export function AbilitySelect<T extends string>({
   value: T
   options: readonly T[]
   optionLabels?: Readonly<Partial<Record<T, string>>>
+  help?: ReactNode
   onChange: (value: T) => void
 }) {
+  const id = useId()
   return (
-    <label className={styles.field}>
-      <span>{displayLabel}</span>
+    <div className={styles.field}>
+      <div className={styles.fieldLabel}>
+        <label htmlFor={id}>{displayLabel}</label>
+        {help}
+      </div>
       <select
+        id={id}
         aria-label={label}
         value={value}
         disabled={disabled}
@@ -40,7 +47,7 @@ export function AbilitySelect<T extends string>({
           </option>
         ))}
       </select>
-    </label>
+    </div>
   )
 }
 
@@ -54,6 +61,7 @@ export function AbilityNumber({
   max,
   step = 1,
   invalid,
+  help,
 }: {
   label: string
   value: number | undefined
@@ -64,12 +72,18 @@ export function AbilityNumber({
   max?: number
   step?: number
   invalid?: boolean
+  help?: ReactNode
 }) {
+  const id = useId()
   const [entry, setEntry] = useState<{ text: string; value: number | undefined } | null>(null)
   return (
-    <label className={styles.field}>
-      <span>{displayLabel}</span>
+    <div className={`${styles.field} ${styles.numberField}`}>
+      <div className={styles.fieldLabel}>
+        <label htmlFor={id}>{displayLabel}</label>
+        {help}
+      </div>
       <input
+        id={id}
         aria-label={label}
         aria-invalid={invalid}
         type="number"
@@ -92,7 +106,7 @@ export function AbilityNumber({
         }}
         onBlur={() => setEntry(null)}
       />
-    </label>
+    </div>
   )
 }
 

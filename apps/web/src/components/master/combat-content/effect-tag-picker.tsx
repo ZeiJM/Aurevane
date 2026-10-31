@@ -1,6 +1,6 @@
 'use client'
 import { MasterHelp } from '../master-help'
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import {
   AUTHORABLE_EFFECT_TAGS,
   createAuthorableEffectPayload,
@@ -33,6 +33,7 @@ export function EffectTagPicker({
   additionalIssue?: (id: string) => string | undefined
   onAdd(payload: CombatTagPayload): void
 }) {
+  const id = useId()
   const [query, setQuery] = useState('')
   const [requested, setRequested] = useState('damage')
   const choices = AUTHORABLE_EFFECT_TAGS.filter((tag) =>
@@ -61,9 +62,17 @@ export function EffectTagPicker({
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
       </label>
-      <label className={styles.field}>
-        <span>{label}</span>
+      <div className={styles.field}>
+        <div className={styles.fieldLabel}>
+          <label htmlFor={id}>{label}</label>
+          {selected ? (
+            <MasterHelp label={selected.label}>
+              <p>{combatTagDefinition(selected.opcode)?.fullExplanation}</p>
+            </MasterHelp>
+          ) : null}
+        </div>
         <select
+          id={id}
           aria-label={label}
           value={selected?.id ?? ''}
           onChange={(event) => setRequested(event.currentTarget.value)}
@@ -79,7 +88,7 @@ export function EffectTagPicker({
             )
           })}
         </select>
-      </label>
+      </div>
       <button
         type="button"
         disabled={disabled || !!reason || !selected}
@@ -91,11 +100,6 @@ export function EffectTagPicker({
       >
         {addLabel}
       </button>
-      {selected ? (
-        <MasterHelp label={selected.label}>
-          <p>{combatTagDefinition(selected.opcode)?.fullExplanation}</p>
-        </MasterHelp>
-      ) : null}
       {reason ? <small className={styles.fieldHint}>{reason}</small> : null}
     </div>
   )

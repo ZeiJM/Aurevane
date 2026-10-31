@@ -174,7 +174,20 @@ it('preserves every historical behavior group while moving each delivery note to
       <SkillCharacteristicRows rows={rows} />
     </dl>,
   )
-  expect(html).toContain('>first: Single [4]; second: Circle [2]<button')
+  expect(html).toContain('>first: Single [4]; second: Circle [2]</dd>')
   expect(html).toContain('Aim: Enemy')
   expect(html).toContain('Aim: Ground')
+})
+
+it('renders a compact Target Method without an information button', () => {
+  const html = renderToStaticMarkup(
+    <dl>
+      <SkillCharacteristicRows
+        rows={[['Target Method', 'Single']]}
+        targetMethodExplanation="Aim: Ground"
+      />
+    </dl>,
+  )
+  expect(html).toContain('title="Aim: Ground">Single</dd>')
+  expect(html).not.toContain('<button')
 })

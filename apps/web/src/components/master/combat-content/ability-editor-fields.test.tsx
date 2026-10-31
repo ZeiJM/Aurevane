@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[] }))
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
+  useId: () => 'ability-number-test',
   useState(initial: unknown) {
     const index = hooks.index++
     if (!(index in hooks.cells)) hooks.cells[index] = initial

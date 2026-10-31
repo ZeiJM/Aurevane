@@ -23,7 +23,7 @@ it('shows the minimum report in order once, combining range with Target Method a
   expect(markup).not.toContain('Legal range')
   expect(markup).not.toContain('<dt>Range</dt>')
   expect(markup).toContain(
-    '<dt>Target Method</dt><dd title="Circle radius 1 covers 8 surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.">Circle [1]<button',
+    '<dt>Target Method</dt><dd title="Circle radius 1 covers 8 surrounding tiles from you, excluding your tile. Inner rings are included. Separately authored self effects still apply.">Circle [1]</dd>',
   )
   expect(markup).not.toContain('<p>Circle radius:')
   expect(markup).not.toContain('Affects:')
