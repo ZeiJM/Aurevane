@@ -17,6 +17,19 @@ async function openEffectParameters(scope) {
   }
 }
 
+async function assertLabelHelp(control, helpName) {
+  const header = control.locator('..').locator(':scope > div').first()
+  const help = header.getByRole('button', { name: `About ${helpName}`, exact: true })
+  const labelBox = await header.locator('label').boundingBox()
+  const helpBox = await help.boundingBox()
+  const controlBox = await control.boundingBox()
+  assert.ok(labelBox && helpBox && controlBox, `${helpName} label, help and control are visible`)
+  assert.ok(helpBox.x >= labelBox.x + labelBox.width - 1)
+  assert.ok(helpBox.x - labelBox.x - labelBox.width <= 12, 'help stays beside its label')
+  assert.ok(helpBox.y + helpBox.height <= controlBox.y + 1, 'help stays above its control')
+  assert.ok(labelBox.y < helpBox.y + helpBox.height && helpBox.y < labelBox.y + labelBox.height)
+}
+
 async function assertCurrentEffectChoices(picker, required) {
   const options = await picker
     .locator('option')
@@ -1234,6 +1247,7 @@ async function verifyCanonicalEditor(page, viewport) {
   await leap.getByLabel('HP cost', { exact: true }).fill('2')
   assert.equal(await leap.getByLabel('Fixed hit chance (%)', { exact: true }).count(), 0)
   const accuracy = leap.getByLabel('Accuracy rule', { exact: true })
+  await assertLabelHelp(accuracy, 'Accuracy availability')
   assert.equal(await accuracy.inputValue(), 'fixed')
   assert.equal(
     await page.evaluate(
@@ -1255,6 +1269,28 @@ async function verifyCanonicalEditor(page, viewport) {
   const walk = leap.locator('[data-ability-effect="walk"]')
   await openEffectParameters(walk)
   await walk.getByLabel('Move maximum tiles', { exact: true }).fill('3')
+  const moveDistance = walk.getByLabel('Move maximum tiles', { exact: true })
+  await assertLabelHelp(moveDistance, 'Move')
+  await assertLabelHelp(
+    walk.getByRole('combobox', { name: 'Destination', exact: true }),
+    'Destination',
+  )
+  const distanceBox = await moveDistance.boundingBox()
+  const rootFontSize = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.documentElement).fontSize),
+  )
+  assert.ok(distanceBox.width <= 12 * rootFontSize + 1, 'Move distance stays compact')
+  await walk.getByRole('button', { name: 'About Move', exact: true }).click()
+  const moveHelp = page.getByRole('dialog', { name: 'Move', exact: true })
+  await moveHelp.waitFor({ state: 'visible' })
+  await page.keyboard.press('Escape')
+  await moveHelp.waitFor({ state: 'hidden' })
+  assert.equal(
+    await walk
+      .getByRole('button', { name: 'About Move', exact: true })
+      .evaluate((button) => button === document.activeElement),
+    true,
+  )
   assert.equal(
     await walk.getByRole('combobox', { name: 'Destination', exact: true }).isDisabled(),
     true,
@@ -1274,6 +1310,7 @@ async function verifyCanonicalEditor(page, viewport) {
     },
   )
   const hit = leap.locator('[data-ability-effect="hit"]')
+  await assertLabelHelp(leap.getByLabel('New effect', { exact: true }), 'Damage')
   await openEffectParameters(hit)
   await hit.getByLabel('Damage amount', { exact: true }).fill('17')
   assert.equal(await hit.getByLabel('Effect timing', { exact: true }).count(), 0)
@@ -2323,12 +2360,7 @@ try {
         assert.match(methodLabel, /^(Single|All|Line|Circle)(?: \[\d+\])?$/u)
         assert.ok(!(await method.textContent()).includes('Enemy / Ground'))
         assert.ok((await method.getAttribute('title')).includes('Aim: Enemy / Ground'))
-        await method.getByRole('button', { name: 'Explain target method', exact: true }).click()
-        const deliveryHelp = page.getByRole('dialog', { name: 'Target Method', exact: true })
-        await deliveryHelp.waitFor()
-        assert.ok((await deliveryHelp.textContent()).includes('Aim: Enemy / Ground'))
-        await page.keyboard.press('Escape')
-        await deliveryHelp.waitFor({ state: 'detached' })
+        assert.equal(await method.getByRole('button').count(), 0)
       }
       await page.getByRole('button', { name: 'About Fire report', exact: true }).click()
       const firePopup = page.getByRole('dialog', { name: 'Fire report', exact: true })

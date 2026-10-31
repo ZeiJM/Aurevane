@@ -396,12 +396,14 @@ function AbilityGroupEditor({
         ) : null}
         {show('accuracy') && (
           <>
-            <MasterHelp label="Accuracy availability">
-              Accuracy is used only by an applicable hostile hit-dependent effect. Inactive values
-              remain in this draft and return when compatible effects are added.
-            </MasterHelp>
             <AbilitySelect
               label="Accuracy rule"
+              help={
+                <MasterHelp label="Accuracy availability">
+                  Accuracy is used only by an applicable hostile hit-dependent effect. Inactive
+                  values remain in this draft and return when compatible effects are added.
+                </MasterHelp>
+              }
               disabled={!authoringAccuracyApplicable(value)}
               value={
                 value.accuracy?.kind === 'fixed' && value.accuracy.chanceBasisPoints === 10000

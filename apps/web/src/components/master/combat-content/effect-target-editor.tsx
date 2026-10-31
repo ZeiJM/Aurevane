@@ -1,5 +1,6 @@
 'use client'
 
+import { useId } from 'react'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   COMBAT_EFFECT_TARGETS,
@@ -30,19 +31,22 @@ export function EffectTargetEditor({
   siblings?: readonly TargetedEffect[]
   onChange(target: CombatEffectTarget): void
 }) {
+  const id = useId()
   if (value.type === 'move')
     return (
       <div className={styles.effectTargetEditor}>
-        <label className={styles.field}>
-          <span>Destination</span>
-          <select aria-label="Destination" value="ground" disabled>
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={id}>Destination</label>
+            <MasterHelp label="Destination">
+              Move selects reachable, unoccupied Ground within its distance and Jump limits. The
+              caster moves; any follow-up effect keeps its separate target.
+            </MasterHelp>
+          </div>
+          <select id={id} aria-label="Destination" value="ground" disabled>
             <option value="ground">Ground</option>
           </select>
-        </label>
-        <MasterHelp label="Destination">
-          Move selects reachable, unoccupied Ground within its distance and Jump limits. The caster
-          moves; any follow-up effect keeps its separate target.
-        </MasterHelp>
+        </div>
       </div>
     )
   const options = COMBAT_EFFECT_TARGETS.map((target) => {
@@ -72,9 +76,26 @@ export function EffectTargetEditor({
   })
   return (
     <div className={styles.effectTargetEditor}>
-      <label className={styles.field}>
-        <span>Target</span>
+      <div className={styles.field}>
+        <div className={styles.fieldLabel}>
+          <label htmlFor={id}>Target</label>
+          <MasterHelp label="Target">
+            <p>
+              All effects use the same aim. Existing rules stay in place until you choose a target.
+            </p>
+            {options.some((option) => option.reason) ? (
+              <ul>
+                {[
+                  ...new Set(options.flatMap((option) => (option.reason ? [option.reason] : []))),
+                ].map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            ) : null}
+          </MasterHelp>
+        </div>
         <select
+          id={id}
           aria-label="Target"
           value={value.target ?? ''}
           onChange={(event) => onChange(event.currentTarget.value as CombatEffectTarget)}
@@ -88,19 +109,7 @@ export function EffectTargetEditor({
             </option>
           ))}
         </select>
-      </label>
-      <MasterHelp label="Target">
-        <p>All effects use the same aim. Existing rules stay in place until you choose a target.</p>
-        {options.some((option) => option.reason) ? (
-          <ul>
-            {[...new Set(options.flatMap((option) => (option.reason ? [option.reason] : [])))].map(
-              (reason) => (
-                <li key={reason}>{reason}</li>
-              ),
-            )}
-          </ul>
-        ) : null}
-      </MasterHelp>
+      </div>
     </div>
   )
 }

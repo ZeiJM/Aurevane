@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { expect, it } from 'vitest'
+import { expect, it, vi } from 'vitest'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
   parseAbilityDefinition,
@@ -110,3 +110,12 @@ it.each(['owner', 'selected'] as const)(
     expect(validateAbilityDefinition(saved)).toEqual([])
   },
 )
+
+// These callback tests walk elements without mounting them in a React renderer.
+vi.mock('react', async (original) => {
+  let nextId = 0
+  return {
+    ...(await original<typeof import('react')>()),
+    useId: () => `callback-test-${++nextId}`,
+  }
+})

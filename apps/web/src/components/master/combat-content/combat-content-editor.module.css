@@ -542,6 +542,12 @@
   min-width: 0;
 }
 
+.effectTargetEditor > .field {
+  width: 100%;
+  max-width: 20rem;
+  min-width: 0;
+}
+
 .effectTargetEditor > span {
   margin: 0 0 0.35rem;
 }
@@ -1864,12 +1870,16 @@
 
 .effectPicker {
   display: grid;
-  grid-template-columns: minmax(8rem, 1fr) minmax(12rem, 2fr) auto;
+  grid-template-columns: minmax(8rem, 16rem) minmax(12rem, 24rem) max-content;
   align-items: end;
   gap: 0.5rem;
 }
 .effectPicker > small {
   grid-column: 1 / -1;
+}
+
+.effectPicker > .field {
+  min-width: 0;
 }
 .effectPicker button {
   min-height: 2.5rem;
@@ -1916,6 +1926,67 @@
   padding-bottom: 0.45rem;
   border-bottom: 1px solid #b6a587;
   background: #fbf5e8;
+}
+
+/* Label-bound help stays with its control; numeric entries do not fill the card. */
+.fieldLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  min-height: 1.6rem;
+}
+
+.fieldLabel > label {
+  color: var(--av-text-dim);
+  font: 650 0.55rem/1.2 var(--av-font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.fieldLabel > span {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.field:has(> select) {
+  min-width: 0;
+  max-width: 24rem;
+}
+
+.numberField,
+.field > input[type='number'] {
+  min-width: 0;
+  max-width: 12rem;
+}
+
+.effectParameters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 20rem));
+  align-items: start;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.effectParameters > .effectEditor,
+.effectParameters > .typedGroup,
+.effectParameters > .effectReference {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 600px) {
+  .effectParameters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fieldLabel:has(button) {
+    min-height: 2.75rem;
+  }
+
+  .fieldLabel button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
 }
 .abilityTabs button {
   min-height: 2.35rem;
