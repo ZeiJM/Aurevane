@@ -1,3 +1,8 @@
+import {
+  combatReversalPayload,
+  endCombatReversal,
+  reconcileCombatReversalState,
+} from './combat-reversal'
 import { applyAbilityTimingDefaults } from './combat-definition'
 export {
   combatControlledAbilityAvailability,
@@ -158,7 +163,7 @@ export function materializeCombatAbilityAction(
   if (!behavior.targeting) throw new TypeError('ability-action-targeting-required')
   const target = behavior.targeting
   const nativeEffects = behavior.effects.filter(
-    (effect) => !['move', 'summon'].includes(effect.payload.type),
+    (effect) => !['move', 'summon', 'reversal'].includes(effect.payload.type),
   )
   if (behavior.effects.some((effect) => effect.payload.type === 'damage-bonus'))
     throw new TypeError('canonical-specialized-tag-routing-required')
@@ -408,7 +413,7 @@ export function reconcileCombatAbilitySources(
       }
     }
   }
-  return {
+  return reconcileCombatReversalState({
     ...state,
     capturedAbilitySources: [
       ...(state.capturedAbilitySources ?? []).map(captureCombatAbilitySource),
@@ -454,19 +459,45 @@ export function reconcileCombatAbilitySources(
         ? {}
         : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),
     },
-  }
+  }).state
 }
 
 /** Free state commands deliberately do not dispatch paid action-use hooks. */
 export function primeCombatControlledAbility(
   input: CombatControlledAbilityInput,
 ): CombatResolutionTransition {
+  const source = input.state.capturedAbilitySources?.find(
+    (source) => source.sourceInstanceId === input.sourceInstanceId,
+  )
+  const behavior = source?.definition.behaviors.find((behavior) => behavior.id === input.behaviorId)
+  if (source && behavior && combatReversalPayload(behavior)) {
+    if (!input.content)
+      throw new TypeError('Reversal preparation requires combat content authority.')
+    return commitCombatAbilityCommand({
+      state: input.state,
+      actorId: input.actorId,
+      root: { kind: 'canonical', source, behaviorId: behavior.id },
+      selection: { kind: 'self' },
+      content: input.content,
+      context: combatAbilityCommandContext(input.state, source),
+      reversalPreparation: true,
+      manualModifiers: input.manualModifiers,
+    })
+  }
   return updateControlledAbility(input, 'prime')
 }
 
 export function cancelCombatControlledAbility(
   input: CombatControlledAbilityInput,
 ): CombatResolutionTransition {
+  const source = input.state.capturedAbilitySources?.find(
+    (source) => source.sourceInstanceId === input.sourceInstanceId,
+  )
+  const behavior = source?.definition.behaviors.find((behavior) => behavior.id === input.behaviorId)
+  if (source && behavior && combatReversalPayload(behavior)) {
+    updateCombatControlledAbility(input, 'cancel', true)
+    return endCombatReversal(input.state, input.actorId, 'cancelled')
+  }
   return updateControlledAbility(input, 'cancel')
 }
 

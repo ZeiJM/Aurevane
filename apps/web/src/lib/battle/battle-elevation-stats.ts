@@ -23,6 +23,13 @@ export function terrainAdjustedBattleProfile<
   viewerStatuses?: readonly BattlePresentedStatus[],
 ): T | null {
   if (!profile) return null
+  const visibleDefenseState = {
+    ...state,
+    statusState:
+      viewerStatuses === undefined
+        ? state.statusState
+        : [{ combatantId, statuses: viewerStatuses }],
+  }
   const evasionVisible =
     viewerStatuses === undefined ||
     viewerStatuses.some(
@@ -50,14 +57,15 @@ export function terrainAdjustedBattleProfile<
       : {}),
     evasion:
       profile.evasion + (evasionVisible ? terrainEvasionBonusBasisPoints(state, combatantId) : 0),
-    armor: terrainAdjustedDefense(state, combatantId, profile.armor),
-    ward: terrainAdjustedDefense(state, combatantId, profile.ward),
+    armor: terrainAdjustedDefense(visibleDefenseState, combatantId, profile.armor),
+    ward: terrainAdjustedDefense(visibleDefenseState, combatantId, profile.ward),
   }
 }
 
 export function visibleBattleInitiative(
   state: {
     dynamicInitiativePolicyVersion?: 1
+    elementalDamagePolicyVersion?: 1 | 2
     tactical?: {
       battle: { roundInitiativeModifiers?: readonly { combatantId: string; amount: number }[] }
     }
@@ -70,8 +78,23 @@ export function visibleBattleInitiative(
     (state.tactical?.battle.roundInitiativeModifiers?.find(
       (row) => row.combatantId === combatant.id,
     )?.amount ?? 0)
-  return state.dynamicInitiativePolicyVersion === 1 &&
-    statuses.some((status) => status.statusId === 'wet' && status.timingState !== 'pending')
-    ? normal - Math.ceil(normal / 10)
-    : normal
+  if (state.dynamicInitiativePolicyVersion !== 1) return normal
+  const applications = statuses
+    .filter((status) => status.statusId === 'wet' && status.timingState !== 'pending')
+    .flatMap((status) => status.applicationModifiers ?? [status])
+  if (!applications.length) return normal
+  if (
+    state.elementalDamagePolicyVersion !== 2 &&
+    !applications.some((row) => row.initiativeReductionBasisPoints !== undefined)
+  )
+    return normal - Math.ceil(normal / 10)
+  const reduction = applications.reduce(
+    (sum, row) =>
+      Math.min(
+        10000,
+        sum + Math.min(10000, row.stacks * (row.initiativeReductionBasisPoints ?? 1000)),
+      ),
+    0,
+  )
+  return normal - Math.ceil((normal * reduction) / 10000)
 }

@@ -1,3 +1,4 @@
+import { canonicalEffectExplanation } from './canonical-effect-explanation'
 import { describe, expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
@@ -770,4 +771,55 @@ it('does not expose a generated UUID when an old custom Skill has no captured na
   expect(
     skillDisplayName({ ...original, id: 'skill.5e18336c-eb31-45e5-a86a-43edc4d2cb21', name: '' }),
   ).toBe('Unnamed Skill')
+})
+
+it('uses configured Fortified, Drenched and Reveal mechanics in shared Skill readers', () => {
+  expect(
+    canonicalEffectExplanation(
+      {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'fortified',
+        stacks: 1,
+        defenseIncreaseBasisPoints: 4000,
+      },
+      {},
+    )?.description,
+  ).toContain('Physical and Mystic Defense')
+  const drenched = canonicalEffectExplanation(
+    {
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId: 'wet',
+      stacks: 1,
+      potencyBasisPoints: 3500,
+      initiativeReductionBasisPoints: 2500,
+    },
+    {},
+  )!
+  expect(drenched.parts?.details).toContainEqual({
+    label: 'Initiative',
+    value: '−25% per application',
+  })
+  expect(
+    skillEffectDescription({
+      type: 'sensory',
+      recipient: 'primary-unit',
+      revealedDurationOwnerTurnStarts: 3,
+      increasedDamageTakenBasisPoints: 5000,
+    }),
+  ).toContain('50% more damage')
+})
+it('shows the close-range exclusion when a Skill reaches from three to six tiles', () => {
+  const target = {
+    kind: 'unit' as const,
+    teamPolicy: 'enemy' as const,
+    shape: { kind: 'single' as const },
+    minimumRange: 3,
+    maximumRange: 6,
+    requiresLineOfSight: true,
+    maximumElevationDifference: 1,
+    friendlyFire: 'enemies-only' as const,
+  }
+  expect(skillTargetMethodDescription({ target })).toBe('Single [3–6]')
 })

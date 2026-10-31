@@ -23,6 +23,15 @@ export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
     )
       throw new RangeError('Recovery requires HP/MP and an integer percentage between 1 and 100.')
   } else if (effect.type !== 'healing' && effect.type !== 'resource-change') return
+  if (
+    effect.type === 'resource-change' &&
+    effect.basis !== undefined &&
+    (effect.basis !== 'maximum-mp-percent' ||
+      !Number.isSafeInteger(effect.delta) ||
+      effect.delta > -1 ||
+      effect.delta < -100)
+  )
+    throw new RangeError('Percentage MP Drain requires a potency between 1 and 100 percent.')
   const ticks = effect.ticks
   if (ticks === undefined) return // Immutable historical single-application effects.
   if (effect.type === 'resource-change' && effect.delta < 0 && ticks !== 1) {

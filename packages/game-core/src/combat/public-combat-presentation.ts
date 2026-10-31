@@ -2,7 +2,17 @@ import type { AbilityDefinition } from './combat-definition'
 
 /** Hit-authoring aliases are private at every nesting level; numeric combat stats remain public. */
 type PrivateHitAuthoringKey =
-  'catalogueToken' | 'sourceHash' | 'accuracyRule' | 'accuracyMode' | 'accuracyModifierBasisPoints'
+  | 'catalogueToken'
+  | 'sourceHash'
+  | 'accuracyRule'
+  | 'accuracyMode'
+  | 'accuracyModifierBasisPoints'
+  | 'endureState'
+  | 'reversalState'
+  | 'nextReversalAttackCommandId'
+  | 'reversalAttackCommandId'
+  | 'reversalDamageOrdinal'
+  | 'reversalBoundDamageOrdinalsByRecipient'
 export type PublicCombat<T> = T extends string | number | boolean | null | undefined
   ? T
   : T extends readonly unknown[]
@@ -23,6 +33,12 @@ export type PublicCombat<T> = T extends string | number | boolean | null | undef
 export type PublicAbilityDefinition = PublicCombat<AbilityDefinition>
 
 const PRIVATE_HIT_AUTHORING_KEYS = new Set<string>([
+  'endureState',
+  'reversalState',
+  'nextReversalAttackCommandId',
+  'reversalAttackCommandId',
+  'reversalDamageOrdinal',
+  'reversalBoundDamageOrdinalsByRecipient',
   'sourceHash',
   'catalogueToken',
   'accuracyRule',

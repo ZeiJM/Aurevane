@@ -22,15 +22,15 @@ it('keeps Accuracy guidance beside the label rather than in a separate grid cell
   )
   headerContainsHelp(html, 'Accuracy rule', 'Accuracy availability')
 })
-it('places Move distance and destination help beside their labels', () => {
+it('keeps Move controls compact without duplicated help', () => {
   const html = renderToStaticMarkup(
     <AbilityEffectEditor
       value={{ id: 'move', payload: { type: 'move', recipient: 'actor', maximumTiles: 15 } }}
       onChange={() => {}}
     />,
   )
-  headerContainsHelp(html, 'Destination', 'Destination')
-  headerContainsHelp(html, 'Move maximum tiles', 'Move')
+  expect(html).not.toContain('aria-label="About Move"')
+  expect(html).not.toContain('aria-label="About Destination"')
   expect(html).toMatch(/aria-label="Destination"[^>]*disabled/)
   expect(html).toMatch(/aria-label="Move maximum tiles"[^>]*value="15"/)
 })

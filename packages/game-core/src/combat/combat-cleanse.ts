@@ -28,6 +28,7 @@ function isCanonicalizationCleanse(
 ): effect is Extract<CombatEffectDefinition, { type: 'remove-status' }> {
   return (
     effect.type === 'remove-status' &&
+    effect.removalMode !== 'all-debuffs' &&
     (isCleanseEffect(effect) || (legacyFrozenRemoval && isCleanseChilledEffect(effect)))
   )
 }

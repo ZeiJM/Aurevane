@@ -44,6 +44,8 @@
     "./combat/combat-airborne": "./src/combat/combat-airborne.ts",
     "./combat/combat-effect-categories": "./src/combat/combat-effect-categories.ts",
     "./combat/combat-effect-state": "./src/combat/combat-effect-state.ts",
+    "./combat/combat-attack-tags": "./src/combat/combat-attack-tags.ts",
+    "./combat/combat-counter": "./src/combat/combat-counter.ts",
     "./combat/combat-barrier": "./src/combat/combat-barrier.ts",
     "./combat/combat-kernel-types": "./src/combat/combat-kernel-types.ts",
     "./combat/combat-runtime-state": "./src/combat/combat-runtime-state.ts",
@@ -77,6 +79,8 @@
     "./combat/gameplay-tags": "./src/combat/gameplay-tags.ts",
     "./combat/terrain-overlays": "./src/combat/terrain-overlays.ts",
     "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts",
+    "./combat/combat-status-selection": "./src/combat/combat-status-selection.ts",
+    "./combat/combat-status-tuning": "./src/combat/combat-status-tuning.ts",
     "./combat/combat-status-copy": "./src/combat/combat-status-copy.ts",
     "./events/persistent-event": "./src/events/persistent-event.ts",
     "./combat/combat-percentage-dots": "./src/combat/combat-percentage-dots.ts",
@@ -101,7 +105,8 @@
     "./combat/combat-simple-requirements": "./src/combat/combat-simple-requirements.ts",
     "./content/authored-content": "./src/content/authored-content.ts",
     "./combat/content-media": "./src/combat/content-media.ts",
-    "./combat/pv1f-combat-content": "./src/combat/pv1f-combat-content.ts"
+    "./combat/pv1f-combat-content": "./src/combat/pv1f-combat-content.ts",
+    "./combat/combat-reversal": "./src/combat/combat-reversal.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

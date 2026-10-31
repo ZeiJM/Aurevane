@@ -1,3 +1,4 @@
+import { hasConfiguredRevealed } from './combat-status-tuning'
 import { outgoingSuppressionBasisPoints, scaleSuppressedDirectDamage } from './combat-suppress'
 import { terrainAdjustedDefense, terrainEvasionBonusBasisPoints } from './combat-stat-balance'
 import { combatAccuracyStatusModifier } from './combat-accuracy-status'
@@ -519,15 +520,26 @@ export function forecastStatDrivenAttack(
 
   return {
     evaluation,
-    hitChanceBasisPoints: calculateHitChanceBasisPoints(
-      actor,
-      {
-        evasion:
-          target.evasion + terrainEvasionBonusBasisPoints(state, baseline.primaryCombatantId),
-      },
-      combatAccuracyStatusModifier(state, baseline.actorId, baseline.primaryCombatantId, content) +
-        facingHitChanceModifierBasisPoints(state, baseline.actorId, baseline.primaryCombatantId),
-    ),
+    hitChanceBasisPoints: hasConfiguredRevealed(state, baseline.primaryCombatantId)
+      ? 10000
+      : calculateHitChanceBasisPoints(
+          actor,
+          {
+            evasion:
+              target.evasion + terrainEvasionBonusBasisPoints(state, baseline.primaryCombatantId),
+          },
+          combatAccuracyStatusModifier(
+            state,
+            baseline.actorId,
+            baseline.primaryCombatantId,
+            content,
+          ) +
+            facingHitChanceModifierBasisPoints(
+              state,
+              baseline.actorId,
+              baseline.primaryCombatantId,
+            ),
+        ),
     defenseKind,
     defenseRating,
     mitigatedBaseDamage:

@@ -13,6 +13,7 @@ import {
   type CombatTagPayload,
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import styles from './combat-content-editor.module.css'
+import { effectTagDescription } from '@/lib/combat-effect-descriptions'
 
 export function EffectTagPicker({
   label = 'New effect type',
@@ -67,7 +68,10 @@ export function EffectTagPicker({
           <label htmlFor={id}>{label}</label>
           {selected ? (
             <MasterHelp label={selected.label}>
-              <p>{combatTagDefinition(selected.opcode)?.fullExplanation}</p>
+              <p>
+                {effectTagDescription(selected.id) ??
+                  combatTagDefinition(selected.opcode)?.fullExplanation}
+              </p>
             </MasterHelp>
           ) : null}
         </div>
@@ -81,9 +85,8 @@ export function EffectTagPicker({
           {choices.map((tag) => {
             const reason = issue(tag.id)
             return (
-              <option key={tag.id} value={tag.id} disabled={!!reason}>
+              <option key={tag.id} value={tag.id} disabled={!!reason} title={reason ?? undefined}>
                 {tag.label}
-                {reason ? ` — ${reason}` : ''}
               </option>
             )
           })}
@@ -92,6 +95,7 @@ export function EffectTagPicker({
       <button
         type="button"
         disabled={disabled || !!reason || !selected}
+        title={reason ?? undefined}
         onClick={() => {
           if (!selected || disabled || reason) return
           const payload = createAuthorableEffectPayload(selected.id, { ...context, combination })
@@ -100,7 +104,9 @@ export function EffectTagPicker({
       >
         {addLabel}
       </button>
-      {reason ? <small className={styles.fieldHint}>{reason}</small> : null}
+      {reason && !['move', 'summon'].includes(selected?.id ?? '') ? (
+        <small className={styles.fieldHint}>{reason}</small>
+      ) : null}
     </div>
   )
 }

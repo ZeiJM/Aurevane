@@ -1,3 +1,5 @@
+import { hasArmedCombatReversal } from './combat-reversal'
+import { combatStatusApplications } from './combat-status-applications'
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { combatStatusMetadata } from './combat-effect-state'
 import type {
@@ -202,6 +204,7 @@ export interface CombatSensoryEffect {
   readonly type: 'sensory'
   readonly recipient: 'primary-unit'
   readonly revealedDurationOwnerTurnStarts: number
+  readonly increasedDamageTakenBasisPoints?: number
 }
 
 export function createCovertStatusDefinition(
@@ -263,6 +266,18 @@ export function revealedSkillApCost(
     throw new RangeError('Skill AP cost must be a non-negative safe integer.')
   }
   if (!hasCombatStatus(state, combatantId, REVEALED_STATUS_ID)) return intrinsicApCost
+  const applications =
+    state.statusState
+      .find((row) => row.combatantId === combatantId)
+      ?.statuses.filter(
+        (status) => status.statusId === REVEALED_STATUS_ID && status.timingState !== 'pending',
+      )
+      .flatMap(combatStatusApplications) ?? []
+  if (
+    applications.length &&
+    applications.every((row) => row.increasedDamageTakenBasisPoints !== undefined)
+  )
+    return intrinsicApCost
   const doubled = intrinsicApCost * 2
   if (!Number.isSafeInteger(doubled))
     throw new RangeError('Revealed Skill AP cost exceeds safe range.')
@@ -296,6 +311,11 @@ export function materializeCsrPreviewAction(
   validateCsrActionDefinition(action)
   return {
     ...action,
+    ...(action.effects.some(
+      (effect) => effect.type === 'sensory' && effect.increasedDamageTakenBasisPoints !== undefined,
+    )
+      ? { target: { ...action.target, revealConcealedTargets: true as const } }
+      : {}),
     effects: action.effects.filter((effect) => effect.type !== 'sensory'),
     ...(action.effectTimingTags
       ? {
@@ -364,16 +384,26 @@ export function materializeCsrCommittedAction(input: {
       if (
         !primaryCombatantId ||
         missedCombatantIds.has(primaryCombatantId) ||
-        !primaryWouldBeCovertAtEffect(state, action, evaluation, primaryCombatantId, effectIndex)
+        !primaryWouldBeCovertAtEffect(
+          state,
+          action,
+          evaluation,
+          primaryCombatantId,
+          effectIndex,
+          effect.increasedDamageTakenBasisPoints !== undefined,
+        )
       ) {
         continue
       }
 
       sensoryDuration = effect.revealedDurationOwnerTurnStarts
-      const purgeIds = content.statuses
-        .filter(isSensoryPurgeEligibleStatus)
-        .map((status) => status.id)
-        .sort(compareIdentity)
+      const purgeIds =
+        effect.increasedDamageTakenBasisPoints !== undefined
+          ? ['covert', 'invisible']
+          : content.statuses
+              .filter(isSensoryPurgeEligibleStatus)
+              .map((status) => status.id)
+              .sort(compareIdentity)
       if (!purgeIds.includes(COVERT_STATUS_ID)) {
         throw new TypeError(
           'Sensory requires Covert to be an explicitly positive removable status.',
@@ -393,6 +423,12 @@ export function materializeCsrCommittedAction(input: {
         recipient: 'primary-unit',
         statusId: REVEALED_STATUS_ID,
         stacks: 1,
+        ...(effect.increasedDamageTakenBasisPoints === undefined
+          ? {}
+          : {
+              increasedDamageTakenBasisPoints: effect.increasedDamageTakenBasisPoints,
+              durationTurns: effect.revealedDurationOwnerTurnStarts,
+            }),
       })
     } finally {
       for (let index = initialEffectCount; index < effects.length; index += 1) {
@@ -408,16 +444,35 @@ export function materializeCsrCommittedAction(input: {
     }
   }
 
+  const ordering = effects.map((_, index) => index)
+  if (primaryCombatantId && hasArmedCombatReversal(state, primaryCombatantId))
+    ordering.sort(
+      (a, b) =>
+        (effectTimingTags[a] === 'sensory' ? 0 : 1) - (effectTimingTags[b] === 'sensory' ? 0 : 1) ||
+        a - b,
+    )
   return {
     action: {
       ...action,
-      effects,
-      effectTimingTags,
-      ...(action.effectOrigins ? { effectOrigins } : {}),
-      ...(action.effectTimingModes ? { effectTimingModes } : {}),
-      ...(action.effectEligibleRecipientIds ? { effectEligibleRecipientIds } : {}),
+      ...(action.effects.some(
+        (effect) =>
+          effect.type === 'sensory' && effect.increasedDamageTakenBasisPoints !== undefined,
+      )
+        ? { target: { ...action.target, revealConcealedTargets: true as const } }
+        : {}),
+      effects: ordering.map((index) => effects[index]!),
+      effectTimingTags: ordering.map((index) => effectTimingTags[index]),
+      ...(action.effectOrigins
+        ? { effectOrigins: ordering.map((index) => effectOrigins[index]) }
+        : {}),
+      ...(action.effectTimingModes
+        ? { effectTimingModes: ordering.map((index) => effectTimingModes[index]) }
+        : {}),
+      ...(action.effectEligibleRecipientIds
+        ? { effectEligibleRecipientIds: ordering.map((index) => effectEligibleRecipientIds[index]) }
+        : {}),
     },
-    effectSourceOrdinals,
+    effectSourceOrdinals: ordering.map((index) => effectSourceOrdinals[index]!),
     content: sensoryDuration === null ? content : withRevealedDuration(content, sensoryDuration),
   }
 }
@@ -494,7 +549,9 @@ function primaryWouldBeCovertAtEffect(
   evaluation: CombatActionEvaluation | null,
   primaryCombatantId: string,
   effectIndex: number,
+  includeInvisible = false,
 ): boolean {
+  let invisible = includeInvisible && hasCombatStatus(state, primaryCombatantId, 'invisible')
   let covert = hasCombatStatus(state, primaryCombatantId, COVERT_STATUS_ID)
   let revealed = hasCombatStatus(state, primaryCombatantId, REVEALED_STATUS_ID)
 
@@ -510,15 +567,17 @@ function primaryWouldBeCovertAtEffect(
       continue
     if (effect.type === 'apply-status') {
       if (effect.statusId === REVEALED_STATUS_ID) revealed = true
+      if (effect.statusId === 'invisible' && includeInvisible) invisible = true
       if (effect.statusId === COVERT_STATUS_ID && !revealed) covert = true
       continue
     }
     if (effect.type === 'remove-status') {
       if (effect.statusIds.includes(COVERT_STATUS_ID)) covert = false
+      if (effect.statusIds.includes('invisible')) invisible = false
       if (effect.statusIds.includes(REVEALED_STATUS_ID)) revealed = false
     }
   }
-  return covert
+  return covert || invisible || hasArmedCombatReversal(state, primaryCombatantId)
 }
 
 function isSensoryPurgeEligibleStatus(status: CombatStatusDefinition): boolean {

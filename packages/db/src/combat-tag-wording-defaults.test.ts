@@ -159,6 +159,20 @@ it('keeps the SQL presentation identity vocabulary equal to the engine variants 
         statusIds: [statusId],
         ...(specified ? { removalMode: 'specified' as const } : {}),
       })
+  payloads.push({
+    type: 'remove-status',
+    recipient: 'actor',
+    statusIds: ['frozen'],
+    removalMode: 'all-debuffs',
+  })
+  for (const selectionKind of ['buffs', 'debuffs'] as const)
+    payloads.push({
+      type: 'remove-status',
+      recipient: 'actor',
+      statusIds: [],
+      removalMode: 'specified',
+      selectionKind,
+    })
   const rows = await db.query<{ id: string }>(
     `select app_private.content_effect_presentation_id_v1(value) id
     from jsonb_array_elements($1::jsonb)`,
@@ -289,3 +303,24 @@ it('binds the same immutable tag snapshot through native Essence and both Resona
       expect.objectContaining({ tagId: 'barrier', full: 'Captured Barrier.' }),
     ])
 })
+
+it('registers Counter without publishing or rewriting existing tag definitions', async () => {
+  const record = await read('tag.counter')
+  expect(record.builtin.contentVersion).toBe(1)
+  expect(record.current).toBeNull()
+  expect(record.history).toEqual([])
+  const counter = defaultCombatTagDefinitions().find((row) => row.tagId === 'counter')!
+  expect((await commit(counter.id, 1, counter)).current.contentVersion).toBe(2)
+})
+
+it.each(['weak-point', 'spike', 'ruin'])(
+  'registers %s through protected tag publication',
+  async (id) => {
+    const record = await read(`tag.${id}`)
+    expect(record.builtin.contentVersion).toBe(1)
+    expect(record.current).toBeNull()
+    expect(record.history).toEqual([])
+    const tag = defaultCombatTagDefinitions().find((row) => row.tagId === id)!
+    expect((await commit(tag.id, 1, tag)).current.contentVersion).toBe(2)
+  },
+)

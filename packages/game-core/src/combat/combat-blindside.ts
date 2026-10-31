@@ -40,11 +40,14 @@ export function blindsideDamageDescription(
   return `For one owner turn, Skill damage is ${BLINDSIDE_FRONT_MULTIPLIER_BASIS_POINTS / 100}% from the front, ${modifiers.side / 100}% from the side and ${modifiers.rear / 100}% from the rear per application. ${legacyActivation ? 'Activates instantly' : 'Activates instantly only when the granting Skill hits an enemy from the side or rear with a damage modifier above 100%; front hits and misses do not grant or refresh it'}; expires at the end of your turn. Basic Attack is unchanged.`
 }
 
+export function blindsideDebuffDescription(modifiers = DEFAULT_BLINDSIDE_MODIFIERS): string {
+  return `Take ${modifiers.side / 100}% of normal Skill damage from the side and ${modifiers.rear / 100}% from the rear per application. Front hits and Basic Attack are unchanged.`
+}
+
 export function blindsideStatusDescription(
   status: CombatStatusInstance,
   legacyActivation = false,
 ): string {
-  if (status.statusId === BLINDSIDE_DEBUFF_STATUS_ID) return BLINDSIDE_DEBUFF_DESCRIPTION
   const applications = combatStatusApplications(status)
   const profiles = new Map<string, { modifiers: BlindsideModifiers; stacks: number }>()
   for (const application of applications) {
@@ -52,6 +55,10 @@ export function blindsideStatusDescription(
     const key = `${modifiers.side}/${modifiers.rear}`
     const previous = profiles.get(key)
     profiles.set(key, { modifiers, stacks: (previous?.stacks ?? 0) + application.stacks })
+  }
+  if (status.statusId === BLINDSIDE_DEBUFF_STATUS_ID) {
+    if (profiles.size === 1) return blindsideDebuffDescription([...profiles.values()][0]!.modifiers)
+    return `Recorded Skill damage per application: ${[...profiles.values()].map(({ modifiers, stacks }) => `${stacks}× (${modifiers.side / 100}% side, ${modifiers.rear / 100}% rear)`).join('; ')}. Front hits and Basic Attack are unchanged.`
   }
   if (profiles.size === 1)
     return blindsideDamageDescription([...profiles.values()][0]!.modifiers, legacyActivation)

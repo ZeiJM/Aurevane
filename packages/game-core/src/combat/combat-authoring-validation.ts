@@ -1,3 +1,7 @@
+import { validateCombatRemovalSelection } from './combat-status-selection'
+import { validateAttackTagAction } from './combat-attack-tags'
+import { validateCombatEndureEffect } from './combat-endure'
+import { validateCombatReversalPayload } from './combat-reversal'
 import { validateCombatEffectTarget } from './combat-effect-recipients'
 import { validateCombatGroundAreaDefinition } from './combat-ground-areas'
 import {
@@ -7,6 +11,7 @@ import {
 import { assertCurrentCombatStatusId } from './retired-combat-statuses'
 import { validateCombatStatusCopyAction } from './combat-status-copy'
 import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
+import { validateCombatCounterEffect } from './combat-counter'
 import { validateVengeanceActionDefinition } from './combat-vengeance'
 import { validateBarrierEffect } from './combat-barrier'
 import { validateRecoveryEffect } from './combat-recovery'
@@ -37,10 +42,11 @@ export function validateCombatActionDefinition(
 ): void {
   if (Object.hasOwn(action, 'nativeBasicAttackCommand'))
     throw new TypeError('private-native-basic-command-not-authored')
+  validateAttackTagAction(action)
   validateCombatGroundAreaDefinition(action)
   validateVersionedCombatTargetSpec(action.target)
   validateCurrentAreaTargetRecipients(action)
-  validateCombatStatusCopyAction(action)
+  validateCombatStatusCopyAction(action, content)
   validateVengeanceActionDefinition(action)
   validateCsrActionDefinition(action)
   validateGameplayActionMetadata(action)
@@ -132,13 +138,37 @@ export function validateCombatActionDefinition(
     }
   }
 
+  const reversals = action.effects.filter((effect) => effect.type === 'reversal')
+  if (
+    reversals.length &&
+    (reversals.length !== 1 ||
+      action.target.kind !== 'self' ||
+      action.tags.includes('attack') ||
+      action.effects.some((effect) => ['damage', 'poison', 'burn', 'bleed'].includes(effect.type)))
+  )
+    throw new TypeError('Reversal requires a Self utility preparation without offensive packets.')
   for (const effect of action.effects) {
+    if (effect.type === 'reversal') {
+      validateCombatReversalPayload(effect)
+      continue
+    }
+    if (
+      effect.authoringLink !== undefined &&
+      (typeof effect.authoringLink !== 'string' ||
+        !/^(?:dot-damage|frozen-ground)\.[1-9][0-9]*$/.test(effect.authoringLink))
+    )
+      throw new TypeError('Invalid generated companion link.')
+    validateCombatCounterEffect(effect)
+    validateCombatEndureEffect(effect)
     validateCombatEffectTarget(effect, action.target)
     validateRecoveryEffect(effect)
     validateBarrierEffect(effect)
     knownString(
       effect.type,
       [
+        'weak-point',
+        'spike',
+        'ruin',
         'damage',
         'healing',
         'percentage-recovery',
@@ -154,6 +184,7 @@ export function validateCombatActionDefinition(
         'barrier-change',
         'copy-statuses',
         'sensory',
+        'endure',
       ],
       'effect type',
     )
@@ -191,7 +222,11 @@ export function validateCombatActionDefinition(
       }
     }
     if (effect.type === 'remove-status') {
-      if (effect.removalMode !== undefined && effect.removalMode !== 'specified')
+      validateCombatRemovalSelection(effect)
+      if (
+        effect.removalMode !== undefined &&
+        !['specified', 'all-debuffs'].includes(effect.removalMode)
+      )
         throw new TypeError('Unsupported status removal mode.')
       if (
         !Array.isArray(effect.statusIds) ||
@@ -209,6 +244,11 @@ export function validateCombatActionDefinition(
     }
     if (
       effect.type === 'return-to-turn-start' &&
+      !(
+        effect.target !== undefined &&
+        effect.anchorMode === 'cast-position' &&
+        effect.recipient !== 'actor'
+      ) &&
       (effect.recipient !== 'actor' || (effect.target !== 'self' && action.target.kind !== 'self'))
     ) {
       throw new TypeError('Rewind is a self-only effect.')

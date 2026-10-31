@@ -123,10 +123,24 @@ describe('implemented combat Tag registry', () => {
     ).toContainEqual(expect.objectContaining({ code: 'unsupported-combination' }))
     expect(
       validateCombatTagPayload(
-        { type: 'return-to-turn-start', recipient: 'actor' },
+        { type: 'move', recipient: 'actor', maximumTiles: 2 },
         { activation: 'automatic', mode: 'action' },
       ),
     ).toContainEqual(expect.objectContaining({ code: 'unsupported-combination' }))
+  })
+
+  it('supports captured recipient Rewind in Automatic result actions', () => {
+    expect(
+      validateCombatTagPayload(
+        {
+          type: 'return-to-turn-start',
+          recipient: 'affected-units',
+          target: 'enemy',
+          anchorMode: 'cast-position',
+        },
+        { activation: 'automatic', mode: 'action' },
+      ),
+    ).toEqual([])
   })
 
   it.each([

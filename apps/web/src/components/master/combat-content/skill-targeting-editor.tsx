@@ -104,15 +104,18 @@ export function SkillTargetingEditor({
               label="Minimum target range"
               invalid={invalidRange}
               value={value.minimumRange}
+              min={1}
               max={maximumSupportedCombatRange()}
-              onChange={(minimumRange) => change({ ...value, minimumRange })}
+              onChange={(minimumRange) =>
+                change({ ...value, minimumRange: Math.max(1, minimumRange) })
+              }
             />
             <AbilityNumber
               label="Maximum target range"
               invalid={invalidRange}
               value={value.maximumRange}
               min={currentNonSelf ? 1 : 0}
-              max={currentNonSelf ? 5 : maximumSupportedCombatRange()}
+              max={maximumSupportedCombatRange()}
               onChange={(maximumRange) => change({ ...value, maximumRange })}
             />
           </>

@@ -9,6 +9,7 @@ import {
   createSpectatorBattleViewerEntitlement,
   deriveParticipantBattleViewerEntitlement,
 } from '@/server/battle/battle-viewer-entitlement'
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { BattleCombatantEffects } from '@/components/battle/battle-combatant-effects'
 import { terrainAdjustedBattleProfile } from '@/lib/battle/battle-elevation-stats'
 import './production-styles'
@@ -89,10 +90,11 @@ function encounter(height, covert) {
 
 function ElevatedRail() {
   const [height, setHeight] = useState(1)
+  const [showIconGallery, setShowIconGallery] = useState(false)
   const [covert, setCovert] = useState(false)
   const [mode, setMode] = useState('PvE')
   useEffect(() => {
-    window.elevatedRail = { setHeight, setCovert, setMode }
+    window.elevatedRail = { setHeight, setCovert, setMode, setShowIconGallery }
   }, [])
   const state = encounter(height, covert)
   const viewer =
@@ -134,6 +136,81 @@ function ElevatedRail() {
         </dl>
       </section>
       <BattleCombatantEffects name="Archer" compact statuses={statuses} />
+      {showIconGallery ? (
+        <section aria-label="Effect icon gallery">
+          <h2>Effect pictograms</h2>
+          {Array.from(
+            new Set([
+              ...PHASE4_STATUSES.map((row) => row.id),
+              'endure',
+              'weak-point',
+              'spike',
+              'ruin',
+              'guarded',
+              'exposed',
+              'lowered-guard',
+              'barrier',
+              'covert',
+              'revealed',
+              'mp-drain',
+              'mp-recovery',
+              'healing',
+              'damage',
+              'create-terrain',
+              'displace',
+              'push',
+              'pull',
+              'barrier-change',
+              'return-to-turn-start',
+              'remove-status',
+              'copy-statuses',
+              'sensory',
+              'summon',
+              'terrain-evasion',
+              'terrain-defense',
+              'primed',
+              'blind',
+            ]),
+          )
+            .reduce((groups, id, index) => {
+              if (index % 10 === 0) groups.push([])
+              groups.at(-1).push(id)
+              return groups
+            }, [])
+            .map((ids, index) => (
+              <BattleCombatantEffects
+                key={index}
+                name={`Gallery ${index + 1}`}
+                compact
+                statuses={ids.map((statusId) => ({
+                  statusId,
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                  sourceCombatantId: 'fixture',
+                  ...(statusId === 'primed'
+                    ? { presentationDuration: 'while-primed' }
+                    : statusId.startsWith('terrain-')
+                      ? { presentationDuration: 'while-elevated', potencyBasisPoints: 2000 }
+                      : {}),
+                }))}
+              />
+            ))}
+          <BattleCombatantEffects
+            name="Pending gallery"
+            compact
+            statuses={['counter', 'burn', 'bleed', 'poison'].map((statusId) => ({
+              statusId,
+              statusVersion: 1,
+              stacks: 1,
+              remainingOwnerTurnStarts: 2,
+              timingState: 'pending',
+              activationRound: 4,
+              sourceCombatantId: 'fixture',
+            }))}
+          />
+        </section>
+      ) : null}
     </main>
   )
 }

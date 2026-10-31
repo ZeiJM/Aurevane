@@ -1,3 +1,6 @@
+import { isAnchoredCombatSummon } from './combat-effect-state'
+import { allocateSummonDamageCommand } from './combat-summon-potency'
+import { combatStatusApplications } from './combat-status-applications'
 import type {
   CombatContentCatalog,
   CombatEncounterState,
@@ -35,7 +38,11 @@ import {
 export function combatWalkingModifiers(
   state: Pick<
     StatDrivenCombatEncounterState,
-    'statusState' | 'terrainOverlays' | 'effectStackingPolicyVersion' | 'frozenGroundPolicyVersion'
+    | 'statusState'
+    | 'terrainOverlays'
+    | 'effectStackingPolicyVersion'
+    | 'frozenGroundPolicyVersion'
+    | 'effectState'
   > & {
     tactical: {
       battle: Pick<
@@ -62,15 +69,32 @@ export function combatWalkingModifiers(
       ? definitions.reduce(
           (sum, definition, index) =>
             sum +
-            BigInt(definition?.movement?.additionalApPerTile ?? 0) *
-              BigInt(statuses[index]!.stacks),
+            combatStatusApplications(statuses[index]!).reduce(
+              (total, application) =>
+                total +
+                BigInt(
+                  application.movementApAdjustment === undefined
+                    ? (definition?.movement?.additionalApPerTile ?? 0)
+                    : (statuses[index]!.statusId === 'haste' ? -1 : 1) *
+                        application.movementApAdjustment,
+                ) *
+                  BigInt(application.stacks),
+              0n,
+            ),
           0n,
         )
       : BigInt(
           Math.min(
-            20,
+            statuses.some((status) => status.movementApAdjustment !== undefined)
+              ? Number.MAX_SAFE_INTEGER
+              : 20,
             definitions.reduce(
-              (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
+              (sum, definition, index) =>
+                sum +
+                (statuses[index]!.movementApAdjustment === undefined
+                  ? (definition?.movement?.additionalApPerTile ?? 0)
+                  : (statuses[index]!.statusId === 'haste' ? -1 : 1) *
+                    statuses[index]!.movementApAdjustment!),
               0,
             ),
           ),
@@ -85,7 +109,8 @@ export function combatWalkingModifiers(
   const actorTeam = state.tactical.battle.combatants.find((unit) => unit.id === actorId)?.teamId
   const frozenSurchargeApplies = (position: GridPosition) => {
     const overlay = terrainOverlayAt(state, position)
-    if (airborne || overlay?.kind !== 'frozen') return false
+    if (airborne || overlay?.kind !== 'frozen' || overlay.skillApSurcharge !== undefined)
+      return false
     if (state.frozenGroundPolicyVersion !== 1) return true
     const sourceTeam = state.tactical.battle.combatants.find(
       (unit) => unit.id === overlay.sourceCombatantId,
@@ -93,7 +118,7 @@ export function combatWalkingModifiers(
     return actorTeam !== undefined && sourceTeam !== undefined && actorTeam !== sourceTeam
   }
   return {
-    blocked: rooted,
+    blocked: rooted || isAnchoredCombatSummon(state, actorId),
     additionalApAt: (position: GridPosition) =>
       safeDelta(
         surcharge +
@@ -116,6 +141,7 @@ export interface Pv1fPoisonMovementForecast {
 function forecastPv1fPoisonMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
+  content: CombatContentCatalog,
 ): Pv1fPoisonMovementForecast {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) return { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
@@ -131,13 +157,29 @@ function forecastPv1fPoisonMovement(
     traversedTiles += 1
     triggeredTicks += advanced.triggeredTicks
     if (advanced.triggeredTicks > 0) {
+      const commands = new Map<string, number | undefined>()
       for (const tick of advanced.ticks) {
+        const key = JSON.stringify([
+          tick.instance.sourceCombatantId,
+          tick.instance.sourceActionId,
+          tick.instance.summonDamageCommandId ?? null,
+        ])
+        if (!commands.has(key)) {
+          const allocated = allocateSummonDamageCommand(
+            shadow,
+            tick.instance.sourceCombatantId,
+            content,
+          )
+          shadow = allocated.state
+          commands.set(key, allocated.commandId)
+        }
         const absorbed = absorbIndirectDamageWithBarrier(
           shadow,
           tick.instance.sourceCombatantId,
           actorId,
           'status.poison.current.v1',
           BigInt(tick.triggeredTicks) * BigInt(currentPoisonTickDamage(tick.instance)),
+          { content, commandId: commands.get(key) },
         )
         shadow = absorbed.state
         hp = Math.max(0, hp - absorbed.remainingDamage)
@@ -196,13 +238,15 @@ export function evaluatePreparedCombatWalking(
       {
         code: 'status-restricted',
         stepIndex: null,
-        message: 'Root prevents movement until it expires or is cleansed.',
+        message: isAnchoredCombatSummon(prepared, prepared.tactical.battle.currentTurn?.combatantId)
+          ? 'This summon always remains on its summoned tile.'
+          : 'Root prevents movement until it expires or is cleansed.',
       },
     ]
   }
 
   const poisonForecast = movement.legal
-    ? forecastPv1fPoisonMovement(prepared, path)
+    ? forecastPv1fPoisonMovement(prepared, path, content)
     : { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
   if (
     movement.legal &&

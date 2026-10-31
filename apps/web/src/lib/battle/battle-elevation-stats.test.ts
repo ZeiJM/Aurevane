@@ -103,3 +103,38 @@ it('shows active viewer-visible Drenched Initiative once, including tempo, witho
   ).toBe(60)
   expect(unit.initiative).toBe(20)
 })
+
+it('shows configured Drenched reductions from visible applications', () => {
+  const unit = { id: 'unit', initiative: 40 }
+  const wet = {
+    statusId: 'wet',
+    statusVersion: 1,
+    stacks: 2,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'source',
+    initiativeReductionBasisPoints: 2500,
+  }
+  expect(visibleBattleInitiative({ dynamicInitiativePolicyVersion: 1 }, unit, [wet])).toBe(20)
+})
+
+it('shows Fortified defenses using only the viewer-visible applications', () => {
+  const fortified = {
+    statusId: 'fortified',
+    statusVersion: 1,
+    stacks: 1,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'source',
+    defenseIncreaseBasisPoints: 5000,
+  }
+  const state = {
+    ...terrainState(0),
+    statusState: [{ combatantId: 'unit', statuses: [fortified] }],
+  }
+  const profile = { armor: 100, ward: 200, evasion: 0 }
+  expect(terrainAdjustedBattleProfile(state, 'unit', profile, [fortified])).toEqual({
+    armor: 150,
+    ward: 300,
+    evasion: 0,
+  })
+  expect(terrainAdjustedBattleProfile(state, 'unit', profile, [])).toEqual(profile)
+})

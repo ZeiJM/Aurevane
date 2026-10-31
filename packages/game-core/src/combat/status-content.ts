@@ -1,9 +1,5 @@
 import type { CombatStatusDefinition } from './actions'
-import {
-  blindsideDamageDescription,
-  BLINDSIDE_DEBUFF_STATUS_ID,
-  BLINDSIDE_DEBUFF_DESCRIPTION,
-} from './combat-blindside'
+import { BLINDSIDE_DEBUFF_STATUS_ID, BLINDSIDE_DEBUFF_DESCRIPTION } from './combat-blindside'
 import { airborneDescription } from './combat-airborne'
 import type { CombatDamageModifier, DamageCondition } from './damage-modifiers'
 
@@ -41,36 +37,52 @@ function status(
 /** Short names and descriptions are shared by Techniques, combat inspection and AI. */
 export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   status(
-    'wet',
-    'Wet',
-    'Debuff',
-    'Storm damage gains 20% per active Wet or Conductive application. Fire removes Wet.',
-    { gameplayTags: ['Wet'] },
+    'endure',
+    'Endure',
+    'Buff',
+    'Prevents damage-dealing actions while active. On natural expiry, releases a saved share of HP damage received to nearby chosen teams.',
+    { amplifyCopyable: false, curseCopyable: false, reactionClass: 'ordinary' },
   ),
+  status(
+    'counter',
+    'Counter',
+    'Buff',
+    'Returns the configured share of matching damage received to its source. Counter damage cannot trigger another Counter.',
+    { amplifyCopyable: true, reactionClass: 'reactive' },
+  ),
+  status('wet', 'Wet', 'Debuff', 'Reduces Initiative and increases Storm damage taken.', {
+    gameplayTags: ['Wet'],
+  }),
   status(
     'frozen',
     'Chilled',
     'Debuff',
-    'A Chilled setup tag. Fire removes it. Frozen Ground has a separate duration and movement cost.',
+    'Prevents choosing a different final facing. Movement still turns the bearer; Cleanse Chilled removes it.',
     { gameplayTags: ['Frozen'] },
   ),
   status(
     'conductive',
     'Conductive',
     'Debuff',
-    'Storm damage gains 20% per active Wet or Conductive application, consuming Conductive.',
+    'Increases Storm damage taken. A damaging Storm hit consumes the existing charge.',
     { gameplayTags: ['Conductive'] },
   ),
-  status('inspired', 'Damage Up', 'Buff', 'Deal 10% more damage per application.', {
+  status('inspired', 'Damage Up', 'Buff', 'Increases outgoing damage per application.', {
     gameplayTags: ['Inspired'],
     amplifyCopyable: true,
     reactionClass: 'ordinary',
   }),
-  status('blindside', 'Blindside', 'Buff', blindsideDamageDescription(), {
-    gameplayTags: ['Blindside'],
-    amplifyCopyable: true,
-    reactionClass: 'ordinary',
-  }),
+  status(
+    'blindside',
+    'Blindside',
+    'Buff',
+    'Increases Skill damage from the side and rear for one turn. Basic Attack is unchanged.',
+    {
+      gameplayTags: ['Blindside'],
+      amplifyCopyable: true,
+      reactionClass: 'ordinary',
+    },
+  ),
   status(BLINDSIDE_DEBUFF_STATUS_ID, 'Blindside', 'Debuff', BLINDSIDE_DEBUFF_DESCRIPTION, {
     gameplayTags: ['Blindside'],
     curseCopyable: true,
@@ -81,7 +93,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'suppress',
     'Suppress',
     'Debuff',
-    'Deal 25% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged.',
+    'Reduces outgoing direct damage. Reapplication keeps the strongest potency and longest remaining duration; existing damage-over-time ticks are unchanged.',
     {
       durationOwnerTurnStarts: 3,
       gameplayTags: ['Suppress'],
@@ -89,7 +101,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       reactionClass: 'ordinary',
     },
   ),
-  status('hexed', 'Healing Down', 'Debuff', 'Receive 25% less HP and MP recovery.', {
+  status('hexed', 'Healing Down', 'Debuff', 'Reduces HP and MP recovery received.', {
     gameplayTags: ['Hexed'],
     curseCopyable: true,
     reactionClass: 'ordinary',
@@ -98,7 +110,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'invisible',
     'Invisible',
     'Buff',
-    'Cannot be selected by hostile direct unit actions. Ground effects can hit. A damaging action or taking damage breaks Invisible.',
+    'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. A damaging action or taking damage ends Invisible.',
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
 
@@ -114,7 +126,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'haste',
     'Haste',
     'Buff',
-    'Movement costs 10 less AP per entered tile, to a minimum of 10 AP. Movement allowance is unchanged.',
+    'Reduces movement AP cost per tile, to a minimum of 10 AP. Movement allowance is unchanged.',
     {
       movement: { additionalApPerTile: -10 },
       amplifyCopyable: true,
@@ -148,7 +160,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'slow',
     'Slow',
     'Debuff',
-    'Movement costs 10 extra AP per tile. Your Movement allowance is unchanged.',
+    'Increases movement AP cost per tile. Movement allowance is unchanged.',
     {
       movement: { additionalApPerTile: 10 },
       curseCopyable: true,
@@ -164,21 +176,21 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'reckless',
     'Reckless',
     'Effect',
-    'Deal 40% more damage and take 25% more damage. Both effects expire or are removed together.',
+    'Increases damage dealt and damage taken. Both effects end together.',
     { damageModifiers: [modifier('outgoing', 14_000), modifier('incoming', 12_500)] },
   ),
   status(
     'fortified',
     'Fortified',
     'Effect',
-    'Take 30% less damage and deal 20% less damage. Both effects expire or are removed together.',
+    'Increases Physical and Mystic Defense and reduces outgoing damage by the same percentage.',
     { damageModifiers: [modifier('incoming', 7_000), modifier('outgoing', 8_000)] },
   ),
   status(
     'challenged',
-    'Taunted',
+    'Taunt',
     'Debuff',
-    'Deal 25% less damage to anyone except the unit that applied Taunt.',
+    'Reduces damage dealt to anyone except the unit that applied Taunt.',
     {
       damageModifiers: [
         modifier('outgoing', 7_500, { kind: 'opponent-is-source', matches: false }),
@@ -189,7 +201,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'mark',
     'Marked',
     'Debuff',
-    'The source gains +15 percentage points Accuracy against this target. Other attackers gain no benefit.',
+    'Increases the source’s Accuracy against the target. Other attackers gain no bonus.',
     {
       reactionClass: 'ordinary',
       curseCopyable: true,
@@ -197,7 +209,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       effectCategories: ['Debuff', 'Mark'],
     },
   ),
-  status('warded', 'Burn Ward', 'Buff', 'Take 20% less damage from opponents affected by Burn.', {
+  status('warded', 'Burn Ward', 'Buff', 'Reduces damage taken from opponents affected by Burn.', {
     damageModifiers: [modifier('incoming', 8_000, { kind: 'opponent-status', statusId: 'burn' })],
   }),
 ]
@@ -274,8 +286,7 @@ const legacyDescriptions: Record<
   'return-to-turn-start': {
     name: 'Rewind',
     kind: 'Effect',
-    description:
-      'Returns the caster to the recorded turn-start position if the destination remains legal.',
+    description: 'Returns each target to its saved position if the return remains legal.',
   },
   'remove-status': {
     name: 'Cleanse',
@@ -291,7 +302,8 @@ const legacyDescriptions: Record<
   sensory: {
     name: 'Reveal',
     kind: 'Effect',
-    description: 'Removes eligible beneficial effects from Covert targets and applies Revealed.',
+    description:
+      'A successful hit against Invisible or Covert removes both concealments and applies Revealed.',
   },
   barrier: {
     name: 'Barrier',
@@ -306,31 +318,30 @@ const legacyDescriptions: Record<
   revealed: {
     name: 'Revealed',
     kind: 'Debuff',
-    description: 'Counters Covert and increases Skill AP costs.',
+    description: 'Increases damage taken. Incoming attacks have 100% Accuracy.',
   },
   guarded: {
     name: 'Guard',
     kind: 'Buff',
-    description: 'Reduces incoming damage by 15% per application. Each use refreshes the duration.',
+    description: 'Reduces damage taken per application. Reapplication refreshes the duration.',
   },
   exposed: {
     name: 'Vulnerable',
     kind: 'Debuff',
-    description: 'Take 15% more damage per application. Each use refreshes the duration.',
+    description: 'Increases damage taken per application. Reapplication refreshes the duration.',
   },
   'lowered-guard': {
     name: 'Defenseless',
     kind: 'Debuff',
-    description:
-      'Each application multiplies incoming damage by 2.5×. Applied after a genuine PvP turn-timer expiry.',
+    description: 'Changes incoming damage by the configured multiplier.',
   },
 }
 const persistentEffectDescriptions: Record<string, string> = {
   poison:
-    'Current percentage Poison ticks once at the affected turn end. Every five traversed tiles, including Push or Pull, refresh its full recorded duration without extra damage. Reapplication retains the greater percentage and original duration independently and resets movement progress. Historical applications retain their recorded rules.',
-  burn: 'Takes decreasing burn damage at affected turn ends. Attacking while burning causes additional damage. The applied instance determines its power and lifetime.',
+    'Deals damage at turn end. Movement can refresh its duration or trigger damage under older rules; each application keeps its saved triggers and lifetime.',
+  burn: 'Deals damage at turn end. Its saved profile determines tick damage, decay and any backlash after damaging an enemy.',
   bleed:
-    'Bleeding stacks deal damage at affected turn ends. Each applied stack retains its own power and remaining ticks.',
+    'Each Bleed application deals damage separately at turn end, using its saved damage and remaining ticks.',
 }
 export function combatStatusDetails(
   id: string,

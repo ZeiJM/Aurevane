@@ -1,10 +1,14 @@
 import { prePercentageRecoverySkill } from './percentage-recovery-history.test-utils'
 import { describe, expect, it } from 'vitest'
 
+import { calculateDerivedStats, DERIVED_STAT_RULESET_V5 } from '../character/derived-stats'
+import { validateCombatTagPayload } from './combat-tag-registry'
 import type { MatureSkillDefinition } from './mature-skills'
 import { resolveMatureSkillVersion, validateMatureSkillDefinition } from './mature-skills'
 import {
   SUMMON_PROFILE_SCHEMA_VERSION,
+  DEFAULT_SUMMON_CORE_ATTRIBUTES,
+  withCurrentSummonCoreAttributes,
   validateSummonProfileDefinition,
   type SummonProfileDefinition,
 } from './summon-content'
@@ -79,6 +83,15 @@ function profile(overrides: Partial<SummonProfileDefinition> = {}): SummonProfil
 }
 
 describe('Combat v5.1 summon content', () => {
+  it('accepts absent or boolean neverMoves and rejects malformed values', () => {
+    expect(validateSummonProfileDefinition(profile())).toEqual([])
+    expect(validateSummonProfileDefinition(profile({ neverMoves: true }))).toEqual([])
+    expect(validateSummonProfileDefinition(profile({ neverMoves: false }))).toEqual([])
+    expect(
+      validateSummonProfileDefinition(profile({ neverMoves: 'true' as unknown as boolean })),
+    ).toContain('neverMoves')
+  })
+
   it('accepts a five-turn summon profile with one or two authored abilities', () => {
     expect(validateSummonProfileDefinition(profile())).toEqual([])
     expect(
@@ -194,5 +207,111 @@ describe('Combat v5.1 summon content', () => {
         target: { ...valid.target, kind: 'ground-tile' },
       } as unknown as MatureSkillDefinition),
     ).toContain('target.kind')
+  })
+})
+
+describe('Core-authored summon snapshots', () => {
+  it('derives every combat stat through the shared current character formulas and preserves hidden metadata', () => {
+    const legacy = profile()
+    const before = JSON.stringify(legacy)
+    const core = { might: 12, finesse: 30, vitality: 40, agility: 60, intellect: 50, resolve: 20 }
+    const current = withCurrentSummonCoreAttributes(legacy, core)
+    const expected = calculateDerivedStats(
+      { level: 1, attributes: core },
+      DERIVED_STAT_RULESET_V5,
+    ).stats
+    expect(current).toMatchObject({
+      coreAttributes: core,
+      derivedStatRulesVersion: 5,
+      maxHp: expected.maxHp.value,
+      maxMp: expected.maxMp.value,
+      initiative: expected.initiative.value,
+      movementBudget: expected.movement.value,
+      stats: {
+        accuracy: expected.accuracy.value,
+        evasion: expected.evasion.value,
+        armor: expected.armor.value,
+        ward: expected.ward.value,
+        jump: expected.jump.value,
+        physicalPower: expected.physicalPower.value,
+        mysticPower: expected.mysticPower.value,
+        criticalChance: expected.criticalChance.value,
+        statusResistance: expected.statusResistance.value,
+      },
+      portraitKey: legacy.portraitKey,
+      tags: legacy.tags,
+      aiProfile: legacy.aiProfile,
+      aiPurposeTags: legacy.aiPurposeTags,
+      abilities: legacy.abilities,
+    })
+    core.vitality = 1
+    expect(current.coreAttributes?.vitality).toBe(40)
+    expect(JSON.stringify(legacy)).toBe(before)
+    expect(validateSummonProfileDefinition(current)).toEqual([])
+    expect(
+      validateCombatTagPayload({
+        type: 'summon',
+        recipient: 'selected-tile',
+        profile: JSON.parse(JSON.stringify(current)),
+      }),
+    ).toEqual([])
+  })
+
+  it('keeps legacy captures literal and converts only through the explicit helper', () => {
+    const legacy = profile()
+    expect(validateSummonProfileDefinition(legacy)).toEqual([])
+    expect(legacy).not.toHaveProperty('coreAttributes')
+    const converted = withCurrentSummonCoreAttributes(legacy)
+    expect(converted.coreAttributes).toEqual(DEFAULT_SUMMON_CORE_ATTRIBUTES)
+    expect(converted.maxHp).not.toBe(legacy.maxHp)
+    expect(withCurrentSummonCoreAttributes(converted)).toEqual(converted)
+  })
+
+  it('rejects incomplete, invalid or mismatched Core captures', () => {
+    const current = withCurrentSummonCoreAttributes(profile())
+    expect(validateSummonProfileDefinition({ ...current, maxHp: current.maxHp + 1 })).toContain(
+      'maxHp',
+    )
+    expect(
+      validateSummonProfileDefinition({ ...current, derivedStatRulesVersion: undefined }),
+    ).toContain('derivedStatRulesVersion')
+    expect(validateSummonProfileDefinition({ ...current, coreAttributes: undefined })).toContain(
+      'coreAttributes',
+    )
+    expect(() =>
+      withCurrentSummonCoreAttributes(profile(), { ...DEFAULT_SUMMON_CORE_ATTRIBUTES, might: 61 }),
+    ).toThrow(/might/)
+    expect(() =>
+      withCurrentSummonCoreAttributes(profile(), { ...DEFAULT_SUMMON_CORE_ATTRIBUTES, resolve: 0 }),
+    ).toThrow(/resolve/)
+    expect(
+      validateSummonProfileDefinition({
+        ...current,
+        coreAttributes: { ...current.coreAttributes!, might: 1.5 },
+      }),
+    ).toContain('coreAttributes')
+    const extraCore = { ...current, coreAttributes: { ...current.coreAttributes!, script: 1 } }
+    expect(
+      validateCombatTagPayload({ type: 'summon', recipient: 'selected-tile', profile: extraCore }),
+    ).not.toEqual([])
+  })
+
+  it('accepts optional nonnegative HP costs and rejects invalid costs', () => {
+    for (const hpCost of [undefined, 0, 35, 1000]) {
+      const authored = profile({
+        abilities: [{ ...ability('test.strike'), ...(hpCost === undefined ? {} : { hpCost }) }],
+      })
+      expect(validateSummonProfileDefinition(authored)).toEqual([])
+      expect(
+        validateCombatTagPayload({ type: 'summon', recipient: 'selected-tile', profile: authored }),
+      ).toEqual([])
+    }
+    for (const hpCost of [-1, 0.5, Number.NaN, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(
+        validateSummonProfileDefinition(
+          profile({ abilities: [{ ...ability('test.strike'), hpCost }] }),
+        ),
+      ).toContain('abilities')
+    }
   })
 })

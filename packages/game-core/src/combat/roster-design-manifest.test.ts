@@ -216,9 +216,33 @@ function resolve(w: Witness): Record<string, unknown> {
 function nodes(n: RequirementNode | null): RequirementNode[] {
   return n ? [n, ...('children' in n ? n.children.flatMap(nodes) : [])] : []
 }
-it('has registry-derived meaningful effect witnesses, never prose-only decorative coverage', () => {
+// No October10 record contains these later mechanics. Their executable coverage lives in
+// combat-endure.test.ts, combat-reversal.test.ts and combat-attack-tags.test.ts.
+// Keep this finite: an unreviewed future registry entry must still fail roster coverage.
+const outsideOctober10Effects = ['endure', 'reversal', 'weak-point', 'spike', 'ruin']
+it('keeps later effect mechanics outside the immutable October10 records', () => {
+  const types = new Set<string>(
+    manifest.records.flatMap((row) =>
+      row.after.ability
+        ? parseAbilityDefinition(row.after.ability).behaviors.flatMap((behavior) =>
+            behavior.effects.map((effect) => effect.payload.type),
+          )
+        : [],
+    ),
+  )
+  for (const id of outsideOctober10Effects) {
+    expect(
+      COMBAT_TAG_REGISTRY.some((tag) => tag.id === id),
+      id,
+    ).toBe(true)
+    expect(types.has(id), id).toBe(false)
+  }
+})
+it('has registry-derived meaningful effect witnesses for the immutable October10 roster', () => {
   expect(coverage.effectCoverage.map((r) => r.id).sort()).toEqual(
-    COMBAT_TAG_REGISTRY.map((r) => r.id).sort(),
+    COMBAT_TAG_REGISTRY.filter((r) => !outsideOctober10Effects.includes(r.id))
+      .map((r) => r.id)
+      .sort(),
   )
   for (const entry of coverage.effectCoverage) {
     expect(entry.witnesses.length, entry.id).toBeGreaterThan(0)
@@ -233,8 +257,10 @@ it('classifies every status registered for the immutable October10 roster', () =
       'lowered-guard',
       'covert',
       'revealed',
-      // Enemy Blindside belongs to the later modular correction cohort.
-      ...PHASE4_STATUSES.filter((s) => s.id !== 'blindside-vulnerability').map((s) => s.id),
+      // Later mechanics: combat-blindside.test.ts, combat-counter.test.ts and combat-endure.test.ts.
+      ...PHASE4_STATUSES.filter(
+        (s) => !['blindside-vulnerability', 'counter', 'endure'].includes(s.id),
+      ).map((s) => s.id),
     ]),
   ]
   expect(coverage.statusCoverage.map((r) => r.id).sort()).toEqual(ids.sort())

@@ -1,4 +1,6 @@
 'use client'
+import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
+import { withAbilityEffectDependencies } from '@/lib/combat-ability-effect-dependencies'
 
 import {
   activeAbilityForAuthoring,
@@ -169,6 +171,7 @@ function AbilityGroupEditor({
         ),
       }
     }
+    next = withAbilityEffectDependencies(value, next)
     next = withAuthoredElementalCompanions(value, next)
     update(
       (next.targeting?.maximumSelections ?? 1) > 1 ||
@@ -178,7 +181,10 @@ function AbilityGroupEditor({
     )
   }
   const elementRepair = withAuthoredElementalCompanions(value, value)
-  const show = (key: AbilityEditorSection) => !section || section === key
+  const show = (key: AbilityEditorSection) =>
+    !section ||
+    section === key ||
+    (section === 'execution' && ['economy', 'accuracy'].includes(key))
   const automaticSubjects =
     value.requirementMode === 'simple'
       ? simpleAutomaticTargetSubjects(value)
@@ -256,7 +262,9 @@ function AbilityGroupEditor({
             <AbilitySelect
               label="Group activation"
               disabledOptions={
-                value.effects.some((row) => ['move', 'summon'].includes(row.payload.type))
+                value.effects.some((row) =>
+                  ['move', 'summon', 'reversal'].includes(row.payload.type),
+                )
                   ? ['automatic', 'ongoing']
                   : []
               }
@@ -293,7 +301,9 @@ function AbilityGroupEditor({
             <AbilitySelect
               label="Group mode"
               disabledOptions={
-                value.effects.some((row) => ['move', 'summon'].includes(row.payload.type))
+                value.effects.some((row) =>
+                  ['move', 'summon', 'reversal'].includes(row.payload.type),
+                )
                   ? ['modifier']
                   : []
               }
@@ -333,6 +343,11 @@ function AbilityGroupEditor({
               optionLabels={{ attack: 'Attack', recovery: 'Recovery', utility: 'Utility' }}
               value={value.classification}
               options={['attack', 'recovery', 'utility']}
+              disabledOptions={
+                value.effects.some((row) => row.payload.type === 'reversal')
+                  ? ['attack', 'recovery']
+                  : []
+              }
               onChange={(classification) => {
                 const next = { ...value, classification }
                 if (classification === 'attack') next.attackFamily ??= 'physical'
@@ -604,20 +619,7 @@ function AbilityGroupEditor({
       {show('effects') && (
         <>
           <fieldset className={styles.typedGroup} aria-label="Effects">
-            <legend>
-              Effects{' '}
-              <MasterHelp label="Effect compatibility">
-                {value.effects.some((row) => ['move', 'summon'].includes(row.payload.type)) ? (
-                  <>
-                    Move is Manual Action, Instant, once and first. Summon is last and uses one
-                    Empty Tile. They cannot share a group.{' '}
-                  </>
-                ) : null}
-                Copy and Reveal need a single unit. Choices follow this group’s activation and
-                selected targets. Disabled choices cannot use the current combination; edit those
-                settings explicitly or use another group.
-              </MasterHelp>
-            </legend>
+            <legend>Effects</legend>
             <div className={styles.effectList}>
               {value.effects.map((effect, index) => (
                 <article
@@ -628,7 +630,9 @@ function AbilityGroupEditor({
                   <header className={styles.effectHeader}>
                     <strong>
                       Effect {index + 1} ·{' '}
-                      <EffectTagLabel label={effectAuthoringTag(effect.payload).label} />
+                      <EffectTagLabel
+                        label={effectAuthoringTag(currentTagForAuthoring(effect.payload)).label}
+                      />
                       <span className={styles.effectTarget}>
                         {' '}
                         [{inheritedEffectTargetLabel(effect.payload, value.targeting ?? undefined)}]
@@ -716,6 +720,7 @@ function AbilityGroupEditor({
                   ...value,
                   effects: insertAuthoringEffect(value.effects, {
                     id: nextId('effect', value.effects),
+                    ...(payload.type === 'reversal' ? { timing: 'controlled' as const } : {}),
                     payload: value.targeting
                       ? withAuthoredAreaRecipients(value.targeting, [payload], {
                           requiresSelectedUnit,

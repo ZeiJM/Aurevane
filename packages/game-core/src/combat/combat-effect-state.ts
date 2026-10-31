@@ -68,6 +68,8 @@ export interface CombatOngoingRecovery {
 }
 
 export interface CombatPoisonInstance {
+  /** Private original Summon attack identity; repeated periodic packets share one budget per tick. */
+  summonDamageCommandId?: number
   percentageDamage?: CapturedPercentageDotDamage
   /** Stable identity for independently accumulated applications in stacking policy 1. */
   applicationOrder?: number
@@ -88,6 +90,8 @@ export interface CombatPoisonInstance {
 }
 
 export interface CombatBleedStack {
+  /** Private original Summon attack identity; repeated periodic packets share one budget per tick. */
+  summonDamageCommandId?: number
   percentageDamage?: CapturedPercentageDotDamage
   skipCurrentOwnerTurnEnd?: boolean
   targetCombatantId: string
@@ -102,6 +106,8 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  /** Private original Summon attack identity; repeated periodic packets share one budget per tick. */
+  summonDamageCommandId?: number
   backlashBasisPoints?: number
   percentageDamage?: CapturedPercentageDotDamage
   /** Stable identity for independently accumulated applications in stacking policy 1. */
@@ -150,7 +156,25 @@ export interface CombatSummonInstance {
   turnsCompleted: number
 }
 
+/** Private captured provenance remains available to persistent Ground after the summon expires. */
+export interface CombatSummonDamageSource {
+  combatantId: string
+  ownerCombatantId: string
+  potencyBasisPoints: number
+}
+export interface CombatSummonDamageCommand {
+  id: number
+  sourceCombatantId: string
+  turnNumber: number
+  budgetByRecipient: Record<string, number>
+  spentByRecipient: Record<string, number>
+}
+
 export interface CombatEffectState {
+  summonDamageSources?: CombatSummonDamageSource[]
+  summonDamageCommands?: CombatSummonDamageCommand[]
+  nextSummonDamageCommandId?: number
+
   ongoingRecovery: CombatOngoingRecovery[]
   poison: CombatPoisonInstance[]
   bleed: CombatBleedStack[]
@@ -167,6 +191,15 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
       : {}
 
   return {
+    ...(Array.isArray(input.summonDamageSources)
+      ? { summonDamageSources: input.summonDamageSources }
+      : {}),
+    ...(Array.isArray(input.summonDamageCommands)
+      ? { summonDamageCommands: input.summonDamageCommands }
+      : {}),
+    ...(input.nextSummonDamageCommandId === undefined
+      ? {}
+      : { nextSummonDamageCommandId: input.nextSummonDamageCommandId }),
     ongoingRecovery: Array.isArray(input.ongoingRecovery) ? input.ongoingRecovery : [],
     poison: Array.isArray(input.poison) ? input.poison : [],
     bleed: Array.isArray(input.bleed) ? input.bleed : [],
@@ -175,4 +208,17 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
     ...(Array.isArray(input.barriers) ? { barriers: input.barriers } : {}),
     ...(Array.isArray(input.summons) ? { summons: input.summons } : {}),
   }
+}
+
+/** An authored stationary summon cannot leave its tile through any movement mechanic. */
+export function isAnchoredCombatSummon(
+  state: { effectState?: CombatEffectState },
+  combatantId: string | undefined,
+): boolean {
+  return Boolean(
+    combatantId &&
+    state.effectState?.summons?.some(
+      (row) => row.combatantId === combatantId && row.profile.neverMoves === true,
+    ),
+  )
 }

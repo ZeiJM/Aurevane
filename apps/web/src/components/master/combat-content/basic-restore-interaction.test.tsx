@@ -29,6 +29,7 @@ const hooks = vi.hoisted(() => ({
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
   useId: () => ':description-test:',
+  useContext: () => null,
   useCallback(callback: unknown, dependencies: unknown[]) {
     const index = hooks.index++
     const old = hooks.cells[index] as { dependencies: unknown[]; callback: unknown } | undefined

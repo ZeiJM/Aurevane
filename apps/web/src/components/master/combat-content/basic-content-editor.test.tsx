@@ -76,3 +76,16 @@ it('identifies plural authored groups instead of merging their reports', () => {
   expect(html).toContain('31 AP')
   expect(html).toContain('Preview action group')
 })
+it('keeps Basic Move cost controls in the merged Execution Characteristics section', () => {
+  const basic = defaultBasicSkills().find((row) => row.execution.kind === 'basic-move')!
+  const html = renderToStaticMarkup(
+    <ContentDefinitionFields
+      kind="skill"
+      value={{ ...basic }}
+      tab="Parameters"
+      initialAbilitySection="execution"
+      onChange={() => {}}
+    />,
+  )
+  expect(html).toContain('aria-label="Move cost basis"')
+})

@@ -448,7 +448,11 @@ it.each(['ice', 'water', 'storm'] as const)(
     const e = editor()
     e.change('Element', element)
     e.change('Effect duration (turns)', '3')
-    if (element !== 'ice') e.change('Status potency (percent)', '35.25')
+    if (element !== 'ice')
+      e.change(
+        element === 'water' ? 'Storm damage increase (%)' : 'Status potency (percent)',
+        '35.25',
+      )
     e.change('Damage amount', '18')
     const companion = e.draft().behaviors[0]!.effects[1]!.payload
     expect(companion).toMatchObject({

@@ -283,3 +283,43 @@ it('projects the exact removal to the existing AI utility path without mutating 
   ).toBe(-8)
   expect(JSON.stringify(state)).toBe(before)
 })
+
+it.each(['anything', null, 7, []].map((selectionKind) => ({ selectionKind })))(
+  'rejects malformed removal selectionKind $selectionKind at canonical and native boundaries',
+  ({ selectionKind }) => {
+    const payload = { ...removal('specified'), selectionKind } as Extract<
+      CombatEffectDefinition,
+      { type: 'remove-status' }
+    >
+    expect(() => validateCombatActionDefinition(action([payload]), PV1F_COMBAT_CONTENT)).toThrow(
+      /selection/i,
+    )
+    expect(() =>
+      parseAbilityDefinition(source({ effects: [{ id: 'bad', payload }] }).definition),
+    ).toThrow(/selection/i)
+  },
+)
+
+it.each(['buffs', 'debuffs'] as const)(
+  'retains valid %s selection identity through canonical capture and native validation',
+  (selectionKind) => {
+    const payload = {
+      ...removal('specified'),
+      selectionKind,
+      statusIds: [selectionKind === 'buffs' ? 'guarded' : 'burn'],
+    }
+    expect(() =>
+      validateCombatActionDefinition(action([payload]), PV1F_COMBAT_CONTENT),
+    ).not.toThrow()
+    const captured = captureCombatAbilitySource(source({ effects: [{ id: 'remove', payload }] }))
+    const restored = parseAbilityDefinition(JSON.parse(JSON.stringify(captured.definition)))
+    expect(restored.behaviors[0]!.effects[0]!.payload).toEqual(payload)
+    const wrong = { ...payload, statusIds: [selectionKind === 'buffs' ? 'burn' : 'guarded'] }
+    expect(() => validateCombatActionDefinition(action([wrong]), PV1F_COMBAT_CONTENT)).toThrow(
+      /matching polarity/i,
+    )
+    expect(() =>
+      parseAbilityDefinition(source({ effects: [{ id: 'wrong', payload: wrong }] }).definition),
+    ).toThrow(/matching polarity/i)
+  },
+)

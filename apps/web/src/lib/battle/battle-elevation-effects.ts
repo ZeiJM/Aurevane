@@ -1,3 +1,8 @@
+import {
+  reversalDescription,
+  REVERSAL_STRAIN_DESCRIPTION,
+  type ReversalPresentationValues,
+} from '../reversal-presentation'
 import type { BattleTagWording } from './battle-tag-wording'
 import type { CombatEffectPresentationStatus } from '@aurevane/game-core/combat/combat-effect-timing'
 
@@ -10,7 +15,9 @@ export type BattlePresentedStatus = CombatEffectPresentationStatus & {
   airborneJumpPolicyVersion?: 1
   healingDownPolicyVersion?: 1
   blindsideActivationPolicyVersion?: 1
-  presentationDuration?: 'while-elevated' | 'while-primed'
+  presentationDuration?:
+    'while-elevated' | 'while-primed' | 'until-reversal-ends' | 'next-complete-owner-turn'
+  reversal?: ReversalPresentationValues
 }
 
 export const TERRAIN_EVASION_STATUS_ID = 'terrain-evasion'
@@ -70,5 +77,47 @@ export function primedBattleEffectPresentation(
     duration: 'While a Controlled skill remains primed',
     description:
       'A Controlled skill is prepared for release. Primed ends when it is released, cancelled, its source is removed, the character is defeated, or battle ends. This derived tag cannot be applied, copied or cleansed.',
+  }
+}
+
+/** Read-only system consequence and armed state; neither is an ordinary mutable status. */
+export function reversalBattleEffectPresentation(
+  effect: Pick<
+    BattlePresentedStatus,
+    'statusId' | 'statusVersion' | 'presentationDuration' | 'reversal'
+  >,
+) {
+  if (effect.statusVersion !== 1) return null
+  if (
+    effect.statusId === 'reversal-strain' &&
+    effect.presentationDuration === 'next-complete-owner-turn'
+  )
+    return {
+      label: 'Reversal Strain',
+      kind: 'Debuff',
+      identifier: 'RST',
+      count: null,
+      counterLabel: 'Restricted',
+      timing: 'Active',
+      timingState: 'active',
+      duration: 'Through the end of the next complete owner turn',
+      description: REVERSAL_STRAIN_DESCRIPTION,
+    }
+  if (
+    effect.statusId !== 'reversal' ||
+    effect.presentationDuration !== 'until-reversal-ends' ||
+    !effect.reversal
+  )
+    return null
+  return {
+    label: 'Reversal',
+    kind: 'Buff',
+    identifier: 'RVS',
+    count: null,
+    counterLabel: 'Armed',
+    timing: 'Armed',
+    timingState: 'primed',
+    duration: 'Until triggered or the start of the next actual owner turn',
+    description: `${reversalDescription(effect.reversal)} This armed state cannot be copied or removed by generic Cleanse or Dispel.`,
   }
 }

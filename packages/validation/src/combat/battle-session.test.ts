@@ -361,3 +361,20 @@ it.each(['ability-prime', 'ability-cancel-prime'])(
     ).toBeNull()
   },
 )
+
+it('accepts target intent on a recipient Rewind prime while rejecting supplied anchors', () => {
+  const intent = {
+    kind: 'ability-prime',
+    actionId: 'rewind',
+    behaviorId: 'rewind',
+    target: { kind: 'unit', combatantId: 'enemy' },
+  }
+  const request = { idempotencyKey: IDEMPOTENCY_KEY, expectedBattleVersion: 1, intent }
+  expect(parseBattleIntentRequest(request)?.intent).toEqual(intent)
+  expect(
+    parseBattleIntentRequest({
+      ...request,
+      intent: { ...intent, returnAnchors: { enemy: { x: 1, y: 1 } } },
+    }),
+  ).toBeNull()
+})

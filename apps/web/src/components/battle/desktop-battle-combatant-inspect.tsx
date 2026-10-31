@@ -533,6 +533,9 @@ export function DesktopBattleCombatantInspect({
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
+                {selected.summon.potencyDescription ? (
+                  <p>{selected.summon.potencyDescription}</p>
+                ) : null}
                 <SummonAbilityList
                   abilities={selected.summon.abilities}
                   policies={selected.summon.policies}

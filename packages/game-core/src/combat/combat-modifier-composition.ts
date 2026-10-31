@@ -1,3 +1,5 @@
+import { isAttackTag } from './combat-attack-tags'
+import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import type { CombatActionDefinition, CombatActionEvaluation } from './actions'
 import { canonicalCombatEffectRecipients } from './combat-targeting-shapes'
 import {
@@ -13,6 +15,7 @@ import type { AbilityBehavior, AbilityEffect } from './combat-definition'
 import {
   evaluateAbilitySelectedRequirements,
   type AbilityRequirementContext,
+  type RequirementNode,
 } from './combat-requirements'
 import { nativeCombatTagPayload } from './combat-tag-registry'
 import {
@@ -68,6 +71,14 @@ type Participant = ReturnType<typeof combatAbilityParticipant>
 function compare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
+function mentionsAffected(requirement: RequirementNode): boolean {
+  if (requirement.kind === 'all' || requirement.kind === 'any')
+    return requirement.children.some(mentionsAffected)
+  return (
+    ('subject' in requirement && requirement.subject === 'affected') ||
+    ('otherSubject' in requirement && requirement.otherSubject === 'affected')
+  )
+}
 export function composeCombatModifiers(
   input: CombatAbilityCommandInput,
   rootAction: CombatActionDefinition,
@@ -120,8 +131,38 @@ export function composeCombatModifiers(
     if (!effect.requirements) return undefined
     if (effect.payload.recipient === 'affected-tiles')
       throw new TypeError('canonical-tile-requirement-routing-required')
-    const ids =
-      effect.payload.recipient === 'actor'
+    if (isAttackTag(effect.payload) && !mentionsAffected(effect.requirements))
+      return evaluateAbilitySelectedRequirements(
+        effect.requirements,
+        effectContext,
+        selectedSubjects,
+      )
+        ? [input.actorId]
+        : []
+    const damageRecipients = () =>
+      [
+        ...new Set(
+          rootAction.effects.flatMap((damage, ordinal) => {
+            if (damage.type !== 'damage' || damage.vengeance) return []
+            // Ground captures recipient Requirements for potential future entrants, just like
+            // its ordinary affected-units packets; entry later refreshes debuff counts only.
+            return rootAction.groundArea?.entryEffectOrdinals.includes(ordinal)
+              ? input.state.tactical.battle.combatants
+                  .filter((unit) => unit.hp > 0 && unit.id !== input.actorId)
+                  .map((unit) => unit.id)
+              : combatEvaluatedEffectRecipientIds(
+                  input.state,
+                  rootAction,
+                  geometry,
+                  ordinal,
+                  input.content,
+                ).filter((id) => id !== input.actorId)
+          }),
+        ),
+      ].sort()
+    const ids = isAttackTag(effect.payload)
+      ? damageRecipients()
+      : effect.payload.recipient === 'actor'
         ? [input.actorId]
         : effect.payload.recipient === 'primary-unit'
           ? selectedIds

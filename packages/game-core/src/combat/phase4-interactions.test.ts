@@ -1538,3 +1538,143 @@ it('Frozen Ground ownership follows replacement caster team even after source de
       .current,
   ).toBe(70)
 })
+
+// Explicit profiles supersede the historical walking penalty without rewriting old captures.
+describe('captured Frozen Ground Skill AP', () => {
+  const ice = ground([
+    {
+      type: 'create-terrain',
+      recipient: 'affected-tiles',
+      terrain: 'frozen',
+      skillApSurcharge: 27,
+    } as CombatEffectDefinition,
+  ])
+  const skill = {
+    ...P33_REPRESENTATIVE_DISCIPLINE_SKILLS.find((entry) => entry.enabled)!,
+    id: 'test.frost-cost',
+    apCost: 20,
+    mpCost: 0,
+    requirements: [],
+    target: { ...action([]).target, shape: { kind: 'single' as const } },
+    effects: [{ type: 'damage' as const, recipient: 'primary-unit' as const, amount: 1 }],
+  }
+  function captured(sourceId = 'enemy') {
+    const base = {
+      ...encounter(),
+      frozenGroundPolicyVersion: 1 as const,
+      elementalDamagePolicyVersion: 2 as const,
+    }
+    const placed = executeCombatAction(
+      base,
+      ice,
+      { kind: 'tile', position: { x: 1, y: 1 } },
+      PV1F_COMBAT_CONTENT,
+    )
+    return {
+      ...placed.state,
+      statBridge: base.statBridge,
+      terrainOverlays: placed.state.terrainOverlays!.map((row) => ({
+        ...row,
+        sourceCombatantId: sourceId,
+      })),
+    }
+  }
+  it('captures the authored surcharge in forecasts, commits and restored state', () => {
+    const base = { ...encounter(), frozenGroundPolicyVersion: 1 as const }
+    const forecast = evaluateCombatAction(base, ice, tile, PV1F_COMBAT_CONTENT)
+    expect(forecast.projectedTerrain[0]).toMatchObject({ skillApSurcharge: 27 })
+    const state = JSON.parse(JSON.stringify(captured()))
+    expect(state.terrainOverlays[0]).toMatchObject({ skillApSurcharge: 27 })
+    expect(validateCombatEncounterState(state)).toEqual([])
+    const quote = evaluatePv1fMatureSkill(state, skill, target)
+    expect(quote.cost).toBe(47)
+    expect(quote.evaluation.legal).toBe(true)
+    expect(readPv1fActionEconomy(executePv1fMatureSkill(state, skill, target).state)?.current).toBe(
+      53,
+    )
+  })
+  it('exempts friendly occupants and Airborne, and does not surcharge Basic Attack', () => {
+    expect(evaluatePv1fMatureSkill(captured('ally'), skill, target).cost).toBe(20)
+    expect(
+      evaluatePv1fMatureSkill(withStatus(captured(), 'actor', 'airborne'), skill, target).cost,
+    ).toBe(20)
+    const basic = executePv1fAction(captured(), PV1F_BASIC_ATTACK_ID, target)
+    expect(readPv1fActionEconomy(basic.state)?.current).toBe(70)
+  })
+  it('charges no movement surcharge for explicit Skill AP profiles, including zero', () => {
+    const state = captured()
+    const path = [{ x: 1, y: 1 }, tile.position]
+    for (const skillApSurcharge of [0, 27]) {
+      const frozen = {
+        ...state,
+        terrainOverlays: [
+          { ...state.terrainOverlays![0]!, position: tile.position, skillApSurcharge },
+        ],
+      }
+      expect(evaluatePv1fMovement(frozen, path).economyCost).toBe(20)
+      expect(readPv1fActionEconomy(executePv1fMovement(frozen, path).state)?.current).toBe(80)
+    }
+  })
+  it('rejects unaffordable surcharged Skills and stops charging after leaving the tile', () => {
+    const state = captured()
+    const expensive = { ...skill, apCost: 80 }
+    const quote = evaluatePv1fMatureSkill(state, expensive, target)
+    expect(quote.cost).toBe(107)
+    expect(() => executePv1fMatureSkill(state, expensive, target)).toThrow(/Economy|AP/)
+    const moved = executePv1fMovement(state, [{ x: 1, y: 1 }, tile.position]).state
+    expect(evaluatePv1fMatureSkill(moved, skill, target).cost).toBe(20)
+  })
+  it('captures delayed profiles and removes the surcharge when Fire converts ice to Steam', () => {
+    const base = {
+      ...encounter(),
+      frozenGroundPolicyVersion: 1 as const,
+      effectTimingPolicy: {
+        version: 1 as const,
+        modes: { 'create-terrain': 'next-round' as const },
+      },
+    }
+    const preview = evaluateCombatAction(base, ice, tile, PV1F_COMBAT_CONTENT)
+    expect(preview.projectedTerrain[0]).toMatchObject({ skillApSurcharge: 27, activationRound: 2 })
+    let pending = {
+      ...executeCombatAction(base, ice, tile, PV1F_COMBAT_CONTENT).state,
+      statBridge: base.statBridge,
+    }
+    expect(pending.terrainOverlays ?? []).toHaveLength(0)
+    for (let i = 0; i < 4; i++)
+      pending = finishPv1fTurn(JSON.parse(JSON.stringify(pending)), 'west').state
+    expect(pending.terrainOverlays![0]).toMatchObject({
+      skillApSurcharge: 27,
+      remainingRoundBoundaries: 2,
+    })
+    for (let i = 0; i < 4; i++) pending = finishPv1fTurn(pending, 'west').state
+    expect(pending.terrainOverlays![0]).toMatchObject({
+      skillApSurcharge: 27,
+      remainingRoundBoundaries: 1,
+    })
+    for (let i = 0; i < 4; i++) pending = finishPv1fTurn(pending, 'west').state
+    expect(pending.terrainOverlays).toEqual([])
+    const state = captured()
+    const shortened = {
+      ...state,
+      terrainOverlays: state.terrainOverlays!.map((row) => ({
+        ...row,
+        remainingRoundBoundaries: 1,
+      })),
+    }
+    const fire = ground([
+      { type: 'damage', recipient: 'affected-units', amount: 1, element: 'fire' },
+    ])
+    const steam = {
+      ...executeCombatAction(
+        shortened,
+        fire,
+        { kind: 'tile' as const, position: { x: 1, y: 1 } },
+        PV1F_COMBAT_CONTENT,
+      ).state,
+      statBridge: state.statBridge,
+    }
+    expect(steam.terrainOverlays![0]).toMatchObject({ kind: 'steam', remainingRoundBoundaries: 1 })
+    expect(steam.terrainOverlays![0]).not.toHaveProperty('skillApSurcharge')
+    expect(evaluatePv1fMatureSkill(steam, skill, target).cost).toBe(20)
+  })
+})

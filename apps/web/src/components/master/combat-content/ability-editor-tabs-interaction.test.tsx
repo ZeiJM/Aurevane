@@ -49,7 +49,7 @@ it('keeps every draft panel mounted while click and keyboard selection change th
   expect(focus).toHaveBeenCalledOnce()
   expect(panel('details').props.hidden).toBe(false)
   expect(panel('details').props.children).toBe(original)
-  expect(render().filter((node) => node.props.role === 'tabpanel')).toHaveLength(6)
+  expect(render().filter((node) => node.props.role === 'tabpanel')).toHaveLength(5)
 })
 
 it('reveals covered fields after native focus scrolling and ignores stale focus', () => {

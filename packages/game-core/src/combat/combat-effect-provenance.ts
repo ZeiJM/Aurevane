@@ -1,3 +1,4 @@
+import { resolvedCombatRemovalStatusIds } from './combat-status-selection'
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import type { CombatResistedEffectOrdinals } from './combat-status-resistance'
 import { attachCombatStatusCopyProvenance } from './combat-status-copy'
@@ -138,7 +139,7 @@ export function attachCombatEffectProvenance(
         continue
       const kinds =
         effect.type === 'remove-status'
-          ? effect.statusIds.filter(
+          ? resolvedCombatRemovalStatusIds(effect, content).filter(
               (id): id is 'poison' | 'burn' => id === 'poison' || id === 'burn',
             )
           : effect.type === 'poison' || effect.type === 'burn'
@@ -195,7 +196,7 @@ export function attachCombatEffectProvenance(
       content,
     ).filter((id) => !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal))
     if (effect.type === 'remove-status') {
-      if (!effect.statusIds.includes('bleed')) continue
+      if (!resolvedCombatRemovalStatusIds(effect, content).includes('bleed')) continue
       for (const targetCombatantId of recipients) {
         lastBleedClearOrdinalByTarget.set(targetCombatantId, effectOrdinal)
       }

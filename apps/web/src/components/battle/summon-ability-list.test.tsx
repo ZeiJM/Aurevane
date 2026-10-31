@@ -83,6 +83,12 @@ describe('pinned summon ability characteristics', () => {
     expect(markup).toContain('[9]')
   })
 
+  it('reads an authored Summon cooldown without changing historical absence', () => {
+    const captured = { ...abilities[0]!, cooldownOwnerTurns: 3 }
+    const markup = renderToStaticMarkup(<Readers policies={policies} abilities={[captured]} />)
+    expect(markup).toContain('<dt>Cooldown</dt><dd>3 turns</dd>')
+  })
+
   it('uses the inspected summon’s Airborne status for Attack elevation only', () => {
     const markup = renderToStaticMarkup(
       <Readers policies={policies} abilities={abilities} airborne />,
@@ -183,4 +189,10 @@ describe('captured summon elemental explanation timing', () => {
     expect(explanations).not.toContain('full rounds starting')
     expect(explanations).not.toContain('If a damaged recipient')
   })
+})
+
+it('reads optional captured summon Skill HP costs alongside AP and MP', () => {
+  const captured = { ...abilities[0]!, apCost: 17, mpCost: 3, hpCost: 35 }
+  const markup = renderToStaticMarkup(<Readers policies={policies} abilities={[captured]} />)
+  expect(markup).toContain('<dt>Cost</dt><dd>17 AP / 3 MP / 35 HP</dd>')
 })

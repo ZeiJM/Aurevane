@@ -128,7 +128,7 @@ it.each([
   ['bleed', 'Bleed'],
   ['poison', 'Poison'],
   ['root', 'Rooted'],
-  ['challenged', 'Taunted'],
+  ['challenged', 'Taunt'],
   ['suppress', 'Suppress'],
   ['conductive', 'Conductive'],
   ['wet', 'Drenched'],

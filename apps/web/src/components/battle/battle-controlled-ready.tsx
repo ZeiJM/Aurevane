@@ -4,18 +4,22 @@ import styles from './battle-controlled-ready.module.css'
 export function BattleControlledReady({
   ready,
   primed = false,
+  kind,
+  canPrepare = false,
 }: {
   ready: boolean
   primed?: boolean
+  kind?: 'reversal'
+  canPrepare?: boolean
 }) {
   return (
     <>
-      {ready ? (
+      {ready && kind !== 'reversal' ? (
         <span className={styles.light} data-battle-controlled-ready="true" aria-hidden="true" />
       ) : null}
-      {primed ? (
-        <span className={styles.primed} data-battle-controlled-primed="true">
-          Primed
+      {primed || (kind === 'reversal' && canPrepare) ? (
+        <span className={styles.primed} data-battle-controlled-primed={primed || undefined}>
+          {kind === 'reversal' ? (primed ? 'Cancel' : 'Prepare') : 'Primed'}
         </span>
       ) : null}
     </>

@@ -203,6 +203,7 @@ function tuneEffect(
         durationTurns,
       }
     case 'resource-change': {
+      if (effect.basis === 'maximum-mp-percent') return { ...effect, durationTurns }
       const sign = effect.delta < 0 ? -1 : 1
       return {
         ...effect,
@@ -264,12 +265,15 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
   switch (effect.type) {
     case 'apply-status':
       return 1 + duration * 0.35 + (effect.potencyBasisPoints ?? 0) / 5_000
+    case 'reversal':
+      return 0
     case 'remove-status':
     case 'displace':
     case 'create-terrain':
     case 'return-to-turn-start':
     case 'copy-statuses':
     case 'sensory':
+    case 'endure':
       return 1.3 + duration * 0.25
     case 'percentage-recovery':
     case 'healing':
@@ -280,6 +284,9 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
     case 'burn':
     case 'bleed':
       return 1 + duration * 0.35
+    case 'weak-point':
+    case 'spike':
+    case 'ruin':
     case 'damage':
     case 'summon':
       return 0

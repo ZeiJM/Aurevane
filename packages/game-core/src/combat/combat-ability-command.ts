@@ -1,3 +1,15 @@
+import {
+  combatReversalPayload,
+  combatReversalPreparationIssue,
+  armCombatReversal,
+  recordCombatReversalOffense,
+} from './combat-reversal'
+import { frozenGroundSkillApCost } from './terrain-overlays'
+import {
+  captureCombatRewindAnchors,
+  copyCombatRewindAnchors,
+  type CombatRewindAnchors,
+} from './combat-rewind'
 import { automaticAbilityExecutionRequirements } from './combat-simple-requirements'
 import {
   effectiveBasicSkillBehavior,
@@ -123,6 +135,8 @@ export type CombatAbilityCommandRoot =
       readonly sourceDisciplineId?: string
     }
 export interface CombatAbilityCommandInput {
+  /** Engine-only paid Controlled preparation, never supplied by battle intent DTOs. */
+  readonly reversalPreparation?: true
   readonly state: CombatEncounterState
   readonly actorId: string
   readonly root: CombatAbilityCommandRoot
@@ -157,6 +171,7 @@ interface Participant extends PreparedCombatAbilityParticipant {
 export interface PreparedCombatAbilityCommand {
   readonly summon?: PreparedCanonicalSummon
   readonly returnAnchor?: GridPosition
+  readonly returnAnchors?: CombatRewindAnchors
   readonly movement?: PreparedCombatMove
   readonly action: CombatActionDefinition
   readonly evaluation: CombatActionEvaluation
@@ -188,7 +203,7 @@ export function combatAbilityUsageKey(
   ])
 }
 export function combatAbilityParticipant(
-  state: Pick<CombatEncounterState, 'statusState'>,
+  state: Pick<CombatEncounterState, 'statusState' | 'terrainOverlays' | 'tactical'>,
   source: CapturedCombatAbilitySource,
   behavior: AbilityBehavior,
   triggerId?: string,
@@ -202,11 +217,23 @@ export function combatAbilityParticipant(
     behaviorId: behavior.id,
     activation: behavior.activation,
     mode: behavior.mode,
-    costs: behavior.costs.map((cost) =>
-      cost.resource === 'ap' && ['discipline-skill', 'essence'].includes(source.sourceKind)
-        ? { ...cost, amount: revealedSkillApCost(state, source.ownerCombatantId, cost.amount) }
-        : cost,
-    ),
+    costs: behavior.costs.map((cost) => {
+      if (cost.resource !== 'ap') return cost
+      const intrinsic = ['discipline-skill', 'essence'].includes(source.sourceKind)
+        ? revealedSkillApCost(state, source.ownerCombatantId, cost.amount)
+        : cost.amount
+      return {
+        ...cost,
+        amount:
+          cost.amount > 0 &&
+          behavior.mode === 'action' &&
+          ['discipline-skill', 'essence', 'resonance', 'tactical-entity'].includes(
+            source.sourceKind,
+          )
+            ? frozenGroundSkillApCost(state, source.ownerCombatantId, intrinsic)
+            : intrinsic,
+      }
+    }),
     cooldown: behavior.cooldown,
     source,
     behavior,
@@ -448,6 +475,14 @@ export function prepareCombatAbilityCommand(
   const returnAnchor = controlledPrime?.returnAnchor
     ? { ...controlledPrime.returnAnchor }
     : undefined
+  let returnAnchors = controlledPrime?.returnAnchors
+    ? copyCombatRewindAnchors(controlledPrime.returnAnchors)
+    : undefined
+  if (
+    controlledPrime?.rewindSelection &&
+    JSON.stringify(controlledPrime.rewindSelection) !== JSON.stringify(input.selection)
+  )
+    throw new TypeError('controlled-rewind-selection-changed')
   const context: CombatResolutionContext = {
     provenance: createCombatActionProvenance({
       ...input.context.provenance,
@@ -490,6 +525,7 @@ export function prepareCombatAbilityCommand(
     input.content,
     context.executionAuthority,
     returnAnchor,
+    returnAnchors,
   )
   const composed = composeCombatModifiers(input, action, geometry, participant)
   const participants = [participant, ...composed.participants]
@@ -501,12 +537,14 @@ export function prepareCombatAbilityCommand(
     input.content,
     context.executionAuthority,
     returnAnchor,
+    returnAnchors,
   )
   const issues = [
     ...(participant.source &&
     participant.behavior &&
     isControlledCombatAbility(participant.behavior) &&
-    !controlledPrime
+    !controlledPrime &&
+    !input.reversalPreparation
       ? [
           {
             code: 'requirement-not-met' as const,
@@ -514,6 +552,25 @@ export function prepareCombatAbilityCommand(
           },
         ]
       : []),
+    ...(participant.behavior && combatReversalPayload(participant.behavior)
+      ? !input.reversalPreparation
+        ? [
+            {
+              code: 'requirement-not-met' as const,
+              message: 'Reversal intercepts automatically and cannot be manually released.',
+            },
+          ]
+        : [combatReversalPreparationIssue(input.state, input.actorId)]
+            .filter((message): message is string => !!message)
+            .map((message) => ({ code: 'requirement-not-met' as const, message }))
+      : input.reversalPreparation
+        ? [
+            {
+              code: 'requirement-not-met' as const,
+              message: 'Paid Reversal preparation requires its exact captured source.',
+            },
+          ]
+        : []),
     ...(movement?.issues ?? []),
     ...(!moveEffect && input.movementPath !== undefined
       ? [
@@ -627,6 +684,7 @@ export function prepareCombatAbilityCommand(
           input.content,
           context.executionAuthority,
           returnAnchor,
+          returnAnchors,
         )
       : evaluation
   const summon =
@@ -640,10 +698,18 @@ export function prepareCombatAbilityCommand(
         )
       : undefined
   if (summon?.issue) issues.push(summon.issue)
+  if (!returnAnchors && !returnAnchor && evaluation.legal)
+    returnAnchors = captureCombatRewindAnchors(
+      evaluationState,
+      composed.action,
+      evaluation,
+      input.state,
+    )
   return {
     ...(summon ? { summon } : {}),
     action: composed.action,
     ...(returnAnchor ? { returnAnchor } : {}),
+    ...(returnAnchors ? { returnAnchors } : {}),
     ...(movement ? { movement } : {}),
     evaluation: {
       ...forecast,
@@ -681,7 +747,7 @@ export function commitCombatAbilityCommand(
   const paymentEvents: CombatResolutionEvent[] = []
   const rootParticipant = prepared.participants[0]!
   const released =
-    rootParticipant.source && rootParticipant.behavior
+    rootParticipant.source && rootParticipant.behavior && !input.reversalPreparation
       ? consumeCombatControlledPrime(input.state, rootParticipant.source, rootParticipant.behavior)
       : input.state
   let paid = prepareCombatTurnTriggers(
@@ -814,6 +880,11 @@ export function commitCombatAbilityCommand(
           : (tracking.nextCommandSequence ?? 1) + 1,
     },
   }
+  if (input.reversalPreparation) {
+    const armed = armCombatReversal(paid, rootParticipant.source!, rootParticipant.behavior!)
+    paid = armed.state
+    paymentEvents.push(...armed.events)
+  } else paid = recordCombatReversalOffense(paid, input.actorId, prepared.action)
   const manual = prepared.participants[0]!.activation === 'manual'
   if (manual) paid = markPv1fTurnActivity(paid, input.actorId)
   if (prepared.action.cost.spendsAction) {
@@ -891,6 +962,7 @@ export function commitCombatAbilityCommand(
         }
       : undefined,
     prepared.returnAnchor,
+    prepared.returnAnchors,
   )
   const audioCueKey =
     input.root.kind === 'canonical'
@@ -1104,6 +1176,7 @@ export function commitCombatAbilityCommand(
                 input.content,
                 context.executionAuthority,
                 prepared.returnAnchor,
+                prepared.returnAnchors,
               ).legal
             ? ('selection-invalid' as const)
             : null

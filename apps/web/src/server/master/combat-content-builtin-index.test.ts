@@ -10,7 +10,7 @@ import {
 import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
 import { assertTagPublicationReady } from '@aurevane/game-core/content/authored-content'
 it('supplies editable defaults for individual tags without creating publications on open', () => {
-  for (const id of ['dispel', 'copy-buffs', 'copy-debuffs', 'guarded', 'vengeance']) {
+  for (const id of ['dispel', 'copy-buffs', 'copy-debuffs', 'guarded', 'vengeance', 'counter']) {
     const definition = builtinCombatContentDefinition('tag', `tag.${id}`)
     expect(definition).toMatchObject({
       id: `tag.${id}`,
@@ -58,7 +58,67 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
     JSON.parse(
       tagMigration.match(/\$tag_wording_manifest\$([\s\S]*?)\$tag_wording_manifest\$/)![1]!,
     ),
-  ).toEqual(manifest.filter((row: { contentKind: string }) => row.contentKind === 'tag'))
+  ).toEqual(
+    manifest.filter(
+      (row: { contentKind: string; contentKey: string }) =>
+        row.contentKind === 'tag' &&
+        ![
+          'tag.counter',
+          'tag.endure',
+          'tag.weak-point',
+          'tag.spike',
+          'tag.ruin',
+          'tag.reversal',
+        ].includes(row.contentKey),
+    ),
+  )
+  const attackMigration = readFileSync(
+    resolve(
+      process.cwd(),
+      '../../supabase/migrations/20261031084705_attack_modifier_tag_identities.sql',
+    ),
+    'utf8',
+  )
+  const attackRows = JSON.parse(
+    attackMigration.match(/\$attack_tag_manifest\$([\s\S]*?)\$attack_tag_manifest\$/)![1]!,
+  )
+  expect(
+    attackRows.sort((a: { contentKey: string }, b: { contentKey: string }) =>
+      a.contentKey.localeCompare(b.contentKey),
+    ),
+  ).toEqual(
+    manifest.filter((row: { contentKey: string }) =>
+      ['tag.weak-point', 'tag.spike', 'tag.ruin'].includes(row.contentKey),
+    ),
+  )
+  const counterMigration = readFileSync(
+    resolve(process.cwd(), '../../supabase/migrations/20261031081044_counter_tag_identity.sql'),
+    'utf8',
+  )
+  expect(counterMigration).toContain(
+    "values ('tag.counter', 'tag', 'active', 1, 1, 'Counter', null)",
+  )
+  expect(
+    manifest.find((row: { contentKey: string }) => row.contentKey === 'tag.counter'),
+  ).toMatchObject({ contentVersion: 1, versionFloor: 1, name: 'Counter' })
+  const endureMigration = readFileSync(
+    resolve(process.cwd(), '../../supabase/migrations/20261031084336_endure_tag_identity.sql'),
+    'utf8',
+  )
+  expect(endureMigration).toContain("values ('tag.endure', 'tag', 'active', 1, 1, 'Endure', null)")
+  expect(
+    manifest.find((row: { contentKey: string }) => row.contentKey === 'tag.endure'),
+  ).toMatchObject({ contentVersion: 1, versionFloor: 1, name: 'Endure' })
+  const reversalMigration = readFileSync(
+    resolve(process.cwd(), '../../supabase/migrations/20261031090902_reversal_tag_identity.sql'),
+    'utf8',
+  )
+  expect(reversalMigration).toContain(
+    "values ('tag.reversal', 'tag', 'active', 1, 1, 'Reversal', null)",
+  )
+  expect(
+    manifest.find((row: { contentKey: string }) => row.contentKey === 'tag.reversal'),
+  ).toMatchObject({ contentVersion: 1, versionFloor: 1, name: 'Reversal' })
   expect(
     manifest.filter((r: { contentKey: string }) =>
       ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'].includes(

@@ -1,20 +1,26 @@
 'use client'
-import { AUTHORABLE_EFFECT_TAGS } from '@aurevane/game-core/combat/combat-effect-authoring'
+import {
+  selectableCombatStatusIds,
+  combatStatusSelectionSummary,
+  type StatusSelectionKind,
+} from '@aurevane/game-core/combat/combat-status-selection'
+import {
+  AUTHORABLE_EFFECT_TAGS,
+  effectAuthoringTag,
+} from '@aurevane/game-core/combat/combat-effect-authoring'
 
 import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   combatStatusPresentationTag,
   type CombatElement,
 } from '@aurevane/game-core/combat/gameplay-tags'
-import { SIMPLE_REQUIREMENT_TAG_OPTIONS } from '@aurevane/game-core/combat/combat-simple-requirements'
-import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
-import { CLEANSE_STATUS_IDS, isCleanseEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import {
   DEFAULT_BLINDSIDE_MODIFIERS,
   isBlindsideStatusId,
 } from '@aurevane/game-core/combat/combat-blindside'
 
 import { useId, useState } from 'react'
+import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import {
   parsePercentageBasisPoints,
   percentageBasisPointsText,
@@ -28,7 +34,6 @@ import {
   type TargetedEffect,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { AbilityNumber } from './ability-editor-fields'
-import { EffectTagHelp } from './effect-tag-help'
 
 type DamageEffect = Extract<CombatEffectDefinition, { type: 'damage' }>
 
@@ -49,20 +54,59 @@ const PERCENTAGE_STATUS_IDS = new Set([
   'challenged',
 ])
 
-const REMOVAL_STATUS_IDS = [
-  ...new Set([
-    ...PHASE4_STATUSES.map((status) => status.id),
-    'guarded',
-    'exposed',
-    'covert',
-    'revealed',
-    'lowered-guard',
-  ]),
-].filter((id) => SIMPLE_REQUIREMENT_TAG_OPTIONS.some((option) => option.id === id))
+function StatusSelectionControls({
+  kind,
+  selected,
+  verb,
+  onChange,
+}: {
+  kind: StatusSelectionKind
+  selected: readonly string[]
+  verb: 'Copy' | 'Remove'
+  onChange: (statusIds: readonly string[]) => void
+}) {
+  const allowed = selectableCombatStatusIds(kind)
+  const all = allowed.every((id) => selected.includes(id))
+  const allLabel = kind === 'buffs' || kind === 'copy-buffs' ? 'All Buffs' : 'All Debuffs'
+  return (
+    <fieldset className={styles.typedGrid}>
+      <legend>
+        {selected.length ? combatStatusSelectionSummary(selected, kind) : 'Choose statuses'}
+      </legend>
+      <label className={styles.checkField}>
+        <input
+          type="checkbox"
+          aria-label={`${verb} ${allLabel}`}
+          checked={all}
+          onChange={(event) => onChange(event.currentTarget.checked ? [...allowed] : [])}
+        />
+        <span>{allLabel}</span>
+      </label>
+      {allowed.map((id) => (
+        <label key={id} className={styles.checkField}>
+          <input
+            type="checkbox"
+            value={id}
+            aria-label={`${verb} ${combatStatusPresentationTag(id)}`}
+            checked={selected.includes(id)}
+            onChange={(event) =>
+              onChange(
+                event.currentTarget.checked
+                  ? [...new Set([...selected, id])]
+                  : selected.filter((selectedId) => selectedId !== id),
+              )
+            }
+          />
+          <span>{combatStatusPresentationTag(id)}</span>
+        </label>
+      ))}
+    </fieldset>
+  )
+}
 
 function integer(value: string, fallback: number): number {
   const parsed = Number(value)
-  return Number.isSafeInteger(parsed) ? parsed : fallback
+  return value.trim() && Number.isSafeInteger(parsed) ? parsed : fallback
 }
 
 function curseCopyableField(value: boolean | undefined, onChange: (next: boolean) => void) {
@@ -84,8 +128,6 @@ function damageEditor(
   onChange: (next: CombatEffectDefinition) => void,
   nonElemental = false,
 ) {
-  const vengeance = value.vengeance
-
   return (
     <div className={styles.typedGrid}>
       <label className={styles.field}>
@@ -97,9 +139,11 @@ function damageEditor(
           max={20}
           step={1}
           value={value.amount}
-          disabled={vengeance !== undefined}
           onChange={(event) =>
-            onChange({ ...value, amount: integer(event.currentTarget.value, value.amount) })
+            onChange({
+              ...value,
+              amount: Math.max(1, integer(event.currentTarget.value, value.amount)),
+            })
           }
         />
       </label>
@@ -124,68 +168,6 @@ function damageEditor(
             <option value="fire">Fire</option>
           </select>
         </label>
-      ) : null}
-
-      {vengeance ? (
-        <>
-          <AbilityNumber
-            label="Vengeance conversion (%)"
-            value={vengeance.conversionBasisPoints / 100}
-            min={0.01}
-            step={0.01}
-            onChange={(percent) =>
-              onChange({
-                ...value,
-                vengeance: { ...vengeance, conversionBasisPoints: Math.round(percent * 100) },
-              })
-            }
-          />
-          <label className={styles.field}>
-            <span>Vengeance minimum damage</span>
-            <input
-              aria-label="Vengeance minimum damage"
-              type="number"
-              min={0}
-              step={1}
-              value={vengeance.minimumDamage ?? ''}
-              placeholder="0"
-              onChange={(event) => {
-                if (event.currentTarget.value === '') {
-                  const nextVengeance = { ...vengeance }
-                  Reflect.deleteProperty(nextVengeance, 'minimumDamage')
-                  onChange({ ...value, vengeance: nextVengeance })
-                  return
-                }
-                onChange({
-                  ...value,
-                  vengeance: {
-                    ...vengeance,
-                    minimumDamage: integer(event.currentTarget.value, vengeance.minimumDamage ?? 0),
-                  },
-                })
-              }}
-            />
-          </label>
-          <label className={styles.field}>
-            <span>Vengeance maximum damage</span>
-            <input
-              aria-label="Vengeance maximum damage"
-              type="number"
-              min={1}
-              step={1}
-              value={vengeance.maximumDamage}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  vengeance: {
-                    ...vengeance,
-                    maximumDamage: integer(event.currentTarget.value, vengeance.maximumDamage),
-                  },
-                })
-              }
-            />
-          </label>
-        </>
       ) : null}
     </div>
   )
@@ -312,9 +294,11 @@ function PercentageDotControls({
           Convert to attack percentage
         </button>
       ) : null}
-      {curseCopyableField(value.curseCopyable, (curseCopyable) =>
-        onChange({ ...value, curseCopyable }),
-      )}
+      {value.type === 'poison'
+        ? curseCopyableField(value.curseCopyable, (curseCopyable) =>
+            onChange({ ...value, curseCopyable }),
+          )
+        : null}
       <p className={styles.effectNote}>
         Based on HP damage dealt by this attack. Add a direct Damage effect covering these
         recipients.
@@ -337,16 +321,140 @@ export interface SkillEffectEditorProps {
 }
 
 export function SkillEffectEditor({
-  value,
+  value: savedValue,
   onChange,
   aim,
   siblings,
   hideTarget = false,
   canonicalDamage,
 }: SkillEffectEditorProps) {
+  const value = currentTagForAuthoring(savedValue)
   let controls
 
   switch (value.type) {
+    case 'reversal':
+      controls = (
+        <>
+          <div className={styles.typedGrid}>
+            <label className={styles.field}>
+              <span>Reversal family</span>
+              <select
+                aria-label="Reversal family"
+                value={value.family}
+                onChange={(event) =>
+                  onChange({ ...value, family: event.currentTarget.value as typeof value.family })
+                }
+              >
+                <option value="physical">Physical Reversal</option>
+                <option value="mystic">Mystic Reversal</option>
+              </select>
+            </label>
+            <AbilityNumber
+              label="Reflection potency (%)"
+              value={value.reflectionBasisPoints / 100}
+              max={1000}
+              min={0.01}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, reflectionBasisPoints: Math.round(percent * 100) })
+              }
+            />
+            <AbilityNumber
+              label="Attacker HP cap (%)"
+              value={value.attackerMaxHpCapBasisPoints / 100}
+              min={0.01}
+              max={100}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, attackerMaxHpCapBasisPoints: Math.round(percent * 100) })
+              }
+            />
+            <AbilityNumber
+              label="User HP cap (%)"
+              value={value.defenderMaxHpCapBasisPoints / 100}
+              min={0.01}
+              max={100}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, defenderMaxHpCapBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          </div>
+          <p className={styles.effectNote}>
+            The lower HP cap applies. One trigger; front and sides only. Armed until your next turn,
+            followed by one complete turn of Reversal Strain. Other Controlled effects need a
+            separate group.
+          </p>
+        </>
+      )
+      break
+    case 'endure':
+      controls = (
+        <div className={styles.typedGrid}>
+          <AbilityNumber
+            label="Damage returned (%)"
+            value={value.releaseBasisPoints / 100}
+            min={0.01}
+            step={0.01}
+            onChange={(percent) =>
+              onChange({ ...value, releaseBasisPoints: Math.round(percent * 100) })
+            }
+          />
+          <AbilityNumber
+            label="Burst range (tiles)"
+            value={value.radiusTiles}
+            min={1}
+            max={20}
+            onChange={(radiusTiles) => onChange({ ...value, radiusTiles })}
+          />
+          <label className={styles.field}>
+            <span>Burst targets</span>
+            <select
+              aria-label="Endure burst targets"
+              value={value.targetTeams}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  targetTeams: event.currentTarget.value as typeof value.targetTeams,
+                })
+              }
+            >
+              <option value="enemies">Enemies</option>
+              <option value="allies">Allies</option>
+              <option value="all">All</option>
+            </select>
+          </label>
+        </div>
+      )
+      break
+    case 'weak-point':
+      controls = (
+        <AbilityNumber
+          label="Debuff threshold"
+          value={value.debuffThreshold}
+          min={0}
+          onChange={(debuffThreshold) => onChange({ ...value, debuffThreshold })}
+        />
+      )
+      break
+    case 'spike':
+      controls = (
+        <p className={styles.effectNote}>Critical hits deal twice their usual critical damage.</p>
+      )
+      break
+    case 'ruin':
+      controls = (
+        <AbilityNumber
+          label="Damage increase per debuff (%)"
+          value={value.bonusPerDebuffBasisPoints / 100}
+          min={0.01}
+          step={0.01}
+          onChange={(percent) =>
+            onChange({ ...value, bonusPerDebuffBasisPoints: Math.round(percent * 100) })
+          }
+        />
+      )
+      break
     case 'damage':
       controls = damageEditor(
         value,
@@ -358,19 +466,6 @@ export function SkillEffectEditor({
     case 'percentage-recovery':
       controls = (
         <div className={styles.typedGrid}>
-          <label className={styles.field}>
-            <span>Resource</span>
-            <select
-              aria-label="Recovery resource"
-              value={value.resource}
-              onChange={(event) =>
-                onChange({ ...value, resource: event.currentTarget.value as 'hp' | 'mp' })
-              }
-            >
-              <option value="hp">HP</option>
-              <option value="mp">MP</option>
-            </select>
-          </label>
           <label className={styles.field}>
             <span>Percent of recipient maximum</span>
             <input
@@ -385,24 +480,9 @@ export function SkillEffectEditor({
               }
             />
           </label>
-          <label className={styles.field}>
-            <span>Applications</span>
-            <input
-              aria-label="Recovery applications"
-              type="number"
-              min={1}
-              max={4}
-              step={1}
-              value={value.ticks ?? 1}
-              onChange={(event) => {
-                const ticks = integer(event.currentTarget.value, value.ticks ?? 1)
-                onChange({ ...value, ticks, durationTurns: Math.max(0, ticks - 1) })
-              }}
-            />
-          </label>
           <p className={styles.effectNote}>
-            The recipient maximum and HP Hex adjustment are captured when cast; each application
-            reuses that amount.
+            Restores the saved percentage of maximum {value.resource.toUpperCase()}. Healing Down
+            reduces recovery.
           </p>
         </div>
       )
@@ -421,7 +501,10 @@ export function SkillEffectEditor({
               step={1}
               value={value.amount}
               onChange={(event) =>
-                onChange({ ...value, amount: integer(event.currentTarget.value, value.amount) })
+                onChange({
+                  ...value,
+                  amount: Math.max(1, integer(event.currentTarget.value, value.amount)),
+                })
               }
             />
           </label>
@@ -454,6 +537,29 @@ export function SkillEffectEditor({
       break
 
     case 'resource-change':
+      if (value.delta < 0) {
+        const percentage = value.basis === 'maximum-mp-percent'
+        controls = (
+          <label className={styles.field}>
+            <span>{percentage ? 'MP Drain potency (%)' : 'MP Drain amount'}</span>
+            <input
+              aria-label={percentage ? 'MP Drain potency (%)' : 'MP Drain amount'}
+              type="number"
+              min={1}
+              max={percentage ? 100 : 20}
+              step={1}
+              value={Math.abs(value.delta)}
+              onChange={(event) =>
+                onChange({
+                  ...value,
+                  delta: -Math.abs(integer(event.currentTarget.value, Math.abs(value.delta))),
+                })
+              }
+            />
+          </label>
+        )
+        break
+      }
       controls = (
         <div className={styles.typedGrid}>
           <label className={styles.field}>
@@ -503,60 +609,165 @@ export function SkillEffectEditor({
       break
 
     case 'apply-status':
-      controls = (
-        <div className={styles.typedGrid}>
-          <label className={styles.field}>
-            <span>Status</span>
-            <select
-              aria-label="Status"
-              value={value.statusId}
-              onChange={(event) => {
-                const next = { ...value, statusId: event.currentTarget.value }
-                if (isBlindsideStatusId(next.statusId)) {
-                  next.durationTurns = 1
-                  delete next.potencyBasisPoints
+      if (value.statusId === 'counter') {
+        const counter = value.counter ?? { kind: 'full' as const, basisPoints: 10000 }
+        controls = (
+          <div className={styles.typedGrid}>
+            <label className={styles.field}>
+              <span>Type</span>
+              <select
+                aria-label="Counter type"
+                value={counter.kind}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    counter: { ...counter, kind: event.currentTarget.value as typeof counter.kind },
+                  })
                 }
-                if (next.statusId === 'suppress') {
-                  next.stacks = 1
-                  next.durationTurns ??= 2
-                  next.potencyBasisPoints ??= 2500
-                  delete next.power
-                }
-                if (!isBlindsideStatusId(next.statusId)) delete next.blindsideModifiersBasisPoints
-                onChange(next)
-              }}
-            >
-              {!AUTHORABLE_EFFECT_TAGS.some((tag) => tag.statusId === value.statusId) ? (
-                <option value={value.statusId}>
-                  {isBlindsideStatusId(value.statusId) ? 'Blindside' : 'Retained status'}
-                </option>
-              ) : null}
-              {AUTHORABLE_EFFECT_TAGS.flatMap((tag) =>
-                tag.opcode === 'apply-status' && tag.statusId
-                  ? [
-                      <option key={tag.id} value={tag.statusId}>
-                        {tag.label}
-                      </option>,
-                    ]
-                  : [],
-              )}
-            </select>
-          </label>
-          <label className={styles.field}>
-            <span>Status stacks</span>
-            <input
-              aria-label="Status stacks"
-              type="number"
-              min={1}
-              step={1}
-              max={value.statusId === 'suppress' ? 1 : undefined}
-              disabled={value.statusId === 'suppress'}
-              value={value.statusId === 'suppress' ? 1 : value.stacks}
-              onChange={(event) =>
-                onChange({ ...value, stacks: integer(event.currentTarget.value, value.stacks) })
+              >
+                <option value="physical">Physical Counter</option>
+                <option value="mystic">Mystical Counter</option>
+                <option value="full">Full Counter</option>
+              </select>
+            </label>
+            <AbilityNumber
+              label="Counter potency (%)"
+              value={counter.basisPoints / 100}
+              min={0.01}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({
+                  ...value,
+                  counter: { ...counter, basisPoints: Math.round(percent * 100) },
+                })
               }
             />
-          </label>
+          </div>
+        )
+        break
+      }
+      controls = (
+        <div className={styles.typedGrid}>
+          {!['root', 'invisible', 'challenged'].includes(value.statusId) &&
+          value.applicationOrigin !== 'frozen-ground' ? (
+            <label className={styles.field}>
+              <span>Status</span>
+              <select
+                aria-label="Status"
+                value={value.statusId}
+                onChange={(event) => {
+                  const next = { ...value, statusId: event.currentTarget.value }
+                  if (isBlindsideStatusId(next.statusId)) {
+                    next.durationTurns = 1
+                    delete next.potencyBasisPoints
+                  }
+                  if (next.statusId === 'suppress') {
+                    next.stacks = 1
+                    next.durationTurns ??= 2
+                    next.potencyBasisPoints ??= 2500
+                    delete next.power
+                  }
+                  if (!isBlindsideStatusId(next.statusId)) delete next.blindsideModifiersBasisPoints
+                  const fields = {
+                    initiativeReductionBasisPoints: 'wet',
+                    defenseIncreaseBasisPoints: 'fortified',
+                    damageTakenMultiplierBasisPoints: 'lowered-guard',
+                  }
+                  for (const [key, status] of Object.entries(fields))
+                    if (next.statusId !== status) Reflect.deleteProperty(next, key)
+                  if (!['haste', 'slow'].includes(next.statusId))
+                    Reflect.deleteProperty(next, 'movementApAdjustment')
+                  if (next.statusId !== 'counter') Reflect.deleteProperty(next, 'counter')
+                  else {
+                    next.counter ??= { kind: 'full', basisPoints: 10000 }
+                    next.stacks = 1
+                  }
+                  onChange(currentTagForAuthoring(next))
+                }}
+              >
+                {!AUTHORABLE_EFFECT_TAGS.some((tag) => tag.statusId === value.statusId) ? (
+                  <option value={value.statusId}>
+                    {isBlindsideStatusId(value.statusId) ? 'Blindside' : 'Retained status'}
+                  </option>
+                ) : null}
+                {AUTHORABLE_EFFECT_TAGS.flatMap((tag) =>
+                  tag.opcode === 'apply-status' && tag.statusId
+                    ? [
+                        <option key={tag.id} value={tag.statusId}>
+                          {tag.label}
+                        </option>,
+                      ]
+                    : [],
+                )}
+              </select>
+            </label>
+          ) : null}
+          {!['covert', 'invisible', 'mark', 'marked', 'root'].includes(value.statusId) ? (
+            <label className={styles.field}>
+              <span>Status stacks</span>
+              <input
+                aria-label="Status stacks"
+                type="number"
+                min={1}
+                step={1}
+                max={value.statusId === 'suppress' ? 1 : undefined}
+                disabled={value.statusId === 'suppress'}
+                value={value.statusId === 'suppress' ? 1 : value.stacks}
+                onChange={(event) =>
+                  onChange({ ...value, stacks: integer(event.currentTarget.value, value.stacks) })
+                }
+              />
+            </label>
+          ) : null}
+          {value.statusId === 'wet' ? (
+            <AbilityNumber
+              label="Initiative reduction (%)"
+              value={(value.initiativeReductionBasisPoints ?? 1000) / 100}
+              min={0}
+              max={100}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, initiativeReductionBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          ) : null}
+          {value.statusId === 'fortified' ? (
+            <AbilityNumber
+              label="Defense increase / outgoing damage reduction (%)"
+              value={(value.defenseIncreaseBasisPoints ?? value.potencyBasisPoints ?? 1500) / 100}
+              min={0}
+              max={100}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, defenseIncreaseBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          ) : null}
+          {value.statusId === 'lowered-guard' ? (
+            <AbilityNumber
+              label="Damage taken (%)"
+              value={
+                (value.damageTakenMultiplierBasisPoints ??
+                  (value.potencyBasisPoints === undefined
+                    ? 25000
+                    : 10000 + value.potencyBasisPoints)) / 100
+              }
+              min={0}
+              step={0.01}
+              onChange={(percent) =>
+                onChange({ ...value, damageTakenMultiplierBasisPoints: Math.round(percent * 100) })
+              }
+            />
+          ) : null}
+          {['haste', 'slow'].includes(value.statusId) ? (
+            <AbilityNumber
+              label={value.statusId === 'haste' ? 'Movement AP reduction' : 'Movement AP increase'}
+              value={value.movementApAdjustment ?? 10}
+              min={0}
+              max={100}
+              onChange={(movementApAdjustment) => onChange({ ...value, movementApAdjustment })}
+            />
+          ) : null}
           {isBlindsideStatusId(value.statusId) ? (
             <>
               {(['side', 'rear'] as const).map((direction) => (
@@ -597,87 +808,22 @@ export function SkillEffectEditor({
       )
       break
 
-    case 'remove-status':
-      controls = (
-        <div className={styles.typedGrid}>
-          <label className={styles.field}>
-            <span>Status removal mode</span>
-            <select
-              aria-label="Status removal mode"
-              value={value.removalMode ?? 'standard'}
-              onChange={(event) => {
-                if (event.currentTarget.value === 'specified')
-                  onChange({ ...value, removalMode: 'specified' })
-                else {
-                  const next = { ...value }
-                  delete next.removalMode
-                  onChange(next)
-                }
-              }}
-            >
-              <option value="standard">Cleanse / Dispel</option>
-              <option value="specified">Conditional Cleanse / Dispel · only listed statuses</option>
-            </select>
-          </label>
-
-          <label className={styles.field}>
-            <span>{value.removalMode === 'specified' ? 'Listed statuses' : 'Status IDs'}</span>
-            {value.removalMode === 'specified' ? (
-              <select
-                aria-label="Conditional Cleanse statuses"
-                multiple
-                size={8}
-                value={[...value.statusIds]}
-                onChange={(event) => {
-                  const statusIds = Array.from(
-                    event.currentTarget.selectedOptions,
-                    (option) => option.value,
-                  )
-                  if (statusIds.length > 0 && statusIds.length <= 8)
-                    onChange({ ...value, statusIds })
-                }}
-              >
-                {[...new Set([...REMOVAL_STATUS_IDS, ...value.statusIds])].map((id) => (
-                  <option
-                    key={id}
-                    value={id}
-                    disabled={value.statusIds.length >= 8 && !value.statusIds.includes(id)}
-                  >
-                    {REMOVAL_STATUS_IDS.includes(id)
-                      ? combatStatusPresentationTag(id)
-                      : `${id} (unregistered)`}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                aria-label="Status IDs"
-                type="text"
-                value={value.statusIds.join(', ')}
-                onChange={(event) =>
-                  onChange({
-                    ...value,
-                    statusIds: event.currentTarget.value
-                      .split(',')
-                      .map((id) => id.trim())
-                      .filter((id, index, all) => id.length > 0 && all.indexOf(id) === index)
-                      .slice(0, 8),
-                  })
-                }
-              />
-            )}
-            {isCleanseEffect(value) ? (
-              <button
-                type="button"
-                onClick={() => onChange({ ...value, statusIds: [...CLEANSE_STATUS_IDS] })}
-              >
-                Use standard Cleanse
-              </button>
-            ) : null}
-          </label>
-        </div>
-      )
+    case 'remove-status': {
+      const tag = effectAuthoringTag(value).id
+      const kind = tag === 'dispel' ? 'buffs' : 'debuffs'
+      controls =
+        tag === 'cleanse' ? null : (
+          <StatusSelectionControls
+            kind={kind}
+            selected={value.statusIds}
+            verb="Remove"
+            onChange={(statusIds) =>
+              onChange({ ...value, statusIds, removalMode: 'specified', selectionKind: kind })
+            }
+          />
+        )
       break
+    }
 
     case 'return-to-turn-start':
       controls = (
@@ -692,7 +838,9 @@ export function SkillEffectEditor({
           </div>
           <div className={styles.effectStatic}>
             <span>Recipient</span>
-            <strong>Actor only</strong>
+            <strong>
+              {value.target && value.target !== 'self' ? 'Each selected recipient' : 'Actor only'}
+            </strong>
           </div>
         </div>
       )
@@ -701,6 +849,13 @@ export function SkillEffectEditor({
     case 'create-terrain':
       controls = (
         <div className={styles.effectStaticGrid}>
+          <AbilityNumber
+            label="Extra Skill AP cost"
+            value={value.skillApSurcharge ?? 10}
+            min={0}
+            max={100}
+            onChange={(skillApSurcharge) => onChange({ ...value, skillApSurcharge })}
+          />
           <div className={styles.effectStatic}>
             <span>Terrain</span>
             <strong>Frozen Ground</strong>
@@ -716,23 +871,6 @@ export function SkillEffectEditor({
     case 'displace':
       controls = (
         <div className={styles.typedGrid}>
-          <label className={styles.field}>
-            <span>Push or Pull</span>
-            <select
-              aria-label="Push or Pull"
-              value={value.direction ?? ''}
-              onChange={(event) => {
-                const direction = event.currentTarget.value
-                const rest = { ...value }
-                Reflect.deleteProperty(rest, 'direction')
-                onChange(direction ? { ...rest, direction: direction as 'push' | 'pull' } : rest)
-              }}
-            >
-              <option value="">Engine default</option>
-              <option value="push">Push</option>
-              <option value="pull">Pull</option>
-            </select>
-          </label>
           <label className={styles.field}>
             <span>Tiles moved</span>
             <input
@@ -776,7 +914,10 @@ export function SkillEffectEditor({
               step={1}
               value={value.amount}
               onChange={(event) =>
-                onChange({ ...value, amount: integer(event.currentTarget.value, value.amount) })
+                onChange({
+                  ...value,
+                  amount: Math.max(1, integer(event.currentTarget.value, value.amount)),
+                })
               }
             />
           </label>
@@ -784,46 +925,31 @@ export function SkillEffectEditor({
       )
       break
 
-    case 'copy-statuses':
+    case 'copy-statuses': {
+      const kind = value.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs'
       controls = (
-        <div className={styles.typedGrid}>
-          <label className={styles.field}>
-            <span>Copy mode</span>
-            <select
-              aria-label="Copy mode"
-              value={value.mode}
-              onChange={(event) =>
-                onChange({
-                  ...value,
-                  mode: event.currentTarget.value as 'amplify' | 'curse',
-                })
-              }
-            >
-              <option value="amplify">Copy Buffs</option>
-              <option value="curse">Copy Debuffs</option>
-            </select>
-          </label>
-          <label className={styles.checkField}>
-            <input
-              aria-label="Allow empty status copy"
-              type="checkbox"
-              checked={value.allowNoEligibleEffects === true}
-              onChange={(event) =>
-                onChange({ ...value, allowNoEligibleEffects: event.currentTarget.checked })
-              }
-            />
-            <span>Allow empty status copy on composed command</span>
-          </label>
-          <p className={styles.effectNote}>
-            Copy Buffs/Copy Debuffs clone their eligible active statuses.
-          </p>
-        </div>
+        <StatusSelectionControls
+          kind={kind}
+          selected={value.statusIds ?? selectableCombatStatusIds(kind)}
+          verb="Copy"
+          onChange={(statusIds) => onChange({ ...value, statusIds })}
+        />
       )
       break
+    }
 
     case 'sensory':
       controls = (
         <div className={styles.typedGrid}>
+          <AbilityNumber
+            label="Increased damage taken (%)"
+            value={(value.increasedDamageTakenBasisPoints ?? 1500) / 100}
+            min={0}
+            step={0.01}
+            onChange={(percent) =>
+              onChange({ ...value, increasedDamageTakenBasisPoints: Math.round(percent * 100) })
+            }
+          />
           <label className={styles.field}>
             <span>Revealed duration</span>
             <input
@@ -845,8 +971,7 @@ export function SkillEffectEditor({
             />
           </label>
           <p className={styles.effectNote}>
-            Reveal conditionally purges eligible positive statuses, removes Covert, and applies
-            Revealed only on a successful hit against a Covert target.
+            A hit against an Invisible or Covert target removes both and applies Revealed.
           </p>
         </div>
       )
@@ -856,7 +981,12 @@ export function SkillEffectEditor({
       controls = assertNever(value)
   }
 
+  const fixedActor = ['weak-point', 'spike', 'ruin', 'endure', 'reversal'].includes(value.type)
   const fixedImmediate = [
+    'weak-point',
+    'spike',
+    'ruin',
+    'reversal',
     'damage',
     'remove-status',
     'return-to-turn-start',
@@ -868,12 +998,20 @@ export function SkillEffectEditor({
   const fixedBlindside = value.type === 'apply-status' && isBlindsideStatusId(value.statusId)
   const editableDuration =
     !fixedImmediate && !fixedTerrain && !fixedBlindside && value.type !== 'percentage-recovery'
-  const hasPotency = value.type === 'apply-status' && PERCENTAGE_STATUS_IDS.has(value.statusId)
+  const hasPotency =
+    value.type === 'apply-status' &&
+    PERCENTAGE_STATUS_IDS.has(value.statusId) &&
+    value.statusId !== 'fortified'
   const maximumDuration =
     value.type === 'healing' || (value.type === 'resource-change' && value.delta > 0) ? 3 : 4
-  const minimumDuration = ['apply-status', 'bleed', 'burn', 'poison', 'barrier-change'].includes(
-    value.type,
-  )
+  const minimumDuration = [
+    'apply-status',
+    'bleed',
+    'burn',
+    'poison',
+    'barrier-change',
+    'endure',
+  ].includes(value.type)
     ? 1
     : 0
   const durationTurns =
@@ -913,8 +1051,7 @@ export function SkillEffectEditor({
 
   return (
     <div className={styles.effectEditor} data-effect-type={value.type}>
-      <EffectTagHelp effect={value} />
-      {!hideTarget ? (
+      {!hideTarget && !fixedActor ? (
         <EffectTargetEditor
           value={value}
           aim={aim}
@@ -947,8 +1084,12 @@ export function SkillEffectEditor({
           ) : null}
           {hasPotency && value.type === 'apply-status' ? (
             <AbilityNumber
-              label="Status potency (percent)"
-              displayLabel="Status potency (%)"
+              label={
+                value.statusId === 'wet' ? 'Storm damage increase (%)' : 'Status potency (percent)'
+              }
+              displayLabel={
+                value.statusId === 'wet' ? 'Storm damage increase (%)' : 'Status potency (%)'
+              }
               value={
                 (value.potencyBasisPoints ??
                   (value.statusId === 'suppress'

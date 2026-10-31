@@ -80,10 +80,10 @@ export function TagWordingFields({
         Restore automatic descriptions
       </button>
       <p id={`${hintId}-tokens`} className={styles.fieldHint}>
-        Automatic wording is shown using default effect values; each skill uses its own values in
-        game. Opening this editor does not replace that automatic wording. Leave blank to use the
-        standard description. Use {'{details}'} in the full description or {'{summary}'} in either
-        field to keep the generated, parameter-aware wording.
+        Automatic wording describes the tag’s rule; each Skill shows its saved values in game.
+        Opening this editor does not replace that automatic wording. Leave blank to use the standard
+        description. Use {'{details}'} in the full description or {'{summary}'} in either field to
+        keep the generated, parameter-aware wording.
       </p>
     </div>
   )

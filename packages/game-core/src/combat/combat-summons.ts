@@ -1,3 +1,4 @@
+import { endCombatReversal, type CombatReversalEvent } from './combat-reversal'
 import {
   validateBattleState,
   type BattleCombatant,
@@ -50,7 +51,7 @@ export type CombatSummonEvent =
 
 export interface CombatSummonTransition {
   readonly state: StatDrivenCombatEncounterState
-  readonly events: readonly CombatSummonEvent[]
+  readonly events: readonly (CombatSummonEvent | CombatReversalEvent)[]
 }
 
 export interface SpawnCombatSummonInput {
@@ -133,7 +134,7 @@ function summonStatProfile(
     level: 1,
     physicalPower: profile.stats.physicalPower,
     mysticPower: profile.stats.mysticPower,
-    criticalChance: 0,
+    criticalChance: profile.stats.criticalChance ?? 0,
   }
 }
 
@@ -261,7 +262,9 @@ export function spawnCombatSummon(
         ...(state.statBridge.combatants as readonly StatDrivenCombatProfileV4[]),
         {
           ...summonStatProfile(combatantId, profile),
-          ...(state.statBalancePolicyVersion === 1 ? { statusResistance: 0 } : {}),
+          ...(state.statBalancePolicyVersion === 1
+            ? { statusResistance: profile.stats.statusResistance ?? 0 }
+            : {}),
         },
       ].sort((left, right) => stableCompare(left.combatantId, right.combatantId)),
     },
@@ -270,6 +273,18 @@ export function spawnCombatSummon(
     ),
     effectState: {
       ...effectState,
+      ...(profile.potencyBasisPoints === undefined
+        ? {}
+        : {
+            summonDamageSources: [
+              ...(effectState.summonDamageSources ?? []),
+              {
+                combatantId,
+                ownerCombatantId: input.ownerCombatantId,
+                potencyBasisPoints: profile.potencyBasisPoints,
+              },
+            ],
+          }),
       summons: [...(effectState.summons ?? []), instance].sort((left, right) =>
         stableCompare(left.combatantId, right.combatantId),
       ),
@@ -340,6 +355,74 @@ export function removeCombatSummon(
     throw new Error('Active summon removal must be resolved through the turn lifecycle.')
   }
 
+  const reversalEnd = endCombatReversal(
+    state,
+    combatantId,
+    reason === 'defeated' ? 'defeated' : 'expired',
+  )
+  state = { ...state, ...reversalEnd.state, statBridge: state.statBridge }
+  const removedSourceIds = new Set(
+    (state.capturedAbilitySources ?? [])
+      .filter((source) => source.ownerCombatantId === combatantId)
+      .map((source) => source.sourceInstanceId),
+  )
+  const runtime = state.abilityRuntime
+  if (removedSourceIds.size || state.reversalState)
+    state = {
+      ...state,
+      ...(state.capturedAbilitySources
+        ? {
+            capturedAbilitySources: state.capturedAbilitySources.filter(
+              (source) => !removedSourceIds.has(source.sourceInstanceId),
+            ),
+          }
+        : {}),
+      ...(runtime
+        ? {
+            abilityRuntime: {
+              ...runtime,
+              activeSourceIds: runtime.activeSourceIds.filter((id) => !removedSourceIds.has(id)),
+              usage: runtime.usage.filter((row) => !removedSourceIds.has(JSON.parse(row.key)[1])),
+              maintained: runtime.maintained.filter(
+                (row) => !removedSourceIds.has(row.sourceInstanceId),
+              ),
+              ...(runtime.conditionTruth
+                ? {
+                    conditionTruth: runtime.conditionTruth.filter(
+                      (row) => !removedSourceIds.has(row.sourceInstanceId),
+                    ),
+                  }
+                : {}),
+              ...(runtime.controlled
+                ? {
+                    controlled: {
+                      primes: runtime.controlled.primes.filter(
+                        (row) => row.ownerCombatantId !== combatantId,
+                      ),
+                      used: runtime.controlled.used.filter(
+                        (row) => row.ownerCombatantId !== combatantId,
+                      ),
+                    },
+                  }
+                : {}),
+            },
+          }
+        : {}),
+      ...(state.reversalState
+        ? {
+            reversalState: {
+              ...state.reversalState,
+              armed: state.reversalState.armed.filter(
+                (row) => row.ownerCombatantId !== combatantId,
+              ),
+              strain: state.reversalState.strain.filter((row) => row.combatantId !== combatantId),
+              offensiveTurns: state.reversalState.offensiveTurns.filter(
+                (row) => row.combatantId !== combatantId,
+              ),
+            },
+          }
+        : {}),
+    }
   const initiativeOrder = state.tactical.battle.initiativeOrder.filter((id) => id !== combatantId)
   const currentTurn = state.tactical.battle.currentTurn
   const nextCurrentTurn =
@@ -355,9 +438,12 @@ export function removeCombatSummon(
 
   const placements = state.tactical.placements.filter((row) => row.combatantId !== combatantId)
   const movementProfileId = summonMovementProfileId(instance.profile.id)
-  const movementProfileStillUsed = placements.some(
-    (row) => row.movementProfileId === movementProfileId,
-  )
+  const movementProfileStillUsed =
+    placements.some((row) => row.movementProfileId === movementProfileId) ||
+    (instance.profile.potencyBasisPoints !== undefined &&
+      state.groundAreas?.some(
+        (area) => area.caster.placement.movementProfileId === movementProfileId,
+      ))
 
   const next: StatDrivenCombatEncounterState = {
     ...state,
@@ -406,6 +492,16 @@ export function removeCombatSummon(
       combatants: state.statBridge.combatants.filter((row) => row.combatantId !== combatantId),
     },
     statusState: state.statusState.filter((row) => row.combatantId !== combatantId),
+    ...(state.endureState
+      ? {
+          endureState: {
+            ...state.endureState,
+            applications: state.endureState.applications.filter(
+              (row) => row.combatantId !== combatantId,
+            ),
+          },
+        }
+      : {}),
     ...(state.turnTriggerState === undefined
       ? {}
       : {
@@ -448,6 +544,7 @@ export function removeCombatSummon(
   return {
     state: next,
     events: [
+      ...reversalEnd.events,
       {
         event: reason === 'expired' ? 'summon_expired' : 'summon_defeated',
         combatantId,
@@ -464,7 +561,7 @@ export function removeDefeatedCombatSummons(
   state: StatDrivenCombatEncounterState,
 ): CombatSummonTransition {
   let next = state
-  const events: CombatSummonEvent[] = []
+  const events: (CombatSummonEvent | CombatReversalEvent)[] = []
   const activeCombatantId = state.tactical.battle.currentTurn?.combatantId ?? null
   const summonIds = (normalizeCombatEffectState(state.effectState).summons ?? []).map(
     (summon) => summon.combatantId,

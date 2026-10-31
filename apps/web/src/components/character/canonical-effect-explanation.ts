@@ -1,3 +1,6 @@
+import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
+import { counterDescription } from '@aurevane/game-core/combat/combat-counter'
+import { endureDescription } from '../../lib/combat-effect-descriptions'
 import { mechanicText, mechanicTag, type MechanicTextPart } from './mechanic-text'
 import { canonicalPeriodicGroundExplanation } from './canonical-periodic-ground-explanation'
 import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
@@ -43,7 +46,18 @@ export function canonicalEffectExplanation(
         }
       : undefined
   switch (effect.type) {
+    case 'weak-point':
+    case 'spike':
+    case 'ruin':
+      return {
+        description: attackTagDescription(effect),
+        parts: { target: undefined, timing: undefined, duration: null },
+      }
+    case 'endure':
+      return { description: endureDescription(effect) }
     case 'apply-status':
+      if (effect.statusId === 'counter' && effect.counter)
+        return { description: counterDescription(effect.counter) }
       return canonicalStatusExplanation(effect, options)
     case 'healing':
       return {
@@ -52,7 +66,12 @@ export function canonicalEffectExplanation(
       }
     case 'resource-change':
       return effect.delta < 0
-        ? { description: `Remove MP from ${recipient}, without going below zero.` }
+        ? {
+            description:
+              effect.basis === 'maximum-mp-percent'
+                ? `Remove ${Math.abs(effect.delta)}% of ${recipient === 'yourself' ? 'your' : `${recipient}’s`} maximum MP, down to a minimum of zero.`
+                : `Remove MP from ${recipient}, down to a minimum of zero.`,
+          }
         : {
             description: `Restore MP to ${recipient}, without exceeding the maximum. Recovery cannot revive a defeated unit.`,
             parts: schedule,
@@ -80,6 +99,15 @@ export function canonicalEffectExplanation(
         ...mechanicText`${effect.direction === 'pull' ? 'Pull' : 'Push'} ${recipient} ${effect.direction === 'pull' ? 'toward you' : 'away from you'}. Stops before occupied, blocked or unreachable tiles. Pull never enters your tile. ${mechanicTag('rooted')} prevents displacement.`,
       }
     case 'sensory':
+      if (effect.increasedDamageTakenBasisPoints !== undefined)
+        return {
+          ...mechanicText`Reveal ${recipient} on a successful hit against ${mechanicTag('invisible')}, ${mechanicTag('covert')} or armed Reversal. Remove both concealments, disarm Reversal with Reversal Strain, and apply Revealed: take ${String(effect.increasedDamageTakenBasisPoints / 100)}% more damage; incoming attacks have 100% Accuracy.`,
+          parts: {
+            details: [
+              { label: 'Revealed', value: `${effect.revealedDurationOwnerTurnStarts} turns` },
+            ],
+          },
+        }
       return {
         ...mechanicText`Attempt Reveal on ${recipient}. A successful hit against ${mechanicTag('covert')} removes eligible positive statuses and ${mechanicTag('covert')}, then applies Revealed. Otherwise Reveal has no effect.`,
         parts: {

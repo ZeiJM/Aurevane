@@ -1,3 +1,5 @@
+import { reversalDescription, reversalMagnitude } from '../../lib/reversal-presentation'
+import { summonPotencyDescription } from '@aurevane/game-core/combat/summon-content'
 import { hasSelectedAimRequirement } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
@@ -295,7 +297,15 @@ function effectPresentation(
   const payload = effect.payload
   let parts: CompactSkillEffectSummaryParts, description: string
   let explanationParts: readonly MechanicTextPart[] | undefined
-  if (payload.type === 'move') {
+  if (payload.type === 'reversal') {
+    parts = {
+      label: 'Reversal',
+      magnitude: reversalMagnitude(payload),
+      duration: 'Until next actual owner turn',
+      timing: 'Controlled',
+    }
+    description = reversalDescription(payload)
+  } else if (payload.type === 'move') {
     parts = {
       label: 'Move',
       magnitude: String(payload.maximumTiles),
@@ -319,7 +329,12 @@ function effectPresentation(
       magnitude: payload.profile.name,
       duration: `${payload.profile.lifetimeTurns} Turns`,
     }
-    description = 'Summon an allied companion on the chosen empty Ground.'
+    description = [
+      'Summon an allied companion on the chosen empty Ground.',
+      summonPotencyDescription(payload.profile),
+    ]
+      .filter(Boolean)
+      .join(' ')
   } else {
     const native = nativeCombatTagPayload(payload)
     parts = compactSkillEffectSummaryParts(native, timingPolicy, {
@@ -473,7 +488,10 @@ export function abilityBehaviorInformation(
   const effectContext: AbilityEffectPresentationContext = {
     ...options.effectContext,
     skillEffects: behavior.effects.flatMap(({ payload }) =>
-      payload.type === 'move' || payload.type === 'damage-bonus' || payload.type === 'summon'
+      payload.type === 'move' ||
+      payload.type === 'damage-bonus' ||
+      payload.type === 'summon' ||
+      payload.type === 'reversal'
         ? []
         : [nativeCombatTagPayload(payload)],
     ),
@@ -520,7 +538,12 @@ export function abilityBehaviorInformation(
         explanationParts,
         parts: {
           ...described.presentation.parts,
-          target: effectTargetLabel(effect.payload, target ?? undefined),
+          target:
+            effect.payload.type === 'weak-point' ||
+            effect.payload.type === 'spike' ||
+            effect.payload.type === 'ruin'
+              ? undefined
+              : effectTargetLabel(effect.payload, target ?? undefined),
         },
         ...(behavior.groundArea
           ? { repeatsOnEntry: behavior.groundArea.entryEffectIds.includes(effect.id) }

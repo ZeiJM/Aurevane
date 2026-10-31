@@ -371,6 +371,26 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
   }
 
   switch (entry.eventType) {
+    case 'reversal_prepared':
+      return {
+        ...base,
+        text: `${chronicleCombatantName(entry.actorCombatantId, names)} prepares ${value.family} Reversal`,
+        tone: 'benefit',
+      }
+    case 'reversal_triggered':
+      return {
+        ...base,
+        text: `Reversal prevents ${value.prevented} HP damage and returns ${value.returned} HP damage to ${target}`,
+        tone: 'damage',
+      }
+    case 'reversal_ended':
+      return {
+        ...base,
+        text: `${target}'s Reversal ${value.ending}. Reversal Strain begins`,
+        tone: 'harm',
+      }
+    case 'reversal_strain_ended':
+      return { ...base, text: `${target}'s Reversal Strain ends`, tone: 'benefit' }
     case 'combatant_rewind_blocked':
       return { ...base, text: entry.message, tone: 'harm' }
     case 'combat_critical_resolved':

@@ -1,9 +1,14 @@
+import { combatEndureBlocksAction } from './combat-endure'
+import type { CombatStatusTuning } from './combat-status-tuning'
+export type { CombatEndureProfile, CombatEndureEffect, CombatEndureState } from './combat-endure'
+export type { CombatStatusTuning } from './combat-status-tuning'
+import { captureCombatRewindAnchors, type CombatRewindAnchors } from './combat-rewind'
 import { withEffectDeliveryEligibility } from './combat-effect-delivery-eligibility'
 import type { CombatEffectTarget } from './combat-effect-recipients'
 import type { CombatNativeExecutionHooks } from './combat-native-mutations'
 import type { GridPosition } from './board'
 import {
-  consumeCommittedCombatExecution,
+  consumeCommittedCombatRewind,
   committedCombatAction,
   type CommittedCombatExecution,
 } from './combat-committed-execution'
@@ -37,6 +42,7 @@ import {
   type CombatVengeanceDefinition,
   type CombatVengeanceBasis,
 } from './combat-vengeance'
+import { captureAttackTagDamage } from './combat-attack-tags'
 import { applyCommittedReflect } from './combat-reflect'
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
@@ -66,7 +72,9 @@ export {
 
 type LegacyDamageEffect = Extract<legacy.CombatEffectDefinition, { type: 'damage' }>
 
-export interface CombatEffectAuthoringTuning {
+export interface CombatEffectAuthoringTuning extends CombatStatusTuning {
+  /** Editor-owned generated companion identity; has no runtime mechanical effect. */
+  readonly authoringLink?: string
   readonly target?: CombatEffectTarget
   /** 0 is immediate. Positive values count full future owner turns. */
   readonly durationTurns?: number
@@ -187,6 +195,7 @@ export function evaluateCombatAction(
   content: legacy.CombatContentCatalog,
   executionAuthority?: CombatAutomaticActionAuthority,
   returnAnchor?: GridPosition,
+  returnAnchors?: CombatRewindAnchors,
 ): CombatActionEvaluation {
   const executionActorId = executionAuthority?.actorId
   action = legacy.elementalActionIntent(
@@ -205,7 +214,26 @@ export function evaluateCombatAction(
     content,
     executionActorId,
     returnAnchor,
+    returnAnchors,
   )
+  const actorId = executionActorId ?? state.tactical.battle.currentTurn?.combatantId
+  if (
+    !executionAuthority &&
+    actorId &&
+    combatEndureBlocksAction(state, actorId, action, content) &&
+    !evaluation.issues.some((issue) => issue.code === 'endure-active')
+  )
+    evaluation = {
+      ...evaluation,
+      legal: false,
+      issues: [
+        ...evaluation.issues,
+        {
+          code: 'endure-active',
+          message: 'Endure prevents using damage-dealing actions while active.',
+        },
+      ],
+    }
   const csrForecast =
     state.statBalancePolicyVersion === 1 && evaluation.legal
       ? materializeCsrCommittedAction({
@@ -226,6 +254,7 @@ export function evaluateCombatAction(
       csrForecast.content,
       executionActorId,
       returnAnchor,
+      returnAnchors,
     )
   }
   const preview =
@@ -270,15 +299,18 @@ export function executeCombatAction(
     !context.committedExecution
   )
     throw new TypeError('invalid-committed-execution-authority')
+  let returnAnchors: CombatRewindAnchors | undefined
   let returnAnchor: GridPosition | undefined
   if (context?.committedExecution) {
-    returnAnchor = consumeCommittedCombatExecution(
+    const capturedRewind = consumeCommittedCombatRewind(
       context.committedExecution,
       state,
       action,
       selection,
       context,
     )
+    returnAnchor = capturedRewind.returnAnchor
+    returnAnchors = capturedRewind.returnAnchors
     action = committedCombatAction(action)
   }
   const executionActorId = context?.executionAuthority?.actorId
@@ -296,6 +328,15 @@ export function executeCombatAction(
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = executionActorId ?? state.tactical.battle.currentTurn?.combatantId ?? null
+  if (
+    !context?.executionAuthority &&
+    actorId &&
+    combatEndureBlocksAction(state, actorId, action, content)
+  )
+    throw new Error(
+      'Illegal combat action: endure-active: Endure prevents using damage-dealing actions while active.',
+    )
+  action = captureAttackTagDamage(state, action, content, false, actorId ?? undefined)
   const previewAction = materializeCsrPreviewAction(action)
   const previewMaterializedAction = materializeStatScaledDamage(
     state,
@@ -323,8 +364,11 @@ export function executeCombatAction(
         content,
         executionActorId,
         returnAnchor,
+        returnAnchors,
       )
     : null
+  if (!returnAnchors && evaluation?.legal)
+    returnAnchors = captureCombatRewindAnchors(state, action, evaluation)
   const dependentOrdinals = new Set(hitDependentEffects?.effectOrdinals ?? [])
   const prerequisiteGroups = packetGroups
     ?.map((group) => group.filter((ordinal) => !dependentOrdinals.has(ordinal)))
@@ -520,6 +564,15 @@ export function executeCombatAction(
     context?.committedExecution,
     context?.nativeHooks,
     returnAnchor,
+    returnAnchors,
+    triggerGuard
+      ? {
+          getGuard: () => triggerGuard!,
+          setGuard: (guard) => {
+            triggerGuard = guard
+          },
+        }
+      : undefined,
   )
   const covertFiltered = filterBlockedCovertApplication({
     before: critical.state,
@@ -646,7 +699,7 @@ export function executeCommittedCombatActorEffects(
   hitDependentEffects?: CombatHitDependentEffects,
 ): CombatResolutionTransition {
   if (!context.committedExecution) throw new TypeError('invalid-committed-execution-authority')
-  const returnAnchor = consumeCommittedCombatExecution(
+  const { returnAnchor, returnAnchors } = consumeCommittedCombatRewind(
     context.committedExecution,
     state,
     action,
@@ -713,6 +766,7 @@ export function executeCommittedCombatActorEffects(
     },
     context.nativeHooks,
     returnAnchor,
+    returnAnchors,
   )
   const filtered = filterBlockedCovertApplication({
     before: state,
@@ -774,6 +828,7 @@ function recordTurnDamageHistory(
 ): CombatEncounterState {
   const rounds = new Map<number, legacy.CombatResolutionEvent[]>()
   for (const event of events) {
+    if (event.event === 'damage_applied' && event.actionId === 'status.reflect.current.v1') continue
     const round = event.effectActivationRound ?? turnRound
     rounds.set(round, [...(rounds.get(round) ?? []), event])
   }

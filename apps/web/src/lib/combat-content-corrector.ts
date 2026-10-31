@@ -1,3 +1,8 @@
+import { withAbilityEffectDependencies } from './combat-ability-effect-dependencies'
+import { reconcileAuthoredEffectDependencies } from './combat-effect-dependencies'
+import type { CombatGroundAreaDefinition } from '@aurevane/game-core/combat/combat-ground-areas'
+import { withRemappedGroundEntries } from './combat-ground-entry-authoring'
+import { currentTagForAuthoring, currentSummonForAuthoring } from './combat-current-tag-authoring'
 import { activeCombatContentForAuthoring } from './combat-ability-authoring-compatibility'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
@@ -56,8 +61,58 @@ export function correctCombatContentEntries<T>(
       `${label}: ${before / divisor}${divisor === 100 ? '%' : ''} → ${after / divisor}${divisor === 100 ? '%' : ''}.`,
     )
   }
+  function summonProfile(value: unknown) {
+    if (!object(value) || !Array.isArray(value.abilities) || !object(value.stats)) return value
+    let next: import('@aurevane/game-core/combat/summon-content').SummonProfileDefinition
+    try {
+      next = currentSummonForAuthoring(
+        value as unknown as import('@aurevane/game-core/combat/summon-content').SummonProfileDefinition,
+      )
+    } catch {
+      return value
+    }
+    const description =
+      typeof owner.description === 'string' && owner.description.trim()
+        ? owner.description
+        : typeof root.description === 'string' && root.description.trim()
+          ? root.description
+          : undefined
+    const flavorLine =
+      typeof root.flavorLine === 'string' && root.flavorLine.trim()
+        ? root.flavorLine
+        : typeof owner.flavorLine === 'string' && owner.flavorLine.trim()
+          ? owner.flavorLine
+          : undefined
+    return {
+      ...next,
+      ...(description ? { description } : {}),
+      ...(flavorLine ? { flavorLine } : {}),
+    }
+  }
+  if (object(owner.summonProfile)) {
+    const next = summonProfile(owner.summonProfile)
+    if (JSON.stringify(next) !== JSON.stringify(owner.summonProfile)) {
+      owner.summonProfile = next
+      corrections.push('Updated Summon stats, behavior and text to the current editor settings.')
+    }
+  }
   function payload(value: unknown) {
     if (!object(value) || typeof value.type !== 'string' || !combatTagDefinition(value.type)) return
+    if (value.type === 'summon') {
+      const next = summonProfile(value.profile)
+      if (JSON.stringify(next) !== JSON.stringify(value.profile)) {
+        value.profile = next
+        corrections.push('Updated Summon stats, behavior and text to the current editor settings.')
+      }
+      return
+    }
+    const current = currentTagForAuthoring(value as unknown as CombatTagPayload)
+    if (JSON.stringify(current) !== JSON.stringify(value)) {
+      const label = effectAuthoringTag(current).label
+      for (const key of Object.keys(value)) Reflect.deleteProperty(value, key)
+      Object.assign(value, current)
+      corrections.push(`Updated ${label} to the current tag settings.`)
+    }
     if (!['damage', 'pierce', 'healing', 'apply-status', 'sensory'].includes(value.type)) return
     const label = effectAuthoringTag(value as unknown as CombatTagPayload).label
     if (['damage', 'pierce', 'healing'].includes(value.type))
@@ -128,14 +183,18 @@ export function correctCombatContentEntries<T>(
         )
       )
         return group
-      const next = withAuthoredElementalCompanions(
+      const previousEffects = group.effects
+      const elemental = withAuthoredElementalCompanions(
         group as unknown as AbilityBehavior,
         group as unknown as AbilityBehavior,
         { preserveExisting: true },
       )
-      for (const effect of next.effects.slice(group.effects.length))
+      const next = withAbilityEffectDependencies(elemental, elemental)
+      for (const effect of next.effects.filter(
+        (effect) => !previousEffects.some((row: unknown) => object(row) && row.id === effect.id),
+      ))
         corrections.push(
-          `Added required ${effectAuthoringTag(effect.payload).label} for the selected damage element.`,
+          `Added required ${effectAuthoringTag(effect.payload).label} for the selected effect.`,
         )
       return next
     })
@@ -148,7 +207,59 @@ export function correctCombatContentEntries<T>(
       )
   } else {
     targeting(owner.target)
-    if (Array.isArray(owner.effects)) for (const effect of owner.effects) payload(effect)
+    function nativeEffects(container: Record<string, unknown>, key: string) {
+      const rows = container[key]
+      if (!Array.isArray(rows)) return
+      for (const effect of rows) payload(effect)
+      if (
+        !rows.every(
+          (effect) =>
+            object(effect) &&
+            typeof effect.type === 'string' &&
+            typeof effect.recipient === 'string' &&
+            combatTagDefinition(effect.type),
+        )
+      )
+        return
+      const sources = new Map(rows.map((effect, index) => [effect, index]))
+      const effects = reconcileAuthoredEffectDependencies(
+        rows as unknown as CombatTagPayload[],
+        rows as unknown as CombatTagPayload[],
+        {
+          onLinked: (source, linked) => {
+            const index = sources.get(source)
+            if (index !== undefined) sources.set(linked, index)
+          },
+        },
+      )
+      if (effects === rows) return
+      const area = container.groundArea
+      const groundArea =
+        object(area) &&
+        Array.isArray(area.entryEffectOrdinals) &&
+        area.entryEffectOrdinals.every(
+          (index) => Number.isSafeInteger(index) && index >= 0 && index < rows.length,
+        )
+          ? (area as unknown as CombatGroundAreaDefinition)
+          : undefined
+      const before = { effects: rows as unknown as CombatTagPayload[], groundArea }
+      const remapped = withRemappedGroundEntries(before, { ...before, effects })
+      container[key] = effects
+      if (before.groundArea) {
+        if (remapped.groundArea) container.groundArea = remapped.groundArea
+        else Reflect.deleteProperty(container, 'groundArea')
+      }
+      if (Array.isArray(owner.effectDescriptions)) {
+        const notes = owner.effectDescriptions
+        owner.effectDescriptions = effects.map((effect) => {
+          const index = sources.get(effect)
+          return index === undefined ? null : (notes[index] ?? null)
+        })
+      }
+      corrections.push('Synchronized required linked effect tags.')
+    }
+    nativeEffects(owner, 'effects')
+    if (object(owner.trigger)) nativeEffects(owner.trigger, 'resultEffects')
   }
   return { definition, corrections }
 }

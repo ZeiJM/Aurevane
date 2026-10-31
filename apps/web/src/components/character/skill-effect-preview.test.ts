@@ -1,3 +1,4 @@
+import { canonicalEffectExplanation } from './canonical-effect-explanation'
 import { describe, expect, it } from 'vitest'
 
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
@@ -46,7 +47,7 @@ describe('compact Technique explanations', () => {
       expect(previewEffect(effect)).toMatchObject({
         label: 'Cleanse',
         explanation:
-          'Removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked, Taunted, Suppress.',
+          'Removes Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked, Taunt, Suppress.',
       })
     },
   )
@@ -164,7 +165,7 @@ it('shows captured percentage HP/MP recovery without offensive Power', () => {
   })
   expect(result).toMatchObject({ label: 'HP Recovery', magnitude: '12%' })
   expect(result.explanation).toContain('maximum HP')
-  expect(result.explanation).toContain('captured')
+  expect(result.explanation).toContain('fixed when cast')
 })
 
 it('Healing Down Skill readers explain both resources and respect historical battle rules', () => {
@@ -513,7 +514,7 @@ it('describes specified status consumption without promising full Cleanse or rem
   expect(result.explanation).not.toContain('Suppress')
 })
 
-it('keeps the Dispel summary short and lists its exact statuses only in the explanation', () => {
+it('shows the selected Dispel statuses in its compact value and explanation', () => {
   const result = previewEffect({
     type: 'remove-status',
     recipient: 'primary-unit',
@@ -521,7 +522,7 @@ it('keeps the Dispel summary short and lists its exact statuses only in the expl
     removalMode: 'specified',
   })
   expect(result.label).toBe('Dispel')
-  expect(result.magnitude).toBeUndefined()
+  expect(result.magnitude).toBe('Covert / Guard')
   expect(result.explanation).toContain('Covert, Guard')
   expect(result.explanation).not.toContain('Suppress')
 })
@@ -536,4 +537,51 @@ it('names the limited Burn and Drenched removal Conditional Cleanse', () => {
   expect(result.label).toBe('Conditional Cleanse')
   expect(result.magnitude).toBe('Burn / Drenched')
   expect(result.explanation).not.toContain('Suppress')
+})
+
+it('shows the authored Skill AP surcharge in compact and complete Frozen Ground readers', () => {
+  const effect = {
+    type: 'create-terrain' as const,
+    recipient: 'affected-tiles' as const,
+    terrain: 'frozen' as const,
+    skillApSurcharge: 27,
+  }
+  expect(previewEffect(effect)).toMatchObject({ magnitude: '+27 Skill AP' })
+  expect(previewEffect(effect).explanation).toContain('Skills')
+  expect(previewEffect(effect).explanation).not.toContain('movement')
+  expect(skillEffectDescription(effect)).toContain('27 AP')
+  expect(skillEffectDescription(effect)).not.toContain('per entered tile')
+  const summaries = canonicalEffectExplanation(effect, {})
+  expect(JSON.stringify(summaries)).toContain('Skill AP surcharge')
+  expect(JSON.stringify(summaries)).toContain('+27 AP per Skill')
+  const { skillApSurcharge: _profile, ...historical } = effect
+  void _profile
+  expect(previewEffect(historical).magnitude).toBe('+10 AP/tile')
+  expect(skillEffectDescription(historical)).toContain('10 extra AP per entered tile')
+})
+
+it('describes Ground-origin Chilled independently of overlapping Ice damage', () => {
+  const damage = {
+    type: 'damage' as const,
+    recipient: 'affected-units' as const,
+    amount: 10,
+    element: 'ice' as const,
+  }
+  const chilled = {
+    type: 'apply-status' as const,
+    recipient: 'affected-units' as const,
+    statusId: 'frozen',
+    stacks: 1,
+    durationTurns: 2,
+    applicationOrigin: 'frozen-ground' as const,
+  }
+  const options = { timingPolicy: { version: 9, modes: { frozen: 'instant' as const } } }
+  const independent = skillPreviewEffects({ effects: [damage, chilled] }, options)[1]!.explanation
+  expect(independent).toContain('Chilled')
+  expect(independent).not.toContain('positive hostile HP damage')
+  const { applicationOrigin: _origin, ...ordinary } = chilled
+  void _origin
+  expect(skillPreviewEffects({ effects: [damage, ordinary] }, options)[1]!.explanation).toContain(
+    'positive hostile HP damage',
+  )
 })

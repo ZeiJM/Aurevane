@@ -31,10 +31,13 @@ export function canonicalStatusExplanation(
     mark: 'Only the source gains Accuracy against this target; other attackers gain no benefit.',
     covert: 'Conceal beneficial effects from opposing viewers until revealed.',
     invisible:
-      'The recipient cannot be selected by hostile direct unit actions. Ground effects can hit. A damaging action or taking damage breaks Invisible.',
+      'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. A damaging action or taking damage ends Invisible.',
     root: 'Cannot move. Attacks, Skills and facing remain available.',
     challenged: 'Deal less damage to anyone except the unit that applied Taunt.',
-    fortified: 'Reduce incoming and outgoing damage. Both effects expire or are removed together.',
+    fortified:
+      effect.defenseIncreaseBasisPoints === undefined
+        ? 'Reduce incoming and outgoing damage. Both effects expire or are removed together.'
+        : 'Increase Physical and Mystic Defense and reduce outgoing damage by the same percentage.',
     reckless: 'Increase outgoing and incoming damage. Both effects expire or are removed together.',
     warded: mechanicText`Take less damage from opponents affected by ${mechanicTag('burn')}.`,
     frozen:

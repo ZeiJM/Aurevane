@@ -1,3 +1,5 @@
+import { maximumSupportedCombatRange } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import { withCurrentSummonCoreAttributes } from '@aurevane/game-core/combat/summon-content'
 import { handleCombatContentAuthoringRequest } from './combat-content-authoring-handler'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
@@ -1221,7 +1223,7 @@ describe('Combat v5.1 Master authoring bounds', () => {
 
     const range = service.validateSkillDefinition({
       ...base,
-      target: { ...base.target, maximumRange: 6 },
+      target: { ...base.target, maximumRange: maximumSupportedCombatRange() + 1 },
     })
     expect(range.valid).toBe(false)
     expect(range.issues).toContainEqual(expect.objectContaining({ path: 'target.maximumRange' }))
@@ -2214,3 +2216,86 @@ describe('automatic Damage formula authoring persistence', () => {
     },
   )
 })
+
+it.each(['basic', 'skill', 'essence', 'resonance'] as const)(
+  'publishes current full Cleanse for %s without reducing it to the historical list',
+  async (kind) => {
+    const { createAuthorableEffectPayload } =
+      await import('@aurevane/game-core/combat/combat-effect-authoring')
+    const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    const ability = parseAbilityDefinition({
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...guard,
+          effects: [
+            {
+              id: 'full-cleanse',
+              payload: { ...createAuthorableEffectPayload('cleanse')!, recipient: 'actor' },
+            },
+          ],
+        },
+      ],
+    })
+    const fixture = canonicalAuthoringFixture(kind, ability)
+    expect(fixture.validate()).toMatchObject({ valid: true, issues: [] })
+    const record = await fixture.publish()
+    const saved =
+      kind === 'essence'
+        ? (record.definition.skill as { ability: unknown }).ability
+        : record.definition.ability
+    expect(saved).toEqual(ability)
+  },
+)
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'round-trips Core-authored %s Summons and HP costs through draft saves and publication',
+  async (kind) => {
+    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const coreProfile = withCurrentSummonCoreAttributes(native.summonProfile!)
+    const profile = {
+      ...coreProfile,
+      abilities: coreProfile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
+    }
+    const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    const ability = parseAbilityDefinition({
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...guard,
+          targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+          effects: [
+            { id: 'call', payload: { type: 'summon', recipient: 'selected-tile', profile } },
+          ],
+        },
+      ],
+    })
+    const fixture = canonicalAuthoringFixture(kind, ability)
+    expect(fixture.validate()).toMatchObject({ valid: true, issues: [] })
+    const draftInput = {
+      actorUserId: OWNER,
+      definition: fixture.definition,
+      baseVersion: fixture.definition.contentVersion,
+      expectedDraftVersion: null,
+    }
+    const draft =
+      kind === 'skill'
+        ? await fixture.service.saveSkillDraft(draftInput)
+        : kind === 'essence'
+          ? await fixture.service.saveEssenceDraft(draftInput)
+          : await fixture.service.saveResonanceDraft(draftInput)
+    const draftAbility =
+      kind === 'essence'
+        ? (draft.definition.skill as { ability: unknown }).ability
+        : draft.definition.ability
+    expect(JSON.parse(JSON.stringify(draftAbility))).toEqual(ability)
+    const receipt = await fixture.publish()
+    const saved =
+      kind === 'essence'
+        ? (receipt.definition.skill as { ability: unknown }).ability
+        : receipt.definition.ability
+    expect(JSON.parse(JSON.stringify(saved))).toEqual(ability)
+  },
+)

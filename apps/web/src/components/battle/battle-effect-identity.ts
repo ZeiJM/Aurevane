@@ -12,15 +12,20 @@ import {
   blindsideStatusDescription,
   isBlindsideStatusId,
 } from '@aurevane/game-core/combat/combat-blindside'
+import { counterDescription } from '@aurevane/game-core/combat/combat-counter'
+import { endureDescription } from '../../lib/combat-effect-descriptions'
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import {
   terrainBattleEffectPresentation,
   primedBattleEffectPresentation,
+  reversalBattleEffectPresentation,
   type BattlePresentedStatus,
 } from '../../lib/battle/battle-elevation-effects'
 
 /** Stable reading codes preserve distinct identities, including historical Mark. */
 const identifiers: Readonly<Record<string, string>> = {
+  endure: 'END',
+  counter: 'CTR',
   guarded: 'GUA',
   exposed: 'EXP',
   'lowered-guard': 'OFF',
@@ -76,6 +81,8 @@ export function battleEffectIdentity(statusId: string) {
 }
 
 export function describeBattleEffect(effect: BattlePresentedStatus) {
+  const reversal = reversalBattleEffectPresentation(effect)
+  if (reversal) return { ...reversal, explanation: `${reversal.description} ${reversal.duration}.` }
   const primed = primedBattleEffectPresentation(effect)
   if (primed) return { ...primed, explanation: `${primed.description} ${primed.duration}.` }
   const terrainEffect = terrainBattleEffectPresentation(effect)
@@ -92,6 +99,10 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
     effect.statusId === 'burn' || effect.statusId === 'poison' || effect.statusId === 'bleed'
       ? effect.statusId
       : null
+  const counterText =
+    effect.statusId === 'counter' && effect.counter ? counterDescription(effect.counter) : null
+  const endureText =
+    effect.statusId === 'endure' && effect.endure ? endureDescription(effect.endure) : null
   const percentageDescription =
     dot && (effect.percentageDamage || effect.percentageDotProfile)
       ? percentageDotDescription(dot, effect.burnBacklashBasisPoints, {
@@ -123,7 +134,9 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       ? { label: `Suppress [${(effect.potencyBasisPoints ?? 2500) / 100}%]` }
       : {}),
     description:
-      (percentageDescription ??
+      (endureText ??
+        counterText ??
+        percentageDescription ??
         (isBlindsideStatusId(effect.statusId)
           ? blindsideStatusDescription(effect, effect.blindsideActivationPolicyVersion !== 1)
           : effect.statusId === 'airborne'
@@ -142,6 +155,7 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
                     )
                   : effect.potencyBasisPoints,
                 {
+                  ...effect,
                   legacyHealingDown: effect.healingDownPolicyVersion !== 1,
                   legacyElemental: effect.elementalDamagePolicyVersion == null,
                   explicitElemental: effect.elementalDamagePolicyVersion === 2,

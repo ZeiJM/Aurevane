@@ -2,16 +2,14 @@
 
 import type { AbilityBehavior, AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
 import {
-  combatTagDefinition,
   nativeCombatTagPayload,
   type CombatTagPayload,
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { createDefaultCombatEffect } from './skill-effect-list-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
+import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import { SummonProfileEditor } from './summon-profile-editor'
-import { MasterHelp } from '../master-help'
-import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 import { AbilityNumber } from './ability-editor-fields'
 import { EffectTargetEditor } from './effect-target-editor'
 import { withAuthoredEffectTarget } from '@aurevane/game-core/combat/combat-effect-target-authoring'
@@ -48,8 +46,7 @@ export function AbilityEffectEditor({
   behavior?: AbilityBehavior
   onChange: (value: AbilityEffect) => void
 }) {
-  const payload = value.payload
-  const tag = combatTagDefinition(payload.type)
+  const payload = currentTagForAuthoring(value.payload)
   const update = (next: CombatTagPayload) => onChange({ ...value, payload: next })
   let controls
   if (payload.type === 'move') {
@@ -60,11 +57,6 @@ export function AbilityEffectEditor({
           value={payload.maximumTiles}
           min={1}
           max={20}
-          help={
-            <MasterHelp label="Move">
-              <p>{tag?.fullExplanation}</p>
-            </MasterHelp>
-          }
           onChange={(maximumTiles) => update({ ...payload, maximumTiles })}
         />
       </>
@@ -75,11 +67,6 @@ export function AbilityEffectEditor({
         label="Damage Up (%)"
         value={(payload.multiplierBasisPoints - 10000) / 100}
         step={0.01}
-        help={
-          <MasterHelp label={effectAuthoringTag(payload).label}>
-            <p>{tag?.fullExplanation}</p>
-          </MasterHelp>
-        }
         onChange={(percent) =>
           update({ ...payload, multiplierBasisPoints: 10000 + Math.round(percent * 100) })
         }
@@ -148,20 +135,14 @@ export function AbilityEffectEditor({
   }
   return (
     <div className={styles.effectParameters}>
-      {payload.type === 'summon' ? (
-        <div className={styles.effectReference}>
-          <strong>{effectAuthoringTag(payload).label}</strong>
-          <MasterHelp label={effectAuthoringTag(payload).label}>
-            <p>{tag?.fullExplanation}</p>
-          </MasterHelp>
-        </div>
+      {!['weak-point', 'spike', 'ruin', 'endure', 'reversal'].includes(payload.type) ? (
+        <EffectTargetEditor
+          value={payload}
+          aim={behavior?.targeting ?? undefined}
+          siblings={behavior?.effects.map((row) => row.payload)}
+          onChange={(target) => update(withAuthoredEffectTarget(payload, target))}
+        />
       ) : null}
-      <EffectTargetEditor
-        value={payload}
-        aim={behavior?.targeting ?? undefined}
-        siblings={behavior?.effects.map((row) => row.payload)}
-        onChange={(target) => update(withAuthoredEffectTarget(payload, target))}
-      />
       {controls}
     </div>
   )

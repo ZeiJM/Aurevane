@@ -9,7 +9,7 @@ it.each([
   ['essence', () => currentEssenceDefinitions()[0]!],
   ['resonance', () => currentResonanceDefinitions()[0]!],
 ] as const)(
-  'uses the same six ordered sections for %s without rewriting its mechanics',
+  'uses the same five ordered sections for %s without rewriting its mechanics',
   (kind, load) => {
     const value = structuredClone(load())
     const before = JSON.stringify(value)
@@ -28,8 +28,7 @@ it.each([
       'Details &amp; Text',
       'Media',
       'Range &amp; Area',
-      'Action Economy',
-      'Accuracy',
+      'Execution Characteristics',
       'Effects',
     ]) {
       const index = html.indexOf(`>${label}</button>`)

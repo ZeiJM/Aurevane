@@ -1,5 +1,10 @@
 'use client'
 
+import {
+  battleCapturedActionCanSelect,
+  battleControlledActionCostLabel,
+} from './battle-captured-action-cost'
+
 import { readableDisciplineName } from '@/lib/discipline-display-name'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 
@@ -120,16 +125,20 @@ export function BattleSelectedSkills({
   const resonanceDisabled =
     disabled ||
     (resonanceCost?.controlledSpent && !resonanceCost.chooseAction) ||
-    (!resonancePrime &&
-      !resonanceCost?.chooseAction &&
-      !!resonanceSkill &&
-      (!resonanceCost?.affordable || (cooldowns[resonanceSkill.id] ?? 0) > 0))
+    (!!resonanceSkill &&
+      !!resonanceCost &&
+      !battleCapturedActionCanSelect(
+        resonanceCost,
+        resonancePrime,
+        cooldowns[resonanceSkill.id] ?? 0,
+      ))
   const resonanceReady =
     !!resonanceSkill &&
     readyActionId === resonanceSkill.id &&
     !resonanceDisabled &&
     !resonancePrime &&
-    !resonanceCost?.chooseAction
+    !resonanceCost?.chooseAction &&
+    resonanceCost?.controlledKind !== 'reversal'
   const essencePrime =
     !!runtime.essence &&
     !essenceCost?.controlledSpent &&
@@ -138,16 +147,16 @@ export function BattleSelectedSkills({
     disabled ||
     (essenceCost?.controlledSpent && !essenceCost.chooseAction) ||
     essenceMode?.canCast === false ||
-    (!essencePrime &&
-      !essenceCost?.chooseAction &&
-      !!runtime.essence &&
-      (!essenceCost?.affordable || (cooldowns[runtime.essence.id] ?? 0) > 0))
+    (!!runtime.essence &&
+      !!essenceCost &&
+      !battleCapturedActionCanSelect(essenceCost, essencePrime, cooldowns[runtime.essence.id] ?? 0))
   const essenceReady =
     !!runtime.essence &&
     readyActionId === runtime.essence.id &&
     !essenceDisabled &&
     !essencePrime &&
-    !essenceCost?.chooseAction
+    !essenceCost?.chooseAction &&
+    essenceCost?.controlledKind !== 'reversal'
   return (
     <div className={styles.root} data-battle-selected-skills="true">
       <div className={styles.skills} aria-label="Selected Discipline Skills">
@@ -162,16 +171,16 @@ export function BattleSelectedSkills({
             disabled ||
             (payment?.controlledSpent && !payment.chooseAction) ||
             castMode?.canCast === false ||
-            (!primeAvailable &&
-              !payment?.chooseAction &&
-              !!skill &&
-              (!payment?.affordable || cooldownTurns > 0))
+            (!!skill &&
+              !!payment &&
+              !battleCapturedActionCanSelect(payment, primeAvailable, cooldownTurns))
           const ready =
             !!skill &&
             readyActionId === skill.id &&
             !actionDisabled &&
             !primeAvailable &&
-            !payment?.chooseAction
+            !payment?.chooseAction &&
+            payment?.controlledKind !== 'reversal'
           const binding = bindings[(['skill1', 'skill2', 'skill3', 'skill4'] as const)[index]!]
           const hotkey = formatCombatKeybind(binding)
           return (
@@ -187,7 +196,7 @@ export function BattleSelectedSkills({
                     type="button"
                     className={styles.skillAction}
                     data-battle-skill-hotkey={hotkey}
-                    aria-label={`Selected ${skill.name}, ${castMode?.canCast === false ? castMode.label : `${payment?.chooseAction ? 'choose another action' : primeAvailable ? 'prime without payment' : payment!.costLabel}${battleCooldownLabel(cooldownTurns)}${payment?.controlledSpent && !payment.chooseAction ? ', already used this battle' : ''}${payment?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}`}
+                    aria-label={`Selected ${skill.name}, ${castMode?.canCast === false ? castMode.label : `${battleControlledActionCostLabel(payment, primeAvailable, payment!.costLabel)}${battleCooldownLabel(cooldownTurns)}${payment?.controlledSpent && !payment.chooseAction ? ', already used this battle' : ''}${payment?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}`}
                     aria-pressed={activeId === skill.id}
                     disabled={castMode?.canCast === false && onInspect ? false : actionDisabled}
                     data-battle-cooldown-active={cooldownTurns > 0 || undefined}
@@ -210,7 +219,12 @@ export function BattleSelectedSkills({
                         unoptimized
                       />
                       <BattleSkillCooldown turns={cooldownTurns} />
-                      <BattleControlledReady ready={ready} primed={payment?.controlledPrimed} />
+                      <BattleControlledReady
+                        ready={ready}
+                        primed={payment?.controlledPrimed}
+                        kind={payment?.controlledKind}
+                        canPrepare={primeAvailable}
+                      />
                     </span>
                     <strong>{skill.name}</strong>
                   </button>
@@ -260,7 +274,7 @@ export function BattleSelectedSkills({
             <button
               className={styles.specialAction}
               type="button"
-              aria-label={`${runtime.essence.name}, Essence, ${essenceMode?.canCast === false ? essenceMode.label : `${essenceCost?.chooseAction ? 'choose another action' : essencePrime ? 'prime without payment' : essenceCost!.costLabel}${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}${essenceCost?.controlledSpent && !essenceCost.chooseAction ? ', already used this battle' : ''}${essenceCost?.controlledPrimed ? ', primed' : ''}${essenceReady ? ', ready to release' : ''}`}`}
+              aria-label={`${runtime.essence.name}, Essence, ${essenceMode?.canCast === false ? essenceMode.label : `${battleControlledActionCostLabel(essenceCost, essencePrime, essenceCost!.costLabel)}${battleCooldownLabel(cooldowns[runtime.essence.id] ?? 0)}${essenceCost?.controlledSpent && !essenceCost.chooseAction ? ', already used this battle' : ''}${essenceCost?.controlledPrimed ? ', primed' : ''}${essenceReady ? ', ready to release' : ''}`}`}
               aria-pressed={activeId === runtime.essence.id}
               disabled={essenceMode?.canCast === false && onInspect ? false : essenceDisabled}
               data-battle-cooldown-active={(cooldowns[runtime.essence.id] ?? 0) > 0 || undefined}
@@ -286,6 +300,8 @@ export function BattleSelectedSkills({
                 <BattleControlledReady
                   ready={essenceReady}
                   primed={essenceCost?.controlledPrimed}
+                  kind={essenceCost?.controlledKind}
+                  canPrepare={essencePrime}
                 />
               </span>
               <strong>{runtime.essence.name}</strong>
@@ -311,7 +327,7 @@ export function BattleSelectedSkills({
               <button
                 className={styles.specialAction}
                 type="button"
-                aria-label={`${runtime.resonance.name}, Resonance, ${resonanceCost?.chooseAction ? 'choose another action' : resonancePrime ? 'prime without payment' : resonanceCost!.costLabel}${battleCooldownLabel(cooldowns[runtime.resonance.id] ?? 0)}${resonanceCost?.controlledSpent && !resonanceCost.chooseAction ? ', already used this battle' : ''}${resonanceCost?.controlledPrimed ? ', primed' : ''}${resonanceReady ? ', ready to release' : ''}`}
+                aria-label={`${runtime.resonance.name}, Resonance, ${battleControlledActionCostLabel(resonanceCost, resonancePrime, resonanceCost!.costLabel)}${battleCooldownLabel(cooldowns[runtime.resonance.id] ?? 0)}${resonanceCost?.controlledSpent && !resonanceCost.chooseAction ? ', already used this battle' : ''}${resonanceCost?.controlledPrimed ? ', primed' : ''}${resonanceReady ? ', ready to release' : ''}`}
                 aria-pressed={activeId === runtime.resonance.id}
                 disabled={resonanceDisabled}
                 data-battle-cooldown-active={
@@ -338,6 +354,8 @@ export function BattleSelectedSkills({
                   <BattleControlledReady
                     ready={resonanceReady}
                     primed={resonanceCost?.controlledPrimed}
+                    kind={resonanceCost?.controlledKind}
+                    canPrepare={resonancePrime}
                   />
                 </span>
                 <strong>{runtime.resonance.name}</strong>

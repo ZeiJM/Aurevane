@@ -51,7 +51,8 @@ export function BattleModifierPanel(
   const [modifierFocus, setModifierFocus] = useState(0)
   const root = props.actions.find((action) => action.key === props.selectedActionKey) ?? null
   const focused = props.modifiers[modifierFocus]
-  const prime = root?.descriptor.controlled?.canPrime === true
+  const reversal = root?.descriptor.controlled?.kind === 'reversal'
+  const prime = root?.descriptor.controlled?.canPrime === true && !reversal
   const keys = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.altKey || event.ctrlKey || event.metaKey) return
     if (
@@ -192,6 +193,13 @@ export function BattleModifierPanel(
               : 'Cost unavailable'}
           </p>
         ) : null}
+        {reversal ? (
+          <p>
+            <strong>Prepare: Paid.</strong> Preparation pays the complete Skill cost and starts its
+            cooldown immediately. While armed, only cancellation is available; cancellation gives no
+            refund and causes Reversal Strain.
+          </p>
+        ) : null}
         {prime ? (
           <p>
             <strong>Prime: Free.</strong> Priming locks the chosen set. The release uses its
@@ -201,7 +209,14 @@ export function BattleModifierPanel(
         {props.quote ? (
           <>
             <p>
-              <strong>{root?.descriptor.controlled ? 'Release cost' : 'Command cost'}:</strong>{' '}
+              <strong>
+                {reversal
+                  ? 'Preparation cost'
+                  : root?.descriptor.controlled
+                    ? 'Release cost'
+                    : 'Command cost'}
+                :
+              </strong>{' '}
               {props.quote.commandCosts
                 .map((cost) => `${cost.amount} ${cost.resource.toUpperCase()}`)
                 .join(' / ')}

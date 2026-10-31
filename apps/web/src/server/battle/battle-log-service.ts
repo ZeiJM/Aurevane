@@ -333,6 +333,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
                 ? { frozenGroundPolicyVersion: 1 as const }
                 : {}),
               remainingRoundBoundaries: event.remainingRoundBoundaries as number,
+              ...(Number.isSafeInteger(event.skillApSurcharge) &&
+              (event.skillApSurcharge as number) >= 0 &&
+              (event.skillApSurcharge as number) <= 100
+                ? { skillApSurcharge: event.skillApSurcharge as number }
+                : {}),
             },
           }
         : {}),
@@ -340,6 +345,84 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
   }
 
   switch (eventType) {
+    case 'reversal_prepared': {
+      if (!['physical', 'mystic'].includes(String(event.family))) return null
+      const actorCombatantId = stringValue(event.combatantId)
+      return createEntry(record, eventType, {
+        messageTemplate: '{actor} prepares {family} Reversal.',
+        templateValues: { family: event.family === 'physical' ? 'Physical' : 'Mystic' },
+        actorCombatantId,
+        targetCombatantId: actorCombatantId,
+        actionId: presentationActionId(event.actionId),
+        kind: 'status',
+        headline: 'Reversal prepared',
+        facts: fact('One counter armed'),
+      })
+    }
+    case 'reversal_triggered': {
+      const prevented = numberValue(event.preventedDamage)
+      const returned = numberValue(event.returnedDamage)
+      if (
+        prevented === null ||
+        returned === null ||
+        !Number.isSafeInteger(prevented) ||
+        !Number.isSafeInteger(returned) ||
+        prevented < 1 ||
+        returned < 0
+      )
+        return null
+      return createEntry(record, eventType, {
+        messageTemplate:
+          '{actor} reverses the attack: prevents {prevented} HP damage and returns {returned} HP damage to {target}.',
+        templateValues: { prevented: String(prevented), returned: String(returned) },
+        actorCombatantId: stringValue(event.combatantId),
+        targetCombatantId: stringValue(event.attackerCombatantId),
+        actionId: presentationActionId(event.actionId),
+        kind: 'offense',
+        headline: 'Reversal',
+        tone: 'damage',
+        facts: [
+          ...fact(`${prevented} HP damage prevented`),
+          ...fact(`${returned} HP damage returned`, 'damage'),
+        ],
+      })
+    }
+    case 'reversal_ended': {
+      const endings: Readonly<Record<string, string>> = {
+        triggered: 'is consumed',
+        expired: 'expires without activating',
+        revealed: 'is disrupted by Reveal',
+        cancelled: 'is cancelled',
+        defeated: 'ends on defeat',
+        'battle-ended': 'ends with the battle',
+      }
+      const reason = stringValue(event.reason)
+      const ending = reason ? endings[reason] : undefined
+      if (!ending) return null
+      const actorCombatantId = stringValue(event.combatantId)
+      return createEntry(record, eventType, {
+        messageTemplate: "{actor}'s Reversal {ending}. Reversal Strain begins.",
+        templateValues: { ending },
+        actorCombatantId,
+        targetCombatantId: actorCombatantId,
+        actionId: presentationActionId(event.actionId),
+        kind: 'status',
+        headline: 'Reversal ended',
+        tone: 'warning',
+        facts: fact('Reversal Strain', 'warning'),
+      })
+    }
+    case 'reversal_strain_ended': {
+      const actorCombatantId = stringValue(event.combatantId)
+      return createEntry(record, eventType, {
+        messageTemplate: "{actor}'s Reversal Strain ends.",
+        actorCombatantId,
+        targetCombatantId: actorCombatantId,
+        kind: 'status',
+        headline: 'Reversal Strain ended',
+        facts: fact('Reversal restriction ended'),
+      })
+    }
     case 'effect_pending': {
       const tag = stringValue(event.effectTag)
       const activationRound = numberValue(event.activationRound)

@@ -761,3 +761,121 @@ it('uses enemy or ground activation for dual-intent Fire authored as Ground Circ
     selectBattleSkillPreviewIntent(skill, { ...selection, selectedTile: { x: 2, y: 0 } })?.target,
   ).toEqual({ kind: 'activate', ground: true })
 })
+
+it('waits for a selected target before priming recipient Rewind', () => {
+  const capture = {
+    actionId: barrier.id,
+    behaviorId: 'rewind',
+    target: {
+      kind: 'unit' as const,
+      teamPolicy: 'enemy' as const,
+      friendlyFire: 'enemies-only' as const,
+      shape: { kind: 'single' as const },
+      minimumRange: 1,
+      maximumRange: 2,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+    },
+    controlled: {
+      phase: 'unprimed' as const,
+      canPrime: true,
+      canCancel: false,
+      requiresTarget: true as const,
+    },
+  }
+  expect(selectBattleControlledPrimeIntent([capture], barrier.id)).toBeNull()
+  const selection = { kind: 'unit' as const, combatantId: 'enemy' }
+  expect(
+    selectBattleControlledPrimeIntent([capture], barrier.id, undefined, undefined, selection),
+  ).toEqual({
+    kind: 'ability-prime',
+    actionId: barrier.id,
+    behaviorId: 'rewind',
+    target: selection,
+  })
+})
+
+it('releases recipient Rewind on its captured selection after the target leaves cast range', () => {
+  const releaseTarget = { kind: 'unit' as const, combatantId: 'enemy' }
+  const skill = {
+    ...barrier,
+    targetKind: 'unit' as const,
+    targetTeamPolicy: 'enemy' as const,
+    minimumRange: 1,
+    maximumRange: 1,
+    controlled: {
+      phase: 'primed' as const,
+      canPrime: false,
+      canCancel: true,
+      requiresTarget: true as const,
+      releaseTarget,
+    },
+  }
+  expect(
+    selectInitialBattleSkillPreviewIntent(skill, {
+      actorId: 'actor',
+      selectedCombatantId: null,
+      selectedTile: null,
+      combatants: [
+        { combatantId: 'actor', teamIndex: 0, hp: 10, position: { x: 0, y: 0 } },
+        { combatantId: 'enemy', teamIndex: 1, hp: 10, position: { x: 4, y: 4 } },
+      ],
+    }),
+  ).toMatchObject({ actionId: barrier.id, target: releaseTarget })
+})
+
+it('uses only paid Prepare or Cancel intents for Reversal and never manually releases the armed counter', () => {
+  const capture = {
+    actionId: 'mirror',
+    behaviorId: 'prepare',
+    target: {
+      kind: 'self',
+      teamPolicy: 'self',
+      friendlyFire: 'allies-only',
+      shape: { kind: 'single' },
+      minimumRange: 0,
+      maximumRange: 0,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+    },
+    controlled: { kind: 'reversal', phase: 'unprimed', canPrime: true, canCancel: false },
+  } as const
+  expect(selectBattleControlledPrimeIntent([capture], 'mirror')).toEqual({
+    kind: 'ability-prime',
+    actionId: 'mirror',
+    behaviorId: 'prepare',
+  })
+  const armed = {
+    ...capture,
+    controlled: {
+      ...capture.controlled,
+      phase: 'primed' as const,
+      canPrime: false,
+      canCancel: true,
+    },
+  }
+  expect(selectBattleControlledPrimeIntent([armed], 'mirror')).toEqual({
+    kind: 'ability-cancel-prime',
+    actionId: 'mirror',
+    behaviorId: 'prepare',
+  })
+  const skill = resolveBattleCapturedSkill(
+    {
+      id: 'mirror',
+      targetKind: 'self',
+      targetTeamPolicy: 'self',
+      minimumRange: 0,
+      maximumRange: 0,
+    },
+    [armed],
+  )!
+  expect(
+    selectInitialBattleSkillPreviewIntent(skill, {
+      actorId: 'actor',
+      combatants: [],
+      selectedTarget: null,
+      selectedCombatantId: null,
+      selectedTile: null,
+    }),
+  ).toBeNull()
+})

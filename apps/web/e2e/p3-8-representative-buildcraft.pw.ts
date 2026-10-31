@@ -222,7 +222,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     'Vanguard Skills tagged Attack + Melee: HP Recovery [4%] [Instant] [Self]',
   ])
   await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
-    'Restores a captured 4% of your maximum HP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.',
+    'Restores 4% of your maximum HP. The amount is fixed when cast; Healing Down reduces it. Cannot exceed the maximum or revive.',
   )
   for (const field of ['Cost', 'Cooldown', 'Target Method', 'Target Elevation', 'Line of Sight']) {
     await expect(resonanceField(field)).toHaveText('N/A')

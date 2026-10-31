@@ -196,10 +196,14 @@ function automaticTargetCategories(
 /** Effect Target follows the packet's native recipient and the command's actual unit selection. */
 export function simpleEffectRequirementSubjects(
   behavior: Pick<AbilityBehavior, 'activation' | 'targeting'>,
-  payload: Pick<AbilityEffect['payload'], 'recipient'>,
+  payload: Pick<AbilityEffect['payload'], 'recipient'> & { readonly type?: string },
 ): readonly AbilityRequirementSubject[] {
   if (payload.recipient === 'affected-tiles') return []
   if (behavior.activation === 'ongoing') return ['owner']
+  if (payload.type && ['weak-point', 'spike', 'ruin'].includes(payload.type))
+    return hasSimpleUnitSelection(behavior.targeting)
+      ? ['owner', 'selected', 'affected']
+      : ['owner', 'affected']
   if (payload.recipient === 'affected-units') return ['owner', 'affected']
   return hasSimpleUnitSelection(behavior.targeting) &&
     (payload.recipient === 'actor' || payload.recipient === 'primary-unit')

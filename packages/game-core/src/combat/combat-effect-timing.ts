@@ -1,3 +1,4 @@
+import { combatStatusTuning, type CombatStatusTuning } from './combat-status-tuning'
 import type {
   AttackPercentageDotProfile,
   CapturedPercentageDotDamage,
@@ -13,6 +14,7 @@ import { BLINDSIDE_DEBUFF_STATUS_ID } from './combat-blindside'
 export const COMBAT_EFFECT_TIMING_TAGS = [
   ...new Set([
     'damage',
+    'reversal',
     'healing',
     'mp-recovery',
     'mp-drain',
@@ -70,6 +72,7 @@ export function parseCombatEffectTimingPolicy(value: unknown): CombatEffectTimin
   for (const [tag, mode] of Object.entries(candidate.modes)) {
     if (
       !COMBAT_EFFECT_TIMING_TAGS.includes(tag) ||
+      (tag === 'reversal' && mode !== 'controlled') ||
       (mode !== 'instant' &&
         mode !== 'next-round' &&
         mode !== 'delayed' &&
@@ -138,7 +141,9 @@ export function combatEffectTimingMode(
   return (
     policy.modes[tag] ??
     (tag === 'push' || tag === 'pull' ? policy.modes.displace : undefined) ??
-    (['damage', 'healing', 'mp-recovery', 'blindside'].includes(tag) ? 'instant' : 'next-round')
+    (['damage', 'healing', 'mp-recovery', 'blindside', 'endure'].includes(tag)
+      ? 'instant'
+      : 'next-round')
   )
 }
 export type CombatRecoveryPresentation =
@@ -181,11 +186,12 @@ export function pendingCombatStatusRows(
             ? pending.timingTag
             : combatEffectTimingTag(effect)
     const definition = pending.content.statuses.find((status) => status.id === statusId)
-    const tuning = effect as typeof effect & {
-      durationTurns?: number
-      ticks?: number
-      potencyBasisPoints?: number
-    }
+    const tuning = effect as typeof effect &
+      CombatStatusTuning & {
+        durationTurns?: number
+        ticks?: number
+        potencyBasisPoints?: number
+      }
     const remaining =
       (effect.type === 'percentage-recovery' ? (effect.ticks ?? 1) : undefined) ??
       tuning.durationTurns ??
@@ -194,6 +200,7 @@ export function pendingCombatStatusRows(
       Math.max(1, (definition?.durationOwnerTurnStarts ?? 2) - 1)
     const durationScope =
       (effect.type === 'apply-status' ||
+        effect.type === 'endure' ||
         (effect.type === 'barrier-change' && effect.durationTurns !== undefined)) &&
       pending.statusDurationScope === 'rounds'
         ? ('rounds' as const)
@@ -259,7 +266,20 @@ export function pendingCombatStatusRows(
             ? { percentageDotProfile: { ...effect.damageProfile } }
             : {}),
           statusVersion: definition?.version ?? 1,
+          ...(effect.type === 'endure'
+            ? {
+                endure: {
+                  releaseBasisPoints: effect.releaseBasisPoints,
+                  radiusTiles: effect.radiusTiles,
+                  targetTeams: effect.targetTeams,
+                },
+              }
+            : {}),
           stacks: effect.type === 'apply-status' ? effect.stacks : 1,
+          ...(effect.type === 'apply-status' ? combatStatusTuning(tuning) : {}),
+          ...(effect.type === 'apply-status' && effect.counter
+            ? { counter: { ...effect.counter } }
+            : {}),
           ...(effect.type === 'apply-status' && effect.blindsideModifiersBasisPoints !== undefined
             ? { blindsideModifiersBasisPoints: { ...effect.blindsideModifiersBasisPoints } }
             : {}),

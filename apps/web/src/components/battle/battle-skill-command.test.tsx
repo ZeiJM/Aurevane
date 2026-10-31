@@ -173,3 +173,44 @@ describe('cooling Support Actions', () => {
     expect(markup).not.toMatch(/data-battle-info-trigger="true"[^>]*disabled/)
   })
 })
+
+it('labels paid Reversal preparation honestly and keeps only cancellation available on cooldown', () => {
+  const props = {
+    slot: 'guard' as const,
+    hotkey: '3',
+    label: 'Mirror',
+    cost: '35 AP / 5 MP / 3 HP',
+    artworkSrc: '/mirror.webp',
+    active: false,
+    disabled: false,
+    onActivate: () => undefined,
+  }
+  const availability = {
+    controlledPrimed: false,
+    controlledSpent: false,
+    chooseAction: false,
+    controlledKind: 'reversal' as const,
+    canCancel: false,
+  }
+  const prepare = renderToStaticMarkup(
+    createElement(BattleSkillCommand, {
+      ...props,
+      primeAvailable: true,
+      controlledAvailability: availability,
+    }),
+  )
+  expect(prepare).toContain('Prepare')
+  expect(prepare).toContain('35 AP / 5 MP / 3 HP')
+  expect(prepare).not.toContain('prime without payment')
+  const armed = renderToStaticMarkup(
+    createElement(BattleSkillCommand, {
+      ...props,
+      cooldownTurns: 3,
+      controlledReady: true,
+      controlledAvailability: { ...availability, controlledPrimed: true, canCancel: true },
+    }),
+  )
+  expect(armed).toContain('Cancel Reversal')
+  expect(armed).not.toContain('ready to release')
+  expect(armed).not.toMatch(/data-command-slot="guard"[^>]*disabled/)
+})

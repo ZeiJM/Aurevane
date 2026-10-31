@@ -105,7 +105,8 @@ if (process.env.AV_PRIMED_MODULES_COMPILE_ONLY === '1') {
         const rail = page.getByRole('region', { name: `${mode} shared rail`, exact: true })
         const primed = rail.locator('[data-effect-timing="primed"]')
         await expect(primed).toHaveCount(1)
-        await expect(primed).toContainText('PRI')
+        await expect(primed.locator('svg[data-battle-effect-icon="primed"]')).toHaveCount(1)
+        await expect(primed.getByRole('button')).toHaveAccessibleName(/Primed/i)
         await expect(
           rail.locator('[data-effect-timing="pending"], [data-effect-duration]'),
         ).toHaveCount(0)
@@ -141,7 +142,7 @@ if (process.env.AV_PRIMED_MODULES_COMPILE_ONLY === '1') {
           viewport,
           mode,
           nativePrime: 'passed',
-          amberPRI: 'passed',
+          amberPrimedIcon: 'passed',
           popupFits: 'passed',
           fakePendingClock: false,
         })

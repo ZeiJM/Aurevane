@@ -86,7 +86,8 @@ it('keeps captured old Ground/Airborne/Fire help separate from current rules', (
   const old = help({
     effectContext: { legacyFrozenGround: true, legacyElemental: true, legacyAirborne: true },
   })
-  expect(current['frozen-ground']).toContain('caster’s enemies')
+  expect(current['frozen-ground']).toContain('grounded enemies')
+  expect(current['frozen-ground']).toContain('Airborne ignores the surcharge')
   expect(old['frozen-ground']).toContain('either team')
   expect(current.airborne).toContain('Ground-targeted Skills always miss')
   expect(old.airborne).not.toContain('Ground-targeted Skills always miss')

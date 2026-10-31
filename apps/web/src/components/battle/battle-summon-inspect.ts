@@ -1,4 +1,7 @@
-import type { SummonAbilityDefinition } from '@aurevane/game-core/combat/summon-content'
+import {
+  summonPotencyDescription,
+  type SummonAbilityDefinition,
+} from '@aurevane/game-core/combat/summon-content'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 type BattleSnapshot = BattleSessionView['snapshot']
@@ -18,6 +21,8 @@ export interface BattleSummonInspectMetadata {
   readonly profileId: string
   readonly name: string
   readonly description: string
+  readonly potencyBasisPoints?: number
+  readonly potencyDescription?: string
   readonly flavorLine: string
   readonly portraitKey: string
   readonly tags: readonly string[]
@@ -55,6 +60,12 @@ export function readSummonInspectMetadata(
     profileId: summon.profile.id,
     name: summon.profile.name,
     description: summon.profile.description,
+    ...(summon.profile.potencyBasisPoints === undefined
+      ? {}
+      : {
+          potencyBasisPoints: summon.profile.potencyBasisPoints,
+          potencyDescription: summonPotencyDescription(summon.profile)!,
+        }),
     flavorLine: summon.profile.flavorLine,
     portraitKey: summon.profile.portraitKey,
     tags: [...summon.profile.tags],

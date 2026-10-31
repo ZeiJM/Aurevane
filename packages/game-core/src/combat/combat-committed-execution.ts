@@ -1,3 +1,4 @@
+import { copyCombatRewindAnchors, type CombatRewindAnchors } from './combat-rewind'
 import type { GridPosition } from './board'
 import type {
   CombatActionDefinition,
@@ -16,6 +17,7 @@ export interface CommittedCombatMovement {
   readonly maximumTiles: number
 }
 interface Admission {
+  readonly returnAnchors?: CombatRewindAnchors
   readonly returnAnchor?: GridPosition
   readonly movement?: string
   movementConsumed: boolean
@@ -42,6 +44,7 @@ export function issueCommittedCombatExecution(
   manual: boolean,
   movement?: CommittedCombatMovement,
   returnAnchor?: GridPosition,
+  returnAnchors?: CombatRewindAnchors,
 ): CommittedCombatExecution {
   const token = Object.freeze({}) as CommittedCombatExecution
   issued.set(token, {
@@ -55,6 +58,7 @@ export function issueCommittedCombatExecution(
     provenance: JSON.stringify(context.provenance),
     ...(movement ? { movement: JSON.stringify(movement) } : {}),
     ...(returnAnchor ? { returnAnchor: Object.freeze({ ...returnAnchor }) } : {}),
+    ...(returnAnchors ? { returnAnchors: copyCombatRewindAnchors(returnAnchors) } : {}),
     movementConsumed: false,
     consumed: false,
     settled: false,
@@ -86,13 +90,13 @@ export function consumeCommittedCombatMovement(
   admission.movementConsumed = true
 }
 
-export function consumeCommittedCombatExecution(
+export function consumeCommittedCombatRewind(
   token: CommittedCombatExecution,
   state: CombatEncounterState,
   action: CombatActionDefinition,
   selection: CombatTargetSelection,
   context: CombatResolutionContext,
-): GridPosition | undefined {
+): { returnAnchor?: GridPosition; returnAnchors?: CombatRewindAnchors } {
   const admission = issued.get(token)
   const battle = state.tactical.battle
   if (
@@ -110,7 +114,12 @@ export function consumeCommittedCombatExecution(
   )
     throw new TypeError('invalid-committed-execution-authority')
   admission.consumed = true
-  return admission.returnAnchor ? { ...admission.returnAnchor } : undefined
+  return {
+    ...(admission.returnAnchor ? { returnAnchor: { ...admission.returnAnchor } } : {}),
+    ...(admission.returnAnchors
+      ? { returnAnchors: copyCombatRewindAnchors(admission.returnAnchors) }
+      : {}),
+  }
 }
 
 /** Legacy emission suppression is possible only after the native wrapper consumed issuance. */
@@ -138,4 +147,11 @@ export function committedCombatAction(action: CombatActionDefinition): CombatAct
   const { cooldown: _cooldown, ...rest } = action
   void _cooldown
   return { ...rest, cost: { mp: 0, spendsAction: false }, requirements: [] }
+}
+
+/** Historical scalar self-anchor consumer. New recipients use the same single-use authority. */
+export function consumeCommittedCombatExecution(
+  ...args: Parameters<typeof consumeCommittedCombatRewind>
+): GridPosition | undefined {
+  return consumeCommittedCombatRewind(...args).returnAnchor
 }

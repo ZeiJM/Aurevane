@@ -51,6 +51,12 @@ export function CombatContentPreviewReport({
               release.
             </p>
           ) : null}
+          {preview.simulation?.preparation === 'paid-controlled-prime' ? (
+            <p>
+              Paid Reversal preparation. Costs and cooldowns below apply immediately when prepared;
+              interception happens automatically on the first qualifying hit.
+            </p>
+          ) : null}
           {preview.referenceAction ? (
             <p>
               Combined command with reference action {preview.referenceAction.id} v

@@ -261,3 +261,39 @@ it.each([
     expect(markup).not.toContain(rejected)
   },
 )
+
+it('explains paid Reversal preparation without a free prime or a later release', () => {
+  const choice = {
+    ...root,
+    descriptor: {
+      ...root.descriptor,
+      costs: [{ resource: 'ap' as const, amount: 35 }],
+      controlled: {
+        kind: 'reversal' as const,
+        phase: 'unprimed' as const,
+        canPrime: true,
+        canCancel: false,
+      },
+    },
+  }
+  const markup = renderToStaticMarkup(
+    <BattleModifierPanel
+      actions={[choice]}
+      selectedActionKey={choice.key}
+      modifiers={[]}
+      selectedReferences={[]}
+      locked={false}
+      readOnly={false}
+      binding={null}
+      quote={{ commandCosts: [{ resource: 'ap', amount: 35 }], commandCooldowns: [] }}
+      quotePending={false}
+      onPrepareAction={() => undefined}
+      onToggleModifier={() => undefined}
+      triggerRef={createRef<HTMLButtonElement>()}
+    />,
+  )
+  expect(markup).toContain('Prepare: Paid')
+  expect(markup).toContain('Preparation cost')
+  expect(markup).not.toContain('Prime: Free')
+  expect(markup).not.toContain('Release cost')
+})

@@ -497,7 +497,23 @@ it('commits the authored effect note alongside an added required companion', asy
   })
   expect(response.status).toBe(200)
   expect(await response.json()).toMatchObject({
-    corrections: ['Added required Conductive for the selected damage element.'],
-    record: { draft: { definition: { effectDescriptions: ['Authored note', null] } } },
+    corrections: ['Added required Conductive for the selected effect.'],
+    record: {
+      draft: {
+        definition: {
+          effectDescriptions: ['Authored note', null],
+          ability: {
+            behaviors: [
+              {
+                effects: [
+                  { id: 'hit', payload: { type: 'damage', element: 'storm' } },
+                  { payload: { type: 'apply-status', statusId: 'conductive' } },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    },
   })
 })

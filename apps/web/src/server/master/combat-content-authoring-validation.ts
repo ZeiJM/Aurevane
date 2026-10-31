@@ -193,6 +193,7 @@ function canonicalCleanseIssues(definition: AbilityDefinition): CombatContentVal
     behavior.effects.flatMap(({ payload }, effect) =>
       payload.type === 'remove-status' &&
       isCleanseEffect(payload) &&
+      payload.removalMode !== 'all-debuffs' &&
       !hasCanonicalCleanseStatuses(payload.statusIds)
         ? [
             {
@@ -262,7 +263,18 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
     if (canonical) issues.push(...canonicalCleanseIssues(candidate.ability!))
     else
       for (const [index, effect] of candidate.effects.entries()) {
-        if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+        if (effect.type === 'reversal') {
+          issues.push({
+            path: `effects[${index}]`,
+            code: 'REVERSAL_REQUIRES_MODULAR_ABILITY',
+            message: 'Reversal requires a modular Manual Action ability.',
+          })
+        }
+        if (
+          isCleanseEffect(effect) &&
+          effect.removalMode !== 'all-debuffs' &&
+          !hasCanonicalCleanseStatuses(effect.statusIds)
+        ) {
           issues.push({
             path: `effects[${index}].statusIds`,
             code: 'INCONSISTENT_CLEANSE',
@@ -414,7 +426,18 @@ export function validateResonanceAuthoringDefinition(
       for (const [index, effect] of normalizedResonanceMechanics(
         candidate,
       ).resultEffects.entries()) {
-        if (isCleanseEffect(effect) && !hasCanonicalCleanseStatuses(effect.statusIds)) {
+        if (effect.type === 'reversal') {
+          issues.push({
+            path: `trigger.${isResonanceDefinitionV2(candidate) ? 'resultEffects' : 'payoffEffects'}[${index}]`,
+            code: 'REVERSAL_REQUIRES_MANUAL_ACTION',
+            message: 'Reversal requires a paid Manual Action preparation.',
+          })
+        }
+        if (
+          isCleanseEffect(effect) &&
+          effect.removalMode !== 'all-debuffs' &&
+          !hasCanonicalCleanseStatuses(effect.statusIds)
+        ) {
           issues.push({
             path: `trigger.${isResonanceDefinitionV2(candidate) ? 'resultEffects' : 'payoffEffects'}[${index}].statusIds`,
             code: 'INCONSISTENT_CLEANSE',

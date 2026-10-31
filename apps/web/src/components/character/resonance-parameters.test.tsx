@@ -87,7 +87,7 @@ describe('shared Resonance parameter report', () => {
     expect(
       markup.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1'),
     ).toContain(
-      '<ul aria-label="Effect explanations"><li><strong>MP Recovery</strong> — Restores a captured 4% of your maximum MP. The maximum and Healing Down adjustment are captured when cast; actual gains cap at the current maximum and never revive.</li></ul>',
+      '<ul aria-label="Effect explanations"><li><strong>MP Recovery</strong> — Restores 4% of your maximum MP. The amount is fixed when cast; Healing Down reduces it. Cannot exceed the maximum or revive.</li></ul>',
     )
     expect(markup).toContain('Use a setup Skill from Requirements first.')
     expect(markup).not.toContain('Trigger targeting:')

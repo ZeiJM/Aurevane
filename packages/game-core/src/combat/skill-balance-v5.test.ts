@@ -212,3 +212,25 @@ describe('owner v5 Skill rebalance', () => {
     expect(payoff.cooldown).toBeNull()
   })
 })
+
+it.each([30, 60])(
+  'preserves authored percentage MP Drain through factory tuning at AP%i',
+  (apCost) => {
+    const base = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    const tuned = rebalanceMatureSkillDefinition({
+      ...base,
+      apCost,
+      effects: [
+        {
+          type: 'resource-change',
+          recipient: 'primary-unit',
+          resource: 'mp',
+          delta: -10,
+          ticks: 1,
+          basis: 'maximum-mp-percent',
+        },
+      ],
+    })
+    expect(tuned.effects[0]).toMatchObject({ basis: 'maximum-mp-percent', delta: -10 })
+  },
+)

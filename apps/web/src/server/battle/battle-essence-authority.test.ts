@@ -2131,3 +2131,130 @@ describe('Players correction preparation uses actual PvE producer', () => {
     expect(JSON.stringify(view)).not.toContain('sourceHash')
   })
 })
+
+it('actual Reversal preparation atomically pays once, survives reload/retry and cannot refund or manually release', async () => {
+  const f = await controlledServiceFixture(false, {
+    costs: [
+      { resource: 'ap', amount: 50 },
+      { resource: 'mp', amount: 5 },
+      { resource: 'hp', amount: 1 },
+    ],
+    cooldown: { key: 'test.reversal-service', ownerTurns: 3 },
+    effects: [
+      {
+        id: 'reversal',
+        timing: 'controlled',
+        payload: {
+          type: 'reversal',
+          recipient: 'actor',
+          version: 1,
+          family: 'physical',
+          reflectionBasisPoints: 10000,
+          attackerMaxHpCapBasisPoints: 2000,
+          defenderMaxHpCapBasisPoints: 2500,
+        },
+      },
+    ],
+  })
+  const before = structuredClone(f.state())
+  const beforeOwner = before.tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!
+  const prepared = await f.service.submitIntent(f.request('ability-prime', 1))
+  const owner = f.state().tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!
+  expect(readPv1fActionEconomy(f.state(), PLAYER_ID)?.current).toBe(
+    readPv1fActionEconomy(before, PLAYER_ID)!.current - 50,
+  )
+  expect(owner.mp).toBe(beforeOwner.mp - 5)
+  expect(owner.hp).toBe(beforeOwner.hp - 1)
+  expect(readSkillCooldown(owner, { key: 'test.reversal-service', ownerTurns: 3 }).active).toBe(
+    true,
+  )
+  expect(f.state().abilityRuntime?.controlled?.primes).toHaveLength(1)
+  expect(JSON.stringify(prepared.snapshot)).not.toMatch(
+    /reversalState|offensiveTurns|preparedTurnNumber|reversalPreparation/,
+  )
+  const saved = f.battles.commitBattleIntent.mock.calls[0]![0]
+  const events = saved.events as readonly { event: string }[]
+  for (const event of [
+    'ap_spent',
+    'mp_spent',
+    'hp_spent',
+    'skill_cooldown_started',
+    'combat_action_used',
+    'reversal_prepared',
+  ])
+    expect(events.filter((row) => row.event === event)).toHaveLength(1)
+  f.battles.replaceSnapshot(JSON.parse(JSON.stringify(f.state())))
+  const paid = JSON.stringify(f.state().tactical)
+  await f.service.getSession(USER_ID, SESSION_ID)
+  expect(JSON.stringify(f.state().tactical)).toBe(paid)
+  f.battles.findBattleIntentReplay.mockResolvedValueOnce({
+    battleSessionId: SESSION_ID,
+    battleVersion: 2,
+    snapshot: saved.nextSnapshot,
+    committedAt: CREATED_AT,
+  })
+  expect((await f.service.submitIntent(f.request('ability-prime', 1))).replayed).toBe(true)
+  expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+  expect(JSON.stringify(f.state().tactical)).toBe(paid)
+  await f.service.submitIntent(f.request('ability-cancel-prime', 2))
+  expect(JSON.stringify(f.state().tactical)).toBe(paid)
+  expect(f.state().reversalState?.strain).toHaveLength(1)
+  await expect(
+    f.service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      idempotencyKey: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      expectedBattleVersion: 3,
+      intent: {
+        kind: 'action',
+        actionId: f.actionId,
+        behaviorId: 'controlled',
+        target: { kind: 'self' },
+      },
+    }),
+  ).rejects.toThrow()
+  expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(2)
+  expect(JSON.stringify(f.state().tactical)).toBe(paid)
+})
+
+it('practice termination ends an armed Reversal with its normal receipt and preserves paid resources', async () => {
+  const f = await controlledServiceFixture(false, {
+    costs: [
+      { resource: 'ap', amount: 50 },
+      { resource: 'mp', amount: 5 },
+    ],
+    effects: [
+      {
+        id: 'reversal',
+        timing: 'controlled',
+        payload: {
+          type: 'reversal',
+          recipient: 'actor',
+          version: 1,
+          family: 'physical',
+          reflectionBasisPoints: 10000,
+          attackerMaxHpCapBasisPoints: 2000,
+          defenderMaxHpCapBasisPoints: 2500,
+        },
+      },
+    ],
+  })
+  await f.service.submitIntent(f.request('ability-prime', 1))
+  const paidMp = f.state().tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!.mp
+  await createBattleAbortService(f.battles.repository).abortPractice({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 2,
+    idempotencyKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+  })
+  expect(f.state().tactical.battle.lifecycle).toBe('abandoned')
+  expect(f.state().reversalState?.armed).toEqual([])
+  expect(f.state().reversalState?.strain).toHaveLength(1)
+  expect(f.state().abilityRuntime?.controlled?.primes).toEqual([])
+  expect(f.state().tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!.mp).toBe(
+    paidMp,
+  )
+  expect(f.battles.commitBattleIntent.mock.calls[1]![0].events).toContainEqual(
+    expect.objectContaining({ event: 'reversal_ended', reason: 'battle-ended' }),
+  )
+})

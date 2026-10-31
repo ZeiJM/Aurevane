@@ -416,6 +416,9 @@ export function PvpBattleInspectPopup({
                   {selected.summon.lifetimeTurns} turns remaining.
                 </p>
                 <p>{selected.summon.tags.join(' · ')}</p>
+                {selected.summon.potencyDescription ? (
+                  <p>{selected.summon.potencyDescription}</p>
+                ) : null}
                 <SummonAbilityList
                   abilities={selected.summon.abilities}
                   policies={selected.summon.policies}

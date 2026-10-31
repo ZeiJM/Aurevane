@@ -27,7 +27,14 @@ export function withAuthoredEffectTarget<T extends TargetedEffect>(
           : ['copy-statuses', 'sensory'].includes(effect.type)
             ? 'primary-unit'
             : 'affected-units'
-  const next = { ...effect, target, recipient }
+  const next = {
+    ...effect,
+    target,
+    recipient,
+    ...(effect.type === 'return-to-turn-start' && target !== 'self'
+      ? { anchorMode: 'cast-position' as const }
+      : {}),
+  }
   validateCombatEffectTarget(next)
   return next
 }

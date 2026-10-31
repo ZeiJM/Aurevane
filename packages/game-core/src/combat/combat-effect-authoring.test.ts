@@ -18,13 +18,18 @@ it('exposes current individual tags while retaining legacy engine support', () =
   ))
     expect(AUTHORABLE_EFFECT_TAGS.some((choice) => choice.opcode === tag.id)).toBe(true)
   for (const status of SUPPORTED_COMBAT_STATUS_IDS.filter(
-    (id) => !['blindside', 'revealed'].includes(id),
+    // These backing statuses use a dedicated effect, rather than generic Apply Status.
+    (id) => !['blindside', 'revealed', 'endure'].includes(id),
   ))
     expect(AUTHORABLE_EFFECT_TAGS.some((choice) => choice.statusId === status)).toBe(true)
   for (const id of [
     'damage',
     'pierce',
-    'vengeance',
+    'counter',
+    'endure',
+    'weak-point',
+    'spike',
+    'ruin',
     'hp-recovery',
     'mp-recovery',
     'copy-buffs',
@@ -60,10 +65,11 @@ it('builds independent executable payloads and identifies their exact authoring 
   }
   const first = createAuthorableEffectPayload('copy-buffs')!
   expect(first).not.toBe(createAuthorableEffectPayload('copy-buffs'))
-  expect(createAuthorableEffectPayload('vengeance')).toMatchObject({
-    type: 'damage',
-    amount: 0,
-    vengeance: { maximumDamage: 20 },
+  expect(createAuthorableEffectPayload('vengeance')).toBeNull()
+  expect(createAuthorableEffectPayload('counter')).toMatchObject({
+    type: 'apply-status',
+    statusId: 'counter',
+    counter: { kind: 'full', basisPoints: 10000 },
   })
 })
 it('explains unsupported activation combinations and missing Summon context', () => {
@@ -85,6 +91,7 @@ it('replaces the retired Chilled companion with a configurable Conditional Clean
     recipient: 'actor',
     statusIds: ['frozen'],
     removalMode: 'specified',
+    selectionKind: 'debuffs',
     target: 'self',
   })
   expect(validateCombatTagPayload(payload, combination)).toEqual([])
@@ -178,4 +185,55 @@ it('uses Conditional Cleanse for retained Chilled-only payloads in current autho
     label: 'Conditional Cleanse',
   })
   expect(payload).toEqual(before)
+})
+
+it('authors a captured Skill AP surcharge for new Frozen Ground and validates its bounds', () => {
+  const payload = createAuthorableEffectPayload('freeze-ground')!
+  expect(payload).toMatchObject({ skillApSurcharge: 10 })
+  for (const skillApSurcharge of [0, 27, 100])
+    expect(validateCombatTagPayload({ ...payload, skillApSurcharge })).toEqual([])
+  for (const skillApSurcharge of [-1, 101, 1.5, NaN, '10'])
+    expect(validateCombatTagPayload({ ...payload, skillApSurcharge })).not.toEqual([])
+  const historical = { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }
+  expect(validateCombatTagPayload(historical)).toEqual([])
+})
+
+it('strictly validates the captured independent Ground Chilled origin', () => {
+  const payload = {
+    type: 'apply-status',
+    recipient: 'affected-units',
+    target: 'ground',
+    statusId: 'frozen',
+    stacks: 1,
+    durationTurns: 2,
+    applicationOrigin: 'frozen-ground',
+  }
+  expect(validateCombatTagPayload(payload)).toEqual([])
+  for (const changed of [
+    { applicationOrigin: 'ice' },
+    { statusId: 'slow' },
+    { target: 'enemy' },
+    { recipient: 'actor', target: 'self' },
+  ])
+    expect(validateCombatTagPayload({ ...payload, ...changed })).not.toEqual([])
+})
+
+it('offers a Self Reversal factory with exactly one family and only Manual Action compatibility', () => {
+  expect(createAuthorableEffectPayload('reversal')).toMatchObject({
+    type: 'reversal',
+    recipient: 'actor',
+    target: 'self',
+    version: 1,
+    family: 'physical',
+    reflectionBasisPoints: 10000,
+    attackerMaxHpCapBasisPoints: 2000,
+    defenderMaxHpCapBasisPoints: 2500,
+  })
+  expect(effectAuthoringIssue('reversal', { activation: 'manual', mode: 'action' })).toBeNull()
+  expect(
+    effectAuthoringIssue('reversal', { activation: 'automatic', mode: 'action' }),
+  ).not.toBeNull()
+  expect(
+    effectAuthoringIssue('reversal', { activation: 'ongoing', mode: 'modifier' }),
+  ).not.toBeNull()
 })

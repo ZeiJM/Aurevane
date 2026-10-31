@@ -70,7 +70,7 @@ function standardCompanion(effect: AbilityEffect, companion: Companion): boolean
     'recipient',
     'target',
     ...(companion.status === 'cleanse-chilled'
-      ? ['statusIds', 'removalMode']
+      ? ['statusIds', 'removalMode', 'selectionKind']
       : ['statusId', 'stacks', 'durationTurns', 'potencyBasisPoints']),
   ]
   if (Object.keys(payload).some((field) => !allowed.includes(field))) return false

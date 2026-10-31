@@ -425,7 +425,7 @@ it.each(cases)(
 )
 
 it.each(cases)(
-  '$name chooses and executes real summon AI support without an input-state mutation',
+  '$name chooses and executes a useful real summon AI ability without an input-state mutation',
   async (scenario) => {
     const world = await setup(scenario)
     wound(world, true, true)
@@ -434,13 +434,62 @@ it.each(cases)(
     const before = JSON.stringify(world.state)
     const decision = chooseSummonAiDecision({ state: world.state, summon: child, tieBreakSeed: 1 })
     expect(JSON.stringify(world.state)).toBe(before)
-    expect(decision.intent).toEqual({
-      kind: 'action',
-      actionId: mend,
-      target: { kind: 'unit', combatantId: world.actor.actorId },
-    })
-    expect(decision.reason).toBe('recover-survival')
-    assertHealed(world, child)
+    expect(decision.profileId).toBe('recruit-standard-v2')
+    if (scenario.level === 100) {
+      expect(unit(world.state, world.actor.actorId)!.hp).toBe(297)
+      expect(decision.intent).toEqual({
+        kind: 'action',
+        actionId: mend,
+        target: { kind: 'unit', combatantId: world.actor.actorId },
+      })
+      expect(decision.reason).toBe('recover-survival')
+      assertHealed(world, child)
+      expect(unit(world.state, world.actor.actorId)!.hp).toBe(317)
+      expect(ap(world.state, child.combatantId)).toBe(55)
+    } else {
+      // The pinned Level 1 heal restores 5 HP; walking opens the stronger 15-damage Rake.
+      expect(unit(world.state, world.actor.actorId)).toMatchObject({ hp: 83, maxHp: 143 })
+      expect(decision.intent).toEqual({
+        kind: 'move',
+        path: [
+          { x: 1, y: 2 },
+          { x: 2, y: 2 },
+          { x: 3, y: 2 },
+        ],
+      })
+      expect(decision.reason).toBe('close-distance')
+      expect(decision.utility).toBe(90)
+      walk(world, { x: 2, y: 2 }, { x: 3, y: 2 })
+      expect(ap(world.state, child.combatantId)).toBe(60)
+      expect(position(world.state, child.combatantId)).toEqual({ x: 3, y: 2 })
+      const moved = JSON.stringify(world.state)
+      const followup = chooseSummonAiDecision({
+        state: world.state,
+        summon: active(world.state, child.combatantId)!,
+        tieBreakSeed: 2,
+      })
+      expect(JSON.stringify(world.state)).toBe(moved)
+      expect(followup.intent).toEqual({
+        kind: 'action',
+        actionId: rake,
+        target: { kind: 'unit', combatantId: world.opponent.actorId },
+      })
+      expect(followup.reason).toBe('legal-damage')
+      const beforeHp = unit(world.state, world.opponent.actorId)!.hp
+      const used = childAction(world, child, rake, world.opponent.actorId)
+      expect(unit(world.state, world.opponent.actorId)!.hp).toBe(beforeHp - 15)
+      expect(unit(world.state, world.actor.actorId)!.hp).toBe(83)
+      expect(named(used.events, 'damage_applied')).toEqual([
+        expect.objectContaining({
+          actionId: rake,
+          sourceCombatantId: child.combatantId,
+          targetCombatantId: world.opponent.actorId,
+          hpBefore: beforeHp,
+          hpAfter: beforeHp - 15,
+        }),
+      ])
+      expect(ap(world.state, child.combatantId)).toBe(15)
+    }
     const after = JSON.stringify(world.state)
     const next = chooseSummonAiDecision({
       state: world.state,
@@ -449,7 +498,7 @@ it.each(cases)(
     })
     expect(JSON.stringify(world.state)).toBe(after)
     expect(next.intent.kind).not.toBe('action')
-    record('native-ai-support', scenario, world)
+    record('native-ai-useful-ability', scenario, world)
   },
 )
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { maximumSupportedCombatRange } from './combat-targeting-shapes'
 
 import { createCombatEncounterState, evaluateCombatAction, executeCombatAction } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
@@ -229,7 +230,13 @@ describe('Combat v5.1 authoring bounds', () => {
     expect(
       validateMatureSkillDefinition({
         ...attack,
-        target: { ...attack.target, maximumRange: 6 },
+        target: { ...attack.target, minimumRange: 3, maximumRange: 6 },
+      }),
+    ).toEqual([])
+    expect(
+      validateMatureSkillDefinition({
+        ...attack,
+        target: { ...attack.target, maximumRange: maximumSupportedCombatRange() + 1 },
       }),
     ).toContain('target.maximumRange')
     expect(

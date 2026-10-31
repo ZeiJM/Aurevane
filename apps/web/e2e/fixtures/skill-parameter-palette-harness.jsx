@@ -1,5 +1,7 @@
 import { activeAbilityForAuthoring } from '@/lib/combat-ability-authoring-compatibility'
 import React from 'react'
+import { SummonProfileEditor } from '@/components/master/combat-content/summon-profile-editor'
+import { currentSummonForAuthoring } from '@/lib/combat-current-tag-authoring'
 import {
   defaultBasicSkills,
   validateBasicSkillDefinition,
@@ -590,6 +592,63 @@ function CanonicalEditor() {
     </main>
   )
 }
+function TagBatchEditors() {
+  const [profile, setProfile] = React.useState(() =>
+    currentSummonForAuthoring(resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile),
+  )
+  const [effects, setEffects] = React.useState([])
+  const [reversal, setReversal] = React.useState(() => {
+    const base = structuredClone(
+      defaultBasicSkills().find((row) => row.id === 'basic.guard').ability,
+    )
+    return {
+      ...base,
+      behaviors: base.behaviors.map((group) => ({
+        ...group,
+        costs: [
+          { resource: 'ap', amount: 50 },
+          { resource: 'mp', amount: 5 },
+        ],
+        cooldown: { key: 'reversal.fixture', ownerTurns: 3 },
+      })),
+    }
+  })
+  React.useEffect(() => {
+    window.inspectTagBatch = () => structuredClone({ profile, effects })
+  }, [profile, effects])
+  React.useEffect(() => {
+    window.inspectReversalEditor = () => parseAbilityDefinition(activeAbilityForAuthoring(reversal))
+  }, [reversal])
+  return (
+    <main
+      className={`av-master ${masterTheme.workspace}`}
+      style={{
+        display: 'block',
+        height: 'auto',
+        padding: 16,
+        maxWidth: 1000,
+        margin: 'auto',
+        background: '#e3d8c2',
+      }}
+    >
+      <h1>Shared tag batch</h1>
+      <section aria-label="Summon authoring">
+        <SummonProfileEditor value={profile} onChange={setProfile} />
+      </section>
+      <section aria-label="New tag authoring">
+        <SkillEffectListEditor value={effects} onChange={setEffects} />
+      </section>
+      <section aria-label="Reversal authoring">
+        <AbilityDefinitionEditor
+          value={reversal}
+          section="effects"
+          category="manual"
+          onChange={setReversal}
+        />
+      </section>
+    </main>
+  )
+}
 function Reports() {
   return (
     <main style={{ padding: 16, maxWidth: 780 }}>
@@ -823,7 +882,9 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'selected-preview' ? (
+  query.get('surface') === 'tag-batch' ? (
+    <TagBatchEditors />
+  ) : query.get('surface') === 'selected-preview' ? (
     <SelectedPreviewEditor />
   ) : query.get('surface') === 'basic-editor' ? (
     <BasicEditor />

@@ -151,8 +151,9 @@ describe('combatant effect presentation', () => {
     )
     expect(markup.match(/data-effect-duration="true">2<\/small>/g)).toHaveLength(5)
     expect(markup).not.toContain('>×3</small>')
-    for (const glyph of ['GUA', 'HEX', 'REC', 'HST', 'SLO'])
-      expect(markup).toContain(`>${glyph}</i>`)
+    for (const statusId of ['guarded', 'hexed', 'reckless', 'haste', 'slow'])
+      expect(markup).toContain(`data-battle-effect-icon="${statusId}"`)
+    expect(markup).not.toContain('<i')
   })
   it('keeps custom effects with the same prefix visually distinct and stable', () => {
     const statuses = ['effect-one', 'effect-two', 'effect-three'].map((statusId) => ({
@@ -379,9 +380,9 @@ describe('combatant effect presentation', () => {
     const markup = renderToStaticMarkup(
       <BattleCombatantEffects compact name="Archer" statuses={statuses} />,
     )
-    const glyphs = [...markup.matchAll(/<i aria-hidden="true">([^<]+)<\/i>/g)].map(
-      (match) => match[1],
-    )
+    const glyphs = [
+      ...markup.matchAll(/<svg[^>]*data-battle-effect-icon[^>]*>([\s\S]*?)<\/svg>/g),
+    ].map((match) => match[1])
     expect(glyphs).toHaveLength(statuses.length)
     expect(new Set(glyphs).size).toBe(statuses.length)
     expect(markup).toContain(`Scroll for all ${statuses.length} effects`)
@@ -396,4 +397,67 @@ describe('combatant effect presentation', () => {
     expect(markup).toContain('No combat effects')
     expect(markup).not.toContain('%')
   })
+})
+
+// A new generic badge, repeated shape, or reintroduced initial must fail this guard.
+it('gives every live effect family its own decorative vector without replacing its reader', () => {
+  const ids = [
+    'counter',
+    'endure',
+    'weak-point',
+    'spike',
+    'ruin',
+    'burn',
+    'bleed',
+    'poison',
+    'blind',
+    'blindside',
+    'blindside-vulnerability',
+    'barrier',
+    'covert',
+    'revealed',
+    'mp-drain',
+    'mp-recovery',
+    'healing',
+    'damage',
+    'create-terrain',
+    'displace',
+    'push',
+    'pull',
+    'barrier-change',
+    'return-to-turn-start',
+    'remove-status',
+    'copy-statuses',
+    'sensory',
+    'summon',
+    'terrain-evasion',
+    'terrain-defense',
+    'primed',
+  ]
+  const statuses = ids.map((statusId) => ({
+    statusId,
+    statusVersion: 1,
+    stacks: 1,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'opponent',
+  }))
+  const compact = renderToStaticMarkup(
+    <BattleCombatantEffects compact name="Archer" statuses={statuses} />,
+  )
+  for (const id of ids) expect(compact).toContain(`data-battle-effect-icon="${id}"`)
+  const glyphs = [
+    ...compact.matchAll(/<svg[^>]*data-battle-effect-icon[^>]*>([\s\S]*?)<\/svg>/g),
+  ].map((match) => match[1])
+  expect(new Set(glyphs).size).toBe(ids.length)
+  expect(compact.match(/aria-hidden="true" focusable="false"/g)).toHaveLength(ids.length)
+  expect(compact.match(/aria-haspopup="dialog"/g)).toHaveLength(ids.length)
+  expect(compact).not.toContain('<i')
+  const full = renderToStaticMarkup(
+    <BattleCombatantEffects
+      name="Archer"
+      statuses={statuses.filter((row) => ['counter', 'burn'].includes(row.statusId))}
+    />,
+  )
+  expect(full).toContain('data-battle-effect-icon="counter"')
+  expect(full).toContain('data-battle-effect-icon="burn"')
 })

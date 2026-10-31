@@ -1,3 +1,4 @@
+import { authoredReversalCombinationIssue } from './combat-effect-dependencies'
 import { AUTHORABLE_EFFECT_TAGS } from '@aurevane/game-core/combat/combat-effect-authoring'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
 import {
@@ -173,6 +174,31 @@ export function authoringAddedEffectIssue(
   tagId: string,
 ): string | undefined {
   const type = AUTHORABLE_EFFECT_TAGS.find((row) => row.id === tagId)?.opcode
+  const reversalIssue = authoredReversalCombinationIssue(
+    group.effects.map((row) => row.payload),
+    type,
+  )
+  if (reversalIssue) return reversalIssue
+  if (type === 'reversal') {
+    if (group.effects.some((effect) => effect.timing === 'controlled'))
+      return 'Reversal cannot share preparation with another Controlled effect.'
+    if (group.groundArea) return 'Reversal cannot use a persistent Ground area.'
+    if (
+      hasSelectedAimRequirement([
+        group.requirements,
+        ...group.effects.map((row) => row.requirements),
+      ])
+    )
+      return 'Reversal checks Self. Remove selected-target Requirements before adding it.'
+    if (
+      group.effects.some(
+        ({ payload }) =>
+          payload.recipient !== 'actor' &&
+          (!('target' in payload) || !['self', 'all'].includes(payload.target ?? '')),
+      )
+    )
+      return 'Reversal prepares on Self. Use a separate group for targeted effects.'
+  }
   const has = (type: string) => group.effects.some((row) => row.payload.type === type)
   if (type === 'move' && (has('move') || has('summon')))
     return 'Move occurs once, first, and cannot share a group with Summon.'

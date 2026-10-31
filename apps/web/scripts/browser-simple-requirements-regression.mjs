@@ -506,25 +506,28 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       await expect(cleanse).toContainText('Conditional Cleanse')
       await expect(
         cleanse.getByRole('combobox', { name: 'Status removal mode', exact: true }),
-      ).toHaveValue('specified')
-      const statuses = cleanse.getByRole('listbox', {
-        name: 'Conditional Cleanse statuses',
-        exact: true,
-      })
-      await expect(statuses).toHaveValues(['burn'])
-      await statuses.selectOption(['burn', 'wet'])
-      assert.ok((await statuses.locator('option').allTextContents()).includes('Drenched'))
+      ).toHaveCount(0)
+      await expect(cleanse.getByRole('listbox')).toHaveCount(0)
+      const statuses = cleanse.locator('input[type="checkbox"][value]')
+      await expect(
+        cleanse.getByRole('checkbox', { name: 'Remove Burn', exact: true }),
+      ).toBeChecked()
+      await cleanse.getByRole('checkbox', { name: 'Remove Drenched', exact: true }).check()
+      await expect(
+        cleanse.getByRole('checkbox', { name: 'Remove All Debuffs', exact: true }),
+      ).not.toBeChecked()
       await expect(cleanse.getByRole('textbox', { name: 'Status IDs', exact: true })).toHaveCount(0)
       await save()
       saved = (await snapshot()).saved.behaviors[0]
       const cleansePayload = saved.effects.at(-1).payload
-      // Native multi-select returns DOM order; specified removal checks set membership.
+      // Checkbox order does not change specified removal membership.
       assert.deepEqual(
         { ...cleansePayload, statusIds: [...cleansePayload.statusIds].sort() },
         {
           type: 'remove-status',
           recipient: 'primary-unit',
           removalMode: 'specified',
+          selectionKind: 'debuffs',
           statusIds: ['burn', 'wet'],
         },
       )
@@ -534,8 +537,11 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       await openEffectParameters(cleanse)
       await expect
         .poll(() =>
-          statuses.evaluate((node) =>
-            [...node.selectedOptions].map((option) => option.value).sort(),
+          statuses.evaluateAll((nodes) =>
+            nodes
+              .filter((node) => node.checked)
+              .map((node) => node.value)
+              .sort(),
           ),
         )
         .toEqual(['burn', 'wet'])

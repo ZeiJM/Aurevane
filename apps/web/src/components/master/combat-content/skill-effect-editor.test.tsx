@@ -28,7 +28,7 @@ it.each<CombatEffectDefinition>([
   expect(JSON.stringify(effect)).toBe(before)
 })
 
-it('uses Applications as the single percentage-recovery schedule control', () => {
+it('hides the percentage-recovery schedule control without changing its saved applications', () => {
   const html = render({
     type: 'percentage-recovery',
     recipient: 'actor',
@@ -37,7 +37,7 @@ it('uses Applications as the single percentage-recovery schedule control', () =>
     ticks: 3,
     durationTurns: 2,
   })
-  expect(html).toContain('aria-label="Recovery applications"')
+  expect(html).not.toContain('aria-label="Recovery applications"')
   expect(html).not.toContain('aria-label="Effect duration (turns)"')
 })
 
@@ -199,9 +199,9 @@ describe('Master Panel Skill effect editor', () => {
         maximumDamage: 80,
       },
     })
-    expect(vengeance).toContain('aria-label="Vengeance conversion (%)"')
-    expect(vengeance).toContain('aria-label="Vengeance minimum damage"')
-    expect(vengeance).toContain('aria-label="Vengeance maximum damage"')
+    expect(vengeance).toContain('aria-label="Counter potency (%)"')
+    expect(vengeance).not.toContain('aria-label="Vengeance minimum damage"')
+    expect(vengeance).not.toContain('aria-label="Vengeance maximum damage"')
   })
 
   it('edits healing and MP recovery/drain timing without a generic payload field', () => {
@@ -216,8 +216,8 @@ describe('Master Panel Skill effect editor', () => {
       delta: -5,
       ticks: 1,
     })
-    expect(mp).toContain('aria-label="MP delta"')
-    expect(mp).toContain('aria-label="MP ticks"')
+    expect(mp).toContain('aria-label="MP Drain potency (%)"')
+    expect(mp).not.toContain('aria-label="MP ticks"')
     expect(mp).not.toContain('payload')
   })
 
@@ -230,7 +230,7 @@ describe('Master Panel Skill effect editor', () => {
     })
     expect(applied).toContain('aria-label="Status"')
     expect(applied).toContain('value="covert"')
-    expect(applied).toContain('aria-label="Status stacks"')
+    expect(applied).not.toContain('aria-label="Status stacks"')
     expect(applied).toContain('aria-label="Effect duration (turns)"')
     expect(applied).not.toContain('aria-label="Status potency (percent)"')
 
@@ -249,10 +249,10 @@ describe('Master Panel Skill effect editor', () => {
       recipient: 'primary-unit',
       statusIds: ['burn', 'poison'],
     })
-    expect(removed).toContain('aria-label="Status IDs"')
-    expect(removed).toContain('value="burn, poison"')
-    expect(removed).toContain('Use standard Cleanse')
-    expect(removed).toContain('aria-label="About Cleanse"')
+    expect(removed).not.toContain('aria-label="Status IDs"')
+    expect(removed).not.toContain('Status removal mode')
+    expect(removed).not.toContain('Use standard Cleanse')
+    expect(removed).not.toContain('aria-label="About Cleanse"')
     const dispel = render({
       type: 'remove-status',
       recipient: 'primary-unit',
@@ -266,10 +266,10 @@ describe('Master Panel Skill effect editor', () => {
       mode: 'amplify',
       allowNoEligibleEffects: true,
     })
-    expect(copy).toContain('aria-label="Copy mode"')
-    expect(copy).toContain('<option value="amplify" selected="">Copy Buffs</option>')
-    expect(copy).toContain('<option value="curse">Copy Debuffs</option>')
-    expect(copy).toContain('aria-label="Allow empty status copy"')
+    expect(copy).not.toContain('aria-label="Copy mode"')
+    expect(copy).toContain('aria-label="Copy Damage Up"')
+    expect(copy).not.toContain('aria-label="Copy Slow"')
+    expect(copy).not.toContain('aria-label="Allow empty status copy"')
 
     const sensory = render({
       type: 'sensory',
@@ -288,7 +288,7 @@ describe('Master Panel Skill effect editor', () => {
       direction: 'push',
       distance: 2,
     })
-    expect(displace).toContain('aria-label="Push or Pull"')
+    expect(displace).not.toContain('aria-label="Push or Pull"')
     expect(displace).toContain('aria-label="Tiles moved"')
 
     const terrain = render({
@@ -312,7 +312,8 @@ describe('Master Panel Skill effect editor', () => {
 
     for (const type of ['poison', 'burn'] as const) {
       const dot = render({ type, recipient: 'primary-unit', curseCopyable: true })
-      expect(dot).toContain('aria-label="Curse-copyable"')
+      if (type === 'poison') expect(dot).toContain('aria-label="Curse-copyable"')
+      else expect(dot).not.toContain('aria-label="Curse-copyable"')
       expect(dot).toContain(
         type === 'burn'
           ? 'First tick (% of attack damage)'
@@ -336,7 +337,7 @@ describe('Master Panel Skill effect editor', () => {
   })
 })
 
-it('authors percentage recovery with a resource, 1–100 percent and 1–4 applications', () => {
+it('authors percentage recovery potency with fixed resource and saved applications', () => {
   const html = render({
     type: 'percentage-recovery',
     recipient: 'actor',
@@ -346,8 +347,8 @@ it('authors percentage recovery with a resource, 1–100 percent and 1–4 appli
   })
   expect(html).toContain('aria-label="Recovery percent"')
   expect(html).toContain('max="100"')
-  expect(html).toContain('aria-label="Recovery resource"')
-  expect(html).toContain('aria-label="Recovery applications"')
+  expect(html).not.toContain('aria-label="Recovery resource"')
+  expect(html).not.toContain('aria-label="Recovery applications"')
 })
 
 it('authors elemental damage typing independently from captured status potency', () => {
@@ -378,7 +379,7 @@ it('authors Suppress as 1–100% with two decimal places and a single applicatio
   expect(markup).toContain('max="100"')
   expect(markup).toContain('step="0.01"')
   expect(markup).toContain('value="25"')
-  expect(markup).toContain('Never stacks')
+  expect(markup).toMatch(/aria-label="Status stacks"[^>]*max="1"[^>]*disabled/)
 })
 
 it('keeps elemental status duration and potency controls on the separate status tag', () => {
@@ -394,7 +395,11 @@ it('keeps elemental status duration and potency controls on the separate status 
       durationTurns: 4,
       potencyBasisPoints: 4200,
     })
-    expect(tag).toContain('aria-label="Status potency (percent)"')
+    expect(tag).toContain(
+      statusId === 'wet'
+        ? 'aria-label="Storm damage increase (%)"'
+        : 'aria-label="Status potency (percent)"',
+    )
     expect(tag).toContain('value="42"')
     expect(tag).toContain('aria-label="Effect duration (turns)"')
     expect(tag).toContain('value="4"')
@@ -403,7 +408,7 @@ it('keeps elemental status duration and potency controls on the separate status 
 
 it('keeps limited Chilled removal independent from standard Cleanse authoring', () => {
   const markup = render({ type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] })
-  expect(markup).toContain('aria-label="About Conditional Cleanse"')
+  expect(markup).not.toContain('aria-label="About Conditional Cleanse"')
   expect(markup).toContain('value="frozen"')
   expect(markup).not.toContain('Use standard Cleanse')
   expect(markup).not.toContain('Cleanse removes Burn')
@@ -416,9 +421,9 @@ it('authors explicit listed-status removal independently of full Cleanse', () =>
     statusIds: ['mark'],
     removalMode: 'specified',
   } as CombatEffectDefinition)
-  expect(markup).toContain('Status removal mode')
-  expect(markup).toContain('Conditional Cleanse / Dispel · only listed statuses')
-  expect(markup).toContain('Other statuses remain')
+  expect(markup).not.toContain('Status removal mode')
+  expect(markup).toContain('aria-label="Remove Marked" checked=""')
+  expect(markup).not.toContain('aria-label="Remove Guarded"')
   expect(markup).not.toContain('Use standard Cleanse')
 })
 
@@ -429,12 +434,10 @@ it('offers registered limited-removal statuses and retains unregistered stored I
     statusIds: ['burn', 'wet', 'historical-status'],
     removalMode: 'specified',
   })
-  expect(markup).toContain('aria-label="Conditional Cleanse statuses" multiple=""')
-  expect(markup).toContain('<option value="burn" selected="">Burn</option>')
-  expect(markup).toContain('<option value="wet" selected="">Drenched</option>')
-  expect(markup).toContain(
-    '<option value="historical-status" selected="">historical-status (unregistered)</option>',
-  )
+  expect(markup).toContain('aria-label="Remove Burn" checked=""')
+  expect(markup).toContain('aria-label="Remove Drenched" checked=""')
+  expect(markup).toContain('Historical Status')
+  expect(markup).not.toContain('aria-label="Remove Historical Status"')
 })
 
 it('uses explicit damage profiles and percentage parameters instead of four generic switches', () => {
@@ -460,7 +463,7 @@ it('uses explicit damage profiles and percentage parameters instead of four gene
     amount: 0,
     vengeance: { conversionBasisPoints: 2500, maximumDamage: 40 },
   })
-  expect(vengeance).toContain('aria-label="Vengeance conversion (%)"')
+  expect(vengeance).toContain('aria-label="Counter potency (%)"')
   expect(vengeance).toContain('value="25"')
 })
 
@@ -484,10 +487,10 @@ it('keeps positional damage controls on Blindside instead of ordinary Damage', (
   expect(blindside).toContain('aria-label="Rear damage (%)"')
   expect(blindside).toContain('value="175"')
   expect(blindside).toContain('value="225"')
-  expect(blindside).toContain('Front hits')
+  expect(blindside).not.toContain('aria-label="About Blindside"')
 })
 
-it('puts selected tag help in a popup and omits per-field explanatory text', () => {
+it('omits duplicated help from the editable tag area', () => {
   const html = render({
     type: 'apply-status',
     recipient: 'affected-units',
@@ -496,8 +499,8 @@ it('puts selected tag help in a popup and omits per-field explanatory text', () 
     durationTurns: 2,
     potencyBasisPoints: 2000,
   })
-  expect(html).toContain('aria-label="About Conductive"')
-  expect(html).toContain('aria-haspopup="dialog"')
+  expect(html).not.toContain('aria-label="About Conductive"')
+  expect(html).not.toContain('aria-haspopup="dialog"')
   expect(html).not.toContain('Additional Storm damage captured')
   expect(html).not.toContain('Includes authored statuses')
   expect(html).not.toContain('Positive durations persist')
@@ -527,4 +530,87 @@ it('shows readable Status names without exposing an editable internal Status ID'
   expect(html).toContain('>Damage Up</option>')
   expect(html).not.toContain('aria-label="Status ID"')
   expect(html).not.toContain('>inspired<')
+})
+
+it('shows attack-tag tuning without redundant target or duration controls', () => {
+  const weak = renderToStaticMarkup(
+    createElement(SkillEffectEditor, {
+      value: { type: 'weak-point', recipient: 'actor', debuffThreshold: 3 },
+      onChange: vi.fn(),
+    }),
+  )
+  const ruin = renderToStaticMarkup(
+    createElement(SkillEffectEditor, {
+      value: { type: 'ruin', recipient: 'actor', bonusPerDebuffBasisPoints: 1250 },
+      onChange: vi.fn(),
+    }),
+  )
+  const spike = renderToStaticMarkup(
+    createElement(SkillEffectEditor, {
+      value: { type: 'spike', recipient: 'actor' },
+      onChange: vi.fn(),
+    }),
+  )
+  expect(weak).toContain('aria-label="Debuff threshold"')
+  expect(ruin).toContain('aria-label="Damage increase per debuff (%)"')
+  for (const html of [weak, ruin, spike]) {
+    expect(html).not.toContain('aria-label="Target"')
+    expect(html).not.toContain('aria-label="Effect duration (turns)"')
+  }
+})
+it('authors Endure duration, burst targets/range and returned damage above100%', () => {
+  const html = renderToStaticMarkup(
+    createElement(SkillEffectEditor, {
+      value: {
+        type: 'endure',
+        recipient: 'actor',
+        durationTurns: 3,
+        releaseBasisPoints: 17500,
+        radiusTiles: 5,
+        targetTeams: 'all',
+      },
+      onChange: vi.fn(),
+    }),
+  )
+  for (const label of [
+    'Effect duration (turns)',
+    'Damage returned (%)',
+    'Burst range (tiles)',
+    'Endure burst targets',
+  ])
+    expect(html).toContain(`aria-label="${label}"`)
+  expect(html).toMatch(/aria-label="Damage returned \(%\)"[^>]*value="175"/u)
+  expect(html).not.toContain('aria-label="Target"')
+  expect(html).not.toContain('aria-label="Status"')
+})
+
+it('offers one Reversal family, configured return/caps and fixed window without generic status fields', () => {
+  const html = renderToStaticMarkup(
+    createElement(SkillEffectEditor, {
+      value: {
+        type: 'reversal',
+        recipient: 'actor',
+        version: 1,
+        family: 'physical',
+        reflectionBasisPoints: 15000,
+        attackerMaxHpCapBasisPoints: 2000,
+        defenderMaxHpCapBasisPoints: 2500,
+      },
+      onChange: vi.fn(),
+    }),
+  )
+  for (const label of [
+    'Reversal family',
+    'Reflection potency (%)',
+    'Attacker HP cap (%)',
+    'User HP cap (%)',
+  ])
+    expect(html).toContain(`aria-label="${label}"`)
+  expect(html).toContain('Physical Reversal')
+  expect(html).toContain('Mystic Reversal')
+  expect(html).not.toContain('Full Reversal')
+  expect(html).not.toContain('value="both"')
+  expect(html).not.toContain('aria-label="Target"')
+  expect(html).not.toContain('aria-label="Status"')
+  expect(html).not.toContain('aria-label="Effect duration (turns)"')
 })

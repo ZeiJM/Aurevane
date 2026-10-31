@@ -1,4 +1,5 @@
 'use client'
+import { PendingMediaBoundary } from './pending-media-boundary'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
@@ -1030,25 +1031,27 @@ export function CombatContentAuthoringWorkspace({
                   </section>
                 ) : (
                   <fieldset disabled={restoring || readOnly}>
-                    <ContentDefinitionFields
-                      key={String(
-                        activeDefinition.id ??
-                          activeDefinition.essenceId ??
-                          record?.contentKey ??
-                          'new',
-                      )}
-                      initialAbilitySection={
-                        record?.contentKey === initialRecord?.contentKey
-                          ? initialAbilitySection
-                          : undefined
-                      }
-                      kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
-                      value={activeDefinition}
-                      tab={tab}
-                      onChange={change}
-                      onPendingMediaChange={setPendingMedia}
-                      choices={choices}
-                    />
+                    <PendingMediaBoundary onChange={setPendingMedia}>
+                      <ContentDefinitionFields
+                        key={String(
+                          activeDefinition.id ??
+                            activeDefinition.essenceId ??
+                            record?.contentKey ??
+                            'new',
+                        )}
+                        initialAbilitySection={
+                          record?.contentKey === initialRecord?.contentKey
+                            ? initialAbilitySection
+                            : undefined
+                        }
+                        kind={newDefinition ? descriptor!.storedKind : record!.contentKind}
+                        value={activeDefinition}
+                        tab={tab}
+                        onChange={change}
+                        onPendingMediaChange={setPendingMedia}
+                        choices={choices}
+                      />
+                    </PendingMediaBoundary>
                     {record?.contentKind === 'discipline' && tab === 'Parameters' ? (
                       <DisciplinePlayerGrants disciplineId={record.contentKey} />
                     ) : null}

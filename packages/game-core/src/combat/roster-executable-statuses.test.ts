@@ -55,8 +55,16 @@ const strike = 'vanguard.forceful-strike',
 const position = (state: CombatEncounterState, id: string) =>
   state.tactical.placements.find((row) => row.combatantId === id)!.position
 // This file executes the immutable October10 roster. Enemy Blindside is exercised
-// by the separate modular correction cohort and combat-blindside.test.ts.
-const outsideOctober10Roster = ['lowered-guard', 'displaced', 'blindside-vulnerability']
+// by the separate modular correction cohort and combat-blindside.test.ts. Counter
+// and Endure are later authoring mechanics, verified by combat-counter.test.ts and
+// combat-endure.test.ts; Endure has no application in the pinned October10 records.
+const outsideOctober10Roster = [
+  'lowered-guard',
+  'displaced',
+  'blindside-vulnerability',
+  'counter',
+  'endure',
+]
 function current(ids: string[], otherOwners: Record<string, string[]> = {}) {
   const base = fixture(ids),
     sources = [...base.capturedAbilitySources!]
@@ -682,7 +690,7 @@ const cases: StatusCase[] = [
   },
 ]
 
-it('requires a real final-roster mechanic outcome for every authorable runtime status', () => {
+it('requires a real mechanic outcome for every authorable status in the October10 roster', () => {
   expect(cases.map((row) => row.statusId).sort()).toEqual(
     [...new Set(PV1F_COMBAT_CONTENT.statuses.map((row) => row.id))]
       .filter((id) => !outsideOctober10Roster.includes(id))

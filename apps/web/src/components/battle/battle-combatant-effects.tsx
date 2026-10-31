@@ -2,6 +2,7 @@ import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 
 import { aggregateBattleStatusStacks, summarizeBattleEffects } from './battle-effect-summary'
+import { BattleEffectIcon } from './battle-effect-icon'
 import { BattleInfoPopover } from './battle-info-popover'
 import {
   BattleEffectInformation,
@@ -107,7 +108,10 @@ export function BattleCombatantEffects({
                     className={styles.icon}
                     trigger={
                       <>
-                        <i aria-hidden="true">{details.identifier}</i>
+                        <BattleEffectIcon
+                          statusId={effect.statusId}
+                          fallback={details.identifier}
+                        />
                         {details.count !== null ? (
                           <small data-effect-duration="true">{details.count}</small>
                         ) : null}
@@ -176,7 +180,10 @@ export function BattleCombatantEffects({
                   trigger={
                     <>
                       <span className={styles.identity}>
-                        <i aria-hidden="true">{details.identifier}</i>
+                        <BattleEffectIcon
+                          statusId={effect.statusId}
+                          fallback={details.identifier}
+                        />
                         <strong>{details.label}</strong>
                         <small>
                           {effect.stacks > 1 ? `×${effect.stacks} · ` : ''}

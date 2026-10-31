@@ -17,7 +17,7 @@ export function terrainOverlayDescription(
   if (!overlay) return ''
   const details = COMBAT_TERRAIN_OVERLAY_DETAILS[overlay.kind]
   const rounds = overlay.remainingRoundBoundaries
-  return `${details.name} terrain; ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'} remaining; ${overlay.kind === 'frozen' ? frozenGroundDescription(overlay.frozenGroundPolicyVersion ?? null) : details.description}`
+  return `${details.name} terrain; ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'} remaining; ${overlay.kind === 'frozen' ? frozenGroundDescription(overlay.frozenGroundPolicyVersion ?? null, overlay.skillApSurcharge) : details.description}`
 }
 
 /** Compact inspect rows keep lifecycle; full rules remain in tile accessibility/help. */
@@ -60,7 +60,7 @@ export function combatTerrainProjectionDescription(
   const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
   const timing =
     projection.activationRound !== undefined ? `Starts round ${projection.activationRound} · ` : ''
-  return `${timing}${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${projection.after === 'frozen' ? frozenGroundDescription(projection.frozenGroundPolicyVersion ?? null) : details.description}`
+  return `${timing}${before ? `${before} → ` : ''}${details.name} at tile ${position} · ${rounds} round ${rounds === 1 ? 'boundary' : 'boundaries'}. ${projection.after === 'frozen' ? frozenGroundDescription(projection.frozenGroundPolicyVersion ?? null, projection.skillApSurcharge) : details.description}`
 }
 
 /** Group actual projected/recorded changes; distinct transitions and timing remain separate. */
@@ -76,6 +76,7 @@ export function combatTerrainSummaries(
       projection.remainingRoundBoundaries,
       projection.activationRound ?? null,
       projection.frozenGroundPolicyVersion ?? null,
+      projection.skillApSurcharge ?? null,
     ])
     if (!groups.has(key)) groups.set(key, projection)
   }
@@ -91,7 +92,9 @@ export function combatTerrainSummaries(
         : null,
       `${rounds} ${rounds === 1 ? 'round' : 'rounds'}`,
       after === 'frozen'
-        ? `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`
+        ? projection.skillApSurcharge !== undefined
+          ? `+${projection.skillApSurcharge} Skill AP`
+          : `+${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile} AP/tile`
         : 'Blocks line of sight',
     ]
       .filter(Boolean)
@@ -116,6 +119,11 @@ export function combatInteractionDescription(event: object): string | null {
       before: data.before === 'frozen' || data.before === 'steam' ? data.before : null,
       after: data.after,
       remainingRoundBoundaries: rounds as number,
+      ...(Number.isSafeInteger(data.skillApSurcharge) &&
+      (data.skillApSurcharge as number) >= 0 &&
+      (data.skillApSurcharge as number) <= 100
+        ? { skillApSurcharge: data.skillApSurcharge as number }
+        : {}),
       ...(data.frozenGroundPolicyVersion === 1 ? { frozenGroundPolicyVersion: 1 as const } : {}),
     })
   }
