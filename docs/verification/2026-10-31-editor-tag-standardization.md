@@ -1,6 +1,6 @@
 # Shared editor and tag standardization — October 31, 2026
 
-Status: implementation integrated locally; final repository, browser/CI and independent-review gates pending. Nothing in this receipt claims a live release or Owner acceptance.
+Status: **LIVE for Owner testing** at https://aurevane.vercel.app. The final source, migrations, production probes and evidence are recorded in the Live release section below. Earlier checkpoint paragraphs are preserved as verification history; human Owner acceptance remains open.
 
 The Owner authorized implementation after collecting the complete batch, then explicitly confirmed that the changes apply to Skills, Essences, Resonances and shared consumers. The later description audit is part of this batch. Deployment remains a separate Owner-controlled action; Git auto deployment stays disabled.
 
@@ -104,3 +104,32 @@ The combined format, lint and type gates passed. All14,526 Vitest cases passed: 
 Refreshed native CI ran the new tag/Summon/Reversal authoring flow successfully on desktop and mobile. Subsequent older browser assertions still expected the retired PRI letters and previous recovery prose. They now assert the actual Primed SVG and accessible name, and Verdant Mend's saved4% maximum-HP/cast-snapshot wording. The Conditional Cleanse browser flow now exercises the requested checkboxes and persistence rather than removed mode/list controls. Refreshed exact-source browser/CI checks remain required; no live acceptance is claimed.
 
 The next full Browser smoke run (`41200882003`, source `07edc5e5bb0fa1897aef4fb41022d9fad3b6c1e4`) passed all focused scripts but stopped in repeated authenticated Master acceptance. The authoring flow and actual-browser-zoom helper still selected the retired Action Economy tab. Those selectors, and the equivalent standalone Panel Content scenario, now use Execution Characteristics. The native Skill AP field keeps its actual accessible name; the tests additionally require Accuracy in the same visible section. No timeout, keyboard/focus, clipping, publication or version-pinning assertion was removed. The full browser gate remains pending after this test-only repair; the other18 exact-source workflows passed.
+
+## Live release — October 31, 2026
+
+The Owner explicitly authorized the Production release after the readiness report. PR #1000 merged as `c6351856fd1974691e3e17aca1ae8a7909ca6957`; its tree `ab3282e10eea39d5793eff2667d3fda28a817aa6` is identical to tested candidate `19358698dadefcd117b68bc815e28231a293067e`. All 19 candidate workflows and all 11 configured merged-source workflows passed. Full quality passed 14,526 Vitest cases, seven Node checks, eight package typechecks, formatting, lint and production build. Native browser evidence: 16 repeated Master checks, 379 Chromium passes with 284 existing project skips, and 10 Edge passes with two existing skips. The final independent engine/editor reviews and Master selector follow-up have no remaining findings.
+
+One Git-backed Production build, `dpl_9vmqZ8Che4Nb2RHDpVZwKuVsgqbf`, reached READY at 17:26:08.104 UTC. The same build was explicitly promoted and verified at 13:44:34.679 Trinidad time (17:44:34.679 UTC), without rebuilding. https://aurevane.vercel.app resolves to this exact deployment and merge source.
+
+All four reviewed registration migrations are applied under their original source identities:
+
+| Version        | Migration                      |
+| -------------- | ------------------------------ |
+| 20261031081044 | counter_tag_identity           |
+| 20261031084336 | endure_tag_identity            |
+| 20261031084705 | attack_modifier_tag_identities |
+| 20261031090902 | reversal_tag_identity          |
+
+The Supabase Git job stopped on pre-existing migration-history drift: 12 hosted history entries are absent from the repository, and four older local timestamp identities also differ from hosted history. This release did not rewrite those entries or replay the older migrations. Only the four reviewed canonical SQL files were applied through the migration API. The four newly generated history rows were immediately registered under their original source versions, guarded by exact SQL-statement equality. All 193 prior migration rows retain their complete before/after fingerprint. The wider Git-history mismatch remains a separate operations issue; the new four source identities and exact SQL are verified installed.
+
+All 1,319 immutable content versions, 301 current publications, two Owner drafts, eight timing-policy rows and 367 unrelated content-record rows retain exact before/after fingerprints. Only six new Tag metadata identities were added: Counter, Endure, Weak Point, Spike, Ruin and Reversal. All six are active and present in the finite identity vocabulary. Eleven classifier probes match the intended Cleanse/Dispel/conditional/new-tag identities. Existing function ownership, ACLs, security attributes and search paths are preserved. Both timing writers match their predecessor hashes after reversing only the approved Endure vocabulary insertion. Security-advisor groups and counts are unchanged.
+
+All 17 staged and 25 canonical HTTP probes passed. These cover current Counter manual copy, enabled account entry, public routes, Master/game guest redirects, authenticated API denials, current header/query/cookie pins, prior-deployment retirement, cookie clearing, fixed retired pins and three byte-verified portraits. The first temporary probe used GET against the unchanged POST-only Moderation endpoint; the corrected probe retains GET=405 and separately verifies the supported read-only POST is denied with 401/no-store. No application change or weakened authorization assertion was needed.
+
+All nine routing rules remain installed. Transition version `6ca662ee-44c3-4b9e-8299-2d685fc6e0f7` allowed both compatible builds during promotion; final version `826b14a4-a6b6-428d-931f-e9c6ce94d278` allows canonical/team aliases and only the new unique/Git hosts and deployment ID. The five fixed retirement rules are unchanged. The Git deployment lock and disabled automatic domain assignment remain in place. There was no Preview, local source upload or second application deployment.
+
+Deployment-scoped warning/error/fatal scans are empty from READY through the staged checks and from promotion through 17:46:50.262 UTC. These are bounded initial observations, not sustained-load acceptance.
+
+Refresh the app and start a new battle for fresh captures. Commit Now adopts the current profile only for the edited record; no existing Skill catalogue was automatically republished. MP Restore remains flat and separate from percentage MP Recovery. Historical battles retain their captured rules. Signed-in Owner Production interaction, physical-device, audible playback, multiplayer and sustained-load acceptance remain open. No Phase 5 closure, PR #933 resolution or separate World timing fix is claimed.
+
+[Machine-readable release evidence](release-assets/2026-10-31-editor-tag-standardization-production.json). Earlier sections retain the intermediate verification history; this section records the final live state.
