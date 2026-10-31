@@ -2417,9 +2417,9 @@ try {
       await fireEditor.getByRole('button', { name: 'Add effect', exact: true }).click()
       const cleanseEditor = fireEditor.locator('[data-effect-type="remove-status"]')
       await openEffectParameters(cleanseEditor)
-      await cleanseEditor
-        .getByLabel('Conditional Cleanse statuses', { exact: true })
-        .selectOption('frozen')
+      await browserExpect(cleanseEditor.getByRole('listbox')).toHaveCount(0)
+      await cleanseEditor.getByRole('checkbox', { name: 'Remove Burn', exact: true }).uncheck()
+      await cleanseEditor.getByRole('checkbox', { name: 'Remove Chilled', exact: true }).check()
       await cleanseEditor
         .getByRole('combobox', { name: 'Target', exact: true })
         .selectOption('self')
@@ -2428,6 +2428,7 @@ try {
         recipient: 'actor',
         statusIds: ['frozen'],
         removalMode: 'specified',
+        selectionKind: 'debuffs',
         target: 'self',
       })
       assert.equal(
