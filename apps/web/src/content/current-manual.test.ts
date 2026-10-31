@@ -126,7 +126,7 @@ it('publishes the Techniques guide with ordinary per-packet Power scaling', () =
   expect(text).toContain('Resonance details use Setup, Trigger and Result')
   expect(text).toContain('Immediate Resonances have no Setup')
   expect(text).not.toContain('payoff Discipline/tags')
-  expect(text).toContain('percentage of HP damage dealt by that attack')
+  expect(text).toContain('percentage of the granting attack’s HP damage')
   expect(text).toContain('including Push or Pull')
   expect(text).not.toContain('current v5 Skills can author Poison Power and duration')
   expect(text).toContain('HP Recovery [4%]')

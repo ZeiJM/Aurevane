@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import * as nativeEconomy from './pv1f-action-economy'
 
 import {
   createCombatEncounterState,
@@ -243,6 +244,129 @@ function chosenAbility(decision: SummonAiDecision): string | null {
 }
 
 describe('Combat v5.1 summon AI', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('passes at 10 AP without forecasting unaffordable authored abilities', () => {
+    const active = summonTurn(20)
+    const state = spendPv1fActionEconomy(active.state, 90)
+    const before = JSON.stringify(state)
+    const forecast = vi.spyOn(nativeEconomy, 'evaluatePv1fSummonAbility')
+    const walking = vi.spyOn(nativeEconomy, 'executePv1fMovement')
+    const decision = chooseSummonAiDecision({ ...active, state, tieBreakSeed: 45 })
+    expect(decision.intent.kind).toBe('face')
+    expect(JSON.stringify(state)).toBe(before)
+    expect(forecast).not.toHaveBeenCalled()
+    expect(walking).not.toHaveBeenCalled()
+  })
+
+  it('does not forecast after the one authored ability has already been used this turn', () => {
+    const active = summonTurn(50)
+    const state = executePv1fSummonAbility(
+      active.state,
+      active.summon,
+      active.summon.profile.abilities[0]!.id,
+      { kind: 'unit', combatantId: 'enemy' },
+    ).state
+    const before = JSON.stringify(state)
+    const forecast = vi.spyOn(nativeEconomy, 'evaluatePv1fSummonAbility')
+    const walking = vi.spyOn(nativeEconomy, 'executePv1fMovement')
+    expect(chooseSummonAiDecision({ ...active, state, tieBreakSeed: 45 }).intent.kind).not.toBe(
+      'action',
+    )
+    expect(JSON.stringify(state)).toBe(before)
+    expect(forecast).not.toHaveBeenCalled()
+    expect(walking).not.toHaveBeenCalled()
+  })
+
+  it('skips walks that cannot leave enough AP for even the cheapest ability', () => {
+    const active = summonTurn(20)
+    const state = spendPv1fActionEconomy(active.state, 55)
+    const walking = vi.spyOn(nativeEconomy, 'executePv1fMovement')
+    expect(chosenAbility(chooseSummonAiDecision({ ...active, state, tieBreakSeed: 45 }))).toBe(
+      'wildwarden.verdant-stalker.verdant-mend',
+    )
+    expect(walking.mock.calls.length).toBe(0)
+  })
+
+  it('does not forecast or extend a real walk that leaves too little AP for an ability', () => {
+    const active = summonTurn(20)
+    const state = spendPv1fActionEconomy(active.state, 45)
+    const before = JSON.stringify(state)
+    const forecast = vi.spyOn(nativeEconomy, 'evaluatePv1fSummonAbility')
+    const walking = vi.spyOn(nativeEconomy, 'executePv1fMovement')
+    expect(chosenAbility(chooseSummonAiDecision({ ...active, state, tieBreakSeed: 45 }))).toBe(
+      'wildwarden.verdant-stalker.verdant-mend',
+    )
+    expect(JSON.stringify(state)).toBe(before)
+    expect(forecast.mock.calls.length).toBe(6)
+    expect(
+      forecast.mock.calls.every(([shadow]) => readPv1fActionEconomy(shadow)!.current === 55),
+    ).toBe(true)
+    expect(walking.mock.calls.map(([, path]) => path)).toEqual([
+      [
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ],
+      [
+        { x: 1, y: 0 },
+        { x: 0, y: 0 },
+      ],
+    ])
+  })
+
+  it('retains a 10 AP Haste walk followed by an exactly affordable authored ability', () => {
+    const attack = summonProfile().abilities[0]!
+    const active = summonTurn(
+      50,
+      summonProfile({
+        abilities: [{ ...attack, target: { ...attack.target, maximumRange: 1 } }],
+      }),
+    )
+    const economy = spendPv1fActionEconomy(active.state, 45)
+    const state = {
+      ...economy,
+      statusState: economy.statusState.map((row) =>
+        row.combatantId === active.summon.combatantId
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'haste',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                  movementApAdjustment: 15,
+                  sourceCombatantId: 'player',
+                },
+              ],
+            }
+          : row,
+      ),
+    }
+    expect(validateStatDrivenCombatEncounterState(state)).toEqual([])
+    const decision = chooseSummonAiDecision({ ...active, state, tieBreakSeed: 45 })
+    expect(decision.intent).toEqual({
+      kind: 'move',
+      path: [
+        { x: 1, y: 0 },
+        { x: 2, y: 0 },
+      ],
+    })
+    if (decision.intent.kind !== 'move') throw new Error('Expected affordable Haste positioning.')
+    const moved = executePv1fMovement(state, decision.intent.path).state
+    expect(readPv1fActionEconomy(moved)!.current).toBe(45)
+    const followup = chooseSummonAiDecision({ ...active, state: moved, tieBreakSeed: 46 })
+    expect(followup.intent).toEqual({
+      kind: 'action',
+      actionId: attack.id,
+      target: { kind: 'unit', combatantId: 'enemy' },
+    })
+    if (followup.intent.kind !== 'action') throw new Error('Expected exactly affordable Rake.')
+    const used = executePv1fSummonAbility(moved, active.summon, attack.id, followup.intent.target)
+    expect(readPv1fActionEconomy(used.state)!.current).toBe(0)
+    expect(used.events).toContainEqual(expect.objectContaining({ event: 'summon_ability_used' }))
+  })
+
   it('round-trips neverMoves and rejects a malformed captured flag', () => {
     const active = summonTurn(50, summonProfile({ neverMoves: true }))
     const restored = JSON.parse(JSON.stringify(active.state)) as StatDrivenCombatEncounterState

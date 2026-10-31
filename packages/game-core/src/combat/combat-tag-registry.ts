@@ -757,12 +757,7 @@ export function validateCombatTagPayload(
 export function nativeCombatTagPayload(
   payload: Exclude<CombatTagPayload, { type: 'damage-bonus' | 'summon' }> | CombatTagPayload,
 ): CombatEffectDefinition {
-  if (
-    payload.type === 'summon' ||
-    payload.type === 'damage-bonus' ||
-    payload.type === 'move' ||
-    payload.type === 'reversal'
-  )
+  if (payload.type === 'summon' || payload.type === 'damage-bonus' || payload.type === 'move')
     throw new TypeError('Tag requires its specialized canonical resolver.')
   if (payload.type === 'pierce') {
     const { armorIgnoredBasisPoints: _ignored, ...damage } = payload

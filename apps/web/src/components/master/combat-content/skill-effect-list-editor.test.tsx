@@ -20,6 +20,21 @@ const effects: readonly CombatEffectDefinition[] = [
 ]
 
 describe('Master Panel Skill effect list editor', () => {
+  it.each([false, true])(
+    'disables native Reversal and preserves existing payloads (retained: %s)',
+    (retained) => {
+      const value = retained ? [createDefaultCombatEffect('reversal')] : []
+      const before = structuredClone(value)
+      const markup = renderToStaticMarkup(
+        createElement(SkillEffectListEditor, { value, onChange: vi.fn() }),
+      )
+      expect(markup).toContain(
+        '<option value="reversal" disabled="" title="Reversal requires a modular Manual Action ability.">Reversal</option>',
+      )
+      if (value.length) expect(markup).toContain('data-effect-type="reversal"')
+      expect(value).toEqual(before)
+    },
+  )
   it('authors Push and Pull as separate choices with exact direction', () => {
     expect(createDefaultCombatEffect('push')).toEqual({
       type: 'displace',

@@ -398,6 +398,7 @@ export function SummonProfileEditor({
               <details className={styles.summonSection}>
                 <summary>Effects</summary>
                 <SkillEffectListEditor
+                  allowReversal
                   canonicalDamage={canonical}
                   aim={ability.target}
                   value={ability.effects}

@@ -197,6 +197,7 @@ export function moveCombatEffectDescription(
 export interface SkillEffectListEditorProps {
   readonly aim?: CombatTargetSpec
   readonly canonicalDamage?: boolean
+  readonly allowReversal?: boolean
   readonly value: readonly CombatEffectDefinition[]
   readonly effectDescriptions?: readonly (string | null)[]
   readonly maxEffects?: number
@@ -212,6 +213,7 @@ export function SkillEffectListEditor({
   effectDescriptions,
   maxEffects,
   canonicalDamage = false,
+  allowReversal = false,
   onChange: update,
 }: SkillEffectListEditorProps) {
   const onChange: SkillEffectListEditorProps['onChange'] = (proposed, notes) => {
@@ -322,6 +324,8 @@ export function SkillEffectListEditor({
       <EffectTagPicker
         nativeOnly
         additionalIssue={(id) => {
+          if (id === 'reversal' && !allowReversal)
+            return 'Reversal requires a modular Manual Action ability.'
           const payload = createAuthorableEffectPayload(id)
           const reversalIssue = authoredReversalCombinationIssue(value, payload?.type)
           if (reversalIssue) return reversalIssue

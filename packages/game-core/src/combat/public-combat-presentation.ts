@@ -11,6 +11,8 @@ type PrivateHitAuthoringKey =
   | 'reversalState'
   | 'nextReversalAttackCommandId'
   | 'reversalAttackCommandId'
+  | 'reversalDamageOrdinal'
+  | 'reversalBoundDamageOrdinalsByRecipient'
 export type PublicCombat<T> = T extends string | number | boolean | null | undefined
   ? T
   : T extends readonly unknown[]
@@ -35,6 +37,8 @@ const PRIVATE_HIT_AUTHORING_KEYS = new Set<string>([
   'reversalState',
   'nextReversalAttackCommandId',
   'reversalAttackCommandId',
+  'reversalDamageOrdinal',
+  'reversalBoundDamageOrdinalsByRecipient',
   'sourceHash',
   'catalogueToken',
   'accuracyRule',

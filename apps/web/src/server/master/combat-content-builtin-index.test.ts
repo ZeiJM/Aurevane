@@ -62,9 +62,14 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
     manifest.filter(
       (row: { contentKind: string; contentKey: string }) =>
         row.contentKind === 'tag' &&
-        !['tag.counter', 'tag.endure', 'tag.weak-point', 'tag.spike', 'tag.ruin'].includes(
-          row.contentKey,
-        ),
+        ![
+          'tag.counter',
+          'tag.endure',
+          'tag.weak-point',
+          'tag.spike',
+          'tag.ruin',
+          'tag.reversal',
+        ].includes(row.contentKey),
     ),
   )
   const attackMigration = readFileSync(
@@ -104,6 +109,16 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
   expect(
     manifest.find((row: { contentKey: string }) => row.contentKey === 'tag.endure'),
   ).toMatchObject({ contentVersion: 1, versionFloor: 1, name: 'Endure' })
+  const reversalMigration = readFileSync(
+    resolve(process.cwd(), '../../supabase/migrations/20261031090902_reversal_tag_identity.sql'),
+    'utf8',
+  )
+  expect(reversalMigration).toContain(
+    "values ('tag.reversal', 'tag', 'active', 1, 1, 'Reversal', null)",
+  )
+  expect(
+    manifest.find((row: { contentKey: string }) => row.contentKey === 'tag.reversal'),
+  ).toMatchObject({ contentVersion: 1, versionFloor: 1, name: 'Reversal' })
   expect(
     manifest.filter((r: { contentKey: string }) =>
       ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'].includes(

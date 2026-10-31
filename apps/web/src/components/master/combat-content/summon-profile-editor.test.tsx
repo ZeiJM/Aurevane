@@ -12,6 +12,21 @@ function currentProfile() {
 }
 
 describe('Master Panel summon profile editor', () => {
+  it('allows Reversal in native Summon Skills with their paid preparation adapter', () => {
+    const profile = currentProfile()
+    const value = {
+      ...profile,
+      abilities: profile.abilities.map((ability) => ({ ...ability, effects: [] })),
+    }
+    const before = structuredClone(value)
+    const markup = renderToStaticMarkup(
+      createElement(SummonProfileEditor, { value, onChange: vi.fn() }),
+    )
+    expect(markup.match(/<option value="reversal">Reversal<\/option>/gu)).toHaveLength(
+      value.abilities.length,
+    )
+    expect(value).toEqual(before)
+  })
   it('shows core stats and compact summon controls while hiding internal metadata', () => {
     const markup = renderToStaticMarkup(
       createElement(SummonProfileEditor, {

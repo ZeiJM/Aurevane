@@ -263,6 +263,13 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
     if (canonical) issues.push(...canonicalCleanseIssues(candidate.ability!))
     else
       for (const [index, effect] of candidate.effects.entries()) {
+        if (effect.type === 'reversal') {
+          issues.push({
+            path: `effects[${index}]`,
+            code: 'REVERSAL_REQUIRES_MODULAR_ABILITY',
+            message: 'Reversal requires a modular Manual Action ability.',
+          })
+        }
         if (
           isCleanseEffect(effect) &&
           effect.removalMode !== 'all-debuffs' &&
@@ -419,6 +426,13 @@ export function validateResonanceAuthoringDefinition(
       for (const [index, effect] of normalizedResonanceMechanics(
         candidate,
       ).resultEffects.entries()) {
+        if (effect.type === 'reversal') {
+          issues.push({
+            path: `trigger.${isResonanceDefinitionV2(candidate) ? 'resultEffects' : 'payoffEffects'}[${index}]`,
+            code: 'REVERSAL_REQUIRES_MANUAL_ACTION',
+            message: 'Reversal requires a paid Manual Action preparation.',
+          })
+        }
         if (
           isCleanseEffect(effect) &&
           effect.removalMode !== 'all-debuffs' &&

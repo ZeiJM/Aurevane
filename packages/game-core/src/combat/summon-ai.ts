@@ -8,8 +8,10 @@ import {
   evaluatePv1fSummonAbility,
   PV1F_SUMMON_ABILITY_USED_TURN_KEY,
   executePv1fMovement,
+  preparePv1fTurnEconomy,
   readPv1fActionEconomy,
 } from './pv1f-action-economy'
+import { PV1F_MINIMUM_MOVEMENT_AP_COST } from './pv1f-skills'
 import {
   chooseRecruitAiDecision,
   getRecruitAiProfile,
@@ -37,9 +39,11 @@ export function chooseSummonAiDecision(input: {
 }): SummonAiDecision {
   input = {
     ...input,
-    state: combatReversalKnowledgeState(
-      input.state,
-      input.state.tactical.battle.currentTurn?.combatantId,
+    state: preparePv1fTurnEconomy(
+      combatReversalKnowledgeState(
+        input.state,
+        input.state.tactical.battle.currentTurn?.combatantId,
+      ),
     ),
   }
   if (!Number.isSafeInteger(input.tieBreakSeed)) {
@@ -136,6 +140,11 @@ function buildMovementCandidates(
     (row) => row.combatantId === summon.combatantId,
   )?.position
   if (!origin) return []
+  const minimumAbilityAp = Math.min(...summon.profile.abilities.map((ability) => ability.apCost))
+  const economyBefore = readPv1fActionEconomy(state, summon.combatantId)?.current ?? 0
+  const remainingMovement = state.tactical.battle.currentTurn?.movementRemaining ?? 0
+  if (!remainingMovement || economyBefore < minimumAbilityAp + PV1F_MINIMUM_MOVEMENT_AP_COST)
+    return []
   const candidates: {
     intent: SummonAiDecision['intent']
     reason: RecruitAiReasonTag
@@ -144,9 +153,14 @@ function buildMovementCandidates(
   }[] = []
   const queue: GridPosition[][] = [[origin]]
   const visited = new Set([`${origin.x},${origin.y}`])
-  const economyBefore = readPv1fActionEconomy(state, summon.combatantId)?.current ?? 0
   for (let cursor = 0; cursor < queue.length && cursor < maximumPositions; cursor += 1) {
     const path = queue[cursor]!
+    const enteredTiles = path.length
+    if (
+      enteredTiles > remainingMovement ||
+      enteredTiles * PV1F_MINIMUM_MOVEMENT_AP_COST + minimumAbilityAp > economyBefore
+    )
+      continue
     const from = path[path.length - 1]!
     for (const destination of [
       { x: from.x, y: from.y - 1 },
@@ -155,6 +169,13 @@ function buildMovementCandidates(
       { x: from.x - 1, y: from.y },
     ]) {
       if (visited.size >= maximumPositions) break
+      if (
+        destination.x < 0 ||
+        destination.y < 0 ||
+        destination.x >= state.tactical.width ||
+        destination.y >= state.tactical.height
+      )
+        continue
       const key = `${destination.x},${destination.y}`
       if (visited.has(key)) continue
       const nextPath = [...path, destination]
@@ -166,8 +187,10 @@ function buildMovementCandidates(
       }
       if (moved.tactical.battle.currentTurn?.combatantId !== summon.combatantId) continue
       visited.add(key)
+      const economyAfter = readPv1fActionEconomy(moved, summon.combatantId)?.current ?? 0
+      if (economyAfter < minimumAbilityAp) continue
       queue.push(nextPath)
-      const cost = economyBefore - (readPv1fActionEconomy(moved, summon.combatantId)?.current ?? 0)
+      const cost = economyBefore - economyAfter
       const available = summon.profile.abilities.flatMap((ability) =>
         buildAbilityCandidates(moved, summon, ability),
       )
@@ -189,6 +212,16 @@ function buildAbilityCandidates(
   summon: CombatSummonInstance,
   ability: SummonAbilityDefinition,
 ): SummonAbilityCandidate[] {
+  if ((readPv1fActionEconomy(state, summon.combatantId)?.current ?? 0) < ability.apCost) return []
+  const actor = state.tactical.battle.combatants.find((row) => row.id === summon.combatantId)
+  if (
+    actor?.temporaryResources.some(
+      (row) =>
+        row.key === PV1F_SUMMON_ABILITY_USED_TURN_KEY &&
+        row.current === state.tactical.battle.turnNumber,
+    )
+  )
+    return []
   const candidates: SummonAbilityCandidate[] = []
 
   for (const target of targetSelections(state, ability)) {

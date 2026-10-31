@@ -30,9 +30,10 @@ describe('shared percentage DoT readers', () => {
       (row) => row.type === 'poison',
     )!
     const current = previewEffect(effect).explanation!
-    expect(current).toContain('reset its remaining duration')
-    expect(current).toContain('greater authored percentage and original duration independently')
+    expect(current).toContain('refresh its full duration')
+    expect(current).toContain('greater potency and original duration separately')
     expect(current).toContain('without extra damage')
+    expect(current).not.toContain('cause an extra tick')
     expect(previewEffect(effect, { legacyPoisonMovement: true }).explanation).toContain(
       'at most once per turn',
     )
@@ -49,17 +50,15 @@ describe('shared percentage DoT readers', () => {
     expect(
       combatEffectPresentationTags(effect as Parameters<typeof combatEffectPresentationTags>[0]),
     ).toContain(bracket)
-    expect(previewEffect(effect).explanation).toContain('HP damage dealt by that attack')
-    expect(skillEffectDescription(effect)).toContain('HP damage dealt by that attack')
+    expect(previewEffect(effect).explanation).toContain('granting attack’s HP damage')
+    expect(skillEffectDescription(effect)).toContain('granting attack’s HP damage')
     expect(skillEffectDescription(effect)).not.toContain('fixed damage')
   })
   it('explains the same contract for Essence effects and historical fixed versions', () => {
     const current = resolveEssenceForBuild('cinderweaver', null)!
     const burn = current.skill.effects.find((effect) => effect.type === 'burn')!
     expect(skillEffectDescription(burn)).toContain('10%')
-    expect(skillEffectDescription(burn)).toContain(
-      'misses and friendly damage do not trigger backlash',
-    )
+    expect(skillEffectDescription(burn)).toContain('misses and friendly damage do not count')
     const old = resolveEssenceForBuild(
       'cinderweaver',
       null,
@@ -117,7 +116,8 @@ describe('shared percentage DoT readers', () => {
       (row) => row.status.statusId === 'bleed',
     )!.status
     expect(pending.percentageDotProfile?.basisPoints).toBe(2000)
-    expect(describeBattleEffect(pending).explanation).toContain('HP damage dealt by that attack')
+    expect(describeBattleEffect(pending).explanation).toContain('20%')
+    expect(describeBattleEffect(pending).explanation).toContain('granting attack’s HP damage')
     expect(JSON.stringify(pending)).not.toContain('percentageDotCommandId')
   })
   it('shows the actual next tick and basis from viewer-safe active state', () => {

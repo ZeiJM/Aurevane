@@ -139,6 +139,10 @@ function atEnemyTurn(state: CombatEncounterState): CombatEncounterState {
 const hp = (state: CombatEncounterState, id: string) =>
   state.tactical.battle.combatants.find((u) => u.id === id)!.hp
 
+function isReceipt(event: unknown, kind: string): event is { event: string; statusId?: unknown } {
+  return typeof event === 'object' && event !== null && 'event' in event && event.event === kind
+}
+
 describe('Reversal v1', () => {
   it('strictly accepts one Physical or Mystic family and rejects invalid configuration', () => {
     expect(validateAbilityDefinition(reversalSource().definition)).toEqual([])
@@ -1158,6 +1162,351 @@ describe('Reversal v1', () => {
       expect(validateCombatEncounterState(next)).toEqual([])
     },
   )
+  it.each(
+    (['instant', 'next-round', 'delayed'] as const).flatMap((damageTiming, damageRound) =>
+      (['instant', 'next-round', 'delayed'] as const).map((addonTiming, addonRound) => ({
+        damageTiming,
+        addonTiming,
+        alreadyResolved: addonRound < damageRound,
+      })),
+    ),
+  )(
+    'binds $damageTiming Damage to its $addonTiming add-on without undoing earlier settlement',
+    ({ damageTiming, addonTiming, alreadyResolved }) => {
+      const { state, captured } = encounter()
+      const ready = atEnemyTurn(damageTiming === 'delayed' ? state : prime(state, captured).state)
+      const out = executeCombatAction(
+        ready,
+        {
+          ...attack(),
+          effectTimingModes: [damageTiming, addonTiming],
+          effects: [
+            ...attack().effects,
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId: 'slow',
+              stacks: 1,
+              durationTurns: 2,
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      let next = JSON.parse(JSON.stringify(out.state)) as CombatEncounterState
+      const receipts: unknown[] = [...out.events]
+      if (damageTiming === 'delayed') {
+        for (let n = 0; n < 8 && next.tactical.battle.currentTurn?.combatantId !== 'actor'; n++) {
+          const transition = finishPv1fTurn(next as never, 'east')
+          next = transition.state
+          receipts.push(...transition.events)
+        }
+        expect(next.tactical.battle.round).toBe(2)
+        next = prime(next, captured).state
+      }
+      for (let n = 0; n < 16 && next.tactical.battle.round < 4; n++) {
+        const transition = finishPv1fTurn(next as never, 'east')
+        next = JSON.parse(JSON.stringify(transition.state)) as CombatEncounterState
+        receipts.push(...transition.events)
+      }
+      expect(hp(next, 'enemy')).toBe(960)
+      expect(hp(next, 'actor')).toBe(1000)
+      expect(receipts.filter((event) => isReceipt(event, 'reversal_triggered'))).toHaveLength(1)
+      expect(
+        receipts.filter((event) => isReceipt(event, 'status_applied') && event.statusId === 'slow'),
+      ).toHaveLength(alreadyResolved ? 1 : 0)
+      expect(validateCombatEncounterState(next)).toEqual([])
+    },
+  )
+  it('gives the next scheduled Damage its own add-on after an instant interception', () => {
+    const { state, captured } = encounter()
+    const armed = atEnemyTurn(prime(state, captured).state)
+    const out = executeCombatAction(
+      armed,
+      {
+        ...attack(),
+        effectTimingModes: ['instant', 'next-round', 'next-round', 'next-round'],
+        effects: [
+          ...attack().effects,
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'slow', stacks: 1 },
+          ...attack('physical', 20).effects,
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'root', stacks: 1 },
+        ],
+      },
+      { kind: 'unit', combatantId: 'actor' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(out.state.pendingEffects?.map((pending) => pending.effect.type)).toEqual([
+      'damage',
+      'apply-status',
+    ])
+    let next = JSON.parse(JSON.stringify(out.state)) as CombatEncounterState
+    const receipts: unknown[] = [...out.events]
+    for (let n = 0; n < 8 && next.tactical.battle.round === 1; n++) {
+      const transition = finishPv1fTurn(next as never, 'east')
+      next = transition.state
+      receipts.push(...transition.events)
+    }
+    expect(hp(next, 'actor')).toBe(980)
+    expect(
+      receipts.flatMap((event) => (isReceipt(event, 'status_applied') ? [event.statusId] : [])),
+    ).toEqual(['root'])
+    expect(validateCombatEncounterState(next)).toEqual([])
+  })
+  it.each([false, true])(
+    'captures new legacy delayed casts before any Reversal capability appears while preserving historical queues: %s',
+    (historicalQueue) => {
+      const captured = reversalSource()
+      const enemyTurn = atEnemyTurn({
+        ...preparePv1fTurnEconomy(percentageDotEncounter()),
+        capturedAbilitySources: [],
+        effectTimingPolicy: { version: 1, modes: {}, tagAuthority: 'global' },
+      })
+      let next: CombatEncounterState = {
+        ...enemyTurn,
+        tactical: {
+          ...enemyTurn.tactical,
+          battle: {
+            ...enemyTurn.tactical.battle,
+            combatants: enemyTurn.tactical.battle.combatants.map((unit) =>
+              unit.id === 'enemy' ? { ...unit, hp: 1 } : unit,
+            ),
+          },
+        },
+      }
+      expect(next.capturedAbilitySources).toEqual([])
+      const multi: CombatActionDefinition = {
+        ...attack(),
+        effectTimingModes: ['delayed', 'delayed'],
+        effects: [...attack().effects, ...attack().effects],
+      }
+      for (let cast = 0; cast < 2; cast++)
+        next = executeCombatAction(
+          next,
+          multi,
+          { kind: 'unit', combatantId: 'actor' },
+          PV1F_COMBAT_CONTENT,
+        ).state
+      const firstCommand = next.pendingEffects![0]!.reversalAttackCommandId
+      const secondCommand = next.pendingEffects![2]!.reversalAttackCommandId
+      expect(firstCommand).toBeDefined()
+      expect(secondCommand).not.toBe(firstCommand)
+      expect(
+        next.pendingEffects?.every((pending) => pending.skillPacketCommandId === undefined),
+      ).toBe(true)
+      if (historicalQueue)
+        next = {
+          ...next,
+          nextReversalAttackCommandId: undefined,
+          pendingEffects: next.pendingEffects?.map((pending) => ({
+            ...pending,
+            reversalAttackCommandId: undefined,
+            reversalDamageOrdinal: undefined,
+            reversalBoundDamageOrdinalsByRecipient: undefined,
+          })),
+        }
+      next = JSON.parse(JSON.stringify(next)) as CombatEncounterState
+      for (let n = 0; n < 8 && next.tactical.battle.currentTurn?.combatantId !== 'actor'; n++)
+        next = finishPv1fTurn(next as never, 'east').state
+      next = reconcileCombatAbilitySources(next, [captured])
+      const prepared = prime(next, captured)
+      expect(readPv1fActionEconomy(prepared.state as never, 'actor')?.current).toBe(50)
+      expect(
+        prepared.state.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp,
+      ).toBe(next.tactical.battle.combatants.find((unit) => unit.id === 'actor')!.mp - 5)
+      if (historicalQueue)
+        expect(
+          prepared.state.pendingEffects?.every(
+            (pending) => pending.reversalAttackCommandId === undefined,
+          ),
+        ).toBe(true)
+      next = JSON.parse(JSON.stringify(prepared.state)) as CombatEncounterState
+      const receipts: ReturnType<typeof finishPv1fTurn>['events'][number][] = []
+      for (let n = 0; n < 8 && next.tactical.battle.round === 2; n++) {
+        const transition = finishPv1fTurn(next as never, 'east')
+        next = transition.state
+        receipts.push(...transition.events)
+      }
+      expect(hp(next, 'enemy')).toBe(0)
+      // Only the original interrupted cast stops; the other committed cast still settles.
+      expect(hp(next, 'actor')).toBe(historicalQueue ? 880 : 920)
+      expect(receipts.filter((event) => isReceipt(event, 'reversal_triggered'))).toHaveLength(1)
+      expect(receipts.filter((event) => isReceipt(event, 'damage_applied'))).toHaveLength(
+        historicalQueue ? 3 : 2,
+      )
+      expect(validateCombatEncounterState(next)).toEqual([])
+    },
+  )
+  it.each(
+    (['instant', 'delayed'] as const).flatMap((secondDamageTiming) =>
+      (['next-round', 'delayed'] as const).map((addonTiming) => ({
+        secondDamageTiming,
+        addonTiming,
+      })),
+    ),
+  )(
+    'binds a $addonTiming add-on to its preceding authored $secondDamageTiming Damage instead of an earlier queued hit',
+    ({ secondDamageTiming, addonTiming }) => {
+      const { state, captured } = encounter()
+      const armed = atEnemyTurn(prime(state, captured).state)
+      const out = executeCombatAction(
+        armed,
+        {
+          ...attack(),
+          effectTimingModes: ['next-round', secondDamageTiming, addonTiming],
+          effects: [
+            ...attack().effects,
+            ...attack('physical', secondDamageTiming === 'instant' ? 0 : 20).effects,
+            { type: 'apply-status', recipient: 'primary-unit', statusId: 'root', stacks: 1 },
+          ],
+        },
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      let next = JSON.parse(JSON.stringify(out.state)) as CombatEncounterState
+      const receipts: unknown[] = [...out.events]
+      for (let n = 0; n < 16 && next.tactical.battle.round < 4; n++) {
+        const transition = finishPv1fTurn(next as never, 'east')
+        next = JSON.parse(JSON.stringify(transition.state)) as CombatEncounterState
+        receipts.push(...transition.events)
+      }
+      expect(
+        receipts.filter((event) => isReceipt(event, 'status_applied') && event.statusId === 'root'),
+      ).toHaveLength(1)
+      expect(hp(next, 'actor')).toBe(secondDamageTiming === 'instant' ? 1000 : 980)
+      expect(validateCombatEncounterState(next)).toEqual([])
+    },
+  )
+  it('strictly validates private authored Damage ordinals and recipient bindings', () => {
+    const { state, captured } = encounter()
+    const out = executeCombatAction(
+      atEnemyTurn(prime(state, captured).state),
+      {
+        ...attack(),
+        effectTimingModes: ['next-round', 'delayed'],
+        effects: [
+          ...attack().effects,
+          { type: 'apply-status', recipient: 'primary-unit', statusId: 'slow', stacks: 1 },
+        ],
+      },
+      { kind: 'unit', combatantId: 'actor' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(out.state.pendingEffects?.[0]?.reversalDamageOrdinal).toBe(0)
+    expect(out.state.pendingEffects?.[1]?.reversalBoundDamageOrdinalsByRecipient).toEqual({
+      actor: 0,
+    })
+    expect(validateCombatEncounterState(JSON.parse(JSON.stringify(out.state)))).toEqual([])
+    const invalid: [number, Record<string, unknown>][] = [
+      ...[-1, 1.5, Number.MAX_SAFE_INTEGER + 1, '0', null].map(
+        (ordinal) => [0, { reversalDamageOrdinal: ordinal }] as [number, Record<string, unknown>],
+      ),
+      [1, { reversalDamageOrdinal: 0 }],
+      [0, { reversalBoundDamageOrdinalsByRecipient: { actor: 0 } }],
+      [1, { reversalBoundDamageOrdinalsByRecipient: { unknown: 0 } }],
+      ...[-1, 1.5, Number.MAX_SAFE_INTEGER + 1, '0', null].map(
+        (ordinal) =>
+          [1, { reversalBoundDamageOrdinalsByRecipient: { actor: ordinal } }] as [
+            number,
+            Record<string, unknown>,
+          ],
+      ),
+      ...[null, [], 'actor'].map(
+        (bindings) =>
+          [1, { reversalBoundDamageOrdinalsByRecipient: bindings }] as [
+            number,
+            Record<string, unknown>,
+          ],
+      ),
+      [0, { reversalAttackCommandId: undefined }],
+      [1, { reversalAttackCommandId: undefined }],
+      [1, { recipientIds: ['ally'] }],
+    ]
+    for (const [index, changes] of invalid) {
+      const tampered = JSON.parse(
+        JSON.stringify({
+          ...out.state,
+          pendingEffects: out.state.pendingEffects?.map((pending, ordinal) =>
+            ordinal === index ? { ...pending, ...changes } : pending,
+          ),
+        }),
+      ) as CombatEncounterState
+      expect(validateCombatEncounterState(tampered)).not.toEqual([])
+    }
+  })
+  it('preserves queued actor utility, Reveal, removal and terrain after an intercepted Damage', () => {
+    const { state, captured } = encounter()
+    const out = executeCombatAction(
+      atEnemyTurn(prime(state, captured).state),
+      {
+        ...attack(),
+        target: { ...attack().target, geometryVersion: 3, categories: ['enemy', 'ground'] },
+        effectTimingModes: ['instant', 'next-round', 'next-round', 'next-round', 'next-round'],
+        effects: [
+          ...attack().effects,
+          { type: 'apply-status', recipient: 'actor', statusId: 'slow', stacks: 1 },
+          {
+            type: 'remove-status',
+            recipient: 'primary-unit',
+            statusIds: ['guarded'],
+            removalMode: 'specified',
+          },
+          {
+            type: 'sensory',
+            recipient: 'primary-unit',
+            revealedDurationOwnerTurnStarts: 2,
+            increasedDamageTakenBasisPoints: 2500,
+          },
+          {
+            type: 'create-terrain',
+            recipient: 'affected-tiles',
+            target: 'ground',
+            terrain: 'frozen',
+          },
+        ],
+      },
+      { kind: 'unit', combatantId: 'actor' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(out.events.filter((event) => event.event === 'reversal_triggered')).toHaveLength(1)
+    expect(out.state.pendingEffects).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          effect: expect.objectContaining({ type: 'apply-status', statusId: 'slow' }),
+          recipientIds: ['enemy'],
+        }),
+        expect.objectContaining({
+          effect: expect.objectContaining({ type: 'apply-status', statusId: 'revealed' }),
+          recipientIds: ['actor'],
+        }),
+        expect.objectContaining({
+          effect: expect.objectContaining({ type: 'remove-status', statusIds: ['guarded'] }),
+          recipientIds: ['actor'],
+        }),
+        expect.objectContaining({ effect: expect.objectContaining({ type: 'create-terrain' }) }),
+      ]),
+    )
+    let next = JSON.parse(JSON.stringify(out.state)) as CombatEncounterState
+    const receipts: unknown[] = []
+    for (let n = 0; n < 8 && next.tactical.battle.round === 1; n++) {
+      const transition = finishPv1fTurn(next as never, 'east')
+      next = transition.state
+      receipts.push(...transition.events)
+    }
+    expect(
+      receipts.filter((event) => isReceipt(event, 'status_applied') && event.statusId === 'slow'),
+    ).toHaveLength(1)
+    expect(
+      receipts.filter(
+        (event) => isReceipt(event, 'status_applied') && event.statusId === 'revealed',
+      ),
+    ).toHaveLength(1)
+    expect(next.terrainOverlays).toEqual(
+      expect.arrayContaining([expect.objectContaining({ kind: 'frozen' })]),
+    )
+    expect(validateCombatEncounterState(next)).toEqual([])
+  })
   it('returns a zero Basic reference when conditional Damage fails but its annotation qualifies', () => {
     const { state } = encounter()
     const definitions = defaultBasicSkills().map((skill) =>
@@ -1220,12 +1569,33 @@ describe('Reversal v1', () => {
         friendlyFire: 'enemies-only' as const,
         shape: { kind: 'all' as const },
       },
-      effects: [{ type: 'damage' as const, recipient: 'affected-units' as const, amount: 40 }],
+      effectTimingModes: ['instant', 'next-round'] as const,
+      effects: [
+        { type: 'damage' as const, recipient: 'affected-units' as const, amount: 40 },
+        {
+          type: 'apply-status' as const,
+          recipient: 'affected-units' as const,
+          statusId: 'slow',
+          stacks: 1,
+        },
+      ],
     }
     const out = executeCombatAction(armed, area, { kind: 'activate' }, PV1F_COMBAT_CONTENT)
     expect(hp(out.state, 'actor')).toBe(hp(armed, 'actor'))
     expect(hp(out.state, 'ally')).toBe(hp(armed, 'ally') - 40)
     expect(hp(out.state, 'enemy')).toBe(hp(armed, 'enemy') - 40)
+    expect(out.state.pendingEffects?.[0]?.recipientIds).toEqual(['ally'])
+    let next = JSON.parse(JSON.stringify(out.state)) as CombatEncounterState
+    const receipts: unknown[] = [...out.events]
+    for (let n = 0; n < 8 && next.tactical.battle.round === 1; n++) {
+      const transition = finishPv1fTurn(next as never, 'east')
+      next = transition.state
+      receipts.push(...transition.events)
+    }
+    expect(
+      receipts.filter((event) => isReceipt(event, 'status_applied') && event.statusId === 'slow'),
+    ).toEqual([expect.objectContaining({ targetCombatantId: 'ally' })])
+    expect(validateCombatEncounterState(next)).toEqual([])
   })
   it('preserves a negative effect before any Damage as independent under the version-1 binding policy', () => {
     const { state, captured } = encounter()

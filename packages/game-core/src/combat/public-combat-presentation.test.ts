@@ -95,3 +95,23 @@ it('preserves branded primitive types and removes hit-authoring keys from public
   expectTypeOf<keyof typeof value.ability>().toEqualTypeOf<'amount'>()
   expect(value.id).toBe('actor')
 })
+
+it('omits private Reversal hit bindings recursively without mutating captured state', () => {
+  const captured = {
+    nextReversalAttackCommandId: 4,
+    reversalState: { armed: [{ sourceAbilityId: 'private.reversal' }] },
+    pendingEffects: [
+      { amount: 40, reversalAttackCommandId: 3, reversalDamageOrdinal: 0 },
+      {
+        durationTurns: 2,
+        reversalAttackCommandId: 3,
+        reversalBoundDamageOrdinalsByRecipient: { enemy: 0 },
+      },
+    ],
+  }
+  const before = JSON.stringify(captured)
+  const visible = projectPublicCombat(captured)
+  expect(visible).toEqual({ pendingEffects: [{ amount: 40 }, { durationTurns: 2 }] })
+  expect(JSON.stringify(captured)).toBe(before)
+  expectTypeOf<keyof typeof visible>().toEqualTypeOf<'pendingEffects'>()
+})

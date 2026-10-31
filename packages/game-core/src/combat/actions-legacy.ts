@@ -608,6 +608,10 @@ interface CapturedElementalApplication {
 export interface PendingCombatEffect {
   /** Private original-cast identity for Reversal in historical packet-policy encounters. */
   reversalAttackCommandId?: number
+  /** Private authored Damage identity, scoped to the original queued cast. */
+  reversalDamageOrdinal?: number
+  /** Private nearest preceding authored Damage for each dependent recipient. */
+  reversalBoundDamageOrdinalsByRecipient?: Readonly<Record<string, number>>
   summonDamageCommandId?: number
   attackFamily?: 'physical' | 'mystic'
   abilityCommandFacts?: Pick<
@@ -2112,7 +2116,7 @@ function applyCombatRoundBoundary(
   // Only an actual Reversal defeat interrupts a captured attack. A dead source by
   // itself retains the historical rules for its unrelated already committed casts.
   const reversalStoppedCommands = new Set<string>()
-  const reversalInterruptedHits = new Map<string, Map<string, boolean>>()
+  const reversalInterceptedDamage = new Map<string, Map<string, number>>()
   const pendingCommandKey = (pending: PendingCombatEffect) =>
     pending.skillPacketCommandId === undefined
       ? pending.reversalAttackCommandId === undefined
@@ -2139,10 +2143,16 @@ function applyCombatRoundBoundary(
     for (const pending of activationGroup) {
       const pendingKey = pendingCommandKey(pending)
       if (pendingKey && reversalStoppedCommands.has(pendingKey)) continue
-      const reversalInterruptedHit = pendingKey
-        ? (reversalInterruptedHits.get(pendingKey) ?? new Map<string, boolean>())
-        : new Map<string, boolean>()
-      if (pendingKey) reversalInterruptedHits.set(pendingKey, reversalInterruptedHit)
+      const interceptedDamage = pendingKey
+        ? (reversalInterceptedDamage.get(pendingKey) ?? new Map<string, number>())
+        : new Map<string, number>()
+      if (pendingKey) reversalInterceptedDamage.set(pendingKey, interceptedDamage)
+      const reversalInterruptedHit = new Map(
+        Object.entries(pending.reversalBoundDamageOrdinalsByRecipient ?? {}).map(([id, damage]) => [
+          id,
+          interceptedDamage.get(id) === damage,
+        ]),
+      )
       const pendingHooks: CombatNativeExecutionHooks | undefined = activationHooks
         ? {
             ...activationHooks,
@@ -2318,21 +2328,22 @@ function applyCombatRoundBoundary(
             : [],
         ),
       )
+      if (pending.reversalDamageOrdinal !== undefined)
+        for (const id of interceptedRecipients)
+          interceptedDamage.set(id, pending.reversalDamageOrdinal)
       if (pendingKey && interceptedRecipients.size && applied.state.pendingEffects?.length) {
-        // Bind by original authored order, even when the add-on activates in a later
-        // round. A later Damage owns its own add-ons and clears the earlier binding.
-        const bound = new Set<string>()
+        // Remove only still-pending add-ons owned by this exact authored Damage.
         const suppressed = new Map<CombatEffectDefinition, Set<string>>()
         for (const row of originalPending) {
           if (pendingCommandKey(row) !== pendingKey) continue
-          if (row.effect.type === 'damage') {
-            for (const id of row.recipientIds)
-              if (row === pending && interceptedRecipients.has(id)) bound.add(id)
-              else bound.delete(id)
-          } else if (isReversalDependentEffect(row.effect, row.content)) {
-            const ids = row.recipientIds.filter((id) => id !== row.actorId && bound.has(id))
-            if (ids.length) suppressed.set(row.effect, new Set(ids))
-          }
+          const ids = row.recipientIds.filter(
+            (id) =>
+              id !== row.actorId &&
+              interceptedRecipients.has(id) &&
+              pending.reversalDamageOrdinal !== undefined &&
+              row.reversalBoundDamageOrdinalsByRecipient?.[id] === pending.reversalDamageOrdinal,
+          )
+          if (ids.length) suppressed.set(row.effect, new Set(ids))
         }
         applied.state = pruneCombatAbilityActionHistory({
           ...applied.state,
@@ -2345,6 +2356,15 @@ function applyCombatRoundBoundary(
               {
                 ...row,
                 recipientIds,
+                ...(row.reversalBoundDamageOrdinalsByRecipient === undefined
+                  ? {}
+                  : {
+                      reversalBoundDamageOrdinalsByRecipient: Object.fromEntries(
+                        Object.entries(row.reversalBoundDamageOrdinalsByRecipient).filter(([id]) =>
+                          recipientIds.includes(id),
+                        ),
+                      ),
+                    }),
                 ...(row.groundTargetedRecipientIds === undefined
                   ? {}
                   : {
@@ -3060,6 +3080,35 @@ export function validateCombatEncounterState(
               ))
           )
             throw new TypeError('Invalid pending packet command.')
+          if (
+            pending.reversalDamageOrdinal !== undefined &&
+            (pending.effect.type !== 'damage' ||
+              !Number.isSafeInteger(pending.reversalDamageOrdinal) ||
+              pending.reversalDamageOrdinal < 0 ||
+              (pending.reversalAttackCommandId === undefined &&
+                pending.skillPacketCommandId === undefined))
+          )
+            throw new TypeError('Invalid private Reversal Damage ordinal.')
+          const reversalBindings = pending.reversalBoundDamageOrdinalsByRecipient
+          if (
+            reversalBindings !== undefined &&
+            (pending.reversalDamageOrdinal !== undefined ||
+              !isReversalDependentEffect(pending.effect, pending.content) ||
+              (pending.reversalAttackCommandId === undefined &&
+                pending.skillPacketCommandId === undefined) ||
+              !reversalBindings ||
+              typeof reversalBindings !== 'object' ||
+              Array.isArray(reversalBindings) ||
+              ![Object.prototype, null].includes(Object.getPrototypeOf(reversalBindings)) ||
+              Object.entries(reversalBindings).some(
+                ([id, ordinal]) =>
+                  !pending.recipientIds.includes(id) ||
+                  typeof ordinal !== 'number' ||
+                  !Number.isSafeInteger(ordinal) ||
+                  ordinal < 0,
+              ))
+          )
+            throw new TypeError('Invalid private Reversal Damage binding.')
           if (
             pending.attackFamily !== undefined &&
             !['physical', 'mystic'].includes(pending.attackFamily)
@@ -4417,6 +4466,7 @@ function resolveActionEffects(
   const terrain: CombatTerrainProjection[] = []
   const stormRecipients = new Set<string>()
   const interceptedHit = options.reversalInterruptedHit ?? new Map<string, boolean>()
+  const precedingDamageOrdinalByRecipient = new Map<string, number>()
   let reversalDefeatedActor = false
   const elementalApplications: ElementalApplications = options.elementalApplications ?? new Map()
   const attempt = resolveCombatActionActorAttempt(
@@ -4622,6 +4672,13 @@ function resolveActionEffects(
             )
           ),
       )
+      // A new authored Damage owns the following add-ons, even when it is queued.
+      if (effect.type === 'damage')
+        for (const recipientId of effectRecipientIds) {
+          interceptedHit.set(recipientId, false)
+          precedingDamageOrdinalByRecipient.set(recipientId, effectOrdinal)
+        }
+      const dependent = isReversalDependentEffect(effect, content)
       if (effect.type === 'apply-status' && !effectRecipientIds.length) continue
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
@@ -4639,6 +4696,7 @@ function resolveActionEffects(
           effect.recipient === 'affected-tiles' ? [] : effectRecipientIds
         ).filter(
           (id) =>
+            !(dependent && id !== actorId && interceptedHit.get(id)) &&
             !missedCombatantIds?.has(id) &&
             !(
               airborneEffectGroundMiss(nextState, action, effect, id, content) &&
@@ -4674,20 +4732,7 @@ function resolveActionEffects(
           nextState = { ...nextState, nextSkillPacketCommandId: skillPacketCommandId + 1 }
         }
 
-        if (
-          skillPacketCommandId === undefined &&
-          reversalAttackCommandId === undefined &&
-          (state.capturedAbilitySources?.some((source) =>
-            source.definition.behaviors.some((behavior) =>
-              behavior.effects.some((entry) => entry.payload.type === 'reversal'),
-            ),
-          ) ||
-            state.effectState?.summons?.some((summon) =>
-              summon.profile.abilities.some((ability) =>
-                ability.effects.some((entry) => entry.type === 'reversal'),
-              ),
-            ))
-        ) {
+        if (skillPacketCommandId === undefined && reversalAttackCommandId === undefined) {
           reversalAttackCommandId = nextState.nextReversalAttackCommandId ?? 1
           if (
             !Number.isSafeInteger(reversalAttackCommandId) ||
@@ -4705,6 +4750,18 @@ function resolveActionEffects(
             ...(nextState.pendingEffects ?? []),
             {
               actorId,
+              ...(effect.type === 'damage'
+                ? { reversalDamageOrdinal: effectOrdinal }
+                : dependent
+                  ? {
+                      reversalBoundDamageOrdinalsByRecipient: Object.fromEntries(
+                        recipientIds.flatMap((id) => {
+                          const damageOrdinal = precedingDamageOrdinalByRecipient.get(id)
+                          return damageOrdinal === undefined ? [] : [[id, damageOrdinal]]
+                        }),
+                      ),
+                    }
+                  : {}),
               ...(reversalAttackCommandId === undefined ? {} : { reversalAttackCommandId }),
               ...(options.summonDamageCommandId === undefined
                 ? {}
@@ -5069,8 +5126,6 @@ function resolveActionEffects(
       }
       for (const recipientId of effectRecipientIds) {
         if (reversalDefeatedActor) break
-        if (effect.type === 'damage') interceptedHit.set(recipientId, false)
-        const dependent = isReversalDependentEffect(effect, content)
         if (dependent && recipientId !== actorId && interceptedHit.get(recipientId)) continue
         // Engine-owned target roll gates every unit effect, not just damage packets.
         if (
