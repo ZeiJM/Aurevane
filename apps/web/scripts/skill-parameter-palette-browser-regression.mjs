@@ -2475,10 +2475,7 @@ try {
       const fireRows = firePopup.getByLabel('Effect explanations').locator('li')
       assert.equal(await fireRows.count(), 2)
       assert.ok(!(await fireRows.first().textContent()).includes('cleanses Chilled'))
-      assert.equal(
-        await fireRows.nth(1).textContent(),
-        'Conditional Cleanse — Removes only Chilled. Other statuses remain.',
-      )
+      assert.equal(await fireRows.nth(1).textContent(), 'Conditional Cleanse — Removes Chilled.')
       await firePopup.screenshot({
         path: resolve(output, `fire-limited-cleanse-${fireIntent}-${viewport.width}.png`),
       })
