@@ -59,6 +59,23 @@ it('distinguishes current Damage, Pierce, Chilled and defense fields and exposes
   expect(glyphs).toHaveLength(4)
   expect(new Set(glyphs).size).toBe(4)
 })
+it('renders current Damage and Burn markers using their material while retaining the authored preset', () => {
+  const current = {
+    ...area,
+    visualPresetId: 'frost' as const,
+    effectVisualIds: ['damage', 'status:burn'] as const,
+  }
+  const before = structuredClone(current)
+  const html = renderToStaticMarkup(
+    createElement(BattleGroundAreaLayer, { areas: [current], round: 1, position: { x: 1, y: 1 } }),
+  )
+  expect(html).toContain(`data-ground-area-id="${current.id}"`)
+  expect(html).toContain('data-ground-area-preset="arcane-pulse"')
+  expect(html).not.toContain('data-ground-area-preset="frost"')
+  expect(html).toContain('data-ground-effect-id="damage"')
+  expect(html).toContain('data-ground-effect-id="status:burn"')
+  expect(current).toEqual(before)
+})
 it('keeps overlapping field lifetimes separate and removes clocks immediately upon activation', () => {
   const fields = [
     { ...area, effectVisualIds: ['damage'] as const },
