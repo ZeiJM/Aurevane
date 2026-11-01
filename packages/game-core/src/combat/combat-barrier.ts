@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { capSummonDamage } from './combat-summon-potency'
 import type {
   CombatContentCatalog,
@@ -256,8 +257,14 @@ function hasBarrierLifetime(barrier: {
   )
 }
 function validateBarrierDuration(duration: number): void {
-  if (!Number.isSafeInteger(duration) || duration < 1 || duration > 4)
-    throw new RangeError('Barrier duration must be from 1 to 4 turns.')
+  if (
+    !Number.isSafeInteger(duration) ||
+    duration < 1 ||
+    duration > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+  )
+    throw new RangeError(
+      `Barrier duration must be from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns.`,
+    )
 }
 
 export function absorbDirectDamageWithBarrier(
@@ -386,7 +393,7 @@ export function validateBarrierState(state: CombatEncounterState): readonly Comb
       isIdentity(sourceCombatantId) &&
       isIdentity(sourceActionId)
     ) {
-      const key = `${targetCombatantId} ${sourceCombatantId} ${sourceActionId}`
+      const key = `${targetCombatantId}\u0000${sourceCombatantId}\u0000${sourceActionId}`
       if (!independent && !hasBarrierLifetime(barrier) && seen.has(key))
         issues.push({ field, message: 'Duplicate Barrier source/action key.' })
       if (!hasBarrierLifetime(barrier)) seen.add(key)
@@ -396,11 +403,13 @@ export function validateBarrierState(state: CombatEncounterState): readonly Comb
       const remaining = barrier[clock]
       if (
         remaining !== undefined &&
-        (!Number.isSafeInteger(remaining) || (remaining as number) < 1 || (remaining as number) > 4)
+        (!Number.isSafeInteger(remaining) ||
+          (remaining as number) < 1 ||
+          (remaining as number) > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)
       )
         issues.push({
           field: `${field}.${clock}`,
-          message: 'Barrier lifetime must be from 1 to 4 turns.',
+          message: `Barrier lifetime must be from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns.`,
         })
     }
     if (

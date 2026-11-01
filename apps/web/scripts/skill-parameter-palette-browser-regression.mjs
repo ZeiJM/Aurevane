@@ -1197,9 +1197,16 @@ async function verifyEffectControlLayout(page, viewport) {
   })
   for (const kind of ['Native', 'Canonical', 'Summon']) {
     const region = page.getByRole('region', { name: `${kind} effect layout`, exact: true })
-    await openEffectParameters(region)
-    assert.equal(await region.getByLabel('Status', { exact: true }).count(), 0)
-    const barrier = region.locator('[data-effect-type="barrier-change"]').first()
+    const parameters =
+      kind === 'Summon' ? region.locator('[data-summon-skill-body]').first() : region
+    if (kind === 'Summon')
+      await parameters
+        .locator('summary')
+        .filter({ hasText: /^Effects$/ })
+        .click()
+    await openEffectParameters(parameters)
+    assert.equal(await parameters.getByLabel('Status', { exact: true }).count(), 0)
+    const barrier = parameters.locator('[data-effect-type="barrier-change"]').first()
     const amount = barrier.getByLabel('Barrier (% maximum HP)', { exact: true })
     const duration = barrier.getByLabel('Effect duration (turns)', { exact: true })
     const metrics = async (control) =>
@@ -1228,7 +1235,11 @@ async function verifyEffectControlLayout(page, viewport) {
     assert.equal(await duration.getAttribute('max'), '99')
     await duration.fill('99')
     await duration.blur()
-    const targets = region.getByLabel('Target', { exact: true }).first()
+    if (kind === 'Canonical')
+      await browserExpect(
+        region.getByText('Resolve compatibility before publishing', { exact: true }),
+      ).toHaveCount(0)
+    const targets = parameters.getByLabel('Target', { exact: true }).first()
     const labels = await targets.locator('option').allTextContents()
     assert.equal(
       labels.some((label) => label.includes('existing rules')),
