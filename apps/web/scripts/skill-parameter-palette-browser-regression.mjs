@@ -2418,37 +2418,51 @@ try {
         .count(),
       1,
     )
-    for (const surface of ['Master', 'Battle']) {
-      const report = page.getByRole('region', {
-        name: `${surface} ground ${surface === 'Master' ? 'details' : 'parameters'}`,
-      })
-      const effects = report.locator(
-        surface === 'Master' ? 'ol' : '[aria-label="Effect explanations"]',
-      )
-      assert.deepEqual(await effects.locator('li > strong').allTextContents(), [
-        'Frozen Ground',
-        'Slow',
-        'Chilled',
-      ])
-      assert.ok(!(await effects.textContent()).includes('Each cast has its own allowance'))
-      const area = report.getByLabel('Ground area rules', { exact: true })
-      assert.equal(await area.count(), 1)
-      assert.ok((await area.textContent()).includes('starting next round'))
-      assert.ok(
-        (await area.textContent()).includes('Entry applies effects once per character’s turn'),
-      )
-      assert.equal(
-        await area.evaluate(
-          (element) => element.closest('dd')?.previousElementSibling?.textContent,
-        ),
-        'Target Method',
-      )
-      const box = await report.boundingBox()
-      assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
-      if (surface === 'Battle') {
-        await report.screenshot({ path: resolve(output, `ground-reader-${viewport.width}.png`) })
+    for (const historical of [false, true])
+      for (const surface of ['Master', 'Battle']) {
+        const report = page.getByRole('region', {
+          name: `${historical ? 'Historical ' : ''}${surface} ground ${surface === 'Master' ? 'details' : 'parameters'}`,
+          exact: true,
+        })
+        const effects = report.locator(
+          surface === 'Master' ? 'ol' : '[aria-label="Effect explanations"]',
+        )
+        assert.deepEqual(
+          await effects.locator('li > strong').allTextContents(),
+          historical ? ['Frozen Ground', 'Slow', 'Chilled'] : ['Slow Ground', 'Chilled Ground'],
+        )
+        if (!historical) {
+          assert.ok(!(await effects.textContent()).includes('Frozen Ground'))
+          assert.ok(!(await effects.textContent()).includes('Skill AP surcharge'))
+        }
+        assert.ok(!(await effects.textContent()).includes('Each cast has its own allowance'))
+        const area = report.getByLabel('Ground area rules', { exact: true })
+        assert.equal(await area.count(), 1)
+        assert.ok((await area.textContent()).includes('starting next round'))
+        assert.ok(
+          (await area.textContent()).includes(
+            historical
+              ? 'Entry applies effects once per character’s turn'
+              : 'Active contact applies immediately, once per effect type per own-turn cycle across fields.',
+          ),
+        )
+        assert.equal(
+          await area.evaluate(
+            (element) => element.closest('dd')?.previousElementSibling?.textContent,
+          ),
+          'Target Method',
+        )
+        const box = await report.boundingBox()
+        assert.ok(box.x >= 0 && box.x + box.width <= viewport.width + 1)
+        if (surface === 'Battle') {
+          await report.screenshot({
+            path: resolve(
+              output,
+              `${historical ? 'historical-' : ''}ground-reader-${viewport.width}.png`,
+            ),
+          })
+        }
       }
-    }
     for (const surface of ['Master', 'Battle']) {
       const report = page.getByRole('region', {
         name: `${surface} healing-down ${surface === 'Master' ? 'details' : 'parameters'}`,

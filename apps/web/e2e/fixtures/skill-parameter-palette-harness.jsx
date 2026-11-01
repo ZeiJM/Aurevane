@@ -750,6 +750,17 @@ function Reports() {
           </section>
         </React.Fragment>
       ))}
+      <SkillEffectTimingProvider
+        policy={defaultCombatEffectTimingPolicy()}
+        groundContactPolicyVersion={null}
+      >
+        <section aria-label="Historical Master ground details" style={sectionStyle}>
+          <SkillDetails skill={ground} expanded />
+        </section>
+        <section aria-label="Historical Battle ground parameters" style={sectionStyle}>
+          <BattleSkillParameters skill={battleSkill(ground)} />
+        </section>
+      </SkillEffectTimingProvider>
       <section aria-label="Basic Attack parameters" style={sectionStyle}>
         <dl>
           <SkillCharacteristicRows
