@@ -11,7 +11,8 @@ import {
 /** Ground is the persistent delivery area, separate from its authored effects. */
 export function SkillGroundAreaDetails({ skill }: { skill: MatureSkillDefinition }) {
   const timingPolicy = useSkillEffectTimingPolicy()
-  const { legacyElemental, explicitElemental } = useSkillGroundInteractionRules()
+  const { legacyElemental, explicitElemental, groundContactPolicyVersion } =
+    useSkillGroundInteractionRules()
   if (!skill.groundArea) return null
   const conditionalFireGround =
     !legacyElemental &&
@@ -22,12 +23,16 @@ export function SkillGroundAreaDetails({ skill }: { skill: MatureSkillDefinition
   const timing = combatEffectTimingMode(timingPolicy ?? undefined, 'ground-area')
   if (timing === 'controlled')
     return <small>Controlled Ground requires dedicated release targeting.</small>
-  const description = combatGroundAreaDescription(skill.groundArea, timing)
+  const area =
+    groundContactPolicyVersion === 1
+      ? { ...skill.groundArea, contactPolicyVersion: 1 as const }
+      : skill.groundArea
+  const description = combatGroundAreaDescription(area, timing)
   return (
     <small aria-label="Ground area rules" title={description} style={{ display: 'block' }}>
       {conditionalFireGround ? 'Ground casts: ' : ''}
       {skill.groundArea.durationRounds} rounds · {description.match(/starting [^.]+/u)?.[0]} ·{' '}
-      {skill.groundArea.contactPolicyVersion === 1
+      {area.contactPolicyVersion === 1
         ? 'Active contact applies immediately, once per effect type per own-turn cycle across fields.'
         : 'Entry applies effects once per character’s turn.'}
     </small>

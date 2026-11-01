@@ -583,7 +583,8 @@ try {
             })
             const previewCount = await page.evaluate(() => window.forecasts.length)
             const commandsBeforeRetry = (await commits(page)).length
-            await arm()
+            // A valid non-touch pointer gesture requests a new forecast without committing.
+            await tile(page, 6, 3).hover()
             await page.waitForFunction(
               (before) =>
                 window.forecasts.length > before &&

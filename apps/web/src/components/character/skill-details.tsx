@@ -1,5 +1,7 @@
 'use client'
 
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
 import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { BasicActionCharacterStats } from './basic-action-presentation'
 import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
@@ -104,7 +106,7 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
 }
 
 export function SkillDetails({
-  skill,
+  skill: capturedSkill,
   expanded = false,
   basic,
   stats,
@@ -115,6 +117,11 @@ export function SkillDetails({
   stats?: BasicActionCharacterStats
 }) {
   const groundRules = useSkillGroundInteractionRules()
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const skill = capturedSkill.ability
+    ? capturedSkill
+    : currentGroundPresentation(capturedSkill, groundRules.groundContactPolicyVersion, timingPolicy)
+        .view
   const body = skill.ability ? (
     <AbilityDefinitionParameters
       definition={skill.ability}

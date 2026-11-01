@@ -85,6 +85,7 @@ function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
   return {
     legacyTriggers: state.dotTriggerPolicyVersion === undefined,
     legacyPoisonMovement: state.dotTriggerPolicyVersion !== 2,
+    groundContactPolicyVersion: state.groundContactPolicyVersion ?? null,
     legacyFrozenGround: state.frozenGroundPolicyVersion !== 1,
     legacyAirborne: state.airbornePolicyVersion !== 1,
     legacyAirborneJump: state.airborneJumpPolicyVersion !== 1,

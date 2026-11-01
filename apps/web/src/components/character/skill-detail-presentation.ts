@@ -1,3 +1,4 @@
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
 import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
 import { isReversalPresentationEffect, reversalDescription } from '../../lib/reversal-presentation'
 import {
@@ -66,6 +67,7 @@ export function skillEffectDescription(
   options: {
     legacyTriggers?: boolean
     legacyPoisonMovement?: boolean
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
@@ -106,10 +108,13 @@ export function skillEffectDescription(
         options.timingPolicy,
         options.skillEffects,
         options.explicitElemental,
+        options.groundContactPolicyVersion,
       )
       return `Deal ${effect.amount} base damage to ${target}.${position}${element}${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? ' Pierce cannot critically hit.' : ''}`
     }
     case 'create-terrain':
+      if (options.groundContactPolicyVersion === 1)
+        return 'Creates Chilled Ground. Active fields apply Chilled to eligible occupants and contacting units, once per logical effect type per own-turn cycle across fields.'
       if (effect.skillApSurcharge !== undefined)
         return `Create Frozen Ground on affected tiles for two round boundaries. The caster’s grounded enemies pay ${effect.skillApSurcharge} AP more per Skill used on those tiles; Airborne ignores this surcharge. Fire converts it to Steam, which blocks sight for both teams and preserves the remaining lifetime.`
       return `Create Frozen Ground on affected tiles for two round boundaries. ${options.legacyFrozenGround ? 'Both teams' : 'Only the caster’s enemies'} pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen Ground to Steam, which blocks line of sight for both teams.`
@@ -289,12 +294,14 @@ export function skillParameterRows(
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   options: {
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     airborneAttackElevation?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
   } = {},
 ): readonly (readonly [string, string])[] {
+  skill = currentGroundPresentation(skill, options.groundContactPolicyVersion, timingPolicy).view
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
     Cost: skillCostDescription({ ...skill, ...costs }),
@@ -517,7 +524,12 @@ export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'targe
 /** Shared aim and terrain rules remain visible after recipient labels move to each effect. */
 function skillDeliveryNotes(
   skill: Pick<MatureSkillDefinition, 'target' | 'effects'>,
-  options: { legacyFrozenGround?: boolean; legacyElemental?: boolean; explicitElemental?: boolean },
+  options: {
+    groundContactPolicyVersion?: 1 | null
+    legacyFrozenGround?: boolean
+    legacyElemental?: boolean
+    explicitElemental?: boolean
+  },
 ): string {
   const fire = skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
   const fireGround =
@@ -528,9 +540,11 @@ function skillDeliveryNotes(
     skill.target.teamPolicy === 'enemy'
   const terrain = fire
     ? ' · Steam: both teams'
-    : skill.effects.some((effect) => effect.type === 'create-terrain')
-      ? ` · Frozen Ground: ${options.legacyFrozenGround ? 'both teams' : 'caster’s enemies only'}`
-      : ''
+    : options.groundContactPolicyVersion === 1
+      ? ''
+      : skill.effects.some((effect) => effect.type === 'create-terrain')
+        ? ` · Frozen Ground: ${options.legacyFrozenGround ? 'both teams' : 'caster’s enemies only'}`
+        : ''
   const aim = fireGround ? 'Enemy / Ground' : skillTargetDescription(skill)
   const differs =
     skill.effects.length > 0 &&

@@ -77,6 +77,24 @@ vi.mock('react', async (original) => ({
     return hooks.cells[i]
   },
 }))
+// Media controls are invoked by the synchronous hook harness; reader policy keeps its real default shape.
+vi.mock('../../character/skill-effect-timing-context', async (original) => ({
+  ...(await original<typeof import('../../character/skill-effect-timing-context')>()),
+  useSkillGroundInteractionRules: () => ({
+    groundContactPolicyVersion: 1,
+    legacyFrozenGround: false,
+    legacyElemental: false,
+    explicitElemental: true,
+    legacyAirborne: false,
+    legacyAirborneJump: false,
+    legacyHealingDown: false,
+    legacyBlindsideActivation: false,
+    legacyReversal: false,
+    legacyPierceCritical: false,
+    legacySummonPotency: false,
+    legacyRuin: false,
+  }),
+}))
 vi.mock('server-only', () => ({}))
 import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-categories'
 import {

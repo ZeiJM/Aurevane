@@ -96,7 +96,7 @@ it('carries actual typed prerequisites and conditions into the public Manual', (
   expect(html).toContain('aria-label="Explain Burn"')
   expect(html).not.toContain('must have')
 })
-it('retains the actual Frozen Ground conditional Fire references through the generated explanation', () => {
+it('describes actual current Chilled and Slow fields without retired terrain AP or Fire conversion rules', () => {
   const records = JSON.parse(
     readFileSync(
       new URL(
@@ -121,9 +121,12 @@ it('retains the actual Frozen Ground conditional Fire references through the gen
       timingPolicy: defaultCombatEffectTimingPolicy(),
     }),
   )
-  expect(html).toContain('data-combat-tag-reference="frozen-ground"')
-  expect(html).toContain('data-combat-tag-reference="steam"')
-  expect(html).toContain('blocks sight')
+  expect(html).toContain('Chilled Ground')
+  expect(html).toContain('Slow Ground')
+  expect(html).toContain('once per logical effect type')
+  expect(html).not.toContain('data-combat-tag-reference="frozen-ground"')
+  expect(html).not.toContain('+10 AP/tile')
+  expect(html).not.toContain('Fire converts affected Frozen Ground')
 })
 it('uses shared effect-name and value markup for separate Manual and Ongoing groups', () => {
   const html = render()

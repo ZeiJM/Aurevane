@@ -1,5 +1,8 @@
+import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { readFileSync } from 'node:fs'
 import { createElement } from 'react'
+import { jsx } from 'react/jsx-runtime'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { ContentDefinitionFields } from '@/components/master/combat-content/content-definition-fields'
 import { SkillDetails } from '@/components/character/skill-details'
@@ -208,11 +211,24 @@ it.each([
       if (test.id === 'cinderweaver.flame-burst') expect(reader).toContain('Enemy / Ground')
       expect(reader).toContain('starting next round')
       expect(reader).toContain(
-        'entering the active area applies only the effects marked for entry once per character',
+        'once per logical effect type during each affected character’s own-turn cycle across overlapping fields',
       )
       expect(reader.match(/Repeats on entry/g)).toHaveLength(
         definition.ability!.behaviors[0]!.groundArea!.entryEffectIds.length,
       )
+      expect(reader).not.toContain('Each cast has its own allowance')
+      expect(reader).not.toContain('Fire converts affected Frozen Ground')
+      const historical = renderToStaticMarkup(
+        jsx(SkillEffectTimingProvider, {
+          policy: defaultCombatEffectTimingPolicy(),
+          groundContactPolicyVersion: null,
+          children: node,
+        }),
+      )
+      expect(historical).toContain(
+        'entering the active area applies only the effects marked for entry once per character',
+      )
+      if (test.id === 'frostweaver.chilling-mist') expect(historical).toContain('Frozen Ground')
       expect(reader).not.toContain('Controlled Ground requires')
     }
     expect(JSON.stringify(definition)).toBe(before)

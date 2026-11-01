@@ -10,6 +10,18 @@ import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-pr
 import { abilityBehaviorInformation } from './ability-detail-presentation'
 import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { AbilityParameters } from './ability-parameters'
+import { SkillEffectTimingProvider } from './skill-effect-timing-context'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
+function HistoricalAbilityParameters(props: Parameters<typeof AbilityDefinitionParameters>[0]) {
+  return (
+    <SkillEffectTimingProvider
+      policy={defaultCombatEffectTimingPolicy()}
+      groundContactPolicyVersion={null}
+    >
+      <AbilityDefinitionParameters {...props} />
+    </SkillEffectTimingProvider>
+  )
+}
 
 const rows: readonly { id: string; after: { ability: AbilityDefinition } }[] = JSON.parse(
   readFileSync(
@@ -32,7 +44,7 @@ it.each([
   ['frostweaver.chilling-mist', ['frozen-ground', 'airborne', 'fire', 'steam']],
   ['resonance.bastion-edgedancer.linked-sequence', ['frozen-ground', 'rooted', 'slow']],
 ] as const)(
-  'carries explicit cross-tag references from actual %s to the public reader',
+  'carries historical explicit cross-tag references from actual %s to the public reader',
   (id, expected) => {
     const definition = actual(id)
     const before = JSON.stringify(definition)
@@ -60,7 +72,7 @@ it.each([
       report.effectDescriptions[index],
     )
     const html = renderToStaticMarkup(
-      <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
+      <HistoricalAbilityParameters definition={projectPublicCombat(definition)} />,
     )
     for (const tag of expected) expect(html).toContain(`data-combat-tag-reference="${tag}"`)
     expect(html).toContain('aria-haspopup="dialog"')
@@ -112,7 +124,7 @@ it('preserves authored text even when it exactly equals generated text instead o
     (g) => abilityBehaviorInformation(g).effectDescriptions,
   )
   const html = renderToStaticMarkup(
-    <AbilityDefinitionParameters
+    <HistoricalAbilityParameters
       definition={projectPublicCombat(definition)}
       effectDescriptions={descriptions}
     />,
@@ -121,7 +133,7 @@ it('preserves authored text even when it exactly equals generated text instead o
   expect(html.match(/data-combat-tag-reference="steam"/g) ?? []).toHaveLength(1)
   expect(html).not.toContain('data-combat-tag-reference="airborne"')
   const prose = renderToStaticMarkup(
-    <AbilityDefinitionParameters
+    <HistoricalAbilityParameters
       definition={projectPublicCombat(definition)}
       effectDescriptions={descriptions.map(() => 'Steam <Burn> & 42% ordinary text.')}
     />,

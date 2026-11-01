@@ -7,6 +7,8 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { skillTypeDescription } from './skill-detail-presentation'
 import { SkillDetails } from './skill-details'
+import { SkillEffectTimingProvider } from './skill-effect-timing-context'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { SkillParameters } from './skill-parameters'
 import { ResonanceParameters } from './resonance-parameters'
 import { MINIMUM_SKILL_INFORMATION_FIELDS } from './skill-information-contract'
@@ -207,7 +209,14 @@ it('renders the exact repeated Ground subset in actual Skill details and Skill M
     <SkillDetails key="details" skill={current} expanded />,
     <SkillParameters key="parameters" skill={projectPublicCombat(current)} />,
   ]) {
-    const html = renderToStaticMarkup(node)
+    const html = renderToStaticMarkup(
+      <SkillEffectTimingProvider
+        policy={defaultCombatEffectTimingPolicy()}
+        groundContactPolicyVersion={null}
+      >
+        {node}
+      </SkillEffectTimingProvider>,
+    )
     const effects = [
       ...html.matchAll(/<div>(<span data-compact-skill-effect[\s\S]*?)<\/div>/g),
     ].map((m) => m[1]!)

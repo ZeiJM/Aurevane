@@ -10,6 +10,8 @@ import {
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 import { AbilityDefinitionParameters } from '@/components/character/ability-definition-parameters'
+import { SkillEffectTimingProvider } from './skill-effect-timing-context'
+import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 const rows: readonly { id: string; after: { ability: AbilityDefinition } }[] = JSON.parse(
   readFileSync(
     new URL(
@@ -53,9 +55,14 @@ it.each(['burn', 'poison', 'create-terrain'])(
           if (type === 'create-terrain')
             expect(report.effects[index]!.parts.duration).toBe('2 global round boundaries')
           const html = renderToStaticMarkup(
-            <AbilityDefinitionParameters
-              definition={projectPublicCombat({ schemaVersion: 1, behaviors: [group] })}
-            />,
+            <SkillEffectTimingProvider
+              policy={defaultCombatEffectTimingPolicy()}
+              groundContactPolicyVersion={null}
+            >
+              <AbilityDefinitionParameters
+                definition={projectPublicCombat({ schemaVersion: 1, behaviors: [group] })}
+              />
+            </SkillEffectTimingProvider>,
           )
           for (const { label, value } of facts) expect(html).toContain(`${label}: ${value}.`)
         }

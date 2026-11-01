@@ -1,5 +1,7 @@
 'use client'
 
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
 import type { SummonAbilityDefinition } from '@aurevane/game-core/combat/summon-content'
 import {
   CompactSkillEffectSummary,
@@ -25,7 +27,7 @@ import styles from './summon-ability-list.module.css'
 
 /** Uses the summon profile captured in the battle, including its authored effects and targeting. */
 function SummonAbilityParameters({
-  ability,
+  ability: capturedAbility,
   airborne,
 }: {
   ability: SummonAbilityDefinition
@@ -33,6 +35,11 @@ function SummonAbilityParameters({
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
+  const ability = currentGroundPresentation(
+    capturedAbility,
+    groundRules.groundContactPolicyVersion,
+    timingPolicy,
+  ).view
   const definition = {
     ...ability,
     cooldown: ability.cooldownOwnerTurns
@@ -126,6 +133,7 @@ export function SummonAbilityList({
       policy={policies.effectTimingPolicy ?? null}
       dotTriggerPolicyVersion={policies.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
+      groundContactPolicyVersion={policies.groundContactPolicyVersion ?? null}
       airbornePolicyVersion={policies.airbornePolicyVersion ?? null}
       airborneJumpPolicyVersion={policies.airborneJumpPolicyVersion ?? null}
       elementalDamagePolicyVersion={policies.elementalDamagePolicyVersion ?? null}

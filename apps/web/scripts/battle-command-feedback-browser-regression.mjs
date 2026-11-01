@@ -155,9 +155,15 @@ async function verifyResourceProposals() {
           await page.waitForFunction(
             () => document.querySelectorAll('[data-battle-proposed-resource]').length === 2,
           )
-          assert.match(
-            await page.locator('[data-unified-battle-economy]').innerText(),
-            /47 proposed/,
+          const economy = page.locator('[data-unified-battle-economy]')
+          assert.match(await economy.innerText(), touch ? /− 47/ : /47 proposed/)
+          assert.equal(await economy.locator('[data-battle-proposed-ap]').isVisible(), true)
+          assert.equal(
+            await economy
+              .getByRole('progressbar')
+              .locator('i')
+              .evaluate((element) => element.style.width),
+            '47%',
           )
           assert.equal(
             await selected.locator('[data-battle-proposed-resource]').count(),
@@ -549,7 +555,7 @@ async function verifyTerrainTurnStability() {
           assert.equal(
             (await status.boundingBox()).height,
             44,
-            'The full waiting title fits the existing preview row',
+            `The full waiting title fits the existing preview row: ${mode} ${name} ${viewport.width}x${viewport.height}`,
           )
         const clipped = await page
           .locator('[data-battle-instruction-title]')
@@ -873,6 +879,11 @@ async function verifyChronicleUniformity() {
       traditionalText,
       'Picture action breakdowns share traditional-log mobile typography',
     )
+    assert.match(
+      await details.locator('[data-outcome-tone="harm"]').innerText(),
+      /Suppress.*Zei/,
+      'The harmful effect sentence retains its affected recipient',
+    )
     const contrast = await details
       .locator('[data-outcome-tone="harm"], [data-outcome-tone="damage"], [class*="recipient"]')
       .evaluateAll((elements) => {
@@ -894,7 +905,8 @@ async function verifyChronicleUniformity() {
         })
       })
     assert.ok(
-      contrast.length >= 2 && contrast.every((value) => value >= 4.5),
+      // Status sentences include their recipient inline; ordinary damage can use a separate span.
+      contrast.length > 0 && contrast.every((value) => value >= 4.5),
       'Reduced outcome and recipient text remain readable against the dark action-detail panel',
     )
     await page.screenshot({ path: resolve(output, `chronicle-uniformity-${mode}.png`) })

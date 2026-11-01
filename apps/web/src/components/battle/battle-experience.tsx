@@ -360,6 +360,7 @@ export function BattleExperience(props: {
       policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
       dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={props.initialBattle.snapshot.frozenGroundPolicyVersion ?? null}
+      groundContactPolicyVersion={props.initialBattle.snapshot.groundContactPolicyVersion ?? null}
       elementalDamagePolicyVersion={
         props.initialBattle.snapshot.elementalDamagePolicyVersion ?? null
       }
@@ -2955,7 +2956,10 @@ function BattleExperienceContent({
               <span>Action Economy</span>
               <strong>{actionEconomy} AP</strong>
               {localTurn && proposedCost > 0 ? (
-                <small>− {proposedCost} proposed</small>
+                <small data-battle-proposed-ap="true" title={`${proposedCost} AP proposed spend`}>
+                  − {proposedCost}
+                  <span data-battle-proposal-word="true"> proposed</span>
+                </small>
               ) : (
                 <small aria-hidden="true" />
               )}

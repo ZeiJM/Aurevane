@@ -13,6 +13,7 @@ const status = (statusId: string): CombatEffectDefinition => ({
 })
 const cases: [string, CombatEffectDefinition][] = [
   ['Status potency (%)', status('guarded')],
+  ['Status potency (%)', status('suppress')],
   ['Storm damage increase (%)', status('wet')],
   ['Initiative reduction (%)', status('wet')],
   ['Defense increase / outgoing damage reduction (%)', status('fortified')],

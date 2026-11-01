@@ -60,7 +60,11 @@ function abilityManualSummary(
   basic?: PublicCombat<BasicSkillDefinition>,
 ): { text: string; parts: readonly ManualInlinePart[] } {
   const groups = definition.behaviors.map((behavior, index) => {
-    const report = abilityBehaviorInformation(behavior, { timingPolicy, basic })
+    const report = abilityBehaviorInformation(behavior, {
+      timingPolicy,
+      basic,
+      effectContext: { groundContactPolicyVersion: 1 },
+    })
     const label = `${behavior.activation === 'manual' ? 'Manual' : behavior.activation === 'automatic' ? 'Automatic' : 'Ongoing'} ${behavior.mode === 'action' ? 'Action' : 'Modifier'}${definition.behaviors.length > 1 ? ` ${index + 1}` : ''}`
     const parts = abilityManualInlineParts(report, label)
     return { text: plainManualInlineParts(parts)!, parts }
@@ -301,9 +305,12 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
                   skill,
                   skill,
                   catalogue.timingPolicy,
+                  { groundContactPolicyVersion: 1 },
                 )
                   .map(([label, value]) => `${label}: ${value}`)
-                  .join('. ')}. Delivery: ${skillTargetMethodExplanation(skill)}.`,
+                  .join(
+                    '. ',
+                  )}. Delivery: ${skillTargetMethodExplanation(skill, { groundContactPolicyVersion: 1 })}.`,
                 parts: null,
               }
             })

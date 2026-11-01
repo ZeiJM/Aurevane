@@ -1,3 +1,4 @@
+import { currentGroundNote, currentGroundPresentation } from '@/lib/combat-ground-presentation'
 import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
 import {
   isReversalPresentationEffect,
@@ -90,9 +91,11 @@ export function skillDamageElementInteraction(
   timingPolicy?: CombatEffectTimingPolicy | null,
   skillEffects?: readonly MatureSkillEffectDefinition[],
   explicitElemental = true,
+  groundContactPolicyVersion?: 1 | null,
 ): string {
   if (effect.type !== 'damage') return ''
   if (!legacyElemental && explicitElemental) {
+    if (effect.element === 'fire' && groundContactPolicyVersion === 1) return ''
     if (effect.element === 'fire')
       return ' Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
     if (effect.element === 'storm')
@@ -264,11 +267,12 @@ function statusPreview(
   return result
 }
 
-export function previewEffect(
+function previewEffectPayload(
   effect: MatureSkillEffectDefinition,
   options: {
     legacyTriggers?: boolean
     legacyPoisonMovement?: boolean
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
@@ -340,7 +344,7 @@ export function previewEffect(
                   ? 'Ice Dmg'
                   : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? 'Pierce cannot critically hit. ' : ''}Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental)}`,
+        explanation: `${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? 'Pierce cannot critically hit. ' : ''}Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental, options.groundContactPolicyVersion)}`,
       }
     case 'percentage-recovery':
       return {
@@ -595,6 +599,32 @@ export function previewEffect(
   }
 }
 
+/** Ground fields use their encounter's delivery rules, without changing saved payloads. */
+export function previewEffect(
+  effect: MatureSkillEffectDefinition,
+  options: NonNullable<Parameters<typeof previewEffectPayload>[1]> = {},
+): PreviewEffect {
+  if (options.groundContactPolicyVersion === 1 && effect.type === 'create-terrain')
+    return previewEffect(
+      {
+        type: 'apply-status',
+        recipient: 'affected-units',
+        target: 'ground',
+        statusId: 'frozen',
+        stacks: 1,
+        durationTurns: 2,
+        applicationOrigin: 'frozen-ground',
+      },
+      options,
+    )
+  const result = previewEffectPayload(effect, options)
+  return options.groundContactPolicyVersion === 1 &&
+    effect.type === 'apply-status' &&
+    effect.target === 'ground'
+    ? { ...result, label: `${result.label} Ground` }
+    : result
+}
+
 /** Shared current/captured wording for native Skills, Essence packets and Resonance results. */
 export function withCurrentAttackRuleHelp(
   effect: MatureSkillEffectDefinition | Extract<CombatTagPayload, { type: 'pierce' }>,
@@ -625,23 +655,38 @@ export function previewEffectWithTag(
 ): PreviewEffect {
   const generated = previewEffect(effect, options)
   const tagPresentation = resolvedCombatEffectTagPresentation(
-    presentations,
+    options.groundContactPolicyVersion === 1 && effect.type === 'create-terrain'
+      ? undefined
+      : presentations,
     effect,
     generated.explanation,
   )
   const presentedTag = tagPresentation
     ? {
         ...tagPresentation,
+        ...(options.groundContactPolicyVersion === 1 &&
+        effect.type === 'apply-status' &&
+        effect.target === 'ground'
+          ? { name: generated.label }
+          : {}),
         full: withCurrentAttackRuleHelp(
           effect,
           options,
-          tagPresentation.full,
+          options.groundContactPolicyVersion === 1 &&
+            effect.type === 'apply-status' &&
+            effect.target === 'ground'
+            ? (currentGroundNote(tagPresentation.full, effect) ?? generated.explanation)
+            : tagPresentation.full,
           generated.explanation,
         ),
         compact: withCurrentAttackRuleHelp(
           effect,
           options,
-          tagPresentation.compact,
+          options.groundContactPolicyVersion === 1 &&
+            effect.type === 'apply-status' &&
+            effect.target === 'ground'
+            ? (currentGroundNote(tagPresentation.compact, effect) ?? generated.explanation)
+            : tagPresentation.compact,
           generated.explanation,
         ),
       }
@@ -657,10 +702,12 @@ export function previewEffectWithTag(
 }
 
 export function skillPreviewEffects(
-  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions' | 'tagPresentation'>,
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions' | 'tagPresentation'> &
+    Partial<Pick<MatureSkillDefinition, 'target' | 'groundArea'>>,
   options: {
     legacyTriggers?: boolean
     legacyPoisonMovement?: boolean
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
@@ -674,6 +721,11 @@ export function skillPreviewEffects(
     timingPolicy?: CombatEffectTimingPolicy | null
   } = {},
 ): readonly PreviewEffect[] {
+  skill = currentGroundPresentation(
+    skill,
+    options.groundContactPolicyVersion,
+    options.timingPolicy,
+  ).view
   const seen = new Set<string>()
   return groupSkillEffects(skill.effects, skill.effectDescriptions)
     .map(({ effect, firstIndex: index }) => {
@@ -705,6 +757,7 @@ export function skillPreviewEffects(
                       options.timingPolicy,
                       skill.effects,
                       options.explicitElemental,
+                      options.groundContactPolicyVersion,
                     )
                   : ''),
               entry.explanation,

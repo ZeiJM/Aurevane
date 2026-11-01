@@ -1,5 +1,7 @@
 'use client'
 
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
 import { groupSkillEffects } from '../character/skill-effect-groups'
 
 import { skillTargetMethodExplanation } from '../character/skill-detail-presentation'
@@ -60,6 +62,12 @@ export function BattleSkillParameters({
   const legacyTriggers = dotTriggerPolicyVersion === null
   const legacyPoisonMovement = dotTriggerPolicyVersion !== 2
   const definition = skill.definition
+    ? currentGroundPresentation(
+        skill.definition,
+        groundRules.groundContactPolicyVersion,
+        timingPolicy,
+      ).view
+    : undefined
   if (definition?.ability)
     return (
       <div data-battle-skill-parameters="true">

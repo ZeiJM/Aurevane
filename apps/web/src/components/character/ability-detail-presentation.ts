@@ -1,3 +1,7 @@
+import {
+  currentGroundBehaviorPresentation,
+  currentGroundNote,
+} from '@/lib/combat-ground-presentation'
 import { withCurrentAttackRuleHelp } from './skill-effect-preview'
 import { reversalDescription, reversalMagnitude } from '../../lib/reversal-presentation'
 import { summonPotencyDescription } from '@aurevane/game-core/combat/summon-content'
@@ -485,6 +489,12 @@ export function abilityBehaviorInformation(
 ) {
   const timingPolicy = options.timingPolicy ?? null
   behavior = applyAbilityTimingDefaults(behavior, timingPolicy ?? undefined)
+  const groundView = currentGroundBehaviorPresentation(
+    behavior,
+    options.effectContext?.groundContactPolicyVersion,
+    timingPolicy,
+  )
+  behavior = groundView.view
   const controlledAction = behavior.effects.some((effect) => effect.timing === 'controlled')
   const groundFire = canonicalAbilitySupportsFireGroundIntent(
     behavior,
@@ -533,8 +543,25 @@ export function abilityBehaviorInformation(
     const tagPresentation = capturedTag
       ? {
           ...capturedTag,
-          full: savedRuleHelp(capturedTag.full),
-          compact: savedRuleHelp(capturedTag.compact),
+          ...(options.effectContext?.groundContactPolicyVersion === 1 &&
+          effect.payload.type === 'apply-status' &&
+          effect.payload.target === 'ground'
+            ? { name: described.presentation.parts.label }
+            : {}),
+          full: savedRuleHelp(
+            options.effectContext?.groundContactPolicyVersion === 1 &&
+              effect.payload.type === 'apply-status' &&
+              effect.payload.target === 'ground'
+              ? (currentGroundNote(capturedTag.full, effect.payload) ?? described.description)
+              : capturedTag.full,
+          ),
+          compact: savedRuleHelp(
+            options.effectContext?.groundContactPolicyVersion === 1 &&
+              effect.payload.type === 'apply-status' &&
+              effect.payload.target === 'ground'
+              ? (currentGroundNote(capturedTag.compact, effect.payload) ?? described.description)
+              : capturedTag.compact,
+          ),
         }
       : undefined
     const baseDescription = tagPresentation?.full ?? described.description
@@ -631,7 +658,8 @@ export function abilityBehaviorInformation(
           .join(' / ')
       : null
   const groundSummary = behavior.groundArea
-    ? timingPolicy?.tagAuthority === 'global'
+    ? timingPolicy?.tagAuthority === 'global' &&
+      options.effectContext?.groundContactPolicyVersion !== 1
       ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
       : `${groundFire ? 'Ground casts: ' : ''}${combatGroundAreaDescription(behavior.groundArea, timingPolicy?.modes['ground-area'] === 'instant' || timingPolicy?.modes['ground-area'] === 'delayed' ? timingPolicy.modes['ground-area'] : 'next-round', true)}`
     : null

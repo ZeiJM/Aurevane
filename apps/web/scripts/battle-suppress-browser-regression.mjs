@@ -225,22 +225,31 @@ try {
     ])
       assert.ok((await report.innerText()).includes(label))
     assert.ok((await report.innerText()).includes('Suppress [25%] [2 Turns]'))
-    for (const [value, bps, valid] of [
-      ['1', 100, true],
-      ['25.34', 2534, true],
-      ['100', 10000, true],
-      ['100.01', 10001, true],
-      ['999', 99900, true],
-      ['0', 0, false],
-      ['999.01', 99901, false],
+    for (const [value, bps] of [
+      ['1', 100],
+      ['25.34', 2534],
+      ['100', 10000],
+      ['100.01', 10001],
+      ['999', 99900],
     ]) {
       await percent.fill(value)
       await page.waitForFunction(
         (expected) => window.suppressAuthoredEffect.potencyBasisPoints === expected,
         bps,
       )
-      assert.equal(await page.evaluate(() => window.suppressValidation.length === 0), valid)
+      assert.deepEqual(await page.evaluate(() => window.suppressValidation), [])
     }
+    // Oversized percentages are rejected by the production editor before they reach the draft.
+    const accepted = await page.evaluate(() => window.suppressAuthoredEffect)
+    await percent.fill('999.01')
+    await percent.blur()
+    assert.deepEqual(await page.evaluate(() => window.suppressAuthoredEffect), accepted)
+    assert.equal(await percent.inputValue(), '999')
+    assert.deepEqual(await page.evaluate(() => window.suppressValidation), [])
+    // Zero is retained as an editable draft value and rejected by mechanical validation.
+    await percent.fill('0')
+    await page.waitForFunction(() => window.suppressAuthoredEffect.potencyBasisPoints === 0)
+    assert.ok((await page.evaluate(() => window.suppressValidation.length)) > 0)
     await percent.fill('25.34')
     await page.getByRole('spinbutton', { name: 'Effect duration (turns)', exact: true }).fill('4')
     await page.getByRole('button', { name: 'Read authored Suppress', exact: true }).click()

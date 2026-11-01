@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { SkillDetails } from './skill-details'
+import { SkillEffectTimingProvider } from './skill-effect-timing-context'
 import { MINIMUM_SKILL_INFORMATION_FIELDS } from './skill-information-contract'
 
 it('shows the minimum report in order once, combining range with Target Method and preserving PvP overrides', () => {
@@ -40,9 +41,13 @@ it('provides the caster-origin explanation within the Target Method row', () => 
   )
 })
 
-it('keeps Ground delivery rules outside the authored effect list', () => {
+it('keeps historical Ground delivery rules outside the authored effect list', () => {
   const skill = resolveMatureSkillVersion('frostweaver.chilling-mist')!
-  const markup = renderToStaticMarkup(<SkillDetails skill={skill} expanded />)
+  const markup = renderToStaticMarkup(
+    <SkillEffectTimingProvider policy={null} groundContactPolicyVersion={null}>
+      <SkillDetails skill={skill} expanded />
+    </SkillEffectTimingProvider>,
+  )
   const effects = markup
     .match(/<ol>([\s\S]*?)<\/ol>/)?.[1]
     ?.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1')

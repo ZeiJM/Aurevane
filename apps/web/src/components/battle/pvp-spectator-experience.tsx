@@ -1,5 +1,7 @@
 'use client'
 
+import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
+
 import { BattleSummonPortrait } from './battle-summon-portrait'
 
 import { useBattleMobileChronicle } from './use-battle-mobile-chronicle'
@@ -85,7 +87,21 @@ function terrainPresentation(terrainId: string): 'rough' | 'open' {
   return terrainId.includes('rough') || terrainId.includes('difficult') ? 'rough' : 'open'
 }
 
-export function PvpSpectatorExperience({
+export function PvpSpectatorExperience(props: Parameters<typeof PvpSpectatorExperienceContent>[0]) {
+  const snapshot = props.initialSpectator.battle.snapshot
+  return (
+    <SkillEffectTimingProvider
+      policy={snapshot.effectTimingPolicy ?? null}
+      groundContactPolicyVersion={snapshot.groundContactPolicyVersion ?? null}
+      frozenGroundPolicyVersion={snapshot.frozenGroundPolicyVersion ?? null}
+      elementalDamagePolicyVersion={snapshot.elementalDamagePolicyVersion ?? null}
+    >
+      <PvpSpectatorExperienceContent {...props} />
+    </SkillEffectTimingProvider>
+  )
+}
+
+function PvpSpectatorExperienceContent({
   initialSpectator,
   initialParticipantTitles,
 }: {

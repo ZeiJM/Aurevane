@@ -12,6 +12,7 @@ export interface BattleSummonInspectMetadata {
     BattleSnapshot,
     | 'effectTimingPolicy'
     | 'dotTriggerPolicyVersion'
+    | 'groundContactPolicyVersion'
     | 'frozenGroundPolicyVersion'
     | 'airbornePolicyVersion'
     | 'airborneJumpPolicyVersion'
@@ -57,6 +58,7 @@ export function readSummonInspectMetadata(
         : undefined,
       dotTriggerPolicyVersion: snapshot.dotTriggerPolicyVersion,
       summonPotencyPolicyVersion: snapshot.summonPotencyPolicyVersion,
+      groundContactPolicyVersion: snapshot.groundContactPolicyVersion,
       frozenGroundPolicyVersion: snapshot.frozenGroundPolicyVersion,
       airbornePolicyVersion: snapshot.airbornePolicyVersion,
       airborneJumpPolicyVersion: snapshot.airborneJumpPolicyVersion,
