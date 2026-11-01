@@ -514,6 +514,7 @@ function BattleExperienceContent({
   const [preview, setPreview] = useState<(BattlePreviewView & { intent: BattleIntent }) | null>(
     null,
   )
+  const [costPreviewInvalidated, setCostPreviewInvalidated] = useState(false)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
   const [targetAim, setTargetAim] = useState<BattleTargetAim>({ aimSource: 'implicit' })
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null)
@@ -1075,6 +1076,7 @@ function BattleExperienceContent({
 
   const clearPlanning = useCallback(
     (nextMode: Mode = 'none') => {
+      setCostPreviewInvalidated(false)
       setInfoSelectionVersion((version) => version + 1)
       setInspectedAbilityId(null)
       previewSequence.current += 1
@@ -1326,6 +1328,7 @@ function BattleExperienceContent({
       ) {
         return pending.result
       }
+      setCostPreviewInvalidated(false)
       previewController.current?.abort()
       const controller = new AbortController()
       previewController.current = controller
@@ -1356,7 +1359,8 @@ function BattleExperienceContent({
             body.battlePreview.battleSessionId !== battle.battleSessionId ||
             body.battlePreview.battleVersion !== battle.battleVersion
           ) {
-            clearPlanning()
+            clearPlanning(modeRef.current)
+            setCostPreviewInvalidated(true)
             setNotice('That forecast is out of date. Choose a target to check it again.')
             return
           }
@@ -2136,6 +2140,7 @@ function BattleExperienceContent({
   const flatMoveMode = mode === 'move' && basicMove?.movement?.costBasis === 'flat'
   const proposedCosts = battleProposedCosts({
     enabled:
+      !costPreviewInvalidated &&
       !planningDisabled &&
       !terrainView &&
       !mobileReading &&

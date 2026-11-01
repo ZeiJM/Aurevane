@@ -1,6 +1,15 @@
 import { openBattleInfoMenu } from './battle-info-menu-helpers'
-import { expect, test, type Page, type Response, type Route, type TestInfo } from '@playwright/test'
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Response,
+  type Route,
+  type TestInfo,
+} from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
+import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { selectDiscipline } from './discipline-library-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -157,6 +166,27 @@ async function advanceToNextRound(
   return battle
 }
 
+async function expectMistField(
+  tile: Locator,
+  phase: 'pending' | 'active',
+  activationRound: number,
+) {
+  await expect(tile).not.toHaveAttribute('data-terrain-overlay', 'frozen')
+  await expect(tile.locator(`[data-ground-area-phase="${phase}"]`)).toHaveCount(1)
+  await expect(tile.locator('[data-ground-area-preset="frost"]')).toHaveCount(1)
+  for (const id of ['status:slow', 'status:frozen'])
+    await expect(tile.locator(`[data-ground-effect-id="${id}"]`)).toHaveCount(1)
+  await expect(tile.locator('[data-ground-area-clock="true"]')).toHaveCount(
+    phase === 'pending' ? 1 : 0,
+  )
+  await expect(tile).toHaveAttribute(
+    'aria-label',
+    phase === 'pending'
+      ? new RegExp(`Chilled Ground · Starts round ${activationRound} · 2 rounds`)
+      : /Chilled Ground · 2 rounds remaining/,
+  )
+}
+
 async function castOnEmptyGround(
   page: Page,
   name: string,
@@ -176,6 +206,8 @@ async function castOnEmptyGround(
   const commitEndpoint =
     (await root.getAttribute('data-battle-kind')) === 'pvp' ? '/commit' : '/intents'
   const before = await read()
+  const activationRound = before.snapshot.tactical.battle.round + 1
+  let projectedGroundArea!: PublicCombatGroundArea
   const actor = before.snapshot.tactical.placements.find(
     (row) => row.combatantId === before.snapshot.tactical.battle.currentTurn?.combatantId,
   )!
@@ -235,9 +267,18 @@ async function castOnEmptyGround(
     expect(response.status()).toBe(200)
     const preview = (await response.json()).battlePreview.preview
     if (preview.legal) {
-      expect(preview.projectedTerrain.length).toBeGreaterThan(0)
-      for (const terrain of preview.projectedTerrain)
-        expect(terrain).toMatchObject({ after: 'frozen', remainingRoundBoundaries: 2 })
+      // Current encounters retire the AP terrain overlay into one contact field.
+      expect(preview.projectedTerrain).toEqual([])
+      expect(preview.projectedGroundAreas).toHaveLength(1)
+      projectedGroundArea = preview.projectedGroundAreas[0]
+      expect(projectedGroundArea).toMatchObject({
+        activationRound,
+        expiresAtRound: activationRound + 2,
+        visualPresetId: 'frost',
+        effectVisualIds: ['status:slow', 'status:frozen'],
+      })
+      expect(projectedGroundArea.tiles).toEqual(preview.affectedTiles)
+      expect(projectedGroundArea.tiles.length).toBeGreaterThan(0)
       expect(preview.affectedCombatantIds).toHaveLength(0)
       chosen = candidates.find((tile) =>
         preview.affectedTiles.some(
@@ -375,29 +416,28 @@ async function castOnEmptyGround(
   const overlay = root.getByRole('button', {
     name: new RegExp(`^Tile ${chosen.position.x + 1}, ${chosen.position.y + 1};`),
   })
-  const activationRound = before.snapshot.tactical.battle.round + 1
   expect(after.snapshot.tactical.battle.round).toBe(before.snapshot.tactical.battle.round)
   expect(after.snapshot.terrainOverlays).toEqual(before.snapshot.terrainOverlays)
+  const previousAreaIds = new Set(before.snapshot.groundAreas?.map((area) => area.id) ?? [])
+  expect(after.snapshot.groundAreas?.filter((area) => !previousAreaIds.has(area.id))).toEqual([
+    projectedGroundArea,
+  ])
   expect(
-    after.snapshot.statusState.find((row) => row.combatantId === actor.combatantId)?.statuses,
-  ).toEqual(
+    after.snapshot.statusState.find((row) => row.combatantId === actor.combatantId)?.statuses ?? [],
+  ).not.toEqual(
     expect.arrayContaining([
-      expect.objectContaining({
-        statusId: 'create-terrain',
-        timingState: 'pending',
-        activationRound,
-        remainingRoundBoundaries: 2,
-      }),
+      expect.objectContaining({ statusId: 'create-terrain', timingState: 'pending' }),
     ]),
   )
   expect(after.snapshot).not.toHaveProperty('pendingEffects')
-  await expect(overlay).not.toHaveAttribute('data-terrain-overlay', 'frozen')
+  await expectMistField(overlay, 'pending', activationRound)
   await page.reload()
   const queued = await read()
   expect(queued.battleVersion).toBe(after.battleVersion)
   expect(queued.snapshot.terrainOverlays).toEqual(before.snapshot.terrainOverlays)
+  expect(queued.snapshot.groundAreas).toEqual(after.snapshot.groundAreas)
   expect(queued.snapshot.statusState).toEqual(after.snapshot.statusState)
-  await expect(overlay).not.toHaveAttribute('data-terrain-overlay', 'frozen')
+  await expectMistField(overlay, 'pending', activationRound)
   const activated = await advanceToNextRound(
     page,
     participants,
@@ -405,16 +445,10 @@ async function castOnEmptyGround(
     before.snapshot.tactical.battle.round,
     testInfo,
   )
-  expect(activated.snapshot.terrainOverlays).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        position: chosen.position,
-        kind: 'frozen',
-        remainingRoundBoundaries: 2,
-        frozenGroundPolicyVersion: 1,
-      }),
-    ]),
-  )
+  expect(activated.snapshot.terrainOverlays).toEqual(before.snapshot.terrainOverlays)
+  expect(
+    activated.snapshot.groundAreas?.filter((area) => area.id === projectedGroundArea.id),
+  ).toEqual([projectedGroundArea])
   expect(
     activated.snapshot.statusState.find((row) => row.combatantId === actor.combatantId)?.statuses ??
       [],
@@ -423,26 +457,25 @@ async function castOnEmptyGround(
       expect.objectContaining({ statusId: 'create-terrain', timingState: 'pending' }),
     ]),
   )
-  await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
-  await expect(overlay).toHaveAttribute(
-    'aria-label',
-    /Frozen Ground terrain; 2 round boundaries remaining/,
-  )
+  await expectMistField(overlay, 'active', activationRound)
   await root.getByRole('button', { name: 'Inspect, Free', exact: true }).click()
   await overlay.click()
   const instructionHost = root.locator('[data-battle-preview-strip]')
   await expect(instructionHost).toHaveCount(1)
-  await expect(instructionHost).toContainText('Frozen Ground terrain · 2 rounds remaining')
+  await expect(instructionHost).toContainText('Chilled Ground · 2 rounds remaining')
+  await expect(instructionHost).toContainText('Slow Ground · 2 rounds remaining')
   await expect(instructionHost).not.toContainText('caster’s enemies')
   await expect(instructionHost).not.toContainText('Airborne')
   await page.reload()
-  await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
-  expect((await read()).snapshot.terrainOverlays).toEqual(activated.snapshot.terrainOverlays)
+  await expectMistField(overlay, 'active', activationRound)
+  const restored = await read()
+  expect(restored.snapshot.terrainOverlays).toEqual(activated.snapshot.terrainOverlays)
+  expect(restored.snapshot.groundAreas).toEqual(activated.snapshot.groundAreas)
   await testInfo.attach(`ground-${name}-${testInfo.project.name}`, {
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  return { position: chosen.position, overlays: activated.snapshot.terrainOverlays }
+  return { position: chosen.position, activationRound }
 }
 
 test('ground Skill selection stays silent, one tile input executes once and survives reload in PvE', async ({
@@ -579,7 +612,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     const tile = spectatorRoot.getByRole('button', {
       name: new RegExp(`^Tile ${result.position.x + 1}, ${result.position.y + 1};`),
     })
-    await expect(tile).toHaveAttribute('data-terrain-overlay', 'frozen')
+    await expectMistField(tile, 'active', result.activationRound)
     const spectatorInspect = spectatorRoot.locator('[data-battle-command-dock="true"]')
     const inspectButton = spectatorInspect.getByRole('button', { name: /Inspect/ })
     await inspectButton.click()
@@ -588,11 +621,12 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     await spectator.keyboard.press('Enter')
     await expect(tile).toHaveAttribute('aria-pressed', 'true')
     const terrainDetails = spectatorRoot.locator('[data-battle-preview-strip="true"]')
-    await expect(terrainDetails).toContainText('Frozen Ground · 2 rounds remaining')
+    await expect(terrainDetails).toContainText('Chilled Ground · 2 rounds remaining')
+    await expect(terrainDetails).toContainText('Slow Ground · 2 rounds remaining')
     await expect(terrainDetails).not.toContainText('caster’s enemies')
     await expect(terrainDetails).not.toContainText('Airborne')
-    // The compact strip omits rules while the accessible tile retains them.
-    await expect(tile).toHaveAttribute('aria-label', /only for the caster’s enemies/)
+    await expect(tile).toHaveAttribute('aria-label', /Ground fields: .*Chilled Ground/)
+    await expect(tile).not.toHaveAttribute('aria-label', /extra movement AP|caster’s enemies/)
     await testInfo.attach(`ground-spectator-${testInfo.project.name}`, {
       body: await spectator.screenshot(),
       contentType: 'image/png',
