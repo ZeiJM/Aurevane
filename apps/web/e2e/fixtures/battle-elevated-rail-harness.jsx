@@ -136,6 +136,7 @@ function ElevatedRail() {
         </dl>
       </section>
       <BattleCombatantEffects name="Archer" compact statuses={statuses} />
+      <BattleCombatantEffects name="Archer inspection" statuses={statuses} />
       {showIconGallery ? (
         <section aria-label="Effect icon gallery">
           <h2>Effect pictograms</h2>
@@ -172,6 +173,7 @@ function ElevatedRail() {
               'blind',
             ]),
           )
+            .filter((id) => !['terrain-evasion', 'terrain-defense'].includes(id))
             .reduce((groups, id, index) => {
               if (index % 10 === 0) groups.push([])
               groups.at(-1).push(id)
@@ -188,14 +190,22 @@ function ElevatedRail() {
                   stacks: 1,
                   remainingOwnerTurnStarts: 2,
                   sourceCombatantId: 'fixture',
-                  ...(statusId === 'primed'
-                    ? { presentationDuration: 'while-primed' }
-                    : statusId.startsWith('terrain-')
-                      ? { presentationDuration: 'while-elevated', potencyBasisPoints: 2000 }
-                      : {}),
+                  ...(statusId === 'primed' ? { presentationDuration: 'while-primed' } : {}),
                 }))}
               />
             ))}
+          <BattleCombatantEffects
+            name="Terrain gallery"
+            statuses={['terrain-evasion', 'terrain-defense'].map((statusId) => ({
+              statusId,
+              statusVersion: 1,
+              stacks: 1,
+              remainingOwnerTurnStarts: 2,
+              sourceCombatantId: 'fixture',
+              presentationDuration: 'while-elevated',
+              potencyBasisPoints: 2000,
+            }))}
+          />
           <BattleCombatantEffects
             name="Pending gallery"
             compact

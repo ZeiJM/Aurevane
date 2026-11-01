@@ -98,8 +98,23 @@ if (process.env.AV_ELEVATED_RAIL_COMPILE_ONLY === '1') {
             String(height),
           )
           await expect(page.locator('output')).toHaveAttribute('data-fixture-mode', mode)
-          const effects = page.getByRole('region', { name: 'Archer combat effects' })
+          const effects = page.getByRole('region', { name: 'Archer combat effects', exact: true })
+          const inspection = page.getByRole('region', {
+            name: 'Archer inspection combat effects',
+            exact: true,
+          })
           await expect(effects.locator('[data-effect-duration]')).toHaveCount(0)
+          await expect(
+            effects.locator(
+              '[data-battle-effect-icon="terrain-evasion"], [data-battle-effect-icon="terrain-defense"]',
+            ),
+          ).toHaveCount(0)
+          await expect(
+            effects.getByRole('button', {
+              name: /Explain Elevation Evasion|Explain Elevated Defenses/,
+            }),
+          ).toHaveCount(0)
+          await expect(inspection).toBeVisible()
           await expect(page.locator('[data-stat="evasion"]')).toHaveText(
             `${4 + [0, 15, 20, 25][height]}%`,
           )
@@ -109,7 +124,7 @@ if (process.env.AV_ELEVATED_RAIL_COMPILE_ONLY === '1') {
             ['Elevation Evasion', `Evasion +${[0, 15, 20, 25][height]}%`],
             ['Elevated Defenses', 'Physical Defense −20%; Mystic Defense −20%'],
           ]) {
-            const trigger = effects.getByRole('button', {
+            const trigger = inspection.getByRole('button', {
               name: `Explain ${name}, Active · While on elevated terrain`,
               exact: true,
             })
@@ -142,10 +157,23 @@ if (process.env.AV_ELEVATED_RAIL_COMPILE_ONLY === '1') {
             }),
           ).toHaveCount(0)
           await expect(effects).toContainText('No combat effects')
+          await expect(
+            inspection.getByRole('button', {
+              name: /Explain Elevation Evasion|Explain Elevated Defenses/,
+            }),
+          ).toHaveCount(0)
+          await expect(inspection).toContainText('No combat effects')
           await expect(page.locator('[data-stat="evasion"]')).toHaveText('4%')
           await expect(page.locator('[data-stat="physical"]')).toHaveText('31')
           await expect(page.locator('[data-stat="mystic"]')).toHaveText('22')
-          evidence.push({ viewport, mode, height, liveExit: 'passed', popup: 'passed' })
+          evidence.push({
+            viewport,
+            mode,
+            height,
+            compactTerrain: 'absent',
+            liveExit: 'passed',
+            inspectionPopup: 'passed',
+          })
         }
       for (const mode of ['Self', 'PvE', 'PvP', 'Opponent', 'Spectator']) {
         await page.evaluate((mode) => {
@@ -153,13 +181,42 @@ if (process.env.AV_ELEVATED_RAIL_COMPILE_ONLY === '1') {
           window.elevatedRail.setHeight(3)
           window.elevatedRail.setCovert(true)
         }, mode)
+        await expect(page.locator('output')).toHaveAttribute('data-fixture-mode', mode)
+        await expect(page.locator('output')).toHaveAttribute('data-fixture-covert', 'true')
         const allowed = ['Self', 'PvE', 'PvP'].includes(mode)
-        const evasion = page.getByRole('button', { name: /Explain Elevation Evasion,/ })
-        await expect(evasion).toHaveCount(allowed ? 1 : 0)
-        await expect(page.getByRole('button', { name: /Explain Elevated Defenses,/ })).toHaveCount(
-          1,
-        )
+        const effects = page.getByRole('region', { name: 'Archer combat effects', exact: true })
+        const inspection = page.getByRole('region', {
+          name: 'Archer inspection combat effects',
+          exact: true,
+        })
+        await expect(
+          effects.locator(
+            '[data-battle-effect-icon="terrain-evasion"], [data-battle-effect-icon="terrain-defense"]',
+          ),
+        ).toHaveCount(0)
+        await expect(
+          effects.getByRole('button', {
+            name: /Explain Elevation Evasion|Explain Elevated Defenses/,
+          }),
+        ).toHaveCount(0)
+        const all = inspection.getByRole('button', {
+          name: 'All Archer inspection effects',
+          exact: true,
+        })
+        let inspectionReader = inspection
+        if (await all.count()) {
+          await all.click()
+          inspectionReader = page.getByRole('dialog', {
+            name: 'Archer inspection · Effects',
+            exact: true,
+          })
+        }
+        if (allowed) await expect(inspectionReader).toContainText('Elevation Evasion')
+        else await expect(inspectionReader).not.toContainText('Elevation Evasion')
+        await expect(inspectionReader).toContainText('Elevated Defenses')
         await expect(page.locator('[data-stat="evasion"]')).toHaveText(allowed ? '29%' : '4%')
+        await expect(page.locator('[data-stat="physical"]')).toHaveText('24')
+        await expect(page.locator('[data-stat="mystic"]')).toHaveText('17')
         assert.deepEqual(
           await page.evaluate(() =>
             window.elevatedRailProjection
@@ -168,11 +225,25 @@ if (process.env.AV_ELEVATED_RAIL_COMPILE_ONLY === '1') {
           ),
           allowed ? ['terrain-evasion', 'terrain-defense'] : ['terrain-defense'],
         )
-        evidence.push({ viewport, mode, covert: true, privacy: 'passed' })
+        if (await all.count()) {
+          await page.keyboard.press('Escape')
+          await expect(inspectionReader).toHaveCount(0)
+        }
+        evidence.push({ viewport, mode, covert: true, compactTerrain: 'absent', privacy: 'passed' })
       }
       await page.evaluate(() => window.elevatedRail.setShowIconGallery(true))
       const gallery = page.getByRole('region', { name: 'Effect icon gallery' })
       await expect(gallery).toBeVisible()
+      const terrainGallery = gallery.getByRole('region', {
+        name: 'Terrain gallery combat effects',
+        exact: true,
+      })
+      await expect(
+        terrainGallery.locator('[data-battle-effect-icon="terrain-evasion"]'),
+      ).toHaveCount(1)
+      await expect(
+        terrainGallery.locator('[data-battle-effect-icon="terrain-defense"]'),
+      ).toHaveCount(1)
       const vectors = gallery.locator('svg[data-battle-effect-icon]')
       assert.ok((await vectors.count()) > 40, 'all current effect families use pictograms')
       assert.equal(
