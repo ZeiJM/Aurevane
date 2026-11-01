@@ -368,11 +368,9 @@ try {
           if (targeting === 'all-ground') {
             assert.equal(forecasts[0].preview.affectedTiles.length, 63)
             const outcomes = await page.locator('[data-battle-preview-lane="outcomes"]').innerText()
-            assert.match(outcomes, /Frozen Ground.*2 rounds/)
-            assert.doesNotMatch(
-              outcomes,
-              /63 tiles|caster’s enemies only|both teams|Airborne exempt/,
-            )
+            assert.match(outcomes, /Frozen Ground · 63 tiles · 2 rounds/)
+            assert.equal((outcomes.match(/63 tiles/g) ?? []).length, 1)
+            assert.doesNotMatch(outcomes, /caster’s enemies only|both teams|Airborne exempt/)
             assert.ok(
               outcomes.length < 3500,
               'Ground preview summarizes terrain instead of listing every tile',

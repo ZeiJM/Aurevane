@@ -40,7 +40,6 @@ async function assertCurrentEffectChoices(picker, required) {
     'healing',
     'damage-bonus',
     'status:blindside',
-    'status:fortified',
     'status:revealed',
     'cleanse-chilled',
   ])
@@ -1228,14 +1227,22 @@ async function verifyTagBatchEditors(page, viewport) {
     .getByRole('button', { name: 'Remove', exact: true })
     .click()
 
-  for (const [tag, label, statusId] of [
-    ['status:inspired', 'Status potency (percent)', 'inspired'],
-    ['status:wet', 'Storm damage increase (%)', 'wet'],
+  for (const [tag, label, statusId, field] of [
+    ['status:inspired', 'Status potency (percent)', 'inspired', 'potencyBasisPoints'],
+    ['status:wet', 'Storm damage increase (%)', 'wet', 'potencyBasisPoints'],
+    ['status:hexed', 'Status potency (percent)', 'hexed', 'potencyBasisPoints'],
+    [
+      'status:fortified',
+      'Defense increase / outgoing damage reduction (%)',
+      'fortified',
+      'defenseIncreaseBasisPoints',
+    ],
   ]) {
     await editor.getByLabel('New effect type', { exact: true }).selectOption(tag)
     await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
     const status = editor.locator('[data-effect-type="apply-status"]').last()
     await openEffectParameters(status)
+    assert.equal(await status.getByLabel('Status', { exact: true }).count(), 0)
     const potency = status.getByLabel(label, { exact: true })
     assert.equal(await potency.getAttribute('max'), '999')
     await potency.fill('999')
@@ -1245,7 +1252,7 @@ async function verifyTagBatchEditors(page, viewport) {
           (id) => window.inspectTagBatch().effects.find((effect) => effect.statusId === id),
           statusId,
         )
-      ).potencyBasisPoints,
+      )[field],
       99900,
     )
     await status
