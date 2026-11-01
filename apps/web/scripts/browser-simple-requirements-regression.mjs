@@ -350,6 +350,8 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
 
       const shape = group.getByRole('combobox', { name: 'Shape', exact: true })
       const recipient = firstEffect.getByRole('combobox', { name: 'Target', exact: true })
+      // Enemy is inherited and appears once; switch away before authoring an explicit override.
+      await recipient.selectOption('ally')
       await recipient.selectOption('enemy')
       for (const nextShape of ['circle', 'line']) {
         await shape.selectOption(nextShape)
