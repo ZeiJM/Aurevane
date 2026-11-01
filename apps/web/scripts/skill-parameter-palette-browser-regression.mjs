@@ -1130,7 +1130,7 @@ async function verifyTagBatchEditors(page, viewport) {
   assert.equal(poisonEffects.find((effect) => effect.type === 'poison').durationTurns, 99)
   await poison
     .locator('xpath=ancestor::article[1]')
-    .getByRole('button', { name: 'Remove effect', exact: true })
+    .getByRole('button', { name: 'Remove', exact: true })
     .click()
   assert.equal(await poison.count(), 0)
   await editor.getByLabel('New effect type', { exact: true }).selectOption('copy-buffs')
@@ -1150,7 +1150,7 @@ async function verifyTagBatchEditors(page, viewport) {
   assert.equal(copiedSelection.invisibleDonorPolicyVersion, 1)
   await copy
     .locator('xpath=ancestor::article[1]')
-    .getByRole('button', { name: 'Remove effect', exact: true })
+    .getByRole('button', { name: 'Remove', exact: true })
     .click()
   assert.equal(await copy.count(), 0)
   const reversal = page.getByRole('region', { name: 'Reversal authoring', exact: true })
