@@ -213,6 +213,39 @@ describe('implemented combat Tag registry', () => {
   it('validates nested summon mechanics and rejects unknown nested handlers/keys', () => {
     const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
     expect(
+      validateCombatTagPayload({
+        type: 'summon',
+        recipient: 'selected-tile',
+        profile: {
+          ...profile,
+          abilities: profile.abilities.map((ability) => ({
+            ...ability,
+            target: {
+              ...ability.target,
+              geometryVersion: 3,
+              categories: ['enemy'],
+              maximumSelections: 1,
+            },
+          })),
+        },
+      }),
+    ).toEqual([])
+    expect(
+      validateCombatTagPayload({
+        type: 'summon',
+        recipient: 'selected-tile',
+        profile: { ...profile, lifetimeTurns: 99 },
+      }),
+    ).toEqual([])
+    expect(
+      validateCombatTagPayload({
+        type: 'summon',
+        recipient: 'selected-tile',
+        profile: { ...profile, lifetimeTurns: 100 },
+      }),
+    ).toEqual([])
+
+    expect(
       validateCombatTagPayload({ type: 'summon', recipient: 'selected-tile', profile }),
     ).toEqual([])
     const unknown = JSON.parse(JSON.stringify(profile))

@@ -2357,3 +2357,98 @@ it('keeps zero-AP tactical entity actions free on captured Frozen Ground', () =>
     )?.current,
   ).toBe(100)
 })
+
+it.each(['damage', 'pierce'] as const)(
+  'captures and executes canonical Enemy %s with independent Self Poison after serialization',
+  (type) => {
+    const input = command(100, 1000, {
+      effects: [
+        {
+          id: 'hit',
+          payload:
+            type === 'pierce'
+              ? {
+                  type,
+                  recipient: 'affected-units',
+                  target: 'enemy',
+                  amount: 9,
+                  armorIgnoredBasisPoints: 5000,
+                }
+              : { type, recipient: 'affected-units', target: 'enemy', amount: 9 },
+        },
+        {
+          id: 'poison',
+          payload: {
+            type: 'poison',
+            recipient: 'actor',
+            target: 'self',
+            durationTurns: 4,
+            damageProfile: {
+              kind: 'attack-percentage',
+              basisPoints: 1500,
+              damageBasis: 'command-hostile-total',
+            },
+          },
+        },
+      ],
+    })
+    const serialized = JSON.parse(
+      JSON.stringify({ ...input, manualModifiers: [] }),
+    ) as CombatAbilityCommandInput
+    if (serialized.root.kind !== 'canonical') throw new Error('canonical fixture')
+    const loaded = {
+      ...serialized,
+      root: {
+        kind: 'canonical' as const,
+        source: captureCombatAbilitySource(serialized.root.source),
+      },
+    }
+    expect(prepareCombatAbilityCommand(loaded).evaluation.legal).toBe(true)
+    const result = commitCombatAbilityCommand(loaded)
+    const hostileHpLoss = result.events
+      .filter((event) => event.event === 'damage_applied' && event.targetCombatantId === 'enemy')
+      .reduce((sum, event) => sum + (event.event === 'damage_applied' ? event.amount : 0), 0)
+    expect(hostileHpLoss).toBeGreaterThan(0)
+    expect(result.state.effectState!.poison[0]).toMatchObject({
+      targetCombatantId: 'actor',
+      percentageDamage: {
+        capturedDamage: hostileHpLoss,
+        profile: { damageBasis: 'command-hostile-total' },
+      },
+    })
+    expect(validateCombatEncounterState(JSON.parse(JSON.stringify(result.state)))).toEqual([])
+  },
+)
+
+it('strict canonical captures reject independent DoT policies without a direct packet or with an unsupported basis', () => {
+  const dot = {
+    id: 'poison',
+    payload: {
+      type: 'poison' as const,
+      recipient: 'actor' as const,
+      target: 'self' as const,
+      durationTurns: 4,
+      damageProfile: {
+        kind: 'attack-percentage' as const,
+        basisPoints: 1500,
+        damageBasis: 'command-hostile-total' as const,
+      },
+    },
+  }
+  expect(() => captureCombatAbilitySource(source({ effects: [dot] }))).toThrow(/Damage|damage/)
+  expect(() =>
+    captureCombatAbilitySource(
+      source({
+        effects: [
+          {
+            ...dot,
+            payload: {
+              ...dot.payload,
+              damageProfile: { ...dot.payload.damageProfile, damageBasis: 'invented' },
+            },
+          },
+        ],
+      } as never),
+    ),
+  ).toThrow(/basis/i)
+})

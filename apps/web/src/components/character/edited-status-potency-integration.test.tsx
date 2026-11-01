@@ -7,6 +7,7 @@ import { isValidElement, type ReactNode, type ReactElement } from 'react'
 import { expect, it } from 'vitest'
 import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
+import { AbilityNumber } from '@/components/master/combat-content/ability-editor-fields'
 import { SkillEffectEditor } from '@/components/master/combat-content/skill-effect-editor'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 const base = JSON.parse(
@@ -18,19 +19,20 @@ const base = JSON.parse(
     'utf8',
   ),
 ).records.find((r: { id: string }) => r.id === 'vanguard.brace').after.ability.behaviors[0]
-function findStatusInput(node: ReactNode): ReactElement<{
-  'aria-label': string
-  onChange: (event: { currentTarget: { value: string } }) => void
+function findDurationInput(node: ReactNode): ReactElement<{
+  label: string
+  onChange: (value: number) => void
 }> | null {
   if (Array.isArray(node)) {
     for (const child of node) {
-      const result = findStatusInput(child)
+      const result = findDurationInput(child)
       if (result) return result
     }
   }
-  if (!isValidElement<{ 'aria-label'?: string; children?: ReactNode }>(node)) return null
-  if (node.props['aria-label'] === 'Status') return node as ReturnType<typeof findStatusInput>
-  return findStatusInput(node.props.children)
+  if (!isValidElement<{ label?: string; children?: ReactNode }>(node)) return null
+  if (node.type === AbilityNumber && node.props.label === 'Effect duration (turns)')
+    return node as ReturnType<typeof findDurationInput>
+  return findDurationInput(node.props.children)
 }
 it.each(['airborne', 'root', 'covert', 'invisible', 'frozen'])(
   'does not invent potency after a real Master edit to %s',
@@ -38,14 +40,14 @@ it.each(['airborne', 'root', 'covert', 'invisible', 'frozen'])(
     const original: CombatEffectDefinition = {
       type: 'apply-status',
       recipient: 'actor',
-      statusId: 'guarded',
+      statusId,
       durationTurns: 2,
       stacks: 1,
       potencyBasisPoints: 1500,
     }
     const before = JSON.stringify(original)
     let edited: CombatEffectDefinition | undefined
-    const input = findStatusInput(
+    const input = findDurationInput(
       SkillEffectEditor({
         value: original,
         onChange: (value) => {
@@ -54,8 +56,8 @@ it.each(['airborne', 'root', 'covert', 'invisible', 'frozen'])(
       }),
     )
     expect(input).not.toBeNull()
-    input!.props.onChange({ currentTarget: { value: statusId } })
-    expect(edited).toMatchObject({ statusId, potencyBasisPoints: 1500 })
+    input!.props.onChange(99)
+    expect(edited).toMatchObject({ statusId, potencyBasisPoints: 1500, durationTurns: 99 })
     const definition = parseAbilityDefinition({
       schemaVersion: 1,
       behaviors: [{ ...base, effects: [{ id: 'edited', payload: edited, timing: 'instant' }] }],

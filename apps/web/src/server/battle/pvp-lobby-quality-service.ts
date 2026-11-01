@@ -381,6 +381,7 @@ export async function startPvpLobbyWithQuality(
   encounter.elementalDamagePolicyVersion = 2
   encounter.dynamicInitiativePolicyVersion = 1
   encounter.healingDownPolicyVersion = 1
+  encounter.conditionalDamageRoundingPolicyVersion = 1
   encounter.blindsideActivationPolicyVersion = 1
   if (encounter.effectTimingPolicy?.tagAuthority === 'global') {
     encounter.modularSkillPolicyVersion = 1

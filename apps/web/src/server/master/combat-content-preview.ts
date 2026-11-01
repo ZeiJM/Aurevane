@@ -408,6 +408,7 @@ function previewState(
     elementalDamagePolicyVersion: 2 as const,
     dynamicInitiativePolicyVersion: 1 as const,
     healingDownPolicyVersion: 1 as const,
+    conditionalDamageRoundingPolicyVersion: 1 as const,
     blindsideActivationPolicyVersion: 1 as const,
     modularSkillPolicyVersion: 1 as const,
     displacementPolicyVersion: 1 as const,

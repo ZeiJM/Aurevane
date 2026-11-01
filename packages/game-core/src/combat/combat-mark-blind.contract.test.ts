@@ -654,7 +654,7 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
       chance(
         withStatuses(
           marked,
-          statuses(marked).map((row) => ({ ...row, remainingOwnerTurnStarts: 6 })),
+          statuses(marked).map((row) => ({ ...row, remainingOwnerTurnStarts: 101 })),
         ),
       ),
     ).toThrow()

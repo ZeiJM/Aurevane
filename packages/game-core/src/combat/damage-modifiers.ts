@@ -69,7 +69,39 @@ export interface CombatDamageModifier {
 export const CONDITIONAL_DAMAGE_MINIMUM = 5_000
 export const CONDITIONAL_DAMAGE_MAXIMUM = 20_000
 
-export function conditionalDamageMultiplier(
+/** Exact multiplier in basis points, retained only during damage resolution. */
+export interface CombatDamageMultiplierRatio {
+  numerator: bigint
+  denominator: bigint
+}
+
+type ConditionalDamageArguments = [
+  state: CombatEncounterState,
+  attackerId: string,
+  recipientId: string,
+  content: CombatContentCatalog,
+  elementalMultiplier?: number,
+  options?: {
+    ignoreIncomingMitigation?: boolean
+    outgoingState?: CombatEncounterState
+    commandDamageBonuses?: readonly CombatCommandDamageBonus[]
+  },
+]
+
+/** Retain the historical integer-basis-point API and Inspired arithmetic. */
+export function conditionalDamageMultiplier(...args: ConditionalDamageArguments): number {
+  const ratio = calculateConditionalDamageRatio(false, ...args)
+  return Number(ratio.numerator / ratio.denominator)
+}
+
+export function conditionalDamageRatio(
+  ...args: ConditionalDamageArguments
+): CombatDamageMultiplierRatio {
+  return calculateConditionalDamageRatio(true, ...args)
+}
+
+function calculateConditionalDamageRatio(
+  exact: boolean,
   state: CombatEncounterState,
   attackerId: string,
   recipientId: string,
@@ -80,9 +112,10 @@ export function conditionalDamageMultiplier(
     outgoingState?: CombatEncounterState
     commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   } = {},
-): number {
+): CombatDamageMultiplierRatio {
   const outgoingState = options.outgoingState ?? state
   let numerator = BigInt(elementalMultiplier)
+  let denominator = 1n
   const inspiredStatuses =
     outgoingState.statusState
       .find((row) => row.combatantId === attackerId)
@@ -100,6 +133,15 @@ export function conditionalDamageMultiplier(
       ? combatStatusApplications(inspired)
       : [{ ...inspired, stacks: 1 }]) {
       const multiplier = 10_000 + (application.potencyBasisPoints ?? 1_000)
+      if (exact) {
+        ;[numerator, denominator] = multiplyRepeatedRatio(
+          numerator,
+          denominator,
+          multiplier,
+          application.stacks,
+        )
+        continue
+      }
       for (let index = 0; index < application.stacks; index += 1) {
         const next = (numerator * BigInt(multiplier)) / 10_000n
         if (next > BigInt(Number.MAX_SAFE_INTEGER))
@@ -109,7 +151,6 @@ export function conditionalDamageMultiplier(
       }
     }
   }
-  let denominator = 1n
   validateCombatCommandDamageBonuses(options.commandDamageBonuses)
   for (const bonus of options.commandDamageBonuses ?? [])
     [numerator, denominator] = multiplyRepeatedRatio(
@@ -240,15 +281,13 @@ export function conditionalDamageMultiplier(
   if (state.effectStackingPolicyVersion === 1 || hasConfiguredModifier) {
     if (result > BigInt(Number.MAX_SAFE_INTEGER))
       throw new RangeError('Combined damage multiplier exceeds the safe integer range.')
-    return Number(result)
+    return { numerator, denominator }
   }
-  return Number(
-    result < BigInt(CONDITIONAL_DAMAGE_MINIMUM)
-      ? BigInt(CONDITIONAL_DAMAGE_MINIMUM)
-      : result > BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
-        ? BigInt(CONDITIONAL_DAMAGE_MAXIMUM)
-        : result,
-  )
+  if (numerator < BigInt(CONDITIONAL_DAMAGE_MINIMUM) * denominator)
+    return { numerator: BigInt(CONDITIONAL_DAMAGE_MINIMUM), denominator: 1n }
+  if (numerator > BigInt(CONDITIONAL_DAMAGE_MAXIMUM) * denominator)
+    return { numerator: BigInt(CONDITIONAL_DAMAGE_MAXIMUM), denominator: 1n }
+  return { numerator, denominator }
 }
 
 function matchesCondition(

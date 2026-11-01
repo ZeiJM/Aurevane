@@ -1,4 +1,5 @@
 'use client'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
 import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
@@ -80,13 +81,17 @@ export function SkillGroundEditor({
               <input
                 type="number"
                 min={1}
-                max={4}
+                max={CURRENT_EFFECT_DURATION_MAXIMUM_TURNS}
                 step={1}
                 aria-label="Ground duration (rounds)"
                 value={value.durationRounds}
                 onChange={(event) => {
                   const n = Number(event.currentTarget.value)
-                  if (Number.isSafeInteger(n) && n >= 1 && n <= 4)
+                  if (
+                    Number.isSafeInteger(n) &&
+                    n >= 1 &&
+                    n <= CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+                  )
                     onChange({ ...value, durationRounds: n })
                 }}
               />

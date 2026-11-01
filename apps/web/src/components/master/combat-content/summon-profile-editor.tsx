@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef } from 'react'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   DEFAULT_SUMMON_CORE_ATTRIBUTES,
@@ -108,6 +109,7 @@ export function SummonProfileEditor({
             aria-label="Summon lifetime turns"
             type="number"
             min={1}
+            max={CURRENT_EFFECT_DURATION_MAXIMUM_TURNS}
             step={1}
             value={value.lifetimeTurns}
             onChange={(event) =>

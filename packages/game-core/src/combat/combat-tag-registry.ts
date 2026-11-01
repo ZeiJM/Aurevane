@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { validateCombatEndureEffect } from './combat-endure'
 import { validateCombatReversalPayload, type CombatReversalPayload } from './combat-reversal'
 import {
@@ -321,7 +322,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'poison',
-    ['curseCopyable', 'damageProfile'],
+    ['curseCopyable', 'damageProfile', 'movementRefreshTiles'],
     {},
     'Poisons the target, causing damage at turn end. Movement follows the saved refresh or additional-damage rules.',
   ),
@@ -455,7 +456,7 @@ export function validateCombatTagPayload(
     ['vengeance', ['conversionBasisPoints', 'minimumDamage', 'maximumDamage']],
     ['facingModifiersBasisPoints', ['front', 'side', 'rear']],
     ['blindsideModifiersBasisPoints', ['side', 'rear']],
-    ['damageProfile', ['kind', 'basisPoints', 'decayBasisPointsPerTick']],
+    ['damageProfile', ['kind', 'basisPoints', 'decayBasisPointsPerTick', 'damageBasis']],
   ] as const)
     if (value[key] !== undefined) keys(value[key], allowed, `payload.${key}`)
   try {
@@ -474,7 +475,12 @@ export function validateCombatTagPayload(
     if (value.potencyBasisPoints !== undefined && value.type !== 'apply-status')
       throw new TypeError('Only status effects implement percentage potency.')
     if (value.type === 'sensory')
-      integer(value.revealedDurationOwnerTurnStarts, 1, 4, 'Sensory duration')
+      integer(
+        value.revealedDurationOwnerTurnStarts,
+        1,
+        CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+        'Sensory duration',
+      )
     if (
       value.type === 'copy-statuses' &&
       (!['amplify', 'curse'].includes(value.mode as string) ||
@@ -596,6 +602,8 @@ export function validateCombatTagPayload(
           ability.target,
           [
             'geometryVersion',
+            'categories',
+            'maximumSelections',
             'kind',
             'teamPolicy',
             'shape',

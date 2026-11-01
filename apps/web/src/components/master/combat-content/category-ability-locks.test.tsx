@@ -15,7 +15,7 @@ function controls(value: unknown): ReactElement<Record<string, unknown>>[] {
 }
 
 it.each(['manual', 'passive'] as const)(
-  'locks visible category controls for %s and uses that category for added groups',
+  'locks category controls for existing %s groups without offering another behavior',
   (category) => {
     let value: AbilityDefinition =
       category === 'manual'
@@ -37,13 +37,13 @@ it.each(['manual', 'passive'] as const)(
     expect(html).toMatch(/aria-label="Group mode"[^>]*disabled/)
     expect(html).toContain(category === 'manual' ? '>Manual</option>' : '>Passive</option>')
     expect(value).toEqual(original)
-    const add = controls(tree()).find(
-      (node) => node.type === 'button' && node.props['aria-label'] === 'Add behavior group',
-    )!
-    ;(add.props.onClick as () => void)()
-    expect(value.behaviors[1]!.activation).toBe(category === 'manual' ? 'manual' : 'automatic')
-    expect(value.behaviors[1]!.mode).toBe('action')
-    expect(value.behaviors[0]).toEqual(original.behaviors[0])
+    expect(
+      controls(tree()).some(
+        (node) => node.type === 'button' && node.props['aria-label'] === 'Add behavior group',
+      ),
+    ).toBe(false)
+    expect(html).not.toContain('Use tag requirements')
+    expect(html).not.toContain('Requirements gate this behavior group')
   },
 )
 

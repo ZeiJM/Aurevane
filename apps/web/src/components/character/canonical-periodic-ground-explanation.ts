@@ -89,7 +89,7 @@ export function canonicalPeriodicGroundExplanation(
           { label: 'Tick', value: 'Affected turn end' },
           {
             label: 'Refresh',
-            value: `Every ${CURRENT_POISON_REFRESH_TRAVERSED_TILES} traversed tiles`,
+            value: `Every ${effect.movementRefreshTiles ?? CURRENT_POISON_REFRESH_TRAVERSED_TILES} traversed tiles`,
           },
           { label: 'Refresh duration', value: 'Original full duration' },
           { label: 'Extra damage on refresh', value: 'None' },

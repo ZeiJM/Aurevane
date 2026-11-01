@@ -8,7 +8,6 @@ import {
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 import {
   skillParameterRows,
-  skillRequirementDescription,
   skillTargetMethodExplanation,
 } from '../character/skill-detail-presentation'
 import { groupSkillEffects } from '../character/skill-effect-groups'
@@ -91,16 +90,6 @@ function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition })
           </li>
         ))}
       </ul>
-      {ability.requirements.length ? (
-        <>
-          <strong>Requirement details</strong>
-          <ul>
-            {ability.requirements.map((requirement, index) => (
-              <li key={index}>{skillRequirementDescription(requirement)}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
       <p>A summon can use one ability per turn.</p>
     </>
   )

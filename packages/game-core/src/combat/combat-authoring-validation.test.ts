@@ -83,31 +83,37 @@ describe('combat authoring validation boundary', () => {
     })
   })
 
-  it.each([0, 5])('rejects Heal tick count %s outside the current 1-4 bound', (ticks) => {
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        effects: [{ type: 'healing', recipient: 'actor', amount: 4, ticks }],
-      } as unknown as CombatActionDefinition),
-    ).toThrow(/healing ticks/i)
-  })
+  it.each([0, 101])(
+    'rejects Heal tick count %s outside the current 1-100 application bound',
+    (ticks) => {
+      expect(() =>
+        validateCombatActionDefinition({
+          ...P2_3_GUARD_ACTION,
+          effects: [{ type: 'healing', recipient: 'actor', amount: 4, ticks }],
+        } as unknown as CombatActionDefinition),
+      ).toThrow(/healing ticks/i)
+    },
+  )
 
-  it.each([0, 5])('rejects MP Rec tick count %s outside the current 1-4 bound', (ticks) => {
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        effects: [
-          {
-            type: 'resource-change',
-            recipient: 'actor',
-            resource: 'mp',
-            delta: 3,
-            ticks,
-          },
-        ],
-      } as unknown as CombatActionDefinition),
-    ).toThrow(/mp recovery ticks/i)
-  })
+  it.each([0, 101])(
+    'rejects MP Rec tick count %s outside the current 1-100 application bound',
+    (ticks) => {
+      expect(() =>
+        validateCombatActionDefinition({
+          ...P2_3_GUARD_ACTION,
+          effects: [
+            {
+              type: 'resource-change',
+              recipient: 'actor',
+              resource: 'mp',
+              delta: 3,
+              ticks,
+            },
+          ],
+        } as unknown as CombatActionDefinition),
+      ).toThrow(/mp recovery ticks/i)
+    },
+  )
 
   it('keeps MP Drain immediate-only', () => {
     expect(() =>

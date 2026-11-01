@@ -92,7 +92,8 @@ it('keeps captured old Ground/Airborne/Fire help separate from current rules', (
   expect(current.airborne).toContain('Ground-targeted Skills always miss')
   expect(old.airborne).not.toContain('Ground-targeted Skills always miss')
   expect(current.fire).toContain('affected Frozen Ground')
-  expect(old.fire).toContain('removes Wet and Frozen')
+  expect(old.fire).not.toContain('removes Wet and Frozen')
+  expect(old.fire).toContain('two round boundaries')
   expect(current.steam).toContain('either team')
 })
 it('retains explicit Steam detail references without changing its lifetime value', () => {
@@ -190,10 +191,8 @@ it('places modular Requirements explanations before Effects while keeping their 
   const report = abilityBehaviorInformation(group)
   const markup = renderToStaticMarkup(<AbilityParameters report={report} />)
   if (report.requirementParts?.some((part) => typeof part !== 'string')) {
-    expect(markup).toContain('aria-label="Requirement explanations"')
-    expect(markup.indexOf('aria-label="Requirement explanations"')).toBeLessThan(
-      markup.indexOf('aria-label="Effect explanations"'),
-    )
+    expect(markup).not.toContain('aria-label="Requirement explanations"')
+    expect(markup).toContain('data-combat-tag-reference=')
   }
 })
 

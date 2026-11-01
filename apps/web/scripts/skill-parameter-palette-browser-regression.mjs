@@ -244,7 +244,9 @@ async function handleBasicRequest(request, response, next) {
     let result
     if (url.pathname === '/__basic-acceptance/reset') {
       await basicFixture?.close?.()
-      basicFixture = await createBasicEditorServiceFixture()
+      basicFixture = await createBasicEditorServiceFixture({
+        multipleGuardBehaviors: url.searchParams.get('multipleGuardBehaviors') === '1',
+      })
       result = Response.json({ reset: true })
     } else if (url.pathname === '/__basic-acceptance/options')
       result = Response.json((await basicFixture.inspect()).records)
@@ -419,6 +421,16 @@ const sqlFixtureServer = originalRpcAcceptance
     const inspection = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
     assert.deepEqual(inspection.records, before.records)
     assert.equal(inspection.oldCapturesUnchanged, true)
+    const reset = await fetch(`${origin}__basic-acceptance/reset?multipleGuardBehaviors=1`, {
+      method: 'POST',
+    })
+    assert.equal(reset.status, 200)
+    const seeded = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
+    assert.equal(
+      seeded.records.find((record) => record.id === 'basic.guard').current.definition.ability
+        .behaviors.length,
+      2,
+    )
     console.log(
       'Actual Basic HTTP handler/service probe passed: five v3 records and retired Guard restore rejected without mutation.',
     )
@@ -520,14 +532,7 @@ async function assertModularReport(panel, { resonance = false, expectedPalette =
       await amount.evaluate((element) => getComputedStyle(element).color),
       expectedPalette.magnitude,
     )
-  for (const label of await panel
-    .getByRole('list', { name: 'Requirement explanations' })
-    .locator('[data-effect-tag-label]')
-    .all())
-    assert.equal(
-      await label.evaluate((element) => getComputedStyle(element).color),
-      tagColors[0].label,
-    )
+  assert.equal(await panel.getByRole('list', { name: 'Requirement explanations' }).count(), 0)
 }
 async function verifyModularReaders(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=modular-readers`, {
@@ -1103,6 +1108,31 @@ async function verifyTagBatchEditors(page, viewport) {
   assert.equal(effects.find((row) => row.type === 'endure').targetTeams, 'all')
   assert.equal(effects.find((row) => row.type === 'endure').durationTurns, 3)
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+  const damageBeforePoison = await page.evaluate(() =>
+    window.inspectTagBatch().effects.find((effect) => effect.type === 'damage'),
+  )
+  await editor.getByLabel('New effect type', { exact: true }).selectOption('poison')
+  await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
+  const poison = editor.locator('[data-effect-type="poison"]')
+  await openEffectParameters(poison)
+  assert.equal(await poison.getByLabel('Curse-copyable', { exact: true }).count(), 0)
+  await poison.getByLabel('Movement refresh (tiles)', { exact: true }).fill('7')
+  await poison.getByLabel('Effect duration (turns)', { exact: true }).fill('99')
+  await poison.getByLabel('Target', { exact: true }).selectOption('self')
+  const poisonEffects = await page.evaluate(() => window.inspectTagBatch().effects)
+  assert.equal(poisonEffects.filter((effect) => effect.type === 'damage').length, 1)
+  assert.deepEqual(
+    poisonEffects.find((effect) => effect.type === 'damage'),
+    damageBeforePoison,
+  )
+  assert.equal(poisonEffects.find((effect) => effect.type === 'poison').movementRefreshTiles, 7)
+  assert.equal(poisonEffects.find((effect) => effect.type === 'poison').recipient, 'actor')
+  assert.equal(poisonEffects.find((effect) => effect.type === 'poison').durationTurns, 99)
+  await poison
+    .locator('xpath=ancestor::article[1]')
+    .getByRole('button', { name: 'Remove effect', exact: true })
+    .click()
+  assert.equal(await poison.count(), 0)
   const reversal = page.getByRole('region', { name: 'Reversal authoring', exact: true })
   await reversal.getByLabel('New effect', { exact: true }).selectOption('reversal')
   await reversal.getByRole('button', { name: 'Add new effect', exact: true }).click()
@@ -1141,9 +1171,65 @@ async function verifyTagBatchEditors(page, viewport) {
   await page.screenshot({ path: resolve(output, `tag-batch-editor-${viewport.width}.png`) })
 }
 
+async function verifyEffectControlLayout(page, viewport) {
+  await page.goto(`${server.resolvedUrls.local[0]}?surface=effect-layout`, {
+    waitUntil: 'networkidle',
+  })
+  for (const kind of ['Native', 'Canonical', 'Summon']) {
+    const region = page.getByRole('region', { name: `${kind} effect layout`, exact: true })
+    await openEffectParameters(region)
+    assert.equal(await region.getByLabel('Status', { exact: true }).count(), 0)
+    const barrier = region.locator('[data-effect-type="barrier-change"]').first()
+    const amount = barrier.getByLabel('Barrier (% maximum HP)', { exact: true })
+    const duration = barrier.getByLabel('Effect duration (turns)', { exact: true })
+    const metrics = async (control) =>
+      control.evaluate((input) => {
+        const label =
+          input.closest('label')?.querySelector(':scope > span') ??
+          document.querySelector(`label[for="${input.id}"]`)
+        const box = input.getBoundingClientRect()
+        return {
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+          font: getComputedStyle(input).fontSize,
+          labelFont: getComputedStyle(label).fontSize,
+        }
+      })
+    const a = await metrics(amount),
+      b = await metrics(duration)
+    assert.equal(a.font, b.font, `${kind} control fonts match`)
+    assert.equal(a.labelFont, b.labelFont, `${kind} label fonts match`)
+    assert.ok(Math.abs(a.height - b.height) < 1, `${kind} control heights match`)
+    assert.ok(Math.abs(a.width - b.width) < 1, `${kind} numeric widths match`)
+    if (viewport.width > 1000) assert.ok(Math.abs(a.y - b.y) < 1, `${kind} fields share a baseline`)
+    else assert.ok(b.y >= a.y + a.height, `${kind} fields stack without overlap`)
+    assert.equal(await duration.getAttribute('max'), '99')
+    await duration.fill('99')
+    await duration.blur()
+    const targets = region.getByLabel('Target', { exact: true }).first()
+    const labels = await targets.locator('option').allTextContents()
+    assert.equal(
+      labels.some((label) => label.includes('existing rules')),
+      false,
+    )
+    assert.equal(new Set(labels).size, labels.length, `${kind} has no duplicate target labels`)
+    await region.screenshot({
+      path: resolve(output, `effect-layout-${kind.toLowerCase()}-${viewport.width}.png`),
+    })
+  }
+  const saved = await page.evaluate(() => window.inspectEffectLayout())
+  assert.equal(saved.native[0].durationTurns, 99)
+  assert.equal(saved.canonical.behaviors[0].effects[0].payload.durationTurns, 99)
+  assert.equal(saved.summon.abilities[0].effects[0].durationTurns, 99)
+}
+
 async function verifyBasicPublication(page, viewport) {
   console.log('verifyBasicPublication', viewport.width)
-  await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
+  await page.request.post(
+    `${server.resolvedUrls.local[0]}__basic-acceptance/reset?multipleGuardBehaviors=1`,
+  )
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
   })
@@ -1157,18 +1243,21 @@ async function verifyBasicPublication(page, viewport) {
     await (await abilityField(editor, 'Name')).fill(`Publish ${id}`)
     if (id === 'basic.move')
       await (await abilityField(editor, 'Move cost basis')).selectOption('flat')
-    await (await abilityField(editor, 'AP cost')).fill('11')
-    await (await abilityField(editor, 'MP cost')).fill('2')
-    await (await abilityField(editor, 'HP cost')).fill('1')
+    await (await abilityField(editor.locator('[data-ability-group="use"]'), 'AP cost')).fill('11')
+    await (await abilityField(editor.locator('[data-ability-group="use"]'), 'MP cost')).fill('2')
+    await (await abilityField(editor.locator('[data-ability-group="use"]'), 'HP cost')).fill('1')
     let groupId = 'use'
     if (id === 'basic.guard') {
       await activateAbilitySection(editor, 'Details & Text')
-      await editor.getByRole('button', { name: 'Add behavior group', exact: true }).click()
-      const group = editor.locator('[data-ability-group="group-1"]')
+      assert.equal(
+        await editor.getByRole('button', { name: 'Add behavior group', exact: true }).count(),
+        0,
+      )
+      const group = editor.locator('[data-ability-group="retained-second"]')
       await (await abilityField(group, 'AP cost')).fill('17')
       await (await abilityField(group, 'MP cost')).fill('3')
       await (await abilityField(group, 'HP cost')).fill('2')
-      groupId = 'group-1'
+      groupId = 'retained-second'
     }
     if (id === 'basic.recover.mp') {
       await page.route('**/api/master/combat-content', (route) => {
@@ -1465,10 +1554,13 @@ async function verifyCanonicalEditor(page, viewport) {
   const damageUp = bonus.getByLabel('Damage Up (%)', { exact: true })
   await damageUp.waitFor({ state: 'visible' })
   await damageUp.fill('15.25')
-  await gesture(editor.getByRole('button', { name: 'Add behavior group', exact: true }))
+  assert.equal(
+    await editor.getByRole('button', { name: 'Add behavior group', exact: true }).count(),
+    0,
+  )
   await gesture(
     editor
-      .locator('[data-ability-group="group-1"]')
+      .locator('[data-ability-group="retained-extra"]')
       .getByRole('button', { name: 'Remove group', exact: true }),
   )
   const saved = await page.evaluate(() => window.inspectEditedAbility())
@@ -2062,6 +2154,7 @@ try {
       await page.close()
       continue
     }
+    await verifyEffectControlLayout(page, viewport)
     await verifyTagBatchEditors(page, viewport)
     await verifyModularReaders(page, viewport)
     await verifyModularManual(page, viewport)
@@ -2118,9 +2211,10 @@ try {
     )
     const firstEffect = authoring.locator('[data-effect-type="apply-status"]').first()
     await openEffectParameters(firstEffect)
-    await firstEffect.getByLabel('Status', { exact: true }).selectOption('blindside-vulnerability')
-    await firstEffect.getByRole('combobox', { name: 'Target', exact: true }).selectOption('enemy')
-    const converted = await page.evaluate(() => window.blindsideAuthoringEffects[0])
+    assert.equal(await firstEffect.getByLabel('Status', { exact: true }).count(), 0)
+    assert.equal(await addedEffect.getByLabel('Status', { exact: true }).count(), 0)
+    await addedEffect.getByRole('combobox', { name: 'Target', exact: true }).selectOption('enemy')
+    const converted = await page.evaluate(() => window.blindsideAuthoringEffects[1])
     assert.equal(converted.statusId, 'blindside-vulnerability')
     // Explicit Enemy targets bind to the affected footprint in the shared engine.
     assert.equal(converted.recipient, 'affected-units')
@@ -2128,10 +2222,10 @@ try {
     assert.equal(converted.durationTurns, 1)
     assert.equal(converted.potencyBasisPoints, undefined)
     assert.equal(
-      await firstEffect.getByLabel('Effect duration (turns)', { exact: true }).count(),
+      await addedEffect.getByLabel('Effect duration (turns)', { exact: true }).count(),
       0,
     )
-    assert.ok((await firstEffect.textContent()).includes('affected character’s turn'))
+    assert.ok((await addedEffect.textContent()).includes('affected character’s turn'))
     await authoring.screenshot({
       path: resolve(output, `blindside-authoring-${viewport.width}.png`),
     })

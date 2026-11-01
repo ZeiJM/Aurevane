@@ -162,7 +162,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
             assert.ok(
               Number(await reference.evaluate((node) => getComputedStyle(node).fontWeight)) >= 600,
             )
-            await expect(notes).toContainText(await reference.innerText())
+            await expect(notes).toHaveCount(0)
           }
         }
       }

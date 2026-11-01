@@ -479,7 +479,7 @@ describe('Heal X and MP Rec X execution', () => {
     expect(pending(state)).toHaveLength(0)
     expect(PV1F_COMBAT_CONTENT.statuses.some((row) => row.id === 'regeneration')).toBe(false)
   })
-  it.each([0, 5, -1, 1.5, NaN, Infinity])(
+  it.each([0, 101, -1, 1.5, NaN, Infinity])(
     'rejects malformed duration %s at the execution boundary',
     (ticks) => {
       expect(() => cast(encounter(), action([recovery('hp', ticks)]))).toThrow(/ticks/i)

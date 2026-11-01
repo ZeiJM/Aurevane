@@ -78,6 +78,8 @@ export interface CombatPoisonInstance {
   sourceCombatantId: string
   sourceActionId: string
   profileVersion: number
+  /** Captured policy-2 duration-refresh threshold; absence preserves the five-tile default. */
+  movementRefreshTiles?: number
   movementRemainder: number
   /** Current authored Poison may pin bounded power and remaining future turns. */
   damagePerTick?: number

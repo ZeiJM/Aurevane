@@ -383,14 +383,16 @@ describe('Combat v5.1 summon runtime state', () => {
     )
   })
 
-  it('expires a summon after its authored number of completed turns', () => {
-    let transition = spawn(encounter(), summonProfile({ lifetimeTurns: 3 }))
+  it.each([3, 99])('expires a summon after its authored %s completed turns', (lifetimeTurns) => {
+    let transition = spawn(encounter(), summonProfile({ lifetimeTurns }))
     const spawnEvent = transition.events.find((entry) => entry.event === 'summon_spawned')
     if (!spawnEvent || spawnEvent.event !== 'summon_spawned') throw new Error('Expected spawn.')
     const summonId = spawnEvent.combatantId
 
-    for (let turn = 1; turn <= 2; turn += 1) {
+    for (let turn = 1; turn < lifetimeTurns; turn += 1) {
       transition = advanceCombatSummonOwnerTurn(transition.state, summonId)
+      transition = { ...transition, state: JSON.parse(JSON.stringify(transition.state)) }
+      expect(validateStatDrivenCombatEncounterState(transition.state)).toEqual([])
       expect(
         transition.state.effectState?.summons?.find((row) => row.combatantId === summonId)
           ?.turnsCompleted,

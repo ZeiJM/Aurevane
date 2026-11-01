@@ -90,3 +90,37 @@ vi.mock('react', async (original) => {
     useId: () => `callback-test-${++nextId}`,
   }
 })
+
+it.each([
+  ['actor', 'Self'],
+  ['primary-unit', 'Enemy'],
+  ['affected-units', 'Enemy'],
+] as const)(
+  'shows inherited %s as one plain %s choice without changing saved data',
+  (recipient, label) => {
+    const onChange = vi.fn()
+    const value = { type: 'healing', recipient }
+    const before = structuredClone(value)
+    const html = renderToStaticMarkup(
+      <EffectTargetEditor
+        value={value}
+        aim={{
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          minimumRange: 0,
+          maximumRange: 3,
+          shape: { kind: 'single' },
+          maximumElevationDifference: 0,
+          requiresLineOfSight: false,
+        }}
+        onChange={onChange}
+      />,
+    )
+    expect(html).not.toContain('existing rules')
+    expect(html.match(new RegExp(`>${label}</option>`, 'g'))).toHaveLength(1)
+    expect(html).toContain(`<option value="" selected="">${label}</option>`)
+    expect(value).toEqual(before)
+    expect(onChange).not.toHaveBeenCalled()
+  },
+)

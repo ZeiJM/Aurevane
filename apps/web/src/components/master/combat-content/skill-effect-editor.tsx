@@ -1,13 +1,15 @@
 'use client'
+import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
 import {
   selectableCombatStatusIds,
   combatStatusSelectionSummary,
   type StatusSelectionKind,
 } from '@aurevane/game-core/combat/combat-status-selection'
+import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 import {
-  AUTHORABLE_EFFECT_TAGS,
-  effectAuthoringTag,
-} from '@aurevane/game-core/combat/combat-effect-authoring'
+  CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+  CURRENT_RECOVERY_MAXIMUM_APPLICATIONS,
+} from '@aurevane/game-core/combat/combat-effect-duration'
 
 import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
@@ -22,6 +24,7 @@ import {
 import { useId, useState } from 'react'
 import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import {
+  CURRENT_POISON_REFRESH_TRAVERSED_TILES,
   parsePercentageBasisPoints,
   percentageBasisPointsText,
   percentageDotSequence,
@@ -107,20 +110,6 @@ function StatusSelectionControls({
 function integer(value: string, fallback: number): number {
   const parsed = Number(value)
   return value.trim() && Number.isSafeInteger(parsed) ? parsed : fallback
-}
-
-function curseCopyableField(value: boolean | undefined, onChange: (next: boolean) => void) {
-  return (
-    <label className={styles.checkField}>
-      <input
-        aria-label="Curse-copyable"
-        type="checkbox"
-        checked={value === true}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-      />
-      <span>Curse-copyable</span>
-    </label>
-  )
 }
 
 function damageEditor(
@@ -289,19 +278,23 @@ function PercentageDotControls({
           <p className={styles.effectNote}>{sequence}. Backlash can trigger once per turn.</p>
         </>
       ) : null}
+      {value.type === 'poison' ? (
+        <AbilityNumber
+          label="Movement refresh (tiles)"
+          value={value.movementRefreshTiles ?? CURRENT_POISON_REFRESH_TRAVERSED_TILES}
+          min={1}
+          max={99}
+          onChange={(movementRefreshTiles) => onChange({ ...value, movementRefreshTiles })}
+        />
+      ) : null}
       {!value.damageProfile ? (
         <button type="button" onClick={() => changeProfile(profile)}>
           Convert to attack percentage
         </button>
       ) : null}
-      {value.type === 'poison'
-        ? curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )
-        : null}
       <p className={styles.effectNote}>
-        Based on HP damage dealt by this attack. Add a direct Damage effect covering these
-        recipients.
+        Based on HP damage dealt by this attack. Damage or Pierce in this group supplies the basis;
+        this effect can target different recipients.
       </p>
     </div>
   )
@@ -514,7 +507,7 @@ export function SkillEffectEditor({
               aria-label="Healing ticks"
               type="number"
               min={1}
-              max={4}
+              max={CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}
               step={1}
               value={value.ticks ?? ''}
               placeholder="Immediate"
@@ -582,7 +575,7 @@ export function SkillEffectEditor({
               aria-label="MP ticks"
               type="number"
               min={1}
-              max={value.delta < 0 ? 1 : 4}
+              max={value.delta < 0 ? 1 : CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}
               step={1}
               value={value.ticks ?? ''}
               placeholder="Immediate"
@@ -648,60 +641,6 @@ export function SkillEffectEditor({
       }
       controls = (
         <div className={styles.typedGrid}>
-          {!['root', 'invisible', 'challenged'].includes(value.statusId) &&
-          value.applicationOrigin !== 'frozen-ground' ? (
-            <label className={styles.field}>
-              <span>Status</span>
-              <select
-                aria-label="Status"
-                value={value.statusId}
-                onChange={(event) => {
-                  const next = { ...value, statusId: event.currentTarget.value }
-                  if (isBlindsideStatusId(next.statusId)) {
-                    next.durationTurns = 1
-                    delete next.potencyBasisPoints
-                  }
-                  if (next.statusId === 'suppress') {
-                    next.stacks = 1
-                    next.durationTurns ??= 2
-                    next.potencyBasisPoints ??= 2500
-                    delete next.power
-                  }
-                  if (!isBlindsideStatusId(next.statusId)) delete next.blindsideModifiersBasisPoints
-                  const fields = {
-                    initiativeReductionBasisPoints: 'wet',
-                    defenseIncreaseBasisPoints: 'fortified',
-                    damageTakenMultiplierBasisPoints: 'lowered-guard',
-                  }
-                  for (const [key, status] of Object.entries(fields))
-                    if (next.statusId !== status) Reflect.deleteProperty(next, key)
-                  if (!['haste', 'slow'].includes(next.statusId))
-                    Reflect.deleteProperty(next, 'movementApAdjustment')
-                  if (next.statusId !== 'counter') Reflect.deleteProperty(next, 'counter')
-                  else {
-                    next.counter ??= { kind: 'full', basisPoints: 10000 }
-                    next.stacks = 1
-                  }
-                  onChange(currentTagForAuthoring(next))
-                }}
-              >
-                {!AUTHORABLE_EFFECT_TAGS.some((tag) => tag.statusId === value.statusId) ? (
-                  <option value={value.statusId}>
-                    {isBlindsideStatusId(value.statusId) ? 'Blindside' : 'Retained status'}
-                  </option>
-                ) : null}
-                {AUTHORABLE_EFFECT_TAGS.flatMap((tag) =>
-                  tag.opcode === 'apply-status' && tag.statusId
-                    ? [
-                        <option key={tag.id} value={tag.statusId}>
-                          {tag.label}
-                        </option>,
-                      ]
-                    : [],
-                )}
-              </select>
-            </label>
-          ) : null}
           {!['covert', 'invisible', 'mark', 'marked', 'root'].includes(value.statusId) ? (
             <label className={styles.field}>
               <span>Status stacks</span>
@@ -956,7 +895,7 @@ export function SkillEffectEditor({
               aria-label="Revealed duration (owner-turn starts)"
               type="number"
               min={1}
-              max={4}
+              max={CURRENT_EFFECT_DURATION_MAXIMUM_TURNS}
               step={1}
               value={value.revealedDurationOwnerTurnStarts}
               onChange={(event) =>
@@ -1002,8 +941,7 @@ export function SkillEffectEditor({
     value.type === 'apply-status' &&
     PERCENTAGE_STATUS_IDS.has(value.statusId) &&
     value.statusId !== 'fortified'
-  const maximumDuration =
-    value.type === 'healing' || (value.type === 'resource-change' && value.delta > 0) ? 3 : 4
+  const maximumDuration = CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
   const minimumDuration = [
     'apply-status',
     'bleed',
@@ -1099,7 +1037,7 @@ export function SkillEffectEditor({
                       : 1500)) / 100
               }
               min={1}
-              max={value.statusId === 'suppress' ? 100 : 50}
+              max={maximumCombatStatusPotencyBasisPoints(value.statusId) / 100}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, potencyBasisPoints: Math.round(percent * 100) })

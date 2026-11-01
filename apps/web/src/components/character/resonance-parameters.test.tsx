@@ -45,7 +45,7 @@ it.each(currentResonances)(
     expect(markup).not.toContain('aria-label="Usage limits"')
     expect(markup).not.toMatch(/Once per (action|owner turn|round|battle)/)
     if (definition.ability!.behaviors[0]!.requirements) {
-      expect(markup).toContain('aria-label="Requirement explanations"')
+      expect(markup).not.toContain('aria-label="Requirement explanations"')
       expect(markup).toMatch(/<strong[^>]*data-combat-tag-reference=/)
     }
     expect(JSON.stringify(definition)).toBe(before)

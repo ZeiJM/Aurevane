@@ -207,7 +207,7 @@ it('shows Damage before Blindside for every granting Skill without mutating exec
   }
 })
 
-it('explains saved policy 1 typed damage, captured bonuses and caster cleanse', () => {
+it('explains saved policy 1 typed damage and captured bonuses without cleansing advice', () => {
   expect(
     previewEffect(
       { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'ice' },
@@ -238,7 +238,7 @@ it('explains saved policy 1 typed damage, captured bonuses and caster cleanse', 
       { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'fire' },
       { explicitElemental: false },
     ).explanation,
-  ).toContain('caster')
+  ).not.toMatch(/cleans|removes Drenched|removes Chilled/i)
 })
 
 it('explains implicit elemental timing using the captured status timing override', () => {

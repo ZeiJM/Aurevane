@@ -1,3 +1,7 @@
+import {
+  CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+  CURRENT_RECOVERY_MAXIMUM_APPLICATIONS,
+} from './combat-effect-duration'
 import { validateCapturedPercentageRecovery } from './combat-percentage-recovery'
 import type { CombatEffectDefinition, CombatEncounterIssue, CombatEncounterState } from './actions'
 import { normalizeCombatEffectState, type CombatOngoingRecovery } from './combat-effect-state'
@@ -37,9 +41,9 @@ export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
   if (effect.type === 'resource-change' && effect.delta < 0 && ticks !== 1) {
     throw new RangeError('MP Drain is immediate-only and must use one tick.')
   }
-  if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > 4) {
+  if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > CURRENT_RECOVERY_MAXIMUM_APPLICATIONS) {
     throw new RangeError(
-      `${effect.type === 'healing' ? 'Healing' : 'MP recovery'} ticks must be an integer between 1 and 4.`,
+      `${effect.type === 'healing' ? 'Healing' : 'MP recovery'} ticks must be an integer between 1 and ${CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}.`,
     )
   }
 }
@@ -99,7 +103,7 @@ export function validateOngoingRecoveryState(
     {
       field: 'effectState.ongoingRecovery',
       message:
-        'Recovery schedules must have valid identities, safe amounts, one to three future ticks, and unique recipient/resource/action keys.',
+        'Recovery schedules must have valid identities, safe amounts, up to 99 future ticks, and unique recipient/resource/action keys.',
     },
   ]
   if (
@@ -126,7 +130,7 @@ export function validateOngoingRecoveryState(
       row.amountPerTick < 0 ||
       !Number.isSafeInteger(row.remainingFutureTicks) ||
       row.remainingFutureTicks < 1 ||
-      row.remainingFutureTicks > 3 ||
+      row.remainingFutureTicks > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
       (row.skipCurrentOwnerTurnEnd !== undefined &&
         typeof row.skipCurrentOwnerTurnEnd !== 'boolean')
     )

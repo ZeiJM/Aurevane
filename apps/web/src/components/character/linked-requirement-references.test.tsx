@@ -212,6 +212,7 @@ it.each(['wet', 'conductive'])(
     const help = references(report.requirementParts)[0]!.explanation!
     expect(help).toContain('Storm damage')
     expect(help).not.toMatch(/per active|per application|20%/)
-    expect(help).toContain(statusId === 'wet' ? 'Fire removes' : 'consum')
+    if (statusId === 'wet') expect(help).not.toContain('Fire removes')
+    else expect(help).toContain('consum')
   },
 )

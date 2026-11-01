@@ -78,7 +78,7 @@ export function skillEffectDescription(
   if (isReversalPresentationEffect(effect)) return reversalDescription(effect)
   const target = recipient(effect)
   if (isPercentageDotEffect(effect))
-    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, options)}`
+    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, { ...options, ...(effect.type === 'poison' ? { movementRefreshTiles: effect.movementRefreshTiles } : {}) })}`
   switch (effect.type) {
     case 'weak-point':
     case 'spike':

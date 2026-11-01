@@ -4,7 +4,8 @@ import type { MatureSkillDefinition, MatureSkillEffectDefinition } from './matur
 
 export const CURRENT_SKILL_POWER_MINIMUM = 1 as const
 export const CURRENT_SKILL_POWER_MAXIMUM = 20 as const
-export const CURRENT_EFFECT_DURATION_MAXIMUM_TURNS = 4 as const
+export { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 export const CURRENT_SKILL_COOLDOWN_MAXIMUM_TURNS = 3 as const
 
 export type RebalanceSkillKind = 'technique' | 'essence'

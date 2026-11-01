@@ -1206,7 +1206,8 @@ it('derives report descriptions from the encounter elemental pin rather than cur
     { ...state, elementalDamagePolicyVersion: 2 },
     viewer,
   )[0]!.report!
-  expect(old.effectDescriptions[0]).toContain('Positive fire damage removes Wet and Frozen')
+  expect(old.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
+  expect(old.effectDescriptions[0]).toContain('two round boundaries')
   expect(current.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
 })
 

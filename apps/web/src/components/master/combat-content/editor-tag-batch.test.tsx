@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
+import { AUTHORABLE_EFFECT_TAGS } from '@aurevane/game-core/combat/combat-effect-authoring'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { EffectTagPicker } from './effect-tag-picker'
 import { SkillTargetingEditor } from './skill-targeting-editor'
@@ -28,20 +29,21 @@ it.each(['covert', 'invisible', 'mark', 'root'])('hides stacks for %s', (statusI
     }),
   ).not.toContain('aria-label="Status stacks"')
 })
-it.each(['root', 'invisible', 'challenged'])(
-  'fixes the redundant status selector for %s',
-  (statusId) => {
-    expect(
-      render({
-        type: 'apply-status',
-        recipient: 'primary-unit',
-        statusId,
-        stacks: 1,
-        durationTurns: 2,
-      }),
-    ).not.toContain('aria-label="Status"')
-  },
-)
+it.each(
+  AUTHORABLE_EFFECT_TAGS.filter((tag) => tag.opcode === 'apply-status' && tag.statusId).map(
+    (tag) => tag.statusId!,
+  ),
+)('fixes the redundant status selector for %s', (statusId) => {
+  expect(
+    render({
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId,
+      stacks: 1,
+      durationTurns: 2,
+    }),
+  ).not.toContain('aria-label="Status"')
+})
 it('keeps Pull direction fixed while exposing distance', () => {
   const html = render({
     type: 'displace',
@@ -52,27 +54,30 @@ it('keeps Pull direction fixed while exposing distance', () => {
   expect(html).not.toContain('aria-label="Push or Pull"')
   expect(html).toContain('aria-label="Tiles moved"')
 })
-it.each(['burn', 'bleed'] as const)('removes the Curse-copyable option from %s', (type) => {
-  const value: CombatEffectDefinition =
-    type === 'bleed'
-      ? {
-          type,
-          recipient: 'primary-unit',
-          ticks: 3,
-          damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
-        }
-      : {
-          type,
-          recipient: 'primary-unit',
-          durationTurns: 3,
-          damageProfile: {
-            kind: 'attack-percentage',
-            basisPoints: 2500,
-            decayBasisPointsPerTick: 500,
-          },
-        }
-  expect(render(value)).not.toContain('Curse-copyable')
-})
+it.each(['burn', 'bleed', 'poison'] as const)(
+  'removes the Curse-copyable option from %s',
+  (type) => {
+    const value: CombatEffectDefinition =
+      type === 'bleed'
+        ? {
+            type,
+            recipient: 'primary-unit',
+            ticks: 3,
+            damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
+          }
+        : {
+            type,
+            recipient: 'primary-unit',
+            durationTurns: 3,
+            damageProfile: {
+              kind: 'attack-percentage',
+              basisPoints: 2500,
+              decayBasisPointsPerTick: 500,
+            },
+          }
+    expect(render(value)).not.toContain('Curse-copyable')
+  },
+)
 it('keeps help only in the picker rather than the editable tag area', () => {
   expect(
     render({ type: 'apply-status', recipient: 'primary-unit', statusId: 'root', stacks: 1 }),
@@ -137,4 +142,35 @@ it('offers the captured extra Skill AP cost for Frozen Ground', () => {
   } as CombatEffectDefinition)
   expect(html).toContain('aria-label="Extra Skill AP cost"')
   expect(html).toContain('value="23"')
+})
+
+it.each(['warded', 'conductive'])(
+  'allows %s potency through 100% without changing its identity',
+  (statusId) => {
+    const html = render({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId,
+      stacks: 1,
+      durationTurns: 99,
+      potencyBasisPoints: 10000,
+    })
+    expect(html).toMatch(/aria-label="Status potency \(percent\)"[^>]*max="100"[^>]*value="100"/)
+    expect(html).not.toContain('aria-label="Status"')
+  },
+)
+
+it('shows Poison’s configured movement refresh without exposing copy eligibility', () => {
+  const html = render({
+    type: 'poison',
+    recipient: 'actor',
+    movementRefreshTiles: 7,
+    durationTurns: 99,
+    damageProfile: { kind: 'attack-percentage', basisPoints: 1500 },
+    curseCopyable: true,
+  })
+  expect(html).toMatch(
+    /aria-label="Movement refresh \(tiles\)"[^>]*min="1"[^>]*max="99"[^>]*value="7"/,
+  )
+  expect(html).not.toContain('Curse-copyable')
 })

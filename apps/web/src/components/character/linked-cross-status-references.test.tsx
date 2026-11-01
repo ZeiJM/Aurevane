@@ -45,7 +45,7 @@ it.each([
     'aetherist.chain-spark',
     1,
     ['burn', 'poison', 'bleed'],
-    'Deal less direct damage. Reapplying keeps the stronger, longer effect. Existing Burn, Poison and Bleed damage is unchanged. Cleanse removes it; Dispel does not.',
+    'Deal less direct damage. Reapplying keeps the stronger, longer effect. Existing Burn, Poison and Bleed damage is unchanged.',
   ],
   ['cinderweaver.ash-ward', 0, ['burn'], 'Take less damage from opponents affected by Burn.'],
 ] as const)(

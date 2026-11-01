@@ -280,7 +280,7 @@ it('describes current elemental rails using their saved policy and strongest cap
     potencyBasisPoints: 3500,
   })
   expect(old.description).toContain('10% once')
-  expect(old.description).toContain('Fire removes Drenched')
+  expect(old.description).not.toContain('Fire removes')
 })
 
 it('uses admitted short text in the shared status report while retaining captured amount facts', async () => {
@@ -320,4 +320,22 @@ it('shows saved Blindside debuff percentages in active and pending status rails'
       'Front hits and Basic Attack are unchanged',
     )
   }
+})
+
+it('uses the captured active Poison movement refresh in its battle description', () => {
+  const effect = describeBattleEffect({
+    statusId: 'poison',
+    statusVersion: 1,
+    stacks: 1,
+    remainingOwnerTurnStarts: 2,
+    sourceCombatantId: 'caster',
+    dotTriggerPolicyVersion: 2,
+    poisonMovementRefreshTiles: 7,
+    percentageDamage: {
+      capturedDamage: 100,
+      profile: { kind: 'attack-percentage', basisPoints: 1500 },
+    },
+  })
+  expect(effect.description).toContain('Every 7 traversed tiles')
+  expect(effect.description).not.toContain('Every five')
 })

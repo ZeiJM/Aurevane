@@ -53,13 +53,9 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   status('wet', 'Wet', 'Debuff', 'Reduces Initiative and increases Storm damage taken.', {
     gameplayTags: ['Wet'],
   }),
-  status(
-    'frozen',
-    'Chilled',
-    'Debuff',
-    'Prevents choosing a different final facing. Movement still turns the bearer; Cleanse Chilled removes it.',
-    { gameplayTags: ['Frozen'] },
-  ),
+  status('frozen', 'Chilled', 'Debuff', 'Prevents choosing a different final facing.', {
+    gameplayTags: ['Frozen'],
+  }),
   status(
     'conductive',
     'Conductive',

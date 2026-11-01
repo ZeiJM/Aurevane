@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { hasArmedCombatReversal } from './combat-reversal'
 import { combatStatusApplications } from './combat-status-applications'
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
@@ -17,7 +18,7 @@ import type {
 
 export const CSR_STATUS_VERSION = 1 as const
 export const CSR_MINIMUM_DURATION_OWNER_TURN_STARTS = 1 as const
-export const CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS = 4 as const
+export const CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS = CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
 export const COVERT_STATUS_ID = 'covert' as const
 export const REVEALED_STATUS_ID = 'revealed' as const
 
@@ -609,7 +610,9 @@ function validateCsrDuration(value: number, field: string): void {
     value < CSR_MINIMUM_DURATION_OWNER_TURN_STARTS ||
     value > CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS
   ) {
-    throw new RangeError(`${field} must be an integer from 1 to 4 owner-turn starts.`)
+    throw new RangeError(
+      `${field} must be an integer from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} owner-turn starts.`,
+    )
   }
 }
 

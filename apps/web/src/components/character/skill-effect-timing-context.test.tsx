@@ -137,10 +137,10 @@ it('uses saved elemental policy across full reports and retains policy 1 and abs
   expect(current).toContain('Enemy / Ground')
   const oldModern = markup(1)
   expect(oldModern).toContain('Otherwise:')
-  expect(oldModern).toContain('removes Drenched and Chilled')
+  expect(oldModern).not.toContain('removes Drenched and Chilled')
   expect(oldModern).toContain('Initiative by 10% once')
   const legacy = markup(null)
-  expect(legacy).toContain('removes Wet and Frozen')
+  expect(legacy).not.toContain('removes Wet and Frozen')
   expect(legacy).not.toContain('Enemy / Ground')
 })
 

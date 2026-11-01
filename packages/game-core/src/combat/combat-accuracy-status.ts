@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { combatStatusApplications } from './combat-status-applications'
 import type {
   CombatContentCatalog,
@@ -120,7 +121,7 @@ export function assertValidCombatAccuracyStatusState(
         (state.effectStackingPolicyVersion !== 1 && status.stacks !== 1) ||
         !Number.isSafeInteger(status.stacks) ||
         status.stacks < 1 ||
-        status.remainingOwnerTurnStarts > 5
+        status.remainingOwnerTurnStarts > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS + 1
       ) {
         throw new TypeError(
           'Current accuracy status must match its pinned definition, source scope, stack and duration.',

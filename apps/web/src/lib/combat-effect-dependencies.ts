@@ -6,7 +6,7 @@ interface DependencyEffect {
   readonly amount?: number
   readonly statusId?: string
   readonly authoringLink?: string
-  readonly damageProfile?: { readonly kind: string }
+  readonly damageProfile?: { readonly kind: string; readonly damageBasis?: 'command-hostile-total' }
   readonly vengeance?: unknown
   readonly applicationOrigin?: 'frozen-ground'
 }
@@ -16,15 +16,17 @@ const requiresDamage = (value: DependencyEffect) =>
   (['burn', 'bleed', 'poison'].includes(value.type) &&
     value.damageProfile?.kind === 'attack-percentage') ||
   attackModifier(value)
-const damage = (value: DependencyEffect) =>
-  ['damage', 'pierce'].includes(value.type) &&
-  value.vengeance === undefined &&
-  (value.amount ?? 0) > 0 &&
-  value.recipient !== 'actor'
+const damage = (value: DependencyEffect) => ['damage', 'pierce'].includes(value.type)
 const same = (a: DependencyEffect, b: DependencyEffect) =>
   a === b || JSON.stringify(a) === JSON.stringify(b)
 function covers(hit: DependencyEffect, effect: DependencyEffect): boolean {
-  if (!damage(hit)) return false
+  if (
+    !damage(hit) ||
+    hit.recipient === 'actor' ||
+    hit.vengeance !== undefined ||
+    (hit.amount ?? 0) <= 0
+  )
+    return false
   if (attackModifier(effect)) return true
   if (effect.target === 'all' && hit.target !== 'all') return false
   const hitTarget = hit.target === 'ground' ? 'enemy' : hit.target
@@ -75,22 +77,44 @@ export function reconcileAuthoredEffectDependencies<T extends DependencyEffect>(
     options.onLinked?.(effect, linked)
     return linked
   })
-  // A removed or retargeted Damage must not leave its existing damage-dependent effects silently invalid.
-  next = next.filter(
-    (effect) =>
-      !requiresDamage(effect) ||
-      !previous.some((old) => same(old, effect)) ||
-      !previous.some((old) => covers(old, effect)) ||
-      next.some((hit) => covers(hit, effect)),
-  )
+  // Deleting the final direct packet removes its dependents; never resurrect the deleted row.
+  // Retargeting either packet is independent and keeps the existing dependency satisfied.
+  if (previous.some(damage) && !next.some(damage))
+    next = next.filter(
+      (effect) => !requiresDamage(effect) || !previous.some((old) => same(old, effect)),
+    )
+  // Earlier editors generated one companion per target. Explicit authoring links are the only
+  // evidence that a packet is generated: independently authored hits are never deduplicated.
+  const generated = (effect: DependencyEffect) =>
+    damage(effect) && effect.authoringLink?.startsWith('dot-damage.')
+  const independentHit = next.some((effect) => damage(effect) && !generated(effect))
+  let retainedGenerated = false
+  next = next.filter((effect) => {
+    if (!generated(effect)) return true
+    if (independentHit || retainedGenerated || !next.some(requiresDamage)) return false
+    retainedGenerated = true
+    return true
+  })
+  next = next.map((effect) => {
+    if (!generated(effect) || (effect.recipient !== 'actor' && effect.target !== 'self'))
+      return effect
+    const linked = { ...effect, recipient: 'primary-unit', target: 'enemy' }
+    options.onLinked?.(effect, linked)
+    return linked
+  })
   for (const effect of [...next]) {
-    if (requiresDamage(effect) && !next.some((hit) => covers(hit, effect))) {
+    if (requiresDamage(effect) && !next.some(damage)) {
+      const self = effect.recipient === 'actor'
       const hit = {
         type: 'damage',
-        recipient: attackModifier(effect) ? 'primary-unit' : effect.recipient,
+        recipient: attackModifier(effect) || self ? 'primary-unit' : effect.recipient,
         amount: 1,
         authoringLink: freshLink('dot-damage', next),
-        ...(effect.target && !attackModifier(effect) ? { target: effect.target } : {}),
+        ...(self && !attackModifier(effect)
+          ? { target: 'enemy' }
+          : effect.target && !attackModifier(effect)
+            ? { target: effect.target }
+            : {}),
       } as unknown as T
       next.splice(next.indexOf(effect), 0, hit)
     }
@@ -111,12 +135,23 @@ export function reconcileAuthoredEffectDependencies<T extends DependencyEffect>(
       } as unknown as T)
     }
   }
-  next = next.filter(
-    (effect) =>
-      !effect.authoringLink?.startsWith('dot-damage.') ||
-      !damage(effect) ||
-      next.some((dependency) => requiresDamage(dependency) && covers(effect, dependency)),
-  )
+  next = next.map((effect) => {
+    if (!requiresDamage(effect) || attackModifier(effect) || !effect.damageProfile) return effect
+    const needsCommandBasis = !next.some((hit) => covers(hit, effect))
+    if (needsCommandBasis === (effect.damageProfile.damageBasis === 'command-hostile-total'))
+      return effect
+    const { damageBasis: removed, ...profile } = effect.damageProfile
+    void removed
+    const linked = {
+      ...effect,
+      damageProfile: {
+        ...profile,
+        ...(needsCommandBasis ? { damageBasis: 'command-hostile-total' as const } : {}),
+      },
+    }
+    options.onLinked?.(effect, linked)
+    return linked
+  })
   return next.length === proposed.length && next.every((row, index) => row === proposed[index])
     ? proposed
     : next

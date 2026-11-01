@@ -652,6 +652,14 @@ describe('combat content authoring service', () => {
     const base = staticSkill('wildwarden.renewing-herbs')
     if (!base.summonProfile) throw new Error('Expected current Renewing Herbs summon profile.')
 
+    for (const lifetimeTurns of [99, 100])
+      expect(
+        service.validateSkillDefinition({
+          ...base,
+          summonProfile: { ...base.summonProfile, lifetimeTurns },
+        }).valid,
+      ).toBe(lifetimeTurns === 99)
+
     const threeTurn = {
       ...base,
       summonProfile: {
@@ -759,7 +767,7 @@ describe('combat content authoring service', () => {
     [
       'recovery tick overflow',
       (value: Record<string, unknown>) => {
-        value.effects = [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 5 }]
+        value.effects = [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 101 }]
       },
     ],
     [
@@ -1326,7 +1334,7 @@ describe('persistent Ground publication and authored Burn backlash', () => {
     const source = structuredClone(original.definition) as unknown as MatureSkillDefinition
     const edited = {
       ...source,
-      groundArea: { ...source.groundArea!, durationRounds: 4, visualPresetId: 'frost' as const },
+      groundArea: { ...source.groundArea!, durationRounds: 99, visualPresetId: 'frost' as const },
       effects: source.effects.map((effect) =>
         effect.type === 'burn' ? { ...effect, backlashBasisPoints: 1234 } : effect,
       ),
@@ -1334,7 +1342,7 @@ describe('persistent Ground publication and authored Burn backlash', () => {
     const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition: edited })
     expect(preview.legal).toBe(true)
     expect(preview.groundAreas).toMatchObject([
-      { visualPresetId: 'frost', activationRound: 5, expiresAtRound: 9 },
+      { visualPresetId: 'frost', activationRound: 5, expiresAtRound: 104 },
     ])
     expect(preview.groundAreas[0]!.tiles).toHaveLength(8)
     expect(preview.groundAreas[0]).not.toHaveProperty('caster')
@@ -1377,7 +1385,7 @@ describe('persistent Ground publication and authored Burn backlash', () => {
     const { service } = serviceFixture()
     for (const change of [
       { durationRounds: 0 },
-      { durationRounds: 5 },
+      { durationRounds: 100 },
       { visualPresetId: 'javascript:alert(1)' },
       { entryEffectOrdinals: [99] },
     ]) {
@@ -1447,7 +1455,7 @@ it('publishes and restores captured elemental bonus/duration through immutable M
   }
 })
 
-it('validates and immutably publishes Suppress percentage boundaries without rewriting the original Skill', async () => {
+it('validates and immutably publishes a 99-turn Suppress without rewriting the original Skill', async () => {
   const { store, service } = serviceFixture()
   store.operators.set(OWNER, 'owner')
   const original = staticSkill()
@@ -1461,7 +1469,7 @@ it('validates and immutably publishes Suppress percentage boundaries without rew
         statusId: 'suppress',
         stacks: 1,
         potencyBasisPoints: 10000,
-        durationTurns: 4,
+        durationTurns: 99,
       },
     ],
   }
@@ -1473,7 +1481,7 @@ it('validates and immutably publishes Suppress percentage boundaries without rew
         effects: [{ ...definition.effects[0]!, potencyBasisPoints }],
       }).valid,
     ).toBe(false)
-  for (const durationTurns of [0, 5])
+  for (const durationTurns of [0, 100])
     expect(
       service.validateSkillDefinition({
         ...definition,
@@ -2256,6 +2264,7 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     const coreProfile = withCurrentSummonCoreAttributes(native.summonProfile!)
     const profile = {
       ...coreProfile,
+      lifetimeTurns: 99,
       abilities: coreProfile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
     }
     const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
@@ -2297,5 +2306,155 @@ it.each(['skill', 'essence', 'resonance'] as const)(
         ? (receipt.definition.skill as { ability: unknown }).ability
         : receipt.definition.ability
     expect(JSON.parse(JSON.stringify(saved))).toEqual(ability)
+  },
+)
+
+it.each([99, 100])('enforces duration %i inside retained native Summon Skills', (durationTurns) => {
+  const { service } = serviceFixture()
+  const base = staticSkill('wildwarden.renewing-herbs')
+  const profile = base.summonProfile!
+  const value = {
+    ...base,
+    summonProfile: {
+      ...profile,
+      abilities: profile.abilities.map((ability, index) =>
+        index
+          ? ability
+          : {
+              ...ability,
+              effects: [
+                {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'guarded',
+                  stacks: 1,
+                  durationTurns,
+                },
+              ],
+            },
+      ),
+    },
+  }
+  expect(service.validateSkillDefinition(value).valid).toBe(durationTurns === 99)
+})
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'caps new %s Summon lifetimes at99 while retaining capture compatibility',
+  (kind) => {
+    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const lifetimeTurns of [99, 100]) {
+      const ability = parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+            effects: [
+              {
+                id: 'call',
+                payload: {
+                  type: 'summon',
+                  recipient: 'selected-tile',
+                  profile: { ...native.summonProfile!, lifetimeTurns },
+                },
+              },
+            ],
+          },
+        ],
+      })
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(lifetimeTurns === 99)
+    }
+  },
+)
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'accepts and rejects the Burn Ward potency bounds for %s',
+  (kind) => {
+    const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const potencyBasisPoints of [9900, 10000, 10001]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              {
+                id: 'ward',
+                payload: {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'warded',
+                  stacks: 1,
+                  potencyBasisPoints,
+                  durationTurns: 99,
+                },
+              },
+            ],
+          },
+        ],
+      }
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(
+        potencyBasisPoints <= 10000,
+      )
+    }
+  },
+)
+
+it.each([9900, 10000, 10001])(
+  'enforces native Burn Ward potency %i at publication validation',
+  (potencyBasisPoints) => {
+    const { service } = serviceFixture()
+    const original = staticSkill()
+    const value = {
+      ...original,
+      effectDescriptions: undefined,
+      effects: [
+        {
+          type: 'apply-status' as const,
+          recipient: 'actor' as const,
+          statusId: 'warded',
+          stacks: 1,
+          potencyBasisPoints,
+          durationTurns: 99,
+        },
+      ],
+    }
+    expect(service.validateSkillDefinition(value).valid).toBe(potencyBasisPoints <= 10000)
+  },
+)
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'enforces Conductive potency through100% for %s',
+  (kind) => {
+    const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const potencyBasisPoints of [9900, 10000, 10001]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              {
+                id: 'storm',
+                payload: {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'conductive',
+                  stacks: 1,
+                  potencyBasisPoints,
+                  durationTurns: 99,
+                },
+              },
+            ],
+          },
+        ],
+      }
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(
+        potencyBasisPoints <= 10000,
+      )
+    }
   },
 )

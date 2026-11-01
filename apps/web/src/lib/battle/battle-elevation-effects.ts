@@ -76,7 +76,7 @@ export function primedBattleEffectPresentation(
     timingState: 'primed',
     duration: 'While a Controlled skill remains primed',
     description:
-      'A Controlled skill is prepared for release. Primed ends when it is released, cancelled, its source is removed, the character is defeated, or battle ends. This derived tag cannot be applied, copied or cleansed.',
+      'A Controlled skill is prepared for release. Primed ends when it is released, cancelled, its source is removed, the character is defeated, or battle ends. This derived tag cannot be applied or copied.',
   }
 }
 
@@ -118,6 +118,6 @@ export function reversalBattleEffectPresentation(
     timing: 'Armed',
     timingState: 'primed',
     duration: 'Until triggered or the start of the next actual owner turn',
-    description: `${reversalDescription(effect.reversal)} This armed state cannot be copied or removed by generic Cleanse or Dispel.`,
+    description: `${reversalDescription(effect.reversal)} This armed state cannot be copied.`,
   }
 }

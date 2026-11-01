@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import {
   isSimpleRequirement,
   simpleRequirementSubjects,
@@ -921,7 +922,7 @@ export function validateAbilityElementalCompanions(
       (companion.payload.stacks !== 1 ||
         !nonnegative(companion.payload.durationTurns) ||
         companion.payload.durationTurns < 1 ||
-        companion.payload.durationTurns > 4 ||
+        companion.payload.durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
         (status === 'frozen'
           ? companion.payload.potencyBasisPoints !== undefined
           : companion.payload.potencyBasisPoints === undefined))

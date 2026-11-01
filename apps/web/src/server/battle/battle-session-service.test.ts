@@ -390,6 +390,8 @@ describe('P2.4 battle session service', () => {
     expect(result.snapshot.elementalDamagePolicyVersion).toBe(2)
     expect(result.snapshot.dynamicInitiativePolicyVersion).toBe(1)
     expect(result.snapshot.healingDownPolicyVersion).toBe(1)
+    expect(result.snapshot.conditionalDamageRoundingPolicyVersion).toBe(1)
+    expect(persistedSnapshot.conditionalDamageRoundingPolicyVersion).toBe(1)
     expect(result.snapshot.blindsideActivationPolicyVersion).toBe(1)
     expect(result.snapshot.displacementPolicyVersion).toBe(1)
     const player = persistedSnapshot.tactical.battle.combatants.find(

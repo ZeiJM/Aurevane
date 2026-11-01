@@ -250,9 +250,9 @@ describe('CSR-1 Covert and Revealed definitions', () => {
       reactionClass: 'ordinary',
     })
     expect(() => createCovertStatusDefinition(0)).toThrow()
-    expect(() => createCovertStatusDefinition(5)).toThrow()
+    expect(() => createCovertStatusDefinition(100)).toThrow()
     expect(() => createRevealedStatusDefinition(0)).toThrow()
-    expect(() => createRevealedStatusDefinition(5)).toThrow()
+    expect(() => createRevealedStatusDefinition(100)).toThrow()
   })
 
   it('keeps Covert single-stack and refreshes its pinned duration on reapplication', () => {

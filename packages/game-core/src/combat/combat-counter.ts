@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { combatStatusApplications } from './combat-status-applications'
 import type { CombatEncounterState, CombatEffectDefinition } from './actions'
 
@@ -31,13 +32,13 @@ export function validateCombatCounterEffect(effect: CombatEffectDefinition): voi
       (effect.durationTurns !== undefined &&
         (!Number.isSafeInteger(effect.durationTurns) ||
           effect.durationTurns < 1 ||
-          effect.durationTurns > 4)) ||
+          effect.durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)) ||
       effect.power !== undefined ||
       effect.potencyBasisPoints !== undefined ||
       effect.blindsideModifiersBasisPoints !== undefined
     )
       throw new TypeError(
-        'Counter uses only its type, percentage and one to four turns of duration.',
+        `Counter uses only its type, percentage and 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns of duration.`,
       )
   } else if ('counter' in effect)
     throw new TypeError('Counter profiles require the Counter status.')

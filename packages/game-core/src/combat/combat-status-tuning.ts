@@ -69,3 +69,8 @@ export function hasConfiguredRevealed(
       ?.statuses.some(configuredRevealed) === true
   )
 }
+
+/** Authoring and restored applications use the same per-status percentage ceiling. */
+export function maximumCombatStatusPotencyBasisPoints(statusId?: string): number {
+  return ['suppress', 'warded', 'conductive'].includes(statusId ?? '') ? 10000 : 5000
+}

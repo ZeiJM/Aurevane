@@ -10,7 +10,6 @@ import {
 import { skillTargetMethodExplanation } from '../../character/skill-detail-presentation'
 import type { TargetedEffect } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { AbilityNumber } from './ability-editor-fields'
-import { MasterHelp } from '../master-help'
 import styles from './combat-content-editor.module.css'
 
 export interface SkillTargetingEditorProps {
@@ -80,14 +79,6 @@ export function SkillTargetingEditor({
     value.friendlyFire === 'all-units' || value.friendlyFire === 'all-except-actor'
   return (
     <fieldset className={styles.typedGroup} aria-label="Range & Area" disabled={disabled}>
-      <legend>
-        Range &amp; Area{' '}
-        <MasterHelp label="Range availability">
-          Move uses its own Ground path, distance and Jump limits. A Move-only group needs no attack
-          aim unless a Requirement selects a unit. Disabled values remain in the draft and return
-          with follow-up effects.
-        </MasterHelp>
-      </legend>
       <p className={styles.fieldHint}>
         Choose each effect’s Target in Effects. This area controls their shared reach and footprint.
       </p>

@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { combatStatusTuning } from './combat-status-tuning'
 import { combatStatusIsCopyable, validateCombatStatusSelection } from './combat-status-selection'
 import { mergeSuppressStatus } from './combat-suppress'
@@ -134,10 +135,8 @@ function assertPinnedStatus(
     instance.remainingOwnerTurnStarts < 1 ||
     instance.remainingOwnerTurnStarts >
       (instance.remainingOwnerTurnEnds !== undefined
-        ? 4
-        : ['suppress', 'counter'].includes(instance.statusId)
-          ? 5
-          : definition.durationOwnerTurnStarts)
+        ? CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+        : Math.max(CURRENT_EFFECT_DURATION_MAXIMUM_TURNS + 1, definition.durationOwnerTurnStarts))
   ) {
     throw new TypeError(
       'Copied status state must match its pinned version, stack cap and remaining duration.',
@@ -529,6 +528,9 @@ export function applyCombatStatusCopies(
     sourceCombatantId: actorId,
     sourceActionId: actionId,
     profileVersion: copy.donor.profileVersion,
+    ...(copy.donor.movementRefreshTiles !== undefined
+      ? { movementRefreshTiles: copy.donor.movementRefreshTiles }
+      : {}),
     movementRemainder: usesPercentageCombatDots(state)
       ? copy.donor.movementRemainder
       : (copy.previous?.movementRemainder ?? copy.donor.movementRemainder),

@@ -44,7 +44,7 @@ it('removing Damage removes dependent DoTs but retains unrelated effects', () =>
     buff,
   ])
 })
-it('preserves independently authored Damage and distinct target coverage', () => {
+it('preserves independently authored Damage across independent target coverage', () => {
   const damage: CombatTagPayload = {
     type: 'damage',
     recipient: 'primary-unit',
@@ -62,7 +62,7 @@ it('preserves independently authored Damage and distinct target coverage', () =>
     reconcileAuthoredEffectDependencies<CombatTagPayload>([damage], [damage, area]).filter(
       (x) => x.type === 'damage',
     ),
-  ).toHaveLength(2)
+  ).toHaveLength(1)
 })
 it('links Frozen Ground and Chilled in both removal directions across serialization', () => {
   const terrain: CombatTagPayload = {
@@ -206,4 +206,138 @@ it('does not add or require direct Damage for retained flat DoTs that already wo
   const hit: CombatTagPayload = { type: 'damage', recipient: 'primary-unit', amount: 7 }
   expect(reconcileAuthoredEffectDependencies<CombatTagPayload>([], [flat])).toEqual([flat])
   expect(reconcileAuthoredEffectDependencies<CombatTagPayload>([hit, flat], [flat])).toEqual([flat])
+})
+
+it.each(['damage', 'pierce'] as const)(
+  'shares existing %s across independently authored DoT targets in either array order',
+  (type) => {
+    const hit = { type, recipient: 'primary-unit', target: 'enemy', amount: 9 } as CombatTagPayload
+    const self = { ...poison, recipient: 'actor', target: 'self' } as CombatTagPayload
+    for (const proposed of [
+      [hit, self, burn],
+      [self, burn, hit],
+    ]) {
+      const result = reconcileAuthoredEffectDependencies<CombatTagPayload>([hit], proposed)
+      expect(result.filter((row) => ['damage', 'pierce'].includes(row.type))).toEqual([hit])
+      expect(result.find((row) => row.type === 'poison')).toMatchObject({
+        recipient: 'actor',
+        target: 'self',
+        damageProfile: { damageBasis: 'command-hostile-total' },
+      })
+      expect(reconcileAuthoredEffectDependencies(result, result)).toEqual(result)
+      expect(
+        reconcileAuthoredEffectDependencies(
+          result,
+          result.filter((row) => row !== hit),
+        ),
+      ).toEqual([])
+    }
+  },
+)
+it('retargets Damage and DoTs independently without resurrection and preserves authored Damage', () => {
+  const hit = {
+    type: 'damage',
+    recipient: 'primary-unit',
+    target: 'enemy',
+    amount: 9,
+  } as CombatTagPayload
+  const first = reconcileAuthoredEffectDependencies<CombatTagPayload>([hit], [hit, poison])
+  const self = { ...poison, recipient: 'actor', target: 'self' } as CombatTagPayload
+  const second = reconcileAuthoredEffectDependencies(first, [hit, self])
+  expect(second.map((row) => row.type)).toEqual(['damage', 'poison'])
+  expect(second[1]).toMatchObject({ target: 'self' })
+  const allyHit = { ...hit, recipient: 'affected-units', target: 'ally' } as CombatTagPayload
+  const third = reconcileAuthoredEffectDependencies(second, [allyHit, second[1]!])
+  expect(third.map((row) => row.type)).toEqual(['damage', 'poison'])
+  expect(reconcileAuthoredEffectDependencies(third, [allyHit])).toEqual([allyHit])
+  expect(reconcileAuthoredEffectDependencies(second, [second[1]!])).toEqual([])
+})
+it('repairs surplus generated damage while preserving independently authored packets', () => {
+  const hit = {
+    type: 'damage',
+    recipient: 'primary-unit',
+    target: 'enemy',
+    amount: 9,
+  } as CombatTagPayload
+  const generated = {
+    type: 'damage',
+    recipient: 'affected-units',
+    target: 'all',
+    amount: 1,
+    authoringLink: 'dot-damage.1',
+  } as CombatTagPayload
+  const extraAuthored = { ...hit, amount: 7 } as CombatTagPayload
+  const result = reconcileAuthoredEffectDependencies<CombatTagPayload>(
+    [hit, generated, poison],
+    [hit, generated, extraAuthored, poison],
+  )
+  expect(result.filter((row) => row.type === 'damage')).toEqual([hit, extraAuthored])
+})
+
+it('restores recipient-local formulas when a DoT is retargeted back without changing row ownership', () => {
+  const hit: CombatTagPayload = {
+    type: 'damage',
+    recipient: 'primary-unit',
+    target: 'enemy',
+    amount: 9,
+  }
+  const self = { ...poison, recipient: 'actor', target: 'self' } as CombatTagPayload
+  const previous = {
+    id: 'main',
+    effects: [{ id: 'hit', payload: hit }],
+    classification: 'attack',
+    attackFamily: 'physical',
+  } as unknown as AbilityBehavior
+  const next = {
+    ...previous,
+    effects: [
+      ...previous.effects,
+      {
+        id: 'authored-poison',
+        payload: self,
+        requirements: {
+          kind: 'status-presence',
+          subject: 'owner',
+          statusId: 'inspired',
+          present: true,
+        },
+        timing: 'instant',
+      },
+    ],
+  } as AbilityBehavior
+  const independent = withAbilityEffectDependencies(previous, next)
+  expect(independent.effects[1]).toMatchObject({
+    id: 'authored-poison',
+    requirements: next.effects[1]!.requirements,
+    timing: 'instant',
+    payload: { damageProfile: { damageBasis: 'command-hostile-total' } },
+  })
+  const covered = withAbilityEffectDependencies(independent, {
+    ...independent,
+    effects: [independent.effects[0]!, { ...independent.effects[1]!, payload: poison }],
+  })
+  expect(covered.effects).toEqual([next.effects[0], { ...next.effects[1], payload: poison }])
+})
+it('adds one legal Enemy Damage for a fresh Self DoT and shares it with other DoTs', () => {
+  const self = { ...poison, recipient: 'actor', target: 'self' } as CombatTagPayload
+  const result = reconcileAuthoredEffectDependencies<CombatTagPayload>([], [self, burn])
+  expect(result.map((row) => row.type)).toEqual(['damage', 'poison', 'burn'])
+  expect(result[0]).toMatchObject({ type: 'damage', recipient: 'primary-unit', target: 'enemy' })
+})
+
+it('repairs an old generated Self Damage into a legal Enemy packet without resurrecting deletion', () => {
+  const invalid = {
+    type: 'damage',
+    recipient: 'actor',
+    target: 'self',
+    amount: 1,
+    authoringLink: 'dot-damage.1',
+  } as CombatTagPayload
+  const self = { ...poison, recipient: 'actor', target: 'self' } as CombatTagPayload
+  const repaired = reconcileAuthoredEffectDependencies<CombatTagPayload>(
+    [invalid, self],
+    [invalid, self],
+  )
+  expect(repaired[0]).toMatchObject({ type: 'damage', recipient: 'primary-unit', target: 'enemy' })
+  expect(reconcileAuthoredEffectDependencies([invalid, self], [self])).toEqual([])
 })

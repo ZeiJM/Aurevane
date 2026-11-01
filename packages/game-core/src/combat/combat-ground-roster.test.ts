@@ -81,7 +81,7 @@ describe('immutable persistent Ground definitions', () => {
     const base = resolveMatureSkillVersion('cinderweaver.flame-burst')!
     for (const invalid of [
       { ...ground, durationRounds: 0 },
-      { ...ground, durationRounds: 5 },
+      { ...ground, durationRounds: 100 },
       { ...ground, visualPresetId: 'javascript:evil' },
       { ...ground, timing: 'later' },
       { ...ground, entryEffectOrdinals: [] },

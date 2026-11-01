@@ -1,4 +1,5 @@
 import type { CombatEncounterState, CombatStatusInstance } from './actions'
+import type { CombatDamageMultiplierRatio } from './damage-modifiers'
 
 export const DEFAULT_SUPPRESS_BASIS_POINTS = 2500
 
@@ -75,19 +76,27 @@ export function mergeSuppressStatus(
 /** One checked rounding boundary for the ordinary final modifier and Suppress. */
 export function scaleSuppressedDirectDamage(
   amount: number,
-  multiplier: number,
+  multiplier: number | CombatDamageMultiplierRatio,
   suppression: number,
 ): number {
   if (
-    ![amount, multiplier, suppression].every(
-      (value) => Number.isSafeInteger(value) && value >= 0,
-    ) ||
+    ![amount, suppression].every((value) => Number.isSafeInteger(value) && value >= 0) ||
+    (typeof multiplier === 'number'
+      ? !Number.isSafeInteger(multiplier) || multiplier < 0
+      : typeof multiplier.numerator !== 'bigint' ||
+        typeof multiplier.denominator !== 'bigint' ||
+        multiplier.numerator < 0n ||
+        multiplier.denominator <= 0n) ||
     suppression > 10000
   )
     throw new RangeError(
       'Direct damage modifiers must be safe non-negative integers; Suppress cannot exceed 100%.',
     )
-  const scaled = (BigInt(amount) * BigInt(multiplier) * BigInt(10000 - suppression)) / 100000000n
+  const ratio =
+    typeof multiplier === 'number' ? { numerator: BigInt(multiplier), denominator: 1n } : multiplier
+  const scaled =
+    (BigInt(amount) * ratio.numerator * BigInt(10000 - suppression)) /
+    (100000000n * ratio.denominator)
   if (scaled > BigInt(Number.MAX_SAFE_INTEGER))
     throw new RangeError('Scaled combat value exceeds the safe integer range.')
   return Number(scaled)

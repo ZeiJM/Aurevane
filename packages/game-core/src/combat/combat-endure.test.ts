@@ -134,7 +134,7 @@ it('copies and validates the authored profile without permitting direct status f
   expect(validateCombatTagPayload({ ...endure, releaseBasisPoints: 25000 })).toEqual([])
   expect(validateCombatTagPayload({ ...endure, releaseBasisPoints: 0 })).not.toEqual([])
   expect(validateCombatTagPayload({ ...endure, radiusTiles: 0 })).not.toEqual([])
-  expect(validateCombatTagPayload({ ...endure, durationTurns: 5 })).not.toEqual([])
+  expect(validateCombatTagPayload({ ...endure, durationTurns: 100 })).not.toEqual([])
   expect(validateCombatTagPayload({ ...endure, target: 'enemy' })).not.toEqual([])
   expect(validateCombatTagPayload({ ...endure, recipient: 'primary-unit' })).not.toEqual([])
   expect(

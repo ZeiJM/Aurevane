@@ -16,7 +16,6 @@ import {
   skillCostDescription,
   skillCooldownDescription,
   skillParameterRows,
-  skillRequirementDescription,
   skillTargetTags,
   skillTargetMethodExplanation,
 } from './skill-detail-presentation'
@@ -96,16 +95,6 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
           </li>
         ))}
       </ol>
-      {skill.requirements.length ? (
-        <>
-          <strong>Requirements</strong>
-          <ul>
-            {skill.requirements.map((requirement, index) => (
-              <li key={index}>{skillRequirementDescription(requirement)}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
       <p>
         Final results depend on combat stats and defenses. Consecutive reuse reduces effectiveness
         at the same AP cost. Battle previews show the current result.

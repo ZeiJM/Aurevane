@@ -323,3 +323,177 @@ describe('current Poison movement progress', () => {
     expect(state.effectState?.poison[0]?.movementRemainder).toBe(4)
   })
 })
+
+it('captures an authored seven-tile Poison refresh, retains progress through restore, and leaves historical five-tile rules unchanged', () => {
+  const base = {
+    ...encounter(),
+    percentageDotPolicyVersion: 1 as const,
+    dotTriggerPolicyVersion: 2 as const,
+    effectState: { ...encounter().effectState!, poison: [] },
+  }
+  const captured = {
+    capturedDamage: 40,
+    profile: { kind: 'attack-percentage' as const, basisPoints: 1500 },
+  }
+  const poison = applyCurrentPoisonState(
+    base,
+    'actor',
+    'target',
+    'seven',
+    true,
+    undefined,
+    3,
+    captured,
+    7,
+  )
+  const aged = advanceCurrentPoisonEndTurn(poison, 'target')
+  const five = advanceCurrentPoisonMovement(aged, 'target', 5).state
+  expect(five.effectState!.poison[0]).toMatchObject({
+    movementRefreshTiles: 7,
+    remainingTicks: 2,
+    movementRemainder: 5,
+  })
+  const loaded = JSON.parse(JSON.stringify(five)) as CombatEncounterState
+  expect(validateCombatEncounterState(loaded)).toEqual([])
+  const seven = advanceCurrentPoisonMovement(loaded, 'target', 2).state
+  expect(seven.effectState!.poison[0]).toMatchObject({ remainingTicks: 3, movementRemainder: 0 })
+  const legacy = applyCurrentPoisonState(
+    base,
+    'actor',
+    'target',
+    'default',
+    true,
+    undefined,
+    3,
+    captured,
+  )
+  expect(
+    advanceCurrentPoisonMovement(advanceCurrentPoisonEndTurn(legacy, 'target'), 'target', 5).state
+      .effectState!.poison[0]!.remainingTicks,
+  ).toBe(3)
+  const oldPolicy = { ...poison, dotTriggerPolicyVersion: 1 as const }
+  expect(advanceCurrentPoisonMovement(oldPolicy, 'target', 5).triggeredTicks).toBe(1)
+})
+
+it('keeps the stronger Poison source threshold on equal/weaker reapplication, and upgrades it with stronger potency', () => {
+  const base = {
+    ...encounter(),
+    percentageDotPolicyVersion: 1 as const,
+    dotTriggerPolicyVersion: 2 as const,
+    effectState: { ...encounter().effectState!, poison: [] },
+  }
+  const captured = {
+    capturedDamage: 40,
+    profile: { kind: 'attack-percentage' as const, basisPoints: 1500 },
+  }
+  const first = applyCurrentPoisonState(
+    base,
+    'actor',
+    'target',
+    'seven',
+    true,
+    undefined,
+    2,
+    captured,
+    7,
+  )
+  for (const basisPoints of [1400, 1500]) {
+    const reapplied = applyCurrentPoisonState(
+      first,
+      'target',
+      'target',
+      'two',
+      true,
+      undefined,
+      4,
+      { ...captured, profile: { ...captured.profile, basisPoints } },
+      2,
+    )
+    expect(reapplied.effectState!.poison[0]).toMatchObject({
+      sourceCombatantId: 'actor',
+      sourceActionId: 'seven',
+      movementRefreshTiles: 7,
+      originalDurationTurns: 4,
+      remainingTicks: 4,
+    })
+  }
+  const stronger = applyCurrentPoisonState(
+    first,
+    'target',
+    'target',
+    'two',
+    true,
+    undefined,
+    1,
+    { ...captured, profile: { ...captured.profile, basisPoints: 2000 } },
+    2,
+  )
+  expect(stronger.effectState!.poison[0]).toMatchObject({
+    sourceCombatantId: 'target',
+    sourceActionId: 'two',
+    movementRefreshTiles: 2,
+    originalDurationTurns: 2,
+    remainingTicks: 2,
+  })
+})
+
+it('refreshes seven-tile Poison on the seventh actual Push/Pull tile, with default-five parity', () => {
+  for (const movementRefreshTiles of [undefined, 7]) {
+    const base = {
+      ...encounter(),
+      percentageDotPolicyVersion: 1 as const,
+      dotTriggerPolicyVersion: 2 as const,
+      effectState: { ...encounter().effectState!, poison: [] },
+    }
+    let state = advanceCurrentPoisonEndTurn(
+      applyCurrentPoisonState(
+        base,
+        'actor',
+        'target',
+        'moving-poison',
+        true,
+        undefined,
+        3,
+        { capturedDamage: 10, profile: { kind: 'attack-percentage', basisPoints: 1500 } },
+        movementRefreshTiles,
+      ),
+      'target',
+    )
+    state = executeCombatAction(
+      state,
+      push(4),
+      { kind: 'unit', combatantId: 'target' },
+      CONTENT,
+    ).state
+    const pull = (distance: number): CombatActionDefinition => ({
+      ...push(distance),
+      effects: [{ type: 'displace', recipient: 'primary-unit', direction: 'pull', distance }],
+    })
+    state = executeCombatAction(
+      state,
+      pull(1),
+      { kind: 'unit', combatantId: 'target' },
+      CONTENT,
+    ).state
+    expect(targetX(state)).toBe(4)
+    expect(state.effectState!.poison[0]).toMatchObject({
+      remainingTicks: movementRefreshTiles === 7 ? 2 : 3,
+      movementRemainder: movementRefreshTiles === 7 ? 5 : 0,
+    })
+    const result = executeCombatAction(
+      state,
+      pull(2),
+      { kind: 'unit', combatantId: 'target' },
+      CONTENT,
+    )
+    expect(targetX(result.state)).toBe(2)
+    expect(result.state.effectState!.poison[0]).toMatchObject({
+      remainingTicks: 3,
+      movementRemainder: movementRefreshTiles === 7 ? 0 : 2,
+    })
+    expect(result.events.some((event) => event.event === 'poison_duration_refreshed')).toBe(
+      movementRefreshTiles === 7,
+    )
+    expect(validateCombatEncounterState(JSON.parse(JSON.stringify(result.state)))).toEqual([])
+  }
+})

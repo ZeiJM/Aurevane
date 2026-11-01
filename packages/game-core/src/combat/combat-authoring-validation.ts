@@ -1,3 +1,4 @@
+import { validateIndependentPercentageDotDamageSources } from './combat-percentage-dots'
 import { validateCombatRemovalSelection } from './combat-status-selection'
 import { validateAttackTagAction } from './combat-attack-tags'
 import { validateCombatEndureEffect } from './combat-endure'
@@ -43,6 +44,7 @@ export function validateCombatActionDefinition(
   if (Object.hasOwn(action, 'nativeBasicAttackCommand'))
     throw new TypeError('private-native-basic-command-not-authored')
   validateAttackTagAction(action)
+  validateIndependentPercentageDotDamageSources(action.effects)
   validateCombatGroundAreaDefinition(action)
   validateVersionedCombatTargetSpec(action.target)
   validateCurrentAreaTargetRecipients(action)

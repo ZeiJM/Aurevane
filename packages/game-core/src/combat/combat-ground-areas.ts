@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { captureAttackTagDamage } from './combat-attack-tags'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import {
@@ -105,9 +106,11 @@ export function validateCombatGroundAreaDefinition(action: GroundAuthoring): voi
   if (
     !Number.isSafeInteger(ground.durationRounds) ||
     ground.durationRounds < 1 ||
-    ground.durationRounds > 4
+    ground.durationRounds > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
   )
-    throw new RangeError('Ground duration must be one to four rounds.')
+    throw new RangeError(
+      `Ground duration must be 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} rounds.`,
+    )
   if (!isGroundVisualPresetId(ground.visualPresetId))
     throw new TypeError('Ground visual must use a registered preset.')
   if (ground.timing !== undefined && !['instant', 'next-round', 'delayed'].includes(ground.timing))
@@ -330,7 +333,7 @@ export function validateCombatGroundAreas(
         area.activationRound > state.tactical.battle.round + 2 ||
         !Number.isSafeInteger(area.expiresAtRound) ||
         area.expiresAtRound <= area.activationRound ||
-        area.expiresAtRound - area.activationRound > 4 ||
+        area.expiresAtRound - area.activationRound > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
         area.expiresAtRound <= state.tactical.battle.round
       )
         throw new TypeError('Invalid Ground lifetime.')

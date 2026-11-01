@@ -842,6 +842,7 @@ export function createBattleSessionService({
       baseEncounter.elementalDamagePolicyVersion = 2
       baseEncounter.dynamicInitiativePolicyVersion = 1
       baseEncounter.healingDownPolicyVersion = 1
+      baseEncounter.conditionalDamageRoundingPolicyVersion = 1
       baseEncounter.blindsideActivationPolicyVersion = 1
       if (baseEncounter.effectTimingPolicy?.tagAuthority === 'global') {
         baseEncounter.modularSkillPolicyVersion = 1

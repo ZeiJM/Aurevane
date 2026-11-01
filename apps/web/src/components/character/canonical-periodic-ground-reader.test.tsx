@@ -154,3 +154,21 @@ it.each([
     expect(JSON.stringify(definition)).toBe(before)
   },
 )
+
+it('reads Poison’s saved movement refresh threshold in canonical and raw descriptions', () => {
+  const { group, index } = actualEffect('poison', { movementRefreshTiles: 7 })
+  const report = abilityBehaviorInformation(group)
+  expect(report.effects[index]!.parts.details).toContainEqual({
+    label: 'Refresh',
+    value: 'Every 7 traversed tiles',
+  })
+  const raw = skillEffectDescription(nativeCombatTagPayload(group.effects[index]!.payload))
+  expect(raw).toContain('Every 7 traversed tiles')
+  expect(raw).not.toContain('Every five')
+  const html = renderToStaticMarkup(
+    <AbilityDefinitionParameters
+      definition={projectPublicCombat({ schemaVersion: 1, behaviors: [group] })}
+    />,
+  )
+  expect(html).toContain('Refresh: Every 7 traversed tiles')
+})

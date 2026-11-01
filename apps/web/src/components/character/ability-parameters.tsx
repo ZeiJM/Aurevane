@@ -6,7 +6,6 @@ import {
   EffectExplanationNotes,
 } from './compact-skill-effect-summary'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
-import { RequirementExplanations } from './requirement-explanations'
 
 /** Render the shared public mechanics report without raw execution data or prose parsing. */
 export function AbilityParameters({
@@ -43,11 +42,6 @@ export function AbilityParameters({
         <p>Automatic: {report.automaticActivation}</p>
       ) : null}
       {report.maintenance ? <p>{report.maintenance}</p> : null}
-      <RequirementExplanations
-        text={report.rows.find(([label]) => label === 'Requirements')?.[1] ?? 'None'}
-        parts={report.requirementParts}
-        className={effectExplanationsClassName}
-      />
       {report.effectDescriptions.length ? (
         <ul className={effectExplanationsClassName} aria-label="Effect explanations">
           {report.effectDescriptions.map((description, index) => (

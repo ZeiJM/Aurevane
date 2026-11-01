@@ -32,7 +32,7 @@ const descriptions: Readonly<Record<string, string>> = {
   bleed:
     'Deals damage at turn end based on the attack’s actual HP damage. Each application has its own potency and duration.',
   poison:
-    'Deals damage at turn end based on the attack’s actual HP damage. Every five tiles moved, including Push and Pull, refreshes its duration.',
+    'Deals damage at turn end based on the attack’s actual HP damage. Moving the chosen number of tiles, including Push and Pull, refreshes its duration.',
   'copy-buffs': 'Copies the selected eligible buffs. The source keeps them.',
   'copy-debuffs': 'Copies the selected eligible debuffs onto the target. The source keeps them.',
   cleanse: 'Removes all removable debuffs from the target.',
@@ -58,8 +58,7 @@ const descriptions: Readonly<Record<string, string>> = {
   'status:revealed':
     'Incoming attacks have 100% accuracy and deal increased damage for the chosen duration.',
   'status:wet': 'Reduces Initiative and increases Storm damage taken. Set each value separately.',
-  'status:frozen':
-    'Applies Chilled, preventing the target from choosing its final facing. Movement still turns the bearer; Cleanse Chilled removes it.',
+  'status:frozen': 'Prevents the target from choosing its final facing.',
   'status:conductive':
     'Increases the next Storm hit’s damage. Storm consumes the existing charge before applying a new one.',
   'status:inspired': 'Increases outgoing damage for the chosen duration.',

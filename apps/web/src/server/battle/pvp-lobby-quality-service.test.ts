@@ -382,6 +382,7 @@ describe('P3.7 direct PvP committed build snapshots', () => {
         ...(global ? { tagAuthority: 'global' } : {}),
       })
       expect(saved.modularSkillPolicyVersion).toBe(global ? 1 : undefined)
+      expect(saved.conditionalDamageRoundingPolicyVersion).toBe(1)
     },
   )
 

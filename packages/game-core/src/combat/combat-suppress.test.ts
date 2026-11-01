@@ -172,7 +172,7 @@ describe('Suppress percentage authority', () => {
   it.each([0, 99, 10001, 2500.1, Number.NaN])('rejects invalid potency %s', (potency) =>
     expect(() => validateGameplayEffectMetadata(suppress(potency))).toThrow(),
   )
-  it.each([0, 5, 1.5])('rejects invalid Suppress duration %s', (duration) =>
+  it.each([0, 100, 1.5])('rejects invalid Suppress duration %s', (duration) =>
     expect(() => validateGameplayEffectMetadata(suppress(2500, duration))).toThrow(),
   )
   it('does not broaden other status potency constraints', () =>
@@ -512,7 +512,7 @@ it.each([0, 99, 10001, 2500.1])(
     expect(() => normalizeCombatRuntimeEncounterState(JSON.parse(JSON.stringify(state)))).toThrow()
   },
 )
-it.each([0, 5, 1.5])(
+it.each([0, 100, 1.5])(
   'restore rejects invalid Suppress round duration %s',
   (remainingRoundBoundaries) => {
     const state = apply(timed())

@@ -11,7 +11,10 @@ import {
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 
-import { previewCombatContentDefinition } from './combat-content-preview'
+import {
+  previewCombatContentDefinition,
+  previewModifierCombatContentDefinition,
+} from './combat-content-preview'
 
 const PREVIEW_SEED = 0x4d415354
 
@@ -140,6 +143,45 @@ function withEffects(
 }
 
 describe('Master Panel combat content preview', () => {
+  it('uses exact conditional percentages for new modifier preview fixtures', () => {
+    const modifier = withEffects([], {
+      id: 'test.exact-modifier',
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            id: 'ongoing',
+            activation: 'ongoing',
+            mode: 'modifier',
+            classification: 'attack',
+            attackFamily: 'physical',
+            costs: [],
+            cooldown: null,
+            requirements: null,
+            targeting: null,
+            effects: Array.from({ length: 8 }, (_, index) => ({
+              id: `bonus-${index}`,
+              payload: { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 10044 },
+            })),
+          },
+        ],
+      }),
+    })
+    const reference = withEffects(
+      [{ type: 'damage', recipient: 'primary-unit', amount: 13, defenseKind: 'armor' }],
+      { id: 'test.exact-reference' },
+    )
+    const result = previewModifierCombatContentDefinition(modifier, reference, {
+      behaviorId: 'ongoing',
+    })
+    expect(result.legal).toBe(true)
+    // Raw 13 + floor(30 * 25%) = 20; duel multiplier gives 28.
+    // Eight 0.44% bonuses give floor(28 * 1.0044^8) = 29.
+    expect(result.projections.effects).toContainEqual(
+      expect.objectContaining({ effectType: 'damage', before: 100, after: 71 }),
+    )
+  })
+
   it.each(['pve', 'pvp'] as const)(
     'previews authored Flame Burst persistence with explicit Ground intent in %s',
     (combatContext) => {

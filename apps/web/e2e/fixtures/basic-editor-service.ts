@@ -25,7 +25,7 @@ class Store extends InMemoryCombatContentRepository {
     return id === actorUserId ? ('owner' as const) : null
   }
 }
-export async function createBasicEditorServiceFixture() {
+export async function createBasicEditorServiceFixture({ multipleGuardBehaviors = false } = {}) {
   const store = new Store()
   const resolver = createCombatContentResolver({
     findCurrentSkill: (key) => store.findPublished(key, 'skill'),
@@ -42,6 +42,17 @@ export async function createBasicEditorServiceFixture() {
     const definition = structuredClone(basic)
     Object.assign(definition, { name: `Current ${basic.name}` })
     Object.assign(definition.ability.behaviors[0]!, { costs: [{ resource: 'ap', amount: 29 }] })
+    if (multipleGuardBehaviors && definition.id === 'basic.guard') {
+      Object.assign(definition, {
+        ability: {
+          ...definition.ability,
+          behaviors: [
+            ...definition.ability.behaviors,
+            { ...structuredClone(definition.ability.behaviors[0]!), id: 'retained-second' },
+          ],
+        },
+      })
+    }
     await service.publishSkill({ actorUserId, definition, expectedBaseVersion: 2 })
   }
   const revisions = new Map(basics.map((row) => [row.id as string, 3]))

@@ -133,16 +133,6 @@ export function BattleSkillParameters({
           ))}
         </ul>
       ) : null}
-      {skill.requirementDescriptions.length > 0 ? (
-        <>
-          <strong>Requirement details</strong>
-          <ul>
-            {skill.requirementDescriptions.map((requirement, index) => (
-              <li key={index}>{requirement}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
     </div>
   )
 }

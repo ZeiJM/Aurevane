@@ -1,3 +1,5 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
+import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
 import { withAbilityEffectDependencies } from './combat-ability-effect-dependencies'
 import { reconcileAuthoredEffectDependencies } from './combat-effect-dependencies'
 import type { CombatGroundAreaDefinition } from '@aurevane/game-core/combat/combat-ground-areas'
@@ -118,18 +120,26 @@ export function correctCombatContentEntries<T>(
     if (['damage', 'pierce', 'healing'].includes(value.type))
       number(value, 'amount', value.vengeance === undefined ? 1 : 0, 20, `${label} power`)
     if (value.type === 'apply-status') {
-      number(value, 'durationTurns', 1, 4, `${label} duration`)
+      number(value, 'durationTurns', 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS, `${label} duration`)
       number(
         value,
         'potencyBasisPoints',
         100,
-        value.statusId === 'suppress' ? 10000 : 5000,
+        maximumCombatStatusPotencyBasisPoints(
+          typeof value.statusId === 'string' ? value.statusId : undefined,
+        ),
         `${label} potency`,
         100,
       )
     }
     if (value.type === 'sensory')
-      number(value, 'revealedDurationOwnerTurnStarts', 1, 4, 'Reveal duration')
+      number(
+        value,
+        'revealedDurationOwnerTurnStarts',
+        1,
+        CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+        'Reveal duration',
+      )
   }
   function targeting(value: unknown) {
     if (!object(value) || value.geometryVersion !== 3 || !object(value.shape)) return

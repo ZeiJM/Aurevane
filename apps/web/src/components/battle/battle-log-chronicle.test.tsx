@@ -925,8 +925,9 @@ it('keeps Chronicle elemental explanations pinned in standalone completed battle
     expect(report(2)).toContain('recorded percentage unavailable')
     expect(report(2)).not.toContain('20% Storm damage')
     expect(report(1)).toContain('10% once')
-    expect(report(1)).toContain('Fire removes Drenched')
-    expect(report(null)).toContain('Fire removes Wet')
+    expect(report(1)).not.toContain('Fire removes')
+    expect(report(null)).not.toContain('Fire removes')
+    expect(report(null)).toContain('20% per active Wet or Conductive application')
   } finally {
     popup.mockRestore()
   }

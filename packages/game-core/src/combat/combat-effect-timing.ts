@@ -162,6 +162,7 @@ export type CombatEffectPresentationStatus = CombatStatusInstance & {
   barrier?: { kind: 'grant' | 'remaining'; amount: number }
   dotTriggerPolicyVersion?: 1 | 2
   burnBacklashBasisPoints?: number
+  poisonMovementRefreshTiles?: number
   percentageDamage?: CapturedPercentageDotDamage
   percentageDotProfile?: AttackPercentageDotProfile
   percentageDotStage?: number
@@ -260,6 +261,9 @@ export function pendingCombatStatusRows(
             : {}),
           ...(effect.type === 'burn' && effect.backlashBasisPoints !== undefined
             ? { burnBacklashBasisPoints: effect.backlashBasisPoints }
+            : {}),
+          ...(effect.type === 'poison' && effect.movementRefreshTiles !== undefined
+            ? { poisonMovementRefreshTiles: effect.movementRefreshTiles }
             : {}),
           ...((effect.type === 'burn' || effect.type === 'poison' || effect.type === 'bleed') &&
           effect.damageProfile
@@ -374,7 +378,7 @@ export function activePersistentCombatStatusRows(
     recoveryApplications?: number,
     amounts: Pick<
       CombatEffectPresentationStatus,
-      'recovery' | 'recoverySkipsCurrentTurnEnd' | 'barrier'
+      'recovery' | 'recoverySkipsCurrentTurnEnd' | 'barrier' | 'poisonMovementRefreshTiles'
     > = {},
   ) {
     if (!state.tactical.battle.combatants.some((unit) => unit.id === combatantId && unit.hp > 0))
@@ -419,6 +423,12 @@ export function activePersistentCombatStatusRows(
       effect.remainingTicks,
       undefined,
       effect.percentageDamage,
+      undefined,
+      undefined,
+      undefined,
+      effect.movementRefreshTiles === undefined
+        ? {}
+        : { poisonMovementRefreshTiles: effect.movementRefreshTiles },
     )
   for (const effect of effects.burn)
     append(

@@ -22,7 +22,7 @@ const captured = (capturedDamage = 40, basisPoints = 1500) => ({
 })
 
 describe('percentage DoT application lifetimes', () => {
-  it.each([undefined, 0, 5, 1.5, 1])(
+  it.each([undefined, 0, 100, 1.5, 1])(
     'rejects malformed or missing captured original Poison duration %s in policy 2',
     (originalDurationTurns) => {
       const initial = applyCurrentPoisonState(

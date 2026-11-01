@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { interceptCombatReversal } from './combat-reversal-interception'
 import {
   beginCombatReversalOwnerTurn,
@@ -46,6 +47,7 @@ import {
 } from './combat-endure'
 import {
   combatStatusTuning,
+  maximumCombatStatusPotencyBasisPoints,
   validateCombatStatusTuning,
   type CombatStatusTuning,
 } from './combat-status-tuning'
@@ -128,6 +130,7 @@ import {
   allocatePercentageDotCommand,
   recordPercentageDotCommandDamage,
   isPercentageDotEffect,
+  percentageDotCapturedBasis,
   validatePercentageDotCommandState,
   type PercentageDotCommand,
   type CapturedPercentageDotDamage,
@@ -283,6 +286,7 @@ import { combatLevelDamageModifierBasisPoints } from './combat-level-scaling'
 import type { SkillNarrationTemplate } from './battle-narration'
 import {
   conditionalDamageMultiplier,
+  conditionalDamageRatio,
   validateDamageModifiers,
   type CombatDamageModifier,
 } from './damage-modifiers'
@@ -404,6 +408,7 @@ export type CombatEffectDefinition = (
     }
   | {
       type: 'poison'
+      movementRefreshTiles?: number
       recipient: CombatEffectRecipient
       curseCopyable?: boolean
       damageProfile?: AttackPercentageDotProfile
@@ -679,6 +684,8 @@ export interface CombatEncounterState {
   airborneJumpPolicyVersion?: 1
   /** New encounters: Healing Down reduces HP and MP recovery equally. */
   healingDownPolicyVersion?: 1
+  /** New encounters preserve exact conditional percentages until final damage rounding. */
+  conditionalDamageRoundingPolicyVersion?: 1
   /** New encounters: grant Blindside only for a damaging flank hit above 100%. */
   blindsideActivationPolicyVersion?: 1
   /** Current Pierce destroys Barrier before applying its HP damage; old captures retain absorption. */
@@ -2956,6 +2963,7 @@ export function validateCombatEncounterState(
     'airborneJumpPolicyVersion',
     'displacementPolicyVersion',
     'healingDownPolicyVersion',
+    'conditionalDamageRoundingPolicyVersion',
     'blindsideActivationPolicyVersion',
     'modularSkillPolicyVersion',
   ] as const) {
@@ -3446,18 +3454,20 @@ export function validateCombatEncounterState(
           status.sourceScopedMark !== undefined ||
           status.blindsideModifiersBasisPoints !== undefined ||
           status.applicationModifiers !== undefined ||
-          status.remainingOwnerTurnStarts > (status.remainingOwnerTurnEnds === undefined ? 5 : 4) ||
-          (status.remainingOwnerTurnEnds ?? 1) > 4 ||
+          status.remainingOwnerTurnStarts >
+            CURRENT_EFFECT_DURATION_MAXIMUM_TURNS +
+              (status.remainingOwnerTurnEnds === undefined ? 1 : 0) ||
+          (status.remainingOwnerTurnEnds ?? 1) > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
           (status.remainingRoundBoundaries !== undefined &&
             (!Number.isSafeInteger(status.remainingRoundBoundaries) ||
               status.remainingRoundBoundaries < 1 ||
-              status.remainingRoundBoundaries > 4)) ||
+              status.remainingRoundBoundaries > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)) ||
           (status.durationScope === 'rounds' && status.remainingRoundBoundaries === undefined) ||
           (status.durationScope !== undefined && status.durationScope !== 'rounds'))
       )
         issues.push({
           field: statusPrefix,
-          message: 'Suppress must retain one percentage application and a 1 to 4 turn lifetime.',
+          message: `Suppress must retain one percentage application and a 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turn lifetime.`,
         })
       collectIdentityIssue(issues, status.statusId, `${statusPrefix}.statusId`)
       if (isRetiredCombatStatusId(status.statusId))
@@ -3496,7 +3506,7 @@ export function validateCombatEncounterState(
                 (!Number.isSafeInteger(application.potencyBasisPoints) ||
                   application.potencyBasisPoints < 100 ||
                   application.potencyBasisPoints >
-                    (status.statusId === 'suppress' ? 10000 : 5000))),
+                    maximumCombatStatusPotencyBasisPoints(status.statusId))),
           ) ||
           applications.reduce((sum, application) => sum + BigInt(application.stacks), 0n) !==
             BigInt(status.stacks)
@@ -3525,11 +3535,11 @@ export function validateCombatEncounterState(
         status.potencyBasisPoints !== undefined &&
         (!Number.isSafeInteger(status.potencyBasisPoints) ||
           status.potencyBasisPoints < 100 ||
-          status.potencyBasisPoints > (status.statusId === 'suppress' ? 10_000 : 5_000))
+          status.potencyBasisPoints > maximumCombatStatusPotencyBasisPoints(status.statusId))
       ) {
         issues.push({
           field: `${statusPrefix}.potencyBasisPoints`,
-          message: `Status potency must be from 1 to ${status.statusId === 'suppress' ? 100 : 50} percentage points.`,
+          message: `Status potency must be from 1 to ${maximumCombatStatusPotencyBasisPoints(status.statusId) / 100} percentage points.`,
         })
       }
       if (!expectedCombatantIds.includes(status.sourceCombatantId)) {
@@ -5452,7 +5462,11 @@ function resolveActionEffects(
     for (const { effect, ordinal } of groundPercentageEffects) {
       if (!isPercentageDotEffect(effect)) continue
       for (const recipientId of affectedCombatantIds) {
-        const basis = damage.get(recipientId) ?? 0
+        const basis = percentageDotCapturedBasis(
+          effect.damageProfile,
+          recipientId,
+          Object.fromEntries(damage),
+        )
         if (
           basis <= 0 ||
           getCombatant(nextState.tactical.battle, recipientId).hp <= 0 ||
@@ -5559,7 +5573,15 @@ function settlePercentageDotApplications(
     if (!command || command.outstandingDamageEffectOrdinals.length || !living.has(entry.actorId))
       continue
     for (const recipient of entry.recipientIds) {
-      if (!living.has(recipient) || (command.damageByRecipient[recipient] ?? 0) <= 0) continue
+      if (
+        !living.has(recipient) ||
+        percentageDotCapturedBasis(
+          entry.effect.damageProfile,
+          recipient,
+          command.damageByRecipient,
+        ) <= 0
+      )
+        continue
       const key = JSON.stringify([entry.effect.type, recipient])
       const previous = latest.get(key)
       if (
@@ -5603,8 +5625,10 @@ function settlePercentageDotApplications(
       })
       continue
     }
+    const damageProfile = entry.effect.damageProfile
     const eligible = recipients.filter(
-      (recipient) => (command.damageByRecipient[recipient] ?? 0) > 0,
+      (recipient) =>
+        percentageDotCapturedBasis(damageProfile, recipient, command.damageByRecipient) > 0,
     )
     if (entry.activationRound > state.tactical.battle.round) {
       if (eligible.length)
@@ -5670,7 +5694,11 @@ function settlePercentageDotApplications(
         continue
       }
       const captured = {
-        capturedDamage: command.damageByRecipient[recipientId]!,
+        capturedDamage: percentageDotCapturedBasis(
+          entry.effect.damageProfile,
+          recipientId,
+          command.damageByRecipient,
+        ),
         profile: { ...entry.effect.damageProfile },
       }
       const applied = applyEffect(
@@ -5882,6 +5910,7 @@ function applyEffectNative(
         tuning.power,
         tuning.durationTurns,
         percentageDamage,
+        effect.movementRefreshTiles,
       ),
       events: [],
     }
@@ -6658,7 +6687,11 @@ function resolveDamageAmount(
     }
   }
 
-  const multiplier = conditionalDamageMultiplier(
+  const calculateMultiplier =
+    state.conditionalDamageRoundingPolicyVersion === 1
+      ? conditionalDamageRatio
+      : conditionalDamageMultiplier
+  const multiplier = calculateMultiplier(
     state,
     actorId,
     recipientId,
@@ -6703,18 +6736,22 @@ function applyStatusState(
   assertPositiveSafeInteger(stacks, 'status stacks')
   if (
     durationTurns !== undefined &&
-    (!Number.isSafeInteger(durationTurns) || durationTurns < 1 || durationTurns > 4)
+    (!Number.isSafeInteger(durationTurns) ||
+      durationTurns < 1 ||
+      durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)
   ) {
-    throw new RangeError('Persistent status duration must be an integer from 1 to 4 turns.')
+    throw new RangeError(
+      `Persistent status duration must be an integer from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns.`,
+    )
   }
   if (
     potencyBasisPoints !== undefined &&
     (!Number.isSafeInteger(potencyBasisPoints) ||
       potencyBasisPoints < 100 ||
-      potencyBasisPoints > (statusId === 'suppress' ? 10_000 : 5_000))
+      potencyBasisPoints > maximumCombatStatusPotencyBasisPoints(statusId))
   ) {
     throw new RangeError(
-      `Status potency must be from 1 to ${statusId === 'suppress' ? 100 : 50} percentage points.`,
+      `Status potency must be from 1 to ${maximumCombatStatusPotencyBasisPoints(statusId) / 100} percentage points.`,
     )
   }
   const definition = getStatusDefinitionById(content, statusId)

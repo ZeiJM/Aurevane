@@ -636,3 +636,16 @@ it('captures and executes Core-authored canonical Summon payloads through strict
   expect(validateStatDrivenCombatEncounterState(JSON.parse(JSON.stringify(used.state)))).toEqual([])
   expect(JSON.stringify(state)).toBe(before)
 })
+
+it('restores a previously valid canonical Summon capture with a lifetime above the new authoring limit', () => {
+  const definition = summoning('instant')
+  const payload = definition.ability!.behaviors[0]!.effects.find(
+    (effect) => effect.payload.type === 'summon',
+  )!.payload
+  if (payload.type !== 'summon') throw new Error('Missing Summon fixture.')
+  Object.assign(payload.profile, { lifetimeTurns: 100 })
+  const initial = encounter()
+  const captured = capturedMatureSkillAbilitySource(initial, definition)!
+  const restored = JSON.parse(JSON.stringify(reconcileCombatAbilitySources(initial, [captured])))
+  expect(validateCombatEncounterState(restored)).toEqual([])
+})

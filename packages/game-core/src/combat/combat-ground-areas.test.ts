@@ -63,6 +63,33 @@ function atRound(state: CombatEncounterState, round: number) {
 }
 
 describe('persisted typed Ground area state', () => {
+  it.each(['instant', 'next-round', 'delayed'] as const)(
+    'persists all 99 Ground rounds and expires exactly at its boundary for %s',
+    (timing) => {
+      const long = { ...action, groundArea: { ...action.groundArea, durationRounds: 99, timing } }
+      let state = createCombatGroundArea(encounter(), 'actor', long, tiles, content)
+      state = JSON.parse(JSON.stringify(state)) as CombatEncounterState
+      expect(validateCombatGroundAreas(state)).toEqual([])
+      const pinned = area(state)!
+      expect(pinned.expiresAtRound - pinned.activationRound).toBe(99)
+      state = advanceCombatGroundAreas(atRound(state, pinned.expiresAtRound - 1))
+      expect(area(state)?.id).toBe(pinned.id)
+      expect(validateCombatGroundAreas(state)).toEqual([])
+      expect(advanceCombatGroundAreas(atRound(state, pinned.expiresAtRound)).groundAreas).toEqual(
+        [],
+      )
+      expect(() =>
+        createCombatGroundArea(
+          encounter(),
+          'actor',
+          { ...long, groundArea: { ...long.groundArea, durationRounds: 100 } },
+          tiles,
+          content,
+        ),
+      ).toThrow()
+    },
+  )
+
   it('pins the source privacy of a Ground area created by a Covert-establishing cast', () => {
     const before = {
       ...encounter(),

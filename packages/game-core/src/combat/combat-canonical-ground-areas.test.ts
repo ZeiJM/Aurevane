@@ -95,7 +95,7 @@ describe('canonical persistent Ground groups', () => {
   it.each([
     null,
     { durationRounds: 0 },
-    { durationRounds: 5 },
+    { durationRounds: 100 },
     { durationRounds: 1.5 },
     { visualPresetId: 'scripted-vfx' },
     { timing: 'controlled' },

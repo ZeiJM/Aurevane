@@ -163,12 +163,12 @@ export function skillDamageElementInteraction(
     if (effect.element === 'storm')
       return ` Positive hostile HP damage consumes the old Conductive charge for its captured Storm bonus, then applies one fresh Conductive charge for ${lifetime} with +${bonus}% Storm damage. Drenched remains; a new charge is not consumed again in the same command.`
     if (effect.element === 'fire')
-      return ' A legal Fire cast cleanses Chilled from its caster even on empty Ground or a miss. Positive Fire HP damage removes Drenched and Chilled from hostile recipients. Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
+      return ' Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
   }
   if (effect.element === 'storm')
     return ' Storm gains 20% per active Wet or Conductive application once per recipient per command and consumes Conductive; Wet remains.'
   if (effect.element === 'fire')
-    return ' Positive fire damage removes Wet and Frozen from units. Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
+    return ' Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
   return ''
 }
 
@@ -474,7 +474,10 @@ export function previewEffect(
         return {
           label: 'Poison',
           magnitude: percentageDotMagnitude(effect),
-          explanation: percentageDotDescription('poison', undefined, options),
+          explanation: percentageDotDescription('poison', undefined, {
+            ...options,
+            movementRefreshTiles: effect.movementRefreshTiles,
+          }),
         }
       const turns = effect.durationTurns
       return {

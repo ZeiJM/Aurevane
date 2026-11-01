@@ -8,21 +8,22 @@ it('describes stacked current Drenched Initiative and the strongest captured Sto
   expect(description).toContain('42.5% Storm damage using the strongest active application')
   expect(description).not.toContain('Fire removes')
   expect(statusPotencyDescription('wet', 3500, { explicitElemental: false })).toContain('10% once')
-  expect(statusPotencyDescription('wet', 3500, { explicitElemental: false })).toContain(
-    'Fire removes Drenched',
+  expect(statusPotencyDescription('wet', 3500, { explicitElemental: false })).not.toContain(
+    'Fire removes',
   )
-  expect(statusPotencyDescription('wet', undefined, { legacyElemental: true })).toContain(
-    'Fire removes Wet',
+  expect(statusPotencyDescription('wet', undefined, { legacyElemental: true })).not.toContain(
+    'Fire removes',
   )
 })
 
-it('keeps current Fire cleanse on the caster and the saved historical recipient behavior', () => {
-  expect(statusPotencyDescription('frozen')).toContain('Cleanse Chilled removes it')
-  expect(statusPotencyDescription('frozen')).not.toContain('cleanses its recipient')
-  expect(statusPotencyDescription('frozen', undefined, { explicitElemental: false })).toContain(
-    'cleanses its recipient',
-  )
-})
+it.each([{}, { explicitElemental: false }, { legacyElemental: true }])(
+  'keeps Chilled text concise without movement or cleansing advice for %j',
+  (options) => {
+    const text = statusPotencyDescription('frozen', undefined, options)
+    expect(text).not.toMatch(/movement|cleans|Fire removes/i)
+    expect(text).toMatch(/Chilled/)
+  },
+)
 
 it('describes the saved status tuning without substituting historical constants', () => {
   expect(statusPotencyDescription('wet', 3500, { initiativeReductionBasisPoints: 2500 })).toContain(

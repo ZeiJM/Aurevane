@@ -317,7 +317,7 @@ it('rejects invalid percentage authoring and corrupt saved captures', () => {
     { percent: 1.5 },
     { percent: NaN },
     { ticks: 0 },
-    { ticks: 5 },
+    { ticks: 101 },
     { resource: 'sp' },
     { power: 10 },
     { durationTurns: 4 },

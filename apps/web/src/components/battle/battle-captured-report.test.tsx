@@ -128,7 +128,8 @@ it('uses pinned elemental history for captured descriptions instead of current d
   const old = abilityBehaviorInformation(fire, {
     effectContext: { legacyElemental: true, explicitElemental: false },
   })
-  expect(old.effectDescriptions[0]).toContain('Positive fire damage removes Wet and Frozen')
+  expect(old.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
+  expect(old.effectDescriptions[0]).toContain('two round boundaries')
   const current = abilityBehaviorInformation(fire, {
     effectContext: { legacyElemental: false, explicitElemental: true },
   })

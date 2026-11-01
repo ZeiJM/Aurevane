@@ -47,8 +47,8 @@ function fixture() {
                 target: 'enemy',
                 statusId: 'conductive',
                 stacks: 1,
-                durationTurns: 5,
-                potencyBasisPoints: 5100,
+                durationTurns: 100,
+                potencyBasisPoints: 10100,
               },
             },
           ],
@@ -69,12 +69,12 @@ it('repairs bounded entries while preserving the authored purpose, targets, requ
   })
   expect(group.effects[1]).toMatchObject({
     id: 'charge',
-    payload: { durationTurns: 4, potencyBasisPoints: 5000 },
+    payload: { durationTurns: 99, potencyBasisPoints: 10000 },
   })
   expect(group.requirements).toEqual(before.ability.behaviors[0]!.requirements)
   expect(group.classification).toEqual(before.ability.behaviors[0]!.classification)
   expect(original).toEqual(before)
-  expect(result.corrections.join(' ')).toMatch(/duration.*5.*4/i)
+  expect(result.corrections.join(' ')).toMatch(/duration.*100.*99/i)
   expect(correctCombatContentEntries('skill', result.definition).corrections).toEqual([])
 })
 it('adds a required companion without removing or rewriting authored conditional effects', () => {
@@ -131,3 +131,37 @@ it('leaves extreme numeric intent for strict validation', () => {
       .payload.amount,
   ).toBe(999)
 })
+
+it.each([5, 99])(
+  'preserves valid %i-turn status and Reveal lifetimes on Commit Now',
+  (duration) => {
+    const original = fixture()
+    const group = original.ability.behaviors[0]!
+    Object.assign(group.effects[1]!.payload, { durationTurns: duration, potencyBasisPoints: 1500 })
+    const payload = {
+      type: 'sensory',
+      recipient: 'primary-unit',
+      revealedDurationOwnerTurnStarts: duration,
+    }
+    const input = {
+      ...original,
+      ability: {
+        ...original.ability,
+        behaviors: [
+          {
+            ...group,
+            effects: [...group.effects, { id: 'reveal', payload }],
+          },
+        ],
+      },
+    }
+    const result = correctCombatContentEntries('skill', input)
+    expect(result.definition.ability.behaviors[0]!.effects[1]!.payload).toMatchObject({
+      durationTurns: duration,
+    })
+    expect(result.definition.ability.behaviors[0]!.effects[2]!.payload).toMatchObject({
+      revealedDurationOwnerTurnStarts: duration,
+    })
+    expect(result.corrections.join(' ')).not.toContain('duration')
+  },
+)

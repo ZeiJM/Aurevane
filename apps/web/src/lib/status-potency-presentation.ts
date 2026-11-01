@@ -22,11 +22,10 @@ const historicalStatusDescriptions: Readonly<Record<string, string>> = {
   challenged: 'Deal 25% less damage to anyone except the unit that applied Taunt.',
   reckless:
     'Deal 40% more damage and take 25% more damage. Both effects expire or are removed together.',
-  wet: 'Storm damage gains 20% per active Wet or Conductive application. Fire removes Wet.',
+  wet: 'Storm damage gains 20% per active Wet or Conductive application.',
   conductive:
     'Storm damage gains 20% per active Wet or Conductive application, consuming Conductive.',
-  frozen:
-    'A Chilled setup tag. Fire removes it. Frozen Ground has its own captured duration and AP surcharge.',
+  frozen: 'A Chilled setup tag. Frozen Ground has its own captured duration and AP surcharge.',
 }
 
 /** Historical instances keep their definition's description when no magnitude was recorded. */
@@ -55,15 +54,14 @@ export function statusPotencyDescription(
   if (!options.legacyElemental) {
     if (statusId === 'wet')
       return options.explicitElemental === false
-        ? `Drenched reduces effective Initiative by ${initiativeReduction}% once while active and adds ${stormBonus}. Fire removes Drenched.`
+        ? `Drenched reduces effective Initiative by ${initiativeReduction}% once while active and adds ${stormBonus}.`
         : `Each Drenched application reduces effective Initiative by ${initiativeReduction}%, capped at 100% reduction (minimum 0 Initiative), while active. Drenched adds ${stormBonus} using the strongest active application.`
     if (statusId === 'conductive')
       return `Adds ${stormBonus}; positive Storm HP damage consumes the old charge. ${options.explicitElemental === false ? 'A Storm Skill' : 'An explicit Conductive tag'} can apply a fresh charge after settlement; the new charge cannot be consumed again in the same command.`
-    if (statusId === 'frozen')
-      return `Chilled prevents changing final facing at turn end. End the turn in the current direction; movement keeps its usual automatic facing. ${options.explicitElemental === false ? 'A legal Fire cast cleanses the caster; positive Fire damage cleanses its recipient.' : 'Cleanse Chilled removes it from its authored recipient.'}`
+    if (statusId === 'frozen') return 'Chilled prevents changing final facing at turn end.'
   }
   if (statusId === 'suppress')
-    return `Deal ${(potencyBasisPoints ?? 2500) / 100}% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged; new DoTs capture actual settled HP loss. Cleanse removes it; Dispel does not.`
+    return `Deal ${(potencyBasisPoints ?? 2500) / 100}% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged; new DoTs capture actual settled HP loss.`
   if (statusId === 'hexed') {
     const percent = (potencyBasisPoints ?? 2500) / 100
     return options.legacyHealingDown

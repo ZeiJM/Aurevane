@@ -667,6 +667,7 @@ it('retains authored status potency in the pending icon projection', () => {
 
 it.each([
   ['guarded', 8500, 2, 17],
+  ['guarded', 8500, 99, 17],
   ['lowered-guard', 25000, 1, 50],
   ['exposed', 11500, 2, 23],
 ] as const)(

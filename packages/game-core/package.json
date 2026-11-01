@@ -34,6 +34,7 @@
     "./combat/combat-effect-identities": "./src/combat/combat-effect-identities.ts",
     "./combat/combat-effect-target-authoring": "./src/combat/combat-effect-target-authoring.ts",
     "./combat/combat-effect-recipients": "./src/combat/combat-effect-recipients.ts",
+    "./combat/combat-effect-duration": "./src/combat/combat-effect-duration.ts",
     "./combat/combat-effect-authoring": "./src/combat/combat-effect-authoring.ts",
     "./combat/combat-tag-registry": "./src/combat/combat-tag-registry.ts",
     "./combat/combat-skill-accuracy": "./src/combat/combat-skill-accuracy.ts",
