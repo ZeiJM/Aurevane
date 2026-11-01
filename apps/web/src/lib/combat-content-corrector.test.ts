@@ -69,7 +69,7 @@ it('repairs bounded entries while preserving the authored purpose, targets, requ
   })
   expect(group.effects[1]).toMatchObject({
     id: 'charge',
-    payload: { durationTurns: 99, potencyBasisPoints: 10000 },
+    payload: { durationTurns: 99, potencyBasisPoints: 10100 },
   })
   expect(group.requirements).toEqual(before.ability.behaviors[0]!.requirements)
   expect(group.classification).toEqual(before.ability.behaviors[0]!.classification)
@@ -163,5 +163,59 @@ it.each([5, 99])(
       revealedDurationOwnerTurnStarts: duration,
     })
     expect(result.corrections.join(' ')).not.toContain('duration')
+  },
+)
+
+it('preserves percentages below999%% and repairs only nearby overflow without mutating the capture', () => {
+  for (const basisPoints of [10100, 99900, 100000, 200000]) {
+    const original = {
+      id: 'custom.reflect',
+      effects: [
+        {
+          type: 'apply-status',
+          recipient: 'actor',
+          statusId: 'counter',
+          stacks: 1,
+          durationTurns: 2,
+          counter: { kind: 'full', basisPoints },
+        },
+      ],
+    }
+    const before = JSON.stringify(original)
+    const result = correctCombatContentEntries('skill', original)
+    expect(result.definition.effects[0]!.counter.basisPoints).toBe(
+      basisPoints === 100000 ? 99900 : basisPoints,
+    )
+    expect(JSON.stringify(original)).toBe(before)
+  }
+})
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'keeps Circle15 and repairs nearby radius16 without narrowing %s targets',
+  (kind) => {
+    const base = fixture()
+    for (const radius of [15, 16]) {
+      const ability = {
+        ...base.ability,
+        behaviors: base.ability.behaviors.map((group) => ({
+          ...group,
+          targeting: {
+            ...group.targeting,
+            shape: { kind: 'circle', radius },
+            minimumRange: 0,
+            maximumRange: radius,
+          },
+        })),
+      }
+      const input = { ...base, ability }
+      const before = JSON.stringify(input)
+      const corrected = correctCombatContentEntries(kind, input)
+      expect(corrected.definition.ability.behaviors[0]!.targeting).toEqual({
+        ...ability.behaviors[0]!.targeting,
+        shape: { kind: 'circle', radius: 15 },
+        maximumRange: 15,
+      })
+      expect(JSON.stringify(input)).toBe(before)
+    }
   },
 )

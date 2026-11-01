@@ -104,6 +104,7 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   'absorb-hp': 'HP Leech',
   'absorb-mp': 'MP Leech',
   reflect: 'Reflect',
+  counter: 'Reflect',
   amplify: 'Copy Buffs',
   curse: 'Copy Debuffs',
 }
@@ -493,7 +494,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   ) {
     const counter = effect.counter as { kind: string; basisPoints: number }
     return [
-      `Counter [${counter.kind === 'mystic' ? 'Mystical' : counter.kind === 'physical' ? 'Physical' : 'Full'} ${counter.basisPoints / 100}%]`,
+      `Reflect [${counter.kind === 'mystic' ? 'Magical' : counter.kind === 'physical' ? 'Physical' : 'Full'} Reflect ${counter.basisPoints / 100}%]`,
     ]
   }
   if (effect.type === 'apply-status' && typeof effect.statusId === 'string') {

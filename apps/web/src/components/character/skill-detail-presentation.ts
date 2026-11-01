@@ -1,6 +1,9 @@
 import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
 import { isReversalPresentationEffect, reversalDescription } from '../../lib/reversal-presentation'
-import { combatStatusSelectionSummary } from '@aurevane/game-core/combat/combat-status-selection'
+import {
+  combatStatusSelectionSummary,
+  resolvedCombatRemovalStatusIds,
+} from '@aurevane/game-core/combat/combat-status-selection'
 import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
 import type { MechanicTextPart } from './mechanic-text'
 import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
@@ -143,9 +146,15 @@ export function skillEffectDescription(
         return `Reveal ${target} on a successful hit against Invisible, Covert or armed Reversal. Remove both concealments, disarm Reversal with Reversal Strain, and apply Revealed for ${effect.revealedDurationOwnerTurnStarts} turns: take ${effect.increasedDamageTakenBasisPoints / 100}% more damage; incoming attacks have 100% Accuracy.`
       return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
+      const removableStatusIds = resolvedCombatRemovalStatusIds(effect)
+      const protectedEndure = effect.statusIds.includes('endure')
+        ? ' Endure cannot be dispelled.'
+        : ''
+      if (effect.removalMode === 'specified' && removableStatusIds.length === 0)
+        return `${protectedEndure.trim()} This selection has no effect.`.trim()
       if (effect.removalMode === 'all-debuffs') return `Remove All Debuffs from ${target}.`
       if (effect.removalMode === 'specified')
-        return `Remove ${combatStatusSelectionSummary(effect.statusIds, effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')} from ${target}.`
+        return `Remove ${combatStatusSelectionSummary(removableStatusIds, removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')} from ${target}.${effect.invisibleTargetPolicyVersion === 1 ? ' Can select Invisible targets. Other direct effects still require Reveal.' : ''}${protectedEndure}`
       if (
         isCleanseChilledEffect(effect) &&
         !options.legacyElemental &&
@@ -156,14 +165,14 @@ export function skillEffectDescription(
         combatEffectPresentationTags(effect).includes('Cleanse') ||
         (isCleanseChilledEffect(effect) &&
           (options.legacyElemental || options.explicitElemental === false))
-          ? [...effect.statusIds, 'suppress']
-          : effect.statusIds
+          ? [...removableStatusIds, 'suppress']
+          : removableStatusIds
       const statusNames = [...new Set(statusIds.map((id) => combatStatusDetails(id).name))]
-      return `Remove ${statusNames.join(', ')} from ${target}.`
+      return `Remove ${statusNames.join(', ')} from ${target}.${protectedEndure}`
     }
     case 'apply-status': {
       if (effect.statusId === 'counter' && effect.counter)
-        return `Apply Counter to ${target}. ${previewEffect(effect, options).explanation}`
+        return `Apply Reflect to ${target}. ${previewEffect(effect, options).explanation}`
       if (effect.statusId === 'suppress')
         return `Apply Suppress to ${target}. ${previewEffect(effect, options).explanation} Lasts ${effect.durationTurns ?? 2} turns.`
       if (

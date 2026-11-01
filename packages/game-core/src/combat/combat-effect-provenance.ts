@@ -51,47 +51,10 @@ export function attachCombatEffectProvenance(
   content?: CombatContentCatalog,
   resistedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
   settledEffectOrdinals?: ReadonlySet<number>,
+  copySourceStates?: ReadonlyMap<number, CombatEncounterState>,
 ): CombatEncounterState {
   if (!evaluation.actorId) return after
-  const copyEffect = action.effects[0]
   let provenanceAfter = after
-  if (
-    copyEffect?.type === 'copy-statuses' &&
-    (!settledEffectOrdinals || settledEffectOrdinals.has(0)) &&
-    evaluation.primaryCombatantId &&
-    (action.effectEligibleRecipientIds?.[0] === undefined ||
-      action.effectEligibleRecipientIds[0].includes(evaluation.primaryCombatantId)) &&
-    !resistedEffectOrdinalsByTarget?.get(evaluation.primaryCombatantId)?.has(0)
-  ) {
-    if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
-    if (
-      combatEffectTimingMode(
-        before.effectTimingPolicy,
-        action.effectTimingTags?.[0] ?? combatEffectTimingTag(copyEffect),
-      ) !== 'instant'
-    ) {
-      provenanceAfter = {
-        ...after,
-        pendingEffects: after.pendingEffects?.map((pending, index) =>
-          index >= (before.pendingEffects?.length ?? 0) &&
-          pending.effect.type === 'copy-statuses' &&
-          pending.actorId === evaluation.actorId &&
-          pending.actionId === action.id
-            ? { ...pending, copyProvenance: { ...context.provenance } }
-            : pending,
-        ),
-      }
-    } else
-      provenanceAfter = attachCombatStatusCopyProvenance(
-        before,
-        after,
-        evaluation.actorId,
-        evaluation.primaryCombatantId,
-        copyEffect,
-        content,
-        context,
-      )
-  }
 
   const independent = usesUnlimitedCombatEffectStacking(before)
   const actorId = evaluation.actorId
@@ -209,6 +172,103 @@ export function attachCombatEffectProvenance(
 
   for (const [effectOrdinal, effect] of action.effects.entries()) {
     if (settledEffectOrdinals && !settledEffectOrdinals.has(effectOrdinal)) continue
+    if (effect.type === 'copy-statuses') {
+      if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
+      const recipient = evaluation.primaryCombatantId
+      if (
+        !recipient ||
+        (action.effectEligibleRecipientIds?.[effectOrdinal] !== undefined &&
+          !action.effectEligibleRecipientIds[effectOrdinal]!.includes(recipient)) ||
+        resistedEffectOrdinalsByTarget?.get(recipient)?.has(effectOrdinal)
+      )
+        continue
+      const sourceAtCopy = copySourceStates?.get(effectOrdinal) ?? before
+      // Earlier applications need their own identity before becoming a Copy donor.
+      const priorOrdinals = new Set(
+        [...(settledEffectOrdinals ?? action.effects.map((_, ordinal) => ordinal))].filter(
+          (ordinal) => ordinal < effectOrdinal,
+        ),
+      )
+      const source =
+        effectOrdinal === 0
+          ? sourceAtCopy
+          : attachCombatEffectProvenance(
+              before,
+              sourceAtCopy,
+              action,
+              evaluation,
+              context,
+              content,
+              resistedEffectOrdinalsByTarget,
+              priorOrdinals,
+            )
+      const timing =
+        action.effectTimingModes?.[effectOrdinal] ??
+        combatEffectTimingMode(
+          before.effectTimingPolicy,
+          action.effectTimingTags?.[effectOrdinal] ?? combatEffectTimingTag(effect),
+        )
+      if (timing !== 'instant') {
+        provenanceAfter = {
+          ...provenanceAfter,
+          pendingEffects: provenanceAfter.pendingEffects?.map((pending, index) => {
+            if (
+              index < (before.pendingEffects?.length ?? 0) ||
+              pending.effect.type !== 'copy-statuses' ||
+              pending.actorId !== actorId ||
+              pending.actionId !== action.id
+            )
+              return pending
+            const donorId = pending.copySource?.combatantId
+            const effects = normalizeCombatEffectState(source.effectState)
+            return {
+              ...pending,
+              copyProvenance: { ...context.provenance },
+              ...(effectOrdinal > 0 ? { copyEffectOrdinal: effectOrdinal } : {}),
+              ...(donorId && pending.copySource
+                ? {
+                    copySource: {
+                      ...pending.copySource,
+                      statuses:
+                        source.statusState.find((row) => row.combatantId === donorId)?.statuses ??
+                        [],
+                      effectState: {
+                        ...pending.copySource.effectState,
+                        poison: effects.poison.filter((row) => row.targetCombatantId === donorId),
+                        burn: effects.burn.filter((row) => row.targetCombatantId === donorId),
+                        bleed: effects.bleed.filter((row) => row.targetCombatantId === donorId),
+                      },
+                    },
+                  }
+                : {}),
+            }
+          }),
+        }
+      } else {
+        const attributed = attachCombatStatusCopyProvenance(
+          source,
+          {
+            ...provenanceAfter,
+            statusState,
+            effectState: { ...afterEffects, ongoingRecovery, poison, bleed, burn, barriers },
+          },
+          actorId,
+          recipient,
+          effect,
+          content,
+          context,
+          effectOrdinal,
+        )
+        statusState = attributed.statusState
+        const effects = normalizeCombatEffectState(attributed.effectState)
+        poison = effects.poison
+        burn = effects.burn
+        bleed = effects.bleed
+        statusChanged = true
+        effectStateChanged = true
+      }
+      continue
+    }
     if (
       effect.type !== 'apply-status' &&
       effect.type !== 'poison' &&

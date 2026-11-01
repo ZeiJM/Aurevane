@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 import {
@@ -565,10 +566,10 @@ export function validateCurrentBurnEffect(effect: {
     effect.backlashBasisPoints !== undefined &&
     (!Number.isSafeInteger(effect.backlashBasisPoints) ||
       (effect.backlashBasisPoints as number) < 0 ||
-      (effect.backlashBasisPoints as number) > 10000)
+      (effect.backlashBasisPoints as number) > CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
   )
     throw new RangeError(
-      'Burn backlash percentage must be an integer from 0 to 10000 basis points.',
+      `Burn backlash percentage must be an integer from 0 to ${CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS} basis points.`,
     )
   if (effect.damageProfile !== undefined) {
     if (effect.power !== undefined)
@@ -875,7 +876,7 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       (instance.backlashBasisPoints !== undefined &&
         (!Number.isSafeInteger(instance.backlashBasisPoints) ||
           instance.backlashBasisPoints < 0 ||
-          instance.backlashBasisPoints > 10000)) ||
+          instance.backlashBasisPoints > CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)) ||
       (instance.percentageDamage !== undefined && instance.basePower !== undefined) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       (instance.skipCurrentOwnerTurnEnd !== undefined &&

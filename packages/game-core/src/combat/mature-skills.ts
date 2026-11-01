@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from './combat-effect-percentages'
 import { maximumCombatStatusPotencyBasisPoints } from './combat-status-tuning'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import {
@@ -1460,7 +1461,14 @@ export function validateMatureSkillDefinition(
         (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
       ) {
         const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
-        if (!Number.isSafeInteger(effect.amount) || effect.amount < minimum || effect.amount > 20) {
+        if (
+          !Number.isSafeInteger(effect.amount) ||
+          effect.amount < minimum ||
+          effect.amount >
+            (effect.type === 'barrier-change' && effect.basis === 'maximum-hp-percent'
+              ? CURRENT_EFFECT_PERCENT_MAXIMUM
+              : 20)
+        ) {
           issues.push(`effects[${index}].amount`)
         }
       }
@@ -1470,7 +1478,7 @@ export function validateMatureSkillDefinition(
         if (
           !Number.isSafeInteger(magnitude) ||
           magnitude < 1 ||
-          magnitude > (percentageDrain ? 100 : 20) ||
+          magnitude > (percentageDrain ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20) ||
           (percentageDrain && effect.delta >= 0)
         ) {
           issues.push(`effects[${index}].delta`)

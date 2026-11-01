@@ -5,6 +5,7 @@ import type {
   CombatEffectDefinition,
   CombatEncounterState,
   CombatTargetSpec,
+  CombatTargetSelection,
 } from './actions'
 import type { GridPosition } from './board'
 import { hasGameplayTag } from './gameplay-tags'
@@ -26,9 +27,12 @@ export function validateCombatEffectTarget(
     type: string
     recipient: string
     target?: unknown
+    invisibleTargetPolicyVersion?: unknown
   },
   aim?: CombatTargetSpec,
 ): void {
+  if (effect.invisibleTargetPolicyVersion !== undefined && effect.type !== 'remove-status')
+    throw new TypeError('Invisible targeting policy requires a Dispel removal packet.')
   if (effect.target === undefined) return
   if (effect.target === 'empty-tile' && aim && aim.kind !== 'empty-tile')
     throw new TypeError('Empty Tile effects require an empty shared aim.')
@@ -168,7 +172,8 @@ export function combatEffectRecipientIds(
     ['all', 'ground', 'empty-tile'].includes(effect.target ?? '') ||
     (effect.type === 'copy-statuses' &&
       effect.mode === 'amplify' &&
-      effect.invisibleDonorPolicyVersion === 1)
+      effect.invisibleDonorPolicyVersion === 1) ||
+    (effect.type === 'remove-status' && effect.invisibleTargetPolicyVersion === 1)
   )
     return recipients
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
@@ -176,6 +181,57 @@ export function combatEffectRecipientIds(
     const unit = state.tactical.battle.combatants.find((candidate) => candidate.id === id)
     return unit?.teamId === actor?.teamId || !hasGameplayTag(state, id, 'Invisible', content)
   })
+}
+
+/** Selection admission is limited to marked Dispel packets that can actually affect each
+ * selected Invisible enemy; a Self/Ally packet cannot admit an unrelated hostile target.
+ */
+export function combatDispelAdmitsInvisibleSelection(
+  state: CombatEncounterState,
+  actorId: string,
+  action: CombatActionDefinition,
+  selection: CombatTargetSelection,
+  content: CombatContentCatalog,
+): boolean {
+  const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
+  const selected = selection.kind === 'selections' ? selection.selections : [selection]
+  const invisibleEnemies = selected.flatMap((choice) => {
+    if (choice.kind !== 'unit') return []
+    const unit = state.tactical.battle.combatants.find(
+      (candidate) => candidate.id === choice.combatantId,
+    )
+    return unit &&
+      unit.teamId !== actor?.teamId &&
+      hasGameplayTag(state, unit.id, 'Invisible', content)
+      ? [unit.id]
+      : []
+  })
+  return (
+    invisibleEnemies.length > 0 &&
+    invisibleEnemies.every((id) => {
+      const position = state.tactical.placements.find(
+        (placement) => placement.combatantId === id,
+      )?.position
+      if (!position) return false
+      return action.effects.some(
+        (effect, ordinal) =>
+          (action.effectEligibleRecipientIds?.[ordinal] === undefined ||
+            action.effectEligibleRecipientIds[ordinal]!.includes(id)) &&
+          effect.type === 'remove-status' &&
+          effect.invisibleTargetPolicyVersion === 1 &&
+          combatEffectRecipientIds(
+            state,
+            actorId,
+            id,
+            [id],
+            [position],
+            effect,
+            action.target,
+            content,
+          ).includes(id),
+      )
+    })
+  )
 }
 
 /** Forecast, hit/critical/resistance rolls and the executor share the same packet candidates. */

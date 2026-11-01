@@ -43,6 +43,7 @@ import {
   evaluatePv1fMovement,
   executePv1fMovement,
   finishPv1fTurn,
+  PV1F_COMBAT_CONTENT,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import type { TacticalHallArenaId } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import {
@@ -70,6 +71,7 @@ import {
 } from './battle-recruit-ai-service'
 import { battleSparringTeamCounts } from '@/components/battle/battle-runtime'
 import { createBattleSessionService } from './battle-session-service'
+import { createBattleAbortService } from './battle-abort-service'
 import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
 import { projectBattleStatusStateForViewer } from './battle-live-viewer-projection'
 import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
@@ -1314,3 +1316,102 @@ it.each([
     )
   },
 )
+
+function castServerEndure(initial: StatDrivenCombatEncounterState) {
+  return reattachStatDrivenCombatBridge(
+    executeCombatAction(
+      initial,
+      {
+        id: 'test.server-endure',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        cost: { spendsAction: false, mp: 0 },
+        requirements: [],
+        target: {
+          kind: 'self',
+          teamPolicy: 'self',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'allies-only',
+        },
+        effects: [
+          {
+            type: 'endure',
+            recipient: 'actor',
+            durationTurns: 4,
+            releaseBasisPoints: 15000,
+            radiusTiles: 3,
+            targetTeams: 'enemies',
+          },
+        ],
+        effectTimingModes: ['instant'],
+      },
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    ).state,
+    initial.statBridge,
+  )
+}
+it('preserves the private Endure window through saved JSON reload and authoritative Recruit AI handoff', async () => {
+  const cast = castServerEndure(await initialEncounter())
+  const player = `character:${CHARACTER_ID}`
+  expect(cast.endureState!.applications[0]).toMatchObject({
+    combatantId: player,
+    receivedDamage: 0,
+  })
+  const next = finishPv1fTurn(cast, 'east').state
+  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(next)))
+  const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+  const repository: BattleSessionRepository = {
+    ...fixture.repository,
+    findBattleSession: async (...args) => copy(await fixture.repository.findBattleSession(...args)),
+    commitBattleIntent: async (input) =>
+      copy(
+        await fixture.repository.commitBattleIntent({
+          ...input,
+          nextSnapshot: copy(input.nextSnapshot),
+        }),
+      ),
+  }
+  const result = await createBattleRecruitAiService(repository).runTurn({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+  })
+  expect(result.battleVersion).toBeGreaterThan(1)
+  expect(result.decisions.length).toBeGreaterThan(0)
+  expect(fixture.commits.flatMap((commit) => commit.events)).toContainEqual(
+    expect.objectContaining({ event: 'combatant_moved' }),
+  )
+  expect(fixture.currentState().endureState!.applications[0]!.combatantId).toBe(player)
+  expect(result.snapshot).not.toHaveProperty('endureState')
+  expect(
+    result.snapshot.statusState.find((row) => row.combatantId === player)!.statuses,
+  ).toContainEqual(expect.objectContaining({ statusId: 'endure' }))
+})
+it('aborts a practice battle with active Endure without an invalid partial encounter or release burst', async () => {
+  const cast = castServerEndure(await initialEncounter())
+  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(cast)))
+  const result = await createBattleAbortService(fixture.repository).abortPractice({
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    idempotencyKey: 'endure-abort',
+  })
+  expect(result.snapshot.tactical.battle.lifecycle).toBe('abandoned')
+  expect(
+    fixture
+      .currentState()
+      .statusState.flatMap((row) => row.statuses)
+      .some((row) => row.statusId === 'endure'),
+  ).toBe(false)
+  expect(fixture.currentState().endureState?.applications ?? []).toEqual([])
+  expect(fixture.commits.flatMap((commit) => commit.events)).not.toContainEqual(
+    expect.objectContaining({ actionId: 'status.endure.release' }),
+  )
+  expect(result.snapshot).not.toHaveProperty('endureState')
+})

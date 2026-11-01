@@ -20,12 +20,15 @@ it('full Cleanse shows only targeting while conditional and positive removals us
   )
   expect(conditional).toContain('type="checkbox"')
   expect(conditional).toContain('aria-label="Remove Healing Down"')
+  for (const label of ['Burn', 'Bleed', 'Poison'])
+    expect(conditional).toContain(`aria-label="Remove ${label}"`)
   expect(conditional).not.toContain('aria-label="Remove Damage Up"')
   const dispel = render(nativeCombatTagPayload(createAuthorableEffectPayload('dispel')!))
   expect(dispel).toContain('aria-label="Remove Damage Up"')
+  expect(dispel).not.toContain('aria-label="Remove Endure"')
   expect(dispel).not.toContain('aria-label="Remove Healing Down"')
 })
-it('Copy Debuffs offers allowed status checkboxes including DoTs and retains internal permissions', () => {
+it('Copy Debuffs excludes DoT checkboxes while retaining internal permissions', () => {
   const effect: CombatEffectDefinition = {
     type: 'copy-statuses',
     recipient: 'primary-unit',
@@ -34,7 +37,8 @@ it('Copy Debuffs offers allowed status checkboxes including DoTs and retains int
   }
   const html = render(effect)
   expect(html).toContain('All Debuffs')
-  expect(html).toContain('aria-label="Copy Poison"')
+  for (const label of ['Burn', 'Bleed', 'Poison'])
+    expect(html).not.toContain(`aria-label="Copy ${label}"`)
   expect(html).toContain('aria-label="Copy Chilled"')
   expect(html).not.toContain('aria-label="Copy Revealed"')
   expect(html).not.toContain('aria-label="Copy Covert"')

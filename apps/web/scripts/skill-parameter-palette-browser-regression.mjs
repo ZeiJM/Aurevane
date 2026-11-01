@@ -40,6 +40,7 @@ async function assertCurrentEffectChoices(picker, required) {
     'healing',
     'damage-bonus',
     'status:blindside',
+    'status:fortified',
     'status:revealed',
     'cleanse-chilled',
   ])
@@ -1052,6 +1053,11 @@ async function verifyTagBatchEditors(page, viewport) {
   ])
     assert.equal(await summon.getByLabel(`Summon ${hidden}`, { exact: true }).count(), 0)
   await summon.getByLabel('Summon Might', { exact: true }).fill('20')
+  await summon.getByLabel('Summon potency (%)', { exact: true }).fill('999')
+  assert.equal(
+    (await page.evaluate(() => window.inspectTagBatch().profile)).potencyBasisPoints,
+    99900,
+  )
   await summon.getByLabel('Summon potency (%)', { exact: true }).fill('55.5')
   await summon.getByLabel('Never moves', { exact: true }).check()
   await summon.getByLabel('Summon ability 1 HP cost', { exact: true }).fill('7')
@@ -1148,11 +1154,105 @@ async function verifyTagBatchEditors(page, viewport) {
   )
   assert.deepEqual(copiedSelection.statusIds, ['covert'])
   assert.equal(copiedSelection.invisibleDonorPolicyVersion, 1)
+  assert.equal(copiedSelection.durationPolicyVersion, 1)
+  await browserExpect(
+    copy.getByRole('checkbox', { name: 'Copy Reflect', exact: true }),
+  ).toBeVisible()
   await copy
     .locator('xpath=ancestor::article[1]')
     .getByRole('button', { name: 'Remove', exact: true })
     .click()
   assert.equal(await copy.count(), 0)
+  await editor.getByLabel('New effect type', { exact: true }).selectOption('copy-debuffs')
+  await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
+  const curse = editor.locator('[data-effect-type="copy-statuses"]')
+  await openEffectParameters(curse)
+  for (const name of ['Burn', 'Bleed', 'Poison'])
+    assert.equal(
+      await curse.getByRole('checkbox', { name: `Copy ${name}`, exact: true }).count(),
+      0,
+    )
+  const currentCurse = await page.evaluate(() =>
+    window.inspectTagBatch().effects.find((effect) => effect.type === 'copy-statuses'),
+  )
+  assert.equal(currentCurse.durationPolicyVersion, 1)
+  assert.ok(['burn', 'bleed', 'poison'].every((id) => !currentCurse.statusIds.includes(id)))
+  await curse
+    .locator('xpath=ancestor::article[1]')
+    .getByRole('button', { name: 'Remove', exact: true })
+    .click()
+
+  await editor.getByLabel('New effect type', { exact: true }).selectOption('dispel')
+  await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
+  const dispel = editor.locator('[data-effect-type="remove-status"]')
+  await openEffectParameters(dispel)
+  assert.equal(
+    await dispel.getByRole('checkbox', { name: 'Remove Endure', exact: true }).count(),
+    0,
+  )
+  await browserExpect(
+    dispel.getByRole('checkbox', { name: 'Remove Invisible', exact: true }),
+  ).toBeVisible()
+  assert.equal(
+    (
+      await page.evaluate(() =>
+        window.inspectTagBatch().effects.find((effect) => effect.type === 'remove-status'),
+      )
+    ).invisibleTargetPolicyVersion,
+    1,
+  )
+  await dispel
+    .locator('xpath=ancestor::article[1]')
+    .getByRole('button', { name: 'Remove', exact: true })
+    .click()
+
+  await editor.getByLabel('New effect type', { exact: true }).selectOption('counter')
+  await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
+  const reflect = editor.locator('[data-effect-type="apply-status"]').last()
+  await openEffectParameters(reflect)
+  const reflectType = reflect.getByLabel('Reflect type', { exact: true })
+  assert.deepEqual(await reflectType.locator('option').allTextContents(), [
+    'Physical Reflect',
+    'Magical Reflect',
+    'Full Reflect',
+  ])
+  await reflectType.selectOption('mystic')
+  await reflect.getByLabel('Reflect potency (%)', { exact: true }).fill('999')
+  const reflectValue = await page.evaluate(() =>
+    window.inspectTagBatch().effects.find((effect) => effect.statusId === 'counter'),
+  )
+  assert.equal(reflectValue.counter.kind, 'mystic')
+  assert.equal(reflectValue.counter.basisPoints, 99900)
+  await reflect
+    .locator('xpath=ancestor::article[1]')
+    .getByRole('button', { name: 'Remove', exact: true })
+    .click()
+
+  for (const [tag, label, statusId] of [
+    ['status:inspired', 'Status potency (percent)', 'inspired'],
+    ['status:wet', 'Storm damage increase (%)', 'wet'],
+  ]) {
+    await editor.getByLabel('New effect type', { exact: true }).selectOption(tag)
+    await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
+    const status = editor.locator('[data-effect-type="apply-status"]').last()
+    await openEffectParameters(status)
+    const potency = status.getByLabel(label, { exact: true })
+    assert.equal(await potency.getAttribute('max'), '999')
+    await potency.fill('999')
+    assert.equal(
+      (
+        await page.evaluate(
+          (id) => window.inspectTagBatch().effects.find((effect) => effect.statusId === id),
+          statusId,
+        )
+      ).potencyBasisPoints,
+      99900,
+    )
+    await status
+      .locator('xpath=ancestor::article[1]')
+      .getByRole('button', { name: 'Remove', exact: true })
+      .click()
+  }
   const reversal = page.getByRole('region', { name: 'Reversal authoring', exact: true })
   await reversal.getByLabel('New effect', { exact: true }).selectOption('reversal')
   await reversal.getByRole('button', { name: 'Add new effect', exact: true }).click()
@@ -1195,6 +1295,33 @@ async function verifyEffectControlLayout(page, viewport) {
   await page.goto(`${server.resolvedUrls.local[0]}?surface=effect-layout`, {
     waitUntil: 'networkidle',
   })
+  // Exercise the shared Range & Area callback in a real Summon Skill editor.
+  const originalLayout = await page.evaluate(() => window.inspectEffectLayout())
+  const summonBody = page
+    .getByRole('region', { name: 'Summon effect layout', exact: true })
+    .locator('[data-summon-skill-body]')
+    .first()
+  await summonBody
+    .locator('summary')
+    .filter({ hasText: /^Range & Area$/ })
+    .click()
+  await summonBody.getByLabel('Shape', { exact: true }).selectOption('circle')
+  const circle = summonBody.getByLabel('Circle radius', { exact: true })
+  assert.equal(await circle.getAttribute('max'), '15')
+  await circle.fill('15')
+  await circle.blur()
+  const circleTarget = await page.evaluate(
+    () => window.inspectEffectLayout().summon.abilities[0].target,
+  )
+  assert.deepEqual(circleTarget.shape, { kind: 'circle', radius: 15 })
+  assert.equal(circleTarget.minimumRange, 0)
+  assert.equal(circleTarget.maximumRange, 15)
+  assert.equal(await circle.evaluate((input) => input.validity.rangeOverflow), false)
+  await circle.fill('16')
+  assert.equal(await circle.evaluate((input) => input.validity.rangeOverflow), true)
+  // Reload restores the original target and packet recipients before the layout checks.
+  await page.reload({ waitUntil: 'networkidle' })
+  assert.deepEqual(await page.evaluate(() => window.inspectEffectLayout()), originalLayout)
   for (const kind of ['Native', 'Canonical', 'Summon']) {
     const region = page.getByRole('region', { name: `${kind} effect layout`, exact: true })
     const parameters =

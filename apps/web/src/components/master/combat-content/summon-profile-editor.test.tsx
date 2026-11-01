@@ -40,7 +40,7 @@ describe('Master Panel summon profile editor', () => {
     expect(markup).toMatch(/aria-label="Summon lifetime turns"[^>]*min="1"[^>]*value="5"/u)
     for (const stat of ['Might', 'Finesse', 'Vitality', 'Agility', 'Intellect', 'Resolve'])
       expect(markup).toContain(`aria-label="Summon ${stat}"`)
-    expect(markup).toContain('aria-label="Summon potency (%)"')
+    expect(markup).toMatch(/aria-label="Summon potency \(\%\)"[^>]*max="999"/)
     expect(markup).toContain('Never moves')
     for (const hidden of [
       'max HP',

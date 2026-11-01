@@ -2041,3 +2041,49 @@ describe('Reversal v1', () => {
     ).toBe(true)
   })
 })
+
+it.each([
+  { attackerHp: 48, barrier: 0, returned: 48, full: 200 },
+  { attackerHp: 48, barrier: 50, returned: 48, full: 150 },
+  { attackerHp: 1000, barrier: 0, returned: 200, full: undefined },
+  { attackerHp: 48, barrier: 200, returned: 0, full: undefined },
+])(
+  'records display-only finishing Reversal damage after caps and Barrier: $attackerHp HP / $barrier Barrier',
+  (fixture) => {
+    const { state, captured } = encounter()
+    const armed = atEnemyTurn(prime(state, captured).state)
+    const wounded = {
+      ...armed,
+      modularSkillPolicyVersion: 1 as const,
+      tactical: {
+        ...armed.tactical,
+        battle: {
+          ...armed.tactical.battle,
+          combatants: armed.tactical.battle.combatants.map((unit) =>
+            unit.id === 'enemy' ? { ...unit, hp: fixture.attackerHp } : unit,
+          ),
+        },
+      },
+    }
+    const ready = fixture.barrier
+      ? grantBarrier(wounded, 'enemy', 'enemy', 'return-shield', fixture.barrier).state
+      : wounded
+    const original = structuredClone(ready)
+    const result = interceptCombatReversal(ready, {
+      actorId: 'enemy',
+      recipientId: 'actor',
+      actionId: 'test.incoming',
+      family: 'physical',
+      wouldHpDamage: 999,
+      content: PV1F_COMBAT_CONTENT,
+    })!
+    const receipt = result.events.find((event) => event.event === 'reversal_triggered')!
+    expect(receipt).toMatchObject({ returnedDamage: fixture.returned, preventedDamage: 999 })
+    if (fixture.full === undefined) expect(receipt).not.toHaveProperty('resolvedReturnedHpDamage')
+    else expect(receipt).toHaveProperty('resolvedReturnedHpDamage', fixture.full)
+    expect(hp(result.state, 'enemy')).toBe(fixture.attackerHp - fixture.returned)
+    expect(result.state.tactical.battle.rng).toEqual(ready.tactical.battle.rng)
+    expect(result.events.some((event) => event.event === 'damage_applied')).toBe(false)
+    expect(ready).toEqual(original)
+  },
+)

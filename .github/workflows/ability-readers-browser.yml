@@ -5,6 +5,8 @@ on:
     paths:
       - 'apps/web/src/components/character/**'
       - 'apps/web/src/components/battle/**'
+      - 'apps/web/e2e/fixtures/battle-ground-preview-harness.jsx'
+      - 'apps/web/scripts/battle-ground-preview-browser-regression.mjs'
       - 'apps/web/e2e/fixtures/skill-parameter-palette-harness.jsx'
       - 'apps/web/scripts/skill-parameter-palette-browser-regression.mjs'
       - 'apps/web/e2e/fixtures/primed-requirement-modules-harness.jsx'
@@ -63,6 +65,17 @@ jobs:
         with:
           name: modular-ability-readers-review
           path: /tmp/modular-ability-readers-review
+          retention-days: 7
+      - name: Verify grouped terrain forecasts and compact mobile map markers
+        env:
+          AV_GROUND_PREVIEW_EVIDENCE_DIR: /tmp/battle-ground-preview-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ground-preview-browser-regression.mjs
+      - name: Save grouped terrain preview and marker evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ground-preview-review
+          path: /tmp/battle-ground-preview-review
           retention-days: 7
       - name: Verify Basic authoring and retired rollback with actual local services
         env:

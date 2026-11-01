@@ -66,7 +66,10 @@ describe('Endure readers', () => {
     expect(description).toContain('ends naturally')
     expect(description).toContain('Barrier')
     expect(description).toContain('without applying Defense again')
-    expect(description).toContain('Removal or defeat cancels it')
+    expect(description).toContain('cannot be dispelled')
+    expect(description).toContain('Defeat cancels')
+    expect(description).toContain('Recasting')
+    expect(effectTagDescription('endure')).toContain('cannot be dispelled')
   })
 
   it('04 shows only the active public profile and lifetime, never a private damage ledger', () => {

@@ -6,51 +6,29 @@ import type {
 } from '@/server/battle/battle-preview-service'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AurevaneImage } from '@/components/media/aurevane-image'
+import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
 import {
-  combatInteractionDescription,
-  combatTerrainProjectionDescription,
-  combatTerrainSummaries,
-} from '../../lib/battle/combat-interaction-presentation'
-import { battleGroundTargetPresentation, previewChips } from './battle-preview-content'
+  battleGroundTargetPresentation,
+  battlePreviewTerrainChips,
+  previewChips,
+  type PreviewChip,
+} from './battle-preview-content'
 import type {
   BattlePresentationParticipant,
   BattleSkillForecastPresentation,
 } from './battle-runtime'
 import styles from './battle-action-preview.module.css'
 
-function terrainEventAlreadyProjected(event: object, preview: ActionPreview): boolean {
-  const data = event as {
-    event?: string
-    position?: { x: number; y: number }
-    after?: string
-    before?: string | null
-    remainingRoundBoundaries?: number
-  }
-  return (
-    data.event === 'terrain_overlay_changed' &&
-    (preview.projectedTerrain ?? []).some(
-      (projection) =>
-        projection.position.x === data.position?.x &&
-        projection.position.y === data.position?.y &&
-        projection.before === data.before &&
-        projection.after === data.after &&
-        projection.remainingRoundBoundaries === data.remainingRoundBoundaries,
-    )
-  )
-}
-
 function InlineTargetForecast({
   preview,
   combatantId,
   participant,
   includeTerrain,
-  compactTerrain,
 }: {
   preview: ActionPreview
   combatantId: string
   participant?: BattlePresentationParticipant
   includeTerrain: boolean
-  compactTerrain: boolean
 }) {
   const effects = preview.projectedEffects.filter((effect) => effect.combatantId === combatantId)
   const recipientEvents = preview.projectedEvents?.filter(
@@ -112,6 +90,7 @@ function InlineTargetForecast({
           : 0),
       0,
     )
+  const terrainChips = includeTerrain ? battlePreviewTerrainChips(preview) : []
   const result = [
     chanceLabel,
     damage > 0 ? `${hitChance !== null && hitChance < 10000 ? 'On hit ' : ''}${damage} dmg` : null,
@@ -136,11 +115,7 @@ function InlineTargetForecast({
       )
       .map((chip) => chip.label),
     ...(recipientEvents ?? []).map(combatInteractionDescription),
-    ...(includeTerrain
-      ? compactTerrain
-        ? combatTerrainSummaries(preview.projectedTerrain ?? [])
-        : (preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription)
-      : []),
+    ...terrainChips.map((chip) => chip.label),
   ]
     .filter(Boolean)
     .join(' · ')
@@ -163,7 +138,11 @@ function InlineTargetForecast({
         </span>
       )}
       <strong title={participant?.name}>{participant?.name ?? 'Target'}</strong>
-      <span title={result}>
+      <span
+        title={[result, ...terrainChips.map((chip) => chip.description)]
+          .filter(Boolean)
+          .join(' · ')}
+      >
         {result ||
           (preview.affectedCombatantIds.includes(combatantId)
             ? 'Included in affected area'
@@ -247,21 +226,19 @@ export function BattleActionPreview({
           }))
         : []
   const chips = preview ? previewChips(preview) : []
-  const compactTerrain = (skill?.definition?.target.kind ?? skill?.targetKind) === 'ground-tile'
   const ground = targetTile ? battleGroundTargetPresentation(targetTile, targetOverlay) : null
-  const interactions =
+  const interactions: PreviewChip[] =
     preview?.kind === 'action'
       ? [
-          ...new Set(
-            [
-              ...(compactTerrain
-                ? combatTerrainSummaries(preview.projectedTerrain ?? [])
-                : (preview.projectedTerrain ?? []).map(combatTerrainProjectionDescription)),
-              ...(preview.projectedEvents ?? [])
-                .filter((event) => !compactTerrain || !terrainEventAlreadyProjected(event, preview))
-                .map(combatInteractionDescription),
-            ].filter((description): description is string => Boolean(description)),
-          ),
+          ...battlePreviewTerrainChips(preview),
+          ...[
+            ...new Set(
+              (preview.projectedEvents ?? [])
+                .filter((event) => event.event !== 'terrain_overlay_changed')
+                .map(combatInteractionDescription)
+                .filter((description): description is string => Boolean(description)),
+            ),
+          ].map((label) => ({ label, tone: 'effect' as const })),
         ]
       : []
   const keyResults = chips.filter(
@@ -304,7 +281,6 @@ export function BattleActionPreview({
                   <InlineTargetForecast
                     key={combatantId}
                     preview={targetPreview}
-                    compactTerrain={compactTerrain}
                     combatantId={combatantId}
                     includeTerrain={
                       targetPreview.primaryCombatantId === combatantId ||
@@ -316,18 +292,17 @@ export function BattleActionPreview({
               </div>
             ) : (
               <div className={styles.inlineChips}>
-                {[...keyResults, ...interactions.map((label) => ({ label, tone: 'effect' }))].map(
-                  (chip, index) => (
-                    <span
-                      key={index}
-                      data-battle-preview-chip="true"
-                      data-battle-preview-tone={chip.tone}
-                      title={chip.label}
-                    >
-                      {chip.label}
-                    </span>
-                  ),
-                )}
+                {[...keyResults, ...interactions].map((chip, index) => (
+                  <span
+                    key={index}
+                    data-battle-preview-chip="true"
+                    data-battle-preview-tone={chip.tone}
+                    data-battle-preview-terrain={chip.terrain ? 'true' : undefined}
+                    title={chip.description ?? chip.label}
+                  >
+                    {chip.label}
+                  </span>
+                ))}
               </div>
             )}
             {inlineForecasts.length > 0 ? null : ground ? (

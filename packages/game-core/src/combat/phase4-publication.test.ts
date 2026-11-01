@@ -428,7 +428,7 @@ describe('Versioned Phase 4 published interactions', () => {
         {
           ...opening,
           effects: [
-            { ...damage, facingModifiersBasisPoints: { front: 10000, side: 10000, rear: 22001 } },
+            { ...damage, facingModifiersBasisPoints: { front: 10000, side: 10000, rear: 99901 } },
           ],
         },
         enemy,
@@ -442,7 +442,7 @@ describe('Versioned Phase 4 published interactions', () => {
     ).toThrow()
     expect(() =>
       validateDamageModifiers([
-        { direction: 'outgoing', multiplierBasisPoints: 20001, condition: { kind: 'always' } },
+        { direction: 'outgoing', multiplierBasisPoints: 109901, condition: { kind: 'always' } },
       ]),
     ).toThrow()
   })

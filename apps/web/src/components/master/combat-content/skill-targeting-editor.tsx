@@ -4,6 +4,7 @@ import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   MAXIMUM_COMBAT_LINE_LENGTH,
+  MAXIMUM_COMBAT_CIRCLE_RADIUS,
   maximumSupportedCombatRange,
   normalizeCurrentCombatTargetSpec,
 } from '@aurevane/game-core/combat/combat-targeting-shapes'
@@ -199,7 +200,13 @@ export function SkillTargetingEditor({
             label={shape.kind === 'circle' ? 'Circle radius' : 'Line length'}
             value={shape.kind === 'circle' ? shape.radius : shape.length}
             min={modern ? 1 : shape.kind === 'circle' ? 0 : 1}
-            max={shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : modern ? 5 : undefined}
+            max={
+              shape.kind === 'line'
+                ? MAXIMUM_COMBAT_LINE_LENGTH
+                : modern
+                  ? MAXIMUM_COMBAT_CIRCLE_RADIUS
+                  : undefined
+            }
             onChange={(reach) =>
               change({
                 ...value,

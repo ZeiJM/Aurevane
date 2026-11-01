@@ -9,6 +9,7 @@ import { endureDescription } from '../../lib/combat-effect-descriptions'
 import {
   selectableCombatStatusIds,
   combatStatusSelectionSummary,
+  resolvedCombatRemovalStatusIds,
 } from '@aurevane/game-core/combat/combat-status-selection'
 import {
   resolvedCombatEffectTagPresentation,
@@ -372,8 +373,8 @@ export function previewEffect(
     case 'apply-status':
       if (effect.statusId === 'counter' && effect.counter)
         return {
-          label: 'Counter',
-          magnitude: `${effect.counter.kind === 'mystic' ? 'Mystical' : effect.counter.kind === 'physical' ? 'Physical' : 'Full'} ${effect.counter.basisPoints / 100}%`,
+          label: 'Reflect',
+          magnitude: `${effect.counter.kind === 'mystic' ? 'Magical' : effect.counter.kind === 'physical' ? 'Physical' : 'Full'} Reflect ${effect.counter.basisPoints / 100}%`,
           explanation: `${counterDescription(effect.counter)} Lasts ${effect.durationTurns ?? 2} turns after activation.`,
         }
       if (effect.statusId === BLINDSIDE_DEBUFF_STATUS_ID) {
@@ -490,17 +491,27 @@ export function previewEffect(
       }
     }
     case 'remove-status': {
+      const removableStatusIds = resolvedCombatRemovalStatusIds(effect)
+      const protectedEndure = effect.statusIds.includes('endure')
+        ? ' Endure cannot be dispelled.'
+        : ''
       if (effect.removalMode === 'all-debuffs')
         return { label: 'Cleanse', explanation: 'Removes All Debuffs.' }
       if (effect.removalMode === 'specified') {
         const label = combatEffectPresentationTags(effect)[0]!
+        if (removableStatusIds.length === 0)
+          return {
+            label,
+            magnitude: 'None',
+            explanation: `${protectedEndure.trim()} This selection has no effect.`.trim(),
+          }
         return {
           label,
           magnitude: combatStatusSelectionSummary(
-            effect.statusIds,
+            removableStatusIds,
             label === 'Dispel' ? 'buffs' : 'debuffs',
           ).replaceAll(', ', ' / '),
-          explanation: `Removes ${combatStatusSelectionSummary(effect.statusIds, effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')}.`,
+          explanation: `Removes ${combatStatusSelectionSummary(removableStatusIds, removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')}.${effect.invisibleTargetPolicyVersion === 1 ? ' Can select Invisible targets. Other direct effects still require Reveal.' : ''}${protectedEndure}`,
         }
       }
       if (
@@ -512,15 +523,19 @@ export function previewEffect(
           label: 'Cleanse Chilled',
           explanation: `Removes Chilled from ${effect.recipient === 'actor' ? 'the caster' : effect.recipient === 'affected-units' ? 'each affected unit' : 'the selected unit'} only; other statuses remain.`,
         }
-      const ids = effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
-        ? effect.statusIds
-        : [...effect.statusIds, 'suppress']
+      const legacyCleanse = combatEffectPresentationTags(effect).includes('Cleanse')
+      const ids =
+        !legacyCleanse && removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
+          ? removableStatusIds
+          : [...removableStatusIds, 'suppress']
       const statusNames = [...new Set(ids.map((id) => combatStatusDetails(id).name))]
       return {
-        label: effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
-          ? 'Dispel'
-          : 'Cleanse',
-        explanation: `Removes ${statusNames.join(', ')}.`,
+        label:
+          !legacyCleanse &&
+          removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
+            ? 'Dispel'
+            : 'Cleanse',
+        explanation: `Removes ${statusNames.join(', ')}.${protectedEndure}`,
       }
     }
     case 'create-terrain':
@@ -552,13 +567,17 @@ export function previewEffect(
         effect.statusIds ?? selectableCombatStatusIds(kind),
         kind,
       )
+      const durationDescription =
+        effect.durationPolicyVersion === 1
+          ? 'each copied status receives its source Skill’s full recorded duration'
+          : 'remaining durations are preserved'
       return {
         label: effect.mode === 'amplify' ? 'Copy Buffs' : 'Copy Debuffs',
         ...(effect.statusIds !== undefined ? { magnitude: selected } : {}),
         explanation:
           effect.mode === 'amplify'
-            ? `Copies ${selected} from the target to you. Originals remain; remaining durations are preserved.${effect.invisibleDonorPolicyVersion === 1 ? ' Can select an Invisible donor. Other direct effects still require Reveal.' : ''}`
-            : `Copies ${selected} from you to the target. Originals remain; remaining durations are preserved.`,
+            ? `Copies ${selected} from the target to you. Originals remain; ${durationDescription}.${effect.invisibleDonorPolicyVersion === 1 ? ' Can select an Invisible donor. Other direct effects still require Reveal.' : ''}`
+            : `Copies ${selected} from you to the target. Originals remain; ${durationDescription}.`,
       }
     }
     case 'sensory':

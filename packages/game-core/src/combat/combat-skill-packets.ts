@@ -7,6 +7,7 @@ import type {
 import { combatEffectTimingTag } from './combat-effect-timing'
 import { rollCombatSkillAccuracy } from './combat-skill-accuracy'
 import { rollCombatStatusResistance } from './combat-status-resistance'
+import { forecastCombatStatusCopySources } from './actions-legacy'
 import { rollCombatCritical } from './combat-critical'
 
 /** Split repeated authored tags, leaving distinct tags in their historical shared group. */
@@ -120,6 +121,17 @@ export function rollSkillPacketOutcomes(
   )
   const criticalEffectOrdinalsByTarget: PacketOrdinalMap = new Map()
   const resistanceEvents: ReturnType<typeof rollCombatStatusResistance>['events'][number][] = []
+  const copySources =
+    evaluation &&
+    action.effects.some((effect, ordinal) => effect.type === 'copy-statuses' && ordinal > 0)
+      ? forecastCombatStatusCopySources(
+          state,
+          action,
+          evaluation,
+          content,
+          resistedEffectOrdinalsByTarget,
+        )
+      : undefined
   const criticalEvents: ReturnType<typeof rollCombatCritical>['events'][number][] = []
   const missedTargets = (ordinals: readonly number[]) =>
     new Set(
@@ -134,6 +146,14 @@ export function rollSkillPacketOutcomes(
       evaluation,
       content,
       missedTargets(ordinals),
+      copySources
+        ? new Map(
+            ordinals.flatMap((ordinal, localOrdinal) => {
+              const source = copySources.get(ordinal)
+              return source ? [[localOrdinal, source] as const] : []
+            }),
+          )
+        : undefined,
     )
     state = result.state
     for (const event of result.events)

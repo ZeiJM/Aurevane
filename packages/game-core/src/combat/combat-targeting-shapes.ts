@@ -11,6 +11,13 @@ import { P2_7_TACTICAL_HALL_ARENAS } from './tactical-hall-arenas'
 
 /** Authorable Line reach; footprint resolution clips to the actual board. */
 export const MAXIMUM_COMBAT_LINE_LENGTH = 15
+/** Authorable caster-centered Circle radius; historical unversioned shapes retain their rules. */
+export const MAXIMUM_COMBAT_CIRCLE_RADIUS = 15
+
+export function validateCombatCircleRadius(radius: number): void {
+  if (!Number.isSafeInteger(radius) || radius < 1 || radius > MAXIMUM_COMBAT_CIRCLE_RADIUS)
+    throw new RangeError(`Circle radius must be from one to ${MAXIMUM_COMBAT_CIRCLE_RADIUS}.`)
+}
 
 /** Production PvE and both PvP constructors consume this same registry. */
 export function maximumSupportedCombatRange(): number {
@@ -267,8 +274,7 @@ export function resolveCombatTargetFootprint(
   }
   if (selection.kind !== 'activate') throw new TypeError('Circle and All require activation.')
   if (shape.kind === 'all') return tactical.tiles.map((tile) => ({ ...tile.position }))
-  if (!Number.isSafeInteger(shape.radius) || shape.radius < 1 || shape.radius > 5)
-    throw new RangeError('Circle radius must be from one to five.')
+  validateCombatCircleRadius(shape.radius)
   return tactical.tiles
     .filter((tile) => {
       const distance = Math.max(
@@ -381,7 +387,8 @@ export function validateVersionedCombatTargetSpec(spec: CombatTargetSpec): void 
     if (spec.shape.kind === 'all') return
     if (spec.shape.kind !== 'single') {
       const reach = spec.shape.kind === 'line' ? spec.shape.length : spec.shape.radius
-      const maximum = spec.shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : 5
+      const maximum =
+        spec.shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : MAXIMUM_COMBAT_CIRCLE_RADIUS
       if (!Number.isSafeInteger(reach) || reach < 1 || reach > maximum)
         throw new RangeError(`Area reach must be an integer from one to ${maximum}.`)
       if (spec.minimumRange !== 0 || spec.maximumRange !== reach)
@@ -403,7 +410,8 @@ export function validateVersionedCombatTargetSpec(spec: CombatTargetSpec): void 
     return
   }
   const reach = spec.shape.kind === 'line' ? spec.shape.length : spec.shape.radius
-  const maximum = spec.shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : 5
+  const maximum =
+    spec.shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : MAXIMUM_COMBAT_CIRCLE_RADIUS
   if (!Number.isSafeInteger(reach) || reach < 1 || reach > maximum)
     throw new RangeError(`Area reach must be an integer from one to ${maximum}.`)
   if (spec.minimumRange !== 0 || spec.maximumRange !== reach)

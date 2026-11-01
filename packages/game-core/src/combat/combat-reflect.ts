@@ -21,7 +21,8 @@ import {
   type CombatTriggerGuard,
 } from './combat-kernel-types'
 import { clearDefeatedRecovery } from './combat-recovery'
-import { absorbIndirectDamageWithBarrier } from './combat-barrier'
+import { absorbIndirectDamageWithBarrier, captureDamageOverkill } from './combat-barrier'
+import { capSummonDamage } from './combat-summon-potency'
 
 const REFLECT_ACTION_ID = 'status.reflect.current.v1'
 const REFLECT_BASIS_POINTS = 10_000
@@ -107,12 +108,19 @@ export function applyCommittedReflect(
     )
     nextState = barrier.state
     const hpAfter = currentAttacker.hp - barrier.remainingDamage
+    // Legacy settlement caps before Barrier. Recover only its display value from the
+    // same immutable budget, leaving the historical HP-loss calculation untouched.
+    const displayDamage =
+      nextState.modularSkillPolicyVersion === 1
+        ? barrier.damageBeforeHpLimit
+        : capSummonDamage(beforeDamage, defenderId, attacker.id, requested, content).amount
     const damageReceipt = {
       event: 'damage_applied' as const,
       actionId: REFLECT_ACTION_ID,
       sourceCombatantId: defenderId,
       targetCombatantId: attacker.id,
       amount: currentAttacker.hp - hpAfter,
+      ...captureDamageOverkill(displayDamage, currentAttacker.hp - hpAfter),
       hpBefore: currentAttacker.hp,
       hpAfter,
     }

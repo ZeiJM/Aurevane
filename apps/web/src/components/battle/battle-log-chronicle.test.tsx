@@ -1003,3 +1003,25 @@ it('carries admitted short tag wording into Chronicle hovers and preserves recor
     popup.mockRestore()
   }
 })
+
+it('narrates reflection with its actual actor and retains every recorded damage outcome', () => {
+  const entries = Array.from({ length: 13 }, (_, eventIndex) =>
+    entry(4, eventIndex, 'damage_applied', {
+      actionId: 'status.reflect.current.v1',
+      actionLabel: 'Status Reflect Current V1',
+      headline: 'Damage',
+      actorCombatantId: enemy,
+      targetCombatantId: actor,
+      templateValues: { amount: '6' },
+    }),
+  )
+  const before = JSON.stringify(entries)
+  const html = render(entries)
+  const copied = formatBattleLogForClipboard(entries, { combatantNames: names })
+  for (const text of [html, copied]) {
+    expect(text).toContain('Weon reflects the damage.')
+    expect(text).not.toContain('Status Reflect Current V1')
+    expect(text.match(/6 damage/gu)).toHaveLength(13)
+  }
+  expect(JSON.stringify(entries)).toBe(before)
+})

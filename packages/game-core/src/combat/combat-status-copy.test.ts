@@ -537,12 +537,12 @@ describe('Status copying: fail-closed eligibility and staged scope', () => {
     )
     expect(JSON.stringify(state)).toBe(before)
   })
-  it('rejects copy blocks placed after another authored effect', () => {
+  it('accepts copy blocks placed after another authored effect', () => {
     const action = {
       ...copying('amplify'),
       effects: [...attack().effects, ...copying('amplify').effects],
     }
-    expect(() => validateCombatActionDefinition(action, CONTENT)).toThrow()
+    expect(() => validateCombatActionDefinition(action, CONTENT)).not.toThrow()
   })
   it('rejects area copying in this single-recipient slice', () => {
     const action = copying('amplify', {

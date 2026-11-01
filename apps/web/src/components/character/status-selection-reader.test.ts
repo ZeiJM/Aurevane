@@ -54,3 +54,47 @@ it('compact effect values condense complete conditional and Copy selections', as
     }).magnitude,
   ).toBe('Slow')
 })
+it('explains Invisible admission only for captured current Dispel policy', () => {
+  const current = nativeCombatTagPayload(createAuthorableEffectPayload('dispel')!)
+  for (const text of [previewEffect(current).explanation, skillEffectDescription(current)]) {
+    expect(text).toContain('Can select Invisible targets.')
+    expect(text).toContain('Other direct effects still require Reveal.')
+  }
+  const historical = {
+    type: 'remove-status' as const,
+    recipient: 'primary-unit' as const,
+    removalMode: 'specified' as const,
+    selectionKind: 'buffs' as const,
+    statusIds: ['guarded'],
+  }
+  expect(skillEffectDescription(historical)).not.toContain('Can select Invisible')
+})
+it('describes retained Endure removal choices as protected without rewriting their capture', () => {
+  const historical = {
+    type: 'remove-status' as const,
+    recipient: 'primary-unit' as const,
+    removalMode: 'specified' as const,
+    selectionKind: 'buffs' as const,
+    statusIds: ['endure'],
+  }
+  const before = JSON.stringify(historical)
+  expect(previewEffect(historical).explanation).toContain('Endure cannot be dispelled')
+  expect(previewEffect(historical).magnitude).not.toContain('Endure')
+  expect(skillEffectDescription(historical)).toContain('Endure cannot be dispelled')
+  const mixed = { ...historical, statusIds: ['endure', 'guarded'] }
+  expect(previewEffect(mixed).magnitude).toBe('Guard')
+  expect(skillEffectDescription(mixed)).not.toContain('Remove Endure')
+  expect(JSON.stringify(historical)).toBe(before)
+})
+it('keeps legacy implicit Cleanse prose aligned with protected Endure removal', () => {
+  const capture = {
+    type: 'remove-status' as const,
+    recipient: 'primary-unit' as const,
+    statusIds: ['endure'],
+  }
+  for (const text of [previewEffect(capture).explanation, skillEffectDescription(capture)]) {
+    expect(text).toContain('Endure cannot be dispelled')
+    expect(text).toContain('Suppress')
+    expect(text).not.toContain('Remove Endure')
+  }
+})

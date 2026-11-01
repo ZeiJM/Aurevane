@@ -7,6 +7,9 @@ export function combatStatusApplications(status: CombatStatusInstance) {
     status.applicationModifiers ?? [
       {
         stacks: status.stacks,
+        ...(status.originalDurationTurns === undefined
+          ? {}
+          : { originalDurationTurns: status.originalDurationTurns }),
         ...combatStatusTuning(status),
         ...(status.counter ? { counter: status.counter } : {}),
         sourceCombatantId: status.sourceCombatantId,

@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import { validateIndependentPercentageDotDamageSources } from './combat-percentage-dots'
 import { validateCombatRemovalSelection } from './combat-status-selection'
 import { validateAttackTagAction } from './combat-attack-tags'
@@ -270,9 +271,9 @@ export function validateCombatDamageFacingModifiers(
     Extract<CombatEffectDefinition, { type: 'damage' }>['facingModifiersBasisPoints']
   >,
 ): void {
-  basisPoints(modifiers.front, 'front damage modifier', 22_000)
-  basisPoints(modifiers.side, 'side damage modifier', 22_000)
-  basisPoints(modifiers.rear, 'rear damage modifier', 22_000)
+  basisPoints(modifiers.front, 'front damage modifier', CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
+  basisPoints(modifiers.side, 'side damage modifier', CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
+  basisPoints(modifiers.rear, 'rear damage modifier', CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
 }
 
 export function validateCombatStatusDefinition(status: CombatStatusDefinition): void {
@@ -282,7 +283,11 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
   positiveSafeInteger(status.version, 'status version')
   positiveSafeInteger(status.maximumStacks, 'status maximum stacks')
   positiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
-  basisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
+  basisPoints(
+    status.damageTakenMultiplierBasisPoints,
+    'damage taken multiplier',
+    CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+  )
   validateDamageModifiers(status.damageModifiers)
 
   if (status.polarity !== undefined) {
@@ -306,7 +311,7 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     boundedPositiveSafeInteger(
       status.absorbHpBasisPoints,
       1,
-      COMBAT_BASIS_POINTS,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
       'Absorb HP basis points',
     )
     if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
@@ -318,7 +323,7 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     boundedPositiveSafeInteger(
       status.absorbMpBasisPoints,
       1,
-      COMBAT_BASIS_POINTS,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
       'Absorb MP basis points',
     )
     if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
@@ -330,7 +335,7 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     boundedPositiveSafeInteger(
       status.reflectBasisPoints,
       1,
-      COMBAT_BASIS_POINTS,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
       'Reflect basis points',
     )
     if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {

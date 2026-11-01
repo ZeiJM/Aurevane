@@ -40,14 +40,14 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'endure',
     'Endure',
     'Buff',
-    'Prevents damage-dealing actions while active. On natural expiry, releases a saved share of HP damage received to nearby chosen teams.',
+    'Prevents damage-dealing actions while active. Cannot be dispelled. On natural expiry, releases a saved share of HP damage received to nearby chosen teams.',
     { amplifyCopyable: false, curseCopyable: false, reactionClass: 'ordinary' },
   ),
   status(
     'counter',
-    'Counter',
+    'Reflect',
     'Buff',
-    'Returns the configured share of matching damage received to its source. Counter damage cannot trigger another Counter.',
+    'Returns the configured share of matching damage received to its source. Reflected damage cannot trigger another Reflect.',
     { amplifyCopyable: true, reactionClass: 'reactive' },
   ),
   status('wet', 'Wet', 'Debuff', 'Reduces Initiative and increases Storm damage taken.', {
@@ -106,7 +106,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'invisible',
     'Invisible',
     'Buff',
-    'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. Current Copy Buffs can select the recipient as a donor. A damaging action or taking damage ends Invisible.',
+    'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. Current Copy Buffs can select the recipient as a donor, and current Dispel can select the recipient. A damaging action or taking damage ends Invisible.',
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
 

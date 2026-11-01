@@ -255,6 +255,38 @@ describe('CSR-1 Covert and Revealed definitions', () => {
     expect(() => createRevealedStatusDefinition(100)).toThrow()
   })
 
+  it('applies explicitly enemy-targeted Covert to the selected enemy without granting it to the caster', () => {
+    const action: CombatActionDefinition = {
+      ...directDamageAction(),
+      id: 'test.covert.enemy',
+      effects: [
+        {
+          type: 'apply-status',
+          target: 'enemy',
+          recipient: 'affected-units',
+          statusId: 'covert',
+          stacks: 1,
+          durationTurns: 3,
+        },
+      ],
+    }
+    const result = executeCombatAction(
+      encounter(),
+      action,
+      { kind: 'unit', combatantId: 'recruit' },
+      content,
+    )
+    expect(hasCombatStatus(result.state, 'recruit', 'covert')).toBe(true)
+    expect(hasCombatStatus(result.state, 'wayfarer', 'covert')).toBe(false)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'status_applied',
+        targetCombatantId: 'recruit',
+        statusId: 'covert',
+      }),
+    )
+  })
+
   it('keeps Covert single-stack and refreshes its pinned duration on reapplication', () => {
     const once = executeCombatAction(encounter(), covertAction(), { kind: 'self' }, content)
     const twice = executeCombatAction(once.state, covertAction(), { kind: 'self' }, content)

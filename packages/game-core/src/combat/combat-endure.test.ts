@@ -276,7 +276,7 @@ it('uses the bearer’s current position and range at expiry', () => {
   expect(hp(result.state, 'enemy')).toBe(1000)
   expect(hp(result.state, 'other')).toBe(970)
 })
-it('removing Endure clears the private window without releasing damage', () => {
+it('captured explicit Dispel cannot remove Endure or discard its natural release', () => {
   let state = incoming(cast())
   state = executeCombatAction(
     state,
@@ -294,14 +294,19 @@ it('removing Endure clears the private window without releasing damage', () => {
     { kind: 'unit', combatantId: 'actor' },
     PV1F_COMBAT_CONTENT,
   ).state
-  expect(state.endureState?.applications).toEqual([])
+  expect(received(state)).toBe(20)
+  expect(
+    state.statusState
+      .find((row) => row.combatantId === 'actor')!
+      .statuses.some((row) => row.statusId === 'endure'),
+  ).toBe(true)
   const result = release(state)
   expect(
     result.events.some(
       (row) => row.event === 'damage_applied' && row.actionId === 'status.endure.release',
     ),
-  ).toBe(false)
-  expect(hp(result.state, 'enemy')).toBe(1000)
+  ).toBe(true)
+  expect(hp(result.state, 'enemy')).toBe(970)
 })
 it('a lethal hit clears Endure without a release or an overkill ledger', () => {
   const state = incoming(cast(), 2000)
@@ -963,4 +968,36 @@ it('allows an earned lethal Counter return before the final terminal verdict', (
   expect(result.events.filter((row) => row.event === 'battle_completed')).toEqual([
     { event: 'battle_completed', winningTeamId: null },
   ])
+})
+
+it('current All Buffs Dispel removes other buffs while retaining Endure and its private ledger', () => {
+  let state = incoming(cast())
+  state = executeCombatAction(
+    state,
+    action(
+      [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'inspired', stacks: 1 }],
+      false,
+    ),
+    { kind: 'unit', combatantId: 'actor' },
+    PV1F_COMBAT_CONTENT,
+  ).state
+  const result = executeCombatAction(
+    state,
+    action([createAuthorableEffectPayload('dispel') as CombatEffectDefinition], false),
+    { kind: 'unit', combatantId: 'actor' },
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(
+    result.state.statusState
+      .find((row) => row.combatantId === 'actor')!
+      .statuses.map((row) => row.statusId),
+  ).toEqual(['endure'])
+  expect(received(result.state)).toBe(20)
+  expect(result.events).toContainEqual(
+    expect.objectContaining({ event: 'status_removed', statusId: 'inspired' }),
+  )
+  expect(result.events).not.toContainEqual(
+    expect.objectContaining({ event: 'status_removed', statusId: 'endure' }),
+  )
+  expect(hp(release(result.state).state, 'enemy')).toBe(970)
 })

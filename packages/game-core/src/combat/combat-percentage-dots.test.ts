@@ -40,7 +40,7 @@ describe('attack percentage DoT arithmetic and authoring', () => {
     },
   )
 
-  it.each([0, -1, 10001, 0.5, NaN, Infinity])('rejects invalid percentages %s', (basisPoints) => {
+  it.each([0, -1, 99901, 0.5, NaN, Infinity])('rejects invalid percentages %s', (basisPoints) => {
     expect(() =>
       validatePercentageDotProfile({ kind: 'attack-percentage', basisPoints }, 3, 'burn'),
     ).toThrow()

@@ -1,4 +1,6 @@
 'use client'
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
+import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
 
 import { useEffect, useMemo, useRef } from 'react'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
@@ -78,6 +80,7 @@ export function SummonProfileEditor({
     latest.current = value
   }, [value])
   function emit(next: SummonProfileDefinition) {
+    if (!combatPercentageEditIsWithinBounds(latest.current, next)) return
     const authored = currentSummonForAuthoring(next)
     latest.current = authored
     onChange(authored)
@@ -126,7 +129,7 @@ export function SummonProfileEditor({
             aria-label="Summon potency (%)"
             type="number"
             min={0}
-            max={100}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
             step={0.01}
             value={(value.potencyBasisPoints ?? 4000) / 100}
             onChange={(event) => {

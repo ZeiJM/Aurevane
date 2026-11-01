@@ -1,3 +1,8 @@
+import {
+  CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+  CURRENT_EFFECT_PERCENT_MAXIMUM,
+  CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS,
+} from './combat-effect-percentages'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { validateCombatEndureEffect } from './combat-endure'
 import { validateCombatReversalPayload, type CombatReversalPayload } from './combat-reversal'
@@ -285,7 +290,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'remove-status',
-    ['statusIds', 'removalMode', 'selectionKind'],
+    ['statusIds', 'removalMode', 'selectionKind', 'invisibleTargetPolicyVersion'],
     { statusIds: 'identity', removalMode: 'identity', selectionKind: 'identity' },
     'Cleanse removes every negative status. Conditional Cleanse and Dispel remove selected negative or positive statuses.',
     { combinations: packetModifierCombinations },
@@ -346,9 +351,15 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'copy-statuses',
-    ['mode', 'allowNoEligibleEffects', 'statusIds', 'invisibleDonorPolicyVersion'],
+    [
+      'mode',
+      'allowNoEligibleEffects',
+      'statusIds',
+      'invisibleDonorPolicyVersion',
+      'durationPolicyVersion',
+    ],
     {},
-    'Copy selected eligible statuses and preserve their remaining durations. Original statuses remain.',
+    'Copy selected eligible statuses with their source Skill’s full recorded durations. Original statuses remain.',
     { recipients: ['primary-unit'], combinations: [{ activation: 'manual', mode: 'action' }] },
   ),
   tag(
@@ -490,6 +501,12 @@ export function validateCombatTagPayload(
       throw new TypeError('Copy requires Amplify/Curse and a boolean no-op permission.')
     if (
       value.type === 'copy-statuses' &&
+      value.durationPolicyVersion !== undefined &&
+      value.durationPolicyVersion !== 1
+    )
+      throw new TypeError('Unsupported copy duration policy.')
+    if (
+      value.type === 'copy-statuses' &&
       value.invisibleDonorPolicyVersion !== undefined &&
       (value.invisibleDonorPolicyVersion !== 1 || value.mode !== 'amplify')
     )
@@ -514,7 +531,12 @@ export function validateCombatTagPayload(
       return issues
     }
     if (value.type === 'damage-bonus') {
-      integer(value.multiplierBasisPoints, 10000, 15000, 'Damage bonus multiplier')
+      integer(
+        value.multiplierBasisPoints,
+        10000,
+        CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS,
+        'Damage bonus multiplier',
+      )
       validateDamageModifiers([
         {
           direction: 'outgoing',
@@ -698,7 +720,13 @@ export function validateCombatTagPayload(
         validateCombatDamageScaling(value.scaling as never).length > 0
       )
         throw new TypeError('Invalid damage scaling.')
-      if (value.type === 'pierce') integer(value.armorIgnoredBasisPoints, 0, 10000, 'Armor ignored')
+      if (value.type === 'pierce')
+        integer(
+          value.armorIgnoredBasisPoints,
+          0,
+          CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+          'Armor ignored',
+        )
       if (value.facingModifiersBasisPoints !== undefined)
         validateCombatDamageFacingModifiers(
           value.facingModifiersBasisPoints as NonNullable<
@@ -712,18 +740,23 @@ export function validateCombatTagPayload(
     )
       integer(value.amount, 1, 20, 'Authored power')
     if (value.type === 'barrier-change' && value.basis === 'maximum-hp-percent')
-      integer(value.amount, 1, 100, 'Barrier percentage')
+      integer(value.amount, 1, CURRENT_EFFECT_PERCENT_MAXIMUM, 'Barrier percentage')
     if (value.type === 'resource-change') {
       if (value.resource !== 'mp') throw new TypeError('Only MP changes are implemented.')
       integer(
         value.delta,
-        value.basis === 'maximum-mp-percent' ? -100 : -20,
+        value.basis === 'maximum-mp-percent' ? -CURRENT_EFFECT_PERCENT_MAXIMUM : -20,
         value.basis === 'maximum-mp-percent' ? -1 : 20,
         'MP change',
       )
     }
     if (value.type === 'percentage-recovery') {
-      integer(value.percentageBasisPoints, 100, 10000, 'Recovery percentage')
+      integer(
+        value.percentageBasisPoints,
+        100,
+        CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+        'Recovery percentage',
+      )
       // The real handler currently authors whole percentages, unlike Suppress/DoT precision.
       if ((value.percentageBasisPoints as number) % 100 !== 0)
         throw new TypeError('Recovery requires whole percentage increments (100 basis points).')
@@ -796,8 +829,8 @@ export function equipmentArmorAfterPierce(
 ): number {
   const amount = contribution.equipmentArmor ?? 0
   integer(amount, 0, Number.MAX_SAFE_INTEGER, 'Equipment Armor contribution')
-  integer(armorIgnoredBasisPoints, 0, 10000, 'Armor ignored')
-  return amount - Number((BigInt(amount) * BigInt(armorIgnoredBasisPoints)) / 10000n)
+  integer(armorIgnoredBasisPoints, 0, CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS, 'Armor ignored')
+  return Math.max(0, amount - Number((BigInt(amount) * BigInt(armorIgnoredBasisPoints)) / 10000n))
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

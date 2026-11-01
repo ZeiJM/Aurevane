@@ -12,7 +12,7 @@ describe('exact percentage authoring', () => {
     ['100', 10000],
     ['25.00', 2500],
   ])('parses %s exactly', (text, result) => expect(parsePercentageBasisPoints(text)).toBe(result))
-  it.each(['', 'NaN', 'Infinity', '12.345', '1e1', '-1', '0', '100.01', ' 12.34 '])(
+  it.each(['', 'NaN', 'Infinity', '12.345', '1e1', '-1', '0', '999.01', ' 12.34 '])(
     'rejects %s instead of silently clamping',
     (text) => expect(() => parsePercentageBasisPoints(text)).toThrow(),
   )

@@ -16,7 +16,11 @@ export type BattlePresentedStatus = CombatEffectPresentationStatus & {
   healingDownPolicyVersion?: 1
   blindsideActivationPolicyVersion?: 1
   presentationDuration?:
-    'while-elevated' | 'while-primed' | 'until-reversal-ends' | 'next-complete-owner-turn'
+    | 'while-elevated'
+    | 'while-primed'
+    | 'until-reversal-ends'
+    | 'next-complete-owner-turn'
+    | 'while-active'
   reversal?: ReversalPresentationValues
 }
 

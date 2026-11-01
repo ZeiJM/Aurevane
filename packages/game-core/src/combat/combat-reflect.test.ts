@@ -316,6 +316,19 @@ describe('Reflect committed-command contract', () => {
     ])
     expect(validateCombatEncounterState(result.state)).toEqual([])
   })
+  it.each([undefined, 1] as const)(
+    'displays a full finishing return under modular policy %s without inflating HP loss',
+    (policy) => {
+      const result = cast({
+        ...encounter({ actorHp: 3, duel: true }),
+        ...(policy ? { modularSkillPolicyVersion: policy } : {}),
+      })
+      expect(reflected(result)).toEqual([
+        expect.objectContaining({ amount: 3, resolvedDamage: 5, hpBefore: 3, hpAfter: 0 }),
+      ])
+      expect(unit(result, 'actor').hp).toBe(0)
+    },
+  )
   it('allows a defeated defender to cause mutual KO before victory is finalized', () => {
     const result = cast(encounter({ actorHp: 5, targetHp: 20, duel: true }), hit(40))
     expect(unit(result, 'target').hp).toBe(0)
@@ -545,7 +558,7 @@ describe('Reflect committed-command contract', () => {
     expect(reflected(first)).toHaveLength(1)
     expect(reflected(second)).toEqual([])
   })
-  it.each([0, -1, 0.5, 10_001, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+  it.each([0, -1, 0.5, 99_901, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
     'rejects invalid reflection percentage %s',
     (rate) => {
       expect(() => validateCombatStatusDefinition(reflectStatus(rate))).toThrow(/Reflect/)

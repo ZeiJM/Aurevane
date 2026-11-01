@@ -207,11 +207,16 @@ export function applyCombatEndure(
     ],
   }
 }
-export function pruneCombatEndure(state: CombatEncounterState): CombatEncounterState {
+export function pruneCombatEndure(
+  state: CombatEncounterState,
+  cancelledCombatantIds: readonly string[] = [],
+): CombatEncounterState {
   if (!state.endureState) return state
   const living = new Set(
     state.tactical.battle.lifecycle === 'active'
-      ? state.tactical.battle.combatants.filter((unit) => unit.hp > 0).map((unit) => unit.id)
+      ? state.tactical.battle.combatants
+          .filter((unit) => unit.hp > 0 && !cancelledCombatantIds.includes(unit.id))
+          .map((unit) => unit.id)
       : [],
   )
   const statusState = state.statusState.map((row) =>

@@ -32,3 +32,19 @@ it('explains the captured Invisible donor exception without granting it to accom
   expect(description).toContain('Can select an Invisible donor.')
   expect(description).toContain('Other direct effects still require Reveal.')
 })
+
+it.each(['amplify', 'curse'] as const)(
+  'describes full source-Skill durations for current %s copies',
+  (mode) => {
+    const description = skillEffectDescription({
+      type: 'copy-statuses',
+      recipient: 'primary-unit',
+      mode,
+      durationPolicyVersion: 1,
+    })
+    expect(description).toContain(
+      'each copied status receives its source Skill’s full recorded duration',
+    )
+    expect(description).not.toContain('remaining durations are preserved')
+  },
+)

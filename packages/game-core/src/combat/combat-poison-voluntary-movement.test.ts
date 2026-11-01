@@ -124,6 +124,20 @@ function actorX(state: CombatEncounterState): number {
 }
 
 describe('current Poison voluntary movement', () => {
+  it('records full lethal tick damage without charging excess HP loss', () => {
+    const result = executePv1fMovement(movementEncounter(1), PATH)
+    expect(actorHp(result.state)).toBe(0)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'damage_applied',
+        amount: 1,
+        resolvedDamage: 2,
+        hpBefore: 1,
+        hpAfter: 0,
+      }),
+    )
+    expect(() => JSON.stringify(result)).not.toThrow()
+  })
   it('previews and commits full affordable movement without a Poison damage stop under policy 2', () => {
     const base = movementEncounter(1)
     const state = {

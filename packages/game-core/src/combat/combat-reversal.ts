@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import type { AbilityBehavior } from './combat-definition'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
 import type { CombatControlledAbilityRecord } from './combat-controlled'
@@ -43,6 +44,8 @@ export type CombatReversalEvent = (
       readonly incomingActionId: string
       readonly preventedDamage: number
       readonly returnedDamage: number
+      /** Display-only damage after caps and Barrier, before remaining HP limits actual return. */
+      readonly resolvedReturnedHpDamage?: number | string
     }
   | { readonly event: 'reversal_strain_ended'; readonly combatantId: string }
 ) & { readonly sourceCommandVisibility?: CombatSourceCommandVisibility }
@@ -97,7 +100,8 @@ export function validateCombatReversalPayload(value: CombatReversalPayload): voi
     'attackerMaxHpCapBasisPoints',
     'defenderMaxHpCapBasisPoints',
   ] as const) {
-    const maximum = key === 'reflectionBasisPoints' ? 100000 : 10000
+    const maximum =
+      key === 'reflectionBasisPoints' ? 100000 : CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
     if (!Number.isSafeInteger(value[key]) || value[key] < 1 || value[key] > maximum)
       throw new RangeError(`Reversal ${key} must be from 1 to ${maximum} basis points.`)
   }

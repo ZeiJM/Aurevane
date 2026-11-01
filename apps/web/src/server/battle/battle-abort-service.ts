@@ -112,7 +112,12 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
     })
     const encounter = createCombatEncounterState(
       { ...state.tactical, battle: transition.state },
-      state.statusState,
+      // Endure's private damage window is discarded on terminal abandonment,
+      // without a natural-expiry boundary or release burst.
+      state.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.filter((status) => status.statusId !== 'endure'),
+      })),
     )
     // Abandonment has no activation boundary. Retain the private archive and usage while
     // the historical fresh encounter continues to discard unsettled execution queues.

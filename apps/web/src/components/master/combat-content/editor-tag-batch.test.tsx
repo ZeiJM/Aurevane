@@ -145,7 +145,7 @@ it('offers the captured extra Skill AP cost for Frozen Ground', () => {
 })
 
 it.each(['warded', 'conductive'])(
-  'allows %s potency through 100% without changing its identity',
+  'allows %s potency through 999% without changing its identity',
   (statusId) => {
     const html = render({
       type: 'apply-status',
@@ -153,9 +153,9 @@ it.each(['warded', 'conductive'])(
       statusId,
       stacks: 1,
       durationTurns: 99,
-      potencyBasisPoints: 10000,
+      potencyBasisPoints: 99900,
     })
-    expect(html).toMatch(/aria-label="Status potency \(percent\)"[^>]*max="100"[^>]*value="100"/)
+    expect(html).toMatch(/aria-label="Status potency \(percent\)"[^>]*max="999"[^>]*value="999"/)
     expect(html).not.toContain('aria-label="Status"')
   },
 )

@@ -268,6 +268,7 @@ it('normalizes only edited Copy Buffs choices, retaining historical captures and
   expect(currentTagForAuthoring(captured)).toEqual({
     ...captured,
     invisibleDonorPolicyVersion: 1,
+    durationPolicyVersion: 1,
     statusIds: ['invisible'],
   })
   expect(captured.statusIds).toEqual(['blindside', 'invisible'])
@@ -280,6 +281,7 @@ it('normalizes only edited Copy Buffs choices, retaining historical captures and
   ).toEqual({
     ...captured,
     invisibleDonorPolicyVersion: 1,
+    durationPolicyVersion: 1,
     statusIds: ['invisible'],
   })
   const current = currentTagForAuthoring({ ...captured, statusIds: undefined })
@@ -298,4 +300,68 @@ it('keeps a captured historical All Buffs selection as current All Buffs on an e
   }
   expect(currentTagForAuthoring(capture)).toMatchObject({ statusIds: current })
   expect(capture.statusIds).toEqual(old)
+})
+
+it('normalizes an edited historical All Debuffs without DoTs and preserves a narrowed selection', () => {
+  const historical = {
+    type: 'copy-statuses' as const,
+    recipient: 'primary-unit' as const,
+    mode: 'curse' as const,
+    statusIds: [
+      'exposed',
+      'wet',
+      'frozen',
+      'conductive',
+      'blindside-vulnerability',
+      'suppress',
+      'hexed',
+      'slow',
+      'root',
+      'mark',
+      'burn',
+      'poison',
+      'bleed',
+    ],
+  }
+  const current = currentTagForAuthoring(historical)
+  expect(current).toMatchObject({
+    durationPolicyVersion: 1,
+    statusIds: selectableCombatStatusIds('copy-debuffs'),
+  })
+  expect(currentTagForAuthoring({ ...historical, statusIds: ['poison', 'slow'] })).toEqual({
+    ...historical,
+    statusIds: ['slow'],
+    durationPolicyVersion: 1,
+  })
+  expect(currentTagForAuthoring({ ...historical, statusIds: ['poison', 'burn', 'bleed'] })).toEqual(
+    { ...historical, statusIds: [], durationPolicyVersion: 1 },
+  )
+  expect(currentTagForAuthoring({ ...historical, statusIds: undefined })).toMatchObject({
+    durationPolicyVersion: 1,
+    statusIds: selectableCombatStatusIds('copy-debuffs'),
+  })
+  expect(historical.statusIds).toContain('poison')
+  expect(currentTagForAuthoring(current)).toEqual(current)
+})
+
+it('upgrades only edited Dispel to Invisible selection and removes protected Endure choices', () => {
+  const historical = {
+    type: 'remove-status' as const,
+    recipient: 'primary-unit' as const,
+    statusIds: ['endure', 'guarded'],
+    removalMode: 'specified' as const,
+  }
+  expect(currentTagForAuthoring(historical)).toEqual({
+    ...historical,
+    statusIds: ['guarded'],
+    selectionKind: 'buffs',
+    invisibleTargetPolicyVersion: 1,
+  })
+  expect(currentTagForAuthoring({ ...historical, statusIds: ['endure'] })).toEqual({
+    ...historical,
+    statusIds: [],
+    selectionKind: 'buffs',
+    invisibleTargetPolicyVersion: 1,
+  })
+  expect(historical.statusIds).toEqual(['endure', 'guarded'])
 })

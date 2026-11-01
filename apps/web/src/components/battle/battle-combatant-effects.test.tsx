@@ -34,19 +34,17 @@ describe('combatant effect presentation', () => {
         timingState: 'active' as const,
         presentationDuration: 'while-elevated' as const,
       }))
-      for (const compact of [false, true]) {
-        const markup = renderToStaticMarkup(
-          <BattleCombatantEffects compact={compact} name="Archer" statuses={statuses} />,
-        )
-        expect(markup).toContain(`Evasion +${potencyBasisPoints / 100}%`)
-        expect(markup).toContain('Physical Defense −20%; Mystic Defense −20%')
-        expect(markup).toContain('While on elevated terrain')
-        expect(markup).toContain('cannot be copied or cleansed')
-        expect(markup).not.toContain('data-effect-duration="true"')
-        expect(markup).not.toContain('turn start')
-        expect(markup).toContain('data-tone="positive"')
-        expect(markup).toContain('data-tone="negative"')
-      }
+      const markup = renderToStaticMarkup(
+        <BattleCombatantEffects name="Archer" statuses={statuses} />,
+      )
+      expect(markup).toContain(`Evasion +${potencyBasisPoints / 100}%`)
+      expect(markup).toContain('Physical Defense −20%; Mystic Defense −20%')
+      expect(markup).toContain('While on elevated terrain')
+      expect(markup).toContain('cannot be copied or cleansed')
+      expect(markup).not.toContain('data-effect-duration="true"')
+      expect(markup).not.toContain('turn start')
+      expect(markup).toContain('data-tone="positive"')
+      expect(markup).toContain('data-tone="negative"')
     },
   )
 
@@ -430,8 +428,6 @@ it('gives every live effect family its own decorative vector without replacing i
     'copy-statuses',
     'sensory',
     'summon',
-    'terrain-evasion',
-    'terrain-defense',
     'primed',
   ]
   const statuses = ids.map((statusId) => ({
@@ -460,4 +456,89 @@ it('gives every live effect family its own decorative vector without replacing i
   )
   expect(full).toContain('data-battle-effect-icon="counter"')
   expect(full).toContain('data-battle-effect-icon="burn"')
+})
+
+it.each(['counter', 'reflect'])('shows %s as Reflect in active and pending rails', (statusId) => {
+  for (const pending of [false, true]) {
+    const html = renderToStaticMarkup(
+      <BattleCombatantEffects
+        name="Zei"
+        statuses={[
+          {
+            statusId,
+            statusVersion: 1,
+            stacks: 1,
+            remainingOwnerTurnStarts: 3,
+            sourceCombatantId: 'Zei',
+            ...(pending ? { timingState: 'pending' as const, activationRound: 3 } : {}),
+          },
+        ]}
+      />,
+    )
+    expect(html).toContain('Reflect')
+    expect(html).not.toContain('Counter')
+  }
+})
+
+describe('compact rail position-derived terrain omission', () => {
+  const terrainStatuses = ['terrain-evasion', 'terrain-defense'].map((statusId) => ({
+    statusId,
+    statusVersion: 1,
+    stacks: 1,
+    remainingOwnerTurnStarts: 1,
+    sourceCombatantId: 'Archer',
+    timingState: 'active' as const,
+    presentationDuration: 'while-elevated' as const,
+    potencyBasisPoints: 2000,
+  }))
+  it('shows the empty state when only derived terrain effects are present', () => {
+    const markup = renderToStaticMarkup(
+      <BattleCombatantEffects compact name="Archer" statuses={terrainStatuses} />,
+    )
+    expect(markup).toContain('No combat effects')
+    expect(markup).not.toContain('data-battle-effect-icon=')
+    expect(markup).not.toContain('aria-haspopup="dialog"')
+  })
+  it('keeps real buffs, debuffs and pending terrain while excluding hidden rows from overflow counts', () => {
+    const realStatuses = [
+      ...Array.from({ length: 18 }, (_, index) => ({
+        statusId: 'guarded',
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: index + 1,
+        sourceCombatantId: 'Archer',
+      })),
+      {
+        statusId: 'slow',
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: 2,
+        sourceCombatantId: 'enemy',
+      },
+      {
+        statusId: 'create-terrain',
+        statusVersion: 1,
+        stacks: 1,
+        remainingOwnerTurnStarts: 1,
+        sourceCombatantId: 'Archer',
+        timingState: 'pending' as const,
+        activationRound: 3,
+      },
+    ]
+    const markup = renderToStaticMarkup(
+      <BattleCombatantEffects
+        compact
+        name="Archer"
+        statuses={[...terrainStatuses, ...realStatuses]}
+      />,
+    )
+    expect(markup.match(/aria-haspopup="dialog"/g)).toHaveLength(20)
+    expect(markup).not.toContain('Scroll for all')
+    expect(markup).not.toContain('data-battle-effect-icon="terrain-evasion"')
+    expect(markup).not.toContain('data-battle-effect-icon="terrain-defense"')
+    expect(markup).toContain('data-battle-effect-icon="guarded"')
+    expect(markup).toContain('data-battle-effect-icon="slow"')
+    expect(markup).toContain('data-battle-effect-icon="create-terrain"')
+    expect(markup).toContain('data-effect-timing="pending"')
+  })
 })

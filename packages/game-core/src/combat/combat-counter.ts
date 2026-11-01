@@ -11,7 +11,7 @@ export function validateCombatCounterProfile(
   value: unknown,
 ): asserts value is CombatCounterProfile {
   if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new TypeError('Counter requires a typed profile.')
+    throw new TypeError('Reflect requires a typed profile.')
   const profile = value as CombatCounterProfile
   if (
     Object.keys(profile).some((key) => !['kind', 'basisPoints'].includes(key)) ||
@@ -20,14 +20,14 @@ export function validateCombatCounterProfile(
     profile.basisPoints < 1
   )
     throw new TypeError(
-      'Counter requires Physical, Mystical or Full and a positive safe percentage.',
+      'Reflect requires Physical Reflect, Magical Reflect or Full Reflect and a positive safe percentage.',
     )
 }
 
 export function validateCombatCounterEffect(effect: CombatEffectDefinition): void {
   if (effect.type === 'apply-status' && effect.statusId === 'counter') {
     validateCombatCounterProfile(effect.counter)
-    if (effect.stacks !== 1) throw new TypeError('Counter applies one status at a time.')
+    if (effect.stacks !== 1) throw new TypeError('Reflect applies one status at a time.')
     if (
       (effect.durationTurns !== undefined &&
         (!Number.isSafeInteger(effect.durationTurns) ||
@@ -38,10 +38,10 @@ export function validateCombatCounterEffect(effect: CombatEffectDefinition): voi
       effect.blindsideModifiersBasisPoints !== undefined
     )
       throw new TypeError(
-        `Counter uses only its type, percentage and 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns of duration.`,
+        `Reflect uses only its type, percentage and 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns of duration.`,
       )
   } else if ('counter' in effect)
-    throw new TypeError('Counter profiles require the Counter status.')
+    throw new TypeError('Reflect profiles require the Reflect status.')
 }
 
 export function counterDescription(profile: CombatCounterProfile): string {
@@ -49,9 +49,9 @@ export function counterDescription(profile: CombatCounterProfile): string {
     profile.kind === 'full'
       ? 'any damage'
       : profile.kind === 'mystic'
-        ? 'Mystical damage'
+        ? 'Mystic damage'
         : 'Physical damage'
-  return `Returns ${profile.basisPoints / 100}% of ${family} received to its source after defenses and Barrier. Counter damage cannot trigger another Counter.`
+  return `Returns ${profile.basisPoints / 100}% of ${family} received to its source after defenses and Barrier. Reflected damage cannot trigger another Reflect.`
 }
 
 /** Capture eligibility at the hit, so later status changes cannot rewrite an earned return. */

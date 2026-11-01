@@ -159,6 +159,7 @@ describe('CSR-1 Revealed refresh boundary', () => {
         statusId: 'revealed',
         statusVersion: 1,
         stacks: 1,
+        originalDurationTurns: 2,
         remainingOwnerTurnStarts: 2,
         sourceCombatantId: 'actor',
       },

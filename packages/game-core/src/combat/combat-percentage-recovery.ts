@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from './combat-effect-percentages'
 export interface CapturedPercentageRecovery {
   resource: 'hp' | 'mp'
   percent: number
@@ -20,7 +21,7 @@ export function validateCapturedPercentageRecovery(value: CapturedPercentageReco
     !['hp', 'mp'].includes(value.resource) ||
     !Number.isSafeInteger(value.percent) ||
     value.percent < 1 ||
-    value.percent > 100 ||
+    value.percent > CURRENT_EFFECT_PERCENT_MAXIMUM ||
     !Number.isSafeInteger(value.maximumAtCast) ||
     value.maximumAtCast < 0 ||
     !Number.isSafeInteger(value.amountPerApplication) ||

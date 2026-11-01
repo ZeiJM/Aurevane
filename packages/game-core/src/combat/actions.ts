@@ -522,13 +522,15 @@ export function executeCombatAction(
       : evaluation
   let triggerGuard = context?.triggerGuard
   let settledEffectOrdinals: ReadonlySet<number> | undefined
+  let copySourceStates: ReadonlyMap<number, CombatEncounterState> | undefined
   const committed = legacy.executeCombatAction(
     critical.state,
     materializedAction,
     selection,
     csr.content,
-    (resolved, settled) => {
+    (resolved, settled, copySources) => {
       settledEffectOrdinals = settled
+      copySourceStates = copySources
       if (!actorId) return resolved
       if (context?.resolveCommittedAbilityOutcomes && provenanceEvaluation)
         resolved = {
@@ -542,6 +544,7 @@ export function executeCombatAction(
             csr.content,
             resistance.resistedEffectOrdinalsByTarget,
             settledEffectOrdinals,
+            copySourceStates,
           ),
         }
       const reactions = resolveNativeCommittedReactions(
@@ -633,6 +636,7 @@ export function executeCombatAction(
           csr.content,
           resistance.resistedEffectOrdinalsByTarget,
           settledEffectOrdinals,
+          copySourceStates,
         ),
     events: transition.events,
     resolution: {

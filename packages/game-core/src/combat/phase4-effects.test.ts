@@ -299,7 +299,7 @@ describe('Phase 4 bounded conditional damage and linked tradeoffs', () => {
     expect(conditionalDamageMultiplier(state, 'actor', 'enemy', { statuses })).toBe(20000)
     expect(() =>
       validateDamageModifiers([
-        { direction: 'outgoing', multiplierBasisPoints: 20000, condition: { kind: 'always' } },
+        { direction: 'outgoing', multiplierBasisPoints: 109901, condition: { kind: 'always' } },
       ]),
     ).toThrow()
     expect(() =>
@@ -529,10 +529,17 @@ function assertContractUse(
           statusId === 'bleed' ? 3 : statusId === 'poison' ? 4 : statusId === 'displaced' ? 1 : 2,
       })),
     ].sort((left, right) => left.statusId.localeCompare(right.statusId))
+    // This historical roster contract compares gameplay state; source-clock capture is
+    // private execution metadata covered by the current Copy duration regressions.
+    const gameplayStatus = (status: { statusId: string; originalDurationTurns?: number }) => {
+      const gameplay = { ...status }
+      delete gameplay.originalDurationTurns
+      return gameplay
+    }
     expect(
-      result.state.statusState.find((row) => row.combatantId === id)!.statuses,
+      result.state.statusState.find((row) => row.combatantId === id)!.statuses.map(gameplayStatus),
       `${id} statuses`,
-    ).toEqual(expectedStatuses)
+    ).toEqual(expectedStatuses.map(gameplayStatus))
     const position = state.tactical.placements.find((unit) => unit.combatantId === id)!.position
     expect(
       result.state.tactical.placements.find((unit) => unit.combatantId === id)!.position,

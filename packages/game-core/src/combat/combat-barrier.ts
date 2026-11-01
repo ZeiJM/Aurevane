@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from './combat-effect-percentages'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { capSummonDamage } from './combat-summon-potency'
 import type {
@@ -40,8 +41,8 @@ export function validateBarrierEffect(effect: CombatEffectDefinition): void {
   if (effect.basis !== undefined && effect.basis !== 'maximum-hp-percent')
     throw new TypeError('Unknown Barrier basis.')
   if (effect.durationTurns !== undefined) validateBarrierDuration(effect.durationTurns)
-  if (effect.basis === 'maximum-hp-percent' && effect.amount > 100)
-    throw new RangeError('Barrier percentage must be from 1 to 100.')
+  if (effect.basis === 'maximum-hp-percent' && effect.amount > CURRENT_EFFECT_PERCENT_MAXIMUM)
+    throw new RangeError(`Barrier percentage must be from 1 to ${CURRENT_EFFECT_PERCENT_MAXIMUM}.`)
 }
 
 export function barrierGrantAmount(
@@ -71,7 +72,11 @@ export function absorbIndirectDamageWithBarrier(
   actionId: string,
   requested: number | bigint,
   capContext?: { content: CombatContentCatalog; commandId?: number },
-): CombatBarrierAbsorptionResult & { events: readonly CombatResolutionEvent[] } {
+): CombatBarrierAbsorptionResult & {
+  /** Post-mitigation damage before the target's remaining HP limits actual loss. */
+  damageBeforeHpLimit: bigint
+  events: readonly CombatResolutionEvent[]
+} {
   if (typeof requested === 'number' && (!Number.isSafeInteger(requested) || requested < 0))
     throw new RangeError('Damage must be a non-negative safe integer.')
   const capped =
@@ -98,6 +103,7 @@ export function absorbIndirectDamageWithBarrier(
   const remaining = damage - BigInt(absorbed)
   return {
     ...result,
+    damageBeforeHpLimit: remaining,
     remainingDamage: Number(remaining < BigInt(target.hp) ? remaining : BigInt(target.hp)),
     events:
       absorbed > 0
@@ -113,6 +119,18 @@ export function absorbIndirectDamageWithBarrier(
             },
           ]
         : [],
+  }
+}
+
+/** Display-only overkill metadata; mechanical consumers continue to use receipt.amount. */
+export function captureDamageOverkill(
+  resolved: number | bigint,
+  actualHpLoss: number,
+): { resolvedDamage?: number | string } {
+  const amount = BigInt(resolved)
+  if (amount <= BigInt(actualHpLoss)) return {}
+  return {
+    resolvedDamage: amount > BigInt(Number.MAX_SAFE_INTEGER) ? amount.toString() : Number(amount),
   }
 }
 

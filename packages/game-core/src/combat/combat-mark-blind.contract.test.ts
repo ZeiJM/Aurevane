@@ -533,7 +533,7 @@ describe('Mark and Blind: authoring and snapshot guards', () => {
     -1,
     0,
     0.5,
-    3_001,
+    99_901,
     Number.NaN,
     Number.POSITIVE_INFINITY,
     Number.MAX_SAFE_INTEGER,

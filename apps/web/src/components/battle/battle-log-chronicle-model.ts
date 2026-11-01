@@ -266,18 +266,22 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
   const actorName = chronicleCombatantName(ownerId, names)
   const targetName = chronicleCombatantName(entry.targetCombatantId, names)
   const loweredGuard = entry.actionId === 'battle.lowered-guard.apply'
+  const reflection = entry.actionId === 'status.reflect.current.v1'
   return {
     key: eventKey(entry),
     actorId: ownerId,
-    title: loweredGuard
-      ? 'Defenseless'
-      : (entry.actionContext?.name ?? entry.actionLabel ?? entry.headline),
+    title: reflection
+      ? 'Reflect'
+      : loweredGuard
+        ? 'Defenseless'
+        : (entry.actionContext?.name ?? entry.actionLabel ?? entry.headline),
     family: family(entry),
     contentId: entry.actionContext?.contentId ?? entry.actionContext?.skillId ?? null,
     sourceActionId: entry.actionId,
     contentVersion: entry.actionContext?.contentVersion ?? null,
-    flavorTemplate:
-      loweredGuard && entry.eventType === 'combat_action_used'
+    flavorTemplate: reflection
+      ? null
+      : loweredGuard && entry.eventType === 'combat_action_used'
         ? '{actor} lowered {actor.possessive} guard!'
         : (entry.actionContext?.battleText ?? entry.actionContext?.flavor ?? null),
     configuredValues: entry.actionContext?.presentation?.values,
@@ -288,7 +292,9 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
       entry.actionContext?.narrator ??
       (entry.actorNarrator ? { actor: entry.actorNarrator } : undefined),
     targetName,
-    fallbackNarration: fallbackNarration(entry, actorName),
+    fallbackNarration: reflection
+      ? `${actorName} reflects the damage.`
+      : fallbackNarration(entry, actorName),
     hasRecordedResult: entry.eventType === 'resonance_activated',
     outcomes: [],
     specials: [],
@@ -772,6 +778,19 @@ export function buildBattleChronicle(
       }
       special.outcomes.push(result)
       attachOutcomeNarrator(special, entry)
+      continue
+    }
+    if (entry.actionId === 'status.reflect.current.v1') {
+      const group = actorGroup()
+      let reflection = group.actions.find(
+        (item) =>
+          item.sourceActionId === entry.actionId && item.key.startsWith(`${entry.battleVersion}:`),
+      )
+      if (!reflection) {
+        reflection = action(entry, names, ownerId)
+        group.actions.push(reflection)
+      }
+      reflection.outcomes.push(result)
       continue
     }
     if (

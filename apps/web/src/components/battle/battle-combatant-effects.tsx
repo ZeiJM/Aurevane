@@ -11,7 +11,11 @@ import {
 } from './battle-effect-information'
 import { statusDamageMultiplierBasisPoints } from '../../lib/status-potency-presentation'
 import styles from './battle-combatant-effects.module.css'
-import type { BattlePresentedStatus } from '../../lib/battle/battle-elevation-effects'
+import {
+  TERRAIN_EVASION_STATUS_ID,
+  TERRAIN_DEFENSE_STATUS_ID,
+  type BattlePresentedStatus,
+} from '../../lib/battle/battle-elevation-effects'
 
 function effectDefinition(effect: CombatStatusInstance) {
   return PHASE4_STATUSES.find(
@@ -70,7 +74,14 @@ export function BattleCombatantEffects({
   statuses: readonly BattlePresentedStatus[]
   compact?: boolean
 }) {
-  const effects = aggregateBattleStatusStacks(statuses)
+  const visibleStatuses = compact
+    ? statuses.filter(
+        (status) =>
+          status.statusId !== TERRAIN_EVASION_STATUS_ID &&
+          status.statusId !== TERRAIN_DEFENSE_STATUS_ID,
+      )
+    : statuses
+  const effects = aggregateBattleStatusStacks(visibleStatuses)
   if (compact)
     return (
       <section className={styles.icons} aria-label={`${name} combat effects`}>

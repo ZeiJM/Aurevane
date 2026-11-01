@@ -311,7 +311,8 @@ it('selects real collected weekly buckets, preserves current adoption and reject
         )
       ).rows[0]!.report
     const old = await get(week)
-    expect(String(old.weekStartsAt).slice(0, 10)).toBe(week)
+    // JSON timestamptz uses the database session offset; the bucket is a UTC instant.
+    expect(new Date(String(old.weekStartsAt)).toISOString()).toBe(`${week}T00:00:00.000Z`)
     expect(old.availableWeeks).toContain(week)
     expect(old.current).toEqual((await read()).current)
     expect(old.coverage).toMatchObject({ collectedBattles: 1 })

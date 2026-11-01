@@ -1048,3 +1048,36 @@ it('reports HP payment as a resource cost rather than damage or an unknown event
     { label: '1 left', tone: 'neutral' },
   ])
 })
+
+it('labels reflection receipts without leaking the internal status action/version into any reader', () => {
+  const records = [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-11-01T00:00:00Z',
+      event: {
+        event: 'damage_applied',
+        actionId: 'status.reflect.current.v1',
+        sourceCombatantId: 'character:zei',
+        targetCombatantId: 'recruit:weon',
+        amount: 13,
+        hpBefore: 90,
+        hpAfter: 77,
+      },
+    },
+  ]
+  const before = JSON.stringify(records)
+  const view = buildBattleLogView(SESSION_ID, records)
+  expect(view.entries[0]).toMatchObject({
+    actionId: 'status.reflect.current.v1',
+    actionLabel: 'Reflect',
+    headline: 'Reflect',
+    templateValues: { amount: '13' },
+  })
+  const action = buildBattleChronicle(view.entries, {
+    combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+  })[0]!.actors[0]!.actions[0]!
+  expect(action.fallbackNarration).toBe('Zei reflects the damage.')
+  expect(action.outcomes[0]).toMatchObject({ text: '13 damage', recipient: ' to Weon' })
+  expect(JSON.stringify(records)).toBe(before)
+})

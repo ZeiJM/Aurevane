@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import { combatStatusApplications } from './combat-status-applications'
 import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gameplay-tags'
 import { hasCurrentBleed, hasCurrentBurn, hasCurrentPoison } from './combat-dots'
@@ -35,7 +36,7 @@ export function validateCombatCommandDamageBonuses(value: unknown): void {
       bonus.contentVersion < 1 ||
       !Number.isSafeInteger(bonus.multiplierBasisPoints) ||
       bonus.multiplierBasisPoints < 10000 ||
-      bonus.multiplierBasisPoints > 15000
+      bonus.multiplierBasisPoints > CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS
     )
       throw new TypeError('invalid-command-damage-bonuses')
     const identity = JSON.stringify([
@@ -248,7 +249,7 @@ function calculateConditionalDamageRatio(
           // Current encounters preserve every application's magnitude; legacy rows apply once.
           const multiplier =
             status.statusId === 'fortified' && application.defenseIncreaseBasisPoints !== undefined
-              ? 10000 - application.defenseIncreaseBasisPoints
+              ? Math.max(0, 10000 - application.defenseIncreaseBasisPoints)
               : application.potencyBasisPoints === undefined ||
                   modifier.multiplierBasisPoints === 10_000
                 ? modifier.multiplierBasisPoints
@@ -366,7 +367,7 @@ export function validateDamageModifiers(
       !['outgoing', 'incoming'].includes(modifier.direction) ||
       !Number.isSafeInteger(modifier.multiplierBasisPoints) ||
       modifier.multiplierBasisPoints < 5_000 ||
-      modifier.multiplierBasisPoints > 15_000
+      modifier.multiplierBasisPoints > CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS
     )
       throw new TypeError('Invalid bounded damage modifier.')
     const condition = modifier.condition

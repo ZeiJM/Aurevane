@@ -1,4 +1,6 @@
 'use client'
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
+import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
 import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
 import {
   selectableCombatStatusIds,
@@ -196,7 +198,9 @@ function PercentageInput({
             setError(null)
           } catch {
             setError(
-              'Enter ' + (allowZero ? '0' : '0.01') + '–100 with at most two decimal places.',
+              'Enter ' +
+                (allowZero ? '0' : '0.01') +
+                `–${CURRENT_EFFECT_PERCENT_MAXIMUM} with at most two decimal places.`,
             )
             onChange(Number.NaN)
           }
@@ -315,12 +319,15 @@ export interface SkillEffectEditorProps {
 
 export function SkillEffectEditor({
   value: savedValue,
-  onChange,
+  onChange: commitChange,
   aim,
   siblings,
   hideTarget = false,
   canonicalDamage,
 }: SkillEffectEditorProps) {
+  const onChange = (next: CombatEffectDefinition) => {
+    if (combatPercentageEditIsWithinBounds(value, next)) commitChange(next)
+  }
   const value = currentTagForAuthoring(savedValue)
   let controls
 
@@ -345,7 +352,7 @@ export function SkillEffectEditor({
             <AbilityNumber
               label="Reflection potency (%)"
               value={value.reflectionBasisPoints / 100}
-              max={1000}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               min={0.01}
               step={0.01}
               onChange={(percent) =>
@@ -356,7 +363,7 @@ export function SkillEffectEditor({
               label="Attacker HP cap (%)"
               value={value.attackerMaxHpCapBasisPoints / 100}
               min={0.01}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, attackerMaxHpCapBasisPoints: Math.round(percent * 100) })
@@ -366,7 +373,7 @@ export function SkillEffectEditor({
               label="User HP cap (%)"
               value={value.defenderMaxHpCapBasisPoints / 100}
               min={0.01}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, defenderMaxHpCapBasisPoints: Math.round(percent * 100) })
@@ -388,6 +395,7 @@ export function SkillEffectEditor({
             label="Damage returned (%)"
             value={value.releaseBasisPoints / 100}
             min={0.01}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
             step={0.01}
             onChange={(percent) =>
               onChange({ ...value, releaseBasisPoints: Math.round(percent * 100) })
@@ -441,6 +449,7 @@ export function SkillEffectEditor({
           label="Damage increase per debuff (%)"
           value={value.bonusPerDebuffBasisPoints / 100}
           min={0.01}
+          max={CURRENT_EFFECT_PERCENT_MAXIMUM}
           step={0.01}
           onChange={(percent) =>
             onChange({ ...value, bonusPerDebuffBasisPoints: Math.round(percent * 100) })
@@ -465,7 +474,7 @@ export function SkillEffectEditor({
               aria-label="Recovery percent"
               type="number"
               min={1}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={1}
               value={value.percent}
               onChange={(event) =>
@@ -539,7 +548,7 @@ export function SkillEffectEditor({
               aria-label={percentage ? 'MP Drain potency (%)' : 'MP Drain amount'}
               type="number"
               min={1}
-              max={percentage ? 100 : 20}
+              max={percentage ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20}
               step={1}
               value={Math.abs(value.delta)}
               onChange={(event) =>
@@ -609,7 +618,7 @@ export function SkillEffectEditor({
             <label className={styles.field}>
               <span>Type</span>
               <select
-                aria-label="Counter type"
+                aria-label="Reflect type"
                 value={counter.kind}
                 onChange={(event) =>
                   onChange({
@@ -618,15 +627,16 @@ export function SkillEffectEditor({
                   })
                 }
               >
-                <option value="physical">Physical Counter</option>
-                <option value="mystic">Mystical Counter</option>
-                <option value="full">Full Counter</option>
+                <option value="physical">Physical Reflect</option>
+                <option value="mystic">Magical Reflect</option>
+                <option value="full">Full Reflect</option>
               </select>
             </label>
             <AbilityNumber
-              label="Counter potency (%)"
+              label="Reflect potency (%)"
               value={counter.basisPoints / 100}
               min={0.01}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({
@@ -663,7 +673,7 @@ export function SkillEffectEditor({
               label="Initiative reduction (%)"
               value={(value.initiativeReductionBasisPoints ?? 1000) / 100}
               min={0}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, initiativeReductionBasisPoints: Math.round(percent * 100) })
@@ -675,7 +685,7 @@ export function SkillEffectEditor({
               label="Defense increase / outgoing damage reduction (%)"
               value={(value.defenseIncreaseBasisPoints ?? value.potencyBasisPoints ?? 1500) / 100}
               min={0}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, defenseIncreaseBasisPoints: Math.round(percent * 100) })
@@ -692,6 +702,7 @@ export function SkillEffectEditor({
                     : 10000 + value.potencyBasisPoints)) / 100
               }
               min={0}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, damageTakenMultiplierBasisPoints: Math.round(percent * 100) })
@@ -716,6 +727,7 @@ export function SkillEffectEditor({
                     aria-label={`${direction === 'side' ? 'Side' : 'Rear'} damage (%)`}
                     type="number"
                     min={100}
+                    max={CURRENT_EFFECT_PERCENT_MAXIMUM}
                     step={0.01}
                     value={
                       (value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[
@@ -849,7 +861,7 @@ export function SkillEffectEditor({
               }
               type="number"
               min={1}
-              max={value.basis === 'maximum-hp-percent' ? 100 : 20}
+              max={value.basis === 'maximum-hp-percent' ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -884,6 +896,7 @@ export function SkillEffectEditor({
             label="Increased damage taken (%)"
             value={(value.increasedDamageTakenBasisPoints ?? 1500) / 100}
             min={0}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
             step={0.01}
             onChange={(percent) =>
               onChange({ ...value, increasedDamageTakenBasisPoints: Math.round(percent * 100) })

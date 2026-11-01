@@ -5,6 +5,10 @@ import type {
 } from './actions'
 import { PV1F_COMBAT_CONTENT } from './pv1f-combat-content'
 import { combatStatusDetails } from './status-content'
+import { combatEffectPresentationTags } from './gameplay-tags'
+
+/** These typed effects remain valid only in retained historical Copy selections. */
+export const COPY_DEBUFF_EXCLUDED_STATUS_IDS: readonly string[] = ['burn', 'bleed', 'poison']
 
 export type StatusSelectionKind = 'buffs' | 'debuffs' | 'copy-buffs' | 'copy-debuffs'
 
@@ -33,12 +37,14 @@ export function selectableCombatStatusIds(kind: StatusSelectionKind): readonly s
       if (kind === 'copy-buffs' || kind === 'copy-debuffs') {
         // Blindside remains valid in captured positive-buff copies, but is not a current authoring choice.
         if (kind === 'copy-buffs' && definition.id === 'blindside') return false
-        // Persistent DoTs carry their own per-application copy permission.
-        if (kind === 'copy-debuffs' && ['burn', 'poison', 'bleed'].includes(definition.id))
-          return true
+        if (kind === 'copy-debuffs' && COPY_DEBUFF_EXCLUDED_STATUS_IDS.includes(definition.id))
+          return false
         return combatStatusIsCopyable(definition, kind === 'copy-buffs' ? 'amplify' : 'curse', true)
       }
-      return definition.polarity === (kind === 'buffs' ? 'positive' : 'negative')
+      return (
+        definition.id !== 'endure' &&
+        definition.polarity === (kind === 'buffs' ? 'positive' : 'negative')
+      )
     })
     .map((definition) => definition.id)
 }
@@ -60,25 +66,31 @@ export function resolvedCombatRemovalStatusIds(
   effect: Extract<CombatEffectDefinition, { type: 'remove-status' }>,
   content: CombatContentCatalog = PV1F_COMBAT_CONTENT,
 ): readonly string[] {
-  return effect.removalMode === 'all-debuffs'
-    ? [
-        ...new Set([
-          ...content.statuses
-            .filter((definition) => definition.polarity === 'negative')
-            .map((definition) => definition.id),
-          'burn',
-          'poison',
-          'bleed',
-        ]),
-      ]
-    : effect.statusIds
+  const ids =
+    effect.removalMode === 'all-debuffs'
+      ? [
+          ...new Set([
+            ...content.statuses
+              .filter((definition) => definition.polarity === 'negative')
+              .map((definition) => definition.id),
+            'burn',
+            'poison',
+            'bleed',
+          ]),
+        ]
+      : effect.statusIds
+  // Authored removals cannot cancel Endure's private release window. Native expiry,
+  // recast and defeat cleanup use their own lifecycle transitions.
+  return ids.filter((id) => id !== 'endure')
 }
 
 export function validateCombatStatusSelection(ids: unknown, kind: StatusSelectionKind): void {
-  // Parsing a capture must retain the older positive Blindside copy selection.
+  // Parsing captures must retain older positive Blindside and explicitly selected DoT copies.
   const allowed = [
     ...selectableCombatStatusIds(kind),
     ...(kind === 'copy-buffs' ? ['blindside'] : []),
+    ...(kind === 'buffs' ? ['endure'] : []),
+    ...(kind === 'copy-debuffs' ? COPY_DEBUFF_EXCLUDED_STATUS_IDS : []),
   ]
   if (
     !Array.isArray(ids) ||
@@ -92,10 +104,20 @@ export function validateCombatStatusSelection(ids: unknown, kind: StatusSelectio
 
 /** The persisted polarity keeps an empty editor selection attached to its authored Tag. */
 export function validateCombatRemovalSelection(effect: {
+  readonly invisibleTargetPolicyVersion?: unknown
   readonly selectionKind?: unknown
   readonly removalMode?: unknown
   readonly statusIds?: unknown
 }): void {
+  if (
+    effect.invisibleTargetPolicyVersion !== undefined &&
+    (effect.invisibleTargetPolicyVersion !== 1 ||
+      !combatEffectPresentationTags({
+        ...effect,
+        type: 'remove-status',
+      } as CombatEffectDefinition).includes('Dispel'))
+  )
+    throw new TypeError('Invisible targeting is supported only by current Dispel.')
   if (effect.selectionKind === undefined) return
   if (
     effect.removalMode !== 'specified' ||

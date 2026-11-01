@@ -1438,7 +1438,7 @@ it('publishes and restores captured elemental bonus/duration through immutable M
   expect((await store.findPublished(original.id))!.definition.effects).toEqual(
     first.definition.effects,
   )
-  for (const invalid of [0, 5001, 1.5, Number.MAX_SAFE_INTEGER]) {
+  for (const invalid of [0, 100000, 1.5, Number.MAX_SAFE_INTEGER]) {
     const result = service.validateSkillDefinition({
       ...definition,
       effects: [
@@ -1474,7 +1474,7 @@ it('validates and immutably publishes a 99-turn Suppress without rewriting the o
     ],
   }
   expect(service.validateSkillDefinition(definition).valid).toBe(true)
-  for (const potencyBasisPoints of [0, 99, 10001, 2500.1])
+  for (const potencyBasisPoints of [0, 99, 100000, 2500.1])
     expect(
       service.validateSkillDefinition({
         ...definition,
@@ -2373,7 +2373,7 @@ it.each(['skill', 'essence', 'resonance'] as const)(
   (kind) => {
     const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
       .behaviors[0]!
-    for (const potencyBasisPoints of [9900, 10000, 10001]) {
+    for (const potencyBasisPoints of [99800, 99900, 100000]) {
       const ability = {
         schemaVersion: 1 as const,
         behaviors: [
@@ -2396,13 +2396,13 @@ it.each(['skill', 'essence', 'resonance'] as const)(
         ],
       }
       expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(
-        potencyBasisPoints <= 10000,
+        potencyBasisPoints <= 99900,
       )
     }
   },
 )
 
-it.each([9900, 10000, 10001])(
+it.each([99800, 99900, 100000])(
   'enforces native Burn Ward potency %i at publication validation',
   (potencyBasisPoints) => {
     const { service } = serviceFixture()
@@ -2421,16 +2421,16 @@ it.each([9900, 10000, 10001])(
         },
       ],
     }
-    expect(service.validateSkillDefinition(value).valid).toBe(potencyBasisPoints <= 10000)
+    expect(service.validateSkillDefinition(value).valid).toBe(potencyBasisPoints <= 99900)
   },
 )
 
 it.each(['skill', 'essence', 'resonance'] as const)(
-  'enforces Conductive potency through100% for %s',
+  'enforces Conductive potency through999% for %s',
   (kind) => {
     const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
       .behaviors[0]!
-    for (const potencyBasisPoints of [9900, 10000, 10001]) {
+    for (const potencyBasisPoints of [99800, 99900, 100000]) {
       const ability = {
         schemaVersion: 1 as const,
         behaviors: [
@@ -2453,8 +2453,140 @@ it.each(['skill', 'essence', 'resonance'] as const)(
         ],
       }
       expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(
-        potencyBasisPoints <= 10000,
+        potencyBasisPoints <= 99900,
       )
     }
   },
 )
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'limits current %s Reflect to999%% while leaving historical payload parsing intact',
+  (kind) => {
+    const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const basisPoints of [99900, 100000]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              {
+                id: 'reflect',
+                payload: {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'counter',
+                  stacks: 1,
+                  durationTurns: 2,
+                  counter: { kind: 'full' as const, basisPoints },
+                },
+              },
+            ],
+          },
+        ],
+      }
+      expect(parseAbilityDefinition(ability)).toBeDefined()
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(basisPoints === 99900)
+    }
+  },
+)
+
+it.each([
+  [
+    'endure',
+    (percentage: number) => ({
+      type: 'endure',
+      recipient: 'actor',
+      target: 'self',
+      durationTurns: 2,
+      releaseBasisPoints: percentage,
+      radiusTiles: 3,
+      targetTeams: 'enemies',
+    }),
+  ],
+  [
+    'ruin',
+    (percentage: number) => ({
+      type: 'ruin',
+      recipient: 'actor',
+      bonusPerDebuffBasisPoints: percentage,
+    }),
+  ],
+  [
+    'blindside',
+    (percentage: number) => ({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'blindside',
+      stacks: 1,
+      blindsideModifiersBasisPoints: { side: percentage, rear: percentage },
+    }),
+  ],
+  [
+    'defenseless',
+    (percentage: number) => ({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'lowered-guard',
+      stacks: 1,
+      damageTakenMultiplierBasisPoints: percentage,
+    }),
+  ],
+  [
+    'reveal',
+    (percentage: number) => ({
+      type: 'sensory',
+      recipient: 'primary-unit',
+      increasedDamageTakenBasisPoints: percentage,
+      revealedDurationOwnerTurnStarts: 2,
+    }),
+  ],
+] as const)(
+  'applies the current percentage ceiling to %s across all canonical content categories',
+  (_name, payload) => {
+    const group = defaultBasicSkills().find(
+      (row) => row.id === (['ruin', 'reveal'].includes(_name) ? 'unarmed.basic' : 'basic.guard'),
+    )!.ability.behaviors[0]!
+    for (const percentage of [99900, 100000]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              { id: 'current', payload: payload(percentage) },
+              ...(_name === 'ruin'
+                ? [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 5 } }]
+                : []),
+            ],
+          },
+        ],
+      } as AbilityDefinition
+      expect(parseAbilityDefinition(ability)).toBeDefined()
+      for (const kind of ['skill', 'essence', 'resonance'] as const)
+        expect(
+          canonicalAuthoringFixture(kind, ability).validate().valid,
+          `${kind} at ${percentage}`,
+        ).toBe(percentage === 99900)
+    }
+  },
+)
+
+it('does not apply current percentage ceilings to stale native shadows beside canonical mechanics', () => {
+  const ability = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+  const current = canonicalAuthoringFixture('skill', ability)
+  const definition = {
+    ...current.definition,
+    effects: [
+      {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'counter',
+        stacks: 1,
+        counter: { kind: 'full', basisPoints: 200000 },
+      },
+    ],
+  }
+  expect(current.service.validateSkillDefinition(definition).valid).toBe(true)
+})

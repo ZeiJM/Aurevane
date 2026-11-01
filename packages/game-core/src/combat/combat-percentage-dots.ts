@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import type {
   CombatActionDefinition,
@@ -48,10 +49,20 @@ export function validatePercentageDotProfile(
   if (profile.damageBasis !== undefined && profile.damageBasis !== 'command-hostile-total')
     throw new TypeError('Unsupported DoT damage basis.')
   integer(ticks, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS, 'DoT ticks')
-  integer(profile.basisPoints, 1, 10000, 'DoT percentage basis points')
+  integer(
+    profile.basisPoints,
+    1,
+    CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+    'DoT percentage basis points',
+  )
   if (profile.decayBasisPointsPerTick !== undefined) {
     if (type !== 'burn') throw new TypeError('Only Burn can author percentage-point decay.')
-    integer(profile.decayBasisPointsPerTick, 0, 10000, 'Burn percentage-point decay')
+    integer(
+      profile.decayBasisPointsPerTick,
+      0,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+      'Burn percentage-point decay',
+    )
   }
   if (profile.basisPoints - (profile.decayBasisPointsPerTick ?? 0) * (ticks - 1) <= 0)
     throw new RangeError('Every scheduled Burn percentage must remain positive.')
@@ -275,12 +286,17 @@ export function parsePercentageBasisPoints(text: string, allowZero = false): num
   const match = /^(\d{1,3})(?:\.(\d{1,2}))?$/.exec(text)
   if (!match) throw new TypeError('Use a percentage with at most two decimal places.')
   const basisPoints = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'))
-  integer(basisPoints, allowZero ? 0 : 1, 10000, 'Percentage basis points')
+  integer(
+    basisPoints,
+    allowZero ? 0 : 1,
+    CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+    'Percentage basis points',
+  )
   return basisPoints
 }
 
 export function percentageBasisPointsText(basisPoints: number): string {
-  integer(basisPoints, 0, 10000, 'Percentage basis points')
+  integer(basisPoints, 0, CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS, 'Percentage basis points')
   const decimals = String(basisPoints % 100)
     .padStart(2, '0')
     .replace(/0+$/, '')

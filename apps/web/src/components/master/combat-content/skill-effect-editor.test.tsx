@@ -70,7 +70,7 @@ describe('Master percentage DoT controls', () => {
     if (template.type !== 'barrier-change') throw new Error('Wrong Barrier template.')
     const html = render({ ...template, amount: 25 })
     expect(html).toContain('aria-label="Barrier (% maximum HP)"')
-    expect(html).toContain('max="100"')
+    expect(html).toContain('max="999"')
     expect(html).not.toContain('max="20"')
     expect(template.durationTurns).toBe(2)
     expect(html).toContain(
@@ -199,7 +199,7 @@ describe('Master Panel Skill effect editor', () => {
         maximumDamage: 80,
       },
     })
-    expect(vengeance).toContain('aria-label="Counter potency (%)"')
+    expect(vengeance).toContain('aria-label="Reflect potency (%)"')
     expect(vengeance).not.toContain('aria-label="Vengeance minimum damage"')
     expect(vengeance).not.toContain('aria-label="Vengeance maximum damage"')
   })
@@ -344,7 +344,7 @@ it('authors percentage recovery potency with fixed resource and saved applicatio
     ticks: 3,
   })
   expect(html).toContain('aria-label="Recovery percent"')
-  expect(html).toContain('max="100"')
+  expect(html).toContain('max="999"')
   expect(html).not.toContain('aria-label="Recovery resource"')
   expect(html).not.toContain('aria-label="Recovery applications"')
 })
@@ -366,7 +366,7 @@ it('authors elemental damage typing independently from captured status potency',
   ).not.toContain('Conductive Storm bonus (%)')
 })
 
-it('authors Suppress as 1–100% with two decimal places and a single application', () => {
+it('authors Suppress as 1–999% with two decimal places and a single application', () => {
   const markup = render({
     type: 'apply-status',
     recipient: 'primary-unit',
@@ -374,7 +374,7 @@ it('authors Suppress as 1–100% with two decimal places and a single applicatio
     stacks: 1,
   })
   expect(markup).toContain('aria-label="Status potency (percent)"')
-  expect(markup).toContain('max="100"')
+  expect(markup).toContain('max="999"')
   expect(markup).toContain('step="0.01"')
   expect(markup).toContain('value="25"')
   expect(markup).toMatch(/aria-label="Status stacks"[^>]*max="1"[^>]*disabled/)
@@ -461,7 +461,7 @@ it('uses explicit damage profiles and percentage parameters instead of four gene
     amount: 0,
     vengeance: { conversionBasisPoints: 2500, maximumDamage: 40 },
   })
-  expect(vengeance).toContain('aria-label="Counter potency (%)"')
+  expect(vengeance).toContain('aria-label="Reflect potency (%)"')
   expect(vengeance).toContain('value="25"')
 })
 

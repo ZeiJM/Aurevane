@@ -1,3 +1,4 @@
+import { currentCombatPercentageEntries } from './combat-percentage-authoring'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
 import { withAbilityEffectDependencies } from './combat-ability-effect-dependencies'
@@ -14,7 +15,10 @@ import {
   validateCombatTagPayload,
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
-import { MAXIMUM_COMBAT_LINE_LENGTH } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import {
+  MAXIMUM_COMBAT_LINE_LENGTH,
+  MAXIMUM_COMBAT_CIRCLE_RADIUS,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { remapAbilityEffectDescriptions } from './combat-damage-authoring'
 import { withAuthoredElementalCompanions } from './combat-elemental-authoring'
 
@@ -150,11 +154,11 @@ export function correctCombatContentEntries<T>(
       shape,
       field,
       1,
-      field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : 5,
+      field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : MAXIMUM_COMBAT_CIRCLE_RADIUS,
       `${shape.kind} ${field}`,
     )
     const reach = shape[field]
-    const cap = field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : 5
+    const cap = field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : MAXIMUM_COMBAT_CIRCLE_RADIUS
     if (
       Number.isSafeInteger(reach) &&
       (reach as number) >= 1 &&
@@ -270,6 +274,24 @@ export function correctCombatContentEntries<T>(
     }
     nativeEffects(owner, 'effects')
     if (object(owner.trigger)) nativeEffects(owner.trigger, 'resultEffects')
+  }
+  for (const {
+    owner: percentageOwner,
+    key,
+    maximum,
+    divisor,
+    path,
+  } of currentCombatPercentageEntries(
+    object(owner.ability)
+      ? { ability: owner.ability }
+      : { effects: owner.effects, trigger: owner.trigger, summonProfile: owner.summonProfile },
+  )) {
+    const before = percentageOwner[key] as number
+    if (Math.abs(before) <= maximum) continue
+    const sign = before < 0 ? -1 : 1
+    const magnitude = { value: Math.abs(before) }
+    number(magnitude, 'value', 0, maximum, path, divisor)
+    percentageOwner[key] = sign * magnitude.value
   }
   return { definition, corrections }
 }

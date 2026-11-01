@@ -18,7 +18,7 @@ describe('implemented combat Tag registry', () => {
     expect(validateCombatTagPayload(payload)).toEqual([])
     for (const facingModifiersBasisPoints of [
       { front: -1, side: 10000, rear: 10000 },
-      { front: 10000, side: 22001, rear: 10000 },
+      { front: 10000, side: 99901, rear: 10000 },
       { front: 10000, side: 10000, rear: 0.5 },
       { front: 10000, side: Number.NaN, rear: 10000 },
       { front: 10000, side: 10000 },
@@ -33,7 +33,7 @@ describe('implemented combat Tag registry', () => {
     expect(equipmentArmorAfterPierce({ armor: 40, ward: 99 }, 10000)).toBe(0)
     expect(equipmentArmorAfterPierce({ equipmentArmor: 40 }, 0)).toBe(40)
     expect(() => equipmentArmorAfterPierce({ equipmentArmor: -1 }, 10000)).toThrow()
-    expect(() => equipmentArmorAfterPierce({ equipmentArmor: 1 }, 10001)).toThrow()
+    expect(() => equipmentArmorAfterPierce({ equipmentArmor: 1 }, 99901)).toThrow()
     expect(
       validateCombatTagPayload({
         type: 'pierce',

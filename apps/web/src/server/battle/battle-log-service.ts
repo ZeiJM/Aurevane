@@ -121,6 +121,7 @@ function actionLabel(value: unknown): string {
   const actionId = presentationActionId(value)
   if (actionId?.startsWith('ground.pulse.')) return 'Ground Effect'
   if (actionId === 'basic.attack.unarmed.basic') return 'Basic Attack'
+  if (actionId === 'status.reflect.current.v1') return 'Reflect'
   if (actionId === 'basic.guard') return 'Guard'
   if (actionId === 'basic.recover') return 'HP Recovery'
   if (actionId === 'basic.recover.mp') return 'MP Recovery'
@@ -156,6 +157,12 @@ function recruitReasonLabel(value: unknown): string {
 
 function numberValue(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+/** Full settled damage is presentation metadata; exact large integers never pass through Number. */
+function resolvedDamageValue(value: unknown): number | string | null {
+  if (typeof value === 'string') return /^\d+$/u.test(value) ? value : null
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null
 }
 
 function positionLabel(value: unknown): string | null {
@@ -371,10 +378,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         returned < 0
       )
         return null
+      const displayedReturn = resolvedDamageValue(event.resolvedReturnedHpDamage) ?? returned
       return createEntry(record, eventType, {
         messageTemplate:
           '{actor} reverses the attack: prevents {prevented} HP damage and returns {returned} HP damage to {target}.',
-        templateValues: { prevented: String(prevented), returned: String(returned) },
+        templateValues: { prevented: String(prevented), returned: String(displayedReturn) },
         actorCombatantId: stringValue(event.combatantId),
         targetCombatantId: stringValue(event.attackerCombatantId),
         actionId: presentationActionId(event.actionId),
@@ -383,7 +391,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: 'damage',
         facts: [
           ...fact(`${prevented} HP damage prevented`),
-          ...fact(`${returned} HP damage returned`, 'damage'),
+          ...fact(`${displayedReturn} HP damage returned`, 'damage'),
         ],
       })
     }
@@ -800,7 +808,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const actionId = presentationActionId(
         periodic ? (event.sourceActionId ?? event.actionId) : event.actionId,
       )
-      const amount = numberValue(event.amount)
+      const amount = resolvedDamageValue(event.resolvedDamage) ?? numberValue(event.amount)
       const hpAfter = numberValue(event.hpAfter)
       const damageLabel = battleDamageLabel(event.element, event.damageKind)
       const element =

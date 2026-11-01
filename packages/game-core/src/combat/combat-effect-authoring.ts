@@ -163,6 +163,7 @@ export function createAuthorableEffectPayload(
         type: 'copy-statuses',
         recipient: 'primary-unit',
         mode: id === 'copy-buffs' ? 'amplify' : 'curse',
+        durationPolicyVersion: 1,
         ...(id === 'copy-buffs' ? { invisibleDonorPolicyVersion: 1 as const } : {}),
         statusIds: [
           ...selectableCombatStatusIds(id === 'copy-buffs' ? 'copy-buffs' : 'copy-debuffs'),
@@ -180,6 +181,7 @@ export function createAuthorableEffectPayload(
         type: 'remove-status',
         recipient: 'primary-unit',
         statusIds: [...DEFAULT_DISPEL_STATUS_IDS],
+        invisibleTargetPolicyVersion: 1,
         removalMode: 'specified',
         selectionKind: 'buffs',
       }

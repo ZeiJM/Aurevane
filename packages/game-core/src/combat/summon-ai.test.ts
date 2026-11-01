@@ -1,3 +1,5 @@
+import { createAuthorableEffectPayload } from './combat-effect-authoring'
+import { nativeCombatTagPayload } from './combat-tag-registry'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as nativeEconomy from './pv1f-action-economy'
 
@@ -1073,4 +1075,43 @@ it('restores a native Summon Copy Buffs Skill that selects an Invisible donor an
   expect(next.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp).toBe(
     state.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp,
   )
+})
+
+it('preserves current Dispel Invisible selection through a captured and restored native Summon Skill', () => {
+  const base = summonProfile()
+  const ability = {
+    ...base.abilities[0]!,
+    tags: ['utility'],
+    effects: [nativeCombatTagPayload(createAuthorableEffectPayload('dispel')!)],
+  }
+  const active = summonTurn(50, { ...base, abilities: [ability] })
+  const state = JSON.parse(
+    JSON.stringify({
+      ...active.state,
+      statusState: active.state.statusState.map((row) =>
+        row.combatantId === 'enemy'
+          ? {
+              ...row,
+              statuses: ['guarded', 'invisible'].map((statusId) => ({
+                statusId,
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: 'enemy',
+              })),
+            }
+          : row,
+      ),
+    }),
+  ) as StatDrivenCombatEncounterState
+  const summon = state.effectState!.summons![0]!
+  const target = { kind: 'unit' as const, combatantId: 'enemy' }
+  const before = JSON.stringify(state)
+  expect(evaluatePv1fSummonAbility(state, summon, ability.id, target).evaluation.issues).toEqual([])
+  expect(JSON.stringify(state)).toBe(before)
+  expect(
+    executePv1fSummonAbility(state, summon, ability.id, target).state.statusState.find(
+      (row) => row.combatantId === 'enemy',
+    )!.statuses,
+  ).toEqual([])
 })

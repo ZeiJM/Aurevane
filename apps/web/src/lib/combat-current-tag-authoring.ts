@@ -1,7 +1,10 @@
 import { deriveSharedEffectAim } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import type { CombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
-import { selectableCombatStatusIds } from '@aurevane/game-core/combat/combat-status-selection'
+import {
+  selectableCombatStatusIds,
+  COPY_DEBUFF_EXCLUDED_STATUS_IDS,
+} from '@aurevane/game-core/combat/combat-status-selection'
 import {
   withCurrentSummonCoreAttributes,
   type SummonProfileDefinition,
@@ -77,6 +80,14 @@ export function currentTagForAuthoring(
     value.removalMode !== 'all-debuffs'
   )
     return { ...value, removalMode: 'all-debuffs' }
+  if (value.type === 'remove-status' && effectAuthoringTag(value).id === 'dispel')
+    return {
+      ...value,
+      removalMode: 'specified',
+      selectionKind: 'buffs',
+      invisibleTargetPolicyVersion: 1,
+      statusIds: value.statusIds.filter((id) => id !== 'endure'),
+    }
   if (value.type === 'remove-status' && value.selectionKind === undefined) {
     const tag = effectAuthoringTag(value).id
     if (tag === 'dispel' || tag === 'conditional-cleanse')
@@ -98,13 +109,21 @@ export function currentTagForAuthoring(
       return {
         ...value,
         invisibleDonorPolicyVersion: 1,
+        durationPolicyVersion: 1,
         statusIds:
           value.statusIds === undefined || wasAll
             ? [...allowed]
             : value.statusIds.filter((id) => id !== 'blindside'),
       }
     }
-    return value.statusIds === undefined ? { ...value, statusIds: [...allowed] } : value
+    return {
+      ...value,
+      durationPolicyVersion: 1,
+      statusIds:
+        value.statusIds === undefined
+          ? [...allowed]
+          : value.statusIds.filter((id) => !COPY_DEBUFF_EXCLUDED_STATUS_IDS.includes(id)),
+    }
   }
   if (value.type === 'apply-status') {
     if (value.statusId === 'wet' && value.initiativeReductionBasisPoints === undefined)

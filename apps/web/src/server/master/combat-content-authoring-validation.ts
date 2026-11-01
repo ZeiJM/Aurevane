@@ -1,3 +1,4 @@
+import { currentCombatPercentageIssues } from '@/lib/combat-percentage-authoring'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import { validateCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import type { SummonProfileDefinition } from '@aurevane/game-core/combat/summon-content'
@@ -253,6 +254,7 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
   if (isBasicSkillId(readSkillId(definition)!)) {
     issues.push(...validateBasicSkillDefinition(definition))
     const basic = definition as unknown as BasicSkillDefinition
+    issues.push(...currentCombatPercentageIssues({ ability: basic.ability }))
     if (!issues.length) issues.push(...canonicalEffectAuthoringIssues(basic.ability))
     if (!issues.length) {
       if (!isRegisteredSkillIconHook(basic.media.iconKey))
@@ -272,6 +274,13 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
   }
   const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
   const canonical = Object.hasOwn(candidate, 'ability')
+  issues.push(
+    ...currentCombatPercentageIssues(
+      canonical
+        ? { ability: candidate.ability }
+        : { effects: candidate.effects, summonProfile: candidate.summonProfile },
+    ),
+  )
   try {
     if (!canonical) {
       validateCurrentCombatTargetAuthoring(candidate)
@@ -459,6 +468,13 @@ export function validateResonanceAuthoringDefinition(
     issues.push(...canonicalAbilityIssues(candidate.ability))
 
   if (issues.length === 0) {
+    issues.push(
+      ...currentCombatPercentageIssues(
+        candidate.ability
+          ? { ability: candidate.ability }
+          : { effects: normalizedResonanceMechanics(candidate).resultEffects },
+      ),
+    )
     if (candidate.ability) issues.push(...canonicalEffectAuthoringIssues(candidate.ability))
     else
       for (const [index, effect] of normalizedResonanceMechanics(

@@ -169,16 +169,16 @@ describe('Suppress percentage authority', () => {
   it.each([100, 10000])('accepts %i basis points', (potency) =>
     expect(() => validateGameplayEffectMetadata(suppress(potency))).not.toThrow(),
   )
-  it.each([0, 99, 10001, 2500.1, Number.NaN])('rejects invalid potency %s', (potency) =>
+  it.each([0, 99, 99901, 2500.1, Number.NaN])('rejects invalid potency %s', (potency) =>
     expect(() => validateGameplayEffectMetadata(suppress(potency))).toThrow(),
   )
   it.each([0, 100, 1.5])('rejects invalid Suppress duration %s', (duration) =>
     expect(() => validateGameplayEffectMetadata(suppress(2500, duration))).toThrow(),
   )
-  it('does not broaden other status potency constraints', () =>
+  it('applies the999% authoring limit to other status potencies too', () =>
     expect(() =>
       validateGameplayEffectMetadata({
-        ...suppress(10000),
+        ...suppress(100000),
         statusId: 'guarded',
       } as CombatEffectDefinition),
     ).toThrow())
@@ -504,7 +504,7 @@ it('Suppressed Basic on-hit forecast preserves its pre-Barrier, pre-HP-clamp mea
   )
 })
 
-it.each([0, 99, 10001, 2500.1])(
+it.each([0, 99, 99901, 2500.1])(
   'restore rejects invalid Suppress magnitude %s',
   (potencyBasisPoints) => {
     const state = apply(timed())

@@ -1,4 +1,6 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import { validateCombatReversalPayload } from './combat-reversal'
+import { validateCombatCircleRadius } from './combat-targeting-shapes'
 import { CHARACTER_ATTRIBUTE_IDS, type CharacterAttributes } from '../character/creation'
 import { calculateDerivedStats, DERIVED_STAT_RULESET_V5 } from '../character/derived-stats'
 import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
@@ -164,6 +166,16 @@ function nonNegativeSafeInteger(value: number): boolean {
 }
 
 function validAbility(ability: SummonAbilityDefinition): boolean {
+  if (
+    ability.target?.shape?.kind === 'circle' &&
+    (ability.target.geometryVersion === 2 || ability.target.geometryVersion === 3)
+  ) {
+    try {
+      validateCombatCircleRadius(ability.target.shape.radius)
+    } catch {
+      return false
+    }
+  }
   const reversals = ability.effects.filter((effect) => effect.type === 'reversal')
   if (reversals.length) {
     if (
@@ -215,7 +227,8 @@ export function validateSummonProfileDefinition(
   if (profile.tags.length === 0 || profile.tags.some((tag) => !tag.trim())) issues.push('tags')
   if (
     profile.potencyBasisPoints !== undefined &&
-    (!nonNegativeSafeInteger(profile.potencyBasisPoints) || profile.potencyBasisPoints > 10000)
+    (!nonNegativeSafeInteger(profile.potencyBasisPoints) ||
+      profile.potencyBasisPoints > CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
   )
     issues.push('potencyBasisPoints')
   if (!positiveSafeInteger(profile.maxHp)) issues.push('maxHp')

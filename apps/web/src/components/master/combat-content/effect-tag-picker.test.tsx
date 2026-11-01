@@ -22,11 +22,16 @@ it.each(['native', 'canonical'])(
       'HP Recovery',
       'MP Recovery',
       'Pierce',
-      'Counter',
+      'Reflect',
       'Dispel',
       'Suppress',
     ])
       expect(html).toContain(`>${tag}</option>`)
+    const choices = html.match(
+      /<select[^>]*aria-label="New effect(?: type)?"[^>]*>([^]*?)<\/select>/u,
+    )![1]!
+    expect(choices.match(/>Reflect<\/option>/gu)).toHaveLength(1)
+    expect(html).not.toContain('>Counter</option>')
     expect(html).not.toContain('>Vengeance</option>')
     expect(html).toContain('aria-label="Search effect tags"')
     expect(html).not.toContain('Copy Buffs / Copy Debuffs</option>')

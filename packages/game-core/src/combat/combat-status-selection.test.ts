@@ -33,3 +33,36 @@ it('pins current Copy Buffs Invisible donor selection in the authored capture', 
 it('explains the current Copy Buffs exception in Invisible help', () => {
   expect(combatStatusDetails('invisible').description).toContain('Copy Buffs')
 })
+
+it('excludes persistent DoTs from current Copy Debuffs while retaining removal and captured selection support', () => {
+  const ids = selectableCombatStatusIds('copy-debuffs')
+  expect(ids).toHaveLength(10)
+  expect(ids).toContain('slow')
+  for (const id of ['burn', 'poison', 'bleed']) {
+    expect(ids).not.toContain(id)
+    expect(selectableCombatStatusIds('debuffs')).toContain(id)
+    expect(() => validateCombatStatusSelection([id], 'copy-debuffs')).not.toThrow()
+    expect(
+      validateCombatTagPayload({
+        type: 'copy-statuses',
+        recipient: 'primary-unit',
+        mode: 'curse',
+        statusIds: [id],
+      }),
+    ).toEqual([])
+  }
+  expect(combatStatusSelectionSummary(ids, 'copy-debuffs')).toBe('All Debuffs')
+})
+it.each(['copy-buffs', 'copy-debuffs'] as const)(
+  'pins current duration semantics on new %s payloads',
+  (id) => {
+    expect(createAuthorableEffectPayload(id)).toMatchObject({ durationPolicyVersion: 1 })
+  },
+)
+
+it('excludes Endure from Dispel choices and All Buffs while allowing retained captures to parse', () => {
+  expect(selectableCombatStatusIds('buffs')).not.toContain('endure')
+  expect(selectableCombatStatusIds('copy-buffs')).not.toContain('endure')
+  expect(() => validateCombatStatusSelection(['endure'], 'buffs')).not.toThrow()
+  expect(createAuthorableEffectPayload('dispel')).toMatchObject({ invisibleTargetPolicyVersion: 1 })
+})

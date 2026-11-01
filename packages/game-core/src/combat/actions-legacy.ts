@@ -1,3 +1,7 @@
+import {
+  CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+  CURRENT_EFFECT_PERCENT_MAXIMUM,
+} from './combat-effect-percentages'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { interceptCombatReversal } from './combat-reversal-interception'
 import {
@@ -64,6 +68,7 @@ import { withEffectDeliveryEligibility } from './combat-effect-delivery-eligibil
 import { effectUsesGroundDelivery } from './combat-effect-delivery'
 import {
   combatEffectRecipientIds,
+  combatDispelAdmitsInvisibleSelection,
   validateCombatEffectTarget,
   type CombatEffectTarget,
 } from './combat-effect-recipients'
@@ -191,6 +196,7 @@ import {
 } from './combat-effect-timing'
 import {
   applyCombatStatusCopies,
+  CombatStatusCopyEligibilityError,
   attachCombatStatusCopyProvenance,
   planCombatStatusCopies,
   validateCombatStatusCopyAction,
@@ -213,6 +219,7 @@ import {
 import {
   absorbDirectDamageWithBarrier,
   absorbIndirectDamageWithBarrier,
+  captureDamageOverkill,
   currentBarrierAmount,
   barrierGrantAmount,
   grantBarrier,
@@ -460,6 +467,8 @@ export type CombatEffectDefinition = (
       /** Explicit named consumption/removal; absence retains historical Cleanse/Dispel rules. */
       removalMode?: 'specified' | 'all-debuffs'
       selectionKind?: 'buffs' | 'debuffs'
+      /** Current Dispel-only unit admission; omitted captures retain concealment rejection. */
+      invisibleTargetPolicyVersion?: 1
     }
   | {
       type: 'resource-change'
@@ -544,12 +553,15 @@ export interface CombatContentCatalog {
 }
 
 export interface CombatStatusInstance extends CombatStatusTuning {
+  /** Original resolved source clock; includes the historical owner-turn-start offset. */
+  originalDurationTurns?: number
   /** Private source restriction for an instant benefit of a pending-Covert cast. */
   sourceCommandVisibility?: CombatSourceCommandVisibility
   /** Policy 1 preserves each application's authored magnitude and source under the shared lifetime. */
   applicationModifiers?: readonly (CombatStatusTuning & {
     sourceCommandVisibility?: CombatSourceCommandVisibility
     privateSharedLifetime?: true
+    originalDurationTurns?: number
     stacks: number
     sourceCombatantId: string
     potencyBasisPoints?: number
@@ -637,6 +649,7 @@ export interface PendingCombatEffect {
   percentageDotDamageEffectOrdinal?: number
   statusDurationScope?: 'rounds'
   copyProvenance?: CombatActionProvenance
+  copyEffectOrdinal?: number
   sourceCommandVisibility?: CombatSourceCommandVisibility
   copySource?: {
     combatantId: string
@@ -906,6 +919,8 @@ export type CombatResolutionEvent = (
       sourceCombatantId: string
       targetCombatantId: string
       amount: number
+      /** Full post-mitigation finishing-hit damage, for log display only. */
+      resolvedDamage?: number | string
       hpBefore: number
       hpAfter: number
     }
@@ -1410,10 +1425,13 @@ export function evaluateCombatAction(
     : resolveCombatTargeting(
         state,
         actorId,
-        // Copy admits a concealed donor, without granting Reveal to other packets.
-        action.effects[0]?.type === 'copy-statuses' &&
-          action.effects[0].mode === 'amplify' &&
-          action.effects[0].invisibleDonorPolicyVersion === 1
+        // Current Copy/Dispel admit their own concealed recipients without granting Reveal to other packets.
+        action.effects.some(
+          (effect) =>
+            effect.type === 'copy-statuses' &&
+            effect.mode === 'amplify' &&
+            effect.invisibleDonorPolicyVersion === 1,
+        ) || combatDispelAdmitsInvisibleSelection(state, actorId, action, selection, content)
           ? { ...action.target, revealConcealedTargets: true }
           : action.target,
         selection,
@@ -1521,11 +1539,13 @@ export function evaluateCombatAction(
     )
   }
 
-  const copyEffect = action.effects[0]
+  const copyOrdinal = action.effects.findIndex((effect) => effect.type === 'copy-statuses')
+  const copyEffect = action.effects[copyOrdinal]
   if (issues.length === 0 && copyEffect?.type === 'copy-statuses' && target.combatantId) {
     if (
       target.combatantId === actorId ||
       (() => {
+        if (copyOrdinal !== 0) return false
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
         const empty =
           plan.copies.length === 0 && !plan.poison && !plan.burn && plan.bleed.length === 0
@@ -1551,24 +1571,32 @@ export function evaluateCombatAction(
             hp: actor.hp - (action.cost.hp ?? 0),
           })
         : state
-    const projection = resolveActionEffects(
-      projectionState,
-      actorId,
-      target.combatantId,
-      affectedCombatantIds,
-      affectedTiles,
-      action,
-      content,
-      undefined,
-      undefined,
-      false,
-      undefined,
-      undefined,
-      { preview: true, returnAnchor, returnAnchors },
-    )
-    projectedEffects = projection.projections
-    projectedEvents = projection.events
-    projectedTerrain = projection.terrain
+    try {
+      const projection = resolveActionEffects(
+        projectionState,
+        actorId,
+        target.combatantId,
+        affectedCombatantIds,
+        affectedTiles,
+        action,
+        content,
+        undefined,
+        undefined,
+        false,
+        undefined,
+        undefined,
+        { preview: true, returnAnchor, returnAnchors },
+      )
+      projectedEffects = projection.projections
+      projectedEvents = projection.events
+      projectedTerrain = projection.terrain
+    } catch (error) {
+      if (!(error instanceof CombatStatusCopyEligibilityError)) throw error
+      issues.push({
+        code: 'requirement-not-met',
+        message: 'Status copying requires eligible active statuses on a different combatant.',
+      })
+    }
   }
 
   return {
@@ -1624,8 +1652,8 @@ export function applyCurrentBurnBacklash(
     if (!percentageBasis || percentageBasis.hostileDamage <= 0) return { state, events: [] }
     assertNonNegativeSafeInteger(percentageBasis.hostileDamage, 'Burn backlash damage basis')
     assertNonNegativeSafeInteger(percentageBasis.basisPoints, 'Burn backlash percentage')
-    if (percentageBasis.basisPoints > 10000)
-      throw new RangeError('Burn backlash percentage exceeds 100%.')
+    if (percentageBasis.basisPoints > CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
+      throw new RangeError(`Burn backlash percentage exceeds ${CURRENT_EFFECT_PERCENT_MAXIMUM}%.`)
     const claim = claimCombatTurnTrigger(state, actorId, 'burn.backlash')
     state = claim.state
     if (!claim.allowed) return { state, events: [] }
@@ -1652,6 +1680,7 @@ export function applyCurrentBurnBacklash(
     sourceCombatantId: actorId,
     targetCombatantId: actorId,
     amount: actor.hp - hpAfter,
+    ...captureDamageOverkill(barrier.damageBeforeHpLimit, actor.hp - hpAfter),
     hpBefore: actor.hp,
     hpAfter,
     ...(state.dotTriggerPolicyVersion !== undefined
@@ -1679,6 +1708,7 @@ export function executeCombatAction(
   resolveCommittedReactions?: (
     transition: CombatResolutionTransition,
     settledEffectOrdinals: ReadonlySet<number>,
+    copySourceStates: ReadonlyMap<number, CombatEncounterState>,
   ) => CombatResolutionTransition,
   missedCombatantIds?: ReadonlySet<string>,
   criticalEffectOrdinalsByTarget?: ReadonlyMap<string, ReadonlySet<number>>,
@@ -1749,6 +1779,7 @@ export function executeCombatAction(
     events.push({ event: 'combat_action_used', actionId: action.id, actorId })
 
   const settledEffectOrdinals = new Set<number>()
+  const copySourceStates = new Map<number, CombatEncounterState>()
   const applied = resolveActionEffects(
     nextState,
     actorId,
@@ -1767,6 +1798,7 @@ export function executeCombatAction(
       nativeHooks,
       reversalReactionGuard,
       settledEffectOrdinals,
+      copySourceStates,
       returnAnchor,
       returnAnchors,
     },
@@ -1825,7 +1857,11 @@ export function executeCombatAction(
   // Engine-owned reaction seam: committed effects first, terminal verdict last.
   // Omitted by historical four-argument callers; never populated by authored scripts.
   if (resolveCommittedReactions) {
-    const reacted = resolveCommittedReactions({ state: nextState, events }, settledEffectOrdinals)
+    const reacted = resolveCommittedReactions(
+      { state: nextState, events },
+      settledEffectOrdinals,
+      copySourceStates,
+    )
     nextState = reacted.state
     events = [...reacted.events]
   }
@@ -2333,6 +2369,9 @@ function applyCombatRoundBoundary(
           returnAnchor: pending.returnAnchor,
           returnAnchors: pending.returnAnchors,
           statusDurationScope: pending.statusDurationScope,
+          ...(pending.copyEffectOrdinal !== undefined && !pending.copySource
+            ? { deferredStatusCopy: true as const }
+            : {}),
           sourceCommandVisibility: pending.sourceCommandVisibility,
           percentageRecoveryByRecipient: pending.percentageRecoveryByRecipient,
         },
@@ -2468,6 +2507,7 @@ function applyCombatRoundBoundary(
                   triggerChainId: pending.copyProvenance.triggerChainId,
                 }),
               },
+              pending.copyEffectOrdinal ?? 0,
             )
           : filtered.state
       const command = { sourceCombatantId: pending.actorId, actionId: pending.actionId }
@@ -3164,6 +3204,13 @@ export function validateCombatEncounterState(
             if (validateCombatEncounterState(snapshot).length)
               throw new TypeError('Invalid pinned copy source state.')
           }
+          if (
+            pending.copyEffectOrdinal !== undefined &&
+            (pending.effect.type !== 'copy-statuses' ||
+              !Number.isSafeInteger(pending.copyEffectOrdinal) ||
+              pending.copyEffectOrdinal < 0)
+          )
+            throw new TypeError('Invalid pending Copy ordinal.')
           if (pending.copyProvenance !== undefined) {
             if (
               pending.effect.type !== 'copy-statuses' ||
@@ -3439,6 +3486,15 @@ export function validateCombatEncounterState(
         ...(Array.isArray(status.applicationModifiers) ? status.applicationModifiers : []),
       ].entries()) {
         try {
+          if (
+            application.originalDurationTurns !== undefined &&
+            (!Number.isSafeInteger(application.originalDurationTurns) ||
+              application.originalDurationTurns < 1 ||
+              application.originalDurationTurns >
+                CURRENT_EFFECT_DURATION_MAXIMUM_TURNS +
+                  (status.remainingOwnerTurnEnds === undefined ? 1 : 0))
+          )
+            throw new TypeError('Invalid captured original status duration.')
           validateCombatStatusTuning(application, status.statusId)
         } catch {
           issues.push({
@@ -4248,6 +4304,9 @@ interface CombatEffectResolutionOptions {
   actorOnly?: true
   nativeHooks?: CombatNativeExecutionHooks
   settledEffectOrdinals?: Set<number>
+  copySourceStates?: Map<number, CombatEncounterState>
+  deferredStatusCopy?: true
+  allowEmptyCopyPreview?: true
 }
 
 /** Resolve authored tuning against the cast's identities before pending selectors are narrowed. */
@@ -4425,6 +4484,39 @@ function resolveCombatActionActorAttempt(
     events.push(...revealed.events)
   }
   return { state: nextState, events }
+}
+
+/** Private probability planning for Copy packets after earlier authored effects. */
+export function forecastCombatStatusCopySources(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  evaluation: CombatActionEvaluation,
+  content: CombatContentCatalog,
+  missedEffectOrdinalsByTarget?: CombatResistedEffectOrdinals,
+): ReadonlyMap<number, CombatEncounterState> {
+  const sources = new Map<number, CombatEncounterState>()
+  if (!evaluation.actorId) return sources
+  resolveActionEffects(
+    state,
+    evaluation.actorId,
+    evaluation.primaryCombatantId,
+    evaluation.affectedCombatantIds,
+    evaluation.affectedTiles,
+    action,
+    content,
+    undefined,
+    undefined,
+    false,
+    undefined,
+    undefined,
+    {
+      preview: true,
+      allowEmptyCopyPreview: true,
+      copySourceStates: sources,
+      missedEffectOrdinalsByTarget,
+    },
+  )
+  return sources
 }
 
 function resolveActionEffects(
@@ -4704,6 +4796,94 @@ function resolveActionEffects(
       if (effect.type === 'sensory') {
         throw new TypeError('Sensory must be materialized before legacy effect resolution.')
       }
+      if (effect.type === 'copy-statuses' && effectRecipientIds.length) {
+        const copyRecipients = effectRecipientIds.filter(
+          (id) =>
+            !missedCombatantIds?.has(id) &&
+            !options.missedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal) &&
+            !resistedEffectOrdinalsByTarget?.get(id)?.has(effectOrdinal) &&
+            !airborneEffectGroundMiss(nextState, action, effect, id, content),
+        )
+        if (copyRecipients.length) {
+          const mode =
+            action.effectTimingModes?.[effectOrdinal] ??
+            combatEffectTimingMode(
+              state.effectTimingPolicy,
+              combatActionEffectTimingTag(state, effect, action.effectTimingTags?.[effectOrdinal]),
+            )
+          const deferred = !resolvingPending && effectOrdinal > 0 && mode !== 'instant'
+          // Newly valid nonfirst Copy follows this command's already queued prefix.
+          // The real queue resolves those rows in order, using live donor state at activation.
+          let source = nextState
+          if (deferred) {
+            const activationRound =
+              state.tactical.battle.round + combatEffectTimingRoundOffset(mode)
+            const prefix = (nextState.pendingEffects ?? [])
+              .slice(state.pendingEffects?.length ?? 0)
+              .filter(
+                (pending) =>
+                  pending.actorId === actorId &&
+                  pending.actionId === action.id &&
+                  pending.activationRound <= activationRound,
+              )
+              // Stable sort retains authored order within each activation round.
+              .sort((left, right) => left.activationRound - right.activationRound)
+            for (const pending of prefix) {
+              if (pending.effect.type === 'copy-statuses') continue
+              source = resolveActionEffects(
+                source,
+                actorId,
+                pending.recipientIds[0] ?? null,
+                pending.recipientIds,
+                pending.affectedTiles,
+                {
+                  ...action,
+                  groundArea: undefined,
+                  effects: [pending.effect],
+                  effectEligibleRecipientIds: undefined,
+                  effectTimingModes: undefined,
+                  effectTimingTags: [pending.timingTag],
+                  effectOrigins: [pending.effectOrigin],
+                },
+                pending.content,
+                undefined,
+                undefined,
+                true,
+                undefined,
+                undefined,
+                {
+                  preview: true,
+                  statusDurationScope: pending.statusDurationScope,
+                  sourceCommandVisibility: pending.sourceCommandVisibility,
+                },
+              ).state
+            }
+          }
+          const plan = planCombatStatusCopies(
+            source,
+            actorId,
+            copyRecipients[0]!,
+            effect,
+            content,
+            options.statusDurationScope,
+          )
+          const empty =
+            !plan.copies.length && !plan.poisons.length && !plan.burns.length && !plan.bleed.length
+          if (empty && options.allowEmptyCopyPreview) continue
+          if (empty && effect.allowNoEligibleEffects !== true) {
+            if (
+              !options.preview &&
+              ((effectOrdinal > 0 && !resolvingPending) || options.deferredStatusCopy)
+            )
+              continue
+            throw new CombatStatusCopyEligibilityError(
+              'Status copying requires eligible active statuses.',
+            )
+          }
+          if (!empty) options.copySourceStates?.set(effectOrdinal, source)
+        }
+      }
+
       if (
         !resolvingPending &&
         (isPercentageDotEffect(effect) ||
@@ -4849,12 +5029,14 @@ function resolveActionEffects(
                 ? { effectOrigin: { ...action.effectOrigins[effectOrdinal] } }
                 : {}),
               ...(effect.type === 'copy-statuses'
-                ? {
-                    copySource: captureStatusCopySource(
-                      nextState,
-                      effect.mode === 'amplify' ? recipientIds[0]! : actorId,
-                    ),
-                  }
+                ? effectOrdinal > 0
+                  ? { copyEffectOrdinal: effectOrdinal }
+                  : {
+                      copySource: captureStatusCopySource(
+                        nextState,
+                        effect.mode === 'amplify' ? recipientIds[0]! : actorId,
+                      ),
+                    }
                 : {}),
               ...(effect.type === 'percentage-recovery' ||
               (effect.type === 'resource-change' && effect.basis === 'maximum-mp-percent')
@@ -6161,6 +6343,7 @@ function applyEffectNative(
       sourceCombatantId: actorId,
       targetCombatantId: recipientId,
       amount: target.hp - hpAfter,
+      ...captureDamageOverkill(barrier.remainingDamage, target.hp - hpAfter),
       hpBefore: target.hp,
       hpAfter,
     }
@@ -6776,6 +6959,17 @@ function applyStatusState(
   }
   const remainingOwnerTurnStarts =
     durationTurns === undefined ? definition.durationOwnerTurnStarts : durationTurns + 1
+  const usesOwnerTurnEndClock = Boolean(
+    state.effectTimingPolicy ||
+    statusId === 'counter' ||
+    isBlindsideStatusId(statusId) ||
+    (state.elementalDamagePolicyVersion !== undefined &&
+      ['frozen', 'wet', 'conductive'].includes(statusId)),
+  )
+  const originalDurationTurns = usesOwnerTurnEndClock
+    ? (durationTurns ??
+      Math.max(1, definition.durationOwnerTurnStarts - (definition.endOfTurn ? 0 : 1)))
+    : remainingOwnerTurnStarts
   const existing = getStatus(state, recipientId, statusId, sourceCombatantId)
   const nextStacks =
     statusId === 'suppress'
@@ -6792,6 +6986,7 @@ function applyStatusState(
         ...existing,
         stacks: nextStacks,
         ...combatStatusTuning(tuning),
+        originalDurationTurns,
         remainingOwnerTurnStarts,
         sourceCombatantId,
         ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
@@ -6805,6 +7000,7 @@ function applyStatusState(
         statusVersion: definition.version,
         stacks: nextStacks,
         ...combatStatusTuning(tuning),
+        originalDurationTurns,
         remainingOwnerTurnStarts,
         sourceCombatantId,
         ...(potencyBasisPoints !== undefined ? { potencyBasisPoints } : {}),
@@ -6822,6 +7018,7 @@ function applyStatusState(
       {
         stacks,
         sourceCombatantId,
+        originalDurationTurns,
         ...combatStatusTuning(tuning),
         ...(counter ? { counter: { ...counter } } : {}),
         ...(potencyBasisPoints === undefined ? {} : { potencyBasisPoints }),
@@ -6830,13 +7027,7 @@ function applyStatusState(
     ]
   }
 
-  if (
-    state.effectTimingPolicy ||
-    statusId === 'counter' ||
-    isBlindsideStatusId(statusId) ||
-    (state.elementalDamagePolicyVersion !== undefined &&
-      ['frozen', 'wet', 'conductive'].includes(statusId))
-  ) {
+  if (usesOwnerTurnEndClock) {
     if (nextStatus.durationScope === 'rounds') {
       delete nextStatus.durationScope
       delete nextStatus.remainingRoundBoundaries
@@ -7045,6 +7236,7 @@ function resolveEndOfTurnStatuses(
         sourceCombatantId: status.sourceCombatantId,
         targetCombatantId: combatantId,
         amount: Math.abs(target.hp - hpAfter),
+        ...(barrier ? captureDamageOverkill(barrier.damageBeforeHpLimit, target.hp - hpAfter) : {}),
         hpBefore: target.hp,
         hpAfter,
       })
@@ -7153,6 +7345,7 @@ function resolveCurrentEndOfTurnDots(
       sourceCombatantId,
       targetCombatantId: combatantId,
       amount: target.hp - hpAfter,
+      ...captureDamageOverkill(barrier.damageBeforeHpLimit, target.hp - hpAfter),
       hpBefore: target.hp,
       hpAfter,
       ...(state.effectTimingPolicy || state.effectStackingPolicyVersion === 1
@@ -7670,9 +7863,21 @@ function validateCombatActionDefinition(
       assertKnownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     if (effect.type === 'damage' && effect.facingModifiersBasisPoints) {
       // Historical Perfect Opening v1 authors 220%; Skill facing is separate from basic/conditional caps.
-      assertBasisPoints(effect.facingModifiersBasisPoints.front, 'front damage modifier', 22_000)
-      assertBasisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 22_000)
-      assertBasisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 22_000)
+      assertBasisPoints(
+        effect.facingModifiersBasisPoints.front,
+        'front damage modifier',
+        CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+      )
+      assertBasisPoints(
+        effect.facingModifiersBasisPoints.side,
+        'side damage modifier',
+        CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+      )
+      assertBasisPoints(
+        effect.facingModifiersBasisPoints.rear,
+        'rear damage modifier',
+        CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+      )
     }
     if (effect.type === 'resource-change') {
       assertKnownString(effect.resource, ['mp'], 'effect resource')
@@ -7754,7 +7959,11 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     assertPositiveSafeInteger(status.version, 'status version')
     assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
     assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
-    assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
+    assertBasisPoints(
+      status.damageTakenMultiplierBasisPoints,
+      'damage taken multiplier',
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+    )
     validateDamageModifiers(status.damageModifiers)
     if (status.gameplayTags !== undefined) {
       if (
@@ -8563,6 +8772,7 @@ function resolvePoisonMovementStep(
         sourceCombatantId: poison.sourceCombatantId,
         targetCombatantId: combatantId,
         amount: target.hp - hpAfter,
+        ...captureDamageOverkill(barrier.damageBeforeHpLimit, target.hp - hpAfter),
         hpBefore: target.hp,
         hpAfter,
         ...(state.dotTriggerPolicyVersion !== undefined
@@ -9027,6 +9237,7 @@ function releaseExpiredCombatEndure(
         sourceCombatantId: combatantId,
         targetCombatantId: targetId,
         amount: target.hp - hpAfter,
+        ...captureDamageOverkill(barrier.damageBeforeHpLimit, target.hp - hpAfter),
         hpBefore: target.hp,
         hpAfter,
         ...captureCounterReturn(prior, targetId),

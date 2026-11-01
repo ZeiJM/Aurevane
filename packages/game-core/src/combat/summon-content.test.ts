@@ -315,3 +315,41 @@ describe('Core-authored summon snapshots', () => {
     }
   })
 })
+
+it.each([15, 16])('uses the shared current Circle cap for saved Summon radius%i', (radius) => {
+  const original = profile()
+  const captured = JSON.parse(
+    JSON.stringify({
+      ...original,
+      abilities: original.abilities.map((ability) => ({
+        ...ability,
+        target: {
+          ...ability.target,
+          geometryVersion: 3,
+          categories: ['enemy'],
+          maximumSelections: 1,
+          shape: { kind: 'circle', radius },
+          minimumRange: 0,
+          maximumRange: radius,
+        },
+        effects: [{ type: 'damage', recipient: 'affected-units', target: 'enemy', amount: 5 }],
+      })),
+    }),
+  )
+  const issues = validateSummonProfileDefinition(captured)
+  if (radius === 15) expect(issues).toEqual([])
+  else expect(issues.length).toBeGreaterThan(0)
+})
+
+it('preserves historical unversioned Summon Circle profiles above the current radius cap', () => {
+  const original = profile()
+  const captured = {
+    ...original,
+    abilities: original.abilities.map((ability) => ({
+      ...ability,
+      target: { ...ability.target, shape: { kind: 'circle' as const, radius: 16 } },
+      effects: [{ type: 'damage' as const, recipient: 'affected-units' as const, amount: 5 }],
+    })),
+  }
+  expect(validateSummonProfileDefinition(captured)).toEqual([])
+})

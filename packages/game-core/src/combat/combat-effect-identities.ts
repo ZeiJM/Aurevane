@@ -32,7 +32,7 @@ const variants: readonly AuthorableEffectTag[] = [
   { id: 'damage', label: 'Damage', opcode: 'damage' },
   { id: 'reversal', label: 'Reversal', opcode: 'reversal' },
   { id: 'pierce', label: 'Pierce', opcode: 'pierce' },
-  { id: 'counter', label: 'Counter', opcode: 'apply-status', statusId: 'counter' },
+  { id: 'counter', label: 'Reflect', opcode: 'apply-status', statusId: 'counter' },
   { id: 'vengeance', label: 'Vengeance', opcode: 'damage' },
   { id: 'hp-recovery', label: 'HP Recovery', opcode: 'percentage-recovery' },
   { id: 'mp-recovery', label: 'MP Recovery', opcode: 'percentage-recovery' },
@@ -89,6 +89,7 @@ export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
   ),
 )
 export function currentCombatTagName(tagId: string, name: string): string {
+  if (tagId === 'counter' && name === 'Counter') return 'Reflect'
   if (tagId === 'challenged' && name === 'Taunted') return 'Taunt'
   return tagId === BLINDSIDE_DEBUFF_STATUS_ID && name === 'Blindside (debuff)' ? 'Blindside' : name
 }

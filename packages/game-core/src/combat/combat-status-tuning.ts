@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import type { CombatStatusInstance } from './actions'
 
 /** Optional fields distinguish new authored behavior from immutable historical captures. */
@@ -37,7 +38,7 @@ export function validateCombatStatusTuning(value: CombatStatusTuning, statusId: 
       key === 'movementApAdjustment'
         ? 100
         : ['initiativeReductionBasisPoints', 'defenseIncreaseBasisPoints'].includes(key)
-          ? 10000
+          ? CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
           : Number.MAX_SAFE_INTEGER - 10000
     if (
       !allowed.includes(statusId) ||
@@ -72,5 +73,6 @@ export function hasConfiguredRevealed(
 
 /** Authoring and restored applications use the same per-status percentage ceiling. */
 export function maximumCombatStatusPotencyBasisPoints(statusId?: string): number {
-  return ['suppress', 'warded', 'conductive'].includes(statusId ?? '') ? 10000 : 5000
+  void statusId
+  return CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
 }
