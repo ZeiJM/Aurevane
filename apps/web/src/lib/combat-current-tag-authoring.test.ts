@@ -42,7 +42,7 @@ it('uses requested current rules for retained Cleanse, Drain and Ground only in 
       recipient: 'affected-tiles',
       terrain: 'frozen',
     }),
-  ).toHaveProperty('skillApSurcharge', 10)
+  ).not.toHaveProperty('skillApSurcharge')
 })
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
@@ -85,16 +85,16 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(original.ability.behaviors[0]!.effects[0]!.payload).toHaveProperty('vengeance')
   },
 )
-it('adds linked Chilled on an explicit commit of a retained Frozen Ground effect', () => {
+it('replaces retained Frozen Ground with one Chilled on an explicit commit', () => {
   const input = {
     id: 'custom.frozen',
     effects: [{ type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }],
     effectDescriptions: ['Keep this terrain note.'],
   }
   const result = correctCombatContentEntries('skill', input)
-  expect(result.definition.effects).toHaveLength(2)
-  expect(result.definition.effects[1]).toMatchObject({ type: 'apply-status', statusId: 'frozen' })
-  expect(result.definition.effectDescriptions).toEqual(['Keep this terrain note.', null])
+  expect(result.definition.effects).toHaveLength(1)
+  expect(result.definition.effects[0]).toMatchObject({ type: 'apply-status', statusId: 'frozen' })
+  expect(result.definition.effectDescriptions).toEqual(['Keep this terrain note.'])
   expect(input.effects).toHaveLength(1)
 })
 
@@ -114,10 +114,11 @@ it('projects current Summon settings without rewriting the retained profile on r
       resolve: 10,
     },
     derivedStatRulesVersion: 5,
-    potencyBasisPoints: 4000,
+
     neverMoves: false,
     aiProfile: 'high',
   })
+  expect(current.potencyBasisPoints).toBe(original.potencyBasisPoints)
   expect(current.id).toBe(original.id)
   expect(current.tags).toEqual(original.tags)
   expect(current.portraitKey).toBe(original.portraitKey)
@@ -148,9 +149,11 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(result.ability.behaviors[0]!.effects[0]!.payload.profile).toMatchObject({
       description: 'Parent details',
       flavorLine: 'Parent flavor',
-      potencyBasisPoints: 4000,
       derivedStatRulesVersion: 5,
     })
+    expect(result.ability.behaviors[0]!.effects[0]!.payload.profile).not.toHaveProperty(
+      'potencyBasisPoints',
+    )
     expect(original).toEqual(before)
     expect(correctCombatContentEntries(kind, result).corrections).toEqual([])
   },

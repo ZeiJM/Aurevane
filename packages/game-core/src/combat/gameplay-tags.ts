@@ -457,7 +457,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
       ? [
           `MP Drain [${positiveDisplayInteger(Math.abs(effect.delta), 1)}${effect.basis === 'maximum-mp-percent' ? '%' : ''}]`,
         ]
-      : [`MP Restore [${positiveDisplayInteger(effect.delta, 1)}]`]
+      : [`MP Recovery [${positiveDisplayInteger(effect.delta, 1)}]`]
   }
   if (effect.type === 'remove-status') {
     const ids = Array.isArray(effect.statusIds)

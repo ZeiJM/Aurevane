@@ -1,10 +1,11 @@
 'use client'
 
 import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   reconcileAuthoredEffectDependencies,
   authoredReversalCombinationIssue,
+  hasSharedGroundAim,
 } from '@/lib/combat-effect-dependencies'
 import { reconcileEffectRowIdentity, type EffectRowIdentity } from './effect-row-identity'
 import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
@@ -93,7 +94,7 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
     case 'return-to-turn-start':
       return { type, recipient: 'actor', anchorMode: 'cast-position' }
     case 'create-terrain':
-      return nativeCombatTagPayload(createAuthorableEffectPayload('freeze-ground')!)
+      return { type, recipient: 'affected-tiles', terrain: 'frozen' }
     case 'push':
     case 'pull':
       return { type: 'displace', recipient: 'primary-unit', direction: type, distance: 1 }
@@ -208,17 +209,36 @@ export interface SkillEffectListEditorProps {
 }
 
 export function SkillEffectListEditor({
-  value,
+  value: captured,
   aim,
-  effectDescriptions,
+  effectDescriptions: capturedDescriptions,
   maxEffects,
   canonicalDamage = false,
   allowReversal = false,
   onChange: update,
 }: SkillEffectListEditorProps) {
+  const { value, effectDescriptions } = useMemo(() => {
+    const sources = new Map(captured.map((effect, index) => [effect, index]))
+    const value = captured.some((effect) => effect.type === 'create-terrain')
+      ? reconcileAuthoredEffectDependencies(captured, captured, {
+          inheritedGround: hasSharedGroundAim(aim),
+          onLinked: (source, linked) => {
+            const index = sources.get(source)
+            if (index !== undefined) sources.set(linked, index)
+          },
+        })
+      : captured
+    return {
+      value,
+      effectDescriptions: value.map(
+        (effect) => capturedDescriptions?.[sources.get(effect) ?? -1] ?? null,
+      ),
+    }
+  }, [captured, capturedDescriptions, aim])
   const onChange: SkillEffectListEditorProps['onChange'] = (proposed, notes) => {
     const sourceIndices = new Map(proposed.map((effect, index) => [effect, index]))
     const effects = reconcileAuthoredEffectDependencies(value, proposed, {
+      inheritedGround: hasSharedGroundAim(aim),
       onLinked: (source, linked) => {
         const index = sourceIndices.get(source)
         if (index !== undefined) sourceIndices.set(linked, index)

@@ -114,7 +114,7 @@ it('compact timing labels expose Controlled for a configured tag', () => {
   ).toBe('Controlled')
 })
 
-it('reports the authored Summon ceiling against the summoner Basic Attack', () => {
+it('reports current Summon potential with a shared round budget', () => {
   const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
   const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
   const behavior = {
@@ -133,7 +133,9 @@ it('reports the authored Summon ceiling against the summoner Basic Attack', () =
   const report = abilityBehaviorInformation(behavior)
   expect(report.effectDescriptions[0]).toContain('40%')
   expect(report.effectDescriptions[0]).toContain(
-    'summoner’s normal noncritical Basic Attack damage against the same target, before Barrier',
+    'summoner and the strongest living opponent at spawn',
   )
-  expect(report.effectDescriptions[0]).toContain('Repeated hits share this limit')
+  expect(report.effectDescriptions[0]).toContain(
+    'All hits, targets and damage-over-time ticks share this round budget',
+  )
 })

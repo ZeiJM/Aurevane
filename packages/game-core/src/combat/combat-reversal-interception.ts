@@ -75,7 +75,10 @@ export function interceptCombatReversal(
   const attackerCap =
       (BigInt(attacker.maxHp) * BigInt(payload.attackerMaxHpCapBasisPoints)) / 10000n,
     defenderCap = (BigInt(defender.maxHp) * BigInt(payload.defenderMaxHpCapBasisPoints)) / 10000n
-  const requested = [reflected, attackerCap, defenderCap].reduce((a, b) => (a < b ? a : b))
+  const requested =
+    state.reversalPolicyVersion === 1
+      ? reflected
+      : [reflected, attackerCap, defenderCap].reduce((a, b) => (a < b ? a : b))
   const ended = endCombatReversal(state, input.recipientId, 'triggered')
   const barrier = absorbIndirectDamageWithBarrier(
     ended.state,

@@ -4,6 +4,7 @@ import {
   CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS,
 } from './combat-effect-percentages'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
+import { isGeneratedCombatCompanionLink } from './combat-generated-companion-links'
 import { validateCombatEndureEffect } from './combat-endure'
 import { validateCombatReversalPayload, type CombatReversalPayload } from './combat-reversal'
 import {
@@ -70,6 +71,7 @@ export type CombatTagPayload =
   | {
       readonly type: 'summon'
       readonly recipient: 'selected-tile'
+      readonly target?: 'empty-tile'
       readonly profile: SummonProfileDefinition
     }
 
@@ -172,7 +174,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
         ? 'Guarantee critical Damage when the enemy has more than the configured number of active debuffs; the attack must still hit.'
         : id === 'spike'
           ? 'Double the complete damage of critical hits.'
-          : 'Increase Damage by the configured percentage per active debuff on the enemy.',
+          : 'In current battles, the first landed eligible hit gains the configured percentage per consumable debuff captured on the enemy, then consumes those debuffs. Later hits cannot reuse the bonus; debuffs applied afterward remain. Historical battles keep their recorded Ruin rules.',
       {
         payloadFields: [
           'type',
@@ -209,7 +211,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
       attackerMaxHpCapBasisPoints: 'basis-points',
       defenderMaxHpCapBasisPoints: 'basis-points',
     },
-    'Prepare one Physical or Mystic counter until your next actual turn. Front and side hits can be reversed; rear hits bypass it. Ending incurs Reversal Strain.',
+    'Arms one Physical or Mystic Reversal immediately until triggered or cancelled. Front and side hits can be reversed for the chosen percentage; rear hits bypass it. Ending incurs Reversal Strain.',
     {
       payloadFields: [
         'type',
@@ -257,7 +259,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
       'armorIgnoredBasisPoints',
     ],
     { amount: 'power', armorIgnoredBasisPoints: 'basis-points' },
-    'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply.',
+    'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply. Pierce cannot critically hit.',
     {
       runtimeCapability: 'equipment-armor-boundary-required',
       combinations: packetModifierCombinations,
@@ -367,10 +369,13 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     ['revealedDurationOwnerTurnStarts'],
     { revealedDurationOwnerTurnStarts: 'turns' },
     'A successful hit against Invisible or Covert removes both concealments and applies Revealed.',
-    { recipients: ['primary-unit'], combinations: [{ activation: 'manual', mode: 'action' }] },
+    {
+      recipients: ['primary-unit', 'affected-units'],
+      combinations: [{ activation: 'manual', mode: 'action' }],
+    },
   ),
   tag('summon', ['profile'], {}, 'Creates the chosen allied summon on a legal, unoccupied tile.', {
-    payloadFields: ['type', 'recipient', 'profile'],
+    payloadFields: ['type', 'recipient', 'target', 'profile'],
     recipients: ['selected-tile'],
     handler: 'combat-summons',
     combinations: [{ activation: 'manual', mode: 'action' }],
@@ -416,11 +421,7 @@ export function validateCombatTagPayload(
     return [
       { path: 'payload.type', code: 'unsupported-tag', message: 'Unsupported combat Tag handler.' },
     ]
-  if (
-    value.authoringLink !== undefined &&
-    (typeof value.authoringLink !== 'string' ||
-      !/^(?:dot-damage|frozen-ground)\.[1-9][0-9]*$/.test(value.authoringLink))
-  )
+  if (value.authoringLink !== undefined && !isGeneratedCombatCompanionLink(value.authoringLink))
     issue('payload.authoringLink', 'invalid-payload', 'Invalid generated companion link.')
   for (const key of Object.keys(value))
     if (!definition.payloadFields.includes(key))
@@ -559,6 +560,7 @@ export function validateCombatTagPayload(
           'description',
           'flavorLine',
           'portraitKey',
+          'media',
           'tags',
           'coreAttributes',
           'derivedStatRulesVersion',
@@ -615,12 +617,25 @@ export function validateCombatTagPayload(
             'target',
             'requirements',
             'effects',
+            'groundArea',
             'ai',
             'media',
           ],
           path,
         )
         keys(ability.ai, ['baseUtility', 'purposeTags'], `${path}.ai`)
+        if (ability.groundArea !== undefined)
+          keys(
+            ability.groundArea,
+            [
+              'durationRounds',
+              'visualPresetId',
+              'entryEffectOrdinals',
+              'timing',
+              'contactPolicyVersion',
+            ],
+            `${path}.groundArea`,
+          )
         keys(
           ability.media,
           ['iconKey', 'audioCueKey', 'vfxKey', 'artwork', 'audio'],
@@ -702,6 +717,7 @@ export function validateCombatTagPayload(
           },
           requirements: ability.requirements,
           effects: ability.effects,
+          ...(ability.groundArea ? { groundArea: ability.groundArea } : {}),
         })
       }
       return issues
@@ -766,6 +782,8 @@ export function validateCombatTagPayload(
         throw new TypeError('Unsupported status handler.')
       if (value.statusId === 'revealed')
         throw new TypeError('Revealed may only be applied by Sensory.')
+      if (value.statusId === 'blind' && value.durationTurns !== undefined)
+        integer(value.durationTurns, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS, 'Blind duration')
       integer(value.stacks, 1, Number.MAX_SAFE_INTEGER, 'Status stacks')
     }
     if (value.type === 'remove-status') {
@@ -778,11 +796,11 @@ export function validateCombatTagPayload(
       if (
         !Array.isArray(value.statusIds) ||
         value.statusIds.length < 1 ||
-        value.statusIds.length > 16 ||
+        value.statusIds.length > 32 ||
         new Set(value.statusIds).size !== value.statusIds.length ||
         value.statusIds.some((id) => !supportedStatuses.has(id))
       )
-        throw new TypeError('Removal requires 1–16 distinct supported status IDs.')
+        throw new TypeError('Removal requires 1–32 distinct supported status IDs.')
     }
     const native = nativeCombatTagPayload(value as CombatTagPayload)
     validateGameplayEffectMetadata(native)
@@ -902,6 +920,7 @@ export function resolvedCombatEffectTagPresentation(
   const generated = { details: generatedDescription, summary: generatedDescription }
   return {
     ...captured,
+    name: currentCombatTagName(captured.tagId, captured.name),
     full: renderCombatTagWording(captured.full, generated),
     compact: renderCombatTagWording(captured.compact, generated),
   }

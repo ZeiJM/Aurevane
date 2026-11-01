@@ -46,6 +46,7 @@ const PERCENTAGE_STATUS_IDS = new Set([
   'guarded',
   'exposed',
   'mark',
+  'blind',
   'marked',
   'hexed',
   'wet',
@@ -359,31 +360,11 @@ export function SkillEffectEditor({
                 onChange({ ...value, reflectionBasisPoints: Math.round(percent * 100) })
               }
             />
-            <AbilityNumber
-              label="Attacker HP cap (%)"
-              value={value.attackerMaxHpCapBasisPoints / 100}
-              min={0.01}
-              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
-              step={0.01}
-              onChange={(percent) =>
-                onChange({ ...value, attackerMaxHpCapBasisPoints: Math.round(percent * 100) })
-              }
-            />
-            <AbilityNumber
-              label="User HP cap (%)"
-              value={value.defenderMaxHpCapBasisPoints / 100}
-              min={0.01}
-              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
-              step={0.01}
-              onChange={(percent) =>
-                onChange({ ...value, defenderMaxHpCapBasisPoints: Math.round(percent * 100) })
-              }
-            />
           </div>
           <p className={styles.effectNote}>
-            The lower HP cap applies. One trigger; front and sides only. Armed until your next turn,
-            followed by one complete turn of Reversal Strain. Other Controlled effects need a
-            separate group.
+            Arms immediately and stays armed until triggered or cancelled. One matching front or
+            side hit; returns the chosen percentage. Ending causes Reversal Strain. Other Controlled
+            effects need a separate group.
           </p>
         </>
       )
@@ -565,9 +546,9 @@ export function SkillEffectEditor({
       controls = (
         <div className={styles.typedGrid}>
           <label className={styles.field}>
-            <span>MP delta</span>
+            <span>Amount (MP)</span>
             <input
-              aria-label="MP delta"
+              aria-label="Amount (MP)"
               type="number"
               min={-20}
               max={20}
@@ -579,9 +560,9 @@ export function SkillEffectEditor({
             />
           </label>
           <label className={styles.field}>
-            <span>MP ticks</span>
+            <span>Applications</span>
             <input
-              aria-label="MP ticks"
+              aria-label="Applications"
               type="number"
               min={1}
               max={value.delta < 0 ? 1 : CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}
@@ -651,7 +632,7 @@ export function SkillEffectEditor({
       }
       controls = (
         <div className={styles.typedGrid}>
-          {!['covert', 'invisible', 'mark', 'marked', 'root'].includes(value.statusId) ? (
+          {!['covert', 'invisible', 'mark', 'marked', 'blind', 'root'].includes(value.statusId) ? (
             <label className={styles.field}>
               <span>Status stacks</span>
               <input
@@ -800,13 +781,10 @@ export function SkillEffectEditor({
     case 'create-terrain':
       controls = (
         <div className={styles.effectStaticGrid}>
-          <AbilityNumber
-            label="Extra Skill AP cost"
-            value={value.skillApSurcharge ?? 10}
-            min={0}
-            max={100}
-            onChange={(skillApSurcharge) => onChange({ ...value, skillApSurcharge })}
-          />
+          <p className={styles.fieldHint}>
+            Retired Freeze Ground becomes Chilled Ground when this draft is saved. No extra Skill AP
+            cost is added.
+          </p>
           <div className={styles.effectStatic}>
             <span>Terrain</span>
             <strong>Frozen Ground</strong>
@@ -1036,10 +1014,18 @@ export function SkillEffectEditor({
           {hasPotency && value.type === 'apply-status' ? (
             <AbilityNumber
               label={
-                value.statusId === 'wet' ? 'Storm damage increase (%)' : 'Status potency (percent)'
+                value.statusId === 'blind'
+                  ? 'Accuracy reduction (%)'
+                  : value.statusId === 'wet'
+                    ? 'Storm damage increase (%)'
+                    : 'Status potency (percent)'
               }
               displayLabel={
-                value.statusId === 'wet' ? 'Storm damage increase (%)' : 'Status potency (%)'
+                value.statusId === 'blind'
+                  ? 'Accuracy reduction (%)'
+                  : value.statusId === 'wet'
+                    ? 'Storm damage increase (%)'
+                    : 'Status potency (%)'
               }
               value={
                 (value.potencyBasisPoints ??

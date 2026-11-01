@@ -71,6 +71,10 @@ export function skillEffectDescription(
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyReversal?: boolean
+    legacyPierceCritical?: boolean
+    legacySummonPotency?: boolean
+    legacyRuin?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     rewindPrimeAnchor?: boolean
@@ -78,7 +82,7 @@ export function skillEffectDescription(
     timingPolicy?: SkillEffectTimingPolicy
   } = {},
 ): string {
-  if (isReversalPresentationEffect(effect)) return reversalDescription(effect)
+  if (isReversalPresentationEffect(effect)) return reversalDescription(effect, options)
   const target = recipient(effect)
   if (isPercentageDotEffect(effect))
     return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, { ...options, ...(effect.type === 'poison' ? { movementRefreshTiles: effect.movementRefreshTiles } : {}) })}`
@@ -86,7 +90,7 @@ export function skillEffectDescription(
     case 'weak-point':
     case 'spike':
     case 'ruin':
-      return attackTagDescription(effect)
+      return attackTagDescription(effect, options)
     case 'endure':
       return previewEffect(effect, options).explanation
     case 'summon':
@@ -103,7 +107,7 @@ export function skillEffectDescription(
         options.skillEffects,
         options.explicitElemental,
       )
-      return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
+      return `Deal ${effect.amount} base damage to ${target}.${position}${element}${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? ' Pierce cannot critically hit.' : ''}`
     }
     case 'create-terrain':
       if (effect.skillApSurcharge !== undefined)
@@ -307,6 +311,10 @@ export function skillParameterRows(
 }
 
 interface ElementalEffectPresentationOptions {
+  legacyReversal?: boolean
+  legacyPierceCritical?: boolean
+  legacySummonPotency?: boolean
+  legacyRuin?: boolean
   timingMode?: 'instant' | 'delayed' | 'controlled' | 'next-round'
   legacyHealingDown?: boolean
   legacyElemental?: boolean
@@ -358,8 +366,12 @@ export function skillEffectInstantTiming(
         : undefined
 }
 
-function compactDuration(effect: MatureSkillEffectDefinition): string | null {
-  if (isReversalPresentationEffect(effect)) return 'Until next owner turn'
+function compactDuration(
+  effect: MatureSkillEffectDefinition,
+  options: ElementalEffectPresentationOptions,
+): string | null {
+  if (isReversalPresentationEffect(effect))
+    return options.legacyReversal ? 'Until next owner turn' : 'Until triggered or cancelled'
   const percentage = isPercentageDotEffect(effect)
   const turns =
     effect.type === 'percentage-recovery'
@@ -419,9 +431,9 @@ export function compactSkillEffectSummaryParts(
         ? null
         : effect.type !== 'endure' &&
             timing === 'Instant' &&
-            /^1 turn$/iu.test(compactDuration(effect) ?? '')
+            /^1 turn$/iu.test(compactDuration(effect, options) ?? '')
           ? null
-          : compactDuration(effect),
+          : compactDuration(effect, options),
     ...(timing ? { timing } : {}),
   }
 }

@@ -121,7 +121,10 @@ export function reversalBattleEffectPresentation(
     counterLabel: 'Armed',
     timing: 'Armed',
     timingState: 'primed',
-    duration: 'Until triggered or the start of the next actual owner turn',
-    description: `${reversalDescription(effect.reversal)} This armed state cannot be copied.`,
+    duration:
+      effect.reversal.policyVersion === 1
+        ? 'Until triggered or cancelled'
+        : 'Until triggered or the start of the next actual owner turn',
+    description: `${reversalDescription(effect.reversal, { legacyReversal: effect.reversal.policyVersion !== 1 })} This armed state cannot be copied.`,
   }
 }

@@ -3,6 +3,37 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { EffectTargetEditor } from './effect-target-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
+import {
+  withAuthoredAreaRecipients,
+  withAuthoredEffectTarget,
+} from '@aurevane/game-core/combat/combat-effect-target-authoring'
+import { validateCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
+
+it('authors Ground Reveal through shared target controls while retaining independent unit Reveal', () => {
+  const effect = { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 }
+  const ground = withAuthoredEffectTarget(effect, 'ground')
+  expect(ground).toMatchObject({ recipient: 'affected-units', target: 'ground' })
+  expect(validateCombatTagPayload(ground)).toEqual([])
+  expect(validateCombatTagPayload({ ...ground, target: 'enemy' })).not.toEqual([])
+  const inherited = { ...ground }
+  Reflect.deleteProperty(inherited, 'target')
+  expect(validateCombatTagPayload(inherited)).not.toEqual([])
+  const aim = {
+    kind: 'ground-tile',
+    geometryVersion: 3,
+    categories: ['ground'],
+    teamPolicy: 'any',
+    shape: { kind: 'single' },
+    minimumRange: 0,
+    maximumRange: 3,
+    requiresLineOfSight: false,
+    maximumElevationDifference: 0,
+    friendlyFire: 'all-units',
+  } as const
+  expect(withAuthoredAreaRecipients(aim, [effect])).toEqual([ground])
+  const independent = { ...effect, target: 'enemy' as const }
+  expect(withAuthoredAreaRecipients(aim, [independent])).toEqual([independent])
+})
 
 it('offers seven readable targets, with engine restrictions and no edit merely from opening', () => {
   const onChange = vi.fn()

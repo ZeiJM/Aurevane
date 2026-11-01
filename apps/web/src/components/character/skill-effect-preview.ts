@@ -14,6 +14,7 @@ import {
 import {
   resolvedCombatEffectTagPresentation,
   type CombatTagPresentationSnapshot,
+  type CombatTagPayload,
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import {
@@ -211,8 +212,8 @@ function statusPreview(
   } else if (status?.markAccuracyBonusBasisPoints !== undefined) {
     result.magnitude = `+${(potencyBasisPoints ?? status.markAccuracyBonusBasisPoints) / 100} pp Accuracy`
     result.explanation = `Source gains ${result.magnitude} against this target.`
-  } else if (id === 'blind' && potencyBasisPoints !== undefined) {
-    result.magnitude = `−${potencyBasisPoints / 100} pp Accuracy`
+  } else if (status?.blindAccuracyPenaltyBasisPoints !== undefined) {
+    result.magnitude = `−${(potencyBasisPoints ?? status.blindAccuracyPenaltyBasisPoints) / 100} pp Accuracy`
   } else if (status?.movement?.additionalApPerTile !== undefined) {
     result.magnitude = `${signed(status.movement.additionalApPerTile)} AP`
     result.explanation = details.description
@@ -273,6 +274,9 @@ export function previewEffect(
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyReversal?: boolean
+    legacyPierceCritical?: boolean
+    legacyRuin?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
@@ -291,26 +295,26 @@ export function previewEffect(
     return {
       label: 'Reversal',
       magnitude: reversalMagnitude(effect),
-      explanation: reversalDescription(effect),
+      explanation: reversalDescription(effect, options),
     }
   switch (effect.type) {
     case 'weak-point':
       return {
         label: 'Weak Point',
         magnitude: `> ${effect.debuffThreshold} debuffs`,
-        explanation: attackTagDescription(effect),
+        explanation: attackTagDescription(effect, options),
       }
     case 'spike':
       return {
         label: 'Spike',
         magnitude: '2× critical damage',
-        explanation: attackTagDescription(effect),
+        explanation: attackTagDescription(effect, options),
       }
     case 'ruin':
       return {
         label: 'Ruin',
         magnitude: `+${effect.bonusPerDebuffBasisPoints / 100}% per debuff`,
-        explanation: attackTagDescription(effect),
+        explanation: attackTagDescription(effect, options),
       }
     case 'endure':
       return {
@@ -336,7 +340,7 @@ export function previewEffect(
                   ? 'Ice Dmg'
                   : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental)}`,
+        explanation: `${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? 'Pierce cannot critically hit. ' : ''}Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental)}`,
       }
     case 'percentage-recovery':
       return {
@@ -361,7 +365,7 @@ export function previewEffect(
       }
     case 'resource-change':
       return {
-        label: effect.delta < 0 ? 'MP Drain' : 'MP Restore',
+        label: effect.delta < 0 ? 'MP Drain' : 'MP Recovery',
         magnitude: `${Math.abs(effect.delta)}${effect.basis === 'maximum-mp-percent' ? '%' : ''}`,
         explanation:
           effect.delta < 0
@@ -592,6 +596,28 @@ export function previewEffect(
 }
 
 /** Shared current/captured wording for native Skills, Essence packets and Resonance results. */
+export function withCurrentAttackRuleHelp(
+  effect: MatureSkillEffectDefinition | Extract<CombatTagPayload, { type: 'pierce' }>,
+  options: NonNullable<Parameters<typeof previewEffect>[1]>,
+  description: string,
+  generatedDescription?: string,
+): string {
+  // This adapter is called only for saved overrides. Exact generated wording needs no suffix.
+  if (generatedDescription && description.endsWith(generatedDescription)) return description
+  const eligibleTag =
+    effect.type === 'pierce' ||
+    (effect.type === 'damage' && (effect.piercing || effect.shattersBarrier)) ||
+    effect.type === 'weak-point' ||
+    effect.type === 'spike'
+  const suffix =
+    effect.type === 'ruin' && !options.legacyRuin
+      ? 'Current Ruin boosts the first landed eligible hit and consumes captured debuffs; later hits cannot reuse it. Debuffs applied afterward remain.'
+      : !options.legacyPierceCritical && eligibleTag
+        ? 'Pierce cannot critically hit.'
+        : undefined
+  return suffix && !description.endsWith(suffix) ? `${description} ${suffix}` : description
+}
+
 export function previewEffectWithTag(
   effect: MatureSkillEffectDefinition,
   presentations?: readonly CombatTagPresentationSnapshot[],
@@ -603,12 +629,29 @@ export function previewEffectWithTag(
     effect,
     generated.explanation,
   )
-  return tagPresentation
+  const presentedTag = tagPresentation
+    ? {
+        ...tagPresentation,
+        full: withCurrentAttackRuleHelp(
+          effect,
+          options,
+          tagPresentation.full,
+          generated.explanation,
+        ),
+        compact: withCurrentAttackRuleHelp(
+          effect,
+          options,
+          tagPresentation.compact,
+          generated.explanation,
+        ),
+      }
+    : undefined
+  return presentedTag
     ? {
         ...generated,
-        label: tagPresentation.name,
-        explanation: tagPresentation.full,
-        tagPresentation,
+        label: presentedTag.name,
+        explanation: presentedTag.full,
+        tagPresentation: presentedTag,
       }
     : generated
 }
@@ -623,6 +666,9 @@ export function skillPreviewEffects(
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyReversal?: boolean
+    legacyPierceCritical?: boolean
+    legacyRuin?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
@@ -648,17 +694,21 @@ export function skillPreviewEffects(
       return override
         ? {
             ...entry,
-            explanation:
+            explanation: withCurrentAttackRuleHelp(
+              effect,
+              options,
               override +
-              (!options.legacyElemental
-                ? skillDamageElementInteraction(
-                    effect,
-                    false,
-                    options.timingPolicy,
-                    skill.effects,
-                    options.explicitElemental,
-                  )
-                : ''),
+                (!options.legacyElemental
+                  ? skillDamageElementInteraction(
+                      effect,
+                      false,
+                      options.timingPolicy,
+                      skill.effects,
+                      options.explicitElemental,
+                    )
+                  : ''),
+              entry.explanation,
+            ),
           }
         : entry
     })

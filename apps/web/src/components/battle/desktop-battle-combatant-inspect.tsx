@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleSummonPortrait } from './battle-summon-portrait'
+
 import { BattleEffectPopover } from './battle-effect-information'
 import { useBattleInspectEffectFocus } from './use-battle-inspect-effect-focus'
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
@@ -222,7 +224,7 @@ function readSelectedCombatant(
           : 'Opponent',
     level: summonWithOwner ? null : (participant?.characterLevel ?? null),
     imageUrl: summonWithOwner
-      ? null
+      ? (summonWithOwner.portraitUrl ?? null)
       : (participant?.profileImageUrl ?? (isPlayer ? playerProfileImageUrl : null)),
     fallbackAssetId: summonWithOwner
       ? null
@@ -428,7 +430,14 @@ export function DesktopBattleCombatantInspect({
                 data-av-square-media="true"
                 data-av-square-media-fit="contain"
               >
-                {selected.fallbackAssetId ? (
+                {selected.summon?.portraitUrl ? (
+                  <BattleSummonPortrait
+                    src={selected.summon?.portraitUrl}
+                    name={selected.name}
+                    fallbackClassName={styles.fallbackPortrait}
+                    className={styles.portraitImage}
+                  />
+                ) : selected.fallbackAssetId ? (
                   <CharacterPortraitImage
                     imageUrl={selected.imageUrl}
                     fallbackAssetId={selected.fallbackAssetId}

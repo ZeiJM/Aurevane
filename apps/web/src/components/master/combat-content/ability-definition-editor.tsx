@@ -14,6 +14,7 @@ import {
 } from '@/lib/combat-ability-authoring-compatibility'
 
 import type { ReactNode } from 'react'
+import { remapAbilityEffectDescriptions } from '@/lib/combat-damage-authoring'
 import { MasterHelp } from '../master-help'
 import {
   isAuthoredElementalCompanion,
@@ -734,8 +735,8 @@ function AbilityGroupEditor({
 
 /** One canonical editing surface for Skill, Essence, Resonance and Basic containers. */
 export function AbilityDefinitionEditor({
-  value,
-  effectDescriptions,
+  value: captured,
+  effectDescriptions: capturedDescriptions,
   onChange,
   section,
   category,
@@ -747,12 +748,25 @@ export function AbilityDefinitionEditor({
   effectDescriptions?: readonly (string | null)[]
   onChange: (value: AbilityDefinition, effectDescriptions: readonly (string | null)[]) => void
 }) {
-  if (!value || !Array.isArray(value.behaviors))
+  if (!captured || !Array.isArray(captured.behaviors))
     return (
       <p role="alert">
         This draft has an invalid Ability shape. Restore a valid definition before editing.
       </p>
     )
+  const value = {
+    ...captured,
+    behaviors: captured.behaviors.map((group: AbilityBehavior) =>
+      group.effects.some((effect) => effect.payload.type === 'create-terrain')
+        ? withAbilityEffectDependencies(group, group)
+        : group,
+    ),
+  }
+  const effectDescriptions = capturedDescriptions
+    ? (remapAbilityEffectDescriptions(captured, value, capturedDescriptions) as readonly (
+        string | null
+      )[])
+    : undefined
   const groups: readonly AbilityBehavior[] = value.behaviors
   const issues = validateAbilityDefinition(activeAbilityForAuthoring(value))
   const total = groups.reduce((sum, behavior) => sum + behavior.effects.length, 0)

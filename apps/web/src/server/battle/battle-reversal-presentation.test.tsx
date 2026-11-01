@@ -31,7 +31,7 @@ import {
 
 vi.mock('server-only', () => ({}))
 
-function fixture() {
+function fixture(currentPolicy = false) {
   const captured = captureCombatAbilitySource({
     ...source({
       id: 'prepare',
@@ -73,7 +73,10 @@ function fixture() {
     abilityId: 'vanguard.forceful-strike',
     contentVersion: 2,
   })
-  const base = percentageDotEncounter()
+  const base = {
+    ...percentageDotEncounter(),
+    ...(currentPolicy ? { reversalPolicyVersion: 1 as const } : {}),
+  }
   const initial = reattachStatDrivenCombatBridge(
     reconcileCombatAbilitySources(preparePv1fTurnEconomy(base), [captured]),
     base.statBridge,
@@ -94,7 +97,9 @@ function fixture() {
 describe('Reversal captured readers and viewer profiles', () => {
   it('uses the canonical Skill cost/cooldown and authored counter values in the shared report', () => {
     const { captured } = fixture()
-    const report = abilityBehaviorInformation(captured.definition.behaviors[0]!)
+    const report = abilityBehaviorInformation(captured.definition.behaviors[0]!, {
+      effectContext: { legacyReversal: true },
+    })
     expect(Object.fromEntries(report.rows)).toMatchObject({
       Cost: '35 AP / 5 MP / 3 HP',
       Cooldown: '3 turns',
@@ -142,6 +147,33 @@ describe('Reversal captured readers and viewer profiles', () => {
       }
     }
   })
+  it.each([false, true])(
+    'pins armed and captured reader lifetime without exposing execution metadata (current: %s)',
+    (current) => {
+      const { state } = fixture(current)
+      const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+        'actor',
+      ])
+      const snapshot = projectBattleSnapshot(state, viewer)
+      const armed = snapshot.statusState
+        .find((row) => row.combatantId === 'actor')!
+        .statuses.find((row) => row.statusId === 'reversal')!
+      expect(armed.reversal?.policyVersion).toBe(current ? 1 : undefined)
+      expect(JSON.stringify(snapshot)).not.toMatch(
+        /reversalState|preparedTurnNumber|offensiveTurns/,
+      )
+      const html = renderToStaticMarkup(
+        createElement(BattleCombatantEffects, { name: 'A', statuses: [armed], compact: false }),
+      )
+      expect(html).toContain(
+        current
+          ? 'Remains armed until triggered or cancelled'
+          : 'Expires at the next actual owner turn',
+      )
+      if (current) expect(html).not.toContain('18% attacker maximum HP')
+      else expect(html).toContain('18% attacker maximum HP')
+    },
+  )
   it('conceals armed benefits under Covert but keeps the protected Strain visible', () => {
     const { state } = fixture()
     const covert = {

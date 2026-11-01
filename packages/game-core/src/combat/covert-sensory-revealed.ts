@@ -292,7 +292,10 @@ export function validateCsrActionDefinition(
   for (const effect of action.effects) {
     if (effect.type === 'sensory') {
       sensoryCount += 1
-      if (effect.recipient !== 'primary-unit' || action.target.kind !== 'unit') {
+      if (!(
+        (effect.recipient === 'primary-unit' && action.target.kind === 'unit') ||
+        (effect.recipient === 'affected-units' && effect.target === 'ground')
+      )) {
         throw new TypeError('Sensory requires a primary-unit effect on a unit-targeting Skill.')
       }
       validateCsrDuration(effect.revealedDurationOwnerTurnStarts, 'Sensory Revealed duration')
@@ -318,6 +321,20 @@ export function materializeCsrPreviewAction(
       ? { target: { ...action.target, revealConcealedTargets: true as const } }
       : {}),
     effects: action.effects.filter((effect) => effect.type !== 'sensory'),
+    ...(action.effectSourceOrdinals
+      ? {
+          effectSourceOrdinals: action.effectSourceOrdinals.filter(
+            (_, i) => action.effects[i]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectRequirementCaptures
+      ? {
+          effectRequirementCaptures: action.effectRequirementCaptures.filter(
+            (_, i) => action.effects[i]?.type !== 'sensory',
+          ),
+        }
+      : {}),
     ...(action.effectTimingTags
       ? {
           effectTimingTags: action.effectTimingTags.filter(
@@ -462,6 +479,20 @@ export function materializeCsrCommittedAction(input: {
         ? { target: { ...action.target, revealConcealedTargets: true as const } }
         : {}),
       effects: ordering.map((index) => effects[index]!),
+      ...(action.effectSourceOrdinals
+        ? {
+            effectSourceOrdinals: ordering.map(
+              (index) => action.effectSourceOrdinals![effectSourceOrdinals[index]!]!,
+            ),
+          }
+        : {}),
+      ...(action.effectRequirementCaptures
+        ? {
+            effectRequirementCaptures: ordering.map(
+              (index) => action.effectRequirementCaptures![effectSourceOrdinals[index]!],
+            ),
+          }
+        : {}),
       effectTimingTags: ordering.map((index) => effectTimingTags[index]),
       ...(action.effectOrigins
         ? { effectOrigins: ordering.map((index) => effectOrigins[index]) }

@@ -776,9 +776,15 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       expect(preview.preview).toMatchObject({
         legal: true,
         affectedCombatantIds: [],
-        projectedTerrain: expect.arrayContaining([
-          expect.objectContaining({ after: 'frozen', remainingRoundBoundaries: 2 }),
-        ]),
+        projectedTerrain: [],
+        projectedGroundAreas: [
+          expect.objectContaining({
+            activationRound: before.snapshot.tactical.battle.round + 1,
+            expiresAtRound: before.snapshot.tactical.battle.round + 3,
+            visualPresetId: 'frost',
+            effectVisualIds: ['status:slow', 'status:frozen'],
+          }),
+        ],
       })
       expect(await service.getSession(hostUserId, record.battleSessionId)).toEqual(before)
       const after = await service.submitIntent({
@@ -796,14 +802,26 @@ describe('P3.7 direct PvP committed build snapshots', () => {
       ).toBe(45)
       expect(after.snapshot.terrainOverlays ?? []).toHaveLength(0)
       expect(after.snapshot).not.toHaveProperty('pendingEffects')
-      expect((record.snapshot as BattleAuthoritativeEncounterState).pendingEffects).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            activationRound: before.snapshot.tactical.battle.round + 1,
-            effect: expect.objectContaining({ type: 'create-terrain' }),
-          }),
-        ]),
-      )
+      const capturedGround = record.snapshot as BattleAuthoritativeEncounterState
+      expect(capturedGround.pendingEffects ?? []).toEqual([])
+      expect(capturedGround.groundAreas).toEqual([
+        expect.objectContaining({
+          contactPolicyVersion: 1,
+          activationRound: before.snapshot.tactical.battle.round + 1,
+          expiresAtRound: before.snapshot.tactical.battle.round + 3,
+          entryEffectSourceOrdinals: [1, 2],
+          entryEffects: [
+            expect.objectContaining({ type: 'apply-status', statusId: 'slow' }),
+            expect.objectContaining({
+              type: 'apply-status',
+              statusId: 'frozen',
+              target: 'ground',
+              applicationOrigin: 'frozen-ground',
+            }),
+          ],
+        }),
+      ])
+      expect(after.snapshot.groundAreas).toEqual(preview.preview.projectedGroundAreas)
       expect(after.snapshot.buildAuthority).toEqual({
         ...initial.buildAuthority,
         combatants: initial.buildAuthority!.combatants.map((combatant) => {

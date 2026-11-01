@@ -42,6 +42,8 @@ async function assertCurrentEffectChoices(picker, required) {
     'status:blindside',
     'status:revealed',
     'cleanse-chilled',
+    'mp-restore',
+    'freeze-ground',
   ])
     assert.equal(
       options.some((option) => option.value === retired),
@@ -1267,8 +1269,8 @@ async function verifyTagBatchEditors(page, viewport) {
   await openEffectParameters(parameters)
   await parameters.getByLabel('Reversal family', { exact: true }).selectOption('mystic')
   await parameters.getByLabel('Reflection potency (%)', { exact: true }).fill('175')
-  await parameters.getByLabel('Attacker HP cap (%)', { exact: true }).fill('15')
-  await parameters.getByLabel('User HP cap (%)', { exact: true }).fill('30')
+  assert.equal(await parameters.getByLabel('Attacker HP cap (%)', { exact: true }).count(), 0)
+  assert.equal(await parameters.getByLabel('User HP cap (%)', { exact: true }).count(), 0)
   assert.equal(await parameters.getByLabel('Target', { exact: true }).count(), 0)
   assert.equal(await parameters.getByLabel('Effect duration (turns)', { exact: true }).count(), 0)
   assert.equal(await parameters.locator('option[value="full"], option[value="both"]').count(), 0)
@@ -1292,8 +1294,9 @@ async function verifyTagBatchEditors(page, viewport) {
   assert.equal(row.timing, 'controlled')
   assert.equal(row.payload.family, 'mystic')
   assert.equal(row.payload.reflectionBasisPoints, 17500)
-  assert.equal(row.payload.attackerMaxHpCapBasisPoints, 1500)
-  assert.equal(row.payload.defenderMaxHpCapBasisPoints, 3000)
+  // Compatibility fields remain unchanged; current encounter policy ignores these legacy caps.
+  assert.equal(row.payload.attackerMaxHpCapBasisPoints, 2000)
+  assert.equal(row.payload.defenderMaxHpCapBasisPoints, 2500)
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
   await page.screenshot({ path: resolve(output, `tag-batch-editor-${viewport.width}.png`) })
 }

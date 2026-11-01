@@ -1,5 +1,9 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import {
+  BattleGroundAreaLayer,
+  battleGroundAreaLabel,
+} from '@/components/battle/battle-ground-area-layer'
 import { BattleActionPreview } from '@/components/battle/battle-action-preview'
 import boardStyles from '@/components/battle/battlefield-presentation-bundle.module.css'
 import terrainStyles from '@/components/battle/battle-terrain-presentation-polish.module.css'
@@ -52,6 +56,28 @@ const preview = {
   mitigatedBaseDamage: null,
   issues: [],
   spendsAction: true,
+}
+if (query.get('scenario') === 'current') {
+  preview.projectedTerrain = []
+  preview.projectedEvents = []
+  preview.projectedGroundAreas = [
+    {
+      id: 'current.preview',
+      tiles: terrain.map((tile) => tile.position),
+      activationRound: 4,
+      expiresAtRound: 7,
+      visualPresetId: 'frost',
+      effectVisualIds: ['status:frozen', 'damage'],
+    },
+  ]
+}
+const currentField = {
+  id: 'ground.current',
+  tiles: [{ x: 2, y: 0 }],
+  activationRound: 3,
+  expiresAtRound: 6,
+  visualPresetId: 'arcane-pulse',
+  effectVisualIds: ['damage', 'status:guarded', 'status:frozen'],
 }
 window.originalGroundPreview = JSON.stringify(preview)
 window.currentGroundPreview = preview
@@ -118,6 +144,31 @@ createRoot(document.getElementById('root')).render(
             <i data-terrain-overlay-marker="true" aria-hidden="true">
               {kind === 'frozen' ? '❄' : '≋'}2
             </i>
+            <span data-terrain-elevation-marker="true" aria-hidden="true">
+              ▲1
+            </span>
+          </button>
+        ))}
+        {[
+          ['pending', 2],
+          ['active', 3],
+          ['expired', 6],
+        ].map(([phase, round]) => (
+          <button
+            key={phase}
+            data-current-ground-phase={phase}
+            type="button"
+            data-terrain="open"
+            aria-label={`Tile 3, 1; open; elevation 1${battleGroundAreaLabel([currentField], round, { x: 2, y: 0 })}`}
+            style={{
+              position: 'relative',
+              width: tileSize,
+              height: tileSize,
+              padding: 0,
+              boxSizing: 'border-box',
+            }}
+          >
+            <BattleGroundAreaLayer areas={[currentField]} round={round} position={{ x: 2, y: 0 }} />
             <span data-terrain-elevation-marker="true" aria-hidden="true">
               ▲1
             </span>

@@ -50,7 +50,7 @@ export function canonicalEffectExplanation(
     case 'spike':
     case 'ruin':
       return {
-        description: attackTagDescription(effect),
+        description: attackTagDescription(effect, options),
         parts: { target: undefined, timing: undefined, duration: null },
       }
     case 'endure':
@@ -101,7 +101,7 @@ export function canonicalEffectExplanation(
     case 'sensory':
       if (effect.increasedDamageTakenBasisPoints !== undefined)
         return {
-          ...mechanicText`Reveal ${recipient} on a successful hit against ${mechanicTag('invisible')}, ${mechanicTag('covert')} or armed Reversal. Remove both concealments, disarm Reversal with Reversal Strain, and apply Revealed: take ${String(effect.increasedDamageTakenBasisPoints / 100)}% more damage; incoming attacks have 100% Accuracy.`,
+          ...mechanicText`Reveal ${recipient} on a successful hit against ${mechanicTag('invisible')}, ${mechanicTag('covert')} or armed ${mechanicTag('reversal')}. Remove both concealments, disarm ${mechanicTag('reversal')} with ${mechanicTag('reversal-strain')}, and apply ${mechanicTag('revealed')}: take ${String(effect.increasedDamageTakenBasisPoints / 100)}% more damage; incoming attacks have 100% Accuracy.`,
           parts: {
             details: [
               { label: 'Revealed', value: `${effect.revealedDurationOwnerTurnStarts} turns` },

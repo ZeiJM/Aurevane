@@ -10,6 +10,7 @@ import { abilityBehaviorInformation } from './ability-detail-presentation'
 import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { AbilityParameters } from './ability-parameters'
 import { canonicalStatusExplanation } from './canonical-status-explanation'
+import { mechanicTagExplanation } from './mechanic-tag-explanation'
 
 const records: readonly { id: string; after: { ability: AbilityDefinition } }[] = JSON.parse(
   readFileSync(
@@ -26,6 +27,61 @@ function actual(id: string) {
 function reportFor(id: string) {
   return abilityBehaviorInformation(actual(id).behaviors[0]!)
 }
+
+it('uses the captured Reversal policy for generic linked help without inventing rates', () => {
+  const current = mechanicTagExplanation('reversal', {})
+  expect(current).toContain('immediately')
+  expect(current).toMatch(/until .*trigger|until triggered/u)
+  expect(current).toContain('without maximum-HP caps')
+  const legacy = mechanicTagExplanation('reversal', { legacyReversal: true })
+  expect(legacy).toMatch(/next .*turn/u)
+  expect(legacy).toMatch(/HP caps/u)
+  expect(current + legacy).not.toMatch(/\d/u)
+})
+
+it('links Reversal, Reversal Strain and Revealed in the current Reveal reader', () => {
+  const old = actual('farstrider.scouts-mark').behaviors[0]!
+  const definition = parseAbilityDefinition({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...old,
+        effects: old.effects.map((effect) =>
+          effect.payload.type === 'sensory'
+            ? { ...effect, payload: { ...effect.payload, increasedDamageTakenBasisPoints: 1500 } }
+            : effect,
+        ),
+      },
+    ],
+  })
+  const before = JSON.stringify(definition)
+  const report = abilityBehaviorInformation(definition.behaviors[0]!)
+  const parts = report.effects[0]!.explanationParts!
+  expect(parts.map((part) => (typeof part === 'string' ? part : part.label)).join('')).toBe(
+    'Reveal the selected unit on a successful hit against Invisible, Covert or armed Reversal. Remove both concealments, disarm Reversal with Reversal Strain, and apply Revealed: take 15% more damage; incoming attacks have 100% Accuracy.',
+  )
+  const refs = parts.filter((part) => typeof part !== 'string')
+  expect(refs.map((part) => part.tag)).toEqual([
+    'invisible',
+    'covert',
+    'reversal',
+    'reversal',
+    'reversal-strain',
+    'revealed',
+  ])
+  for (const ref of refs) expect(ref.explanation).toBeTruthy()
+  expect(refs.find((ref) => ref.tag === 'reversal')?.explanation).toContain('immediately')
+  expect(refs.find((ref) => ref.tag === 'reversal-strain')?.explanation).toContain(
+    'Reversal cannot be prepared during Strain',
+  )
+  const html = renderToStaticMarkup(
+    <AbilityDefinitionParameters definition={projectPublicCombat(definition)} />,
+  )
+  for (const tag of ['reversal', 'reversal-strain', 'revealed'])
+    expect(html).toContain(`data-combat-tag-reference="${tag}"`)
+  expect(html).toContain('data-combat-tag-reference-trigger="true"')
+  expect(JSON.stringify(definition)).toBe(before)
+})
 
 // Catch missing semantic references and prose/packet rewrites at the actual public reader boundary.
 it.each([

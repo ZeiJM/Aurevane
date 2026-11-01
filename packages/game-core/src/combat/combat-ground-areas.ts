@@ -1,3 +1,4 @@
+import { validateCombatGroundRequirementCapture } from './combat-ground-contact-requirements'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { captureAttackTagDamage } from './combat-attack-tags'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
@@ -32,6 +33,7 @@ import type { GridPosition } from './board'
 import type { StatDrivenCombatProfile } from './stat-driven-combat'
 
 export interface CombatGroundAreaDefinition {
+  contactPolicyVersion?: 1
   durationRounds: number
   visualPresetId: GroundVisualPresetId
   /** Original effect ordinals keep entry payloads aligned with authored cast effects. */
@@ -40,6 +42,16 @@ export interface CombatGroundAreaDefinition {
   timing?: 'instant' | 'next-round' | 'delayed'
 }
 export interface CombatGroundAreaInstance {
+  contactPolicyVersion?: 1
+  sourceTags?: readonly string[]
+  accuracy?: Pick<
+    CombatActionDefinition,
+    'accuracyMode' | 'accuracyRule' | 'accuracyModifierBasisPoints'
+  >
+  entryEffectSourceOrdinals?: readonly number[]
+  entryEffectRequirementCaptures?: readonly (
+    import('./combat-ground-contact-requirements').CombatGroundRequirementCapture | null
+  )[]
   abilityCommandFacts?: CapturedCombatNativeCommandFacts
   /** Converted ice tiles retain the area schedule but no longer apply its ice entry payload. */
   steamTiles?: readonly GridPosition[]
@@ -85,6 +97,8 @@ const ENTRY_TYPES = new Set([
   'poison',
   'bleed',
   'barrier-change',
+  'sensory',
+  'displace',
 ])
 export function isCombatGroundEntryEffect(effect: { type: string; recipient: string }): boolean {
   return (
@@ -111,6 +125,8 @@ export function validateCombatGroundAreaDefinition(action: GroundAuthoring): voi
     throw new RangeError(
       `Ground duration must be 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} rounds.`,
     )
+  if (ground.contactPolicyVersion !== undefined && ground.contactPolicyVersion !== 1)
+    throw new TypeError('Unsupported Ground contact policy.')
   if (!isGroundVisualPresetId(ground.visualPresetId))
     throw new TypeError('Ground visual must use a registered preset.')
   if (ground.timing !== undefined && !['instant', 'next-round', 'delayed'].includes(ground.timing))
@@ -178,6 +194,23 @@ export function createCombatGroundArea(
   const area: CombatGroundAreaInstance = JSON.parse(
     JSON.stringify({
       id: `ground.area.${ordinal}`,
+      ...(state.groundContactPolicyVersion === 1
+        ? {
+            contactPolicyVersion: 1,
+            sourceTags: action.tags,
+            accuracy: {
+              accuracyMode: action.accuracyMode,
+              accuracyRule: action.accuracyRule,
+              accuracyModifierBasisPoints: action.accuracyModifierBasisPoints,
+            },
+            entryEffectSourceOrdinals: ground.entryEffectOrdinals.map(
+              (index) => action.effectSourceOrdinals?.[index] ?? index,
+            ),
+            entryEffectRequirementCaptures: ground.entryEffectOrdinals.map(
+              (index) => action.effectRequirementCaptures?.[index] ?? null,
+            ),
+          }
+        : {}),
       ...(options?.abilityCommandFacts ? { abilityCommandFacts: options.abilityCommandFacts } : {}),
       sourceCommandVisibility: options
         ? options.sourceCommandVisibility
@@ -216,7 +249,11 @@ export function createCombatGroundArea(
       caster: {
         combatant: actor,
         placement,
-        statuses: state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? [],
+        statuses: (
+          state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
+        ).filter(
+          (status) => state.groundContactPolicyVersion !== 1 || status.statusId !== 'endure',
+        ),
         ...(statProfile ? { statProfile } : {}),
       },
       content,
@@ -236,11 +273,53 @@ export function advanceCombatGroundAreas(state: CombatEncounterState): CombatEnc
       ? state.groundAreas.filter((area) => area.expiresAtRound > state.tactical.battle.round)
       : []
   if (remaining.length === state.groundAreas.length) return state
+  const removedUncappedSourceIds = new Set(
+    state.effectState?.summonDamageSources
+      ?.filter(
+        (source) =>
+          source.groundContactArchiveVersion === 1 &&
+          !remaining.some(
+            (area) =>
+              area.contactPolicyVersion === 1 && area.sourceCombatantId === source.combatantId,
+          ),
+      )
+      .map((source) => source.combatantId) ?? [],
+  )
+  const retiredMovementProfileIds = new Set(
+    (state.groundAreas ?? [])
+      .filter((area) => removedUncappedSourceIds.has(area.sourceCombatantId))
+      .map((area) => area.caster.placement.movementProfileId),
+  )
+  const movementProfiles = state.tactical.movementProfiles.filter(
+    (profile) =>
+      !retiredMovementProfileIds.has(profile.id) ||
+      state.tactical.placements.some((row) => row.movementProfileId === profile.id) ||
+      remaining.some((area) => area.caster.placement.movementProfileId === profile.id),
+  )
   // Discard expired area keys while retaining DoT claims for their complete turn cycle.
   const liveKeys = new Set(remaining.map((area) => `ground.entry.${area.id}`))
   return pruneCombatAbilityActionHistory({
     ...state,
     groundAreas: remaining,
+    tactical: { ...state.tactical, movementProfiles },
+    ...(state.effectState?.summonDamageSources?.some(
+      (source) => source.groundContactArchiveVersion === 1,
+    )
+      ? {
+          effectState: {
+            ...state.effectState,
+            summonDamageSources: state.effectState.summonDamageSources.filter(
+              (source) =>
+                source.groundContactArchiveVersion !== 1 ||
+                remaining.some(
+                  (area) =>
+                    area.contactPolicyVersion === 1 &&
+                    area.sourceCombatantId === source.combatantId,
+                ),
+            ),
+          },
+        }
+      : {}),
     ...(state.turnTriggerState
       ? {
           turnTriggerState: {
@@ -293,6 +372,54 @@ export function validateCombatGroundAreas(
     (!Number.isSafeInteger(state.nextGroundAreaId) || state.nextGroundAreaId < 1)
   )
     issues.push({ field: 'nextGroundAreaId', message: 'Invalid Ground identity counter.' })
+  if (
+    state.groundContactPolicyVersion !== undefined &&
+    (state.groundContactPolicyVersion !== 1 || state.groundEffectPolicyVersion !== 1)
+  )
+    issues.push({
+      field: 'groundContactPolicyVersion',
+      message: 'Unsupported or unpaired Ground contact policy.',
+    })
+  const archives = state.effectState?.summonDamageSources
+  if (archives !== undefined && !Array.isArray(archives))
+    issues.push({ field: 'groundAreas', message: 'Invalid Ground summon archive list.' })
+  for (const source of Array.isArray(archives) ? archives : []) {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      issues.push({ field: 'groundAreas', message: 'Invalid Ground summon archive.' })
+      continue
+    }
+    if (source.groundContactArchiveVersion === undefined) continue
+    const owner = state.tactical.battle.combatants.find(
+      (unit) => unit.id === source.ownerCombatantId,
+    )
+    if (
+      source.groundContactArchiveVersion !== 1 ||
+      state.groundContactPolicyVersion !== 1 ||
+      Object.hasOwn(source, 'potencyBasisPoints') ||
+      typeof source.combatantId !== 'string' ||
+      typeof source.ownerCombatantId !== 'string' ||
+      !owner ||
+      !source.combatantId.startsWith(`summon:${source.ownerCombatantId}:`) ||
+      state.effectState?.summons?.some((summon) => summon.combatantId === source.combatantId) ||
+      state.tactical.battle.combatants.some(
+        (unit) => unit.id === source.combatantId && unit.hp > 0,
+      ) ||
+      !(
+        Array.isArray(state.groundAreas) &&
+        state.groundAreas.some(
+          (area) =>
+            area?.contactPolicyVersion === 1 &&
+            area.sourceCombatantId === source.combatantId &&
+            area.caster?.combatant?.kind === 'summon' &&
+            area.sourceTeamId === owner.teamId,
+        )
+      )
+    )
+      issues.push({
+        field: 'groundAreas',
+        message: 'Invalid uncapped retired Ground summon archive.',
+      })
+  }
   if (state.groundAreas === undefined) return issues
   if (
     !Array.isArray(state.groundAreas) ||
@@ -317,8 +444,9 @@ export function validateCombatGroundAreas(
       ids.add(area.id)
       if (
         (!state.tactical.battle.combatants.some((unit) => unit.id === area.sourceCombatantId) &&
-          !state.effectState?.summonDamageSources?.some(
-            (source) => source.combatantId === area.sourceCombatantId,
+          !(
+            Array.isArray(archives) &&
+            archives.some((source) => source?.combatantId === area.sourceCombatantId)
           )) ||
         area.sourceCombatantId !== area.caster?.combatant?.id ||
         area.sourceTeamId !== area.caster.combatant.teamId ||
@@ -372,6 +500,32 @@ export function validateCombatGroundAreas(
         )
       )
         throw new TypeError('Invalid Ground packet eligibility.')
+      if (
+        area.contactPolicyVersion !== undefined &&
+        (area.contactPolicyVersion !== 1 || state.groundContactPolicyVersion !== 1)
+      )
+        throw new TypeError('Invalid Ground contact policy.')
+      if (
+        area.sourceTags !== undefined &&
+        (!Array.isArray(area.sourceTags) ||
+          area.sourceTags.some((tag: unknown) => typeof tag !== 'string'))
+      )
+        throw new TypeError('Invalid Ground source tags.')
+      if (
+        area.contactPolicyVersion === 1 &&
+        (!Array.isArray(area.entryEffectSourceOrdinals) ||
+          area.entryEffectSourceOrdinals.length !== area.entryEffects.length ||
+          area.entryEffectSourceOrdinals.some((i: number) => !Number.isSafeInteger(i) || i < 0))
+      )
+        throw new TypeError('Invalid Ground source ordinals.')
+      if (
+        area.entryEffectRequirementCaptures !== undefined &&
+        (!Array.isArray(area.entryEffectRequirementCaptures) ||
+          area.entryEffectRequirementCaptures.length !== area.entryEffects.length)
+      )
+        throw new TypeError('Invalid Ground requirements alignment.')
+      for (const capture of area.entryEffectRequirementCaptures ?? [])
+        validateCombatGroundRequirementCapture(capture)
       validateCombatNativeCommandFacts(area.abilityCommandFacts)
       validateGroundTiles(state, area.tiles)
       if (area.steamTiles) {
@@ -394,7 +548,8 @@ export function validateCombatGroundAreas(
         id: area.sourceActionId,
         version: area.sourceActionVersion,
         sourceType: 'discipline-skill',
-        tags: [],
+        tags: area.sourceTags ?? [],
+        ...area.accuracy,
         target: area.target,
         cost: { spendsAction: false, mp: 0 },
         requirements: [],
@@ -556,16 +711,21 @@ export function resolveCombatGroundEntry(
   let next = advanceCombatGroundAreas(state)
   const events: import('./actions').CombatResolutionEvent[] = []
   for (const area of next.groundAreas ?? []) {
+    position =
+      next.tactical.placements.find((row) => row.combatantId === combatantId)?.position ?? position
     const unit = next.tactical.battle.combatants.find((row) => row.id === combatantId)
     if (!unit || unit.hp <= 0 || next.tactical.battle.lifecycle !== 'active') break
     if (
       area.steamTiles?.some((tile) => tile.x === position.x && tile.y === position.y) ||
       area.activationRound > next.tactical.battle.round ||
       !area.tiles.some((tile) => tile.x === position.x && tile.y === position.y) ||
-      !groundAreaAllowsCombatant(area, unit)
+      (area.contactPolicyVersion !== 1 && !groundAreaAllowsCombatant(area, unit))
     )
       continue
-    const claim = claimCombatTurnTrigger(next, combatantId, `ground.entry.${area.id}`)
+    const claim =
+      area.contactPolicyVersion === 1
+        ? { state: next, allowed: true }
+        : claimCombatTurnTrigger(next, combatantId, `ground.entry.${area.id}`)
     next = claim.state
     if (!claim.allowed) continue
     const applied = resolver(next, area, combatantId)

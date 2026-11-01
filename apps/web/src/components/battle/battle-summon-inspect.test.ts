@@ -97,6 +97,12 @@ describe('battle summon Inspect metadata', () => {
     expect(captured.potencyDescription).toContain(
       'normal noncritical Basic Attack damage against the same target, before Barrier',
     )
+    const current = readSummonInspectMetadata(
+      { ...snapshot, summonPotencyPolicyVersion: 1 },
+      'summon:test',
+    )!
+    expect(current.potencyDescription).toContain('strongest living opponent at spawn')
+    expect(current.potencyDescription).not.toContain('Basic Attack')
     expect(captured.policies.effectTimingPolicy).toEqual(snapshot.effectTimingPolicy)
     expect(captured.policies.airbornePolicyVersion).toBe(1)
     Object.assign(captured.policies.effectTimingPolicy!.modes, { healing: 'instant' })

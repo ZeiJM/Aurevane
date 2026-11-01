@@ -176,7 +176,11 @@ export function rollSkillPacketOutcomes(
       missedTargets(ordinals),
     )
     state = result.state
-    for (const event of result.events) criticalEvents.push({ ...event, effectOrdinals: ordinals })
+    for (const event of result.events)
+      criticalEvents.push({
+        ...event,
+        effectOrdinals: event.effectOrdinals?.map((ordinal) => ordinals[ordinal]!) ?? ordinals,
+      })
     for (const [id, local] of result.criticalEffectOrdinalsByTarget)
       addOrdinals(
         criticalEffectOrdinalsByTarget,

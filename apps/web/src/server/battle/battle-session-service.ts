@@ -848,6 +848,11 @@ export function createBattleSessionService({
         baseEncounter.modularSkillPolicyVersion = 1
       }
       baseEncounter.groundEffectPolicyVersion = 1
+      baseEncounter.groundContactPolicyVersion = 1
+      baseEncounter.reversalPolicyVersion = 1
+      baseEncounter.pierceCriticalPolicyVersion = 1
+      baseEncounter.summonPotencyPolicyVersion = 1
+      baseEncounter.ruinPolicyVersion = 1
       let encounter: BattleAuthoritativeEncounterState = baseEncounter
       if (builds) {
         if (!committedBuildSnapshot) {

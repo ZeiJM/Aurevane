@@ -1,4 +1,5 @@
 import { withCurrentSummonCoreAttributes } from './summon-content'
+import { deriveSharedEffectAim, withAuthoredEffectTarget } from './combat-effect-target-authoring'
 import { describe, expect, it } from 'vitest'
 import { validateCombatEncounterState } from './actions'
 import {
@@ -88,6 +89,74 @@ function summoning(
 }
 
 const tile = { kind: 'tile' as const, position: { x: 0, y: 1 } }
+
+it('admits shared authored Summon targets and Circle15 native abilities through capture and reload', () => {
+  const base = summoning()
+  const behavior = base.ability!.behaviors[0]!
+  const original = behavior.effects[0]!
+  if (original.payload.type !== 'summon') throw new Error('Expected Summon fixture.')
+  const profile = {
+    ...original.payload.profile,
+    abilities: original.payload.profile.abilities.map((ability) => {
+      const effects = ability.effects.map((effect) =>
+        withAuthoredEffectTarget(effect, ability.tags.includes('attack') ? 'enemy' : 'ally'),
+      )
+      return {
+        ...ability,
+        effects,
+        target: deriveSharedEffectAim(
+          { ...ability.target, shape: { kind: 'circle' as const, radius: 15 } },
+          effects,
+        ),
+      }
+    }),
+  }
+  const payload = withAuthoredEffectTarget({ ...original.payload, profile }, 'empty-tile')
+  const raw = {
+    ...base.ability,
+    behaviors: [
+      {
+        ...behavior,
+        targeting: deriveSharedEffectAim(behavior.targeting!, [payload]),
+        effects: [{ ...original, payload }],
+      },
+    ],
+  }
+  expect(validateAbilityDefinition(raw)).toEqual([])
+  const definition = { ...base, ability: parseAbilityDefinition(JSON.parse(JSON.stringify(raw))) }
+  const initial = encounter()
+  const captured = capturedMatureSkillAbilitySource(initial, definition)!
+  const restored = JSON.parse(JSON.stringify(reconcileCombatAbilitySources(initial, [captured])))
+  expect(validateCombatEncounterState(restored)).toEqual([])
+  const result = executePv1fMatureSkill(restored, definition, tile)
+  expect(result.state.effectState!.summons![0]!.profile).toEqual(profile)
+  expect(validateStatDrivenCombatEncounterState(JSON.parse(JSON.stringify(result.state)))).toEqual(
+    [],
+  )
+  for (const [code, corrupt] of [
+    ['unknown-key', { ...payload, garbage: true }],
+    ['invalid-payload', { ...payload, target: 'enemy' }],
+    [
+      'unknown-key',
+      {
+        ...payload,
+        profile: {
+          ...profile,
+          abilities: profile.abilities.map((ability) => ({
+            ...ability,
+            target: { ...ability.target, garbage: true },
+          })),
+        },
+      },
+    ],
+  ] as const)
+    expect(
+      validateAbilityDefinition({
+        ...raw,
+        behaviors: [{ ...raw.behaviors[0]!, effects: [{ ...original, payload: corrupt }] }],
+      }),
+    ).toContainEqual(expect.objectContaining({ code }))
+})
 
 function recordedEvents(transition: { readonly events: readonly unknown[] }) {
   return transition.events.map((value) => {
@@ -649,3 +718,52 @@ it('restores a previously valid canonical Summon capture with a lifetime above t
   const restored = JSON.parse(JSON.stringify(reconcileCombatAbilitySources(initial, [captured])))
   expect(validateCombatEncounterState(restored)).toEqual([])
 })
+
+it.each(['instant', 'next-round', 'delayed'] as const)(
+  'pins finalized Summon portraits through canonical capture and %s spawning',
+  (timing) => {
+    const artwork = {
+      id: '00000000-0000-4000-8000-000000000012',
+      kind: 'image' as const,
+      contentType: 'image/png' as const,
+      checksum: 'a'.repeat(64),
+      byteLength: 100,
+      width: 4,
+      height: 4,
+      sourceWidth: 8,
+      sourceHeight: 4,
+      crop: { x: 2, y: 0, size: 4 },
+    }
+    const native = summoning(timing)
+    const definition = {
+      ...native,
+      ability: parseAbilityDefinition({
+        ...native.ability!,
+        behaviors: native.ability!.behaviors.map((behavior) => ({
+          ...behavior,
+          effects: behavior.effects.map((effect) => ({
+            ...effect,
+            payload: {
+              ...effect.payload,
+              profile: { ...native.summonProfile!, media: { artwork } },
+            },
+          })),
+        })),
+      }),
+    }
+    const initial = encounter()
+    const capture = capturedMatureSkillAbilitySource(initial, definition)!
+    let out = executePv1fMatureSkill(
+      reconcileCombatAbilitySources(initial, [capture]) as ReturnType<typeof encounter>,
+      definition,
+      tile,
+    )
+    artwork.checksum = 'f'.repeat(64)
+    for (let turn = 0; turn < 16 && !out.state.effectState?.summons?.length; turn++)
+      out = finishPv1fTurn(out.state, 'east')
+    expect(out.state.effectState?.summons).toHaveLength(1)
+    expect(out.state.effectState?.summons![0]!.profile.media?.artwork?.checksum).toBe(
+      'a'.repeat(64),
+    )
+  },
+)

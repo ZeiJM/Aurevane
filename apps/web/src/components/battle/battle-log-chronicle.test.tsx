@@ -117,7 +117,9 @@ describe('approved Battle Chronicle', () => {
       expect(html).toContain('24 damage')
       expect(html).toContain('+3 MP')
       expect(html).toContain('aria-label="Explain Slow"')
-      expect(html).toContain('Slow, 2 rounds')
+      expect(html).toContain(
+        'Slow increases Weon&#x27;s movement cost per entered tile for 2 rounds',
+      )
       expect(html).toContain('to Weon')
       expect(html).not.toContain('Action recorded; no effect result available.')
       expect(JSON.stringify(entries)).toBe(before)
@@ -582,7 +584,7 @@ describe('approved Battle Chronicle', () => {
     expect(html).toMatch(/data-outcome-tone="recovery"[^]*?\+12 HP/)
     expect(html).toMatch(/data-outcome-tone="recovery"[^]*?\+4 MP/)
     expect(html).toContain('aria-label="Explain Bleed"')
-    expect(html).toContain('Bleed, 3 turns')
+    expect(html).toContain('Weon begins bleeding for 3 turns')
   })
 
   it('places only recorded and verified Resonance results under its pinned special entry', () => {
@@ -691,7 +693,7 @@ describe('approved Battle Chronicle', () => {
     ).not.toContain('no effect result available')
   })
 
-  it('reports the full recorded affected round range for a pending multi-turn effect', () => {
+  it('keeps affected-turn duration distinct from global rounds for pending effects', () => {
     const html = render([
       technique(1),
       entry(1, 1, 'effect_pending', {
@@ -700,8 +702,10 @@ describe('approved Battle Chronicle', () => {
         effectTiming: { remainingOwnerTurnEnds: 2 },
       }),
     ])
-    expect(html).toContain('Mark will affect Weon during rounds 3–4!')
-    expect(html).not.toContain('at the start of round 3!')
+    expect(html).toContain(
+      'Marked will increase its source&#x27;s Accuracy against Weon at the start of round 3, for 2 affected turns!',
+    )
+    expect(html).not.toContain('during rounds 3–4')
   })
 
   it('gives Lowered Guard its own truthful pending and activation narration', () => {
@@ -736,7 +740,9 @@ describe('approved Battle Chronicle', () => {
       }),
     ])
     expect(html).toContain('Zei lowered his guard!')
-    expect(html).toContain('Lowered Guard will take effect on Zei at the start of round 3!')
+    expect(html).toContain(
+      'Lowered Guard will take effect on Zei at the start of round 3, for 1 affected turn!',
+    )
     expect(html).toContain('Zei is left wide open to the enemy for 1 turn.')
     expect(html).not.toContain('Battle Lowered Guard Apply')
     expect(html).not.toContain('Lowered Guard, 1 turn')
@@ -790,7 +796,7 @@ describe('approved Battle Chronicle', () => {
     ])
     expect(html).toContain('aria-label="Explain Rooted"')
     expect(html).toContain('aria-label="Explain Barrier"')
-    expect(html).toContain('Root will take effect on Weon at the start of round 3!')
+    expect(html).toContain('Rooted will prevent Weon from moving at the start of round 3!')
     expect(html).not.toContain('Root pending')
     expect(html).toContain('gained 9 Barrier.')
   })
@@ -808,8 +814,10 @@ describe('approved Battle Chronicle', () => {
         templateValues: { effect: 'Slow' },
       }),
     ])
-    expect(html).toContain('Root will take effect on Weon at the start of round 6!')
-    expect(html).toContain('Slow will take effect on Zei at the start of a future round!')
+    expect(html).toContain('Rooted will prevent Weon from moving at the start of round 6!')
+    expect(html).toContain(
+      'Slow will increase Zei&#x27;s movement cost per entered tile at the start of a future round!',
+    )
     expect(html).not.toContain('round undefined')
   })
 })
@@ -899,35 +907,105 @@ it('Chronicle ! does not invent a Suppress percentage when recorded metadata is 
   }
 })
 
-it('keeps Chronicle elemental explanations pinned in standalone completed battle readers', () => {
+it.each([2, 1, null] as const)(
+  'keeps missing Chronicle elemental magnitudes qualitative under captured policy %s',
+  (elementalDamagePolicyVersion) => {
+    const popup = vi
+      .spyOn(popovers, 'BattleInfoPopover')
+      .mockImplementation(({ children, trigger }) => (
+        <aside role="dialog">
+          {trigger}
+          {children}
+        </aside>
+      ))
+    try {
+      const entries = [
+        technique(1),
+        entry(1, 1, 'status_applied', { statusId: 'wet', templateValues: { status: 'Drenched' } }),
+        entry(1, 2, 'status_applied', {
+          statusId: 'conductive',
+          templateValues: { status: 'Conductive' },
+        }),
+      ]
+      const report = () =>
+        renderToStaticMarkup(
+          <BattleLogChronicle
+            entries={entries}
+            elementalDamagePolicyVersion={elementalDamagePolicyVersion}
+          />,
+        )
+      expect(report()).toContain('recorded percentage unavailable')
+      expect(report()).toContain('Recorded Initiative reduction unavailable.')
+      expect(report()).not.toMatch(/10%|20%|Fire removes/)
+    } finally {
+      popup.mockRestore()
+    }
+  },
+)
+
+it.each([2, null] as const)(
+  'keeps independently missing Drenched fields qualitative under policy %s',
+  (elementalDamagePolicyVersion) => {
+    const popup = vi
+      .spyOn(popovers, 'BattleInfoPopover')
+      .mockImplementation(({ children, trigger }) => (
+        <aside>
+          {trigger}
+          {children}
+        </aside>
+      ))
+    try {
+      const report = (effectStrength: NonNullable<BattleLogEntry['effectStrength']>) =>
+        renderToStaticMarkup(
+          <BattleLogChronicle
+            entries={[
+              technique(1),
+              entry(1, 1, 'status_applied', {
+                statusId: 'wet',
+                effectStrength,
+                templateValues: { status: 'Drenched' },
+              }),
+            ]}
+            elementalDamagePolicyVersion={elementalDamagePolicyVersion}
+          />,
+        )
+      const stormOnly = report({ potencyBasisPoints: 3525 })
+      expect(stormOnly).toContain('35.25%')
+      expect(stormOnly).toContain('Recorded Initiative reduction unavailable.')
+      expect(stormOnly).not.toMatch(/10%|20%/)
+      const initiativeOnly = report({ initiativeReductionBasisPoints: 1200 })
+      expect(initiativeOnly).toContain('12%')
+      expect(initiativeOnly).toContain('recorded percentage unavailable')
+      expect(initiativeOnly).not.toMatch(/10%|20%/)
+    } finally {
+      popup.mockRestore()
+    }
+  },
+)
+
+it('explains saved Blindside strength without inventing an activation policy or expiry clock', () => {
   const popup = vi
     .spyOn(popovers, 'BattleInfoPopover')
     .mockImplementation(({ children, trigger }) => (
-      <aside role="dialog">
+      <aside>
         {trigger}
         {children}
       </aside>
     ))
   try {
-    const entries = [
+    const html = render([
       technique(1),
-      entry(1, 1, 'status_applied', { statusId: 'wet', templateValues: { status: 'Drenched' } }),
-    ]
-    const report = (elementalDamagePolicyVersion: 1 | 2 | null) =>
-      renderToStaticMarkup(
-        <BattleLogChronicle
-          entries={entries}
-          elementalDamagePolicyVersion={elementalDamagePolicyVersion}
-        />,
-      )
-    expect(report(2)).toContain('10%, capped at 100%')
-    expect(report(2)).not.toContain('Fire removes')
-    expect(report(2)).toContain('recorded percentage unavailable')
-    expect(report(2)).not.toContain('20% Storm damage')
-    expect(report(1)).toContain('10% once')
-    expect(report(1)).not.toContain('Fire removes')
-    expect(report(null)).not.toContain('Fire removes')
-    expect(report(null)).toContain('20% per active Wet or Conductive application')
+      entry(1, 1, 'status_applied', {
+        statusId: 'blindside',
+        effectStrength: { blindsideModifiersBasisPoints: { side: 17500, rear: 24500 } },
+        facts: [{ label: '3 turns', tone: 'neutral' }],
+        templateValues: { status: 'Blindside' },
+      }),
+    ])
+    expect(html).toContain('175% of normal Skill damage')
+    expect(html).toContain('245%')
+    expect(html).toContain('Recorded duration: 3 turns.')
+    expect(html).not.toMatch(/one owner turn|Activates instantly|granting Skill|expires at the end/)
   } finally {
     popup.mockRestore()
   }

@@ -3,7 +3,7 @@ import { createElement, isValidElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import { SkillTargetingEditor } from './skill-targeting-editor'
+import { SkillTargetingEditor, type SkillTargetingEditorProps } from './skill-targeting-editor'
 
 function target(overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec {
   return {
@@ -20,6 +20,21 @@ function target(overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec {
 }
 
 describe('Master Panel Skill targeting editor', () => {
+  it.each([{ kind: 'single' }, { kind: 'circle', radius: 2 }] as const)(
+    'hides irrelevant friendly fire for All-only %j and preserves area Enemy siblings',
+    (shape) => {
+      const value = target({ geometryVersion: 3, shape })
+      const all = { type: 'damage', recipient: 'affected-units', target: 'all' as const }
+      const render = (effects: SkillTargetingEditorProps['effects']) =>
+        renderToStaticMarkup(
+          createElement(SkillTargetingEditor, { value, effects, onChange: vi.fn() }),
+        )
+      expect(render([all])).not.toContain('aria-label="Friendly Fire"')
+      const sibling = render([all, { ...all, target: 'enemy' }])
+      if (shape.kind === 'circle') expect(sibling).toContain('aria-label="Friendly Fire"')
+      else expect(sibling).not.toContain('aria-label="Friendly Fire"')
+    },
+  )
   it('keeps Range & Area focused on geometry and moves target choices to Effects', () => {
     const onChange = vi.fn()
     const markup = renderToStaticMarkup(

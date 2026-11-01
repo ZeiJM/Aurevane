@@ -21,6 +21,8 @@ import {
   finishPv1fTurn,
   preparePv1fTurnEconomy,
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+  spendPv1fActionEconomy,
+  readPv1fActionEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   reattachStatDrivenCombatBridge,
@@ -309,6 +311,156 @@ it('Controlled ready is true only for the primed current legal release intent, w
 })
 
 describe('P2.5 authoritative battle preview service', () => {
+  it('forecasts every All packet recipient without replacing the selected Enemy Single aim', async () => {
+    const { battles, service, snapshot, record } = await createFixture()
+    const owner = `character:${CHARACTER_ID}`
+    const selected = snapshot.tactical.battle.combatants.find(
+      (row) =>
+        row.teamId !==
+        snapshot.tactical.battle.combatants.find((unit) => unit.id === owner)!.teamId,
+    )!.id
+    const definitions = defaultBasicSkills().map((basic) =>
+      basic.id !== 'unarmed.basic'
+        ? basic
+        : {
+            ...basic,
+            contentVersion: 2,
+            ability: {
+              ...basic.ability,
+              behaviors: basic.ability.behaviors.map((behavior) => ({
+                ...behavior,
+                targeting: { ...behavior.targeting!, maximumRange: 20 },
+                effects: [
+                  {
+                    id: 'hit-all',
+                    timing: 'instant' as const,
+                    payload: {
+                      type: 'damage' as const,
+                      recipient: 'affected-units' as const,
+                      target: 'all' as const,
+                      amount: 20,
+                    },
+                  },
+                  {
+                    id: 'push-all',
+                    timing: 'instant' as const,
+                    payload: {
+                      type: 'displace' as const,
+                      recipient: 'affected-units' as const,
+                      target: 'all' as const,
+                      direction: 'push' as const,
+                      distance: 8,
+                    },
+                  },
+                ],
+              })),
+            },
+          },
+    )
+    const captured = captureBasicSkillSources({
+      ownerCombatantId: owner,
+      supportActionId: 'basic.guard',
+      definitions,
+    })
+    const state = reconcileCombatAbilitySources(snapshot, captured)
+    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: state })
+    const result = await service.previewIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent: {
+        kind: 'action',
+        actionId: 'basic.attack.unarmed.basic',
+        target: { kind: 'unit', combatantId: selected },
+      },
+    })
+    expect(result.preview.kind).toBe('action')
+    if (result.preview.kind !== 'action') throw new Error('Expected All forecast.')
+    expect(result.preview.legal).toBe(true)
+    expect(result.preview.primaryCombatantId).toBe(selected)
+    expect([...result.preview.affectedCombatantIds].sort()).toEqual(
+      state.tactical.battle.combatants
+        .filter((row) => row.hp > 0)
+        .map((row) => row.id)
+        .sort(),
+    )
+    expect(
+      result.preview.projectedEffects
+        .filter((row) => row.effectType === 'damage')
+        .map((row) => row.combatantId)
+        .sort(),
+    ).toEqual([...result.preview.affectedCombatantIds].sort())
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  })
+  it('quotes and commits a restored free Haste walk at AP0 while consuming physical Movement', async () => {
+    const { battles, service, sessionService, record, snapshot } = await createFixture()
+    const owner = `character:${CHARACTER_ID}`
+    const free = spendPv1fActionEconomy(
+      {
+        ...snapshot,
+        statusState: snapshot.statusState.map((row) =>
+          row.combatantId === owner
+            ? {
+                ...row,
+                statuses: [
+                  ...row.statuses,
+                  {
+                    statusId: 'haste',
+                    statusVersion: 1,
+                    stacks: 1,
+                    remainingOwnerTurnStarts: 2,
+                    movementApAdjustment: 20,
+                    sourceCombatantId: owner,
+                  },
+                ],
+              }
+            : row,
+        ),
+      },
+      100,
+    )
+    const restored = JSON.parse(JSON.stringify(free)) as typeof free
+    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: restored })
+    const intent = {
+      kind: 'move' as const,
+      path: [
+        { x: 0, y: 1 },
+        { x: 1, y: 1 },
+      ],
+    }
+    const command = {
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      intent,
+    }
+    const before = JSON.stringify(restored)
+    expect((await service.previewIntent(command)).preview).toMatchObject({
+      kind: 'move',
+      legal: true,
+      actionEconomyCost: 0,
+      actionEconomyBefore: 0,
+      actionEconomyAfter: 0,
+      movementRemainingAfter: 1,
+    })
+    expect(JSON.stringify(restored)).toBe(before)
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+    await sessionService.submitIntent({
+      ...command,
+      idempotencyKey: '77777777-7777-4777-8777-777777777777',
+    })
+    const commit = battles.commitBattleIntent.mock.calls[0]![0]
+    const next = commit.nextSnapshot as typeof restored
+    expect(next.tactical.placements.find((row) => row.combatantId === owner)?.position).toEqual({
+      x: 1,
+      y: 1,
+    })
+    expect(next.tactical.battle.currentTurn?.movementRemaining).toBe(1)
+    expect(readPv1fActionEconomy(next)?.current).toBe(0)
+    expect(commit.events).toContainEqual(
+      expect.objectContaining({ event: 'action_economy_spent', amount: 0, remaining: 0 }),
+    )
+  })
   it('previews legal movement without calling the commit boundary', async () => {
     const { battles, service } = await createFixture()
 

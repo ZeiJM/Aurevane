@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleSummonPortrait } from './battle-summon-portrait'
+
 import { useBattleMobileChronicle } from './use-battle-mobile-chronicle'
 import { useDesktopBattleLayout } from './battle-responsive-layout'
 import mobileStyles from './battle-mobile-layout.module.css'
@@ -7,7 +9,11 @@ import mobileStyles from './battle-mobile-layout.module.css'
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
 import { spectatorLinkEnded } from './battle-recovery-navigation'
 import { BattleFacingIndicator } from './battle-facing-indicator'
-import { BattleGroundAreaLayer } from './battle-ground-area-layer'
+import {
+  BattleGroundAreaLayer,
+  battleGroundAreaLabel,
+  battleGroundAreaDescriptions,
+} from './battle-ground-area-layer'
 
 import { BattleRouteFrame } from './battle-route-frame'
 import { useBattleTabCyclePrevention } from './battle-tab-cycle-prevention'
@@ -312,7 +318,12 @@ export function PvpSpectatorExperience({
               ? 'blocked'
               : `${traversalCost * MOVE_COST_PER_TERRAIN_POINT} AP`}{' '}
             · Elevation {selectedTile.elevation}.{' '}
-            {terrainOverlaySummary(terrainOverlayAt(battle.snapshot, selectedTile.position))}
+            {terrainOverlaySummary(terrainOverlayAt(battle.snapshot, selectedTile.position))}{' '}
+            {battleGroundAreaDescriptions(
+              battle.snapshot.groundAreas,
+              tactical.battle.round,
+              selectedTile.position,
+            ).join('; ')}
           </span>
         </>
       )
@@ -473,7 +484,7 @@ export function PvpSpectatorExperience({
                           setSelectedCombatantId(placement.combatantId)
                         if (inspectMode) setSelectedPosition({ ...tile.position })
                       }}
-                      aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
+                      aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}${battleGroundAreaLabel(battle.snapshot.groundAreas, tactical.battle.round, tile.position)}`}
                       aria-pressed={selected}
                     >
                       <BattleGroundAreaLayer
@@ -516,7 +527,14 @@ export function PvpSpectatorExperience({
                           data-desktop-inspect-combatant={placement.combatantId}
                           title={`${participant.name} · ${teamName(participant.teamIndex)}`}
                         >
-                          {participant.portraitAssetId ? (
+                          {participant.profileImageUrl && !participant.portraitAssetId ? (
+                            <BattleSummonPortrait
+                              src={participant.profileImageUrl}
+                              name={participant.name}
+                              fallbackClassName={styles.summonPortrait}
+                              className={styles.unitPortrait}
+                            />
+                          ) : participant.portraitAssetId ? (
                             <CharacterPortraitImage
                               imageUrl={participant.profileImageUrl}
                               fallbackAssetId={participant.portraitAssetId}

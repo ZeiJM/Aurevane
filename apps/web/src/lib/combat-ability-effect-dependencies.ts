@@ -1,26 +1,37 @@
 import type { AbilityBehavior, AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
-import { reconcileAuthoredEffectDependencies } from './combat-effect-dependencies'
+import {
+  reconcileAuthoredEffectDependencies,
+  retireAuthoredFrozenGround,
+  hasSharedGroundAim,
+} from './combat-effect-dependencies'
 
 /** Keep conditions, timing, notes and ground references on the row that owns them. */
 export function withAbilityEffectDependencies(
   previous: AbilityBehavior,
   next: AbilityBehavior,
 ): AbilityBehavior {
-  const sources = new Map(next.effects.map((row) => [row.payload, row]))
+  const sources = new Map<AbilityEffect['payload'], AbilityEffect[]>()
+  for (const row of next.effects)
+    sources.set(row.payload, [...(sources.get(row.payload) ?? []), row])
   const payloads = reconcileAuthoredEffectDependencies(
     previous.effects.map((row) => row.payload),
     next.effects.map((row) => row.payload),
     {
+      inheritedGround: hasSharedGroundAim(next.targeting),
       onLinked: (source, linked) => {
-        const row = sources.get(source)
-        if (row) sources.set(linked, row)
+        const rows = sources.get(source)
+        if (rows) sources.set(linked, rows)
       },
     },
   )
   const used = new Set(next.effects.map((row) => row.id))
+  const retainedRows = new Set<AbilityEffect>()
   const effects: AbilityEffect[] = payloads.map((payload) => {
-    const row = sources.get(payload)
-    if (row) return row.payload === payload ? row : { ...row, payload }
+    const row = sources.get(payload)?.find((candidate) => !retainedRows.has(candidate))
+    if (row) {
+      retainedRows.add(row)
+      return row.payload === payload ? row : { ...row, payload }
+    }
     const prefix = `auto.${'authoringLink' in payload ? payload.authoringLink : 'effect'}.${payload.type}`
     let id = prefix
     for (let suffix = 1; used.has(id); suffix++) id = `${prefix}.${suffix}`
@@ -34,7 +45,7 @@ export function withAbilityEffectDependencies(
               candidate.authoringLink === payload.authoringLink,
           )
         : undefined
-    const owner = linkedTerrain ? sources.get(linkedTerrain) : undefined
+    const owner = linkedTerrain ? sources.get(linkedTerrain)?.[0] : undefined
     return {
       id,
       payload,
@@ -58,12 +69,36 @@ export function withAbilityEffectDependencies(
   }
   let reconciled = result
   if (result.groundArea) {
-    const priorIds = new Set(previous.effects.map((row) => row.id))
-    const ids = result.groundArea.entryEffectIds.filter(
-      (id) => effects.some((row) => row.id === id) || !priorIds.has(id),
+    const replacements = retireAuthoredFrozenGround(
+      next.effects.map((row) => row.payload),
+      { inheritedGround: hasSharedGroundAim(next.targeting) },
+    ).replacements
+    const replacementIds = new Map(
+      next.effects.flatMap((row) => {
+        const replacement = replacements.get(row.payload)
+        const retained = replacement
+          ? effects.find((effect) => effect.payload === replacement)
+          : undefined
+        return retained ? [[row.id, retained.id] as const] : []
+      }),
     )
+    const priorIds = new Set(previous.effects.map((row) => row.id))
+    const ids = [
+      ...new Set(
+        result.groundArea.entryEffectIds
+          .map((id) => replacementIds.get(id) ?? id)
+          .filter((id) => effects.some((row) => row.id === id) || !priorIds.has(id)),
+      ),
+    ]
     if (ids.length)
-      reconciled = { ...result, groundArea: { ...result.groundArea, entryEffectIds: ids } }
+      reconciled = {
+        ...result,
+        groundArea: {
+          ...result.groundArea,
+          entryEffectIds: ids,
+          ...(replacements.size ? { contactPolicyVersion: 1 as const } : {}),
+        },
+      }
     else {
       const { groundArea: removed, ...rest } = result
       void removed

@@ -133,15 +133,15 @@ it.each([
   expect(html).toContain(`aria-label="${label}"`)
   expect(html).toContain(`value="${saved}"`)
 })
-it('offers the captured extra Skill AP cost for Frozen Ground', () => {
+it('retires the Frozen Ground AP control while leaving its saved capture untouched', () => {
   const html = render({
     type: 'create-terrain',
     recipient: 'affected-tiles',
     terrain: 'frozen',
     skillApSurcharge: 23,
   } as CombatEffectDefinition)
-  expect(html).toContain('aria-label="Extra Skill AP cost"')
-  expect(html).toContain('value="23"')
+  expect(html).not.toContain('aria-label="Extra Skill AP cost"')
+  expect(html).toContain('Retired Freeze Ground becomes Chilled Ground')
 })
 
 it.each(['warded', 'conductive'])(

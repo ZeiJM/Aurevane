@@ -31,7 +31,6 @@ export function EffectTargetEditor({
   onChange(target: CombatEffectTarget): void
 }) {
   const id = useId()
-  if ('applicationOrigin' in value && value.applicationOrigin === 'frozen-ground') return null
   if (value.type === 'move')
     return (
       <div className={styles.effectTargetEditor}>

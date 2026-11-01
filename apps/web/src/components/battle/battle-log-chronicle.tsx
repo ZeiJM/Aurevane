@@ -8,6 +8,8 @@ import { createPortal } from 'react-dom'
 import { useSkillElementalDamagePolicyVersion } from '../character/skill-effect-timing-context'
 import { statusPotencyDescription } from '@/lib/status-potency-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
+import { counterDescription } from '@aurevane/game-core/combat/combat-counter'
+import { blindsideDebuffDescription } from '@aurevane/game-core/combat/combat-blindside'
 
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
@@ -16,10 +18,54 @@ import {
   buildBattleChronicle,
   type ChronicleAction,
   type ChronicleNames,
+  type ChronicleOutcome,
 } from './battle-log-chronicle-model'
 import { chronicleActionNarration, chronicleActionTitle } from './battle-log-chronicle-text'
 import styles from './battle-log-chronicle.module.css'
 import { chronicleActionArtwork } from './battle-chronicle-artwork'
+
+function chronicleEffectDescription(
+  result: ChronicleOutcome,
+  elementalPolicy: 1 | 2 | null,
+): string {
+  const id = result.statusId!
+  const strength = result.effectStrength
+  if (id === 'suppress')
+    return result.potencyBasisPoints === undefined
+      ? 'Recorded Suppress percentage unavailable.'
+      : statusPotencyDescription(id, result.potencyBasisPoints)
+  if (strength?.counter) return counterDescription(strength.counter)
+  if (strength?.blindsideModifiersBasisPoints) {
+    const description = blindsideDebuffDescription(strength.blindsideModifiersBasisPoints)
+    return id === 'blindside' ? description.replace(/^Take/u, 'Deal') : description
+  }
+  if (strength?.recoveryAmountPerApplication !== undefined)
+    return `Restores up to ${strength.recoveryAmountPerApplication} ${id === 'healing' ? 'HP' : 'MP'} per application, limited by the recipient's maximum.`
+  if (strength?.endureReleaseBasisPoints !== undefined)
+    return `Prevents damage-dealing actions while active. On natural expiry, releases ${strength.endureReleaseBasisPoints / 100}% of stored HP damage received.`
+  if (id === 'wet' && strength?.initiativeReductionBasisPoints === undefined)
+    return `Drenched increases Storm damage taken${result.potencyBasisPoints === undefined ? ' (recorded percentage unavailable)' : ` by ${result.potencyBasisPoints / 100}%`}. Recorded Initiative reduction unavailable.`
+  if (id === 'conductive' && result.potencyBasisPoints === undefined)
+    return 'Conductive increases Storm damage taken (recorded percentage unavailable). A damaging Storm hit consumes the charge.'
+  if (['wet', 'frozen', 'conductive'].includes(id))
+    return statusPotencyDescription(id, result.potencyBasisPoints, {
+      ...strength,
+      legacyElemental: false,
+      explicitElemental: elementalPolicy === 2,
+      elementalPotencyUnavailable: result.potencyBasisPoints === undefined,
+    })
+  if (strength) {
+    const description = statusPotencyDescription(id, result.potencyBasisPoints, strength)
+    return (['guarded', 'hexed', 'warded', 'challenged', 'fortified'].includes(id) &&
+      (result.potencyBasisPoints ?? 0) >= 10000) ||
+      (strength.defenseIncreaseBasisPoints ?? 0) >= 10000
+      ? `${description} Damage and recovery cannot fall below 0.`
+      : description
+  }
+  return id === 'blind'
+    ? 'Reduces Accuracy. Recorded percentage unavailable. Automatic Hit remains automatic.'
+    : combatStatusDetails(id).description
+}
 
 function chronicleScrollPort(reader: HTMLDivElement): HTMLElement {
   const workspace = reader.closest<HTMLElement>('[data-battle-mobile-log-workspace]')
@@ -70,17 +116,7 @@ function ChronicleTechnique({
                   <p>
                     {battleTagDescription(
                       result.battleTag,
-                      result.statusId === 'suppress'
-                        ? result.potencyBasisPoints === undefined
-                          ? 'Recorded Suppress percentage unavailable.'
-                          : statusPotencyDescription(result.statusId, result.potencyBasisPoints)
-                        : ['wet', 'frozen', 'conductive'].includes(result.statusId)
-                          ? statusPotencyDescription(result.statusId, result.potencyBasisPoints, {
-                              legacyElemental: elementalDamagePolicyVersion == null,
-                              explicitElemental: elementalDamagePolicyVersion === 2,
-                              elementalPotencyUnavailable: result.potencyBasisPoints === undefined,
-                            })
-                          : combatStatusDetails(result.statusId).description,
+                      chronicleEffectDescription(result, elementalDamagePolicyVersion),
                     )}
                   </p>
                   {result.duration ? <p>Recorded duration: {result.duration}.</p> : null}
@@ -91,6 +127,7 @@ function ChronicleTechnique({
               {result.recipient ? (
                 <span className={styles.recipient}>{result.recipient}</span>
               ) : null}
+              {result.annotation ? <span> · {result.annotation}</span> : null}
             </span>
           ))}
         </p>

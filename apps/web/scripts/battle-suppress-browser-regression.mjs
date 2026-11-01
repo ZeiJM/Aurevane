@@ -204,7 +204,7 @@ try {
     await page.goto(server.resolvedUrls.local[0] + 'author.html')
     const percent = page.getByRole('spinbutton', { name: 'Status potency (percent)', exact: true })
     assert.equal(await percent.inputValue(), '25')
-    assert.equal(await percent.getAttribute('max'), '100')
+    assert.equal(await percent.getAttribute('max'), '999')
     assert.equal(await percent.getAttribute('step'), '0.01')
     assert.equal(
       await page
@@ -229,8 +229,10 @@ try {
       ['1', 100, true],
       ['25.34', 2534, true],
       ['100', 10000, true],
+      ['100.01', 10001, true],
+      ['999', 99900, true],
       ['0', 0, false],
-      ['100.01', 10001, false],
+      ['999.01', 99901, false],
     ]) {
       await percent.fill(value)
       await page.waitForFunction(

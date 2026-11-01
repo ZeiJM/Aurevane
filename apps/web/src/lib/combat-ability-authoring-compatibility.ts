@@ -217,7 +217,12 @@ export function authoringAddedEffectIssue(
       return 'Summon needs Empty Tile delivery. Choose Self or All for preceding effects, or use another behavior group.'
   }
   if (
-    (type === 'copy-statuses' || type === 'sensory') &&
+    (type === 'copy-statuses' ||
+      (type === 'sensory' &&
+        !(
+          group.targeting?.kind === 'ground-tile' ||
+          (group.targeting?.categories?.length === 1 && group.targeting.categories[0] === 'ground')
+        ))) &&
     (group.targeting?.shape.kind !== 'single' || (group.targeting.maximumSelections ?? 1) > 1)
   )
     return 'Copy and Reveal require one Single unit selection.'

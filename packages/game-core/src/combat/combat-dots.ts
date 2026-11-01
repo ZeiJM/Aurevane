@@ -278,6 +278,7 @@ export function applyCurrentPoisonState(
           }
   }
 
+  if (state.ruinPolicyVersion === 1) delete instance.ruinApplicationId
   return {
     ...state,
     effectState: {

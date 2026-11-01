@@ -88,6 +88,12 @@ export function canAffordBattleBasicAction(
   if (!action?.enabled || resources.hp <= 0) return false
   const chosen = battleBasicBehavior(action, behaviorId)
   return (chosen ? [chosen] : behaviorId ? [] : action.behaviors).some((behavior) =>
-    canAffordBattleCosts(behavior.costs, resources),
+    // Per-tile AP is priced by the reachable path, including Haste and terrain.
+    canAffordBattleCosts(
+      action.movement?.costBasis === 'per-terrain-point'
+        ? behavior.costs.filter((cost) => cost.resource !== 'ap')
+        : behavior.costs,
+      resources,
+    ),
   )
 }

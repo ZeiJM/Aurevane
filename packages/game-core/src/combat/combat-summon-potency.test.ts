@@ -687,7 +687,7 @@ describe('authored Summon potency damage ceiling', () => {
       expect(validateSummonProfileDefinition({ ...summonProfile(), potencyBasisPoints })).toEqual(
         [],
       )
-    for (const potencyBasisPoints of [-1, 99901, 0.5, Number.NaN])
+    for (const potencyBasisPoints of [-1, Number.MAX_SAFE_INTEGER + 1, 0.5, Number.NaN])
       expect(validateSummonProfileDefinition({ ...summonProfile(), potencyBasisPoints })).toContain(
         'potencyBasisPoints',
       )

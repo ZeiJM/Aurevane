@@ -1,9 +1,7 @@
 'use client'
-import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
 import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
 
 import { useEffect, useMemo, useRef } from 'react'
-import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   DEFAULT_SUMMON_CORE_ATTRIBUTES,
@@ -15,6 +13,7 @@ import {
 import { currentSummonForAuthoring } from '@/lib/combat-current-tag-authoring'
 import styles from './combat-content-editor.module.css'
 import { SkillMediaEditor } from './skill-media-editor'
+import { FinalizedMediaEditor } from './finalized-media-editor'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import {
@@ -22,6 +21,12 @@ import {
   withAuthoredAreaRecipients,
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { SkillTargetingEditor } from './skill-targeting-editor'
+import { SkillGroundEditor } from './skill-ground-editor'
+import { withRemappedGroundEntries } from '@/lib/combat-ground-entry-authoring'
+import {
+  isNativeAuthoredElementalCompanion,
+  withNativeElementalCompanions,
+} from '@/lib/combat-elemental-authoring'
 
 export interface SummonProfileEditorProps {
   readonly value: SummonProfileDefinition
@@ -86,6 +91,20 @@ export function SummonProfileEditor({
     onChange(authored)
   }
   function updateAbility(index: number, next: SummonAbilityDefinition) {
+    const previous = latest.current.abilities[index]!
+    next = withRemappedGroundEntries(previous, next)
+    const effects = withNativeElementalCompanions(previous.effects, next.effects)
+    next = withRemappedGroundEntries(next, {
+      ...next,
+      effects,
+      target:
+        next.effects !== previous.effects && next.target === previous.target
+          ? deriveSharedEffectAim(
+              next.target,
+              effects.filter((effect) => !isNativeAuthoredElementalCompanion(effect)),
+            )
+          : next.target,
+    })
     emit({
       ...latest.current,
       abilities: latest.current.abilities.map((ability, abilityIndex) =>
@@ -112,7 +131,6 @@ export function SummonProfileEditor({
             aria-label="Summon lifetime turns"
             type="number"
             min={1}
-            max={CURRENT_EFFECT_DURATION_MAXIMUM_TURNS}
             step={1}
             value={value.lifetimeTurns}
             onChange={(event) =>
@@ -129,18 +147,23 @@ export function SummonProfileEditor({
             aria-label="Summon potency (%)"
             type="number"
             min={0}
-            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
             step={0.01}
-            value={(value.potencyBasisPoints ?? 4000) / 100}
+            placeholder="Uncapped"
+            value={value.potencyBasisPoints === undefined ? '' : value.potencyBasisPoints / 100}
             onChange={(event) => {
               const percent = Number(event.currentTarget.value)
-              if (event.currentTarget.value.trim() && Number.isFinite(percent))
-                emit({ ...value, potencyBasisPoints: Math.round(percent * 100) })
+              if (!event.currentTarget.value.trim()) {
+                const next = { ...latest.current }
+                delete next.potencyBasisPoints
+                emit(next)
+              } else if (percent >= 0 && Number.isSafeInteger(Math.round(percent * 100)))
+                emit({ ...latest.current, potencyBasisPoints: Math.round(percent * 100) })
             }}
           />
           <small className={styles.fieldHint}>
-            Caps each attack or damage-over-time tick against a target, relative to the summoner’s
-            Basic Attack.
+            Scales a shared damage budget each round from the summoner’s and strongest living
+            opponent’s damage potential at spawn. All hits, targets and damage-over-time ticks share
+            it. Above 100% increases the budget; leave blank for uncapped damage.
           </small>
         </label>
         <label className={styles.summonCheckbox}>
@@ -152,6 +175,19 @@ export function SummonProfileEditor({
           <span>Never moves</span>
         </label>
       </div>
+      <details className={styles.summonSection}>
+        <summary>Summon portrait</summary>
+        <FinalizedMediaEditor
+          allowAudio={false}
+          value={value.media ?? {}}
+          onChange={(media) => {
+            const next = { ...latest.current }
+            if (media.artwork) next.media = { artwork: media.artwork }
+            else delete next.media
+            emit(next)
+          }}
+        />
+      </details>
       <fieldset className={styles.typedGroup}>
         <legend>Core stats</legend>
         <div className={styles.summonCoreGrid}>
@@ -237,8 +273,7 @@ export function SummonProfileEditor({
                   <input
                     aria-label={`Summon ability ${index + 1} AP cost`}
                     type="number"
-                    min={1}
-                    max={100}
+                    min={0}
                     value={ability.apCost}
                     onChange={(event) =>
                       updateAbility(index, {
@@ -254,7 +289,6 @@ export function SummonProfileEditor({
                     aria-label={`Summon ability ${index + 1} MP cost`}
                     type="number"
                     min={0}
-                    max={20}
                     value={ability.mpCost}
                     onChange={(event) =>
                       updateAbility(index, {
@@ -285,7 +319,6 @@ export function SummonProfileEditor({
                     aria-label={`Summon ability ${index + 1} cooldown turns`}
                     type="number"
                     min={0}
-                    max={99}
                     value={ability.cooldownOwnerTurns ?? 0}
                     onChange={(event) =>
                       updateAbility(index, {
@@ -407,13 +440,7 @@ export function SummonProfileEditor({
                   canonicalDamage={canonical}
                   aim={ability.target}
                   value={ability.effects}
-                  onChange={(effects) =>
-                    updateAbility(index, {
-                      ...ability,
-                      effects,
-                      target: deriveSharedEffectAim(ability.target, effects),
-                    })
-                  }
+                  onChange={(effects) => updateAbility(index, { ...ability, effects })}
                 />
               </details>
               <details className={styles.summonSection}>
@@ -429,6 +456,17 @@ export function SummonProfileEditor({
                       effects: withAuthoredAreaRecipients(target, ability.effects),
                     })
                   }
+                />
+                <SkillGroundEditor
+                  target={ability.target}
+                  effects={ability.effects}
+                  value={ability.groundArea}
+                  onChange={(groundArea) => {
+                    const next = { ...ability }
+                    if (groundArea) next.groundArea = groundArea
+                    else delete next.groundArea
+                    updateAbility(index, next)
+                  }}
                 />
               </details>
               <details className={styles.summonSection}>

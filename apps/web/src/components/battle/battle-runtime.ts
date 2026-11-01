@@ -1,3 +1,4 @@
+import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
 import type { PublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type {
@@ -253,7 +254,9 @@ export function battlePresentationParticipantMap(
       level: null,
       teamIndex: owner.teamIndex,
       seatIndex: owner.seatIndex,
-      profileImageUrl: null,
+      profileImageUrl: summon.profile.media?.artwork
+        ? contentMediaSource(summon.profile.media.artwork)
+        : null,
       portraitAssetId: null,
       local: false,
     })

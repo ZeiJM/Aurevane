@@ -15,7 +15,7 @@ export interface Pv1fSkillDefinition {
   readonly source: Pv1fSkillSource
 }
 
-export const PV1F_MINIMUM_MOVEMENT_AP_COST = 10 as const
+export const PV1F_MINIMUM_MOVEMENT_AP_COST = 0 as const
 export const PV1F_MOVEMENT_COST_PER_TERRAIN_POINT = 20 as const
 export const PV1F_BASIC_ATTACK_COST = 30 as const
 export const PV1F_GUARD_COST = 30 as const
@@ -83,7 +83,7 @@ export function pv1fFlatActionCost(actionId: string): number | null {
   return skill?.cost.kind === 'flat' ? skill.cost.amount : null
 }
 
-/** One entered tile, after terrain, Frozen and signed status deltas. Never free movement. */
+/** One entered tile after terrain and signed status deltas; discounts never grant AP. */
 export function movementApCostForTile(
   traversalCost: number,
   additionalAp: number,
@@ -94,7 +94,7 @@ export function movementApCostForTile(
     traversalCost < 1 ||
     !Number.isSafeInteger(additionalAp) ||
     !Number.isSafeInteger(apPerTraversalPoint) ||
-    apPerTraversalPoint < PV1F_MINIMUM_MOVEMENT_AP_COST ||
+    apPerTraversalPoint < 10 ||
     apPerTraversalPoint > 100
   ) {
     throw new RangeError('Movement requires a positive terrain cost and a safe-integer AP delta.')

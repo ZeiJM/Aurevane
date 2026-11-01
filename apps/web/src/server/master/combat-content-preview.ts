@@ -36,8 +36,6 @@ import {
   isControlledCombatAbility,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import { omitCombatExecutionMetadata } from '../battle/battle-live-viewer-projection'
-import { createCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-areas'
-import { projectPublicCombatGroundAreas } from '@aurevane/game-core/combat/combat-ground-visuals'
 
 import {
   createCombatEncounterState,
@@ -402,6 +400,12 @@ function previewState(
     dotTriggerPolicyVersion: 2 as const,
     skillPacketPolicyVersion: 1 as const,
     groundEffectPolicyVersion: 1 as const,
+    groundContactPolicyVersion: 1 as const,
+    reversalPolicyVersion: 1 as const,
+    pierceCriticalPolicyVersion: 1 as const,
+    summonPotencyPolicyVersion: 1 as const,
+    ruinPolicyVersion: 1 as const,
+    effectStackingPolicyVersion: 1 as const,
     frozenGroundPolicyVersion: 1 as const,
     airbornePolicyVersion: 1 as const,
     airborneJumpPolicyVersion: 1 as const,
@@ -557,6 +561,7 @@ function projectPreviewSummon(
       description: summonProfile.description,
       flavorLine: summonProfile.flavorLine,
       portraitKey: summonProfile.portraitKey,
+      ...(summonProfile.media ? { media: structuredClone(summonProfile.media) } : {}),
       tags: [...summonProfile.tags],
       ...(summonProfile.coreAttributes
         ? { coreAttributes: { ...summonProfile.coreAttributes } }
@@ -681,20 +686,9 @@ export function previewCombatContentDefinition(
       rngConsumed: false as const,
       ...(canonical?.preparation ? { preparation: canonical.preparation } : {}),
     },
-    groundAreas:
-      evaluated.evaluation.legal && evaluated.action.groundArea
-        ? projectPublicCombatGroundAreas(
-            createCombatGroundArea(
-              evaluated.prepared,
-              ACTOR_ID,
-              evaluated.action,
-              evaluated.evaluation.affectedTiles,
-              PV1F_COMBAT_CONTENT,
-            ).groundAreas ?? [],
-            evaluated.prepared.tactical.battle.round,
-            evaluated.prepared.tactical.battle.lifecycle,
-          )
-        : [],
+    groundAreas: evaluated.evaluation.legal
+      ? (evaluated.evaluation.projectedGroundAreas ?? [])
+      : [],
     targeting: {
       target: structuredClone(geometryDefinition.target),
       selection: structuredClone(selection),
@@ -870,20 +864,9 @@ function projectCanonicalPreview(
       rngConsumed: false as const,
       ...(evaluated.preparation ? { preparation: evaluated.preparation } : {}),
     },
-    groundAreas:
-      evaluated.evaluation.legal && evaluated.action.groundArea
-        ? projectPublicCombatGroundAreas(
-            createCombatGroundArea(
-              evaluated.prepared,
-              ACTOR_ID,
-              evaluated.action,
-              evaluated.evaluation.affectedTiles,
-              PV1F_COMBAT_CONTENT,
-            ).groundAreas ?? [],
-            evaluated.prepared.tactical.battle.round,
-            evaluated.prepared.tactical.battle.lifecycle,
-          )
-        : [],
+    groundAreas: evaluated.evaluation.legal
+      ? (evaluated.evaluation.projectedGroundAreas ?? [])
+      : [],
     targeting: {
       target: structuredClone(behavior.targeting),
       selection: structuredClone(selection),

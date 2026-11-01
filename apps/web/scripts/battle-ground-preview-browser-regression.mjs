@@ -63,7 +63,7 @@ try {
   for (const mode of ['pve', 'pvp', 'spectator'])
     for (const width of [1366, 390, 320])
       for (const target of ['unit', 'ground-tile'])
-        for (const scenario of ['frozen', 'mixed']) {
+        for (const scenario of ['frozen', 'mixed', 'current']) {
           const page = await browser.newPage({
             viewport: { width, height: 768 },
             isMobile: width < 821,
@@ -77,13 +77,54 @@ try {
           )
           const terrain = page.locator('[data-battle-preview-terrain="true"]')
           await terrain.first().waitFor()
-          assert.equal(await terrain.count(), scenario === 'mixed' ? 2 : 1)
-          assert.equal(await terrain.first().innerText(), 'Frozen Ground · 48 tiles · 2 rounds')
+          assert.equal(await terrain.count(), scenario === 'frozen' ? 1 : 2)
+          assert.equal(
+            await terrain.first().innerText(),
+            scenario === 'current'
+              ? 'Chilled Ground · 48 tiles · Starts round 4 · 3 rounds'
+              : 'Frozen Ground · 48 tiles · 2 rounds',
+          )
+          if (scenario === 'current') {
+            assert.equal(
+              await terrain.nth(1).innerText(),
+              'Damage Ground · 48 tiles · Starts round 4 · 3 rounds',
+            )
+            assert.ok(
+              !(await page.locator('[data-battle-target-preview]').innerText()).includes(
+                'Frozen Ground',
+              ),
+            )
+            assert.ok(
+              !(await page.locator('[data-battle-target-preview]').innerText()).includes('AP'),
+            )
+          }
           if (scenario === 'mixed')
             assert.equal(
               await terrain.nth(1).innerText(),
               'Steam · 5 tiles · Starts round 4 · 3 rounds',
             )
+          const pendingField = page.locator('[data-current-ground-phase="pending"]')
+          assert.equal(await pendingField.locator('[data-ground-area-clock]').innerText(), '◷3')
+          assert.ok(
+            (await pendingField.getAttribute('aria-label')).includes(
+              'Chilled Ground · Starts round 3 · 3 rounds',
+            ),
+          )
+          const activeField = page.locator('[data-current-ground-phase="active"]')
+          assert.equal(await activeField.locator('[data-ground-area-clock]').count(), 0)
+          assert.equal(await activeField.locator('[data-ground-area-preset="frost"]').count(), 1)
+          assert.equal(await activeField.locator('[data-ground-effect-id]').count(), 3)
+          assert.ok(
+            (await activeField.getAttribute('aria-label')).includes(
+              'Guard Ground · 3 rounds remaining',
+            ),
+          )
+          assert.equal(
+            await page
+              .locator('[data-current-ground-phase="expired"] [data-ground-area-id]')
+              .count(),
+            0,
+          )
           const layout = await page.evaluate(() => {
             const strip = document.querySelector('main')
             const chips = [...document.querySelectorAll('[data-battle-preview-terrain]')]
@@ -98,6 +139,26 @@ try {
                 scroll: chip.scrollWidth,
                 overflow: getComputedStyle(chip).textOverflow,
               })),
+              currentMarkers: [
+                ...document.querySelectorAll(
+                  '[data-ground-effect-markers] svg, [data-ground-area-clock]',
+                ),
+              ]
+                .filter((marker) => marker.getBoundingClientRect().width > 0)
+                .map((marker) => {
+                  const rect = marker.getBoundingClientRect(),
+                    tile = marker.closest('button').getBoundingClientRect()
+                  return {
+                    width: rect.width,
+                    height: rect.height,
+                    tile: tile.width,
+                    contained:
+                      rect.left >= tile.left &&
+                      rect.right <= tile.right &&
+                      rect.top >= tile.top &&
+                      rect.bottom <= tile.bottom,
+                  }
+                }),
               markers: [...document.querySelectorAll('[data-terrain-overlay-marker]')].map(
                 (marker) => {
                   const elevation = marker.parentElement.querySelector(
@@ -128,6 +189,10 @@ try {
           assert.equal(layout.height, 64)
           assert.deepEqual(layout.artwork, { width: 32, height: 32 })
           assert.ok(layout.unchanged)
+          for (const marker of layout.currentMarkers) {
+            assert.ok(marker.contained, JSON.stringify(marker))
+            assert.ok(marker.height <= (width <= 820 ? 8.8 : 12), JSON.stringify(marker))
+          }
           assert.deepEqual(
             layout.markers.map((marker) => marker.text),
             ['❄2', '≋2'],
@@ -151,7 +216,7 @@ try {
           cases++
           await page.close()
         }
-  assert.equal(cases, 36)
+  assert.equal(cases, 54)
   assert.deepEqual(errors, [])
   await fs.writeFile(
     resolve(output, 'results.json'),

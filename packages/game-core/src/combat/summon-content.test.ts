@@ -83,6 +83,35 @@ function profile(overrides: Partial<SummonProfileDefinition> = {}): SummonProfil
 }
 
 describe('Combat v5.1 summon content', () => {
+  it('admits representable Summon costs and cooldowns beyond ordinary editor defaults', () => {
+    const base = profile()
+    for (const apCost of [0, 101]) {
+      expect(
+        validateCombatTagPayload({
+          type: 'summon',
+          recipient: 'selected-tile',
+          profile: {
+            ...base,
+            lifetimeTurns: 100,
+            potencyBasisPoints: 100000,
+            abilities: base.abilities.map((ability) => ({
+              ...ability,
+              apCost,
+              mpCost: 100,
+              cooldownOwnerTurns: 100,
+            })),
+          },
+        }),
+      ).toEqual([])
+    }
+    for (const cooldownOwnerTurns of [-1, 1.5, Infinity, Number.MAX_SAFE_INTEGER])
+      expect(
+        validateSummonProfileDefinition({
+          ...base,
+          abilities: base.abilities.map((ability) => ({ ...ability, cooldownOwnerTurns })),
+        }),
+      ).toContain('abilities')
+  })
   it('accepts absent or boolean neverMoves and rejects malformed values', () => {
     expect(validateSummonProfileDefinition(profile())).toEqual([])
     expect(validateSummonProfileDefinition(profile({ neverMoves: true }))).toEqual([])
@@ -352,4 +381,36 @@ it('preserves historical unversioned Summon Circle profiles above the current ra
     })),
   }
   expect(validateSummonProfileDefinition(captured)).toEqual([])
+})
+
+it('validates optional image-only finalized summon portrait media while retaining historical hooks', () => {
+  const artwork = {
+    id: '00000000-0000-4000-8000-000000000012',
+    kind: 'image' as const,
+    contentType: 'image/png' as const,
+    checksum: 'a'.repeat(64),
+    byteLength: 100,
+    width: 4,
+    height: 4,
+    sourceWidth: 8,
+    sourceHeight: 4,
+    crop: { x: 2, y: 0, size: 4 },
+  }
+  expect(validateSummonProfileDefinition(profile({ media: { artwork } }))).toEqual([])
+  for (const media of [
+    null,
+    'https://external.test/private.png',
+    { artwork: 'blob:local' },
+    { artwork: { ...artwork, kind: 'audio' } },
+    { artwork: { ...artwork, checksum: 'bad' } },
+    { artwork, audio: null },
+    { artwork, privateSource: 'secret' },
+  ]) {
+    expect(
+      validateSummonProfileDefinition(
+        profile({ media } as unknown as Partial<SummonProfileDefinition>),
+      ),
+    ).toContain('media')
+  }
+  expect(validateSummonProfileDefinition(profile())).toEqual([])
 })

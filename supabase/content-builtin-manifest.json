@@ -2176,6 +2176,14 @@
     "sourceDisciplineId": null
   },
   {
+    "contentKey": "tag.blind",
+    "contentKind": "tag",
+    "name": "Blind",
+    "contentVersion": 1,
+    "versionFloor": 1,
+    "sourceDisciplineId": null
+  },
+  {
     "contentKey": "tag.blindside",
     "contentKind": "tag",
     "name": "Blindside",

@@ -80,30 +80,6 @@ const cases: [string, CombatEffectDefinition][] = [
       defenderMaxHpCapBasisPoints: 2500,
     },
   ],
-  [
-    'Attacker HP cap (%)',
-    {
-      type: 'reversal',
-      recipient: 'actor',
-      version: 1,
-      family: 'physical',
-      reflectionBasisPoints: 10000,
-      attackerMaxHpCapBasisPoints: 2000,
-      defenderMaxHpCapBasisPoints: 2500,
-    },
-  ],
-  [
-    'User HP cap (%)',
-    {
-      type: 'reversal',
-      recipient: 'actor',
-      version: 1,
-      family: 'physical',
-      reflectionBasisPoints: 10000,
-      attackerMaxHpCapBasisPoints: 2000,
-      defenderMaxHpCapBasisPoints: 2500,
-    },
-  ],
 ]
 
 function control(

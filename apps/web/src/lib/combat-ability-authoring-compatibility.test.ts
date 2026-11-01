@@ -5,10 +5,26 @@ import {
   activeAbilityForAuthoring,
   activeCombatContentForAuthoring,
   hasInactiveCombatSettings,
+  authoringAddedEffectIssue,
 } from './combat-ability-authoring-compatibility'
 
 const attack = () =>
   structuredClone(defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability)
+it('allows logical Reveal fields on Ground while keeping Copy unit-selection requirements', () => {
+  const base = attack().behaviors[0]!
+  const group = {
+    ...base,
+    targeting: {
+      ...base.targeting!,
+      kind: 'ground-tile' as const,
+      geometryVersion: 3 as const,
+      categories: ['ground' as const],
+      shape: { kind: 'circle' as const, radius: 2 },
+    },
+  }
+  expect(authoringAddedEffectIssue(group, 'reveal')).toBeUndefined()
+  expect(authoringAddedEffectIssue(group, 'copy-buffs')).toContain('Single unit selection')
+})
 function moving() {
   const value = attack()
   return {

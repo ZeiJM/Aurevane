@@ -1,6 +1,6 @@
 import { isValidElement, type ReactNode, type ReactElement } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[] }))
+const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[], desktop: false }))
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
   useState: (initial: unknown) => {
@@ -30,9 +30,14 @@ vi.mock('react', async (original) => ({
   useSyncExternalStore: (_subscribe: unknown, _get: unknown, server: () => unknown) => server(),
 }))
 vi.mock('server-only', () => ({}))
+vi.mock('./battle-responsive-layout', async (original) => ({
+  ...(await original<typeof import('./battle-responsive-layout')>()),
+  useDesktopBattleLayout: () => hooks.desktop,
+}))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }))
 import { BattleExperience } from './battle-experience'
 import { BattleSkillCommand } from './battle-skill-command'
+import { BattleCombatantCard } from './battle-combatant-card'
 import { capturedBasicBattle } from './battle-basic-actions.test-utils'
 import type { BattleRuntime } from './battle-runtime'
 import { createBattlePreviewService } from '@/server/battle/battle-preview-service'
@@ -47,6 +52,9 @@ import {
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
+import { createCurrentStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
 type Props = Record<string, unknown> & { children?: ReactNode }
 function find(
@@ -65,6 +73,7 @@ function find(
 beforeEach(() => {
   hooks.index = 0
   hooks.cells = []
+  hooks.desktop = false
   vi.stubGlobal('document', {
     querySelector: () => null,
     hidden: false,
@@ -84,7 +93,8 @@ function fixture(
     stale?: boolean
     blocked?: boolean
     withMove?: boolean
-    targetPreview?: 'utility' | 'healing' | 'damage' | 'circle' | 'ground'
+    targetPreview?: 'utility' | 'healing' | 'damage' | 'circle' | 'ground' | 'line'
+    allHealingAim?: 'self' | 'enemy'
   } = {},
 ) {
   const input = capturedBasicBattle(support)
@@ -114,12 +124,25 @@ function fixture(
           targeting: {
             ...behavior.targeting,
             geometryVersion: 3,
-            kind: kind === 'ground' ? 'ground-tile' : 'unit',
-            categories: [kind === 'ground' ? 'ground' : 'enemy'],
-            teamPolicy: kind === 'ground' ? 'any' : 'enemy',
+            kind:
+              options.allHealingAim === 'self'
+                ? 'self'
+                : kind === 'ground'
+                  ? 'ground-tile'
+                  : 'unit',
+            categories: [
+              options.allHealingAim === 'self' ? 'self' : kind === 'ground' ? 'ground' : 'enemy',
+            ],
+            teamPolicy:
+              options.allHealingAim === 'self' ? 'self' : kind === 'ground' ? 'any' : 'enemy',
             minimumRange: 0,
-            maximumRange: 3,
-            shape: kind === 'circle' ? { kind: 'circle', radius: 3 } : { kind: 'single' },
+            maximumRange: options.allHealingAim === 'self' ? 0 : 3,
+            shape:
+              kind === 'circle'
+                ? { kind: 'circle', radius: 3 }
+                : kind === 'line'
+                  ? { kind: 'line', length: 3 }
+                  : { kind: 'single' },
             requiresLineOfSight: false,
           },
           effects: [
@@ -138,7 +161,12 @@ function fixture(
                 kind === 'damage'
                   ? { type: 'damage', recipient: 'affected-units', amount: 5 }
                   : kind === 'healing'
-                    ? { type: 'healing', recipient: 'affected-units', amount: 5 }
+                    ? {
+                        type: 'healing',
+                        recipient: 'affected-units',
+                        amount: 5,
+                        ...(options.allHealingAim ? { target: 'all' } : {}),
+                      }
                     : {
                         type: 'apply-status',
                         recipient: 'affected-units',
@@ -195,6 +223,26 @@ function fixture(
       }).state,
       statBridge: state.statBridge,
     }
+  }
+  if (options.allHealingAim) {
+    state = createCurrentStatDrivenCombatEncounterState(
+      state,
+      state.statBridge.combatants.map((row) => ({
+        ...row,
+        physicalPower: row.physicalPower ?? 20,
+        mysticPower: row.mysticPower ?? 20,
+        level: 1,
+        criticalChance: 0,
+      })),
+    )
+    state = spawnCombatSummon(state, {
+      ownerCombatantId: 'actor',
+      sourceSkillId: 'test.all-healing-summon',
+      sourceSkillVersion: 1,
+      profile: resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!,
+      position: { x: 0, y: 3 },
+      facing: 'east',
+    }).state
   }
   const view = {
     ...input.view,
@@ -320,6 +368,7 @@ function fixture(
   }
   return {
     state,
+    view,
     record,
     network,
     requests,
@@ -333,6 +382,153 @@ function fixture(
   }
 }
 for (const mode of ['pve', 'pvp'] as const) {
+  it.each(['self', 'enemy'] as const)(
+    mode + ' paints every living All recovery recipient green with a %s Single aim',
+    (allHealingAim) => {
+      const input = fixture('basic.recover', mode, { targetPreview: 'healing', allHealingAim })
+      input.begin('guard')
+      const tree = input.render()
+      expect(input.state.effectState?.summons).toHaveLength(1)
+      for (const placement of input.state.tactical.placements) {
+        const tile = find(
+          tree,
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith(
+              `Tile ${placement.position.x + 1}, ${placement.position.y + 1};`,
+            ),
+        )!
+        expect(tile.props['data-heal-target'], placement.combatantId).toBe(true)
+      }
+      expect(
+        find(
+          tree,
+          (node) =>
+            node.type === 'button' && String(node.props['aria-label']).startsWith('Tile 5, 5;'),
+        )!.props['data-heal-target'],
+      ).not.toBe(true)
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+  it(mode + ' clears stale quotes, Inspect and nonlocal-turn resource proposals', async () => {
+    const stale = fixture('basic.guard', mode, { stale: true })
+    await stale.activate()
+    expect(
+      find(
+        stale.render(),
+        (node) => node.type === BattleCombatantCard && node.props.role === 'local',
+      )!.props.proposedCosts,
+    ).toBeNull()
+    hooks.cells = []
+    const input = fixture('basic.guard', mode)
+    await input.activate()
+    input.begin('inspect')
+    expect(
+      find(
+        input.render(),
+        (node) => node.type === BattleCombatantCard && node.props.role === 'local',
+      )!.props.proposedCosts,
+    ).toBeNull()
+    input.begin()
+    input.view.snapshot.tactical.battle.currentTurn = {
+      ...input.view.snapshot.tactical.battle.currentTurn!,
+      combatantId: 'enemy',
+    }
+    expect(
+      find(
+        input.render(),
+        (node) => node.type === BattleCombatantCard && node.props.role === 'local',
+      )!.props.proposedCosts,
+    ).toBeNull()
+  })
+  it(
+    mode + ' keeps composed costs while hovering a line after choosing the Move destination',
+    async () => {
+      const input = fixture('basic.guard', mode, { withMove: true, targetPreview: 'line' })
+      input.begin()
+      const destination = find(
+        input.render(),
+        (node) =>
+          node.type === 'button' &&
+          node.props['data-reachable'] === true &&
+          String(node.props['aria-label']).startsWith('Tile 3, 1;'),
+      )!
+      ;(destination.props.onClick as () => void)()
+      const target = find(
+        input.render(),
+        (node) =>
+          node.type === 'button' && String(node.props['aria-label']).startsWith('Tile 3, 2;'),
+      )!
+      ;(target.props.onPointerEnter as (event: unknown) => void)({ pointerType: 'mouse' })
+      await vi.waitFor(() =>
+        expect(
+          input.requests.some(
+            (request) => request.intent.kind === 'action' && request.intent.movementPath?.length,
+          ),
+        ).toBe(true),
+      )
+      await vi.waitFor(() => expect(input.notice()).toBe('Second Wind forecast ready.'))
+      expect(
+        find(
+          input.render(),
+          (node) => node.type === BattleCombatantCard && node.props.role === 'local',
+        )!.props.proposedCosts,
+      ).toEqual({ actorId: 'actor', ap: 47, mp: 3, hp: 2 })
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+  it.each([false, true])(
+    mode +
+      ' proposes captured AP, HP and MP before a Move target, then clears on cancel (desktop=%s)',
+    (desktop) => {
+      hooks.desktop = desktop
+      const input = fixture('basic.guard', mode, { withMove: true, targetPreview: 'damage' })
+      const proposal = () =>
+        find(
+          input.render(),
+          (node) => node.type === BattleCombatantCard && node.props.role === 'local',
+        )!.props.proposedCosts
+      expect(proposal()).toBeNull()
+      input.begin()
+      expect(input.requests).toHaveLength(0)
+      expect(proposal()).toEqual({ actorId: 'actor', ap: 47, mp: 3, hp: 2 })
+      expect(
+        find(
+          input.render(),
+          (node) =>
+            node.type === 'small' &&
+            Array.isArray(node.props.children) &&
+            node.props.children.includes(47),
+        ),
+      ).not.toBeNull()
+      const cancel = find(input.render(), (node) => node.props['aria-label'] === 'Cancel Action')!
+      ;(cancel.props.onClick as () => void)()
+      expect(proposal()).toBeNull()
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+  it.each([false, true])(
+    mode +
+      ' passes actual mixed quoted costs only to the caster card without spending resources (desktop=%s)',
+    async (desktop) => {
+      hooks.desktop = desktop
+      const input = fixture('basic.recover', mode)
+      const original = JSON.stringify(input.state)
+      await input.activate()
+      const tree = input.render()
+      const local = find(
+        tree,
+        (node) => node.type === BattleCombatantCard && node.props.role === 'local',
+      )!
+      const selected = find(
+        tree,
+        (node) => node.type === BattleCombatantCard && node.props.role === 'selected',
+      )!
+      expect(local.props.proposedCosts).toEqual({ actorId: 'actor', ap: 47, mp: 3, hp: 2 })
+      expect(selected.props.proposedCosts).toBeUndefined()
+      expect(JSON.stringify(input.state)).toBe(original)
+    },
+  )
   it(mode + ' opens final facing only in the preview without duplicate cockpit arrows', () => {
     const input = fixture('basic.guard', mode)
     input.begin('finish')

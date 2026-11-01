@@ -272,31 +272,38 @@ it.each([
   expect(validateCombatGroundAreas(state).length).toBeGreaterThan(0)
 })
 
-it('rejects Pierce as a repeating entry payload without its specialized equipment-Armor resolver', () => {
+it('accepts Pierce Ground entries and retains captured parameters with native Barrier-shatter delivery', () => {
   const value = groundSource().definition
   const group = value.behaviors[0]!
-  expect(
-    validateAbilityDefinition({
-      ...value,
-      behaviors: [
-        {
-          ...group,
-          effects: [
-            {
-              id: 'pierce',
-              payload: {
-                type: 'pierce',
-                recipient: 'affected-units',
-                amount: 10,
-                armorIgnoredBasisPoints: 5000,
-              },
+  const definition: typeof value = {
+    ...value,
+    behaviors: [
+      {
+        ...group,
+        effects: [
+          {
+            id: 'pierce',
+            payload: {
+              type: 'pierce',
+              recipient: 'affected-units',
+              amount: 10,
+              armorIgnoredBasisPoints: 5000,
             },
-          ],
-          groundArea: { ...group.groundArea!, entryEffectIds: ['pierce'] },
-        },
-      ],
-    }).length,
-  ).toBeGreaterThan(0)
+          },
+        ],
+        groundArea: { ...group.groundArea!, entryEffectIds: ['pierce'] },
+      },
+    ],
+  }
+  expect(validateAbilityDefinition(definition)).toEqual([])
+  const captured = captureCombatAbilitySource({ ...groundSource(), definition })
+  const action = materializeCombatAbilityAction(captured, definition.behaviors[0]!)
+  expect(action.groundArea?.entryEffectOrdinals).toEqual([0])
+  expect(captured.definition.behaviors[0]!.effects[0]!.payload).toMatchObject({
+    type: 'pierce',
+    armorIgnoredBasisPoints: 5000,
+  })
+  expect(action.effects[0]).toMatchObject({ type: 'damage', shattersBarrier: true })
 })
 
 const groundCandidates: {

@@ -46,6 +46,15 @@ export function currentCombatPercentageEntries(value: unknown): readonly Percent
       let maximum: number | undefined
       let divisor = 100
       if (percentageFields.has(key)) maximum = CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
+      // Summon potency is its authored damage budget, independent of ordinary status limits.
+      // The profile validator enforces nonnegative safe-integer basis points.
+      if (
+        key === 'potencyBasisPoints' &&
+        row.schemaVersion === 1 &&
+        Array.isArray(row.abilities) &&
+        (parentKey === '' || parentKey === 'profile' || parentKey === 'summonProfile')
+      )
+        maximum = Number.MAX_SAFE_INTEGER
       if (
         (key === 'basisPoints' && ['counter', 'damageProfile'].includes(parentKey)) ||
         (['front', 'side', 'rear'].includes(key) &&

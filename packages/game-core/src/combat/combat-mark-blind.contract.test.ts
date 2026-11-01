@@ -27,6 +27,12 @@ import {
 } from './stat-driven-combat'
 import { validateCombatStatusDefinition } from './combat-authoring-validation'
 import { PV1F_COMBAT_CONTENT } from './pv1f-action-economy'
+import { createAuthorableEffectPayload } from './combat-effect-authoring'
+import { nativeCombatTagPayload, validateCombatTagPayload } from './combat-tag-registry'
+import { selectableCombatStatusIds } from './combat-status-selection'
+import { combatStatusApplications } from './combat-status-applications'
+import { source } from './combat-behavior.test-utils'
+import { captureCombatAbilitySource } from './combat-behavior-capture'
 
 // Test-first intersection describes the approved metadata before production types exist.
 type AccuracyStatusFixture = CombatStatusDefinition & {
@@ -188,6 +194,123 @@ function context(actorId: string, chainId: string): CombatResolutionContext {
     triggerGuard: createCombatTriggerGuard({ triggerChainId: chainId }),
   }
 }
+
+describe('production Blind authoring and execution', () => {
+  const combination = { activation: 'manual', mode: 'action' } as const
+  function productionBlind(potencyBasisPoints = 3000, durationTurns = 99) {
+    const payload = createAuthorableEffectPayload('status:blind')
+    expect(payload).toMatchObject({
+      type: 'apply-status',
+      statusId: 'blind',
+      potencyBasisPoints: 1500,
+    })
+    const authored = { ...payload!, potencyBasisPoints, durationTurns }
+    expect(validateCombatTagPayload(authored, combination)).toEqual([])
+    const native = nativeCombatTagPayload(authored)
+    if (native.type !== 'apply-status') throw new Error('Blind fixture requires a status payload.')
+    return native
+  }
+  function blinded(potency = 3000) {
+    const state = { ...world(8000, 0), effectStackingPolicyVersion: 1 as const }
+    const result = executeCombatAction(
+      state,
+      { ...statusAction('blind'), effects: [productionBlind(potency)] },
+      { kind: 'unit', combatantId: 'actor' },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(result.state.tactical.battle.rng).toEqual(state.tactical.battle.rng)
+    return reattachStatDrivenCombatBridge(result.state, state.statBridge)
+  }
+  it.each(['discipline-skill', 'essence', 'resonance'] as const)(
+    'captures and reloads authored Blind potency and duration in %s without changing the source',
+    (sourceKind) => {
+      const original = {
+        ...source({ effects: [{ id: 'blind', payload: productionBlind(99900) }] }),
+        sourceKind,
+      }
+      const before = JSON.stringify(original)
+      const captured = captureCombatAbilitySource(original)
+      const restored = captureCombatAbilitySource(JSON.parse(JSON.stringify(captured)))
+      expect(restored.definition.behaviors[0]!.effects[0]!.payload).toMatchObject({
+        statusId: 'blind',
+        potencyBasisPoints: 99900,
+        durationTurns: 99,
+      })
+      expect(JSON.stringify(original)).toBe(before)
+    },
+  )
+  it.each([
+    { potencyBasisPoints: 99901 },
+    { potencyBasisPoints: 0 },
+    { durationTurns: 100 },
+    { durationTurns: 0 },
+  ])('rejects out-of-bound current Blind authoring %j', (invalid) => {
+    expect(
+      validateCombatTagPayload(
+        { ...createAuthorableEffectPayload('status:blind')!, ...invalid },
+        combination,
+      ),
+    ).not.toEqual([])
+  })
+  it('applies real Blind then reloads80%-30%=50% without consuming forecast RNG', () => {
+    const captured = JSON.parse(JSON.stringify(blinded())) as ReturnType<typeof blinded>
+    const state = reattachStatDrivenCombatBridge(captured, captured.statBridge)
+    expect(validateCombatEncounterState(state)).toEqual([])
+    const before = JSON.stringify(state)
+    expect(chance(state, PV1F_COMBAT_CONTENT)).toBe(5000)
+    expect(JSON.stringify(state)).toBe(before)
+    const result = executeCombatAction(state, attack(), TARGET, PV1F_COMBAT_CONTENT)
+    const accuracy = result.events.filter((event) => event.event === 'combat_accuracy_resolved')
+    expect(accuracy).toHaveLength(1)
+    expect(accuracy[0]).toMatchObject({ hitChanceBasisPoints: 5000 })
+  })
+  it('accepts999% and99turns, floors probability at zero and preserves Automatic Hit', () => {
+    const state = blinded(99900)
+    expect(chance(state, PV1F_COMBAT_CONTENT)).toBe(0)
+    const automatic = executeCombatAction(
+      state,
+      { ...attack(), accuracyMode: 'automatic' },
+      TARGET,
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(automatic.state.tactical.battle.rng).toEqual(state.tactical.battle.rng)
+    expect(automatic.state.tactical.battle.combatants.find((row) => row.id === 'target')!.hp).toBe(
+      80,
+    )
+    // Legacy owner-start timing captures the extra initial boundary for authored99turns.
+    expect(state.statusState.find((row) => row.combatantId === 'actor')!.statuses[0]).toMatchObject(
+      { statusId: 'blind', potencyBasisPoints: 99900, remainingOwnerTurnStarts: 100 },
+    )
+  })
+  it('copies Blind as a debuff and cleanses it through the complete17-status current selection', () => {
+    const state = blinded()
+    expect(selectableCombatStatusIds('copy-debuffs')).toContain('blind')
+    const copy = createAuthorableEffectPayload('copy-debuffs')!
+    expect(validateCombatTagPayload(copy, combination)).toEqual([])
+    const copied = executeCombatAction(
+      state,
+      { ...statusAction('blind'), effects: [nativeCombatTagPayload(copy)] },
+      TARGET,
+      PV1F_COMBAT_CONTENT,
+    ).state
+    const copiedBlind = copied.statusState
+      .find((row) => row.combatantId === 'target')!
+      .statuses.find((row) => row.statusId === 'blind')!
+    expect(combatStatusApplications(copiedBlind)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ potencyBasisPoints: 3000 })]),
+    )
+    const cleanse = createAuthorableEffectPayload('cleanse')!
+    expect(cleanse).toMatchObject({ statusIds: expect.arrayContaining(['blind']) })
+    expect(validateCombatTagPayload(cleanse, combination)).toEqual([])
+    const cleaned = executeCombatAction(
+      copied,
+      { ...statusAction('blind'), effects: [nativeCombatTagPayload(cleanse)] },
+      { kind: 'unit', combatantId: 'actor' },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(chance(cleaned, PV1F_COMBAT_CONTENT)).toBe(8000)
+  })
+})
 
 describe('Mark and Blind: public-entry contract', () => {
   it.each([1, 0, -1])(

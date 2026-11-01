@@ -1,7 +1,15 @@
-import type { AbilityBehavior, AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
+import type { AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
 import type { CombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import type { CombatEffectTarget } from '@aurevane/game-core/combat/combat-effect-recipients'
+import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 
+type ElementalPayload = CombatTagPayload | CombatEffectDefinition
+interface ElementalEffect extends Omit<AbilityEffect, 'payload'> {
+  readonly payload: ElementalPayload
+}
+interface ElementalBehavior {
+  readonly effects: readonly ElementalEffect[]
+}
 type CompanionStatus = 'frozen' | 'wet' | 'conductive' | 'cleanse-chilled'
 interface Companion {
   status: CompanionStatus
@@ -16,7 +24,7 @@ const statusByElement: Readonly<Record<string, CompanionStatus | undefined>> = {
   fire: 'cleanse-chilled',
 }
 const key = (value: Companion) => `${value.status}.${value.recipient}`
-function requiredCompanions(value: AbilityBehavior): Map<string, Companion> {
+function requiredCompanions(value: ElementalBehavior): Map<string, Companion> {
   const required = new Map<string, Companion>()
   for (const { payload } of value.effects) {
     if (payload.type !== 'damage' && payload.type !== 'pierce') continue
@@ -34,7 +42,7 @@ function requiredCompanions(value: AbilityBehavior): Map<string, Companion> {
   }
   return required
 }
-function matches(effect: AbilityEffect, companion: Companion): boolean {
+function matches(effect: ElementalEffect, companion: Companion): boolean {
   const payload = effect.payload
   return (
     payload.recipient === companion.recipient &&
@@ -45,7 +53,7 @@ function matches(effect: AbilityEffect, companion: Companion): boolean {
       : payload.type === 'apply-status' && payload.statusId === companion.status)
   )
 }
-export function isAuthoredElementalCompanion(effect: AbilityEffect): boolean {
+export function isAuthoredElementalCompanion(effect: ElementalEffect): boolean {
   if (!effect.id.startsWith(generatedPrefix) || effect.requirements) return false
   const status = effect.id.slice(generatedPrefix.length).split('.')[0]
   return matches(effect, {
@@ -55,7 +63,7 @@ export function isAuthoredElementalCompanion(effect: AbilityEffect): boolean {
 }
 /** An unchanged standard historical counterpart can be recognized only on a deliberate transition.
  * Conditional, customized and duplicate manual tags remain authored data, never cleanup targets. */
-function standardCompanion(effect: AbilityEffect, companion: Companion): boolean {
+function standardCompanion(effect: ElementalEffect, companion: Companion): boolean {
   if (effect.requirements || effect.timing !== undefined || !matches(effect, companion))
     return false
   const payload = effect.payload
@@ -84,7 +92,7 @@ function standardCompanion(effect: AbilityEffect, companion: Companion): boolean
         : payload.potencyBasisPoints === 2000))
   )
 }
-function companionPayload(companion: Companion, existing?: CombatTagPayload): CombatTagPayload {
+function companionPayload(companion: Companion, existing?: ElementalPayload): CombatTagPayload {
   if (companion.status === 'cleanse-chilled')
     return {
       type: 'remove-status',
@@ -114,11 +122,11 @@ function companionPayload(companion: Companion, existing?: CombatTagPayload): Co
 }
 
 /** Editor transitions only. Historical definitions and captured commands never call this helper. */
-export function withAuthoredElementalCompanions(
-  previous: AbilityBehavior,
-  next: AbilityBehavior,
-  options: { preserveExisting?: boolean } = {},
-): AbilityBehavior {
+export function withAuthoredElementalCompanions<T extends ElementalBehavior>(
+  previous: ElementalBehavior,
+  next: T,
+  options: { preserveExisting?: boolean; preserveUnlinked?: boolean } = {},
+): T {
   const required = requiredCompanions(next)
   const before = requiredCompanions(previous)
   let effects = options.preserveExisting
@@ -126,6 +134,7 @@ export function withAuthoredElementalCompanions(
     : next.effects.filter((effect) => {
         if (isAuthoredElementalCompanion(effect))
           return [...required.values()].some((companion) => matches(effect, companion))
+        if (options.preserveUnlinked) return true
         for (const [oldKey, companion] of before) {
           if (required.has(oldKey) || !matches(effect, companion)) continue
           const counterparts = previous.effects.filter((candidate) => matches(candidate, companion))
@@ -149,6 +158,7 @@ export function withAuthoredElementalCompanions(
       )
       const prior = before.get(key(companion))
       if (
+        !options.preserveUnlinked &&
         manual.length === 1 &&
         prior &&
         standardCompanion(manual[0]!, prior) &&
@@ -181,4 +191,37 @@ export function withAuthoredElementalCompanions(
     effects.every((effect, index) => effect === next.effects[index])
     ? next
     : { ...next, effects }
+}
+
+/** Native rows persist generated identity on the payload rather than an AbilityEffect wrapper. */
+export function isNativeAuthoredElementalCompanion(effect: CombatEffectDefinition): boolean {
+  return isAuthoredElementalCompanion({ id: effect.authoringLink ?? '', payload: effect })
+}
+
+/** Share the ordinary Skill rules without inferring ownership of independently authored rows. */
+export function withNativeElementalCompanions(
+  previous: readonly CombatEffectDefinition[],
+  proposed: readonly CombatEffectDefinition[],
+): readonly CombatEffectDefinition[] {
+  const wrap = (effects: readonly CombatEffectDefinition[]) => ({
+    effects: effects.map((payload, index) => ({
+      id: payload.authoringLink?.startsWith(generatedPrefix)
+        ? payload.authoringLink
+        : `native.effect.${index}`,
+      payload,
+    })),
+  })
+  const next = wrap(proposed)
+  const result = withAuthoredElementalCompanions(wrap(previous), next, {
+    preserveUnlinked: true,
+  })
+  const effects = result.effects.map(({ id, payload }) =>
+    id.startsWith(generatedPrefix) && payload.authoringLink !== id
+      ? { ...payload, authoringLink: id }
+      : payload,
+  )
+  return effects.length === proposed.length &&
+    effects.every((effect, index) => effect === proposed[index])
+    ? proposed
+    : effects
 }

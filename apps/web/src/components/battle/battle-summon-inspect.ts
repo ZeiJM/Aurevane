@@ -1,3 +1,4 @@
+import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
 import {
   summonPotencyDescription,
   type SummonAbilityDefinition,
@@ -17,6 +18,10 @@ export interface BattleSummonInspectMetadata {
     | 'elementalDamagePolicyVersion'
     | 'healingDownPolicyVersion'
     | 'blindsideActivationPolicyVersion'
+    | 'reversalPolicyVersion'
+    | 'pierceCriticalPolicyVersion'
+    | 'summonPotencyPolicyVersion'
+    | 'ruinPolicyVersion'
   >
   readonly profileId: string
   readonly name: string
@@ -25,6 +30,7 @@ export interface BattleSummonInspectMetadata {
   readonly potencyDescription?: string
   readonly flavorLine: string
   readonly portraitKey: string
+  readonly portraitUrl?: string
   readonly tags: readonly string[]
   readonly ownerCombatantId: string
   readonly sourceSkillId: string
@@ -50,12 +56,18 @@ export function readSummonInspectMetadata(
         ? structuredClone(snapshot.effectTimingPolicy)
         : undefined,
       dotTriggerPolicyVersion: snapshot.dotTriggerPolicyVersion,
+      summonPotencyPolicyVersion: snapshot.summonPotencyPolicyVersion,
       frozenGroundPolicyVersion: snapshot.frozenGroundPolicyVersion,
       airbornePolicyVersion: snapshot.airbornePolicyVersion,
       airborneJumpPolicyVersion: snapshot.airborneJumpPolicyVersion,
       elementalDamagePolicyVersion: snapshot.elementalDamagePolicyVersion,
       healingDownPolicyVersion: snapshot.healingDownPolicyVersion,
       blindsideActivationPolicyVersion: snapshot.blindsideActivationPolicyVersion,
+      ...(snapshot.reversalPolicyVersion === 1 ? { reversalPolicyVersion: 1 as const } : {}),
+      ...(snapshot.pierceCriticalPolicyVersion === 1
+        ? { pierceCriticalPolicyVersion: 1 as const }
+        : {}),
+      ...(snapshot.ruinPolicyVersion === 1 ? { ruinPolicyVersion: 1 as const } : {}),
     },
     profileId: summon.profile.id,
     name: summon.profile.name,
@@ -64,10 +76,15 @@ export function readSummonInspectMetadata(
       ? {}
       : {
           potencyBasisPoints: summon.profile.potencyBasisPoints,
-          potencyDescription: summonPotencyDescription(summon.profile)!,
+          potencyDescription: summonPotencyDescription(summon.profile, {
+            legacy: snapshot.summonPotencyPolicyVersion !== 1,
+          })!,
         }),
     flavorLine: summon.profile.flavorLine,
     portraitKey: summon.profile.portraitKey,
+    ...(summon.profile.media?.artwork
+      ? { portraitUrl: contentMediaSource(summon.profile.media.artwork) }
+      : {}),
     tags: [...summon.profile.tags],
     ownerCombatantId: summon.ownerCombatantId,
     sourceSkillId: summon.sourceSkillId,

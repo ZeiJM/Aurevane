@@ -1,3 +1,5 @@
+import { SkillEffectTimingProvider } from './skill-effect-timing-context'
+import { effectTagDescription } from '@/lib/combat-effect-descriptions'
 import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it } from 'vitest'
@@ -274,4 +276,130 @@ it('retains a captured custom Pierce percentage and Basic scaling with equipment
   expect(report.effectDescriptions[0]).toContain('only to equipment Armor')
   expect(report.effectDescriptions[0]).toContain('Physical wins ties')
   expect(JSON.stringify(definition)).toBe(before)
+})
+
+it.each([false, true])(
+  'describes Pierce critical eligibility using captured rules (legacy: %s)',
+  (legacy) => {
+    const group = actual('vanguard.guard-break').behaviors[0]!
+    const index = group.effects.findIndex((effect) => effect.payload.type === 'pierce')
+    const before = JSON.stringify(group)
+    const report = abilityBehaviorInformation(group, {
+      effectContext: { legacyPierceCritical: legacy },
+    })
+    if (legacy) expect(report.effectDescriptions[index]).not.toContain('cannot critically hit')
+    else expect(report.effectDescriptions[index]).toContain('cannot critically hit')
+    expect(JSON.stringify(group)).toBe(before)
+  },
+)
+
+it.each(['pierce', 'weak-point', 'spike'])(
+  'current %s palette help excludes Pierce critical hits',
+  (tag) => {
+    expect(effectTagDescription(tag)).toContain('Pierce cannot critically hit.')
+  },
+)
+
+it.each([false, true])(
+  'keeps current Pierce critical eligibility visible beside saved tag wording (legacy: %s)',
+  (legacy) => {
+    const group = actual('vanguard.guard-break').behaviors[0]!
+    const index = group.effects.findIndex((effect) => effect.payload.type === 'pierce')
+    const tag = {
+      contentKey: 'tag.pierce',
+      contentVersion: 1,
+      tagId: 'pierce',
+      name: 'Pierce',
+      full: 'Captured Pierce help.',
+      compact: 'Saved Pierce.',
+    }
+    const before = JSON.stringify(tag)
+    const report = abilityBehaviorInformation(group, {
+      tagPresentation: [tag],
+      effectContext: { legacyPierceCritical: legacy },
+    })
+    const expected = legacy ? tag.full : `${tag.full} Pierce cannot critically hit.`
+    expect(report.effectDescriptions[index]).toBe(expected)
+    expect(report.effects[index]!.tagPresentation?.full).toBe(expected)
+    expect(
+      report.effects[index]!.tagPresentation?.compact.includes('Pierce cannot critically hit.'),
+    ).toBe(!legacy)
+    expect(JSON.stringify(tag)).toBe(before)
+  },
+)
+
+it.each(['pierce', 'ruin'] as const)(
+  'keeps captured %s policy help beside top-level saved canonical effectDescriptions',
+  (tag) => {
+    const original = actual('vanguard.guard-break')
+    const group = original.behaviors[0]!
+    const pierce = group.effects.find((effect) => effect.payload.type === 'pierce')!
+    const definition = {
+      ...original,
+      behaviors: [
+        {
+          ...group,
+          effects: [
+            {
+              ...pierce,
+              payload:
+                tag === 'pierce'
+                  ? pierce.payload
+                  : {
+                      type: 'ruin' as const,
+                      recipient: 'actor' as const,
+                      bonusPerDebuffBasisPoints: 1000,
+                    },
+            },
+          ],
+        },
+      ],
+    }
+    const before = JSON.stringify(definition)
+    for (const current of [false, true]) {
+      const html = renderToStaticMarkup(
+        <SkillEffectTimingProvider
+          policy={null}
+          pierceCriticalPolicyVersion={current ? 1 : null}
+          ruinPolicyVersion={current ? 1 : null}
+        >
+          <AbilityDefinitionParameters
+            definition={projectPublicCombat(definition)}
+            effectDescriptions={['Saved per-Skill help.']}
+          />
+        </SkillEffectTimingProvider>,
+      )
+      expect(html).toContain('Saved per-Skill help.')
+      const rule = tag === 'pierce' ? 'Pierce cannot critically hit.' : 'consumes captured debuffs'
+      expect(html.includes(rule)).toBe(current)
+    }
+    expect(JSON.stringify(definition)).toBe(before)
+  },
+)
+
+it('does not duplicate a known generated current rule in top-level canonical explanations', () => {
+  const original = actual('vanguard.guard-break')
+  const group = {
+    ...original.behaviors[0]!,
+    effects: [
+      {
+        id: 'ruin',
+        payload: {
+          type: 'ruin' as const,
+          recipient: 'actor' as const,
+          bonusPerDebuffBasisPoints: 1000,
+        },
+      },
+    ],
+  }
+  const definition = { ...original, behaviors: [group] }
+  const generated = abilityBehaviorInformation(group).effectDescriptions
+  const html = renderToStaticMarkup(
+    <AbilityDefinitionParameters
+      definition={projectPublicCombat(definition)}
+      effectDescriptions={generated}
+    />,
+  )
+  expect(html).toContain('first landed eligible hit')
+  expect(html).not.toContain('Current Ruin boosts')
 })

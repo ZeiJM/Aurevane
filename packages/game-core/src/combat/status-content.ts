@@ -122,7 +122,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'haste',
     'Haste',
     'Buff',
-    'Reduces movement AP cost per tile, to a minimum of 10 AP. Movement allowance is unchanged.',
+    'Movement costs less AP per entered tile and can reach 0 AP. Movement allowance is unchanged.',
     {
       movement: { additionalApPerTile: -10 },
       amplifyCopyable: true,
@@ -205,6 +205,17 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       effectCategories: ['Debuff', 'Mark'],
     },
   ),
+  status(
+    'blind',
+    'Blind',
+    'Debuff',
+    'Reduces Accuracy by 15 percentage points per application, to a minimum of 0%. Automatic Hit remains automatic.',
+    {
+      reactionClass: 'ordinary',
+      curseCopyable: true,
+      blindAccuracyPenaltyBasisPoints: 1500,
+    },
+  ),
   status('warded', 'Burn Ward', 'Buff', 'Reduces damage taken from opponents affected by Burn.', {
     damageModifiers: [modifier('incoming', 8_000, { kind: 'opponent-status', statusId: 'burn' })],
   }),
@@ -237,7 +248,7 @@ const legacyDescriptions: Record<
     description: 'Reduces the target’s MP when the effect activates.',
   },
   'mp-recovery': {
-    name: 'MP Restore',
+    name: 'MP Recovery',
     kind: 'Buff',
     description: 'Restores MP when the effect activates.',
   },

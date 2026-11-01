@@ -8,6 +8,94 @@ import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-ski
 import { SkillGroundEditor, AbilityGroundEditor, groundAreaForEffects } from './skill-ground-editor'
 
 describe('Master persistent Ground controls', () => {
+  it('keeps independent unit targets out of newly derived fields and admits ordinary Ground defenses', () => {
+    const effects = [
+      {
+        type: 'apply-status' as const,
+        recipient: 'affected-units' as const,
+        target: 'ground' as const,
+        statusId: 'fortified',
+        stacks: 1,
+      },
+      {
+        type: 'apply-status' as const,
+        recipient: 'affected-units' as const,
+        target: 'ally' as const,
+        statusId: 'reckless',
+        stacks: 1,
+      },
+      {
+        type: 'damage' as const,
+        recipient: 'affected-units' as const,
+        target: 'enemy' as const,
+        amount: 7,
+      },
+    ]
+    expect(groundAreaForEffects(effects)).toMatchObject({
+      entryEffectOrdinals: [0],
+      contactPolicyVersion: 1,
+    })
+    expect(
+      groundAreaForEffects(effects, {
+        durationRounds: 7,
+        visualPresetId: 'frost',
+        entryEffectOrdinals: [0, 2],
+        timing: 'delayed',
+      }),
+    ).toMatchObject({ entryEffectOrdinals: [0, 2], durationRounds: 7, timing: 'delayed' })
+  })
+  it('maps canonical Pierce Ground entries through native conversion without dropping their stable ID', () => {
+    const group = {
+      id: 'main',
+      mode: 'action',
+      targeting: {
+        kind: 'ground-tile',
+        geometryVersion: 3,
+        categories: ['ground'],
+        teamPolicy: 'any',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 2,
+        requiresLineOfSight: false,
+        maximumElevationDifference: 2,
+        friendlyFire: 'all-units',
+      },
+      effects: [
+        {
+          id: 'pierce',
+          payload: {
+            type: 'pierce',
+            recipient: 'affected-units',
+            target: 'ground',
+            amount: 5,
+            armorIgnoredBasisPoints: 2500,
+          },
+        },
+      ],
+      groundArea: {
+        durationRounds: 2,
+        visualPresetId: 'arcane-pulse',
+        entryEffectIds: ['pierce'],
+        contactPolicyVersion: 1,
+      },
+    } as unknown as AbilityBehavior
+    let next: AbilityBehavior | undefined
+    const editor = AbilityGroundEditor({
+      value: group,
+      onChange: (value) => {
+        next = value
+      },
+    })
+    if (!isValidElement<ComponentProps<typeof SkillGroundEditor>>(editor))
+      throw new Error('Missing Ground editor')
+    expect(editor.props.value?.entryEffectOrdinals).toEqual([0])
+    editor.props.onChange({ ...editor.props.value!, durationRounds: 9 })
+    expect(next!.groundArea).toMatchObject({
+      entryEffectIds: ['pierce'],
+      durationRounds: 9,
+      contactPolicyVersion: 1,
+    })
+  })
   it('edits duration and registered animations while leaving activation to Master timing', () => {
     const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')!
     const html = renderToStaticMarkup(

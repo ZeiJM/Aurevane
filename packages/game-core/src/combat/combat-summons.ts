@@ -1,3 +1,4 @@
+import { capturedSummonPotentialBudget } from './combat-summon-potential'
 import { endCombatReversal, type CombatReversalEvent } from './combat-reversal'
 import {
   validateBattleState,
@@ -281,7 +282,19 @@ export function spawnCombatSummon(
               {
                 combatantId,
                 ownerCombatantId: input.ownerCombatantId,
-                potencyBasisPoints: profile.potencyBasisPoints,
+                ...(state.summonPotencyPolicyVersion === 1
+                  ? {
+                      potencyBasisPoints: profile.potencyBasisPoints,
+                      potencyPolicyVersion: 1 as const,
+                      damageBudgetPerRound: capturedSummonPotentialBudget(
+                        state,
+                        input.ownerCombatantId,
+                        profile.potencyBasisPoints,
+                      ),
+                      budgetRound: state.tactical.battle.round,
+                      spentThisRound: 0,
+                    }
+                  : { potencyBasisPoints: profile.potencyBasisPoints }),
               },
             ],
           }),
@@ -438,9 +451,29 @@ export function removeCombatSummon(
 
   const placements = state.tactical.placements.filter((row) => row.combatantId !== combatantId)
   const movementProfileId = summonMovementProfileId(instance.profile.id)
+  const retainedCurrentGroundSource =
+    state.groundContactPolicyVersion === 1 &&
+    state.groundAreas?.some(
+      (area) => area.contactPolicyVersion === 1 && area.sourceCombatantId === combatantId,
+    ) === true
+  const archivedEffects =
+    retainedCurrentGroundSource &&
+    !effectState.summonDamageSources?.some((source) => source.combatantId === combatantId)
+      ? {
+          ...effectState,
+          summonDamageSources: [
+            ...(effectState.summonDamageSources ?? []),
+            {
+              combatantId,
+              ownerCombatantId: instance.ownerCombatantId,
+              groundContactArchiveVersion: 1 as const,
+            },
+          ],
+        }
+      : effectState
   const movementProfileStillUsed =
     placements.some((row) => row.movementProfileId === movementProfileId) ||
-    (instance.profile.potencyBasisPoints !== undefined &&
+    ((instance.profile.potencyBasisPoints !== undefined || retainedCurrentGroundSource) &&
       state.groundAreas?.some(
         (area) => area.caster.placement.movementProfileId === movementProfileId,
       ))
@@ -512,7 +545,7 @@ export function removeCombatSummon(
             ),
           },
         }),
-    effectState: cleanupEffectState(effectState, combatantId),
+    effectState: cleanupEffectState(archivedEffects, combatantId),
     ...(state.pendingEffects === undefined
       ? {}
       : {

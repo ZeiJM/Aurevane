@@ -31,10 +31,21 @@ export function battleTargetReachTiles(
   selectedAffectedTiles: readonly { x: number; y: number }[] = [],
   aim: BattleTargetAim = { aimSource: 'implicit' },
   spatial?: BattleTargetSpatialContext,
+  hasAllTargetEffects = false,
 ): ReadonlySet<string> {
   const result = new Set<string>()
   const add = (positions: readonly { x: number; y: number }[]) => {
     for (const tile of positions) result.add(`${tile.x}:${tile.y}`)
+  }
+  if (hasAllTargetEffects && spatial) {
+    const living = new Set(
+      spatial.tactical.battle.combatants.filter((unit) => unit.hp > 0).map((unit) => unit.id),
+    )
+    add(
+      spatial.tactical.placements
+        .filter((row) => living.has(row.combatantId))
+        .map((row) => row.position),
+    )
   }
   const footprint = (selection: CombatTargetSelection, spec = target) => {
     const positions = resolveCombatTargetFootprint(tactical, origin, spec, selection)

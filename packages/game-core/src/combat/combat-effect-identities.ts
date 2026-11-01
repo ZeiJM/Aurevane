@@ -37,7 +37,7 @@ const variants: readonly AuthorableEffectTag[] = [
   { id: 'hp-recovery', label: 'HP Recovery', opcode: 'percentage-recovery' },
   { id: 'mp-recovery', label: 'MP Recovery', opcode: 'percentage-recovery' },
   { id: 'healing', label: 'HP Recovery (fixed amount)', opcode: 'healing' },
-  { id: 'mp-restore', label: 'MP Restore', opcode: 'resource-change' },
+  { id: 'mp-restore', label: 'MP Recovery', opcode: 'resource-change' },
   { id: 'mp-drain', label: 'MP Drain', opcode: 'resource-change' },
   { id: 'barrier', label: 'Barrier', opcode: 'barrier-change' },
   { id: 'burn', label: 'Burn', opcode: 'burn', statusId: 'burn' },
@@ -85,10 +85,13 @@ export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
         'status:blindside',
         'status:revealed',
         'cleanse-chilled',
+        'mp-restore',
+        'freeze-ground',
       ].includes(tag.id),
   ),
 )
 export function currentCombatTagName(tagId: string, name: string): string {
+  if (tagId === 'mp-restore' && name === 'MP Restore') return 'MP Recovery'
   if (tagId === 'counter' && name === 'Counter') return 'Reflect'
   if (tagId === 'challenged' && name === 'Taunted') return 'Taunt'
   return tagId === BLINDSIDE_DEBUFF_STATUS_ID && name === 'Blindside (debuff)' ? 'Blindside' : name

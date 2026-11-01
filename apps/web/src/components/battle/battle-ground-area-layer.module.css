@@ -154,3 +154,75 @@
     transform: none;
   }
 }
+
+.effectMarkers,
+.clocks {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  gap: 1px;
+  pointer-events: none;
+  max-width: 90%;
+  color: #eee2c8;
+  text-shadow: 0 1px 2px #000;
+}
+.effectMarkers {
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  left: 4%;
+  bottom: 4%;
+  align-items: center;
+}
+.effectMarker {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+}
+.effectMarker:nth-child(n + 3) {
+  display: none;
+}
+.effectMarker svg {
+  width: 11px;
+  height: 11px;
+}
+.effectMarker small,
+.more,
+.clocks b {
+  font: 700 9px/1 var(--av-font-mono, monospace);
+}
+.more {
+  grid-column: 1 / -1;
+}
+.effectMarker[data-ground-effect-tone='benefit'] {
+  color: #b6e6ac;
+}
+.effectMarker[data-ground-effect-tone='harm'] {
+  color: #f3ad91;
+}
+.effectMarker[data-ground-effect-id='status:frozen'] {
+  color: #b6edfc;
+}
+.clocks {
+  top: 4%;
+  left: 4%;
+}
+@media (max-width: 820px), (max-width: 980px) and (max-height: 500px) and (pointer: coarse) {
+  :global(section#battlefield button[data-terrain]) {
+    container-type: inline-size;
+  }
+  .effectMarkers,
+  .effectMarker {
+    gap: 0;
+  }
+  .effectMarker svg {
+    width: clamp(5px, 20cqw, 8.8px);
+    height: clamp(5px, 20cqw, 8.8px);
+  }
+  .effectMarker small,
+  .more,
+  .clocks b {
+    font-size: clamp(4px, 16cqw, 7px);
+    line-height: 1;
+    padding: 0;
+  }
+}

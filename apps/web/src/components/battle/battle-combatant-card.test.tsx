@@ -41,6 +41,58 @@ const battle = {
 } as unknown as BattleSessionView
 
 describe('shared compact combatant card', () => {
+  it('overlays proposed HP and MP spending without moving persisted values or spending Barrier', () => {
+    const shielded = {
+      ...battle,
+      snapshot: {
+        ...battle.snapshot,
+        statusState: [
+          {
+            combatantId: 'recruit',
+            statuses: [
+              { statusId: 'barrier', stacks: 1, barrier: { kind: 'remaining', amount: 30 } },
+            ],
+          },
+        ],
+      },
+    } as unknown as BattleSessionView
+    const original = JSON.stringify(shielded)
+    const props = {
+      participant: selected,
+      battle: shielded,
+      teamCount: 2,
+      role: 'local' as const,
+      proposedCosts: { actorId: 'recruit', ap: 47, hp: 20, mp: 3 },
+    }
+    const html = renderToStaticMarkup(<BattleCombatantCard {...props} />)
+    expect(html).toContain('aria-label="HP 65 / 80, HP 35, Barrier 30"')
+    expect(html).toContain('aria-valuetext="65 / 80, HP 35, Barrier 30; 20 HP proposed spend"')
+    expect(html).toMatch(/data-battle-proposed-resource="hp"[^>]*left:18.75%;width:25%/)
+    expect(html).toMatch(/data-battle-proposed-resource="mp"[^>]*left:44%;width:12%/)
+    expect(JSON.stringify(shielded)).toBe(original)
+    const unavailable = renderToStaticMarkup(
+      <BattleCombatantCard
+        {...props}
+        proposedCosts={{ actorId: 'recruit', ap: 999, hp: 999, mp: 999 }}
+      />,
+    )
+    expect(unavailable).toMatch(/data-battle-proposed-resource="hp"[^>]*left:0%;width:43.75%/)
+    expect(
+      Number(
+        /data-battle-proposed-resource="mp"[^>]*left:0%;width:([\d.]+)%/.exec(unavailable)![1],
+      ),
+    ).toBeCloseTo(56)
+    for (const overrides of [
+      { proposedCosts: null },
+      { proposedCosts: { actorId: 'wayfarer', ap: 47, hp: 20, mp: 3 } },
+      { role: 'selected' as const },
+      { proposedCosts: { actorId: 'recruit', ap: 0, hp: -2, mp: 0 } },
+    ]) {
+      expect(renderToStaticMarkup(<BattleCombatantCard {...props} {...overrides} />)).not.toContain(
+        'data-battle-proposed-resource',
+      )
+    }
+  })
   it('shows only active Barrier as a grey HP layer and keeps full HP and Barrier amounts readable', () => {
     const shielded = {
       ...battle,

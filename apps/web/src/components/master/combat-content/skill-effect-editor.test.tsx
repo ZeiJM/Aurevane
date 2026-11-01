@@ -582,7 +582,7 @@ it('authors Endure duration, burst targets/range and returned damage above100%',
   expect(html).not.toContain('aria-label="Status"')
 })
 
-it('offers one Reversal family, configured return/caps and fixed window without generic status fields', () => {
+it('offers one Reversal family and return percentage without current HP caps or a turn expiry', () => {
   const html = renderToStaticMarkup(
     createElement(SkillEffectEditor, {
       value: {
@@ -597,13 +597,11 @@ it('offers one Reversal family, configured return/caps and fixed window without 
       onChange: vi.fn(),
     }),
   )
-  for (const label of [
-    'Reversal family',
-    'Reflection potency (%)',
-    'Attacker HP cap (%)',
-    'User HP cap (%)',
-  ])
+  for (const label of ['Reversal family', 'Reflection potency (%)'])
     expect(html).toContain(`aria-label="${label}"`)
+  expect(html).not.toContain('HP cap (%)')
+  expect(html).not.toContain('until your next turn')
+  expect(html).toContain('until triggered or cancelled')
   expect(html).toContain('Physical Reversal')
   expect(html).toContain('Mystic Reversal')
   expect(html).not.toContain('Full Reversal')

@@ -138,14 +138,14 @@ export function combatInteractionDescription(event: object): string | null {
     const verb = data.direction === 'pull' ? 'pulled' : 'pushed'
     const distance = data.distance ?? 1
     if (!Number.isSafeInteger(distance) || (distance as number) < 1) return null
-    return `Target ${verb} ${distance === 1 ? 'one tile' : `${distance} tiles`}: ${tile(data.from)} → ${tile(data.to)}. AP and Movement unchanged.`
+    return `Target was ${verb} ${distance} ${distance === 1 ? 'tile' : 'tiles'}.`
   }
   if (
     data.event === 'displacement_failed' &&
     typeof data.reason === 'string' &&
     PUSH_FAILURES[data.reason]
   ) {
-    return `${data.direction === 'pull' ? 'Pull' : 'Push'} failed: ${PUSH_FAILURES[data.reason]}; normal action costs apply, no refund.`
+    return 'Target was not displaced.'
   }
   if (data.event === 'status_removed' && typeof data.statusId === 'string') {
     return `${gameplayStatusName(data.statusId)} removed.`

@@ -11,7 +11,7 @@ import type {
   CombatSourceCommandVisibility,
 } from './actions'
 
-/** Version 1 fixes one trigger, front/sides, next actual owner start and one complete Strain turn. */
+/** Payload v1 fixes one front/side trigger and Strain; the encounter pins lifetime and cap rules. */
 export interface CombatReversalPayload {
   readonly type: 'reversal'
   readonly recipient: 'actor'
@@ -86,7 +86,9 @@ export function validateCombatReversalPayload(value: CombatReversalPayload): voi
         ].includes(key),
     )
   )
-    throw new TypeError('Reversal version 1 has fixed trigger, arcs, lifetime and Strain policies.')
+    throw new TypeError(
+      'Reversal version 1 has fixed trigger, arcs and Strain; the encounter pins lifetime and cap rules.',
+    )
   if ('target' in value && value.target !== 'self')
     throw new TypeError('Reversal targets only Self.')
   if (
@@ -108,7 +110,7 @@ export function validateCombatReversalPayload(value: CombatReversalPayload): voi
 }
 export type CombatReversalReadState = Pick<
   CombatEncounterState,
-  'reversalState' | 'capturedAbilitySources' | 'abilityRuntime'
+  'reversalState' | 'capturedAbilitySources' | 'abilityRuntime' | 'reversalPolicyVersion'
 >
 function inventory(state: Pick<CombatEncounterState, 'reversalState'>): CombatReversalState {
   return state.reversalState ?? { version: 1, armed: [], strain: [], offensiveTurns: [] }
@@ -365,6 +367,7 @@ export function beginCombatReversalOwnerTurn(
   let next = state
   const events: CombatResolutionEvent[] = []
   if (
+    next.reversalPolicyVersion !== 1 &&
     inventory(next).armed.some(
       (row) =>
         row.ownerCombatantId === combatantId &&
@@ -452,6 +455,7 @@ export function combatReversalStatusProfiles(state: CombatReversalReadState, own
             reflectionBasisPoints: payload.reflectionBasisPoints,
             attackerMaxHpCapBasisPoints: payload.attackerMaxHpCapBasisPoints,
             defenderMaxHpCapBasisPoints: payload.defenderMaxHpCapBasisPoints,
+            ...(state.reversalPolicyVersion === 1 ? { policyVersion: 1 as const } : {}),
             ...(armed.sourceCommandVisibility
               ? { sourceCommandVisibility: armed.sourceCommandVisibility }
               : {}),
@@ -466,6 +470,8 @@ export function combatReversalStatusProfiles(state: CombatReversalReadState, own
 export function validateCombatReversalState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
+  if (state.reversalPolicyVersion !== undefined && state.reversalPolicyVersion !== 1)
+    return [{ field: 'reversalPolicyVersion', message: 'Unsupported Reversal policy.' }]
   const ledger = state.reversalState
   if (ledger === undefined) return []
   const invalid = () => [

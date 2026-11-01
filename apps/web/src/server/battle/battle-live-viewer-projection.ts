@@ -90,6 +90,10 @@ function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
     legacyAirborneJump: state.airborneJumpPolicyVersion !== 1,
     legacyHealingDown: state.healingDownPolicyVersion !== 1,
     legacyBlindsideActivation: state.blindsideActivationPolicyVersion !== 1,
+    legacyReversal: state.reversalPolicyVersion !== 1,
+    legacyPierceCritical: state.pierceCriticalPolicyVersion !== 1,
+    legacySummonPotency: state.summonPotencyPolicyVersion !== 1,
+    legacyRuin: state.ruinPolicyVersion !== 1,
     legacyElemental: state.elementalDamagePolicyVersion === undefined,
     explicitElemental: state.elementalDamagePolicyVersion === 2,
   }
@@ -165,6 +169,11 @@ export function projectBattleManualActionTargets(
             behaviorId: behavior.id,
             ...(behavior.classification ? { classification: behavior.classification } : {}),
             dealsDamage: battleActionDealsDamage(behavior.effects.map((effect) => effect.payload)),
+            ...(behavior.effects.some(
+              (effect) => 'target' in effect.payload && effect.payload.target === 'all',
+            )
+              ? { hasAllTargetEffects: true as const }
+              : {}),
             modifierRoot: combatCanonicalModifierRootFacts(behavior),
             ...(canonicalAbilitySupportsFireGroundIntent(
               behavior,
@@ -377,6 +386,10 @@ export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
     'copyEffectOrdinal',
     'abilityCommandFacts',
     'counterReturnBasisPoints',
+    'attackTagCapture',
+    'ruinApplicationId',
+    'ruinCommandId',
+    'ruinState',
     'summonDamageCommandId',
     'provenance',
   ])
@@ -593,6 +606,7 @@ export function projectBattleStatusStateForViewer(
                   reflectionBasisPoints: profile.reflectionBasisPoints,
                   attackerMaxHpCapBasisPoints: profile.attackerMaxHpCapBasisPoints,
                   defenderMaxHpCapBasisPoints: profile.defenderMaxHpCapBasisPoints,
+                  ...(profile.policyVersion === 1 ? { policyVersion: 1 as const } : {}),
                 },
               }
             : {}),
@@ -823,6 +837,8 @@ export function projectBattleEffectStateForViewer(
 }
 
 const PRIVATE_BATTLE_STATE_KEYS = [
+  'ruinState',
+  'ruinCommandId',
   'nextGroundAreaId',
   'nextSkillPacketCommandId',
   'nextReversalAttackCommandId',

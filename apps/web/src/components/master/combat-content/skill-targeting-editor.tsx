@@ -54,10 +54,10 @@ export function SkillTargetingEditor({
     } else onChange(normalizeCurrentCombatTargetSpec(next))
   }
   const friendlyFireApplicable =
-    (area || effects?.some((effect) => effect.target === 'all')) &&
+    value.shape.kind !== 'single' &&
     (!effects ||
       effects.some((effect) => {
-        if (effect.recipient === 'actor' || effect.target === 'self' || effect.target === 'ally')
+        if (effect.recipient === 'actor' || ['self', 'ally', 'all'].includes(effect.target ?? ''))
           return false
         if (
           ['damage', 'pierce', 'poison', 'bleed', 'burn', 'displace', 'sensory'].includes(
@@ -166,8 +166,7 @@ export function SkillTargetingEditor({
             </label>
           </>
         ) : null}
-        {['enemy', 'any'].includes(value.teamPolicy) ||
-        effects?.some((effect) => effect.target === 'all') ? (
+        {friendlyFireApplicable ? (
           <label className={styles.field}>
             <span>Friendly Fire</span>
             <select
@@ -190,7 +189,7 @@ export function SkillTargetingEditor({
               <option value="on">On</option>
             </select>
             <small className={styles.fieldHint}>
-              Applies to hostile area effects. Explicit Ally and Self effects keep their own
+              Applies to hostile area effects. Explicit Ally, Self and All effects keep their own
               targets.
             </small>
           </label>

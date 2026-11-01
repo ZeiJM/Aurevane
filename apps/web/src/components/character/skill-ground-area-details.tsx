@@ -26,8 +26,10 @@ export function SkillGroundAreaDetails({ skill }: { skill: MatureSkillDefinition
   return (
     <small aria-label="Ground area rules" title={description} style={{ display: 'block' }}>
       {conditionalFireGround ? 'Ground casts: ' : ''}
-      {skill.groundArea.durationRounds} rounds · {description.match(/starting [^.]+/u)?.[0]} · Entry
-      applies effects once per character’s turn.
+      {skill.groundArea.durationRounds} rounds · {description.match(/starting [^.]+/u)?.[0]} ·{' '}
+      {skill.groundArea.contactPolicyVersion === 1
+        ? 'Active contact applies immediately, once per effect type per own-turn cycle across fields.'
+        : 'Entry applies effects once per character’s turn.'}
     </small>
   )
 }

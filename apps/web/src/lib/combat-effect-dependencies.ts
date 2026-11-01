@@ -48,35 +48,84 @@ function freshLink(prefix: string, effects: readonly DependencyEffect[]): string
   while (effects.some((row) => row.authoringLink === `${prefix}.${index}`)) index++
   return `${prefix}.${index}`
 }
+/** An omitted packet target inherits Ground only from a Ground-only shared aim. */
+export function hasSharedGroundAim(aim: unknown): boolean {
+  if (!aim || typeof aim !== 'object') return false
+  const value = aim as { kind?: unknown; categories?: unknown }
+  return value.categories !== undefined
+    ? Array.isArray(value.categories) &&
+        value.categories.length === 1 &&
+        value.categories[0] === 'ground'
+    : value.kind === 'ground-tile'
+}
+/** Current editing retires the AP terrain packet, never its independently authored companions.
+ * The mapping is also used by native ordinals and canonical stable-ID references. */
+export function retireAuthoredFrozenGround<T extends DependencyEffect>(
+  effects: readonly T[],
+  options: { inheritedGround?: boolean } = {},
+): {
+  effects: readonly T[]
+  replacements: ReadonlyMap<T, T>
+} {
+  const replacements = new Map<T, T>()
+  const inheritedTerrain = effects.filter(
+    (row) =>
+      row.type === 'create-terrain' &&
+      row.authoringLink === undefined &&
+      (row.target === undefined || row.target === 'ground'),
+  )
+  const inheritedChilled =
+    options.inheritedGround && inheritedTerrain.length === 1
+      ? effects.filter(
+          (row) =>
+            row.type === 'apply-status' &&
+            row.statusId === 'frozen' &&
+            row.recipient === 'affected-units' &&
+            row.target === undefined &&
+            row.authoringLink === undefined,
+        )
+      : []
+  const next = effects.flatMap((effect) => {
+    if (effect.type !== 'create-terrain') return [effect]
+    const companion = effect.authoringLink?.startsWith('frozen-ground.')
+      ? effects.find(
+          (row) =>
+            row.type === 'apply-status' &&
+            row.statusId === 'frozen' &&
+            row.authoringLink === effect.authoringLink,
+        )
+      : effect === inheritedTerrain[0] && inheritedChilled.length === 1
+        ? inheritedChilled[0]
+        : undefined
+    const replacement =
+      companion ??
+      ({
+        type: 'apply-status',
+        recipient: 'affected-units',
+        target: effect.target === 'empty-tile' ? 'ground' : (effect.target ?? 'ground'),
+        statusId: 'frozen',
+        stacks: 1,
+        durationTurns: 2,
+        applicationOrigin: 'frozen-ground',
+        authoringLink:
+          effect.authoringLink ??
+          freshLink('frozen-ground', [...effects, ...replacements.values()]),
+      } as unknown as T)
+    replacements.set(effect, replacement)
+    return companion ? [] : [replacement]
+  })
+  return { effects: replacements.size ? next : effects, replacements }
+}
 /** Apply only to a deliberate edit. Saved history is never reconciled on read. */
 export function reconcileAuthoredEffectDependencies<T extends DependencyEffect>(
   previous: readonly T[],
   proposed: readonly T[],
-  options: { onLinked?: (source: T, linked: T) => void } = {},
+  options: { onLinked?: (source: T, linked: T) => void; inheritedGround?: boolean } = {},
 ): readonly T[] {
-  let next = [...proposed]
-  // Removing either member of an existing terrain pair removes its exact partner.
-  for (const old of previous) {
-    if (!old.authoringLink?.startsWith('frozen-ground.')) continue
-    if (!next.some((row) => row.authoringLink === old.authoringLink && row.type === old.type))
-      next = next.filter((row) => row.authoringLink !== old.authoringLink)
-  }
-  // Upgrade only a deliberate edit of an existing generated pair; history is never rewritten.
-  next = next.map((effect) => {
-    if (
-      effect.type !== 'apply-status' ||
-      effect.statusId !== 'frozen' ||
-      effect.applicationOrigin !== undefined ||
-      !effect.authoringLink?.startsWith('frozen-ground.') ||
-      !next.some(
-        (row) => row.type === 'create-terrain' && row.authoringLink === effect.authoringLink,
-      )
-    )
-      return effect
-    const linked = { ...effect, applicationOrigin: 'frozen-ground' as const }
-    options.onLinked?.(effect, linked)
-    return linked
-  })
+  const retired = retireAuthoredFrozenGround(proposed, options)
+  for (const [source, replacement] of retired.replacements)
+    if (!proposed.includes(replacement)) options.onLinked?.(source, replacement)
+  let next = [...retired.effects]
   // Deleting the final direct packet removes its dependents; never resurrect the deleted row.
   // Retargeting either packet is independent and keeps the existing dependency satisfied.
   if (previous.some(damage) && !next.some(damage))
@@ -117,22 +166,6 @@ export function reconcileAuthoredEffectDependencies<T extends DependencyEffect>(
             : {}),
       } as unknown as T
       next.splice(next.indexOf(effect), 0, hit)
-    }
-    if (effect.type === 'create-terrain' && !effect.authoringLink?.startsWith('frozen-ground.')) {
-      const link = freshLink('frozen-ground', next)
-      const linked = { ...effect, target: effect.target ?? 'ground', authoringLink: link }
-      options.onLinked?.(effect, linked)
-      next[next.indexOf(effect)] = linked
-      next.splice(next.indexOf(linked) + 1, 0, {
-        type: 'apply-status',
-        recipient: 'affected-units',
-        target: 'ground',
-        statusId: 'frozen',
-        applicationOrigin: 'frozen-ground',
-        stacks: 1,
-        durationTurns: 2,
-        authoringLink: link,
-      } as unknown as T)
     }
   }
   next = next.map((effect) => {

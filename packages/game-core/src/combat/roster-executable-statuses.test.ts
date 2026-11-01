@@ -57,13 +57,15 @@ const position = (state: CombatEncounterState, id: string) =>
 // This file executes the immutable October10 roster. Enemy Blindside is exercised
 // by the separate modular correction cohort and combat-blindside.test.ts. Counter
 // and Endure are later authoring mechanics, verified by combat-counter.test.ts and
-// combat-endure.test.ts; Endure has no application in the pinned October10 records.
+// combat-endure.test.ts; Blind is covered by combat-mark-blind.contract.test.ts.
+// Neither Endure nor Blind has an application in the pinned October10 records.
 const outsideOctober10Roster = [
   'lowered-guard',
   'displaced',
   'blindside-vulnerability',
   'counter',
   'endure',
+  'blind',
 ]
 function current(ids: string[], otherOwners: Record<string, string[]> = {}) {
   const base = fixture(ids),

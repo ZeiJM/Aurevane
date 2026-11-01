@@ -2,7 +2,10 @@ import { currentCombatPercentageEntries } from './combat-percentage-authoring'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
 import { withAbilityEffectDependencies } from './combat-ability-effect-dependencies'
-import { reconcileAuthoredEffectDependencies } from './combat-effect-dependencies'
+import {
+  reconcileAuthoredEffectDependencies,
+  hasSharedGroundAim,
+} from './combat-effect-dependencies'
 import type { CombatGroundAreaDefinition } from '@aurevane/game-core/combat/combat-ground-areas'
 import { withRemappedGroundEntries } from './combat-ground-entry-authoring'
 import { currentTagForAuthoring, currentSummonForAuthoring } from './combat-current-tag-authoring'
@@ -240,6 +243,7 @@ export function correctCombatContentEntries<T>(
         rows as unknown as CombatTagPayload[],
         rows as unknown as CombatTagPayload[],
         {
+          inheritedGround: hasSharedGroundAim(container.target ?? owner.target),
           onLinked: (source, linked) => {
             const index = sources.get(source)
             if (index !== undefined) sources.set(linked, index)
@@ -256,7 +260,11 @@ export function correctCombatContentEntries<T>(
         )
           ? (area as unknown as CombatGroundAreaDefinition)
           : undefined
-      const before = { effects: rows as unknown as CombatTagPayload[], groundArea }
+      const before = {
+        effects: rows as unknown as CombatTagPayload[],
+        groundArea,
+        target: container.target ?? owner.target,
+      }
       const remapped = withRemappedGroundEntries(before, { ...before, effects })
       container[key] = effects
       if (before.groundArea) {

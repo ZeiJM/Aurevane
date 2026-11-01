@@ -10,6 +10,8 @@ import type { SummonProfileDefinition } from './summon-content'
 /** Current authoring consolidates retained Chilled-only removal without changing captured identities. */
 export function effectAuthoringTag(payload: CombatTagPayload | CombatEffectDefinition) {
   const tag = combatEffectIdentity(payload)
+  if (tag.id === 'mp-restore')
+    return AUTHORABLE_EFFECT_TAGS.find((entry) => entry.id === 'mp-recovery')!
   return tag.id === 'cleanse-chilled'
     ? AUTHORABLE_EFFECT_TAGS.find((entry) => entry.id === 'conditional-cleanse')!
     : tag
@@ -57,6 +59,7 @@ export function createAuthorableEffectPayload(
       recipient: tag.statusId === 'blindside' ? 'actor' : 'primary-unit',
       statusId: tag.statusId!,
       stacks: 1,
+      ...(tag.statusId === 'blind' ? { potencyBasisPoints: 1500 } : {}),
       ...(tag.statusId === 'wet' ? { initiativeReductionBasisPoints: 1000 } : {}),
       ...(tag.statusId === 'fortified' ? { defenseIncreaseBasisPoints: 1500 } : {}),
       ...(['haste', 'slow'].includes(tag.statusId!) ? { movementApAdjustment: 10 } : {}),
@@ -224,7 +227,10 @@ export function createAuthorableEffectPayload(
         ? {
             type: 'summon',
             recipient: 'selected-tile',
-            profile: structuredClone(context.summonProfile),
+            profile: {
+              ...structuredClone(context.summonProfile),
+              potencyBasisPoints: context.summonProfile.potencyBasisPoints ?? 4000,
+            },
           }
         : null
   }

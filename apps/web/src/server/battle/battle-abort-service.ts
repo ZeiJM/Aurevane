@@ -110,26 +110,28 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
       ...state,
       tactical: { ...state.tactical, battle: transition.state },
     })
-    const encounter = createCombatEncounterState(
-      { ...state.tactical, battle: transition.state },
+    const encounter = {
+      ...createCombatEncounterState({ ...state.tactical, battle: transition.state }),
+      ...Object.fromEntries(
+        Object.entries(state).filter(
+          ([key]) => key.endsWith('PolicyVersion') || key === 'effectTimingPolicy',
+        ),
+      ),
+      ...(state.ruinState ? { ruinState: state.ruinState } : {}),
       // Endure's private damage window is discarded on terminal abandonment,
       // without a natural-expiry boundary or release burst.
-      state.statusState.map((row) => ({
+      // Attach Ruin's identities and their authority together before validation.
+      statusState: state.statusState.map((row) => ({
         ...row,
         statuses: row.statuses.filter((status) => status.statusId !== 'endure'),
       })),
-    )
+    }
     // Abandonment has no activation boundary. Retain the private archive and usage while
     // the historical fresh encounter continues to discard unsettled execution queues.
     const retained = state.capturedAbilitySources
       ? reconcileCombatAbilitySources(
           {
             ...encounter,
-            ...Object.fromEntries(
-              Object.entries(state).filter(
-                ([key]) => key.endsWith('PolicyVersion') || key === 'effectTimingPolicy',
-              ),
-            ),
             capturedAbilitySources: state.capturedAbilitySources,
             abilityRuntime: state.abilityRuntime,
             ...(state.reversalState ? { reversalState: reversalEnd.state.reversalState } : {}),

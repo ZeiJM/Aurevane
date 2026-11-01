@@ -192,9 +192,11 @@ describe('999 percent effect potency', () => {
     ).toEqual([])
     const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
     expect(validateSummonProfileDefinition({ ...profile, potencyBasisPoints: 99900 })).toEqual([])
-    expect(validateSummonProfileDefinition({ ...profile, potencyBasisPoints: 100000 })).toContain(
-      'potencyBasisPoints',
-    )
+    expect(validateSummonProfileDefinition({ ...profile, potencyBasisPoints: 100000 })).toEqual([])
+    for (const potencyBasisPoints of [-1, 1.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1])
+      expect(validateSummonProfileDefinition({ ...profile, potencyBasisPoints })).toContain(
+        'potencyBasisPoints',
+      )
   })
 
   it('accepts Mark and Blind999 modifiers while actual hit probability stays within zero and100%', () => {

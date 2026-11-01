@@ -125,7 +125,7 @@ it.each(['skill', 'essence'] as const)(
 )
 it('leaves extreme numeric intent for strict validation', () => {
   const original = fixture()
-  original.ability.behaviors[0]!.effects[0]!.payload.amount = 999
+  Object.assign(original.ability.behaviors[0]!.effects[0]!.payload, { amount: 999 })
   expect(
     correctCombatContentEntries('skill', original).definition.ability.behaviors[0]!.effects[0]!
       .payload.amount,

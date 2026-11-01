@@ -792,12 +792,12 @@ if (canonicalCase) {
             ...(mixed ? { kind: 'self', teamPolicy: 'self' } : {}),
           }
         : target,
-    ...(canonicalCase === 'move-paid'
+    ...(canonicalCase === 'move-paid' || canonicalCase.endsWith('cost-proposal')
       ? {
           costs: [
-            { resource: 'ap', amount: 100 },
-            { resource: 'mp', amount: 2 },
-            { resource: 'hp', amount: 1 },
+            { resource: 'ap', amount: canonicalCase === 'move-paid' ? 100 : 47 },
+            { resource: 'mp', amount: canonicalCase === 'move-paid' ? 2 : 3 },
+            { resource: 'hp', amount: canonicalCase === 'move-paid' ? 1 : 2 },
           ],
         }
       : {}),

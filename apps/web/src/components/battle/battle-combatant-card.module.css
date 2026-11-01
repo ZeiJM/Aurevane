@@ -114,6 +114,12 @@
   border-left: 1px solid #e4e7e9;
   opacity: 0.9;
 }
+.vitals .proposedSpend {
+  position: absolute;
+  inset-block: 0;
+  background: #eab468cc;
+  border-right: 1px solid #ecd4a0;
+}
 .vitals b {
   display: block;
   height: 100%;

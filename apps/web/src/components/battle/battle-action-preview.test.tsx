@@ -288,7 +288,7 @@ describe('current selection forecast', () => {
     expect(first).toContain('Frozen Ground · 1 tile · Starts round 3 · 2 rounds')
     expect(first).toContain('Starts round 3')
     expect(first).not.toContain('pushed')
-    expect(second).toContain('Target pushed one tile')
+    expect(second).toContain('Target was pushed 1 tile')
     expect(second).toContain('Rooted removed')
     expect(second).not.toContain('-15% damage')
     expect(second).not.toContain('Frozen Ground at tile')

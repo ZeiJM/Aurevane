@@ -1,3 +1,4 @@
+import { captureCombatRuinDebuffs, type CombatRuinDebuffSnapshot } from './combat-ruin'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -21,6 +22,9 @@ export interface CombatAttackTagCapture {
   readonly weakPointDebuffThreshold?: number
   readonly spike?: true
   readonly ruinBonusPerDebuffBasisPoints?: number
+  readonly ruinPolicyVersion?: 1
+  readonly ruinCommandId?: number
+  readonly ruinDebuffsByTarget?: Readonly<Record<string, readonly CombatRuinDebuffSnapshot[]>>
   readonly capturedDebuffs: Readonly<Record<string, number>>
   /** Omitted entries retain the historical unconditional gate; empty lists block that tag. */
   readonly eligibleRecipients?: Readonly<
@@ -107,7 +111,10 @@ function countActiveTargetDebuffs(
   return ids.size
 }
 export function captureAttackTagDamage<
-  T extends Pick<CombatActionDefinition, 'effects' | 'effectEligibleRecipientIds'>,
+  T extends Pick<
+    CombatActionDefinition,
+    'effects' | 'effectEligibleRecipientIds' | 'ruinCommandId'
+  >,
 >(
   state: CombatEncounterState,
   action: T,
@@ -119,7 +126,20 @@ export function captureAttackTagDamage<
   const tags = action.effects.flatMap((effect, ordinal) =>
     isAttackTag(effect) ? [{ effect, eligible: action.effectEligibleRecipientIds?.[ordinal] }] : [],
   )
-  if (!tags.length && !recapture) return action
+  if (
+    !tags.length &&
+    !recapture &&
+    !(
+      state.ruinPolicyVersion === 1 &&
+      action.ruinCommandId !== undefined &&
+      action.effects.some(
+        (effect) =>
+          effect.type === 'damage' &&
+          effect.attackTagCapture?.ruinBonusPerDebuffBasisPoints !== undefined,
+      )
+    )
+  )
+    return action
   const rules = tags.length
     ? ({
         ...tags.reduce(
@@ -157,8 +177,24 @@ export function captureAttackTagDamage<
     ...action,
     effects: action.effects.map((effect) => {
       if (effect.type !== 'damage' || effect.vengeance) return effect
-      const capture = rules ?? effect.attackTagCapture
+      let capture = rules ?? effect.attackTagCapture
       if (!capture) return effect
+      if (
+        state.ruinPolicyVersion === 1 &&
+        capture.ruinBonusPerDebuffBasisPoints !== undefined &&
+        action.ruinCommandId !== undefined
+      ) {
+        const previous = effect.attackTagCapture
+        capture = {
+          ...capture,
+          ruinPolicyVersion: 1,
+          ruinCommandId: action.ruinCommandId,
+          ruinDebuffsByTarget:
+            previous?.ruinPolicyVersion === 1 && previous.ruinCommandId === action.ruinCommandId
+              ? previous.ruinDebuffsByTarget
+              : captureCombatRuinDebuffs(state, content),
+        }
+      }
       return {
         ...effect,
         attackTagCapture: recapture
@@ -200,31 +236,37 @@ export function applyAttackTagDamage(
   effect: { readonly attackTagCapture?: CombatAttackTagCapture },
   targetId: string,
   critical: boolean,
+  currentRuinBasisPoints = 0n,
 ): number {
   const capture = effect.attackTagCapture
   if (!capture) return amount
   const count = BigInt(capture.capturedDebuffs[targetId] ?? 0)
-  let damage =
-    (BigInt(amount) *
-      (10000n +
-        count *
-          BigInt(
-            annotationEligible(capture, 'ruin', targetId)
-              ? (capture.ruinBonusPerDebuffBasisPoints ?? 0)
-              : 0,
-          ))) /
-    10000n
+  const ruin =
+    capture.ruinPolicyVersion === 1
+      ? currentRuinBasisPoints
+      : count *
+        BigInt(
+          annotationEligible(capture, 'ruin', targetId)
+            ? (capture.ruinBonusPerDebuffBasisPoints ?? 0)
+            : 0,
+        )
+  let damage = (BigInt(amount) * (10000n + ruin)) / 10000n
   if (critical && capture.spike && annotationEligible(capture, 'spike', targetId)) damage *= 2n
   if (damage > BigInt(Number.MAX_SAFE_INTEGER))
     throw new RangeError('Attack annotation damage exceeds the safe integer range.')
   return Number(damage)
 }
-export function attackTagDescription(effect: CombatAttackTag): string {
+export function attackTagDescription(
+  effect: CombatAttackTag,
+  options: { legacyRuin?: boolean; legacyPierceCritical?: boolean } = {},
+): string {
   if (effect.type === 'weak-point')
-    return `Damage is guaranteed to be critical against an enemy with more than ${effect.debuffThreshold} active debuffs when the attack is committed. The attack must still hit.`
+    return `Damage is guaranteed to be critical against an enemy with more than ${effect.debuffThreshold} active debuffs when the attack is committed. The attack must still hit.${options.legacyPierceCritical ? '' : ' Pierce cannot critically hit.'}`
   if (effect.type === 'spike')
-    return 'Doubles the complete damage of critical hits. Ordinary hits are unchanged.'
-  return `Increases Damage by ${effect.bonusPerDebuffBasisPoints / 100}% per active debuff on the enemy when the attack is committed.`
+    return `Doubles the complete damage of critical hits. Ordinary hits are unchanged.${options.legacyPierceCritical ? '' : ' Pierce cannot critically hit.'}`
+  return options.legacyRuin
+    ? `Increases Damage by ${effect.bonusPerDebuffBasisPoints / 100}% per active debuff on the enemy when the attack is committed.`
+    : `In current battles, the first landed eligible hit gains ${effect.bonusPerDebuffBasisPoints / 100}% per consumable debuff captured on the target, then consumes those captured debuffs. Later hits against that target cannot reuse the bonus. Debuffs applied afterward remain. Historical battles keep their recorded Ruin rules.`
 }
 
 function validateAttackTagCapture(value: CombatAttackTagCapture): void {
@@ -240,6 +282,9 @@ function validateAttackTagCapture(value: CombatAttackTagCapture): void {
           'ruinBonusPerDebuffBasisPoints',
           'capturedDebuffs',
           'eligibleRecipients',
+          'ruinPolicyVersion',
+          'ruinCommandId',
+          'ruinDebuffsByTarget',
         ].includes(key),
     ) ||
     !value.capturedDebuffs ||
@@ -250,6 +295,38 @@ function validateAttackTagCapture(value: CombatAttackTagCapture): void {
     )
   )
     throw new TypeError('Invalid committed attack annotation capture.')
+  if (
+    value.ruinPolicyVersion !== undefined ||
+    value.ruinCommandId !== undefined ||
+    value.ruinDebuffsByTarget !== undefined
+  ) {
+    if (
+      value.ruinPolicyVersion !== 1 ||
+      !Number.isSafeInteger(value.ruinCommandId) ||
+      value.ruinCommandId! < 1 ||
+      !value.ruinDebuffsByTarget ||
+      typeof value.ruinDebuffsByTarget !== 'object' ||
+      Array.isArray(value.ruinDebuffsByTarget) ||
+      Object.entries(value.ruinDebuffsByTarget).some(
+        ([id, rows]) =>
+          !id.trim() ||
+          !Array.isArray(rows) ||
+          new Set(rows.map((row) => row.statusId)).size !== rows.length ||
+          rows.some(
+            (row) =>
+              !row ||
+              typeof row.statusId !== 'string' ||
+              !row.statusId.trim() ||
+              ['reversal-strain', 'reckless', 'fortified'].includes(row.statusId) ||
+              !Array.isArray(row.applicationIds) ||
+              !row.applicationIds.length ||
+              new Set(row.applicationIds).size !== row.applicationIds.length ||
+              row.applicationIds.some((id: number) => !Number.isSafeInteger(id) || id < 1),
+          ),
+      )
+    )
+      throw new TypeError('Invalid committed Ruin application snapshot.')
+  }
   if (
     value.eligibleRecipients !== undefined &&
     (!value.eligibleRecipients ||

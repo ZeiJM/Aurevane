@@ -7,6 +7,9 @@ export function combatStatusApplications(status: CombatStatusInstance) {
     status.applicationModifiers ?? [
       {
         stacks: status.stacks,
+        ...(status.ruinApplicationId === undefined
+          ? {}
+          : { ruinApplicationId: status.ruinApplicationId }),
         ...(status.originalDurationTurns === undefined
           ? {}
           : { originalDurationTurns: status.originalDurationTurns }),

@@ -33,7 +33,7 @@ it('shares terrain duration and both-team rules between forecast and board inspe
 it('shows displacement failures and tag consumption without exposing arbitrary payloads', () => {
   expect(
     combatInteractionDescription({ event: 'displacement_failed', reason: 'occupied-tile' }),
-  ).toContain('no refund')
+  ).toBe('Target was not displaced.')
   expect(
     combatInteractionDescription({ event: 'displacement_failed', reason: 'private-invalid-data' }),
   ).toBeNull()
@@ -76,7 +76,7 @@ it('reports Pull distance and failed Pull without calling it a Push', () => {
       direction: 'pull',
       reason: 'occupied-tile',
     }),
-  ).toContain('Pull failed')
+  ).toBe('Target was not displaced.')
 })
 
 it('preserves captured Skill AP in terrain inspection and recorded terrain descriptions', () => {

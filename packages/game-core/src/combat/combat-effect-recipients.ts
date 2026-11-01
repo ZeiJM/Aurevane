@@ -31,6 +31,12 @@ export function validateCombatEffectTarget(
   },
   aim?: CombatTargetSpec,
 ): void {
+  if (
+    effect.type === 'sensory' &&
+    effect.recipient === 'affected-units' &&
+    effect.target !== 'ground'
+  )
+    throw new TypeError('Area Reveal requires Ground target.')
   if (effect.invisibleTargetPolicyVersion !== undefined && effect.type !== 'remove-status')
     throw new TypeError('Invisible targeting policy requires a Dispel removal packet.')
   if (effect.target === undefined) return
@@ -60,7 +66,8 @@ export function validateCombatEffectTarget(
   if ((effect.target === 'self') !== (effect.recipient === 'actor'))
     throw new TypeError('Effect target must agree with its actor recipient.')
   if (
-    ['sensory', 'copy-statuses'].includes(effect.type) &&
+    (effect.type === 'copy-statuses' ||
+      (effect.type === 'sensory' && effect.target !== 'ground')) &&
     !['ally', 'enemy', 'anyone'].includes(effect.target as string)
   )
     throw new TypeError('This effect requires a selected unit target.')
@@ -78,7 +85,8 @@ function hostile(effect: CombatEffectDefinition, content?: CombatContentCatalog)
 }
 
 /** The shared spatial footprint is resolved once by targeting. Each packet filters it independently.
- * All bypasses that footprint. Friendly fire only broadens hostile Enemy/All area packets;
+ * All includes every living unit independently of the shared aim and friendly fire.
+ * Friendly fire only broadens hostile Enemy area packets;
  * explicit ally recovery and Self packets never inherit the hostile mask.
  */
 function unfilteredCombatEffectRecipientIds(
@@ -108,9 +116,9 @@ function unfilteredCombatEffectRecipientIds(
   return state.tactical.battle.combatants
     .filter((unit) => {
       if (unit.hp <= 0) return false
+      if (effect.target === 'all') return true
       if (selectedOnly && unit.id !== primaryCombatantId) return false
       if (
-        effect.target !== 'all' &&
         !state.tactical.placements.some(
           (placement) =>
             placement.combatantId === unit.id &&
@@ -129,12 +137,19 @@ function unfilteredCombatEffectRecipientIds(
           unit.teamId !== actor.teamId ||
           (isHostile && isArea && friendlyFire && unit.id !== actorId)
         )
-      if (effect.target === 'all' || effect.target === 'ground' || effect.target === 'empty-tile')
+      if (effect.target === 'ground' || effect.target === 'empty-tile')
         return !isHostile || unit.teamId !== actor.teamId || (friendlyFire && unit.id !== actorId)
       return true
     })
     .map((unit) => unit.id)
-    .sort()
+    .sort((left, right) => {
+      // Settle a broadcast's other recipients before a potentially lethal caster hit.
+      if (effect.type === 'damage' && effect.target === 'all') {
+        if (left === actorId) return 1
+        if (right === actorId) return -1
+      }
+      return left < right ? -1 : left > right ? 1 : 0
+    })
 }
 
 /** Copy may select an Invisible donor; that exception belongs to its packet only.
@@ -255,4 +270,21 @@ export function combatEvaluatedEffectRecipientIds(
   )
   const eligible = action.effectEligibleRecipientIds?.[ordinal]
   return eligible === undefined ? ids : ids.filter((id) => eligible.includes(id))
+}
+
+/** Packet coverage for forecasts; never substitutes for the action's shared casting aim. */
+export function combatEvaluatedActionRecipientIds(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  evaluation: CombatActionEvaluation,
+  content?: CombatContentCatalog,
+): string[] {
+  if (!evaluation.legal) return []
+  return [
+    ...new Set(
+      action.effects.flatMap((_, ordinal) =>
+        combatEvaluatedEffectRecipientIds(state, action, evaluation, ordinal, content),
+      ),
+    ),
+  ].sort()
 }

@@ -1,3 +1,4 @@
+import { groundEffectVisual } from '@aurevane/game-core/combat/combat-ground-visuals'
 import {
   COMBAT_TERRAIN_OVERLAY_DETAILS,
   frozenGroundDescription,
@@ -64,7 +65,7 @@ export interface PreviewChip {
 
 /** One forecast result per terrain transition, lifetime and activation, independent of Skill aim. */
 export function battlePreviewTerrainChips(
-  preview: Pick<ActionPreview, 'projectedTerrain' | 'projectedEvents'>,
+  preview: Pick<ActionPreview, 'projectedTerrain' | 'projectedEvents' | 'projectedGroundAreas'>,
 ): PreviewChip[] {
   const groups = new Map<string, { projection: CombatTerrainProjection; tiles: Set<string> }>()
   const projections = [
@@ -85,7 +86,7 @@ export function battlePreviewTerrainChips(
     group.tiles.add(`${projection.position.x},${projection.position.y}`)
     groups.set(key, group)
   }
-  return [...groups.values()].map(({ projection, tiles }) => {
+  const legacy = [...groups.values()].map(({ projection, tiles }): PreviewChip => {
     const name = COMBAT_TERRAIN_OVERLAY_DETAILS[projection.after as 'frozen' | 'steam'].name
     const before = projection.before ? COMBAT_TERRAIN_OVERLAY_DETAILS[projection.before].name : null
     return {
@@ -112,6 +113,22 @@ export function battlePreviewTerrainChips(
       terrain: true,
     }
   })
+  return [
+    ...legacy,
+    ...(preview.projectedGroundAreas ?? []).flatMap((area) =>
+      (area.effectVisualIds ?? []).flatMap((id): PreviewChip[] => {
+        const visual = groundEffectVisual(id)
+        if (!visual) return []
+        return [
+          {
+            label: `${visual.label} · ${countLabel(area.tiles.length, 'tile')} · Starts round ${area.activationRound} · ${countLabel(area.expiresAtRound - area.activationRound, 'round')}`,
+            tone: 'effect',
+            terrain: true,
+          },
+        ]
+      }),
+    ),
+  ]
 }
 
 export function battleSkillParameterRows(

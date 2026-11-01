@@ -4,6 +4,10 @@ import type { AbilityDefinition } from './combat-definition'
 type PrivateHitAuthoringKey =
   | 'catalogueToken'
   | 'sourceHash'
+  | 'attackTagCapture'
+  | 'ruinState'
+  | 'ruinApplicationId'
+  | 'ruinCommandId'
   | 'accuracyRule'
   | 'accuracyMode'
   | 'accuracyModifierBasisPoints'
@@ -40,6 +44,10 @@ const PRIVATE_HIT_AUTHORING_KEYS = new Set<string>([
   'reversalDamageOrdinal',
   'reversalBoundDamageOrdinalsByRecipient',
   'sourceHash',
+  'attackTagCapture',
+  'ruinState',
+  'ruinApplicationId',
+  'ruinCommandId',
   'catalogueToken',
   'accuracyRule',
   'accuracyMode',

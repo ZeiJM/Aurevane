@@ -1,5 +1,4 @@
 import { currentCombatPercentageIssues } from '@/lib/combat-percentage-authoring'
-import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import { validateCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 import type { SummonProfileDefinition } from '@aurevane/game-core/combat/summon-content'
 import { battleTextContextIssues } from '@aurevane/game-core/combat/battle-narration'
@@ -207,13 +206,6 @@ function summonAuthoringIssues(
     code: 'INVALID_SUMMON_PROFILE',
     message: issue.message,
   }))
-  // Captured profiles keep their historical lifetime; this ceiling belongs to new authoring.
-  if (profile.lifetimeTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)
-    issues.push({
-      path,
-      code: 'INVALID_SUMMON_PROFILE',
-      message: `Summon lifetime must be 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns.`,
-    })
   return issues
 }
 

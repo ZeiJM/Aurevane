@@ -1,6 +1,10 @@
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
+import {
+  reversalRuleDescription,
+  REVERSAL_STRAIN_DESCRIPTION,
+} from '../../lib/reversal-presentation'
 import { canonicalStatusExplanation } from './canonical-status-explanation'
 import { previewEffect } from './skill-effect-preview'
 import type { CanonicalStatusExplanationOptions } from './canonical-status-clock'
@@ -12,6 +16,10 @@ export function mechanicTagExplanation(
   options: CanonicalStatusExplanationOptions,
 ): string {
   switch (tag) {
+    case 'reversal':
+      return reversalRuleDescription(options)
+    case 'reversal-strain':
+      return REVERSAL_STRAIN_DESCRIPTION
     case 'hp-less-than':
     case 'hp-more-than':
     case 'mp-less-than':

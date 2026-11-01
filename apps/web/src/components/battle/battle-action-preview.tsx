@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleSummonPortrait } from './battle-summon-portrait'
+
 import type {
   BattleActionPreview as ActionPreview,
   BattlePreviewView,
@@ -121,7 +123,13 @@ function InlineTargetForecast({
     .join(' · ')
   return (
     <article className={styles.inlineTarget} data-battle-range-forecast={combatantId}>
-      {participant?.portraitAssetId ? (
+      {participant?.profileImageUrl && !participant?.portraitAssetId ? (
+        <BattleSummonPortrait
+          src={participant.profileImageUrl}
+          name={participant.name}
+          fallbackClassName={styles.portraitFallback}
+        />
+      ) : participant?.portraitAssetId ? (
         <CharacterPortraitImage
           imageUrl={participant.profileImageUrl}
           fallbackAssetId={participant.portraitAssetId}
@@ -320,7 +328,13 @@ export function BattleActionPreview({
               </span>
             ) : primaryTarget ? (
               <span className={styles.targetSummary} title={primaryTarget.name}>
-                {primaryTarget.portraitAssetId ? (
+                {primaryTarget.profileImageUrl && !primaryTarget.portraitAssetId ? (
+                  <BattleSummonPortrait
+                    src={primaryTarget.profileImageUrl}
+                    name={primaryTarget.name}
+                    fallbackClassName={styles.portraitFallback}
+                  />
+                ) : primaryTarget.portraitAssetId ? (
                   <CharacterPortraitImage
                     imageUrl={primaryTarget.profileImageUrl}
                     fallbackAssetId={primaryTarget.portraitAssetId}

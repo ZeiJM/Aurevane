@@ -22,6 +22,7 @@ import {
   P2_3_COMBAT_CONTENT,
   endCombatTurn,
   executeCombatAction,
+  type CombatActionDefinition,
 } from '@aurevane/game-core/combat/actions'
 import {
   applyCurrentBurnState,
@@ -1415,3 +1416,91 @@ it('aborts a practice battle with active Endure without an invalid partial encou
   )
   expect(result.snapshot).not.toHaveProperty('endureState')
 })
+
+it.each([false, true])(
+  'aborts after missed Ruin with tracked debuffs and Endure=%s without losing private authority',
+  async (withEndure) => {
+    const initial = await initialEncounter()
+    const actorId = initial.tactical.battle.currentTurn!.combatantId
+    const actor = initial.tactical.battle.combatants.find((row) => row.id === actorId)!
+    const enemy = initial.tactical.battle.combatants.find((row) => row.teamId !== actor.teamId)!
+    const target: CombatActionDefinition['target'] = {
+      kind: 'unit',
+      teamPolicy: 'enemy',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 15,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+      friendlyFire: 'enemies-only',
+    }
+    const selfDebuff: CombatActionDefinition = {
+      id: 'test.ruin-abort-slow',
+      version: 1,
+      sourceType: 'test',
+      tags: [],
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      target: { ...target, kind: 'self', teamPolicy: 'self', minimumRange: 0, maximumRange: 0 },
+      effects: [
+        { type: 'apply-status', recipient: 'actor', statusId: 'slow', stacks: 1, durationTurns: 4 },
+      ],
+      effectTimingModes: ['instant'],
+    }
+    const debuffed = executeCombatAction(
+      initial,
+      selfDebuff,
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    const missed = executeCombatAction(
+      debuffed,
+      {
+        ...selfDebuff,
+        id: 'test.ruin-abort-miss',
+        target,
+        tags: ['attack', 'physical'],
+        accuracyRule: { kind: 'fixed', chanceBasisPoints: 0 },
+        effects: [
+          { type: 'damage', recipient: 'primary-unit', target: 'enemy', amount: 20 },
+          { type: 'ruin', recipient: 'actor', bonusPerDebuffBasisPoints: 6000 },
+        ],
+        effectTimingModes: ['instant', 'instant'],
+      },
+      { kind: 'unit', combatantId: enemy.id },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(missed.events).not.toContainEqual(expect.objectContaining({ event: 'damage_applied' }))
+    let cast = reattachStatDrivenCombatBridge(missed.state, initial.statBridge)
+    if (withEndure) cast = castServerEndure(cast)
+    expect(cast.ruinState!.nextApplicationId).toBeGreaterThan(1)
+    expect(
+      cast.statusState
+        .flatMap((row) => row.statuses)
+        .some((status) =>
+          (status.applicationModifiers ?? [status]).some(
+            (application) => application.ruinApplicationId !== undefined,
+          ),
+        ),
+    ).toBe(true)
+    const fixture = createStatefulRepository(JSON.parse(JSON.stringify(cast)))
+    const result = await createBattleAbortService(fixture.repository).abortPractice({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: `ruin-abort-${withEndure}`,
+    })
+    expect(result.snapshot.tactical.battle.lifecycle).toBe('abandoned')
+    expect(fixture.currentState().ruinState).toEqual(cast.ruinState)
+    expect(fixture.currentState().capturedAbilitySources).toEqual(cast.capturedAbilitySources)
+    expect(
+      fixture.currentState().tactical.battle.combatants.map(({ id, hp, mp }) => ({ id, hp, mp })),
+    ).toEqual(cast.tactical.battle.combatants.map(({ id, hp, mp }) => ({ id, hp, mp })))
+    expect(fixture.commits.flatMap((commit) => commit.events)).not.toContainEqual(
+      expect.objectContaining({ actionId: 'status.endure.release' }),
+    )
+    expect(JSON.stringify(result.snapshot)).not.toMatch(
+      /ruinState|ruinApplicationId|attackTagCapture/,
+    )
+  },
+)

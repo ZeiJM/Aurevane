@@ -250,7 +250,7 @@ function rangedReposition(
     ),
   )
   const availableAp = readPv1fActionEconomy(prepared)?.current ?? 0
-  if (availableAp <= minimumAp) return null
+  if (availableAp < minimumAp) return null
   const visibleEnemies = prepared.tactical.battle.combatants.filter(
     (unit) =>
       unit.teamId !== actor.teamId &&
@@ -390,7 +390,7 @@ function rangedReposition(
         cost = quote.economyCost
         intent = { kind: 'move', path: quote.movement.path }
       }
-      if (cost <= 0 || cost + minimumAp > availableAp) continue
+      if (cost < 0 || cost + minimumAp > availableAp) continue
       const moved = moveCurrentCombatant(
         airborneMovementTactical(prepared, PV1F_COMBAT_CONTENT),
         path,

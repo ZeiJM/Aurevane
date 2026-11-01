@@ -20,6 +20,12 @@ import { buildBattleLogView, createViewerSafeBattleLogService } from './battle-l
 import type { BattleHistoryPrivacyAuthority } from './battle-history-privacy-authority'
 import { createSpectatorBattleViewerEntitlement } from './battle-viewer-entitlement'
 import { buildBattleChronicle } from '../../components/battle/battle-log-chronicle-model'
+import { formatBattleLogForClipboard } from '../../components/battle/battle-log-clipboard'
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import * as popovers from '../../components/battle/battle-info-popover'
+import { BattleLogChronicle } from '../../components/battle/battle-log-chronicle'
 
 function encounter() {
   const battle = startBattle(
@@ -86,6 +92,345 @@ const baseAction: CombatActionDefinition = {
 }
 
 describe('canonical delayed effects through the shared Chronicle projection', () => {
+  it.each([
+    [
+      'fortified',
+      { defenseIncreaseBasisPoints: 4000 },
+      "Fortified will increase Recruit's Physical and Mystic Defense by 40% and will reduce outgoing damage by the same percentage",
+      'Increase Physical and Mystic Defense by 40%',
+    ],
+    [
+      'reckless',
+      { potencyBasisPoints: 4000 },
+      "Reckless will increase Recruit's damage dealt and taken by 40%",
+      'Deal 40% more damage and take 40% more damage',
+    ],
+  ] as const)(
+    'keeps %s neutral while preserving its committed pending strength in the Chronicle and explanation',
+    (statusId, effectStrength, narration, explanation) => {
+      const transition = executeCombatAction(
+        encounter(),
+        {
+          ...baseAction,
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId,
+              stacks: 1,
+              durationTurns: 2,
+              ...effectStrength,
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: 'recruit:weon' },
+        { statuses: PHASE4_STATUSES },
+      )
+      expect(transition.events.find((event) => event.event === 'effect_pending')).toMatchObject({
+        effectStrength,
+      })
+      const view = buildBattleLogView(
+        'chronicle.effects',
+        transition.events.map((event, eventIndex) => ({
+          battleVersion: 1,
+          eventIndex,
+          createdAt: '2026-11-01T00:00:00Z',
+          event,
+        })),
+      )
+      const pending = view.entries.find((entry) => entry.eventType === 'effect_pending')!
+      expect(pending).toMatchObject({ statusId, effectStrength })
+      const outcome = buildBattleChronicle(view.entries)[0].actors[0].actions[0].outcomes[0]
+      expect(outcome).toMatchObject({ tone: 'neutral', text: `${narration} during rounds 2–3!` })
+      expect(formatBattleLogForClipboard(view.entries)).toContain(outcome.text)
+      const popup = vi
+        .spyOn(popovers, 'BattleInfoPopover')
+        .mockImplementation(({ children, trigger }) =>
+          createElement('aside', null, trigger, children),
+        )
+      try {
+        const html = renderToStaticMarkup(
+          createElement(BattleLogChronicle, { entries: view.entries }),
+        )
+        expect(html).toContain(explanation)
+        expect(html).toContain(narration.replaceAll("'", '&#x27;'))
+      } finally {
+        popup.mockRestore()
+      }
+    },
+  )
+  it.each([
+    [
+      'blind',
+      { potencyBasisPoints: 3050 },
+      "Blind reduces Weon's Accuracy by 30.5 percentage points",
+    ],
+    [
+      'haste',
+      { movementApAdjustment: 7 },
+      "Haste reduces Weon's movement cost by 7 AP per entered tile",
+    ],
+    [
+      'wet',
+      { potencyBasisPoints: 3525, initiativeReductionBasisPoints: 1200 },
+      "Drenched reduces Weon's Initiative by 12% and increases Storm damage taken by 35.25%",
+    ],
+    [
+      'counter',
+      { counter: { kind: 'mystic', basisPoints: 12500 } },
+      'Magical Reflect returns 125% of Mystic HP damage received by Weon',
+    ],
+  ] as const)(
+    'carries committed %s strength into the shared Chronicle and copied log',
+    (statusId, strength, expected) => {
+      const transition = executeCombatAction(
+        { ...encounter(), effectTimingPolicy: { version: 1, modes: { [statusId]: 'instant' } } },
+        {
+          ...baseAction,
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId,
+              stacks: 1,
+              durationTurns: 2,
+              ...strength,
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: 'recruit:weon' },
+        { statuses: PHASE4_STATUSES },
+      )
+      const receipt = transition.events.find((event) => event.event === 'status_applied')
+      expect(receipt).toMatchObject({ effectStrength: strength })
+      const view = buildBattleLogView(
+        'chronicle.effects',
+        transition.events.map((event, eventIndex) => ({
+          battleVersion: 1,
+          eventIndex,
+          createdAt: '2026-11-01T00:00:00Z',
+          event,
+        })),
+      )
+      const names = { combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' } }
+      const texts = buildBattleChronicle(view.entries, names).flatMap((round) =>
+        round.actors.flatMap((actor) =>
+          actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+        ),
+      )
+      expect(texts).toContain(`${expected} for 2 turns`)
+      expect(formatBattleLogForClipboard(view.entries, names)).toContain(`${expected} for 2 turns`)
+      const popup = vi
+        .spyOn(popovers, 'BattleInfoPopover')
+        .mockImplementation(({ children, trigger }) =>
+          createElement('aside', null, trigger, children),
+        )
+      try {
+        const html = renderToStaticMarkup(
+          createElement(BattleLogChronicle, { entries: view.entries, ...names }),
+        )
+        expect(html).toContain(expected.replaceAll("'", '&#x27;'))
+        if (statusId === 'blind') {
+          expect(html).toContain('Lose 30.5 percentage points Accuracy')
+          expect(html).not.toContain('Lose 15 percentage points')
+        }
+        if (statusId === 'haste') {
+          expect(html).toContain('7 less AP')
+          expect(html).not.toContain('10 less AP')
+        }
+        if (statusId === 'wet') {
+          expect(html).toContain('Initiative by 12%')
+          expect(html).toContain('35.25% Storm damage')
+          expect(html).not.toContain('20% per active')
+        }
+        if (statusId === 'counter') expect(html).toContain('Returns 125% of Mystic damage')
+      } finally {
+        popup.mockRestore()
+      }
+    },
+  )
+
+  it('keeps pending strength and owner-turn lifetimes distinct from calendar rounds', () => {
+    const transition = executeCombatAction(
+      encounter(),
+      {
+        ...baseAction,
+        effects: [
+          {
+            type: 'apply-status',
+            recipient: 'primary-unit',
+            statusId: 'blind',
+            stacks: 1,
+            potencyBasisPoints: 3050,
+            durationTurns: 2,
+          },
+        ],
+      },
+      { kind: 'unit', combatantId: 'recruit:weon' },
+      { statuses: PHASE4_STATUSES },
+    )
+    expect(transition.events.find((event) => event.event === 'effect_pending')).toMatchObject({
+      effectStrength: { potencyBasisPoints: 3050 },
+    })
+    const view = buildBattleLogView(
+      'chronicle.effects',
+      transition.events.map((event, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-11-01T00:00:00Z',
+        event,
+      })),
+    )
+    const copied = formatBattleLogForClipboard(view.entries, {
+      combatantNames: { 'recruit:weon': 'Weon' },
+    })
+    expect(copied).toContain(
+      "Blind will reduce Weon's Accuracy by 30.5 percentage points during rounds 2–3!",
+    )
+    expect(buildBattleChronicle(view.entries)[0].actors[0].actions[0].outcomes[0].duration).toBe(
+      '2 rounds',
+    )
+  })
+  it.each([
+    { type: 'healing', recipient: 'primary-unit', amount: 9, ticks: 2 },
+    {
+      type: 'percentage-recovery',
+      recipient: 'primary-unit',
+      resource: 'hp',
+      percent: 9,
+      ticks: 2,
+    },
+  ] as const)('records actual saved pending recovery amounts for $type', (effect) => {
+    const transition = executeCombatAction(
+      { ...encounter(), effectTimingPolicy: { version: 1, modes: { healing: 'next-round' } } },
+      { ...baseAction, effects: [effect] },
+      { kind: 'unit', combatantId: 'recruit:weon' },
+      { statuses: PHASE4_STATUSES },
+    )
+    expect(transition.events.find((event) => event.event === 'effect_pending')).toMatchObject({
+      effectStrength: { recoveryAmountPerApplication: 9 },
+    })
+    const view = buildBattleLogView(
+      'chronicle.effects',
+      transition.events.map((event, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-11-01T00:00:00Z',
+        event,
+      })),
+    )
+    expect(formatBattleLogForClipboard(view.entries)).toContain(
+      'Recruit will recover up to 9 HP per application (2 applications), beginning at the start of round 2!',
+    )
+  })
+  it('records Endure release strength without exposing its private accumulated damage', () => {
+    const transition = executeCombatAction(
+      encounter(),
+      {
+        ...baseAction,
+        effects: [
+          {
+            type: 'endure',
+            recipient: 'actor',
+            releaseBasisPoints: 12500,
+            radiusTiles: 2,
+            targetTeams: 'enemies',
+            durationTurns: 2,
+          },
+        ],
+      },
+      { kind: 'unit', combatantId: 'recruit:weon' },
+      { statuses: PHASE4_STATUSES },
+    )
+    expect(transition.events.find((event) => event.event === 'status_applied')).toMatchObject({
+      effectStrength: { endureReleaseBasisPoints: 12500 },
+    })
+    const view = buildBattleLogView(
+      'chronicle.effects',
+      transition.events.map((event, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-11-01T00:00:00Z',
+        event,
+      })),
+    )
+    const text = formatBattleLogForClipboard(view.entries)
+    expect(text).toContain('releases 125% of stored HP damage on natural expiry')
+    expect(JSON.stringify(view)).not.toMatch(/applicationId|receivedDamage|nextApplicationId/)
+  })
+  it('copies uniform saved application strength and omits a misleading single rate for mixed copied applications', () => {
+    const initial = {
+      ...encounter(),
+      effectStackingPolicyVersion: 1 as const,
+      effectTimingPolicy: {
+        version: 1,
+        modes: { inspired: 'instant' as const, 'copy-statuses': 'instant' as const },
+      },
+    }
+    const apply = (state: typeof initial, potencyBasisPoints: number) =>
+      executeCombatAction(
+        state,
+        {
+          ...baseAction,
+          effects: [
+            {
+              type: 'apply-status',
+              recipient: 'primary-unit',
+              statusId: 'inspired',
+              potencyBasisPoints,
+              stacks: 1,
+              durationTurns: 2,
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: 'recruit:weon' },
+        { statuses: PHASE4_STATUSES },
+      )
+    const first = apply(initial, 2534)
+    const copy = (state: typeof first.state) =>
+      executeCombatAction(
+        state,
+        {
+          ...baseAction,
+          id: 'test.copy',
+          effects: [
+            {
+              type: 'copy-statuses',
+              recipient: 'primary-unit',
+              mode: 'amplify',
+              statusIds: ['inspired'],
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: 'recruit:weon' },
+        { statuses: PHASE4_STATUSES },
+      )
+    const uniform = copy(first.state)
+    expect(uniform.events.find((event) => event.event === 'status_applied')).toMatchObject({
+      effectStrength: { potencyBasisPoints: 2534 },
+    })
+    const view = buildBattleLogView(
+      'chronicle.effects',
+      uniform.events.map((event, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-11-01T00:00:00Z',
+        event,
+      })),
+    )
+    expect(formatBattleLogForClipboard(view.entries)).toContain(
+      "Damage Up increases Wayfarer's outgoing damage by 25.34%",
+    )
+    const mixed = copy(apply(first.state as typeof initial, 5000).state)
+    expect(mixed.events.find((event) => event.event === 'status_applied')).not.toHaveProperty(
+      'effectStrength',
+    )
+    expect(
+      mixed.state.statusState
+        .find((row) => row.combatantId === 'character:zei')
+        ?.statuses[0].applicationModifiers?.map((row) => row.potencyBasisPoints),
+    ).toEqual([2534, 5000])
+  })
   it.each(['poison' as const, 'burn' as const])(
     'renders the pinned title from actual %s ticks',
     async (statusId) => {
@@ -267,7 +612,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
         ),
       )
       expect(texts).toContain(
-        `${statusId[0].toUpperCase() + statusId.slice(1)} will affect Weon during rounds 2–3!`,
+        `${statusId === 'poison' ? 'Poison will take hold on Weon' : `Weon will begin ${statusId === 'burn' ? 'burning' : 'bleeding'}`} at the start of round 2, for 2 affected turns!`,
       )
       expect(
         texts.some((text) =>

@@ -131,6 +131,10 @@ export function SummonAbilityList({
       elementalDamagePolicyVersion={policies.elementalDamagePolicyVersion ?? null}
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
       blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
+      reversalPolicyVersion={policies.reversalPolicyVersion ?? null}
+      pierceCriticalPolicyVersion={policies.pierceCriticalPolicyVersion ?? null}
+      summonPotencyPolicyVersion={policies.summonPotencyPolicyVersion ?? null}
+      ruinPolicyVersion={policies.ruinPolicyVersion ?? null}
     >
       <div className={styles.list} aria-label="Summon abilities">
         {abilities.map((ability) => (

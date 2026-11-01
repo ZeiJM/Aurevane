@@ -81,7 +81,7 @@ describe('one shared footprint with independent effect targets', () => {
       maximumRange: 0,
     }
     const committed = executeCombatAction(state, cast, { kind: 'self' }, PV1F_COMBAT_CONTENT)
-    expect(targets(committed, 'damage_applied')).toEqual([])
+    expect(targets(committed, 'damage_applied')).toEqual(['ally', 'actor'])
     expect(targets(committed, 'healing_applied')).toEqual([])
   })
 
@@ -239,7 +239,7 @@ describe('one shared footprint with independent effect targets', () => {
     ).state
     let restored = JSON.parse(JSON.stringify(queued)) as CombatEncounterState
     expect(validateCombatEncounterState(restored)).toEqual([])
-    expect(restored.pendingEffects?.[0]?.recipientIds).toEqual(['enemy', 'other'])
+    expect(restored.pendingEffects?.[0]?.recipientIds).toEqual(['ally', 'enemy', 'other', 'actor'])
     restored.tactical.battle.combatants = restored.tactical.battle.combatants.map((unit) =>
       unit.id === 'ally' ? { ...unit, teamId: 'enemies' } : unit,
     )
@@ -254,7 +254,7 @@ describe('one shared footprint with independent effect targets', () => {
       )
       restored = result.state
     }
-    expect(resolved).toEqual(['enemy', 'other'])
+    expect(resolved).toEqual(['ally', 'enemy', 'other', 'actor'])
     expect(restored.pendingEffects).toEqual([])
   })
 
@@ -389,7 +389,7 @@ describe('one shared footprint with independent effect targets', () => {
     )
   })
 
-  it('All reaches remote legal enemies while a sibling keeps its local footprint', () => {
+  it('All reaches every living unit while a sibling keeps its local footprint', () => {
     const state = encounter()
     state.tactical.placements = state.tactical.placements.map((row) =>
       row.combatantId === 'other' ? { ...row, position: { x: 4, y: 4 } } : row,
@@ -399,7 +399,7 @@ describe('one shared footprint with independent effect targets', () => {
       { type: 'healing', recipient: 'affected-units', target: 'ally', amount: 20 },
     ])
     const committed = executeCombatAction(state, cast, activate, PV1F_COMBAT_CONTENT)
-    expect(targets(committed, 'damage_applied')).toEqual(['enemy', 'other'])
+    expect(targets(committed, 'damage_applied')).toEqual(['ally', 'enemy', 'other', 'actor'])
     expect(targets(committed, 'healing_applied')).toEqual(['ally'])
   })
 
@@ -467,7 +467,7 @@ it('executes a derived one-aim global cast without a shape or target selection o
   expect(preview.legal).toBe(true)
   expect(JSON.stringify(state)).toBe(before)
   const out = executeCombatAction(state, cast, { kind: 'self' }, PV1F_COMBAT_CONTENT)
-  expect(targets(out, 'damage_applied')).toEqual(['enemy', 'other'])
+  expect(targets(out, 'damage_applied')).toEqual(['ally', 'enemy', 'other', 'actor'])
 })
 
 it('mixes Ground and unit packets in one paid cast without Ground immunity suppressing unit hits', () => {

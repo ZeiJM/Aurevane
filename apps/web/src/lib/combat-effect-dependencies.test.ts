@@ -64,7 +64,7 @@ it('preserves independently authored Damage across independent target coverage',
     ),
   ).toHaveLength(1)
 })
-it('links Frozen Ground and Chilled in both removal directions across serialization', () => {
+it('replaces Frozen Ground with standalone Chilled across serialization', () => {
   const terrain: CombatTagPayload = {
     type: 'create-terrain',
     recipient: 'affected-tiles',
@@ -73,14 +73,14 @@ it('links Frozen Ground and Chilled in both removal directions across serializat
   const first = JSON.parse(
     JSON.stringify(reconcileAuthoredEffectDependencies<CombatTagPayload>([], [terrain])),
   ) as CombatTagPayload[]
-  expect(first.map((x) => x.type)).toEqual(['create-terrain', 'apply-status'])
-  expect(first[1]).toMatchObject({ statusId: 'frozen', applicationOrigin: 'frozen-ground' })
+  expect(first.map((x) => x.type)).toEqual(['apply-status'])
+  expect(first[0]).toMatchObject({ statusId: 'frozen', applicationOrigin: 'frozen-ground' })
   expect(
     reconcileAuthoredEffectDependencies<CombatTagPayload>(
       first,
       first.filter((x) => x.type !== 'create-terrain'),
     ),
-  ).toEqual([])
+  ).toEqual(first)
   expect(
     reconcileAuthoredEffectDependencies<CombatTagPayload>(
       first,
@@ -91,7 +91,7 @@ it('links Frozen Ground and Chilled in both removal directions across serializat
 
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
 import { withAbilityEffectDependencies } from './combat-ability-effect-dependencies'
-it('keeps the original terrain row identity, conditions, timing and Ground references when adding Chilled', () => {
+it('keeps the original standalone terrain wrapper on its Chilled replacement', () => {
   const previous = { id: 'main', effects: [] } as unknown as AbilityBehavior
   const terrain = {
     id: 'terrain-original',
@@ -119,12 +119,9 @@ it('keeps the original terrain row identity, conditions, timing and Ground refer
     requirements: terrain.requirements,
     timing: terrain.timing,
   })
-  expect(result.groundArea).toEqual(next.groundArea)
-  expect(result.effects[1]!.id).not.toBe('terrain-original')
-  expect(result.effects[1]).toMatchObject({
-    requirements: terrain.requirements,
-    timing: terrain.timing,
-  })
+  expect(result.groundArea).toEqual({ ...next.groundArea, contactPolicyVersion: 1 })
+  expect(result.effects).toHaveLength(1)
+  expect(result.effects[0]!.payload).toMatchObject({ type: 'apply-status', statusId: 'frozen' })
 })
 it('shares compatible Ground Damage with Enemy DoTs without adding a second hit', () => {
   const hit: CombatTagPayload = {

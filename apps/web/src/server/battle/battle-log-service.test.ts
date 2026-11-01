@@ -786,8 +786,9 @@ it('retains committed terrain conversions, expiry and failed displacement as rea
   expect(text).toContain('Steam')
   expect(text).toContain('2 round boundaries')
   expect(text).toContain('expired')
-  expect(text).toContain('occupied')
-  expect(text).toContain('no refund')
+  expect(text).toContain('was not displaced')
+  expect(text).not.toContain('occupied')
+  expect(text).not.toContain('no refund')
   expect(text).not.toContain('sourceCombatantId')
 })
 
@@ -971,6 +972,8 @@ it('projects only bounded recovery application counts on the appropriate pending
     { effectTag: 'healing', recoveryApplications: 4 },
     { effectTag: 'mp-recovery', recoveryApplications: 1 },
     { effectTag: 'healing', recoveryApplications: 5 },
+    { effectTag: 'healing', recoveryApplications: 100 },
+    { effectTag: 'healing', recoveryApplications: 101 },
     { effectTag: 'damage', recoveryApplications: 4 },
   ]
   const result = buildBattleLogView(
@@ -992,6 +995,8 @@ it('projects only bounded recovery application counts on the appropriate pending
   expect(result.entries.map((entry) => entry.effectTiming?.recoveryApplications)).toEqual([
     4,
     1,
+    5,
+    100,
     undefined,
     undefined,
   ])

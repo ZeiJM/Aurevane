@@ -10,21 +10,22 @@ export function endureDescription(profile: CombatEndureProfile): string {
 /** Generic tag help describes the rule; individual Skill readers supply its saved values. */
 const descriptions: Readonly<Record<string, string>> = {
   reversal:
-    'Prepares one Physical or Mystic interception using Controlled timing. Front and side hits can be reversed; rear hits bypass it. Reveal disarms it. Attacks are blocked while armed. After it ends, Reversal Strain permits only Basic Attack or utility for one full turn.',
+    'Arms immediately after paid Controlled preparation. Prevents the first qualifying hostile front/side direct hit in its saved family, then returns the chosen percentage of prevented HP damage. Remains armed until triggered or cancelled; Reveal, defeat or battle end also disarm it. Offensive attacks are blocked while armed. Ending causes Reversal Strain.',
   'weak-point':
-    'Guarantees a critical hit when the enemy has more active debuffs than the chosen threshold. The attack must still hit.',
-  spike: 'Doubles the damage of this Skill’s critical hits.',
-  ruin: 'Increases this Skill’s damage by the chosen percentage for each active debuff on its target.',
+    'Guarantees a critical hit when the enemy has more active debuffs than the chosen threshold. The attack must still hit. Pierce cannot critically hit.',
+  spike: 'Doubles the damage of this Skill’s critical hits. Pierce cannot critically hit.',
+  ruin: 'In current battles, the first landed hit gains the chosen percentage per consumable debuff captured on its target, then consumes those debuffs. Later hits cannot reuse that bonus. Debuffs applied afterward remain. Historical battles keep their recorded Ruin rules.',
   damage: 'Deals damage using the Skill’s power and Physical or Mystic damage type.',
   pierce:
-    'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply.',
+    'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply. Pierce cannot critically hit.',
   counter:
     'Returns the chosen percentage of incoming damage to its source. Choose Physical Reflect, Magical Reflect or Full Reflect, its potency and duration.',
   endure:
     'Prevents damage-dealing manual actions while active. When it expires naturally, releases the chosen share of HP damage received to each eligible target within the saved radius. Endure cannot be dispelled. Defeat ends it without a burst; recasting replaces the saved damage window.',
   vengeance: 'Deals damage based on damage previously received, within its saved limits.',
   'hp-recovery': 'Restores a percentage of the target’s maximum HP.',
-  'mp-recovery': 'Restores a percentage of the target’s maximum MP.',
+  'mp-recovery':
+    'Restores MP using the saved percentage or fixed amount and number of applications.',
   'mp-restore': 'Restores a fixed amount of MP.',
   'mp-drain': 'Removes a percentage of the target’s maximum MP.',
   barrier: 'Absorbs incoming damage before HP is lost, until depleted or expired.',
@@ -44,7 +45,7 @@ const descriptions: Readonly<Record<string, string>> = {
   rewind:
     'Records each target’s position for a later return. The return must be legal and does not restore HP, MP or AP.',
   'freeze-ground':
-    'Creates Frozen Ground that increases enemy Skill AP costs and applies Chilled. Airborne units are unaffected. Fire turns it into sight-blocking Steam.',
+    'Retained Freeze Ground is replaced by Chilled Ground in current drafts. Active Chilled tiles apply the ordinary facing restriction on contact without increasing Skill AP costs. Historical battles keep their captured terrain rules.',
   push: 'Moves the target away from the caster by the chosen number of tiles. Rooted units and blocked tiles stop the move.',
   pull: 'Moves the target toward the caster by the chosen number of tiles, stopping before the caster. Rooted units and blocked tiles stop the move.',
   move: 'Moves the caster to a reachable, unoccupied Ground tile within the chosen distance and Jump limits.',
@@ -74,9 +75,11 @@ const descriptions: Readonly<Record<string, string>> = {
   'status:airborne':
     'Ignores Ground effects, temporarily raises Jump and lets Attack Skills reach elevated targets.',
   'status:haste':
-    'Reduces movement AP cost per tile by the chosen amount, subject to the minimum movement cost. Movement allowance is unchanged.',
+    'Movement costs less AP per entered tile and can reach 0 AP. Movement allowance is unchanged.',
   'status:slow':
     'Increases movement AP cost per tile by the chosen amount. Movement allowance is unchanged.',
+  'status:blind':
+    'Reduces the affected character’s Accuracy by the authored number of percentage points, to a minimum of 0%. Automatic Hit remains automatic.',
   'status:root': 'Prevents movement. Attacks, Skills and facing remain available.',
   'status:reckless': 'Increases damage dealt and damage taken for the same duration.',
   'status:fortified':

@@ -25,11 +25,19 @@ function createsRecoverySchedule(
   return effect.type === 'resource-change' && effect.delta >= 0 && (effect.ticks ?? 1) > 1
 }
 
-function bleedStackIdentity(stack: {
-  targetCombatantId: string
-  applicationOrder: number
-}): string {
-  return JSON.stringify([stack.targetCombatantId, stack.applicationOrder])
+function dotApplicationIdentity(
+  application: {
+    targetCombatantId: string
+    applicationOrder?: number
+    ruinApplicationId?: number
+  },
+  currentRuin: boolean,
+): string {
+  // Native order can restart after Ruin consumes the last application. Captured
+  // identities distinguish a surviving old application from its new suffix replacement.
+  return currentRuin && application.ruinApplicationId !== undefined
+    ? JSON.stringify([application.targetCombatantId, 'ruin', application.ruinApplicationId])
+    : JSON.stringify([application.targetCombatantId, application.applicationOrder])
 }
 
 interface BleedApplication {
@@ -76,7 +84,7 @@ export function attachCombatEffectProvenance(
     createCombatEffectInstanceProvenance({
       action: context.provenance,
       targetCombatantId,
-      effectOrdinal,
+      effectOrdinal: action.effectSourceOrdinals?.[effectOrdinal] ?? effectOrdinal,
       createdRound,
       createdTurn,
     })
@@ -391,8 +399,10 @@ export function attachCombatEffectProvenance(
     if (ordinals.length === 0) continue
     if (kind === 'poison' || kind === 'burn' || kind === 'barrier') {
       const prior = new Set(
-        (kind === 'barrier' ? (beforeEffects.barriers ?? []) : beforeEffects[kind]).map(
-          (row) => row.applicationOrder,
+        (kind === 'barrier' ? (beforeEffects.barriers ?? []) : beforeEffects[kind]).map((row) =>
+          kind === 'barrier'
+            ? row.applicationOrder
+            : dotApplicationIdentity(row, before.ruinPolicyVersion === 1),
         ),
       )
       const rows = kind === 'poison' ? poison : kind === 'burn' ? burn : barriers
@@ -404,7 +414,12 @@ export function attachCombatEffectProvenance(
             row.sourceCombatantId === actorId &&
             row.sourceActionId === action.id &&
             row.provenance?.copyOrdinal === undefined &&
-            (cleared || !prior.has(row.applicationOrder)),
+            (cleared ||
+              !prior.has(
+                kind === 'barrier'
+                  ? row.applicationOrder
+                  : dotApplicationIdentity(row, before.ruinPolicyVersion === 1),
+              )),
         )
         .sort((left, right) => (left.row.applicationOrder ?? 0) - (right.row.applicationOrder ?? 0))
       const assignments = new Map(
@@ -452,7 +467,9 @@ export function attachCombatEffectProvenance(
     }
   }
 
-  const beforeBleedIdentities = new Set(beforeEffects.bleed.map(bleedStackIdentity))
+  const beforeBleedIdentities = new Set(
+    beforeEffects.bleed.map((row) => dotApplicationIdentity(row, before.ruinPolicyVersion === 1)),
+  )
   const bleedTargets = new Set(
     bleedApplications.map((application) => application.targetCombatantId),
   )
@@ -475,7 +492,10 @@ export function attachCombatEffectProvenance(
           stack.targetCombatantId === targetCombatantId &&
           stack.sourceCombatantId === actorId &&
           stack.sourceActionId === action.id &&
-          (targetWasCleared || !beforeBleedIdentities.has(bleedStackIdentity(stack))),
+          (targetWasCleared ||
+            !beforeBleedIdentities.has(
+              dotApplicationIdentity(stack, before.ruinPolicyVersion === 1),
+            )),
       )
       .sort((left, right) => right.stack.applicationOrder - left.stack.applicationOrder)
 

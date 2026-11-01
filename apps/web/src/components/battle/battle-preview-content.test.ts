@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { BattleActionPreview } from '@/server/battle/battle-preview-service'
-import { previewChips, skillPreviewChips, battleSkillParameterRows } from './battle-preview-content'
+import {
+  previewChips,
+  skillPreviewChips,
+  battleSkillParameterRows,
+  battlePreviewTerrainChips,
+} from './battle-preview-content'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 
 function actionPreview(
@@ -381,4 +386,32 @@ it('includes HP payment in the actual cost preview', () => {
   expect(labels(actionPreview([], { hpCost: 12, mpCost: 4 }))).toEqual(
     expect.arrayContaining(['12 HP', '4 MP']),
   )
+})
+
+it('describes safe current Chilled Ground fields and exact activation without legacy Frozen AP narration', () => {
+  const preview = actionPreview([], {
+    projectedGroundAreas: [
+      {
+        id: 'field',
+        visualPresetId: 'frost',
+        tiles: [
+          { x: 1, y: 1 },
+          { x: 2, y: 1 },
+        ],
+        activationRound: 4,
+        expiresAtRound: 7,
+        effectVisualIds: ['status:frozen'],
+      },
+    ],
+  })
+  const summaries = battlePreviewTerrainChips(preview)
+  expect(summaries).toEqual([
+    {
+      label: 'Chilled Ground · 2 tiles · Starts round 4 · 3 rounds',
+      tone: 'effect',
+      terrain: true,
+    },
+  ])
+  expect(JSON.stringify(summaries)).not.toContain('Frozen Ground')
+  expect(JSON.stringify(summaries)).not.toContain('AP')
 })

@@ -26,6 +26,9 @@ it.each([{}, { explicitElemental: false }, { legacyElemental: true }])(
 )
 
 it('describes the saved status tuning without substituting historical constants', () => {
+  expect(statusPotencyDescription('suppress', 99900)).toContain(
+    '0 outgoing direct damage (999% Suppress)',
+  )
   expect(statusPotencyDescription('wet', 3500, { initiativeReductionBasisPoints: 2500 })).toContain(
     'Initiative by 25%',
   )
@@ -37,6 +40,12 @@ it('describes the saved status tuning without substituting historical constants'
   )
   expect(statusPotencyDescription('haste', undefined, { movementApAdjustment: 15 })).toContain(
     '15 less AP',
+  )
+  expect(statusPotencyDescription('haste', undefined, { movementApAdjustment: 15 })).toContain(
+    'can reach 0 AP',
+  )
+  expect(statusPotencyDescription('slow', undefined, { movementApAdjustment: 27 })).not.toContain(
+    'minimum of 10 AP',
   )
   expect(
     statusPotencyDescription('lowered-guard', undefined, {

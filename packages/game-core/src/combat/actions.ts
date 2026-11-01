@@ -1,3 +1,5 @@
+import { prepareCombatRuinCommand } from './combat-ruin'
+import { normalizeCombatGroundContacts, combatGroundSourceAction } from './combat-ground-contact'
 import { combatEndureBlocksAction } from './combat-endure'
 import type { CombatStatusTuning } from './combat-status-tuning'
 export type { CombatEndureProfile, CombatEndureEffect, CombatEndureState } from './combat-endure'
@@ -167,6 +169,16 @@ function omitCombatActionEffects(
   return {
     ...action,
     effects: action.effects.filter((_effect, index) => !omitted.has(index)),
+    ...(action.effectSourceOrdinals
+      ? { effectSourceOrdinals: action.effectSourceOrdinals.filter((_, i) => !omitted.has(i)) }
+      : {}),
+    ...(action.effectRequirementCaptures
+      ? {
+          effectRequirementCaptures: action.effectRequirementCaptures.filter(
+            (_, i) => !omitted.has(i),
+          ),
+        }
+      : {}),
     ...(action.effectOrigins
       ? { effectOrigins: action.effectOrigins.filter((_origin, index) => !omitted.has(index)) }
       : {}),
@@ -204,6 +216,9 @@ export function evaluateCombatAction(
     selection,
     executionActorId,
   )
+  ;({ state, action } = prepareCombatRuinCommand(state, action, content, true))
+  action = captureAttackTagDamage(state, action, content, false, executionActorId)
+  action = normalizeCombatGroundContacts(state, action)
   validateCombatAccuracyDefinition(action)
   const csrPreviewAction = materializeCsrPreviewAction(action)
   let materialized = materializeVengeanceDamage(state, csrPreviewAction, executionActorId)
@@ -220,7 +235,7 @@ export function evaluateCombatAction(
   if (
     !executionAuthority &&
     actorId &&
-    combatEndureBlocksAction(state, actorId, action, content) &&
+    combatEndureBlocksAction(state, actorId, combatGroundSourceAction(action), content) &&
     !evaluation.issues.some((issue) => issue.code === 'endure-active')
   )
     evaluation = {
@@ -325,13 +340,16 @@ export function executeCombatAction(
     selection,
     executionActorId,
   )
+  ;({ state, action } = prepareCombatRuinCommand(state, action, content, true))
+  action = captureAttackTagDamage(state, action, content, false, executionActorId)
+  action = normalizeCombatGroundContacts(state, action)
   validateCombatAccuracyDefinition(action)
   const round = state.tactical.battle.round
   const actorId = executionActorId ?? state.tactical.battle.currentTurn?.combatantId ?? null
   if (
     !context?.executionAuthority &&
     actorId &&
-    combatEndureBlocksAction(state, actorId, action, content)
+    combatEndureBlocksAction(state, actorId, combatGroundSourceAction(action), content)
   )
     throw new Error(
       'Illegal combat action: endure-active: Endure prevents using damage-dealing actions while active.',
@@ -355,7 +373,7 @@ export function executeCombatAction(
     action.accuracyRule !== undefined ||
     (state.airbornePolicyVersion === 1 && combatActionHasGroundDelivery(action)) ||
     action.effects.some((effect) => effect.type === 'sensory') ||
-    (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action))
+    (state.statBridge?.rulesVersion === 4 && hasCriticalEligibleDamage(action, state))
   const evaluation = requiresEvaluation
     ? legacy.evaluateCombatAction(
         state,
@@ -846,6 +864,7 @@ function materializeStatScaledDamage(
   state: CombatEncounterState,
   action: CombatActionDefinition,
   executionActorId?: string,
+  fieldCapture = false,
 ): legacy.CombatActionDefinition {
   const actorId =
     state.tactical.battle.lifecycle === 'active'
@@ -853,7 +872,7 @@ function materializeStatScaledDamage(
       : null
 
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
-    if (effect.type === 'sensory') {
+    if (effect.type === 'sensory' && !fieldCapture) {
       throw new TypeError('Sensory must be materialized before legacy effect resolution.')
     }
     if (effect.type !== 'damage') return effect
@@ -884,5 +903,19 @@ function materializeStatScaledDamage(
     }
   })
 
-  return { ...action, effects }
+  const groundContactPlan = action.groundContactPlan
+    ? {
+        ...action.groundContactPlan,
+        fields: action.groundContactPlan.fields.map((field) => ({
+          ...field,
+          action: materializeStatScaledDamage(
+            state,
+            materializeVengeanceDamage(state, field.action, executionActorId).action,
+            executionActorId,
+            true,
+          ),
+        })),
+      }
+    : undefined
+  return { ...action, effects, ...(groundContactPlan ? { groundContactPlan } : {}) }
 }

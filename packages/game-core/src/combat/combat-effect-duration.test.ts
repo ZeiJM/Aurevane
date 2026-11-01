@@ -83,7 +83,14 @@ describe('editable effect duration authority', () => {
     (tag) => {
       for (const durationTurns of [99, 100]) {
         const payload = {
-          ...createAuthorableEffectPayload(tag)!,
+          ...(tag === 'mp-restore'
+            ? {
+                type: 'resource-change' as const,
+                resource: 'mp' as const,
+                recipient: 'actor' as const,
+                delta: 20,
+              }
+            : createAuthorableEffectPayload(tag)!),
           durationTurns,
           ticks: durationTurns + 1,
         }

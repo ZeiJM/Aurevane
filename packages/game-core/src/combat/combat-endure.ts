@@ -198,6 +198,7 @@ export function applyCombatEndure(
         sourceCombatantId: actorId,
         targetCombatantId: actorId,
         statusId: 'endure',
+        effectStrength: { endureReleaseBasisPoints: effect.releaseBasisPoints },
         stacks: 1,
         remainingOwnerTurnStarts: effect.durationTurns,
         expiryBoundary: rounds ? 'round-end' : 'owner-turn-end',

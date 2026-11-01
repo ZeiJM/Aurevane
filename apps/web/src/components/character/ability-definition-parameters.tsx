@@ -5,6 +5,7 @@ import type { BasicActionCharacterStats } from './basic-action-presentation'
 import type { PublicAbilityDefinition } from '@aurevane/game-core/combat/public-combat-presentation'
 import { abilityBehaviorInformation } from './ability-detail-presentation'
 import { AbilityParameters } from './ability-parameters'
+import { withCurrentAttackRuleHelp } from './skill-effect-preview'
 import {
   useSkillEffectTimingPolicy,
   useSkillGroundInteractionRules,
@@ -44,7 +45,21 @@ export function AbilityDefinitionParameters({
         const offset = definition.behaviors
           .slice(0, index)
           .reduce((sum, group) => sum + group.effects.length, 0)
-        const explanations = authored?.slice(offset, offset + behavior.effects.length)
+        const savedRuleHelp = (effectIndex: number, wording: string) => {
+          const payload = behavior.effects[effectIndex]!.payload
+          return payload.type === 'pierce' ||
+            payload.type === 'weak-point' ||
+            payload.type === 'spike' ||
+            payload.type === 'ruin'
+            ? withCurrentAttackRuleHelp(
+                payload,
+                groundRules,
+                wording,
+                report.effectDescriptions[effectIndex],
+              )
+            : wording
+        }
+        const savedExplanations = authored?.slice(offset, offset + behavior.effects.length)
         const report = abilityBehaviorInformation(behavior, {
           tagPresentation: definition.tagPresentation,
           basic,
@@ -56,6 +71,9 @@ export function AbilityDefinitionParameters({
             legacyPoisonMovement: dotPolicy !== 2,
           },
         })
+        const explanations = savedExplanations?.map((wording, effectIndex) =>
+          wording == null ? wording : savedRuleHelp(effectIndex, wording),
+        )
         const label = `${behavior.activation === 'manual' ? 'Manual' : behavior.activation === 'automatic' ? 'Automatic' : 'Ongoing'} ${behavior.mode === 'action' ? 'Action' : 'Modifier'}${definition.behaviors.length > 1 ? ` ${index + 1}` : ''}`
         return (
           <section

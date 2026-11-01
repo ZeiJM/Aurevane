@@ -1,5 +1,9 @@
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
-import { combatStatusTuning } from './combat-status-tuning'
+import {
+  combatStatusTuning,
+  combatEffectStrength,
+  type CombatEffectStrength,
+} from './combat-status-tuning'
 import { combatStatusIsCopyable, validateCombatStatusSelection } from './combat-status-selection'
 import { mergeSuppressStatus } from './combat-suppress'
 import { usesPercentageCombatDots } from './combat-dots'
@@ -163,6 +167,7 @@ interface StatusCopy {
   donor: CombatStatusInstance
   previous: CombatStatusInstance | undefined
   next: CombatStatusInstance
+  receiptStrength?: CombatEffectStrength
 }
 
 interface PoisonCopy {
@@ -407,6 +412,7 @@ export function planCombatStatusCopies(
                     const copied = { ...application, sourceCombatantId: actorId }
                     delete copied.sourceCommandVisibility
                     delete copied.privateSharedLifetime
+                    delete copied.ruinApplicationId
                     return copied
                   }),
                 ),
@@ -449,6 +455,7 @@ export function planCombatStatusCopies(
           skipCurrentOwnerTurnEnd: undefined,
         }
         delete incoming.sourceCommandVisibility
+        delete incoming.ruinApplicationId
         if (statusDurationScope === 'rounds') {
           const remaining =
             donor.remainingRoundBoundaries ??
@@ -461,7 +468,24 @@ export function planCombatStatusCopies(
         }
         next = mergeSuppressStatus(previous, incoming, state, receiverId)
       }
-      return { donor, previous, next }
+      // A single rate cannot describe copied applications with different captured strengths.
+      const strengths = usesUnlimitedCombatEffectStacking(state)
+        ? selectedDonors.flatMap((row) =>
+            combatStatusApplications(row).map((application) =>
+              combatEffectStrength(row.statusId, application),
+            ),
+          )
+        : [combatEffectStrength(next.statusId, next)]
+      const receiptStrength =
+        donor.statusId === 'suppress'
+          ? combatEffectStrength(next.statusId, next)
+          : strengths.length &&
+              strengths.every(
+                (strength) => JSON.stringify(strength) === JSON.stringify(strengths[0]),
+              )
+            ? strengths[0]
+            : undefined
+      return { donor, previous, next, ...(receiptStrength ? { receiptStrength } : {}) }
     },
   )
   const independent = usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
@@ -671,12 +695,13 @@ export function applyCombatStatusCopies(
   return {
     state: copiedState,
     events: [
-      ...copies.map(({ previous, next }) => ({
+      ...copies.map(({ previous, next, receiptStrength }) => ({
         event: 'status_applied' as const,
         actionId,
         sourceCombatantId: actorId,
         targetCombatantId: receiverId,
         statusId: next.statusId,
+        ...(receiptStrength ? { effectStrength: receiptStrength } : {}),
         ...(next.statusId === 'suppress' ? { potencyBasisPoints: next.potencyBasisPoints } : {}),
         stacks: next.stacks,
         remainingOwnerTurnStarts: next.remainingOwnerTurnStarts,

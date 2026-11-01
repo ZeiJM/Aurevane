@@ -9,7 +9,11 @@ import {
   withCurrentSummonCoreAttributes,
   type SummonProfileDefinition,
 } from '@aurevane/game-core/combat/summon-content'
-import { reconcileAuthoredEffectDependencies } from './combat-effect-dependencies'
+import {
+  reconcileAuthoredEffectDependencies,
+  hasSharedGroundAim,
+} from './combat-effect-dependencies'
+import { withRemappedGroundEntries } from './combat-ground-entry-authoring'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 
 export function currentSummonForAuthoring(
@@ -19,15 +23,16 @@ export function currentSummonForAuthoring(
     ...withCurrentSummonCoreAttributes(profile),
     aiProfile: 'high',
     neverMoves: profile.neverMoves ?? false,
-    potencyBasisPoints: profile.potencyBasisPoints ?? 4000,
     abilities: profile.abilities.map((ability) => {
       const proposed = ability.effects.map((effect) => currentTagForAuthoring(effect))
-      const effects = reconcileAuthoredEffectDependencies(proposed, proposed)
+      const effects = reconcileAuthoredEffectDependencies(proposed, proposed, {
+        inheritedGround: hasSharedGroundAim(ability.target),
+      })
       const hasDamage = effects.some((effect) => effect.type === 'damage' && effect.amount > 0)
       const family = ability.tags.includes('mystic') ? 'mystic' : 'physical'
       const reversal = effects.some((effect) => effect.type === 'reversal')
       const fixedSelf = reversal || effects.some((effect) => effect.type === 'endure')
-      return {
+      return withRemappedGroundEntries(ability, {
         ...ability,
         hpCost: ability.hpCost ?? 0,
         target: fixedSelf ? deriveSharedEffectAim(ability.target, effects) : ability.target,
@@ -43,7 +48,7 @@ export function currentSummonForAuthoring(
               ]
             : ability.tags,
         effects,
-      }
+      })
     }),
   }
 }
@@ -70,8 +75,6 @@ export function currentTagForAuthoring(
     }
   if (value.type === 'resource-change' && value.delta < 0 && value.basis === undefined)
     return { ...value, basis: 'maximum-mp-percent' }
-  if (value.type === 'create-terrain' && value.skillApSurcharge === undefined)
-    return { ...value, skillApSurcharge: 10 }
   if (value.type === 'sensory' && value.increasedDamageTakenBasisPoints === undefined)
     return { ...value, increasedDamageTakenBasisPoints: 1500 }
   if (
@@ -116,11 +119,15 @@ export function currentTagForAuthoring(
             : value.statusIds.filter((id) => id !== 'blindside'),
       }
     }
+    const selected = value.statusIds?.filter((id) => !COPY_DEBUFF_EXCLUDED_STATUS_IDS.includes(id))
+    const priorAll = allowed.filter((id) => id !== 'blind')
+    const wasAll =
+      selected?.length === priorAll.length && priorAll.every((id) => selected.includes(id))
     return {
       ...value,
       durationPolicyVersion: 1,
       statusIds:
-        value.statusIds === undefined
+        value.statusIds === undefined || wasAll
           ? [...allowed]
           : value.statusIds.filter((id) => !COPY_DEBUFF_EXCLUDED_STATUS_IDS.includes(id)),
     }

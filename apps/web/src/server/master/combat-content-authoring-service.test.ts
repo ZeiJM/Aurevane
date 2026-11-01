@@ -1,5 +1,9 @@
 import { maximumSupportedCombatRange } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { withCurrentSummonCoreAttributes } from '@aurevane/game-core/combat/summon-content'
+import {
+  deriveSharedEffectAim,
+  withAuthoredEffectTarget,
+} from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { handleCombatContentAuthoringRequest } from './combat-content-authoring-handler'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
@@ -658,7 +662,7 @@ describe('combat content authoring service', () => {
           ...base,
           summonProfile: { ...base.summonProfile, lifetimeTurns },
         }).valid,
-      ).toBe(lifetimeTurns === 99)
+      ).toBe(true)
 
     const threeTurn = {
       ...base,
@@ -2264,8 +2268,25 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     const coreProfile = withCurrentSummonCoreAttributes(native.summonProfile!)
     const profile = {
       ...coreProfile,
-      lifetimeTurns: 99,
-      abilities: coreProfile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
+      lifetimeTurns: 100,
+      potencyBasisPoints: 123456,
+      abilities: coreProfile.abilities.map((ability) => {
+        const effects = ability.effects.map((effect) =>
+          withAuthoredEffectTarget(effect, ability.tags.includes('attack') ? 'enemy' : 'ally'),
+        )
+        return {
+          ...ability,
+          hpCost: 3,
+          apCost: 0,
+          mpCost: 100,
+          cooldownOwnerTurns: 100,
+          effects,
+          target: deriveSharedEffectAim(
+            { ...ability.target, shape: { kind: 'circle', radius: 15 } },
+            effects,
+          ),
+        }
+      }),
     }
     const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
       .behaviors[0]!
@@ -2276,7 +2297,15 @@ it.each(['skill', 'essence', 'resonance'] as const)(
           ...guard,
           targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
           effects: [
-            { id: 'call', payload: { type: 'summon', recipient: 'selected-tile', profile } },
+            {
+              id: 'call',
+              payload: {
+                type: 'summon',
+                recipient: 'selected-tile',
+                target: 'empty-tile',
+                profile,
+              },
+            },
           ],
         },
       ],
@@ -2339,7 +2368,7 @@ it.each([99, 100])('enforces duration %i inside retained native Summon Skills', 
 })
 
 it.each(['skill', 'essence', 'resonance'] as const)(
-  'caps new %s Summon lifetimes at99 while retaining capture compatibility',
+  'admits representable new %s Summon lifetimes beyond ordinary duration defaults',
   (kind) => {
     const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
     const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
@@ -2364,7 +2393,7 @@ it.each(['skill', 'essence', 'resonance'] as const)(
           },
         ],
       })
-      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(lifetimeTurns === 99)
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(true)
     }
   },
 )

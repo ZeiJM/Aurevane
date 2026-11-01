@@ -1,3 +1,4 @@
+import { BattleSummonPortrait } from './battle-summon-portrait'
 import type { CSSProperties } from 'react'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
@@ -5,19 +6,22 @@ import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleCombatantEffects } from './battle-combatant-effects'
 import { meterPercent } from './battle-geometry'
 import type { BattlePresentationParticipant } from './battle-runtime'
+import { proposedResourceSegment, type BattleProposedCosts } from './battle-proposed-cost'
 import styles from './battle-combatant-card.module.css'
 
-/** Snapshot-only summary, shared by playable and spectator battle layouts. */
+/** Snapshot resources with an optional payer-only proposal; shared by all battle layouts. */
 export function BattleCombatantCard({
   participant,
   battle,
   teamCount,
   role,
+  proposedCosts,
 }: {
   participant: BattlePresentationParticipant | null
   battle: BattleSessionView
   teamCount: number
   role: 'local' | 'selected' | 'acting'
+  proposedCosts?: BattleProposedCosts | null
 }) {
   if (!participant) return <p className={styles.empty}>Select a character to inspect.</p>
   const combatant = battle.snapshot.tactical.battle.combatants.find(
@@ -73,7 +77,13 @@ export function BattleCombatantCard({
         data-desktop-inspect-combatant={participant.combatantId}
         aria-label={`Inspect ${participant.name}`}
       >
-        {participant.portraitAssetId ? (
+        {participant.profileImageUrl && !participant.portraitAssetId ? (
+          <BattleSummonPortrait
+            src={participant.profileImageUrl}
+            name={participant.name}
+            fallbackClassName={styles.fallback}
+          />
+        ) : participant.portraitAssetId ? (
           <CharacterPortraitImage
             imageUrl={participant.profileImageUrl}
             fallbackAssetId={participant.portraitAssetId}
@@ -93,6 +103,11 @@ export function BattleCombatantCard({
           const current = combatant[resource] + protection
           const meterMaximum = Math.max(maximum, current)
           const barrierLabel = protection > 0 ? `, HP ${combatant.hp}, Barrier ${barrier}` : ''
+          const proposed =
+            role === 'local' && proposedCosts?.actorId === combatant.id
+              ? proposedCosts[resource]
+              : 0
+          const segment = proposedResourceSegment(combatant[resource], meterMaximum, proposed)
           return (
             <div key={resource} data-resource={resource}>
               <span aria-hidden="true">{resource.toUpperCase()}</span>
@@ -102,7 +117,7 @@ export function BattleCombatantCard({
                 aria-valuemin={0}
                 aria-valuenow={current}
                 aria-valuemax={meterMaximum}
-                aria-valuetext={`${current} / ${maximum}${barrierLabel}`}
+                aria-valuetext={`${current} / ${maximum}${barrierLabel}${segment ? `; ${proposed} ${resource.toUpperCase()} proposed spend` : ''}`}
               >
                 <b
                   aria-hidden="true"
@@ -118,6 +133,15 @@ export function BattleCombatantCard({
                       left: `${meterPercent(combatant.hp, meterMaximum)}%`,
                       width: `${meterPercent(barrier, meterMaximum)}%`,
                     }}
+                  />
+                ) : null}
+                {segment ? (
+                  <em
+                    className={styles.proposedSpend}
+                    data-battle-proposed-resource={resource}
+                    title={`${proposed} ${resource.toUpperCase()} proposed spend`}
+                    aria-hidden="true"
+                    style={{ left: `${segment.left}%`, width: `${segment.width}%` }}
                   />
                 ) : null}
                 <span className={styles.value} aria-hidden="true">

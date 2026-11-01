@@ -1,4 +1,5 @@
 import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
+import { isGeneratedCombatCompanionLink } from './combat-generated-companion-links'
 import { validateIndependentPercentageDotDamageSources } from './combat-percentage-dots'
 import { validateCombatRemovalSelection } from './combat-status-selection'
 import { validateAttackTagAction } from './combat-attack-tags'
@@ -155,11 +156,7 @@ export function validateCombatActionDefinition(
       validateCombatReversalPayload(effect)
       continue
     }
-    if (
-      effect.authoringLink !== undefined &&
-      (typeof effect.authoringLink !== 'string' ||
-        !/^(?:dot-damage|frozen-ground)\.[1-9][0-9]*$/.test(effect.authoringLink))
-    )
+    if (effect.authoringLink !== undefined && !isGeneratedCombatCompanionLink(effect.authoringLink))
       throw new TypeError('Invalid generated companion link.')
     validateCombatCounterEffect(effect)
     validateCombatEndureEffect(effect)
@@ -234,10 +231,10 @@ export function validateCombatActionDefinition(
       if (
         !Array.isArray(effect.statusIds) ||
         effect.statusIds.length < 1 ||
-        effect.statusIds.length > 16 ||
+        effect.statusIds.length > 32 ||
         new Set(effect.statusIds).size !== effect.statusIds.length
       ) {
-        throw new TypeError('Status removal requires one to sixteen distinct IDs.')
+        throw new TypeError('Status removal requires one to thirty-two distinct IDs.')
       }
       for (const id of effect.statusIds) {
         requiredIdentity(id, 'removed status ID')

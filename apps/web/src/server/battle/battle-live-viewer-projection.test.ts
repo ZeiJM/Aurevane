@@ -70,6 +70,112 @@ it('omits original copy lifetimes recursively while preserving visible remaining
   })
 })
 
+it('keeps only the safe total Ruin bonus on a projected damage receipt', () => {
+  const receipt = {
+    event: 'damage_applied',
+    amount: 160,
+    ruinBonusBasisPoints: 6000,
+    attackTagCapture: {
+      capturedDebuffs: { privateTarget: 2 },
+      ruinBonusPerDebuffBasisPoints: 3000,
+    },
+  }
+  expect(omitCombatExecutionMetadata(receipt)).toEqual({
+    event: 'damage_applied',
+    amount: 160,
+    ruinBonusBasisPoints: 6000,
+  })
+  expect(receipt).toHaveProperty('attackTagCapture')
+})
+
+it('omits private Ruin identity and consumption ledgers from live snapshots and status applications', () => {
+  const receipt = {
+    statusId: 'slow',
+    stacks: 2,
+    ruinApplicationId: 7,
+    ruinCommandId: 3,
+    applicationModifiers: [{ stacks: 1, ruinApplicationId: 7 }],
+  }
+  expect(omitCombatExecutionMetadata(receipt)).toEqual({
+    statusId: 'slow',
+    stacks: 2,
+    applicationModifiers: [{ stacks: 1 }],
+  })
+  const state = {
+    tactical: { battle: { lifecycle: 'active', round: 1 } },
+    ruinState: {
+      version: 1,
+      nextApplicationId: 8,
+      nextCommandId: 4,
+      spentTargets: [{ commandId: 3, targetId: 'privateTarget' }],
+    },
+  }
+  expect(omitPendingBattlePayloads(state as never)).not.toHaveProperty('ruinState')
+  expect(state).toHaveProperty('ruinState')
+})
+
+it('keeps Ruin application identities private in actual participant and spectator projections', () => {
+  const original = encounter()
+  const state = {
+    ...original,
+    ruinState: {
+      version: 1,
+      nextApplicationId: 8,
+      nextCommandId: 4,
+      spentTargets: [{ commandId: 3, targetId: ENEMY }],
+    },
+    statusState: original.statusState.map((row) =>
+      row.combatantId === ENEMY
+        ? {
+            ...row,
+            statuses: [
+              {
+                ...status('slow', PLAYER),
+                ruinApplicationId: 7,
+                applicationModifiers: [
+                  { stacks: 1, sourceCombatantId: PLAYER, ruinApplicationId: 7 },
+                ],
+              },
+            ],
+          }
+        : row,
+    ),
+    effectState: {
+      ongoingRecovery: [],
+      poison: [
+        {
+          targetCombatantId: ENEMY,
+          sourceCombatantId: PLAYER,
+          sourceActionId: 'saved.poison',
+          profileVersion: 1,
+          movementRemainder: 0,
+          damagePerTick: 2,
+          remainingTicks: 2,
+          ruinApplicationId: 6,
+        },
+      ],
+      burn: [],
+      bleed: [],
+      damageHistory: [],
+    },
+  } as unknown as StatDrivenCombatEncounterState
+  const before = JSON.stringify(state)
+  for (const viewer of [
+    createSpectatorBattleViewerEntitlement(),
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  ]) {
+    const projected = projectBattleSnapshot(state, viewer)
+    expect(JSON.stringify(projected)).not.toMatch(
+      /ruinApplicationId|ruinCommandId|ruinState|attackTagCapture/,
+    )
+    expect(projected.statusState.find((row) => row.combatantId === ENEMY)?.statuses).toEqual(
+      expect.arrayContaining([expect.objectContaining({ statusId: 'slow' })]),
+    )
+    expect(projected.effectState?.poison).toHaveLength(1)
+  }
+  expect(JSON.stringify(state)).toBe(before)
+})
+
 it('strips private captured Ability and command execution authority from actual public state', () => {
   const privateState = {
     pendingEffects: [],
