@@ -23,6 +23,7 @@ import {
 } from './stat-driven-combat'
 
 import { movementApCostForTile } from './pv1f-skills'
+import { combatStatusDetails } from './status-content'
 
 const OPEN = 'open'
 const ROUGH = 'rough'
@@ -298,6 +299,10 @@ describe('Task 2 variable Push and Pull', () => {
 })
 
 describe('Task 2 Haste and Slow movement AP', () => {
+  it('explains that Haste can reduce the AP price to zero without changing Movement', () => {
+    expect(combatStatusDetails('haste').description).toContain('can reach 0 AP')
+    expect(combatStatusDetails('haste').description).toContain('Movement allowance is unchanged')
+  })
   it.each([1, 0, -1])(
     'cancels extreme movement totals exactly with a %i-stack Slow residual',
     (residual) => {
@@ -334,10 +339,10 @@ describe('Task 2 Haste and Slow movement AP', () => {
     },
   )
 
-  it('counts Slow applications beyond the old surcharge cap and retains minimum movement cost for Haste', () => {
+  it('counts Slow applications beyond the old surcharge cap and permits zero-cost Haste movement', () => {
     for (const [statusId, economyCost] of [
       ['slow', 60],
-      ['haste', 10],
+      ['haste', 0],
     ] as const) {
       const base = withStatus(movementEncounter(), 'actor', statusId)
       const state = {
@@ -590,9 +595,9 @@ describe('movement AP floor and committed resources', () => {
 
   it.each([
     [1, -10, 10],
-    [1, -20, 10],
+    [1, -20, 0],
     [2, -20, 20],
-    [2, -50, 10],
+    [2, -50, 0],
     [1, 20, 40],
     [2, 0, 40],
   ])('charges terrain %i plus delta %i as %i AP', (traversal, delta, expected) => {

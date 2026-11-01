@@ -451,6 +451,7 @@ it('fresh World producer persists both coherent source proofs', async () => {
     String(name).startsWith('start_world_encounter'),
   )?.[1] as Record<string, unknown>
   const snapshot = args.p_snapshot as BattleAuthoritativeEncounterState
+  expect(snapshot.summonPotencyPolicyVersion).toBe(1)
   expect(snapshot.buildAuthority?.combatants).toHaveLength(2)
   expect(snapshot.buildAuthority?.combatants.every((row) => row.sourceHash?.length === 64)).toBe(
     true,

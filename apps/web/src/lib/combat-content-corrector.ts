@@ -1,5 +1,11 @@
+import { currentCombatPercentageEntries } from './combat-percentage-authoring'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
+import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
 import { withAbilityEffectDependencies } from './combat-ability-effect-dependencies'
-import { reconcileAuthoredEffectDependencies } from './combat-effect-dependencies'
+import {
+  reconcileAuthoredEffectDependencies,
+  hasSharedGroundAim,
+} from './combat-effect-dependencies'
 import type { CombatGroundAreaDefinition } from '@aurevane/game-core/combat/combat-ground-areas'
 import { withRemappedGroundEntries } from './combat-ground-entry-authoring'
 import { currentTagForAuthoring, currentSummonForAuthoring } from './combat-current-tag-authoring'
@@ -12,7 +18,10 @@ import {
   validateCombatTagPayload,
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
-import { MAXIMUM_COMBAT_LINE_LENGTH } from '@aurevane/game-core/combat/combat-targeting-shapes'
+import {
+  MAXIMUM_COMBAT_LINE_LENGTH,
+  MAXIMUM_COMBAT_CIRCLE_RADIUS,
+} from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { remapAbilityEffectDescriptions } from './combat-damage-authoring'
 import { withAuthoredElementalCompanions } from './combat-elemental-authoring'
 
@@ -118,18 +127,26 @@ export function correctCombatContentEntries<T>(
     if (['damage', 'pierce', 'healing'].includes(value.type))
       number(value, 'amount', value.vengeance === undefined ? 1 : 0, 20, `${label} power`)
     if (value.type === 'apply-status') {
-      number(value, 'durationTurns', 1, 4, `${label} duration`)
+      number(value, 'durationTurns', 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS, `${label} duration`)
       number(
         value,
         'potencyBasisPoints',
         100,
-        value.statusId === 'suppress' ? 10000 : 5000,
+        maximumCombatStatusPotencyBasisPoints(
+          typeof value.statusId === 'string' ? value.statusId : undefined,
+        ),
         `${label} potency`,
         100,
       )
     }
     if (value.type === 'sensory')
-      number(value, 'revealedDurationOwnerTurnStarts', 1, 4, 'Reveal duration')
+      number(
+        value,
+        'revealedDurationOwnerTurnStarts',
+        1,
+        CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+        'Reveal duration',
+      )
   }
   function targeting(value: unknown) {
     if (!object(value) || value.geometryVersion !== 3 || !object(value.shape)) return
@@ -140,11 +157,11 @@ export function correctCombatContentEntries<T>(
       shape,
       field,
       1,
-      field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : 5,
+      field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : MAXIMUM_COMBAT_CIRCLE_RADIUS,
       `${shape.kind} ${field}`,
     )
     const reach = shape[field]
-    const cap = field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : 5
+    const cap = field === 'length' ? MAXIMUM_COMBAT_LINE_LENGTH : MAXIMUM_COMBAT_CIRCLE_RADIUS
     if (
       Number.isSafeInteger(reach) &&
       (reach as number) >= 1 &&
@@ -226,6 +243,7 @@ export function correctCombatContentEntries<T>(
         rows as unknown as CombatTagPayload[],
         rows as unknown as CombatTagPayload[],
         {
+          inheritedGround: hasSharedGroundAim(container.target ?? owner.target),
           onLinked: (source, linked) => {
             const index = sources.get(source)
             if (index !== undefined) sources.set(linked, index)
@@ -242,7 +260,11 @@ export function correctCombatContentEntries<T>(
         )
           ? (area as unknown as CombatGroundAreaDefinition)
           : undefined
-      const before = { effects: rows as unknown as CombatTagPayload[], groundArea }
+      const before = {
+        effects: rows as unknown as CombatTagPayload[],
+        groundArea,
+        target: container.target ?? owner.target,
+      }
       const remapped = withRemappedGroundEntries(before, { ...before, effects })
       container[key] = effects
       if (before.groundArea) {
@@ -260,6 +282,24 @@ export function correctCombatContentEntries<T>(
     }
     nativeEffects(owner, 'effects')
     if (object(owner.trigger)) nativeEffects(owner.trigger, 'resultEffects')
+  }
+  for (const {
+    owner: percentageOwner,
+    key,
+    maximum,
+    divisor,
+    path,
+  } of currentCombatPercentageEntries(
+    object(owner.ability)
+      ? { ability: owner.ability }
+      : { effects: owner.effects, trigger: owner.trigger, summonProfile: owner.summonProfile },
+  )) {
+    const before = percentageOwner[key] as number
+    if (Math.abs(before) <= maximum) continue
+    const sign = before < 0 ? -1 : 1
+    const magnitude = { value: Math.abs(before) }
+    number(magnitude, 'value', 0, maximum, path, divisor)
+    percentageOwner[key] = sign * magnitude.value
   }
   return { definition, corrections }
 }

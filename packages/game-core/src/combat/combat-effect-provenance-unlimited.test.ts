@@ -15,6 +15,16 @@ import { createCombatActionProvenance, createCombatTriggerGuard } from './combat
 
 const DOT_ACTION = {
   id: 'same-action',
+  target: {
+    kind: 'unit',
+    teamPolicy: 'enemy',
+    shape: { kind: 'single' },
+    minimumRange: 0,
+    maximumRange: 3,
+    requiresLineOfSight: false,
+    maximumElevationDifference: null,
+    friendlyFire: 'enemies-only',
+  },
   effects: [
     { type: 'poison', recipient: 'primary-unit' },
     { type: 'burn', recipient: 'primary-unit' },

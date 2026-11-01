@@ -3,7 +3,7 @@ import { createElement, isValidElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
-import { SkillTargetingEditor } from './skill-targeting-editor'
+import { SkillTargetingEditor, type SkillTargetingEditorProps } from './skill-targeting-editor'
 
 function target(overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec {
   return {
@@ -20,6 +20,21 @@ function target(overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec {
 }
 
 describe('Master Panel Skill targeting editor', () => {
+  it.each([{ kind: 'single' }, { kind: 'circle', radius: 2 }] as const)(
+    'hides irrelevant friendly fire for All-only %j and preserves area Enemy siblings',
+    (shape) => {
+      const value = target({ geometryVersion: 3, shape })
+      const all = { type: 'damage', recipient: 'affected-units', target: 'all' as const }
+      const render = (effects: SkillTargetingEditorProps['effects']) =>
+        renderToStaticMarkup(
+          createElement(SkillTargetingEditor, { value, effects, onChange: vi.fn() }),
+        )
+      expect(render([all])).not.toContain('aria-label="Friendly Fire"')
+      const sibling = render([all, { ...all, target: 'enemy' }])
+      if (shape.kind === 'circle') expect(sibling).toContain('aria-label="Friendly Fire"')
+      else expect(sibling).not.toContain('aria-label="Friendly Fire"')
+    },
+  )
   it('keeps Range & Area focused on geometry and moves target choices to Effects', () => {
     const onChange = vi.fn()
     const markup = renderToStaticMarkup(
@@ -126,10 +141,7 @@ it.each([
   expect(markup).not.toContain('aria-label="Maximum target range"')
   expect(markup).not.toContain('aria-label="Minimum target range"')
   expect(markup).toMatch(
-    new RegExp(
-      `aria-label="(?:Circle radius|Line length)"[^>]*min="1"[^>]*max="${shape.kind === 'line' ? 15 : 5}"`,
-      'u',
-    ),
+    new RegExp(`aria-label="(?:Circle radius|Line length)"[^>]*min="1"[^>]*max="15"`, 'u'),
   )
   expect(value).toMatchObject({
     geometryVersion: 2,
@@ -173,5 +185,48 @@ it.each([2, 3] as const)(
       createElement(SkillTargetingEditor, { value, v51Rules: true, onChange: vi.fn() }),
     )
     expect(markup).toMatch(/aria-label="Line length"[^>]*min="1"[^>]*max="15"[^>]*value="15"/u)
+  },
+)
+
+it.each([2, 3] as const)(
+  'captures Circle15 through the shared geometry%s callback without changing recipient policy',
+  (geometryVersion) => {
+    const value = {
+      ...normalizeCurrentCombatTargetSpec(target({ shape: { kind: 'circle', radius: 15 } })),
+      geometryVersion,
+    }
+    const before = JSON.stringify(value)
+    const onChange = vi.fn()
+    const tree = SkillTargetingEditor({ value, onChange })
+    function control(
+      node: ReactNode,
+    ): { min: number; max: number; onChange: (radius: number) => void } | undefined {
+      if (Array.isArray(node)) return node.map(control).find(Boolean)
+      if (
+        !isValidElement<{
+          label?: string
+          children?: ReactNode
+          min: number
+          max: number
+          onChange: (radius: number) => void
+        }>(node)
+      )
+        return
+      if (node.props.label === 'Circle radius') return node.props
+      return control(node.props.children)
+    }
+    const radius = control(tree)!
+    expect(radius).toMatchObject({ min: 1, max: 15 })
+    radius.onChange(15)
+    expect(onChange).toHaveBeenCalledWith({
+      ...value,
+      shape: { kind: 'circle', radius: 15 },
+      minimumRange: 0,
+      maximumRange: 15,
+    })
+    expect(JSON.stringify(value)).toBe(before)
+    expect(renderToStaticMarkup(tree)).toMatch(
+      /aria-label="Circle radius"[^>]*min="1"[^>]*max="15"[^>]*value="15"/u,
+    )
   },
 )

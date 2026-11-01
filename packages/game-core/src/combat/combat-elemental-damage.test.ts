@@ -2138,3 +2138,45 @@ it('does not let an ineligible Ground wrapper replace the eligible ordinary Ice 
   ).toHaveLength(1)
   expect(statuses(result.state).find((entry) => entry.statusId === 'frozen')?.stacks).toBe(1)
 })
+
+it('captures Conductive at100% and doubles the next Storm hit consistently with its forecast', () => {
+  const base = {
+    ...encounter(),
+    elementalDamagePolicyVersion: 2 as const,
+    effectTimingPolicy: {
+      version: 1,
+      modes: { conductive: 'instant' as const, damage: 'instant' as const },
+    },
+  }
+  const charged = executeCombatAction(
+    base,
+    {
+      ...skill('storm'),
+      effects: [
+        {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'conductive',
+          stacks: 1,
+          durationTurns: 99,
+          potencyBasisPoints: 10000,
+        },
+      ],
+    },
+    target,
+    PV1F_COMBAT_CONTENT,
+  ).state
+  const restored = JSON.parse(JSON.stringify(charged)) as CombatEncounterState
+  expect(validateCombatEncounterState(restored)).toEqual([])
+  const unboosted = executeCombatAction(base, skill('storm'), target, PV1F_COMBAT_CONTENT).state
+  const before = restored.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp
+  const expected =
+    before -
+    2 * (before - unboosted.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp)
+  expect(
+    evaluateCombatAction(restored, skill('storm'), target, PV1F_COMBAT_CONTENT).projectedEffects,
+  ).toContainEqual(expect.objectContaining({ effectType: 'damage', after: expected }))
+  const out = executeCombatAction(restored, skill('storm'), target, PV1F_COMBAT_CONTENT).state
+  expect(out.tactical.battle.combatants.find((unit) => unit.id === 'enemy')!.hp).toBe(expected)
+  expect(statuses(out).some((row) => row.statusId === 'conductive')).toBe(false)
+})

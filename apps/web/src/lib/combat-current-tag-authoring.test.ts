@@ -1,3 +1,4 @@
+import { selectableCombatStatusIds } from '@aurevane/game-core/combat/combat-status-selection'
 import { expect, it } from 'vitest'
 import { currentTagForAuthoring } from './combat-current-tag-authoring'
 it('converts an edited Vengeance into configured Counter without changing the original capture', () => {
@@ -41,7 +42,7 @@ it('uses requested current rules for retained Cleanse, Drain and Ground only in 
       recipient: 'affected-tiles',
       terrain: 'frozen',
     }),
-  ).toHaveProperty('skillApSurcharge', 10)
+  ).not.toHaveProperty('skillApSurcharge')
 })
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { validateAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
@@ -84,16 +85,16 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(original.ability.behaviors[0]!.effects[0]!.payload).toHaveProperty('vengeance')
   },
 )
-it('adds linked Chilled on an explicit commit of a retained Frozen Ground effect', () => {
+it('replaces retained Frozen Ground with one Chilled on an explicit commit', () => {
   const input = {
     id: 'custom.frozen',
     effects: [{ type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }],
     effectDescriptions: ['Keep this terrain note.'],
   }
   const result = correctCombatContentEntries('skill', input)
-  expect(result.definition.effects).toHaveLength(2)
-  expect(result.definition.effects[1]).toMatchObject({ type: 'apply-status', statusId: 'frozen' })
-  expect(result.definition.effectDescriptions).toEqual(['Keep this terrain note.', null])
+  expect(result.definition.effects).toHaveLength(1)
+  expect(result.definition.effects[0]).toMatchObject({ type: 'apply-status', statusId: 'frozen' })
+  expect(result.definition.effectDescriptions).toEqual(['Keep this terrain note.'])
   expect(input.effects).toHaveLength(1)
 })
 
@@ -113,10 +114,11 @@ it('projects current Summon settings without rewriting the retained profile on r
       resolve: 10,
     },
     derivedStatRulesVersion: 5,
-    potencyBasisPoints: 4000,
+
     neverMoves: false,
     aiProfile: 'high',
   })
+  expect(current.potencyBasisPoints).toBe(original.potencyBasisPoints)
   expect(current.id).toBe(original.id)
   expect(current.tags).toEqual(original.tags)
   expect(current.portraitKey).toBe(original.portraitKey)
@@ -147,9 +149,11 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(result.ability.behaviors[0]!.effects[0]!.payload.profile).toMatchObject({
       description: 'Parent details',
       flavorLine: 'Parent flavor',
-      potencyBasisPoints: 4000,
       derivedStatRulesVersion: 5,
     })
+    expect(result.ability.behaviors[0]!.effects[0]!.payload.profile).not.toHaveProperty(
+      'potencyBasisPoints',
+    )
     expect(original).toEqual(before)
     expect(correctCombatContentEntries(kind, result).corrections).toEqual([])
   },
@@ -256,3 +260,111 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(payload).not.toHaveProperty('selectionKind')
   },
 )
+
+it('normalizes only edited Copy Buffs choices, retaining historical captures and explicit subsets', () => {
+  const captured = {
+    type: 'copy-statuses' as const,
+    recipient: 'primary-unit' as const,
+    mode: 'amplify' as const,
+    statusIds: ['blindside', 'invisible'],
+  }
+  expect(currentTagForAuthoring(captured)).toEqual({
+    ...captured,
+    invisibleDonorPolicyVersion: 1,
+    durationPolicyVersion: 1,
+    statusIds: ['invisible'],
+  })
+  expect(captured.statusIds).toEqual(['blindside', 'invisible'])
+  expect(
+    currentTagForAuthoring({
+      ...captured,
+      invisibleDonorPolicyVersion: 1,
+      statusIds: ['invisible'],
+    }),
+  ).toEqual({
+    ...captured,
+    invisibleDonorPolicyVersion: 1,
+    durationPolicyVersion: 1,
+    statusIds: ['invisible'],
+  })
+  const current = currentTagForAuthoring({ ...captured, statusIds: undefined })
+  expect(current).toMatchObject({ statusIds: expect.arrayContaining(['covert']) })
+  expect(current).not.toMatchObject({ statusIds: expect.arrayContaining(['blindside']) })
+})
+
+it('keeps a captured historical All Buffs selection as current All Buffs on an explicit edit', () => {
+  const current = selectableCombatStatusIds('copy-buffs')
+  const old = current.filter((id) => id !== 'covert').concat('blindside')
+  const capture = {
+    type: 'copy-statuses' as const,
+    recipient: 'primary-unit' as const,
+    mode: 'amplify' as const,
+    statusIds: old,
+  }
+  expect(currentTagForAuthoring(capture)).toMatchObject({ statusIds: current })
+  expect(capture.statusIds).toEqual(old)
+})
+
+it('normalizes an edited historical All Debuffs without DoTs and preserves a narrowed selection', () => {
+  const historical = {
+    type: 'copy-statuses' as const,
+    recipient: 'primary-unit' as const,
+    mode: 'curse' as const,
+    statusIds: [
+      'exposed',
+      'wet',
+      'frozen',
+      'conductive',
+      'blindside-vulnerability',
+      'suppress',
+      'hexed',
+      'slow',
+      'root',
+      'mark',
+      'burn',
+      'poison',
+      'bleed',
+    ],
+  }
+  const current = currentTagForAuthoring(historical)
+  expect(current).toMatchObject({
+    durationPolicyVersion: 1,
+    statusIds: selectableCombatStatusIds('copy-debuffs'),
+  })
+  expect(currentTagForAuthoring({ ...historical, statusIds: ['poison', 'slow'] })).toEqual({
+    ...historical,
+    statusIds: ['slow'],
+    durationPolicyVersion: 1,
+  })
+  expect(currentTagForAuthoring({ ...historical, statusIds: ['poison', 'burn', 'bleed'] })).toEqual(
+    { ...historical, statusIds: [], durationPolicyVersion: 1 },
+  )
+  expect(currentTagForAuthoring({ ...historical, statusIds: undefined })).toMatchObject({
+    durationPolicyVersion: 1,
+    statusIds: selectableCombatStatusIds('copy-debuffs'),
+  })
+  expect(historical.statusIds).toContain('poison')
+  expect(currentTagForAuthoring(current)).toEqual(current)
+})
+
+it('upgrades only edited Dispel to Invisible selection and removes protected Endure choices', () => {
+  const historical = {
+    type: 'remove-status' as const,
+    recipient: 'primary-unit' as const,
+    statusIds: ['endure', 'guarded'],
+    removalMode: 'specified' as const,
+  }
+  expect(currentTagForAuthoring(historical)).toEqual({
+    ...historical,
+    statusIds: ['guarded'],
+    selectionKind: 'buffs',
+    invisibleTargetPolicyVersion: 1,
+  })
+  expect(currentTagForAuthoring({ ...historical, statusIds: ['endure'] })).toEqual({
+    ...historical,
+    statusIds: [],
+    selectionKind: 'buffs',
+    invisibleTargetPolicyVersion: 1,
+  })
+  expect(historical.statusIds).toEqual(['endure', 'guarded'])
+})

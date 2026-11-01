@@ -1,5 +1,7 @@
+import type { PublicCombatGroundArea } from '@aurevane/game-core/combat/combat-ground-visuals'
 import { combatReversalKnowledgeState } from '@aurevane/game-core/combat/combat-reversal'
 import { combatReversalPayload } from '@aurevane/game-core/combat/combat-reversal'
+import { combatEvaluatedActionRecipientIds } from '@aurevane/game-core/combat/combat-effect-recipients'
 import 'server-only'
 import type {
   CombatEffectProjection,
@@ -86,6 +88,7 @@ export interface BattleActionPreview {
   projectedEffects: readonly CombatEffectProjection[]
   targetHitChances?: CombatActionEvaluation['targetHitChances']
   targetStatusResistances?: CombatActionEvaluation['targetStatusResistances']
+  projectedGroundAreas?: readonly PublicCombatGroundArea[]
   projectedTerrain?: readonly CombatTerrainProjection[]
   projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {
@@ -437,13 +440,16 @@ async function previewIntent(
       actorId: evaluation.actorId,
       primaryCombatantId: evaluation.primaryCombatantId,
       affectedTiles: evaluation.affectedTiles,
-      affectedCombatantIds: evaluation.affectedCombatantIds,
+      affectedCombatantIds: action.effects.some((effect) => effect.target === 'all')
+        ? combatEvaluatedActionRecipientIds(prepared, action, evaluation, PV1F_COMBAT_CONTENT)
+        : evaluation.affectedCombatantIds,
       projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
       targetHitChances: resourceIssue ? [] : projectBattleHitChanceForecast(evaluation),
       targetStatusResistances: resourceIssue
         ? []
         : projectBattleStatusResistanceForecast(evaluation),
       projectedStatuses,
+      projectedGroundAreas: resourceIssue ? [] : evaluation.projectedGroundAreas,
       projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
       projectedEvents: resourceIssue
         ? []

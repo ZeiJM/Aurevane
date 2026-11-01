@@ -1,3 +1,5 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { combatStatusApplications } from './combat-status-applications'
 import type {
   CombatContentCatalog,
@@ -13,9 +15,14 @@ export function validateCombatAccuracyStatusDefinition(status: CombatStatusDefin
   const blind = status.blindAccuracyPenaltyBasisPoints
   if (mark === undefined && blind === undefined) return
   for (const amount of [mark, blind]) {
-    if (amount !== undefined && (!Number.isSafeInteger(amount) || amount < 1 || amount > 3_000)) {
+    if (
+      amount !== undefined &&
+      (!Number.isSafeInteger(amount) ||
+        amount < 1 ||
+        amount > CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
+    ) {
       throw new RangeError(
-        'Mark and Blind magnitude must be an integer from 1 to 3000 basis points.',
+        `Mark and Blind magnitude must be an integer from 1 to ${CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS} basis points.`,
       )
     }
   }
@@ -120,7 +127,7 @@ export function assertValidCombatAccuracyStatusState(
         (state.effectStackingPolicyVersion !== 1 && status.stacks !== 1) ||
         !Number.isSafeInteger(status.stacks) ||
         status.stacks < 1 ||
-        status.remainingOwnerTurnStarts > 5
+        status.remainingOwnerTurnStarts > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS + 1
       ) {
         throw new TypeError(
           'Current accuracy status must match its pinned definition, source scope, stack and duration.',

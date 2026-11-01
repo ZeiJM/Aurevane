@@ -1,4 +1,9 @@
-import { combatStatusTuning } from './combat-status-tuning'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
+import {
+  combatStatusTuning,
+  combatEffectStrength,
+  type CombatEffectStrength,
+} from './combat-status-tuning'
 import { combatStatusIsCopyable, validateCombatStatusSelection } from './combat-status-selection'
 import { mergeSuppressStatus } from './combat-suppress'
 import { usesPercentageCombatDots } from './combat-dots'
@@ -34,22 +39,30 @@ import {
 } from './combat-effect-state'
 import { createCombatEffectInstanceProvenance } from './combat-kernel-types'
 
+export class CombatStatusCopyEligibilityError extends Error {}
+
 export interface CombatStatusCopyEffect {
   type: 'copy-statuses'
   recipient: 'primary-unit'
   mode: 'amplify' | 'curse'
   /** Omitted retains historical copying of every eligible active status. */
   statusIds?: readonly string[]
+  /** Explicit current authoring opt-in; omitted captures retain concealed donor rejection. */
+  invisibleDonorPolicyVersion?: 1
+  /** Current copies restore captured authored source lifetimes; absent captures keep remaining clocks. */
+  durationPolicyVersion?: 1
   /** Composed commands may explicitly permit an empty clone block while later effects still matter. */
   allowNoEligibleEffects?: boolean
 }
 
 function assertCurrentStatusCopyEffect(effect: CombatStatusCopyEffect): void {
+  if (effect.durationPolicyVersion !== undefined && effect.durationPolicyVersion !== 1)
+    throw new TypeError('Unsupported copy duration policy.')
   if ('beneficialEffects' in effect)
     throw new TypeError('Retired beneficial-effects Copy is unsupported.')
 }
 
-/** Copying remains single-unit and copy-first while composition is introduced incrementally. */
+/** One single-unit Copy operation resolves at its authored position. */
 export function validateCombatStatusCopyAction(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
@@ -68,6 +81,11 @@ export function validateCombatStatusCopyAction(
   const entry = copyEntries[0]!
   const effect = entry.effect
   assertCurrentStatusCopyEffect(effect)
+  if (
+    effect.invisibleDonorPolicyVersion !== undefined &&
+    (effect.invisibleDonorPolicyVersion !== 1 || effect.mode !== 'amplify')
+  )
+    throw new TypeError('Unsupported Copy Buffs Invisible donor policy.')
   if (effect.statusIds !== undefined) {
     validateCombatStatusSelection(
       effect.statusIds,
@@ -96,7 +114,6 @@ export function validateCombatStatusCopyAction(
     throw new TypeError('Status copy no-op permission is only valid on a composed command.')
   }
   if (
-    entry.index !== 0 ||
     action.sourceType === 'basic-attack' ||
     action.target.kind !== 'unit' ||
     action.target.shape.kind !== 'single' ||
@@ -104,7 +121,7 @@ export function validateCombatStatusCopyAction(
     (effect.mode !== 'amplify' && effect.mode !== 'curse')
   ) {
     throw new TypeError(
-      'Status copying requires one copy-first, single-unit Amplify or Curse operation, never Basic Attack.',
+      'Status copying requires one single-unit Amplify or Curse operation, never Basic Attack.',
     )
   }
 }
@@ -116,6 +133,9 @@ function isCopyable(
 ): boolean {
   return (
     (effect.statusIds === undefined || effect.statusIds.includes(definition.id)) &&
+    (effect.durationPolicyVersion !== 1 || !['burn', 'poison', 'bleed'].includes(definition.id)) &&
+    // Earlier omitted-All captures predate Covert copying and keep that exclusion.
+    (definition.id !== 'covert' || effect.statusIds?.includes('covert') === true) &&
     combatStatusIsCopyable(definition, effect.mode, elemental)
   )
 }
@@ -134,10 +154,8 @@ function assertPinnedStatus(
     instance.remainingOwnerTurnStarts < 1 ||
     instance.remainingOwnerTurnStarts >
       (instance.remainingOwnerTurnEnds !== undefined
-        ? 4
-        : ['suppress', 'counter'].includes(instance.statusId)
-          ? 5
-          : definition.durationOwnerTurnStarts)
+        ? CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+        : Math.max(CURRENT_EFFECT_DURATION_MAXIMUM_TURNS + 1, definition.durationOwnerTurnStarts))
   ) {
     throw new TypeError(
       'Copied status state must match its pinned version, stack cap and remaining duration.',
@@ -149,6 +167,7 @@ interface StatusCopy {
   donor: CombatStatusInstance
   previous: CombatStatusInstance | undefined
   next: CombatStatusInstance
+  receiptStrength?: CombatEffectStrength
 }
 
 interface PoisonCopy {
@@ -188,6 +207,7 @@ function planBleedCopies(
   effect: CombatStatusCopyEffect,
 ): readonly BleedCopy[] {
   if (
+    effect.durationPolicyVersion === 1 ||
     effect.mode !== 'curse' ||
     (effect.statusIds !== undefined && !effect.statusIds.includes('bleed'))
   )
@@ -274,6 +294,25 @@ interface CombatCopyPlan {
   bleed: readonly BleedCopy[]
 }
 
+/** Source lifetimes are captured at application, never inferred from today's catalogue. */
+function refreshCopiedStatusDuration(donor: CombatStatusInstance): CombatStatusInstance {
+  const originals = combatStatusApplications(donor).map(
+    (application) => application.originalDurationTurns,
+  )
+  if (originals.every((duration) => duration === undefined)) return donor
+  const remaining =
+    donor.remainingRoundBoundaries ?? donor.remainingOwnerTurnEnds ?? donor.remainingOwnerTurnStarts
+  const duration = Math.max(...originals.map((original) => original ?? remaining))
+  return {
+    ...donor,
+    originalDurationTurns: duration,
+    remainingOwnerTurnStarts: duration,
+    ...(donor.remainingOwnerTurnEnds === undefined ? {} : { remainingOwnerTurnEnds: duration }),
+    ...(donor.remainingRoundBoundaries === undefined ? {} : { remainingRoundBoundaries: duration }),
+    skipCurrentOwnerTurnEnd: undefined,
+  }
+}
+
 /** Copy Buffs and Copy Debuffs preserve the authored Amplify/Curse eligibility contract. */
 export function planCombatStatusCopies(
   state: CombatEncounterState,
@@ -307,7 +346,8 @@ export function planCombatStatusCopies(
       definition: CombatStatusDefinition
     }
   >()
-  for (const donor of [...donors].sort(compareCombatStatusInstances)) {
+  for (const source of [...donors].sort(compareCombatStatusInstances)) {
+    const donor = effect.durationPolicyVersion === 1 ? refreshCopiedStatusDuration(source) : source
     const definition = definitions.get(donor.statusId)
     if (!definition) throw new TypeError(`Missing pinned status definition ${donor.statusId}.`)
     if (
@@ -354,6 +394,9 @@ export function planCombatStatusCopies(
         ...(donor.sourceScopedMark === true ? { sourceScopedMark: true as const } : {}),
         statusId: donor.statusId,
         statusVersion: donor.statusVersion,
+        ...(donor.originalDurationTurns === undefined
+          ? {}
+          : { originalDurationTurns: donor.originalDurationTurns }),
         ...combatStatusTuning(donor),
         ...(donor.counter ? { counter: { ...donor.counter } } : {}),
         ...(donor.blindsideModifiersBasisPoints === undefined
@@ -369,6 +412,7 @@ export function planCombatStatusCopies(
                     const copied = { ...application, sourceCombatantId: actorId }
                     delete copied.sourceCommandVisibility
                     delete copied.privateSharedLifetime
+                    delete copied.ruinApplicationId
                     return copied
                   }),
                 ),
@@ -411,6 +455,7 @@ export function planCombatStatusCopies(
           skipCurrentOwnerTurnEnd: undefined,
         }
         delete incoming.sourceCommandVisibility
+        delete incoming.ruinApplicationId
         if (statusDurationScope === 'rounds') {
           const remaining =
             donor.remainingRoundBoundaries ??
@@ -423,12 +468,30 @@ export function planCombatStatusCopies(
         }
         next = mergeSuppressStatus(previous, incoming, state, receiverId)
       }
-      return { donor, previous, next }
+      // A single rate cannot describe copied applications with different captured strengths.
+      const strengths = usesUnlimitedCombatEffectStacking(state)
+        ? selectedDonors.flatMap((row) =>
+            combatStatusApplications(row).map((application) =>
+              combatEffectStrength(row.statusId, application),
+            ),
+          )
+        : [combatEffectStrength(next.statusId, next)]
+      const receiptStrength =
+        donor.statusId === 'suppress'
+          ? combatEffectStrength(next.statusId, next)
+          : strengths.length &&
+              strengths.every(
+                (strength) => JSON.stringify(strength) === JSON.stringify(strengths[0]),
+              )
+            ? strengths[0]
+            : undefined
+      return { donor, previous, next, ...(receiptStrength ? { receiptStrength } : {}) }
     },
   )
   const independent = usesUnlimitedCombatEffectStacking(state) || usesPercentageCombatDots(state)
   const persistentDots = normalizeCombatEffectState(state.effectState)
   const poisonDonors =
+    effect.durationPolicyVersion !== 1 &&
     effect.mode === 'curse' &&
     (effect.statusIds === undefined || effect.statusIds.includes('poison'))
       ? (independent
@@ -439,7 +502,9 @@ export function planCombatStatusCopies(
         ).filter((row) => row.curseCopyable === true)
       : []
   const burnDonors =
-    effect.mode === 'curse' && (effect.statusIds === undefined || effect.statusIds.includes('burn'))
+    effect.durationPolicyVersion !== 1 &&
+    effect.mode === 'curse' &&
+    (effect.statusIds === undefined || effect.statusIds.includes('burn'))
       ? (independent
           ? currentBurnInstances(state, donorId)
           : [currentBurnInstance(state, donorId)].filter(
@@ -507,7 +572,7 @@ export function applyCombatStatusCopies(
     if (effect.allowNoEligibleEffects === true) {
       return { state, events: [], projections: [] }
     }
-    throw new Error('Status copying requires eligible active statuses.')
+    throw new CombatStatusCopyEligibilityError('Status copying requires eligible active statuses.')
   }
   const replaced = new Set(
     copies.map((copy) => copy.previous).filter((entry) => entry !== undefined),
@@ -529,6 +594,9 @@ export function applyCombatStatusCopies(
     sourceCombatantId: actorId,
     sourceActionId: actionId,
     profileVersion: copy.donor.profileVersion,
+    ...(copy.donor.movementRefreshTiles !== undefined
+      ? { movementRefreshTiles: copy.donor.movementRefreshTiles }
+      : {}),
     movementRemainder: usesPercentageCombatDots(state)
       ? copy.donor.movementRemainder
       : (copy.previous?.movementRemainder ?? copy.donor.movementRemainder),
@@ -627,12 +695,13 @@ export function applyCombatStatusCopies(
   return {
     state: copiedState,
     events: [
-      ...copies.map(({ previous, next }) => ({
+      ...copies.map(({ previous, next, receiptStrength }) => ({
         event: 'status_applied' as const,
         actionId,
         sourceCombatantId: actorId,
         targetCombatantId: receiverId,
         statusId: next.statusId,
+        ...(receiptStrength ? { effectStrength: receiptStrength } : {}),
         ...(next.statusId === 'suppress' ? { potencyBasisPoints: next.potencyBasisPoints } : {}),
         stacks: next.stacks,
         remainingOwnerTurnStarts: next.remainingOwnerTurnStarts,
@@ -697,6 +766,7 @@ export function attachCombatStatusCopyProvenance(
   effect: Extract<CombatEffectDefinition, { type: 'copy-statuses' }>,
   content: CombatContentCatalog,
   context: CombatResolutionContext,
+  effectOrdinal = 0,
 ): CombatEncounterState {
   const { receiverId, copies, poison, burn, poisons, burns, bleed } = planCombatStatusCopies(
     before,
@@ -718,7 +788,7 @@ export function attachCombatStatusCopyProvenance(
             const provenance = createCombatEffectInstanceProvenance({
               action: context.provenance,
               targetCombatantId: receiverId,
-              effectOrdinal: 0,
+              effectOrdinal,
               copyOrdinal: assigned.copyOrdinal,
               createdRound: before.tactical.battle.round,
               createdTurn: before.tactical.battle.turnNumber,
@@ -735,7 +805,7 @@ export function attachCombatStatusCopyProvenance(
     createCombatEffectInstanceProvenance({
       action: context.provenance,
       targetCombatantId: receiverId,
-      effectOrdinal: 0,
+      effectOrdinal,
       copyOrdinal,
       createdRound: before.tactical.battle.round,
       createdTurn: before.tactical.battle.turnNumber,
@@ -781,7 +851,7 @@ export function attachCombatStatusCopyProvenance(
               const provenance = createCombatEffectInstanceProvenance({
                 action: context.provenance,
                 targetCombatantId: receiverId,
-                effectOrdinal: 0,
+                effectOrdinal,
                 copyOrdinal: bleedBaseOrdinal + assigned.attemptIndex,
                 createdRound: before.tactical.battle.round,
                 createdTurn: before.tactical.battle.turnNumber,

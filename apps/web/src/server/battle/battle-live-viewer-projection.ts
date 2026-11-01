@@ -85,11 +85,16 @@ function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
   return {
     legacyTriggers: state.dotTriggerPolicyVersion === undefined,
     legacyPoisonMovement: state.dotTriggerPolicyVersion !== 2,
+    groundContactPolicyVersion: state.groundContactPolicyVersion ?? null,
     legacyFrozenGround: state.frozenGroundPolicyVersion !== 1,
     legacyAirborne: state.airbornePolicyVersion !== 1,
     legacyAirborneJump: state.airborneJumpPolicyVersion !== 1,
     legacyHealingDown: state.healingDownPolicyVersion !== 1,
     legacyBlindsideActivation: state.blindsideActivationPolicyVersion !== 1,
+    legacyReversal: state.reversalPolicyVersion !== 1,
+    legacyPierceCritical: state.pierceCriticalPolicyVersion !== 1,
+    legacySummonPotency: state.summonPotencyPolicyVersion !== 1,
+    legacyRuin: state.ruinPolicyVersion !== 1,
     legacyElemental: state.elementalDamagePolicyVersion === undefined,
     explicitElemental: state.elementalDamagePolicyVersion === 2,
   }
@@ -165,6 +170,11 @@ export function projectBattleManualActionTargets(
             behaviorId: behavior.id,
             ...(behavior.classification ? { classification: behavior.classification } : {}),
             dealsDamage: battleActionDealsDamage(behavior.effects.map((effect) => effect.payload)),
+            ...(behavior.effects.some(
+              (effect) => 'target' in effect.payload && effect.payload.target === 'all',
+            )
+              ? { hasAllTargetEffects: true as const }
+              : {}),
             modifierRoot: combatCanonicalModifierRootFacts(behavior),
             ...(canonicalAbilitySupportsFireGroundIntent(
               behavior,
@@ -373,8 +383,14 @@ export function omitCombatExecutionMetadata<T extends object>(receipt: T): T {
     'modifierSuppressions',
     'sourceCommandVisibility',
     'privateSharedLifetime',
+    'originalDurationTurns',
+    'copyEffectOrdinal',
     'abilityCommandFacts',
     'counterReturnBasisPoints',
+    'attackTagCapture',
+    'ruinApplicationId',
+    'ruinCommandId',
+    'ruinState',
     'summonDamageCommandId',
     'provenance',
   ])
@@ -432,6 +448,37 @@ export function projectBattleStatusStateForViewer(
   const combatantById = new Map(
     state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant] as const),
   )
+
+  const knownCovertApplication = (status: BattlePresentedStatus): BattlePresentedStatus | null => {
+    if (
+      status.statusId !== PV1F_COVERT_STATUS.id ||
+      status.statusVersion !== PV1F_COVERT_STATUS.version
+    )
+      return null
+    const applications = status.applicationModifiers ?? [status]
+    const own = applications.findLast((application) => {
+      const source = combatantById.get(application.sourceCombatantId)
+      const relationship = source ? battleViewerRelationship(viewer, source) : 'enemy'
+      return relationship === 'self' || relationship === 'ally'
+    })
+    if (!own) return null
+    // Only confirm the known application. A shared clock or count could disclose another caster.
+    return {
+      statusId: status.statusId,
+      statusVersion: status.statusVersion,
+      sourceCombatantId: own.sourceCombatantId,
+      stacks: 1,
+      remainingOwnerTurnStarts: 1,
+      presentationDuration: 'while-active',
+      ...(status.timingState === undefined ? {} : { timingState: status.timingState }),
+      ...(status.timingState === 'pending' && status.activationRound !== undefined
+        ? { activationRound: status.activationRound }
+        : {}),
+      ...(status.battleTag === undefined ? {} : { battleTag: status.battleTag }),
+    }
+  }
+  const ownsCovertApplication = (status: BattlePresentedStatus): boolean =>
+    knownCovertApplication(status) !== null
 
   const presentInteractionPolicy = (
     status: BattlePresentedStatus,
@@ -560,6 +607,7 @@ export function projectBattleStatusStateForViewer(
                   reflectionBasisPoints: profile.reflectionBasisPoints,
                   attackerMaxHpCapBasisPoints: profile.attackerMaxHpCapBasisPoints,
                   defenderMaxHpCapBasisPoints: profile.defenderMaxHpCapBasisPoints,
+                  ...(profile.policyVersion === 1 ? { policyVersion: 1 as const } : {}),
                 },
               }
             : {}),
@@ -594,6 +642,8 @@ export function projectBattleStatusStateForViewer(
             const recipient = combatantById.get(activeRow.combatantId)
             const relationship = recipient ? battleViewerRelationship(viewer, recipient) : 'enemy'
             if (relationship === 'self' || relationship === 'ally') return [status]
+            const knownCovert = knownCovertApplication(status)
+            if (knownCovert) return [knownCovert]
             const definition = STATUS_DEFINITION_BY_KEY.get(
               statusDefinitionKey(status.statusId, status.statusVersion),
             )
@@ -661,6 +711,7 @@ export function projectBattleStatusStateForViewer(
     })
 
     if (relationship === 'self' || relationship === 'ally') return row
+    row.statuses = row.statuses.map((status) => knownCovertApplication(status) ?? status)
 
     // Concealment is authoritative even when a private queued refresh hides the
     // active Covert instance from this viewer's presented rows.
@@ -670,7 +721,9 @@ export function projectBattleStatusStateForViewer(
     if (!covert)
       return {
         ...row,
-        statuses: row.statuses.filter((status) => status.statusId !== PV1F_COVERT_STATUS.id),
+        statuses: row.statuses.filter(
+          (status) => status.statusId !== PV1F_COVERT_STATUS.id || ownsCovertApplication(status),
+        ),
       }
 
     return {
@@ -688,6 +741,8 @@ export function projectBattleStatusStateForViewer(
         )
         // Unknown or mismatched pinned status versions fail closed for unauthorized Covert viewers.
         if (!definition) return false
+        // Confirm the caster team's own Covert application without exposing other hidden buffs.
+        if (ownsCovertApplication(status)) return true
         return combatStatusMetadata(definition).polarity !== 'positive'
       }),
     }
@@ -783,6 +838,8 @@ export function projectBattleEffectStateForViewer(
 }
 
 const PRIVATE_BATTLE_STATE_KEYS = [
+  'ruinState',
+  'ruinCommandId',
   'nextGroundAreaId',
   'nextSkillPacketCommandId',
   'nextReversalAttackCommandId',

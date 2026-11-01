@@ -1,6 +1,27 @@
 import { expect, expectTypeOf, it } from 'vitest'
 import { projectPublicCombat } from './public-combat-presentation'
 
+it('projects only the applied Ruin bonus and never its private committed target snapshot', () => {
+  const captured = {
+    event: 'damage_applied',
+    ruinBonusBasisPoints: 6000,
+    ruinState: { version: 1, spentTargets: [{ targetId: 'privateTarget', commandId: 1 }] },
+    ruinCommandId: 1,
+    attackTagCapture: {
+      ruinBonusPerDebuffBasisPoints: 3000,
+      capturedDebuffs: { privateTarget: 2 },
+    },
+    nested: { ruinApplicationId: 7, attackTagCapture: { capturedDebuffs: { privateTarget: 2 } } },
+  }
+  const before = structuredClone(captured)
+  expect(projectPublicCombat(captured)).toEqual({
+    event: 'damage_applied',
+    ruinBonusBasisPoints: 6000,
+    nested: {},
+  })
+  expect(captured).toEqual(before)
+})
+
 it('omits canonical and legacy accuracy authoring recursively while preserving numeric stats and independent rolls', () => {
   const privateData = {
     accuracy: 8750,

@@ -90,6 +90,30 @@ describe('shared battlefield presentation bundle', () => {
     expect(styles).toContain('border-width: 1px !important;')
   })
 
+  it('keeps terrain icons and countdowns compact only at shared mobile breakpoints', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+    const mobileMarkers = styles.match(
+      /@media \(max-width: 820px\), \(max-width: 980px\) and \(max-height: 500px\) and \(pointer: coarse\) \{\s*:global\(section#battlefield button\[data-terrain-overlay\]\) \{([^}]+)\}\s*:global\(section#battlefield \[data-terrain-overlay-marker='true'\]\) \{([^}]+)\}/,
+    )
+    expect(mobileMarkers).not.toBeNull()
+    expect(mobileMarkers?.[1]).toContain('container-type: inline-size;')
+    expect(mobileMarkers?.[2]).toContain('font-size: clamp(0.3rem, 24cqw, 0.55rem);')
+    expect(mobileMarkers?.[2]).toContain('line-height: 1;')
+    expect(mobileMarkers?.[2]).toContain('padding: 0;')
+    expect(mobileMarkers?.[2]).toContain('right: 5%;')
+    expect(mobileMarkers?.[2]).toContain('bottom: 4%;')
+    const desktopMarker = styles.match(
+      /:global\(section#battlefield \[data-terrain-overlay-marker='true'\]\) \{([^}]+)\}/,
+    )
+    expect(desktopMarker?.[1]).toContain('font-size: 0.6875rem;')
+    expect(desktopMarker?.[1]).toContain('padding: 1px 3px;')
+    expect(desktopMarker?.[1]).toContain('pointer-events: none;')
+    for (const surface of ['battle-experience.tsx', 'pvp-spectator-experience.tsx']) {
+      expect(readLocalFile(surface)).toContain('data-terrain-overlay-marker="true"')
+      expect(readLocalFile(surface)).toContain('{overlay.remainingRoundBoundaries}')
+    }
+  })
+
   it('uses separate production terrain materials without owning command or card geometry', () => {
     const styles = readLocalFile('battlefield-presentation-bundle.module.css')
     for (const file of [

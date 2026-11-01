@@ -158,3 +158,18 @@ it('uses trusted native AP and authored MP with explicit zero HP', () => {
     { resource: 'hp', amount: 0 },
   ])
 })
+it('includes authoritative native HP payment in the command quote', () => {
+  const { state } = fixture()
+  expect(
+    projectBattleCommandQuote(state, 'actor', {
+      native: {
+        action: { ...PV1F_GUARD_ACTION, cost: { ...PV1F_GUARD_ACTION.cost, mp: 3, hp: 2 } },
+        apCost: 47,
+      },
+    }).commandCosts,
+  ).toEqual([
+    { resource: 'ap', amount: 47 },
+    { resource: 'mp', amount: 3 },
+    { resource: 'hp', amount: 2 },
+  ])
+})

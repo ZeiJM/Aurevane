@@ -474,3 +474,121 @@ it('canonical Tag trigger boundaries retain their private ACLs on drafts and imm
     { tgname: 'combat_content_version_tag_presentation' },
   ])
 })
+
+it.each(['native', 'canonical'] as const)(
+  'validates and publishes finalized Summon portrait bytes in %s profiles without exposing an unsaved asset',
+  async (mode) => {
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADklEQVQImWNg+A+FMAYAQ84H+QDi4rkAAAAASUVORK5CYII=',
+      'base64',
+    )
+    const artwork = (
+      await db.query<{ media: Record<string, unknown> }>(
+        'select public.finalize_combat_content_media_v1($1,null,$2,$3) media',
+        [
+          owner,
+          png,
+          {
+            kind: 'image',
+            contentType: 'image/png',
+            width: 2,
+            height: 2,
+            sourceWidth: 4,
+            sourceHeight: 2,
+            crop: { x: 1, y: 0, size: 2 },
+          },
+        ],
+      )
+    ).rows[0]!.media
+    const native = latestEnabledMatureSkills().find((skill) => skill.summonProfile)!
+    const key = `content.summon-portrait-${mode}`
+    const profile = { ...native.summonProfile!, media: { artwork } }
+    const definition = {
+      ...structuredClone(native),
+      id: key,
+      ...(mode === 'native'
+        ? { summonProfile: profile }
+        : {
+            ability: {
+              schemaVersion: 1,
+              behaviors: [
+                {
+                  id: 'summon',
+                  activation: 'manual',
+                  mode: 'action',
+                  classification: 'utility',
+                  targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+                  costs: [{ resource: 'ap', amount: 20 }],
+                  cooldown: null,
+                  requirements: null,
+                  effects: [
+                    {
+                      id: 'spawn',
+                      timing: 'instant',
+                      payload: { type: 'summon', recipient: 'selected-tile', profile },
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+    }
+    let saved = await writeMedia(key, {
+      action: 'create',
+      requestId: crypto.randomUUID(),
+      contentKind: 'skill',
+      definition,
+    })
+    expect(
+      (
+        await db.query<{ media: unknown }>(
+          'select public.read_published_combat_content_media_v1($1) media',
+          [artwork.id],
+        )
+      ).rows[0]!.media,
+    ).toBeNull()
+    saved = await publishMedia(key, saved)
+    const exact = (
+      await db.query<{ definition: unknown }>(
+        "select definition from public.read_combat_content_version_v1($1,'skill',$2)",
+        [key, saved.current.contentVersion],
+      )
+    ).rows[0]!.definition
+    expect(JSON.stringify(exact)).toContain(String(artwork.id))
+    const publicMedia = (
+      await db.query<{ media: { descriptor: unknown; bytes: string } }>(
+        'select public.read_published_combat_content_media_v1($1) media',
+        [artwork.id],
+      )
+    ).rows[0]!.media
+    expect(publicMedia.descriptor).toEqual(artwork)
+    expect(Buffer.from(publicMedia.bytes, 'base64')).toEqual(png)
+    const forged = { ...profile, media: { artwork: { ...artwork, checksum: 'f'.repeat(64) } } }
+    const forgedDefinition =
+      mode === 'native'
+        ? { ...definition, summonProfile: forged }
+        : {
+            ...definition,
+            ability: {
+              ...definition.ability!,
+              behaviors: definition.ability!.behaviors.map((behavior) => ({
+                ...behavior,
+                effects: [
+                  {
+                    id: 'spawn',
+                    timing: 'instant',
+                    payload: { type: 'summon', recipient: 'selected-tile', profile: forged },
+                  },
+                ],
+              })),
+            },
+          }
+    await expect(
+      writeMedia(key, {
+        action: 'save',
+        expectedRevision: saved.revision,
+        definition: forgedDefinition,
+      }),
+    ).rejects.toThrow(/MEDIA_REFERENCE_INVALID/)
+  },
+)

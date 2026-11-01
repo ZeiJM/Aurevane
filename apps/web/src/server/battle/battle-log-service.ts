@@ -4,6 +4,11 @@ import { battleDamageLabel } from '../../lib/battle/battle-damage-type'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { combatStatusPresentationTag } from '@aurevane/game-core/combat/gameplay-tags'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
+import {
+  combatEffectStrength,
+  type CombatEffectStrength,
+} from '@aurevane/game-core/combat/combat-status-tuning'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
 import 'server-only'
 
@@ -52,6 +57,7 @@ export interface BattleLogEntry {
   /** Canonical periodic damage, distinct from a fresh cast or effect activation. */
   periodicStatusId?: 'poison' | 'burn' | 'bleed'
   damageTrigger?: 'burn-backlash' | 'poison-movement' | 'scheduled-tick'
+  removalReason?: 'ruin'
   effectTimingState?: 'pending'
   actorNarrator?: BattleNarratorIdentitySnapshot
   targetNarrator?: BattleNarratorIdentitySnapshot
@@ -67,6 +73,8 @@ export interface BattleLogEntry {
   statusId?: string
   /** Captured, validated Suppress percentage from this viewer-visible receipt. */
   potencyBasisPoints?: number
+  /** Exact recorded application strength; never inferred from current content or target stats. */
+  effectStrength?: CombatEffectStrength
   effectOrigin?: CombatEffectOrigin
   actionContext?: {
     family?: 'skill' | 'essence' | 'resonance'
@@ -121,6 +129,7 @@ function actionLabel(value: unknown): string {
   const actionId = presentationActionId(value)
   if (actionId?.startsWith('ground.pulse.')) return 'Ground Effect'
   if (actionId === 'basic.attack.unarmed.basic') return 'Basic Attack'
+  if (actionId === 'status.reflect.current.v1') return 'Reflect'
   if (actionId === 'basic.guard') return 'Guard'
   if (actionId === 'basic.recover') return 'HP Recovery'
   if (actionId === 'basic.recover.mp') return 'MP Recovery'
@@ -158,6 +167,24 @@ function numberValue(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
 
+/** Full settled damage is presentation metadata; exact large integers never pass through Number. */
+function resolvedDamageValue(value: unknown): number | string | null {
+  if (typeof value === 'string') return /^\d+$/u.test(value) ? value : null
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null
+}
+
+/** Only committed receipt metadata can describe Ruin; later target statuses are irrelevant. */
+function recordedRuinBonus(value: unknown): string | undefined {
+  const recorded = resolvedDamageValue(value)
+  if (recorded === null) return undefined
+  const basisPoints = BigInt(recorded)
+  if (basisPoints <= 0n) return undefined
+  const fraction = String(basisPoints % 100n)
+    .padStart(2, '0')
+    .replace(/0+$/u, '')
+  return `${basisPoints / 100n}${fraction ? `.${fraction}` : ''}%`
+}
+
 function positionLabel(value: unknown): string | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
   const position = value as Record<string, unknown>
@@ -178,9 +205,7 @@ function renderTemplate(template: string, values: Readonly<Record<string, string
 }
 
 function recordedSuppressPotency(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 100 && value <= 10000
-    ? value
-    : undefined
+  return combatEffectStrength('suppress', { potencyBasisPoints: value })?.potencyBasisPoints
 }
 
 function createEntry(
@@ -211,6 +236,10 @@ function createEntry(
     (record.event as Record<string, unknown>).effectActivationRound,
   )
   const raw = record.event as Record<string, unknown>
+  const strength =
+    input.statusId && ['status_applied', 'effect_pending'].includes(eventType)
+      ? combatEffectStrength(input.statusId, raw.effectStrength)
+      : undefined
   const ownerTurns = numberValue(raw.remainingOwnerTurnEnds)
   const roundBoundaries = numberValue(raw.remainingRoundBoundaries)
   const applications = numberValue(raw.recoveryApplications)
@@ -219,7 +248,7 @@ function createEntry(
     applications !== null &&
     Number.isSafeInteger(applications) &&
     applications >= 1 &&
-    applications <= 4
+    applications <= CURRENT_EFFECT_DURATION_MAXIMUM_TURNS + 1
       ? applications
       : undefined
   const effectTiming: NonNullable<BattleLogEntry['effectTiming']> = {
@@ -255,6 +284,9 @@ function createEntry(
 
   return {
     ...(damageTrigger ? { damageTrigger } : {}),
+    ...(eventType === 'status_removed' && raw.removalReason === 'ruin'
+      ? { removalReason: 'ruin' as const }
+      : {}),
     battleVersion: record.battleVersion,
     eventIndex: record.eventIndex,
     occurredAt: record.createdAt,
@@ -278,6 +310,7 @@ function createEntry(
     actionId: input.actionId ?? null,
     actionLabel: input.actionLabel ?? null,
     ...(input.statusId ? { statusId: input.statusId } : {}),
+    ...(strength ? { effectStrength: strength } : {}),
     ...(input.statusId === 'suppress' &&
     recordedSuppressPotency(raw.potencyBasisPoints) !== undefined
       ? { potencyBasisPoints: recordedSuppressPotency(raw.potencyBasisPoints) }
@@ -308,19 +341,18 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
   ) {
     const description = combatInteractionDescription(event)
     if (!description) return null
+    const displaced = eventType === 'combatant_displaced' || eventType === 'displacement_failed'
+    const displacementLabel = event.direction === 'pull' ? 'Pull' : 'Push'
     return createEntry(record, eventType, {
-      message: description,
-      messageTemplate: description,
+      message: displaced
+        ? description.replace(/^Target\b/u, combatantLabel(event.combatantId))
+        : description,
+      messageTemplate: displaced ? description.replace(/^Target\b/u, '{target}') : description,
       actorCombatantId: stringValue(event.sourceCombatantId),
       targetCombatantId: stringValue(event.combatantId),
       actionId: presentationActionId(event.actionId),
       kind: eventType.includes('displace') ? 'movement' : 'status',
-      headline:
-        eventType === 'displacement_failed'
-          ? 'Push failed'
-          : eventType.includes('displace')
-            ? 'Push'
-            : 'Terrain',
+      headline: eventType.includes('displace') ? displacementLabel : 'Terrain',
       tone: eventType === 'displacement_failed' ? 'warning' : 'neutral',
       facts: fact(description, eventType === 'displacement_failed' ? 'warning' : 'neutral'),
       ...(eventType === 'terrain_overlay_changed'
@@ -371,10 +403,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         returned < 0
       )
         return null
+      const displayedReturn = resolvedDamageValue(event.resolvedReturnedHpDamage) ?? returned
       return createEntry(record, eventType, {
         messageTemplate:
           '{actor} reverses the attack: prevents {prevented} HP damage and returns {returned} HP damage to {target}.',
-        templateValues: { prevented: String(prevented), returned: String(returned) },
+        templateValues: { prevented: String(prevented), returned: String(displayedReturn) },
         actorCombatantId: stringValue(event.combatantId),
         targetCombatantId: stringValue(event.attackerCombatantId),
         actionId: presentationActionId(event.actionId),
@@ -383,7 +416,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: 'damage',
         facts: [
           ...fact(`${prevented} HP damage prevented`),
-          ...fact(`${returned} HP damage returned`, 'damage'),
+          ...fact(`${displayedReturn} HP damage returned`, 'damage'),
         ],
       })
     }
@@ -432,7 +465,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         candidate !== null &&
         Number.isSafeInteger(candidate) &&
         candidate >= 1 &&
-        candidate <= 4
+        candidate <= CURRENT_EFFECT_DURATION_MAXIMUM_TURNS + 1
           ? candidate
           : undefined
       const label =
@@ -464,7 +497,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         actorCombatantId: stringValue(event.sourceCombatantId),
         targetCombatantId,
         actionId: presentationActionId(event.actionId),
-        statusId: tag && combatStatusDetails(tag).kind !== 'Effect' ? tag : undefined,
+        statusId:
+          tag &&
+          (combatStatusDetails(tag).kind !== 'Effect' || ['fortified', 'reckless'].includes(tag))
+            ? tag
+            : undefined,
         kind: 'status',
         headline: label,
         facts: fact(
@@ -800,7 +837,10 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const actionId = presentationActionId(
         periodic ? (event.sourceActionId ?? event.actionId) : event.actionId,
       )
-      const amount = numberValue(event.amount)
+      const amount = resolvedDamageValue(event.resolvedDamage) ?? numberValue(event.amount)
+      const ruinBonus =
+        periodic || event.damageTrigger ? undefined : recordedRuinBonus(event.ruinBonusBasisPoints)
+      const ruinAnnotation = ruinBonus ? ` · Ruin +${ruinBonus}` : ''
       const hpAfter = numberValue(event.hpAfter)
       const damageLabel = battleDamageLabel(event.element, event.damageKind)
       const element =
@@ -820,12 +860,14 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
             ? ' from an extra Poison tick after movement'
             : ''
       return createEntry(record, eventType, {
-        message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} ${damageLabel}${cause}${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
-        messageTemplate: `{target} took {amount} ${damageLabel}${cause}.`,
+        message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} ${damageLabel}${cause}${ruinAnnotation}${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
+        messageTemplate: `{target} took {amount} ${damageLabel}${cause}${ruinAnnotation}.`,
         templateValues: {
           amount: String(amount ?? 'resolved'),
           ...(element ? { element } : {}),
           ...(event.damageKind === 'piercing' ? { damageKind: 'piercing' } : {}),
+          ...(typeof event.critical === 'boolean' ? { critical: String(event.critical) } : {}),
+          ...(ruinBonus ? { ruinBonus } : {}),
         },
         actorCombatantId,
         targetCombatantId,

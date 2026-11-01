@@ -1,3 +1,5 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import type {
   CombatActionDefinition,
   CombatEffectDefinition,
@@ -12,6 +14,8 @@ export const CURRENT_POISON_REFRESH_TRAVERSED_TILES = 5
 export interface AttackPercentageDotProfile {
   kind: 'attack-percentage'
   basisPoints: number
+  /** Explicit independent-target policy. Absence retains historical per-recipient HP loss. */
+  damageBasis?: 'command-hostile-total'
   decayBasisPointsPerTick?: number
 }
 
@@ -42,11 +46,23 @@ export function validatePercentageDotProfile(
 ): void {
   if (!profile || typeof profile !== 'object' || profile.kind !== 'attack-percentage')
     throw new TypeError('DoT damage profile must use attack-percentage.')
-  integer(ticks, 1, 4, 'DoT ticks')
-  integer(profile.basisPoints, 1, 10000, 'DoT percentage basis points')
+  if (profile.damageBasis !== undefined && profile.damageBasis !== 'command-hostile-total')
+    throw new TypeError('Unsupported DoT damage basis.')
+  integer(ticks, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS, 'DoT ticks')
+  integer(
+    profile.basisPoints,
+    1,
+    CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+    'DoT percentage basis points',
+  )
   if (profile.decayBasisPointsPerTick !== undefined) {
     if (type !== 'burn') throw new TypeError('Only Burn can author percentage-point decay.')
-    integer(profile.decayBasisPointsPerTick, 0, 10000, 'Burn percentage-point decay')
+    integer(
+      profile.decayBasisPointsPerTick,
+      0,
+      CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+      'Burn percentage-point decay',
+    )
   }
   if (profile.basisPoints - (profile.decayBasisPointsPerTick ?? 0) * (ticks - 1) <= 0)
     throw new RangeError('Every scheduled Burn percentage must remain positive.')
@@ -58,7 +74,7 @@ export function percentageDotTickDamage(
   stage = 0,
 ): number {
   integer(basis, 0, Number.MAX_SAFE_INTEGER, 'Captured attack HP damage')
-  integer(stage, 0, 3, 'DoT stage')
+  integer(stage, 0, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS - 1, 'DoT stage')
   validatePercentageDotProfile(
     profile,
     stage + 1,
@@ -76,7 +92,7 @@ export function validateCapturedPercentageDotDamage(
 ): void {
   if (!value || typeof value !== 'object') throw new TypeError('Captured DoT damage is required.')
   integer(value.capturedDamage, 1, Number.MAX_SAFE_INTEGER, 'Captured attack HP damage')
-  integer(stage, 0, 3, 'DoT stage')
+  integer(stage, 0, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS - 1, 'DoT stage')
   validatePercentageDotProfile(value.profile, ticks + stage, type)
 }
 
@@ -270,12 +286,17 @@ export function parsePercentageBasisPoints(text: string, allowZero = false): num
   const match = /^(\d{1,3})(?:\.(\d{1,2}))?$/.exec(text)
   if (!match) throw new TypeError('Use a percentage with at most two decimal places.')
   const basisPoints = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'))
-  integer(basisPoints, allowZero ? 0 : 1, 10000, 'Percentage basis points')
+  integer(
+    basisPoints,
+    allowZero ? 0 : 1,
+    CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+    'Percentage basis points',
+  )
   return basisPoints
 }
 
 export function percentageBasisPointsText(basisPoints: number): string {
-  integer(basisPoints, 0, 10000, 'Percentage basis points')
+  integer(basisPoints, 0, CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS, 'Percentage basis points')
   const decimals = String(basisPoints % 100)
     .padStart(2, '0')
     .replace(/0+$/, '')
@@ -295,9 +316,49 @@ export function percentageDotSequence(profile: AttackPercentageDotProfile, ticks
   ).join(' → ')
 }
 
+/** New independent-target profiles require an actual direct packet in their authored group. */
+export function validateIndependentPercentageDotDamageSources(
+  effects: readonly CombatEffectDefinition[],
+): void {
+  if (
+    effects.some(
+      (effect) =>
+        isPercentageDotEffect(effect) &&
+        effect.damageProfile.damageBasis === 'command-hostile-total',
+    ) &&
+    !effects.some(
+      (effect) =>
+        effect.type === 'damage' &&
+        effect.amount > 0 &&
+        effect.recipient !== 'actor' &&
+        !effect.vengeance,
+    )
+  )
+    throw new TypeError('Independent percentage DoTs require a direct Damage or Pierce packet.')
+}
+
+/** Actual original-command hostile HP loss only; friendly/reactive output never enters this map. */
+export function percentageDotCapturedBasis(
+  profile: AttackPercentageDotProfile,
+  recipientId: string,
+  damageByRecipient: Readonly<Record<string, number>>,
+): number {
+  if (profile.damageBasis !== 'command-hostile-total') return damageByRecipient[recipientId] ?? 0
+  let total = 0
+  for (const amount of Object.values(damageByRecipient)) {
+    total += amount
+    integer(total, 0, Number.MAX_SAFE_INTEGER, 'Command hostile HP damage')
+  }
+  return total
+}
+
 export function validateCurrentPercentageDotAuthoring(
   definition: Pick<CombatActionDefinition, 'tags' | 'target'> & {
-    effects: readonly (CombatEffectDefinition | { type: 'summon' })[]
+    effects: readonly (
+      | CombatEffectDefinition
+      | { type: 'summon' }
+      | { type: 'pierce'; amount?: number; recipient: string; target?: string }
+    )[]
   },
 ): void {
   for (const effect of definition.effects) {
@@ -321,6 +382,20 @@ export function validateCurrentPercentageDotAuthoring(
     )
     if (!definition.tags.includes('attack'))
       throw new TypeError('A percentage DoT Skill requires the attack tag.')
+    if (effect.damageProfile.damageBasis === 'command-hostile-total') {
+      if (
+        !definition.effects.some(
+          (hit) =>
+            ['damage', 'pierce'].includes(hit.type) &&
+            'amount' in hit &&
+            (hit.amount ?? 0) > 0 &&
+            'recipient' in hit &&
+            hit.recipient !== 'actor',
+        )
+      )
+        throw new TypeError('Independent percentage DoTs require a direct Damage or Pierce packet.')
+      continue
+    }
     if (
       effect.recipient === 'actor' ||
       definition.target.kind === 'self' ||
@@ -330,7 +405,7 @@ export function validateCurrentPercentageDotAuthoring(
       throw new TypeError('Percentage DoTs require hostile attack recipients.')
     const covered = definition.effects.some(
       (damage) =>
-        damage.type === 'damage' &&
+        (damage.type === 'damage' || damage.type === 'pierce') &&
         damage.amount! > 0 &&
         damage.recipient !== 'actor' &&
         (damage.recipient === effect.recipient ||
@@ -347,7 +422,11 @@ export function validateCurrentPercentageDotAuthoring(
 export function percentageDotDescription(
   type: 'burn' | 'poison' | 'bleed',
   backlashBasisPoints = DEFAULT_BURN_BACKLASH_BASIS_POINTS,
-  options: { legacyTriggers?: boolean; legacyPoisonMovement?: boolean } = {},
+  options: {
+    legacyTriggers?: boolean
+    legacyPoisonMovement?: boolean
+    movementRefreshTiles?: number
+  } = {},
 ): string {
   const basis =
     'Each tick deals the displayed percentage of the granting attack’s HP damage, rounded down.'
@@ -357,8 +436,10 @@ export function percentageDotDescription(
     return `${basis} Only one Poison can be active on a recipient; reapplication replaces it, restarts its duration and resets movement progress. Every five traversed tiles, including Push or Pull, cause an extra tick without consuming a turn-end tick. Partial movement carries between turns; instantaneous relocation does not count.`
   if (type === 'burn')
     return `${basis} Only one Burn can be active. Reapplication replaces it and restarts its duration and saved decay. Once per turn, after the bearer damages enemies, backlash deals ${percentageBasisPointsText(backlashBasisPoints)}% of that actual HP damage, rounded down. Multi-hit damage is combined; misses and friendly damage do not count. Reapplication and Copy do not reset the backlash allowance.`
+  const movementThreshold = options.movementRefreshTiles ?? CURRENT_POISON_REFRESH_TRAVERSED_TILES
+  const movementLabel = movementThreshold === 5 ? 'five' : String(movementThreshold)
   if (type === 'poison' && !options.legacyPoisonMovement)
-    return `${basis} Poison ticks once at turn end. Only one Poison can be active. Reapplication keeps the greater potency and original duration separately, restarts that duration and resets movement progress. Every five traversed tiles, including Push or Pull, refresh its full duration without extra damage. Partial movement carries between turns; teleporting does not count.`
+    return `${basis} Poison ticks once at turn end. Only one Poison can be active. Reapplication keeps the greater potency and original duration separately, restarts that duration and resets movement progress. Every ${movementLabel} traversed tiles, including Push or Pull, refresh its full duration without extra damage. Partial movement carries between turns; teleporting does not count.`
   if (type === 'poison')
     return `${basis} Only one Poison can be active on a recipient; reapplication replaces it, restarts its duration and resets movement progress. After five traversed tiles, including Push or Pull, Poison causes one extra tick, at most once per turn, without consuming a turn-end tick. Partial movement carries between turns; excess five-tile thresholds do not bank extra ticks. Reapplication or Copy does not renew this allowance. Instantaneous relocation does not count.`
   return `${basis} Each Bleed application retains its own captured attack damage and duration. Applications tick independently with no stack limit.`

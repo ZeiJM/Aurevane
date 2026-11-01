@@ -1,3 +1,10 @@
+import {
+  CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+  CURRENT_EFFECT_PERCENT_MAXIMUM,
+  CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS,
+} from './combat-effect-percentages'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
+import { isGeneratedCombatCompanionLink } from './combat-generated-companion-links'
 import { validateCombatEndureEffect } from './combat-endure'
 import { validateCombatReversalPayload, type CombatReversalPayload } from './combat-reversal'
 import {
@@ -64,6 +71,7 @@ export type CombatTagPayload =
   | {
       readonly type: 'summon'
       readonly recipient: 'selected-tile'
+      readonly target?: 'empty-tile'
       readonly profile: SummonProfileDefinition
     }
 
@@ -166,7 +174,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
         ? 'Guarantee critical Damage when the enemy has more than the configured number of active debuffs; the attack must still hit.'
         : id === 'spike'
           ? 'Double the complete damage of critical hits.'
-          : 'Increase Damage by the configured percentage per active debuff on the enemy.',
+          : 'In current battles, the first landed eligible hit gains the configured percentage per consumable debuff captured on the enemy, then consumes those debuffs. Later hits cannot reuse the bonus; debuffs applied afterward remain. Historical battles keep their recorded Ruin rules.',
       {
         payloadFields: [
           'type',
@@ -203,7 +211,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
       attackerMaxHpCapBasisPoints: 'basis-points',
       defenderMaxHpCapBasisPoints: 'basis-points',
     },
-    'Prepare one Physical or Mystic counter until your next actual turn. Front and side hits can be reversed; rear hits bypass it. Ending incurs Reversal Strain.',
+    'Arms one Physical or Mystic Reversal immediately until triggered or cancelled. Front and side hits can be reversed for the chosen percentage; rear hits bypass it. Ending incurs Reversal Strain.',
     {
       payloadFields: [
         'type',
@@ -251,7 +259,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
       'armorIgnoredBasisPoints',
     ],
     { amount: 'power', armorIgnoredBasisPoints: 'basis-points' },
-    'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply.',
+    'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply. Pierce cannot critically hit.',
     {
       runtimeCapability: 'equipment-armor-boundary-required',
       combinations: packetModifierCombinations,
@@ -284,7 +292,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'remove-status',
-    ['statusIds', 'removalMode', 'selectionKind'],
+    ['statusIds', 'removalMode', 'selectionKind', 'invisibleTargetPolicyVersion'],
     { statusIds: 'identity', removalMode: 'identity', selectionKind: 'identity' },
     'Cleanse removes every negative status. Conditional Cleanse and Dispel remove selected negative or positive statuses.',
     { combinations: packetModifierCombinations },
@@ -321,7 +329,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'poison',
-    ['curseCopyable', 'damageProfile'],
+    ['curseCopyable', 'damageProfile', 'movementRefreshTiles'],
     {},
     'Poisons the target, causing damage at turn end. Movement follows the saved refresh or additional-damage rules.',
   ),
@@ -345,9 +353,15 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'copy-statuses',
-    ['mode', 'allowNoEligibleEffects', 'statusIds'],
+    [
+      'mode',
+      'allowNoEligibleEffects',
+      'statusIds',
+      'invisibleDonorPolicyVersion',
+      'durationPolicyVersion',
+    ],
     {},
-    'Copy selected eligible statuses and preserve their remaining durations. Original statuses remain.',
+    'Copy selected eligible statuses with their source Skill’s full recorded durations. Original statuses remain.',
     { recipients: ['primary-unit'], combinations: [{ activation: 'manual', mode: 'action' }] },
   ),
   tag(
@@ -355,10 +369,13 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     ['revealedDurationOwnerTurnStarts'],
     { revealedDurationOwnerTurnStarts: 'turns' },
     'A successful hit against Invisible or Covert removes both concealments and applies Revealed.',
-    { recipients: ['primary-unit'], combinations: [{ activation: 'manual', mode: 'action' }] },
+    {
+      recipients: ['primary-unit', 'affected-units'],
+      combinations: [{ activation: 'manual', mode: 'action' }],
+    },
   ),
   tag('summon', ['profile'], {}, 'Creates the chosen allied summon on a legal, unoccupied tile.', {
-    payloadFields: ['type', 'recipient', 'profile'],
+    payloadFields: ['type', 'recipient', 'target', 'profile'],
     recipients: ['selected-tile'],
     handler: 'combat-summons',
     combinations: [{ activation: 'manual', mode: 'action' }],
@@ -404,11 +421,7 @@ export function validateCombatTagPayload(
     return [
       { path: 'payload.type', code: 'unsupported-tag', message: 'Unsupported combat Tag handler.' },
     ]
-  if (
-    value.authoringLink !== undefined &&
-    (typeof value.authoringLink !== 'string' ||
-      !/^(?:dot-damage|frozen-ground)\.[1-9][0-9]*$/.test(value.authoringLink))
-  )
+  if (value.authoringLink !== undefined && !isGeneratedCombatCompanionLink(value.authoringLink))
     issue('payload.authoringLink', 'invalid-payload', 'Invalid generated companion link.')
   for (const key of Object.keys(value))
     if (!definition.payloadFields.includes(key))
@@ -455,7 +468,7 @@ export function validateCombatTagPayload(
     ['vengeance', ['conversionBasisPoints', 'minimumDamage', 'maximumDamage']],
     ['facingModifiersBasisPoints', ['front', 'side', 'rear']],
     ['blindsideModifiersBasisPoints', ['side', 'rear']],
-    ['damageProfile', ['kind', 'basisPoints', 'decayBasisPointsPerTick']],
+    ['damageProfile', ['kind', 'basisPoints', 'decayBasisPointsPerTick', 'damageBasis']],
   ] as const)
     if (value[key] !== undefined) keys(value[key], allowed, `payload.${key}`)
   try {
@@ -474,7 +487,12 @@ export function validateCombatTagPayload(
     if (value.potencyBasisPoints !== undefined && value.type !== 'apply-status')
       throw new TypeError('Only status effects implement percentage potency.')
     if (value.type === 'sensory')
-      integer(value.revealedDurationOwnerTurnStarts, 1, 4, 'Sensory duration')
+      integer(
+        value.revealedDurationOwnerTurnStarts,
+        1,
+        CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+        'Sensory duration',
+      )
     if (
       value.type === 'copy-statuses' &&
       (!['amplify', 'curse'].includes(value.mode as string) ||
@@ -482,6 +500,18 @@ export function validateCombatTagPayload(
           typeof value.allowNoEligibleEffects !== 'boolean'))
     )
       throw new TypeError('Copy requires Amplify/Curse and a boolean no-op permission.')
+    if (
+      value.type === 'copy-statuses' &&
+      value.durationPolicyVersion !== undefined &&
+      value.durationPolicyVersion !== 1
+    )
+      throw new TypeError('Unsupported copy duration policy.')
+    if (
+      value.type === 'copy-statuses' &&
+      value.invisibleDonorPolicyVersion !== undefined &&
+      (value.invisibleDonorPolicyVersion !== 1 || value.mode !== 'amplify')
+    )
+      throw new TypeError('Unsupported Copy Buffs Invisible donor policy.')
     if (value.type === 'copy-statuses' && value.statusIds !== undefined)
       validateCombatStatusSelection(
         value.statusIds,
@@ -502,7 +532,12 @@ export function validateCombatTagPayload(
       return issues
     }
     if (value.type === 'damage-bonus') {
-      integer(value.multiplierBasisPoints, 10000, 15000, 'Damage bonus multiplier')
+      integer(
+        value.multiplierBasisPoints,
+        10000,
+        CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS,
+        'Damage bonus multiplier',
+      )
       validateDamageModifiers([
         {
           direction: 'outgoing',
@@ -525,6 +560,7 @@ export function validateCombatTagPayload(
           'description',
           'flavorLine',
           'portraitKey',
+          'media',
           'tags',
           'coreAttributes',
           'derivedStatRulesVersion',
@@ -581,12 +617,25 @@ export function validateCombatTagPayload(
             'target',
             'requirements',
             'effects',
+            'groundArea',
             'ai',
             'media',
           ],
           path,
         )
         keys(ability.ai, ['baseUtility', 'purposeTags'], `${path}.ai`)
+        if (ability.groundArea !== undefined)
+          keys(
+            ability.groundArea,
+            [
+              'durationRounds',
+              'visualPresetId',
+              'entryEffectOrdinals',
+              'timing',
+              'contactPolicyVersion',
+            ],
+            `${path}.groundArea`,
+          )
         keys(
           ability.media,
           ['iconKey', 'audioCueKey', 'vfxKey', 'artwork', 'audio'],
@@ -596,6 +645,8 @@ export function validateCombatTagPayload(
           ability.target,
           [
             'geometryVersion',
+            'categories',
+            'maximumSelections',
             'kind',
             'teamPolicy',
             'shape',
@@ -666,6 +717,7 @@ export function validateCombatTagPayload(
           },
           requirements: ability.requirements,
           effects: ability.effects,
+          ...(ability.groundArea ? { groundArea: ability.groundArea } : {}),
         })
       }
       return issues
@@ -684,7 +736,13 @@ export function validateCombatTagPayload(
         validateCombatDamageScaling(value.scaling as never).length > 0
       )
         throw new TypeError('Invalid damage scaling.')
-      if (value.type === 'pierce') integer(value.armorIgnoredBasisPoints, 0, 10000, 'Armor ignored')
+      if (value.type === 'pierce')
+        integer(
+          value.armorIgnoredBasisPoints,
+          0,
+          CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+          'Armor ignored',
+        )
       if (value.facingModifiersBasisPoints !== undefined)
         validateCombatDamageFacingModifiers(
           value.facingModifiersBasisPoints as NonNullable<
@@ -698,18 +756,23 @@ export function validateCombatTagPayload(
     )
       integer(value.amount, 1, 20, 'Authored power')
     if (value.type === 'barrier-change' && value.basis === 'maximum-hp-percent')
-      integer(value.amount, 1, 100, 'Barrier percentage')
+      integer(value.amount, 1, CURRENT_EFFECT_PERCENT_MAXIMUM, 'Barrier percentage')
     if (value.type === 'resource-change') {
       if (value.resource !== 'mp') throw new TypeError('Only MP changes are implemented.')
       integer(
         value.delta,
-        value.basis === 'maximum-mp-percent' ? -100 : -20,
+        value.basis === 'maximum-mp-percent' ? -CURRENT_EFFECT_PERCENT_MAXIMUM : -20,
         value.basis === 'maximum-mp-percent' ? -1 : 20,
         'MP change',
       )
     }
     if (value.type === 'percentage-recovery') {
-      integer(value.percentageBasisPoints, 100, 10000, 'Recovery percentage')
+      integer(
+        value.percentageBasisPoints,
+        100,
+        CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
+        'Recovery percentage',
+      )
       // The real handler currently authors whole percentages, unlike Suppress/DoT precision.
       if ((value.percentageBasisPoints as number) % 100 !== 0)
         throw new TypeError('Recovery requires whole percentage increments (100 basis points).')
@@ -719,6 +782,8 @@ export function validateCombatTagPayload(
         throw new TypeError('Unsupported status handler.')
       if (value.statusId === 'revealed')
         throw new TypeError('Revealed may only be applied by Sensory.')
+      if (value.statusId === 'blind' && value.durationTurns !== undefined)
+        integer(value.durationTurns, 1, CURRENT_EFFECT_DURATION_MAXIMUM_TURNS, 'Blind duration')
       integer(value.stacks, 1, Number.MAX_SAFE_INTEGER, 'Status stacks')
     }
     if (value.type === 'remove-status') {
@@ -731,11 +796,11 @@ export function validateCombatTagPayload(
       if (
         !Array.isArray(value.statusIds) ||
         value.statusIds.length < 1 ||
-        value.statusIds.length > 16 ||
+        value.statusIds.length > 32 ||
         new Set(value.statusIds).size !== value.statusIds.length ||
         value.statusIds.some((id) => !supportedStatuses.has(id))
       )
-        throw new TypeError('Removal requires 1–16 distinct supported status IDs.')
+        throw new TypeError('Removal requires 1–32 distinct supported status IDs.')
     }
     const native = nativeCombatTagPayload(value as CombatTagPayload)
     validateGameplayEffectMetadata(native)
@@ -782,8 +847,8 @@ export function equipmentArmorAfterPierce(
 ): number {
   const amount = contribution.equipmentArmor ?? 0
   integer(amount, 0, Number.MAX_SAFE_INTEGER, 'Equipment Armor contribution')
-  integer(armorIgnoredBasisPoints, 0, 10000, 'Armor ignored')
-  return amount - Number((BigInt(amount) * BigInt(armorIgnoredBasisPoints)) / 10000n)
+  integer(armorIgnoredBasisPoints, 0, CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS, 'Armor ignored')
+  return Math.max(0, amount - Number((BigInt(amount) * BigInt(armorIgnoredBasisPoints)) / 10000n))
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -855,6 +920,7 @@ export function resolvedCombatEffectTagPresentation(
   const generated = { details: generatedDescription, summary: generatedDescription }
   return {
     ...captured,
+    name: currentCombatTagName(captured.tagId, captured.name),
     full: renderCombatTagWording(captured.full, generated),
     compact: renderCombatTagWording(captured.compact, generated),
   }

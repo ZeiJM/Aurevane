@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -67,12 +68,12 @@ export function validateCombatEndureEffect(value: unknown): void {
     (effect.target !== undefined && effect.target !== 'self') ||
     !Number.isSafeInteger(effect.durationTurns) ||
     effect.durationTurns < 1 ||
-    effect.durationTurns > 4 ||
+    effect.durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
     effect.power !== undefined ||
     effect.potencyBasisPoints !== undefined
   )
     throw new TypeError(
-      'Endure requires Self and 1–4 turns; damage power and status potency are unsupported.',
+      `Endure requires Self and 1–${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns; damage power and status potency are unsupported.`,
     )
 }
 export function activeCombatEndure(
@@ -197,6 +198,7 @@ export function applyCombatEndure(
         sourceCombatantId: actorId,
         targetCombatantId: actorId,
         statusId: 'endure',
+        effectStrength: { endureReleaseBasisPoints: effect.releaseBasisPoints },
         stacks: 1,
         remainingOwnerTurnStarts: effect.durationTurns,
         expiryBoundary: rounds ? 'round-end' : 'owner-turn-end',
@@ -206,11 +208,16 @@ export function applyCombatEndure(
     ],
   }
 }
-export function pruneCombatEndure(state: CombatEncounterState): CombatEncounterState {
+export function pruneCombatEndure(
+  state: CombatEncounterState,
+  cancelledCombatantIds: readonly string[] = [],
+): CombatEncounterState {
   if (!state.endureState) return state
   const living = new Set(
     state.tactical.battle.lifecycle === 'active'
-      ? state.tactical.battle.combatants.filter((unit) => unit.hp > 0).map((unit) => unit.id)
+      ? state.tactical.battle.combatants
+          .filter((unit) => unit.hp > 0 && !cancelledCombatantIds.includes(unit.id))
+          .map((unit) => unit.id)
       : [],
   )
   const statusState = state.statusState.map((row) =>
@@ -321,7 +328,7 @@ export function validateCombatEndureState(
             status.sourceCombatantId !== row.combatantId ||
             status.applicationModifiers !== undefined ||
             status.remainingOwnerTurnStarts < 1 ||
-            status.remainingOwnerTurnStarts > 4 ||
+            status.remainingOwnerTurnStarts > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
             !state.endureState?.applications.some(
               (application) => application.combatantId === row.combatantId,
             )

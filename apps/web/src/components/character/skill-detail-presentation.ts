@@ -1,6 +1,10 @@
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
 import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
 import { isReversalPresentationEffect, reversalDescription } from '../../lib/reversal-presentation'
-import { combatStatusSelectionSummary } from '@aurevane/game-core/combat/combat-status-selection'
+import {
+  combatStatusSelectionSummary,
+  resolvedCombatRemovalStatusIds,
+} from '@aurevane/game-core/combat/combat-status-selection'
 import { effectTargetLabel, effectFriendlyFireNote } from './effect-target-presentation'
 import type { MechanicTextPart } from './mechanic-text'
 import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
@@ -63,11 +67,16 @@ export function skillEffectDescription(
   options: {
     legacyTriggers?: boolean
     legacyPoisonMovement?: boolean
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyReversal?: boolean
+    legacyPierceCritical?: boolean
+    legacySummonPotency?: boolean
+    legacyRuin?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     rewindPrimeAnchor?: boolean
@@ -75,15 +84,15 @@ export function skillEffectDescription(
     timingPolicy?: SkillEffectTimingPolicy
   } = {},
 ): string {
-  if (isReversalPresentationEffect(effect)) return reversalDescription(effect)
+  if (isReversalPresentationEffect(effect)) return reversalDescription(effect, options)
   const target = recipient(effect)
   if (isPercentageDotEffect(effect))
-    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, options)}`
+    return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, { ...options, ...(effect.type === 'poison' ? { movementRefreshTiles: effect.movementRefreshTiles } : {}) })}`
   switch (effect.type) {
     case 'weak-point':
     case 'spike':
     case 'ruin':
-      return attackTagDescription(effect)
+      return attackTagDescription(effect, options)
     case 'endure':
       return previewEffect(effect, options).explanation
     case 'summon':
@@ -99,10 +108,13 @@ export function skillEffectDescription(
         options.timingPolicy,
         options.skillEffects,
         options.explicitElemental,
+        options.groundContactPolicyVersion,
       )
-      return `Deal ${effect.amount} base damage to ${target}.${position}${element}`
+      return `Deal ${effect.amount} base damage to ${target}.${position}${element}${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? ' Pierce cannot critically hit.' : ''}`
     }
     case 'create-terrain':
+      if (options.groundContactPolicyVersion === 1)
+        return 'Creates Chilled Ground. Active fields apply Chilled to eligible occupants and contacting units, once per logical effect type per own-turn cycle across fields.'
       if (effect.skillApSurcharge !== undefined)
         return `Create Frozen Ground on affected tiles for two round boundaries. The caster’s grounded enemies pay ${effect.skillApSurcharge} AP more per Skill used on those tiles; Airborne ignores this surcharge. Fire converts it to Steam, which blocks sight for both teams and preserves the remaining lifetime.`
       return `Create Frozen Ground on affected tiles for two round boundaries. ${options.legacyFrozenGround ? 'Both teams' : 'Only the caster’s enemies'} pay 10 extra AP per entered tile; Airborne ignores this surcharge. Fire converts Frozen Ground to Steam, which blocks line of sight for both teams.`
@@ -143,9 +155,15 @@ export function skillEffectDescription(
         return `Reveal ${target} on a successful hit against Invisible, Covert or armed Reversal. Remove both concealments, disarm Reversal with Reversal Strain, and apply Revealed for ${effect.revealedDurationOwnerTurnStarts} turns: take ${effect.increasedDamageTakenBasisPoints / 100}% more damage; incoming attacks have 100% Accuracy.`
       return `Attempt Reveal on ${target}. On a successful hit against Covert, remove eligible positive statuses and Covert, then apply Revealed for ${effect.revealedDurationOwnerTurnStarts} owner-turn starts. Otherwise Reveal has no effect.`
     case 'remove-status': {
+      const removableStatusIds = resolvedCombatRemovalStatusIds(effect)
+      const protectedEndure = effect.statusIds.includes('endure')
+        ? ' Endure cannot be dispelled.'
+        : ''
+      if (effect.removalMode === 'specified' && removableStatusIds.length === 0)
+        return `${protectedEndure.trim()} This selection has no effect.`.trim()
       if (effect.removalMode === 'all-debuffs') return `Remove All Debuffs from ${target}.`
       if (effect.removalMode === 'specified')
-        return `Remove ${combatStatusSelectionSummary(effect.statusIds, effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')} from ${target}.`
+        return `Remove ${combatStatusSelectionSummary(removableStatusIds, removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')} from ${target}.${effect.invisibleTargetPolicyVersion === 1 ? ' Can select Invisible targets. Other direct effects still require Reveal.' : ''}${protectedEndure}`
       if (
         isCleanseChilledEffect(effect) &&
         !options.legacyElemental &&
@@ -156,14 +174,14 @@ export function skillEffectDescription(
         combatEffectPresentationTags(effect).includes('Cleanse') ||
         (isCleanseChilledEffect(effect) &&
           (options.legacyElemental || options.explicitElemental === false))
-          ? [...effect.statusIds, 'suppress']
-          : effect.statusIds
+          ? [...removableStatusIds, 'suppress']
+          : removableStatusIds
       const statusNames = [...new Set(statusIds.map((id) => combatStatusDetails(id).name))]
-      return `Remove ${statusNames.join(', ')} from ${target}.`
+      return `Remove ${statusNames.join(', ')} from ${target}.${protectedEndure}`
     }
     case 'apply-status': {
       if (effect.statusId === 'counter' && effect.counter)
-        return `Apply Counter to ${target}. ${previewEffect(effect, options).explanation}`
+        return `Apply Reflect to ${target}. ${previewEffect(effect, options).explanation}`
       if (effect.statusId === 'suppress')
         return `Apply Suppress to ${target}. ${previewEffect(effect, options).explanation} Lasts ${effect.durationTurns ?? 2} turns.`
       if (
@@ -276,12 +294,14 @@ export function skillParameterRows(
   } = skill,
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   options: {
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     airborneAttackElevation?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
   } = {},
 ): readonly (readonly [string, string])[] {
+  skill = currentGroundPresentation(skill, options.groundContactPolicyVersion, timingPolicy).view
   return skillInformationRows({
     'Skill Type': skillParameterTypeDescription(skill),
     Cost: skillCostDescription({ ...skill, ...costs }),
@@ -298,6 +318,10 @@ export function skillParameterRows(
 }
 
 interface ElementalEffectPresentationOptions {
+  legacyReversal?: boolean
+  legacyPierceCritical?: boolean
+  legacySummonPotency?: boolean
+  legacyRuin?: boolean
   timingMode?: 'instant' | 'delayed' | 'controlled' | 'next-round'
   legacyHealingDown?: boolean
   legacyElemental?: boolean
@@ -349,8 +373,12 @@ export function skillEffectInstantTiming(
         : undefined
 }
 
-function compactDuration(effect: MatureSkillEffectDefinition): string | null {
-  if (isReversalPresentationEffect(effect)) return 'Until next owner turn'
+function compactDuration(
+  effect: MatureSkillEffectDefinition,
+  options: ElementalEffectPresentationOptions,
+): string | null {
+  if (isReversalPresentationEffect(effect))
+    return options.legacyReversal ? 'Until next owner turn' : 'Until triggered or cancelled'
   const percentage = isPercentageDotEffect(effect)
   const turns =
     effect.type === 'percentage-recovery'
@@ -410,9 +438,9 @@ export function compactSkillEffectSummaryParts(
         ? null
         : effect.type !== 'endure' &&
             timing === 'Instant' &&
-            /^1 turn$/iu.test(compactDuration(effect) ?? '')
+            /^1 turn$/iu.test(compactDuration(effect, options) ?? '')
           ? null
-          : compactDuration(effect),
+          : compactDuration(effect, options),
     ...(timing ? { timing } : {}),
   }
 }
@@ -496,7 +524,12 @@ export function skillTargetDescription(skill: Pick<MatureSkillDefinition, 'targe
 /** Shared aim and terrain rules remain visible after recipient labels move to each effect. */
 function skillDeliveryNotes(
   skill: Pick<MatureSkillDefinition, 'target' | 'effects'>,
-  options: { legacyFrozenGround?: boolean; legacyElemental?: boolean; explicitElemental?: boolean },
+  options: {
+    groundContactPolicyVersion?: 1 | null
+    legacyFrozenGround?: boolean
+    legacyElemental?: boolean
+    explicitElemental?: boolean
+  },
 ): string {
   const fire = skill.effects.some((effect) => effect.type === 'damage' && effect.element === 'fire')
   const fireGround =
@@ -507,9 +540,11 @@ function skillDeliveryNotes(
     skill.target.teamPolicy === 'enemy'
   const terrain = fire
     ? ' · Steam: both teams'
-    : skill.effects.some((effect) => effect.type === 'create-terrain')
-      ? ` · Frozen Ground: ${options.legacyFrozenGround ? 'both teams' : 'caster’s enemies only'}`
-      : ''
+    : options.groundContactPolicyVersion === 1
+      ? ''
+      : skill.effects.some((effect) => effect.type === 'create-terrain')
+        ? ` · Frozen Ground: ${options.legacyFrozenGround ? 'both teams' : 'caster’s enemies only'}`
+        : ''
   const aim = fireGround ? 'Enemy / Ground' : skillTargetDescription(skill)
   const differs =
     skill.effects.length > 0 &&

@@ -1,10 +1,15 @@
 import { validateCombatReversalPayload } from './combat-reversal'
+import { validateCombatCircleRadius } from './combat-targeting-shapes'
 import { CHARACTER_ATTRIBUTE_IDS, type CharacterAttributes } from '../character/creation'
 import { calculateDerivedStats, DERIVED_STAT_RULESET_V5 } from '../character/derived-stats'
 import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import { battleFlavorTemplateIssues } from './battle-narration'
 import type { CombatEffectDefinition, CombatTargetSpec, CombatUseRequirement } from './actions'
+import {
+  validateCombatGroundAreaDefinition,
+  type CombatGroundAreaDefinition,
+} from './combat-ground-areas'
 
 export const SUMMON_PROFILE_SCHEMA_VERSION = 1 as const
 export const CURRENT_SUMMON_LIFETIME_TURNS = 5 as const
@@ -45,6 +50,8 @@ export interface SummonAbilityDefinition {
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
   readonly effects: readonly CombatEffectDefinition[]
+  /** Optional captured field configuration; absent historical abilities retain their delivery. */
+  readonly groundArea?: CombatGroundAreaDefinition
   readonly ai: {
     readonly baseUtility: number
     readonly purposeTags: readonly string[]
@@ -59,6 +66,8 @@ export interface SummonProfileDefinition {
   readonly description: string
   readonly flavorLine: string
   readonly portraitKey: string
+  /** Optional finalized portrait; historical hooks retain the initial-letter fallback. */
+  readonly media?: Pick<FinalizedContentMediaSlots, 'artwork'>
   readonly tags: readonly string[]
   /** Optional authoring provenance; absent historical profiles retain their literal derived values. */
   readonly coreAttributes?: Readonly<CharacterAttributes>
@@ -164,6 +173,21 @@ function nonNegativeSafeInteger(value: number): boolean {
 }
 
 function validAbility(ability: SummonAbilityDefinition): boolean {
+  try {
+    validateCombatGroundAreaDefinition(ability)
+  } catch {
+    return false
+  }
+  if (
+    ability.target?.shape?.kind === 'circle' &&
+    (ability.target.geometryVersion === 2 || ability.target.geometryVersion === 3)
+  ) {
+    try {
+      validateCombatCircleRadius(ability.target.shape.radius)
+    } catch {
+      return false
+    }
+  }
   const reversals = ability.effects.filter((effect) => effect.type === 'reversal')
   if (reversals.length) {
     if (
@@ -187,11 +211,10 @@ function validAbility(ability: SummonAbilityDefinition): boolean {
     (ability.battleText === undefined ||
       battleFlavorTemplateIssues(ability.battleText).length === 0) &&
     (ability.cooldownOwnerTurns === undefined ||
-      (nonNegativeSafeInteger(ability.cooldownOwnerTurns) && ability.cooldownOwnerTurns <= 99)) &&
-    positiveSafeInteger(ability.apCost) &&
-    ability.apCost <= 100 &&
+      (nonNegativeSafeInteger(ability.cooldownOwnerTurns) &&
+        ability.cooldownOwnerTurns < Number.MAX_SAFE_INTEGER)) &&
+    nonNegativeSafeInteger(ability.apCost) &&
     nonNegativeSafeInteger(ability.mpCost) &&
-    ability.mpCost <= 20 &&
     (ability.hpCost === undefined || nonNegativeSafeInteger(ability.hpCost)) &&
     ability.tags.length > 0 &&
     ability.tags.every((tag) => tag.trim().length > 0) &&
@@ -212,10 +235,19 @@ export function validateSummonProfileDefinition(
   if (!profile.description.trim()) issues.push('description')
   if (!profile.flavorLine.trim()) issues.push('flavorLine')
   if (!STABLE_ID_PATTERN.test(profile.portraitKey)) issues.push('portraitKey')
+  if (
+    profile.media !== undefined &&
+    (!profile.media ||
+      typeof profile.media !== 'object' ||
+      Array.isArray(profile.media) ||
+      Object.keys(profile.media).some((key) => key !== 'artwork') ||
+      finalizedContentMediaIssues(profile.media).length > 0)
+  )
+    issues.push('media')
   if (profile.tags.length === 0 || profile.tags.some((tag) => !tag.trim())) issues.push('tags')
   if (
     profile.potencyBasisPoints !== undefined &&
-    (!nonNegativeSafeInteger(profile.potencyBasisPoints) || profile.potencyBasisPoints > 10000)
+    !nonNegativeSafeInteger(profile.potencyBasisPoints)
   )
     issues.push('potencyBasisPoints')
   if (!positiveSafeInteger(profile.maxHp)) issues.push('maxHp')
@@ -253,8 +285,11 @@ export function validateSummonProfileDefinition(
 /** Shared immutable-profile explanation for authoring previews and battle inspection. */
 export function summonPotencyDescription(
   profile: Pick<SummonProfileDefinition, 'potencyBasisPoints'>,
+  options: { legacy?: boolean } = {},
 ): string | null {
   return profile.potencyBasisPoints === undefined
     ? null
-    : `Each complete attack deals at most ${profile.potencyBasisPoints / 100}% of the summoner’s normal noncritical Basic Attack damage against the same target, before Barrier. Repeated hits share this limit. Each damage-over-time tick has a separate limit.`
+    : !options.legacy
+      ? `Each round, outgoing damage is limited to ${profile.potencyBasisPoints / 100}% of the geometric mean of damage potential for the summoner and the strongest living opponent at spawn. All hits, targets and damage-over-time ticks share this round budget, before Barrier. The captured budget stays fixed; potency above 100% increases it without an opponent-strength ceiling.`
+      : `Each complete attack deals at most ${profile.potencyBasisPoints / 100}% of the summoner’s normal noncritical Basic Attack damage against the same target, before Barrier. Repeated hits share this limit. Each damage-over-time tick has a separate limit.`
 }

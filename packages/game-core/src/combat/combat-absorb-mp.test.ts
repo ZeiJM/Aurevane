@@ -391,7 +391,7 @@ describe('Absorb MP committed-command recovery', () => {
     ])
   })
 
-  it.each([0, -1, 0.5, 10_001, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+  it.each([0, -1, 0.5, 99_901, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
     'rejects invalid MP basis points %s',
     (basisPoints) => {
       expect(() => validateCombatStatusDefinition(absorbMpStatus(basisPoints))).toThrow(/Absorb MP/)

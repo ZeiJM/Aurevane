@@ -1,5 +1,6 @@
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
 import { planCombatStatusCopies } from './combat-status-copy'
+import { forecastCombatStatusCopySources } from './actions-legacy'
 import { advanceBattleRng } from './battle-state'
 import type {
   CombatActionDefinition,
@@ -59,10 +60,12 @@ export function forecastCombatStatusResistance(
   evaluation: CombatActionEvaluation | null,
   content: CombatContentCatalog,
   missedCombatantIds: ReadonlySet<string> = new Set(),
+  copySourceStates?: ReadonlyMap<number, CombatEncounterState>,
 ): readonly CombatTargetStatusResistance[] {
   if (state.statBalancePolicyVersion !== 1 || !evaluation?.legal || !evaluation.actorId) return []
   const actor = state.tactical.battle.combatants.find((unit) => unit.id === evaluation.actorId)!
   const byTarget = new Map<string, number[]>()
+  let sequentialCopySources = copySourceStates
   for (const [ordinal, effect] of action.effects.entries()) {
     if (
       !isStatusResistanceEligibleEffect(
@@ -117,7 +120,16 @@ export function forecastCombatStatusResistance(
           continue
       }
       if (effect.type === 'copy-statuses') {
-        const copied = planCombatStatusCopies(state, evaluation.actorId, id, effect, content)
+        if (!sequentialCopySources && ordinal > 0)
+          sequentialCopySources = forecastCombatStatusCopySources(
+            state,
+            action,
+            evaluation,
+            content,
+          )
+        const source = sequentialCopySources ? sequentialCopySources.get(ordinal) : state
+        if (!source) continue
+        const copied = planCombatStatusCopies(source, evaluation.actorId, id, effect, content)
         if (
           !copied.copies.length &&
           !copied.poisons.length &&
@@ -152,6 +164,7 @@ export function rollCombatStatusResistance(
   evaluation: CombatActionEvaluation | null,
   content: CombatContentCatalog,
   missedCombatantIds: ReadonlySet<string>,
+  copySourceStates?: ReadonlyMap<number, CombatEncounterState>,
 ) {
   const targets = forecastCombatStatusResistance(
     state,
@@ -159,6 +172,7 @@ export function rollCombatStatusResistance(
     evaluation,
     content,
     missedCombatantIds,
+    copySourceStates,
   )
   let rng = state.tactical.battle.rng
   const events: CombatStatusResistanceResolvedEvent[] = []

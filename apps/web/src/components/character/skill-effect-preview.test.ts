@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
-import { previewEffect, skillPreviewEffects } from './skill-effect-preview'
+import { previewEffect, previewEffectWithTag, skillPreviewEffects } from './skill-effect-preview'
 import { skillEffectDescription, skillEffectSummaries } from './skill-detail-presentation'
 
 it('reports Airborne Jump and Attack elevation without rewriting historical readers', () => {
@@ -107,7 +107,7 @@ describe('compact Technique explanations', () => {
     expect(
       previewEffect({ type: 'apply-status', recipient: 'actor', statusId: 'haste', stacks: 1 })
         .explanation,
-    ).toContain('minimum of 10 AP')
+    ).toContain('can reach 0 AP')
     const current = resolveMatureSkillVersion('shadehand.backstab')!
     expect(
       skillPreviewEffects(current).find((effect) => effect.label === 'Blindside')!.explanation,
@@ -207,7 +207,7 @@ it('shows Damage before Blindside for every granting Skill without mutating exec
   }
 })
 
-it('explains saved policy 1 typed damage, captured bonuses and caster cleanse', () => {
+it('explains saved policy 1 typed damage and captured bonuses without cleansing advice', () => {
   expect(
     previewEffect(
       { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'ice' },
@@ -238,7 +238,7 @@ it('explains saved policy 1 typed damage, captured bonuses and caster cleanse', 
       { type: 'damage', recipient: 'primary-unit', amount: 10, element: 'fire' },
       { explicitElemental: false },
     ).explanation,
-  ).toContain('caster')
+  ).not.toMatch(/cleans|removes Drenched|removes Chilled/i)
 })
 
 it('explains implicit elemental timing using the captured status timing override', () => {
@@ -584,4 +584,29 @@ it('describes Ground-origin Chilled independently of overlapping Ice damage', ()
   expect(skillPreviewEffects({ effects: [damage, ordinary] }, options)[1]!.explanation).toContain(
     'positive hostile HP damage',
   )
+})
+
+it('adds current Pierce eligibility to captured wording while leaving historical wording intact', () => {
+  const effect = {
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 20,
+    shattersBarrier: true,
+  } as const
+  const presentations = [
+    {
+      contentKey: 'tag.damage',
+      contentVersion: 1,
+      tagId: 'damage',
+      name: 'Captured Damage',
+      full: 'Captured damage help.',
+      compact: 'Captured help.',
+    },
+  ]
+  expect(previewEffectWithTag(effect, presentations).explanation).toBe(
+    'Captured damage help. Pierce cannot critically hit.',
+  )
+  expect(
+    previewEffectWithTag(effect, presentations, { legacyPierceCritical: true }).explanation,
+  ).toBe('Captured damage help.')
 })

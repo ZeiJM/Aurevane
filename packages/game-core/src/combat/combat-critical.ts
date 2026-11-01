@@ -36,8 +36,25 @@ export interface CombatCriticalRollResult {
   criticalEffectOrdinalsByTarget: ReadonlyMap<string, ReadonlySet<number>>
 }
 
-export function hasCriticalEligibleDamage(action: CombatActionDefinition): boolean {
-  return action.effects.some(isCriticalEligibleDamage)
+/** Current Pierce packets never receive critical rolls, guarantees or multipliers. */
+export function combatEffectAllowsCritical(
+  state: Pick<CombatEncounterState, 'pierceCriticalPolicyVersion'>,
+  effect: CombatActionDefinition['effects'][number],
+): boolean {
+  return !(
+    state.pierceCriticalPolicyVersion === 1 &&
+    effect.type === 'damage' &&
+    (effect.piercing === true || effect.shattersBarrier === true)
+  )
+}
+export function hasCriticalEligibleDamage(
+  action: CombatActionDefinition,
+  state?: CombatEncounterState,
+): boolean {
+  return action.effects.some(
+    (effect) =>
+      isCriticalEligibleDamage(effect) && (!state || combatEffectAllowsCritical(state, effect)),
+  )
 }
 
 /** Preview exposes probability only. It never advances authoritative RNG. */
@@ -48,11 +65,29 @@ export function forecastCombatCritical(
   missedCombatantIds: ReadonlySet<string>,
 ): CombatCriticalForecast {
   const plan = criticalPlan(state, action, evaluation, missedCombatantIds)
+  const eligibleByTarget = new Map(plan.targets.map((target) => [target.targetCombatantId, target]))
+  const forecastTargets =
+    state.pierceCriticalPolicyVersion === 1
+      ? criticalPlan(state, action, evaluation, missedCombatantIds, true).targets
+      : plan.targets
   return {
-    targetCriticalChances: plan.targets.map((target) => ({
-      targetCombatantId: target.targetCombatantId,
-      criticalChanceBasisPoints: plan.criticalChanceBasisPoints,
-    })),
+    targetCriticalChances: forecastTargets.map((target) => {
+      const eligible = eligibleByTarget.get(target.targetCombatantId)
+      const guaranteed =
+        state.pierceCriticalPolicyVersion === 1 &&
+        eligible?.effectOrdinals.some((ordinal) => {
+          const effect = action.effects[ordinal]!
+          return effect.type === 'damage' && hasWeakPointCritical(effect, target.targetCombatantId)
+        })
+      return {
+        targetCombatantId: target.targetCombatantId,
+        criticalChanceBasisPoints: eligible
+          ? guaranteed
+            ? BASIS_POINTS
+            : plan.criticalChanceBasisPoints
+          : 0,
+      }
+    }),
   }
 }
 
@@ -111,6 +146,7 @@ export function rollCombatCritical(
       rollBasisPoints,
       critical,
       criticalRulesVersion: COMBAT_CRITICAL_RULES_VERSION,
+      ...(state.pierceCriticalPolicyVersion === 1 ? { effectOrdinals: target.effectOrdinals } : {}),
     })
   }
 
@@ -135,6 +171,7 @@ function criticalPlan(
   action: CombatActionDefinition,
   evaluation: CombatActionEvaluation | null,
   missedCombatantIds: ReadonlySet<string>,
+  includeCurrentPierce = false,
 ): {
   actorId: string
   criticalChanceBasisPoints: number
@@ -161,7 +198,11 @@ function criticalPlan(
   const ordinalsByTarget = new Map<string, number[]>()
 
   for (const [effectOrdinal, effect] of action.effects.entries()) {
-    if (!isCriticalEligibleDamage(effect)) continue
+    if (
+      !isCriticalEligibleDamage(effect) ||
+      (!includeCurrentPierce && !combatEffectAllowsCritical(state, effect))
+    )
+      continue
 
     const recipientIds = combatEvaluatedEffectRecipientIds(state, action, evaluation, effectOrdinal)
 

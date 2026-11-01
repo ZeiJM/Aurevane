@@ -313,11 +313,11 @@ it('captures distinct ally maxima and HP Hex once through all four applications'
 it('rejects invalid percentage authoring and corrupt saved captures', () => {
   for (const tuning of [
     { percent: 0 },
-    { percent: 101 },
+    { percent: 1000 },
     { percent: 1.5 },
     { percent: NaN },
     { ticks: 0 },
-    { ticks: 5 },
+    { ticks: 101 },
     { resource: 'sp' },
     { power: 10 },
     { durationTurns: 4 },

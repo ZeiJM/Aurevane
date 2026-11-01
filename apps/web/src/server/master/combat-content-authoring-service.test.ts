@@ -1,5 +1,9 @@
 import { maximumSupportedCombatRange } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { withCurrentSummonCoreAttributes } from '@aurevane/game-core/combat/summon-content'
+import {
+  deriveSharedEffectAim,
+  withAuthoredEffectTarget,
+} from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { handleCombatContentAuthoringRequest } from './combat-content-authoring-handler'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
@@ -652,6 +656,14 @@ describe('combat content authoring service', () => {
     const base = staticSkill('wildwarden.renewing-herbs')
     if (!base.summonProfile) throw new Error('Expected current Renewing Herbs summon profile.')
 
+    for (const lifetimeTurns of [99, 100])
+      expect(
+        service.validateSkillDefinition({
+          ...base,
+          summonProfile: { ...base.summonProfile, lifetimeTurns },
+        }).valid,
+      ).toBe(true)
+
     const threeTurn = {
       ...base,
       summonProfile: {
@@ -759,7 +771,7 @@ describe('combat content authoring service', () => {
     [
       'recovery tick overflow',
       (value: Record<string, unknown>) => {
-        value.effects = [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 5 }]
+        value.effects = [{ type: 'healing', recipient: 'primary-unit', amount: 3, ticks: 101 }]
       },
     ],
     [
@@ -1326,7 +1338,7 @@ describe('persistent Ground publication and authored Burn backlash', () => {
     const source = structuredClone(original.definition) as unknown as MatureSkillDefinition
     const edited = {
       ...source,
-      groundArea: { ...source.groundArea!, durationRounds: 4, visualPresetId: 'frost' as const },
+      groundArea: { ...source.groundArea!, durationRounds: 99, visualPresetId: 'frost' as const },
       effects: source.effects.map((effect) =>
         effect.type === 'burn' ? { ...effect, backlashBasisPoints: 1234 } : effect,
       ),
@@ -1334,7 +1346,7 @@ describe('persistent Ground publication and authored Burn backlash', () => {
     const preview = await service.previewSkillDefinition({ actorUserId: OWNER, definition: edited })
     expect(preview.legal).toBe(true)
     expect(preview.groundAreas).toMatchObject([
-      { visualPresetId: 'frost', activationRound: 5, expiresAtRound: 9 },
+      { visualPresetId: 'frost', activationRound: 5, expiresAtRound: 104 },
     ])
     expect(preview.groundAreas[0]!.tiles).toHaveLength(8)
     expect(preview.groundAreas[0]).not.toHaveProperty('caster')
@@ -1377,7 +1389,7 @@ describe('persistent Ground publication and authored Burn backlash', () => {
     const { service } = serviceFixture()
     for (const change of [
       { durationRounds: 0 },
-      { durationRounds: 5 },
+      { durationRounds: 100 },
       { visualPresetId: 'javascript:alert(1)' },
       { entryEffectOrdinals: [99] },
     ]) {
@@ -1430,7 +1442,7 @@ it('publishes and restores captured elemental bonus/duration through immutable M
   expect((await store.findPublished(original.id))!.definition.effects).toEqual(
     first.definition.effects,
   )
-  for (const invalid of [0, 5001, 1.5, Number.MAX_SAFE_INTEGER]) {
+  for (const invalid of [0, 100000, 1.5, Number.MAX_SAFE_INTEGER]) {
     const result = service.validateSkillDefinition({
       ...definition,
       effects: [
@@ -1447,7 +1459,7 @@ it('publishes and restores captured elemental bonus/duration through immutable M
   }
 })
 
-it('validates and immutably publishes Suppress percentage boundaries without rewriting the original Skill', async () => {
+it('validates and immutably publishes a 99-turn Suppress without rewriting the original Skill', async () => {
   const { store, service } = serviceFixture()
   store.operators.set(OWNER, 'owner')
   const original = staticSkill()
@@ -1461,19 +1473,19 @@ it('validates and immutably publishes Suppress percentage boundaries without rew
         statusId: 'suppress',
         stacks: 1,
         potencyBasisPoints: 10000,
-        durationTurns: 4,
+        durationTurns: 99,
       },
     ],
   }
   expect(service.validateSkillDefinition(definition).valid).toBe(true)
-  for (const potencyBasisPoints of [0, 99, 10001, 2500.1])
+  for (const potencyBasisPoints of [0, 99, 100000, 2500.1])
     expect(
       service.validateSkillDefinition({
         ...definition,
         effects: [{ ...definition.effects[0]!, potencyBasisPoints }],
       }).valid,
     ).toBe(false)
-  for (const durationTurns of [0, 5])
+  for (const durationTurns of [0, 100])
     expect(
       service.validateSkillDefinition({
         ...definition,
@@ -2256,7 +2268,25 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     const coreProfile = withCurrentSummonCoreAttributes(native.summonProfile!)
     const profile = {
       ...coreProfile,
-      abilities: coreProfile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
+      lifetimeTurns: 100,
+      potencyBasisPoints: 123456,
+      abilities: coreProfile.abilities.map((ability) => {
+        const effects = ability.effects.map((effect) =>
+          withAuthoredEffectTarget(effect, ability.tags.includes('attack') ? 'enemy' : 'ally'),
+        )
+        return {
+          ...ability,
+          hpCost: 3,
+          apCost: 0,
+          mpCost: 100,
+          cooldownOwnerTurns: 100,
+          effects,
+          target: deriveSharedEffectAim(
+            { ...ability.target, shape: { kind: 'circle', radius: 15 } },
+            effects,
+          ),
+        }
+      }),
     }
     const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
       .behaviors[0]!
@@ -2267,7 +2297,15 @@ it.each(['skill', 'essence', 'resonance'] as const)(
           ...guard,
           targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
           effects: [
-            { id: 'call', payload: { type: 'summon', recipient: 'selected-tile', profile } },
+            {
+              id: 'call',
+              payload: {
+                type: 'summon',
+                recipient: 'selected-tile',
+                target: 'empty-tile',
+                profile,
+              },
+            },
           ],
         },
       ],
@@ -2299,3 +2337,285 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(JSON.parse(JSON.stringify(saved))).toEqual(ability)
   },
 )
+
+it.each([99, 100])('enforces duration %i inside retained native Summon Skills', (durationTurns) => {
+  const { service } = serviceFixture()
+  const base = staticSkill('wildwarden.renewing-herbs')
+  const profile = base.summonProfile!
+  const value = {
+    ...base,
+    summonProfile: {
+      ...profile,
+      abilities: profile.abilities.map((ability, index) =>
+        index
+          ? ability
+          : {
+              ...ability,
+              effects: [
+                {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'guarded',
+                  stacks: 1,
+                  durationTurns,
+                },
+              ],
+            },
+      ),
+    },
+  }
+  expect(service.validateSkillDefinition(value).valid).toBe(durationTurns === 99)
+})
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'admits representable new %s Summon lifetimes beyond ordinary duration defaults',
+  (kind) => {
+    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const lifetimeTurns of [99, 100]) {
+      const ability = parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...guard,
+            targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+            effects: [
+              {
+                id: 'call',
+                payload: {
+                  type: 'summon',
+                  recipient: 'selected-tile',
+                  profile: { ...native.summonProfile!, lifetimeTurns },
+                },
+              },
+            ],
+          },
+        ],
+      })
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(true)
+    }
+  },
+)
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'accepts and rejects the Burn Ward potency bounds for %s',
+  (kind) => {
+    const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const potencyBasisPoints of [99800, 99900, 100000]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              {
+                id: 'ward',
+                payload: {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'warded',
+                  stacks: 1,
+                  potencyBasisPoints,
+                  durationTurns: 99,
+                },
+              },
+            ],
+          },
+        ],
+      }
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(
+        potencyBasisPoints <= 99900,
+      )
+    }
+  },
+)
+
+it.each([99800, 99900, 100000])(
+  'enforces native Burn Ward potency %i at publication validation',
+  (potencyBasisPoints) => {
+    const { service } = serviceFixture()
+    const original = staticSkill()
+    const value = {
+      ...original,
+      effectDescriptions: undefined,
+      effects: [
+        {
+          type: 'apply-status' as const,
+          recipient: 'actor' as const,
+          statusId: 'warded',
+          stacks: 1,
+          potencyBasisPoints,
+          durationTurns: 99,
+        },
+      ],
+    }
+    expect(service.validateSkillDefinition(value).valid).toBe(potencyBasisPoints <= 99900)
+  },
+)
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'enforces Conductive potency through999% for %s',
+  (kind) => {
+    const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const potencyBasisPoints of [99800, 99900, 100000]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              {
+                id: 'storm',
+                payload: {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'conductive',
+                  stacks: 1,
+                  potencyBasisPoints,
+                  durationTurns: 99,
+                },
+              },
+            ],
+          },
+        ],
+      }
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(
+        potencyBasisPoints <= 99900,
+      )
+    }
+  },
+)
+
+it.each(['skill', 'essence', 'resonance'] as const)(
+  'limits current %s Reflect to999%% while leaving historical payload parsing intact',
+  (kind) => {
+    const group = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+      .behaviors[0]!
+    for (const basisPoints of [99900, 100000]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              {
+                id: 'reflect',
+                payload: {
+                  type: 'apply-status' as const,
+                  recipient: 'actor' as const,
+                  statusId: 'counter',
+                  stacks: 1,
+                  durationTurns: 2,
+                  counter: { kind: 'full' as const, basisPoints },
+                },
+              },
+            ],
+          },
+        ],
+      }
+      expect(parseAbilityDefinition(ability)).toBeDefined()
+      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(basisPoints === 99900)
+    }
+  },
+)
+
+it.each([
+  [
+    'endure',
+    (percentage: number) => ({
+      type: 'endure',
+      recipient: 'actor',
+      target: 'self',
+      durationTurns: 2,
+      releaseBasisPoints: percentage,
+      radiusTiles: 3,
+      targetTeams: 'enemies',
+    }),
+  ],
+  [
+    'ruin',
+    (percentage: number) => ({
+      type: 'ruin',
+      recipient: 'actor',
+      bonusPerDebuffBasisPoints: percentage,
+    }),
+  ],
+  [
+    'blindside',
+    (percentage: number) => ({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'blindside',
+      stacks: 1,
+      blindsideModifiersBasisPoints: { side: percentage, rear: percentage },
+    }),
+  ],
+  [
+    'defenseless',
+    (percentage: number) => ({
+      type: 'apply-status',
+      recipient: 'actor',
+      statusId: 'lowered-guard',
+      stacks: 1,
+      damageTakenMultiplierBasisPoints: percentage,
+    }),
+  ],
+  [
+    'reveal',
+    (percentage: number) => ({
+      type: 'sensory',
+      recipient: 'primary-unit',
+      increasedDamageTakenBasisPoints: percentage,
+      revealedDurationOwnerTurnStarts: 2,
+    }),
+  ],
+] as const)(
+  'applies the current percentage ceiling to %s across all canonical content categories',
+  (_name, payload) => {
+    const group = defaultBasicSkills().find(
+      (row) => row.id === (['ruin', 'reveal'].includes(_name) ? 'unarmed.basic' : 'basic.guard'),
+    )!.ability.behaviors[0]!
+    for (const percentage of [99900, 100000]) {
+      const ability = {
+        schemaVersion: 1 as const,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              { id: 'current', payload: payload(percentage) },
+              ...(_name === 'ruin'
+                ? [{ id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 5 } }]
+                : []),
+            ],
+          },
+        ],
+      } as AbilityDefinition
+      expect(parseAbilityDefinition(ability)).toBeDefined()
+      for (const kind of ['skill', 'essence', 'resonance'] as const)
+        expect(
+          canonicalAuthoringFixture(kind, ability).validate().valid,
+          `${kind} at ${percentage}`,
+        ).toBe(percentage === 99900)
+    }
+  },
+)
+
+it('does not apply current percentage ceilings to stale native shadows beside canonical mechanics', () => {
+  const ability = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
+  const current = canonicalAuthoringFixture('skill', ability)
+  const definition = {
+    ...current.definition,
+    effects: [
+      {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'counter',
+        stacks: 1,
+        counter: { kind: 'full', basisPoints: 200000 },
+      },
+    ],
+  }
+  expect(current.service.validateSkillDefinition(definition).valid).toBe(true)
+})

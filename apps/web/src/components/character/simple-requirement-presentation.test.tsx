@@ -25,11 +25,11 @@ it('shows a linked status tag and its Target explicitly', () => {
   expect(plainMechanicText(r.requirementParts!)).toBe('Drenched [Target]')
   const html = renderToStaticMarkup(<AbilityParameters report={r} />)
   expect(html).toMatch(/<strong[^>]*data-combat-tag-reference="wet"[^>]*>Drenched<\/strong>/)
-  expect(html).toContain('aria-label="Requirement explanations"')
+  expect(html).not.toContain('aria-label="Requirement explanations"')
   expect(html).toMatch(/data-requirement-parameter="target">\[Target\]<\/span>/)
-  expect(html).toContain('data-effect-tag-label="true">Drenched</span>')
+  expect(html).not.toContain('data-effect-tag-label="true">Drenched</span>')
   const explanation = r.requirementParts!.find((part) => typeof part !== 'string')!.explanation
-  expect(html).toContain(renderToStaticMarkup(<>{explanation}</>))
+  expect(html).not.toContain(renderToStaticMarkup(<>{explanation}</>))
 })
 
 it.each([
@@ -152,7 +152,7 @@ it.each([
     expect(plainMechanicText(result.effects[0]!.conditionParts!)).toBe(`Drenched [${label}]`)
     const html = renderToStaticMarkup(<AbilityParameters report={result} />)
     expect(html.replace(/<[^>]*>/gu, '')).toContain(expected)
-    expect(html).toContain('aria-label="Requirement explanations"')
+    expect(html).not.toContain('aria-label="Requirement explanations"')
     expect(result.effectDescriptions[0]).toContain(`Applies only when Drenched [${label}].`)
     expect(JSON.stringify(group)).toBe(before)
   },

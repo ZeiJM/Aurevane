@@ -8,6 +8,7 @@ import type { BattlePresentedStatus } from './battle/battle-elevation-effects'
 import { buildBattleLogView } from '@/server/battle/battle-log-service'
 import { buildBattleChronicle } from '@/components/battle/battle-log-chronicle-model'
 import { omitPendingBattlePayloads } from '@/server/battle/battle-live-viewer-projection'
+import { reversalDescription } from './reversal-presentation'
 
 vi.mock('server-only', () => ({}))
 
@@ -22,25 +23,23 @@ const payload = {
 } as unknown as MatureSkillEffectDefinition
 
 describe('shared Reversal readers', () => {
-  it('explains authored family and both caps with the fixed rules in compact and full reports', () => {
+  it('explains immediate uncapped current Reversal concisely in compact and full reports', () => {
     const compact = previewEffect(payload)
     expect(compact.label).toBe('Reversal')
     expect(compact.magnitude).toBe('125% Mystic')
     const full = skillEffectDescription(payload)
     expect(full).toBe(compact.explanation)
     for (const fragment of [
-      '18%',
-      '24%',
-      'Summons also obey their authored outgoing damage cap.',
-      'front or side',
-      'Rear',
-      'one',
-      'next actual turn',
+      '125%',
+      'front/side',
+      'Arms immediately',
+      'until triggered or cancelled',
       'Reveal',
       'Reversal Strain',
-      'Basic Attack',
     ])
       expect(full).toContain(fragment)
+    expect(full.split(/\s+/).length).toBeLessThanOrEqual(90)
+    expect(full).not.toMatch(/18%|24%|next actual turn|maximum HP/)
     expect(effectTagDescription('reversal')).toContain('Controlled')
     expect(effectTagDescription('reveal')).toContain('armed Reversal')
     expect(effectTagDescription('reveal')).toContain('Invisible and Covert')
@@ -69,7 +68,7 @@ describe('shared Reversal readers', () => {
       } as unknown as BattlePresentedStatus
       const report = battleEffectInformation(row)
       expect(report.label).toBe(statusId === 'reversal' ? 'Reversal' : 'Reversal Strain')
-      expect(report.description).toContain('Basic Attack')
+      if (statusId === 'reversal-strain') expect(report.description).toContain('Basic Attack')
       expect(report.description).toContain('cannot be copied')
       expect(report.count).toBeNull()
       expect(report.description).not.toContain('Captured effect rules unavailable')
@@ -83,6 +82,20 @@ describe('shared Reversal readers', () => {
         reversalState: { secret: 'private arm history' },
       }),
     ).toEqual({ visible: true })
+  })
+  it('keeps explicit historical expiry and saved HP caps available to pinned readers', () => {
+    const text = reversalDescription(
+      {
+        family: 'mystic',
+        reflectionBasisPoints: 12500,
+        attackerMaxHpCapBasisPoints: 1800,
+        defenderMaxHpCapBasisPoints: 2400,
+      },
+      { legacyReversal: true },
+    )
+    expect(text).toContain('next actual owner turn')
+    expect(text).toContain('18%')
+    expect(text).toContain('24%')
   })
   it('renders actual prevention and return receipts in the shared Chronicle', () => {
     const events = [

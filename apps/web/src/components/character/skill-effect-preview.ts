@@ -1,3 +1,4 @@
+import { currentGroundNote, currentGroundPresentation } from '@/lib/combat-ground-presentation'
 import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
 import {
   isReversalPresentationEffect,
@@ -9,10 +10,12 @@ import { endureDescription } from '../../lib/combat-effect-descriptions'
 import {
   selectableCombatStatusIds,
   combatStatusSelectionSummary,
+  resolvedCombatRemovalStatusIds,
 } from '@aurevane/game-core/combat/combat-status-selection'
 import {
   resolvedCombatEffectTagPresentation,
   type CombatTagPresentationSnapshot,
+  type CombatTagPayload,
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import { isCleanseChilledEffect } from '@aurevane/game-core/combat/combat-cleanse'
 import {
@@ -88,9 +91,11 @@ export function skillDamageElementInteraction(
   timingPolicy?: CombatEffectTimingPolicy | null,
   skillEffects?: readonly MatureSkillEffectDefinition[],
   explicitElemental = true,
+  groundContactPolicyVersion?: 1 | null,
 ): string {
   if (effect.type !== 'damage') return ''
   if (!legacyElemental && explicitElemental) {
+    if (effect.element === 'fire' && groundContactPolicyVersion === 1) return ''
     if (effect.element === 'fire')
       return ' Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
     if (effect.element === 'storm')
@@ -163,12 +168,12 @@ export function skillDamageElementInteraction(
     if (effect.element === 'storm')
       return ` Positive hostile HP damage consumes the old Conductive charge for its captured Storm bonus, then applies one fresh Conductive charge for ${lifetime} with +${bonus}% Storm damage. Drenched remains; a new charge is not consumed again in the same command.`
     if (effect.element === 'fire')
-      return ' A legal Fire cast cleanses Chilled from its caster even on empty Ground or a miss. Positive Fire HP damage removes Drenched and Chilled from hostile recipients. Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
+      return ' Fire converts affected Frozen Ground to Steam mist, keeping its remaining life and blocking sight for both teams.'
   }
   if (effect.element === 'storm')
     return ' Storm gains 20% per active Wet or Conductive application once per recipient per command and consumes Conductive; Wet remains.'
   if (effect.element === 'fire')
-    return ' Positive fire damage removes Wet and Frozen from units. Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
+    return ' Fire on affected Frozen tiles replaces them with Steam for two round boundaries, blocking line of sight for both teams.'
   return ''
 }
 
@@ -210,8 +215,8 @@ function statusPreview(
   } else if (status?.markAccuracyBonusBasisPoints !== undefined) {
     result.magnitude = `+${(potencyBasisPoints ?? status.markAccuracyBonusBasisPoints) / 100} pp Accuracy`
     result.explanation = `Source gains ${result.magnitude} against this target.`
-  } else if (id === 'blind' && potencyBasisPoints !== undefined) {
-    result.magnitude = `−${potencyBasisPoints / 100} pp Accuracy`
+  } else if (status?.blindAccuracyPenaltyBasisPoints !== undefined) {
+    result.magnitude = `−${(potencyBasisPoints ?? status.blindAccuracyPenaltyBasisPoints) / 100} pp Accuracy`
   } else if (status?.movement?.additionalApPerTile !== undefined) {
     result.magnitude = `${signed(status.movement.additionalApPerTile)} AP`
     result.explanation = details.description
@@ -262,16 +267,20 @@ function statusPreview(
   return result
 }
 
-export function previewEffect(
+function previewEffectPayload(
   effect: MatureSkillEffectDefinition,
   options: {
     legacyTriggers?: boolean
     legacyPoisonMovement?: boolean
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyReversal?: boolean
+    legacyPierceCritical?: boolean
+    legacyRuin?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
@@ -290,26 +299,26 @@ export function previewEffect(
     return {
       label: 'Reversal',
       magnitude: reversalMagnitude(effect),
-      explanation: reversalDescription(effect),
+      explanation: reversalDescription(effect, options),
     }
   switch (effect.type) {
     case 'weak-point':
       return {
         label: 'Weak Point',
         magnitude: `> ${effect.debuffThreshold} debuffs`,
-        explanation: attackTagDescription(effect),
+        explanation: attackTagDescription(effect, options),
       }
     case 'spike':
       return {
         label: 'Spike',
         magnitude: '2× critical damage',
-        explanation: attackTagDescription(effect),
+        explanation: attackTagDescription(effect, options),
       }
     case 'ruin':
       return {
         label: 'Ruin',
         magnitude: `+${effect.bonusPerDebuffBasisPoints / 100}% per debuff`,
-        explanation: attackTagDescription(effect),
+        explanation: attackTagDescription(effect, options),
       }
     case 'endure':
       return {
@@ -335,7 +344,7 @@ export function previewEffect(
                   ? 'Ice Dmg'
                   : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental)}`,
+        explanation: `${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? 'Pierce cannot critically hit. ' : ''}Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental, options.groundContactPolicyVersion)}`,
       }
     case 'percentage-recovery':
       return {
@@ -360,7 +369,7 @@ export function previewEffect(
       }
     case 'resource-change':
       return {
-        label: effect.delta < 0 ? 'MP Drain' : 'MP Restore',
+        label: effect.delta < 0 ? 'MP Drain' : 'MP Recovery',
         magnitude: `${Math.abs(effect.delta)}${effect.basis === 'maximum-mp-percent' ? '%' : ''}`,
         explanation:
           effect.delta < 0
@@ -372,8 +381,8 @@ export function previewEffect(
     case 'apply-status':
       if (effect.statusId === 'counter' && effect.counter)
         return {
-          label: 'Counter',
-          magnitude: `${effect.counter.kind === 'mystic' ? 'Mystical' : effect.counter.kind === 'physical' ? 'Physical' : 'Full'} ${effect.counter.basisPoints / 100}%`,
+          label: 'Reflect',
+          magnitude: `${effect.counter.kind === 'mystic' ? 'Magical' : effect.counter.kind === 'physical' ? 'Physical' : 'Full'} Reflect ${effect.counter.basisPoints / 100}%`,
           explanation: `${counterDescription(effect.counter)} Lasts ${effect.durationTurns ?? 2} turns after activation.`,
         }
       if (effect.statusId === BLINDSIDE_DEBUFF_STATUS_ID) {
@@ -474,7 +483,10 @@ export function previewEffect(
         return {
           label: 'Poison',
           magnitude: percentageDotMagnitude(effect),
-          explanation: percentageDotDescription('poison', undefined, options),
+          explanation: percentageDotDescription('poison', undefined, {
+            ...options,
+            movementRefreshTiles: effect.movementRefreshTiles,
+          }),
         }
       const turns = effect.durationTurns
       return {
@@ -487,17 +499,27 @@ export function previewEffect(
       }
     }
     case 'remove-status': {
+      const removableStatusIds = resolvedCombatRemovalStatusIds(effect)
+      const protectedEndure = effect.statusIds.includes('endure')
+        ? ' Endure cannot be dispelled.'
+        : ''
       if (effect.removalMode === 'all-debuffs')
         return { label: 'Cleanse', explanation: 'Removes All Debuffs.' }
       if (effect.removalMode === 'specified') {
         const label = combatEffectPresentationTags(effect)[0]!
+        if (removableStatusIds.length === 0)
+          return {
+            label,
+            magnitude: 'None',
+            explanation: `${protectedEndure.trim()} This selection has no effect.`.trim(),
+          }
         return {
           label,
           magnitude: combatStatusSelectionSummary(
-            effect.statusIds,
+            removableStatusIds,
             label === 'Dispel' ? 'buffs' : 'debuffs',
           ).replaceAll(', ', ' / '),
-          explanation: `Removes ${combatStatusSelectionSummary(effect.statusIds, effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')}.`,
+          explanation: `Removes ${combatStatusSelectionSummary(removableStatusIds, removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff') ? 'buffs' : 'debuffs')}.${effect.invisibleTargetPolicyVersion === 1 ? ' Can select Invisible targets. Other direct effects still require Reveal.' : ''}${protectedEndure}`,
         }
       }
       if (
@@ -509,15 +531,19 @@ export function previewEffect(
           label: 'Cleanse Chilled',
           explanation: `Removes Chilled from ${effect.recipient === 'actor' ? 'the caster' : effect.recipient === 'affected-units' ? 'each affected unit' : 'the selected unit'} only; other statuses remain.`,
         }
-      const ids = effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
-        ? effect.statusIds
-        : [...effect.statusIds, 'suppress']
+      const legacyCleanse = combatEffectPresentationTags(effect).includes('Cleanse')
+      const ids =
+        !legacyCleanse && removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
+          ? removableStatusIds
+          : [...removableStatusIds, 'suppress']
       const statusNames = [...new Set(ids.map((id) => combatStatusDetails(id).name))]
       return {
-        label: effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
-          ? 'Dispel'
-          : 'Cleanse',
-        explanation: `Removes ${statusNames.join(', ')}.`,
+        label:
+          !legacyCleanse &&
+          removableStatusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
+            ? 'Dispel'
+            : 'Cleanse',
+        explanation: `Removes ${statusNames.join(', ')}.${protectedEndure}`,
       }
     }
     case 'create-terrain':
@@ -549,13 +575,17 @@ export function previewEffect(
         effect.statusIds ?? selectableCombatStatusIds(kind),
         kind,
       )
+      const durationDescription =
+        effect.durationPolicyVersion === 1
+          ? 'each copied status receives its source Skill’s full recorded duration'
+          : 'remaining durations are preserved'
       return {
         label: effect.mode === 'amplify' ? 'Copy Buffs' : 'Copy Debuffs',
         ...(effect.statusIds !== undefined ? { magnitude: selected } : {}),
         explanation:
           effect.mode === 'amplify'
-            ? `Copies ${selected} from the target to you. Originals remain; remaining durations are preserved.`
-            : `Copies ${selected} from you to the target. Originals remain; remaining durations are preserved.`,
+            ? `Copies ${selected} from the target to you. Originals remain; ${durationDescription}.${effect.invisibleDonorPolicyVersion === 1 ? ' Can select an Invisible donor. Other direct effects still require Reveal.' : ''}`
+            : `Copies ${selected} from you to the target. Originals remain; ${durationDescription}.`,
       }
     }
     case 'sensory':
@@ -569,7 +599,55 @@ export function previewEffect(
   }
 }
 
+/** Ground fields use their encounter's delivery rules, without changing saved payloads. */
+export function previewEffect(
+  effect: MatureSkillEffectDefinition,
+  options: NonNullable<Parameters<typeof previewEffectPayload>[1]> = {},
+): PreviewEffect {
+  if (options.groundContactPolicyVersion === 1 && effect.type === 'create-terrain')
+    return previewEffect(
+      {
+        type: 'apply-status',
+        recipient: 'affected-units',
+        target: 'ground',
+        statusId: 'frozen',
+        stacks: 1,
+        durationTurns: 2,
+        applicationOrigin: 'frozen-ground',
+      },
+      options,
+    )
+  const result = previewEffectPayload(effect, options)
+  return options.groundContactPolicyVersion === 1 &&
+    effect.type === 'apply-status' &&
+    effect.target === 'ground'
+    ? { ...result, label: `${result.label} Ground` }
+    : result
+}
+
 /** Shared current/captured wording for native Skills, Essence packets and Resonance results. */
+export function withCurrentAttackRuleHelp(
+  effect: MatureSkillEffectDefinition | Extract<CombatTagPayload, { type: 'pierce' }>,
+  options: NonNullable<Parameters<typeof previewEffect>[1]>,
+  description: string,
+  generatedDescription?: string,
+): string {
+  // This adapter is called only for saved overrides. Exact generated wording needs no suffix.
+  if (generatedDescription && description.endsWith(generatedDescription)) return description
+  const eligibleTag =
+    effect.type === 'pierce' ||
+    (effect.type === 'damage' && (effect.piercing || effect.shattersBarrier)) ||
+    effect.type === 'weak-point' ||
+    effect.type === 'spike'
+  const suffix =
+    effect.type === 'ruin' && !options.legacyRuin
+      ? 'Current Ruin boosts the first landed eligible hit and consumes captured debuffs; later hits cannot reuse it. Debuffs applied afterward remain.'
+      : !options.legacyPierceCritical && eligibleTag
+        ? 'Pierce cannot critically hit.'
+        : undefined
+  return suffix && !description.endsWith(suffix) ? `${description} ${suffix}` : description
+}
+
 export function previewEffectWithTag(
   effect: MatureSkillEffectDefinition,
   presentations?: readonly CombatTagPresentationSnapshot[],
@@ -577,35 +655,77 @@ export function previewEffectWithTag(
 ): PreviewEffect {
   const generated = previewEffect(effect, options)
   const tagPresentation = resolvedCombatEffectTagPresentation(
-    presentations,
+    options.groundContactPolicyVersion === 1 && effect.type === 'create-terrain'
+      ? undefined
+      : presentations,
     effect,
     generated.explanation,
   )
-  return tagPresentation
+  const presentedTag = tagPresentation
+    ? {
+        ...tagPresentation,
+        ...(options.groundContactPolicyVersion === 1 &&
+        effect.type === 'apply-status' &&
+        effect.target === 'ground'
+          ? { name: generated.label }
+          : {}),
+        full: withCurrentAttackRuleHelp(
+          effect,
+          options,
+          options.groundContactPolicyVersion === 1 &&
+            effect.type === 'apply-status' &&
+            effect.target === 'ground'
+            ? (currentGroundNote(tagPresentation.full, effect) ?? generated.explanation)
+            : tagPresentation.full,
+          generated.explanation,
+        ),
+        compact: withCurrentAttackRuleHelp(
+          effect,
+          options,
+          options.groundContactPolicyVersion === 1 &&
+            effect.type === 'apply-status' &&
+            effect.target === 'ground'
+            ? (currentGroundNote(tagPresentation.compact, effect) ?? generated.explanation)
+            : tagPresentation.compact,
+          generated.explanation,
+        ),
+      }
+    : undefined
+  return presentedTag
     ? {
         ...generated,
-        label: tagPresentation.name,
-        explanation: tagPresentation.full,
-        tagPresentation,
+        label: presentedTag.name,
+        explanation: presentedTag.full,
+        tagPresentation: presentedTag,
       }
     : generated
 }
 
 export function skillPreviewEffects(
-  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions' | 'tagPresentation'>,
+  skill: Pick<MatureSkillDefinition, 'effects' | 'effectDescriptions' | 'tagPresentation'> &
+    Partial<Pick<MatureSkillDefinition, 'target' | 'groundArea'>>,
   options: {
     legacyTriggers?: boolean
     legacyPoisonMovement?: boolean
+    groundContactPolicyVersion?: 1 | null
     legacyFrozenGround?: boolean
     legacyAirborne?: boolean
     legacyAirborneJump?: boolean
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
+    legacyReversal?: boolean
+    legacyPierceCritical?: boolean
+    legacyRuin?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
   } = {},
 ): readonly PreviewEffect[] {
+  skill = currentGroundPresentation(
+    skill,
+    options.groundContactPolicyVersion,
+    options.timingPolicy,
+  ).view
   const seen = new Set<string>()
   return groupSkillEffects(skill.effects, skill.effectDescriptions)
     .map(({ effect, firstIndex: index }) => {
@@ -626,17 +746,22 @@ export function skillPreviewEffects(
       return override
         ? {
             ...entry,
-            explanation:
+            explanation: withCurrentAttackRuleHelp(
+              effect,
+              options,
               override +
-              (!options.legacyElemental
-                ? skillDamageElementInteraction(
-                    effect,
-                    false,
-                    options.timingPolicy,
-                    skill.effects,
-                    options.explicitElemental,
-                  )
-                : ''),
+                (!options.legacyElemental
+                  ? skillDamageElementInteraction(
+                      effect,
+                      false,
+                      options.timingPolicy,
+                      skill.effects,
+                      options.explicitElemental,
+                      options.groundContactPolicyVersion,
+                    )
+                  : ''),
+              entry.explanation,
+            ),
           }
         : entry
     })

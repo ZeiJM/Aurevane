@@ -1,3 +1,8 @@
+import {
+  currentGroundBehaviorPresentation,
+  currentGroundNote,
+} from '@/lib/combat-ground-presentation'
+import { withCurrentAttackRuleHelp } from './skill-effect-preview'
 import { reversalDescription, reversalMagnitude } from '../../lib/reversal-presentation'
 import { summonPotencyDescription } from '@aurevane/game-core/combat/summon-content'
 import { hasSelectedAimRequirement } from '@aurevane/game-core/combat/combat-effect-target-authoring'
@@ -301,10 +306,12 @@ function effectPresentation(
     parts = {
       label: 'Reversal',
       magnitude: reversalMagnitude(payload),
-      duration: 'Until next actual owner turn',
+      duration: effectContext.legacyReversal
+        ? 'Until next actual owner turn'
+        : 'Until triggered or cancelled',
       timing: 'Controlled',
     }
-    description = reversalDescription(payload)
+    description = reversalDescription(payload, effectContext)
   } else if (payload.type === 'move') {
     parts = {
       label: 'Move',
@@ -331,7 +338,7 @@ function effectPresentation(
     }
     description = [
       'Summon an allied companion on the chosen empty Ground.',
-      summonPotencyDescription(payload.profile),
+      summonPotencyDescription(payload.profile, { legacy: effectContext.legacySummonPotency }),
     ]
       .filter(Boolean)
       .join(' ')
@@ -409,6 +416,12 @@ function effectPresentation(
             ? ' Break the target’s Barrier. The bypass affects equipment Armor; Physical and Mystic Defense still apply.'
             : ` ${equipmentArmorExplanation}`
     }
+    if (
+      payload.type === 'pierce' &&
+      !effectContext.legacyPierceCritical &&
+      !description.includes('Pierce cannot critically hit.')
+    )
+      description += ' Pierce cannot critically hit.'
     if (payload.type === 'percentage-recovery' && basic?.execution.kind === 'basic-action')
       description +=
         basic.execution.recoveryRounding === 'nearest'
@@ -476,6 +489,12 @@ export function abilityBehaviorInformation(
 ) {
   const timingPolicy = options.timingPolicy ?? null
   behavior = applyAbilityTimingDefaults(behavior, timingPolicy ?? undefined)
+  const groundView = currentGroundBehaviorPresentation(
+    behavior,
+    options.effectContext?.groundContactPolicyVersion,
+    timingPolicy,
+  )
+  behavior = groundView.view
   const controlledAction = behavior.effects.some((effect) => effect.timing === 'controlled')
   const groundFire = canonicalAbilitySupportsFireGroundIntent(
     behavior,
@@ -507,11 +526,44 @@ export function abilityBehaviorInformation(
       effectContext,
       behavior.requirementMode === 'simple' ? behavior : undefined,
     )
-    const tagPresentation = resolvedCombatEffectTagPresentation(
+    const capturedTag = resolvedCombatEffectTagPresentation(
       options.tagPresentation,
       effect.payload,
       described.description,
     )
+    const savedRuleHelp = (wording: string) => {
+      const payload = effect.payload
+      return payload.type === 'pierce' ||
+        payload.type === 'weak-point' ||
+        payload.type === 'spike' ||
+        payload.type === 'ruin'
+        ? withCurrentAttackRuleHelp(payload, effectContext, wording, described.description)
+        : wording
+    }
+    const tagPresentation = capturedTag
+      ? {
+          ...capturedTag,
+          ...(options.effectContext?.groundContactPolicyVersion === 1 &&
+          effect.payload.type === 'apply-status' &&
+          effect.payload.target === 'ground'
+            ? { name: described.presentation.parts.label }
+            : {}),
+          full: savedRuleHelp(
+            options.effectContext?.groundContactPolicyVersion === 1 &&
+              effect.payload.type === 'apply-status' &&
+              effect.payload.target === 'ground'
+              ? (currentGroundNote(capturedTag.full, effect.payload) ?? described.description)
+              : capturedTag.full,
+          ),
+          compact: savedRuleHelp(
+            options.effectContext?.groundContactPolicyVersion === 1 &&
+              effect.payload.type === 'apply-status' &&
+              effect.payload.target === 'ground'
+              ? (currentGroundNote(capturedTag.compact, effect.payload) ?? described.description)
+              : capturedTag.compact,
+          ),
+        }
+      : undefined
     const baseDescription = tagPresentation?.full ?? described.description
     const condition = described.presentation.condition
     const description = condition
@@ -606,7 +658,8 @@ export function abilityBehaviorInformation(
           .join(' / ')
       : null
   const groundSummary = behavior.groundArea
-    ? timingPolicy?.tagAuthority === 'global'
+    ? timingPolicy?.tagAuthority === 'global' &&
+      options.effectContext?.groundContactPolicyVersion !== 1
       ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
       : `${groundFire ? 'Ground casts: ' : ''}${combatGroundAreaDescription(behavior.groundArea, timingPolicy?.modes['ground-area'] === 'instant' || timingPolicy?.modes['ground-area'] === 'delayed' ? timingPolicy.modes['ground-area'] : 'next-round', true)}`
     : null

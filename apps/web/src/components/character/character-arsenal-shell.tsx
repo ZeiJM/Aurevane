@@ -52,7 +52,7 @@ export function EssenceHoverPreview({ essence }: { essence: EssenceDefinition })
         <SkillParameters skill={skill} />
         {!skill.ability ? (
           <ul aria-label="Effect explanations">
-            {skillPreviewEffects(skill).map((effect) => (
+            {skillPreviewEffects(skill, { groundContactPolicyVersion: 1 }).map((effect) => (
               <li key={JSON.stringify(effect)}>
                 <strong>
                   <EffectTagLabel label={effect.label} />

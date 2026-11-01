@@ -7,7 +7,7 @@ import type {
   CombatResolutionEvent,
   CombatResolutionTransition,
 } from './actions-legacy'
-import { createCombatEncounterState, resolveCombatMovementStepEffects } from './actions-legacy'
+import { resolveCombatMovementStepEffects } from './actions-legacy'
 import { airborneMovementTactical } from './combat-airborne'
 import {
   consumeCommittedCombatMovement,
@@ -363,19 +363,16 @@ export function executePreparedCombatWalking(
     next = reattachStatDrivenCombatBridge(
       {
         ...next,
-        ...createCombatEncounterState(
-          {
-            ...moved.state,
-            battle: {
-              ...moved.state.battle,
-              ...(next.effectStackingPolicyVersion === 1
-                ? { effectStackingPolicyVersion: 1 as const }
-                : {}),
-            },
-            movementProfiles: next.tactical.movementProfiles,
+        tactical: {
+          ...moved.state,
+          battle: {
+            ...moved.state.battle,
+            ...(next.effectStackingPolicyVersion === 1
+              ? { effectStackingPolicyVersion: 1 as const }
+              : {}),
           },
-          next.statusState,
-        ),
+          movementProfiles: next.tactical.movementProfiles,
+        },
       },
       next.statBridge,
     )

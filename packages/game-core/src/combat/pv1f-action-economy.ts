@@ -56,6 +56,7 @@ import { materializeVengeanceDamage } from './combat-vengeance'
 import {
   calculateScaledRawDamage,
   currentSkillDamageScaling,
+  summonSkillDamageScaling,
   standardSkillDamageScaling,
   legacySkillDamageScaling,
 } from './damage-scaling'
@@ -636,11 +637,11 @@ function summonAbilityDefinition(
     state.statBridge.rulesVersion === 4 && damageCount > 0
       ? state.skillPacketPolicyVersion === 1
         ? standardSkillDamageScaling(source)
-        : currentSkillDamageScaling(source, damageCount, ability.apCost)
+        : summonSkillDamageScaling(source, damageCount, ability.apCost)
       : null
   const recoveryScaling =
     state.statBridge.rulesVersion === 4 && recoveryCount > 0
-      ? currentSkillDamageScaling(source, recoveryCount, ability.apCost)
+      ? summonSkillDamageScaling(source, recoveryCount, ability.apCost)
       : null
   const offensivePower =
     recoveryScaling === null ? null : getStatDrivenOffensivePower(state, actorId, source)
@@ -698,6 +699,7 @@ function summonAbilityDefinition(
       ? { cooldown: { key: ability.id, ownerTurns: ability.cooldownOwnerTurns } }
       : {}),
     effects,
+    ...(ability.groundArea ? { groundArea: ability.groundArea } : {}),
   }
 }
 

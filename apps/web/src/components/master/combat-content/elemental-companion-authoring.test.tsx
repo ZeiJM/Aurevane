@@ -6,6 +6,7 @@ import {
   type AbilityBehavior,
   type AbilityDefinition,
 } from '@aurevane/game-core/combat/combat-definition'
+import { withAuthoredElementalCompanions } from './elemental-companion-authoring'
 import { AbilityNumber } from './ability-editor-fields'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { ContentDefinitionFields } from './content-definition-fields'
@@ -413,17 +414,32 @@ it('does not let a generated tag broaden the shared aim beyond mixed Ally/Enemy 
   expect(validateAbilityDefinition(e.draft())).toEqual([])
 })
 
-it('preserves an intentionally changed generated status as an independent authored tag', () => {
+it('preserves a retained independently changed companion without requiring a status-switching control', () => {
   const e = editor()
   e.change('Element', 'ice')
-  e.change('Status', 'mark')
-  const effects = e.draft().behaviors[0]!.effects
-  expect(effects).toHaveLength(3)
-  expect(effects[1]!.payload).toMatchObject({ statusId: 'mark' })
-  expect(effects[2]!.payload).toMatchObject({ statusId: 'frozen' })
-  e.change('Element', '')
-  expect(e.draft().behaviors[0]!.effects).toHaveLength(2)
-  expect(e.draft().behaviors[0]!.effects[1]!.payload).toMatchObject({ statusId: 'mark' })
+  const before = e.draft().behaviors[0]!
+  const after = withAuthoredElementalCompanions(before, {
+    ...before,
+    effects: before.effects.map((effect, index) =>
+      index === 1
+        ? { ...effect, payload: { ...effect.payload, statusId: 'mark' } as typeof effect.payload }
+        : effect,
+    ),
+  })
+  expect(after.effects).toHaveLength(3)
+  expect(after.effects[1]!.payload).toMatchObject({ statusId: 'mark' })
+  expect(after.effects[2]!.payload).toMatchObject({ statusId: 'frozen' })
+  const cleared = withAuthoredElementalCompanions(after, {
+    ...after,
+    effects: after.effects.map((effect, index) => {
+      if (index !== 0 || effect.payload.type !== 'damage') return effect
+      const { element: _element, ...payload } = effect.payload
+      void _element
+      return { ...effect, payload }
+    }),
+  })
+  expect(cleared.effects).toHaveLength(2)
+  expect(cleared.effects[1]!.payload).toMatchObject({ statusId: 'mark' })
 })
 
 it('shows the Fire companion as Conditional Cleanse with only Chilled selected', () => {

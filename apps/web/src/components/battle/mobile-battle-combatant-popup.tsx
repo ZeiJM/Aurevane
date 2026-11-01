@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleSummonPortrait } from './battle-summon-portrait'
+
 import { BattleEffectPopover } from './battle-effect-information'
 import { useBattleInspectEffectFocus } from './use-battle-inspect-effect-focus'
 import { BATTLE_EFFECT_KEYBOARD_HELP } from './battle-effect-keyboard-navigation'
@@ -305,7 +307,14 @@ export function MobileBattleCombatantPopup({
           <>
             <div className={styles.identityRow}>
               <div className={styles.portrait}>
-                {selected.isPlayer ? (
+                {selected.summon?.portraitUrl ? (
+                  <BattleSummonPortrait
+                    src={selected.summon?.portraitUrl}
+                    name={selected.name}
+                    fallbackClassName={styles.recruitPortrait}
+                    className={styles.portraitImage}
+                  />
+                ) : selected.isPlayer ? (
                   <CharacterPortraitImage
                     imageUrl={playerProfileImageUrl}
                     fallbackAssetId={playerPortraitAssetId}

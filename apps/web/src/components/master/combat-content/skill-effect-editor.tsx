@@ -1,13 +1,17 @@
 'use client'
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
+import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
+import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
 import {
   selectableCombatStatusIds,
   combatStatusSelectionSummary,
   type StatusSelectionKind,
 } from '@aurevane/game-core/combat/combat-status-selection'
+import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 import {
-  AUTHORABLE_EFFECT_TAGS,
-  effectAuthoringTag,
-} from '@aurevane/game-core/combat/combat-effect-authoring'
+  CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+  CURRENT_RECOVERY_MAXIMUM_APPLICATIONS,
+} from '@aurevane/game-core/combat/combat-effect-duration'
 
 import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
@@ -22,6 +26,7 @@ import {
 import { useId, useState } from 'react'
 import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import {
+  CURRENT_POISON_REFRESH_TRAVERSED_TILES,
   parsePercentageBasisPoints,
   percentageBasisPointsText,
   percentageDotSequence,
@@ -41,6 +46,7 @@ const PERCENTAGE_STATUS_IDS = new Set([
   'guarded',
   'exposed',
   'mark',
+  'blind',
   'marked',
   'hexed',
   'wet',
@@ -107,20 +113,6 @@ function StatusSelectionControls({
 function integer(value: string, fallback: number): number {
   const parsed = Number(value)
   return value.trim() && Number.isSafeInteger(parsed) ? parsed : fallback
-}
-
-function curseCopyableField(value: boolean | undefined, onChange: (next: boolean) => void) {
-  return (
-    <label className={styles.checkField}>
-      <input
-        aria-label="Curse-copyable"
-        type="checkbox"
-        checked={value === true}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-      />
-      <span>Curse-copyable</span>
-    </label>
-  )
 }
 
 function damageEditor(
@@ -207,7 +199,9 @@ function PercentageInput({
             setError(null)
           } catch {
             setError(
-              'Enter ' + (allowZero ? '0' : '0.01') + '–100 with at most two decimal places.',
+              'Enter ' +
+                (allowZero ? '0' : '0.01') +
+                `–${CURRENT_EFFECT_PERCENT_MAXIMUM} with at most two decimal places.`,
             )
             onChange(Number.NaN)
           }
@@ -289,19 +283,23 @@ function PercentageDotControls({
           <p className={styles.effectNote}>{sequence}. Backlash can trigger once per turn.</p>
         </>
       ) : null}
+      {value.type === 'poison' ? (
+        <AbilityNumber
+          label="Movement refresh (tiles)"
+          value={value.movementRefreshTiles ?? CURRENT_POISON_REFRESH_TRAVERSED_TILES}
+          min={1}
+          max={99}
+          onChange={(movementRefreshTiles) => onChange({ ...value, movementRefreshTiles })}
+        />
+      ) : null}
       {!value.damageProfile ? (
         <button type="button" onClick={() => changeProfile(profile)}>
           Convert to attack percentage
         </button>
       ) : null}
-      {value.type === 'poison'
-        ? curseCopyableField(value.curseCopyable, (curseCopyable) =>
-            onChange({ ...value, curseCopyable }),
-          )
-        : null}
       <p className={styles.effectNote}>
-        Based on HP damage dealt by this attack. Add a direct Damage effect covering these
-        recipients.
+        Based on HP damage dealt by this attack. Damage or Pierce in this group supplies the basis;
+        this effect can target different recipients.
       </p>
     </div>
   )
@@ -322,12 +320,15 @@ export interface SkillEffectEditorProps {
 
 export function SkillEffectEditor({
   value: savedValue,
-  onChange,
+  onChange: commitChange,
   aim,
   siblings,
   hideTarget = false,
   canonicalDamage,
 }: SkillEffectEditorProps) {
+  const onChange = (next: CombatEffectDefinition) => {
+    if (combatPercentageEditIsWithinBounds(value, next)) commitChange(next)
+  }
   const value = currentTagForAuthoring(savedValue)
   let controls
 
@@ -352,38 +353,18 @@ export function SkillEffectEditor({
             <AbilityNumber
               label="Reflection potency (%)"
               value={value.reflectionBasisPoints / 100}
-              max={1000}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               min={0.01}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, reflectionBasisPoints: Math.round(percent * 100) })
               }
             />
-            <AbilityNumber
-              label="Attacker HP cap (%)"
-              value={value.attackerMaxHpCapBasisPoints / 100}
-              min={0.01}
-              max={100}
-              step={0.01}
-              onChange={(percent) =>
-                onChange({ ...value, attackerMaxHpCapBasisPoints: Math.round(percent * 100) })
-              }
-            />
-            <AbilityNumber
-              label="User HP cap (%)"
-              value={value.defenderMaxHpCapBasisPoints / 100}
-              min={0.01}
-              max={100}
-              step={0.01}
-              onChange={(percent) =>
-                onChange({ ...value, defenderMaxHpCapBasisPoints: Math.round(percent * 100) })
-              }
-            />
           </div>
           <p className={styles.effectNote}>
-            The lower HP cap applies. One trigger; front and sides only. Armed until your next turn,
-            followed by one complete turn of Reversal Strain. Other Controlled effects need a
-            separate group.
+            Arms immediately and stays armed until triggered or cancelled. One matching front or
+            side hit; returns the chosen percentage. Ending causes Reversal Strain. Other Controlled
+            effects need a separate group.
           </p>
         </>
       )
@@ -395,6 +376,7 @@ export function SkillEffectEditor({
             label="Damage returned (%)"
             value={value.releaseBasisPoints / 100}
             min={0.01}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
             step={0.01}
             onChange={(percent) =>
               onChange({ ...value, releaseBasisPoints: Math.round(percent * 100) })
@@ -448,6 +430,7 @@ export function SkillEffectEditor({
           label="Damage increase per debuff (%)"
           value={value.bonusPerDebuffBasisPoints / 100}
           min={0.01}
+          max={CURRENT_EFFECT_PERCENT_MAXIMUM}
           step={0.01}
           onChange={(percent) =>
             onChange({ ...value, bonusPerDebuffBasisPoints: Math.round(percent * 100) })
@@ -472,7 +455,7 @@ export function SkillEffectEditor({
               aria-label="Recovery percent"
               type="number"
               min={1}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={1}
               value={value.percent}
               onChange={(event) =>
@@ -514,7 +497,7 @@ export function SkillEffectEditor({
               aria-label="Healing ticks"
               type="number"
               min={1}
-              max={4}
+              max={CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}
               step={1}
               value={value.ticks ?? ''}
               placeholder="Immediate"
@@ -546,7 +529,7 @@ export function SkillEffectEditor({
               aria-label={percentage ? 'MP Drain potency (%)' : 'MP Drain amount'}
               type="number"
               min={1}
-              max={percentage ? 100 : 20}
+              max={percentage ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20}
               step={1}
               value={Math.abs(value.delta)}
               onChange={(event) =>
@@ -563,9 +546,9 @@ export function SkillEffectEditor({
       controls = (
         <div className={styles.typedGrid}>
           <label className={styles.field}>
-            <span>MP delta</span>
+            <span>Amount (MP)</span>
             <input
-              aria-label="MP delta"
+              aria-label="Amount (MP)"
               type="number"
               min={-20}
               max={20}
@@ -577,12 +560,12 @@ export function SkillEffectEditor({
             />
           </label>
           <label className={styles.field}>
-            <span>MP ticks</span>
+            <span>Applications</span>
             <input
-              aria-label="MP ticks"
+              aria-label="Applications"
               type="number"
               min={1}
-              max={value.delta < 0 ? 1 : 4}
+              max={value.delta < 0 ? 1 : CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}
               step={1}
               value={value.ticks ?? ''}
               placeholder="Immediate"
@@ -616,7 +599,7 @@ export function SkillEffectEditor({
             <label className={styles.field}>
               <span>Type</span>
               <select
-                aria-label="Counter type"
+                aria-label="Reflect type"
                 value={counter.kind}
                 onChange={(event) =>
                   onChange({
@@ -625,15 +608,16 @@ export function SkillEffectEditor({
                   })
                 }
               >
-                <option value="physical">Physical Counter</option>
-                <option value="mystic">Mystical Counter</option>
-                <option value="full">Full Counter</option>
+                <option value="physical">Physical Reflect</option>
+                <option value="mystic">Magical Reflect</option>
+                <option value="full">Full Reflect</option>
               </select>
             </label>
             <AbilityNumber
-              label="Counter potency (%)"
+              label="Reflect potency (%)"
               value={counter.basisPoints / 100}
               min={0.01}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({
@@ -648,61 +632,7 @@ export function SkillEffectEditor({
       }
       controls = (
         <div className={styles.typedGrid}>
-          {!['root', 'invisible', 'challenged'].includes(value.statusId) &&
-          value.applicationOrigin !== 'frozen-ground' ? (
-            <label className={styles.field}>
-              <span>Status</span>
-              <select
-                aria-label="Status"
-                value={value.statusId}
-                onChange={(event) => {
-                  const next = { ...value, statusId: event.currentTarget.value }
-                  if (isBlindsideStatusId(next.statusId)) {
-                    next.durationTurns = 1
-                    delete next.potencyBasisPoints
-                  }
-                  if (next.statusId === 'suppress') {
-                    next.stacks = 1
-                    next.durationTurns ??= 2
-                    next.potencyBasisPoints ??= 2500
-                    delete next.power
-                  }
-                  if (!isBlindsideStatusId(next.statusId)) delete next.blindsideModifiersBasisPoints
-                  const fields = {
-                    initiativeReductionBasisPoints: 'wet',
-                    defenseIncreaseBasisPoints: 'fortified',
-                    damageTakenMultiplierBasisPoints: 'lowered-guard',
-                  }
-                  for (const [key, status] of Object.entries(fields))
-                    if (next.statusId !== status) Reflect.deleteProperty(next, key)
-                  if (!['haste', 'slow'].includes(next.statusId))
-                    Reflect.deleteProperty(next, 'movementApAdjustment')
-                  if (next.statusId !== 'counter') Reflect.deleteProperty(next, 'counter')
-                  else {
-                    next.counter ??= { kind: 'full', basisPoints: 10000 }
-                    next.stacks = 1
-                  }
-                  onChange(currentTagForAuthoring(next))
-                }}
-              >
-                {!AUTHORABLE_EFFECT_TAGS.some((tag) => tag.statusId === value.statusId) ? (
-                  <option value={value.statusId}>
-                    {isBlindsideStatusId(value.statusId) ? 'Blindside' : 'Retained status'}
-                  </option>
-                ) : null}
-                {AUTHORABLE_EFFECT_TAGS.flatMap((tag) =>
-                  tag.opcode === 'apply-status' && tag.statusId
-                    ? [
-                        <option key={tag.id} value={tag.statusId}>
-                          {tag.label}
-                        </option>,
-                      ]
-                    : [],
-                )}
-              </select>
-            </label>
-          ) : null}
-          {!['covert', 'invisible', 'mark', 'marked', 'root'].includes(value.statusId) ? (
+          {!['covert', 'invisible', 'mark', 'marked', 'blind', 'root'].includes(value.statusId) ? (
             <label className={styles.field}>
               <span>Status stacks</span>
               <input
@@ -724,7 +654,7 @@ export function SkillEffectEditor({
               label="Initiative reduction (%)"
               value={(value.initiativeReductionBasisPoints ?? 1000) / 100}
               min={0}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, initiativeReductionBasisPoints: Math.round(percent * 100) })
@@ -736,7 +666,7 @@ export function SkillEffectEditor({
               label="Defense increase / outgoing damage reduction (%)"
               value={(value.defenseIncreaseBasisPoints ?? value.potencyBasisPoints ?? 1500) / 100}
               min={0}
-              max={100}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, defenseIncreaseBasisPoints: Math.round(percent * 100) })
@@ -753,6 +683,7 @@ export function SkillEffectEditor({
                     : 10000 + value.potencyBasisPoints)) / 100
               }
               min={0}
+              max={CURRENT_EFFECT_PERCENT_MAXIMUM}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, damageTakenMultiplierBasisPoints: Math.round(percent * 100) })
@@ -777,6 +708,7 @@ export function SkillEffectEditor({
                     aria-label={`${direction === 'side' ? 'Side' : 'Rear'} damage (%)`}
                     type="number"
                     min={100}
+                    max={CURRENT_EFFECT_PERCENT_MAXIMUM}
                     step={0.01}
                     value={
                       (value.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS)[
@@ -849,13 +781,10 @@ export function SkillEffectEditor({
     case 'create-terrain':
       controls = (
         <div className={styles.effectStaticGrid}>
-          <AbilityNumber
-            label="Extra Skill AP cost"
-            value={value.skillApSurcharge ?? 10}
-            min={0}
-            max={100}
-            onChange={(skillApSurcharge) => onChange({ ...value, skillApSurcharge })}
-          />
+          <p className={styles.fieldHint}>
+            Retired Freeze Ground becomes Chilled Ground when this draft is saved. No extra Skill AP
+            cost is added.
+          </p>
           <div className={styles.effectStatic}>
             <span>Terrain</span>
             <strong>Frozen Ground</strong>
@@ -910,7 +839,7 @@ export function SkillEffectEditor({
               }
               type="number"
               min={1}
-              max={value.basis === 'maximum-hp-percent' ? 100 : 20}
+              max={value.basis === 'maximum-hp-percent' ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20}
               step={1}
               value={value.amount}
               onChange={(event) =>
@@ -945,6 +874,7 @@ export function SkillEffectEditor({
             label="Increased damage taken (%)"
             value={(value.increasedDamageTakenBasisPoints ?? 1500) / 100}
             min={0}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
             step={0.01}
             onChange={(percent) =>
               onChange({ ...value, increasedDamageTakenBasisPoints: Math.round(percent * 100) })
@@ -956,7 +886,7 @@ export function SkillEffectEditor({
               aria-label="Revealed duration (owner-turn starts)"
               type="number"
               min={1}
-              max={4}
+              max={CURRENT_EFFECT_DURATION_MAXIMUM_TURNS}
               step={1}
               value={value.revealedDurationOwnerTurnStarts}
               onChange={(event) =>
@@ -1002,8 +932,7 @@ export function SkillEffectEditor({
     value.type === 'apply-status' &&
     PERCENTAGE_STATUS_IDS.has(value.statusId) &&
     value.statusId !== 'fortified'
-  const maximumDuration =
-    value.type === 'healing' || (value.type === 'resource-change' && value.delta > 0) ? 3 : 4
+  const maximumDuration = CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
   const minimumDuration = [
     'apply-status',
     'bleed',
@@ -1085,10 +1014,18 @@ export function SkillEffectEditor({
           {hasPotency && value.type === 'apply-status' ? (
             <AbilityNumber
               label={
-                value.statusId === 'wet' ? 'Storm damage increase (%)' : 'Status potency (percent)'
+                value.statusId === 'blind'
+                  ? 'Accuracy reduction (%)'
+                  : value.statusId === 'wet'
+                    ? 'Storm damage increase (%)'
+                    : 'Status potency (percent)'
               }
               displayLabel={
-                value.statusId === 'wet' ? 'Storm damage increase (%)' : 'Status potency (%)'
+                value.statusId === 'blind'
+                  ? 'Accuracy reduction (%)'
+                  : value.statusId === 'wet'
+                    ? 'Storm damage increase (%)'
+                    : 'Status potency (%)'
               }
               value={
                 (value.potencyBasisPoints ??
@@ -1099,7 +1036,7 @@ export function SkillEffectEditor({
                       : 1500)) / 100
               }
               min={1}
-              max={value.statusId === 'suppress' ? 100 : 50}
+              max={maximumCombatStatusPotencyBasisPoints(value.statusId) / 100}
               step={0.01}
               onChange={(percent) =>
                 onChange({ ...value, potencyBasisPoints: Math.round(percent * 100) })

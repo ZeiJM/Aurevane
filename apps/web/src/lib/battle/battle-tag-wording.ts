@@ -1,6 +1,7 @@
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
 import { renderCombatTagWording } from '@aurevane/game-core/combat/combat-tag-wording'
 import type { CombatEffectPresentationStatus } from '@aurevane/game-core/combat/combat-effect-timing'
+import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
 
 /** Compact public projection only: no source keys, full descriptions or unused catalogue rows. */
 export type BattleTagWording = Pick<
@@ -33,7 +34,12 @@ export function battleTagForStatus(
   const tag =
     tags?.find((row) => row.tagId === id) ?? tags?.find((row) => row.tagId === status.statusId)
   return tag
-    ? { tagId: tag.tagId, contentVersion: tag.contentVersion, name: tag.name, compact: tag.compact }
+    ? {
+        tagId: tag.tagId,
+        contentVersion: tag.contentVersion,
+        name: currentCombatTagName(tag.tagId, tag.name),
+        compact: tag.compact,
+      }
     : undefined
 }
 

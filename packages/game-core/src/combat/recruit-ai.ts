@@ -331,7 +331,7 @@ function buildCandidates(
           }
         } else {
           const preview = evaluatePv1fMovement(state, path)
-          if (!preview.movement.legal || preview.economyCost <= 0) continue
+          if (!preview.movement.legal || preview.economyCost < 0) continue
           cost = preview.economyCost
           intent = { kind: 'move', path: preview.movement.path }
         }

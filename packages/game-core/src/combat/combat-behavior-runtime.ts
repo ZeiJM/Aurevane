@@ -183,6 +183,9 @@ export function materializeCombatAbilityAction(
     ...(behavior.groundArea
       ? {
           groundArea: {
+            ...(behavior.groundArea.contactPolicyVersion === 1
+              ? { contactPolicyVersion: 1 as const }
+              : {}),
             durationRounds: behavior.groundArea.durationRounds,
             visualPresetId: behavior.groundArea.visualPresetId,
             ...(behavior.groundArea.timing ? { timing: behavior.groundArea.timing } : {}),

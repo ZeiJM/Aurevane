@@ -40,13 +40,13 @@ describe('attack percentage DoT arithmetic and authoring', () => {
     },
   )
 
-  it.each([0, -1, 10001, 0.5, NaN, Infinity])('rejects invalid percentages %s', (basisPoints) => {
+  it.each([0, -1, 99901, 0.5, NaN, Infinity])('rejects invalid percentages %s', (basisPoints) => {
     expect(() =>
       validatePercentageDotProfile({ kind: 'attack-percentage', basisPoints }, 3, 'burn'),
     ).toThrow()
   })
 
-  it.each([0, 5, 1.5, NaN, Infinity])('rejects invalid tick counts %s', (ticks) => {
+  it.each([0, 100, 1.5, NaN, Infinity])('rejects invalid tick counts %s', (ticks) => {
     expect(() =>
       validatePercentageDotProfile(
         { kind: 'attack-percentage', basisPoints: 1500 },
@@ -102,3 +102,20 @@ describe('attack percentage DoT arithmetic and authoring', () => {
     expect(() => validateCurrentBurnEffect({ damageProfile, power: 2, durationTurns: 3 })).toThrow()
   })
 })
+
+it('rejects unsupported captured damage-basis policies', () => {
+  expect(() =>
+    validatePercentageDotProfile(
+      { kind: 'attack-percentage', basisPoints: 1500, damageBasis: 'arbitrary' } as never,
+      3,
+      'poison',
+    ),
+  ).toThrow(/basis/i)
+})
+
+it.each([0, 100, 1.5, NaN, Infinity])(
+  'rejects invalid authored Poison movement threshold %s',
+  (movementRefreshTiles) => {
+    expect(() => validateCurrentPoisonEffect({ movementRefreshTiles })).toThrow(/movement/i)
+  },
+)

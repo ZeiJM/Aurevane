@@ -1,7 +1,8 @@
 import { expect, it } from 'vitest'
 import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
-import { previewEffect } from './skill-effect-preview'
+import { previewEffect, previewEffectWithTag, skillPreviewEffects } from './skill-effect-preview'
+import { captureCombatTagPresentation } from '@aurevane/game-core/combat/combat-tag-registry'
 import { compactSkillEffectSummaryParts, skillEffectDescription } from './skill-detail-presentation'
 import { canonicalEffectExplanation } from './canonical-effect-explanation'
 import { abilityBehaviorInformation } from './ability-detail-presentation'
@@ -26,6 +27,91 @@ const examples = [
     words: /253\.75%.*(?:each|per).*(?:debuff|negative status)/i,
   },
 ] as const
+
+it('explains current Ruin consumption and the retained historical rule in shared readers', () => {
+  const effect = examples[2].effect as unknown as MatureSkillEffectDefinition
+  for (const description of [
+    previewEffect(effect).explanation,
+    skillEffectDescription(effect),
+    canonicalEffectExplanation(effect, {})?.description,
+  ]) {
+    expect(description).toContain('first landed')
+    expect(description).toContain('consumes')
+    expect(description).toContain('Later hits')
+    expect(description).toContain('Historical battles')
+  }
+})
+
+it('retains the nonconsuming Ruin explanation for an absent-policy captured battle', () => {
+  const effect = examples[2].effect as unknown as MatureSkillEffectDefinition
+  for (const description of [
+    previewEffect(effect, { legacyRuin: true }).explanation,
+    skillEffectDescription(effect, { legacyRuin: true }),
+    canonicalEffectExplanation(effect, { legacyRuin: true })?.description,
+  ]) {
+    expect(description).toContain('253.75% per active debuff')
+    expect(description).not.toContain('consumes')
+    expect(description).not.toContain('Later hits')
+  }
+})
+
+it('adds the current Ruin rule to old saved help without rewriting the captured wording', () => {
+  const effect = examples[2].effect
+  const saved = captureCombatTagPresentation({
+    id: 'tag.ruin',
+    tagId: 'ruin',
+    contentVersion: 3,
+    name: 'Ruin',
+    explanation: 'Saved Ruin rule.',
+    description: 'Saved short Ruin.',
+  })
+  const before = JSON.stringify(saved)
+  const current = previewEffectWithTag(effect, [saved], { legacyRuin: false })
+  expect(current.explanation).toContain('Saved Ruin rule.')
+  expect(current.explanation).toContain('first landed')
+  expect(current.explanation).toContain('consumes')
+  expect(current.tagPresentation?.compact).toContain('first landed')
+  expect(previewEffectWithTag(effect, [saved], { legacyRuin: true }).explanation).toBe(
+    'Saved Ruin rule.',
+  )
+  const skill = { effects: [effect], effectDescriptions: ['Saved description.'] }
+  expect(skillPreviewEffects(skill, { legacyRuin: false })[0]?.explanation).toContain(
+    'first landed',
+  )
+  expect(skillPreviewEffects(skill, { legacyRuin: true })[0]?.explanation).toBe(
+    'Saved description.',
+  )
+  expect(JSON.stringify(saved)).toBe(before)
+})
+
+it('does not mistake negated saved prose for the current Ruin rule or repeat known generated text', () => {
+  const effect = examples[2].effect
+  const contradictory = captureCombatTagPresentation({
+    id: 'tag.ruin',
+    tagId: 'ruin',
+    contentVersion: 3,
+    name: 'Ruin',
+    explanation: 'Ruin does not consume debuffs. Later hits also gain Ruin.',
+    description: 'Ruin never consumes debuffs.',
+  })
+  const current = previewEffectWithTag(effect, [contradictory], { legacyRuin: false })
+  expect(current.explanation).toContain(
+    'Current Ruin boosts the first landed eligible hit and consumes captured debuffs',
+  )
+  expect(current.tagPresentation?.compact).toContain('Current Ruin boosts the first landed')
+  const generated = previewEffect(effect, { legacyRuin: false }).explanation
+  const templated = captureCombatTagPresentation({
+    id: 'tag.ruin',
+    tagId: 'ruin',
+    contentVersion: 4,
+    name: 'Ruin',
+    explanation: 'Additional context. {details}',
+    description: '{summary}',
+  })
+  const rendered = previewEffectWithTag(effect, [templated], { legacyRuin: false })
+  expect(rendered.explanation).toBe(`Additional context. ${generated}`)
+  expect(rendered.tagPresentation?.compact).toBe(generated)
+})
 
 it.each(examples)(
   'describes saved $label values in native and canonical readers',

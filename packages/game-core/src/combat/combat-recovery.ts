@@ -1,3 +1,8 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from './combat-effect-percentages'
+import {
+  CURRENT_EFFECT_DURATION_MAXIMUM_TURNS,
+  CURRENT_RECOVERY_MAXIMUM_APPLICATIONS,
+} from './combat-effect-duration'
 import { validateCapturedPercentageRecovery } from './combat-percentage-recovery'
 import type { CombatEffectDefinition, CombatEncounterIssue, CombatEncounterState } from './actions'
 import { normalizeCombatEffectState, type CombatOngoingRecovery } from './combat-effect-state'
@@ -19,9 +24,11 @@ export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
       !['hp', 'mp'].includes(effect.resource) ||
       !Number.isSafeInteger(effect.percent) ||
       effect.percent < 1 ||
-      effect.percent > 100
+      effect.percent > CURRENT_EFFECT_PERCENT_MAXIMUM
     )
-      throw new RangeError('Recovery requires HP/MP and an integer percentage between 1 and 100.')
+      throw new RangeError(
+        `Recovery requires HP/MP and an integer percentage between 1 and ${CURRENT_EFFECT_PERCENT_MAXIMUM}.`,
+      )
   } else if (effect.type !== 'healing' && effect.type !== 'resource-change') return
   if (
     effect.type === 'resource-change' &&
@@ -29,17 +36,19 @@ export function validateRecoveryEffect(effect: CombatEffectDefinition): void {
     (effect.basis !== 'maximum-mp-percent' ||
       !Number.isSafeInteger(effect.delta) ||
       effect.delta > -1 ||
-      effect.delta < -100)
+      effect.delta < -CURRENT_EFFECT_PERCENT_MAXIMUM)
   )
-    throw new RangeError('Percentage MP Drain requires a potency between 1 and 100 percent.')
+    throw new RangeError(
+      `Percentage MP Drain requires a potency between 1 and ${CURRENT_EFFECT_PERCENT_MAXIMUM} percent.`,
+    )
   const ticks = effect.ticks
   if (ticks === undefined) return // Immutable historical single-application effects.
   if (effect.type === 'resource-change' && effect.delta < 0 && ticks !== 1) {
     throw new RangeError('MP Drain is immediate-only and must use one tick.')
   }
-  if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > 4) {
+  if (!Number.isSafeInteger(ticks) || ticks < 1 || ticks > CURRENT_RECOVERY_MAXIMUM_APPLICATIONS) {
     throw new RangeError(
-      `${effect.type === 'healing' ? 'Healing' : 'MP recovery'} ticks must be an integer between 1 and 4.`,
+      `${effect.type === 'healing' ? 'Healing' : 'MP recovery'} ticks must be an integer between 1 and ${CURRENT_RECOVERY_MAXIMUM_APPLICATIONS}.`,
     )
   }
 }
@@ -99,7 +108,7 @@ export function validateOngoingRecoveryState(
     {
       field: 'effectState.ongoingRecovery',
       message:
-        'Recovery schedules must have valid identities, safe amounts, one to three future ticks, and unique recipient/resource/action keys.',
+        'Recovery schedules must have valid identities, safe amounts, up to 99 future ticks, and unique recipient/resource/action keys.',
     },
   ]
   if (
@@ -126,7 +135,7 @@ export function validateOngoingRecoveryState(
       row.amountPerTick < 0 ||
       !Number.isSafeInteger(row.remainingFutureTicks) ||
       row.remainingFutureTicks < 1 ||
-      row.remainingFutureTicks > 3 ||
+      row.remainingFutureTicks > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
       (row.skipCurrentOwnerTurnEnd !== undefined &&
         typeof row.skipCurrentOwnerTurnEnd !== 'boolean')
     )

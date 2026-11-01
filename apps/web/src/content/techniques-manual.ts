@@ -60,7 +60,11 @@ function abilityManualSummary(
   basic?: PublicCombat<BasicSkillDefinition>,
 ): { text: string; parts: readonly ManualInlinePart[] } {
   const groups = definition.behaviors.map((behavior, index) => {
-    const report = abilityBehaviorInformation(behavior, { timingPolicy, basic })
+    const report = abilityBehaviorInformation(behavior, {
+      timingPolicy,
+      basic,
+      effectContext: { groundContactPolicyVersion: 1 },
+    })
     const label = `${behavior.activation === 'manual' ? 'Manual' : behavior.activation === 'automatic' ? 'Automatic' : 'Ongoing'} ${behavior.mode === 'action' ? 'Action' : 'Modifier'}${definition.behaviors.length > 1 ? ` ${index + 1}` : ''}`
     const parts = abilityManualInlineParts(report, label)
     return { text: plainManualInlineParts(parts)!, parts }
@@ -129,7 +133,8 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
         title: 'Base damage and Power magnitude',
         paragraphs: [
           techniquePowerSummary,
-          `For a normally scaled direct-damage block: coefficientBP = ${standardSkillDamageScaling('physical-power').coefficientBasisPoints}; Power bonus = floor(matching Power × coefficientBP ÷ 10,000); raw damage = authored damage power + Power bonus. A basis point is 0.01%. Explicitly authored scaling is retained; Historical Vengeance uses its recorded-damage rule. Current Counter returns a set percentage of damage received instead of adding another attack Power bonus.`,
+          'In new battles, Ruin turns the target’s consumable debuffs captured at commitment into one boosted hit. The first landed eligible hit spends those debuffs, including a hit absorbed by Barrier; later damage packets against that target cannot reuse the bonus. Debuffs applied afterward remain. Protected Reversal Strain does not increase Ruin. Its total applied bonus appears beside the same damage outcome in the Chronicle and copied log. Historical battles keep their captured rules.',
+          `For a normally scaled direct-damage block: coefficientBP = ${standardSkillDamageScaling('physical-power').coefficientBasisPoints}; Power bonus = floor(matching Power × coefficientBP ÷ 10,000); raw damage = authored damage power + Power bonus. A basis point is 0.01%. Explicitly authored scaling is retained; Historical Vengeance uses its recorded-damage rule. Current Reflect returns a set percentage of damage received instead of adding another attack Power bonus.`,
           'Ordinary Physical damage uses an authored 1–20 packet; ordinary Mystic damage generally caps at 16 and trades some direct force for stronger tempo effects. Rare and existing pinned exceptions retain their authored versions. This authored number and the per-packet Power contribution are separate. More AP can raise the authored budget but does not change the ordinary 25% Power coefficient. Area coverage, secondary utility, multiple hits, effect potency and duration reduce how much of that authored budget can be concentrated into one damage block. Historically pinned battles keep their own formulas.',
         ],
         table: {
@@ -164,7 +169,7 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
           '1. Add floor(matching Power × coefficientBP ÷ 10,000) to the authored base damage.',
           '2. Apply Physical Defense or Mystic Defense (reduced 20% while on elevated terrain in new battles): floor(raw damage × 100 ÷ (100 + defense)), with a minimum of one for positive raw damage. Pierce retains Physical and Mystic Defense; its displayed bypass applies only to equipment Armor.',
           '3. New battles multiply hostile direct damage by 140% and round down. This applies after defense and before critical; allied and self damage do not receive this multiplier. Historical encounters retain their pinned policy.',
-          `4. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. Each eligible repeated packet uses its own critical result. Historical encounters retain their recorded shared-result rules.`,
+          `4. On an eligible critical hit, multiply by ${COMBAT_CRITICAL_DAMAGE_BASIS_POINTS / 10_000} and round down. Each eligible repeated packet uses its own critical result. In new battles Pierce cannot critically hit, including through Weak Point or Spike; ordinary Damage in the same Skill remains eligible. Historical encounters retain their recorded critical rules.`,
           '5. Apply the attacker-versus-defender Level multiplier below, rounding down. Self-damage does not receive this relative-Level adjustment.',
           '6. Apply facing damage modifiers, rounding down. Blindside is a one-turn debuff on the target: its listed side/rear percentages increase incoming Skill damage. Front hits and Basic Attack are unchanged. Historical versions retain their recorded facing rules.',
           '7. Apply the recipient’s legacy damage-taken multipliers, once per active stack in stored order, rounding down each time. Guard, Vulnerable and authored Defenseless use each application’s saved damage-taken multiplier. The separate historical timeout penalty retains its recorded multiplier.',
@@ -232,7 +237,7 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
         bullets: [
           'Dmg: direct damage resolved through the full pipeline above. Multi-hit blocks resolve separately. Accuracy, defenses, criticals and active statuses change the actual result.',
           'HP Recovery: the base amount is a percentage of the recipient’s maximum HP, rounded down with a minimum of one for a positive maximum. The amount is captured at cast after applying HP Hex once. One to four applications reuse that captured amount: the first occurs on activation, with later applications at recipient turn ends. Each gain caps at the current maximum HP and never revives a defeated unit. Pinned historical Heal versions retain their old flat/Power behavior.',
-          'MP Recovery: a percentage of maximum MP is captured at cast, rounded down with a minimum of one for a positive maximum. Repeated applications reuse that amount while each gain caps at the current maximum MP. MP Drain removes its set percentage of the target’s maximum MP. It does not restore MP to the caster. MP Restore grants a fixed amount; it is different from percentage MP Recovery. Historical effects keep their saved basis.',
+          'MP Recovery restores its saved percentage of maximum MP or fixed MP amount. Percentage recovery is captured at cast, rounded down with a minimum of one for a positive maximum. Repeated applications reuse the captured amount while each gain caps at the current maximum MP. Existing fixed amounts and application counts remain unchanged. MP Drain removes its set percentage of the target’s maximum MP and does not restore MP to the caster.',
           'Barrier: grants a percentage of maximum HP as temporary protection, rounded down with a minimum of one. It absorbs damage before HP, including damage over time and reflected damage. Pierce destroys the Barrier and damages HP. HP costs still spend HP.',
           `Burn: ${percentageDotDescription('burn')} Historical pinned profiles and trigger policies retain their recorded behavior.`,
           `Poison: ${percentageDotDescription('poison')} Historical pinned profiles and trigger policies retain their recorded behavior.`,
@@ -241,7 +246,7 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
           'Master controls timing globally for each tag. Instant applies immediately, Normal activates next global round, and Delayed activates one round later. Controlled requires priming before a paid release. Skills using the same tag share its timing; existing battles keep their saved rules. Barrier and Blindside default to Instant.',
           'Cleanse removes all negative debuffs. Conditional Cleanse removes only the selected debuffs. Dispel removes only the selected positive buffs.',
           'Push / Pull: moves the target until blocked by terrain, occupancy or Rooted. A Skill with Move selects Ground and includes movement in its total cost; utility effects can work on empty Ground. Skill Move has its own authored distance, independent of ordinary walking and its remaining Movement. Jump, Rooted, terrain and occupancy still apply. Rewind records each legal target’s own position for a later return. Controlled priming binds the selected targets; release pays the Skill’s costs. Rooted, occupancy or impassable terrain can block the return. It does not restore resources or undo actions.',
-          'Frozen Ground: creates a temporary ground overlay that raises Skill AP costs by its saved amount for the caster’s grounded enemies; Airborne ignores it. Historical overlays keep their captured movement surcharge. Fire converts ordinary or persistent ice to Steam while preserving its remaining life; Steam blocks sight for both teams. Unit effects still follow the Skill’s affected-team rule.',
+          'Chilled Ground uses the icy tile material and applies ordinary Chilled on contact, restricting final facing. It adds no Skill AP surcharge. Ground can carry recipient effects such as Damage, Pierce, defenses, recovery, debuffs, removal, Reveal and Push/Pull. Active contact applies immediately; field activation keeps its authored timing. Each character receives each logical effect type once per own-turn cycle across overlapping fields. Targeting, teams, Airborne, resistance and ordinary refresh rules still apply. Source-only operations keep their own targets. Historical battles retain their captured Frozen Ground rules.',
           'Reveal can target Invisible or Covert units. Hitting a target with either removes both and applies Revealed: incoming attacks have 100% accuracy and deal the saved extra damage for the set duration. Copy Buffs copies selected eligible buffs from the target to the caster; Copy Debuffs copies selected eligible debuffs from the caster to the target. The originals remain. Selecting every option is shown as All Buffs or All Debuffs.',
         ],
       },
@@ -300,9 +305,12 @@ export function createTechniquesManualArticle(catalogue: TechniquesManualCatalog
                   skill,
                   skill,
                   catalogue.timingPolicy,
+                  { groundContactPolicyVersion: 1 },
                 )
                   .map(([label, value]) => `${label}: ${value}`)
-                  .join('. ')}. Delivery: ${skillTargetMethodExplanation(skill)}.`,
+                  .join(
+                    '. ',
+                  )}. Delivery: ${skillTargetMethodExplanation(skill, { groundContactPolicyVersion: 1 })}.`,
                 parts: null,
               }
             })

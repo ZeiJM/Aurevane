@@ -83,6 +83,35 @@ function profile(overrides: Partial<SummonProfileDefinition> = {}): SummonProfil
 }
 
 describe('Combat v5.1 summon content', () => {
+  it('admits representable Summon costs and cooldowns beyond ordinary editor defaults', () => {
+    const base = profile()
+    for (const apCost of [0, 101]) {
+      expect(
+        validateCombatTagPayload({
+          type: 'summon',
+          recipient: 'selected-tile',
+          profile: {
+            ...base,
+            lifetimeTurns: 100,
+            potencyBasisPoints: 100000,
+            abilities: base.abilities.map((ability) => ({
+              ...ability,
+              apCost,
+              mpCost: 100,
+              cooldownOwnerTurns: 100,
+            })),
+          },
+        }),
+      ).toEqual([])
+    }
+    for (const cooldownOwnerTurns of [-1, 1.5, Infinity, Number.MAX_SAFE_INTEGER])
+      expect(
+        validateSummonProfileDefinition({
+          ...base,
+          abilities: base.abilities.map((ability) => ({ ...ability, cooldownOwnerTurns })),
+        }),
+      ).toContain('abilities')
+  })
   it('accepts absent or boolean neverMoves and rejects malformed values', () => {
     expect(validateSummonProfileDefinition(profile())).toEqual([])
     expect(validateSummonProfileDefinition(profile({ neverMoves: true }))).toEqual([])
@@ -314,4 +343,74 @@ describe('Core-authored summon snapshots', () => {
       ).toContain('abilities')
     }
   })
+})
+
+it.each([15, 16])('uses the shared current Circle cap for saved Summon radius%i', (radius) => {
+  const original = profile()
+  const captured = JSON.parse(
+    JSON.stringify({
+      ...original,
+      abilities: original.abilities.map((ability) => ({
+        ...ability,
+        target: {
+          ...ability.target,
+          geometryVersion: 3,
+          categories: ['enemy'],
+          maximumSelections: 1,
+          shape: { kind: 'circle', radius },
+          minimumRange: 0,
+          maximumRange: radius,
+        },
+        effects: [{ type: 'damage', recipient: 'affected-units', target: 'enemy', amount: 5 }],
+      })),
+    }),
+  )
+  const issues = validateSummonProfileDefinition(captured)
+  if (radius === 15) expect(issues).toEqual([])
+  else expect(issues.length).toBeGreaterThan(0)
+})
+
+it('preserves historical unversioned Summon Circle profiles above the current radius cap', () => {
+  const original = profile()
+  const captured = {
+    ...original,
+    abilities: original.abilities.map((ability) => ({
+      ...ability,
+      target: { ...ability.target, shape: { kind: 'circle' as const, radius: 16 } },
+      effects: [{ type: 'damage' as const, recipient: 'affected-units' as const, amount: 5 }],
+    })),
+  }
+  expect(validateSummonProfileDefinition(captured)).toEqual([])
+})
+
+it('validates optional image-only finalized summon portrait media while retaining historical hooks', () => {
+  const artwork = {
+    id: '00000000-0000-4000-8000-000000000012',
+    kind: 'image' as const,
+    contentType: 'image/png' as const,
+    checksum: 'a'.repeat(64),
+    byteLength: 100,
+    width: 4,
+    height: 4,
+    sourceWidth: 8,
+    sourceHeight: 4,
+    crop: { x: 2, y: 0, size: 4 },
+  }
+  expect(validateSummonProfileDefinition(profile({ media: { artwork } }))).toEqual([])
+  for (const media of [
+    null,
+    'https://external.test/private.png',
+    { artwork: 'blob:local' },
+    { artwork: { ...artwork, kind: 'audio' } },
+    { artwork: { ...artwork, checksum: 'bad' } },
+    { artwork, audio: null },
+    { artwork, privateSource: 'secret' },
+  ]) {
+    expect(
+      validateSummonProfileDefinition(
+        profile({ media } as unknown as Partial<SummonProfileDefinition>),
+      ),
+    ).toContain('media')
+  }
+  expect(validateSummonProfileDefinition(profile())).toEqual([])
 })

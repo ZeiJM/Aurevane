@@ -124,6 +124,30 @@ function heldLongshot(basics: readonly BasicSkillDefinition[] = defaultBasicSkil
   return state
 }
 describe('bounded ranged opportunity planning uses live shared command authority', () => {
+  it('positions for an exactly affordable ranged Skill when Haste makes walking free', () => {
+    const state = give(ready(), 'haste', 'actor')
+    unit(state).temporaryResources = unit(state).temporaryResources.map((row) =>
+      row.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY ? { ...row, current: 55 } : row,
+    )
+    state.statusState = state.statusState.map((row) =>
+      row.combatantId === 'actor'
+        ? {
+            ...row,
+            statuses: row.statuses.map((status) =>
+              status.statusId === 'haste' ? { ...status, movementApAdjustment: 20 } : status,
+            ),
+          }
+        : row,
+    )
+    const decision = chooseBuildAwareRecruitAiDecision({ state, tieBreakSeed: 7 })
+    expect(decision.reason).toBe('ranged-spacing')
+    expect(decision.intent.kind).toBe('move')
+    if (decision.intent.kind !== 'move') throw new Error('Expected free firing-lane positioning.')
+    const moved = executePv1fMovement(state, decision.intent.path).state
+    expect(readPv1fActionEconomy(moved)?.current).toBe(55)
+    const next = chooseBuildAwareRecruitAiDecision({ state: moved, tieBreakSeed: 8 })
+    expect(next.intent).toMatchObject({ kind: 'action', actionId: 'farstrider.volley' })
+  })
   it.each([RECRUIT_EASY_PROFILE, RECRUIT_STANDARD_PROFILE, RECRUIT_HIGH_PROFILE])(
     '$id is immutable, deterministic, independent of future RNG and bounded in this four-unit fixture',
     (profile) => {

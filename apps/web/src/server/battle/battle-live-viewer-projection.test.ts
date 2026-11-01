@@ -27,6 +27,7 @@ import type { BattleSessionCommitRecord } from '@aurevane/db/battle-session'
 import type { TransactionalCommandResult } from '@aurevane/db/transactional-command'
 import {
   createCombatEncounterState,
+  executeCombatAction,
   type CombatStatusInstance,
 } from '@aurevane/game-core/combat/actions'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
@@ -35,6 +36,7 @@ import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
 import {
   createStatDrivenCombatEncounterState,
   reattachStatDrivenCombatBridge,
+  validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -54,6 +56,125 @@ import {
   deriveParticipantBattleViewerEntitlement,
   createSpectatorBattleViewerEntitlement,
 } from './battle-viewer-entitlement'
+
+it('omits original copy lifetimes recursively while preserving visible remaining durations', () => {
+  const projected = omitCombatExecutionMetadata({
+    remainingOwnerTurnEnds: 2,
+    originalDurationTurns: 7,
+    copyEffectOrdinal: 2,
+    applicationModifiers: [{ stacks: 1, remainingOwnerTurnEnds: 2, originalDurationTurns: 7 }],
+  })
+  expect(projected).toEqual({
+    remainingOwnerTurnEnds: 2,
+    applicationModifiers: [{ stacks: 1, remainingOwnerTurnEnds: 2 }],
+  })
+})
+
+it('keeps only the safe total Ruin bonus on a projected damage receipt', () => {
+  const receipt = {
+    event: 'damage_applied',
+    amount: 160,
+    ruinBonusBasisPoints: 6000,
+    attackTagCapture: {
+      capturedDebuffs: { privateTarget: 2 },
+      ruinBonusPerDebuffBasisPoints: 3000,
+    },
+  }
+  expect(omitCombatExecutionMetadata(receipt)).toEqual({
+    event: 'damage_applied',
+    amount: 160,
+    ruinBonusBasisPoints: 6000,
+  })
+  expect(receipt).toHaveProperty('attackTagCapture')
+})
+
+it('omits private Ruin identity and consumption ledgers from live snapshots and status applications', () => {
+  const receipt = {
+    statusId: 'slow',
+    stacks: 2,
+    ruinApplicationId: 7,
+    ruinCommandId: 3,
+    applicationModifiers: [{ stacks: 1, ruinApplicationId: 7 }],
+  }
+  expect(omitCombatExecutionMetadata(receipt)).toEqual({
+    statusId: 'slow',
+    stacks: 2,
+    applicationModifiers: [{ stacks: 1 }],
+  })
+  const state = {
+    tactical: { battle: { lifecycle: 'active', round: 1 } },
+    ruinState: {
+      version: 1,
+      nextApplicationId: 8,
+      nextCommandId: 4,
+      spentTargets: [{ commandId: 3, targetId: 'privateTarget' }],
+    },
+  }
+  expect(omitPendingBattlePayloads(state as never)).not.toHaveProperty('ruinState')
+  expect(state).toHaveProperty('ruinState')
+})
+
+it('keeps Ruin application identities private in actual participant and spectator projections', () => {
+  const original = encounter()
+  const state = {
+    ...original,
+    ruinState: {
+      version: 1,
+      nextApplicationId: 8,
+      nextCommandId: 4,
+      spentTargets: [{ commandId: 3, targetId: ENEMY }],
+    },
+    statusState: original.statusState.map((row) =>
+      row.combatantId === ENEMY
+        ? {
+            ...row,
+            statuses: [
+              {
+                ...status('slow', PLAYER),
+                ruinApplicationId: 7,
+                applicationModifiers: [
+                  { stacks: 1, sourceCombatantId: PLAYER, ruinApplicationId: 7 },
+                ],
+              },
+            ],
+          }
+        : row,
+    ),
+    effectState: {
+      ongoingRecovery: [],
+      poison: [
+        {
+          targetCombatantId: ENEMY,
+          sourceCombatantId: PLAYER,
+          sourceActionId: 'saved.poison',
+          profileVersion: 1,
+          movementRemainder: 0,
+          damagePerTick: 2,
+          remainingTicks: 2,
+          ruinApplicationId: 6,
+        },
+      ],
+      burn: [],
+      bleed: [],
+      damageHistory: [],
+    },
+  } as unknown as StatDrivenCombatEncounterState
+  const before = JSON.stringify(state)
+  for (const viewer of [
+    createSpectatorBattleViewerEntitlement(),
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  ]) {
+    const projected = projectBattleSnapshot(state, viewer)
+    expect(JSON.stringify(projected)).not.toMatch(
+      /ruinApplicationId|ruinCommandId|ruinState|attackTagCapture/,
+    )
+    expect(projected.statusState.find((row) => row.combatantId === ENEMY)?.statuses).toEqual(
+      expect.arrayContaining([expect.objectContaining({ statusId: 'slow' })]),
+    )
+    expect(projected.effectState?.poison).toHaveLength(1)
+  }
+  expect(JSON.stringify(state)).toBe(before)
+})
 
 it('strips private captured Ability and command execution authority from actual public state', () => {
   const privateState = {
@@ -481,6 +602,218 @@ describe('CSR-2 live viewer-relative status projection', () => {
     expect(rowStatuses(projected, PLAIN_ENEMY).map((entry) => entry.statusId)).toEqual(['guarded'])
     expect(authoritative.statusState).toEqual(before)
     expect(projected.tactical.battle).not.toHaveProperty('rng')
+  })
+
+  it.each(['instant', 'next-round', 'delayed'] as const)(
+    'confirms enemy Covert cast using %s timing without disclosing other buffs',
+    (timing) => {
+      const before = encounter()
+      before.effectTimingPolicy = { version: 1, modes: { covert: timing } }
+      before.statusState = before.statusState.map((row) => ({
+        ...row,
+        statuses: row.statuses.filter(
+          (status) =>
+            PV1F_COMBAT_CONTENT.statuses.some(
+              (definition) =>
+                definition.id === status.statusId && definition.version === status.statusVersion,
+            ) && !(row.combatantId === ENEMY && status.statusId === 'covert'),
+        ),
+      }))
+      const transition = executeCombatAction(
+        before,
+        {
+          id: 'test.enemy-covert',
+          version: 1,
+          sourceType: 'test',
+          tags: [],
+          target: {
+            kind: 'unit',
+            teamPolicy: 'enemy',
+            shape: { kind: 'single' },
+            minimumRange: 1,
+            maximumRange: 3,
+            requiresLineOfSight: false,
+            maximumElevationDifference: null,
+            friendlyFire: 'enemies-only',
+          },
+          cost: { spendsAction: false, mp: 0 },
+          requirements: [],
+          effects: [
+            {
+              type: 'apply-status',
+              target: 'enemy',
+              recipient: 'affected-units',
+              statusId: 'covert',
+              stacks: 1,
+              durationTurns: 3,
+            },
+          ],
+        },
+        { kind: 'unit', combatantId: ENEMY },
+        PV1F_COMBAT_CONTENT,
+      )
+      const authoritative = reattachStatDrivenCombatBridge(transition.state, before.statBridge)
+      if (timing === 'instant')
+        expect(rowStatuses(authoritative, ENEMY).map((entry) => entry.statusId)).toContain('covert')
+      else
+        expect(authoritative.pendingEffects).toContainEqual(
+          expect.objectContaining({
+            recipientIds: [ENEMY],
+            effect: expect.objectContaining({ statusId: 'covert' }),
+          }),
+        )
+      const caster = projectCommittedBattleSession(committed(authoritative), [PLAYER]).snapshot
+      const ally = projectCommittedBattleSession(committed(authoritative), [ALLY]).snapshot
+      const expected =
+        timing === 'instant' ? ['covert', 'exposed'] : ['covert', 'exposed', 'guarded']
+      expect(
+        rowStatuses(caster, ENEMY)
+          .map((entry) => entry.statusId)
+          .sort(),
+      ).toEqual(expected)
+      expect(
+        rowStatuses(ally, ENEMY)
+          .map((entry) => entry.statusId)
+          .sort(),
+      ).toEqual(expected)
+      if (timing !== 'instant')
+        expect(
+          rowStatuses(caster, ENEMY).find((entry) => entry.statusId === 'covert')?.timingState,
+        ).toBe('pending')
+      const spectator = projectBattleStatusStateForViewer(
+        authoritative,
+        createSpectatorBattleViewerEntitlement(),
+      )
+      expect(
+        rowStatuses({ statusState: spectator }, ENEMY)
+          .map((entry) => entry.statusId)
+          .sort(),
+      ).toEqual(timing === 'instant' ? ['exposed'] : ['exposed', 'guarded'])
+    },
+  )
+
+  it.each([
+    [PLAYER, ENEMY],
+    [ENEMY, PLAYER],
+  ])('confirms only the known Covert application for source order %s then %s', (first, last) => {
+    const state = encounter()
+    state.effectStackingPolicyVersion = 1
+    state.statusState = state.statusState.map((row) =>
+      row.combatantId !== ENEMY
+        ? row
+        : {
+            ...row,
+            statuses: [
+              {
+                ...status('covert', last, 99),
+                stacks: 2,
+                originalDurationTurns: 99,
+                applicationModifiers: [
+                  {
+                    stacks: 1,
+                    sourceCombatantId: first,
+                    originalDurationTurns: first === PLAYER ? 3 : 99,
+                  },
+                  {
+                    stacks: 1,
+                    sourceCombatantId: last,
+                    originalDurationTurns: last === PLAYER ? 3 : 99,
+                  },
+                ],
+              },
+              status('guarded', ENEMY),
+              status('exposed', PLAYER),
+            ],
+          },
+    )
+    state.statusState = state.statusState.map((row) => ({
+      ...row,
+      statuses: [...row.statuses].sort((a, b) => a.statusId.localeCompare(b.statusId)),
+    }))
+    expect(validateStatDrivenCombatEncounterState(state)).toEqual([])
+    const before = structuredClone(state.statusState)
+    const projected = projectCommittedBattleSession(committed(state), [PLAYER]).snapshot
+    const known = rowStatuses(projected, ENEMY).find((entry) => entry.statusId === 'covert')
+    expect(known).toMatchObject({
+      statusId: 'covert',
+      statusVersion: 1,
+      sourceCombatantId: PLAYER,
+      stacks: 1,
+      remainingOwnerTurnStarts: 1,
+      presentationDuration: 'while-active',
+    })
+    expect(known).not.toHaveProperty('applicationModifiers')
+    expect(known).not.toHaveProperty('originalDurationTurns')
+    expect(known).not.toHaveProperty('remainingOwnerTurnEnds')
+    expect(known).not.toHaveProperty('remainingRoundBoundaries')
+    expect(battleEffectInformation(known!).duration).toBe('Active')
+    expect(rowStatuses(projected, ENEMY).map((entry) => entry.statusId)).not.toContain('guarded')
+    const spectator = projectBattleStatusStateForViewer(
+      state,
+      createSpectatorBattleViewerEntitlement(),
+    )
+    expect(rowStatuses({ statusState: spectator }, ENEMY).map((entry) => entry.statusId)).toEqual([
+      'exposed',
+    ])
+    expect(state.statusState).toEqual(before)
+  })
+
+  it('keeps known enemy Covert visible while its caster has a protected pending self refresh', () => {
+    const state = encounter()
+    state.effectStackingPolicyVersion = 1
+    state.effectTimingPolicy = { version: 1, modes: { covert: 'next-round' } }
+    const visibility = { kind: 'team-only' as const, teamId: 'team:a' }
+    state.statusState = state.statusState.map((row) =>
+      row.combatantId !== ENEMY
+        ? row
+        : {
+            ...row,
+            statuses: [
+              {
+                ...status('covert', PLAYER, 99),
+                sourceCommandVisibility: visibility,
+                applicationModifiers: [
+                  {
+                    stacks: 1,
+                    sourceCombatantId: PLAYER,
+                    originalDurationTurns: 3,
+                    privateSharedLifetime: true,
+                    sourceCommandVisibility: visibility,
+                  },
+                ],
+              },
+              status('guarded', ENEMY),
+            ],
+          },
+    )
+    state.pendingEffects = [
+      {
+        actorId: PLAYER,
+        actionId: 'protected.covert',
+        recipientIds: [PLAYER],
+        affectedTiles: [],
+        effect: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+        activationRound: 2,
+        content: PV1F_COMBAT_CONTENT,
+        sourceCommandVisibility: visibility,
+      },
+    ]
+    state.statusState = state.statusState.map((row) => ({
+      ...row,
+      statuses: [...row.statuses].sort((a, b) => a.statusId.localeCompare(b.statusId)),
+    }))
+    expect(validateStatDrivenCombatEncounterState(state)).toEqual([])
+    const projected = projectCommittedBattleSession(committed(state), [PLAYER]).snapshot
+    const known = rowStatuses(projected, ENEMY)
+    expect(known).toHaveLength(1)
+    expect(known[0]).toMatchObject({
+      statusId: 'covert',
+      stacks: 1,
+      sourceCombatantId: PLAYER,
+      presentationDuration: 'while-active',
+    })
+    expect(battleEffectInformation(known[0]!).duration).toBe('Active')
+    expect(known[0]).not.toHaveProperty('applicationModifiers')
   })
 
   it('treats spectators as unprivileged without hiding positives on non-Covert units', () => {
@@ -1206,7 +1539,8 @@ it('derives report descriptions from the encounter elemental pin rather than cur
     { ...state, elementalDamagePolicyVersion: 2 },
     viewer,
   )[0]!.report!
-  expect(old.effectDescriptions[0]).toContain('Positive fire damage removes Wet and Frozen')
+  expect(old.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
+  expect(old.effectDescriptions[0]).toContain('two round boundaries')
   expect(current.effectDescriptions[0]).not.toContain('removes Wet and Frozen')
 })
 
@@ -1740,4 +2074,61 @@ it('rebuilds visible Haste tuning without leaking a concealed stacked applicatio
     .statuses.find((row) => row.statusId === 'haste')!
   expect(own).toMatchObject({ stacks: 2, movementApAdjustment: 27 })
   expect(JSON.stringify(state)).toBe(before)
+})
+
+it('copies explicitly chosen concealed buffs without revealing the Covert donor other buffs to opposing viewers', () => {
+  const state = encounter()
+  state.statusState = state.statusState.map((row) => ({
+    ...row,
+    statuses:
+      row.combatantId === ENEMY
+        ? ['covert', 'inspired', 'invisible'].map((id) => status(id, ENEMY))
+        : [],
+  }))
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  expect(
+    rowStatuses({ statusState: projectBattleStatusStateForViewer(state, viewer) }, ENEMY),
+  ).toEqual([])
+  const next = executeCombatAction(
+    state,
+    {
+      id: 'copy-concealed',
+      version: 1,
+      sourceType: 'test',
+      tags: ['utility'],
+      target: {
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 3,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'enemies-only',
+      },
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      effects: [
+        {
+          type: 'copy-statuses',
+          recipient: 'primary-unit',
+          mode: 'amplify',
+          invisibleDonorPolicyVersion: 1,
+          statusIds: ['covert', 'invisible'],
+        },
+      ],
+    },
+    { kind: 'unit', combatantId: ENEMY },
+    PV1F_COMBAT_CONTENT,
+  ).state as StatDrivenCombatEncounterState
+  const projected = { statusState: projectBattleStatusStateForViewer(next, viewer) }
+  expect(rowStatuses(projected, PLAYER).map((row) => row.statusId)).toEqual(['covert', 'invisible'])
+  expect(rowStatuses(projected, ENEMY)).toEqual([])
+  expect(rowStatuses(next, ENEMY)).toEqual(rowStatuses(state, ENEMY))
+  const enemy = deriveParticipantBattleViewerEntitlement(next.tactical.battle.combatants, [ENEMY])
+  expect(
+    rowStatuses({ statusState: projectBattleStatusStateForViewer(next, enemy) }, PLAYER),
+  ).toEqual([])
 })

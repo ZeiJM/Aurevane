@@ -14,7 +14,7 @@ describe('Combat v5 Nexus and Technique presentation contracts', () => {
 
     expect(source).toContain('focusedSkill.definition.flavorLine')
     expect(source.replace(/\s+/gu, ' ')).toContain(
-      'skillParameterRows(focusedSkill.definition, focusedSkill.definition, timingPolicy)',
+      'skillParameterRows( focusedNativeDefinition, focusedNativeDefinition, timingPolicy, groundRules, )',
     )
     const parameters = readFileSync(join(here, 'skill-detail-presentation.ts'), 'utf8')
     expect(parameters).toContain("'Skill Type': skillParameterTypeDescription(skill)")

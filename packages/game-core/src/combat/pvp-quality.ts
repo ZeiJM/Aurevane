@@ -1,12 +1,9 @@
+import { pruneCombatEndure } from './combat-endure'
 import { advanceCombatGroundAreas } from './combat-ground-areas'
 import { createCombatNativeAbilityRuntime } from './combat-ability-command'
 import { refreezeCapturedCombatAbilityState } from './combat-behavior-runtime'
 import { observeCombatNativeMutation } from './combat-native-mutations'
-import {
-  createCombatEncounterState,
-  executeCombatAction,
-  type CombatActionDefinition,
-} from './actions'
+import { executeCombatAction, type CombatActionDefinition } from './actions'
 import {
   reorderBattleInitiative,
   type BattleCombatant,
@@ -111,14 +108,18 @@ export function surrenderPvpCombatant(
   const target = getCombatant(state, combatantId)
   if (target.hp <= 0) return { state, events: [] }
 
-  let nextState = state
+  // Forfeit cancels this holder's charge before the ordinary end-turn lifecycle can release it.
+  let nextState = reattachStatDrivenCombatBridge(
+    pruneCombatEndure(state, [combatantId]),
+    state.statBridge,
+  )
   const events: unknown[] = []
   if (state.tactical.battle.currentTurn?.combatantId === combatantId) {
     const placement = state.tactical.placements.find(
       (candidate) => candidate.combatantId === combatantId,
     )
     if (!placement) throw new Error('The surrendering combatant has no tactical placement.')
-    const handedOff = finishPv1fTurn(state, placement.facing, true)
+    const handedOff = finishPv1fTurn(nextState, placement.facing, true)
     nextState = handedOff.state
     events.push(...handedOff.events)
   }
@@ -142,10 +143,7 @@ export function surrenderPvpCombatant(
     })
     const tactical = createTacticalBattleState({ ...nextState.tactical, battle })
     nextState = reattachStatDrivenCombatBridge(
-      advanceCombatGroundAreas({
-        ...nextState,
-        ...createCombatEncounterState(tactical, nextState.statusState),
-      }),
+      advanceCombatGroundAreas(pruneCombatEndure({ ...nextState, tactical })),
       nextState.statBridge,
     )
     events.push({ event: 'battle_completed', winningTeamId })
@@ -366,7 +364,7 @@ function rebuildCombatant(
     ),
   }
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
-  const encounter = { ...state, ...createCombatEncounterState(tactical, state.statusState) }
+  const encounter = pruneCombatEndure({ ...state, tactical })
   const next = refreezeCapturedCombatAbilityState(
     reattachStatDrivenCombatBridge(encounter, state.statBridge),
   )

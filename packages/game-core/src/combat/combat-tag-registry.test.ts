@@ -18,7 +18,7 @@ describe('implemented combat Tag registry', () => {
     expect(validateCombatTagPayload(payload)).toEqual([])
     for (const facingModifiersBasisPoints of [
       { front: -1, side: 10000, rear: 10000 },
-      { front: 10000, side: 22001, rear: 10000 },
+      { front: 10000, side: 99901, rear: 10000 },
       { front: 10000, side: 10000, rear: 0.5 },
       { front: 10000, side: Number.NaN, rear: 10000 },
       { front: 10000, side: 10000 },
@@ -33,7 +33,7 @@ describe('implemented combat Tag registry', () => {
     expect(equipmentArmorAfterPierce({ armor: 40, ward: 99 }, 10000)).toBe(0)
     expect(equipmentArmorAfterPierce({ equipmentArmor: 40 }, 0)).toBe(40)
     expect(() => equipmentArmorAfterPierce({ equipmentArmor: -1 }, 10000)).toThrow()
-    expect(() => equipmentArmorAfterPierce({ equipmentArmor: 1 }, 10001)).toThrow()
+    expect(() => equipmentArmorAfterPierce({ equipmentArmor: 1 }, 99901)).toThrow()
     expect(
       validateCombatTagPayload({
         type: 'pierce',
@@ -212,6 +212,39 @@ describe('implemented combat Tag registry', () => {
 
   it('validates nested summon mechanics and rejects unknown nested handlers/keys', () => {
     const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    expect(
+      validateCombatTagPayload({
+        type: 'summon',
+        recipient: 'selected-tile',
+        profile: {
+          ...profile,
+          abilities: profile.abilities.map((ability) => ({
+            ...ability,
+            target: {
+              ...ability.target,
+              geometryVersion: 3,
+              categories: ['enemy'],
+              maximumSelections: 1,
+            },
+          })),
+        },
+      }),
+    ).toEqual([])
+    expect(
+      validateCombatTagPayload({
+        type: 'summon',
+        recipient: 'selected-tile',
+        profile: { ...profile, lifetimeTurns: 99 },
+      }),
+    ).toEqual([])
+    expect(
+      validateCombatTagPayload({
+        type: 'summon',
+        recipient: 'selected-tile',
+        profile: { ...profile, lifetimeTurns: 100 },
+      }),
+    ).toEqual([])
+
     expect(
       validateCombatTagPayload({ type: 'summon', recipient: 'selected-tile', profile }),
     ).toEqual([])

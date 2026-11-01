@@ -39,6 +39,7 @@ import { MasterPanelShell } from '@/components/master/master-panel-shell'
 import { CombatContentAuthoringWorkspace } from '@/components/master/combat-content/combat-content-authoring-workspace'
 import { AbilityDefinitionEditor } from '@/components/master/combat-content/ability-definition-editor'
 import masterTheme from '@/components/master/master-panel-shell.module.css'
+import editorTheme from '@/components/master/combat-content/combat-content-editor.module.css'
 import './production-styles'
 
 const query = new URLSearchParams(location.search)
@@ -563,8 +564,14 @@ function ModularManual() {
   )
 }
 function CanonicalEditor() {
-  const [definition, setDefinition] = React.useState(() => structuredClone(modularAbility))
-  const [notes, setNotes] = React.useState(['Walk <once> & return', null, 'Maintain guard'])
+  const [definition, setDefinition] = React.useState(() => ({
+    ...structuredClone(modularAbility),
+    behaviors: [
+      ...structuredClone(modularAbility.behaviors),
+      { ...structuredClone(modularBase), id: 'retained-extra' },
+    ],
+  }))
+  const [notes, setNotes] = React.useState(['Walk <once> & return', null, 'Maintain guard', null])
   React.useEffect(() => {
     window.inspectEditedAbility = () => ({
       definition: parseAbilityDefinition(activeAbilityForAuthoring(definition)),
@@ -649,6 +656,77 @@ function TagBatchEditors() {
     </main>
   )
 }
+function EffectLayoutEditors() {
+  const baseEffects = [
+    {
+      type: 'barrier-change',
+      recipient: 'actor',
+      amount: 15,
+      basis: 'maximum-hp-percent',
+      durationTurns: 2,
+    },
+    {
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId: 'airborne',
+      stacks: 1,
+      durationTurns: 2,
+    },
+    {
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId: 'blindside-vulnerability',
+      stacks: 1,
+      durationTurns: 1,
+    },
+  ]
+  const [native, setNative] = React.useState(baseEffects)
+  const [canonical, setCanonical] = React.useState({
+    schemaVersion: 1,
+    behaviors: [
+      {
+        ...structuredClone(modularBase),
+        id: 'layout',
+        effects: baseEffects.map((payload, i) => ({ id: `layout-${i}`, payload })),
+      },
+    ],
+  })
+  const [summon, setSummon] = React.useState(() => {
+    const profile = currentSummonForAuthoring(
+      resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile,
+    )
+    return {
+      ...profile,
+      abilities: profile.abilities.map((ability, i) =>
+        i === 0 ? { ...ability, effects: structuredClone(baseEffects) } : ability,
+      ),
+    }
+  })
+  React.useEffect(() => {
+    window.inspectEffectLayout = () => structuredClone({ native, canonical, summon })
+  }, [native, canonical, summon])
+  return (
+    <main
+      className={`av-master ${masterTheme.workspace}`}
+      style={{ display: 'block', height: 'auto', padding: 12 }}
+    >
+      <div
+        className={editorTheme.editor}
+        style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)' }}
+      >
+        <section aria-label="Native effect layout">
+          <SkillEffectListEditor value={native} aim={modularBase.targeting} onChange={setNative} />
+        </section>
+        <section aria-label="Canonical effect layout">
+          <AbilityDefinitionEditor section="effects" value={canonical} onChange={setCanonical} />
+        </section>
+        <section aria-label="Summon effect layout">
+          <SummonProfileEditor value={summon} onChange={setSummon} />
+        </section>
+      </div>
+    </main>
+  )
+}
 function Reports() {
   return (
     <main style={{ padding: 16, maxWidth: 780 }}>
@@ -672,6 +750,17 @@ function Reports() {
           </section>
         </React.Fragment>
       ))}
+      <SkillEffectTimingProvider
+        policy={defaultCombatEffectTimingPolicy()}
+        groundContactPolicyVersion={null}
+      >
+        <section aria-label="Historical Master ground details" style={sectionStyle}>
+          <SkillDetails skill={ground} expanded />
+        </section>
+        <section aria-label="Historical Battle ground parameters" style={sectionStyle}>
+          <BattleSkillParameters skill={battleSkill(ground)} />
+        </section>
+      </SkillEffectTimingProvider>
       <section aria-label="Basic Attack parameters" style={sectionStyle}>
         <dl>
           <SkillCharacteristicRows
@@ -882,7 +971,9 @@ function FireReaders() {
   )
 }
 createRoot(document.getElementById('root')).render(
-  query.get('surface') === 'tag-batch' ? (
+  query.get('surface') === 'effect-layout' ? (
+    <EffectLayoutEditors />
+  ) : query.get('surface') === 'tag-batch' ? (
     <TagBatchEditors />
   ) : query.get('surface') === 'selected-preview' ? (
     <SelectedPreviewEditor />

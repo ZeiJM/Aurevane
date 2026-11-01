@@ -1,3 +1,6 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from './combat-effect-percentages'
+import { maximumCombatStatusPotencyBasisPoints } from './combat-status-tuning'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import {
   combatTagPresentationIssues,
   type CombatTagPresentationSnapshot,
@@ -1426,7 +1429,11 @@ export function validateMatureSkillDefinition(
     for (const [index, effect] of definition.effects.entries()) {
       if ('attackTagCapture' in effect) issues.push(`effects[${index}].attackTagCapture`)
       const durationTurns = effect.durationTurns ?? 0
-      if (!Number.isSafeInteger(durationTurns) || durationTurns < 0 || durationTurns > 4) {
+      if (
+        !Number.isSafeInteger(durationTurns) ||
+        durationTurns < 0 ||
+        durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+      ) {
         issues.push(`effects[${index}].durationTurns`)
       }
       if (effect.type === 'summon') continue
@@ -1437,7 +1444,9 @@ export function validateMatureSkillDefinition(
         (!Number.isSafeInteger(effect.potencyBasisPoints) ||
           effect.potencyBasisPoints < 100 ||
           effect.potencyBasisPoints >
-            (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
+            maximumCombatStatusPotencyBasisPoints(
+              effect.type === 'apply-status' ? effect.statusId : undefined,
+            ))
       ) {
         issues.push(`effects[${index}].potencyBasisPoints`)
       }
@@ -1452,7 +1461,14 @@ export function validateMatureSkillDefinition(
         (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change')
       ) {
         const minimum = effect.type === 'damage' && effect.vengeance !== undefined ? 0 : 1
-        if (!Number.isSafeInteger(effect.amount) || effect.amount < minimum || effect.amount > 20) {
+        if (
+          !Number.isSafeInteger(effect.amount) ||
+          effect.amount < minimum ||
+          effect.amount >
+            (effect.type === 'barrier-change' && effect.basis === 'maximum-hp-percent'
+              ? CURRENT_EFFECT_PERCENT_MAXIMUM
+              : 20)
+        ) {
           issues.push(`effects[${index}].amount`)
         }
       }
@@ -1462,7 +1478,7 @@ export function validateMatureSkillDefinition(
         if (
           !Number.isSafeInteger(magnitude) ||
           magnitude < 1 ||
-          magnitude > (percentageDrain ? 100 : 20) ||
+          magnitude > (percentageDrain ? CURRENT_EFFECT_PERCENT_MAXIMUM : 20) ||
           (percentageDrain && effect.delta >= 0)
         ) {
           issues.push(`effects[${index}].delta`)

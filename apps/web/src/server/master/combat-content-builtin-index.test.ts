@@ -69,6 +69,7 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
           'tag.spike',
           'tag.ruin',
           'tag.reversal',
+          'tag.blind',
         ].includes(row.contentKey),
     ),
   )

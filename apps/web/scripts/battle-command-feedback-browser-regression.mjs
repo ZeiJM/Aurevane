@@ -131,6 +131,127 @@ const browser = await chromium.launch({
   headless: true,
 })
 const errors = []
+async function verifyResourceProposals() {
+  for (const mode of ['pve', 'pvp'])
+    for (const viewport of [
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+    ])
+      for (const scenario of ['cost-proposal', 'move-cost-proposal']) {
+        const touch = viewport.width === 390
+        const page = await browser.newPage({ viewport, isMobile: touch, hasTouch: touch })
+        page.setDefaultTimeout(5000)
+        page.on('pageerror', (error) => errors.push(error.message))
+        const gesture = (locator) => (touch ? locator.tap() : locator.click())
+        await page.goto(
+          server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=${scenario}`,
+        )
+        const local = page.locator('[data-battle-combatant-card="local"]')
+        const selected = page.locator('[data-battle-combatant-card="selected"]')
+        await local.waitFor()
+        const before = await page.evaluate(() => JSON.stringify(window.fixtureBattle.snapshot))
+        const skill = page.getByRole('button', { name: /^Selected Targeting Test,/ })
+        const assertProposal = async () => {
+          await page.waitForFunction(
+            () => document.querySelectorAll('[data-battle-proposed-resource]').length === 2,
+          )
+          const economy = page.locator('[data-unified-battle-economy]')
+          assert.match(await economy.innerText(), touch ? /− 47/ : /47 proposed/)
+          assert.equal(await economy.locator('[data-battle-proposed-ap]').isVisible(), true)
+          assert.equal(
+            await economy
+              .getByRole('progressbar')
+              .locator('i')
+              .evaluate((element) => element.style.width),
+            '47%',
+          )
+          assert.equal(
+            await selected.locator('[data-battle-proposed-resource]').count(),
+            0,
+            'Selected enemy never displays payer spending',
+          )
+          for (const [resource, amount, width] of [
+            ['hp', 2, 2],
+            ['mp', 3, 6],
+          ]) {
+            const segment = local.locator(`[data-battle-proposed-resource="${resource}"]`)
+            assert.equal(
+              await segment.getAttribute('title'),
+              `${amount} ${resource.toUpperCase()} proposed spend`,
+            )
+            const geometry = await segment.evaluate((element) => ({
+              width: element.style.width,
+              visibleWidth: element.getBoundingClientRect().width,
+              color: getComputedStyle(element).backgroundColor,
+            }))
+            assert.equal(geometry.width, `${width}%`)
+            assert.ok(geometry.visibleWidth > 0, 'Proposed segment is visibly rendered')
+            assert.match(
+              geometry.color,
+              /234, 180, 104/,
+              'Proposed spend uses the yellow resource overlay',
+            )
+          }
+          assert.equal(
+            await page.evaluate(() => JSON.stringify(window.fixtureBattle.snapshot)),
+            before,
+            'Proposal does not alter resources or captured state',
+          )
+        }
+        await gesture(skill)
+        await assertProposal()
+        if (scenario === 'move-cost-proposal') {
+          await gesture(page.locator('#battlefield').getByRole('button', { name: /^Tile 4, 3;/ }))
+          await assertProposal()
+          assert.equal(
+            await page.evaluate(
+              () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+            ),
+            0,
+            'Choosing the Move destination does not commit or double-charge the follow-up',
+          )
+        }
+        await page.screenshot({
+          path: resolve(output, `${mode}-${viewport.width}-${scenario}-resources.png`),
+        })
+        await gesture(page.getByRole('button', { name: 'Cancel Action', exact: true }))
+        await page.waitForFunction(() => !document.querySelector('[data-battle-proposed-resource]'))
+        assert.doesNotMatch(
+          await page.locator('[data-unified-battle-economy]').innerText(),
+          /proposed/,
+        )
+        await gesture(skill)
+        await assertProposal()
+        await gesture(page.locator('[data-battle-command="inspect"]'))
+        await gesture(
+          page.locator('#battlefield').getByRole('button', { name: /occupied by Ally 1/ }),
+        )
+        assert.equal(await local.getAttribute('aria-label'), 'Ally 1 battle summary')
+        assert.equal(
+          await page.locator('[data-battle-proposed-resource]').count(),
+          0,
+          'Inspecting an ally clears payer proposals',
+        )
+        assert.doesNotMatch(
+          await page.locator('[data-unified-battle-economy]').innerText(),
+          /proposed/,
+        )
+        assert.equal(
+          await page.evaluate(() => JSON.stringify(window.fixtureBattle.snapshot)),
+          before,
+        )
+        assert.equal(
+          await page.evaluate(
+            () =>
+              window.calls.filter((call) => /\/(commit|intents|final-turn)$/.test(call.path))
+                .length,
+          ),
+          0,
+        )
+        await page.close()
+      }
+  console.log('Resource proposals: 8 desktop/mobile PvE/PvP selected and Move-stage cases passed')
+}
 async function verifyMobileFooterParity() {
   for (const viewport of [
     { width: 320, height: 640 },
@@ -434,7 +555,7 @@ async function verifyTerrainTurnStability() {
           assert.equal(
             (await status.boundingBox()).height,
             44,
-            'The full waiting title fits the existing preview row',
+            `The full waiting title fits the existing preview row: ${mode} ${name} ${viewport.width}x${viewport.height}`,
           )
         const clipped = await page
           .locator('[data-battle-instruction-title]')
@@ -758,6 +879,11 @@ async function verifyChronicleUniformity() {
       traditionalText,
       'Picture action breakdowns share traditional-log mobile typography',
     )
+    assert.match(
+      await details.locator('[data-outcome-tone="harm"]').innerText(),
+      /Suppress.*Zei/,
+      'The harmful effect sentence retains its affected recipient',
+    )
     const contrast = await details
       .locator('[data-outcome-tone="harm"], [data-outcome-tone="damage"], [class*="recipient"]')
       .evaluateAll((elements) => {
@@ -779,7 +905,8 @@ async function verifyChronicleUniformity() {
         })
       })
     assert.ok(
-      contrast.length >= 2 && contrast.every((value) => value >= 4.5),
+      // Status sentences include their recipient inline; ordinary damage can use a separate span.
+      contrast.length > 0 && contrast.every((value) => value >= 4.5),
       'Reduced outcome and recipient text remain readable against the dark action-detail panel',
     )
     await page.screenshot({ path: resolve(output, `chronicle-uniformity-${mode}.png`) })
@@ -1747,6 +1874,7 @@ async function verifyNestedReaderDismissal() {
   console.log('Nested reader Escape/outside dismissal preserves the parent and consumes actions')
 }
 try {
+  await verifyResourceProposals()
   await verifyMobileFooterParity()
   await verifyPassiveInspection()
   await verifyPassiveEssenceInspection()

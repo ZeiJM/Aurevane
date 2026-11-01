@@ -368,11 +368,9 @@ try {
           if (targeting === 'all-ground') {
             assert.equal(forecasts[0].preview.affectedTiles.length, 63)
             const outcomes = await page.locator('[data-battle-preview-lane="outcomes"]').innerText()
-            assert.match(outcomes, /Frozen Ground.*2 rounds/)
-            assert.doesNotMatch(
-              outcomes,
-              /63 tiles|caster’s enemies only|both teams|Airborne exempt/,
-            )
+            assert.match(outcomes, /Frozen Ground · 63 tiles · 2 rounds/)
+            assert.equal((outcomes.match(/63 tiles/g) ?? []).length, 1)
+            assert.doesNotMatch(outcomes, /caster’s enemies only|both teams|Airborne exempt/)
             assert.ok(
               outcomes.length < 3500,
               'Ground preview summarizes terrain instead of listing every tile',
@@ -562,11 +560,49 @@ try {
                   .querySelector('[data-battle-notice]')
                   ?.textContent.match(/unavailable|connection failed|out of date/),
               )
+              assert.equal(
+                await page.locator('#battlefield button[data-attack-path="true"]').count(),
+                12,
+                'Forecast failure retains the armed targeting geometry',
+              )
               assert.deepEqual(await page.evaluate(() => window.fixtureBattle.snapshot), original)
+              if (failure === 'stale') {
+                assert.equal(
+                  await page
+                    .getByRole('progressbar', { name: 'Action Economy remaining' })
+                    .locator('i')
+                    .count(),
+                  0,
+                  'A stale forecast clears proposed AP without disarming the action',
+                )
+                assert.equal(await page.locator('[data-battle-proposed-resource]').count(), 0)
+              }
             }
             await page.evaluate(() => {
               window.previewFailure = null
             })
+            const previewCount = await page.evaluate(() => window.forecasts.length)
+            const commandsBeforeRetry = (await commits(page)).length
+            // A valid non-touch pointer gesture requests a new forecast without committing.
+            await tile(page, 6, 3).hover()
+            await page.waitForFunction(
+              (before) =>
+                window.forecasts.length > before &&
+                /forecast ready/.test(
+                  document.querySelector('[data-battle-notice]')?.textContent ?? '',
+                ),
+              previewCount,
+            )
+            assert.equal(
+              await page
+                .getByRole('progressbar', { name: 'Action Economy remaining' })
+                .locator('i')
+                .count(),
+              1,
+              'A fresh matching forecast restores proposed spending',
+            )
+            assert.equal((await commits(page)).length, commandsBeforeRetry)
+            assert.deepEqual(await page.evaluate(() => window.fixtureBattle.snapshot), original)
             // A diagonal touch/click cannot invent a Line direction or submit a command.
             const priorCommands = (await commits(page)).length
             await tile(page, 4, 4).click()

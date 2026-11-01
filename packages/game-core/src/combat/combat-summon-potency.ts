@@ -1,10 +1,15 @@
-import type { CombatContentCatalog, CombatEncounterState } from './actions'
-import { normalizeCombatEffectState } from './combat-effect-state'
+import type { CombatContentCatalog, CombatEncounterState, CombatEncounterIssue } from './actions'
+import { normalizeCombatEffectState, type CombatSummonDamageSource } from './combat-effect-state'
 import { normalBasicAttackDamageAgainst } from './actions-legacy'
 import { PV1F_COMBAT_CONTENT } from './pv1f-combat-content'
 
 export function summonDamageSource(state: CombatEncounterState, combatantId: string) {
-  return state.effectState?.summonDamageSources?.find((row) => row.combatantId === combatantId)
+  return state.effectState?.summonDamageSources?.find(
+    (row): row is CombatSummonDamageSource & { potencyBasisPoints: number } =>
+      row.combatantId === combatantId &&
+      row.groundContactArchiveVersion === undefined &&
+      row.potencyBasisPoints !== undefined,
+  )
 }
 
 /** Capture one recipient budget for the complete attack, independently of packet count/timing. */
@@ -14,7 +19,7 @@ export function allocateSummonDamageCommand(
   content: CombatContentCatalog,
 ): { state: CombatEncounterState; commandId?: number } {
   const source = summonDamageSource(state, sourceCombatantId)
-  if (!source) return { state }
+  if (!source || source.potencyPolicyVersion === 1) return { state }
   const effects = normalizeCombatEffectState(state.effectState)
   const commandId = effects.nextSummonDamageCommandId ?? 1
   if (!Number.isSafeInteger(commandId) || commandId >= Number.MAX_SAFE_INTEGER)
@@ -66,6 +71,26 @@ export function capSummonDamage(
 ): { state: CombatEncounterState; amount: number | bigint } {
   const source = summonDamageSource(state, sourceCombatantId)
   if (!source) return { state, amount: requested }
+  if (source.potencyPolicyVersion === 1) {
+    const round = state.tactical.battle.round
+    const spent = source.budgetRound === round ? source.spentThisRound : 0
+    const remaining = BigInt(source.damageBudgetPerRound - spent)
+    const amount = BigInt(requested) < remaining ? BigInt(requested) : remaining
+    return {
+      amount: Number(amount),
+      state: {
+        ...state,
+        effectState: {
+          ...normalizeCombatEffectState(state.effectState),
+          summonDamageSources: state.effectState!.summonDamageSources!.map((row) =>
+            row !== source
+              ? row
+              : { ...source, budgetRound: round, spentThisRound: spent + Number(amount) },
+          ),
+        },
+      },
+    }
+  }
   const effects = normalizeCombatEffectState(state.effectState)
   const command =
     commandId === undefined
@@ -144,4 +169,55 @@ export function captureSummonDotCommand(
       ),
     },
   }
+}
+
+/** Present current captured limits must be executable after reload; history stays literal. */
+export function validateSummonPotencyState(state: CombatEncounterState): CombatEncounterIssue[] {
+  const issues: CombatEncounterIssue[] = []
+  const rows = state.effectState?.summonDamageSources
+  if (rows !== undefined && !Array.isArray(rows))
+    return [{ field: 'summonDamageSources', message: 'Invalid Summon damage source list.' }]
+  const ids = new Set<string>()
+  for (const source of rows ?? []) {
+    if (!source || typeof source !== 'object' || source.groundContactArchiveVersion === 1) continue
+    if (
+      state.summonPotencyPolicyVersion !== 1 &&
+      source.potencyPolicyVersion === undefined &&
+      source.damageBudgetPerRound === undefined &&
+      source.budgetRound === undefined &&
+      source.spentThisRound === undefined
+    )
+      continue
+    if (
+      state.summonPotencyPolicyVersion !== 1 ||
+      source.potencyPolicyVersion !== 1 ||
+      typeof source.combatantId !== 'string' ||
+      !source.combatantId.trim() ||
+      ids.has(source.combatantId) ||
+      !state.tactical.battle.combatants.some((row) => row.id === source.ownerCombatantId) ||
+      ![source.potencyBasisPoints, source.damageBudgetPerRound, source.spentThisRound].every(
+        (value) => Number.isSafeInteger(value) && value! >= 0,
+      ) ||
+      !Number.isSafeInteger(source.budgetRound) ||
+      source.budgetRound! < 1 ||
+      source.budgetRound! > state.tactical.battle.round ||
+      source.spentThisRound! > source.damageBudgetPerRound!
+    )
+      issues.push({
+        field: 'summonDamageSources',
+        message: 'Invalid captured Summon potential budget.',
+      })
+    ids.add(source.combatantId)
+  }
+  if (state.summonPotencyPolicyVersion === 1)
+    for (const summon of state.effectState?.summons ?? [])
+      if (
+        summon.profile.potencyBasisPoints !== undefined &&
+        (rows ?? []).filter((source) => source?.combatantId === summon.combatantId).length !== 1
+      )
+        issues.push({
+          field: 'summonDamageSources',
+          message: 'Current capped Summon requires its captured potential budget.',
+        })
+  return issues
 }

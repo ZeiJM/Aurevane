@@ -175,33 +175,39 @@ describe('automatic canonical range forecasts', () => {
       ).map((i) => i.target),
     ).toEqual([{ kind: 'activate' }])
   })
-  it('accepts every actual recipient in an area forecast without inventing a primary target', async () => {
-    const area = {
-      ...projection('north'),
-      primaryCombatantId: null,
-      affectedCombatantIds: ['north', 'south'],
-    }
-    const intents = battleRangePreviewIntents(
-      { ...skill, target: { ...target, shape: { kind: 'circle', radius: 1 } } },
-      'actor',
-      combatants,
-    )
-    const fetchPreview = vi.fn<typeof fetch>(async () =>
-      Response.json({
-        battlePreview: { battleSessionId: 'area-battle', battleVersion: 4, preview: area },
-      }),
-    )
-    expect(
-      await requestBattleRangePreviews({
-        battleSessionId: 'area-battle',
-        battleVersion: 4,
-        actorId: 'actor',
-        intents,
-        signal: new AbortController().signal,
-        fetchPreview,
-      }),
-    ).toEqual([area])
-  })
+  it.each([1, 15])(
+    'accepts every actual recipient in a Circle[%i] forecast without inventing a primary target',
+    async (radius) => {
+      const area = {
+        ...projection('north'),
+        primaryCombatantId: null,
+        affectedCombatantIds: ['north', 'south'],
+      }
+      const intents = battleRangePreviewIntents(
+        {
+          ...skill,
+          target: { ...target, maximumRange: radius, shape: { kind: 'circle', radius } },
+        },
+        'actor',
+        combatants,
+      )
+      const fetchPreview = vi.fn<typeof fetch>(async () =>
+        Response.json({
+          battlePreview: { battleSessionId: 'area-battle', battleVersion: 4, preview: area },
+        }),
+      )
+      expect(
+        await requestBattleRangePreviews({
+          battleSessionId: 'area-battle',
+          battleVersion: 4,
+          actorId: 'actor',
+          intents,
+          signal: new AbortController().signal,
+          fetchPreview,
+        }),
+      ).toEqual([area])
+    },
+  )
   it('shares an identical in-flight candidate forecast between readers', async () => {
     let finish!: (response: Response) => void
     const fetchPreview = vi.fn<typeof fetch>(

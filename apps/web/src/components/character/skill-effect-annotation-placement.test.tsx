@@ -28,10 +28,10 @@ it('keeps explanatory limits below the table even when the effect has authored p
   const table = html.slice(0, html.indexOf('</dl>'))
   expect(table).not.toContain('Minimum movement cost')
   expect(table).not.toContain('data-compact-effect-detail')
-  expect(html.slice(html.indexOf('</dl>'))).toContain('Minimum movement cost: 10 AP')
+  expect(html.slice(html.indexOf('</dl>'))).toContain('Minimum movement cost: 0 AP')
   expect(Object.fromEntries(report.rows).Effects).not.toContain('Minimum movement cost')
   const manual = plainManualInlineParts(abilityManualInlineParts(report, 'Haste'))!
-  expect(manual.indexOf('Minimum movement cost: 10 AP')).toBeGreaterThan(
+  expect(manual.indexOf('Minimum movement cost: 0 AP')).toBeGreaterThan(
     manual.indexOf('Line of Sight:'),
   )
   expect(JSON.stringify(report)).toBe(before)

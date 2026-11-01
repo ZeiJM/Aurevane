@@ -19,7 +19,10 @@ function actionLines(action: ChronicleAction, actorName: string): string[] {
   const title = chronicleActionTitle(action)
   const narration = chronicleActionNarration(action, actorName)
   const outcomes = action.outcomes
-    .map((result) => `${result.text}${result.recipient ?? ''}`)
+    .map(
+      (result) =>
+        `${result.text}${result.recipient ?? ''}${result.annotation ? ` · ${result.annotation}` : ''}`,
+    )
     .join(' · ')
   return [
     ...(title ? [title] : []),

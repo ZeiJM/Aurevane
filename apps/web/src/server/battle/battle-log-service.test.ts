@@ -786,8 +786,9 @@ it('retains committed terrain conversions, expiry and failed displacement as rea
   expect(text).toContain('Steam')
   expect(text).toContain('2 round boundaries')
   expect(text).toContain('expired')
-  expect(text).toContain('occupied')
-  expect(text).toContain('no refund')
+  expect(text).toContain('was not displaced')
+  expect(text).not.toContain('occupied')
+  expect(text).not.toContain('no refund')
   expect(text).not.toContain('sourceCombatantId')
 })
 
@@ -971,6 +972,8 @@ it('projects only bounded recovery application counts on the appropriate pending
     { effectTag: 'healing', recoveryApplications: 4 },
     { effectTag: 'mp-recovery', recoveryApplications: 1 },
     { effectTag: 'healing', recoveryApplications: 5 },
+    { effectTag: 'healing', recoveryApplications: 100 },
+    { effectTag: 'healing', recoveryApplications: 101 },
     { effectTag: 'damage', recoveryApplications: 4 },
   ]
   const result = buildBattleLogView(
@@ -992,6 +995,8 @@ it('projects only bounded recovery application counts on the appropriate pending
   expect(result.entries.map((entry) => entry.effectTiming?.recoveryApplications)).toEqual([
     4,
     1,
+    5,
+    100,
     undefined,
     undefined,
   ])
@@ -1047,4 +1052,37 @@ it('reports HP payment as a resource cost rather than damage or an unknown event
     { label: '−12 HP', tone: 'neutral' },
     { label: '1 left', tone: 'neutral' },
   ])
+})
+
+it('labels reflection receipts without leaking the internal status action/version into any reader', () => {
+  const records = [
+    {
+      battleVersion: 2,
+      eventIndex: 0,
+      createdAt: '2026-11-01T00:00:00Z',
+      event: {
+        event: 'damage_applied',
+        actionId: 'status.reflect.current.v1',
+        sourceCombatantId: 'character:zei',
+        targetCombatantId: 'recruit:weon',
+        amount: 13,
+        hpBefore: 90,
+        hpAfter: 77,
+      },
+    },
+  ]
+  const before = JSON.stringify(records)
+  const view = buildBattleLogView(SESSION_ID, records)
+  expect(view.entries[0]).toMatchObject({
+    actionId: 'status.reflect.current.v1',
+    actionLabel: 'Reflect',
+    headline: 'Reflect',
+    templateValues: { amount: '13' },
+  })
+  const action = buildBattleChronicle(view.entries, {
+    combatantNames: { 'character:zei': 'Zei', 'recruit:weon': 'Weon' },
+  })[0]!.actors[0]!.actions[0]!
+  expect(action.fallbackNarration).toBe('Zei reflects the damage.')
+  expect(action.outcomes[0]).toMatchObject({ text: '13 damage', recipient: ' to Weon' })
+  expect(JSON.stringify(records)).toBe(before)
 })

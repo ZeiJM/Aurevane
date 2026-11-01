@@ -1,3 +1,4 @@
+import { activePersistentCombatStatusRows, pendingCombatStatusRows } from './combat-effect-timing'
 import { selectCurrentFinalFacing } from './board'
 import { PHASE4_STATUSES } from './status-content'
 import { describe, expect, it } from 'vitest'
@@ -601,4 +602,150 @@ describe('percentage DoTs capture their originating attack', () => {
       ),
     ).toThrow()
   })
+})
+
+it.each(['instant', 'delayed'] as const)(
+  'captures command hostile HP loss for independently targeted Self Poison with %s damage, including reload',
+  (timing) => {
+    const action = attack()
+    const poison = action.effects[1]!
+    if (poison.type !== 'poison') throw new Error('Poison fixture')
+    const independent = {
+      ...action,
+      effects: [
+        action.effects[0]!,
+        {
+          ...poison,
+          recipient: 'actor' as const,
+          target: 'self' as const,
+          damageProfile: {
+            ...poison.damageProfile!,
+            damageBasis: 'command-hostile-total' as const,
+          },
+        },
+      ],
+    }
+    const initial = {
+      ...percentageDotEncounter(),
+      effectTimingPolicy: { version: 1, modes: { damage: timing, poison: 'instant' as const } },
+    }
+    const result = executeCombatAction(
+      initial,
+      independent,
+      { kind: 'unit', combatantId: 'enemy' },
+      content,
+    )
+    let loaded = JSON.parse(JSON.stringify(result.state)) as CombatEncounterState
+    expect(validateCombatEncounterState(loaded)).toEqual([])
+    if (timing === 'delayed') {
+      expect(loaded.effectState?.poison ?? []).toHaveLength(0)
+      loaded = nextRound(nextRound(loaded))
+    }
+    expect(loaded.effectState?.poison).toHaveLength(1)
+    expect(loaded.effectState!.poison[0]).toMatchObject({
+      targetCombatantId: 'actor',
+      percentageDamage: { capturedDamage: 40, profile: { damageBasis: 'command-hostile-total' } },
+    })
+    expect(validateCombatEncounterState(JSON.parse(JSON.stringify(loaded)))).toEqual([])
+  },
+)
+it('independent Self DoTs capture total multi-hit AoE HP loss, exclude absorbed damage, and do not apply on zero loss', () => {
+  const action = attack()
+  const poison = action.effects[1]!
+  if (poison.type !== 'poison') throw new Error('Poison fixture')
+  const damage = action.effects[0]!
+  if (damage.type !== 'damage') throw new Error('Damage fixture')
+  const independent = {
+    ...action,
+    target: {
+      ...action.target,
+      geometryVersion: 2 as const,
+      maximumRange: 2,
+      shape: { kind: 'circle' as const, radius: 2 },
+    },
+    effects: [
+      { ...damage, recipient: 'affected-units' as const },
+      {
+        ...poison,
+        recipient: 'actor' as const,
+        target: 'self' as const,
+        damageProfile: { ...poison.damageProfile!, damageBasis: 'command-hostile-total' as const },
+      },
+    ],
+  }
+  const initial = grantBarrier(percentageDotEncounter(), 'actor', 'enemy', action.id, 30).state
+  const result = executeCombatAction(initial, independent, { kind: 'activate' }, content)
+  expect(result.state.effectState!.poison[0]).toMatchObject({
+    targetCombatantId: 'actor',
+    percentageDamage: { capturedDamage: 50 },
+  })
+  const blocked = grantBarrier(
+    grantBarrier(percentageDotEncounter(), 'actor', 'enemy', action.id, 100).state,
+    'actor',
+    'other',
+    action.id,
+    100,
+  ).state
+  expect(
+    executeCombatAction(blocked, independent, { kind: 'activate' }, content).state.effectState
+      ?.poison ?? [],
+  ).toHaveLength(0)
+  const historical = {
+    ...independent,
+    effects: [
+      independent.effects[0]!,
+      { ...poison, recipient: 'actor' as const, target: 'self' as const },
+    ],
+  }
+  expect(
+    executeCombatAction(percentageDotEncounter(), historical, { kind: 'activate' }, content).state
+      .effectState?.poison ?? [],
+  ).toHaveLength(0)
+})
+
+it('keeps independent Self Poison and its seven-tile refresh captured when Damage appears later', () => {
+  const original = attack()
+  const dot = original.effects[1]!
+  if (dot.type !== 'poison') throw new Error('Poison fixture')
+  const action: CombatActionDefinition = {
+    ...original,
+    effects: [
+      {
+        ...dot,
+        recipient: 'actor',
+        target: 'self',
+        movementRefreshTiles: 7,
+        damageProfile: { ...dot.damageProfile!, damageBasis: 'command-hostile-total' },
+      },
+      original.effects[0]!,
+    ],
+  }
+  const cast = executeCombatAction(
+    { ...percentageDotEncounter(), dotTriggerPolicyVersion: 2 },
+    action,
+    { kind: 'unit', combatantId: 'enemy' },
+    content,
+  )
+  expect(cast.state.effectState!.poison[0]).toMatchObject({
+    movementRefreshTiles: 7,
+    percentageDamage: { capturedDamage: 40 },
+  })
+  expect(
+    activePersistentCombatStatusRows(cast.state).find((row) => row.status.statusId === 'poison')
+      ?.status.poisonMovementRefreshTiles,
+  ).toBe(7)
+  const delayed = executeCombatAction(
+    {
+      ...percentageDotEncounter(),
+      dotTriggerPolicyVersion: 2,
+      effectTimingPolicy: { version: 1, modes: { poison: 'delayed' } },
+    },
+    action,
+    { kind: 'unit', combatantId: 'enemy' },
+    content,
+  )
+  expect(
+    pendingCombatStatusRows(delayed.state).find((row) => row.status.statusId === 'poison')?.status
+      .poisonMovementRefreshTiles,
+  ).toBe(7)
 })

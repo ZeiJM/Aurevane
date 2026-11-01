@@ -101,7 +101,7 @@ describe('compact combat presentation tags', () => {
       'Single',
       'Dmg [4]',
       'Pierce',
-      'MP Restore [2] · Self',
+      'MP Recovery [2] · Self',
       'MP Drain [2]',
       'Cleanse',
       'Pull [2]',

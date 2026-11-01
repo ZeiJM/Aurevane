@@ -7,6 +7,8 @@ import {
   reconcileCombatAbilitySources,
 } from './combat-behavior-runtime'
 import type { AbilityDefinition } from './combat-definition'
+import { executeCombatAction, type CombatActionDefinition } from './actions'
+import { validateCombatActionDefinition } from './combat-authoring-validation'
 import { activePersistentCombatStatusRows, pendingCombatStatusRows } from './combat-effect-timing'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import {
@@ -154,7 +156,130 @@ function withQuality(state: StatDrivenCombatEncounterState, kind: 'ai' | 'pvp') 
 }
 
 describe('captured Barrier lifetime', () => {
-  it.each([0, -1, 1.5, 5, NaN, Infinity])(
+  it('accepts 99 and rejects 100 through canonical authoring and native action execution', () => {
+    for (const durationTurns of [99, 100]) {
+      const payload = {
+        type: 'barrier-change' as const,
+        recipient: 'actor' as const,
+        amount: 20,
+        durationTurns,
+      }
+      const native: CombatActionDefinition = {
+        id: 'test.long-barrier',
+        version: 1,
+        sourceType: 'test',
+        tags: [],
+        requirements: [],
+        cost: { spendsAction: false, mp: 0 },
+        target: {
+          kind: 'self',
+          teamPolicy: 'self',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          friendlyFire: 'allies-only',
+        },
+        effects: [payload],
+      }
+      expect(validateCombatTagPayload(payload).length === 0).toBe(durationTurns === 99)
+      if (durationTurns === 100) {
+        expect(() => validateCombatActionDefinition(native)).toThrow(/duration/)
+        expect(() => fixture(durationTurns)).toThrow()
+        expect(() =>
+          grantBarrier(percentageDotEncounter(), 'actor', 'actor', native.id, 20, {
+            durationTurns,
+            scope: 'owner-turns',
+          }),
+        ).toThrow(/duration/)
+        continue
+      }
+      expect(() => validateCombatActionDefinition(native)).not.toThrow()
+      const state = executeCombatAction(
+        percentageDotEncounter(),
+        native,
+        { kind: 'self' },
+        PV1F_COMBAT_CONTENT,
+      ).state
+      expect(state.effectState?.barriers?.[0]).toMatchObject({
+        amount: 20,
+        remainingOwnerTurnEnds: 99,
+      })
+      expect(validateBarrierState(JSON.parse(JSON.stringify(state)))).toEqual([])
+    }
+  })
+
+  it.each(['owner-turns', 'rounds'] as const)(
+    'rejects a persisted 100-turn %s clock while retaining 99',
+    (scope) => {
+      const state = grantBarrier(
+        percentageDotEncounter(),
+        'actor',
+        'actor',
+        'test.long-barrier',
+        20,
+        { durationTurns: 99, scope },
+      ).state
+      expect(validateBarrierState(JSON.parse(JSON.stringify(state)))).toEqual([])
+      const clock = scope === 'rounds' ? 'remainingRoundBoundaries' : 'remainingOwnerTurnEnds'
+      const corrupt = {
+        ...state,
+        effectState: {
+          ...state.effectState!,
+          barriers: state.effectState!.barriers!.map((pool) => ({ ...pool, [clock]: 100 })),
+        },
+      }
+      expect(validateBarrierState(corrupt)).toContainEqual(
+        expect.objectContaining({ field: `effectState.barriers[0].${clock}` }),
+      )
+    },
+  )
+
+  it.each(['instant', 'next-round', 'delayed'] as const)(
+    'captures and reloads all 99 Barrier turns then expires exactly on the %s boundary',
+    (mode) => {
+      const reload = (state: StatDrivenCombatEncounterState) => {
+        const restored = JSON.parse(JSON.stringify(state)) as StatDrivenCombatEncounterState
+        expect(validateBarrierState(restored)).toEqual([])
+        return restored
+      }
+      const captured = fixture(99, mode)
+      expect(
+        captured.source.definition.behaviors[0]!.effects.some(
+          (effect) =>
+            effect.payload.type === 'barrier-change' && effect.payload.durationTurns === 99,
+        ),
+      ).toBe(true)
+      let state = reload(cast(captured, 'ally'))
+      if (mode === 'instant') {
+        expect(currentBarrierAmount(state, 'ally')).toBe(200)
+        for (let turn = 1; turn <= 99; turn++) {
+          state = reload(completeRecipientTurn(state, 'ally'))
+          expect(currentBarrierAmount(state, 'ally')).toBe(turn < 99 ? 200 : 0)
+          if (turn < 99)
+            expect(state.effectState?.barriers?.[0]?.remainingOwnerTurnEnds).toBe(99 - turn)
+        }
+      } else {
+        const activationRound = mode === 'next-round' ? 2 : 3
+        expect(currentBarrierAmount(state, 'ally')).toBe(0)
+        expect(
+          pendingCombatStatusRows(state).find((row) => row.status.statusId === 'barrier')?.status,
+        ).toMatchObject({ remainingRoundBoundaries: 99, activationRound })
+        state = reload(round(state, activationRound))
+        expect(currentBarrierAmount(state, 'ally')).toBe(200)
+        for (let elapsed = 1; elapsed <= 99; elapsed++) {
+          state = reload(round(state, activationRound + elapsed))
+          expect(currentBarrierAmount(state, 'ally')).toBe(elapsed < 99 ? 200 : 0)
+          if (elapsed < 99)
+            expect(state.effectState?.barriers?.[0]?.remainingRoundBoundaries).toBe(99 - elapsed)
+        }
+      }
+      expect(state.effectState?.barriers).toEqual([])
+    },
+  )
+
+  it.each([0, -1, 1.5, 100, NaN, Infinity])(
     'rejects invalid programmed duration %s at authoring and native execution',
     (durationTurns) => {
       const payload = {
@@ -174,7 +299,7 @@ describe('captured Barrier lifetime', () => {
     for (const invalid of [
       { ...pool, remainingOwnerTurnEnds: 0 },
       { ...pool, remainingOwnerTurnEnds: 1.5 },
-      { ...pool, remainingOwnerTurnEnds: 5 },
+      { ...pool, remainingOwnerTurnEnds: 100 },
       { ...pool, remainingRoundBoundaries: 2 },
       { ...pool, applicationOrder: undefined },
     ])

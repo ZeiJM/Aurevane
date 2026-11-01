@@ -106,7 +106,7 @@ export function canonicalSecondaryStatusExplanation(
   if (!current)
     return {
       description:
-        'Reduce effective Initiative once while active and increase incoming Storm damage. Fire removes Drenched.',
+        'Reduce effective Initiative once while active and increase incoming Storm damage.',
       parts,
     }
   details.push(

@@ -56,9 +56,10 @@ export function describeTerrainLabel(label: string): {
     ? `${overlay[1]} · ${overlay[2]} ${overlay[2] === '1' ? 'round' : 'rounds'} remaining`
     : ''
 
+  const groundFields = label.match(/; Ground fields: (.+)$/u)?.[1]
   return {
     title: `${terrainName} · Tile ${x},${y}`,
-    description: `Entry costs ${entryCost} AP · Elevation ${elevationLevel}.${overlaySummary ? ` ${overlaySummary}` : ''}`,
+    description: `Entry costs ${entryCost} AP · Elevation ${elevationLevel}.${overlaySummary ? ` ${overlaySummary}` : ''}${groundFields ? ` ${groundFields}` : ''}`,
   }
 }
 

@@ -1,6 +1,10 @@
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { airborneDescription } from '@aurevane/game-core/combat/combat-airborne'
 import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
+import {
+  reversalRuleDescription,
+  REVERSAL_STRAIN_DESCRIPTION,
+} from '../../lib/reversal-presentation'
 import { canonicalStatusExplanation } from './canonical-status-explanation'
 import { previewEffect } from './skill-effect-preview'
 import type { CanonicalStatusExplanationOptions } from './canonical-status-clock'
@@ -12,6 +16,10 @@ export function mechanicTagExplanation(
   options: CanonicalStatusExplanationOptions,
 ): string {
   switch (tag) {
+    case 'reversal':
+      return reversalRuleDescription(options)
+    case 'reversal-strain':
+      return REVERSAL_STRAIN_DESCRIPTION
     case 'hp-less-than':
     case 'hp-more-than':
     case 'mp-less-than':
@@ -24,7 +32,7 @@ export function mechanicTagExplanation(
     case 'resource-threshold':
       return 'Checks the chosen character’s resource against the displayed threshold. ≥ means at least; ≤ means at most. Percentages use that character’s maximum resource.'
     case 'primed':
-      return 'Indicates that at least one Controlled Skill is prepared. Ends when none remain, including after cancellation, source removal, defeat or battle end. Cannot be applied, copied or cleansed separately.'
+      return 'Indicates that at least one Controlled Skill is prepared. Ends when none remain, including after cancellation, source removal, defeat or battle end. Cannot be applied or copied separately.'
     case 'frozen-ground': {
       return options.legacyFrozenGround
         ? 'Increases movement AP costs for either team. Airborne ignores the surcharge.'
@@ -80,20 +88,20 @@ export function mechanicTagExplanation(
       // This context does not distinguish the oldest fixed Storm bonus from later stacking.
       if (options.legacyElemental && tag !== 'frozen')
         return tag === 'wet'
-          ? 'Increases Storm damage taken. Fire removes Drenched.'
+          ? 'Increases Storm damage taken.'
           : 'Increases Storm damage taken. Storm damage consumes Conductive.'
       return tag === 'frozen'
-        ? 'Prevents changing final facing. Movement still turns the bearer; Cleanse Chilled removes it.'
+        ? 'Prevents changing final facing.'
         : tag === 'wet'
           ? options.explicitElemental === false
-            ? 'Reduces Initiative once while active and increases Storm damage taken. Fire removes Drenched.'
+            ? 'Reduces Initiative once while active and increases Storm damage taken.'
             : 'Each Drenched application reduces Initiative, down to zero. Storm damage uses the strongest active bonus.'
           : 'Increases Storm damage taken. A damaging Storm hit consumes the existing charge.'
     case 'burn':
     case 'bleed':
     case 'poison':
       // Presence does not identify which fixed or percentage application is active.
-      return `${tag === 'burn' ? 'Burn' : tag === 'bleed' ? 'Bleed' : 'Poison'} deals damage over time.${tag === 'poison' ? (options.legacyPoisonMovement || options.legacyTriggers ? ' Movement can trigger additional damage under the saved rules.' : ' Every five traversed tiles refresh its duration; teleporting does not.') : ''} Inspect the active effect for its saved damage and lifetime.`
+      return `${tag === 'burn' ? 'Burn' : tag === 'bleed' ? 'Bleed' : 'Poison'} deals damage over time.${tag === 'poison' ? (options.legacyPoisonMovement || options.legacyTriggers ? ' Movement can trigger additional damage under the saved rules.' : ' Traversing its saved number of tiles refreshes its duration; teleporting does not.') : ''} Inspect the active effect for its saved damage and lifetime.`
   }
 }
 export function resolveMechanicText(

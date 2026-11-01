@@ -15,6 +15,34 @@ const area = {
   entryEffects: [{ secret: 'power' }],
 }
 describe('public Ground projection', () => {
+  it('projects current Damage and Burn markers without captured execution data', () => {
+    const currentArea = {
+      ...area,
+      contactPolicyVersion: 1,
+      entryEffects: [
+        { type: 'damage', recipient: 'affected-units', amount: 999 },
+        { type: 'burn', recipient: 'affected-units', backlashBasisPoints: 1234 },
+      ],
+    }
+    const state = {
+      groundAreas: [currentArea],
+      tactical: { battle: { round: 1, lifecycle: 'active' } },
+    }
+    const before = structuredClone(state)
+    const projected = omitPendingBattlePayloads(state as never)
+    expect(projected.groundAreas).toEqual([
+      {
+        id: area.id,
+        effectVisualIds: ['damage', 'status:burn'],
+        tiles: area.tiles,
+        activationRound: 2,
+        expiresAtRound: 5,
+        visualPresetId: 'embers',
+      },
+    ])
+    expect(JSON.stringify(projected)).not.toContain('secret')
+    expect(state).toEqual(before)
+  })
   it('publishes the fixed footprint without source identity or frozen execution data', () => {
     const state = {
       groundAreas: [area],

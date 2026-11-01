@@ -5,6 +5,7 @@ import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import { renderBattleLogEntry } from './battle-log-presentation'
 import { summarizeBattleLogTerrain } from './battle-log-terrain-summary'
+import { narrateBattleEffect } from './battle-log-effect-narration'
 
 export type ChronicleFamily =
   'movement' | 'idle' | 'skill' | 'essence' | 'resonance' | 'ascension' | 'severence'
@@ -13,9 +14,11 @@ export interface ChronicleOutcome {
   key: string
   text: string
   recipient?: string
+  annotation?: string
   tone: 'neutral' | 'damage' | 'recovery' | 'benefit' | 'harm'
   statusId?: string
   potencyBasisPoints?: number
+  effectStrength?: BattleLogEntry['effectStrength']
   duration?: string
 }
 export interface ChronicleAction {
@@ -266,18 +269,22 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
   const actorName = chronicleCombatantName(ownerId, names)
   const targetName = chronicleCombatantName(entry.targetCombatantId, names)
   const loweredGuard = entry.actionId === 'battle.lowered-guard.apply'
+  const reflection = entry.actionId === 'status.reflect.current.v1'
   return {
     key: eventKey(entry),
     actorId: ownerId,
-    title: loweredGuard
-      ? 'Defenseless'
-      : (entry.actionContext?.name ?? entry.actionLabel ?? entry.headline),
+    title: reflection
+      ? 'Reflect'
+      : loweredGuard
+        ? 'Defenseless'
+        : (entry.actionContext?.name ?? entry.actionLabel ?? entry.headline),
     family: family(entry),
     contentId: entry.actionContext?.contentId ?? entry.actionContext?.skillId ?? null,
     sourceActionId: entry.actionId,
     contentVersion: entry.actionContext?.contentVersion ?? null,
-    flavorTemplate:
-      loweredGuard && entry.eventType === 'combat_action_used'
+    flavorTemplate: reflection
+      ? null
+      : loweredGuard && entry.eventType === 'combat_action_used'
         ? '{actor} lowered {actor.possessive} guard!'
         : (entry.actionContext?.battleText ?? entry.actionContext?.flavor ?? null),
     configuredValues: entry.actionContext?.presentation?.values,
@@ -288,7 +295,9 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
       entry.actionContext?.narrator ??
       (entry.actorNarrator ? { actor: entry.actorNarrator } : undefined),
     targetName,
-    fallbackNarration: fallbackNarration(entry, actorName),
+    fallbackNarration: reflection
+      ? `${actorName} reflects the damage.`
+      : fallbackNarration(entry, actorName),
     hasRecordedResult: entry.eventType === 'resonance_activated',
     outcomes: [],
     specials: [],
@@ -300,10 +309,10 @@ function duration(entry: BattleLogEntry): string | undefined {
   if (recorded) return recorded
   const applications = entry.effectTiming?.recoveryApplications
   if (applications) return `${applications} application${applications === 1 ? '' : 's'}`
-  const turns = entry.effectTiming?.remainingOwnerTurnEnds
-  if (turns) return `${turns} turn${turns === 1 ? '' : 's'}`
   const rounds = entry.effectTiming?.remainingRoundBoundaries
-  return rounds ? `${rounds} round${rounds === 1 ? '' : 's'}` : undefined
+  if (rounds) return `${rounds} round${rounds === 1 ? '' : 's'}`
+  const turns = entry.effectTiming?.remainingOwnerTurnEnds
+  return turns ? `${turns} turn${turns === 1 ? '' : 's'}` : undefined
 }
 
 function attachOutcomeNarrator(action: ChronicleAction, entry: BattleLogEntry) {
@@ -331,15 +340,27 @@ function isAccuracyReceipt(entry: BattleLogEntry): boolean {
 }
 
 function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome | null {
+  // The boosted damage line already narrates Ruin; retain cleanup only in raw diagnostics.
+  if (entry.eventType === 'status_removed' && entry.removalReason === 'ruin') return null
   const target = chronicleCombatantName(entry.targetCombatantId, names)
   const value = entry.templateValues
+  const ruinAnnotation =
+    entry.eventType === 'damage_applied' &&
+    !entry.periodicStatusId &&
+    !entry.damageTrigger &&
+    value.ruinBonus
+      ? `Ruin +${value.ruinBonus}`
+      : undefined
   const base = {
     key: eventKey(entry),
     ...(entry.battleTag ? { battleTag: entry.battleTag } : {}),
     tone: 'neutral' as const,
     ...(entry.potencyBasisPoints !== undefined
       ? { potencyBasisPoints: entry.potencyBasisPoints }
-      : {}),
+      : entry.effectStrength?.potencyBasisPoints !== undefined
+        ? { potencyBasisPoints: entry.effectStrength.potencyBasisPoints }
+        : {}),
+    ...(entry.effectStrength ? { effectStrength: entry.effectStrength } : {}),
   }
   if (entry.effectTimingState === 'pending') return null
   if (
@@ -365,7 +386,8 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
     if (rendered)
       return {
         ...base,
-        text: rendered,
+        text: `${entry.eventType === 'damage_applied' && value.critical === 'true' ? 'Critical ' : ''}${rendered}`,
+        ...(ruinAnnotation ? { annotation: ruinAnnotation } : {}),
         tone: entry.eventType === 'damage_applied' ? 'damage' : 'recovery',
       }
   }
@@ -413,24 +435,29 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         return {
           ...base,
           tone: effectTone(entry.statusId),
-          text: `${label} will restore ${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}${entry.targetCombatantId ? ` on ${target}` : ''}, beginning at the start of ${round}!`,
+          text:
+            entry.effectStrength?.recoveryAmountPerApplication !== undefined &&
+            entry.targetCombatantId
+              ? `${target} will recover up to ${entry.effectStrength.recoveryAmountPerApplication} ${entry.statusId === 'healing' ? 'HP' : 'MP'} per application (${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}), beginning at the start of ${round}!`
+              : `${label} will restore ${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}${entry.targetCombatantId ? ` on ${target}` : ''}, beginning at the start of ${round}!`,
           ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
         }
-      const remaining =
-        entry.effectTiming?.remainingOwnerTurnEnds ?? entry.effectTiming?.remainingRoundBoundaries
+      const remaining = entry.effectTiming?.remainingRoundBoundaries
       const candidateEnd = recordedRound && remaining ? recordedRound + remaining - 1 : undefined
       const endRound = candidateEnd && Number.isSafeInteger(candidateEnd) ? candidateEnd : undefined
       const span =
         remaining && remaining > 1 && endRound
           ? `during rounds ${recordedRound}–${endRound}`
           : `at the start of ${round}`
+      const effectNarration = narrateBattleEffect(entry, target, true)
+      const ownerTurns = !remaining ? entry.effectTiming?.remainingOwnerTurnEnds : undefined
+      const timing = `${span}${ownerTurns ? `, for ${ownerTurns} affected turn${ownerTurns === 1 ? '' : 's'}` : ''}`
       return {
         ...base,
         tone: effectTone(entry.statusId),
-        text:
-          remaining && remaining > 1 && endRound
-            ? `${label} will affect ${entry.targetCombatantId ? target : 'the ground'} ${span}!`
-            : `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} ${span}!`,
+        text: effectNarration
+          ? `${effectNarration} ${timing}!`
+          : `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} ${timing}!`,
         ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
       }
     }
@@ -475,8 +502,9 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       }
       return {
         ...base,
-        text: `${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element, value.damageKind)}`,
+        text: `${value.critical === 'true' ? 'Critical ' : ''}${value.amount ?? 'Resolved'} ${battleDamageLabel(value.element, value.damageKind)}`,
         recipient: ` to ${target}`,
+        ...(ruinAnnotation ? { annotation: ruinAnnotation } : {}),
         tone: 'damage',
       }
     }
@@ -505,6 +533,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       }
     }
     case 'status_applied':
+    case 'persistent_effect_applied':
     case 'pvp_lowered_guard_applied':
     case 'ai_lowered_guard_applied': {
       const turns = duration(entry)
@@ -512,12 +541,31 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         value.statusId ??
         entry.statusId ??
         (entry.eventType.includes('lowered_guard') ? 'lowered-guard' : undefined)
-      if (statusId === 'lowered-guard')
+      if (
+        statusId === 'lowered-guard' &&
+        entry.effectStrength?.damageTakenMultiplierBasisPoints === undefined
+      )
         return {
           ...base,
           tone: 'harm',
           statusId,
           text: `${target} is left wide open to the enemy${turns ? ` for ${turns}` : ''}.${value.stacks && value.stacks !== '1' ? ` · ×${value.stacks}` : ''}`,
+          ...(turns ? { duration: turns } : {}),
+        }
+      const narration = narrateBattleEffect(entry, target)
+      const effectName = statusId ? combatStatusDetails(statusId).name : ''
+      const narratedChange =
+        narration && value.statusChange === 'REFRESHED'
+          ? narration.startsWith(`${effectName} `)
+            ? `${effectName} refreshes and ${narration.slice(effectName.length + 1)}`
+            : `${effectName} refreshes: ${narration}`
+          : narration
+      if (narration)
+        return {
+          ...base,
+          tone: effectTone(statusId),
+          text: `${value.statusChange === 'STACKED' ? `${effectName} stacks to ×${value.stacks}: ` : ''}${narratedChange}${turns ? ` for ${turns}` : ''}${value.stacks && value.stacks !== '1' ? `${value.statusChange === 'STACKED' ? '' : ` · ×${value.stacks}`}${entry.effectStrength ? ' (strength per application)' : ''}` : ''}`,
+          ...(statusId ? { statusId } : {}),
           ...(turns ? { duration: turns } : {}),
         }
       return {
@@ -587,6 +635,22 @@ export function buildBattleChronicle(
       .filter((entry) => entry.eventType === 'damage_applied' && !entry.periodicStatusId)
       .map((entry) => `${entry.battleVersion}:${entry.targetCombatantId}`),
   )
+  const packetCriticalKey = (entry: BattleLogEntry) =>
+    JSON.stringify([
+      entry.battleVersion,
+      entry.actorCombatantId,
+      entry.targetCombatantId,
+      entry.actionId,
+    ])
+  const packetCriticalTargets = new Set(
+    ordered
+      .filter(
+        (entry) =>
+          entry.eventType === 'damage_applied' &&
+          ['true', 'false'].includes(entry.templateValues.critical ?? ''),
+      )
+      .map(packetCriticalKey),
+  )
   const commands = new Map<number, BattleLogEntry>()
   for (const entry of ordered)
     if (entry.eventType === 'combat_action_used') commands.set(entry.battleVersion, entry)
@@ -622,6 +686,11 @@ export function buildBattleChronicle(
   let command: ChronicleAction | null = null
   let version = -1
   for (const entry of summarizeBattleLogTerrain(ordered)) {
+    if (
+      entry.eventType === 'combat_critical_resolved' &&
+      packetCriticalTargets.has(packetCriticalKey(entry))
+    )
+      continue
     if (entry.battleVersion !== version) {
       command = null
       version = entry.battleVersion
@@ -772,6 +841,19 @@ export function buildBattleChronicle(
       }
       special.outcomes.push(result)
       attachOutcomeNarrator(special, entry)
+      continue
+    }
+    if (entry.actionId === 'status.reflect.current.v1') {
+      const group = actorGroup()
+      let reflection = group.actions.find(
+        (item) =>
+          item.sourceActionId === entry.actionId && item.key.startsWith(`${entry.battleVersion}:`),
+      )
+      if (!reflection) {
+        reflection = action(entry, names, ownerId)
+        group.actions.push(reflection)
+      }
+      reflection.outcomes.push(result)
       continue
     }
     if (

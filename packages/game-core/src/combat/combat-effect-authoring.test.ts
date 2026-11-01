@@ -14,7 +14,7 @@ import { latestEnabledMatureSkills } from './mature-skills'
 
 it('exposes current individual tags while retaining legacy engine support', () => {
   for (const tag of COMBAT_TAG_REGISTRY.filter(
-    (tag) => !['healing', 'damage-bonus'].includes(tag.id),
+    (tag) => !['healing', 'damage-bonus', 'create-terrain'].includes(tag.id),
   ))
     expect(AUTHORABLE_EFFECT_TAGS.some((choice) => choice.opcode === tag.id)).toBe(true)
   for (const status of SUPPORTED_COMBAT_STATUS_IDS.filter(
@@ -187,9 +187,9 @@ it('uses Conditional Cleanse for retained Chilled-only payloads in current autho
   expect(payload).toEqual(before)
 })
 
-it('authors a captured Skill AP surcharge for new Frozen Ground and validates its bounds', () => {
-  const payload = createAuthorableEffectPayload('freeze-ground')!
-  expect(payload).toMatchObject({ skillApSurcharge: 10 })
+it('retires new Frozen Ground while retaining captured Skill AP surcharge validation', () => {
+  expect(createAuthorableEffectPayload('freeze-ground')).toBeNull()
+  const payload = { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' }
   for (const skillApSurcharge of [0, 27, 100])
     expect(validateCombatTagPayload({ ...payload, skillApSurcharge })).toEqual([])
   for (const skillApSurcharge of [-1, 101, 1.5, NaN, '10'])

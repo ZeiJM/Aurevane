@@ -31,7 +31,6 @@ export function EffectTargetEditor({
   onChange(target: CombatEffectTarget): void
 }) {
   const id = useId()
-  if ('applicationOrigin' in value && value.applicationOrigin === 'frozen-ground') return null
   if (value.type === 'move')
     return (
       <div className={styles.effectTargetEditor}>
@@ -45,6 +44,7 @@ export function EffectTargetEditor({
         </div>
       </div>
     )
+  const inheritedLabel = value.target === undefined ? inheritedEffectTargetLabel(value, aim) : null
   const options = COMBAT_EFFECT_TARGETS.map((target) => {
     let reason: string | undefined
     try {
@@ -82,14 +82,14 @@ export function EffectTargetEditor({
           value={value.target ?? ''}
           onChange={(event) => onChange(event.currentTarget.value as CombatEffectTarget)}
         >
-          {value.target === undefined ? (
-            <option value="">{inheritedEffectTargetLabel(value, aim)} · existing rules</option>
-          ) : null}
-          {options.map(({ target, reason }) => (
-            <option key={target} value={target} disabled={!!reason} title={reason}>
-              {EFFECT_TARGET_LABELS[target]}
-            </option>
-          ))}
+          {value.target === undefined ? <option value="">{inheritedLabel}</option> : null}
+          {options
+            .filter(({ target }) => EFFECT_TARGET_LABELS[target] !== inheritedLabel)
+            .map(({ target, reason }) => (
+              <option key={target} value={target} disabled={!!reason} title={reason}>
+                {EFFECT_TARGET_LABELS[target]}
+              </option>
+            ))}
         </select>
       </div>
     </div>

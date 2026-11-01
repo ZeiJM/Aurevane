@@ -1361,11 +1361,113 @@ it('Chronicle and Copy Full Log retain recorded Suppress percentage and lifetime
     ],
     async () => definition(),
   )
-  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain('Suppress [25.34%]')
+  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain(
+    'outgoing direct damage by 25.34%',
+  )
   const copied = formatBattleLogForClipboard(result.entries)
-  expect(copied).toContain('Suppress [25.34%]')
-  expect(copied).toContain('Suppress [40%]')
+  expect(copied).toContain('outgoing direct damage by 25.34%')
+  expect(copied).toContain('Suppress refreshes and reduces')
+  expect(copied).toContain('outgoing direct damage by 40%')
   expect(copied).toContain('2 turns')
+})
+
+it.each([
+  ['haste', { movementApAdjustment: 27 }],
+  ['inspired', { potencyBasisPoints: 4000 }],
+  ['counter', { counter: { kind: 'physical', basisPoints: 17500 } }],
+] as const)(
+  'withholds committed %s strength behind the existing concealed-benefit history boundary',
+  async (statusId, effectStrength) => {
+    const records = [
+      record({ event: 'combat_action_used', actionId: SKILL, actorId: ACTOR }),
+      record(
+        {
+          event: 'status_applied',
+          actionId: SKILL,
+          sourceCombatantId: ACTOR,
+          targetCombatantId: OTHER,
+          statusId,
+          effectStrength,
+          stacks: 1,
+          remainingOwnerTurnStarts: 2,
+          refreshed: false,
+          stacked: false,
+        },
+        1,
+      ),
+    ]
+    const resolver = vi.fn(async () => definition())
+    const visible = await getLog(records, resolver)
+    expect(visible.entries.find((entry) => entry.statusId === statusId)?.effectStrength).toEqual(
+      effectStrength,
+    )
+    for (const privacy of [
+      { hidden: true },
+      {
+        eventVisibilityOverrides: [
+          { eventIndex: 1, visibility: { kind: 'team-only' as const, teamId: 'team:a' } },
+        ],
+      },
+    ]) {
+      const hidden = await getLog(records, resolver, privacy)
+      expect(JSON.stringify(hidden)).not.toMatch(
+        /effectStrength|movementApAdjustment|potencyBasisPoints|basisPoints|counter/,
+      )
+      expect(formatBattleLogForClipboard(hidden.entries)).not.toMatch(/27|40%|175%/)
+    }
+  },
+)
+
+it('admits only identity-matched valid committed strength, without interpreting labels or current content', async () => {
+  for (const statusId of ['root', 'unknown-secret-benefit', 'blind']) {
+    const result = await getLog(
+      [
+        record({
+          event: 'status_applied',
+          actionId: SKILL,
+          sourceCombatantId: ACTOR,
+          targetCombatantId: OTHER,
+          statusId,
+          effectStrength: {
+            potencyBasisPoints: '99900',
+            movementApAdjustment: 33,
+            privateApplicationId: 'secret',
+            counter: { kind: 'secret', basisPoints: 5000 },
+          },
+          stacks: 1,
+          remainingOwnerTurnStarts: 1,
+          refreshed: false,
+          stacked: false,
+        }),
+      ],
+      async () => definition(),
+    )
+    expect(result.entries[0]).not.toHaveProperty('effectStrength')
+    expect(formatBattleLogForClipboard(result.entries)).not.toMatch(
+      /33|999|50%|privateApplicationId/,
+    )
+  }
+  const result = await getLog(
+    [
+      record({
+        event: 'status_applied',
+        actionId: SKILL,
+        sourceCombatantId: ACTOR,
+        targetCombatantId: OTHER,
+        statusId: 'suppress',
+        potencyBasisPoints: 99900,
+        stacks: 1,
+        remainingOwnerTurnStarts: 1,
+        refreshed: false,
+        stacked: false,
+      }),
+    ],
+    async () => definition(),
+  )
+  expect(formatBattleLogForClipboard(result.entries)).toContain(
+    'outgoing direct damage to 0 (999% reduction)',
+  )
+  expect(formatBattleLogForClipboard(result.entries)).not.toMatch(/-899|999% less/)
 })
 
 it.each(['effect_pending', 'status_applied'] as const)(
@@ -1412,7 +1514,7 @@ it.each(['effect_pending', 'status_applied'] as const)(
     const hidden = await getLog(records, resolve, { hidden: true })
     expect(hidden.entries.every((entry) => entry.potencyBasisPoints === undefined)).toBe(true)
     expect(JSON.stringify(hidden)).not.toContain('Suppress')
-    for (const invalid of [0, 99, 10001, 100.5, '10000']) {
+    for (const invalid of [0, 99, 99901, 100.5, '10000']) {
       const invalidLog = await getLog(
         [records[0], record({ ...raw, potencyBasisPoints: invalid }, 1)],
         resolve,

@@ -1,5 +1,9 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { validateCombatEndureEffect } from './combat-endure'
-import { validateCombatStatusTuning } from './combat-status-tuning'
+import {
+  validateCombatStatusTuning,
+  maximumCombatStatusPotencyBasisPoints,
+} from './combat-status-tuning'
 import { validateRecoveryEffect } from './combat-recovery'
 import { validateBlindsideModifiers, isBlindsideStatusId } from './combat-blindside'
 import { percentageDotMagnitude } from './combat-percentage-dots'
@@ -100,6 +104,7 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   'absorb-hp': 'HP Leech',
   'absorb-mp': 'MP Leech',
   reflect: 'Reflect',
+  counter: 'Reflect',
   amplify: 'Copy Buffs',
   curse: 'Copy Debuffs',
 }
@@ -308,9 +313,11 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     effect.durationTurns !== undefined &&
     (!Number.isSafeInteger(effect.durationTurns) ||
       effect.durationTurns < 0 ||
-      effect.durationTurns > 4)
+      effect.durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)
   ) {
-    throw new RangeError('Effect duration must be an integer from 0 to 4 turns.')
+    throw new RangeError(
+      `Effect duration must be an integer from 0 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns.`,
+    )
   }
   if (
     effect.power !== undefined &&
@@ -323,10 +330,12 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     (!Number.isSafeInteger(effect.potencyBasisPoints) ||
       effect.potencyBasisPoints < 100 ||
       effect.potencyBasisPoints >
-        (effect.type === 'apply-status' && effect.statusId === 'suppress' ? 10_000 : 5_000))
+        maximumCombatStatusPotencyBasisPoints(
+          effect.type === 'apply-status' ? effect.statusId : undefined,
+        ))
   ) {
     throw new RangeError(
-      `Effect percentage potency must be from 1 to ${effect.type === 'apply-status' && effect.statusId === 'suppress' ? 100 : 50} percentage points.`,
+      `Effect percentage potency must be from 1 to ${maximumCombatStatusPotencyBasisPoints(effect.type === 'apply-status' ? effect.statusId : undefined) / 100} percentage points.`,
     )
   }
   if (
@@ -337,7 +346,7 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
       effect.power !== undefined)
   )
     throw new RangeError(
-      'Suppress requires one application, a percentage and 1 to 4 turns; power is unsupported.',
+      `Suppress requires one application, a percentage and 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns; power is unsupported.`,
     )
   if (
     effect.type === 'damage' &&
@@ -448,7 +457,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
       ? [
           `MP Drain [${positiveDisplayInteger(Math.abs(effect.delta), 1)}${effect.basis === 'maximum-mp-percent' ? '%' : ''}]`,
         ]
-      : [`MP Restore [${positiveDisplayInteger(effect.delta, 1)}]`]
+      : [`MP Recovery [${positiveDisplayInteger(effect.delta, 1)}]`]
   }
   if (effect.type === 'remove-status') {
     const ids = Array.isArray(effect.statusIds)
@@ -485,7 +494,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   ) {
     const counter = effect.counter as { kind: string; basisPoints: number }
     return [
-      `Counter [${counter.kind === 'mystic' ? 'Mystical' : counter.kind === 'physical' ? 'Physical' : 'Full'} ${counter.basisPoints / 100}%]`,
+      `Reflect [${counter.kind === 'mystic' ? 'Magical' : counter.kind === 'physical' ? 'Physical' : 'Full'} Reflect ${counter.basisPoints / 100}%]`,
     ]
   }
   if (effect.type === 'apply-status' && typeof effect.statusId === 'string') {

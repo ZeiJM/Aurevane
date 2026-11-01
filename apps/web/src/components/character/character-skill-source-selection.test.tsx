@@ -39,7 +39,23 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/game/character',
   useSearchParams: () => new URLSearchParams('profilePanel=techniques'),
 }))
-vi.mock('./skill-effect-timing-context', () => ({ useSkillEffectTimingPolicy: () => null }))
+vi.mock('./skill-effect-timing-context', () => ({
+  useSkillEffectTimingPolicy: () => null,
+  useSkillGroundInteractionRules: () => ({
+    groundContactPolicyVersion: null,
+    legacyFrozenGround: true,
+    legacyElemental: true,
+    explicitElemental: false,
+    legacyAirborne: true,
+    legacyAirborneJump: true,
+    legacyHealingDown: true,
+    legacyBlindsideActivation: true,
+    legacyReversal: true,
+    legacyPierceCritical: true,
+    legacySummonPotency: true,
+    legacyRuin: true,
+  }),
+}))
 import { CharacterSkillBuildPanel } from './character-skill-build-panel'
 type Props = Record<string, unknown> & { children?: ReactNode }
 function find(

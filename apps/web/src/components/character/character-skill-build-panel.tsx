@@ -1,12 +1,17 @@
 'use client'
 
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
 import { readableDisciplineName } from '@/lib/discipline-display-name'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 
 import { AbilityDefinitionParameters } from './ability-definition-parameters'
 import { groupSkillEffects } from './skill-effect-groups'
 
-import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
+import {
+  useSkillEffectTimingPolicy,
+  useSkillGroundInteractionRules,
+} from './skill-effect-timing-context'
 import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
 import { skillPreviewEffects } from './skill-effect-preview'
 import { SkillGroundAreaDetails } from './skill-ground-area-details'
@@ -160,6 +165,7 @@ function equippedEligibility(skills: readonly EquippedSkillView[]): Record<strin
 
 export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const timingPolicy = useSkillEffectTimingPolicy()
+  const groundRules = useSkillGroundInteractionRules()
   const {
     initialBuildVersion,
     primaryDiscipline,
@@ -266,9 +272,21 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             props.disciplineNames?.[focusedSkill.definition.sourceDisciplineId],
           )
     : null
+  const focusedNativeDefinition = focusedSkill
+    ? currentGroundPresentation(
+        focusedSkill.definition,
+        groundRules.groundContactPolicyVersion,
+        timingPolicy,
+      ).view
+    : undefined
   const focusedCharacteristics: readonly SkillCharacteristic[] =
-    focusedSkill && !focusedSkill.definition.ability
-      ? skillParameterRows(focusedSkill.definition, focusedSkill.definition, timingPolicy)
+    focusedNativeDefinition && !focusedNativeDefinition.ability
+      ? skillParameterRows(
+          focusedNativeDefinition,
+          focusedNativeDefinition,
+          timingPolicy,
+          groundRules,
+        )
       : []
 
   useEffect(() => {
@@ -923,10 +941,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                       key={label}
                                       rows={[[label, value]]}
                                       targetMethodExplanation={skillTargetMethodExplanation(
-                                        focusedSkill.definition,
+                                        focusedNativeDefinition!,
                                       )}
                                       targetDetails={
-                                        <SkillGroundAreaDetails skill={focusedSkill.definition} />
+                                        <SkillGroundAreaDetails skill={focusedNativeDefinition!} />
                                       }
                                     />
                                   ) : (
@@ -934,15 +952,15 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                       <dt>{label}</dt>
                                       <dd>
                                         {label === 'Effects' && focusedSkill ? (
-                                          focusedSkill.definition.effects.length > 0 ? (
+                                          focusedNativeDefinition!.effects.length > 0 ? (
                                             <div className={styles.effectSummaryList}>
                                               {groupSkillEffects(
-                                                focusedSkill.definition.effects,
-                                                focusedSkill.definition.effectDescriptions,
+                                                focusedNativeDefinition!.effects,
+                                                focusedNativeDefinition!.effectDescriptions,
                                               ).map(({ effect, count, firstIndex: index }) => (
                                                 <CompactSkillEffectSummary
-                                                  aim={focusedSkill.definition.target}
-                                                  skillEffects={focusedSkill.definition.effects}
+                                                  aim={focusedNativeDefinition!.target}
+                                                  skillEffects={focusedNativeDefinition!.effects}
                                                   effect={effect}
                                                   count={count}
                                                   key={`${index}:${effect.type}`}
@@ -968,7 +986,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                                 className={styles.effectExplanations}
                                 aria-label="Effect explanations"
                               >
-                                {skillPreviewEffects(focusedSkill.definition).map((effect) => (
+                                {skillPreviewEffects(focusedNativeDefinition!, {
+                                  ...groundRules,
+                                  timingPolicy,
+                                }).map((effect) => (
                                   <li key={JSON.stringify(effect)}>
                                     <strong>
                                       <EffectTagLabel label={effect.label} />

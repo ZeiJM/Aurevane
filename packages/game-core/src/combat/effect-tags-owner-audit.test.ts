@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createCombatEncounterState,
   executeCombatAction,
+  validateCombatEncounterState,
   type CombatActionDefinition,
   type CombatEffectDefinition,
 } from './actions'
@@ -195,60 +196,69 @@ describe('Warded recognizes actual current Burn instances', () => {
     ],
   }
 
-  it('reduces damage from a burning attacker and removes that reduction after Cleanse', () => {
-    let state = encounter()
-    state.effectTimingPolicy = {
-      version: 2,
-      modes: { warded: 'instant', burn: 'instant', 'remove-status': 'instant' },
-    }
-    state = {
-      ...executeCombatAction(
+  it.each([undefined, 10000])(
+    'uses Burn Ward potency %s against a burning attacker until Cleanse',
+    (potencyBasisPoints) => {
+      let state: StatDrivenCombatEncounterState = { ...encounter(), effectStackingPolicyVersion: 1 }
+      state.effectTimingPolicy = {
+        version: 2,
+        modes: { warded: 'instant', burn: 'instant', 'remove-status': 'instant' },
+      }
+      state = {
+        ...executeCombatAction(
+          state,
+          {
+            ...action,
+            effects: [{ ...action.effects[0]!, potencyBasisPoints }, action.effects[1]!],
+          },
+          { kind: 'unit', combatantId: 'quarry' },
+          PV1F_COMBAT_CONTENT,
+        ).state,
+        statBridge: state.statBridge,
+      }
+      expect(validateCombatEncounterState(JSON.parse(JSON.stringify(state)))).toEqual([])
+      expect(state.effectState?.burn).toHaveLength(1)
+      expect(state.statusState.find((row) => row.combatantId === 'quarry')?.statuses).toEqual([])
+      state = finishPv1fTurn(state, 'east').state
+      const attack = {
+        ...action,
+        id: 'test.damage',
+        effects: [{ type: 'damage' as const, recipient: 'primary-unit' as const, amount: 10 }],
+      }
+      const hit = executeCombatAction(
         state,
-        action,
-        { kind: 'unit', combatantId: 'quarry' },
+        attack,
+        { kind: 'unit', combatantId: 'caster' },
         PV1F_COMBAT_CONTENT,
-      ).state,
-      statBridge: state.statBridge,
-    }
-    expect(state.effectState?.burn).toHaveLength(1)
-    expect(state.statusState.find((row) => row.combatantId === 'quarry')?.statuses).toEqual([])
-    state = finishPv1fTurn(state, 'east').state
-    const attack = {
-      ...action,
-      id: 'test.damage',
-      effects: [{ type: 'damage' as const, recipient: 'primary-unit' as const, amount: 10 }],
-    }
-    const hit = executeCombatAction(
-      state,
-      attack,
-      { kind: 'unit', combatantId: 'caster' },
-      PV1F_COMBAT_CONTENT,
-    )
-    expect(hit.state.tactical.battle.combatants.find((unit) => unit.id === 'caster')?.hp).toBe(92)
-    const cleanse = {
-      ...action,
-      id: 'test.cleanse',
-      effects: [
-        { type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['burn'] },
-      ],
-    }
-    const cleaned = executeCombatAction(
-      state,
-      cleanse,
-      { kind: 'unit', combatantId: 'caster' },
-      PV1F_COMBAT_CONTENT,
-    ).state
-    expect(cleaned.effectState?.burn).toEqual([])
-    const cleanHit = executeCombatAction(
-      cleaned,
-      attack,
-      { kind: 'unit', combatantId: 'caster' },
-      PV1F_COMBAT_CONTENT,
-    )
-    expect(cleanHit.state.tactical.battle.combatants.find((unit) => unit.id === 'caster')?.hp).toBe(
-      90,
-    )
-  })
+      )
+      expect(hit.state.tactical.battle.combatants.find((unit) => unit.id === 'caster')?.hp).toBe(
+        potencyBasisPoints === 10000 ? 100 : 92,
+      )
+      const cleanse = {
+        ...action,
+        id: 'test.cleanse',
+        effects: [
+          { type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['burn'] },
+        ],
+      }
+      const cleaned = executeCombatAction(
+        state,
+        cleanse,
+        { kind: 'unit', combatantId: 'caster' },
+        PV1F_COMBAT_CONTENT,
+      ).state
+      expect(cleaned.effectState?.burn).toEqual([])
+      const cleanHit = executeCombatAction(
+        cleaned,
+        attack,
+        { kind: 'unit', combatantId: 'caster' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(
+        cleanHit.state.tactical.battle.combatants.find((unit) => unit.id === 'caster')?.hp,
+      ).toBe(90)
+    },
+  )
 
   it.each(['burn', 'poison', 'bleed'] as const)(
     'matches current %s only while its authored instance is active',

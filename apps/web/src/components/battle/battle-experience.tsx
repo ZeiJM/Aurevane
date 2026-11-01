@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleSummonPortrait } from './battle-summon-portrait'
+
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { BattleCockpitInfoProvider, BattlePreviewInfoMenu } from './battle-cockpit-info'
 
@@ -24,7 +26,8 @@ import {
 } from './battle-captured-action-cost'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
 import { hasGameplayTag } from '@aurevane/game-core/combat/gameplay-tags'
-import { BattleGroundAreaLayer } from './battle-ground-area-layer'
+import { BattleGroundAreaLayer, battleGroundAreaLabel } from './battle-ground-area-layer'
+import { battleProposedCosts } from './battle-proposed-cost'
 
 import {
   SkillEffectTimingProvider,
@@ -211,7 +214,7 @@ const HEAL_SELECTOR_OPTIONS = [
     label: 'MP Recovery',
     cost: `${MP_RECOVER_COST} AP`,
     artworkSrc: battleSkillArtwork(MP_RECOVER_ID),
-    tags: ['Self', 'MP Restore'],
+    tags: ['Self', 'MP Recovery'],
   },
 ] as const
 
@@ -357,9 +360,14 @@ export function BattleExperience(props: {
       policy={props.initialBattle.snapshot.effectTimingPolicy ?? null}
       dotTriggerPolicyVersion={props.initialBattle.snapshot.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={props.initialBattle.snapshot.frozenGroundPolicyVersion ?? null}
+      groundContactPolicyVersion={props.initialBattle.snapshot.groundContactPolicyVersion ?? null}
       elementalDamagePolicyVersion={
         props.initialBattle.snapshot.elementalDamagePolicyVersion ?? null
       }
+      reversalPolicyVersion={props.initialBattle.snapshot.reversalPolicyVersion ?? null}
+      pierceCriticalPolicyVersion={props.initialBattle.snapshot.pierceCriticalPolicyVersion ?? null}
+      summonPotencyPolicyVersion={props.initialBattle.snapshot.summonPotencyPolicyVersion ?? null}
+      ruinPolicyVersion={props.initialBattle.snapshot.ruinPolicyVersion ?? null}
       airbornePolicyVersion={props.initialBattle.snapshot.airbornePolicyVersion ?? null}
       airborneJumpPolicyVersion={props.initialBattle.snapshot.airborneJumpPolicyVersion ?? null}
       healingDownPolicyVersion={props.initialBattle.snapshot.healingDownPolicyVersion ?? null}
@@ -507,6 +515,7 @@ function BattleExperienceContent({
   const [preview, setPreview] = useState<(BattlePreviewView & { intent: BattleIntent }) | null>(
     null,
   )
+  const [costPreviewInvalidated, setCostPreviewInvalidated] = useState(false)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
   const [targetAim, setTargetAim] = useState<BattleTargetAim>({ aimSource: 'implicit' })
   const [inspectedUnitId, setInspectedUnitId] = useState<string | null>(null)
@@ -1058,10 +1067,6 @@ function BattleExperienceContent({
   const selectedPlacement = selectedUnitId
     ? (tactical.placements.find((placement) => placement.combatantId === selectedUnitId) ?? null)
     : null
-  const proposedCost =
-    preview?.preview.kind === 'move' || preview?.preview.kind === 'action'
-      ? preview.preview.actionEconomyCost
-      : 0
   const livingTeams = livingTeamIndexes(battle, viewModel.participantByCombatant)
   const objectiveComplete = battleState.lifecycle === 'completed'
 
@@ -1072,6 +1077,7 @@ function BattleExperienceContent({
 
   const clearPlanning = useCallback(
     (nextMode: Mode = 'none') => {
+      setCostPreviewInvalidated(false)
       setInfoSelectionVersion((version) => version + 1)
       setInspectedAbilityId(null)
       previewSequence.current += 1
@@ -1323,6 +1329,7 @@ function BattleExperienceContent({
       ) {
         return pending.result
       }
+      setCostPreviewInvalidated(false)
       previewController.current?.abort()
       const controller = new AbortController()
       previewController.current = controller
@@ -1353,6 +1360,8 @@ function BattleExperienceContent({
             body.battlePreview.battleSessionId !== battle.battleSessionId ||
             body.battlePreview.battleVersion !== battle.battleVersion
           ) {
+            clearPlanning(modeRef.current)
+            setCostPreviewInvalidated(true)
             setNotice('That forecast is out of date. Choose a target to check it again.')
             return
           }
@@ -1402,6 +1411,7 @@ function BattleExperienceContent({
       battle.battleSessionId,
       battle.battleVersion,
       battle.snapshot.basicActions,
+      clearPlanning,
       handleApiFailure,
       modifierNames,
     ],
@@ -2129,6 +2139,23 @@ function BattleExperienceContent({
       ? pendingIntent.actionId
       : undefined
   const flatMoveMode = mode === 'move' && basicMove?.movement?.costBasis === 'flat'
+  const proposedCosts = battleProposedCosts({
+    enabled:
+      !costPreviewInvalidated &&
+      !planningDisabled &&
+      !terrainView &&
+      !mobileReading &&
+      !chronicleDetailsOpen &&
+      ['attack', 'guard', 'recover', 'move'].includes(mode),
+    battleSessionId: battle.battleSessionId,
+    battleVersion: battle.battleVersion,
+    actorId: localCombatantId,
+    descriptor: currentDescriptor,
+    allowCapturedCosts: mode !== 'move' || flatMoveMode,
+    pendingIntent,
+    preview,
+  })
+  const proposedCost = proposedCosts?.ap ?? 0
   const choosingActionMovement =
     !currentDescriptor.unavailable &&
     Boolean(currentDescriptor.move) &&
@@ -2255,6 +2282,11 @@ function BattleExperienceContent({
   const damagingSelection =
     !currentDescriptor.unavailable &&
     battleActionDealsDamage(attackDefinition?.effects ?? [], currentDescriptor.dealsDamage)
+  const hasAllTargetEffects =
+    !currentDescriptor.unavailable &&
+    (currentDescriptor.hasAllTargetEffects ??
+      attackDefinition?.effects.some((effect) => 'target' in effect && effect.target === 'all') ??
+      false)
   const potentialPath =
     !choosingActionMovement &&
     (mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode) &&
@@ -2273,6 +2305,7 @@ function BattleExperienceContent({
                 terrainOverlays: battle.snapshot.terrainOverlays,
               }
             : undefined,
+          hasAllTargetEffects,
         )
       : new Set<string>()
   const handleTile = useCallback(
@@ -2858,7 +2891,7 @@ function BattleExperienceContent({
     : null
   const terrainInspection = inspectedTerrain
     ? describeTerrainLabel(
-        `Tile ${inspectedTerrain.position.x + 1}, ${inspectedTerrain.position.y + 1}; ${inspectedTerrain.terrainId}; elevation ${inspectedTerrain.elevation}${inspectedOverlay ? `; ${terrainOverlayDescription(inspectedOverlay)}` : ''}`,
+        `Tile ${inspectedTerrain.position.x + 1}, ${inspectedTerrain.position.y + 1}; ${inspectedTerrain.terrainId}; elevation ${inspectedTerrain.elevation}${inspectedOverlay ? `; ${terrainOverlayDescription(inspectedOverlay)}` : ''}${battleGroundAreaLabel(battle.snapshot.groundAreas, tactical.battle.round, inspectedTerrain.position)}`,
       )
     : null
   const contextDescription = terrainInspection
@@ -2923,7 +2956,10 @@ function BattleExperienceContent({
               <span>Action Economy</span>
               <strong>{actionEconomy} AP</strong>
               {localTurn && proposedCost > 0 ? (
-                <small>− {proposedCost} proposed</small>
+                <small data-battle-proposed-ap="true" title={`${proposedCost} AP proposed spend`}>
+                  − {proposedCost}
+                  <span data-battle-proposal-word="true"> proposed</span>
+                </small>
               ) : (
                 <small aria-hidden="true" />
               )}
@@ -3038,7 +3074,14 @@ function BattleExperienceContent({
                         data-active={active || undefined}
                         data-defeated={combatant?.hp === 0 || undefined}
                       >
-                        {participant.portraitAssetId ? (
+                        {participant.profileImageUrl && !participant.portraitAssetId ? (
+                          <BattleSummonPortrait
+                            src={participant.profileImageUrl}
+                            name={participant.name}
+                            fallbackClassName={`${styles.rosterPortrait} ${bridgeStyles.portraitFallback}`}
+                            className={styles.rosterPortrait}
+                          />
+                        ) : participant.portraitAssetId ? (
                           <CharacterPortraitImage
                             imageUrl={participant.profileImageUrl}
                             fallbackAssetId={participant.portraitAssetId}
@@ -3109,6 +3152,7 @@ function BattleExperienceContent({
               battle={battle}
               teamCount={viewModel.teamCount}
               role="local"
+              proposedCosts={proposedCosts}
             />
             {localParticipant && enemyParticipant ? <BattleVersusEmblem /> : null}
             <BattleCombatantCard
@@ -3198,13 +3242,14 @@ function BattleExperienceContent({
                   const inFootprint =
                     potentialPath.has(key) &&
                     (groundTarget ||
+                      (hasAllTargetEffects && !!combatant && combatant.hp > 0) ||
                       damagingSelection ||
                       targetSpec?.shape.kind !== 'single' ||
                       !!skillTarget)
                   const targetRelation = !inFootprint
                     ? undefined
                     : activeTechnique
-                      ? skillTarget
+                      ? skillTarget || (hasAllTargetEffects && !!combatant && combatant.hp > 0)
                         ? groundTarget
                           ? 'ground'
                           : participant?.teamIndex === localTeamIndex
@@ -3254,7 +3299,9 @@ function BattleExperienceContent({
                           inFootprint &&
                           healingSelection &&
                           !damagingSelection &&
-                          (targetSpec?.shape.kind !== 'single' || !!skillTarget)) ||
+                          (targetSpec?.shape.kind !== 'single' ||
+                            !!skillTarget ||
+                            (hasAllTargetEffects && !!combatant && combatant.hp > 0))) ||
                         undefined
                       }
                       data-terrain={terrain}
@@ -3302,7 +3349,7 @@ function BattleExperienceContent({
                           void requestPreview(intent)
                         } else setTargetAim({ aimSource: 'implicit' })
                       }}
-                      aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
+                      aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}${battleGroundAreaLabel(battle.snapshot.groundAreas, tactical.battle.round, tile.position)}`}
                     >
                       <BattleGroundAreaLayer
                         steam={overlay?.kind === 'steam'}
@@ -3346,7 +3393,14 @@ function BattleExperienceContent({
                           }
                           data-defeated={combatant?.hp === 0 || undefined}
                         >
-                          {participant.portraitAssetId ? (
+                          {participant.profileImageUrl && !participant.portraitAssetId ? (
+                            <BattleSummonPortrait
+                              src={participant.profileImageUrl}
+                              name={participant.name}
+                              fallbackClassName={`${bridgeStyles.portraitFallback} ${bridgeStyles.unitPortraitFallback}`}
+                              className={styles.unitPortrait}
+                            />
+                          ) : participant.portraitAssetId ? (
                             <CharacterPortraitImage
                               imageUrl={participant.profileImageUrl}
                               fallbackAssetId={participant.portraitAssetId}

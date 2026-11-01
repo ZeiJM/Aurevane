@@ -11,48 +11,54 @@ describe('cockpit Skill Parameters', () => {
     ['next-round', 'starting next round'],
     ['instant', 'starting immediately'],
     ['delayed', 'starting two rounds after cast'],
-  ] as const)('separates Ground area rules from effects with %s timing', (mode, timing) => {
-    const definition = resolveMatureSkillVersion('frostweaver.chilling-mist')!
-    const before = JSON.stringify(definition)
-    const markup = renderToStaticMarkup(
-      <SkillEffectTimingProvider policy={{ version: 5, modes: { 'ground-area': mode } }}>
-        <BattleSkillParameters
-          skill={{
-            definition,
-            id: definition.id,
-            name: 'Chilling Mist',
-            apCost: definition.apCost,
-            mpCost: definition.mpCost ?? 0,
-            minimumRange: definition.target.minimumRange,
-            maximumRange: definition.target.maximumRange,
-            targetKind: definition.target.kind,
-            targetTeamPolicy: definition.target.teamPolicy,
-            tags: [],
-            effectDescriptions: [],
-            requirementDescriptions: [],
-          }}
-        />
-      </SkillEffectTimingProvider>,
-    )
-    const effects = markup
-      .match(/<ul aria-label="Effect explanations">([\s\S]*?)<\/ul>/)?.[1]
-      ?.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1')
-    expect(effects).toContain('<strong>Frozen Ground</strong>')
-    expect(effects).toContain('<strong>Slow</strong>')
-    expect(effects).toContain('<strong>Chilled</strong>')
-    expect(effects).not.toContain('<strong>Ground</strong>')
-    expect(effects).not.toContain('Each cast has its own allowance')
-    expect(markup).toMatch(
-      /<dt>Target Method<\/dt><dd[^>]*>[\s\S]*?aria-label="Ground area rules"[\s\S]*?<\/dd>/,
-    )
-    expect(markup).not.toContain('<strong>Ground area</strong>')
-    expect(markup.indexOf('aria-label="Ground area rules"')).toBeLessThan(
-      markup.indexOf('aria-label="Effect explanations"'),
-    )
-    expect(markup).toContain(timing)
-    expect(markup).toContain('Entry applies effects once per character’s turn')
-    expect(JSON.stringify(definition)).toBe(before)
-  })
+  ] as const)(
+    'separates historical Ground area rules from effects with %s timing',
+    (mode, timing) => {
+      const definition = resolveMatureSkillVersion('frostweaver.chilling-mist')!
+      const before = JSON.stringify(definition)
+      const markup = renderToStaticMarkup(
+        <SkillEffectTimingProvider
+          policy={{ version: 5, modes: { 'ground-area': mode } }}
+          groundContactPolicyVersion={null}
+        >
+          <BattleSkillParameters
+            skill={{
+              definition,
+              id: definition.id,
+              name: 'Chilling Mist',
+              apCost: definition.apCost,
+              mpCost: definition.mpCost ?? 0,
+              minimumRange: definition.target.minimumRange,
+              maximumRange: definition.target.maximumRange,
+              targetKind: definition.target.kind,
+              targetTeamPolicy: definition.target.teamPolicy,
+              tags: [],
+              effectDescriptions: [],
+              requirementDescriptions: [],
+            }}
+          />
+        </SkillEffectTimingProvider>,
+      )
+      const effects = markup
+        .match(/<ul aria-label="Effect explanations">([\s\S]*?)<\/ul>/)?.[1]
+        ?.replace(/<span[^>]*data-effect-tag-label="true">([^<]*)<\/span>/g, '$1')
+      expect(effects).toContain('<strong>Frozen Ground</strong>')
+      expect(effects).toContain('<strong>Slow</strong>')
+      expect(effects).toContain('<strong>Chilled</strong>')
+      expect(effects).not.toContain('<strong>Ground</strong>')
+      expect(effects).not.toContain('Each cast has its own allowance')
+      expect(markup).toMatch(
+        /<dt>Target Method<\/dt><dd[^>]*>[\s\S]*?aria-label="Ground area rules"[\s\S]*?<\/dd>/,
+      )
+      expect(markup).not.toContain('<strong>Ground area</strong>')
+      expect(markup.indexOf('aria-label="Ground area rules"')).toBeLessThan(
+        markup.indexOf('aria-label="Effect explanations"'),
+      )
+      expect(markup).toContain(timing)
+      expect(markup).toContain('Entry applies effects once per character’s turn')
+      expect(JSON.stringify(definition)).toBe(before)
+    },
+  )
   it.each(['cinderweaver.cinder-bolt', 'wildwarden.venom-shot'])(
     'reads historical trigger policy for %s',
     (id) => {

@@ -3,6 +3,37 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { EffectTargetEditor } from './effect-target-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
+import {
+  withAuthoredAreaRecipients,
+  withAuthoredEffectTarget,
+} from '@aurevane/game-core/combat/combat-effect-target-authoring'
+import { validateCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
+
+it('authors Ground Reveal through shared target controls while retaining independent unit Reveal', () => {
+  const effect = { type: 'sensory', recipient: 'primary-unit', revealedDurationOwnerTurnStarts: 2 }
+  const ground = withAuthoredEffectTarget(effect, 'ground')
+  expect(ground).toMatchObject({ recipient: 'affected-units', target: 'ground' })
+  expect(validateCombatTagPayload(ground)).toEqual([])
+  expect(validateCombatTagPayload({ ...ground, target: 'enemy' })).not.toEqual([])
+  const inherited = { ...ground }
+  Reflect.deleteProperty(inherited, 'target')
+  expect(validateCombatTagPayload(inherited)).not.toEqual([])
+  const aim = {
+    kind: 'ground-tile',
+    geometryVersion: 3,
+    categories: ['ground'],
+    teamPolicy: 'any',
+    shape: { kind: 'single' },
+    minimumRange: 0,
+    maximumRange: 3,
+    requiresLineOfSight: false,
+    maximumElevationDifference: 0,
+    friendlyFire: 'all-units',
+  } as const
+  expect(withAuthoredAreaRecipients(aim, [effect])).toEqual([ground])
+  const independent = { ...effect, target: 'enemy' as const }
+  expect(withAuthoredAreaRecipients(aim, [independent])).toEqual([independent])
+})
 
 it('offers seven readable targets, with engine restrictions and no edit merely from opening', () => {
   const onChange = vi.fn()
@@ -90,3 +121,37 @@ vi.mock('react', async (original) => {
     useId: () => `callback-test-${++nextId}`,
   }
 })
+
+it.each([
+  ['actor', 'Self'],
+  ['primary-unit', 'Enemy'],
+  ['affected-units', 'Enemy'],
+] as const)(
+  'shows inherited %s as one plain %s choice without changing saved data',
+  (recipient, label) => {
+    const onChange = vi.fn()
+    const value = { type: 'healing', recipient }
+    const before = structuredClone(value)
+    const html = renderToStaticMarkup(
+      <EffectTargetEditor
+        value={value}
+        aim={{
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          minimumRange: 0,
+          maximumRange: 3,
+          shape: { kind: 'single' },
+          maximumElevationDifference: 0,
+          requiresLineOfSight: false,
+        }}
+        onChange={onChange}
+      />,
+    )
+    expect(html).not.toContain('existing rules')
+    expect(html.match(new RegExp(`>${label}</option>`, 'g'))).toHaveLength(1)
+    expect(html).toContain(`<option value="" selected="">${label}</option>`)
+    expect(value).toEqual(before)
+    expect(onChange).not.toHaveBeenCalled()
+  },
+)

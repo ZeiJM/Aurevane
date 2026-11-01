@@ -501,6 +501,138 @@ it.each(['missing-unit', 'changed-resource', 'changed-policy', 'retained-queue']
     expect((await db.query('select * from app_private.battle_no_contest_markers')).rows).toEqual([])
   },
 )
+async function battleWithPrivateRecoveryState() {
+  const prepared = await snapshot()
+  prepared.endureState = {
+    nextApplicationId: 2,
+    applications: [{ applicationId: 1, combatantId: `character:${character}`, receivedDamage: 37 }],
+  }
+  prepared.reversalState = {
+    version: 1,
+    armed: [
+      {
+        battleId: 'players-test',
+        ownerCombatantId: `character:${character}`,
+        abilityId: 'test.reversal',
+        sourceInstanceId: 'skill:test.reversal',
+        contentVersion: 1,
+        behaviorId: 'prepare',
+        preparedTurnNumber: 1,
+      },
+    ],
+    strain: [],
+    offensiveTurns: [],
+  }
+  prepared.effectStackingPolicyVersion = 1
+  return createBattle(prepared)
+}
+function clearPrivateRecoveryState(terminal: TestSnapshot) {
+  delete terminal.endureState
+  delete terminal.reversalState
+}
+it('terminal clears private Endure and Reversal execution state with exact resources, history and replay', async () => {
+  const battle = await battleWithPrivateRecoveryState()
+  const before = structuredClone(battle.snapshot)
+  expect(
+    (await recover(battle, [character], 1, clearPrivateRecoveryState)).rows[0]!.result,
+  ).toEqual({
+    outcome: 'NoContest',
+    rewards: 'NoRewards',
+    version: 2,
+    replayed: false,
+  })
+  const saved = (
+    await db.query<{ current_snapshot: TestSnapshot; current_version: number }>(
+      'select current_snapshot,current_version from app_private.battle_sessions where id=$1',
+      [battle.battle_session_id],
+    )
+  ).rows[0]!
+  expect(saved.current_version).toBe(2)
+  expect(saved.current_snapshot).not.toHaveProperty('endureState')
+  expect(saved.current_snapshot).not.toHaveProperty('reversalState')
+  expect(saved.current_snapshot.tactical.battle.combatants).toEqual(
+    before.tactical.battle.combatants,
+  )
+  expect(saved.current_snapshot.buildAuthority).toEqual(before.buildAuthority)
+  expect(saved.current_snapshot.effectStackingPolicyVersion).toBe(1)
+  expect(
+    (
+      await db.query<{ snapshot: TestSnapshot }>(
+        'select snapshot from app_private.battle_snapshots where battle_session_id=$1 and battle_version=1',
+        [battle.battle_session_id],
+      )
+    ).rows[0]!.snapshot,
+  ).toEqual(before)
+  expect(
+    (await recover(battle, [character], 1, clearPrivateRecoveryState)).rows[0]!.result.replayed,
+  ).toBe(true)
+  expect((await db.query('select * from app_private.character_xp_grants')).rows).toEqual([])
+  expect((await db.query('select * from app_private.discipline_trial_claims')).rows).toEqual([])
+})
+it.each(['endureState', 'reversalState'] as const)(
+  'terminal rejects retained, replaced or null %s rather than permitting execution-ledger mutation',
+  async (key) => {
+    const battle = await battleWithPrivateRecoveryState()
+    for (const value of [battle.snapshot[key], {}, null]) {
+      await denied(
+        () =>
+          recover(battle, [character], 1, (terminal) => {
+            clearPrivateRecoveryState(terminal)
+            terminal[key] = value
+          }),
+        /SNAPSHOT_INVALID/,
+      )
+    }
+    expect((await db.query('select * from app_private.battle_no_contest_markers')).rows).toEqual([])
+    expect(
+      (await db.query('select current_version from app_private.battle_sessions')).rows,
+    ).toEqual([{ current_version: 1 }])
+  },
+)
+it.each(['resource', 'policy', 'capture'])(
+  'clearing private recovery state does not authorize changing %s',
+  async (kind) => {
+    const battle = await battleWithPrivateRecoveryState()
+    await denied(
+      () =>
+        recover(battle, [character], 1, (terminal) => {
+          clearPrivateRecoveryState(terminal)
+          if (kind === 'resource') terminal.tactical.battle.combatants[0]!.mp = 999
+          if (kind === 'policy') terminal.effectStackingPolicyVersion = 2
+          if (kind === 'capture') terminal.buildAuthority = { combatants: [] }
+        }),
+      /SNAPSHOT_INVALID/,
+    )
+    expect((await db.query('select * from app_private.battle_no_contests')).rows).toEqual([])
+  },
+)
+it('private recovery ledger cleanup preserves service-only execution and Owner authority', async () => {
+  const signature =
+    'public.recover_master_player_battle_v1(uuid,uuid,uuid,bigint,uuid[],uuid,jsonb,boolean,uuid)'
+  for (const role of ['anon', 'authenticated', 'service_role']) {
+    expect(
+      (
+        await db.query<{ allowed: boolean }>(
+          "select has_function_privilege($1,$2,'execute') allowed",
+          [role, signature],
+        )
+      ).rows[0]!.allowed,
+    ).toBe(role === 'service_role')
+  }
+  const battle = await battleWithPrivateRecoveryState()
+  await denied(
+    () =>
+      db.query('select public.recover_master_player_battle_v1($1,$2,$3,1,$4,$5,$6,true,null)', [
+        other,
+        character,
+        battle.battle_session_id,
+        [character],
+        request,
+        battle.snapshot,
+      ]),
+    /GAME_OWNER_REQUIRED|PAGE_ACCESS_REQUIRED/,
+  )
+})
 it('terminal accepts removal of summon bridge rows only', async () => {
   const prepared = await snapshot()
   const raw = prepared

@@ -13,25 +13,30 @@ type LifetimeInput = Pick<BattlePresentedStatus, 'statusId' | 'statusVersion'> &
       | 'timingState'
       | 'activationRound'
       | 'stacks'
+      | 'presentationDuration'
     >
   >
 
 /** The visible chip and full reader use the same captured clock. */
 export function battleEffectLifetime(effect: LifetimeInput) {
   const applications = effect.recoveryApplications
-  const count =
-    applications ??
-    (effect.durationScope === 'rounds'
-      ? (effect.remainingRoundBoundaries ?? null)
-      : effect.durationScope !== undefined
-        ? null
-        : (effect.remainingOwnerTurnEnds ?? effect.remainingOwnerTurnStarts))
+  const opaque = effect.presentationDuration === 'while-active'
+  const count = opaque
+    ? null
+    : (applications ??
+      (effect.durationScope === 'rounds'
+        ? (effect.remainingRoundBoundaries ?? null)
+        : effect.durationScope !== undefined
+          ? null
+          : (effect.remainingOwnerTurnEnds ?? effect.remainingOwnerTurnStarts)))
   const pending = effect.timingState === 'pending'
   const timing = pending
     ? `Pending · Activates at the start of ${effect.activationRound === undefined ? 'the following round' : `round ${effect.activationRound}`}`
     : 'Active'
   let duration: string
-  if (applications !== undefined) {
+  if (opaque) {
+    duration = pending ? 'Pending' : 'Active'
+  } else if (applications !== undefined) {
     duration = `${applications} application${applications === 1 ? '' : 's'} remaining${(effect.stacks ?? 1) > 1 ? ' per stack' : ''}${pending ? ` · first on activation${applications > 1 ? '; subsequent applications at affected-turn ends' : ''}` : ' · one per affected-turn end'}.`
   } else if (effect.durationScope === 'battle') {
     duration = 'Until battle ends'

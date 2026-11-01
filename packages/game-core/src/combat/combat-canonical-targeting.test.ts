@@ -1,5 +1,9 @@
 import { expect, it } from 'vitest'
-import { resolveCombatTargeting, type CombatTargetSpec } from './actions'
+import {
+  resolveCombatTargeting,
+  validateCombatEncounterState,
+  type CombatTargetSpec,
+} from './actions'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { source } from './combat-behavior.test-utils'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
@@ -503,3 +507,107 @@ it.each([6, 15])('retains terrain and optional Steam visibility for Line[%i]', (
   }
   expect(filterCombatTargetSpatialFootprint(wall, origin, spec, positions)).toEqual([])
 })
+
+for (const geometryVersion of [2, 3] as const)
+  it.each(['discipline-skill', 'essence', 'resonance'] as const)(
+    `saves and executes geometry${geometryVersion} Circle15 for %s without crossing its radius or team filter`,
+    (sourceKind) => {
+      const definition = {
+        ...source({
+          costs: [],
+          targeting: {
+            ...target({
+              shape: { kind: 'circle', radius: 15 },
+              maximumRange: 15,
+              maximumSelections: 1,
+            }),
+            geometryVersion,
+            maximumSelections: 1,
+            ...(geometryVersion === 2 ? { categories: undefined } : {}),
+          },
+          accuracy: { kind: 'fixed', chanceBasisPoints: 10000 },
+          effects: [
+            {
+              id: 'hit',
+              payload: { type: 'damage', recipient: 'affected-units', target: 'enemy', amount: 10 },
+            },
+            {
+              id: 'self',
+              payload: { type: 'healing', recipient: 'actor', target: 'self', amount: 5 },
+            },
+          ],
+        }),
+        sourceKind,
+      }
+      const captured = captureCombatAbilitySource(JSON.parse(JSON.stringify(definition)))
+      const invalid = {
+        ...definition,
+        definition: {
+          ...definition.definition,
+          behaviors: definition.definition.behaviors.map((behavior) => ({
+            ...behavior,
+            targeting: {
+              ...behavior.targeting!,
+              shape: { kind: 'circle' as const, radius: 16 },
+              maximumRange: 16,
+            },
+          })),
+        },
+      }
+      expect(() => captureCombatAbilitySource(invalid)).toThrow()
+      const base = percentageDotEncounter()
+      base.tactical.width = 17
+      base.tactical.height = 17
+      base.tactical.tiles = Array.from({ length: 289 }, (_, i) => ({
+        position: { x: i % 17, y: Math.floor(i / 17) },
+        elevation: 0,
+        terrainId: 'open',
+      }))
+      const positions = {
+        actor: { x: 0, y: 0 },
+        enemy: { x: 15, y: 15 },
+        other: { x: 16, y: 16 },
+        ally: { x: 14, y: 15 },
+      }
+      base.tactical.placements = base.tactical.placements.map((row) => ({
+        ...row,
+        position: positions[row.combatantId as keyof typeof positions],
+      }))
+      base.tactical.battle.combatants = base.tactical.battle.combatants.map((row) =>
+        row.id === 'actor' ? { ...row, hp: 900 } : row,
+      )
+      const prepared = reconcileCombatAbilitySources(preparePv1fTurnEconomy(base), [captured])
+      const state = JSON.parse(JSON.stringify(prepared)) as typeof prepared
+      expect(validateCombatEncounterState(state)).toEqual([])
+      const restored = captureCombatAbilitySource(state.capturedAbilitySources![0]!)
+      expect(restored.definition.behaviors[0]!.targeting).toMatchObject({
+        shape: { kind: 'circle', radius: 15 },
+        maximumRange: 15,
+      })
+      const command = {
+        state,
+        actorId: 'actor',
+        root: { kind: 'canonical' as const, source: restored },
+        selection: { kind: 'activate' as const },
+        content: PV1F_COMBAT_CONTENT,
+        context: combatAbilityCommandContext(state, restored),
+      }
+      const before = JSON.stringify(state)
+      const preview = prepareCombatAbilityCommand(command).evaluation
+      expect(preview.issues).toEqual([])
+      expect(preview.affectedTiles).toHaveLength(255)
+      expect(preview.affectedTiles).toContainEqual(positions.enemy)
+      expect(preview.affectedTiles).not.toContainEqual(positions.other)
+      expect(preview.affectedTiles).not.toContainEqual(positions.actor)
+      expect(preview.affectedCombatantIds).toEqual(['enemy'])
+      const result = commitCombatAbilityCommand(command)
+      const hp = (id: string) =>
+        result.state.tactical.battle.combatants.find((row) => row.id === id)!.hp
+      expect(hp('enemy')).toBeLessThan(1000)
+      expect(hp('other')).toBe(1000)
+      expect(hp('ally')).toBe(1000)
+      expect(hp('actor')).toBe(905)
+      expect(JSON.stringify(state)).toBe(before)
+      expect(validateCombatEncounterState(result.state)).toEqual([])
+    },
+  )

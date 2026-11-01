@@ -10,6 +10,7 @@ import {
 } from './actions'
 import {
   absorbDirectDamageWithBarrier,
+  absorbIndirectDamageWithBarrier,
   currentBarrierAmount,
   grantBarrier,
   validateBarrierState,
@@ -27,6 +28,47 @@ import {
 
 const CONTENT: CombatContentCatalog = { statuses: [] }
 const BARRIER_ACTION_ID = 'test.k4-barrier'
+
+describe('finishing-hit damage presentation', () => {
+  it.each([0, 20])('retains full damage after %i Barrier while HP loss stays capped', (pool) => {
+    let state = { ...encounter(), modularSkillPolicyVersion: 1 as const }
+    if (pool)
+      state = {
+        ...grantBarrier(state, 'actor', 'recruit', 'test.barrier', pool).state,
+        modularSkillPolicyVersion: 1,
+      }
+    const result = castAtRecruit(
+      state,
+      enemyAction('test.finisher', [{ type: 'damage', recipient: 'primary-unit', amount: 999 }]),
+    )
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'damage_applied',
+        amount: 100,
+        resolvedDamage: 999 - pool,
+        hpBefore: 100,
+        hpAfter: 0,
+      }),
+    )
+    expect(recruitHp(result.state)).toBe(0)
+    expect(result.state.effectState?.damageHistory).toEqual([
+      { combatantId: 'recruit', round: 1, amount: 100 },
+    ])
+  })
+
+  it('keeps exact indirect overkill beyond the numeric safe-integer boundary', () => {
+    const state = { ...encounter(), modularSkillPolicyVersion: 1 as const }
+    const result = absorbIndirectDamageWithBarrier(
+      state,
+      'actor',
+      'recruit',
+      'test.tick',
+      9007199254740993n,
+    )
+    expect(result.remainingDamage).toBe(100)
+    expect(result.damageBeforeHpLimit).toBe(9007199254740993n)
+  })
+})
 
 function encounter(): CombatEncounterState {
   const battle = startBattle(

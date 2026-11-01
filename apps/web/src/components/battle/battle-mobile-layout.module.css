@@ -514,6 +514,22 @@
   .shell[data-battle-mobile-stage='true'] :global([data-unified-battle-economy]) small {
     display: none;
   }
+  .shell[data-battle-mobile-stage='true']
+    :global([data-unified-battle-economy] [data-battle-proposed-ap='true']) {
+    display: block;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 4.5rem;
+    overflow: hidden;
+    font-size: 0.625rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .shell[data-battle-mobile-stage='true']
+    :global([data-battle-proposed-ap='true'] [data-battle-proposal-word='true']) {
+    display: none;
+  }
   .shell[data-battle-mobile-stage='true'] :global([data-battle-command-group]) {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0.14rem;

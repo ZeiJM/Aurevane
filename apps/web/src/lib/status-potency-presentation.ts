@@ -22,11 +22,11 @@ const historicalStatusDescriptions: Readonly<Record<string, string>> = {
   challenged: 'Deal 25% less damage to anyone except the unit that applied Taunt.',
   reckless:
     'Deal 40% more damage and take 25% more damage. Both effects expire or are removed together.',
-  wet: 'Storm damage gains 20% per active Wet or Conductive application. Fire removes Wet.',
+  wet: 'Storm damage gains 20% per active Wet or Conductive application.',
   conductive:
     'Storm damage gains 20% per active Wet or Conductive application, consuming Conductive.',
   frozen:
-    'A Chilled setup tag. Fire removes it. Frozen Ground has its own captured duration and AP surcharge.',
+    'Chilled restricts final facing. Chilled Ground applies this effect on contact without increasing Skill AP costs; historical battles keep their captured terrain rules.',
 }
 
 /** Historical instances keep their definition's description when no magnitude was recorded. */
@@ -43,7 +43,7 @@ export function statusPotencyDescription(
   if (statusId === 'fortified' && options.defenseIncreaseBasisPoints !== undefined)
     return `Increase Physical and Mystic Defense by ${options.defenseIncreaseBasisPoints / 100}% and deal ${options.defenseIncreaseBasisPoints / 100}% less damage.`
   if (['haste', 'slow'].includes(statusId) && options.movementApAdjustment !== undefined)
-    return `Movement costs ${options.movementApAdjustment} ${statusId === 'haste' ? 'less' : 'extra'} AP per tile, to a minimum of 10 AP. Movement allowance is unchanged.`
+    return `Movement costs ${options.movementApAdjustment} ${statusId === 'haste' ? 'less' : 'extra'} AP per entered tile${statusId === 'haste' ? ' and can reach 0 AP' : ''}. Movement allowance is unchanged.`
   if (statusId === 'lowered-guard' && options.damageTakenMultiplierBasisPoints !== undefined)
     return `Take ${options.damageTakenMultiplierBasisPoints / 100}% of normal damage per application.`
   if (statusId === 'revealed' && options.increasedDamageTakenBasisPoints !== undefined)
@@ -55,15 +55,14 @@ export function statusPotencyDescription(
   if (!options.legacyElemental) {
     if (statusId === 'wet')
       return options.explicitElemental === false
-        ? `Drenched reduces effective Initiative by ${initiativeReduction}% once while active and adds ${stormBonus}. Fire removes Drenched.`
+        ? `Drenched reduces effective Initiative by ${initiativeReduction}% once while active and adds ${stormBonus}.`
         : `Each Drenched application reduces effective Initiative by ${initiativeReduction}%, capped at 100% reduction (minimum 0 Initiative), while active. Drenched adds ${stormBonus} using the strongest active application.`
     if (statusId === 'conductive')
       return `Adds ${stormBonus}; positive Storm HP damage consumes the old charge. ${options.explicitElemental === false ? 'A Storm Skill' : 'An explicit Conductive tag'} can apply a fresh charge after settlement; the new charge cannot be consumed again in the same command.`
-    if (statusId === 'frozen')
-      return `Chilled prevents changing final facing at turn end. End the turn in the current direction; movement keeps its usual automatic facing. ${options.explicitElemental === false ? 'A legal Fire cast cleanses the caster; positive Fire damage cleanses its recipient.' : 'Cleanse Chilled removes it from its authored recipient.'}`
+    if (statusId === 'frozen') return 'Chilled prevents changing final facing at turn end.'
   }
   if (statusId === 'suppress')
-    return `Deal ${(potencyBasisPoints ?? 2500) / 100}% less outgoing direct damage. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged; new DoTs capture actual settled HP loss. Cleanse removes it; Dispel does not.`
+    return `${potencyBasisPoints !== undefined && potencyBasisPoints > 10000 ? `Deal 0 outgoing direct damage (${potencyBasisPoints / 100}% Suppress)` : `Deal ${(potencyBasisPoints ?? 2500) / 100}% less outgoing direct damage`}. Never stacks; retains the highest percentage and longest remaining duration. Captured Burn, Poison and Bleed ticks are unchanged; new DoTs capture actual settled HP loss.`
   if (statusId === 'hexed') {
     const percent = (potencyBasisPoints ?? 2500) / 100
     return options.legacyHealingDown
@@ -72,7 +71,7 @@ export function statusPotencyDescription(
   }
   const fallback =
     statusId === 'haste'
-      ? 'Movement costs 10 less AP per entered tile, to a minimum of 10 AP. Movement allowance is unchanged.'
+      ? 'Movement costs 10 less AP per entered tile and can reach 0 AP. Movement allowance is unchanged.'
       : statusId === 'slow'
         ? 'Movement costs 10 extra AP per tile. Your Movement allowance is unchanged.'
         : statusId === 'lowered-guard'

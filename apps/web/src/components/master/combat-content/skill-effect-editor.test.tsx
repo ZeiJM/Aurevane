@@ -41,7 +41,7 @@ it('hides the percentage-recovery schedule control without changing its saved ap
   expect(html).not.toContain('aria-label="Effect duration (turns)"')
 })
 
-it('keeps editable recovery duration within the engine’s four-application limit', () => {
+it('schedules recovery immediately and across all 99 authored turns', () => {
   const onChange = vi.fn()
   const tree = SkillEffectEditor({
     value: { type: 'healing', recipient: 'actor', amount: 5, ticks: 1 },
@@ -54,13 +54,13 @@ it('keeps editable recovery duration within the engine’s four-application limi
       return node.props as never
     return find(node.props.children)
   }
-  find(tree)!.onChange(4)
+  find(tree)!.onChange(99)
   expect(onChange).toHaveBeenCalledWith({
     type: 'healing',
     recipient: 'actor',
     amount: 5,
-    ticks: 4,
-    durationTurns: 3,
+    ticks: 100,
+    durationTurns: 99,
   })
 })
 
@@ -70,11 +70,11 @@ describe('Master percentage DoT controls', () => {
     if (template.type !== 'barrier-change') throw new Error('Wrong Barrier template.')
     const html = render({ ...template, amount: 25 })
     expect(html).toContain('aria-label="Barrier (% maximum HP)"')
-    expect(html).toContain('max="100"')
+    expect(html).toContain('max="999"')
     expect(html).not.toContain('max="20"')
     expect(template.durationTurns).toBe(2)
     expect(html).toContain(
-      'aria-label="Effect duration (turns)" type="number" min="1" max="4" step="1" placeholder="Until depleted (historical)" value="2"',
+      'aria-label="Effect duration (turns)" type="number" min="1" max="99" step="1" placeholder="Until depleted (historical)" value="2"',
     )
   })
   it('keeps an omitted historical Barrier lifetime blank until explicitly edited', () => {
@@ -199,7 +199,7 @@ describe('Master Panel Skill effect editor', () => {
         maximumDamage: 80,
       },
     })
-    expect(vengeance).toContain('aria-label="Counter potency (%)"')
+    expect(vengeance).toContain('aria-label="Reflect potency (%)"')
     expect(vengeance).not.toContain('aria-label="Vengeance minimum damage"')
     expect(vengeance).not.toContain('aria-label="Vengeance maximum damage"')
   })
@@ -228,8 +228,7 @@ describe('Master Panel Skill effect editor', () => {
       statusId: 'covert',
       stacks: 1,
     })
-    expect(applied).toContain('aria-label="Status"')
-    expect(applied).toContain('value="covert"')
+    expect(applied).not.toContain('aria-label="Status"')
     expect(applied).not.toContain('aria-label="Status stacks"')
     expect(applied).toContain('aria-label="Effect duration (turns)"')
     expect(applied).not.toContain('aria-label="Status potency (percent)"')
@@ -278,7 +277,7 @@ describe('Master Panel Skill effect editor', () => {
     })
     expect(sensory).toContain('aria-label="Revealed duration (owner-turn starts)"')
     expect(sensory).toContain('min="1"')
-    expect(sensory).toContain('max="4"')
+    expect(sensory).toContain('max="99"')
   })
 
   it('edits displacement, terrain/Revert, current DoTs, and Barrier with bounded typed controls', () => {
@@ -308,12 +307,11 @@ describe('Master Panel Skill effect editor', () => {
     })
     expect(bleed).toContain('Damage per tick (% of attack damage)')
     expect(bleed).toContain('aria-label="Effect duration (turns)"')
-    expect(bleed).toContain('max="4"')
+    expect(bleed).toContain('max="99"')
 
     for (const type of ['poison', 'burn'] as const) {
       const dot = render({ type, recipient: 'primary-unit', curseCopyable: true })
-      if (type === 'poison') expect(dot).toContain('aria-label="Curse-copyable"')
-      else expect(dot).not.toContain('aria-label="Curse-copyable"')
+      expect(dot).not.toContain('aria-label="Curse-copyable"')
       expect(dot).toContain(
         type === 'burn'
           ? 'First tick (% of attack damage)'
@@ -346,7 +344,7 @@ it('authors percentage recovery potency with fixed resource and saved applicatio
     ticks: 3,
   })
   expect(html).toContain('aria-label="Recovery percent"')
-  expect(html).toContain('max="100"')
+  expect(html).toContain('max="999"')
   expect(html).not.toContain('aria-label="Recovery resource"')
   expect(html).not.toContain('aria-label="Recovery applications"')
 })
@@ -368,7 +366,7 @@ it('authors elemental damage typing independently from captured status potency',
   ).not.toContain('Conductive Storm bonus (%)')
 })
 
-it('authors Suppress as 1–100% with two decimal places and a single application', () => {
+it('authors Suppress as 1–999% with two decimal places and a single application', () => {
   const markup = render({
     type: 'apply-status',
     recipient: 'primary-unit',
@@ -376,7 +374,7 @@ it('authors Suppress as 1–100% with two decimal places and a single applicatio
     stacks: 1,
   })
   expect(markup).toContain('aria-label="Status potency (percent)"')
-  expect(markup).toContain('max="100"')
+  expect(markup).toContain('max="999"')
   expect(markup).toContain('step="0.01"')
   expect(markup).toContain('value="25"')
   expect(markup).toMatch(/aria-label="Status stacks"[^>]*max="1"[^>]*disabled/)
@@ -463,7 +461,7 @@ it('uses explicit damage profiles and percentage parameters instead of four gene
     amount: 0,
     vengeance: { conversionBasisPoints: 2500, maximumDamage: 40 },
   })
-  expect(vengeance).toContain('aria-label="Counter potency (%)"')
+  expect(vengeance).toContain('aria-label="Reflect potency (%)"')
   expect(vengeance).toContain('value="25"')
 })
 
@@ -517,7 +515,7 @@ it('does not offer an Element control for canonical Pierce', () => {
   expect(html).not.toContain('aria-label="Element"')
 })
 
-it('shows readable Status names without exposing an editable internal Status ID', () => {
+it('keeps Damage Up identity fixed while exposing its duration and potency', () => {
   const html = render({
     type: 'apply-status',
     recipient: 'actor',
@@ -526,8 +524,8 @@ it('shows readable Status names without exposing an editable internal Status ID'
     durationTurns: 2,
     potencyBasisPoints: 1500,
   })
-  expect(html).toContain('aria-label="Status"')
-  expect(html).toContain('>Damage Up</option>')
+  expect(html).not.toContain('aria-label="Status"')
+  expect(html).toContain('aria-label="Status potency (percent)"')
   expect(html).not.toContain('aria-label="Status ID"')
   expect(html).not.toContain('>inspired<')
 })
@@ -584,7 +582,7 @@ it('authors Endure duration, burst targets/range and returned damage above100%',
   expect(html).not.toContain('aria-label="Status"')
 })
 
-it('offers one Reversal family, configured return/caps and fixed window without generic status fields', () => {
+it('offers one Reversal family and return percentage without current HP caps or a turn expiry', () => {
   const html = renderToStaticMarkup(
     createElement(SkillEffectEditor, {
       value: {
@@ -599,13 +597,11 @@ it('offers one Reversal family, configured return/caps and fixed window without 
       onChange: vi.fn(),
     }),
   )
-  for (const label of [
-    'Reversal family',
-    'Reflection potency (%)',
-    'Attacker HP cap (%)',
-    'User HP cap (%)',
-  ])
+  for (const label of ['Reversal family', 'Reflection potency (%)'])
     expect(html).toContain(`aria-label="${label}"`)
+  expect(html).not.toContain('HP cap (%)')
+  expect(html).not.toContain('until your next turn')
+  expect(html).toContain('until triggered or cancelled')
   expect(html).toContain('Physical Reversal')
   expect(html).toContain('Mystic Reversal')
   expect(html).not.toContain('Full Reversal')
@@ -614,3 +610,35 @@ it('offers one Reversal family, configured return/caps and fixed window without 
   expect(html).not.toContain('aria-label="Status"')
   expect(html).not.toContain('aria-label="Effect duration (turns)"')
 })
+
+it.each(['airborne', 'blindside-vulnerability', 'inspired', 'legacy-custom-status'])(
+  'preserves %s identity and unrelated fields while editing its available tuning',
+  (statusId) => {
+    const onChange = vi.fn()
+    const value = {
+      type: 'apply-status' as const,
+      recipient: 'actor' as const,
+      statusId,
+      stacks: 2,
+      durationTurns: 2,
+      potencyBasisPoints: 1750,
+      power: 3,
+    }
+    const tree = SkillEffectEditor({ value, onChange })
+    function find(node: ReactNode): { onChange(value: number): void } | undefined {
+      if (Array.isArray(node)) return node.map(find).find(Boolean)
+      if (!isValidElement<{ children?: ReactNode; label?: string }>(node)) return
+      if (node.type === AbilityNumber && node.props.label === 'Effect duration (turns)')
+        return node.props as never
+      return find(node.props.children)
+    }
+    expect(render(value)).not.toContain('aria-label="Status"')
+    if (statusId === 'blindside-vulnerability') {
+      expect(find(tree)).toBeUndefined()
+      expect(render(value)).toContain('Side damage (%)')
+    } else {
+      find(tree)!.onChange(99)
+      expect(onChange).toHaveBeenCalledWith({ ...value, durationTurns: 99 })
+    }
+  },
+)

@@ -195,7 +195,7 @@ describe('new percentage DoT trigger policy', () => {
         turnTriggerState: { preparedTurnNumber: 2, combatants: [] },
       }),
     ).not.toEqual([])
-    for (const value of [-1, 10001, 12.5, NaN])
+    for (const value of [-1, 99901, 12.5, NaN])
       expect(() => validateCurrentBurnEffect({ backlashBasisPoints: value })).toThrow()
     for (const value of [0, 1234, 10000])
       expect(() => validateCurrentBurnEffect({ backlashBasisPoints: value })).not.toThrow()

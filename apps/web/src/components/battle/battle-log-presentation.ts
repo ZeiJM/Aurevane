@@ -606,13 +606,14 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
         damageEntries.some(
           (hit) =>
             !hit.periodicStatusId &&
+            hit.templateValues.critical === undefined &&
             entry.actorCombatantId === hit.actorCombatantId &&
             entry.targetCombatantId === hit.targetCombatantId &&
             entry.actionId === hit.actionId,
         ),
     )
     const outcome = amount
-      ? `${amount} ${battleDamageLabel(damage.templateValues.element, damage.templateValues.damageKind)}`
+      ? `${damage.templateValues.critical === 'true' ? 'Critical ' : ''}${amount} ${battleDamageLabel(damage.templateValues.element, damage.templateValues.damageKind)}`
       : 'Damage dealt'
     const selfDamage =
       damage.actorCombatantId !== null &&
@@ -669,7 +670,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
         .sort((a, b) => a.eventIndex - b.eventIndex)
         .map(
           (entry) =>
-            `${entry.templateValues.amount ?? 'Resolved'} ${battleDamageLabel(entry.templateValues.element, entry.templateValues.damageKind)} to ${combatantName(entry.targetCombatantId, options) ?? 'the target'}`,
+            `${entry.templateValues.critical === 'true' ? 'Critical ' : ''}${entry.templateValues.amount ?? 'Resolved'} ${battleDamageLabel(entry.templateValues.element, entry.templateValues.damageKind)} to ${combatantName(entry.targetCombatantId, options) ?? 'the target'}`,
         ),
     ]
     if (extraOutcomes.length > 0) {

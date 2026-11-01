@@ -512,6 +512,14 @@
     /* Leave room for full forecast chips and reader controls at larger text sizes. */
     grid-template-columns: minmax(0, 5rem) minmax(0, 1fr);
   }
+  /* Reserve a two-line title slot for narrow desktop final facing. */
+  @media (not (pointer: coarse)), (min-width: 981px), (min-height: 501px) {
+    .shell[data-battle-action-mode='finish']:not([data-battle-terrain-view])
+      .content
+      :global([data-battle-preview-strip][data-battle-turn-state='yours']) {
+      grid-template-columns: minmax(0, 6rem) minmax(0, 1fr);
+    }
+  }
   .commands {
     gap: var(--battle-command-gap) 0.3rem;
   }
@@ -803,7 +811,7 @@
   .shell:not([data-battle-terrain-view])
     .content
     :global([data-battle-preview-strip][data-battle-turn-state='waiting']) {
-    grid-template-columns: minmax(5rem, 14rem) minmax(0, 1fr);
+    grid-template-columns: minmax(5rem, 16rem) minmax(0, 1fr);
   }
   .shell:not([data-battle-terrain-view])
     .content

@@ -5,8 +5,10 @@ import type {
   CombatEffectDefinition,
   CombatEncounterState,
   CombatTargetSpec,
+  CombatTargetSelection,
 } from './actions'
 import type { GridPosition } from './board'
+import { hasGameplayTag } from './gameplay-tags'
 
 export const COMBAT_EFFECT_TARGETS = [
   'self',
@@ -25,9 +27,18 @@ export function validateCombatEffectTarget(
     type: string
     recipient: string
     target?: unknown
+    invisibleTargetPolicyVersion?: unknown
   },
   aim?: CombatTargetSpec,
 ): void {
+  if (
+    effect.type === 'sensory' &&
+    effect.recipient === 'affected-units' &&
+    effect.target !== 'ground'
+  )
+    throw new TypeError('Area Reveal requires Ground target.')
+  if (effect.invisibleTargetPolicyVersion !== undefined && effect.type !== 'remove-status')
+    throw new TypeError('Invisible targeting policy requires a Dispel removal packet.')
   if (effect.target === undefined) return
   if (effect.target === 'empty-tile' && aim && aim.kind !== 'empty-tile')
     throw new TypeError('Empty Tile effects require an empty shared aim.')
@@ -55,7 +66,8 @@ export function validateCombatEffectTarget(
   if ((effect.target === 'self') !== (effect.recipient === 'actor'))
     throw new TypeError('Effect target must agree with its actor recipient.')
   if (
-    ['sensory', 'copy-statuses'].includes(effect.type) &&
+    (effect.type === 'copy-statuses' ||
+      (effect.type === 'sensory' && effect.target !== 'ground')) &&
     !['ally', 'enemy', 'anyone'].includes(effect.target as string)
   )
     throw new TypeError('This effect requires a selected unit target.')
@@ -73,10 +85,11 @@ function hostile(effect: CombatEffectDefinition, content?: CombatContentCatalog)
 }
 
 /** The shared spatial footprint is resolved once by targeting. Each packet filters it independently.
- * All bypasses that footprint. Friendly fire only broadens hostile Enemy/All area packets;
+ * All includes every living unit independently of the shared aim and friendly fire.
+ * Friendly fire only broadens hostile Enemy area packets;
  * explicit ally recovery and Self packets never inherit the hostile mask.
  */
-export function combatEffectRecipientIds(
+function unfilteredCombatEffectRecipientIds(
   state: CombatEncounterState,
   actorId: string,
   primaryCombatantId: string | null,
@@ -103,9 +116,9 @@ export function combatEffectRecipientIds(
   return state.tactical.battle.combatants
     .filter((unit) => {
       if (unit.hp <= 0) return false
+      if (effect.target === 'all') return true
       if (selectedOnly && unit.id !== primaryCombatantId) return false
       if (
-        effect.target !== 'all' &&
         !state.tactical.placements.some(
           (placement) =>
             placement.combatantId === unit.id &&
@@ -124,12 +137,116 @@ export function combatEffectRecipientIds(
           unit.teamId !== actor.teamId ||
           (isHostile && isArea && friendlyFire && unit.id !== actorId)
         )
-      if (effect.target === 'all' || effect.target === 'ground' || effect.target === 'empty-tile')
+      if (effect.target === 'ground' || effect.target === 'empty-tile')
         return !isHostile || unit.teamId !== actor.teamId || (friendlyFire && unit.id !== actorId)
       return true
     })
     .map((unit) => unit.id)
-    .sort()
+    .sort((left, right) => {
+      // Settle a broadcast's other recipients before a potentially lethal caster hit.
+      if (effect.type === 'damage' && effect.target === 'all') {
+        if (left === actorId) return 1
+        if (right === actorId) return -1
+      }
+      return left < right ? -1 : left > right ? 1 : 0
+    })
+}
+
+/** Copy may select an Invisible donor; that exception belongs to its packet only.
+ * Real Reveal keeps its existing action-wide authority. Already captured pending recipients
+ * retain their admission, and Ground/area packets retain their ordinary delivery rules.
+ */
+export function combatEffectRecipientIds(
+  state: CombatEncounterState,
+  actorId: string,
+  primaryCombatantId: string | null,
+  affectedCombatantIds: readonly string[],
+  affectedTiles: readonly GridPosition[],
+  effect: CombatEffectDefinition,
+  target: CombatTargetSpec,
+  content?: CombatContentCatalog,
+  capturedRecipients = false,
+): string[] {
+  const recipients = unfilteredCombatEffectRecipientIds(
+    state,
+    actorId,
+    primaryCombatantId,
+    affectedCombatantIds,
+    affectedTiles,
+    effect,
+    target,
+    content,
+    capturedRecipients,
+  )
+  if (
+    !content ||
+    capturedRecipients ||
+    target.revealConcealedTargets ||
+    target.shape.kind !== 'single' ||
+    target.kind !== 'unit' ||
+    ['all', 'ground', 'empty-tile'].includes(effect.target ?? '') ||
+    (effect.type === 'copy-statuses' &&
+      effect.mode === 'amplify' &&
+      effect.invisibleDonorPolicyVersion === 1) ||
+    (effect.type === 'remove-status' && effect.invisibleTargetPolicyVersion === 1)
+  )
+    return recipients
+  const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
+  return recipients.filter((id) => {
+    const unit = state.tactical.battle.combatants.find((candidate) => candidate.id === id)
+    return unit?.teamId === actor?.teamId || !hasGameplayTag(state, id, 'Invisible', content)
+  })
+}
+
+/** Selection admission is limited to marked Dispel packets that can actually affect each
+ * selected Invisible enemy; a Self/Ally packet cannot admit an unrelated hostile target.
+ */
+export function combatDispelAdmitsInvisibleSelection(
+  state: CombatEncounterState,
+  actorId: string,
+  action: CombatActionDefinition,
+  selection: CombatTargetSelection,
+  content: CombatContentCatalog,
+): boolean {
+  const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
+  const selected = selection.kind === 'selections' ? selection.selections : [selection]
+  const invisibleEnemies = selected.flatMap((choice) => {
+    if (choice.kind !== 'unit') return []
+    const unit = state.tactical.battle.combatants.find(
+      (candidate) => candidate.id === choice.combatantId,
+    )
+    return unit &&
+      unit.teamId !== actor?.teamId &&
+      hasGameplayTag(state, unit.id, 'Invisible', content)
+      ? [unit.id]
+      : []
+  })
+  return (
+    invisibleEnemies.length > 0 &&
+    invisibleEnemies.every((id) => {
+      const position = state.tactical.placements.find(
+        (placement) => placement.combatantId === id,
+      )?.position
+      if (!position) return false
+      return action.effects.some(
+        (effect, ordinal) =>
+          (action.effectEligibleRecipientIds?.[ordinal] === undefined ||
+            action.effectEligibleRecipientIds[ordinal]!.includes(id)) &&
+          effect.type === 'remove-status' &&
+          effect.invisibleTargetPolicyVersion === 1 &&
+          combatEffectRecipientIds(
+            state,
+            actorId,
+            id,
+            [id],
+            [position],
+            effect,
+            action.target,
+            content,
+          ).includes(id),
+      )
+    })
+  )
 }
 
 /** Forecast, hit/critical/resistance rolls and the executor share the same packet candidates. */
@@ -153,4 +270,21 @@ export function combatEvaluatedEffectRecipientIds(
   )
   const eligible = action.effectEligibleRecipientIds?.[ordinal]
   return eligible === undefined ? ids : ids.filter((id) => eligible.includes(id))
+}
+
+/** Packet coverage for forecasts; never substitutes for the action's shared casting aim. */
+export function combatEvaluatedActionRecipientIds(
+  state: CombatEncounterState,
+  action: CombatActionDefinition,
+  evaluation: CombatActionEvaluation,
+  content?: CombatContentCatalog,
+): string[] {
+  if (!evaluation.legal) return []
+  return [
+    ...new Set(
+      action.effects.flatMap((_, ordinal) =>
+        combatEvaluatedEffectRecipientIds(state, action, evaluation, ordinal, content),
+      ),
+    ),
+  ].sort()
 }

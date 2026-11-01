@@ -15,17 +15,19 @@ const effect = {
   durationTurns: 3,
   counter: { kind: 'mystic' as const, basisPoints: 17500 },
 }
-it('offers only Counter type, potency and duration alongside effect target', () => {
+it('offers only Reflect type, potency and duration alongside effect target', () => {
   const html = renderToStaticMarkup(
     createElement(SkillEffectEditor, { value: effect, onChange: vi.fn() }),
   )
-  expect(html).toContain('aria-label="Counter type"')
-  expect(html).toContain('aria-label="Counter potency (%)"')
+  expect(html).toContain('aria-label="Reflect type"')
+  expect(html).toContain('aria-label="Reflect potency (%)"')
   expect(html).toContain('aria-label="Effect duration (turns)"')
   expect(html).not.toContain('aria-label="Status"')
   expect(html).not.toContain('aria-label="Status stacks"')
   expect(html).not.toContain('aria-label="Status potency (percent)"')
-  expect(html).toContain('Mystical Counter</option>')
+  expect(html).toContain('Magical Reflect</option>')
+  expect(html).toContain('Physical Reflect</option>')
+  expect(html).toContain('Full Reflect</option>')
 })
 it('saves percentages above 100 without resetting type or duration', () => {
   const onChange = vi.fn()
@@ -33,23 +35,37 @@ it('saves percentages above 100 without resetting type or duration', () => {
   function find(node: ReactNode): { onChange(value: number): void; max?: number } | undefined {
     if (Array.isArray(node)) return node.map(find).find(Boolean)
     if (!isValidElement<{ children?: ReactNode; label?: string }>(node)) return
-    if (node.type === AbilityNumber && node.props.label === 'Counter potency (%)')
+    if (node.type === AbilityNumber && node.props.label === 'Reflect potency (%)')
       return node.props as never
     return find(node.props.children)
   }
   const potency = find(tree)!
-  expect(potency.max).toBeUndefined()
+  expect(potency.max).toBe(999)
   potency.onChange(250.25)
   expect(onChange).toHaveBeenCalledWith({
     ...effect,
     counter: { kind: 'mystic', basisPoints: 25025 },
   })
 })
-it('describes the actual saved Counter type, percentage and duration', () => {
-  expect(previewEffect(effect)).toMatchObject({ magnitude: 'Mystical 175%' })
-  expect(skillEffectDescription(effect)).toContain('175% of Mystical damage')
+it('describes the actual saved Reflect type, percentage and duration', () => {
+  expect(previewEffect(effect)).toMatchObject({
+    label: 'Reflect',
+    magnitude: 'Magical Reflect 175%',
+  })
+  expect(skillEffectDescription(effect)).toContain('175% of Mystic damage')
   expect(skillEffectDescription(effect)).toContain('3 turns')
   expect(canonicalEffectExplanation(effect, {} as never)?.description).toContain(
-    '175% of Mystical damage',
+    '175% of Mystic damage',
   )
+})
+
+it('offers the existing counter buff as Copy Reflect without altering its status identity', () => {
+  const html = renderToStaticMarkup(
+    createElement(SkillEffectEditor, {
+      value: { type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' },
+      onChange: vi.fn(),
+    }),
+  )
+  expect(html).toContain('aria-label="Copy Reflect"')
+  expect(html).not.toContain('Copy Counter')
 })

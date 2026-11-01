@@ -44,3 +44,12 @@ it('keeps temporary terrain name and duration compact without repeating its rule
   expect(steam.description).toContain('1 round remaining')
   expect(steam.description).not.toContain('Blocks line of sight')
 })
+
+it('retains all public current Ground identities and their independent activation/lifetimes in Inspect', () => {
+  const details = describeTerrainLabel(
+    'Tile 4, 4; open-ground; elevation 1; Ground fields: Damage Ground · 2 rounds remaining; Chilled Ground · Starts round 4 · 3 rounds',
+  )!
+  expect(details.description).toContain('Damage Ground · 2 rounds remaining')
+  expect(details.description).toContain('Chilled Ground · Starts round 4 · 3 rounds')
+  expect(details.description).not.toContain('Frozen Ground')
+})

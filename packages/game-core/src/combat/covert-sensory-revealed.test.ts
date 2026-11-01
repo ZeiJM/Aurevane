@@ -230,14 +230,14 @@ describe('CSR-1 Covert and Revealed definitions', () => {
       expect(hasCombatStatus(state, row.combatantId, 'revealed')).toBe(false)
     }
   })
-  it('pins positive/negative taxonomy, copy exclusions and authored duration bounds', () => {
+  it('pins positive/negative taxonomy, Covert copy permission and authored duration bounds', () => {
     expect(covert).toMatchObject({
       id: 'covert',
       version: 1,
       maximumStacks: 1,
       durationOwnerTurnStarts: 3,
       polarity: 'positive',
-      amplifyCopyable: false,
+      amplifyCopyable: true,
       reactionClass: 'ordinary',
     })
     expect(revealed).toMatchObject({
@@ -250,9 +250,41 @@ describe('CSR-1 Covert and Revealed definitions', () => {
       reactionClass: 'ordinary',
     })
     expect(() => createCovertStatusDefinition(0)).toThrow()
-    expect(() => createCovertStatusDefinition(5)).toThrow()
+    expect(() => createCovertStatusDefinition(100)).toThrow()
     expect(() => createRevealedStatusDefinition(0)).toThrow()
-    expect(() => createRevealedStatusDefinition(5)).toThrow()
+    expect(() => createRevealedStatusDefinition(100)).toThrow()
+  })
+
+  it('applies explicitly enemy-targeted Covert to the selected enemy without granting it to the caster', () => {
+    const action: CombatActionDefinition = {
+      ...directDamageAction(),
+      id: 'test.covert.enemy',
+      effects: [
+        {
+          type: 'apply-status',
+          target: 'enemy',
+          recipient: 'affected-units',
+          statusId: 'covert',
+          stacks: 1,
+          durationTurns: 3,
+        },
+      ],
+    }
+    const result = executeCombatAction(
+      encounter(),
+      action,
+      { kind: 'unit', combatantId: 'recruit' },
+      content,
+    )
+    expect(hasCombatStatus(result.state, 'recruit', 'covert')).toBe(true)
+    expect(hasCombatStatus(result.state, 'wayfarer', 'covert')).toBe(false)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'status_applied',
+        targetCombatantId: 'recruit',
+        statusId: 'covert',
+      }),
+    )
   })
 
   it('keeps Covert single-stack and refreshes its pinned duration on reapplication', () => {

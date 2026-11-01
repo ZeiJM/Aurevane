@@ -1,5 +1,7 @@
 'use client'
 
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
 import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { BasicActionCharacterStats } from './basic-action-presentation'
 import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
@@ -16,7 +18,6 @@ import {
   skillCostDescription,
   skillCooldownDescription,
   skillParameterRows,
-  skillRequirementDescription,
   skillTargetTags,
   skillTargetMethodExplanation,
 } from './skill-detail-presentation'
@@ -96,16 +97,6 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
           </li>
         ))}
       </ol>
-      {skill.requirements.length ? (
-        <>
-          <strong>Requirements</strong>
-          <ul>
-            {skill.requirements.map((requirement, index) => (
-              <li key={index}>{skillRequirementDescription(requirement)}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
       <p>
         Final results depend on combat stats and defenses. Consecutive reuse reduces effectiveness
         at the same AP cost. Battle previews show the current result.
@@ -115,7 +106,7 @@ function SkillDetailBody({ skill }: { skill: MatureSkillDefinition }) {
 }
 
 export function SkillDetails({
-  skill,
+  skill: capturedSkill,
   expanded = false,
   basic,
   stats,
@@ -126,6 +117,11 @@ export function SkillDetails({
   stats?: BasicActionCharacterStats
 }) {
   const groundRules = useSkillGroundInteractionRules()
+  const timingPolicy = useSkillEffectTimingPolicy()
+  const skill = capturedSkill.ability
+    ? capturedSkill
+    : currentGroundPresentation(capturedSkill, groundRules.groundContactPolicyVersion, timingPolicy)
+        .view
   const body = skill.ability ? (
     <AbilityDefinitionParameters
       definition={skill.ability}

@@ -32,7 +32,7 @@ const expected = {
     { label: 'Side', value: '160%' },
     { label: 'Rear', value: '220%' },
   ],
-  haste: [{ label: 'Minimum movement cost', value: '10 AP' }],
+  haste: [{ label: 'Minimum movement cost', value: '0 AP' }],
   wet: [
     { label: 'Initiative', value: '−10% per application' },
     { label: 'Maximum Initiative reduction', value: '100%' },

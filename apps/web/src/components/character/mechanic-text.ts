@@ -34,6 +34,8 @@ const labels = {
   haste: 'Haste',
   warded: 'Burn Ward',
   revealed: 'Revealed',
+  reversal: 'Reversal',
+  'reversal-strain': 'Reversal Strain',
   'lowered-guard': 'Defenseless',
 } as const
 /** Only identities with supported status rules become prerequisite links. */

@@ -195,6 +195,7 @@ it('selected DoT copy narrows independent Poison, Burn and Bleed applications wi
     effectTimingPolicy: {
       version: 8,
       modes: {
+        'copy-statuses': 'instant' as const,
         poison: 'instant' as const,
         burn: 'instant' as const,
         bleed: 'instant' as const,
@@ -216,6 +217,37 @@ it('selected DoT copy narrows independent Poison, Burn and Bleed applications wi
   ] as CombatEffectDefinition[])
     state = executeCombatAction(state, action(effect), target, PV1F_COMBAT_CONTENT)
       .state as typeof state
+  state.statusState = state.statusState.map((row) =>
+    row.combatantId === 'actor'
+      ? {
+          ...row,
+          statuses: [
+            {
+              statusId: 'slow',
+              statusVersion: 1,
+              stacks: 1,
+              remainingOwnerTurnStarts: 2,
+              sourceCombatantId: 'enemy',
+            },
+          ],
+        }
+      : row,
+  )
+  const current = nativeCombatTagPayload(createAuthorableEffectPayload('copy-debuffs')!)
+  const committed = executeCombatAction(state, action(current), target, PV1F_COMBAT_CONTENT).state
+  expect(
+    committed.statusState
+      .find((row) => row.combatantId === 'enemy')!
+      .statuses.map((row) => row.statusId),
+  ).toEqual(['slow'])
+  for (const kind of ['poison', 'burn', 'bleed'] as const) {
+    expect(committed.effectState![kind].filter((row) => row.targetCombatantId === 'enemy')).toEqual(
+      [],
+    )
+    expect(committed.effectState![kind].filter((row) => row.targetCombatantId === 'actor')).toEqual(
+      state.effectState![kind],
+    )
+  }
   const before = JSON.stringify(state.effectState)
   const plan = planCombatStatusCopies(
     state,

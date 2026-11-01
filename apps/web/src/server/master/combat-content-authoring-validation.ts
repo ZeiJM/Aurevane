@@ -1,3 +1,6 @@
+import { currentCombatPercentageIssues } from '@/lib/combat-percentage-authoring'
+import { validateCombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
+import type { SummonProfileDefinition } from '@aurevane/game-core/combat/summon-content'
 import { battleTextContextIssues } from '@aurevane/game-core/combat/battle-narration'
 import { finalizedContentMediaIssues } from '@aurevane/game-core/combat/content-media'
 import {
@@ -187,23 +190,49 @@ function canonicalAbilityIssues(value: unknown): CombatContentValidationIssue[] 
   }))
 }
 
+/** Current authoring is stricter than historical capture readers. */
+function summonAuthoringIssues(
+  profile: SummonProfileDefinition,
+  path: string,
+): CombatContentValidationIssue[] {
+  const issues = validateCombatTagPayload({
+    type: 'summon',
+    recipient: 'selected-tile',
+    profile,
+  }).map((issue) => ({
+    path: issue.path.startsWith('payload.profile')
+      ? path + issue.path.slice('payload.profile'.length)
+      : path,
+    code: 'INVALID_SUMMON_PROFILE',
+    message: issue.message,
+  }))
+  return issues
+}
+
 /** Called only after the actual Ability parser has accepted every group and payload. */
-function canonicalCleanseIssues(definition: AbilityDefinition): CombatContentValidationIssue[] {
+function canonicalEffectAuthoringIssues(
+  definition: AbilityDefinition,
+): CombatContentValidationIssue[] {
   return definition.behaviors.flatMap((behavior, group) =>
     behavior.effects.flatMap(({ payload }, effect) =>
-      payload.type === 'remove-status' &&
-      isCleanseEffect(payload) &&
-      payload.removalMode !== 'all-debuffs' &&
-      !hasCanonicalCleanseStatuses(payload.statusIds)
-        ? [
-            {
-              path: `ability.behaviors[${group}].effects[${effect}].payload.statusIds`,
-              code: 'INCONSISTENT_CLEANSE',
-              message:
-                'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
-            },
-          ]
-        : [],
+      payload.type === 'summon'
+        ? summonAuthoringIssues(
+            payload.profile,
+            `ability.behaviors[${group}].effects[${effect}].payload.profile`,
+          )
+        : payload.type === 'remove-status' &&
+            isCleanseEffect(payload) &&
+            payload.removalMode !== 'all-debuffs' &&
+            !hasCanonicalCleanseStatuses(payload.statusIds)
+          ? [
+              {
+                path: `ability.behaviors[${group}].effects[${effect}].payload.statusIds`,
+                code: 'INCONSISTENT_CLEANSE',
+                message:
+                  'Cleanse must remove Burn, Bleed, Poison, Slow, Rooted, Vulnerable, Marked and Taunted. Use the standard Cleanse list.',
+              },
+            ]
+          : [],
     ),
   )
 }
@@ -217,7 +246,8 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
   if (isBasicSkillId(readSkillId(definition)!)) {
     issues.push(...validateBasicSkillDefinition(definition))
     const basic = definition as unknown as BasicSkillDefinition
-    if (!issues.length) issues.push(...canonicalCleanseIssues(basic.ability))
+    issues.push(...currentCombatPercentageIssues({ ability: basic.ability }))
+    if (!issues.length) issues.push(...canonicalEffectAuthoringIssues(basic.ability))
     if (!issues.length) {
       if (!isRegisteredSkillIconHook(basic.media.iconKey))
         issues.push({
@@ -236,10 +266,19 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
   }
   const candidate = structuredClone(definition) as unknown as MatureSkillDefinition
   const canonical = Object.hasOwn(candidate, 'ability')
+  issues.push(
+    ...currentCombatPercentageIssues(
+      canonical
+        ? { ability: candidate.ability }
+        : { effects: candidate.effects, summonProfile: candidate.summonProfile },
+    ),
+  )
   try {
     if (!canonical) {
       validateCurrentCombatTargetAuthoring(candidate)
       validateCurrentPercentageDotAuthoring(candidate)
+      if (candidate.summonProfile)
+        issues.push(...summonAuthoringIssues(candidate.summonProfile, 'summonProfile'))
     }
     for (const field of validateMatureSkillDefinition(candidate)) {
       issues.push({
@@ -260,7 +299,7 @@ export function validateSkillDefinition(definition: unknown): CombatContentValid
     issues.push(...canonicalAbilityIssues(candidate.ability))
 
   if (issues.length === 0) {
-    if (canonical) issues.push(...canonicalCleanseIssues(candidate.ability!))
+    if (canonical) issues.push(...canonicalEffectAuthoringIssues(candidate.ability!))
     else
       for (const [index, effect] of candidate.effects.entries()) {
         if (effect.type === 'reversal') {
@@ -421,7 +460,14 @@ export function validateResonanceAuthoringDefinition(
     issues.push(...canonicalAbilityIssues(candidate.ability))
 
   if (issues.length === 0) {
-    if (candidate.ability) issues.push(...canonicalCleanseIssues(candidate.ability))
+    issues.push(
+      ...currentCombatPercentageIssues(
+        candidate.ability
+          ? { ability: candidate.ability }
+          : { effects: normalizedResonanceMechanics(candidate).resultEffects },
+      ),
+    )
+    if (candidate.ability) issues.push(...canonicalEffectAuthoringIssues(candidate.ability))
     else
       for (const [index, effect] of normalizedResonanceMechanics(
         candidate,

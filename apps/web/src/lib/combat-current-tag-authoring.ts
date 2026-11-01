@@ -1,12 +1,19 @@
 import { deriveSharedEffectAim } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import type { CombatEffectDefinition } from '@aurevane/game-core/combat/actions'
 import type { CombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
-import { selectableCombatStatusIds } from '@aurevane/game-core/combat/combat-status-selection'
+import {
+  selectableCombatStatusIds,
+  COPY_DEBUFF_EXCLUDED_STATUS_IDS,
+} from '@aurevane/game-core/combat/combat-status-selection'
 import {
   withCurrentSummonCoreAttributes,
   type SummonProfileDefinition,
 } from '@aurevane/game-core/combat/summon-content'
-import { reconcileAuthoredEffectDependencies } from './combat-effect-dependencies'
+import {
+  reconcileAuthoredEffectDependencies,
+  hasSharedGroundAim,
+} from './combat-effect-dependencies'
+import { withRemappedGroundEntries } from './combat-ground-entry-authoring'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 
 export function currentSummonForAuthoring(
@@ -16,15 +23,16 @@ export function currentSummonForAuthoring(
     ...withCurrentSummonCoreAttributes(profile),
     aiProfile: 'high',
     neverMoves: profile.neverMoves ?? false,
-    potencyBasisPoints: profile.potencyBasisPoints ?? 4000,
     abilities: profile.abilities.map((ability) => {
       const proposed = ability.effects.map((effect) => currentTagForAuthoring(effect))
-      const effects = reconcileAuthoredEffectDependencies(proposed, proposed)
+      const effects = reconcileAuthoredEffectDependencies(proposed, proposed, {
+        inheritedGround: hasSharedGroundAim(ability.target),
+      })
       const hasDamage = effects.some((effect) => effect.type === 'damage' && effect.amount > 0)
       const family = ability.tags.includes('mystic') ? 'mystic' : 'physical'
       const reversal = effects.some((effect) => effect.type === 'reversal')
       const fixedSelf = reversal || effects.some((effect) => effect.type === 'endure')
-      return {
+      return withRemappedGroundEntries(ability, {
         ...ability,
         hpCost: ability.hpCost ?? 0,
         target: fixedSelf ? deriveSharedEffectAim(ability.target, effects) : ability.target,
@@ -40,7 +48,7 @@ export function currentSummonForAuthoring(
               ]
             : ability.tags,
         effects,
-      }
+      })
     }),
   }
 }
@@ -67,8 +75,6 @@ export function currentTagForAuthoring(
     }
   if (value.type === 'resource-change' && value.delta < 0 && value.basis === undefined)
     return { ...value, basis: 'maximum-mp-percent' }
-  if (value.type === 'create-terrain' && value.skillApSurcharge === undefined)
-    return { ...value, skillApSurcharge: 10 }
   if (value.type === 'sensory' && value.increasedDamageTakenBasisPoints === undefined)
     return { ...value, increasedDamageTakenBasisPoints: 1500 }
   if (
@@ -77,6 +83,14 @@ export function currentTagForAuthoring(
     value.removalMode !== 'all-debuffs'
   )
     return { ...value, removalMode: 'all-debuffs' }
+  if (value.type === 'remove-status' && effectAuthoringTag(value).id === 'dispel')
+    return {
+      ...value,
+      removalMode: 'specified',
+      selectionKind: 'buffs',
+      invisibleTargetPolicyVersion: 1,
+      statusIds: value.statusIds.filter((id) => id !== 'endure'),
+    }
   if (value.type === 'remove-status' && value.selectionKind === undefined) {
     const tag = effectAuthoringTag(value).id
     if (tag === 'dispel' || tag === 'conditional-cleanse')
@@ -86,13 +100,38 @@ export function currentTagForAuthoring(
         selectionKind: tag === 'dispel' ? 'buffs' : 'debuffs',
       }
   }
-  if (value.type === 'copy-statuses' && value.statusIds === undefined)
+  if (value.type === 'copy-statuses') {
+    const allowed = selectableCombatStatusIds(
+      value.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs',
+    )
+    if (value.mode === 'amplify') {
+      const historicalAll = [...allowed.filter((id) => id !== 'covert'), 'blindside']
+      const wasAll =
+        value.statusIds?.length === historicalAll.length &&
+        historicalAll.every((id) => value.statusIds?.includes(id))
+      return {
+        ...value,
+        invisibleDonorPolicyVersion: 1,
+        durationPolicyVersion: 1,
+        statusIds:
+          value.statusIds === undefined || wasAll
+            ? [...allowed]
+            : value.statusIds.filter((id) => id !== 'blindside'),
+      }
+    }
+    const selected = value.statusIds?.filter((id) => !COPY_DEBUFF_EXCLUDED_STATUS_IDS.includes(id))
+    const priorAll = allowed.filter((id) => id !== 'blind')
+    const wasAll =
+      selected?.length === priorAll.length && priorAll.every((id) => selected.includes(id))
     return {
       ...value,
-      statusIds: [
-        ...selectableCombatStatusIds(value.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs'),
-      ],
+      durationPolicyVersion: 1,
+      statusIds:
+        value.statusIds === undefined || wasAll
+          ? [...allowed]
+          : value.statusIds.filter((id) => !COPY_DEBUFF_EXCLUDED_STATUS_IDS.includes(id)),
     }
+  }
   if (value.type === 'apply-status') {
     if (value.statusId === 'wet' && value.initiativeReductionBasisPoints === undefined)
       return { ...value, initiativeReductionBasisPoints: 1000 }

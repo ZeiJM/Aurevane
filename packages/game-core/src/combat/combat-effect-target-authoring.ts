@@ -24,7 +24,7 @@ export function withAuthoredEffectTarget<T extends TargetedEffect>(
         ? 'affected-tiles'
         : target === 'self'
           ? 'actor'
-          : ['copy-statuses', 'sensory'].includes(effect.type)
+          : effect.type === 'copy-statuses' || (effect.type === 'sensory' && target !== 'ground')
             ? 'primary-unit'
             : 'affected-units'
   const next = {
@@ -115,12 +115,28 @@ export function withAuthoredAreaRecipients<T extends TargetedEffect>(
   effects: readonly T[],
   options: { requiresSelectedUnit?: boolean } = {},
 ): readonly T[] {
+  const groundOnly =
+    target.kind === 'ground-tile' ||
+    (target.categories?.length === 1 && target.categories[0] === 'ground')
+  if (
+    groundOnly &&
+    effects.some((effect) => effect.type === 'sensory' && effect.target === undefined)
+  )
+    effects = effects.map((effect) =>
+      effect.type === 'sensory' && effect.target === undefined
+        ? withAuthoredEffectTarget(effect, 'ground')
+        : effect,
+    )
   if (
     target.shape.kind === 'single' ||
     (target.geometryVersion !== 2 && target.geometryVersion !== 3) ||
     (target.maximumSelections ?? 1) > 1 ||
     options.requiresSelectedUnit ||
-    effects.some((effect) => ['copy-statuses', 'sensory', 'summon'].includes(effect.type)) ||
+    effects.some(
+      (effect) =>
+        ['copy-statuses', 'summon'].includes(effect.type) ||
+        (effect.type === 'sensory' && effect.target !== 'ground'),
+    ) ||
     !effects.some((effect) => effect.recipient === 'primary-unit')
   )
     return effects

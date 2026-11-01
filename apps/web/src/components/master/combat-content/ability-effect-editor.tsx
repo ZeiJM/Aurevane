@@ -1,4 +1,6 @@
 'use client'
+import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
+import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
 
 import type { AbilityBehavior, AbilityEffect } from '@aurevane/game-core/combat/combat-definition'
 import {
@@ -47,7 +49,9 @@ export function AbilityEffectEditor({
   onChange: (value: AbilityEffect) => void
 }) {
   const payload = currentTagForAuthoring(value.payload)
-  const update = (next: CombatTagPayload) => onChange({ ...value, payload: next })
+  const update = (next: CombatTagPayload) => {
+    if (combatPercentageEditIsWithinBounds(payload, next)) onChange({ ...value, payload: next })
+  }
   let controls
   if (payload.type === 'move') {
     controls = (
@@ -66,6 +70,7 @@ export function AbilityEffectEditor({
       <AbilityNumber
         label="Damage Up (%)"
         value={(payload.multiplierBasisPoints - 10000) / 100}
+        max={CURRENT_EFFECT_PERCENT_MAXIMUM}
         step={0.01}
         onChange={(percent) =>
           update({ ...payload, multiplierBasisPoints: 10000 + Math.round(percent * 100) })
@@ -88,7 +93,7 @@ export function AbilityEffectEditor({
           <AbilityNumber
             label="Equipment Armor ignored (%)"
             value={payload.armorIgnoredBasisPoints / 100}
-            max={100}
+            max={CURRENT_EFFECT_PERCENT_MAXIMUM}
             step={0.01}
             onChange={(percent) =>
               update({ ...payload, armorIgnoredBasisPoints: Math.round(percent * 100) })

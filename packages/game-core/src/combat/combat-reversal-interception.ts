@@ -5,7 +5,7 @@ import type {
 } from './actions'
 import { defeatCombatActionActor, removeGameplayTags } from './actions-legacy'
 import { classifyFacingRelation } from './board'
-import { absorbIndirectDamageWithBarrier } from './combat-barrier'
+import { absorbIndirectDamageWithBarrier, captureDamageOverkill } from './combat-barrier'
 import { clearDefeatedRecovery } from './combat-recovery'
 import { consumeCombatTrigger, createCombatTriggerGuard } from './combat-kernel-types'
 import type { CombatNativeExecutionHooks } from './combat-native-mutations'
@@ -75,7 +75,10 @@ export function interceptCombatReversal(
   const attackerCap =
       (BigInt(attacker.maxHp) * BigInt(payload.attackerMaxHpCapBasisPoints)) / 10000n,
     defenderCap = (BigInt(defender.maxHp) * BigInt(payload.defenderMaxHpCapBasisPoints)) / 10000n
-  const requested = [reflected, attackerCap, defenderCap].reduce((a, b) => (a < b ? a : b))
+  const requested =
+    state.reversalPolicyVersion === 1
+      ? reflected
+      : [reflected, attackerCap, defenderCap].reduce((a, b) => (a < b ? a : b))
   const ended = endCombatReversal(state, input.recipientId, 'triggered')
   const barrier = absorbIndirectDamageWithBarrier(
     ended.state,
@@ -87,6 +90,7 @@ export function interceptCombatReversal(
   )
   let next = barrier.state
   const hpAfter = attacker.hp - barrier.remainingDamage
+  const overkill = captureDamageOverkill(barrier.damageBeforeHpLimit, barrier.remainingDamage)
   const receipt: CombatReversalEvent = {
     event: 'reversal_triggered',
     actionId: armed.abilityId,
@@ -95,6 +99,9 @@ export function interceptCombatReversal(
     incomingActionId: input.actionId,
     preventedDamage: input.wouldHpDamage,
     returnedDamage: barrier.remainingDamage,
+    ...(overkill.resolvedDamage === undefined
+      ? {}
+      : { resolvedReturnedHpDamage: overkill.resolvedDamage }),
     ...(armed.sourceCommandVisibility
       ? { sourceCommandVisibility: armed.sourceCommandVisibility }
       : {}),

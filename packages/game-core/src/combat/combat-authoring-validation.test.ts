@@ -12,6 +12,44 @@ import {
   validateCombatStatusDefinition,
 } from './combat-authoring-validation'
 import { combatStatusMetadata } from './combat-effect-state'
+import { validateCombatTagPayload } from './combat-tag-registry'
+
+describe('generated companion link validation', () => {
+  it.each([
+    'dot-damage.1',
+    'frozen-ground.12',
+    'element-companion.frozen.primary-unit',
+    'element-companion.wet.affected-units',
+    'element-companion.conductive.primary-unit.1',
+    'element-companion.cleanse-chilled.actor',
+  ])('accepts supported link %s through canonical and native validators', (authoringLink) => {
+    const effect = { ...P2_3_GUARD_ACTION.effects[0]!, authoringLink }
+    expect(validateCombatTagPayload(effect)).toEqual([])
+    expect(() =>
+      validateCombatActionDefinition({ ...P2_3_GUARD_ACTION, effects: [effect] }),
+    ).not.toThrow()
+  })
+
+  it.each([
+    '',
+    'authored.hit',
+    'dot-damage.0',
+    'frozen-ground.-1',
+    'element-companion.other.actor',
+    'element-companion.frozen.selected-tile',
+    'element-companion.frozen.primary-unit.0',
+    'element-companion.frozen.primary-unit.01',
+    'element-companion.frozen.primary-unit.1.extra',
+  ])('rejects unsupported link %s through canonical and native validators', (authoringLink) => {
+    const effect = { ...P2_3_GUARD_ACTION.effects[0]!, authoringLink }
+    expect(validateCombatTagPayload(effect)).toContainEqual(
+      expect.objectContaining({ path: 'payload.authoringLink', code: 'invalid-payload' }),
+    )
+    expect(() =>
+      validateCombatActionDefinition({ ...P2_3_GUARD_ACTION, effects: [effect] }),
+    ).toThrow('Invalid generated companion link.')
+  })
+})
 
 describe('combat authoring validation boundary', () => {
   it('rejects the private native Basic marker at the actual authored boundary', () => {
@@ -83,31 +121,37 @@ describe('combat authoring validation boundary', () => {
     })
   })
 
-  it.each([0, 5])('rejects Heal tick count %s outside the current 1-4 bound', (ticks) => {
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        effects: [{ type: 'healing', recipient: 'actor', amount: 4, ticks }],
-      } as unknown as CombatActionDefinition),
-    ).toThrow(/healing ticks/i)
-  })
+  it.each([0, 101])(
+    'rejects Heal tick count %s outside the current 1-100 application bound',
+    (ticks) => {
+      expect(() =>
+        validateCombatActionDefinition({
+          ...P2_3_GUARD_ACTION,
+          effects: [{ type: 'healing', recipient: 'actor', amount: 4, ticks }],
+        } as unknown as CombatActionDefinition),
+      ).toThrow(/healing ticks/i)
+    },
+  )
 
-  it.each([0, 5])('rejects MP Rec tick count %s outside the current 1-4 bound', (ticks) => {
-    expect(() =>
-      validateCombatActionDefinition({
-        ...P2_3_GUARD_ACTION,
-        effects: [
-          {
-            type: 'resource-change',
-            recipient: 'actor',
-            resource: 'mp',
-            delta: 3,
-            ticks,
-          },
-        ],
-      } as unknown as CombatActionDefinition),
-    ).toThrow(/mp recovery ticks/i)
-  })
+  it.each([0, 101])(
+    'rejects MP Rec tick count %s outside the current 1-100 application bound',
+    (ticks) => {
+      expect(() =>
+        validateCombatActionDefinition({
+          ...P2_3_GUARD_ACTION,
+          effects: [
+            {
+              type: 'resource-change',
+              recipient: 'actor',
+              resource: 'mp',
+              delta: 3,
+              ticks,
+            },
+          ],
+        } as unknown as CombatActionDefinition),
+      ).toThrow(/mp recovery ticks/i)
+    },
+  )
 
   it('keeps MP Drain immediate-only', () => {
     expect(() =>

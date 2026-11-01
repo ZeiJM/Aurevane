@@ -285,10 +285,10 @@ describe('current selection forecast', () => {
     expect(first).toContain('-15% damage')
     expect(first).toContain('3 turns')
     expect(first).not.toContain('2 turns')
-    expect(first).toContain('Frozen Ground at tile 2,1')
+    expect(first).toContain('Frozen Ground · 1 tile · Starts round 3 · 2 rounds')
     expect(first).toContain('Starts round 3')
     expect(first).not.toContain('pushed')
-    expect(second).toContain('Target pushed one tile')
+    expect(second).toContain('Target was pushed 1 tile')
     expect(second).toContain('Rooted removed')
     expect(second).not.toContain('-15% damage')
     expect(second).not.toContain('Frozen Ground at tile')
@@ -321,7 +321,7 @@ describe('current selection forecast', () => {
     const second = markup.match(
       /<article[^>]*data-battle-range-forecast="second"[^>]*>(.*?)<\/article>/,
     )?.[1]
-    expect(first).toContain('Steam at tile 2,1')
+    expect(first).toContain('Steam · 1 tile · Starts round 3 · 2 rounds')
     expect(first).toContain('Starts round 3')
     expect(second).not.toContain('Steam at tile')
     expect(markup).not.toContain('Hit 69%')
@@ -523,8 +523,8 @@ describe('current selection forecast', () => {
       />,
     )
     expect(markup).toContain('Starts round 3')
-    expect(markup).toContain('Frozen Ground at tile 2,3')
-    expect(markup).toContain('2 round boundaries')
+    expect(markup).toContain('Frozen Ground · 1 tile · Starts round 3 · 2 rounds')
+    expect(markup).toContain('2 rounds')
     expect(markup).toContain('either team')
   })
 
@@ -839,4 +839,91 @@ describe('current selection forecast', () => {
     expect(markup).not.toContain('17 dmg')
     expect(markup).not.toContain('Hit 69%')
   })
+})
+
+it.each(['unit', 'ground-tile'] as const)(
+  'groups a48-tile Frozen Ground result in the shared %s preview without per-tile chips',
+  (targetKind) => {
+    const terrain = Array.from({ length: 48 }, (_, index) => ({
+      position: { x: index % 8, y: Math.floor(index / 8) },
+      before: null,
+      after: 'frozen' as const,
+      remainingRoundBoundaries: 2,
+      frozenGroundPolicyVersion: 1 as const,
+      skillApSurcharge: 10,
+    }))
+    const preview = {
+      ...attack,
+      primaryCombatantId: null,
+      affectedCombatantIds: [],
+      affectedTiles: terrain.map((row) => row.position),
+      projectedEffects: [],
+      projectedTerrain: terrain,
+      projectedEvents: terrain.map((row) => ({
+        ...row,
+        event: 'terrain_overlay_changed' as const,
+        actionId: attack.actionId,
+        sourceCombatantId: 'you',
+      })),
+      mitigatedBaseDamage: null,
+      hitChanceBasisPoints: null,
+    }
+    const original = structuredClone(preview)
+    const markup = renderToStaticMarkup(
+      <BattleActionPreview
+        preview={preview}
+        pending={false}
+        skill={{ ...barrier, id: attack.actionId, targetKind }}
+      />,
+    )
+    expect(markup).toContain('Frozen Ground · 48 tiles · 2 rounds')
+    expect(markup.match(/data-battle-preview-terrain="true"/gu)).toHaveLength(1)
+    expect(markup).not.toContain('at tile')
+    expect(preview).toEqual(original)
+  },
+)
+
+it('keeps terrain types, timing and lifetimes distinct while retaining unit outcomes', () => {
+  const terrain = [
+    {
+      position: { x: 1, y: 1 },
+      before: null,
+      after: 'frozen' as const,
+      remainingRoundBoundaries: 2,
+    },
+    {
+      position: { x: 2, y: 1 },
+      before: null,
+      after: 'frozen' as const,
+      remainingRoundBoundaries: 2,
+    },
+    {
+      position: { x: 3, y: 1 },
+      before: null,
+      after: 'frozen' as const,
+      remainingRoundBoundaries: 3,
+    },
+    {
+      position: { x: 4, y: 1 },
+      before: null,
+      after: 'frozen' as const,
+      remainingRoundBoundaries: 2,
+      activationRound: 4,
+    },
+    {
+      position: { x: 5, y: 1 },
+      before: 'frozen' as const,
+      after: 'steam' as const,
+      remainingRoundBoundaries: 2,
+    },
+  ]
+  const markup = renderToStaticMarkup(
+    <BattleActionPreview preview={{ ...attack, projectedTerrain: terrain }} pending={false} />,
+  )
+  expect(markup).toContain('Frozen Ground · 2 tiles · 2 rounds')
+  expect(markup).toContain('Frozen Ground · 1 tile · 3 rounds')
+  expect(markup).toContain('Frozen Ground · 1 tile · Starts round 4 · 2 rounds')
+  expect(markup).toContain('Frozen Ground → Steam · 1 tile · 2 rounds')
+  expect(markup).toContain('data-battle-range-forecast="enemy"')
+  expect(markup).toContain('On hit 17 dmg')
 })

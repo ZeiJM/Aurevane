@@ -51,6 +51,34 @@ export function currentSkillDamageScaling(
   }
 }
 
+/** Native Summon costs may be free or exceed an ordinary turn's AP. Keep their exact cost
+ * separate from the existing bounded scaling payload, without overflowing intermediate math.
+ */
+export function summonSkillDamageScaling(
+  source: CombatDamageScalingSource,
+  damageEffectCount: number,
+  apCost: number,
+): CombatDamageScaling {
+  assertPositiveSafeInteger(damageEffectCount, 'Summon effect count')
+  assertNonNegativeSafeInteger(apCost, 'Summon AP cost')
+  const coefficient =
+    (BigInt(apCost) * BigInt(CURRENT_SKILL_POWER_SCALING_PER_AP_BASIS_POINTS)) /
+    BigInt(damageEffectCount)
+  return {
+    source,
+    coefficientBasisPoints:
+      apCost === 0
+        ? 0
+        : Number(
+            coefficient > BigInt(MAX_DAMAGE_SCALING_COEFFICIENT_BASIS_POINTS)
+              ? MAX_DAMAGE_SCALING_COEFFICIENT_BASIS_POINTS
+              : coefficient < 1n
+                ? 1n
+                : coefficient,
+          ),
+  }
+}
+
 export function validateCombatDamageScaling(
   scaling: CombatDamageScaling,
 ): readonly CombatDamageScalingIssue[] {

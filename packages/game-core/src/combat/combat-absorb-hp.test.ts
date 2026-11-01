@@ -307,7 +307,7 @@ describe('P4.K4 Absorb HP committed-damage reaction', () => {
   it('validates Absorb HP as bounded positive reactive status metadata', () => {
     expect(() => validateCombatStatusDefinition(ABSORB_25)).not.toThrow()
     expect(() =>
-      validateCombatStatusDefinition(absorbStatus('test.absorb-too-high', 10_001)),
+      validateCombatStatusDefinition(absorbStatus('test.absorb-too-high', 99_901)),
     ).toThrow(/Absorb HP/i)
     expect(() =>
       validateCombatStatusDefinition(

@@ -200,7 +200,7 @@ describe('Line lengths through fifteen', () => {
       }
       expect(() =>
         validateVersionedCombatTargetSpec({
-          ...spec({ kind: 'circle', radius: 6 }),
+          ...spec({ kind: 'circle', radius: 16 }),
           geometryVersion,
         }),
       ).toThrow()
@@ -275,5 +275,57 @@ describe('Line lengths through fifteen', () => {
     )
     expect(positions).toHaveLength(length)
     expect(positions.at(-1)).toEqual({ x: 1 + length, y: 0 })
+  })
+})
+
+describe('Circle radii through fifteen', () => {
+  it.each([2, 3] as const)(
+    'accepts 1–15 and rejects invalid geometry%s radii',
+    (geometryVersion) => {
+      for (let radius = 1; radius <= 15; radius++)
+        expect(() =>
+          validateVersionedCombatTargetSpec({
+            ...spec({ kind: 'circle', radius }),
+            geometryVersion,
+          }),
+        ).not.toThrow()
+      for (const radius of [0, 16, 1.5, Number.NaN]) {
+        const invalid = { ...spec({ kind: 'circle', radius }), geometryVersion }
+        expect(() => validateVersionedCombatTargetSpec(invalid)).toThrow()
+        expect(() =>
+          resolveCombatTargetFootprint(tactical, origin, invalid, { kind: 'activate' }),
+        ).toThrow()
+      }
+      const board = {
+        width: 33,
+        height: 33,
+        tiles: Array.from({ length: 1089 }, (_, i) => ({
+          position: { x: i % 33, y: Math.floor(i / 33) },
+          elevation: 0,
+          terrainId: 'open',
+        })),
+      }
+      const center = { x: 16, y: 16 }
+      const footprint = resolveCombatTargetFootprint(
+        board,
+        center,
+        { ...spec({ kind: 'circle', radius: 15 }), geometryVersion },
+        { kind: 'activate' },
+      )
+      expect(footprint).toHaveLength(960)
+      expect(footprint).toContainEqual({ x: 31, y: 31 })
+      expect(footprint).not.toContainEqual(center)
+      expect(footprint).not.toContainEqual({ x: 32, y: 32 })
+    },
+  )
+  it('keeps historical unversioned Circle geometry without a new cap', () => {
+    const historical = { ...spec({ kind: 'circle', radius: 16 }), geometryVersion: undefined }
+    expect(() => validateVersionedCombatTargetSpec(historical)).not.toThrow()
+    expect(
+      resolveCombatTargetFootprint(tactical, origin, historical, {
+        kind: 'tile',
+        position: origin,
+      }),
+    ).toEqual(resolveTargetShapeTiles(tactical, origin, origin, historical.shape))
   })
 })

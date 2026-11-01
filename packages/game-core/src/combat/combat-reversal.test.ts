@@ -34,6 +34,7 @@ import {
   evaluatePv1fSummonAbility,
   evaluatePv1fAction,
   executePv1fAction,
+  executePv1fMovement,
 } from './pv1f-action-economy'
 import {
   executeCombatAction,
@@ -41,6 +42,7 @@ import {
   evaluateCombatAction,
   type CombatActionDefinition,
   type CombatEncounterState,
+  type CombatResolutionEvent,
 } from './actions'
 import { normalBasicAttackDamageAgainst } from './actions-legacy'
 import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
@@ -61,7 +63,7 @@ const payload = {
   attackerMaxHpCapBasisPoints: 2000,
   defenderMaxHpCapBasisPoints: 2500,
 } as const
-function reversalSource(family: 'physical' | 'mystic' = 'physical') {
+function reversalSource(family: 'physical' | 'mystic' = 'physical', reflectionBasisPoints = 10000) {
   return captureCombatAbilitySource(
     source({
       id: 'prepare',
@@ -83,17 +85,28 @@ function reversalSource(family: 'physical' | 'mystic' = 'physical') {
         maximumElevationDifference: null,
         maximumSelections: 1,
       },
-      effects: [{ id: 'reversal', timing: 'controlled', payload: { ...payload, family } }],
+      effects: [
+        {
+          id: 'reversal',
+          timing: 'controlled',
+          payload: { ...payload, family, reflectionBasisPoints },
+        },
+      ],
     }),
   )
 }
-function encounter(family: 'physical' | 'mystic' = 'physical') {
-  const captured = reversalSource(family)
+function encounter(
+  family: 'physical' | 'mystic' = 'physical',
+  currentPolicy = false,
+  reflectionBasisPoints = 10000,
+) {
+  const captured = reversalSource(family, reflectionBasisPoints)
   const base = preparePv1fTurnEconomy(percentageDotEncounter())
   const state = reconcileCombatAbilitySources(
     {
       ...base,
       effectTimingPolicy: { version: 1, modes: {}, tagAuthority: 'global' as const },
+      ...(currentPolicy ? { reversalPolicyVersion: 1 as const } : {}),
     },
     [captured],
   )
@@ -257,34 +270,428 @@ describe('Reversal v1', () => {
       )
     },
   )
-  it('probes defender Barrier without consuming it; fully absorbed hits do not consume the counter', () => {
-    const { state, captured } = encounter()
-    const armed = atEnemyTurn(prime(state, captured).state)
-    const partial = grantBarrier(armed, 'actor', 'actor', 'test.barrier', 10).state
-    const countered = executeCombatAction(
-      partial,
-      attack(),
-      { kind: 'unit', combatantId: 'actor' },
-      PV1F_COMBAT_CONTENT,
+  it.each([false, true])(
+    'probes defender Barrier without consuming it; fully absorbed hits do not consume the counter (current: %s)',
+    (current) => {
+      const { state, captured } = encounter('physical', current)
+      const armed = atEnemyTurn(prime(state, captured).state)
+      const partial = grantBarrier(armed, 'actor', 'actor', 'test.barrier', 10).state
+      const countered = executeCombatAction(
+        partial,
+        attack(),
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(currentBarrierAmount(countered.state, 'actor')).toBe(10)
+      expect(countered.events).toContainEqual(
+        expect.objectContaining({
+          event: 'reversal_triggered',
+          preventedDamage: 30,
+          returnedDamage: 30,
+        }),
+      )
+      const full = grantBarrier(armed, 'actor', 'actor', 'test.barrier', 100).state
+      const normal = executeCombatAction(
+        full,
+        attack(),
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(hasArmedCombatReversal(normal.state, 'actor')).toBe(true)
+      expect(currentBarrierAmount(normal.state, 'actor')).toBe(60)
+    },
+  )
+  it('keeps current Reversal armed through multiple owner turns and reloads without Strain', () => {
+    const { state, captured } = encounter('physical', true)
+    let next = prime(state, captured).state
+    const raw = JSON.stringify(captured)
+    for (let cycle = 0; cycle < 3; cycle++) {
+      const turn = next.tactical.battle.turnNumber
+      for (
+        let n = 0;
+        n < 8 &&
+        (next.tactical.battle.turnNumber === turn ||
+          next.tactical.battle.currentTurn?.combatantId !== 'actor');
+        n++
+      )
+        next = finishPv1fTurn(next as never, 'east').state
+      next = JSON.parse(JSON.stringify(next)) as CombatEncounterState
+      expect(validateCombatEncounterState(next)).toEqual([])
+      expect(hasArmedCombatReversal(next, 'actor')).toBe(true)
+      expect(hasCombatReversalStrain(next, 'actor')).toBe(false)
+      expect(
+        combatControlledAbilityAvailability({
+          state: next,
+          actorId: 'actor',
+          sourceInstanceId: captured.sourceInstanceId,
+          behaviorId: 'prepare',
+          content: PV1F_COMBAT_CONTENT,
+        })?.canCancel,
+      ).toBe(true)
+    }
+    expect(JSON.stringify(next.capturedAbilitySources![0])).toBe(raw)
+    const cancelled = cancelCombatControlledAbility({
+      state: next,
+      actorId: 'actor',
+      sourceInstanceId: captured.sourceInstanceId,
+      behaviorId: 'prepare',
+    })
+    expect(hasArmedCombatReversal(cancelled.state, 'actor')).toBe(false)
+    expect(hasCombatReversalStrain(cancelled.state, 'actor')).toBe(true)
+    expect(hp(cancelled.state, 'actor')).toBe(hp(next, 'actor'))
+    expect(cancelled.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.mp).toBe(
+      next.tactical.battle.combatants.find((row) => row.id === 'actor')!.mp,
     )
-    expect(currentBarrierAmount(countered.state, 'actor')).toBe(10)
-    expect(countered.events).toContainEqual(
-      expect.objectContaining({
-        event: 'reversal_triggered',
-        preventedDamage: 30,
-        returnedDamage: 30,
-      }),
-    )
-    const full = grantBarrier(armed, 'actor', 'actor', 'test.barrier', 100).state
-    const normal = executeCombatAction(
-      full,
-      attack(),
-      { kind: 'unit', combatantId: 'actor' },
-      PV1F_COMBAT_CONTENT,
-    )
-    expect(hasArmedCombatReversal(normal.state, 'actor')).toBe(true)
-    expect(currentBarrierAmount(normal.state, 'actor')).toBe(60)
   })
+  it.each(['defeated', 'battle-ended'] as const)(
+    'cleans up current persistent Reversal when the owner is %s',
+    (reason) => {
+      const { state, captured } = encounter('physical', true)
+      let ready = prime(state, captured).state
+      if (reason === 'battle-ended')
+        ready = {
+          ...ready,
+          tactical: {
+            ...ready.tactical,
+            battle: {
+              ...ready.tactical.battle,
+              combatants: ready.tactical.battle.combatants.map((row) =>
+                row.id === 'other' ? { ...row, hp: 0 } : row,
+              ),
+            },
+          },
+        }
+      const acting = reason === 'defeated' ? 'enemy' : 'ally'
+      for (let n = 0; n < 8 && ready.tactical.battle.currentTurn?.combatantId !== acting; n++)
+        ready = finishPv1fTurn(ready as never, 'east').state
+      const placed = {
+        ...ready,
+        tactical: {
+          ...ready.tactical,
+          placements: ready.tactical.placements.map((row) =>
+            row.combatantId === 'enemy'
+              ? { ...row, position: { x: 0, y: 1 } }
+              : row.combatantId === 'actor'
+                ? { ...row, facing: 'east' as const }
+                : row,
+          ),
+        },
+      }
+      const out = executeCombatAction(
+        placed,
+        attack('physical', 1000),
+        { kind: 'unit', combatantId: reason === 'defeated' ? 'actor' : 'enemy' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(out.events).toContainEqual(
+        expect.objectContaining({ event: 'reversal_ended', combatantId: 'actor', reason }),
+      )
+      expect(out.events.some((event) => event.event === 'reversal_triggered')).toBe(false)
+      expect(hasArmedCombatReversal(out.state, 'actor')).toBe(false)
+      expect(validateCombatEncounterState(JSON.parse(JSON.stringify(out.state)))).toEqual([])
+    },
+  )
+  it('rejects an unsupported captured Reversal policy even without an armed ledger', () => {
+    const { state } = encounter()
+    expect(
+      validateCombatEncounterState({ ...state, reversalPolicyVersion: 2 } as never),
+    ).toContainEqual(expect.objectContaining({ field: 'reversalPolicyVersion' }))
+  })
+  it.each(['front', 'side', 'rear'] as const)(
+    'keeps Move, prime and utility Ground capture armed for a real same-round %s Basic Attack',
+    (arc) => {
+      const { state: initial, captured } = encounter('physical', true, 40000)
+      const state = {
+        ...initial,
+        groundEffectPolicyVersion: 1 as const,
+        groundContactPolicyVersion: 1 as const,
+        tactical: {
+          ...initial.tactical,
+          placements: initial.tactical.placements.map((row) =>
+            row.combatantId === 'ally'
+              ? { ...row, position: { x: 4, y: 4 } }
+              : row.combatantId === 'enemy'
+                ? {
+                    ...row,
+                    position:
+                      arc === 'front'
+                        ? { x: 2, y: 1 }
+                        : arc === 'side'
+                          ? { x: 1, y: 0 }
+                          : { x: 0, y: 1 },
+                  }
+                : row,
+          ),
+        },
+      }
+      const moved = executePv1fMovement(state, [
+        { x: 1, y: 1 },
+        { x: 1, y: 2 },
+        { x: 1, y: 1 },
+      ]).state
+      const armed = prime(moved, captured).state
+      const round = armed.tactical.battle.round
+      const ground: CombatActionDefinition = {
+        ...attack(),
+        id: 'test.utility-ground',
+        tags: ['utility'],
+        target: {
+          kind: 'ground-tile',
+          teamPolicy: 'any',
+          friendlyFire: 'all-units',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 6,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+        },
+        effects: [
+          {
+            type: 'apply-status',
+            recipient: 'affected-units',
+            target: 'ground',
+            statusId: 'guarded',
+            stacks: 1,
+          },
+        ],
+        groundArea: {
+          durationRounds: 2,
+          visualPresetId: 'arcane-pulse',
+          entryEffectOrdinals: [0],
+          timing: 'instant',
+        },
+      }
+      const placed = executeCombatAction(
+        armed,
+        ground,
+        { kind: 'tile', position: { x: 4, y: 0 } },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(placed.state.reversalState?.armed).toEqual(armed.reversalState?.armed)
+      const ready = reattachStatDrivenCombatBridge(
+        atEnemyTurn(JSON.parse(JSON.stringify(placed.state))),
+        state.statBridge,
+      )
+      expect(ready.tactical.battle.round).toBe(round)
+      const out = executePv1fAction(ready, 'basic.attack.unarmed.basic', {
+        kind: 'unit',
+        combatantId: 'actor',
+      })
+      const receipts = out.events.filter((event) => isReceipt(event, 'reversal_triggered'))
+      expect(receipts).toHaveLength(arc === 'rear' ? 0 : 1)
+      expect(hasArmedCombatReversal(out.state, 'actor')).toBe(arc === 'rear')
+      if (arc !== 'rear') {
+        const event = receipts[0] as unknown as { preventedDamage: number; returnedDamage: number }
+        expect(event.returnedDamage).toBe(event.preventedDamage * 4)
+        expect(hp(out.state, 'actor')).toBe(hp(ready, 'actor'))
+        const next = executePv1fAction(out.state, 'basic.attack.unarmed.basic', {
+          kind: 'unit',
+          combatantId: 'actor',
+        })
+        expect(next.events.some((event) => isReceipt(event, 'reversal_triggered'))).toBe(false)
+        expect(hp(next.state, 'actor')).toBeLessThan(hp(out.state, 'actor'))
+      } else expect(hp(out.state, 'actor')).toBeLessThan(hp(ready, 'actor'))
+      expect(validateCombatEncounterState(out.state)).toEqual([])
+    },
+  )
+  it('intercepts a real automatic hostile attack immediately in the same owner turn after preparation', () => {
+    const { state: initial, captured } = encounter('physical', true, 40000)
+    const reactive = captureCombatAbilitySource({
+      ...source(
+        {
+          activation: 'automatic',
+          automaticTarget: { subject: 'triggering' },
+          attackFamily: 'physical',
+          costs: [],
+          requirements: { kind: 'event', eventType: 'healing_applied', phase: 'after' },
+          targeting: { ...attack().target, teamPolicy: 'enemy', maximumSelections: 1 },
+          effects: [
+            {
+              id: 'first',
+              timing: 'instant',
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+            },
+            {
+              id: 'second',
+              timing: 'instant',
+              payload: { type: 'damage', recipient: 'primary-unit', amount: 20 },
+            },
+          ],
+        },
+        'reactive-enemy',
+      ),
+      ownerCombatantId: 'enemy',
+      abilityId: 'test.reactive-strike',
+    })
+    const support = captureCombatAbilitySource(
+      source(
+        {
+          id: 'heal',
+          classification: 'utility',
+          attackFamily: undefined,
+          costs: [],
+          targeting: { ...captured.definition.behaviors[0]!.targeting! },
+          effects: [
+            {
+              id: 'heal',
+              timing: 'instant',
+              payload: { type: 'healing', recipient: 'actor', amount: 20 },
+            },
+          ],
+        },
+        'support',
+      ),
+    )
+    const ready = reconcileCombatAbilitySources(
+      {
+        ...initial,
+        tactical: {
+          ...initial.tactical,
+          battle: {
+            ...initial.tactical.battle,
+            combatants: initial.tactical.battle.combatants.map((row) =>
+              row.id === 'actor' ? { ...row, hp: 900 } : row,
+            ),
+          },
+          placements: initial.tactical.placements.map((row) =>
+            row.combatantId === 'actor' ? { ...row, facing: 'east' as const } : row,
+          ),
+        },
+      },
+      [captured, reactive, support],
+    )
+    const armed = reattachStatDrivenCombatBridge(prime(ready, captured).state, initial.statBridge)
+    const out = commitCombatAbilityCommand({
+      state: armed,
+      actorId: 'actor',
+      root: { kind: 'canonical', source: support },
+      selection: { kind: 'self' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(armed, support),
+    })
+    expect(out.state.tactical.battle.turnNumber).toBe(armed.tactical.battle.turnNumber)
+    expect(out.state.tactical.battle.currentTurn?.combatantId).toBe('actor')
+    expect(out.events.filter((event) => isReceipt(event, 'reversal_triggered'))).toHaveLength(1)
+    const trigger = out.events.find((event) =>
+      isReceipt(event, 'reversal_triggered'),
+    ) as unknown as {
+      preventedDamage: number
+      returnedDamage: number
+    }
+    expect(trigger.returnedDamage).toBe(trigger.preventedDamage * 4)
+    expect(hp(out.state, 'enemy')).toBe(1000 - trigger.returnedDamage)
+    const ordinary = out.events.filter((event) => isReceipt(event, 'damage_applied')) as {
+      amount: number
+    }[]
+    expect(ordinary).toHaveLength(1)
+    expect(hp(out.state, 'actor')).toBe(920 - ordinary[0]!.amount)
+    expect(hasArmedCombatReversal(out.state, 'actor')).toBe(false)
+    expect(hasCombatReversalStrain(out.state, 'actor')).toBe(true)
+  })
+  it.each([false, true])(
+    'uses only the current saved return rate while preserving historical HP caps (current: %s)',
+    (current) => {
+      const original = encounter('physical', current)
+      const captured = captureCombatAbilitySource({
+        ...original.captured,
+        definition: {
+          ...original.captured.definition,
+          behaviors: original.captured.definition.behaviors.map((group) => ({
+            ...group,
+            effects: group.effects.map((row) => ({
+              ...row,
+              payload: {
+                ...payload,
+                reflectionBasisPoints: 40000,
+                attackerMaxHpCapBasisPoints: 4000,
+                defenderMaxHpCapBasisPoints: 6000,
+              },
+            })),
+          })),
+        },
+      })
+      const base = {
+        ...original.state,
+        tactical: {
+          ...original.state.tactical,
+          battle: {
+            ...original.state.tactical.battle,
+            combatants: original.state.tactical.battle.combatants.map((row) =>
+              ['actor', 'enemy'].includes(row.id) ? { ...row, hp: 100, maxHp: 100 } : row,
+            ),
+          },
+        },
+      }
+      const ready = reconcileCombatAbilitySources(
+        { ...base, capturedAbilitySources: undefined, abilityRuntime: undefined },
+        [captured],
+      )
+      const armed = atEnemyTurn(prime(ready, captured).state)
+      const result = executeCombatAction(
+        armed,
+        attack('physical', 30),
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(result.events).toContainEqual(
+        expect.objectContaining({
+          event: 'reversal_triggered',
+          preventedDamage: 30,
+          returnedDamage: current ? 100 : 40,
+          ...(current ? { resolvedReturnedHpDamage: 120 } : {}),
+        }),
+      )
+      expect(hp(result.state, 'actor')).toBe(100)
+      expect(hasArmedCombatReversal(result.state, 'actor')).toBe(false)
+      expect(validateCombatEncounterState(result.state)).toEqual([])
+    },
+  )
+  it.each([
+    { amount: 3, rate: 12500, barrier: 0 },
+    { amount: 3, rate: 1, barrier: 0 },
+    { amount: Number.MAX_SAFE_INTEGER, rate: 99900, barrier: 17 },
+  ])(
+    'keeps exact uncapped Reversal math for $amount damage at $rate basis points with $barrier Barrier',
+    ({ amount, rate, barrier }) => {
+      const { state, captured } = encounter('physical', true, rate)
+      const healthy = {
+        ...state,
+        modularSkillPolicyVersion: 1 as const,
+        tactical: {
+          ...state.tactical,
+          battle: {
+            ...state.tactical.battle,
+            combatants: state.tactical.battle.combatants.map((row) =>
+              row.id === 'actor' ? { ...row, hp: amount, maxHp: amount } : row,
+            ),
+          },
+        },
+      }
+      const armed = atEnemyTurn(prime(healthy, captured).state)
+      const shielded = barrier
+        ? grantBarrier(armed, 'enemy', 'enemy', 'test.return-shield', barrier).state
+        : armed
+      const expected = (BigInt(amount) * BigInt(rate)) / 10000n - BigInt(barrier)
+      const out = executeCombatAction(
+        shielded,
+        attack('physical', amount),
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      const trigger = out.events.find((event) => event.event === 'reversal_triggered') as Extract<
+        CombatResolutionEvent,
+        { event: 'reversal_triggered' }
+      >
+      expect(trigger.preventedDamage).toBe(amount)
+      expect(trigger.returnedDamage).toBe(Number(expected < 1000n ? expected : 1000n))
+      if (expected > BigInt(Number.MAX_SAFE_INTEGER))
+        expect(trigger.resolvedReturnedHpDamage).toBe(expected.toString())
+      expect(hp(out.state, 'actor')).toBe(amount)
+      expect(hasArmedCombatReversal(out.state, 'actor')).toBe(false)
+      expect(hasCombatReversalStrain(out.state, 'actor')).toBe(true)
+      expect(validateCombatEncounterState(JSON.parse(JSON.stringify(out.state)))).toEqual([])
+    },
+  )
   it('survives round transition, expires at next actual owner start, and strains precisely that complete turn', () => {
     const { state, captured } = encounter()
     let next = prime(state, captured).state
@@ -312,27 +719,30 @@ describe('Reversal v1', () => {
     next = finishPv1fTurn(next as never, 'east').state
     expect(hasCombatReversalStrain(next, 'actor')).toBe(false)
   })
-  it('cancellation never refunds, does not strain the incomplete preparation turn, and blocks re-prime', () => {
-    const { state, captured } = encounter()
-    const armed = prime(state, captured).state
-    const cancelled = cancelCombatControlledAbility({
-      state: armed,
-      actorId: 'actor',
-      sourceInstanceId: captured.sourceInstanceId,
-      behaviorId: 'prepare',
-    })
-    expect(readPv1fActionEconomy(cancelled.state as never, 'actor')?.current).toBe(50)
-    expect(hasCombatReversalStrain(cancelled.state, 'actor')).toBe(true)
-    expect(() => prime(cancelled.state, captured)).toThrow()
-    let next = finishPv1fTurn(cancelled.state as never, 'east').state
-    expect(hasCombatReversalStrain(next, 'actor')).toBe(true)
-    for (let n = 0; n < 8 && next.tactical.battle.currentTurn?.combatantId !== 'actor'; n++)
-      next = finishPv1fTurn(next as never, 'east').state
-    expect(hasCombatReversalStrain(next, 'actor')).toBe(true)
-    expect(hasCombatReversalStrain(finishPv1fTurn(next as never, 'east').state, 'actor')).toBe(
-      false,
-    )
-  })
+  it.each([false, true])(
+    'cancellation never refunds, does not strain the incomplete preparation turn, and blocks re-prime (current: %s)',
+    (current) => {
+      const { state, captured } = encounter('physical', current)
+      const armed = prime(state, captured).state
+      const cancelled = cancelCombatControlledAbility({
+        state: armed,
+        actorId: 'actor',
+        sourceInstanceId: captured.sourceInstanceId,
+        behaviorId: 'prepare',
+      })
+      expect(readPv1fActionEconomy(cancelled.state as never, 'actor')?.current).toBe(50)
+      expect(hasCombatReversalStrain(cancelled.state, 'actor')).toBe(true)
+      expect(() => prime(cancelled.state, captured)).toThrow()
+      let next = finishPv1fTurn(cancelled.state as never, 'east').state
+      expect(hasCombatReversalStrain(next, 'actor')).toBe(true)
+      for (let n = 0; n < 8 && next.tactical.battle.currentTurn?.combatantId !== 'actor'; n++)
+        next = finishPv1fTurn(next as never, 'east').state
+      expect(hasCombatReversalStrain(next, 'actor')).toBe(true)
+      expect(hasCombatReversalStrain(finishPv1fTurn(next as never, 'east').state, 'actor')).toBe(
+        false,
+      )
+    },
+  )
   it('rejects preparation after an offensive attack and all offense while armed', () => {
     const { state, captured } = encounter()
     const struck = executeCombatAction(
@@ -382,35 +792,38 @@ describe('Reversal v1', () => {
     }
     expect(combatControlledAbilityAvailability({ ...input, state: poor })?.canPrime).toBe(false)
   })
-  it('Reveal without concealment disarms only when its effect resolves and applies current Revealed', () => {
-    const { state, captured } = encounter()
-    const armed = atEnemyTurn(prime(state, captured).state)
-    const reveal = {
-      ...attack(),
-      tags: ['utility'],
-      effects: [
-        {
-          type: 'sensory' as const,
-          recipient: 'primary-unit' as const,
-          revealedDurationOwnerTurnStarts: 2,
-          increasedDamageTakenBasisPoints: 2500,
-        },
-      ],
-    }
-    const out = executeCombatAction(
-      armed,
-      reveal,
-      { kind: 'unit', combatantId: 'actor' },
-      PV1F_COMBAT_CONTENT,
-    )
-    expect(hasArmedCombatReversal(out.state, 'actor')).toBe(false)
-    expect(hasCombatReversalStrain(out.state, 'actor')).toBe(true)
-    expect(
-      out.state.statusState.find((row) => row.combatantId === 'actor')!.statuses,
-    ).toContainEqual(
-      expect.objectContaining({ statusId: 'revealed', increasedDamageTakenBasisPoints: 2500 }),
-    )
-  })
+  it.each([false, true])(
+    'Reveal without concealment disarms only when its effect resolves and applies current Revealed (current: %s)',
+    (current) => {
+      const { state, captured } = encounter('physical', current)
+      const armed = atEnemyTurn(prime(state, captured).state)
+      const reveal = {
+        ...attack(),
+        tags: ['utility'],
+        effects: [
+          {
+            type: 'sensory' as const,
+            recipient: 'primary-unit' as const,
+            revealedDurationOwnerTurnStarts: 2,
+            increasedDamageTakenBasisPoints: 2500,
+          },
+        ],
+      }
+      const out = executeCombatAction(
+        armed,
+        reveal,
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(hasArmedCombatReversal(out.state, 'actor')).toBe(false)
+      expect(hasCombatReversalStrain(out.state, 'actor')).toBe(true)
+      expect(
+        out.state.statusState.find((row) => row.combatantId === 'actor')!.statuses,
+      ).toContainEqual(
+        expect.objectContaining({ statusId: 'revealed', increasedDamageTakenBasisPoints: 2500 }),
+      )
+    },
+  )
   it('intercepts only the first packet and its dependent debuff while preserving later damage and DoT', () => {
     const { state, captured } = encounter()
     const armed = atEnemyTurn(prime(state, captured).state)
@@ -1626,30 +2039,33 @@ describe('Reversal v1', () => {
         .statuses.some((status) => status.statusId === 'exposed'),
     ).toBe(true)
   })
-  it('does not consume an armed counter on a missed or family-unknown attack', () => {
-    const { state, captured } = encounter()
-    const armed = atEnemyTurn(prime(state, captured).state)
-    const missed = executeCombatAction(
-      armed,
-      {
-        ...attack(),
-        sourceType: 'discipline-skill',
-        accuracyRule: { kind: 'fixed', chanceBasisPoints: 0 },
-      },
-      { kind: 'unit', combatantId: 'actor' },
-      PV1F_COMBAT_CONTENT,
-    )
-    expect(hp(missed.state, 'actor')).toBe(hp(armed, 'actor'))
-    expect(hasArmedCombatReversal(missed.state, 'actor')).toBe(true)
-    const unknown = executeCombatAction(
-      armed,
-      { ...attack(), tags: ['attack'] },
-      { kind: 'unit', combatantId: 'actor' },
-      PV1F_COMBAT_CONTENT,
-    )
-    expect(hasArmedCombatReversal(unknown.state, 'actor')).toBe(true)
-    expect(hp(unknown.state, 'actor')).toBeLessThan(hp(armed, 'actor'))
-  })
+  it.each([false, true])(
+    'does not consume an armed counter on a missed or family-unknown attack (current: %s)',
+    (current) => {
+      const { state, captured } = encounter('physical', current)
+      const armed = atEnemyTurn(prime(state, captured).state)
+      const missed = executeCombatAction(
+        armed,
+        {
+          ...attack(),
+          sourceType: 'discipline-skill',
+          accuracyRule: { kind: 'fixed', chanceBasisPoints: 0 },
+        },
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(hp(missed.state, 'actor')).toBe(hp(armed, 'actor'))
+      expect(hasArmedCombatReversal(missed.state, 'actor')).toBe(true)
+      const unknown = executeCombatAction(
+        armed,
+        { ...attack(), tags: ['attack'] },
+        { kind: 'unit', combatantId: 'actor' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(hasArmedCombatReversal(unknown.state, 'actor')).toBe(true)
+      expect(hp(unknown.state, 'actor')).toBeLessThan(hp(armed, 'actor'))
+    },
+  )
   it('shares the existing reaction budget instead of creating a free recursive reaction allowance', () => {
     const { state, captured } = encounter()
     const armed = atEnemyTurn(prime(state, captured).state)
@@ -2041,3 +2457,49 @@ describe('Reversal v1', () => {
     ).toBe(true)
   })
 })
+
+it.each([
+  { attackerHp: 48, barrier: 0, returned: 48, full: 200 },
+  { attackerHp: 48, barrier: 50, returned: 48, full: 150 },
+  { attackerHp: 1000, barrier: 0, returned: 200, full: undefined },
+  { attackerHp: 48, barrier: 200, returned: 0, full: undefined },
+])(
+  'records display-only finishing Reversal damage after caps and Barrier: $attackerHp HP / $barrier Barrier',
+  (fixture) => {
+    const { state, captured } = encounter()
+    const armed = atEnemyTurn(prime(state, captured).state)
+    const wounded = {
+      ...armed,
+      modularSkillPolicyVersion: 1 as const,
+      tactical: {
+        ...armed.tactical,
+        battle: {
+          ...armed.tactical.battle,
+          combatants: armed.tactical.battle.combatants.map((unit) =>
+            unit.id === 'enemy' ? { ...unit, hp: fixture.attackerHp } : unit,
+          ),
+        },
+      },
+    }
+    const ready = fixture.barrier
+      ? grantBarrier(wounded, 'enemy', 'enemy', 'return-shield', fixture.barrier).state
+      : wounded
+    const original = structuredClone(ready)
+    const result = interceptCombatReversal(ready, {
+      actorId: 'enemy',
+      recipientId: 'actor',
+      actionId: 'test.incoming',
+      family: 'physical',
+      wouldHpDamage: 999,
+      content: PV1F_COMBAT_CONTENT,
+    })!
+    const receipt = result.events.find((event) => event.event === 'reversal_triggered')!
+    expect(receipt).toMatchObject({ returnedDamage: fixture.returned, preventedDamage: 999 })
+    if (fixture.full === undefined) expect(receipt).not.toHaveProperty('resolvedReturnedHpDamage')
+    else expect(receipt).toHaveProperty('resolvedReturnedHpDamage', fixture.full)
+    expect(hp(result.state, 'enemy')).toBe(fixture.attackerHp - fixture.returned)
+    expect(result.state.tactical.battle.rng).toEqual(ready.tactical.battle.rng)
+    expect(result.events.some((event) => event.event === 'damage_applied')).toBe(false)
+    expect(ready).toEqual(original)
+  },
+)

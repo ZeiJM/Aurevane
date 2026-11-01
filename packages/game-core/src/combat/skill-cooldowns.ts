@@ -49,7 +49,8 @@ export function validateSkillCooldownDefinition(
   if (
     !Number.isSafeInteger(definition.ownerTurns) ||
     definition.ownerTurns < 1 ||
-    definition.ownerTurns > 99
+    // Applying a cooldown adds the activation tick before owner-turn countdown begins.
+    definition.ownerTurns >= Number.MAX_SAFE_INTEGER
   ) {
     issues.push('ownerTurns')
   }

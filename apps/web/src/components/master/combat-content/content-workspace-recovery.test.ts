@@ -270,6 +270,8 @@ it.each([
   ['tag', 'tag.blindside', 'tag'],
   ['tag', 'tag.revealed', 'tag'],
   ['tag', 'tag.cleanse-chilled', 'tag'],
+  ['tag', 'tag.mp-restore', 'tag'],
+  ['tag', 'tag.freeze-ground', 'tag'],
 ])(
   'reopens stale %s navigation on a visible category while preserving pending drafts',
   (category, selectedKey, expectedCategory) => {

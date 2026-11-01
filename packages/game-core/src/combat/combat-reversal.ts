@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import type { AbilityBehavior } from './combat-definition'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
 import type { CombatControlledAbilityRecord } from './combat-controlled'
@@ -10,7 +11,7 @@ import type {
   CombatSourceCommandVisibility,
 } from './actions'
 
-/** Version 1 fixes one trigger, front/sides, next actual owner start and one complete Strain turn. */
+/** Payload v1 fixes one front/side trigger and Strain; the encounter pins lifetime and cap rules. */
 export interface CombatReversalPayload {
   readonly type: 'reversal'
   readonly recipient: 'actor'
@@ -43,6 +44,8 @@ export type CombatReversalEvent = (
       readonly incomingActionId: string
       readonly preventedDamage: number
       readonly returnedDamage: number
+      /** Display-only damage after caps and Barrier, before remaining HP limits actual return. */
+      readonly resolvedReturnedHpDamage?: number | string
     }
   | { readonly event: 'reversal_strain_ended'; readonly combatantId: string }
 ) & { readonly sourceCommandVisibility?: CombatSourceCommandVisibility }
@@ -83,7 +86,9 @@ export function validateCombatReversalPayload(value: CombatReversalPayload): voi
         ].includes(key),
     )
   )
-    throw new TypeError('Reversal version 1 has fixed trigger, arcs, lifetime and Strain policies.')
+    throw new TypeError(
+      'Reversal version 1 has fixed trigger, arcs and Strain; the encounter pins lifetime and cap rules.',
+    )
   if ('target' in value && value.target !== 'self')
     throw new TypeError('Reversal targets only Self.')
   if (
@@ -97,14 +102,15 @@ export function validateCombatReversalPayload(value: CombatReversalPayload): voi
     'attackerMaxHpCapBasisPoints',
     'defenderMaxHpCapBasisPoints',
   ] as const) {
-    const maximum = key === 'reflectionBasisPoints' ? 100000 : 10000
+    const maximum =
+      key === 'reflectionBasisPoints' ? 100000 : CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
     if (!Number.isSafeInteger(value[key]) || value[key] < 1 || value[key] > maximum)
       throw new RangeError(`Reversal ${key} must be from 1 to ${maximum} basis points.`)
   }
 }
 export type CombatReversalReadState = Pick<
   CombatEncounterState,
-  'reversalState' | 'capturedAbilitySources' | 'abilityRuntime'
+  'reversalState' | 'capturedAbilitySources' | 'abilityRuntime' | 'reversalPolicyVersion'
 >
 function inventory(state: Pick<CombatEncounterState, 'reversalState'>): CombatReversalState {
   return state.reversalState ?? { version: 1, armed: [], strain: [], offensiveTurns: [] }
@@ -361,6 +367,7 @@ export function beginCombatReversalOwnerTurn(
   let next = state
   const events: CombatResolutionEvent[] = []
   if (
+    next.reversalPolicyVersion !== 1 &&
     inventory(next).armed.some(
       (row) =>
         row.ownerCombatantId === combatantId &&
@@ -448,6 +455,7 @@ export function combatReversalStatusProfiles(state: CombatReversalReadState, own
             reflectionBasisPoints: payload.reflectionBasisPoints,
             attackerMaxHpCapBasisPoints: payload.attackerMaxHpCapBasisPoints,
             defenderMaxHpCapBasisPoints: payload.defenderMaxHpCapBasisPoints,
+            ...(state.reversalPolicyVersion === 1 ? { policyVersion: 1 as const } : {}),
             ...(armed.sourceCommandVisibility
               ? { sourceCommandVisibility: armed.sourceCommandVisibility }
               : {}),
@@ -462,6 +470,8 @@ export function combatReversalStatusProfiles(state: CombatReversalReadState, own
 export function validateCombatReversalState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
+  if (state.reversalPolicyVersion !== undefined && state.reversalPolicyVersion !== 1)
+    return [{ field: 'reversalPolicyVersion', message: 'Unsupported Reversal policy.' }]
   const ledger = state.reversalState
   if (ledger === undefined) return []
   const invalid = () => [

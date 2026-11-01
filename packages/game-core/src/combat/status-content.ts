@@ -40,26 +40,22 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'endure',
     'Endure',
     'Buff',
-    'Prevents damage-dealing actions while active. On natural expiry, releases a saved share of HP damage received to nearby chosen teams.',
+    'Prevents damage-dealing actions while active. Cannot be dispelled. On natural expiry, releases a saved share of HP damage received to nearby chosen teams.',
     { amplifyCopyable: false, curseCopyable: false, reactionClass: 'ordinary' },
   ),
   status(
     'counter',
-    'Counter',
+    'Reflect',
     'Buff',
-    'Returns the configured share of matching damage received to its source. Counter damage cannot trigger another Counter.',
+    'Returns the configured share of matching damage received to its source. Reflected damage cannot trigger another Reflect.',
     { amplifyCopyable: true, reactionClass: 'reactive' },
   ),
   status('wet', 'Wet', 'Debuff', 'Reduces Initiative and increases Storm damage taken.', {
     gameplayTags: ['Wet'],
   }),
-  status(
-    'frozen',
-    'Chilled',
-    'Debuff',
-    'Prevents choosing a different final facing. Movement still turns the bearer; Cleanse Chilled removes it.',
-    { gameplayTags: ['Frozen'] },
-  ),
+  status('frozen', 'Chilled', 'Debuff', 'Prevents choosing a different final facing.', {
+    gameplayTags: ['Frozen'],
+  }),
   status(
     'conductive',
     'Conductive',
@@ -110,7 +106,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'invisible',
     'Invisible',
     'Buff',
-    'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. A damaging action or taking damage ends Invisible.',
+    'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. Current Copy Buffs can select the recipient as a donor, and current Dispel can select the recipient. A damaging action or taking damage ends Invisible.',
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
 
@@ -126,7 +122,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'haste',
     'Haste',
     'Buff',
-    'Reduces movement AP cost per tile, to a minimum of 10 AP. Movement allowance is unchanged.',
+    'Movement costs less AP per entered tile and can reach 0 AP. Movement allowance is unchanged.',
     {
       movement: { additionalApPerTile: -10 },
       amplifyCopyable: true,
@@ -209,6 +205,17 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
       effectCategories: ['Debuff', 'Mark'],
     },
   ),
+  status(
+    'blind',
+    'Blind',
+    'Debuff',
+    'Reduces Accuracy by 15 percentage points per application, to a minimum of 0%. Automatic Hit remains automatic.',
+    {
+      reactionClass: 'ordinary',
+      curseCopyable: true,
+      blindAccuracyPenaltyBasisPoints: 1500,
+    },
+  ),
   status('warded', 'Burn Ward', 'Buff', 'Reduces damage taken from opponents affected by Burn.', {
     damageModifiers: [modifier('incoming', 8_000, { kind: 'opponent-status', statusId: 'burn' })],
   }),
@@ -241,7 +248,7 @@ const legacyDescriptions: Record<
     description: 'Reduces the target’s MP when the effect activates.',
   },
   'mp-recovery': {
-    name: 'MP Restore',
+    name: 'MP Recovery',
     kind: 'Buff',
     description: 'Restores MP when the effect activates.',
   },

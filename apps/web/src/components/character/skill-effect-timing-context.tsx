@@ -10,6 +10,7 @@ import {
 export type SkillEffectTimingPolicy = CombatEffectTimingPolicy | null
 const TimingContext = createContext<SkillEffectTimingPolicy>(defaultCombatEffectTimingPolicy())
 const GroundInteractionContext = createContext({
+  groundContactPolicyVersion: 1 as 1 | null,
   legacyFrozenGround: false,
   legacyElemental: false,
   explicitElemental: true,
@@ -17,6 +18,10 @@ const GroundInteractionContext = createContext({
   legacyAirborneJump: false,
   legacyHealingDown: false,
   legacyBlindsideActivation: false,
+  legacyReversal: false,
+  legacyPierceCritical: false,
+  legacySummonPotency: false,
+  legacyRuin: false,
 })
 export const AirborneAttackElevationContext = createContext(false)
 const ElementalDamagePolicyContext = createContext<1 | 2 | null>(null)
@@ -26,20 +31,30 @@ export function SkillEffectTimingProvider({
   policy,
   dotTriggerPolicyVersion = 2,
   frozenGroundPolicyVersion = 1,
+  groundContactPolicyVersion = 1,
   airbornePolicyVersion = 1,
   airborneJumpPolicyVersion = 1,
   healingDownPolicyVersion = 1,
   blindsideActivationPolicyVersion = 1,
+  reversalPolicyVersion = 1,
+  pierceCriticalPolicyVersion = 1,
+  summonPotencyPolicyVersion = 1,
+  ruinPolicyVersion = 1,
   elementalDamagePolicyVersion = 2,
   children,
 }: {
   policy: SkillEffectTimingPolicy
   dotTriggerPolicyVersion?: 1 | 2 | null
+  groundContactPolicyVersion?: 1 | null
   frozenGroundPolicyVersion?: 1 | null
   airbornePolicyVersion?: 1 | null
   airborneJumpPolicyVersion?: 1 | null
   healingDownPolicyVersion?: 1 | null
   blindsideActivationPolicyVersion?: 1 | null
+  reversalPolicyVersion?: 1 | null
+  pierceCriticalPolicyVersion?: 1 | null
+  summonPotencyPolicyVersion?: 1 | null
+  ruinPolicyVersion?: 1 | null
   elementalDamagePolicyVersion?: 1 | 2 | null
   children: ReactNode
 }) {
@@ -49,6 +64,7 @@ export function SkillEffectTimingProvider({
         <DotTriggerContext.Provider value={dotTriggerPolicyVersion}>
           <GroundInteractionContext.Provider
             value={{
+              groundContactPolicyVersion,
               legacyFrozenGround: frozenGroundPolicyVersion !== 1,
               legacyElemental: elementalDamagePolicyVersion == null,
               explicitElemental: elementalDamagePolicyVersion === 2,
@@ -56,6 +72,10 @@ export function SkillEffectTimingProvider({
               legacyAirborneJump: airborneJumpPolicyVersion !== 1,
               legacyHealingDown: healingDownPolicyVersion !== 1,
               legacyBlindsideActivation: blindsideActivationPolicyVersion !== 1,
+              legacyReversal: reversalPolicyVersion !== 1,
+              legacyPierceCritical: pierceCriticalPolicyVersion !== 1,
+              legacySummonPotency: summonPotencyPolicyVersion !== 1,
+              legacyRuin: ruinPolicyVersion !== 1,
             }}
           >
             {children}

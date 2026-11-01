@@ -68,6 +68,7 @@ export interface CombatOngoingRecovery {
 }
 
 export interface CombatPoisonInstance {
+  ruinApplicationId?: number
   /** Private original Summon attack identity; repeated periodic packets share one budget per tick. */
   summonDamageCommandId?: number
   percentageDamage?: CapturedPercentageDotDamage
@@ -78,6 +79,8 @@ export interface CombatPoisonInstance {
   sourceCombatantId: string
   sourceActionId: string
   profileVersion: number
+  /** Captured policy-2 duration-refresh threshold; absence preserves the five-tile default. */
+  movementRefreshTiles?: number
   movementRemainder: number
   /** Current authored Poison may pin bounded power and remaining future turns. */
   damagePerTick?: number
@@ -90,6 +93,7 @@ export interface CombatPoisonInstance {
 }
 
 export interface CombatBleedStack {
+  ruinApplicationId?: number
   /** Private original Summon attack identity; repeated periodic packets share one budget per tick. */
   summonDamageCommandId?: number
   percentageDamage?: CapturedPercentageDotDamage
@@ -106,6 +110,7 @@ export interface CombatBleedStack {
 }
 
 export interface CombatBurnInstance {
+  ruinApplicationId?: number
   /** Private original Summon attack identity; repeated periodic packets share one budget per tick. */
   summonDamageCommandId?: number
   backlashBasisPoints?: number
@@ -157,11 +162,35 @@ export interface CombatSummonInstance {
 }
 
 /** Private captured provenance remains available to persistent Ground after the summon expires. */
-export interface CombatSummonDamageSource {
+export type CombatSummonDamageSource = {
   combatantId: string
   ownerCombatantId: string
-  potencyBasisPoints: number
-}
+} & (
+  | {
+      potencyBasisPoints: number
+      groundContactArchiveVersion?: never
+      potencyPolicyVersion?: never
+      damageBudgetPerRound?: never
+      budgetRound?: never
+      spentThisRound?: never
+    }
+  | {
+      potencyBasisPoints: number
+      groundContactArchiveVersion?: never
+      potencyPolicyVersion: 1
+      damageBudgetPerRound: number
+      budgetRound: number
+      spentThisRound: number
+    }
+  | {
+      potencyBasisPoints?: never
+      groundContactArchiveVersion: 1
+      potencyPolicyVersion?: never
+      damageBudgetPerRound?: never
+      budgetRound?: never
+      spentThisRound?: never
+    }
+)
 export interface CombatSummonDamageCommand {
   id: number
   sourceCombatantId: string

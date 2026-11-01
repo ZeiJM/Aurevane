@@ -147,7 +147,7 @@ describe('idle narration from persisted command events', () => {
         expect.objectContaining({
           statusId: 'lowered-guard',
           text: 'Defenseless will take effect on Zei at the start of round 4!',
-          duration: '1 turn',
+          duration: '1 round',
         }),
       ],
     })

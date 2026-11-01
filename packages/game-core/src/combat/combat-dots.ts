@@ -1,3 +1,5 @@
+import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { claimCombatTurnTrigger } from './combat-turn-trigger-state'
 import {
   CURRENT_POISON_REFRESH_TRAVERSED_TILES,
@@ -75,8 +77,8 @@ function validPercentageInstance(
 export const CURRENT_POISON_PROFILE_VERSION = 1 as const
 export const CURRENT_POISON_DAMAGE = 2 as const
 export const CURRENT_BLEED_MAX_STACKS = 3 as const
-export const CURRENT_BLEED_MAX_TICKS = 4 as const
-export const CURRENT_BLEED_MAX_RAW_TOTAL = 80 as const
+export const CURRENT_BLEED_MAX_TICKS = CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+export const CURRENT_BLEED_MAX_RAW_TOTAL = 20 * CURRENT_BLEED_MAX_TICKS
 export const CURRENT_BURN_PROFILE_VERSION = 1 as const
 export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const
 export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
@@ -147,6 +149,7 @@ export function currentBurnInstances(
 }
 
 export interface CurrentPoisonEffect {
+  movementRefreshTiles?: number
   type: 'poison'
   recipient: CombatEffectRecipient
   power?: number
@@ -155,11 +158,19 @@ export interface CurrentPoisonEffect {
 }
 
 export function validateCurrentPoisonEffect(effect: {
+  movementRefreshTiles?: unknown
   curseCopyable?: unknown
   power?: unknown
   durationTurns?: unknown
   damageProfile?: AttackPercentageDotProfile
 }): void {
+  if (
+    effect.movementRefreshTiles !== undefined &&
+    (!Number.isSafeInteger(effect.movementRefreshTiles) ||
+      (effect.movementRefreshTiles as number) < 1 ||
+      (effect.movementRefreshTiles as number) > 99)
+  )
+    throw new RangeError('Poison movement refresh must be an integer from 1 to 99 tiles.')
   if (effect.damageProfile !== undefined) {
     if (effect.power !== undefined)
       throw new TypeError('Percentage Poison cannot also author fixed power.')
@@ -180,9 +191,11 @@ export function validateCurrentPoisonEffect(effect: {
     effect.durationTurns !== undefined &&
     (!Number.isSafeInteger(effect.durationTurns) ||
       (effect.durationTurns as number) < 1 ||
-      (effect.durationTurns as number) > 4)
+      (effect.durationTurns as number) > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)
   ) {
-    throw new RangeError('Poison duration must be an integer from 1 to 4 turns.')
+    throw new RangeError(
+      `Poison duration must be an integer from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns.`,
+    )
   }
 }
 
@@ -220,9 +233,10 @@ export function applyCurrentPoisonState(
   power?: number,
   durationTurns?: number,
   percentageDamage?: CapturedPercentageDotDamage,
+  movementRefreshTiles?: number,
 ): CombatEncounterState {
   const captured = capturePercentageApplication(state, percentageDamage, durationTurns, 'poison')
-  validateCurrentPoisonEffect({ curseCopyable, power, durationTurns })
+  validateCurrentPoisonEffect({ curseCopyable, power, durationTurns, movementRefreshTiles })
   const effectState = normalizeCombatEffectState(state.effectState)
   const existing = effectState.poison.find(
     (instance) => instance.targetCombatantId === targetCombatantId,
@@ -232,6 +246,7 @@ export function applyCurrentPoisonState(
     sourceCombatantId,
     sourceActionId,
     profileVersion: CURRENT_POISON_PROFILE_VERSION,
+    ...(movementRefreshTiles !== undefined ? { movementRefreshTiles } : {}),
     movementRemainder:
       usesPercentageCombatDots(state) || usesUnlimitedCombatEffectStacking(state)
         ? 0
@@ -263,6 +278,7 @@ export function applyCurrentPoisonState(
           }
   }
 
+  if (state.ruinPolicyVersion === 1) delete instance.ruinApplicationId
   return {
     ...state,
     effectState: {
@@ -335,20 +351,18 @@ export function advanceCurrentPoisonMovement(
       if (instance.targetCombatantId !== targetCombatantId || !instance.percentageDamage)
         return instance
       const progress = safeDotTotal(instance.movementRemainder, traversedTiles)
+      const threshold = instance.movementRefreshTiles ?? CURRENT_POISON_REFRESH_TRAVERSED_TILES
       if (
         !Number.isSafeInteger(instance.originalDurationTurns) ||
         instance.originalDurationTurns! < 1 ||
-        instance.originalDurationTurns! > 4
+        instance.originalDurationTurns! > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
       )
         throw new TypeError('Poison movement refresh requires its captured original duration.')
-      if (progress >= CURRENT_POISON_REFRESH_TRAVERSED_TILES)
-        refreshedDurationTurns = instance.originalDurationTurns
+      if (progress >= threshold) refreshedDurationTurns = instance.originalDurationTurns
       return {
         ...instance,
-        movementRemainder: progress % CURRENT_POISON_REFRESH_TRAVERSED_TILES,
-        ...(progress >= CURRENT_POISON_REFRESH_TRAVERSED_TILES
-          ? { remainingTicks: instance.originalDurationTurns! }
-          : {}),
+        movementRemainder: progress % threshold,
+        ...(progress >= threshold ? { remainingTicks: instance.originalDurationTurns! } : {}),
       }
     })
     if (currentPoisonInstances(state, targetCombatantId).some((row) => row.percentageDamage))
@@ -414,11 +428,15 @@ export function validateCurrentBleedEffect(effect: {
     effect.ticks < 1 ||
     effect.ticks > CURRENT_BLEED_MAX_TICKS
   ) {
-    throw new RangeError('Bleed duration ticks must be an integer between 1 and 4.')
+    throw new RangeError(
+      `Bleed duration ticks must be an integer between 1 and ${CURRENT_BLEED_MAX_TICKS}.`,
+    )
   }
   const total = BigInt(effect.damagePerTick) * BigInt(effect.ticks)
   if (total > BigInt(CURRENT_BLEED_MAX_RAW_TOTAL)) {
-    throw new RangeError('Bleed raw per-stack total must not exceed 80 damage.')
+    throw new RangeError(
+      `Bleed raw per-stack total must not exceed ${CURRENT_BLEED_MAX_RAW_TOTAL} damage.`,
+    )
   }
 }
 
@@ -549,10 +567,10 @@ export function validateCurrentBurnEffect(effect: {
     effect.backlashBasisPoints !== undefined &&
     (!Number.isSafeInteger(effect.backlashBasisPoints) ||
       (effect.backlashBasisPoints as number) < 0 ||
-      (effect.backlashBasisPoints as number) > 10000)
+      (effect.backlashBasisPoints as number) > CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
   )
     throw new RangeError(
-      'Burn backlash percentage must be an integer from 0 to 10000 basis points.',
+      `Burn backlash percentage must be an integer from 0 to ${CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS} basis points.`,
     )
   if (effect.damageProfile !== undefined) {
     if (effect.power !== undefined)
@@ -574,9 +592,11 @@ export function validateCurrentBurnEffect(effect: {
     effect.durationTurns !== undefined &&
     (!Number.isSafeInteger(effect.durationTurns) ||
       (effect.durationTurns as number) < 1 ||
-      (effect.durationTurns as number) > 4)
+      (effect.durationTurns as number) > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)
   ) {
-    throw new RangeError('Burn duration must be an integer from 1 to 4 turns.')
+    throw new RangeError(
+      `Burn duration must be an integer from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} turns.`,
+    )
   }
 }
 
@@ -767,16 +787,23 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       (instance.originalDurationTurns !== undefined &&
         (!Number.isSafeInteger(instance.originalDurationTurns) ||
           instance.originalDurationTurns < 1 ||
-          instance.originalDurationTurns > 4 ||
+          instance.originalDurationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
           instance.remainingTicks === undefined ||
           instance.remainingTicks > instance.originalDurationTurns)) ||
       (instance.percentageDamage !== undefined && instance.damagePerTick !== undefined) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       (instance.skipCurrentOwnerTurnEnd !== undefined &&
         typeof instance.skipCurrentOwnerTurnEnd !== 'boolean') ||
+      (instance.movementRefreshTiles !== undefined &&
+        (!Number.isSafeInteger(instance.movementRefreshTiles) ||
+          instance.movementRefreshTiles < 1 ||
+          instance.movementRefreshTiles > 99)) ||
       !Number.isSafeInteger(instance.movementRemainder) ||
       instance.movementRemainder < 0 ||
-      instance.movementRemainder > 4 ||
+      instance.movementRemainder >=
+        (state.dotTriggerPolicyVersion === 2 && instance.percentageDamage
+          ? (instance.movementRefreshTiles ?? CURRENT_POISON_REFRESH_TRAVERSED_TILES)
+          : 5) ||
       (instance.damagePerTick !== undefined &&
         (!Number.isSafeInteger(instance.damagePerTick) ||
           instance.damagePerTick < 1 ||
@@ -784,7 +811,7 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
       (instance.remainingTicks !== undefined &&
         (!Number.isSafeInteger(instance.remainingTicks) ||
           instance.remainingTicks < 1 ||
-          instance.remainingTicks > 4)) ||
+          instance.remainingTicks > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)) ||
       ((!independent || usesPercentageCombatDots(state)) &&
         targetIds.has(instance.targetCombatantId)) ||
       (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
@@ -800,7 +827,7 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
         {
           field: 'effectState.poison',
           message:
-            'Poison state must contain valid current-profile applications in stable target/application order with movement progress from 0 to 4; legacy state allows one instance per target.',
+            'Poison state must contain valid current-profile applications in stable target/application order with movement progress below the captured refresh threshold; legacy state allows one instance per target.',
         },
       ]
     : []
@@ -850,14 +877,14 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       (instance.backlashBasisPoints !== undefined &&
         (!Number.isSafeInteger(instance.backlashBasisPoints) ||
           instance.backlashBasisPoints < 0 ||
-          instance.backlashBasisPoints > 10000)) ||
+          instance.backlashBasisPoints > CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)) ||
       (instance.percentageDamage !== undefined && instance.basePower !== undefined) ||
       (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       (instance.skipCurrentOwnerTurnEnd !== undefined &&
         typeof instance.skipCurrentOwnerTurnEnd !== 'boolean') ||
       !Number.isSafeInteger(instance.stage) ||
       instance.stage < 0 ||
-      instance.stage > 3 ||
+      instance.stage > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS - 1 ||
       (instance.basePower === undefined &&
         instance.remainingTicks === undefined &&
         instance.stage >= CURRENT_BURN_DAMAGE_BY_STAGE.length) ||
@@ -868,7 +895,7 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       (instance.remainingTicks !== undefined &&
         (!Number.isSafeInteger(instance.remainingTicks) ||
           instance.remainingTicks < 1 ||
-          instance.remainingTicks > 4)) ||
+          instance.remainingTicks > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS)) ||
       ((!independent || usesPercentageCombatDots(state)) &&
         targetIds.has(instance.targetCombatantId)) ||
       (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
@@ -956,7 +983,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
         {
           field: 'effectState.bleed',
           message:
-            'Bleed state must contain valid independent stacks in stable application order, each with one to four remaining ticks and no more than 80 raw remaining damage; legacy state allows at most three stacks per target.',
+            'Bleed state must contain valid independent stacks in stable application order, each with one to 99 remaining ticks and no more than 1980 raw remaining damage; legacy state allows at most three stacks per target.',
         },
       ]
     : []

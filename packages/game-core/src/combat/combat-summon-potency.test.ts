@@ -687,7 +687,7 @@ describe('authored Summon potency damage ceiling', () => {
       expect(validateSummonProfileDefinition({ ...summonProfile(), potencyBasisPoints })).toEqual(
         [],
       )
-    for (const potencyBasisPoints of [-1, 10001, 0.5, Number.NaN])
+    for (const potencyBasisPoints of [-1, Number.MAX_SAFE_INTEGER + 1, 0.5, Number.NaN])
       expect(validateSummonProfileDefinition({ ...summonProfile(), potencyBasisPoints })).toContain(
         'potencyBasisPoints',
       )
@@ -1232,7 +1232,7 @@ describe('native v5 percentage MP Drain authoring bounds', () => {
   )
 
   it.each([
-    { delta: -101, percentage: true },
+    { delta: -1000, percentage: true },
     { delta: 0, percentage: true },
     { delta: 1, percentage: true },
     { delta: 50, percentage: true },

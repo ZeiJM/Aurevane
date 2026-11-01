@@ -16,7 +16,11 @@ export type BattlePresentedStatus = CombatEffectPresentationStatus & {
   healingDownPolicyVersion?: 1
   blindsideActivationPolicyVersion?: 1
   presentationDuration?:
-    'while-elevated' | 'while-primed' | 'until-reversal-ends' | 'next-complete-owner-turn'
+    | 'while-elevated'
+    | 'while-primed'
+    | 'until-reversal-ends'
+    | 'next-complete-owner-turn'
+    | 'while-active'
   reversal?: ReversalPresentationValues
 }
 
@@ -76,7 +80,7 @@ export function primedBattleEffectPresentation(
     timingState: 'primed',
     duration: 'While a Controlled skill remains primed',
     description:
-      'A Controlled skill is prepared for release. Primed ends when it is released, cancelled, its source is removed, the character is defeated, or battle ends. This derived tag cannot be applied, copied or cleansed.',
+      'A Controlled skill is prepared for release. Primed ends when it is released, cancelled, its source is removed, the character is defeated, or battle ends. This derived tag cannot be applied or copied.',
   }
 }
 
@@ -117,7 +121,10 @@ export function reversalBattleEffectPresentation(
     counterLabel: 'Armed',
     timing: 'Armed',
     timingState: 'primed',
-    duration: 'Until triggered or the start of the next actual owner turn',
-    description: `${reversalDescription(effect.reversal)} This armed state cannot be copied or removed by generic Cleanse or Dispel.`,
+    duration:
+      effect.reversal.policyVersion === 1
+        ? 'Until triggered or cancelled'
+        : 'Until triggered or the start of the next actual owner turn',
+    description: `${reversalDescription(effect.reversal, { legacyReversal: effect.reversal.policyVersion !== 1 })} This armed state cannot be copied.`,
   }
 }

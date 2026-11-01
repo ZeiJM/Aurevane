@@ -1,4 +1,5 @@
 'use client'
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import type { AbilityBehavior } from '@aurevane/game-core/combat/combat-definition'
 import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
@@ -19,19 +20,26 @@ import {
 import { BattleGroundAreaLayer } from '../../battle/battle-ground-area-layer'
 import styles from './combat-content-editor.module.css'
 
-/** Keep effect edits aligned; actor-only buffs and terrain/summon operations never repeat on entry. */
+/** Current automatic entries preserve independently targeted unit effects. */
 export function groundAreaForEffects(
   effects: readonly MatureSkillEffectDefinition[],
   current?: CombatGroundAreaDefinition,
 ): CombatGroundAreaDefinition | undefined {
   const entryEffectOrdinals = effects.flatMap((effect, index) =>
-    isCombatGroundEntryEffect(effect) ? [index] : [],
+    isCombatGroundEntryEffect(effect) &&
+    (!('target' in effect) ||
+      effect.target === undefined ||
+      effect.target === 'ground' ||
+      current?.entryEffectOrdinals.includes(index))
+      ? [index]
+      : [],
   )
   return entryEffectOrdinals.length
     ? {
         durationRounds: current?.durationRounds ?? 2,
         visualPresetId: current?.visualPresetId ?? 'arcane-pulse',
         ...(current?.timing ? { timing: current.timing } : {}),
+        contactPolicyVersion: 1,
         entryEffectOrdinals,
       }
     : undefined
@@ -80,13 +88,17 @@ export function SkillGroundEditor({
               <input
                 type="number"
                 min={1}
-                max={4}
+                max={CURRENT_EFFECT_DURATION_MAXIMUM_TURNS}
                 step={1}
                 aria-label="Ground duration (rounds)"
                 value={value.durationRounds}
                 onChange={(event) => {
                   const n = Number(event.currentTarget.value)
-                  if (Number.isSafeInteger(n) && n >= 1 && n <= 4)
+                  if (
+                    Number.isSafeInteger(n) &&
+                    n >= 1 &&
+                    n <= CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
+                  )
                     onChange({ ...value, durationRounds: n })
                 }}
               />
@@ -136,9 +148,9 @@ export function SkillGroundEditor({
             />
           </div>
           <p className={styles.fieldHint}>
-            The cast affects units on the selected tiles. Each area can apply its unit effects once
-            per character’s turn when that character enters it. Caster buffs, summons and terrain
-            creation are not repeated.
+            Active tiles apply their effects immediately on contact. Each character can receive each
+            effect type once during its own turn cycle, including overlapping fields. Field
+            activation follows the authored timing. Source-only effects keep their ordinary targets.
           </p>
         </>
       ) : null}
@@ -180,7 +192,7 @@ export function AbilityGroundEditor({
   const target = canonicalAbilityTargetSpec(value.targeting)
   if (!combatTargetSupportsGroundArea(target) && !value.groundArea) return null
   const entries = value.effects.filter(
-    (effect) => !['move', 'summon', 'damage-bonus', 'pierce'].includes(effect.payload.type),
+    (effect) => !['move', 'summon', 'damage-bonus'].includes(effect.payload.type),
   )
   const effects = entries.map((effect) => nativeCombatTagPayload(effect.payload))
   const area = value.groundArea
@@ -195,6 +207,9 @@ export function AbilityGroundEditor({
               durationRounds: area.durationRounds,
               visualPresetId: area.visualPresetId,
               ...(area.timing ? { timing: area.timing } : {}),
+              ...(area.contactPolicyVersion
+                ? { contactPolicyVersion: area.contactPolicyVersion }
+                : {}),
               entryEffectOrdinals: area.entryEffectIds.map((id) =>
                 entries.findIndex((effect) => effect.id === id),
               ),
@@ -208,6 +223,7 @@ export function AbilityGroundEditor({
             durationRounds: ground.durationRounds,
             visualPresetId: ground.visualPresetId,
             ...(ground.timing ? { timing: ground.timing } : {}),
+            contactPolicyVersion: 1,
             entryEffectIds: ground.entryEffectOrdinals.flatMap((ordinal) =>
               entries[ordinal] ? [entries[ordinal]!.id] : [],
             ),

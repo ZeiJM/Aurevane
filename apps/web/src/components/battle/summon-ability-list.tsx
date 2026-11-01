@@ -1,5 +1,7 @@
 'use client'
 
+import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
+
 import type { SummonAbilityDefinition } from '@aurevane/game-core/combat/summon-content'
 import {
   CompactSkillEffectSummary,
@@ -8,7 +10,6 @@ import {
 import { SkillCharacteristicRows } from '../character/skill-characteristic-rows'
 import {
   skillParameterRows,
-  skillRequirementDescription,
   skillTargetMethodExplanation,
 } from '../character/skill-detail-presentation'
 import { groupSkillEffects } from '../character/skill-effect-groups'
@@ -26,7 +27,7 @@ import styles from './summon-ability-list.module.css'
 
 /** Uses the summon profile captured in the battle, including its authored effects and targeting. */
 function SummonAbilityParameters({
-  ability,
+  ability: capturedAbility,
   airborne,
 }: {
   ability: SummonAbilityDefinition
@@ -34,6 +35,11 @@ function SummonAbilityParameters({
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
   const groundRules = useSkillGroundInteractionRules()
+  const ability = currentGroundPresentation(
+    capturedAbility,
+    groundRules.groundContactPolicyVersion,
+    timingPolicy,
+  ).view
   const definition = {
     ...ability,
     cooldown: ability.cooldownOwnerTurns
@@ -91,16 +97,6 @@ function SummonAbilityDetails({ ability }: { ability: SummonAbilityDefinition })
           </li>
         ))}
       </ul>
-      {ability.requirements.length ? (
-        <>
-          <strong>Requirement details</strong>
-          <ul>
-            {ability.requirements.map((requirement, index) => (
-              <li key={index}>{skillRequirementDescription(requirement)}</li>
-            ))}
-          </ul>
-        </>
-      ) : null}
       <p>A summon can use one ability per turn.</p>
     </>
   )
@@ -137,11 +133,16 @@ export function SummonAbilityList({
       policy={policies.effectTimingPolicy ?? null}
       dotTriggerPolicyVersion={policies.dotTriggerPolicyVersion ?? null}
       frozenGroundPolicyVersion={policies.frozenGroundPolicyVersion ?? null}
+      groundContactPolicyVersion={policies.groundContactPolicyVersion ?? null}
       airbornePolicyVersion={policies.airbornePolicyVersion ?? null}
       airborneJumpPolicyVersion={policies.airborneJumpPolicyVersion ?? null}
       elementalDamagePolicyVersion={policies.elementalDamagePolicyVersion ?? null}
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
       blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
+      reversalPolicyVersion={policies.reversalPolicyVersion ?? null}
+      pierceCriticalPolicyVersion={policies.pierceCriticalPolicyVersion ?? null}
+      summonPotencyPolicyVersion={policies.summonPotencyPolicyVersion ?? null}
+      ruinPolicyVersion={policies.ruinPolicyVersion ?? null}
     >
       <div className={styles.list} aria-label="Summon abilities">
         {abilities.map((ability) => (

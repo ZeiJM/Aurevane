@@ -864,14 +864,14 @@ describe('canonical Ability definition', () => {
         },
       } as never)
       expect(validateAbilityDefinition(value)).toEqual([])
-      for (const durationTurns of [1, 3, 4]) {
+      for (const durationTurns of [1, 3, 4, 99]) {
         Object.assign(value.behaviors[0]!.effects[1]!.payload, {
           durationTurns,
           ...(element === 'ice' ? {} : { potencyBasisPoints: 3525 }),
         })
         expect(validateAbilityDefinition(value)).toEqual([])
       }
-      for (const durationTurns of [0, 5]) {
+      for (const durationTurns of [0, 100]) {
         Object.assign(value.behaviors[0]!.effects[1]!.payload, { durationTurns })
         expect(validateAbilityDefinition(value).length).toBeGreaterThan(0)
       }

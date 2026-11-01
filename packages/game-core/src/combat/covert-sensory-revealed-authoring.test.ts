@@ -41,9 +41,9 @@ describe('CSR-1 authoring validation', () => {
     expect(() => validateCombatActionDefinition(sensoryAction(4))).not.toThrow()
   })
 
-  it.each([0, 5, -1, 1.5])('rejects invalid Sensory Revealed duration %s', (duration) => {
+  it.each([0, 100, -1, 1.5])('rejects invalid Sensory Revealed duration %s', (duration) => {
     expect(() => validateCombatActionDefinition(sensoryAction(duration))).toThrow(
-      'Sensory Revealed duration must be an integer from 1 to 4 owner-turn starts.',
+      'Sensory Revealed duration must be an integer from 1 to 99 owner-turn starts.',
     )
   })
 

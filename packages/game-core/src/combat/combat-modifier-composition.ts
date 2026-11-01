@@ -198,6 +198,13 @@ export function composeCombatModifiers(
       ? eligible(rootNativeEffects![i]!, rootContext)
       : rootAction.effectEligibleRecipientIds?.[i],
   )
+  const requirementCaptures = rootAction.effects.map((_, i) =>
+    rootBehavior &&
+    rootNativeEffects?.[i]?.requirements &&
+    input.state.groundContactPolicyVersion === 1
+      ? { requirement: rootNativeEffects[i]!.requirements!, context: rootContext, selectedSubjects }
+      : rootAction.effectRequirementCaptures?.[i],
+  )
   const bonuses: CombatCommandDamageBonus[] = []
   function compatible(behavior: AbilityBehavior): boolean {
     const facts =
@@ -250,6 +257,11 @@ export function composeCombatModifiers(
       timings.push(effect.timing)
       timingTags.push(undefined)
       eligibility.push(recipientIds)
+      requirementCaptures.push(
+        effect.requirements && input.state.groundContactPolicyVersion === 1
+          ? { requirement: effect.requirements, context, selectedSubjects }
+          : undefined,
+      )
     }
   }
   const selected = resolveCombatManualModifierReferences(
@@ -378,6 +390,7 @@ export function composeCombatModifiers(
       effectTimingModes: timings,
       effectTimingTags: timingTags,
       effectEligibleRecipientIds: eligibility,
+      effectRequirementCaptures: requirementCaptures,
       ...(bonuses.length > 0 ? { commandDamageBonuses: bonuses } : {}),
     },
     participants,

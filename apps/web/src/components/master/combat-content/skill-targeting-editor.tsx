@@ -4,13 +4,13 @@ import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   MAXIMUM_COMBAT_LINE_LENGTH,
+  MAXIMUM_COMBAT_CIRCLE_RADIUS,
   maximumSupportedCombatRange,
   normalizeCurrentCombatTargetSpec,
 } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import { skillTargetMethodExplanation } from '../../character/skill-detail-presentation'
 import type { TargetedEffect } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { AbilityNumber } from './ability-editor-fields'
-import { MasterHelp } from '../master-help'
 import styles from './combat-content-editor.module.css'
 
 export interface SkillTargetingEditorProps {
@@ -54,10 +54,10 @@ export function SkillTargetingEditor({
     } else onChange(normalizeCurrentCombatTargetSpec(next))
   }
   const friendlyFireApplicable =
-    (area || effects?.some((effect) => effect.target === 'all')) &&
+    value.shape.kind !== 'single' &&
     (!effects ||
       effects.some((effect) => {
-        if (effect.recipient === 'actor' || effect.target === 'self' || effect.target === 'ally')
+        if (effect.recipient === 'actor' || ['self', 'ally', 'all'].includes(effect.target ?? ''))
           return false
         if (
           ['damage', 'pierce', 'poison', 'bleed', 'burn', 'displace', 'sensory'].includes(
@@ -80,14 +80,6 @@ export function SkillTargetingEditor({
     value.friendlyFire === 'all-units' || value.friendlyFire === 'all-except-actor'
   return (
     <fieldset className={styles.typedGroup} aria-label="Range & Area" disabled={disabled}>
-      <legend>
-        Range &amp; Area{' '}
-        <MasterHelp label="Range availability">
-          Move uses its own Ground path, distance and Jump limits. A Move-only group needs no attack
-          aim unless a Requirement selects a unit. Disabled values remain in the draft and return
-          with follow-up effects.
-        </MasterHelp>
-      </legend>
       <p className={styles.fieldHint}>
         Choose each effect’s Target in Effects. This area controls their shared reach and footprint.
       </p>
@@ -174,8 +166,7 @@ export function SkillTargetingEditor({
             </label>
           </>
         ) : null}
-        {['enemy', 'any'].includes(value.teamPolicy) ||
-        effects?.some((effect) => effect.target === 'all') ? (
+        {friendlyFireApplicable ? (
           <label className={styles.field}>
             <span>Friendly Fire</span>
             <select
@@ -198,7 +189,7 @@ export function SkillTargetingEditor({
               <option value="on">On</option>
             </select>
             <small className={styles.fieldHint}>
-              Applies to hostile area effects. Explicit Ally and Self effects keep their own
+              Applies to hostile area effects. Explicit Ally, Self and All effects keep their own
               targets.
             </small>
           </label>
@@ -208,7 +199,13 @@ export function SkillTargetingEditor({
             label={shape.kind === 'circle' ? 'Circle radius' : 'Line length'}
             value={shape.kind === 'circle' ? shape.radius : shape.length}
             min={modern ? 1 : shape.kind === 'circle' ? 0 : 1}
-            max={shape.kind === 'line' ? MAXIMUM_COMBAT_LINE_LENGTH : modern ? 5 : undefined}
+            max={
+              shape.kind === 'line'
+                ? MAXIMUM_COMBAT_LINE_LENGTH
+                : modern
+                  ? MAXIMUM_COMBAT_CIRCLE_RADIUS
+                  : undefined
+            }
             onChange={(reach) =>
               change({
                 ...value,

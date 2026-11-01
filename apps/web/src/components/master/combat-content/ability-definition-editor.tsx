@@ -13,7 +13,8 @@ import {
   insertAuthoringEffect,
 } from '@/lib/combat-ability-authoring-compatibility'
 
-import { newResonanceAbility } from './new-resonance-ability'
+import type { ReactNode } from 'react'
+import { remapAbilityEffectDescriptions } from '@/lib/combat-damage-authoring'
 import { MasterHelp } from '../master-help'
 import {
   isAuthoredElementalCompanion,
@@ -229,7 +230,7 @@ function AbilityGroupEditor({
           </button>
         </aside>
       ) : null}
-      {elementRepair !== value ? (
+      {show('details') && elementRepair !== value ? (
         <aside role="status">
           <p>
             This recovered draft needs its required elemental tags synchronized. Other edits are
@@ -592,19 +593,7 @@ function AbilityGroupEditor({
             value={value.requirements}
             onChange={(requirements) => onChange({ ...value, requirements })}
           />
-          <p className={styles.fieldHint}>
-            Requirements gate this behavior group’s complete activation and every effect. Other
-            behavior groups keep their own activation and Requirements.
-          </p>
           <LegacyEffectRequirements value={value} onChange={onChange} />
-          {value.requirementMode !== 'simple' ? (
-            <button
-              type="button"
-              onClick={() => onChange({ ...value, requirementMode: 'simple', requirements: null })}
-            >
-              Use tag requirements
-            </button>
-          ) : null}
         </>
       )}
       {show('range') && value.targeting ? (
@@ -746,8 +735,8 @@ function AbilityGroupEditor({
 
 /** One canonical editing surface for Skill, Essence, Resonance and Basic containers. */
 export function AbilityDefinitionEditor({
-  value,
-  effectDescriptions,
+  value: captured,
+  effectDescriptions: capturedDescriptions,
   onChange,
   section,
   category,
@@ -759,12 +748,25 @@ export function AbilityDefinitionEditor({
   effectDescriptions?: readonly (string | null)[]
   onChange: (value: AbilityDefinition, effectDescriptions: readonly (string | null)[]) => void
 }) {
-  if (!value || !Array.isArray(value.behaviors))
+  if (!captured || !Array.isArray(captured.behaviors))
     return (
       <p role="alert">
         This draft has an invalid Ability shape. Restore a valid definition before editing.
       </p>
     )
+  const value = {
+    ...captured,
+    behaviors: captured.behaviors.map((group: AbilityBehavior) =>
+      group.effects.some((effect) => effect.payload.type === 'create-terrain')
+        ? withAbilityEffectDependencies(group, group)
+        : group,
+    ),
+  }
+  const effectDescriptions = capturedDescriptions
+    ? (remapAbilityEffectDescriptions(captured, value, capturedDescriptions) as readonly (
+        string | null
+      )[])
+    : undefined
   const groups: readonly AbilityBehavior[] = value.behaviors
   const issues = validateAbilityDefinition(activeAbilityForAuthoring(value))
   const total = groups.reduce((sum, behavior) => sum + behavior.effects.length, 0)
@@ -813,17 +815,12 @@ export function AbilityDefinitionEditor({
         </div>
       ) : null}
       {groups.map((behavior, index) => (
-        <details
+        <AbilityGroupPanel
           key={behavior.id}
-          open
-          className={styles.typedGroup}
-          data-ability-group={behavior.id}
+          id={behavior.id}
+          showHeading={!section || section === 'details'}
+          label={`Behavior ${index + 1} · ${{ manual: 'Manual', automatic: 'Automatic', ongoing: 'Ongoing' }[behavior.activation]} ${behavior.mode === 'action' ? 'action' : 'modifier'}`}
         >
-          <summary>
-            Behavior {index + 1} ·{' '}
-            {{ manual: 'Manual', automatic: 'Automatic', ongoing: 'Ongoing' }[behavior.activation]}{' '}
-            {behavior.mode === 'action' ? 'action' : 'modifier'}
-          </summary>
           {(!section || section === 'details') && (
             <>
               <div className={styles.groupActions}>
@@ -886,31 +883,31 @@ export function AbilityDefinitionEditor({
               })
             }
           />
-        </details>
+        </AbilityGroupPanel>
       ))}
-      {(!section || section === 'details') && (
-        <>
-          <button
-            type="button"
-            aria-label="Add behavior group"
-            disabled={value.behaviors.length >= ABILITY_DEFINITION_BUDGET.maximumBehaviors}
-            onClick={() =>
-              commit({
-                ...value,
-                behaviors: [
-                  ...value.behaviors,
-                  {
-                    ...(category === 'passive' ? newResonanceAbility().behaviors[0]! : base()),
-                    id: nextId('group', value.behaviors),
-                  },
-                ],
-              })
-            }
-          >
-            Add behavior
-          </button>{' '}
-        </>
-      )}
     </section>
+  )
+}
+
+function AbilityGroupPanel({
+  id,
+  label,
+  showHeading,
+  children,
+}: {
+  id: string
+  label: string
+  showHeading: boolean
+  children: ReactNode
+}) {
+  return showHeading ? (
+    <details open className={styles.typedGroup} data-ability-group={id}>
+      <summary>{label}</summary>
+      {children}
+    </details>
+  ) : (
+    <div role="group" aria-label={label} className={styles.effectList} data-ability-group={id}>
+      {children}
+    </div>
   )
 }

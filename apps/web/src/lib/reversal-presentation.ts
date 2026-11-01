@@ -3,11 +3,13 @@ import type { CombatReversalPayload } from '@aurevane/game-core/combat/combat-re
 export type ReversalPresentationValues = Pick<
   CombatReversalPayload,
   'family' | 'reflectionBasisPoints' | 'attackerMaxHpCapBasisPoints' | 'defenderMaxHpCapBasisPoints'
->
+> & { policyVersion?: 1 }
 
-export function isReversalPresentationEffect(
-  effect: unknown,
-): effect is ReversalPresentationValues & { type: 'reversal' } {
+export interface ReversalPresentationOptions {
+  legacyReversal?: boolean
+}
+
+export function isReversalPresentationEffect(effect: unknown): effect is CombatReversalPayload {
   return (
     typeof effect === 'object' && effect !== null && 'type' in effect && effect.type === 'reversal'
   )
@@ -20,7 +22,17 @@ export function reversalMagnitude(values: ReversalPresentationValues): string {
   return `${values.reflectionBasisPoints / 100}% ${values.family === 'physical' ? 'Physical' : 'Mystic'}`
 }
 
-export function reversalDescription(values: ReversalPresentationValues): string {
+export function reversalRuleDescription(options: ReversalPresentationOptions = {}): string {
+  return `Arms immediately after paid Controlled preparation. Prevents the first qualifying hostile front/side direct hit in its saved family, then returns the configured percentage of prevented HP damage. ${options.legacyReversal ? 'Saved maximum-HP caps apply; expires at the next actual owner turn.' : 'Remains armed until triggered or cancelled, without maximum-HP caps.'} Reveal, defeat or battle end also disarm it. Offensive attacks are blocked while armed. Ending causes Reversal Strain; cancellation refunds nothing.`
+}
+
+export function reversalDescription(
+  values: ReversalPresentationValues,
+  options: ReversalPresentationOptions = {},
+): string {
   const family = values.family === 'physical' ? 'Physical' : 'Mystic'
-  return `Prepare one ${family} Reversal using Controlled timing during your normal turn, before any offensive attack, paying the Skill’s normal costs and starting its cooldown immediately. The first successful direct hostile ${family} damage packet from the front or side that would reach HP is prevented, together with that hit’s dependent hostile effects. Return ${values.reflectionBasisPoints / 100}% of the prevented HP damage, capped at the lower of ${values.attackerMaxHpCapBasisPoints / 100}% of the attacker’s maximum HP and ${values.defenderMaxHpCapBasisPoints / 100}% of your maximum HP. Summons also obey their authored outgoing damage cap. Attacker Barrier can absorb the return; no additional accuracy, critical or offensive scaling applies. Rear attacks, other damage families, misses and indirect damage bypass it without consuming it. Fully absorbed or mitigated hits do not consume it. Offensive attacks are unavailable while armed. Ends on its first trigger, the start of your next actual turn, successful Reveal, cancellation, defeat or battle end; round boundaries do not end it. Active Revealed prevents preparation. Cancellation refunds no costs and keeps the cooldown. Every ending causes Reversal Strain. ${REVERSAL_STRAIN_DESCRIPTION}`
+  const lifetime = options.legacyReversal
+    ? `Expires at the next actual owner turn; return is capped at the lower of ${values.attackerMaxHpCapBasisPoints / 100}% attacker maximum HP or ${values.defenderMaxHpCapBasisPoints / 100}% your maximum HP.`
+    : 'Remains armed until triggered or cancelled.'
+  return `Arms immediately on paid Controlled preparation. Prevents the first hostile front/side ${family} direct hit that would reach HP; returns ${values.reflectionBasisPoints / 100}% of that damage. ${lifetime} Summon limits and Barrier still apply. Reveal, defeat or battle end also disarm it. No offensive attacks while armed. Ending causes Reversal Strain. Cancellation refunds nothing.`
 }

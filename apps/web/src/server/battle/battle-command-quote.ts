@@ -33,6 +33,7 @@ export function projectBattleCommandQuote(
       : [
           { resource: 'ap' as const, amount: input.native.apCost },
           { resource: 'mp' as const, amount: input.native.action.cost.mp ?? 0 },
+          { resource: 'hp' as const, amount: input.native.action.cost.hp ?? 0 },
         ]
   const commandCosts = (['ap', 'mp', 'hp'] as const).map((resource) => {
     const amount = costs.find((row) => row.resource === resource)?.amount ?? 0

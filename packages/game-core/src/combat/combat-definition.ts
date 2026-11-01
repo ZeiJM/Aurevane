@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import {
   isSimpleRequirement,
   simpleRequirementSubjects,
@@ -611,7 +612,11 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       const ground = candidate.groundArea
       const groundPath = `${path}.groundArea`
       if (record(ground))
-        keys(ground, ['durationRounds', 'visualPresetId', 'entryEffectIds', 'timing'], groundPath)
+        keys(
+          ground,
+          ['durationRounds', 'visualPresetId', 'entryEffectIds', 'timing', 'contactPolicyVersion'],
+          groundPath,
+        )
       try {
         if (
           !record(ground) ||
@@ -637,18 +642,13 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
             record(effect.payload) &&
             !['move', 'summon', 'damage-bonus'].includes(effect.payload.type as string),
         ) as unknown as AbilityEffect[]
-        if (
-          nativeEffects.some(
-            (effect) => entryEffectIds.includes(effect.id) && effect.payload.type === 'pierce',
-          )
-        )
-          throw new TypeError(
-            'Pierce requires its specialized equipment Armor resolver and cannot repeat on Ground entry.',
-          )
         validateCombatGroundAreaDefinition({
           target: canonicalAbilityTargetSpec(target as unknown as CombatTargetSpec),
           effects: nativeEffects.map((effect) => nativeCombatTagPayload(effect.payload)),
           groundArea: {
+            ...(Object.hasOwn(ground, 'contactPolicyVersion')
+              ? { contactPolicyVersion: ground.contactPolicyVersion as 1 }
+              : {}),
             durationRounds: ground.durationRounds as number,
             visualPresetId: ground.visualPresetId as CombatGroundAreaDefinition['visualPresetId'],
             entryEffectOrdinals: entryEffectIds.map((id) =>
@@ -921,7 +921,7 @@ export function validateAbilityElementalCompanions(
       (companion.payload.stacks !== 1 ||
         !nonnegative(companion.payload.durationTurns) ||
         companion.payload.durationTurns < 1 ||
-        companion.payload.durationTurns > 4 ||
+        companion.payload.durationTurns > CURRENT_EFFECT_DURATION_MAXIMUM_TURNS ||
         (status === 'frozen'
           ? companion.payload.potencyBasisPoints !== undefined
           : companion.payload.potencyBasisPoints === undefined))

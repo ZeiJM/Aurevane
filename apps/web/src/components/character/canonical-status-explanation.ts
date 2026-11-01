@@ -26,7 +26,7 @@ export function canonicalStatusExplanation(
     inspired: 'Deal more damage per application.',
     hexed: options.legacyHealingDown ? 'Receive less healing.' : 'Receive less HP and MP recovery.',
     exposed: 'Take more damage per application. Reapplying refreshes the duration.',
-    suppress: mechanicText`Deal less direct damage. Reapplying keeps the stronger, longer effect. Existing ${mechanicTag('burn')}, ${mechanicTag('poison')} and ${mechanicTag('bleed')} damage is unchanged. Cleanse removes it; Dispel does not.`,
+    suppress: mechanicText`Deal less direct damage. Reapplying keeps the stronger, longer effect. Existing ${mechanicTag('burn')}, ${mechanicTag('poison')} and ${mechanicTag('bleed')} damage is unchanged.`,
     slow: 'Movement costs more AP per tile. Movement allowance is unchanged.',
     mark: 'Only the source gains Accuracy against this target; other attackers gain no benefit.',
     covert: 'Conceal beneficial effects from opposing viewers until revealed.',
@@ -40,8 +40,7 @@ export function canonicalStatusExplanation(
         : 'Increase Physical and Mystic Defense and reduce outgoing damage by the same percentage.',
     reckless: 'Increase outgoing and incoming damage. Both effects expire or are removed together.',
     warded: mechanicText`Take less damage from opponents affected by ${mechanicTag('burn')}.`,
-    frozen:
-      'Cannot change final facing. Movement still turns the bearer. Cleanse Chilled removes it.',
+    frozen: 'Cannot change final facing.',
     conductive:
       'Take more Storm damage. Storm damage consumes the old charge; this Skill can apply a fresh charge afterward.',
   }

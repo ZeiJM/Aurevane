@@ -1,10 +1,16 @@
 'use client'
 
+import {
+  currentGroundBehaviorPresentation,
+  currentGroundNote,
+} from '@/lib/combat-ground-presentation'
+
 import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { BasicActionCharacterStats } from './basic-action-presentation'
 import type { PublicAbilityDefinition } from '@aurevane/game-core/combat/public-combat-presentation'
 import { abilityBehaviorInformation } from './ability-detail-presentation'
 import { AbilityParameters } from './ability-parameters'
+import { withCurrentAttackRuleHelp } from './skill-effect-preview'
 import {
   useSkillEffectTimingPolicy,
   useSkillGroundInteractionRules,
@@ -44,7 +50,21 @@ export function AbilityDefinitionParameters({
         const offset = definition.behaviors
           .slice(0, index)
           .reduce((sum, group) => sum + group.effects.length, 0)
-        const explanations = authored?.slice(offset, offset + behavior.effects.length)
+        const savedRuleHelp = (effectIndex: number, wording: string) => {
+          const payload = behavior.effects[effectIndex]!.payload
+          return payload.type === 'pierce' ||
+            payload.type === 'weak-point' ||
+            payload.type === 'spike' ||
+            payload.type === 'ruin'
+            ? withCurrentAttackRuleHelp(
+                payload,
+                groundRules,
+                wording,
+                report.effectDescriptions[effectIndex],
+              )
+            : wording
+        }
+        const savedExplanations = authored?.slice(offset, offset + behavior.effects.length)
         const report = abilityBehaviorInformation(behavior, {
           tagPresentation: definition.tagPresentation,
           basic,
@@ -56,6 +76,24 @@ export function AbilityDefinitionParameters({
             legacyPoisonMovement: dotPolicy !== 2,
           },
         })
+        const groundPresentation = currentGroundBehaviorPresentation(
+          behavior,
+          groundRules.groundContactPolicyVersion,
+          timingPolicy,
+        )
+        const explanations =
+          savedExplanations &&
+          groundPresentation.sourceOrdinals.map((ordinal) => {
+            const wording = savedExplanations[ordinal]
+            if (wording == null) return wording
+            if (
+              groundRules.groundContactPolicyVersion === 1 &&
+              (behavior.effects[ordinal]!.payload.type === 'create-terrain' ||
+                groundPresentation.fieldOrdinals.has(ordinal))
+            )
+              return currentGroundNote(wording, behavior.effects[ordinal]!.payload)
+            return savedRuleHelp(ordinal, wording)
+          })
         const label = `${behavior.activation === 'manual' ? 'Manual' : behavior.activation === 'automatic' ? 'Automatic' : 'Ongoing'} ${behavior.mode === 'action' ? 'Action' : 'Modifier'}${definition.behaviors.length > 1 ? ` ${index + 1}` : ''}`
         return (
           <section

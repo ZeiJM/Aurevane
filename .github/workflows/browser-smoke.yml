@@ -102,6 +102,12 @@ jobs:
           AV_TARGETING_EVIDENCE_DIR: /tmp/battle-targeting-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-targeting-browser-regression.mjs
 
+      - name: Verify grouped Ground previews and pending field visuals
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_GROUND_PREVIEW_EVIDENCE_DIR: /tmp/battle-ground-preview-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ground-preview-browser-regression.mjs
+
       - name: Verify captured plural targeting and Manual behavior choices
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}
         env:
@@ -238,6 +244,14 @@ jobs:
         with:
           name: battle-targeting-review
           path: /tmp/battle-targeting-review
+          retention-days: 7
+
+      - name: Save grouped Ground preview and field visual evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ground-preview-review
+          path: /tmp/battle-ground-preview-review
           retention-days: 7
 
       - name: Save captured targeting evidence

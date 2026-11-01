@@ -2,9 +2,77 @@ import { expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 import { capturedBasicBattle } from './battle-basic-actions.test-utils'
 import { buildMovementPaths, buildReachablePaths } from './battle-geometry'
-import { evaluatePv1fMovement } from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  evaluatePv1fMovement,
+  executePv1fMovement,
+  spendPv1fActionEconomy,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { canAffordBattleBasicAction } from '@/lib/battle/battle-basic-actions'
 import { projectBattleSnapshot } from '@/server/battle/battle-session-service'
 import { deriveParticipantBattleViewerEntitlement } from '@/server/battle/battle-viewer-entitlement'
+
+it('admits captured path-priced Move at AP0 while its free reachable paths remain finite', () => {
+  const base = capturedBasicBattle('basic.recover', false, { apCost: 20 })
+  const state = spendPv1fActionEconomy(
+    {
+      ...base.state,
+      statusState: base.state.statusState.map((row) =>
+        row.combatantId === 'actor'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: 'haste',
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 2,
+                  movementApAdjustment: 20,
+                  sourceCombatantId: 'actor',
+                },
+              ],
+            }
+          : row,
+      ),
+    },
+    100,
+  )
+  const snapshot = projectBattleSnapshot(
+    state,
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, ['actor']),
+  )
+  const move = snapshot.basicActions!.find((row) => row.actionId === 'basic.move')!
+  expect(canAffordBattleBasicAction(move, { ap: 0, mp: 20, hp: 1000 })).toBe(true)
+  const placement = snapshot.tactical.placements.find((row) => row.combatantId === 'actor')!
+  const paths = buildMovementPaths(snapshot, placement, 0)
+  expect(paths.size).toBeGreaterThan(0)
+  expect(paths.size).toBeLessThan(snapshot.tactical.width * snapshot.tactical.height)
+  for (const path of paths.values()) {
+    expect(path.length).toBeLessThanOrEqual(5)
+    expect(new Set(path.map((point) => `${point.x},${point.y}`)).size).toBe(path.length)
+    expect(evaluatePv1fMovement(state, path)).toMatchObject({
+      economyCost: 0,
+      movement: { legal: true },
+    })
+  }
+  const path = paths.get('0:0')!
+  const moved = executePv1fMovement(state, path).state
+  expect(moved.tactical.battle.currentTurn?.movementRemaining).toBe(4 - (path.length - 1))
+})
+
+it('retains flat Move payment and rejects disabled or defeated path-priced Move at AP0', () => {
+  const flat = capturedBasicBattle('basic.recover', false, {
+    costBasis: 'flat',
+    apCost: 20,
+  }).view.snapshot.basicActions!.find((row) => row.actionId === 'basic.move')!
+  const native = capturedBasicBattle().view.snapshot.basicActions!.find(
+    (row) => row.actionId === 'basic.move',
+  )!
+  expect(canAffordBattleBasicAction(flat, { ap: 0, mp: 20, hp: 1000 })).toBe(false)
+  expect(
+    canAffordBattleBasicAction({ ...native, enabled: false }, { ap: 0, mp: 20, hp: 1000 }),
+  ).toBe(false)
+  expect(canAffordBattleBasicAction(native, { ap: 0, mp: 20, hp: 0 })).toBe(false)
+})
 
 it('uses the saved traversal price rather than today’s built-in 20 AP highlights', () => {
   const { view, state } = capturedBasicBattle()

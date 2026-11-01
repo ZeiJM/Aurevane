@@ -36,6 +36,8 @@ export function resolveMasterBattleRecovery(snapshot: unknown): StatDrivenCombat
     'turnTriggerState',
     'percentageDotCommands',
     'effectState',
+    'endureState',
+    'reversalState',
   ] as const)
     delete cleared[key]
   const terminal = {

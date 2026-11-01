@@ -30,7 +30,7 @@ it('greys pure Move attack controls while keeping the raw aim and fixed accuracy
   const value = fixture(),
     before = JSON.stringify(value)
   const html = renderToStaticMarkup(<AbilityDefinitionEditor value={value} onChange={() => {}} />)
-  expect(html).toMatch(/<fieldset[^>]*disabled[^>]*><legend>Range/)
+  expect(html).toMatch(/<fieldset[^>]*aria-label="Range &amp; Area"[^>]*disabled/)
   expect(html).toMatch(/aria-label="Accuracy rule"[^>]*disabled/)
   expect(html).toContain('77.77%')
   expect(html).not.toContain('Resolve compatibility before publishing')
@@ -71,7 +71,7 @@ it('reenables reach and accuracy for mixed attacks while leaving selected-target
     behaviors: value.behaviors.map((group) => ({ ...group, effects: [...group.effects, attack] })),
   }
   const html = renderToStaticMarkup(<AbilityDefinitionEditor value={mixed} onChange={() => {}} />)
-  expect(html).not.toMatch(/<fieldset[^>]*disabled[^>]*><legend>Range/)
+  expect(html).not.toMatch(/<fieldset[^>]*aria-label="Range &amp; Area"[^>]*disabled/)
   expect(html).not.toMatch(/aria-label="Accuracy rule"[^>]*disabled/)
   const selected = {
     ...value,
@@ -88,7 +88,7 @@ it('reenables reach and accuracy for mixed attacks while leaving selected-target
   const required = renderToStaticMarkup(
     <AbilityDefinitionEditor value={selected} onChange={() => {}} />,
   )
-  expect(required).not.toMatch(/<fieldset[^>]*disabled[^>]*><legend>Range/)
+  expect(required).not.toMatch(/<fieldset[^>]*aria-label="Range &amp; Area"[^>]*disabled/)
   expect(required).toMatch(/aria-label="Accuracy rule"[^>]*disabled/)
   expect(required).toContain('aria-label="Unit for Target Requirements"')
 })

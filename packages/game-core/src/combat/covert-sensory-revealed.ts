@@ -1,3 +1,4 @@
+import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { hasArmedCombatReversal } from './combat-reversal'
 import { combatStatusApplications } from './combat-status-applications'
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
@@ -17,7 +18,7 @@ import type {
 
 export const CSR_STATUS_VERSION = 1 as const
 export const CSR_MINIMUM_DURATION_OWNER_TURN_STARTS = 1 as const
-export const CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS = 4 as const
+export const CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS = CURRENT_EFFECT_DURATION_MAXIMUM_TURNS
 export const COVERT_STATUS_ID = 'covert' as const
 export const REVEALED_STATUS_ID = 'revealed' as const
 
@@ -218,7 +219,7 @@ export function createCovertStatusDefinition(
     durationOwnerTurnStarts,
     damageTakenMultiplierBasisPoints: 10_000,
     polarity: 'positive',
-    amplifyCopyable: false,
+    amplifyCopyable: true,
     curseCopyable: false,
     reactionClass: 'ordinary',
     effectCategories: ['Buff', 'Stealth'],
@@ -291,7 +292,10 @@ export function validateCsrActionDefinition(
   for (const effect of action.effects) {
     if (effect.type === 'sensory') {
       sensoryCount += 1
-      if (effect.recipient !== 'primary-unit' || action.target.kind !== 'unit') {
+      if (!(
+        (effect.recipient === 'primary-unit' && action.target.kind === 'unit') ||
+        (effect.recipient === 'affected-units' && effect.target === 'ground')
+      )) {
         throw new TypeError('Sensory requires a primary-unit effect on a unit-targeting Skill.')
       }
       validateCsrDuration(effect.revealedDurationOwnerTurnStarts, 'Sensory Revealed duration')
@@ -317,6 +321,20 @@ export function materializeCsrPreviewAction(
       ? { target: { ...action.target, revealConcealedTargets: true as const } }
       : {}),
     effects: action.effects.filter((effect) => effect.type !== 'sensory'),
+    ...(action.effectSourceOrdinals
+      ? {
+          effectSourceOrdinals: action.effectSourceOrdinals.filter(
+            (_, i) => action.effects[i]?.type !== 'sensory',
+          ),
+        }
+      : {}),
+    ...(action.effectRequirementCaptures
+      ? {
+          effectRequirementCaptures: action.effectRequirementCaptures.filter(
+            (_, i) => action.effects[i]?.type !== 'sensory',
+          ),
+        }
+      : {}),
     ...(action.effectTimingTags
       ? {
           effectTimingTags: action.effectTimingTags.filter(
@@ -461,6 +479,20 @@ export function materializeCsrCommittedAction(input: {
         ? { target: { ...action.target, revealConcealedTargets: true as const } }
         : {}),
       effects: ordering.map((index) => effects[index]!),
+      ...(action.effectSourceOrdinals
+        ? {
+            effectSourceOrdinals: ordering.map(
+              (index) => action.effectSourceOrdinals![effectSourceOrdinals[index]!]!,
+            ),
+          }
+        : {}),
+      ...(action.effectRequirementCaptures
+        ? {
+            effectRequirementCaptures: ordering.map(
+              (index) => action.effectRequirementCaptures![effectSourceOrdinals[index]!],
+            ),
+          }
+        : {}),
       effectTimingTags: ordering.map((index) => effectTimingTags[index]),
       ...(action.effectOrigins
         ? { effectOrigins: ordering.map((index) => effectOrigins[index]) }
@@ -609,7 +641,9 @@ function validateCsrDuration(value: number, field: string): void {
     value < CSR_MINIMUM_DURATION_OWNER_TURN_STARTS ||
     value > CSR_MAXIMUM_DURATION_OWNER_TURN_STARTS
   ) {
-    throw new RangeError(`${field} must be an integer from 1 to 4 owner-turn starts.`)
+    throw new RangeError(
+      `${field} must be an integer from 1 to ${CURRENT_EFFECT_DURATION_MAXIMUM_TURNS} owner-turn starts.`,
+    )
   }
 }
 

@@ -790,10 +790,16 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
         preset: await preset.inputValue(),
         backlash: await backlash.inputValue(),
       }
-      await duration.fill('4')
-      await preset.selectOption('frost')
+      // Repeats share the disposable catalogue, including edits left by a failed run.
+      const authored = {
+        duration: original.duration === '4' ? '3' : '4',
+        preset: original.preset === 'frost' ? 'embers' : 'frost',
+        backlash: original.backlash === '12.34' ? '12.35' : '12.34',
+      }
+      await duration.fill(authored.duration)
+      await preset.selectOption(authored.preset)
       await showBurnParameters()
-      await backlash.fill('12.34')
+      await backlash.fill(authored.backlash)
       const publication = await commitContent(page)
       const groundServices = await verifyAuthoringServices(
         page,
@@ -809,14 +815,20 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       )
       expect(groundServices.diff.changedPaths).not.toContain('groundArea.timing')
       expect(groundServices.preview.groundAreas).toEqual(
-        expect.arrayContaining([expect.objectContaining({ visualPresetId: 'frost' })]),
+        expect.arrayContaining([expect.objectContaining({ visualPresetId: authored.preset })]),
       )
       expect({ published: publishedSnapshot(publication) }).toMatchObject({
         published: {
           definition: {
-            groundArea: { durationRounds: 4, visualPresetId: 'frost' },
+            groundArea: {
+              durationRounds: Number(authored.duration),
+              visualPresetId: authored.preset,
+            },
             effects: expect.arrayContaining([
-              expect.objectContaining({ type: 'burn', backlashBasisPoints: 1234 }),
+              expect.objectContaining({
+                type: 'burn',
+                backlashBasisPoints: Math.round(Number(authored.backlash) * 100),
+              }),
             ]),
           },
         },
@@ -826,11 +838,11 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await page.reload()
       await selectFlame()
       expect(await currentContentVersion(page)).toBe(flameVersion)
-      await expect(duration).toHaveValue('4')
-      await expect(preset).toHaveValue('frost')
+      await expect(duration).toHaveValue(authored.duration)
+      await expect(preset).toHaveValue(authored.preset)
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
       await showBurnParameters()
-      await expect(backlash).toHaveValue('12.34')
+      await expect(backlash).toHaveValue(authored.backlash)
       await page.getByRole('tab', { name: 'Range & Area', exact: true }).click()
       await duration.scrollIntoViewIfNeeded()
       const fieldBox = await duration.boundingBox()
@@ -869,12 +881,14 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
         throw new Error('Ground area public projection is missing.')
       expect(Object.keys(publicAreas[0]).sort()).toEqual([
         'activationRound',
+        'effectVisualIds',
         'expiresAtRound',
         'id',
         'tiles',
         'visualPresetId',
       ])
-      expect(publicAreas[0].visualPresetId).toBe('frost')
+      expect(publicAreas[0].effectVisualIds).toEqual(['damage', 'status:burn'])
+      expect(publicAreas[0].visualPresetId).toBe(authored.preset)
       expect(Array.isArray(publicAreas[0].tiles) && publicAreas[0].tiles.length > 0).toBe(true)
       expect(
         queryLocalDatabase(
@@ -884,7 +898,11 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await page.reload()
       const reloadedGround = await readBattle(page, createdGroundBattle.battleSessionId)
       expect(reloadedGround).toMatchObject({ battle: { snapshot: { groundAreas: publicAreas } } })
-      await expect(page.locator('[data-ground-area-preset="frost"]').first()).toBeVisible()
+      const groundLayer = page.locator(`[data-ground-area-id="${publicAreas[0].id}"]`).first()
+      await expect(groundLayer).toBeVisible()
+      await expect(groundLayer).toHaveAttribute('data-ground-area-preset', 'arcane-pulse')
+      for (const id of ['damage', 'status:burn'])
+        await expect(page.locator(`[data-ground-effect-id="${id}"]`).first()).toBeVisible()
       await page.screenshot({
         path: testInfo.outputPath(`battle-ground-${width}.png`),
         fullPage: true,
