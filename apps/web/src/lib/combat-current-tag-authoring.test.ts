@@ -1,3 +1,4 @@
+import { selectableCombatStatusIds } from '@aurevane/game-core/combat/combat-status-selection'
 import { expect, it } from 'vitest'
 import { currentTagForAuthoring } from './combat-current-tag-authoring'
 it('converts an edited Vengeance into configured Counter without changing the original capture', () => {
@@ -256,3 +257,45 @@ it.each(['skill', 'essence', 'resonance'] as const)(
     expect(payload).not.toHaveProperty('selectionKind')
   },
 )
+
+it('normalizes only edited Copy Buffs choices, retaining historical captures and explicit subsets', () => {
+  const captured = {
+    type: 'copy-statuses' as const,
+    recipient: 'primary-unit' as const,
+    mode: 'amplify' as const,
+    statusIds: ['blindside', 'invisible'],
+  }
+  expect(currentTagForAuthoring(captured)).toEqual({
+    ...captured,
+    invisibleDonorPolicyVersion: 1,
+    statusIds: ['invisible'],
+  })
+  expect(captured.statusIds).toEqual(['blindside', 'invisible'])
+  expect(
+    currentTagForAuthoring({
+      ...captured,
+      invisibleDonorPolicyVersion: 1,
+      statusIds: ['invisible'],
+    }),
+  ).toEqual({
+    ...captured,
+    invisibleDonorPolicyVersion: 1,
+    statusIds: ['invisible'],
+  })
+  const current = currentTagForAuthoring({ ...captured, statusIds: undefined })
+  expect(current).toMatchObject({ statusIds: expect.arrayContaining(['covert']) })
+  expect(current).not.toMatchObject({ statusIds: expect.arrayContaining(['blindside']) })
+})
+
+it('keeps a captured historical All Buffs selection as current All Buffs on an explicit edit', () => {
+  const current = selectableCombatStatusIds('copy-buffs')
+  const old = current.filter((id) => id !== 'covert').concat('blindside')
+  const capture = {
+    type: 'copy-statuses' as const,
+    recipient: 'primary-unit' as const,
+    mode: 'amplify' as const,
+    statusIds: old,
+  }
+  expect(currentTagForAuthoring(capture)).toMatchObject({ statusIds: current })
+  expect(capture.statusIds).toEqual(old)
+})

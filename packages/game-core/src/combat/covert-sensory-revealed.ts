@@ -219,7 +219,7 @@ export function createCovertStatusDefinition(
     durationOwnerTurnStarts,
     damageTakenMultiplierBasisPoints: 10_000,
     polarity: 'positive',
-    amplifyCopyable: false,
+    amplifyCopyable: true,
     curseCopyable: false,
     reactionClass: 'ordinary',
     effectCategories: ['Buff', 'Stealth'],

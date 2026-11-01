@@ -1017,3 +1017,60 @@ it('keeps the native Summon Basic Attack exempt from Frozen Ground Skill AP', ()
     )?.current,
   ).toBe(70)
 })
+
+it('restores a native Summon Copy Buffs Skill that selects an Invisible donor and leaves ordinary damage blocked', () => {
+  const base = summonProfile()
+  const ability = {
+    ...base.abilities[0]!,
+    tags: ['utility'],
+    effects: [
+      {
+        type: 'copy-statuses' as const,
+        recipient: 'primary-unit' as const,
+        mode: 'amplify' as const,
+        statusIds: ['covert', 'invisible'],
+        invisibleDonorPolicyVersion: 1 as const,
+      },
+      { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 10 },
+    ],
+  }
+  const active = summonTurn(50, { ...base, abilities: [ability] })
+  const state = JSON.parse(
+    JSON.stringify({
+      ...active.state,
+      statusState: active.state.statusState.map((row) =>
+        row.combatantId === 'enemy'
+          ? {
+              ...row,
+              statuses: ['covert', 'invisible'].map((statusId) => ({
+                statusId,
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 2,
+                sourceCombatantId: 'enemy',
+              })),
+            }
+          : row,
+      ),
+    }),
+  ) as StatDrivenCombatEncounterState
+  const summon = state.effectState!.summons![0]!
+  const selection = { kind: 'unit' as const, combatantId: 'enemy' }
+  const preview = evaluatePv1fSummonAbility(state, summon, ability.id, selection)
+  expect(preview.evaluation.issues).toEqual([])
+  expect(
+    preview.evaluation.projectedEffects.every((row) => row.effectType === 'copy-statuses'),
+  ).toBe(true)
+  const next = executePv1fSummonAbility(state, summon, ability.id, selection).state
+  expect(
+    next.statusState
+      .find((row) => row.combatantId === summon.combatantId)!
+      .statuses.map((row) => row.statusId),
+  ).toEqual(['covert', 'invisible'])
+  expect(next.statusState.find((row) => row.combatantId === 'enemy')).toEqual(
+    state.statusState.find((row) => row.combatantId === 'enemy'),
+  )
+  expect(next.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp).toBe(
+    state.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp,
+  )
+})

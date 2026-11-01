@@ -1,4 +1,14 @@
+import { captureCombatAbilitySource } from './combat-behavior-capture'
+import { source } from './combat-behavior.test-utils'
+import {
+  activateCombatAbility,
+  evaluateCombatAbility,
+  reconcileCombatAbilitySources,
+  combatAbilityCommandContext,
+} from './combat-behavior-runtime'
+import { normalizeCombatRuntimeEncounterState } from './combat-runtime-state'
 import { describe, expect, it } from 'vitest'
+import { PV1F_COMBAT_CONTENT } from './pv1f-combat-content'
 import {
   createCombatEncounterState,
   evaluateCombatAction,
@@ -14,7 +24,11 @@ import {
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import { validateCombatActionDefinition } from './combat-authoring-validation'
-import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
+import {
+  createCombatActionProvenance,
+  createCombatEffectInstanceProvenance,
+  createCombatTriggerGuard,
+} from './combat-kernel-types'
 import { createStatDrivenCombatEncounterState } from './stat-driven-combat'
 
 const POSITIVE: CombatStatusDefinition = {
@@ -356,3 +370,253 @@ it('preserves global-round duration when copying a current status', () => {
     remainingOwnerTurnEnds: 2,
   })
 })
+
+describe('Copy Buffs concealed donors', () => {
+  const content = PV1F_COMBAT_CONTENT
+  function donorState() {
+    return world([
+      {
+        combatantId: 'target',
+        statuses: ['invisible', 'covert', 'inspired'].map((id, effectOrdinal) =>
+          status(
+            content.statuses.find((entry) => entry.id === id)!,
+            'target',
+            {
+              remainingOwnerTurnStarts: 2,
+              remainingOwnerTurnEnds: 2,
+              provenance: createCombatEffectInstanceProvenance({
+                action: createCombatActionProvenance({
+                  rulesetVersion: 2,
+                  sourceKind: 'test',
+                  actionDefinitionId: 'donor-buff',
+                  actionVersion: 1,
+                  sourceCombatantId: 'target',
+                  controllerCombatantId: 'target',
+                  triggerChainId: 'donor-buff-chain',
+                }),
+                targetCombatantId: 'target',
+                effectOrdinal,
+                createdRound: 1,
+                createdTurn: 1,
+              }),
+              timingState: 'active',
+              sourceCommandVisibility: { kind: 'team-only', teamId: 'enemies' },
+            },
+          ),
+        ),
+      },
+    ])
+  }
+  function copy(ids = ['invisible', 'covert']): CombatEffectDefinition {
+    return {
+      type: 'copy-statuses',
+      recipient: 'primary-unit',
+      mode: 'amplify',
+      invisibleDonorPolicyVersion: 1,
+      statusIds: ids,
+    }
+  }
+  it('selects an Invisible donor and copies only chosen buffs without consuming donor statuses', () => {
+    const state = donorState()
+    const definition = action('amplify', [copy()])
+    const preview = evaluateCombatAction(state, definition, TARGET, content)
+    expect(preview.issues).toEqual([])
+    expect(preview.projectedEffects.map((effect) => effect.after)).toEqual([
+      'covert:1:2',
+      'invisible:1:2',
+    ])
+    const next = executeCombatAction(state, definition, TARGET, content, context('amplify')).state
+    expect(statuses(next, 'target')).toEqual(statuses(state, 'target'))
+    expect(statuses(next, 'actor').map((row) => row.statusId)).toEqual(['covert', 'invisible'])
+    for (const row of statuses(next, 'actor')) {
+      expect(row.provenance?.copiedFromInstanceId).toBe(
+        statuses(state, 'target').find((donor) => donor.statusId === row.statusId)!.provenance!
+          .instanceId,
+      )
+      expect(row).toMatchObject({
+        sourceCombatantId: 'actor',
+        remainingOwnerTurnEnds: 2,
+        timingState: 'active',
+        sourceCommandVisibility: { kind: 'team-only', teamId: 'players' },
+        provenance: { effectOrdinal: 0, copyOrdinal: expect.any(Number) },
+      })
+    }
+    expect(JSON.parse(JSON.stringify(next)).statusState).toEqual(next.statusState)
+  })
+  it.each([undefined, 'enemy'] as const)(
+    'blocks Damage, Poison and negative status packets after Copy (%s targets)',
+    (target) => {
+      const state = donorState()
+      const definition = action('amplify', [
+        copy(['invisible']),
+        { type: 'damage', recipient: 'primary-unit', amount: 7, ...(target ? { target } : {}) },
+        {
+          type: 'apply-status',
+          recipient: 'primary-unit',
+          statusId: 'exposed',
+          stacks: 1,
+          ...(target ? { target } : {}),
+        },
+        {
+          type: 'poison',
+          recipient: 'primary-unit',
+          ...(target ? { target } : {}),
+        },
+      ])
+      const preview = evaluateCombatAction(state, definition, TARGET, content)
+      expect(preview.issues).toEqual([])
+      expect(
+        preview.projectedEffects.every((effect) => effect.effectType === 'copy-statuses'),
+      ).toBe(true)
+      const next = executeCombatAction(state, definition, TARGET, content).state
+      expect(combatant(next, 'target').hp).toBe(combatant(state, 'target').hp)
+      expect(statuses(next, 'target')).toEqual(statuses(state, 'target'))
+      expect(next.effectState?.poison ?? []).toEqual([])
+    },
+  )
+  it('allows later direct damage when a real Reveal packet grants targeting authority', () => {
+    const state = donorState()
+    const definition = action('amplify', [
+      copy(['invisible']),
+      {
+        type: 'sensory',
+        recipient: 'primary-unit',
+        revealedDurationOwnerTurnStarts: 2,
+        increasedDamageTakenBasisPoints: 1500,
+      },
+      { type: 'damage', recipient: 'primary-unit', amount: 7 },
+    ])
+    expect(evaluateCombatAction(state, definition, TARGET, content).issues).toEqual([])
+    const next = executeCombatAction(state, definition, TARGET, content).state
+    expect(combatant(next, 'target').hp).toBeLessThan(combatant(state, 'target').hp)
+    expect(statuses(next, 'target').some((row) => row.statusId === 'revealed')).toBe(true)
+  })
+  it('keeps Revealed blocking a copied Covert application', () => {
+    const state = donorState()
+    state.statusState = state.statusState.map((row) =>
+      row.combatantId === 'actor'
+        ? {
+            ...row,
+            statuses: [
+              status(
+                content.statuses.find((definition) => definition.id === 'revealed')!,
+                'target',
+              ),
+            ],
+          }
+        : row,
+    )
+    const next = executeCombatAction(
+      state,
+      action('amplify', [copy(['covert'])]),
+      TARGET,
+      content,
+    ).state
+    expect(statuses(next, 'actor').some((row) => row.statusId === 'covert')).toBe(false)
+    expect(statuses(next, 'target')).toEqual(statuses(state, 'target'))
+  })
+  it('keeps an ordinary direct attack blocked against the same donor', () => {
+    const definition = action('amplify', [{ type: 'damage', recipient: 'primary-unit', amount: 7 }])
+    expect(evaluateCombatAction(donorState(), definition, TARGET, content).issues).toContainEqual(
+      expect.objectContaining({ code: 'target-invisible' }),
+    )
+  })
+})
+
+it.each(['discipline-skill', 'essence', 'resonance'] as const)(
+  'copies Invisible and Covert through a saved/restored canonical %s capture',
+  (sourceKind) => {
+    const content = PV1F_COMBAT_CONTENT
+    const concealed = ['invisible', 'covert'].map((id) =>
+      status(
+        content.statuses.find((row) => row.id === id)!,
+        'target',
+      ),
+    )
+    const captured = captureCombatAbilitySource({
+      ...source({
+        classification: 'utility',
+        attackFamily: undefined,
+        costs: [],
+        effects: [
+          {
+            id: 'clone',
+            payload: {
+              type: 'copy-statuses',
+              recipient: 'primary-unit',
+              mode: 'amplify',
+              invisibleDonorPolicyVersion: 1,
+              statusIds: ['invisible', 'covert'],
+              target: 'enemy',
+            },
+          },
+        ],
+      }),
+      sourceKind,
+    })
+    const runtime = normalizeCombatRuntimeEncounterState(
+      JSON.parse(
+        JSON.stringify(
+          reconcileCombatAbilitySources(world([{ combatantId: 'target', statuses: concealed }]), [
+            captured,
+          ]),
+        ),
+      ),
+    )
+    const state: CombatEncounterState = {
+      ...runtime,
+      statBridge: runtime.statBridge ?? undefined,
+      turnOrigin: runtime.turnOrigin ?? undefined,
+    }
+    const restored = captureCombatAbilitySource(
+      JSON.parse(JSON.stringify(state.capturedAbilitySources![0])),
+    )
+    const input = {
+      state,
+      actorId: 'actor',
+      source: restored,
+      selection: TARGET,
+      content,
+      context: combatAbilityCommandContext(state, restored),
+    }
+    expect(evaluateCombatAbility(input).issues).toEqual([])
+    const next = activateCombatAbility(input).state
+    expect(statuses(next, 'actor').map((row) => row.statusId)).toEqual(['covert', 'invisible'])
+    expect(statuses(next, 'target')).toEqual(statuses(state, 'target'))
+  },
+)
+
+it('preserves old Copy Buffs concealed-donor targeting when the captured policy is absent', () => {
+  const content = PV1F_COMBAT_CONTENT
+  const state = world([
+    {
+      combatantId: 'target',
+      statuses: [
+        status(
+          content.statuses.find((row) => row.id === 'invisible')!,
+          'target',
+        ),
+      ],
+    },
+  ])
+  const historical = action('amplify', [
+    { type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' },
+  ])
+  expect(evaluateCombatAction(state, historical, TARGET, content).issues).toContainEqual(
+    expect.objectContaining({ code: 'target-invisible' }),
+  )
+})
+it.each([0, 2, true, '1', null])(
+  'rejects unknown captured Invisible donor policy %s',
+  (invisibleDonorPolicyVersion) => {
+    const definition = action('amplify', [
+      {
+        type: 'copy-statuses',
+        recipient: 'primary-unit',
+        mode: 'amplify',
+        invisibleDonorPolicyVersion,
+      } as never,
+    ])
+    expect(() => validateCombatActionDefinition(definition)).toThrow(/Invisible donor policy/)
+  },
+)

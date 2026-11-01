@@ -41,6 +41,8 @@ export interface CombatStatusCopyEffect {
   mode: 'amplify' | 'curse'
   /** Omitted retains historical copying of every eligible active status. */
   statusIds?: readonly string[]
+  /** Explicit current authoring opt-in; omitted captures retain concealed donor rejection. */
+  invisibleDonorPolicyVersion?: 1
   /** Composed commands may explicitly permit an empty clone block while later effects still matter. */
   allowNoEligibleEffects?: boolean
 }
@@ -69,6 +71,11 @@ export function validateCombatStatusCopyAction(
   const entry = copyEntries[0]!
   const effect = entry.effect
   assertCurrentStatusCopyEffect(effect)
+  if (
+    effect.invisibleDonorPolicyVersion !== undefined &&
+    (effect.invisibleDonorPolicyVersion !== 1 || effect.mode !== 'amplify')
+  )
+    throw new TypeError('Unsupported Copy Buffs Invisible donor policy.')
   if (effect.statusIds !== undefined) {
     validateCombatStatusSelection(
       effect.statusIds,
@@ -117,6 +124,8 @@ function isCopyable(
 ): boolean {
   return (
     (effect.statusIds === undefined || effect.statusIds.includes(definition.id)) &&
+    // Earlier omitted-All captures predate Covert copying and keep that exclusion.
+    (definition.id !== 'covert' || effect.statusIds?.includes('covert') === true) &&
     combatStatusIsCopyable(definition, effect.mode, elemental)
   )
 }

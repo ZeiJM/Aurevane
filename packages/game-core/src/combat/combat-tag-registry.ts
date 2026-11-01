@@ -346,7 +346,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'copy-statuses',
-    ['mode', 'allowNoEligibleEffects', 'statusIds'],
+    ['mode', 'allowNoEligibleEffects', 'statusIds', 'invisibleDonorPolicyVersion'],
     {},
     'Copy selected eligible statuses and preserve their remaining durations. Original statuses remain.',
     { recipients: ['primary-unit'], combinations: [{ activation: 'manual', mode: 'action' }] },
@@ -488,6 +488,12 @@ export function validateCombatTagPayload(
           typeof value.allowNoEligibleEffects !== 'boolean'))
     )
       throw new TypeError('Copy requires Amplify/Curse and a boolean no-op permission.')
+    if (
+      value.type === 'copy-statuses' &&
+      value.invisibleDonorPolicyVersion !== undefined &&
+      (value.invisibleDonorPolicyVersion !== 1 || value.mode !== 'amplify')
+    )
+      throw new TypeError('Unsupported Copy Buffs Invisible donor policy.')
     if (value.type === 'copy-statuses' && value.statusIds !== undefined)
       validateCombatStatusSelection(
         value.statusIds,

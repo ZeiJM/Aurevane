@@ -106,7 +106,7 @@ export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
     'invisible',
     'Invisible',
     'Buff',
-    'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. A damaging action or taking damage ends Invisible.',
+    'Ordinary hostile unit actions cannot select the recipient. Ground effects and Reveal can hit. Current Copy Buffs can select the recipient as a donor. A damaging action or taking damage ends Invisible.',
     { gameplayTags: ['Invisible'], amplifyCopyable: true, reactionClass: 'ordinary' },
   ),
 

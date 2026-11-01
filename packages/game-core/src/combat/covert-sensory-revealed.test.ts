@@ -230,14 +230,14 @@ describe('CSR-1 Covert and Revealed definitions', () => {
       expect(hasCombatStatus(state, row.combatantId, 'revealed')).toBe(false)
     }
   })
-  it('pins positive/negative taxonomy, copy exclusions and authored duration bounds', () => {
+  it('pins positive/negative taxonomy, Covert copy permission and authored duration bounds', () => {
     expect(covert).toMatchObject({
       id: 'covert',
       version: 1,
       maximumStacks: 1,
       durationOwnerTurnStarts: 3,
       polarity: 'positive',
-      amplifyCopyable: false,
+      amplifyCopyable: true,
       reactionClass: 'ordinary',
     })
     expect(revealed).toMatchObject({

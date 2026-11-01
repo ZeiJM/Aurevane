@@ -27,6 +27,7 @@ import type { BattleSessionCommitRecord } from '@aurevane/db/battle-session'
 import type { TransactionalCommandResult } from '@aurevane/db/transactional-command'
 import {
   createCombatEncounterState,
+  executeCombatAction,
   type CombatStatusInstance,
 } from '@aurevane/game-core/combat/actions'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
@@ -1741,4 +1742,61 @@ it('rebuilds visible Haste tuning without leaking a concealed stacked applicatio
     .statuses.find((row) => row.statusId === 'haste')!
   expect(own).toMatchObject({ stacks: 2, movementApAdjustment: 27 })
   expect(JSON.stringify(state)).toBe(before)
+})
+
+it('copies explicitly chosen concealed buffs without revealing the Covert donor other buffs to opposing viewers', () => {
+  const state = encounter()
+  state.statusState = state.statusState.map((row) => ({
+    ...row,
+    statuses:
+      row.combatantId === ENEMY
+        ? ['covert', 'inspired', 'invisible'].map((id) => status(id, ENEMY))
+        : [],
+  }))
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  expect(
+    rowStatuses({ statusState: projectBattleStatusStateForViewer(state, viewer) }, ENEMY),
+  ).toEqual([])
+  const next = executeCombatAction(
+    state,
+    {
+      id: 'copy-concealed',
+      version: 1,
+      sourceType: 'test',
+      tags: ['utility'],
+      target: {
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 3,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'enemies-only',
+      },
+      cost: { spendsAction: false, mp: 0 },
+      requirements: [],
+      effects: [
+        {
+          type: 'copy-statuses',
+          recipient: 'primary-unit',
+          mode: 'amplify',
+          invisibleDonorPolicyVersion: 1,
+          statusIds: ['covert', 'invisible'],
+        },
+      ],
+    },
+    { kind: 'unit', combatantId: ENEMY },
+    PV1F_COMBAT_CONTENT,
+  ).state as StatDrivenCombatEncounterState
+  const projected = { statusState: projectBattleStatusStateForViewer(next, viewer) }
+  expect(rowStatuses(projected, PLAYER).map((row) => row.statusId)).toEqual(['covert', 'invisible'])
+  expect(rowStatuses(projected, ENEMY)).toEqual([])
+  expect(rowStatuses(next, ENEMY)).toEqual(rowStatuses(state, ENEMY))
+  const enemy = deriveParticipantBattleViewerEntitlement(next.tactical.battle.combatants, [ENEMY])
+  expect(
+    rowStatuses({ statusState: projectBattleStatusStateForViewer(next, enemy) }, PLAYER),
+  ).toEqual([])
 })

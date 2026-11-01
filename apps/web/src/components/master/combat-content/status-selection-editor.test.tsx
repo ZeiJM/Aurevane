@@ -109,3 +109,10 @@ it.each(['dispel', 'conditional-cleanse'] as const)(
     expect(effectAuthoringTag(value).id).toBe(id)
   },
 )
+
+it('Copy Buffs offers Invisible and Covert without Blindside', () => {
+  const html = render({ type: 'copy-statuses', recipient: 'primary-unit', mode: 'amplify' })
+  expect(html).toContain('aria-label="Copy Invisible"')
+  expect(html).toContain('aria-label="Copy Covert"')
+  expect(html).not.toContain('aria-label="Copy Blindside"')
+})

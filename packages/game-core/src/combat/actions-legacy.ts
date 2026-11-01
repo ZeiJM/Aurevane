@@ -1407,7 +1407,18 @@ export function evaluateCombatAction(
         ),
         issues: [],
       }
-    : resolveCombatTargeting(state, actorId, action.target, selection, content)
+    : resolveCombatTargeting(
+        state,
+        actorId,
+        // Copy admits a concealed donor, without granting Reveal to other packets.
+        action.effects[0]?.type === 'copy-statuses' &&
+          action.effects[0].mode === 'amplify' &&
+          action.effects[0].invisibleDonorPolicyVersion === 1
+          ? { ...action.target, revealConcealedTargets: true }
+          : action.target,
+        selection,
+        content,
+      )
   issues.push(...targeting.issues)
   const target = { position: targeting.primaryPosition, combatantId: targeting.primaryCombatantId }
   if (

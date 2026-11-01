@@ -7,6 +7,7 @@ import type {
   CombatTargetSpec,
 } from './actions'
 import type { GridPosition } from './board'
+import { hasGameplayTag } from './gameplay-tags'
 
 export const COMBAT_EFFECT_TARGETS = [
   'self',
@@ -76,7 +77,7 @@ function hostile(effect: CombatEffectDefinition, content?: CombatContentCatalog)
  * All bypasses that footprint. Friendly fire only broadens hostile Enemy/All area packets;
  * explicit ally recovery and Self packets never inherit the hostile mask.
  */
-export function combatEffectRecipientIds(
+function unfilteredCombatEffectRecipientIds(
   state: CombatEncounterState,
   actorId: string,
   primaryCombatantId: string | null,
@@ -130,6 +131,51 @@ export function combatEffectRecipientIds(
     })
     .map((unit) => unit.id)
     .sort()
+}
+
+/** Copy may select an Invisible donor; that exception belongs to its packet only.
+ * Real Reveal keeps its existing action-wide authority. Already captured pending recipients
+ * retain their admission, and Ground/area packets retain their ordinary delivery rules.
+ */
+export function combatEffectRecipientIds(
+  state: CombatEncounterState,
+  actorId: string,
+  primaryCombatantId: string | null,
+  affectedCombatantIds: readonly string[],
+  affectedTiles: readonly GridPosition[],
+  effect: CombatEffectDefinition,
+  target: CombatTargetSpec,
+  content?: CombatContentCatalog,
+  capturedRecipients = false,
+): string[] {
+  const recipients = unfilteredCombatEffectRecipientIds(
+    state,
+    actorId,
+    primaryCombatantId,
+    affectedCombatantIds,
+    affectedTiles,
+    effect,
+    target,
+    content,
+    capturedRecipients,
+  )
+  if (
+    !content ||
+    capturedRecipients ||
+    target.revealConcealedTargets ||
+    target.shape.kind !== 'single' ||
+    target.kind !== 'unit' ||
+    ['all', 'ground', 'empty-tile'].includes(effect.target ?? '') ||
+    (effect.type === 'copy-statuses' &&
+      effect.mode === 'amplify' &&
+      effect.invisibleDonorPolicyVersion === 1)
+  )
+    return recipients
+  const actor = state.tactical.battle.combatants.find((unit) => unit.id === actorId)
+  return recipients.filter((id) => {
+    const unit = state.tactical.battle.combatants.find((candidate) => candidate.id === id)
+    return unit?.teamId === actor?.teamId || !hasGameplayTag(state, id, 'Invisible', content)
+  })
 }
 
 /** Forecast, hit/critical/resistance rolls and the executor share the same packet candidates. */

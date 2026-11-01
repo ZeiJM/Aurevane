@@ -163,6 +163,7 @@ export function createAuthorableEffectPayload(
         type: 'copy-statuses',
         recipient: 'primary-unit',
         mode: id === 'copy-buffs' ? 'amplify' : 'curse',
+        ...(id === 'copy-buffs' ? { invisibleDonorPolicyVersion: 1 as const } : {}),
         statusIds: [
           ...selectableCombatStatusIds(id === 'copy-buffs' ? 'copy-buffs' : 'copy-debuffs'),
         ],

@@ -31,6 +31,8 @@ export function selectableCombatStatusIds(kind: StatusSelectionKind): readonly s
   return PV1F_COMBAT_CONTENT.statuses
     .filter((definition) => {
       if (kind === 'copy-buffs' || kind === 'copy-debuffs') {
+        // Blindside remains valid in captured positive-buff copies, but is not a current authoring choice.
+        if (kind === 'copy-buffs' && definition.id === 'blindside') return false
         // Persistent DoTs carry their own per-application copy permission.
         if (kind === 'copy-debuffs' && ['burn', 'poison', 'bleed'].includes(definition.id))
           return true
@@ -73,7 +75,11 @@ export function resolvedCombatRemovalStatusIds(
 }
 
 export function validateCombatStatusSelection(ids: unknown, kind: StatusSelectionKind): void {
-  const allowed = selectableCombatStatusIds(kind)
+  // Parsing a capture must retain the older positive Blindside copy selection.
+  const allowed = [
+    ...selectableCombatStatusIds(kind),
+    ...(kind === 'copy-buffs' ? ['blindside'] : []),
+  ]
   if (
     !Array.isArray(ids) ||
     ids.length < 1 ||

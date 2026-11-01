@@ -20,3 +20,15 @@ describe('Staged status-copy descriptions', () => {
     expect(skillEffectDescription(effect)).toBe(expected)
   })
 })
+
+it('explains the captured Invisible donor exception without granting it to accompanying effects', () => {
+  const description = skillEffectDescription({
+    type: 'copy-statuses',
+    recipient: 'primary-unit',
+    mode: 'amplify',
+    statusIds: ['invisible', 'covert'],
+    invisibleDonorPolicyVersion: 1,
+  })
+  expect(description).toContain('Can select an Invisible donor.')
+  expect(description).toContain('Other direct effects still require Reveal.')
+})

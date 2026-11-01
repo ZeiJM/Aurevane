@@ -86,13 +86,26 @@ export function currentTagForAuthoring(
         selectionKind: tag === 'dispel' ? 'buffs' : 'debuffs',
       }
   }
-  if (value.type === 'copy-statuses' && value.statusIds === undefined)
-    return {
-      ...value,
-      statusIds: [
-        ...selectableCombatStatusIds(value.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs'),
-      ],
+  if (value.type === 'copy-statuses') {
+    const allowed = selectableCombatStatusIds(
+      value.mode === 'amplify' ? 'copy-buffs' : 'copy-debuffs',
+    )
+    if (value.mode === 'amplify') {
+      const historicalAll = [...allowed.filter((id) => id !== 'covert'), 'blindside']
+      const wasAll =
+        value.statusIds?.length === historicalAll.length &&
+        historicalAll.every((id) => value.statusIds?.includes(id))
+      return {
+        ...value,
+        invisibleDonorPolicyVersion: 1,
+        statusIds:
+          value.statusIds === undefined || wasAll
+            ? [...allowed]
+            : value.statusIds.filter((id) => id !== 'blindside'),
+      }
     }
+    return value.statusIds === undefined ? { ...value, statusIds: [...allowed] } : value
+  }
   if (value.type === 'apply-status') {
     if (value.statusId === 'wet' && value.initiativeReductionBasisPoints === undefined)
       return { ...value, initiativeReductionBasisPoints: 1000 }

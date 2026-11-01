@@ -1133,6 +1133,26 @@ async function verifyTagBatchEditors(page, viewport) {
     .getByRole('button', { name: 'Remove effect', exact: true })
     .click()
   assert.equal(await poison.count(), 0)
+  await editor.getByLabel('New effect type', { exact: true }).selectOption('copy-buffs')
+  await editor.getByRole('button', { name: 'Add effect', exact: true }).click()
+  const copy = editor.locator('[data-effect-type="copy-statuses"]')
+  await openEffectParameters(copy)
+  assert.equal(await copy.getByRole('checkbox', { name: 'Copy Blindside', exact: true }).count(), 0)
+  await browserExpect(
+    copy.getByRole('checkbox', { name: 'Copy Covert', exact: true }),
+  ).toBeVisible()
+  await copy.getByRole('checkbox', { name: 'Copy All Buffs', exact: true }).uncheck()
+  await copy.getByRole('checkbox', { name: 'Copy Covert', exact: true }).check()
+  const copiedSelection = await page.evaluate(() =>
+    window.inspectTagBatch().effects.find((effect) => effect.type === 'copy-statuses'),
+  )
+  assert.deepEqual(copiedSelection.statusIds, ['covert'])
+  assert.equal(copiedSelection.invisibleDonorPolicyVersion, 1)
+  await copy
+    .locator('xpath=ancestor::article[1]')
+    .getByRole('button', { name: 'Remove effect', exact: true })
+    .click()
+  assert.equal(await copy.count(), 0)
   const reversal = page.getByRole('region', { name: 'Reversal authoring', exact: true })
   await reversal.getByLabel('New effect', { exact: true }).selectOption('reversal')
   await reversal.getByRole('button', { name: 'Add new effect', exact: true }).click()

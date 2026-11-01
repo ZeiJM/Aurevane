@@ -557,7 +557,7 @@ export function previewEffect(
         ...(effect.statusIds !== undefined ? { magnitude: selected } : {}),
         explanation:
           effect.mode === 'amplify'
-            ? `Copies ${selected} from the target to you. Originals remain; remaining durations are preserved.`
+            ? `Copies ${selected} from the target to you. Originals remain; remaining durations are preserved.${effect.invisibleDonorPolicyVersion === 1 ? ' Can select an Invisible donor. Other direct effects still require Reveal.' : ''}`
             : `Copies ${selected} from you to the target. Originals remain; remaining durations are preserved.`,
       }
     }
