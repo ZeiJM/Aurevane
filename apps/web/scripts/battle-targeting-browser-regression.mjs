@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { openGroundEffectParameters } from '../e2e/ground-authoring-helpers.ts'
 
 const require = createRequire(import.meta.url)
 const { createServer } = await import(
@@ -924,7 +925,7 @@ try {
     })
     assert.equal(await groundCard.count(), 1, 'shared Ground controls belong to one effect card')
     assert.equal(await groundCard.getAttribute('open'), null)
-    await groundCard.locator(':scope > summary').click()
+    await openGroundEffectParameters(page)
     assert.equal(
       await groundCard.getByLabel('Ground duration (rounds)', { exact: true }).isVisible(),
       true,
