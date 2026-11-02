@@ -912,6 +912,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               <AbilityDefinitionParameters
                                 definition={basic.ability}
                                 basic={basic}
+                                characteristicsClassName={styles.characteristics}
+                                effectExplanationsClassName={styles.effectExplanations}
                               />
                             ) : (
                               <>

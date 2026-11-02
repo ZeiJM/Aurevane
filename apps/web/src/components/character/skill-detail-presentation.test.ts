@@ -91,6 +91,36 @@ it('keeps configured timing in the text report for mixed damage and utility effe
 })
 
 describe('Player-facing Skill targeting and effects', () => {
+  it.each([
+    { piercing: true },
+    { shattersBarrier: true },
+    { piercing: true, shattersBarrier: true },
+  ] as const)(
+    'omits redundant facing prose from Pierce descriptions without changing authored metadata (%j)',
+    (pierce) => {
+      const effect = {
+        type: 'damage' as const,
+        recipient: 'primary-unit' as const,
+        amount: 4,
+        facingModifiersBasisPoints: { front: 10000, side: 13000, rear: 17000 },
+        ...pierce,
+      }
+      const before = JSON.stringify(effect)
+      expect(skillEffectDescription(effect)).toBe(
+        'Deal 4 base damage to the selected unit. Pierce cannot critically hit.',
+      )
+      expect(skillEffectDescription(effect, { legacyPierceCritical: true })).toBe(
+        'Deal 4 base damage to the selected unit.',
+      )
+      expect(JSON.stringify(effect)).toBe(before)
+      const { piercing, shattersBarrier, ...ordinaryDamage } = effect
+      void piercing
+      void shattersBarrier
+      expect(skillEffectDescription(ordinaryDamage)).toBe(
+        'Deal 4 base damage to the selected unit. Facing: front 100%, side 130%, rear 170%.',
+      )
+    },
+  )
   it('uses Chilled for Shatter requirements without changing the stored Frozen tag', () => {
     const shatter = resolveMatureSkillVersion('frostweaver.shatter')!
     const before = JSON.stringify(shatter)

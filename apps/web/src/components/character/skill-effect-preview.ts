@@ -350,7 +350,7 @@ function previewEffectPayload(
                   ? 'Ice Dmg'
                   : 'Dmg',
         magnitude: String(effect.amount),
-        explanation: `${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? 'Pierce cannot critically hit. ' : ''}Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental, options.groundContactPolicyVersion)}`,
+        explanation: `${!options.legacyPierceCritical && (effect.piercing || effect.shattersBarrier) ? 'Pierce cannot critically hit. ' : ''}Skill power ranges from 1 to 20. Final HP damage depends on your attack stat, Level and the target’s defenses and effects.${effect.facingModifiersBasisPoints && !effect.piercing && !effect.shattersBarrier ? ` Facing: front ${effect.facingModifiersBasisPoints.front / 100}%, side ${effect.facingModifiersBasisPoints.side / 100}%, rear ${effect.facingModifiersBasisPoints.rear / 100}%.` : ''}${skillDamageElementInteraction(effect, options.legacyElemental, options.timingPolicy, options.skillEffects, options.explicitElemental, options.groundContactPolicyVersion)}`,
       }
     case 'percentage-recovery':
       return {

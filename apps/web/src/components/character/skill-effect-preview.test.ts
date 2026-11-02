@@ -39,6 +39,33 @@ it('describes the granting Skill’s authored Blindside side and rear percentage
 })
 
 describe('compact Technique explanations', () => {
+  it.each([
+    { piercing: true },
+    { shattersBarrier: true },
+    { piercing: true, shattersBarrier: true },
+  ] as const)('omits redundant Pierce facing prose from generated fallback help (%j)', (pierce) => {
+    const effect = {
+      type: 'damage' as const,
+      recipient: 'primary-unit' as const,
+      amount: 4,
+      facingModifiersBasisPoints: { front: 10000, side: 13000, rear: 17000 },
+      ...pierce,
+    }
+    const before = JSON.stringify(effect)
+    const current = previewEffect(effect).explanation
+    const historical = previewEffect(effect, { legacyPierceCritical: true }).explanation
+    expect(current).not.toContain('Facing:')
+    expect(historical).not.toContain('Facing:')
+    expect(current).toContain('Pierce cannot critically hit.')
+    expect(historical).not.toContain('Pierce cannot critically hit.')
+    expect(JSON.stringify(effect)).toBe(before)
+    const { piercing, shattersBarrier, ...ordinaryDamage } = effect
+    void piercing
+    void shattersBarrier
+    expect(previewEffect(ordinaryDamage).explanation).toContain(
+      'Facing: front 100%, side 130%, rear 170%.',
+    )
+  })
   it.each(['bastion.steady-footing', 'frostweaver.thaw', 'stormsinger.grounding'])(
     'describes the complete canonical Cleanse on %s',
     (id) => {
