@@ -33,10 +33,13 @@ await fs.writeFile(
     )
     .replace(
       'window.restoreCanonicalBattle = () => {',
-      `window.applyFixtureGuard = () => {
+      `window.applyFixtureRecovery = () => {
         const before = readPv1fActionEconomy(window.fixtureBattle.snapshot).current
-        const transition = executePv1fAction(window.fixtureBattle.snapshot, 'basic.guard', { kind: 'self' })
-        window.fixtureGuardReceipt = { before, after: readPv1fActionEconomy(transition.state).current }
+        const actorId = window.fixtureBattle.snapshot.tactical.battle.currentTurn.combatantId
+        const actor = window.fixtureBattle.snapshot.tactical.battle.combatants.find(unit => unit.id === actorId)
+        const transition = executePv1fAction(window.fixtureBattle.snapshot, 'basic.recover', { kind: 'self' })
+        const healed = transition.state.tactical.battle.combatants.find(unit => unit.id === actorId)
+        window.fixtureRecoveryReceipt = { actionId: 'basic.recover', before, after: readPv1fActionEconomy(transition.state).current, hpBefore: actor.hp, hpAfter: healed.hp, maxHp: actor.maxHp }
         window.fixtureBattle = { ...window.fixtureBattle, battleVersion: window.fixtureBattle.battleVersion + 1, snapshot: transition.state }
         window.publishBattle()
       }
@@ -288,12 +291,17 @@ async function verifyMobileChronicleUpdates(page, geometry, frozen, label) {
   }
 }
 
-async function verifyMobileGuardFrame(page, geometry, label) {
+async function verifyMobileRecoveryFrame(page, geometry, label) {
   await page.evaluate(() => {
     const next = structuredClone(window.fixtureBattle)
     next.battleVersion++
     next.snapshot.statusState = next.snapshot.statusState.map((row) => ({ ...row, statuses: [] }))
     next.snapshot.tactical.battle.currentTurn.combatantId = 'character:player'
+    // Current Support is HP Recovery. Prepare a genuine, legal healing fixture.
+    const actor = next.snapshot.tactical.battle.combatants.find(
+      (unit) => unit.id === 'character:player',
+    )
+    actor.hp = Math.floor(actor.maxHp * 0.75)
     window.fixtureBattle = next
     window.publishBattle()
   })
@@ -301,7 +309,8 @@ async function verifyMobileGuardFrame(page, geometry, label) {
   await main.evaluate((el) => el.focus({ preventScroll: true }))
   await page.keyboard.press('Digit3')
   await page.waitForFunction(
-    () => document.querySelector('main[data-unified-battle]').dataset.battleActionMode === 'guard',
+    () =>
+      document.querySelector('main[data-unified-battle]').dataset.battleActionMode === 'recover',
   )
   const before = await geometry()
   const headerText = await page.locator('[data-unified-battle-economy]').evaluate((el) => {
@@ -334,18 +343,21 @@ async function verifyMobileGuardFrame(page, geometry, label) {
   )
   await page.evaluate(() => {
     window.fixtureLogCount = 41
-    window.applyFixtureGuard()
+    window.applyFixtureRecovery()
   })
   await page.waitForFunction(
     () =>
       document.querySelectorAll('[data-battle-action-strip] button[aria-expanded]').length >= 41,
   )
-  const paid = await page.evaluate(() => window.fixtureGuardReceipt)
-  assert.equal(paid.before - paid.after, 30, 'Guard spends 30 AP')
+  const paid = await page.evaluate(() => window.fixtureRecoveryReceipt)
+  assert.equal(paid.actionId, 'basic.recover')
+  assert.equal(paid.before - paid.after, 50, 'HP Recovery spends 50 AP')
+  assert.ok(paid.hpAfter > paid.hpBefore, 'The actual Support command heals the wounded actor')
+  assert.ok(paid.hpAfter <= paid.maxHp, 'Recovery respects maximum HP')
   const after = await geometry()
   for (const key of ['header', 'rails', 'board', 'footer', 'lower'])
-    assert.deepEqual(after[key], before[key], 'Guard preserves ' + key)
-  await page.screenshot({ path: resolve(output, label + '-guard-after.png') })
+    assert.deepEqual(after[key], before[key], 'HP Recovery preserves ' + key)
+  await page.screenshot({ path: resolve(output, label + '-recovery-after.png') })
   return { before, after, headerText, paid }
 }
 const errors = []
@@ -550,9 +562,9 @@ try {
             before,
             mode + '-' + columns + '-' + viewport.width,
           )
-          const guard =
+          const recovery =
             mode !== 'spectator'
-              ? await verifyMobileGuardFrame(
+              ? await verifyMobileRecoveryFrame(
                   page,
                   geometry,
                   mode + '-' + columns + '-' + viewport.width,
@@ -582,7 +594,7 @@ try {
             )
             assert.equal(await page.evaluate(() => window.scrollY), 0)
           }
-          receipts.push({ mode, columns, viewport, before, after, guard })
+          receipts.push({ mode, columns, viewport, before, after, recovery })
         } else
           assert.equal(
             await chronicleStrip.isVisible(),

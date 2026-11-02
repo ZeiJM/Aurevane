@@ -173,8 +173,18 @@ try {
         healingFill.tokenZIndex > healingFill.zIndex,
         'The ally portrait/ring remain above the healing fill',
       )
-      assert.equal(await tile('Recruit 1').getAttribute('data-heal-target'), null)
+      assert.equal(
+        await tile('Recruit 1').getAttribute('data-heal-target'),
+        'true',
+        'Potential healing range includes in-range tiles independently of their occupants',
+      )
       assert.deepEqual(await commits(), [], 'Arming ally healing submits no command')
+      await tile('Recruit 1').click()
+      assert.deepEqual(
+        await commits(),
+        [],
+        'An ineligible enemy inside healing reach cannot submit a cast',
+      )
       const selfSelectionPaint = () =>
         tile('Zei').evaluate((button) => ({
           fill: getComputedStyle(button, '::after').backgroundColor,
@@ -185,6 +195,7 @@ try {
           pointerEvents: getComputedStyle(button).pointerEvents,
           recovery: button.getAttribute('data-heal-target'),
         }))
+      let healingPaint
       for (const [name, recovery] of [
         ['Sacred Guard', true],
         ['Steady Footing', false],
@@ -203,6 +214,7 @@ try {
           )
         }, recovery)
         const paint = await selfSelectionPaint()
+        if (recovery) healingPaint = paint
         assert.equal(paint.fill, recovery ? 'rgba(102, 218, 143, 0.5)' : 'rgba(108, 145, 198, 0.5)')
         assert.equal(paint.border, recovery ? 'rgb(102, 218, 143)' : 'rgb(108, 145, 198)')
         assert.equal(paint.shadow, 'none', 'Legacy highlights must not add a second tint')
@@ -218,12 +230,17 @@ try {
             'true' ||
           document
             .querySelector('[data-battle-layout="refined"]')
-            ?.getAttribute('data-battle-action-mode') === 'guard',
+            ?.getAttribute('data-battle-action-mode') === 'recover',
       )
       assert.deepEqual(
         await selfSelectionPaint(),
+        healingPaint,
+        'Current HP Recovery uses the same green treatment as other self recovery',
+      )
+      assert.notDeepEqual(
+        healingPaint,
         buffPaint,
-        'Guard and pure self buffs share exactly one blue treatment',
+        'Recovery and pure self buffs retain distinct treatments',
       )
       assert.deepEqual(await commits(), [], 'Switching support selections submits no command')
       await command('inspect').click()
