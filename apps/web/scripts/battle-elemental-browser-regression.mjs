@@ -208,20 +208,36 @@ try {
             if (ground) {
               assert.equal(result.overlays[0].kind, 'steam')
               assert.equal(result.overlays[0].remainingRoundBoundaries, 2)
-              await page.waitForFunction(() =>
-                window.calls.some(
-                  (call) =>
-                    call.path.endsWith('/preview') &&
-                    call.body.expectedBattleVersion === 2 &&
-                    call.body.intent.target.kind === 'tile',
-                ),
-              )
               await page.waitForFunction(
                 () =>
                   !document
                     .querySelector('main[data-unified-battle]')
-                    .hasAttribute('data-battle-execution-pending'),
+                    .hasAttribute('data-battle-execution-pending') &&
+                  document
+                    .querySelector('main[data-unified-battle]')
+                    .getAttribute('data-battle-action-mode') === 'none',
               )
+              // Ground commits clear planning; only an explicit selection arms the next cast.
+              assert.equal(
+                await page.evaluate(() =>
+                  window.calls.some(
+                    (call) =>
+                      call.path.endsWith('/preview') &&
+                      call.body.expectedBattleVersion === 2 &&
+                      call.body.intent.target.kind === 'tile',
+                  ),
+                ),
+                false,
+                'Ground Fire clears the stale tile forecast',
+              )
+              const callsAfterGround = await page.evaluate(() => window.calls.length)
+              await page.keyboard.press('n')
+              assert.equal(
+                await page.evaluate(() => window.calls.length),
+                callsAfterGround,
+                'Target cycling cannot rearm a completed Ground cast',
+              )
+              await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
               await page.evaluate(() => {
                 window.calls = []
               })
@@ -233,6 +249,14 @@ try {
                     call.body.expectedBattleVersion === 2 &&
                     call.body.intent.target.kind === 'unit',
                 ),
+              )
+              assert.equal(await page.evaluate(() => window.fixtureBattle.battleVersion), 2)
+              assert.equal(
+                await page.evaluate(() =>
+                  window.calls.some((call) => /\/(commit|intents)$/.test(call.path)),
+                ),
+                false,
+                'Rearming and target cycling only forecast the next cast',
               )
             } else assert.ok(result.enemyHp < 80)
             cases++

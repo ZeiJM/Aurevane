@@ -1654,7 +1654,7 @@ async function verifyFinalFacing(page, viewport, mode) {
     await page.keyboard.press('Digit2')
     await host.getByRole('button', { name: 'About Basic Attack', exact: true }).waitFor()
     await page.keyboard.press('Digit3')
-    await host.getByRole('button', { name: 'About Guard', exact: true }).waitFor()
+    await host.getByRole('button', { name: 'About HP Recovery', exact: true }).waitFor()
     await page.keyboard.press('Escape')
     assert.equal(await host.locator('[data-battle-info-trigger]:visible').count(), 0)
     assert.equal(
