@@ -437,7 +437,10 @@ export function validateCombatTagPayload(
   for (const key of Object.keys(value))
     if (!definition.payloadFields.includes(key))
       issue(`payload.${key}`, 'unknown-key', 'Unknown mechanical payload key.')
-  if (!definition.recipients.includes(value.recipient as string))
+  if (
+    !definition.recipients.includes(value.recipient as string) &&
+    !(value.type === 'displace' && value.recipient === 'actor' && value.target === 'self')
+  )
     issue('payload.recipient', 'unsupported-recipient', 'This Tag does not support that recipient.')
   if (
     combination &&

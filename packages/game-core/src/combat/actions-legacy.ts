@@ -436,7 +436,7 @@ export type CombatEffectDefinition = (
     }
   | {
       type: 'displace'
-      recipient: Exclude<CombatEffectRecipient, 'actor'>
+      recipient: CombatEffectRecipient
       direction?: 'push' | 'pull'
       distance: number
     }
@@ -659,8 +659,12 @@ interface CapturedElementalApplication {
 }
 
 export interface PendingCombatEffect {
-  /** Frozen per-packet origin/facing for opted-in global Push/Pull. */
-  allDisplacement?: { position: GridPosition; facing: CombatPlacement['facing'] }
+  /** Frozen per-packet Push/Pull origin; old global captures retain their original shape. */
+  allDisplacement?: {
+    position: GridPosition
+    facing: CombatPlacement['facing']
+    groundAnchor?: true
+  }
   /** Private original-cast identity for Reversal in historical packet-policy encounters. */
   reversalAttackCommandId?: number
   /** Private authored Damage identity, scoped to the original queued cast. */
@@ -734,6 +738,8 @@ export interface CombatEncounterState {
   dynamicInitiativePolicyVersion?: 1
   /** New encounters: Frozen Ground movement surcharge affects only source enemies. */
   displacementPolicyVersion?: 1
+  /** Chosen Ground origins and facing-based Self recoil; absence preserves saved movement. */
+  displacementOriginPolicyVersion?: 1
   frozenGroundPolicyVersion?: 1
   /** New encounters: Airborne evades Ground Skills and grants Target Elevation 3. */
   airbornePolicyVersion?: 1
@@ -1662,7 +1668,12 @@ export function evaluateCombatAction(
         false,
         undefined,
         undefined,
-        { preview: true, returnAnchor, returnAnchors },
+        {
+          preview: true,
+          returnAnchor,
+          returnAnchors,
+          displacementOrigin: selection.kind === 'tile' ? selection.position : undefined,
+        },
       )
       projectedEffects = projection.projections
       projectedEvents = projection.events
@@ -1677,6 +1688,12 @@ export function evaluateCombatAction(
             field.action,
             affectedTiles,
             content,
+            {
+              displacementOrigin:
+                selection.kind === 'tile'
+                  ? selection.position
+                  : getPlacement(state.tactical, actorId).position,
+            },
           )
         projectedGroundAreas = projectPublicCombatGroundAreas(
           (fieldState.groundAreas ?? []).filter((area) => !previousIds.has(area.id)),
@@ -1907,6 +1924,7 @@ export function executeCombatAction(
     resistedEffectOrdinalsByTarget,
     undefined,
     {
+      displacementOrigin: selection.kind === 'tile' ? selection.position : undefined,
       missedEffectOrdinalsByTarget,
       nativeHooks,
       reversalReactionGuard,
@@ -1928,6 +1946,10 @@ export function executeCombatAction(
         evaluation.affectedTiles,
         content,
         {
+          displacementOrigin:
+            selection.kind === 'tile'
+              ? selection.position
+              : getPlacement(state.tactical, actorId).position,
           sourceCommandVisibility: combatSourceCommandVisibility(state, actorId),
           abilityCommandFacts: nativeHooks?.commandFacts?.(action.id),
         },
@@ -1947,6 +1969,10 @@ export function executeCombatAction(
       evaluation.affectedTiles,
       content,
       {
+        displacementOrigin:
+          selection.kind === 'tile'
+            ? selection.position
+            : getPlacement(state.tactical, actorId).position,
         sourceCommandVisibility: combatSourceCommandVisibility(state, actorId),
         abilityCommandFacts: nativeHooks?.commandFacts?.(action.id),
       },
@@ -3210,6 +3236,7 @@ export function validateCombatEncounterState(
     'airbornePolicyVersion',
     'airborneJumpPolicyVersion',
     'displacementPolicyVersion',
+    'displacementOriginPolicyVersion',
     'healingDownPolicyVersion',
     'conditionalDamageRoundingPolicyVersion',
     'pierceCriticalPolicyVersion',
@@ -3286,9 +3313,13 @@ export function validateCombatEncounterState(
             const capture = pending.allDisplacement
             if (
               pending.effect.type !== 'displace' ||
-              pending.effect.target !== 'all' ||
+              (state.displacementOriginPolicyVersion !== 1 && pending.effect.target !== 'all') ||
               !capture ||
-              Object.keys(capture).some((key) => !['position', 'facing'].includes(key)) ||
+              Object.keys(capture).some(
+                (key) => !['position', 'facing', 'groundAnchor'].includes(key),
+              ) ||
+              (capture.groundAnchor !== undefined &&
+                (capture.groundAnchor !== true || state.displacementOriginPolicyVersion !== 1)) ||
               !['north', 'east', 'south', 'west'].includes(capture.facing) ||
               !capture.position ||
               Object.keys(capture.position).some((key) => !['x', 'y'].includes(key)) ||
@@ -4507,6 +4538,7 @@ function isReversalDependentEffect(
 }
 
 interface CombatEffectResolutionOptions {
+  displacementOrigin?: GridPosition
   allDisplacement?: PendingCombatEffect['allDisplacement']
   reversalReactionGuard?: Pick<CombatNativeExecutionHooks, 'getGuard' | 'setGuard'>
   reversalInterruptedHit?: Map<string, boolean>
@@ -4941,14 +4973,29 @@ function resolveActionEffects(
     if (isAttackTag(effect)) continue
     const allDisplacement =
       options.allDisplacement ??
-      (effect.type === 'displace' &&
-      effect.target === 'all' &&
-      action.target.allTargetPolicyVersion === 1
+      (effect.type === 'displace' && state.displacementOriginPolicyVersion === 1
         ? {
-            position: { ...getPlacement(nextState.tactical, actorId).position },
-            facing: getPlacement(nextState.tactical, actorId).facing,
+            position: {
+              ...(options.displacementOrigin ??
+                options.groundArea?.displacementOrigin ??
+                options.groundArea?.caster.placement.position ??
+                getPlacement(state.tactical, actorId).position),
+            },
+            facing:
+              options.groundArea?.caster.placement.facing ??
+              getPlacement(state.tactical, actorId).facing,
+            ...(options.displacementOrigin || options.groundArea?.displacementOrigin
+              ? { groundAnchor: true as const }
+              : {}),
           }
-        : undefined)
+        : effect.type === 'displace' &&
+            effect.target === 'all' &&
+            action.target.allTargetPolicyVersion === 1
+          ? {
+              position: { ...getPlacement(nextState.tactical, actorId).position },
+              facing: getPlacement(nextState.tactical, actorId).facing,
+            }
+          : undefined)
     const effectTiles =
       !resolvingPending && effect.target === 'all'
         ? state.tactical.tiles.map((tile) => tile.position)
@@ -6361,6 +6408,7 @@ function applyEffectNative(
         options.preview ? undefined : options.nativeHooks,
         options.allDisplacement?.position ?? options.groundArea?.caster.placement.position,
         options.allDisplacement?.facing,
+        options.allDisplacement?.groundAnchor,
       ),
       ...(options.nativeHooks && !options.preview ? { nativeMutationCaptured: true as const } : {}),
     }
@@ -8542,6 +8590,7 @@ function applyDisplacement(
   nativeHooks?: CombatNativeExecutionHooks,
   capturedSourcePosition?: GridPosition,
   allFacing?: CombatPlacement['facing'],
+  groundAnchor = false,
 ): CombatResolutionTransition {
   const source = capturedSourcePosition ?? getPlacement(state.tactical, actorId).position
   const placement = getPlacement(state.tactical, recipientId)
@@ -8590,7 +8639,9 @@ function applyDisplacement(
   let movedTiles = 0
   const movementEffectEvents: CombatResolutionEvent[] = []
   const selfVector =
-    recipientId === actorId && allFacing
+    recipientId === actorId &&
+    allFacing &&
+    (state.displacementOriginPolicyVersion !== 1 || !groundAnchor || (!dx && !dy))
       ? {
           north: { x: 0, y: -1 },
           east: { x: 1, y: 0 },
@@ -8599,7 +8650,10 @@ function applyDisplacement(
         }[allFacing]
       : undefined
 
+  const selfMultiplier = selfVector && state.displacementOriginPolicyVersion === 1 ? -1 : 1
+
   for (let index = 0; index < effect.distance; index += 1) {
+    if (groundAnchor && effect.direction === 'pull' && samePosition(current, source)) break
     // Pull follows the caster at each step, rather than overshooting along its original axis.
     // Push keeps the same result as the legacy rule; ties always resolve horizontally.
     const dx = current.x - source.x
@@ -8608,10 +8662,12 @@ function applyDisplacement(
     const to = {
       x:
         current.x +
-        (selfVector ? selfVector.x : horizontal ? Math.sign(dx) : 0) * directionMultiplier,
+        (selfVector ? selfVector.x * selfMultiplier : horizontal ? Math.sign(dx) : 0) *
+          directionMultiplier,
       y:
         current.y +
-        (selfVector ? selfVector.y : horizontal ? 0 : Math.sign(dy)) * directionMultiplier,
+        (selfVector ? selfVector.y * selfMultiplier : horizontal ? 0 : Math.sign(dy)) *
+          directionMultiplier,
     }
     const tile = nextState.tactical.tiles.find((candidate) => samePosition(candidate.position, to))
     const override =
@@ -8622,7 +8678,7 @@ function applyDisplacement(
         : nextState.tactical.terrains.find((row) => row.id === tile.terrainId)?.traversalCost
       : null
 
-    if (!selfVector && effect.direction === 'pull' && samePosition(to, source))
+    if (!groundAnchor && !selfVector && effect.direction === 'pull' && samePosition(to, source))
       stopReason = 'occupied-tile'
     else if (!tile) stopReason = 'out-of-bounds'
     else if (terrainCost == null) stopReason = 'blocked-terrain'

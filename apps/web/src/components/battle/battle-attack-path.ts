@@ -23,6 +23,21 @@ interface BattleTargetSpatialContext {
   terrainOverlays?: readonly { kind: string; position: { x: number; y: number } }[]
 }
 
+/** Self-only All actions have no aimed anchor; every living recipient can activate the same cast. */
+export function battleAllTargetActivation(
+  target: CombatTargetSpec | undefined,
+  hasAllEffects: boolean,
+) {
+  return Boolean(
+    hasAllEffects &&
+    target?.kind === 'self' &&
+    target.shape.kind === 'single' &&
+    target.minimumRange === 0 &&
+    target.maximumRange === 0 &&
+    (target.categories ?? ['self']).every((category) => category === 'self'),
+  )
+}
+
 /** Potential coverage never depends on victims, forecast success, or automatic recipient selection. */
 export function battleTargetReachTiles(
   tactical: CombatTargetFootprintBoard,
@@ -37,7 +52,7 @@ export function battleTargetReachTiles(
   const add = (positions: readonly { x: number; y: number }[]) => {
     for (const tile of positions) result.add(`${tile.x}:${tile.y}`)
   }
-  if (hasAllTargetEffects && spatial) {
+  if (battleAllTargetActivation(target, hasAllTargetEffects) && spatial) {
     const living = new Set(
       spatial.tactical.battle.combatants.filter((unit) => unit.hp > 0).map((unit) => unit.id),
     )
@@ -46,6 +61,7 @@ export function battleTargetReachTiles(
         .filter((row) => living.has(row.combatantId))
         .map((row) => row.position),
     )
+    return result
   }
   const footprint = (selection: CombatTargetSelection, spec = target) => {
     const positions = resolveCombatTargetFootprint(tactical, origin, spec, selection)

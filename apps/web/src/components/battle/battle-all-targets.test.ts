@@ -12,7 +12,7 @@ import { resolveBattleCapturedSkill } from './battle-preview-selection'
 import { reattachStatDrivenCombatBridge } from '@aurevane/game-core/combat/stat-driven-combat'
 
 it.each(['self', 'unit'] as const)(
-  'highlights living All recipients beyond a captured %s Single aim before forecasts return',
+  'separates captured %s All activation tiles from an aimed Single range',
   (kind) => {
     const original = source().definition.behaviors[0]!.targeting!
     const target = {
@@ -74,9 +74,9 @@ it.each(['self', 'unit'] as const)(
       { tactical: snapshot.tactical, actorId: 'actor' },
       skill.hasAllTargetEffects,
     )
-    for (const placement of snapshot.tactical.placements)
-      expect(tiles.has(`${placement.position.x}:${placement.position.y}`)).toBe(true)
-    expect(tiles.has('4:4')).toBe(false)
-    if (kind === 'self') expect(tiles.size).toBe(snapshot.tactical.battle.combatants.length)
+    expect([...tiles].sort()).toEqual(
+      kind === 'self' ? ['1:1', '1:2', '2:1', '3:1'] : ['0:1', '1:0', '1:2', '2:1'],
+    )
+    expect(tiles.has('3:1')).toBe(kind === 'self')
   },
 )

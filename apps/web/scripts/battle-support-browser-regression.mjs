@@ -171,6 +171,38 @@ try {
           path: resolve(output, `${mode}-${width}-${action.id}.png`),
           fullPage: true,
         })
+        if (mode !== 'spectator') {
+          const command = page.locator('button[data-command-slot="guard"]')
+          const countdown = command.locator('[data-battle-cooldown-countdown]')
+          assert.equal(await countdown.innerText(), String(action.cd))
+          // Opponent turns do not spend this actor's cooldown. Each owner start advances
+          // the real canonical counter; publish a serialized snapshot as reconnect would.
+          for (let remaining = action.cd; remaining >= 0; remaining--) {
+            await page.evaluate(() => {
+              let turns = 0
+              do {
+                window.finishCanonicalTurn()
+                turns++
+              } while (
+                window.fixtureBattle.snapshot.tactical.battle.currentTurn.combatantId !==
+                  'character:player' &&
+                turns < 64
+              )
+              if (turns >= 64) throw new Error('Owner turn did not return')
+              window.restoreCanonicalBattle()
+            })
+            if (remaining) {
+              await countdown.waitFor()
+              assert.equal(await countdown.innerText(), String(remaining))
+              assert.ok(
+                (await command.getAttribute('aria-label')).includes(`Cooldown: ${remaining}`),
+              )
+            } else {
+              assert.equal(await countdown.count(), 0)
+              assert.ok(!(await command.getAttribute('aria-label')).includes('Cooldown:'))
+            }
+          }
+        }
         results.push({ mode, width, action: action.id })
         await page.close()
       }

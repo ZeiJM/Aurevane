@@ -443,19 +443,21 @@ export function SummonProfileEditor({
                   allowReversal
                   canonicalDamage={canonical}
                   aim={ability.target}
+                  groundSettings={
+                    <SkillGroundEditor
+                      target={ability.target}
+                      effects={ability.effects}
+                      value={ability.groundArea}
+                      onChange={(groundArea) => {
+                        const next = { ...ability }
+                        if (groundArea) next.groundArea = groundArea
+                        else delete next.groundArea
+                        updateAbility(index, next)
+                      }}
+                    />
+                  }
                   value={ability.effects}
                   onChange={(effects) => updateAbility(index, { ...ability, effects })}
-                />
-                <SkillGroundEditor
-                  target={ability.target}
-                  effects={ability.effects}
-                  value={ability.groundArea}
-                  onChange={(groundArea) => {
-                    const next = { ...ability }
-                    if (groundArea) next.groundArea = groundArea
-                    else delete next.groundArea
-                    updateAbility(index, next)
-                  }}
                 />
               </details>
               <details className={styles.summonSection}>

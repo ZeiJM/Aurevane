@@ -879,3 +879,41 @@ it('uses only paid Prepare or Cancel intents for Reversal and never manually rel
     }),
   ).toBeNull()
 })
+
+it.each(['actor', 'ally', 'enemy', 'far'])(
+  'activates a self-only All action by clicking living %s without retargeting its command',
+  (id) => {
+    const skill = {
+      id: 'test.all',
+      targetKind: 'self' as const,
+      targetTeamPolicy: 'self' as const,
+      minimumRange: 0,
+      maximumRange: 0,
+      hasAllTargetEffects: true,
+      target: {
+        kind: 'self' as const,
+        geometryVersion: 3 as const,
+        categories: ['self' as const],
+        teamPolicy: 'self' as const,
+        shape: { kind: 'single' as const },
+        minimumRange: 0,
+        maximumRange: 0,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'all-units' as const,
+      },
+    }
+    const clicked = { ...selection, selectedCombatantId: id }
+    expect(selectBattleSkillPreviewIntent(skill, clicked)?.target).toEqual({ kind: 'self' })
+    expect(
+      selectBattleSkillPreviewIntent(skill, { ...selection, selectedCombatantId: 'defeated' }),
+    ).toBeNull()
+    expect(
+      selectBattleSkillPreviewIntent(skill, { ...selection, selectedCombatantId: 'unknown' }),
+    ).toBeNull()
+    if (id !== 'actor')
+      expect(
+        selectBattleSkillPreviewIntent({ ...skill, hasAllTargetEffects: false }, clicked),
+      ).toBeNull()
+  },
+)

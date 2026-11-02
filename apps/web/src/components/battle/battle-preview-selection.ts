@@ -1,3 +1,4 @@
+import { battleAllTargetActivation } from './battle-attack-path'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import type { BattleSkillForecastPresentation } from './battle-runtime'
@@ -652,6 +653,30 @@ function battleSkillPreviewIntent(
   const actor = selection.combatants.find((row) => row.combatantId === selection.actorId)
   if (!actor || actor.hp <= 0) return null
   const spec = battleSkillTargetSpec(skill)
+  if (
+    battleAllTargetActivation(
+      spec,
+      skill.hasAllTargetEffects ??
+        skill.definition?.effects.some((effect) => 'target' in effect && effect.target === 'all') ??
+        false,
+    )
+  ) {
+    const clicked = selection.selectedCombatantId
+      ? selection.combatants.find((unit) => unit.combatantId === selection.selectedCombatantId)
+      : selection.selectedTile
+        ? selection.combatants.find((unit) =>
+            positionsEqual(unit.position, selection.selectedTile!),
+          )
+        : actor
+    return clicked && clicked.hp > 0
+      ? {
+          kind: 'action',
+          actionId: skill.id,
+          ...(skill.behaviorId ? { behaviorId: skill.behaviorId } : {}),
+          target: { kind: 'self' },
+        }
+      : null
+  }
   if (usesAreaGeometry(spec)) {
     if (spec.shape.kind !== 'line')
       return {

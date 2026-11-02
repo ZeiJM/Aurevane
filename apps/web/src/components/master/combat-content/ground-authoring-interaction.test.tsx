@@ -4,6 +4,7 @@ import { expect, it, vi } from 'vitest'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import type { SummonProfileDefinition } from '@aurevane/game-core/combat/summon-content'
 import type { CombatContentDefinition } from '@aurevane/db/combat-content'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
@@ -132,42 +133,72 @@ it('creates native Summon Ground persistence through the same target selector an
     html.indexOf('<summary>Range &amp; Area</summary>'),
   )
   expect(effects).toContain('aria-label="Ground animation"')
+  changeGroundSetting(tree(), 'Ground affects', 'allies')
+  changeGroundSetting(tree(), 'Ground duration (rounds)', '8')
+  changeGroundSetting(tree(), 'Ground animation', 'frost')
+  expect(value.abilities[0]!.groundArea).toMatchObject({
+    targetTeams: 'allies',
+    durationRounds: 8,
+    visualPresetId: 'frost',
+    entryEffectOrdinals: [0],
+    placementTimingVersion: 1,
+  })
   changeTarget(tree(), 'enemy')
   expect(value.abilities[0]).not.toHaveProperty('groundArea')
 })
 
-it('creates legacy Skill persistence on target selection and mounts its shared profile only in Effects', () => {
-  const source = resolveMatureSkillVersion('vanguard.forceful-strike')!
-  let value = { ...source, effects: [hit] }
-  const tree = () =>
-    ContentDefinitionFields({
-      kind: 'skill',
-      value: value as unknown as CombatContentDefinition,
-      tab: 'Parameters',
-      abilitySection: 'effects',
-      onChange: (next) => {
-        value = next as unknown as typeof value
-      },
-    })
-  changeTarget(tree(), 'ground')
-  expect(value.groundArea).toMatchObject({
-    durationRounds: 2,
-    placementTimingVersion: 1,
-    entryEffectOrdinals: [0],
-  })
-  const render = (abilitySection: 'effects' | 'range') =>
-    renderToStaticMarkup(
-      createElement(ContentDefinitionFields, {
-        kind: 'skill',
-        value: value as unknown as CombatContentDefinition,
+it.each(['skill', 'essence'] as const)(
+  'creates legacy %s persistence on target selection and mounts its shared profile only in Effects',
+  (kind) => {
+    const source = resolveMatureSkillVersion('vanguard.forceful-strike')!
+    let value = { ...source, effects: [hit] }
+    const definition = () =>
+      (kind === 'skill'
+        ? value
+        : {
+            ...resolveEssenceForBuild('vanguard', null)!,
+            skill: value,
+          }) as unknown as CombatContentDefinition
+    const tree = () =>
+      ContentDefinitionFields({
+        kind,
+        value: definition(),
         tab: 'Parameters',
-        abilitySection,
-        onChange: vi.fn(),
-      }),
-    )
-  expect(render('effects')).toContain('aria-label="Ground animation"')
-  expect(render('range')).not.toContain('aria-label="Ground animation"')
-  changeTarget(tree(), 'enemy')
-  expect(value).not.toHaveProperty('groundArea')
-  expect(value.authoring.validationTags).not.toContain('persistent-ground-areas')
-})
+        abilitySection: 'effects',
+        onChange: (next) => {
+          value = (kind === 'skill' ? next : next.skill) as unknown as typeof value
+        },
+      })
+    changeTarget(tree(), 'ground')
+    expect(value.groundArea).toMatchObject({
+      durationRounds: 2,
+      placementTimingVersion: 1,
+      entryEffectOrdinals: [0],
+    })
+    const render = (abilitySection: 'effects' | 'range') =>
+      renderToStaticMarkup(
+        createElement(ContentDefinitionFields, {
+          kind,
+          value: definition(),
+          tab: 'Parameters',
+          abilitySection,
+          onChange: vi.fn(),
+        }),
+      )
+    expect(render('effects')).toContain('aria-label="Ground animation"')
+    expect(render('range')).not.toContain('aria-label="Ground animation"')
+    changeGroundSetting(tree(), 'Ground affects', 'allies')
+    changeGroundSetting(tree(), 'Ground duration (rounds)', '8')
+    changeGroundSetting(tree(), 'Ground animation', 'frost')
+    expect(value.groundArea).toMatchObject({
+      targetTeams: 'allies',
+      durationRounds: 8,
+      visualPresetId: 'frost',
+      entryEffectOrdinals: [0],
+      placementTimingVersion: 1,
+    })
+    changeTarget(tree(), 'enemy')
+    expect(value).not.toHaveProperty('groundArea')
+    expect(value.authoring.validationTags).not.toContain('persistent-ground-areas')
+  },
+)

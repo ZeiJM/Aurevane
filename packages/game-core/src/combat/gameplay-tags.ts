@@ -375,8 +375,11 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     throw new RangeError('Frozen Ground Skill AP surcharge must be an integer from 0 to 100.')
   if (effect.type === 'displace') {
     const authored = effect as unknown as { direction?: unknown; distance?: unknown }
-    if (!['primary-unit', 'affected-units'].includes(effect.recipient))
-      throw new TypeError('Displacement requires another unit.')
+    if (
+      !['primary-unit', 'affected-units'].includes(effect.recipient) &&
+      !(effect.recipient === 'actor' && effect.target === 'self')
+    )
+      throw new TypeError('Displacement requires a unit recipient.')
     if (!Number.isSafeInteger(authored.distance) || (authored.distance as number) <= 0)
       throw new TypeError('Displacement distance must be a positive safe integer.')
     if (authored.direction === undefined && authored.distance !== 1)

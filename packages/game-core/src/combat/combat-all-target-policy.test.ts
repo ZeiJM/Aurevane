@@ -377,3 +377,112 @@ it('preserves opted-in All team membership through an actual automatic captured 
   expect(hits).toHaveLength(3)
   expect(hits).not.toContainEqual(expect.objectContaining({ targetCombatantId: 'enemy' }))
 })
+
+it.each([false, true])(
+  'captures Ground, Self and All displacement through queued reload with caster walking=%s',
+  (walked) => {
+    for (const target of ['ground', 'self', 'all'] as const) {
+      const cast = input({ timing: 'next-round', direction: 'pull', distance: 4, facing: 'north' })
+      const original = cast.root.source
+      const behavior = original.definition.behaviors[0]!
+      const captured = captureCombatAbilitySource({
+        ...original,
+        sourceInstanceId: `queued-${target}`,
+        definition: {
+          schemaVersion: 1,
+          behaviors: [
+            {
+              ...behavior,
+              accuracy: target === 'ground' ? behavior.accuracy : undefined,
+              targeting:
+                target === 'ground'
+                  ? {
+                      ...behavior.targeting!,
+                      kind: 'ground-tile',
+                      categories: ['ground'],
+                      teamPolicy: 'any',
+                      shape: { kind: 'single' },
+                      maximumRange: 2,
+                    }
+                  : behavior.targeting,
+              effects: behavior.effects.flatMap((row) =>
+                row.payload.type === 'displace'
+                  ? [
+                      {
+                        ...row,
+                        payload: {
+                          ...row.payload,
+                          target: target === 'self' ? ('self' as const) : ('all' as const),
+                          recipient:
+                            target === 'self' ? ('actor' as const) : ('affected-units' as const),
+                        },
+                      },
+                    ]
+                  : [],
+              ),
+            },
+          ],
+        },
+      })
+      const current = reattachStatDrivenCombatBridge(
+        reconcileCombatAbilitySources({ ...cast.state, displacementOriginPolicyVersion: 1 }, [
+          captured,
+        ]),
+        cast.state.statBridge,
+      )
+      const queued = commitCombatAbilityCommand({
+        ...cast,
+        state: current,
+        root: { kind: 'canonical', source: captured },
+        selection:
+          target === 'ground' ? { kind: 'tile', position: { x: 3, y: 2 } } : { kind: 'self' },
+        context: combatAbilityCommandContext(current, captured),
+      }).state
+      let restored = JSON.parse(JSON.stringify(queued))
+      const pending = restored.pendingEffects.find(
+        (row: { effect: { type: string } }) => row.effect.type === 'displace',
+      )
+      expect(pending.allDisplacement).toEqual({
+        position: target === 'ground' ? { x: 3, y: 2 } : { x: 3, y: 3 },
+        facing: 'north',
+        ...(target === 'ground' ? { groundAnchor: true } : {}),
+      })
+      expect(validateCombatEncounterState(restored)).toEqual([])
+      const invalid = JSON.parse(JSON.stringify(restored))
+      invalid.pendingEffects.find(
+        (row: { effect: { type: string } }) => row.effect.type === 'displace',
+      ).allDisplacement.groundAnchor = false
+      expect(validateCombatEncounterState(invalid)).not.toEqual([])
+      restored.tactical.placements = restored.tactical.placements.map(
+        (row: { combatantId: string }) =>
+          row.combatantId === 'actor'
+            ? {
+                ...row,
+                facing: 'south',
+                ...(target === 'ground'
+                  ? { position: { x: 3, y: 4 } }
+                  : walked
+                    ? { position: { x: 2, y: 3 } }
+                    : {}),
+              }
+            : row,
+      )
+      const events = []
+      for (let turn = 0; turn < 6; turn++) {
+        const next = endCombatTurn(
+          { ...restored, tactical: selectCurrentFinalFacing(restored.tactical, 'south').state },
+          PV1F_COMBAT_CONTENT,
+        )
+        restored = next.state
+        events.push(...next.events)
+      }
+      expect(events).toContainEqual(
+        expect.objectContaining({
+          event: 'combatant_displaced',
+          combatantId: 'actor',
+          to: target === 'ground' ? { x: 3, y: 2 } : { x: walked ? 2 : 3, y: 0 },
+        }),
+      )
+    }
+  },
+)

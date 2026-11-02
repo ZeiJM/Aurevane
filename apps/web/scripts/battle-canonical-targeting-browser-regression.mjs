@@ -90,6 +90,7 @@ const server = await createServer({
 await server.listen()
 let browser
 const errors = []
+const glowOnly = process.env.AV_CANONICAL_GLOWS === '1'
 const moveOnly = process.env.AV_CANONICAL_MOVE === '1'
 const controlledOnly = process.env.AV_CANONICAL_CONTROLLED === '1'
 const modifiersOnly = process.env.AV_CANONICAL_MODIFIERS === '1'
@@ -102,8 +103,147 @@ try {
     args: ['--no-sandbox'],
     headless: true,
   })
+  if (glowOnly || (!moveOnly && !controlledOnly && !modifiersOnly)) {
+    for (const mode of ['pve', 'pvp'])
+      for (const width of [1366, 390]) {
+        const page = await browser.newPage({
+          viewport: { width, height: 900 },
+          isMobile: width < 821,
+          hasTouch: width < 821,
+        })
+        page.on('pageerror', (error) => errors.push(error.message))
+        await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&glow=all`)
+        await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+        await page.waitForFunction(() => window.forecasts?.length > 0)
+        const enemy = page.locator('#battlefield button[aria-label^="Tile 6, 4;"]')
+        assert.equal(
+          await enemy.getAttribute('data-attack-path'),
+          null,
+          'Push All recipients do not extend the aiming range',
+        )
+        assert.equal(await enemy.getAttribute('data-target'), null)
+        assert.equal(await enemy.evaluate((tile) => tile.style.backgroundColor), '')
+        assert.equal(await page.locator('#battlefield button[data-attack-path="true"]').count(), 4)
+        await page.screenshot({ path: resolve(output, `${mode}-${width}-all-aim.png`) })
+        assert.equal(
+          await page.evaluate(
+            () => window.calls.filter((c) => /\/(commit|intents)$/.test(c.path)).length,
+          ),
+          0,
+        )
+        cases++
+        await page.evaluate(() => {
+          const next = structuredClone(window.fixtureBattle)
+          next.battleVersion++
+          next.snapshot.tactical.placements = next.snapshot.tactical.placements.map((row) =>
+            row.combatantId === 'enemy-two' ? { ...row, position: { x: 8, y: 0 } } : row,
+          )
+          window.fixtureBattle = next
+          window.publishBattle()
+        })
+        await page
+          .locator('#battlefield button[aria-label^="Tile 9, 1;"][aria-label*="occupied by"]')
+          .waitFor()
+        const distant = page.locator('#battlefield button[aria-label^="Tile 9, 1;"]')
+        assert.equal(
+          await distant.getAttribute('data-attack-path'),
+          null,
+          'distant All recipients also stay quiet',
+        )
+        assert.equal(await distant.getAttribute('data-target'), null)
+        await page.screenshot({ path: resolve(output, `${mode}-${width}-distant-all-aim.png`) })
+        cases++
+        await page.goto(
+          server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=all-self`,
+        )
+        await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+        await page.waitForFunction(() =>
+          document.querySelector('[data-battle-notice]')?.textContent.includes('forecast ready'),
+        )
+        assert.equal(await page.locator('#battlefield button[data-attack-path="true"]').count(), 4)
+        const caster = page.locator('#battlefield button[aria-label^="Tile 4, 4;"]')
+        const allEnemy = page.locator('#battlefield button[aria-label^="Tile 5, 4;"]')
+        for (const cell of [caster, allEnemy]) {
+          assert.equal(
+            await cell.evaluate((tile) => tile.style.backgroundColor),
+            '',
+            'React range layer owns occupied target tint',
+          )
+          assert.equal(
+            await cell.evaluate((tile) => getComputedStyle(tile, '::after').backgroundColor),
+            'rgba(189, 38, 58, 0.22)',
+          )
+        }
+        await page.screenshot({ path: resolve(output, `${mode}-${width}-all-uniform.png`) })
+        await allEnemy.click()
+        await page.waitForFunction(() => window.fixtureBattle.battleVersion > 1)
+        const allCommands = await page.evaluate(() =>
+          window.calls.filter((c) => /\/(commit|intents)$/.test(c.path)),
+        )
+        assert.equal(allCommands.length, 1)
+        assert.deepEqual(
+          allCommands[0].body.intent.target,
+          { kind: 'self' },
+          'any living-unit activation submits the same authoritative All cast',
+        )
+        const placements = await page.evaluate(
+          () => window.fixtureBattle.snapshot.tactical.placements,
+        )
+        assert.deepEqual(
+          placements.find((row) => row.combatantId === 'character:player').position,
+          { x: 2, y: 3 },
+          'Push All recoils caster opposite east facing',
+        )
+        assert.deepEqual(
+          placements.find((row) => row.combatantId === 'enemy-one').position,
+          { x: 5, y: 3 },
+          'Push All repels enemy from original caster position',
+        )
+        cases++
+        await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&canonical=support-fleetstep`)
+        await page.locator('button[data-command-slot="guard"]').click()
+        await page.waitForFunction(() =>
+          document.querySelector('#battlefield button[data-reachable]'),
+        )
+        await page.evaluate(() => {
+          const original = window.fetch
+          window.fetch = async (url, options) => {
+            if (/\/(commit|intents)$/.test(String(url)))
+              await new Promise((resolve) => {
+                window.releaseMove = resolve
+              })
+            return original(url, options)
+          }
+        })
+        await page.locator('#battlefield button[aria-label^="Tile 4, 3;"]').click()
+        await page.waitForFunction(
+          () =>
+            window.releaseMove && document.querySelector('[data-battle-execution-pending="true"]'),
+        )
+        assert.equal(
+          await page
+            .locator(
+              '#battlefield button[data-buff-path="true"], #battlefield button[data-self-target="true"]',
+            )
+            .count(),
+          0,
+          'submitted Move has no extra blue self-target glow',
+        )
+        await page.screenshot({ path: resolve(output, `${mode}-${width}-move-pending.png`) })
+        await page.evaluate(() => window.releaseMove())
+        await page.waitForFunction(() => window.fixtureBattle.battleVersion > 1)
+        assert.equal(
+          await page.evaluate(
+            () => window.calls.filter((c) => /\/(commit|intents)$/.test(c.path)).length,
+          ),
+          1,
+        )
+        cases++
+        await page.close()
+      }
+  }
   for (const mode of ['pve', 'pvp']) {
-    if (moveOnly || controlledOnly || modifiersOnly) continue
+    if (glowOnly || moveOnly || controlledOnly || modifiersOnly) continue
     for (const viewport of [
       { width: 1366, height: 768 },
       { width: 390, height: 844 },
