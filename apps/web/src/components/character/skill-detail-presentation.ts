@@ -102,9 +102,10 @@ export function skillEffectDescription(
       return 'Summon the authored allied unit onto the selected empty tile.'
     case 'damage': {
       const facing = effect.facingModifiersBasisPoints
-      const position = facing
-        ? ` Facing: front ${facing.front / 100}%, side ${facing.side / 100}%, rear ${facing.rear / 100}%.`
-        : ''
+      const position =
+        facing && !effect.piercing && !effect.shattersBarrier
+          ? ` Facing: front ${facing.front / 100}%, side ${facing.side / 100}%, rear ${facing.rear / 100}%.`
+          : ''
       const element = skillDamageElementInteraction(
         effect,
         options.legacyElemental,

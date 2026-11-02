@@ -81,6 +81,99 @@ const browser = await chromium.launch({
 
 const errors = []
 const checks = []
+const reportChecks = []
+async function verifySupportReports(page, viewport, touch = false) {
+  if (touch) await page.getByRole('tab', { name: 'Support', exact: true }).click()
+  const preview = page.getByTestId('technique-preview')
+  let baseline
+  for (const [name, cost, effect] of [
+    ['HP Recovery', '50 AP', 'HP Recovery'],
+    ['MP Recovery', '50 AP', 'MP Recovery'],
+    ['Pilfer', '15 AP', 'Pierce'],
+    ['Fleetstep', '30 AP', 'Move'],
+    ['Invocation', '45 AP / 10 MP', 'Summon'],
+  ]) {
+    const input = page.getByRole('radio', { name, exact: true })
+    if (touch) await input.locator('xpath=ancestor::label').click()
+    else await input.focus()
+    await page.waitForFunction(
+      (name) =>
+        document.querySelector('[data-testid="technique-preview"] strong')?.textContent === name,
+      name,
+    )
+    const dl = preview.locator('dl').first()
+    const metrics = await dl.evaluate((table) => {
+      const rect = table.getBoundingClientRect()
+      const rows = [...table.children].map((row) => {
+        const term = row.querySelector('dt')
+        const value = row.querySelector('dd')
+        const a = term.getBoundingClientRect()
+        const b = value.getBoundingClientRect()
+        return {
+          label: term.textContent,
+          value: value.textContent,
+          display: getComputedStyle(row).display,
+          aligned: b.left >= a.right - 1 && b.right <= rect.right + 1,
+          valueFont: getComputedStyle(value).fontSize,
+          valueAlign: getComputedStyle(value).textAlign,
+        }
+      })
+      const notes = table.closest('[data-technique-preview-details]').querySelector('ul')
+      return {
+        display: getComputedStyle(table).display,
+        overflowX: table.scrollWidth - table.clientWidth,
+        rows,
+        explanationFont: getComputedStyle(notes).fontSize,
+      }
+    })
+    await page.screenshot({
+      path: resolve(output, `support-${viewport}-${name.replaceAll(' ', '-')}.png`),
+    })
+    assert.equal(metrics.display, 'grid', `${name} uses the same compact report table`)
+    assert.deepEqual(
+      metrics.rows.map((row) => row.label),
+      [
+        'Skill Type',
+        'Cost',
+        'Cooldown',
+        'Requirements',
+        'Effects',
+        'Target Method',
+        'Target Elevation',
+        'Line of Sight',
+      ],
+    )
+    assert.ok(
+      metrics.rows.every((row) => row.display === 'grid' && row.aligned),
+      `${name} keeps labels beside values`,
+    )
+    assert.ok(metrics.overflowX <= 1, `${name} report fits horizontally`)
+    assert.equal(metrics.rows.find((row) => row.label === 'Cost').value, cost)
+    assert.ok(metrics.rows.find((row) => row.label === 'Effects').value.includes(effect))
+    if (!baseline) baseline = metrics
+    assert.equal(metrics.rows[0].valueFont, baseline.rows[0].valueFont)
+    assert.equal(metrics.rows[0].valueAlign, baseline.rows[0].valueAlign)
+    assert.equal(metrics.explanationFont, baseline.explanationFont)
+    await dl
+      .locator('dt')
+      .filter({ hasText: /^Line of Sight$/ })
+      .scrollIntoViewIfNeeded()
+    if (touch) {
+      const action = page.locator('[data-technique-preview-actions] button')
+      await action.waitFor({ state: 'visible' })
+      assert.equal(
+        await action.innerText(),
+        name === 'HP Recovery' ? '✓ Current Support Action' : 'Use as Support Action',
+      )
+    }
+    assert.equal(
+      await page.evaluate(() => window.calls.length),
+      0,
+      'Reading Support reports submits no command',
+    )
+    reportChecks.push({ viewport, name, metrics })
+  }
+}
 await fs.mkdir(output, { recursive: true })
 console.log(
   `Nexus desktop browser: ${browser.version()}; executable: ${process.env.AV_CHROMIUM_EXECUTABLE || chromium.executablePath()}`,
@@ -221,10 +314,35 @@ try {
       assert.ok(card.box.bottom <= metrics.dialog.bottom && card.box.right <= metrics.dialog.right)
     }
     checks.push({ build, discipline, width, height })
+    await verifySupportReports(page, `${build}-${discipline}-${width}x${height}`)
+    await page.close()
+  }
+  for (const [width, height] of [
+    [360, 780],
+    [390, 844],
+    [393, 852],
+    [844, 390],
+  ]) {
+    const page = await browser.newPage({
+      viewport: { width, height },
+      isMobile: true,
+      hasTouch: true,
+    })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(server.resolvedUrls.local[0] + '?profilePanel=techniques')
+    await page.getByRole('dialog').waitFor()
+    await page.evaluate(async () => {
+      await document.fonts.ready
+    })
+    await verifySupportReports(page, `touch-${width}x${height}`, true)
     await page.close()
   }
   assert.deepEqual(errors, [])
-  console.log(JSON.stringify({ checks, errors }))
+  await fs.writeFile(
+    resolve(output, 'results.json'),
+    JSON.stringify({ checks, reportChecks, errors }, null, 2),
+  )
+  console.log(JSON.stringify({ checks, supportReports: reportChecks.length, errors }))
 } finally {
   await browser.close()
   await server.close()
