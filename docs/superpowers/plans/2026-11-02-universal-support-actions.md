@@ -1,14 +1,14 @@
 # Universal support actions — November 2, 2026
 
-Status: implemented and independently reviewed; final local quality gate and native browser checks pass. Source only, not live.
+Status: LIVE for Owner testing through PR #1003 merge `53e6da7a4815e9041d0f02508f89e4bbd8997dce`; production and migration evidence is recorded in `docs/verification/2026-11-02-battle-support-feedback.md`. Human acceptance remains open.
 
 The Owner retires Guard as a selectable Skill and adds three universal support actions alongside HP Recovery and MP Recovery. Guarded and other existing defensive statuses remain legitimate mechanics. Saved historical encounters and immutable content versions retain their captured definitions.
 
-| Action | Cost | Cooldown | Current behavior |
-| --- | --- | --- | --- |
-| Pilfer | 15 AP | 1 owner turn | Adjacent attack, 4 base Pierce damage without offensive-power scaling or critical hits; ordinary damage modifiers and Barrier still apply. Loot is an inert future-system hook with no inventory, currency, reward or random theft mutation. |
-| Fleetstep | 30 AP | 2 owner turns | Up to 4 legal tiles through the existing independent movement allowance. |
-| Invocation | 45 AP, 10 MP | 4 owner turns | Call Vesper, a silver-blue mythical moon drake, for 4 completed summon turns. One owned active or pending Invocation summon at a time. |
+| Action     | Cost         | Cooldown      | Current behavior                                                                                                                                                                                                                             |
+| ---------- | ------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pilfer     | 15 AP        | 1 owner turn  | Adjacent attack, 4 base Pierce damage without offensive-power scaling or critical hits; ordinary damage modifiers and Barrier still apply. Loot is an inert future-system hook with no inventory, currency, reward or random theft mutation. |
+| Fleetstep  | 30 AP        | 2 owner turns | Up to 4 legal tiles through the existing independent movement allowance.                                                                                                                                                                     |
+| Invocation | 45 AP, 10 MP | 4 owner turns | Call Vesper, a silver-blue mythical moon drake, for 4 completed summon turns. One owned active or pending Invocation summon at a time.                                                                                                       |
 
 Vesper is a small horned moon drake with turquoise eyes and a luminous crescent tail, not a plant creature. It has 40 HP, 12 MP, Movement 4, Jump 1, Initiative 25, Accuracy 80%, Evasion 10%, Armor 4, Ward 6, Physical Power 16, Mystic Power 20 and 25% summon potency. Its standard AI uses Moon Bolt: 45 AP, no MP, range 1–3, line of sight, 4 base ward-mitigated damage. Captured spawn profiles preserve literal stats, artwork identity and completed-turn lifetime.
 
@@ -18,7 +18,7 @@ The source migration retires current Guard metadata, replaces active/saved Guard
 
 Original generated action icons and Vesper portrait are committed as static WebP assets with generation identifiers in the image registry. Existing finalized uploaded artwork takes precedence. The shared summon portrait component admits the exact registered static portrait and retains its initial fallback on image errors.
 
-Release requires the compatible application and reviewed migration together, plus verification of any installed catalogue overrides. No hosted migration, publication or deployment is performed by this implementation step. Final local quality gate, native browser verification and independent review receipts will be recorded before the successor PR commit.
+Released with the compatible application and reviewed migration, verified installed catalogue overrides, and the narrow archived-publication reader correction. The source-only implementation boundary above is historical. Exact hosted changes and remaining acceptance limits are in the Live release verification receipt.
 
 Guided Fundamentals now captures HP Recovery for its support lesson and starts the player at 75% HP. The actual canonical Recovery command completes the lesson; historical policy-absent captures retain their Guard criterion. Shared controls use the captured practice action even when the saved current Support choice is Pilfer.
 
