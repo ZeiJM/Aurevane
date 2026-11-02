@@ -1313,18 +1313,31 @@ test('finalized media automatically centers actual image bytes, replaces the sam
   }
 })
 
-test('all five Basics reject retired restoration and retain manually authored versions with truthful provenance', async ({
+test('all current Basics retain authored provenance and reject restoration while Guard stays archived', async ({
   page,
 }, testInfo) => {
   test.setTimeout(120_000)
-  // Enumerate all five canonical Basic identities using the executable-source fixture.
+  // Read current and historical Basic identities from the executable-source fixture.
   // Playwright's test loader must not compile core's ESM package as CommonJS.
-  const basics: BasicSkillDefinition[] = JSON.parse(
+  const definitions: BasicSkillDefinition[] = JSON.parse(
     execFileSync(process.execPath, [resolve('scripts/master-originals-fixture.mjs')], {
       encoding: 'utf8',
     }),
   )
-  expect(basics).toHaveLength(5)
+  const basics = definitions.filter((definition) => definition.enabled)
+  expect(basics.map((definition) => definition.id).sort()).toEqual(
+    [
+      'basic.move',
+      'unarmed.basic',
+      'basic.recover',
+      'basic.recover.mp',
+      'basic.pilfer',
+      'basic.fleetstep',
+      'basic.invocation',
+    ].sort(),
+  )
+  const retired = definitions.filter((definition) => !definition.enabled)
+  expect(retired).toEqual([expect.objectContaining({ id: 'basic.guard', enabled: false })])
   expect(['localhost', '127.0.0.1']).toContain(
     new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname,
   )
@@ -1341,6 +1354,52 @@ test('all five Basics reject retired restoration and retain manually authored ve
   try {
     grantLocalMasterOperator(email)
     await page.goto('/master/combat-content')
+    const listed = await page.request.post('/api/master/combat-content', {
+      data: {
+        operation: 'record',
+        command: { action: 'list', kind: 'skill', category: 'basic', limit: 100 },
+      },
+    })
+    expect(listed.status()).toBe(200)
+    const catalogue: unknown = await listed.json()
+    if (!isRecord(catalogue) || !Array.isArray(catalogue.records))
+      throw new Error('Missing current Basic catalogue.')
+    expect(
+      catalogue.records
+        .map((row: unknown) => {
+          if (!isRecord(row) || typeof row.contentKey !== 'string')
+            throw new Error('Missing Basic identity.')
+          return row.contentKey
+        })
+        .sort(),
+    ).toEqual(basics.map((definition) => definition.id).sort())
+    expect(catalogue.nextCursor).toBeNull()
+
+    const archivedGuard = await readContentRecord(page, 'basic.guard')
+    expect(archivedGuard).toMatchObject({ lifecycle: 'archived' })
+    const guardStateSql = `select jsonb_build_object(
+      'record',(select to_jsonb(r) from app_private.combat_content_records r where r.content_key='basic.guard'),
+      'draft',(select to_jsonb(d) from app_private.combat_content_drafts d where d.content_key='basic.guard'),
+      'publication',(select to_jsonb(p) from app_private.combat_content_publications p where p.content_key='basic.guard'),
+      'versions',(${immutableContentVersionsSql('basic.guard').replace(/;$/, '')}));`
+    const guardState = queryLocalDatabase(guardStateSql)
+    for (const action of ['save', 'commit']) {
+      const rejected = await page.request.post('/api/master/combat-content', {
+        data: {
+          operation: 'record',
+          command: {
+            action,
+            contentKey: 'basic.guard',
+            expectedRevision: archivedGuard.revision,
+            definition: { ...retired[0]!, enabled: true },
+          },
+        },
+      })
+      expect(rejected.status()).toBe(400)
+      expect(await rejected.json()).toMatchObject({ error: { code: 'INVALID_REQUEST' } })
+      expect(await readContentRecord(page, 'basic.guard')).toEqual(archivedGuard)
+      expect(queryLocalDatabase(guardStateSql)).toBe(guardState)
+    }
     for (const basic of basics) {
       await selectContentRecord(page, basic.id, 'basic')
       const baselinePublication = await commitContent(page)
