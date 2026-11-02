@@ -58,7 +58,7 @@ test('keeps contextual terrain help in the side key and Victory Conditions in th
   const ap = page.getByRole('progressbar', { name: 'Action Economy remaining' })
   const beforeAP = await ap.getAttribute('aria-valuenow')
   await page.keyboard.press('Digit3')
-  await expect(battle).toHaveAttribute('data-battle-action-mode', 'guard')
+  await expect(battle).toHaveAttribute('data-battle-action-mode', 'recover')
   await expect(ap).toHaveAttribute('aria-valuenow', beforeAP!)
   await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
   await victoryConditions.click()
