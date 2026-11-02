@@ -7,7 +7,11 @@ import {
   hasSharedGroundAim,
 } from './combat-effect-dependencies'
 import type { CombatGroundAreaDefinition } from '@aurevane/game-core/combat/combat-ground-areas'
-import { withRemappedGroundEntries } from './combat-ground-entry-authoring'
+import {
+  withRemappedGroundEntries,
+  withCurrentAbilityGroundArea,
+  withCurrentSkillGroundArea,
+} from './combat-ground-entry-authoring'
 import { currentTagForAuthoring, currentSummonForAuthoring } from './combat-current-tag-authoring'
 import { activeCombatContentForAuthoring } from './combat-ability-authoring-compatibility'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
@@ -94,8 +98,8 @@ export function correctCombatContentEntries<T>(
           : undefined
     return {
       ...next,
-      ...(description ? { description } : {}),
-      ...(flavorLine ? { flavorLine } : {}),
+      ...(root.id !== 'basic.invocation' && description ? { description } : {}),
+      ...(root.id !== 'basic.invocation' && flavorLine ? { flavorLine } : {}),
     }
   }
   if (object(owner.summonProfile)) {
@@ -206,7 +210,10 @@ export function correctCombatContentEntries<T>(
         group as unknown as AbilityBehavior,
         { preserveExisting: true },
       )
-      const next = withAbilityEffectDependencies(elemental, elemental)
+      const linked = withAbilityEffectDependencies(elemental, elemental)
+      const next = withCurrentAbilityGroundArea(linked)
+      if (JSON.stringify(next.groundArea) !== JSON.stringify(linked.groundArea))
+        corrections.push('Added current persistent Ground settings.')
       for (const effect of next.effects.filter(
         (effect) => !previousEffects.some((row: unknown) => object(row) && row.id === effect.id),
       ))
@@ -282,6 +289,24 @@ export function correctCombatContentEntries<T>(
     }
     nativeEffects(owner, 'effects')
     if (object(owner.trigger)) nativeEffects(owner.trigger, 'resultEffects')
+    if (
+      object(owner.target) &&
+      Array.isArray(owner.effects) &&
+      owner.effects.every(
+        (effect) =>
+          object(effect) &&
+          typeof effect.type === 'string' &&
+          typeof effect.recipient === 'string' &&
+          combatTagDefinition(effect.type),
+      )
+    ) {
+      const authored = owner as unknown as Parameters<typeof withCurrentSkillGroundArea>[0]
+      const normalized = withCurrentSkillGroundArea(authored)
+      if (normalized !== authored && normalized.groundArea) {
+        owner.groundArea = normalized.groundArea
+        corrections.push('Added current persistent Ground settings.')
+      }
+    }
   }
   for (const {
     owner: percentageOwner,

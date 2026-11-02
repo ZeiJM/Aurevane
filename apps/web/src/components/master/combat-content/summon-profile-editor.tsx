@@ -22,7 +22,10 @@ import {
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { SkillTargetingEditor } from './skill-targeting-editor'
 import { SkillGroundEditor } from './skill-ground-editor'
-import { withRemappedGroundEntries } from '@/lib/combat-ground-entry-authoring'
+import {
+  withRemappedGroundEntries,
+  withCurrentSkillGroundArea,
+} from '@/lib/combat-ground-entry-authoring'
 import {
   isNativeAuthoredElementalCompanion,
   withNativeElementalCompanions,
@@ -105,6 +108,7 @@ export function SummonProfileEditor({
             )
           : next.target,
     })
+    next = withCurrentSkillGroundArea(previous, next)
     emit({
       ...latest.current,
       abilities: latest.current.abilities.map((ability, abilityIndex) =>
@@ -442,6 +446,17 @@ export function SummonProfileEditor({
                   value={ability.effects}
                   onChange={(effects) => updateAbility(index, { ...ability, effects })}
                 />
+                <SkillGroundEditor
+                  target={ability.target}
+                  effects={ability.effects}
+                  value={ability.groundArea}
+                  onChange={(groundArea) => {
+                    const next = { ...ability }
+                    if (groundArea) next.groundArea = groundArea
+                    else delete next.groundArea
+                    updateAbility(index, next)
+                  }}
+                />
               </details>
               <details className={styles.summonSection}>
                 <summary>Range &amp; Area</summary>
@@ -456,17 +471,6 @@ export function SummonProfileEditor({
                       effects: withAuthoredAreaRecipients(target, ability.effects),
                     })
                   }
-                />
-                <SkillGroundEditor
-                  target={ability.target}
-                  effects={ability.effects}
-                  value={ability.groundArea}
-                  onChange={(groundArea) => {
-                    const next = { ...ability }
-                    if (groundArea) next.groundArea = groundArea
-                    else delete next.groundArea
-                    updateAbility(index, next)
-                  }}
                 />
               </details>
               <details className={styles.summonSection}>

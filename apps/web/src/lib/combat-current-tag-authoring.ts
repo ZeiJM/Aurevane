@@ -13,15 +13,19 @@ import {
   reconcileAuthoredEffectDependencies,
   hasSharedGroundAim,
 } from './combat-effect-dependencies'
-import { withRemappedGroundEntries } from './combat-ground-entry-authoring'
+import {
+  withRemappedGroundEntries,
+  withCurrentSkillGroundArea,
+} from './combat-ground-entry-authoring'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 
 export function currentSummonForAuthoring(
   profile: SummonProfileDefinition,
 ): SummonProfileDefinition {
+  const literalVesper = profile.id === 'summon.vesper' && profile.coreAttributes === undefined
   return {
-    ...withCurrentSummonCoreAttributes(profile),
-    aiProfile: 'high',
+    ...(literalVesper ? profile : withCurrentSummonCoreAttributes(profile)),
+    aiProfile: literalVesper ? profile.aiProfile : 'high',
     neverMoves: profile.neverMoves ?? false,
     abilities: profile.abilities.map((ability) => {
       const proposed = ability.effects.map((effect) => currentTagForAuthoring(effect))
@@ -32,23 +36,26 @@ export function currentSummonForAuthoring(
       const family = ability.tags.includes('mystic') ? 'mystic' : 'physical'
       const reversal = effects.some((effect) => effect.type === 'reversal')
       const fixedSelf = reversal || effects.some((effect) => effect.type === 'endure')
-      return withRemappedGroundEntries(ability, {
-        ...ability,
-        hpCost: ability.hpCost ?? 0,
-        target: fixedSelf ? deriveSharedEffectAim(ability.target, effects) : ability.target,
-        tags: reversal
-          ? [...new Set([...ability.tags.filter((tag) => tag !== 'attack'), 'utility'])]
-          : hasDamage
-            ? [
-                ...new Set([
-                  ...ability.tags.filter((tag) => !['physical', 'mystic'].includes(tag)),
-                  'attack',
-                  family,
-                ]),
-              ]
-            : ability.tags,
-        effects,
-      })
+      return withCurrentSkillGroundArea(
+        ability,
+        withRemappedGroundEntries(ability, {
+          ...ability,
+          hpCost: ability.hpCost ?? 0,
+          target: fixedSelf ? deriveSharedEffectAim(ability.target, effects) : ability.target,
+          tags: reversal
+            ? [...new Set([...ability.tags.filter((tag) => tag !== 'attack'), 'utility'])]
+            : hasDamage
+              ? [
+                  ...new Set([
+                    ...ability.tags.filter((tag) => !['physical', 'mystic'].includes(tag)),
+                    'attack',
+                    family,
+                  ]),
+                ]
+              : ability.tags,
+          effects,
+        }),
+      )
     }),
   }
 }

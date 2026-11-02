@@ -4,7 +4,10 @@ import {
   defaultBasicSkills,
   parseBasicSkillDefinition,
 } from '@aurevane/game-core/combat/combat-basic-actions'
-import { SUPPORT_ACTION_IDS } from '@aurevane/game-core/combat/support-actions'
+import {
+  CURRENT_SUPPORT_ACTION_IDS,
+  DEFAULT_SUPPORT_ACTION_ID,
+} from '@aurevane/game-core/combat/support-actions'
 import { reconcileCombatAbilitySources } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   executePv1fAction,
@@ -15,7 +18,7 @@ import { reattachStatDrivenCombatBridge } from '@aurevane/game-core/combat/stat-
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
-import { createStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import { createDuelBalancedCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 
 function encounter() {
   const ids = [actorId, 'enemy']
@@ -37,7 +40,7 @@ function encounter() {
       })),
     }),
   ).state
-  return createStatDrivenCombatEncounterState(
+  return createDuelBalancedCombatEncounterState(
     createCombatEncounterState(
       createTacticalBattleState({
         battle,
@@ -68,6 +71,8 @@ function encounter() {
       physicalPower: 20,
       mysticPower: 20,
       jump: 0,
+      level: 1,
+      criticalChance: 0,
     })),
   )
 }
@@ -96,9 +101,11 @@ class Store extends InMemoryCombatContentRepository {
 }
 
 it.each(
-  defaultBasicSkills().flatMap((row) =>
-    ['pve', 'pvp'].map((context) => ({ id: row.id, context: context as 'pve' | 'pvp' })),
-  ),
+  defaultBasicSkills()
+    .filter((row) => row.enabled)
+    .flatMap((row) =>
+      ['pve', 'pvp'].map((context) => ({ id: row.id, context: context as 'pve' | 'pvp' })),
+    ),
 )(
   '$id restored publication reaches actual $context admission, native outcome and pinned reader without changing the saved four-Skill build',
   async ({ id, context }) => {
@@ -139,7 +146,8 @@ it.each(
       }
       return { buildVersion: saved.buildVersion, replayed: false }
     })
-    const support = SUPPORT_ACTION_IDS.find((key) => key === id) ?? 'basic.guard'
+    const support =
+      CURRENT_SUPPORT_ACTION_IDS.find((key) => key === id) ?? DEFAULT_SUPPORT_ACTION_ID
     await saveCharacterSupportAction(
       owner,
       f.character,
@@ -220,7 +228,10 @@ it.each(
       expectedBaseVersion: 3,
     })
     const fresh = await admit()
-    const restored = JSON.parse(JSON.stringify(fresh.state)) as typeof fresh.state
+    const restored = reattachStatDrivenCombatBridge(
+      JSON.parse(JSON.stringify(fresh.state)) as typeof fresh.state,
+      fresh.state.statBridge,
+    )
     const execute = (state: typeof restored) =>
       id === 'basic.move'
         ? executePv1fMovement(state, [
@@ -230,7 +241,19 @@ it.each(
         : executePv1fAction(
             state,
             id === 'unarmed.basic' ? 'basic.attack.unarmed.basic' : id,
-            id === 'unarmed.basic' ? { kind: 'unit', combatantId: 'enemy' } : { kind: 'self' },
+            ['unarmed.basic', 'basic.pilfer'].includes(id)
+              ? { kind: 'unit', combatantId: 'enemy' }
+              : id === 'basic.invocation'
+                ? { kind: 'tile', position: { x: 2, y: 2 } }
+                : { kind: 'self' },
+            id === 'basic.fleetstep'
+              ? {
+                  movementPath: [
+                    { x: 1, y: 1 },
+                    { x: 1, y: 0 },
+                  ],
+                }
+              : {},
           )
     const ap = (state: typeof restored) =>
       state.tactical.battle.combatants
@@ -241,20 +264,20 @@ it.each(
     expect(ap(oldResult.state)).toBe(71)
     expect(ap(result.state)).toBe(83)
     const actor = result.state.tactical.battle.combatants.find((row) => row.id === actorId)!
-    if (id === 'basic.move')
+    if (id === 'basic.move' || id === 'basic.fleetstep')
       expect(
         result.state.tactical.placements.find((row) => row.combatantId === actorId)!.position,
       ).toEqual({ x: 1, y: 0 })
-    if (id === 'unarmed.basic')
+    if (id === 'unarmed.basic' || id === 'basic.pilfer')
       expect(
         result.state.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp,
       ).toBeLessThan(600)
-    if (id === 'basic.guard')
-      expect(
-        result.state.statusState
-          .find((row) => row.combatantId === actorId)!
-          .statuses.some((row) => row.statusId === 'guarded'),
-      ).toBe(true)
+    if (id === 'basic.invocation')
+      expect(result.state.effectState?.summons).toContainEqual(
+        expect.objectContaining({
+          profile: expect.objectContaining({ id: 'summon.vesper', name: 'Vesper' }),
+        }),
+      )
     if (id === 'basic.recover') expect(actor.hp).toBeGreaterThan(598)
     if (id === 'basic.recover.mp') expect(actor.mp).toBeGreaterThan(4)
     const view = projectBattleSnapshot(

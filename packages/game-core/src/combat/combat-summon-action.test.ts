@@ -161,7 +161,7 @@ function encounter(): StatDrivenCombatEncounterState {
 }
 
 function summoningSkill(): MatureSkillDefinition {
-  const base = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+  const base = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)
   if (!base) throw new Error('Expected current Renewing Herbs.')
 
   return {

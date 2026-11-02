@@ -40,7 +40,7 @@ function editor(
   effects: readonly CombatEffectDefinition[],
   ability: Partial<SummonAbilityDefinition> = {},
 ) {
-  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   let value: SummonProfileDefinition = {
     ...original,
     abilities: [
@@ -100,9 +100,9 @@ const damage = {
 } as const
 
 it.each(['ice', 'water', 'storm', 'fire'] as const)(
-  'accepts the edited %s Summon through strict save and canonical capture',
+  'accepts the edited retained %s Summon through strict validation and canonical capture',
   (element) => {
-    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
     const e = editor([{ type: 'damage', recipient: 'primary-unit', target: 'enemy', amount: 5 }])
     e.change('Element', element)
     const profile = e.value()
@@ -260,7 +260,13 @@ it('keeps Ground references and timing when an unlinked damage edit adds a compa
     recipient: 'affected-units',
     target: 'ground',
   })
-  expect(e.value().abilities[0]!.groundArea).toEqual(groundArea)
+  expect(e.value().abilities[0]!.groundArea).toEqual({
+    ...groundArea,
+    entryEffectOrdinals: [0, 1],
+    contactPolicyVersion: 1,
+    placementTimingVersion: 1,
+    targetTeams: 'all',
+  })
 })
 
 it('updates the linked target while retaining edited duration and generated identity', () => {

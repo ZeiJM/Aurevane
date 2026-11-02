@@ -53,31 +53,36 @@ export function SkillTargetingEditor({
       onChange({ ...next, ...(reach !== null ? { minimumRange: 0, maximumRange: reach } : {}) })
     } else onChange(normalizeCurrentCombatTargetSpec(next))
   }
+  const hasAll =
+    effects?.some((effect) => effect.target === 'all' && effect.recipient !== 'actor') === true
   const friendlyFireApplicable =
-    value.shape.kind !== 'single' &&
-    (!effects ||
-      effects.some((effect) => {
-        if (effect.recipient === 'actor' || ['self', 'ally', 'all'].includes(effect.target ?? ''))
-          return false
-        if (
-          ['damage', 'pierce', 'poison', 'bleed', 'burn', 'displace', 'sensory'].includes(
-            effect.type,
+    hasAll ||
+    (value.shape.kind !== 'single' &&
+      (!effects ||
+        effects.some((effect) => {
+          if (effect.recipient === 'actor' || ['self', 'ally', 'all'].includes(effect.target ?? ''))
+            return false
+          if (
+            ['damage', 'pierce', 'poison', 'bleed', 'burn', 'displace', 'sensory'].includes(
+              effect.type,
+            )
           )
-        )
-          return true
-        if (effect.type === 'resource-change')
-          return !('delta' in effect) || typeof effect.delta !== 'number' || effect.delta < 0
-        if (effect.type === 'apply-status') {
-          const status =
-            'statusId' in effect && typeof effect.statusId === 'string'
-              ? PHASE4_STATUSES.find((row) => row.id === effect.statusId)
-              : undefined
-          return !status || status.polarity === 'negative'
-        }
-        return false
-      }))
+            return true
+          if (effect.type === 'resource-change')
+            return !('delta' in effect) || typeof effect.delta !== 'number' || effect.delta < 0
+          if (effect.type === 'apply-status') {
+            const status =
+              'statusId' in effect && typeof effect.statusId === 'string'
+                ? PHASE4_STATUSES.find((row) => row.id === effect.statusId)
+                : undefined
+            return !status || status.polarity === 'negative'
+          }
+          return false
+        })))
   const friendlyFireOn =
-    value.friendlyFire === 'all-units' || value.friendlyFire === 'all-except-actor'
+    (hasAll && value.allTargetPolicyVersion === undefined) ||
+    value.friendlyFire === 'all-units' ||
+    value.friendlyFire === 'all-except-actor'
   return (
     <fieldset className={styles.typedGroup} aria-label="Range & Area" disabled={disabled}>
       <p className={styles.fieldHint}>
@@ -172,25 +177,45 @@ export function SkillTargetingEditor({
             <select
               aria-label="Friendly Fire"
               disabled={!friendlyFireApplicable}
-              value={friendlyFireOn ? 'on' : 'off'}
+              value={
+                hasAll &&
+                value.allTargetPolicyVersion === 1 &&
+                ['allies-only', 'all-except-actor'].includes(value.friendlyFire)
+                  ? value.friendlyFire
+                  : friendlyFireOn
+                    ? 'on'
+                    : 'off'
+              }
               onChange={(event) =>
                 change({
                   ...value,
+                  ...(hasAll ? { allTargetPolicyVersion: 1 as const } : {}),
                   friendlyFire:
-                    event.currentTarget.value === 'on'
-                      ? 'all-units'
-                      : value.friendlyFire === 'allies-only'
-                        ? 'allies-only'
-                        : 'enemies-only',
+                    hasAll && event.currentTarget.value === 'allies-only'
+                      ? 'allies-only'
+                      : hasAll && event.currentTarget.value === 'all-except-actor'
+                        ? 'all-except-actor'
+                        : event.currentTarget.value === 'on'
+                          ? 'all-units'
+                          : !hasAll && value.friendlyFire === 'allies-only'
+                            ? 'allies-only'
+                            : 'enemies-only',
                 })
               }
             >
               <option value="off">Off</option>
               <option value="on">On</option>
+              {hasAll ? (
+                <>
+                  <option value="allies-only">Allies only</option>
+                  <option value="all-except-actor">Everyone except caster</option>
+                </>
+              ) : null}
             </select>
             <small className={styles.fieldHint}>
-              Applies to hostile area effects. Explicit Ally, Self and All effects keep their own
-              targets.
+              {hasAll
+                ? 'All uses this team filter. Other explicitly targeted effects keep their targets.'
+                : 'Applies to hostile area effects. Explicit Ally and Self effects keep their own targets.'}
             </small>
           </label>
         ) : null}

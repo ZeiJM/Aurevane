@@ -15,7 +15,11 @@ vi.mock('./battle-info-popover', () => ({
 }))
 
 import { BattleSelectedSkills } from './battle-selected-skills'
-import { battleNoncastAbilityInspection } from './battle-captured-action-cost'
+import {
+  battleNoncastAbilityInspection,
+  battleCapturedActionCost,
+  battleCapturedActionCanSelect,
+} from './battle-captured-action-cost'
 import type { BattleRuntime } from './battle-runtime'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { abilityBehaviorInformation } from '../character/ability-detail-presentation'
@@ -48,6 +52,87 @@ const runtime: BattleRuntime = {
   resonance: null,
   essence: null,
 }
+
+it.each([
+  ['discipline', 'endureBlocked'],
+  ['essence', 'endureBlocked'],
+  ['discipline', 'reversalBlocked'],
+  ['essence', 'reversalBlocked'],
+] as const)('disables a %s with %s even when priming is free', (kind, restriction) => {
+  const html = renderToStaticMarkup(
+    <BattleSelectedSkills
+      runtime={{
+        ...runtime,
+        techniques: kind === 'discipline' ? [technique] : [],
+        essence: kind === 'essence' ? { ...technique, description: '' } : null,
+      }}
+      actorId="actor"
+      disabled={false}
+      actionEconomy={100}
+      primeAvailableIds={[technique.id]}
+      onSelect={vi.fn()}
+      manualActionTargets={[
+        {
+          ownerCombatantId: 'actor',
+          actionId: technique.id,
+          behaviorId: 'use',
+          target: defaultBasicSkills()[0]!.ability.behaviors[0]!.targeting!,
+          costs: [],
+          [restriction]: true,
+        },
+      ]}
+    />,
+  )
+  const button = html.match(/<button[^>]*aria-label="[^"]*Forceful Strike[^>]*>/)?.[0]
+  expect(button).toBeTruthy()
+  expect(button).toContain('disabled=""')
+  expect(html).toContain('About Forceful Strike')
+})
+
+it('keeps mixed action support and armed Reversal cancellation selectable under attack restrictions', () => {
+  const target = defaultBasicSkills()[0]!.ability.behaviors[0]!.targeting!
+  const choices = [
+    { actionId: technique.id, behaviorId: 'attack', target, costs: [], reversalBlocked: true },
+    { actionId: technique.id, behaviorId: 'support', target, costs: [] },
+  ]
+  const resources = { ap: 100, mp: 10, hp: 100 }
+  expect(
+    battleCapturedActionCanSelect(battleCapturedActionCost(choices, [], resources), true, 0),
+  ).toBe(true)
+  expect(
+    battleCapturedActionCanSelect(
+      battleCapturedActionCost(choices, [], resources, 'attack'),
+      true,
+      0,
+    ),
+  ).toBe(false)
+  expect(
+    battleCapturedActionCanSelect(
+      battleCapturedActionCost(choices, [], resources, 'support'),
+      false,
+      0,
+    ),
+  ).toBe(true)
+  const armed = [
+    {
+      ...choices[0]!,
+      endureBlocked: true,
+      controlled: {
+        kind: 'reversal' as const,
+        phase: 'primed' as const,
+        canPrime: false,
+        canCancel: true,
+      },
+    },
+  ]
+  expect(
+    battleCapturedActionCanSelect(
+      battleCapturedActionCost(armed, [], { ap: 0, mp: 0, hp: 1 }),
+      false,
+      3,
+    ),
+  ).toBe(true)
+})
 
 it.each(['discipline', 'essence', 'resonance'] as const)(
   'keeps a captured %s prime visible while disabled and removes it when consumed',
@@ -605,6 +690,54 @@ it('lets passive Resonance artwork be inspected during a waiting turn without ad
   expect(html).not.toContain('ready to release')
 })
 
+it.each(['pve', 'pvp'] as const)(
+  'shows the captured uploaded image of a custom passive Resonance in the %s cockpit',
+  async (mode) => {
+    const { customAutomaticResonance } = await import('./battle-custom-resonance.test-utils')
+    const { projectPublicCombat } =
+      await import('@aurevane/game-core/combat/public-combat-presentation')
+    const definition = projectPublicCombat(customAutomaticResonance())
+    const special = {
+      id: definition.id,
+      contentVersion: definition.contentVersion,
+      name: definition.name,
+      description: definition.description,
+      definition,
+    }
+    const chosenRuntime: BattleRuntime =
+      mode === 'pve'
+        ? { ...runtime, resonance: special }
+        : {
+            kind: 'pvp',
+            playerName: 'Wayfarer',
+            resonance: special,
+            metadata: {
+              lobbyId: 'fixture',
+              mode: '1v1',
+              battleKey: 'AVB-TEST-TEST',
+              localCharacterId: 'actor',
+              participants: [],
+            },
+          }
+    const html = renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={chosenRuntime}
+        disabled
+        actionEconomy={0}
+        onSelect={vi.fn()}
+        onInspect={vi.fn()}
+        activeId={definition.id}
+      />,
+    )
+    expect(html).toContain('src="/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b"')
+    expect(html).not.toContain('/media/skills/missing-art.svg')
+    expect(html).toContain('aria-label="Ultra Instinct, Resonance, inspect"')
+    expect(html).not.toMatch(/aria-label="Ultra Instinct, Resonance, inspect"[^>]*disabled/)
+    expect(html).not.toContain('ready to release')
+    expect(html).not.toMatch(/Ultra Instinct, Resonance, [0-9]+ AP/)
+  },
+)
+
 it('limits read-only selection to an owned noncast ability or an unavailable Resonance', async () => {
   const manual = { ...runtime, techniques: [technique] }
   expect(battleNoncastAbilityInspection(manual, [], 'actor', technique.id)).toBeNull()
@@ -677,7 +810,7 @@ it.each(['pve', 'pvp'] as const)(
   },
 )
 
-it('keeps an armed Reversal cancellation enabled despite paid resources and active cooldown', () => {
+it('keeps mixed armed Reversal cancellation enabled despite attack locks, paid resources and active cooldown', () => {
   const captured = [
     {
       ownerCombatantId: 'actor',
@@ -694,6 +827,8 @@ it('keeps an armed Reversal cancellation enabled despite paid resources and acti
         maximumElevationDifference: null,
       },
       costs: [{ resource: 'ap' as const, amount: 35 }],
+      endureBlocked: true,
+      reversalBlocked: true,
       controlled: {
         kind: 'reversal' as const,
         phase: 'primed' as const,
@@ -702,10 +837,18 @@ it('keeps an armed Reversal cancellation enabled despite paid resources and acti
       },
     },
   ]
+  const mixed = [
+    ...captured,
+    {
+      ...captured[0]!,
+      behaviorId: 'attack',
+      controlled: undefined,
+    },
+  ]
   const html = renderToStaticMarkup(
     <BattleSelectedSkills
       runtime={{ ...runtime, techniques: [technique] }}
-      manualActionTargets={captured}
+      manualActionTargets={mixed}
       actorId="actor"
       actionEconomy={0}
       resources={{ mp: 0, hp: 1 }}

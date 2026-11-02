@@ -54,6 +54,19 @@ export function prepareCanonicalSummon(
     (placement) => placement.combatantId === source.ownerCombatantId,
   )?.facing
   if (!facing) throw new TypeError('canonical-summon-owner-placement-required')
+  const duplicateVesper =
+    source.sourceKind === 'basic' &&
+    source.abilityId === 'basic.invocation' &&
+    ((state.effectState?.summons ?? []).some(
+      (summon) =>
+        summon.ownerCombatantId === source.ownerCombatantId &&
+        summon.sourceSkillId === 'basic.invocation',
+    ) ||
+      (state.pendingSummons ?? []).some(
+        (summon) =>
+          summon.input.ownerCombatantId === source.ownerCombatantId &&
+          summon.input.sourceSkillId === 'basic.invocation',
+      ))
   const timing = effect.timing ?? combatEffectTimingMode(state.effectTimingPolicy, 'summon')
   if (timing !== 'instant' && !state.effectTimingPolicy)
     throw new TypeError('canonical-summon-pinned-timing-policy-required')
@@ -86,8 +99,10 @@ export function prepareCanonicalSummon(
     facing,
   }
   // Reuse commit's placement validator without constructing a preview summon or spending RNG.
-  let issue: CombatActionIssue | undefined
-  if (eligible) {
+  let issue: CombatActionIssue | undefined = duplicateVesper
+    ? { code: 'requirement-not-met', message: 'Only one Vesper may accompany each character.' }
+    : undefined
+  if (eligible && !issue) {
     try {
       assertCombatSummonPlacement(reattachStatDrivenCombatBridge(state, bridge), input.position)
     } catch (error) {

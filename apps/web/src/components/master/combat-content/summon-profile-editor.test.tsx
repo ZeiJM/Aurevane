@@ -5,15 +5,16 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { SummonProfileEditor } from './summon-profile-editor'
 
-function currentProfile() {
-  const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
-  if (!definition?.summonProfile) throw new Error('Expected current Renewing Herbs summon profile.')
+function retainedProfile() {
+  const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)
+  if (!definition?.summonProfile)
+    throw new Error('Expected retained Renewing Herbs v6 summon profile.')
   return definition.summonProfile
 }
 
 describe('Master Panel summon profile editor', () => {
   it('exposes the shared Ground lifetime controls for a Ground-targeted Summon Skill', () => {
-    const profile = currentProfile()
+    const profile = retainedProfile()
     const value = {
       ...profile,
       abilities: [
@@ -51,7 +52,7 @@ describe('Master Panel summon profile editor', () => {
     expect(html).toContain('aria-label="Ground animation"')
   })
   it('allows Reversal in native Summon Skills with their paid preparation adapter', () => {
-    const profile = currentProfile()
+    const profile = retainedProfile()
     const value = {
       ...profile,
       abilities: profile.abilities.map((ability) => ({ ...ability, effects: [] })),
@@ -68,7 +69,7 @@ describe('Master Panel summon profile editor', () => {
   it('shows core stats and compact summon controls while hiding internal metadata', () => {
     const markup = renderToStaticMarkup(
       createElement(SummonProfileEditor, {
-        value: currentProfile(),
+        value: retainedProfile(),
         onChange: vi.fn(),
       }),
     )
@@ -100,7 +101,7 @@ describe('Master Panel summon profile editor', () => {
   })
 
   it('shows omitted potency as explicitly uncapped instead of a fabricated 40 percent', () => {
-    const profile = { ...currentProfile() }
+    const profile = { ...retainedProfile() }
     delete (profile as { potencyBasisPoints?: number }).potencyBasisPoints
     const markup = renderToStaticMarkup(
       createElement(SummonProfileEditor, { value: profile, onChange: vi.fn() }),
@@ -113,7 +114,7 @@ describe('Master Panel summon profile editor', () => {
   it('renders both programmable abilities and prevents a third authored ability', () => {
     const markup = renderToStaticMarkup(
       createElement(SummonProfileEditor, {
-        value: currentProfile(),
+        value: retainedProfile(),
         onChange: vi.fn(),
       }),
     )

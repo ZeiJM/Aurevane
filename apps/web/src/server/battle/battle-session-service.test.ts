@@ -589,6 +589,10 @@ describe('P2.4 battle session service', () => {
       if (testCase.recordId === 'guided-fundamentals') {
         expect(state.tactical).toMatchObject({ width: 9, height: 7 })
         expect(state.tactical.tiles).toHaveLength(63)
+        const player = state.tactical.battle.combatants.find(
+          (row) => row.id === `character:${CHARACTER_ID}`,
+        )!
+        expect(player.hp).toBe(Math.max(1, Math.floor(player.maxHp * 0.75)))
       }
       const recruitProfile = state.statBridge.combatants.find(
         (profile) => profile.combatantId === 'recruit:p2-4-1',

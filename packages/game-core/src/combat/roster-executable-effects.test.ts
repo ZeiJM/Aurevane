@@ -494,8 +494,9 @@ const cases: ExecutableEffectCase[] = [
 // This harness executes exact records from the immutable October10 manifest. None
 // contains the later Endure, Reversal or attack annotations, exercised independently
 // in combat-endure.test.ts, combat-reversal.test.ts and combat-attack-tags.test.ts.
+// The later inert Loot contract is executed in combat-universal-support.test.ts.
 // A finite list keeps every other registry entry subject to executable roster coverage.
-const outsideOctober10Roster = ['endure', 'reversal', 'weak-point', 'spike', 'ruin']
+const outsideOctober10Roster = ['endure', 'reversal', 'weak-point', 'spike', 'ruin', 'loot']
 it('requires an executed outcome case for every effect registered for the October10 roster', () => {
   expect(cases.map((row) => row.tag).sort()).toEqual(
     COMBAT_TAG_REGISTRY.filter((row) => !outsideOctober10Roster.includes(row.id))

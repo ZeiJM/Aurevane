@@ -184,6 +184,7 @@ export function validateCombatActionDefinition(
         'barrier-change',
         'copy-statuses',
         'sensory',
+        'loot',
         'endure',
       ],
       'effect type',

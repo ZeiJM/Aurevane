@@ -902,6 +902,21 @@ try {
     const page = await browser.newPage({ viewport })
     page.on('pageerror', (error) => errors.push(error.message))
     await page.goto(server.resolvedUrls.local[0] + '?mode=master-ground')
+    assert.equal(await page.getByLabel('Persistent ground effect', { exact: true }).count(), 0)
+    assert.equal(
+      await page.getByLabel('Ground duration (rounds)', { exact: true }).inputValue(),
+      '2',
+    )
+    assert.equal(await page.getByLabel('Ground affects', { exact: true }).inputValue(), 'all')
+    await page.getByRole('tab', { name: 'Range & Area', exact: true }).click()
+    assert.equal(
+      await page
+        .locator('[role="tabpanel"]:visible')
+        .getByLabel('Ground duration (rounds)', { exact: true })
+        .count(),
+      0,
+    )
+    await page.getByRole('tab', { name: 'Effects', exact: true }).click()
     await page.getByLabel('Ground duration (rounds)', { exact: true }).fill('4')
     await page.getByLabel('Ground animation', { exact: true }).selectOption('frost')
     assert.equal(await page.getByLabel('Ground activation', { exact: true }).count(), 0)
@@ -914,6 +929,12 @@ try {
     assert.equal(draft.visualPresetId, 'frost')
     assert.equal(draft.timing, undefined)
     assert.deepEqual(draft.entryEffectOrdinals, [0, 1])
+    assert.equal(draft.placementTimingVersion, 1)
+    await page.getByLabel('Ground affects', { exact: true }).selectOption('self')
+    assert.equal(
+      JSON.parse(await page.locator('[data-ground-draft]').innerText()).targetTeams,
+      'self',
+    )
     assert.equal(
       await page
         .locator('[aria-label="Ground animation preview"] [data-ground-area-preset="frost"]')
@@ -924,9 +945,19 @@ try {
       path: resolve(output, `master-${viewport.width}-ground-editor.png`),
       fullPage: true,
     })
-    await page.getByLabel('Persistent ground effect', { exact: true }).uncheck()
+    const targets = page.getByLabel('Target', { exact: true })
+    for (let index = 0; index < (await targets.count()); index++) {
+      const panel = targets.nth(index).locator('xpath=ancestor::details[@data-effect-collapsible]')
+      if ((await panel.getAttribute('open')) === null)
+        await panel.locator(':scope > summary').click()
+      await targets.nth(index).selectOption('enemy')
+    }
     assert.equal(await page.getByLabel('Ground duration (rounds)', { exact: true }).count(), 0)
-    await page.getByLabel('Persistent ground effect', { exact: true }).check()
+    assert.equal(await page.getByLabel('Ground animation', { exact: true }).count(), 0)
+    assert.equal(await page.getByLabel('Ground affects', { exact: true }).count(), 0)
+    assert.equal(await page.locator('[data-ground-draft]').innerText(), '')
+    await targets.first().selectOption('ground')
+    await targets.last().selectOption('ground')
     assert.equal(
       JSON.parse(await page.locator('[data-ground-draft]').innerText()).durationRounds,
       2,

@@ -1,5 +1,9 @@
 import { beforeAll, beforeEach, expect, it, vi } from 'vitest'
 import type { ReactElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { BattleSelectedSkills } from '@/components/battle/battle-selected-skills'
+import type { BattleRuntime } from '@/components/battle/battle-runtime'
+import { customAutomaticResonance } from '@/components/battle/battle-custom-resonance.test-utils'
 import { essenceSnapshotReference } from '@aurevane/game-core/combat/essence'
 import { resonanceSnapshotReference } from '@aurevane/game-core/combat/resonance'
 import {
@@ -68,6 +72,82 @@ beforeEach(() => {
   mocks.resolver.mockReturnValue(resolver)
   mocks.names.mockResolvedValue({})
 })
+
+it.each(['pve', 'pvp'] as const)(
+  'carries only the exact pinned custom Resonance artwork into the local %s cockpit',
+  async (mode) => {
+    const pinned = customAutomaticResonance()
+    const resolvePinnedResonanceDefinition = vi.fn(async () => pinned)
+    mocks.resolver.mockReturnValue({ ...resolver, resolvePinnedResonanceDefinition })
+    mocks.session.mockResolvedValue({
+      battleSessionId: '33333333-3333-4333-8333-333333333333',
+      battleVersion: 1,
+      snapshot: {
+        tactical: { battle: { lifecycle: 'active' } },
+        statBridge: {
+          combatants: [{ provenance: { kind: 'character-derived', sourceId: actorId } }],
+        },
+        buildAuthority: {
+          schemaVersion: 1,
+          catalogVersion: 3,
+          combatContext: mode,
+          combatants: [
+            {
+              combatantId: actorId,
+              characterId,
+              primary: { disciplineId: pinned.disciplinePair[0] },
+              secondary: { disciplineId: pinned.disciplinePair[1] },
+              disciplineSkills: [],
+              extensions: { essence: null, resonance: resonanceSnapshotReference(pinned) },
+            },
+          ],
+        },
+      },
+    })
+    mocks.metadata.mockResolvedValue(
+      mode === 'pvp'
+        ? {
+            localCharacterId: characterId,
+            participants: [
+              {
+                characterId,
+                combatantId: actorId,
+                characterName: 'Wayfarer',
+                portraitRef: 'portrait.starter.wayfarer-01',
+              },
+            ],
+          }
+        : null,
+    )
+    const page = await BattleSessionPage({
+      params: Promise.resolve({ battleSessionId: '33333333-3333-4333-8333-333333333333' }),
+    })
+    const current = (page as ReactElement<{ children: ReactElement<{ runtime: BattleRuntime }> }>)
+      .props.children.props.runtime
+    expect(current.resonance).toMatchObject({
+      id: pinned.id,
+      name: 'Ultra Instinct',
+      definition: { contentVersion: 2, media: pinned.media },
+    })
+    expect(resolvePinnedResonanceDefinition).toHaveBeenCalledWith(
+      ...pinned.disciplinePair,
+      pinned.id,
+      2,
+    )
+    const html = renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={current}
+        disabled
+        actionEconomy={0}
+        onSelect={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    )
+    expect(html).toContain('src="/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b"')
+    expect(html).toContain('aria-label="Ultra Instinct, Resonance, inspect"')
+    expect(JSON.stringify(current)).not.toContain('sourceInstanceId')
+  },
+)
 
 it.each(['pve', 'pvp'] as const)(
   'shows the captured published Essence in the %s cockpit without manually equipping it',

@@ -197,8 +197,8 @@ it.each(['skill', 'essence'] as const)(
   },
 )
 
-it('keeps native Summon Reversal valid for the paid preparation adapter', () => {
-  const skill = structuredClone(resolveMatureSkillVersion('wildwarden.renewing-herbs')!)
+it('keeps native Summon Reversal valid in Invocation for the paid preparation adapter', () => {
+  const skill = structuredClone(resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!)
   Reflect.deleteProperty(skill, 'ability')
   const profile = skill.summonProfile!
   const value = {
@@ -217,12 +217,29 @@ it('keeps native Summon Reversal valid for the paid preparation adapter', () => 
   }
   const before = structuredClone(value)
   expect(validateSummonProfileDefinition(value)).toEqual([])
-  const definition = { ...skill, summonProfile: value }
+  expect(validateSkillDefinition({ ...skill, summonProfile: value }).issues).toContainEqual(
+    expect.objectContaining({ code: 'EXCLUSIVE_SUPPORT_EFFECT' }),
+  )
+  const invocation = defaultBasicSkills().find((row) => row.id === 'basic.invocation')!
+  const definition = {
+    ...invocation,
+    ability: {
+      ...invocation.ability,
+      behaviors: invocation.ability.behaviors.map((behavior) => ({
+        ...behavior,
+        effects: behavior.effects.map((effect) =>
+          effect.payload.type === 'summon'
+            ? { ...effect, payload: { ...effect.payload, profile: value } }
+            : effect,
+        ),
+      })),
+    },
+  }
   expect(validateSkillDefinition(definition)).toMatchObject({ valid: true, issues: [] })
   expect(
-    combatContentCategory('skill')!.parseAuthoring(
+    combatContentCategory('skill', invocation.id)!.parseAuthoring(
       definition as unknown as CombatContentDefinition,
     ),
-  ).toHaveProperty('summonProfile', value)
+  ).toHaveProperty('ability.behaviors[0].effects[0].payload.profile', value)
   expect(value).toEqual(before)
 })

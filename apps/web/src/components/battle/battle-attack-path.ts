@@ -131,8 +131,37 @@ export function battleTargetReachTiles(
     target.shape.kind !== 'single' &&
     selectedAffectedTiles.length
   ) {
-    add(selectedAffectedTiles)
-    return result
+    const selection = aim.selection
+    const endpoint =
+      selection?.kind === 'self'
+        ? origin
+        : selection?.kind === 'tile'
+          ? selection.position
+          : selection?.kind === 'unit'
+            ? (spatial?.tactical ?? tactical).placements?.find(
+                (row) => row.combatantId === selection.combatantId,
+              )?.position
+            : undefined
+    const distance = endpoint
+      ? Math.abs(endpoint.x - origin.x) + Math.abs(endpoint.y - origin.y)
+      : -1
+    if (
+      endpoint &&
+      distance >= target.minimumRange &&
+      distance <= target.maximumRange &&
+      (target.kind !== 'self' || distance === 0) &&
+      (!spatial ||
+        filterCombatTargetSpatialFootprint(
+          spatial.tactical,
+          origin,
+          target,
+          [endpoint],
+          spatial.terrainOverlays,
+        ).length > 0)
+    ) {
+      add(selectedAffectedTiles)
+      return result
+    }
   }
   for (const tile of tactical.tiles) {
     const distance = Math.abs(tile.position.x - origin.x) + Math.abs(tile.position.y - origin.y)

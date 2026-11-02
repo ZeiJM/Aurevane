@@ -26,17 +26,53 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
   const manifest = JSON.parse(
     readFileSync(resolve(process.cwd(), '../../supabase/content-builtin-manifest.json'), 'utf8'),
   )
-  // The applied SQL manifest is immutable. Only the approved stock current
-  // label changes; identity, versions, floors and historical names stay intact.
-  expect(
-    manifest.map((row: { contentKind: string; contentKey: string; name: string }) => ({
+  // Applied source manifests remain historical. The additive support migration
+  // changes only these identities plus the replacement class utility.
+  const current = manifest
+    .filter((row: { contentKey: string }) => row.contentKey !== 'basic.guard')
+    .map((row: { contentKind: string; contentKey: string; name: string }) => ({
       ...row,
-      name:
-        row.contentKind === 'tag'
-          ? currentCombatTagName(row.contentKey.replace(/^tag\./u, ''), row.name)
-          : row.name,
-    })),
+      ...(row.contentKey === 'wildwarden.renewing-herbs'
+        ? { name: 'Briar Snare', contentVersion: 7, versionFloor: 7 }
+        : {
+            name:
+              row.contentKind === 'tag'
+                ? currentCombatTagName(row.contentKey.replace(/^tag\./u, ''), row.name)
+                : row.name,
+          }),
+    }))
+  for (const [contentKey, name, contentKind] of [
+    ['basic.pilfer', 'Pilfer', 'skill'],
+    ['basic.fleetstep', 'Fleetstep', 'skill'],
+    ['basic.invocation', 'Invocation', 'skill'],
+    ['tag.loot', 'Loot', 'tag'],
+  ])
+    current.push({
+      contentKey,
+      name,
+      contentKind,
+      contentVersion: 1,
+      versionFloor: 1,
+      sourceDisciplineId: null,
+    })
+  expect(
+    current.sort((a: { contentKey: string }, b: { contentKey: string }) =>
+      a.contentKey.localeCompare(b.contentKey),
+    ),
   ).toEqual(builtinCombatContentManifest())
+  expect(
+    builtinCombatContentManifest().filter((row) =>
+      [
+        'basic.move',
+        'unarmed.basic',
+        'basic.recover',
+        'basic.recover.mp',
+        'basic.pilfer',
+        'basic.fleetstep',
+        'basic.invocation',
+      ].includes(row.contentKey),
+    ),
+  ).toHaveLength(7)
   const migration = readFileSync(
     resolve(
       process.cwd(),

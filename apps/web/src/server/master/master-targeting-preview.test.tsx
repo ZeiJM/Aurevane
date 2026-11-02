@@ -187,7 +187,7 @@ it.each([
 it.each([{ kind: 'line', length: 3 }, { kind: 'circle', radius: 1 }, { kind: 'all' }] as const)(
   'previews an edited Basic with canonical $kind targeting',
   async (shape) => {
-    const original = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    const original = defaultBasicSkills().find((row) => row.id === 'basic.recover')!
     const group = original.ability.behaviors[0]!
     const definition = {
       ...original,

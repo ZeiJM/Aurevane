@@ -7,7 +7,8 @@ import {
 } from '../character/skill-effect-timing-context'
 import { SummonAbilityList, SummonAbilityReader } from './summon-ability-list'
 
-const abilities = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!.abilities
+const abilities = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
+  .abilities
 
 const policies = { airbornePolicyVersion: 1 } as const
 

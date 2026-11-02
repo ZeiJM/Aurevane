@@ -1,4 +1,5 @@
 import { combatCategoryForAuthoring, combatCategoryIssues } from '@/lib/combat-category-authoring'
+import { combatAllForAuthoring } from '@/lib/combat-all-for-authoring'
 import {
   combatDamageForAuthoring,
   automaticDamageDefinitionIssues,
@@ -92,7 +93,9 @@ async function readBody(request: Request): Promise<JsonObject> {
 }
 
 function currentDefinition(body: JsonObject, kind: AuthoringContentKind) {
-  const retained = combatDamageForAuthoring(kind, requireProperty(body, 'definition'))
+  const retained = combatAllForAuthoring(
+    combatDamageForAuthoring(kind, requireProperty(body, 'definition')),
+  )
   const definition =
     body.operation === 'preview' ? retained : combatCategoryForAuthoring(kind, retained)
   const issues = [

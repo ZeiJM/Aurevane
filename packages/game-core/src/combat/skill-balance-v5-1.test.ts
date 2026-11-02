@@ -150,6 +150,10 @@ describe('Combat v5.1 current Technique catalog', () => {
     expect(skills).toHaveLength(136)
 
     for (const skill of skills) {
+      if (skill.authoring.validationTags.includes('universal-support-v1')) {
+        expect(skill).toMatchObject({ id: 'wildwarden.renewing-herbs', apCost: 35, mpCost: 5 })
+        continue
+      }
       expect(skill.authoring.validationTags).toContain('owner-rebalance-v5-1')
       const role = classifyV51SkillRole(skill)
       const [minimumAp, maximumAp] = role === 'utility' ? [35, 50] : [45, 60]

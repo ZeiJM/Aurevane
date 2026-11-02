@@ -118,7 +118,7 @@ describe('finite simple Requirements', () => {
       },
     }
     expect(simpleAutomaticTargetSubjects(self)).toEqual(['owner'])
-    expect(simpleAutomaticTargetSubjects(base)).toEqual([])
+    expect(simpleAutomaticTargetSubjects(base)).toEqual(['nearest-enemy', 'lowest-hp-enemy'])
     expect(simpleAutomaticTargetSubjects({ ...self, automaticTrigger: 'turn-started' })).toEqual([
       'owner',
       'triggering',
@@ -130,14 +130,18 @@ describe('finite simple Requirements', () => {
     expect(simpleAutomaticTargetSubjects({ ...base, automaticTrigger: 'damage-dealt' })).toEqual([
       'selected',
       'affected',
+      'nearest-enemy',
+      'lowest-hp-enemy',
     ])
     expect(simpleAutomaticTargetSubjects({ ...base, automaticTrigger: 'damage-taken' })).toEqual([
       'triggering',
       'selected',
+      'nearest-enemy',
+      'lowest-hp-enemy',
     ])
     expect(
       simpleAutomaticTargetSubjects({ ...base, automaticTrigger: 'enemy-turn-ended' }),
-    ).toEqual(['triggering', 'affected'])
+    ).toEqual(['triggering', 'affected', 'nearest-enemy', 'lowest-hp-enemy'])
     expect(
       simpleAutomaticTargetSubjects({ ...self, targeting: { ...self.targeting, kind: 'self' } }),
     ).toEqual(['owner'])

@@ -1,3 +1,4 @@
+import { historicalBasicSkills } from './combat-basic-history.test-utils'
 import { describe, expect, it } from 'vitest'
 import {
   BASIC_SKILL_IDS,
@@ -7,7 +8,7 @@ import {
   resolveBasicSkillVersion,
 } from './combat-basic-actions'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
-import { SUPPORT_ACTION_IDS } from './support-actions'
+import { SUPPORT_ACTION_IDS, CURRENT_SUPPORT_ACTION_IDS } from './support-actions'
 
 describe('editable Basic and Support definitions', () => {
   it('includes both Basics and every Support option as independently valid records', () => {
@@ -33,6 +34,12 @@ describe('editable Basic and Support definitions', () => {
       [{ resource: 'ap', amount: 30 }],
       [{ resource: 'ap', amount: 50 }],
       [{ resource: 'ap', amount: 50 }],
+      [{ resource: 'ap', amount: 15 }],
+      [{ resource: 'ap', amount: 30 }],
+      [
+        { resource: 'ap', amount: 45 },
+        { resource: 'mp', amount: 10 },
+      ],
     ])
     const guard = definitions.find((row) => row.id === 'basic.guard')!
     const hp = definitions.find((row) => row.id === 'basic.recover')!
@@ -55,7 +62,7 @@ describe('editable Basic and Support definitions', () => {
   })
 
   it('captures only the equipped Support alongside Move and Basic Attack', () => {
-    for (const supportActionId of SUPPORT_ACTION_IDS) {
+    for (const supportActionId of CURRENT_SUPPORT_ACTION_IDS) {
       const sources = captureBasicSkillSources({
         ownerCombatantId: 'actor',
         supportActionId,
@@ -124,7 +131,7 @@ describe('editable Basic and Support definitions', () => {
   })
 
   it('resolves an exact version and refuses missing or contradictory captures', () => {
-    const definitions = defaultBasicSkills()
+    const definitions = historicalBasicSkills()
     expect(resolveBasicSkillVersion('basic.guard', 1, definitions).id).toBe('basic.guard')
     expect(() => resolveBasicSkillVersion('basic.guard', 2, definitions)).toThrow(/version/i)
     const captured = captureBasicSkillSources({

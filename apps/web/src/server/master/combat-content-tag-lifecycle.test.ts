@@ -348,7 +348,10 @@ import {
   parseBasicSkillDefinition,
   captureBasicSkillSources,
 } from '@aurevane/game-core/combat/combat-basic-actions'
-import { SUPPORT_ACTION_IDS } from '@aurevane/game-core/combat/support-actions'
+import {
+  CURRENT_SUPPORT_ACTION_IDS,
+  DEFAULT_SUPPORT_ACTION_ID,
+} from '@aurevane/game-core/combat/support-actions'
 import {
   createCombatContentResolver,
   RpcPublishedCombatContentSource,
@@ -359,12 +362,15 @@ import {
   executePv1fMovement,
   preparePv1fTurnEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
-import { reattachStatDrivenCombatBridge } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  createDuelBalancedCombatEncounterState,
+  reattachStatDrivenCombatBridge,
+} from '@aurevane/game-core/combat/stat-driven-combat'
 import { percentageDotEncounter } from '../../../../../packages/game-core/src/combat/combat-percentage-dots.test-utils'
 import { projectBattleSnapshot } from '@/server/battle/battle-session-service'
 import { deriveParticipantBattleViewerEntitlement } from '@/server/battle/battle-viewer-entitlement'
 
-it.each(defaultBasicSkills())(
+it.each(defaultBasicSkills().filter((row) => row.enabled))(
   'complete current-edit API → SQL commit → $id execution preserves originals and old captures while HTTP rollback is retired',
   async (original) => {
     const initial = (await command({ action: 'read', contentKey: original.id })).body.record
@@ -391,12 +397,27 @@ it.each(defaultBasicSkills())(
     expect(oldDefinition?.name).toBe('Edited original')
     const pinnedOriginal = await resolver.resolvePinnedBasicSkillDefinition!(original.id, 1)
     expect(pinnedOriginal).toEqual(original)
-    const support = SUPPORT_ACTION_IDS.find((id) => id === original.id) ?? 'basic.guard'
+    const support =
+      CURRENT_SUPPORT_ACTION_IDS.find((id) => id === original.id) ?? DEFAULT_SUPPORT_ACTION_ID
     const capture = (definition: typeof original) => {
-      const state = preparePv1fTurnEconomy(percentageDotEncounter())
+      const fixture = percentageDotEncounter()
+      const state = preparePv1fTurnEconomy(
+        original.id === 'basic.invocation'
+          ? createDuelBalancedCombatEncounterState(
+              fixture,
+              fixture.statBridge.combatants.map((row) => ({
+                ...row,
+                physicalPower: row.physicalPower ?? 20,
+                mysticPower: row.mysticPower ?? 20,
+                level: row.level ?? 1,
+                criticalChance: row.criticalChance ?? 0,
+              })),
+            )
+          : fixture,
+      )
       Object.assign(
         state.tactical.battle.combatants.find((c) => c.id === 'actor')!,
-        { hp: 800, mp: 5 },
+        { hp: 800, mp: original.id === 'basic.invocation' ? 15 : 5 },
       )
       return reattachStatDrivenCombatBridge(
         reconcileCombatAbilitySources(
@@ -518,9 +539,19 @@ it.each(defaultBasicSkills())(
         : executePv1fAction(
             state,
             original.id === 'unarmed.basic' ? 'basic.attack.unarmed.basic' : original.id,
-            original.id === 'unarmed.basic'
+            ['unarmed.basic', 'basic.pilfer'].includes(original.id)
               ? { kind: 'unit', combatantId: 'enemy' }
-              : { kind: 'self' },
+              : original.id === 'basic.invocation'
+                ? { kind: 'tile', position: { x: 2, y: 2 } }
+                : { kind: 'self' },
+            original.id === 'basic.fleetstep'
+              ? {
+                  movementPath: [
+                    { x: 1, y: 1 },
+                    { x: 1, y: 0 },
+                  ],
+                }
+              : {},
           )
     const result = execute(fresh)
     const actor = result.state.tactical.battle.combatants.find((c) => c.id === 'actor')!
@@ -528,20 +559,20 @@ it.each(defaultBasicSkills())(
     expect(actor.temporaryResources!.find((r) => r.key === 'pv1f.action-economy')!.current).toBe(
       100 - price,
     )
-    if (original.id === 'basic.move')
+    if (original.id === 'basic.move' || original.id === 'basic.fleetstep')
       expect(
         result.state.tactical.placements.find((c) => c.combatantId === 'actor')!.position,
       ).toEqual({ x: 1, y: 0 })
-    if (original.id === 'unarmed.basic')
+    if (original.id === 'unarmed.basic' || original.id === 'basic.pilfer')
       expect(
         result.state.tactical.battle.combatants.find((c) => c.id === 'enemy')!.hp,
       ).toBeLessThan(1000)
-    if (original.id === 'basic.guard')
-      expect(
-        result.state.statusState
-          .find((c) => c.combatantId === 'actor')!
-          .statuses.some((s) => s.statusId === 'guarded'),
-      ).toBe(true)
+    if (original.id === 'basic.invocation')
+      expect(result.state.effectState?.summons).toContainEqual(
+        expect.objectContaining({
+          profile: expect.objectContaining({ id: 'summon.vesper', name: 'Vesper' }),
+        }),
+      )
     if (original.id === 'basic.recover') expect(actor.hp).toBeGreaterThan(800)
     if (original.id === 'basic.recover.mp') expect(actor.mp).toBeGreaterThan(5)
     const view = projectBattleSnapshot(
@@ -567,3 +598,18 @@ it.each(defaultBasicSkills())(
     )
   },
 )
+
+it('rejects current Guard edits before publication while its archived metadata remains readable', async () => {
+  const before = (await command({ action: 'read', contentKey: 'basic.guard' })).body.record
+  expect(before).toMatchObject({ lifecycle: 'archived', current: null })
+  for (const action of ['save', 'commit']) {
+    const rejected = await command({
+      action,
+      contentKey: 'basic.guard',
+      expectedRevision: before.revision,
+      definition: defaultBasicSkills().find((row) => row.id === 'basic.guard'),
+    })
+    expect(rejected.status, JSON.stringify(rejected.body)).toBe(400)
+  }
+  expect((await command({ action: 'read', contentKey: 'basic.guard' })).body.record).toEqual(before)
+})

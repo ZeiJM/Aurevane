@@ -77,6 +77,34 @@ beforeEach(() => {
     throw new Error(`Unexpected RPC ${name}`)
   })
 })
+it.each(['active', 'draft', 'archived'] as const)(
+  'filters retired Guard in %s lists while retaining explicit archive reads',
+  async (lifecycle) => {
+    const previous = rpc.getMockImplementation()!
+    rpc.mockImplementation(async (name: string, args: Record<string, unknown>) =>
+      name === 'list_combat_content_records_v1'
+        ? {
+            data: {
+              records: [
+                { contentKey: 'basic.guard', contentKind: 'skill', lifecycle, revision: 1 },
+                { contentKey: 'basic.recover', contentKind: 'skill', lifecycle, revision: 1 },
+              ],
+              nextCursor: null,
+            },
+            error: null,
+          }
+        : previous(name, args),
+    )
+    const response = await call({ action: 'list', kind: 'skill', category: 'basic', lifecycle })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toMatchObject({
+      records:
+        lifecycle === 'archived'
+          ? [{ contentKey: 'basic.guard' }, { contentKey: 'basic.recover' }]
+          : [{ contentKey: 'basic.recover' }],
+    })
+  },
+)
 it('deletion forwards only the reviewed server token and the selected operator', async () => {
   const previous = rpc.getMockImplementation()!
   rpc.mockImplementation(async (name: string, args: Record<string, unknown>) => {
@@ -412,6 +440,71 @@ it('Commit Now creation corrects a nearby power entry and reports the repair fro
       },
     },
   })
+})
+it('Commit Now persists untouched Ground defaults through the authoritative strict save boundary', async () => {
+  const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
+  const response = await call({
+    action: 'create',
+    requestId,
+    contentKind: 'skill',
+    definition: {
+      ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+      ability: {
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...base,
+            targeting: {
+              ...base.targeting!,
+              kind: 'ground-tile',
+              geometryVersion: 3,
+              categories: ['ground'],
+              teamPolicy: 'any',
+              friendlyFire: 'all-units',
+              maximumSelections: 1,
+            },
+            effects: [
+              {
+                id: 'ground.hit',
+                payload: {
+                  type: 'damage',
+                  recipient: 'affected-units',
+                  target: 'ground',
+                  amount: 5,
+                },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  })
+  expect(response.status).toBe(200)
+  const body = await response.json()
+  expect(body.record.draft.definition.ability.behaviors[0].groundArea).toEqual({
+    durationRounds: 2,
+    visualPresetId: 'arcane-pulse',
+    contactPolicyVersion: 1,
+    placementTimingVersion: 1,
+    targetTeams: 'all',
+    entryEffectIds: ['ground.hit'],
+  })
+  expect(rpc).toHaveBeenCalledWith(
+    'write_combat_content_record_v1',
+    expect.objectContaining({
+      p_command: expect.objectContaining({
+        definition: expect.objectContaining({
+          ability: expect.objectContaining({
+            behaviors: expect.arrayContaining([
+              expect.objectContaining({
+                groundArea: body.record.draft.definition.ability.behaviors[0].groundArea,
+              }),
+            ]),
+          }),
+        }),
+      }),
+    }),
+  )
 })
 it('does not persist a guessed replacement for an unsupported effect', async () => {
   const ability = structuredClone(

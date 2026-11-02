@@ -842,7 +842,7 @@ it('preserves once-only miss claims after the actual summon source retires', asy
     ownerCombatantId: 'actor',
     sourceSkillId: 'wildwarden.renewing-herbs',
     sourceSkillVersion: 5,
-    profile: resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!,
+    profile: resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!,
     position: { x: 0, y: 0 },
     facing: 'east',
   })
@@ -1302,4 +1302,335 @@ it('keeps the captured canonical Chilling Mist v8 source bytes and SHA unchanged
   expect(createHash('sha256').update(JSON.stringify(restoredSource)).digest('hex')).toBe(sha)
   expect(JSON.stringify(captured)).toBe(bytes)
   expect(validateCombatEncounterState(restored)).toEqual([])
+})
+
+describe('authored Ground placement timing and affected teams', () => {
+  it.each(['instant', 'next-round', 'delayed'] as const)(
+    'places the current field instantly while retaining its captured packet %s metadata',
+    (timing) => {
+      const initial = {
+        ...encounter(),
+        effectTimingPolicy: { version: 1, modes: { 'ground-area': 'next-round' as const } },
+      }
+      const original = action()
+      const current = {
+        ...original,
+        effectTimingModes: [timing],
+        groundArea: {
+          ...original.groundArea!,
+          timing: undefined,
+          placementTimingVersion: 1 as const,
+        },
+      }
+      const before = JSON.stringify(current)
+      const result = cast(initial, current)
+      expect(result.state.groundAreas?.[0]?.activationRound).toBe(1)
+      expect(result.state.groundAreas?.[0]?.entryEffectTimingModes).toEqual([timing])
+      expect(hp(result.state)).toBe(990)
+      expect(result.state.pendingEffects ?? []).toEqual([])
+      expect(JSON.stringify(current)).toBe(before)
+      const historical = {
+        ...current,
+        groundArea: { ...current.groundArea, placementTimingVersion: undefined },
+      }
+      expect(cast(initial, historical).state.groundAreas?.[0]?.activationRound).toBe(2)
+      const overridden = {
+        ...current,
+        groundArea: { ...current.groundArea, timing: 'delayed' as const },
+      }
+      expect(cast(initial, overridden).state.groundAreas?.[0]?.activationRound).toBe(3)
+    },
+  )
+  it('keeps mixed packet timings together in one immediately active field after reload', () => {
+    const original = action(10, [slow])
+    const definition = {
+      ...original,
+      effectTimingModes: ['instant' as const, 'delayed' as const],
+      groundArea: {
+        ...original.groundArea!,
+        timing: undefined,
+        placementTimingVersion: 1 as const,
+        targetTeams: 'enemies' as const,
+      },
+    }
+    const result = cast(encounter(), definition)
+    expect(
+      result.state.groundAreas?.map((area) => ({
+        round: area.activationRound,
+        ordinals: area.entryEffectSourceOrdinals,
+      })),
+    ).toEqual([{ round: 1, ordinals: [0, 1] }])
+    let restored = JSON.parse(JSON.stringify(result.state)) as CombatEncounterState
+    expect(validateCombatEncounterState(restored)).toEqual([])
+    expect(
+      restored.groundAreas?.every(
+        (area) => area.targetTeams === 'enemies' && area.placementTimingVersion === 1,
+      ),
+    ).toBe(true)
+    expect(status(restored, 'enemy', 'slow')).toBeDefined()
+    expect(restored.groundAreas?.[0]?.entryEffectTimingModes).toEqual(['instant', 'delayed'])
+    for (let i = 0; i < 4; i++) restored = finish(restored)
+    expect(status(restored, 'enemy', 'slow')).toBeDefined()
+    expect(validateCombatEncounterState(restored)).toEqual([])
+  })
+  it('keeps the new field placement immediate independently of tag timing defaults', () => {
+    const original = action(10, [slow])
+    const initial = {
+      ...encounter(),
+      effectTimingPolicy: {
+        version: 1,
+        modes: { 'ground-area': 'next-round' as const, slow: 'delayed' as const },
+      },
+    }
+    const result = cast(initial, {
+      ...original,
+      groundArea: { ...original.groundArea!, timing: undefined, placementTimingVersion: 1 },
+    })
+    expect(result.state.groundAreas?.map((area) => area.activationRound)).toEqual([1])
+    expect(hp(result.state)).toBe(990)
+  })
+  it.each([
+    ['all', ['actor', 'enemy', 'other', 'ally']],
+    ['all-except-self', ['enemy', 'other', 'ally']],
+    ['enemies', ['enemy', 'other']],
+    ['allies', ['actor', 'ally']],
+    ['self', ['actor']],
+    ['allies-except-self', ['ally']],
+  ] as const)(
+    'uses source-relative %s field membership for Damage and status contact',
+    (targetTeams, affected) => {
+      for (const id of ['actor', 'enemy', 'other', 'ally']) {
+        const initial = encounter()
+        const original = action(10, [slow])
+        const definition = {
+          ...original,
+          groundArea: { ...original.groundArea!, targetTeams, placementTimingVersion: 1 as const },
+        }
+        const position = initial.tactical.placements.find((row) => row.combatantId === id)!.position
+        const result = executeCombatAction(
+          initial,
+          definition,
+          { kind: 'tile', position },
+          PV1F_COMBAT_CONTENT,
+        )
+        const eligible = (affected as readonly string[]).includes(id)
+        expect(hp(result.state, id), `${targetTeams} ${id}`).toBe(eligible ? 990 : 1000)
+        expect(Boolean(status(result.state, id, 'slow')), `${targetTeams} ${id}`).toBe(eligible)
+        expect(result.state.groundAreas?.[0]?.target.teamPolicy).toBe('enemy')
+        const restored = JSON.parse(JSON.stringify(result.state)) as CombatEncounterState
+        expect(restored.groundAreas?.[0]?.targetTeams).toBe(targetTeams)
+        expect(validateCombatEncounterState(restored)).toEqual([])
+      }
+    },
+  )
+})
+
+it.each(['self', 'all'] as const)(
+  'scoped %s caster Damage respects Barrier and one contact per own-turn cycle',
+  async (targetTeams) => {
+    const { grantBarrier, currentBarrierAmount } = await import('./combat-barrier')
+    let state = grantBarrier(encounter(), 'actor', 'actor', 'test.barrier', 4).state
+    const original = action()
+    const definition = {
+      ...original,
+      groundArea: { ...original.groundArea!, targetTeams, placementTimingVersion: 1 as const },
+    }
+    const position = state.tactical.placements.find((row) => row.combatantId === 'actor')!.position
+    state = executeCombatAction(
+      state,
+      definition,
+      { kind: 'tile', position },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(hp(state, 'actor')).toBe(994)
+    expect(currentBarrierAmount(state, 'actor')).toBe(0)
+    state = JSON.parse(JSON.stringify(state)) as CombatEncounterState
+    state = resolveCombatMovementStepEffects(state, 'actor', PV1F_COMBAT_CONTENT).state
+    expect(hp(state, 'actor')).toBe(994)
+    state = executeCombatAction(
+      state,
+      definition,
+      { kind: 'tile', position },
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(hp(state, 'actor')).toBe(994)
+    for (let i = 0; i < 4; i++) state = finish(state)
+    expect(state.tactical.battle.currentTurn?.combatantId).toBe('actor')
+    expect(hp(state, 'actor')).toBe(984)
+    expect(validateCombatEncounterState(state)).toEqual([])
+  },
+)
+it('scoped Ground membership intersects Requirements and masks without spending a rejected contact allowance', () => {
+  const original = action()
+  const scoped = {
+    ...original,
+    groundArea: { ...original.groundArea!, targetTeams: 'all' as const },
+  }
+  let state = cast(encounter(), { ...scoped, effectEligibleRecipientIds: [[]] }).state
+  expect(hp(state)).toBe(1000)
+  state = cast(state, scoped).state
+  expect(hp(state)).toBe(990)
+  const capturedRequirement: NonNullable<
+    CombatActionDefinition['effectRequirementCaptures']
+  >[number] = {
+    requirement: {
+      kind: 'resource-state',
+      subject: 'affected',
+      resource: 'hp',
+      comparison: 'at-most',
+      amount: 900,
+    },
+    context: {},
+    selectedSubjects: [],
+  }
+  let conditional = cast(encounter(), {
+    ...scoped,
+    effectRequirementCaptures: [capturedRequirement],
+  }).state
+  expect(hp(conditional)).toBe(1000)
+  conditional = {
+    ...conditional,
+    tactical: {
+      ...conditional.tactical,
+      battle: {
+        ...conditional.tactical.battle,
+        combatants: conditional.tactical.battle.combatants.map((unit) =>
+          unit.id === 'enemy' ? { ...unit, hp: 800 } : unit,
+        ),
+      },
+    },
+  }
+  conditional = resolveCombatMovementStepEffects(conditional, 'enemy', PV1F_COMBAT_CONTENT).state
+  expect(hp(conditional)).toBe(790)
+  expect(validateCombatEncounterState(conditional)).toEqual([])
+})
+it('keeps scoped field footprint and independent caster effects unchanged', async () => {
+  const { evaluateCombatAction } = await import('./actions')
+  const original = action()
+  const initial = encounter()
+  const state = {
+    ...initial,
+    tactical: {
+      ...initial.tactical,
+      battle: {
+        ...initial.tactical.battle,
+        combatants: initial.tactical.battle.combatants.map((unit) =>
+          unit.id === 'actor' ? { ...unit, hp: 900 } : unit,
+        ),
+      },
+    },
+  }
+  const definition: CombatActionDefinition = {
+    ...original,
+    effects: [
+      { type: 'healing', recipient: 'actor', target: 'self', amount: 5 },
+      ...original.effects,
+    ],
+    groundArea: { ...original.groundArea!, entryEffectOrdinals: [1], targetTeams: 'allies' },
+  }
+  const result = cast(state, definition)
+  expect(hp(result.state, 'actor')).toBe(905)
+  expect(hp(result.state, 'enemy')).toBe(1000)
+  expect(hp(result.state, 'ally')).toBe(1000)
+  expect(result.state.groundAreas?.[0]?.tiles).toEqual([{ x: 2, y: 1 }])
+  expect(result.state.groundAreas?.[0]?.entryEffectSourceOrdinals).toEqual([1])
+  expect(
+    evaluateCombatAction(
+      state,
+      definition,
+      { kind: 'tile', position: { x: 4, y: 4 } },
+      PV1F_COMBAT_CONTENT,
+    ).legal,
+  ).toBe(false)
+  const historical = {
+    ...definition,
+    groundArea: { ...definition.groundArea!, targetTeams: undefined },
+  }
+  expect(hp(cast(state, historical).state, 'enemy')).toBe(990)
+})
+
+it('applies Self scope only when its source actually contacts the saved footprint', () => {
+  const original = action()
+  const definition = {
+    ...original,
+    groundArea: { ...original.groundArea!, targetTeams: 'self' as const },
+  }
+  let state = executeCombatAction(
+    encounter(),
+    definition,
+    { kind: 'tile', position: { x: 2, y: 2 } },
+    PV1F_COMBAT_CONTENT,
+  ).state
+  expect(hp(state, 'actor')).toBe(1000)
+  state = {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      placements: state.tactical.placements.map((row) =>
+        row.combatantId === 'actor' ? { ...row, position: { x: 2, y: 2 } } : row,
+      ),
+    },
+  }
+  state = resolveCombatMovementStepEffects(state, 'actor', PV1F_COMBAT_CONTENT).state
+  expect(hp(state, 'actor')).toBe(990)
+  expect(hp(state, 'enemy')).toBe(1000)
+  expect(validateCombatEncounterState(state)).toEqual([])
+})
+it('retains Ground Airborne immunity for explicitly scoped caster Damage', () => {
+  const initial = encounter()
+  const air = PV1F_COMBAT_CONTENT.statuses.find((row) => row.id === 'airborne')!
+  const state: CombatEncounterState = {
+    ...initial,
+    airbornePolicyVersion: 1,
+    statusState: initial.statusState.map((row) =>
+      row.combatantId === 'actor'
+        ? {
+            ...row,
+            statuses: [
+              {
+                statusId: 'airborne',
+                statusVersion: air.version,
+                sourceCombatantId: 'actor',
+                stacks: 1,
+                remainingOwnerTurnStarts: 3,
+              },
+            ],
+          }
+        : row,
+    ),
+  }
+  const original = action()
+  const definition = {
+    ...original,
+    groundArea: { ...original.groundArea!, targetTeams: 'self' as const },
+  }
+  const position = state.tactical.placements.find((row) => row.combatantId === 'actor')!.position
+  const result = executeCombatAction(
+    state,
+    definition,
+    { kind: 'tile', position },
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(hp(result.state, 'actor')).toBe(1000)
+  expect(result.state.groundAreas?.[0]?.targetTeams).toBe('self')
+  expect(validateCombatEncounterState(result.state)).toEqual([])
+})
+it('intersects explicit field membership with independently targeted entry packets', () => {
+  const original = action()
+  const definition = {
+    ...original,
+    effects: [{ ...slow, target: 'enemy' as const }],
+    groundArea: { ...original.groundArea!, targetTeams: 'allies' as const },
+  }
+  const initial = encounter()
+  const position = initial.tactical.placements.find((row) => row.combatantId === 'ally')!.position
+  const result = executeCombatAction(
+    initial,
+    definition,
+    { kind: 'tile', position },
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(status(result.state, 'ally', 'slow')).toBeUndefined()
+  expect(status(result.state, 'enemy', 'slow')).toBeUndefined()
+  expect(result.state.groundAreas?.[0]?.entryEffects[0]?.target).toBe('enemy')
 })

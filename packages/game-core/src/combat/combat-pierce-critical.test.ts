@@ -424,7 +424,7 @@ describe('current Pierce critical exclusion', () => {
   })
   it('excludes real native Summon Pierce while its ordinary sibling still critically hits', () => {
     const base = preparePv1fTurnEconomy(encounter()) as StatDrivenCombatEncounterState
-    const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
     const ability = {
       ...original.abilities[0]!,
       id: 'test.summon-pierce',

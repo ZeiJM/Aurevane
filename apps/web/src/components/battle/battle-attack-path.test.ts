@@ -133,6 +133,102 @@ describe('armed damage reach', () => {
   })
 })
 
+describe('retained destination aim boundaries', () => {
+  const target = {
+    ...basic.target,
+    maximumRange: 1,
+    shape: { kind: 'circle' as const, radius: 1 },
+    maximumElevationDifference: 0,
+    requiresLineOfSight: true,
+  }
+  const board = {
+    ...tactical,
+    terrains: [
+      { id: 'open', traversalCost: 1 },
+      { id: 'wall', traversalCost: null },
+    ],
+    placements: [
+      {
+        combatantId: 'actor',
+        position: origin,
+        facing: 'east' as const,
+        movementProfileId: 'ground',
+      },
+      {
+        combatantId: 'enemy',
+        position: { x: 6, y: 3 },
+        facing: 'west' as const,
+        movementProfileId: 'ground',
+      },
+    ],
+    battle: {
+      combatants: [
+        { id: 'actor', hp: 100, teamId: 'one' },
+        { id: 'enemy', hp: 100, teamId: 'two' },
+      ],
+    },
+  }
+  it('does not extend a stale aimed circle to an enemy outside the current anchor range', () => {
+    const reach = battleAttackReachTiles(
+      board,
+      origin,
+      target,
+      basic.effects,
+      [{ x: 6, y: 3 }],
+      { aimSource: 'player', selection: { kind: 'unit', combatantId: 'enemy' } },
+      { tactical: board, actorId: 'actor' },
+    )
+    expect(reach.has('6:3')).toBe(false)
+    expect(reach.has('4:3')).toBe(true)
+    expect(reach.has('5:3')).toBe(true)
+  })
+  it.each(['elevation', 'line-of-sight'] as const)(
+    'does not trust an old aimed footprint when its anchor fails %s',
+    (boundary) => {
+      const destination = boundary === 'elevation' ? { x: 4, y: 3 } : { x: 5, y: 3 }
+      const changed = {
+        ...board,
+        tiles: board.tiles.map((tile) => ({
+          ...tile,
+          elevation:
+            boundary === 'elevation' && tile.position.x === 4 && tile.position.y === 3 ? 1 : 0,
+          terrainId:
+            boundary === 'line-of-sight' && tile.position.x === 4 && tile.position.y === 3
+              ? 'wall'
+              : 'open',
+        })),
+      }
+      const reach = battleAttackReachTiles(
+        changed,
+        origin,
+        { ...target, maximumRange: boundary === 'elevation' ? 1 : 2 },
+        basic.effects,
+        [{ x: 6, y: 3 }],
+        { aimSource: 'player', selection: { kind: 'tile', position: destination } },
+        { tactical: changed, actorId: 'actor' },
+      )
+      expect(reach.has('6:3')).toBe(false)
+      expect(reach.has('2:3')).toBe(true)
+    },
+  )
+  it('keeps the full circle extent around a legal center beyond the center selection range', () => {
+    expect([
+      ...battleAttackReachTiles(
+        board,
+        origin,
+        target,
+        basic.effects,
+        [
+          { x: 4, y: 3 },
+          { x: 5, y: 3 },
+        ],
+        { aimSource: 'player', selection: { kind: 'tile', position: { x: 4, y: 3 } } },
+        { tactical: board, actorId: 'actor' },
+      ),
+    ]).toEqual(['4:3', '5:3'])
+  })
+})
+
 describe('persistent current targeting footprints', () => {
   const line = {
     ...basic.target,
@@ -316,4 +412,202 @@ it('retains the complete Ground Single range after aiming, without depending on 
       }),
     ).toEqual(reach)
   }
+})
+
+it.each([
+  [
+    { kind: 'single' },
+    2,
+    ['1:3', '2:2', '2:3', '2:4', '3:1', '3:2', '3:4', '3:5', '4:2', '4:3', '4:4', '5:3'],
+  ],
+  [{ kind: 'line', length: 2 }, 2, ['1:3', '2:3', '3:1', '3:2', '3:4', '3:5', '4:3', '5:3']],
+  [{ kind: 'circle', radius: 1 }, 1, ['2:2', '2:3', '2:4', '3:2', '3:4', '4:2', '4:3', '4:4']],
+] as const)(
+  'keeps exact utility %j potential after forecast selection or unrelated occupancy changes',
+  (shape, maximumRange, expected) => {
+    const target = {
+      ...basic.target,
+      geometryVersion: 3 as const,
+      categories: ['enemy' as const],
+      shape,
+      minimumRange: 1,
+      maximumRange,
+      maximumElevationDifference: null,
+      requiresLineOfSight: false,
+    }
+    const placement = (combatantId: string, x: number, y: number) => ({
+      combatantId,
+      position: { x, y },
+      facing: 'west' as const,
+      movementProfileId: 'ground',
+    })
+    for (const placements of [
+      [placement('actor', 3, 3)],
+      [placement('actor', 3, 3), placement('enemy', 4, 3), placement('ally', 2, 3)],
+      [placement('actor', 3, 3), placement('enemy', 0, 0), placement('ally', 6, 6)],
+    ]) {
+      const board = {
+        ...tactical,
+        terrains: [{ id: 'open', traversalCost: 1 }],
+        placements,
+        battle: {
+          combatants: [
+            { id: 'actor', hp: 100, teamId: 'one' },
+            { id: 'ally', hp: 100, teamId: 'one' },
+            { id: 'enemy', hp: 100, teamId: 'two' },
+          ],
+        },
+      }
+      const before = JSON.stringify(board)
+      const spatial = { tactical: board, actorId: 'actor' }
+      for (const aim of [
+        { aimSource: 'implicit' as const },
+        {
+          aimSource: 'player' as const,
+          selection: { kind: 'unit' as const, combatantId: 'enemy' },
+        },
+      ])
+        expect(
+          [...battleTargetReachTiles(board, origin, target, [{ x: 4, y: 3 }], aim, spatial)].sort(),
+        ).toEqual(expected)
+      expect(JSON.stringify(board)).toBe(before)
+    }
+  },
+)
+
+describe('Single status potential spatial legality', () => {
+  const origin = { x: 1, y: 1 }
+  const board = {
+    width: 9,
+    height: 7,
+    tiles: Array.from({ length: 63 }, (_, index) => {
+      const position = { x: index % 9, y: Math.floor(index / 9) }
+      return {
+        position,
+        elevation: position.x === 4 && position.y === 1 ? 3 : 0,
+        terrainId: position.x === 3 && position.y === 1 ? 'wall' : 'open',
+      }
+    }),
+    terrains: [
+      { id: 'open', traversalCost: 1 },
+      { id: 'wall', traversalCost: null },
+    ],
+    placements: [
+      {
+        combatantId: 'actor',
+        position: origin,
+        facing: 'east' as const,
+        movementProfileId: 'ground',
+      },
+      {
+        combatantId: 'enemy',
+        position: { x: 2, y: 1 },
+        facing: 'west' as const,
+        movementProfileId: 'ground',
+      },
+      {
+        combatantId: 'ally',
+        position: { x: 1, y: 2 },
+        facing: 'east' as const,
+        movementProfileId: 'ground',
+      },
+      {
+        combatantId: 'defeated',
+        position: { x: 8, y: 6 },
+        facing: 'west' as const,
+        movementProfileId: 'ground',
+      },
+    ],
+    battle: {
+      combatants: [
+        { id: 'actor', hp: 100, teamId: 'one' },
+        { id: 'enemy', hp: 100, teamId: 'two' },
+        { id: 'ally', hp: 100, teamId: 'one' },
+        { id: 'defeated', hp: 0, teamId: 'two' },
+      ],
+    },
+  }
+  const target = {
+    ...basic.target,
+    geometryVersion: 3 as const,
+    categories: ['enemy' as const],
+    minimumRange: 1,
+    maximumRange: 15,
+    maximumElevationDifference: 3,
+    requiresLineOfSight: false,
+  }
+  const spatial = {
+    tactical: board,
+    actorId: 'actor',
+    terrainOverlays: [{ kind: 'steam', position: { x: 1, y: 3 } }],
+  }
+  it('keeps every Single15 tile including empty height-three tiles without LOS', () => {
+    const before = JSON.stringify(board)
+    const reach = battleTargetReachTiles(
+      board,
+      origin,
+      target,
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(reach.size).toBe(62)
+    expect(reach.has('1:1')).toBe(false)
+    expect(reach.has('4:1')).toBe(true)
+    expect(reach.has('8:6')).toBe(true)
+    expect(reach.has('1:4')).toBe(true)
+    expect(
+      battleTargetReachTiles(
+        board,
+        origin,
+        target,
+        [{ x: 2, y: 1 }],
+        {
+          aimSource: 'player',
+          selection: { kind: 'unit', combatantId: 'enemy' },
+        },
+        spatial,
+      ),
+    ).toEqual(reach)
+    expect(JSON.stringify(board)).toBe(before)
+  })
+  it('retains authored elevation and LOS exclusions instead of broadening legality', () => {
+    const elevation = battleTargetReachTiles(
+      board,
+      origin,
+      { ...target, maximumElevationDifference: 1 },
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(elevation.has('4:1')).toBe(false)
+    expect(elevation.has('5:1')).toBe(true)
+    const visible = battleTargetReachTiles(
+      board,
+      origin,
+      { ...target, requiresLineOfSight: true },
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(visible.has('2:1')).toBe(true)
+    expect(visible.has('4:1')).toBe(false)
+    expect(visible.has('5:1')).toBe(false)
+    expect(visible.has('1:4')).toBe(false)
+    expect(visible.has('0:1')).toBe(true)
+  })
+  it('keeps living occupancy exclusions for Empty Tile while defeated units free tiles', () => {
+    const reach = battleTargetReachTiles(
+      board,
+      origin,
+      { ...target, kind: 'empty-tile', categories: ['ground'] },
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(reach.has('2:1')).toBe(false)
+    expect(reach.has('1:2')).toBe(false)
+    expect(reach.has('8:6')).toBe(true)
+    expect(reach.has('0:1')).toBe(true)
+  })
 })

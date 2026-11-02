@@ -10,6 +10,11 @@ import {
   parseAbilityDefinition,
   type AbilityDefinition,
 } from '@aurevane/game-core/combat/combat-definition'
+import {
+  validateSkillDefinition as validateCurrentSkill,
+  validateEssenceAuthoringDefinition as validateCurrentEssence,
+  validateResonanceAuthoringDefinition as validateCurrentResonance,
+} from './current-combat-content-authoring-validation'
 import { CLEANSE_STATUS_IDS } from '@aurevane/game-core/combat/combat-cleanse'
 import { createPercentageDotSkillVersion } from '@aurevane/game-core/combat/combat-percentage-dot-roster'
 import { describe, expect, it, vi } from 'vitest'
@@ -46,6 +51,7 @@ const OUTSIDER = '33333333-3333-4333-8333-333333333333'
 function canonicalAuthoringFixture(
   kind: 'basic' | 'skill' | 'essence' | 'resonance',
   ability: AbilityDefinition,
+  basicId: 'basic.recover' | 'basic.invocation' = 'basic.recover',
 ) {
   const { store, service } = serviceFixture()
   store.operators.set(OWNER, 'owner')
@@ -60,7 +66,7 @@ function canonicalAuthoringFixture(
     ...staticEssence(),
     skill: { ...staticEssence().skill, ability, target: skill.target, effects: skill.effects },
   }
-  const basic = { ...defaultBasicSkills().find((row) => row.id === 'basic.guard')!, ability }
+  const basic = { ...defaultBasicSkills().find((row) => row.id === basicId)!, ability }
   const resonance = { ...staticResonance(), ability }
   const definition =
     kind === 'basic' ? basic : kind === 'skill' ? skill : kind === 'essence' ? essence : resonance
@@ -275,6 +281,45 @@ function staticSkill(
   const definition = resolveMatureSkillVersion(skillId, version)
   if (!definition) throw new Error(`Missing static Skill ${skillId}@${String(version)}.`)
   return structuredClone(definition)
+}
+
+function historicalSummonSkill() {
+  const current = staticSkill('wildwarden.renewing-herbs')
+  const historical = staticSkill(current.id, current.contentVersion - 1)
+  if (!historical.summonProfile) throw new Error('Expected pinned pre-Briar Summon profile.')
+  return historical
+}
+function invocationProfile() {
+  const payload = defaultBasicSkills()
+    .find((row) => row.id === 'basic.invocation')!
+    .ability.behaviors.flatMap((group) => group.effects)
+    .find((effect) => effect.payload.type === 'summon')!.payload
+  if (payload.type !== 'summon') throw new Error('Expected Invocation Summon.')
+  return structuredClone(payload.profile)
+}
+function invocationWithProfile(profile: ReturnType<typeof invocationProfile>) {
+  const original = defaultBasicSkills().find((row) => row.id === 'basic.invocation')!
+  return {
+    ...original,
+    ability: {
+      ...original.ability,
+      behaviors: original.ability.behaviors.map((group) => ({
+        ...group,
+        effects: group.effects.map((effect) =>
+          effect.payload.type === 'summon'
+            ? { ...effect, payload: { ...effect.payload, profile } }
+            : effect,
+        ),
+      })),
+    },
+  }
+}
+function currentValidation(kind: 'basic' | 'skill' | 'essence' | 'resonance', definition: unknown) {
+  return kind === 'essence'
+    ? validateCurrentEssence(definition)
+    : kind === 'resonance'
+      ? validateCurrentResonance(definition)
+      : validateCurrentSkill(definition)
 }
 
 function staticEssence(version?: number): EssenceDefinition {
@@ -651,58 +696,31 @@ describe('combat content authoring service', () => {
     })
   })
 
-  it('validates per-summon lifetimes and reports summon-profile semantic changes', () => {
+  it('validates Invocation lifetimes and reports summon-profile semantic changes', () => {
     const { service } = serviceFixture()
-    const base = staticSkill('wildwarden.renewing-herbs')
-    if (!base.summonProfile) throw new Error('Expected current Renewing Herbs summon profile.')
-
+    const profile = invocationProfile()
+    const base = invocationWithProfile(profile)
     for (const lifetimeTurns of [99, 100])
-      expect(
-        service.validateSkillDefinition({
-          ...base,
-          summonProfile: { ...base.summonProfile, lifetimeTurns },
-        }).valid,
-      ).toBe(true)
-
-    const threeTurn = {
-      ...base,
-      summonProfile: {
-        ...base.summonProfile,
-        lifetimeTurns: 3,
-      },
-    }
-    expect(service.validateSkillDefinition(threeTurn)).toMatchObject({
-      valid: true,
-      issues: [],
-      derivedTags: ['Empty Tile', 'Single', 'Summon'],
-    })
+      expect(validateCurrentSkill(invocationWithProfile({ ...profile, lifetimeTurns })).valid).toBe(
+        true,
+      )
+    const threeTurn = invocationWithProfile({ ...profile, lifetimeTurns: 3 })
+    expect(validateCurrentSkill(threeTurn)).toMatchObject({ valid: true, issues: [] })
     expect(service.diffSkillDefinitions(base, threeTurn).changedPaths).toContain(
-      'summonProfile.lifetimeTurns',
+      'ability.behaviors',
     )
-
-    const invalid = {
-      ...base,
-      summonProfile: {
-        ...base.summonProfile,
-        lifetimeTurns: 0,
-      },
-    }
-    const validation = service.validateSkillDefinition(invalid)
-    expect(validation.valid).toBe(false)
-    expect(validation.issues).toContainEqual(expect.objectContaining({ path: 'summonProfile' }))
-
-    const editedAbility = {
-      ...base,
-      summonProfile: {
-        ...base.summonProfile,
-        abilities: base.summonProfile.abilities.map((ability, index) =>
-          index === 0 ? { ...ability, apCost: ability.apCost + 5 } : ability,
-        ),
-      },
-    }
-    expect(service.diffSkillDefinitions(base, editedAbility).changedPaths).toContain(
-      'summonProfile.abilities',
+    const invalid = validateCurrentSkill(invocationWithProfile({ ...profile, lifetimeTurns: 0 }))
+    expect(invalid.valid).toBe(false)
+    expect(invalid.issues).toContainEqual(
+      expect.objectContaining({ path: 'ability.behaviors[0].effects[0].payload' }),
     )
+    const edited = invocationWithProfile({
+      ...profile,
+      abilities: profile.abilities.map((ability, index) =>
+        index === 0 ? { ...ability, apCost: ability.apCost + 5 } : ability,
+      ),
+    })
+    expect(service.diffSkillDefinitions(base, edited).changedPaths).toContain('ability.behaviors')
   })
 
   it('accepts aligned presentation-only effect descriptions and rejects malformed copy', () => {
@@ -1507,10 +1525,10 @@ describe('Basic Skills use the authorized versioned Skill store', () => {
   it('publishes complete edits, preserves old versions, rejects stale edits and rolls back', async () => {
     const { store, service } = serviceFixture()
     store.operators.set(OWNER, 'owner')
-    const builtin = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    const builtin = defaultBasicSkills().find((row) => row.id === 'basic.recover')!
     const edited = {
       ...builtin,
-      name: 'Iron Guard',
+      name: 'Deep Recovery',
       ability: {
         ...builtin.ability,
         behaviors: builtin.ability.behaviors.map((behavior) => ({
@@ -1712,7 +1730,10 @@ describe('authoring preview selects the requested Manual group', () => {
 })
 
 describe('Controlled authoring previews prepare an isolated free prime', () => {
-  const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+  const guard = {
+    ...defaultBasicSkills().find((row) => row.id === 'basic.recover')!,
+    ability: defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability,
+  }
   const ordinary = guard.ability.behaviors[0]!
   const release = {
     ...ordinary,
@@ -1845,7 +1866,7 @@ describe('real Basic and auxiliary authoring simulation', () => {
     result.store.operators.set(OWNER, 'owner')
     return result
   }
-  it.each(defaultBasicSkills())(
+  it.each(defaultBasicSkills().filter((row) => row.enabled))(
     'previews $id through its captured binding without writes or RNG',
     async (definition) => {
       const { service, store } = fixture()
@@ -1892,6 +1913,16 @@ describe('real Basic and auxiliary authoring simulation', () => {
     expect(Number(damage(second).before) - Number(damage(second).after)).toBeGreaterThan(
       Number(damage(first).before) - Number(damage(first).after),
     )
+  })
+  it('rejects retired Guard current authoring while preserving its historical schema', () => {
+    const retired = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    expect(validateCurrentSkill(retired)).toMatchObject({
+      valid: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'RETIRED_BASIC_ACTION' })]),
+    })
+    const historical = { ...retired, contentVersion: 1, enabled: true }
+    expect(serviceFixture().service.validateSkillDefinition(historical).valid).toBe(true)
+    expect(historical.ability).toEqual(retired.ability)
   })
   it.each(['hp', 'mp'] as const)(
     'uses the captured %s Recovery percentage and native rounding',
@@ -1974,7 +2005,7 @@ describe('real Basic and auxiliary authoring simulation', () => {
   })
   it('selects an auxiliary Manual group and reports its real multi-resource quote', async () => {
     const { service } = fixture()
-    const original = defaultBasicSkills().find((row) => row.id === 'basic.guard')!
+    const original = defaultBasicSkills().find((row) => row.id === 'basic.recover')!
     const definition = {
       ...original,
       ability: parseAbilityDefinition({
@@ -2012,7 +2043,7 @@ describe('real Basic and auxiliary authoring simulation', () => {
   it('keeps a disabled Basic action illegal in the actual command quote', async () => {
     const { service } = fixture()
     const definition = {
-      ...defaultBasicSkills().find((row) => row.id === 'basic.guard')!,
+      ...defaultBasicSkills().find((row) => row.id === 'basic.recover')!,
       enabled: false,
     }
     expect(await service.previewSkillDefinition({ actorUserId: OWNER, definition })).toMatchObject({
@@ -2261,11 +2292,11 @@ it.each(['basic', 'skill', 'essence', 'resonance'] as const)(
   },
 )
 
-it.each(['skill', 'essence', 'resonance'] as const)(
-  'round-trips Core-authored %s Summons and HP costs through draft saves and publication',
+it.each(['basic', 'skill', 'essence', 'resonance'] as const)(
+  'admits only Invocation when round-tripping Core-authored %s Summons and HP costs through draft saves and publication',
   async (kind) => {
-    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
-    const coreProfile = withCurrentSummonCoreAttributes(native.summonProfile!)
+    const native = historicalSummonSkill()
+    const coreProfile = withCurrentSummonCoreAttributes(invocationProfile())
     const profile = {
       ...coreProfile,
       lifetimeTurns: 100,
@@ -2310,37 +2341,41 @@ it.each(['skill', 'essence', 'resonance'] as const)(
         },
       ],
     })
-    const fixture = canonicalAuthoringFixture(kind, ability)
+    const fixture = canonicalAuthoringFixture(kind, ability, 'basic.invocation')
     expect(fixture.validate()).toMatchObject({ valid: true, issues: [] })
+    if (kind !== 'basic') {
+      expect(currentValidation(kind, fixture.definition)).toMatchObject({
+        valid: false,
+        issues: expect.arrayContaining([
+          expect.objectContaining({ code: 'EXCLUSIVE_SUPPORT_EFFECT' }),
+        ]),
+      })
+      expect(
+        await fixture.store.findPublished(
+          String('id' in fixture.definition ? fixture.definition.id : fixture.definition.essenceId),
+        ),
+      ).toBeNull()
+      return
+    }
+    expect(currentValidation(kind, fixture.definition)).toMatchObject({ valid: true, issues: [] })
     const draftInput = {
       actorUserId: OWNER,
       definition: fixture.definition,
       baseVersion: fixture.definition.contentVersion,
       expectedDraftVersion: null,
     }
-    const draft =
-      kind === 'skill'
-        ? await fixture.service.saveSkillDraft(draftInput)
-        : kind === 'essence'
-          ? await fixture.service.saveEssenceDraft(draftInput)
-          : await fixture.service.saveResonanceDraft(draftInput)
-    const draftAbility =
-      kind === 'essence'
-        ? (draft.definition.skill as { ability: unknown }).ability
-        : draft.definition.ability
+    const draft = await fixture.service.saveSkillDraft(draftInput)
+    const draftAbility = draft.definition.ability
     expect(JSON.parse(JSON.stringify(draftAbility))).toEqual(ability)
     const receipt = await fixture.publish()
-    const saved =
-      kind === 'essence'
-        ? (receipt.definition.skill as { ability: unknown }).ability
-        : receipt.definition.ability
+    const saved = receipt.definition.ability
     expect(JSON.parse(JSON.stringify(saved))).toEqual(ability)
   },
 )
 
 it.each([99, 100])('enforces duration %i inside retained native Summon Skills', (durationTurns) => {
   const { service } = serviceFixture()
-  const base = staticSkill('wildwarden.renewing-herbs')
+  const base = historicalSummonSkill()
   const profile = base.summonProfile!
   const value = {
     ...base,
@@ -2365,12 +2400,14 @@ it.each([99, 100])('enforces duration %i inside retained native Summon Skills', 
     },
   }
   expect(service.validateSkillDefinition(value).valid).toBe(durationTurns === 99)
+  expect(validateCurrentSkill(value).valid).toBe(false)
+  expect(staticSkill(base.id, base.contentVersion)).toEqual(base)
 })
 
-it.each(['skill', 'essence', 'resonance'] as const)(
-  'admits representable new %s Summon lifetimes beyond ordinary duration defaults',
+it.each(['basic', 'skill', 'essence', 'resonance'] as const)(
+  'restricts representable new %s Summon lifetimes beyond ordinary duration defaults',
   (kind) => {
-    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const native = historicalSummonSkill()
     const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
       .behaviors[0]!
     for (const lifetimeTurns of [99, 100]) {
@@ -2386,14 +2423,16 @@ it.each(['skill', 'essence', 'resonance'] as const)(
                 payload: {
                   type: 'summon',
                   recipient: 'selected-tile',
-                  profile: { ...native.summonProfile!, lifetimeTurns },
+                  profile: { ...invocationProfile(), lifetimeTurns },
                 },
               },
             ],
           },
         ],
       })
-      expect(canonicalAuthoringFixture(kind, ability).validate().valid).toBe(true)
+      const fixture = canonicalAuthoringFixture(kind, ability, 'basic.invocation')
+      expect(fixture.validate().valid).toBe(true)
+      expect(currentValidation(kind, fixture.definition).valid).toBe(kind === 'basic')
     }
   },
 )

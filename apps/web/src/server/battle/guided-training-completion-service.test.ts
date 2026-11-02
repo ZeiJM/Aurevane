@@ -9,6 +9,16 @@ import {
   readGuidedTrainingProgress,
 } from './guided-training-completion-service'
 
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  captureBattleBuildAbilitySources,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
+import { capturedBasicBattle } from '@/components/battle/battle-basic-actions.test-utils'
+import { commitCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import { combatAbilityCommandContext } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
+
 const CONTROLLED_COMBATANT_ID = 'character:player'
 const CREATED_AT = '2026-08-25T16:00:00.000Z'
 
@@ -78,6 +88,97 @@ describe('guided training completion disposition', () => {
 })
 
 describe('guided training completion progress', () => {
+  it('captures the extra recovery lesson action with enabled current definitions without changing the equipped Support', async () => {
+    const { state } = capturedBasicBattle('basic.pilfer', false, {}, true)
+    const authority: BattleBuildAuthoritySnapshot = {
+      schemaVersion: 1,
+      combatContext: 'pve',
+      combatants: [
+        {
+          combatantId: 'actor',
+          characterId: 'actor',
+          snapshotSchemaVersion: 1,
+          buildSchemaVersion: 1,
+          buildVersion: 1,
+          fingerprint: 'captured-guided-build',
+          primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+          secondary: null,
+          disciplineSkills: [],
+          extensions: { resonance: null, essence: null },
+          supportActionId: 'basic.pilfer',
+        },
+      ],
+    }
+    const definitions = vi.fn(async () => new Map(defaultBasicSkills().map((row) => [row.id, row])))
+    const sources = await captureBattleBuildAbilitySources(
+      state,
+      authority,
+      {
+        resolveCurrentSkillDefinition: async () => null,
+        resolvePinnedSkillDefinition: async () => null,
+        resolveCurrentBasicSkillDefinitions: definitions,
+      },
+      true,
+    )
+    expect(definitions).toHaveBeenCalledWith([
+      'basic.move',
+      'unarmed.basic',
+      'basic.pilfer',
+      'basic.recover',
+    ])
+    expect(sources.map((row) => row.abilityId)).toEqual([
+      'basic.move',
+      'unarmed.basic',
+      'basic.pilfer',
+      'basic.recover',
+    ])
+    expect(authority.combatants[0]!.supportActionId).toBe('basic.pilfer')
+  })
+  it('counts the actual captured HP Recovery commit after restoring missing health', () => {
+    const { state } = capturedBasicBattle('basic.recover', false, {}, true)
+    state.supportActionPolicyVersion = 1
+    const actor = state.tactical.battle.combatants.find((row) => row.id === 'actor')!
+    actor.hp = Math.floor(actor.maxHp * 0.75)
+    const before = actor.hp
+    const source = state.capturedAbilitySources!.find((row) => row.abilityId === 'basic.recover')!
+    const result = commitCombatAbilityCommand({
+      state,
+      actorId: 'actor',
+      root: { kind: 'canonical', source },
+      selection: { kind: 'unit', combatantId: 'actor' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(state, source),
+    })
+    expect(
+      result.state.tactical.battle.combatants.find((row) => row.id === 'actor')!.hp,
+    ).toBeGreaterThan(before)
+    const history = result.events.map((event, index) => record(1, index, event))
+    expect(readGuidedTrainingProgress(history, 'actor', 'basic.recover').guard).toBe(true)
+  })
+  it('requires the current HP Recovery exercise and preserves historical Guard completion', () => {
+    const event = (actionId: string) => [
+      record(2, 0, {
+        event: 'combat_action_used',
+        actorId: CONTROLLED_COMBATANT_ID,
+        actionId,
+      }),
+    ]
+    expect(
+      readGuidedTrainingProgress(event('basic.recover'), CONTROLLED_COMBATANT_ID, 'basic.recover')
+        .guard,
+    ).toBe(true)
+    expect(
+      readGuidedTrainingProgress(event('basic.guard'), CONTROLLED_COMBATANT_ID, 'basic.recover')
+        .guard,
+    ).toBe(false)
+    expect(readGuidedTrainingProgress(event('basic.guard'), CONTROLLED_COMBATANT_ID).guard).toBe(
+      true,
+    )
+    expect(readGuidedTrainingProgress(event('basic.recover'), CONTROLLED_COMBATANT_ID).guard).toBe(
+      false,
+    )
+  })
+
   it('does not count timer-expiry facing as intentional facing', () => {
     const progress = readGuidedTrainingProgress(
       [

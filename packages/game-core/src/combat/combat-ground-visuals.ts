@@ -1,4 +1,5 @@
 import type { CombatEffectDefinition } from './actions'
+import type { CombatGroundTargetTeams } from './combat-ground-areas'
 import { combatEffectIdentity } from './combat-effect-identities'
 import { combatStatusDetails } from './status-content'
 
@@ -54,7 +55,6 @@ export interface GroundEffectVisual {
   readonly label: string
   readonly iconId: string
   readonly tone: 'benefit' | 'harm' | 'neutral'
-  readonly material: 'embers' | 'frost' | 'arcane-pulse'
 }
 const operationLabels: Record<(typeof groundOperationIds)[number], string> = {
   damage: 'Damage',
@@ -84,7 +84,6 @@ export const COMBAT_GROUND_EFFECT_VISUALS: readonly GroundEffectVisual[] = [
     ].includes(id)
       ? 'benefit'
       : 'harm',
-    material: 'arcane-pulse',
   })),
   ...groundStatusIds.map((id): GroundEffectVisual => {
     const details = combatStatusDetails(id)
@@ -93,7 +92,6 @@ export const COMBAT_GROUND_EFFECT_VISUALS: readonly GroundEffectVisual[] = [
       label: `${details.name} Ground`,
       iconId: id,
       tone: details.kind === 'Buff' ? 'benefit' : details.kind === 'Debuff' ? 'harm' : 'neutral',
-      material: id === 'frozen' ? 'frost' : id === 'burn' ? 'embers' : 'arcane-pulse',
     }
   }),
 ]
@@ -136,6 +134,23 @@ export const COMBAT_GROUND_VISUAL_PRESETS = [
   { id: 'embers', label: 'Embers', description: 'Warm embers and rising sparks.' },
   { id: 'frost', label: 'Frost', description: 'A cold shimmer and drifting frost.' },
   { id: 'arcane-pulse', label: 'Arcane pulse', description: 'A slow pulse of arcane light.' },
+  { id: 'water', label: 'Water', description: 'Flowing bands of blue water.' },
+  { id: 'ripples', label: 'Ripples', description: 'Expanding rings across a still pool.' },
+  { id: 'lightning', label: 'Lightning', description: 'A gently glowing branching current.' },
+  { id: 'poison', label: 'Poison', description: 'Slow bubbles rising through venom.' },
+  { id: 'healing', label: 'Healing', description: 'Soft green motes of renewal rising.' },
+  { id: 'sand', label: 'Sand', description: 'Low dunes sweeping across the ground.' },
+  { id: 'wind', label: 'Wind', description: 'Curving gusts circling the tile.' },
+  { id: 'vines', label: 'Vines', description: 'Living tendrils growing and swaying.' },
+  { id: 'shadow', label: 'Shadow', description: 'Dark wisps folding over one another.' },
+  { id: 'lava', label: 'Lava', description: 'Molten seams breathing beneath the surface.' },
+  { id: 'rain', label: 'Rain', description: 'Fine rain falling in slanted streaks.' },
+  { id: 'snow', label: 'Snow', description: 'Soft flakes slowly drifting downward.' },
+  { id: 'holy-light', label: 'Holy light', description: 'Broad golden rays turning slowly.' },
+  { id: 'void', label: 'Void', description: 'Broken rings spiralling inward.' },
+  { id: 'runes', label: 'Runes', description: 'An angular sigil tracing a slow rotation.' },
+  { id: 'crystals', label: 'Crystals', description: 'Faceted crystal edges catching the light.' },
+  { id: 'spores', label: 'Spores', description: 'Warm drifting spores above a soft haze.' },
 ] as const
 export type GroundVisualPresetId = (typeof COMBAT_GROUND_VISUAL_PRESETS)[number]['id']
 export function isGroundVisualPresetId(value: unknown): value is GroundVisualPresetId {
@@ -144,6 +159,7 @@ export function isGroundVisualPresetId(value: unknown): value is GroundVisualPre
 
 /** Safe render data: deliberately excludes caster, action identity and execution payload. */
 export interface PublicCombatGroundArea {
+  targetTeams?: CombatGroundTargetTeams
   effectVisualIds?: readonly GroundEffectVisualId[]
   steamTiles?: readonly { x: number; y: number }[]
   id: string
@@ -170,6 +186,7 @@ export function projectPublicCombatGroundAreas(
           : undefined
       return {
         id: area.id,
+        ...(area.targetTeams ? { targetTeams: area.targetTeams } : {}),
         ...(effectVisualIds?.length ? { effectVisualIds } : {}),
         ...(area.steamTiles?.length
           ? { steamTiles: area.steamTiles.map((tile) => ({ x: tile.x, y: tile.y })) }
@@ -187,12 +204,35 @@ export function combatGroundAreaDescription(
     durationRounds: number
     timing?: 'instant' | 'next-round' | 'delayed'
     contactPolicyVersion?: 1
+    placementTimingVersion?: 1
+    targetTeams?: CombatGroundTargetTeams
   },
   policyTiming: 'instant' | 'next-round' | 'delayed' = 'next-round',
   entryEffectsMarked = false,
 ): string {
   const timing = area.timing ?? policyTiming
+  const activation =
+    area.placementTimingVersion === 1 && area.timing === undefined
+      ? 'starting immediately'
+      : timing === 'instant'
+        ? 'starting immediately'
+        : timing === 'delayed'
+          ? 'starting two rounds after cast'
+          : 'starting next round'
+  const scope =
+    area.targetTeams === undefined
+      ? ''
+      : ` Affects ${
+          {
+            all: 'everyone',
+            'all-except-self': 'everyone except the caster',
+            enemies: 'enemies',
+            allies: 'allies, including the caster,',
+            self: 'only the caster',
+            'allies-except-self': 'allies except the caster',
+          }[area.targetTeams]
+        } standing on these tiles.`
   if (area.contactPolicyVersion === 1)
-    return `Ground: stays on the affected tiles for ${area.durationRounds} ${area.durationRounds === 1 ? 'round' : 'rounds'}, ${timing === 'instant' ? 'starting immediately' : timing === 'delayed' ? 'starting two rounds after cast' : 'starting next round'}. Active fields apply immediately to eligible occupants and contacting units, once per logical effect type during each affected character’s own-turn cycle across overlapping fields.`
-  return `Ground: stays on the affected tiles for ${area.durationRounds} ${area.durationRounds === 1 ? 'round' : 'rounds'}, ${timing === 'instant' ? 'starting immediately' : timing === 'delayed' ? 'starting two rounds after cast' : 'starting next round'}. The cast affects eligible units there; entering the active area applies ${entryEffectsMarked ? 'only the effects marked for entry' : 'its unit effects'} once per character’s turn. Each cast has its own allowance.`
+    return `Ground: stays on the affected tiles for ${area.durationRounds} ${area.durationRounds === 1 ? 'round' : 'rounds'}, ${activation}.${scope} Active fields apply immediately to eligible occupants and contacting units, once per logical effect type during each affected character’s own-turn cycle across overlapping fields.`
+  return `Ground: stays on the affected tiles for ${area.durationRounds} ${area.durationRounds === 1 ? 'round' : 'rounds'}, ${activation}.${scope} The cast affects eligible units there; entering the active area applies ${entryEffectsMarked ? 'only the effects marked for entry' : 'its unit effects'} once per character’s turn. Each cast has its own allowance.`
 }

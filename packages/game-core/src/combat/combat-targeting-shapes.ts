@@ -363,6 +363,8 @@ export function normalizeCurrentCombatTargetSpec(spec: CombatTargetSpec): Combat
 }
 
 export function validateVersionedCombatTargetSpec(spec: CombatTargetSpec): void {
+  if (spec.allTargetPolicyVersion !== undefined && spec.allTargetPolicyVersion !== 1)
+    throw new TypeError('Unsupported All target policy.')
   if (spec.geometryVersion === 3) {
     if (
       spec.categories !== undefined &&

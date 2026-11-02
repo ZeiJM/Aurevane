@@ -44,14 +44,19 @@ export function validateCombatCounterEffect(effect: CombatEffectDefinition): voi
     throw new TypeError('Reflect profiles require the Reflect status.')
 }
 
-export function counterDescription(profile: CombatCounterProfile): string {
+export function counterDescription(
+  profile: CombatCounterProfile,
+  options: { legacyReflectBarrier?: boolean } = {},
+): string {
   const family =
     profile.kind === 'full'
       ? 'any damage'
       : profile.kind === 'mystic'
         ? 'Mystic damage'
         : 'Physical damage'
-  return `Returns ${profile.basisPoints / 100}% of ${family} received to its source after defenses and Barrier. Reflected damage cannot trigger another Reflect.`
+  return options.legacyReflectBarrier
+    ? `Returns ${profile.basisPoints / 100}% of ${family.replace('damage', 'HP damage')} received to its source after defenses and Barrier. Reflected damage cannot trigger another Reflect.`
+    : `Returns ${profile.basisPoints / 100}% of ${family} to its source, counting HP loss and damage absorbed by Barrier. Reflected damage cannot trigger another Reflect.`
 }
 
 /** Capture eligibility at the hit, so later status changes cannot rewrite an earned return. */

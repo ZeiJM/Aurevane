@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { equipBraceInFirstSkillSlot } from './refined-battle-helpers'
 
 const fields = [
   'Skill Type',
@@ -37,6 +38,8 @@ test('shared compact readers retain complete reports and consume the first armed
       .map((digit) => String.fromCharCode(65 + Number(digit)))
       .join('')}`,
   })
+
+  await equipBraceInFirstSkillSlot(page)
 
   const panels = page.locator('[data-battle-info-panel]')
   await page.goto('/game/nexus')
@@ -120,13 +123,18 @@ test('shared compact readers retain complete reports and consume the first armed
   ).toBeFocused()
 
   await root.focus()
-  await page.keyboard.press('Digit3')
+  const previewResponse = page.waitForResponse('**/api/battles/*/preview')
+  await page.keyboard.press('Digit4')
+  const { preview } = (await (await previewResponse).json()).battlePreview
+  expect(preview).toMatchObject({ kind: 'action', legal: true, actionId: 'vanguard.brace' })
+  expect(preview.actionEconomyCost).toBeGreaterThan(0)
   const ownTile = page.getByRole('button', { name: /occupied by Reader / })
-  for (const label of ['About Guard', 'About selected Skill slot 1']) {
+  for (const label of ['About HP Recovery', 'About Brace']) {
     await openBattleInfoMenu(page, label)
     await page.getByRole('button', { name: label, exact: true }).click()
     await expect(panels).toHaveCount(1)
-    await page.keyboard.press('Digit3')
+    await expect(panels.locator('dt')).toHaveText(fields)
+    await page.keyboard.press('Digit4')
     await expectUnchangedBattle()
     // Dispatch to the actual tile so the event reaches document capture even
     // when the phone reader visually covers that tile's pointer hit area.
@@ -135,13 +143,13 @@ test('shared compact readers retain complete reports and consume the first armed
     await expectUnchangedBattle()
   }
   await ownTile.click()
-  await expect(ap).toHaveAttribute('aria-valuenow', String(beforeAP - 30))
+  await expect(ap).toHaveAttribute('aria-valuenow', String(beforeAP - preview.actionEconomyCost))
   const after = await readBattle(page)
   expect(after.battleVersion).toBe(before.battleVersion + 1)
   expect(
     after.snapshot.tactical.battle.combatants
       .find((unit) => unit.id === actorId)!
       .temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!.current,
-  ).toBe(beforeAP - 30)
+  ).toBe(beforeAP - preview.actionEconomyCost)
   expect(commits).toHaveLength(1)
 })

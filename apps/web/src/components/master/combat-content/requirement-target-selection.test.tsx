@@ -54,10 +54,11 @@ function controls(value: unknown): ReactElement<Record<string, unknown>>[] {
     return [element, ...controls((element.type as (props: unknown) => ReactElement)(element.props))]
   return [element, ...[element.props.children].flat(Infinity).flatMap(controls)]
 }
-function editor(group: AbilityBehavior) {
+function editor(group: AbilityBehavior, contentId?: string) {
   let draft: AbilityDefinition = { schemaVersion: 1, behaviors: [group] }
   const tree = (section: 'details' | 'effects' | 'range' = 'details') => (
     <AbilityDefinitionEditor
+      contentId={contentId}
       value={draft}
       section={section}
       onChange={(next) => {
@@ -208,7 +209,7 @@ it('keeps tile-only effects and unavailable Target predicates blocked', () => {
     effects: [{ id: 'summon', payload: defaultAbilityPayload('summon') }],
   }
   expect(validateAbilityDefinition({ schemaVersion: 1, behaviors: [group] })).toEqual([])
-  const e = editor(group)
+  const e = editor(group, 'basic.invocation')
   const html = renderToStaticMarkup(e.tree())
   expect(html).not.toContain('aria-label="Target Requirement aim"')
   const control = controls(e.tree()).find(

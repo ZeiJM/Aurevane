@@ -126,7 +126,9 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring from its
   await expect(
     commandDeck.getByRole('button', { name: 'Basic Attack, 30 AP', exact: true }),
   ).toBeVisible()
-  await expect(commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true })).toBeVisible()
+  await expect(
+    commandDeck.getByRole('button', { name: 'HP Recovery, 50 AP', exact: true }),
+  ).toBeVisible()
 
   await expect(commandDeck.locator('[data-battle-skill-slot]')).toHaveCount(4)
   for (const name of ['Forceful Strike', 'Brace', 'Mending Light']) {

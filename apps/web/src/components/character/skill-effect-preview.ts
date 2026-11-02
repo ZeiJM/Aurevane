@@ -279,6 +279,7 @@ function previewEffectPayload(
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
     legacyReversal?: boolean
+    legacyReflectBarrier?: boolean
     legacyPierceCritical?: boolean
     legacyRuin?: boolean
     legacyElemental?: boolean
@@ -302,6 +303,11 @@ function previewEffectPayload(
       explanation: reversalDescription(effect, options),
     }
   switch (effect.type) {
+    case 'loot':
+      return {
+        label: 'Loot',
+        explanation: 'Pilfer’s Loot is currently a placeholder and grants no items or rewards.',
+      }
     case 'weak-point':
       return {
         label: 'Weak Point',
@@ -383,7 +389,7 @@ function previewEffectPayload(
         return {
           label: 'Reflect',
           magnitude: `${effect.counter.kind === 'mystic' ? 'Magical' : effect.counter.kind === 'physical' ? 'Physical' : 'Full'} Reflect ${effect.counter.basisPoints / 100}%`,
-          explanation: `${counterDescription(effect.counter)} Lasts ${effect.durationTurns ?? 2} turns after activation.`,
+          explanation: `${counterDescription(effect.counter, options)} Lasts ${effect.durationTurns ?? 2} turns after activation.`,
         }
       if (effect.statusId === BLINDSIDE_DEBUFF_STATUS_ID) {
         const profile = effect.blindsideModifiersBasisPoints ?? DEFAULT_BLINDSIDE_MODIFIERS
@@ -640,11 +646,13 @@ export function withCurrentAttackRuleHelp(
     effect.type === 'weak-point' ||
     effect.type === 'spike'
   const suffix =
-    effect.type === 'ruin' && !options.legacyRuin
-      ? 'Current Ruin boosts the first landed eligible hit and consumes captured debuffs; later hits cannot reuse it. Debuffs applied afterward remain.'
-      : !options.legacyPierceCritical && eligibleTag
-        ? 'Pierce cannot critically hit.'
-        : undefined
+    effect.type === 'apply-status' && effect.statusId === 'counter' && !options.legacyReflectBarrier
+      ? 'Reflect counts HP loss and damage absorbed by Barrier.'
+      : effect.type === 'ruin' && !options.legacyRuin
+        ? 'Current Ruin boosts the first landed eligible hit and consumes captured debuffs; later hits cannot reuse it. Debuffs applied afterward remain.'
+        : !options.legacyPierceCritical && eligibleTag
+          ? 'Pierce cannot critically hit.'
+          : undefined
   return suffix && !description.endsWith(suffix) ? `${description} ${suffix}` : description
 }
 
@@ -714,6 +722,7 @@ export function skillPreviewEffects(
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
     legacyReversal?: boolean
+    legacyReflectBarrier?: boolean
     legacyPierceCritical?: boolean
     legacyRuin?: boolean
     legacyElemental?: boolean

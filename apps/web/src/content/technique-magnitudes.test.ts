@@ -69,7 +69,7 @@ describe('catalog magnitude comparisons', () => {
     const skills = latestEnabledMatureSkills()
     expect(skills).toHaveLength(136)
     const bands = techniqueMagnitudeBands(skills)
-    expect(bands.find((band) => band.family === 'Direct damage / hit')?.count).toBe(78)
+    expect(bands.find((band) => band.family === 'Direct damage / hit')?.count).toBe(79)
     expect(bands.find((band) => band.family === 'DOT attack damage (%)')).toMatchObject({
       unit: '% attack HP damage',
       count: 15,

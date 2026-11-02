@@ -11,6 +11,7 @@ import { CombatContentReviewPanel } from '@/components/master/combat-content/com
 import { ContentNativeSample } from '@/components/master/combat-content/content-native-sample'
 import { createCombatContentAuthoringService } from './combat-content-authoring-service'
 import { handleCombatContentAuthoringRequest } from './combat-content-authoring-handler'
+import { validateResonanceAuthoringDefinition } from './current-combat-content-authoring-validation'
 
 vi.mock('server-only', () => ({}))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh() {} }) }))
@@ -266,7 +267,7 @@ it('samples Automatic-only Resonance groups through a reference rather than cast
   })
 })
 
-it('projects an edited Resonance native Summon instead of hiding its profile', async () => {
+it('rejects current Resonance Summon authoring while retaining its raw profile for repair', async () => {
   const all = JSON.parse(
     readFileSync(
       new URL(
@@ -278,18 +279,25 @@ it('projects an edited Resonance native Summon instead of hiding its profile', a
   ).records
   const skill = all.find((r: { id: string }) => r.id === 'wildwarden.renewing-herbs').after
   const definition = { ...steamfront, ability: skill.ability }
+  const before = structuredClone(definition)
   const api = fixture()
-  expect(api.service.validateResonanceDefinition(definition).issues).toEqual([])
+  expect(validateResonanceAuthoringDefinition(definition).issues).toContainEqual(
+    expect.objectContaining({
+      code: 'EXCLUSIVE_SUPPORT_EFFECT',
+      message: expect.stringContaining('Invocation'),
+    }),
+  )
   const response = await api.request({ definition, behaviorId: 'renewing-herbs' })
   expect(response.status).toBe(200)
-  const { preview } = await response.json()
-  expect(preview.legal).toBe(true)
-  expect(preview.summon?.profile.name).toBe('Verdant Stalker')
-  expect(preview.summon?.spawnPosition).toEqual(preview.targeting.selection.position)
-  expect(preview.summon?.abilities.length).toBeGreaterThan(0)
-  expect(JSON.stringify(preview)).not.toMatch(
-    /sourceInstanceId|capturedAbilitySources|effectOrigins|chanceBasisPoints/,
+  const result = await response.json()
+  expect(result.preview.legal, JSON.stringify(result)).toBe(false)
+  expect(result.preview.issues).toContainEqual(
+    expect.objectContaining({
+      code: 'source-disabled',
+      message: expect.stringContaining('Invocation'),
+    }),
   )
+  expect(definition).toEqual(before)
 })
 
 it.each(['circle', 'line'] as const)(

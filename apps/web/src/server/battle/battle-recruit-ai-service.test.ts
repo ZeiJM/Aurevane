@@ -1145,7 +1145,7 @@ it.each([
       variant === 'basic-move'
         ? captureBasicSkillSources({
             ownerCombatantId: actorId,
-            supportActionId: 'basic.guard',
+            supportActionId: 'basic.recover',
             definitions: defaultBasicSkills().map((row) =>
               row.id === 'basic.move'
                 ? { ...row, execution: { kind: 'basic-move', costBasis: 'flat' }, ability }
@@ -1396,7 +1396,29 @@ it('preserves the private Endure window through saved JSON reload and authoritat
 })
 it('aborts a practice battle with active Endure without an invalid partial encounter or release burst', async () => {
   const cast = castServerEndure(await initialEncounter())
-  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(cast)))
+  const scoped = {
+    ...cast,
+    abilityCooldownScopeVersion: 1 as const,
+    reflectBarrierPolicyVersion: 1 as const,
+    tactical: {
+      ...cast.tactical,
+      battle: {
+        ...cast.tactical.battle,
+        combatants: cast.tactical.battle.combatants.map((unit) => ({
+          ...unit,
+          temporaryResources: [
+            ...unit.temporaryResources,
+            {
+              key: 'p3.skill-cooldown.ability.discipline-skill.0070007200690076006100740065.main',
+              current: 3,
+              maximum: 3,
+            },
+          ].sort((left, right) => left.key.localeCompare(right.key)),
+        })),
+      },
+    },
+  }
+  const fixture = createStatefulRepository(JSON.parse(JSON.stringify(scoped)))
   const result = await createBattleAbortService(fixture.repository).abortPractice({
     userId: USER_ID,
     battleSessionId: SESSION_ID,
@@ -1415,6 +1437,14 @@ it('aborts a practice battle with active Endure without an invalid partial encou
     expect.objectContaining({ actionId: 'status.endure.release' }),
   )
   expect(result.snapshot).not.toHaveProperty('endureState')
+  expect(fixture.currentState().abilityCooldownScopeVersion).toBe(1)
+  expect(fixture.currentState().reflectBarrierPolicyVersion).toBe(1)
+  for (const unit of result.snapshot.tactical.battle.combatants) {
+    const clocks = unit.temporaryResources.filter((resource) =>
+      resource.key.startsWith('p3.skill-cooldown.'),
+    )
+    expect(clocks.length > 0).toBe(unit.id === `character:${CHARACTER_ID}`)
+  }
 })
 
 it.each([false, true])(

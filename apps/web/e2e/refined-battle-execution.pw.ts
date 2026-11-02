@@ -1,13 +1,17 @@
 import { PV1F_ACTION_ECONOMY_RESOURCE_KEY } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
-import type { BattlePreviewView } from '../src/server/battle/battle-preview-service'
+import type {
+  BattleActionPreview,
+  BattlePreviewView,
+} from '../src/server/battle/battle-preview-service'
 import { buildMovementPaths } from '../src/components/battle/battle-geometry'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { expectNoSkillPreviewMetadata } from './battle-preview-metadata-helpers'
 import { expectBasicAttackPotentialRange } from './battle-target-range-helpers'
+import { equipBraceInFirstSkillSlot } from './refined-battle-helpers'
 
-async function enterBattle(page: Page) {
+async function enterBattle(page: Page, recoveryPractice = false) {
   const name = `Wayfarer ${Date.now()
     .toString()
     .split('')
@@ -19,18 +23,86 @@ async function enterBattle(page: Page) {
     password: 'Refined-browser-2026!',
     characterName: name,
   })
+  await equipBraceInFirstSkillSlot(page)
   await page.goto('/game/battle')
-  await page.getByLabel('Battle mode').selectOption('recruit-sparring')
+  await page
+    .getByLabel('Battle mode')
+    .selectOption(recoveryPractice ? 'guided-fundamentals' : 'recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  if (recoveryPractice) {
+    await page
+      .getByRole('dialog', { name: 'Complete the tactical fundamentals' })
+      .getByRole('button', { name: 'Continue training' })
+      .click()
+  }
   await expect(page.locator('[data-battle-layout="refined"]')).toBeVisible()
   // This test's recruit sparring fixture must start with the local actor ready.
   await expect(page.locator('main[data-unified-battle="true"]')).toHaveAttribute(
     'data-local-turn',
     'true',
   )
-  await expect(page.locator('[data-battle-command="guard"]')).toBeEnabled()
+  await expect(page.getByRole('button', { name: /^Selected Brace,/ })).toBeEnabled()
+  if (recoveryPractice) {
+    const id = new URL(page.url()).pathname.split('/').at(-1)!
+    const response = await page.request.get(`/api/battles/${id}`)
+    expect(response.ok()).toBe(true)
+    const battle = (await response.json()).battle as BattleSessionView
+    expect(battle.snapshot.supportActionPolicyVersion).toBe(1)
+    const actor = battle.snapshot.tactical.battle.combatants.find(
+      (unit) => unit.id === battle.snapshot.tactical.battle.currentTurn!.combatantId,
+    )!
+    // Current Guided training supplies real missing HP for its Recovery lesson.
+    expect(actor.hp).toBe(Math.max(1, Math.floor(actor.maxHp * 0.75)))
+    expect(actor.hp).toBeLessThan(actor.maxHp)
+  }
   return page.getByRole('button', { name: new RegExp(`occupied by ${name}`) })
+}
+
+function readBraceQuote(view: BattlePreviewView): BattleActionPreview {
+  expect(view.preview).toMatchObject({ kind: 'action', legal: true, actionId: 'vanguard.brace' })
+  if (view.preview.kind !== 'action') throw new Error('Expected a current Brace action quote')
+  expect(view.preview.actionEconomyCost).toBeGreaterThan(0)
+  expect(view.preview.projectedEffects).toContainEqual(
+    expect.objectContaining({ effectType: 'apply-status', statusId: 'guarded', after: 'pending' }),
+  )
+  return view.preview
+}
+
+function readRecoveryQuote(view: BattlePreviewView): BattleActionPreview {
+  expect(view.preview).toMatchObject({ kind: 'action', legal: true, actionId: 'basic.recover' })
+  if (view.preview.kind !== 'action') throw new Error('Expected a current Recovery action quote')
+  expect(view.preview.actionEconomyCost).toBeGreaterThan(0)
+  return view.preview
+}
+
+function recoveryCooldown(quote: BattleActionPreview) {
+  const cooldown = quote.commandCooldowns?.find(
+    (row) => row.actionId === 'basic.recover' && row.role === 'root',
+  )
+  expect(cooldown).toBeDefined()
+  expect(cooldown!.ownerTurns).toBeGreaterThan(0)
+  return cooldown!.ownerTurns
+}
+
+function recoveryCooldownName(quote: BattleActionPreview) {
+  const turns = recoveryCooldown(quote)
+  const costs = quote
+    .commandCosts!.filter((cost) => cost.amount > 0)
+    .map((cost) => `${cost.amount} ${cost.resource.toUpperCase()}`)
+    .join(' / ')
+  return `HP Recovery, ${costs}, Cooldown: ${turns} ${turns === 1 ? 'turn' : 'turns'} remaining`
+}
+
+function expectRecoveredHealth(battle: BattleSessionView, quote: BattleActionPreview) {
+  const healing = quote.projectedEffects.find(
+    (effect) => effect.effectType === 'healing' && effect.combatantId === quote.actorId,
+  )!
+  expect(healing).toBeDefined()
+  expect(healing.after).toBeGreaterThan(healing.before as number)
+  expect(
+    battle.snapshot.tactical.battle.combatants.find((unit) => unit.id === quote.actorId)!.hp,
+  ).toBe(healing.after)
 }
 
 test('mounted attack-path overlays remain visible above open, rough and raised terrain', async ({
@@ -88,7 +160,7 @@ test('mounted attack-path overlays remain visible above open, rough and raised t
     ).not.toBe('rgba(189, 38, 58, 0.22)')
 })
 
-test('single target input executes Guard once and repeated keys do not dispatch', async ({
+test('single target input executes Brace once and repeated keys do not dispatch', async ({
   page,
 }) => {
   test.slow()
@@ -98,7 +170,10 @@ test('single target input executes Guard once and repeated keys do not dispatch'
     if (request.method() === 'POST' && /\/(intents|commit)$/.test(new URL(request.url()).pathname))
       commits++
   })
-  await page.keyboard.press('Digit3')
+  const initialPreview = page.waitForResponse('**/api/battles/*/preview')
+  await page.keyboard.press('Digit4')
+  const initial = await initialPreview
+  const quote = readBraceQuote((await initial.json()).battlePreview)
   await expect(page.locator('[data-battle-combatant-card="selected"]')).toContainText('Recruit')
   await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
   await expect(
@@ -135,15 +210,16 @@ test('single target input executes Guard once and repeated keys do not dispatch'
   await localTile.click()
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
-    '70',
+    String(quote.actionEconomyAfter),
   )
   expect(commits).toBe(1)
-  const pendingGuard = page
+  const pendingGuarded = page
     .locator('[data-battle-combatant-card="local"] [data-effect-timing="pending"]')
+    .filter({ has: page.locator('[data-battle-effect-icon="guarded"]') })
     .first()
-  await expect(pendingGuard).toBeVisible()
-  // Rendered timing comes from the committed Guard; exercise both active tones as a CSS fixture.
-  const palettes = await pendingGuard.evaluate((effect) => {
+  await expect(pendingGuarded).toBeVisible()
+  // Brace applies genuine pending Guarded; exercise both active tones as a CSS fixture.
+  const palettes = await pendingGuarded.evaluate((effect) => {
     const button = effect.querySelector('button')!
     const read = () => {
       const css = getComputedStyle(button)
@@ -201,7 +277,7 @@ test('leaving during an informational preview cannot submit a late action', asyn
     }
   })
   const firstPreview = page.waitForRequest('**/api/battles/*/preview')
-  await page.keyboard.press('Digit3')
+  await page.keyboard.press('Digit4')
   await firstPreview
   // Arming supplies information only; leaving without a target gesture must never commit.
   expect(previews).toBe(1)
@@ -229,12 +305,12 @@ test('leaving during an informational preview cannot submit a late action', asyn
   expect(commits).toBe(0)
 })
 
-test('Guard clears its armed mode and blocks deliberate inputs during its authoritative cooldown', async ({
+test('HP Recovery clears its armed mode and blocks deliberate inputs during its authoritative cooldown', async ({
   page,
 }) => {
   test.slow()
-  await enterBattle(page)
-  const guard = page.locator('[data-battle-command="guard"]')
+  await enterBattle(page, true)
+  const recovery = page.locator('[data-battle-command="guard"]')
   const economy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
   let commits = 0
   const previewVersions: number[] = []
@@ -251,12 +327,13 @@ test('Guard clears its armed mode and blocks deliberate inputs during its author
   await page.locator('main[data-unified-battle="true"]').focus()
   const initialPreview = page.waitForResponse('**/api/battles/*/preview')
   await page.keyboard.press('Digit3')
-  const initialVersion = (await initialPreview).request().postDataJSON()
-    .expectedBattleVersion as number
+  const initial = await initialPreview
+  const initialVersion = initial.request().postDataJSON().expectedBattleVersion as number
+  const quote = readRecoveryQuote((await initial.json()).battlePreview)
   await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
   await expect(
     page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
-  ).toContainText('Guard')
+  ).toContainText('Heal')
   expect(commits).toBe(0)
 
   const committed = page.waitForResponse(
@@ -269,13 +346,14 @@ test('Guard clears its armed mode and blocks deliberate inputs during its author
   expect(response.status()).toBe(200)
   const after = (await response.json()).battle
   expect(after.battleVersion).toBe(initialVersion + 1)
-  await expect(economy).toHaveAttribute('aria-valuenow', '70')
-  await expect(guard).toBeDisabled()
-  await expect(guard).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
-  await expect(guard).not.toHaveAttribute('data-active', 'true')
+  expectRecoveredHealth(after, quote)
+  await expect(economy).toHaveAttribute('aria-valuenow', String(quote.actionEconomyAfter))
+  await expect(recovery).toBeDisabled()
+  await expect(recovery).toHaveAccessibleName(recoveryCooldownName(quote))
+  await expect(recovery).not.toHaveAttribute('data-active', 'true')
   await expect(
     page.locator('[data-command-card="guard"] [data-battle-cooldown-countdown]'),
-  ).toHaveText('2')
+  ).toHaveText(String(recoveryCooldown(quote)))
   // The cast may refresh its legal receipt, but never re-previews the now cooling action.
   expect(previewVersions.length).toBeGreaterThanOrEqual(1)
   expect(previewVersions.every((version) => version === initialVersion)).toBe(true)
@@ -283,11 +361,11 @@ test('Guard clears its armed mode and blocks deliberate inputs during its author
 
   const requestCount = requests.length
   for (const key of ['Digit3', 'Digit3', 'KeyD']) await page.keyboard.press(key)
-  await guard.evaluate((button) => (button as HTMLButtonElement).click())
+  await recovery.evaluate((button) => (button as HTMLButtonElement).click())
   await page.keyboard.press('Escape')
-  await expect(guard).not.toHaveAttribute('data-active', 'true')
-  await expect(guard).toBeDisabled()
-  await expect(economy).toHaveAttribute('aria-valuenow', '70')
+  await expect(recovery).not.toHaveAttribute('data-active', 'true')
+  await expect(recovery).toBeDisabled()
+  await expect(economy).toHaveAttribute('aria-valuenow', String(quote.actionEconomyAfter))
   expect(requests).toHaveLength(requestCount)
   expect(commits).toBe(1)
   const authority = await page.request.get(`/api/battles/${after.battleSessionId}`)
@@ -385,7 +463,7 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   page,
 }) => {
   test.slow()
-  const localTile = await enterBattle(page)
+  const localTile = await enterBattle(page, true)
   let commits = 0
   page.on('request', (request) => {
     if (request.method() === 'POST' && /\/(intents|commit)$/.test(new URL(request.url()).pathname))
@@ -404,12 +482,13 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   await page.locator('main[data-unified-battle="true"]').focus()
   const initialPreview = page.waitForResponse('**/api/battles/*/preview')
   await page.keyboard.press('Digit3')
-  const initialVersion = (await initialPreview).request().postDataJSON()
-    .expectedBattleVersion as number
+  const initial = await initialPreview
+  const initialVersion = initial.request().postDataJSON().expectedBattleVersion as number
+  const quote = readRecoveryQuote((await initial.json()).battlePreview)
   await expectNoSkillPreviewMetadata(page.getByLabel('Action preview', { exact: true }))
   await expect(
     page.getByLabel('Action preview', { exact: true }).locator('[data-battle-range-forecast]'),
-  ).toContainText('Guard')
+  ).toContainText('Heal')
   const committed = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
@@ -426,18 +505,20 @@ test('a second pointer or hotkey during a pending commit cannot queue another ac
   }
   const response = await committed
   expect(response.status()).toBe(200)
-  expect((await response.json()).battle.battleVersion).toBe(initialVersion + 1)
+  const after = (await response.json()).battle as BattleSessionView
+  expect(after.battleVersion).toBe(initialVersion + 1)
+  expectRecoveredHealth(after, quote)
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
-    '70',
+    String(quote.actionEconomyAfter),
   )
-  const guard = page.locator('[data-battle-command="guard"]')
-  await expect(guard).toBeDisabled()
-  await expect(guard).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
-  await expect(guard).not.toHaveAttribute('data-active', 'true')
+  const recovery = page.locator('[data-battle-command="guard"]')
+  await expect(recovery).toBeDisabled()
+  await expect(recovery).toHaveAccessibleName(recoveryCooldownName(quote))
+  await expect(recovery).not.toHaveAttribute('data-active', 'true')
   await expect(
     page.locator('[data-command-card="guard"] [data-battle-cooldown-countdown]'),
-  ).toHaveText('2')
+  ).toHaveText(String(recoveryCooldown(quote)))
   expect(commits).toBe(1)
 })
 

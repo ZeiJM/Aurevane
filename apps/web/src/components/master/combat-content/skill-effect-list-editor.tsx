@@ -35,6 +35,8 @@ function assertNever(value: never): never {
 
 export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectDefinition {
   switch (type) {
+    case 'loot':
+      return { type: 'loot', recipient: 'primary-unit' }
     case 'blindside':
       return {
         type: 'apply-status',

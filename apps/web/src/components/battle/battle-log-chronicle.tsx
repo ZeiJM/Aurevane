@@ -34,7 +34,10 @@ function chronicleEffectDescription(
     return result.potencyBasisPoints === undefined
       ? 'Recorded Suppress percentage unavailable.'
       : statusPotencyDescription(id, result.potencyBasisPoints)
-  if (strength?.counter) return counterDescription(strength.counter)
+  if (strength?.counter)
+    return counterDescription(strength.counter, {
+      legacyReflectBarrier: strength.reflectBarrierPolicyVersion !== 1,
+    })
   if (strength?.blindsideModifiersBasisPoints) {
     const description = blindsideDebuffDescription(strength.blindsideModifiersBasisPoints)
     return id === 'blindside' ? description.replace(/^Take/u, 'Deal') : description
@@ -42,7 +45,7 @@ function chronicleEffectDescription(
   if (strength?.recoveryAmountPerApplication !== undefined)
     return `Restores up to ${strength.recoveryAmountPerApplication} ${id === 'healing' ? 'HP' : 'MP'} per application, limited by the recipient's maximum.`
   if (strength?.endureReleaseBasisPoints !== undefined)
-    return `Prevents damage-dealing actions while active. On natural expiry, releases ${strength.endureReleaseBasisPoints / 100}% of stored HP damage received.`
+    return `Cannot attack while storing HP damage received. Releases ${strength.endureReleaseBasisPoints / 100}% when Endure expires.`
   if (id === 'wet' && strength?.initiativeReductionBasisPoints === undefined)
     return `Drenched increases Storm damage taken${result.potencyBasisPoints === undefined ? ' (recorded percentage unavailable)' : ` by ${result.potencyBasisPoints / 100}%`}. Recorded Initiative reduction unavailable.`
   if (id === 'conductive' && result.potencyBasisPoints === undefined)

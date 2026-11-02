@@ -1,3 +1,4 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { expect, it } from 'vitest'
 import {
   PV1F_COMBAT_CONTENT,
@@ -25,7 +26,7 @@ import {
 import { prepareCombatAbilityCommand } from './combat-ability-command'
 import { combatSourceCommandVisibility } from './actions'
 import type { CombatEncounterState, CombatTargetSelection } from './actions'
-import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { captureBasicSkillSources } from './combat-basic-actions'
 import { currentBarrierAmount } from './combat-barrier'
 import { airborneJump } from './combat-airborne'
 import {

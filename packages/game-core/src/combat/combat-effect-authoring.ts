@@ -44,6 +44,7 @@ export function createAuthorableEffectPayload(
     context.combination.activation !== 'automatic'
   )
     return { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 }
+  if (id === 'loot') return { type: 'loot', recipient: 'primary-unit' }
   if (id === 'counter')
     return {
       type: 'apply-status',

@@ -253,7 +253,7 @@ During this turn:
 - Offensive Discipline Skills are unavailable.
 - Offensive Essence, Resonance-derived commands and equipment Skills are unavailable.
 - Offensive automatic Skill activations are suppressed.
-- The normal inherent Basic Attack remains available as a limited fallback.
+- Basic Attack is unavailable, matching the Owner’s November 2 follow-up for the same attack lock as armed Reversal.
 - Movement, Guard, Recover, healing and non-offensive utility remain available.
 
 Reversal Strain expires at the end of that complete owner turn.
@@ -418,7 +418,7 @@ Implement automated coverage and appropriate end-to-end acceptance checks for:
 14. Reflected damage obeys its cap and cannot trigger another counter.
 15. Reversal ends safely if the attacker or defender is defeated.
 16. Reversal Strain restricts Attack Skills for exactly one complete owner turn.
-17. Basic Attack remains available during Strain.
+17. Basic Attack is blocked during Strain (Owner’s November 2 correction).
 18. Manual cancellation cannot refund costs or bypass Strain.
 19. Normal preparation appears in the opponent's battle log.
 20. Covert uses established visibility behaviour without custom concealment.

@@ -1,4 +1,8 @@
-import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { readFileSync } from 'node:fs'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -384,6 +388,41 @@ describe('combat content resolver', () => {
 })
 
 describe('Basic Skill publication resolution', () => {
+  it('resolves exact builtin Guard v1 history while current v2 remains retired for new captures', async () => {
+    const proposal = JSON.parse(
+      readFileSync(
+        new URL(
+          '../../../../../docs/superpowers/specs/2026-10-10-roster-rebalance-proposals.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as { records: { kind: string; id: string; after: unknown }[] }
+    const savedGuard = proposal.records.find(
+      (row) => row.kind === 'basic' && row.id === 'basic.guard',
+    )!.after
+    const resolver = createCombatContentResolver(new MemoryPublishedCombatContentSource())
+    const historical = await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 1)
+    expect(historical).toEqual(savedGuard)
+    expect(historical).toMatchObject({ contentVersion: 1, enabled: true })
+    const current = await resolver.resolveCurrentBasicSkillDefinitions!(['basic.guard'])
+    expect(current.get('basic.guard')).toMatchObject({ contentVersion: 2, enabled: false })
+    expect(await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 2)).toEqual(
+      current.get('basic.guard'),
+    )
+    expect(await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 3)).toBeNull()
+    expect(() =>
+      captureBasicSkillSources({
+        ownerCombatantId: 'actor',
+        supportActionId: 'basic.guard',
+        definitions: defaultBasicSkills(),
+      }),
+    ).toThrow(/disabled|retired/i)
+    const mutableEffects = historical!.ability.behaviors[0]!.effects as unknown[]
+    mutableEffects.length = 0
+    expect(await resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 1)).toEqual(savedGuard)
+  })
+
   it('reads complete current Basics in one bounded batch and exact historical versions', async () => {
     const source = new MemoryPublishedCombatContentSource()
     const old = defaultBasicSkills().find((row) => row.id === 'basic.recover')!

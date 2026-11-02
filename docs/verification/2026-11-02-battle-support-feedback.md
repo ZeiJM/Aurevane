@@ -1,0 +1,91 @@
+# Battle feedback and universal support actions — November 2, 2026
+
+Status: implemented and independently reviewed; the assembled local quality gate passes. Not live. PR #1003 collects the batch; its initial `fbb56f8` head covers only the earlier subset.
+
+## Resulting behavior
+
+- Endure, armed Reversal and Reversal Strain block all manually initiated damaging attacks, including Basic Attack, Discipline and Essence. Endure reports an empty release explicitly and uses compact application/help text. Reversal preparation conceals its Physical/Mystic family.
+- Shared targeting highlights follow legal current aim ranges and affected footprints. Utility-only tags, Copy effects and mixed actions use their actual target scopes; stale or illegal retained aim anchors cannot extend highlights.
+- Tag execution lines are shorter, including Blind without the redundant zero-Accuracy floor. Covert confirms an application to its caster without exposing concealed information to opponents.
+- Ground targeting creates persistent fields by default in current authoring. Its controls live in Effects and disappear without a Ground tag. Instant placement appears as an active field; explicitly delayed and historical timing remains literal. Twenty animation presets and six occupant scopes share desktop/mobile, PvE/PvP/spectator rendering.
+- Resonances expose automatic target choices for the three purposes. Saving and committing preserves actual authored identity, artwork and name in captured battle controls and Chronicle. Commit feedback reflects the existing durable commit result.
+- Current encounter cooldown groups are scoped to their ability identity, preventing unrelated Skills from sharing a raw `main` clock. Intended same-ability and Recovery grouping stays intact.
+- Current explicit All effects expose friendly fire and include the caster when selected. All Push moves the caster forward along facing; Pull moves backward. Other recipients use the frozen caster origin. Historical unmarked All remains literal.
+- Current Reflect returns actual eligible Barrier absorption plus HP loss, without double counting, overkill inflation or recursion. Historical encounters remain HP-only. Reversal retains its established Barrier interception rules.
+- Current Support choices are HP Recovery, MP Recovery, Pilfer, Fleetstep and Invocation. Guard is retired as a Skill; defensive statuses and immutable history remain. Pilfer adds inert Loot, Fleetstep supplies extra movement, and Invocation summons Vesper, a silver-blue mythical moon drake. Wildwarden receives Briar Snare in place of its current Summon.
+- Guided Fundamentals uses captured HP Recovery and starts with missing HP. Actual recovery completes the support lesson; historical encounters retain their original Guard criterion.
+
+## Verification boundaries
+
+Focused tests exercise canonical command admission, actual commits, captured history, replay/reload, source restrictions, native Summon AI/lifetime, current editor Save→Commit→database readback and old immutable cohorts. Independent reviews caught and resolved candidate-specific automatic-trigger evidence, stale targeting anchors, invalid friendly-fire normalization and the retired Guard tutorial path.
+
+Native Chromium checks passed for the new Support actions across playable PvE/PvP and spectators at desktop/mobile widths (18 cases), including actual decoded action art and Vesper board portraits. Current Basic authoring/service mutation and revert passed at four widths. Ground and automatic-target authoring native checks, the twenty-preset/reduced-motion palette and the earlier full command feedback matrix also passed during development.
+
+The SQL migration is source-only. PGlite exercises the real migration chain and audited Guard retirement, exact historical receipt replay, five current Support selections, seven current Basics, archived Guard reads, new Basic metadata and the inert Loot tag. Native Docker-backed concurrency and signed-in full-stack acceptance remain CI responsibilities; Docker is not available locally.
+
+Final `pnpm check` passes: formatting, lint, all package types, **15,984 Vitest tests**, seven Node tests and the optimized production build. Package counts: game-core 6,860; web 8,495; database 498; audio/realtime/worker/validation 131. The complete final-source command-feedback Chromium run exits successfully with zero page errors, and all 76 production-component targeting cases pass. The earlier Support18, four-width Basic authoring, Ground preset/reduced-motion and automatic-selector browser receipts remain applicable.
+
+The immutable historical pacing benchmark explicitly retains Guard v1: natural victories occur in rounds 21, 14 and 19 under the unchanged 24-round ceiling. An explicit HP Recovery control records its different pace without forcing a result; this is not a claim of current balance acceptance. No historical proposal bytes or publication-version expectations were changed to make tests pass.
+
+The PR handoff records the final tree and one current-head GitHub Actions check. Required hosted CI, signed-in acceptance and Owner hands-on balance acceptance remain separate. Focused development counts overlap and are not summed.
+
+## Release boundary
+
+No application deployment, hosted migration, content publication or merge has been performed for this batch. The compatible application and reviewed migration must release together. Installed catalogue overrides, especially the former Wildwarden Summon, must be reconciled through the ordinary versioned publication process before live rollout. Existing encounter clocks, policy flags and captured definitions remain pinned.
+
+## Browser CI follow-up — November 2
+
+One bounded GitHub check of PR #1003 head `ebc11111bf84497da94f3bca01f17fa1636ebdaf` retrieved all 20 configured workflow results, each latest attempt 1: 13 passed and seven browser workflows failed. No job was rerun and no status polling was used.
+
+The browser follow-up fixes the shared causes while retaining the intended coverage:
+
+- Five Support choices now occupy one desktop row. The previous three-column layout consumed a second row and compressed both Discipline galleries. Original CSS reproduces gallery overflow of 25 px and actual Counter Palm card overflow of 26 px; the corrected layout has zero overflow with the same artwork dimensions.
+- Native authoring fixtures use current Vesper. Captured creature readers explicitly pin historical Wildwarden v6; only the explicit historical Controlled fixture captures enabled Guard v1. Ordinary current fixtures use HP Recovery. Generic Skill pickers exclude source-exclusive Summon/Loot while positive Invocation/Pilfer coverage remains.
+- Current authenticated tests expect five Support choices and HP Recovery as the default. Real Support saves change the selected value instead of awaiting a no-op. Current Guarded readers use an equipped, learned Brace through the canonical versioned build API; cooldown and single-submit cases use the actual wounded Guided HP Recovery factory. Full-resource rejection remains covered in regular sparring.
+- Native targeting checks assert the approved full potential range and separately assert that clicking an empty unit-target tile submits no command. Existing route, target and prime/release identity assertions remain.
+
+Fresh follow-up verification passes formatting, repository lint, all eight package type checks, the complete web suite (8,495 Vitest tests plus seven Node checks) and the production build. Native Chromium 151.0.7922.34 passes the full default parameter palette, 14 canonical cases, 57 Controlled cases, 95 combined Move/Controlled/Modifier cases, eight desktop layout cases including Counter Palm, and four adjacent touch/desktop chooser cases. Independent review has no outstanding findings.
+
+Verification scope is deliberate: the follow-up changes one shared character-panel CSS rule and browser fixtures/specifications, with no gameplay, database, dependency, workflow, authoring-service or runtime-command change. The unchanged core/database results from the exact baseline remain applicable; this follow-up does not claim a newly executed full `pnpm check`. Authenticated database-backed Playwright execution remains pending configured CI because disposable local Supabase/Docker is unavailable. Discovery/type/lint checks are not described as authenticated execution. New-head hosted CI is required before integration. No merge, deployment, hosted migration or content publication is included.
+
+## Final native fixture corrections — November 2
+
+A single bounded latest-attempt check of head `9b6bc968752f1d4125ba7eeb2f8504efff66796f` matched all 20 workflows at attempt 1: 18 passed. Two browser steps exposed further old-Guard fixture assumptions, reproduced locally before correction.
+
+The mobile frame runner now prepares a wounded local fixture and exercises the actual HP Recovery engine transition instead of retired Guard: 50 AP is paid and HP rises from 75 to 85, while the original geometry and Chronicle assertions remain. The ally runner distinguishes complete potential healing reach from recipient eligibility, explicitly rejects an enemy click with zero submitted commands, and compares the current Support slot's green recovery paint with existing self-recovery paint while retaining pure-buff blue styling checks.
+
+Both complete native scripts pass on Chromium 151.0.7922.34: 27 mobile/frame scenes, including 18 paid healing transitions, and ten ally/creature reader cases across desktop/mobile PvE, PvP and spectators. All 232 adjacent unit tests, both Node syntax checks, scoped formatting/lint, diff checks and independent review pass. Only two existing browser scripts and this receipt change; application code, fixtures, schemas, dependencies and workflows remain unchanged, so broad unit/build results from the preceding verified source remain applicable. No new full quality-gate or authenticated execution is claimed. New-head required GitHub results remain pending. No job rerun, status polling, merge, deployment or hosted game-data change is performed.
+
+## Instant Ground and current Summon browser expectations — November 2
+
+One bounded check of PR #1003 head `545619b7210c495f42f30d3b17b8c0989674888d` retrieved all 20 configured workflows at latest attempt 1: 18 passed, central CI was still running, and Browser Smoke failed in “Verify elemental statuses and Ground readers across modes.” No workflow status polling or job rerun was used.
+
+The elemental script reproduced the exact timeout locally. A successful Instant Ground cast intentionally clears planning; the old script incorrectly awaited a new tile forecast. The correction asserts cleared planning, no stale forecast or accidental command from target cycling, then explicitly rearms the Skill and checks its new-version unit forecast. All existing elemental, Steam lifecycle, Airborne and catalogue cases remain. The complete native Chromium 151 run passes all 136 cases with zero page errors, including all 24 published catalogue cases.
+
+The native smoke tail also passes Suppress (14 cases plus 12 Chronicle checks), elevated rails (28 cases) and completion layout (96 cases). A focused command-feedback reproduction found one further stale Guard reader label after the current Support hotkey. Changing only the expected reader to HP Recovery passes the full focused mobile-facing scenario with its reader, keyboard, geometry and no-command assertions intact. The complete corrected command-feedback script also passes all preflight checks and 56 main matrix scenarios across desktop/mobile PvE/PvP and spectator input guards, with zero page errors. Local Playwright FFmpeg was installed after an initial missing-native-binary error; no dependency manifest or test scope changed.
+
+An audit of the later authenticated specifications found one stale current Wildwarden Summon scenario. It now selects Invocation through the real Support Action UI and expects immediately placed Vesper, Moon Bolt and a four-turn lifetime, while retaining first-next-round initiative admission, persisted deferred initiative, AI progression, pinned stats, inspection with zero submitted commands and reload authority. Delayed placement assertions belong to the preserved historical/delayed core scenarios rather than the current Instant Invocation.
+
+Fresh focused tests pass: 198 core elemental/Basic/Summon/AI/Support tests and 16 web Support/inspection tests. A separate overlapping 80-test core selection also passes historical catalogue, pending/delayed Summon and current lifetime coverage; counts are not summed. Web TypeScript, scoped ESLint/Prettier, Node syntax and diff checks pass. Three-project authenticated-spec discovery passes, but is not execution: disposable Supabase/Docker is unavailable locally, and configured signed-in CI remains required.
+
+Independent source review has no Critical, Important or Minor findings. Only three existing browser test files and this receipt change. Production application, core, database, fixtures, dependencies and workflows are unchanged; broad preceding unit/build evidence remains applicable, with no fresh full `pnpm check` claimed. Required new-head GitHub results remain pending. No merge, deployment, hosted migration or catalogue publication is included.
+
+## Authenticated Basic catalogue expectations — November 2
+
+The bounded latest-attempt check of head `79c058de415f6bc3eaff94ad382a2ce83ee4e0ae` retrieved all 20 workflows at attempt 1: 19 passed. Browser Smoke reached the authenticated repeated-authoring phase and failed “Verify desktop and mobile shell” twice at the same obsolete five-Basic assertion in `master-combat-content-authoring.pw.ts`. The executable fixture contains eight retained identities: seven enabled current Basics and disabled historical Guard. A local execution of the exact source fixture reproduces `8 !== 5`.
+
+The specification now asserts the exact seven enabled identities, verifies that the real current Basic list contains those seven with no retired Guard, and runs the existing authored-name → new authored baseline → reload/provenance and rejected-restoration checks for every current Basic. Guard is checked separately through its explicit archived read: attempts to enable it through Save or Commit must return 400/INVALID_REQUEST and leave its record, draft, publication and immutable versions unchanged. The original timeout, projects, repeat count, immutable-history comparisons and provenance assertions are retained. No production or fixture behavior changes.
+
+Fresh verification passes the executable current/historical catalogue assertions, 267 Master authoring/index/record/lifecycle/component tests, all five real-migration PGlite Support retirement tests, web TypeScript, scoped ESLint, Prettier and diff checks. Playwright discovery lists all nine specification/project entries; discovery is not signed-in execution. Disposable Supabase/Docker remains unavailable locally, so the complete authenticated specification and required new-head results remain configured CI responsibilities. Prior native browser and broad baseline evidence remains applicable to unchanged production source; no new full quality-gate execution is claimed.
+
+Independent source review has no Critical, Important or Minor findings. This follow-up changes one existing authenticated specification plus this receipt. No job rerun, workflow change, merge, application deployment, hosted migration or catalogue publication is included.
+
+## Header Support selection expectation — November 2
+
+One bounded latest-attempt check of PR #1003 head `ecd46fce8450cf6f4576c5d8afe72eac5526dc3c` retrieved all 20 configured workflows at attempt 1: 19 passed. Browser Smoke passed all 16 repeated signed-in authoring/authority cases, including the corrected current Basic catalogue and archived Guard checks. Its full Chromium suite then reported 380 passes, 286 existing skips and three failures: the same `ai-header-control-shape.pw.ts:61` assertion on desktop, laptop and mobile. Every failure showed actual `data-battle-action-mode="recover"` where the old test expected `guard`. The skipped cases are reported as skipped, not passes; no skip setting changes in this follow-up.
+
+The correction changes only that expected action mode to `recover`, matching current default HP Recovery in slot 3. Existing keyboard selection, unchanged AP, Cancel Action, Terrain help, Victory Conditions dialog and all project/timeout assertions remain. The historical `guard` slot/keybind identifiers and defensive statuses are untouched. A read-only audit found no other authenticated specification expecting the retired `guard` action mode.
+
+Fresh checks pass 43 adjacent Support/recovery/ability-control/header/Terrain tests, scoped ESLint, Prettier, TypeScript and diff checks. Playwright discovery lists all three original project entries; it is not authenticated execution. Local disposable Supabase/Docker remains unavailable, so signed-in execution of the corrected assertion and required new-head CI remain pending. The received `recover` values in all three prior authenticated runs are the direct failure reproduction. No new full quality-gate execution is claimed for this one-line test correction; production application, fixtures, database and workflows are unchanged.
+
+Independent source review has no Critical, Important or Minor findings. Only one existing browser expectation and this receipt change. No job rerun, workflow status polling, merge, deployment, hosted migration or catalogue publication is included.

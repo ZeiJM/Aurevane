@@ -99,6 +99,10 @@ describe('canonical persistent Ground groups', () => {
     { durationRounds: 1.5 },
     { visualPresetId: 'scripted-vfx' },
     { timing: 'controlled' },
+    { placementTimingVersion: 2 },
+    { placementTimingVersion: null },
+    { targetTeams: 'strangers' },
+    { targetTeams: null },
     { entryEffectIds: [] },
     { entryEffectIds: ['hit', 'hit'] },
     { entryEffectIds: ['missing'] },
@@ -493,3 +497,61 @@ it.each(['poison', 'burn'] as const)(
     expect(currentBurnInstance(entered.state, 'enemy')).toBeNull()
   },
 )
+
+it.each(['discipline-skill', 'essence', 'resonance'] as const)(
+  'captures and materializes current %s Ground timing/scope without changing source IDs',
+  (sourceKind) => {
+    const template = groundSource()
+    const behavior = template.definition.behaviors[0]!
+    const captured = captureCombatAbilitySource({
+      ...template,
+      sourceKind,
+      definition: {
+        ...template.definition,
+        behaviors: [
+          {
+            ...behavior,
+            groundArea: {
+              ...behavior.groundArea!,
+              timing: undefined,
+              placementTimingVersion: 1,
+              targetTeams: 'allies-except-self',
+            },
+          },
+        ],
+      },
+    })
+    const before = JSON.stringify(captured)
+    const group = captured.definition.behaviors[0]!
+    expect(validateAbilityDefinition(captured.definition)).toEqual([])
+    const action = materializeCombatAbilityAction(captured, group)
+    expect(action.groundArea).toMatchObject({
+      placementTimingVersion: 1,
+      targetTeams: 'allies-except-self',
+      entryEffectOrdinals: [2, 0],
+    })
+    expect(JSON.stringify(captured)).toBe(before)
+  },
+)
+
+it('keeps current packet-placement profiles independent of the global Ground timing stamp', async () => {
+  const { applyAbilityTimingDefaults } = await import('./combat-definition')
+  const behavior = groundSource().definition.behaviors[0]!
+  const policy = {
+    version: 1,
+    tagAuthority: 'global' as const,
+    modes: { 'ground-area': 'next-round' as const },
+  }
+  const current = {
+    ...behavior,
+    groundArea: { ...behavior.groundArea!, timing: undefined, placementTimingVersion: 1 as const },
+  }
+  expect(applyAbilityTimingDefaults(current, policy).groundArea?.timing).toBeUndefined()
+  expect(
+    applyAbilityTimingDefaults(
+      { ...current, groundArea: { ...current.groundArea, timing: 'delayed' } },
+      policy,
+    ).groundArea?.timing,
+  ).toBe('delayed')
+  expect(applyAbilityTimingDefaults(behavior, policy).groundArea?.timing).toBe('next-round')
+})

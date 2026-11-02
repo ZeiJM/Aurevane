@@ -1,3 +1,4 @@
+import { summonPortraitArtwork } from '../../media/support-action-art'
 import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
 import {
   summonPotencyDescription,
@@ -20,6 +21,7 @@ export interface BattleSummonInspectMetadata {
     | 'healingDownPolicyVersion'
     | 'blindsideActivationPolicyVersion'
     | 'reversalPolicyVersion'
+    | 'reflectBarrierPolicyVersion'
     | 'pierceCriticalPolicyVersion'
     | 'summonPotencyPolicyVersion'
     | 'ruinPolicyVersion'
@@ -66,6 +68,9 @@ export function readSummonInspectMetadata(
       healingDownPolicyVersion: snapshot.healingDownPolicyVersion,
       blindsideActivationPolicyVersion: snapshot.blindsideActivationPolicyVersion,
       ...(snapshot.reversalPolicyVersion === 1 ? { reversalPolicyVersion: 1 as const } : {}),
+      ...(snapshot.reflectBarrierPolicyVersion === 1
+        ? { reflectBarrierPolicyVersion: 1 as const }
+        : {}),
       ...(snapshot.pierceCriticalPolicyVersion === 1
         ? { pierceCriticalPolicyVersion: 1 as const }
         : {}),
@@ -86,7 +91,9 @@ export function readSummonInspectMetadata(
     portraitKey: summon.profile.portraitKey,
     ...(summon.profile.media?.artwork
       ? { portraitUrl: contentMediaSource(summon.profile.media.artwork) }
-      : {}),
+      : summonPortraitArtwork(summon.profile.portraitKey)
+        ? { portraitUrl: summonPortraitArtwork(summon.profile.portraitKey)! }
+        : {}),
     tags: [...summon.profile.tags],
     ownerCombatantId: summon.ownerCombatantId,
     sourceSkillId: summon.sourceSkillId,

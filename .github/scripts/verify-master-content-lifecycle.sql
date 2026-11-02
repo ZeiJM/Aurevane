@@ -70,8 +70,9 @@ begin
  assert (select jsonb_agg(to_jsonb(v) order by id) from app_private.combat_content_versions v where to_jsonb(v)->>'id' in (select x->>'id' from jsonb_array_elements(before_versions) x)) is not distinct from nullif(before_versions,'[]'), 'All earlier immutable rows retained';
  assert not exists(select 1 from jsonb_array_elements(before_pointers) old left join app_private.combat_content_publications p on p.content_key=old->>'content_key' where old->>'content_key'<>'tag.damage' and to_jsonb(p) is distinct from old), 'All unrelated pointer attribution/timestamps retained';
  assert not exists(select 1 from jsonb_array_elements(before_drafts) old left join app_private.combat_content_drafts d on d.content_key=old->>'content_key' where old->>'content_key'<>'tag.damage' and to_jsonb(d) is distinct from old), 'All unrelated draft rows retained';
- assert jsonb_array_length(current_setting('task13.originals')::jsonb)=5, 'Five actual executable originals supplied';
- for original in select value from jsonb_array_elements(current_setting('task13.originals')::jsonb) loop
+ assert jsonb_array_length(current_setting('task13.originals')::jsonb)=8, 'Eight historical Basic identities supplied';
+ assert (select count(*) from jsonb_array_elements(current_setting('task13.originals')::jsonb) o where o->>'enabled'<>'false')=7, 'Seven current executable originals supplied';
+ for original in select value from jsonb_array_elements(current_setting('task13.originals')::jsonb) where value->>'enabled'<>'false' loop
   original_key:=original->>'id';
   assert original->>'contentVersion'='1', 'Original version exact';
   saved:=public.read_combat_content_record_v1(actor,null,original_key);

@@ -1,8 +1,12 @@
+import { combatAbilityCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import {
   COMBAT_STATUS_TUNING_FIELDS,
   combatStatusTuning,
 } from '@aurevane/game-core/combat/combat-status-tuning'
-import { combatReversalStatusProfiles } from '@aurevane/game-core/combat/combat-reversal'
+import {
+  combatReversalStatusProfiles,
+  combatReversalAttackIssue,
+} from '@aurevane/game-core/combat/combat-reversal'
 import { battleTagForStatus } from '@/lib/battle/battle-tag-wording'
 import type { BattleBuildAuthoritySnapshot } from './battle-build-authority'
 import { combatEffectPresentationId } from '@aurevane/game-core/combat/combat-effect-identities'
@@ -18,6 +22,7 @@ import {
   isFreeOffensiveBasicMove,
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
+  materializeCombatAbilityAction,
   combatManualModifierAvailability,
   combatControlledAbilityAvailability,
   combatPrimedAbilityIds,
@@ -62,7 +67,10 @@ import {
 } from '../../lib/battle/battle-elevation-effects'
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
-import type { CombatSourceCommandVisibility } from '@aurevane/game-core/combat/actions'
+import {
+  combatEndureBlocksAction,
+  type CombatSourceCommandVisibility,
+} from '@aurevane/game-core/combat/actions'
 
 function pendingCovertConcealsInstance(
   state: Pick<StatDrivenCombatEncounterState, 'pendingEffects'>,
@@ -92,6 +100,7 @@ function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
     legacyHealingDown: state.healingDownPolicyVersion !== 1,
     legacyBlindsideActivation: state.blindsideActivationPolicyVersion !== 1,
     legacyReversal: state.reversalPolicyVersion !== 1,
+    legacyReflectBarrier: state.reflectBarrierPolicyVersion !== 1,
     legacyPierceCritical: state.pierceCriticalPolicyVersion !== 1,
     legacySummonPotency: state.summonPotencyPolicyVersion !== 1,
     legacyRuin: state.ruinPolicyVersion !== 1,
@@ -168,6 +177,27 @@ export function projectBattleManualActionTargets(
                 ? PV1F_BASIC_ATTACK_ID
                 : source.abilityId,
             behaviorId: behavior.id,
+            ...(combatEndureBlocksAction(
+              state,
+              source.ownerCombatantId,
+              {
+                ...materializeCombatAbilityAction(source, behavior, state),
+                ...(source.basic?.execution.kind === 'basic-attack'
+                  ? { sourceType: 'basic-attack' as const }
+                  : {}),
+              },
+              PV1F_COMBAT_CONTENT,
+            )
+              ? { endureBlocked: true as const }
+              : {}),
+            ...(combatReversalAttackIssue(state, source.ownerCombatantId, {
+              ...materializeCombatAbilityAction(source, behavior, state),
+              ...(source.basic?.execution.kind === 'basic-attack'
+                ? { sourceType: 'basic-attack' as const }
+                : {}),
+            })
+              ? { reversalBlocked: true as const }
+              : {}),
             ...(behavior.classification ? { classification: behavior.classification } : {}),
             dealsDamage: battleActionDealsDamage(behavior.effects.map((effect) => effect.payload)),
             ...(behavior.effects.some(
@@ -183,7 +213,7 @@ export function projectBattleManualActionTargets(
               ? { groundIntentCapable: true as const }
               : {}),
             costs: behavior.costs.map((cost) => ({ ...cost })),
-            cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+            cooldown: combatAbilityCooldown(state, source, behavior.cooldown),
             ...(source.basic
               ? {}
               : {
@@ -309,7 +339,7 @@ export function projectBattleBasicActions(
             classification: behavior.classification,
             modifierRoot: combatCanonicalModifierRootFacts(behavior),
             costs: behavior.costs.map((cost) => ({ ...cost })),
-            cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+            cooldown: combatAbilityCooldown(state, source, behavior.cooldown),
             target: structuredClone(canonicalAbilityTargetSpec(behavior.targeting!)),
             ...(move?.payload.type === 'move'
               ? {
@@ -436,6 +466,7 @@ export function projectBattleStatusStateForViewer(
     | 'healingDownPolicyVersion'
     | 'elementalDamagePolicyVersion'
     | 'blindsideActivationPolicyVersion'
+    | 'reflectBarrierPolicyVersion'
     | 'dotTriggerPolicyVersion'
     | 'skillPacketPolicyVersion'
     | 'capturedAbilitySources'
@@ -487,6 +518,9 @@ export function projectBattleStatusStateForViewer(
     ...status,
     battleTag: battleTagForStatus(state.buildAuthority?.tagPresentations, status, exactTagId),
     ...(state.effectStackingPolicyVersion === 1 ? { effectStackingPolicyVersion: 1 as const } : {}),
+    ...(status.statusId === 'counter' && state.reflectBarrierPolicyVersion === 1
+      ? { reflectBarrierPolicyVersion: 1 as const }
+      : {}),
     ...(status.statusId === 'blindside' && state.blindsideActivationPolicyVersion === 1
       ? { blindsideActivationPolicyVersion: 1 as const }
       : {}),
@@ -603,7 +637,9 @@ export function projectBattleStatusStateForViewer(
           ...(profile.kind === 'armed'
             ? {
                 reversal: {
-                  family: profile.family,
+                  ...(relationship === 'self' || relationship === 'ally'
+                    ? { family: profile.family }
+                    : {}),
                   reflectionBasisPoints: profile.reflectionBasisPoints,
                   attackerMaxHpCapBasisPoints: profile.attackerMaxHpCapBasisPoints,
                   defenderMaxHpCapBasisPoints: profile.defenderMaxHpCapBasisPoints,

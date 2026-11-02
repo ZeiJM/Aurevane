@@ -90,7 +90,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const inspectButton = commandDeck.getByRole('button', { name: /^Inspect,/ })
   const moveButton = commandDeck.getByRole('button', { name: /^Move,/ })
   const attackButton = commandDeck.locator('button[data-battle-command="attack"]')
-  const guardButton = commandDeck.locator('button[data-battle-command="guard"]')
+  const recoveryButton = commandDeck.locator('button[data-battle-command="guard"]')
   const finishButton = commandDeck.getByRole('button', { name: /^End Turn,/ })
   const facingPad = commandContext.getByRole('group', { name: 'Choose final facing', exact: true })
   const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
@@ -213,7 +213,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   expect(await expectRecordedBattleRound(page)).toBeGreaterThan(initialRound)
 
   // Guided Fundamentals uses the full 9x7 Duel Yard. Traverse a second movement turn toward
-  // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
+  // the Recruit before completing Recovery/Attack so the lesson remains deterministic at medium scale.
   await moveButton.click()
   const nextFullMovement = await chooseReachableTowardRecruit(page, battlefield)
   const nextPathLength = nextFullMovement.response.request().postDataJSON().intent.path.length
@@ -228,15 +228,26 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandContext).toContainText('Your turn', { timeout: 15_000 })
   await expect(commandContext).toHaveAttribute('data-battle-turn-state', 'yours')
 
+  const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+  const beforeRecoveryResponse = await page.request.get(`/api/battles/${battleId}`)
+  expect(beforeRecoveryResponse.ok()).toBe(true)
+  const beforeRecovery = (await beforeRecoveryResponse.json()).battle as BattleSessionView
+  expect(beforeRecovery.snapshot.supportActionPolicyVersion).toBe(1)
+  const recoveringActor = beforeRecovery.snapshot.tactical.battle.combatants.find(
+    (unit) => unit.id === beforeRecovery.snapshot.tactical.battle.currentTurn!.combatantId,
+  )!
+  expect(recoveringActor.hp).toBeGreaterThan(0)
+  expect(recoveringActor.hp).toBeLessThan(recoveringActor.maxHp)
+
   if (testInfo.project.name === 'mobile-chromium') {
     // End Turn leaves the earlier row clipped by the sticky economy header.
-    // Expose the full Guard control before one native tap, rather than touching its clipped edge.
-    await guardButton.evaluate((button) =>
+    // Expose the full Recovery control before one native tap, rather than touching its clipped edge.
+    await recoveryButton.evaluate((button) =>
       button.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }),
     )
     await expect
       .poll(() =>
-        guardButton.evaluate((button) => {
+        recoveryButton.evaluate((button) => {
           const rect = button.getBoundingClientRect()
           const header = document.querySelector('[data-unified-battle-header="true"]')!
           const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)
@@ -249,26 +260,32 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
         }),
       )
       .toBe(true)
-    await guardButton.tap()
+    await recoveryButton.tap()
   } else {
-    await guardButton.click()
+    await recoveryButton.click()
   }
-  await expect(commandContext).toContainText('Guard')
+  await expect(commandContext).toContainText('HP Recovery')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(1)
-  const guardCommit = await commitGesture(
+  const recoveryCommit = await commitGesture(
     page,
     page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }),
   )
-  const guardRequest = guardCommit.request().postDataJSON()
-  expect(guardRequest.intent).toMatchObject({ kind: 'action', actionId: 'basic.guard' })
-  expect((await guardCommit.json()).battle.battleVersion).toBe(
-    guardRequest.expectedBattleVersion + 1,
+  const recoveryRequest = recoveryCommit.request().postDataJSON()
+  expect(recoveryRequest.intent).toMatchObject({ kind: 'action', actionId: 'basic.recover' })
+  const recoveredBattle = (await recoveryCommit.json()).battle as BattleSessionView
+  expect(recoveredBattle.battleVersion).toBe(recoveryRequest.expectedBattleVersion + 1)
+  expect(
+    recoveredBattle.snapshot.tactical.battle.combatants.find(
+      (unit) => unit.id === recoveringActor.id,
+    )?.hp,
+  ).toBeGreaterThan(recoveringActor.hp)
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '50', { timeout: 10_000 })
+  await expect(recoveryButton).toBeDisabled()
+  await expect(recoveryButton).toHaveAccessibleName(
+    'HP Recovery, 50 AP, Cooldown: 2 turns remaining',
   )
-  await expect(apRemaining).toHaveAttribute('aria-valuenow', '70', { timeout: 10_000 })
-  await expect(guardButton).toBeDisabled()
-  await expect(guardButton).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
-  await expect(guardButton).not.toHaveAttribute('data-battle-active', 'true')
-  await expect(guardButton).not.toHaveAttribute('data-active', 'true')
+  await expect(recoveryButton).not.toHaveAttribute('data-battle-active', 'true')
+  await expect(recoveryButton).not.toHaveAttribute('data-active', 'true')
   await expect(
     commandDeck.locator('[data-command-card="guard"] [data-battle-cooldown-countdown]'),
   ).toHaveText('2')
@@ -283,13 +300,15 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     const strip = mobileChronicle.locator('[data-battle-action-strip]')
     await expect(strip).toBeVisible()
     await expect(page.locator('[data-battle-mobile-chronicle-toggle]')).toHaveCount(0)
-    const guardAction = strip.getByRole('button', { name: /Guard.*Show Chronicle details/i }).last()
-    await expect(guardAction).toBeVisible()
-    await guardAction.click()
+    const recoveryAction = strip
+      .getByRole('button', { name: /HP Recovery.*Show Chronicle details/i })
+      .last()
+    await expect(recoveryAction).toBeVisible()
+    await recoveryAction.click()
     const details = page.getByRole('region', { name: /Chronicle action:/i })
     await expect(details).toBeVisible()
     await expect(details).toContainText(characterName)
-    await expect(details).toContainText('Guard')
+    await expect(details).toContainText('HP Recovery')
     await expect(details).not.toContainText('moved')
     await expect(details).not.toContainText('rollBasisPoints')
     await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
@@ -298,14 +317,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
     await page.keyboard.press('Escape')
     await expect(details).toHaveCount(0)
-    await expect(guardAction).toHaveAttribute('aria-expanded', 'false')
+    await expect(recoveryAction).toHaveAttribute('aria-expanded', 'false')
   } else {
     const inlineLog = page.locator('[data-battle-inline-log]')
     const battleLog = inlineLog.getByRole('region', { name: 'Battle chronicle', exact: true })
     await expect(battleLog).toBeVisible()
     await expect(page.locator('dialog[data-battle-action-details]')).toHaveCount(0)
     await expect(battleLog).toContainText(characterName)
-    await expect(battleLog).toContainText('Guard')
+    await expect(battleLog).toContainText('HP Recovery')
     await expect(battleLog).not.toContainText('moved')
     await expect(battleLog).not.toContainText('rollBasisPoints')
     await expect(inlineLog.locator(':scope > header')).toHaveCount(0)

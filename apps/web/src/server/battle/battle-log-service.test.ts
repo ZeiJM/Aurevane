@@ -1008,7 +1008,7 @@ it('projects only bounded recovery application counts on the appropriate pending
   )
   expect(outcomes).toContainEqual(
     expect.objectContaining({
-      text: 'HP Recovery will restore 4 applications on Weon, beginning at the start of round 4!',
+      text: 'HP Recovery: 4 applications on Weon (from round 4)',
     }),
   )
   expect(JSON.stringify(outcomes)).not.toContain('a future round')

@@ -152,12 +152,15 @@ export function planCombatGroundContacts(
     }
   const groups = new Map<'instant' | 'next-round' | 'delayed' | undefined, number[]>()
   for (const ordinal of ordinals) {
-    const timing = action.groundArea
-      ? action.groundArea.timing
-      : (placementOverrides.get(ordinal) ??
-        action.effectTimingModes?.[ordinal] ??
-        timingPolicy?.modes['ground-area'] ??
-        'next-round')
+    const timing =
+      action.groundArea?.placementTimingVersion === 1
+        ? (action.groundArea.timing ?? 'instant')
+        : action.groundArea
+          ? action.groundArea.timing
+          : (placementOverrides.get(ordinal) ??
+            action.effectTimingModes?.[ordinal] ??
+            timingPolicy?.modes['ground-area'] ??
+            'next-round')
     if (timing === 'controlled')
       throw new TypeError('Ground contact fields do not support Controlled placement.')
     const group = groups.get(timing) ?? []

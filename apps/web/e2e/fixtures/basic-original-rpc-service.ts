@@ -55,7 +55,11 @@ export async function createBasicEditorServiceFixture() {
   service.recordCommand = createCombatContentRecordCommand(store, service, actorUserId)
   const requests: unknown[] = []
   return {
-    options: await Promise.all(defaultBasicSkills().map((basic) => store.readRecord(basic.id))),
+    options: await Promise.all(
+      defaultBasicSkills()
+        .filter((basic) => basic.enabled)
+        .map((basic) => store.readRecord(basic.id)),
+    ),
     async request(request: Request) {
       requests.push(await request.clone().json())
       return handleCombatContentAuthoringRequest(request, {
@@ -66,7 +70,7 @@ export async function createBasicEditorServiceFixture() {
     async inspect() {
       return {
         requests,
-        originals: defaultBasicSkills(),
+        originals: defaultBasicSkills().filter((basic) => basic.enabled),
         physicalVersions: (
           await database.query<{ snapshot: unknown }>(
             `select to_jsonb(v) || jsonb_build_object('attribution',to_jsonb(a)) as snapshot
@@ -75,7 +79,11 @@ export async function createBasicEditorServiceFixture() {
            order by v.id`,
           )
         ).rows.map((row) => row.snapshot),
-        records: await Promise.all(defaultBasicSkills().map((basic) => store.readRecord(basic.id))),
+        records: await Promise.all(
+          defaultBasicSkills()
+            .filter((basic) => basic.enabled)
+            .map((basic) => store.readRecord(basic.id)),
+        ),
       }
     },
     async close() {

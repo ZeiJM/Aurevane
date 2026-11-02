@@ -23,7 +23,7 @@ describe('Endure readers', () => {
     expect(preview).toMatchObject({ label: 'Endure', magnitude: '150%' })
     expect(preview.explanation).toContain('150%')
     expect(preview.explanation).toContain('within 3 tiles')
-    expect(preview.explanation).toContain('each living enemy')
+    expect(preview.explanation).toContain('each enemy')
     expect(preview.explanation).toContain('2 turns')
     expect(skillEffectDescription(capturedEndure)).toBe(preview.explanation)
     expect(compactSkillEffectSummaryParts(capturedEndure)).toMatchObject({
@@ -37,8 +37,8 @@ describe('Endure readers', () => {
   })
 
   it.each([
-    ['allies', 'each living ally'],
-    ['all', 'each living unit'],
+    ['allies', 'each ally'],
+    ['all', 'each unit'],
   ] as const)(
     '02 preserves captured %s scope and nondefault values',
     (targetTeams, teamDescription) => {
@@ -58,18 +58,16 @@ describe('Endure readers', () => {
     },
   )
 
-  it('03 explains manual damage restrictions and natural expiry without suppressing automatic reactions', () => {
+  it('03 summarizes the attack lock and expiry without verbose execution details', () => {
     const description = skillEffectDescription(capturedEndure)
-    expect(description).toContain('Basic Attack')
-    expect(description).toContain('damage-dealing manual Skills')
-    expect(description).toContain('Automatic reactions and already-pending casts still resolve')
-    expect(description).toContain('ends naturally')
-    expect(description).toContain('Barrier')
-    expect(description).toContain('without applying Defense again')
-    expect(description).toContain('cannot be dispelled')
-    expect(description).toContain('Defeat cancels')
-    expect(description).toContain('Recasting')
-    expect(effectTagDescription('endure')).toContain('cannot be dispelled')
+    expect(description).toContain('Cannot attack')
+    expect(description).toContain('When Endure expires')
+    expect(description).toContain('HP damage you received')
+    expect(description).toContain('Cannot be dispelled')
+    expect(description).toContain('defeat cancels the burst')
+    expect(description.length).toBeLessThan(260)
+    expect(description).not.toMatch(/already-pending|without applying Defense|Recasting/)
+    expect(effectTagDescription('endure')).toContain('Cannot be dispelled')
   })
 
   it('04 shows only the active public profile and lifetime, never a private damage ledger', () => {
@@ -87,7 +85,7 @@ describe('Endure readers', () => {
     expect(battleEffectIdentity('endure')).toMatchObject({ label: 'Endure', identifier: 'END' })
     expect(description.description).toContain('150%')
     expect(description.description).toContain('within 3 tiles')
-    expect(description.description).toContain('each living enemy')
+    expect(description.description).toContain('each enemy')
     expect(description).toMatchObject({ count: 2, counterLabel: '2t', timing: 'Active' })
     expect(JSON.stringify(description)).not.toContain('987654321')
     expect(JSON.stringify(description)).not.toContain('receivedHpDamage')
@@ -95,9 +93,10 @@ describe('Endure readers', () => {
 
   it('05 keeps generic help concise and free of a fixed configuration', () => {
     const description = effectTagDescription('endure')
-    expect(description).toContain('damage-dealing manual actions')
-    expect(description).toContain('expires naturally')
-    expect(description).toContain('each eligible target')
+    expect(description).toContain('Locks attacks')
+    expect(description).toContain('On expiry')
+    expect(description).toContain('nearby targets')
+    expect(description?.length).toBeLessThan(210)
     expect(description).not.toMatch(/\d|%/)
   })
 

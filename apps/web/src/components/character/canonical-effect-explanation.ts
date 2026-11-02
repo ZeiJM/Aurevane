@@ -57,7 +57,7 @@ export function canonicalEffectExplanation(
       return { description: endureDescription(effect) }
     case 'apply-status':
       if (effect.statusId === 'counter' && effect.counter)
-        return { description: counterDescription(effect.counter) }
+        return { description: counterDescription(effect.counter, options) }
       return canonicalStatusExplanation(effect, options)
     case 'healing':
       return {

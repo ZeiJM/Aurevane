@@ -140,6 +140,7 @@ export function SummonAbilityList({
       healingDownPolicyVersion={policies.healingDownPolicyVersion ?? null}
       blindsideActivationPolicyVersion={policies.blindsideActivationPolicyVersion ?? null}
       reversalPolicyVersion={policies.reversalPolicyVersion ?? null}
+      reflectBarrierPolicyVersion={policies.reflectBarrierPolicyVersion ?? null}
       pierceCriticalPolicyVersion={policies.pierceCriticalPolicyVersion ?? null}
       summonPotencyPolicyVersion={policies.summonPotencyPolicyVersion ?? null}
       ruinPolicyVersion={policies.ruinPolicyVersion ?? null}

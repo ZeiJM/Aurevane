@@ -1,3 +1,4 @@
+import { SKILL_COOLDOWN_RESOURCE_PREFIX } from '@aurevane/game-core/combat/skill-cooldowns'
 import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from './battle-source-authority'
 import {
@@ -355,7 +356,10 @@ function createVerticalSliceEncounter(
           teamId: 'players',
           initiative: derived.stats.initiative.value,
           baseMovementBudget: derived.stats.movement.value,
-          hp: derived.stats.maxHp.value,
+          hp:
+            battleHallRecordId === 'guided-fundamentals'
+              ? Math.max(1, Math.floor(derived.stats.maxHp.value * 0.75))
+              : derived.stats.maxHp.value,
           maxHp: derived.stats.maxHp.value,
           mp: derived.stats.maxMp.value,
           maxMp: derived.stats.maxMp.value,
@@ -525,7 +529,16 @@ export function projectBattleSnapshot(
         rulesVersion: battle.rulesVersion,
         contentVersion: battle.contentVersion,
         lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
+        combatants: battle.combatants.map((combatant) =>
+          viewer.controlledCombatantIds.has(combatant.id)
+            ? combatant
+            : {
+                ...combatant,
+                temporaryResources: combatant.temporaryResources.filter(
+                  (resource) => !resource.key.startsWith(SKILL_COOLDOWN_RESOURCE_PREFIX),
+                ),
+              },
+        ),
         initiativeOrder: battle.initiativeOrder,
         ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
@@ -844,6 +857,9 @@ export function createBattleSessionService({
       baseEncounter.healingDownPolicyVersion = 1
       baseEncounter.conditionalDamageRoundingPolicyVersion = 1
       baseEncounter.blindsideActivationPolicyVersion = 1
+      baseEncounter.abilityCooldownScopeVersion = 1
+      baseEncounter.reflectBarrierPolicyVersion = 1
+      baseEncounter.supportActionPolicyVersion = 1
       if (baseEncounter.effectTimingPolicy?.tagAuthority === 'global') {
         baseEncounter.modularSkillPolicyVersion = 1
       }

@@ -31,7 +31,7 @@ function reactingSummonTurn(reaction: 'reversal' | 'counter') {
       criticalChance: 0,
     })),
   )
-  const template = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const template = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const ability = {
     ...template.abilities[0]!,
     tags: ['attack', 'physical'],

@@ -22,9 +22,10 @@ import { renderBattleFlavorTemplate } from '@aurevane/game-core/combat/battle-na
 import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import {
   DEFAULT_SUPPORT_ACTION_ID,
-  SUPPORT_ACTION_IDS,
+  CURRENT_SUPPORT_ACTION_IDS,
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
@@ -561,7 +562,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
           <small>Choose one · Battle slot 3</small>
         </header>
         <div className={styles.supportGrid} role="radiogroup" aria-label="Support Action">
-          {SUPPORT_ACTION_IDS.map((id) => {
+          {CURRENT_SUPPORT_ACTION_IDS.map((id) => {
             const selected = supportActionId === id
             const name = pv1fSkillByActionId(id)!.name
             return (
@@ -605,14 +606,19 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                   </span>
                   <strong>{name}</strong>
                   <span className={styles.skillMeta}>
-                    {id === 'basic.guard' ? 'Utility' : 'Recovery'}
+                    {defaultBasicSkills().find((row) => row.id === id)?.ability.behaviors[0]
+                      ?.classification === 'attack'
+                      ? 'Attack'
+                      : id === 'basic.recover' || id === 'basic.recover.mp'
+                        ? 'Recovery'
+                        : 'Utility'}
                   </span>
                 </label>
               </article>
             )
           })}
           {Array.from(
-            { length: TECHNIQUES_PER_DISCIPLINE - SUPPORT_ACTION_IDS.length },
+            { length: TECHNIQUES_PER_DISCIPLINE - CURRENT_SUPPORT_ACTION_IDS.length },
             (_, index) => (
               <div
                 key={`support-empty-${index}`}
@@ -895,23 +901,40 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                               <small>One Support Action, separate from Discipline Skills.</small>
                             </div>
                           </div>
-                          <dl className={styles.characteristics}>
-                            <SkillCharacteristicRows
-                              rows={basicActionCharacteristicRows(
-                                focusedSupportActionId,
-                                timingPolicy,
-                              )}
-                              effectSummary={
-                                <div className={styles.effectSummaryList}>
-                                  <BasicActionEffectSummary id={focusedSupportActionId} />
-                                </div>
-                              }
-                            />
-                          </dl>
-                          <BasicActionEffectExplanations
-                            id={focusedSupportActionId}
-                            className={styles.effectExplanations}
-                          />
+                          {(() => {
+                            const basic = defaultBasicSkills().find(
+                              (row) => row.id === focusedSupportActionId,
+                            )
+                            return basic &&
+                              !['basic.guard', 'basic.recover', 'basic.recover.mp'].includes(
+                                basic.id,
+                              ) ? (
+                              <AbilityDefinitionParameters
+                                definition={basic.ability}
+                                basic={basic}
+                              />
+                            ) : (
+                              <>
+                                <dl className={styles.characteristics}>
+                                  <SkillCharacteristicRows
+                                    rows={basicActionCharacteristicRows(
+                                      focusedSupportActionId,
+                                      timingPolicy,
+                                    )}
+                                    effectSummary={
+                                      <div className={styles.effectSummaryList}>
+                                        <BasicActionEffectSummary id={focusedSupportActionId} />
+                                      </div>
+                                    }
+                                  />
+                                </dl>
+                                <BasicActionEffectExplanations
+                                  id={focusedSupportActionId}
+                                  className={styles.effectExplanations}
+                                />
+                              </>
+                            )
+                          })()}
                         </>
                       ) : focusedSkill ? (
                         <>

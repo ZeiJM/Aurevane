@@ -1,6 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { expect, vi } from 'vitest'
-import { InMemoryCombatContentRepository } from '@aurevane/db/combat-content'
+import {
+  InMemoryCombatContentRepository,
+  type PublishCombatContentInput,
+} from '@aurevane/db/combat-content'
 import { FOUNDATION_DISCIPLINES } from '@aurevane/game-core/character/foundation-disciplines'
 import { ADVANCED_DISCIPLINES } from '@aurevane/game-core/character/advanced-disciplines'
 import {
@@ -13,13 +16,21 @@ import {
   validateAttributeAllocation,
 } from '@aurevane/game-core/character/attribute-allocation'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
-import type { BasicSkillDefinition } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  resolveBuiltinBasicSkillVersion,
+  type BasicSkillDefinition,
+  type BasicSkillId,
+} from '@aurevane/game-core/combat/combat-basic-actions'
+import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
   type EssenceDefinition,
 } from '@aurevane/game-core/combat/essence'
-import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveMatureSkillVersion,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
@@ -64,14 +75,27 @@ export const rows: RosterProposalRow[] = JSON.parse(
 ).records
 export const skillRows = rows.filter((row) => row.kind === 'skill')
 export const disciplines = [...FOUNDATION_DISCIPLINES, ...ADVANCED_DISCIPLINES]
-export type Kit = { name: string; primary: string; secondary: string | null; ids: string[] }
+export type Kit = {
+  name: string
+  primary: string
+  secondary: string | null
+  ids: string[]
+  supportActionId?: SupportActionId
+}
 class LocalPublicationStore extends InMemoryCombatContentRepository {
+  // The saved cohort predates Briar Snare; reserve its original before/after versions.
+  // Stored publications still enforce their ordinary CAS and monotonically increasing versions.
+  async publish(input: PublishCombatContentInput) {
+    return super.publish(
+      input.contentKey === 'wildwarden.renewing-herbs' ? { ...input, versionFloor: 6 } : input,
+    )
+  }
   async getOperatorRole(userId: string) {
     return userId === owner ? ('owner' as const) : null
   }
 }
 export const store = new LocalPublicationStore()
-export const resolver = createCombatContentResolver({
+const currentResolver = createCombatContentResolver({
   findCurrentSkill: (key) => store.findPublished(key, 'skill'),
   findSkillVersion: async (key, version) =>
     (await store.listPublishedVersions(key)).find(
@@ -83,6 +107,24 @@ export const resolver = createCombatContentResolver({
       (row) => row.contentKind === kind && row.contentVersion === version,
     ) ?? null,
 })
+// The October10 cohort publishes its immutable proposals against the exact recorded base.
+// Current gameplay still resolves the new Briar Snare publication and current HP Support default.
+export const resolver = {
+  ...currentResolver,
+  async resolveCurrentBasicSkillDefinitions(ids: readonly BasicSkillId[]) {
+    const definitions = new Map(await currentResolver.resolveCurrentBasicSkillDefinitions!(ids))
+    if (ids.includes('basic.guard') && !(await store.findPublished('basic.guard', 'skill'))) {
+      // Explicit old-cohort choice only; never substitute this for the current disabled Guard.
+      definitions.set('basic.guard', resolveBuiltinBasicSkillVersion('basic.guard', 1)!)
+    }
+    return definitions
+  },
+  async resolveCurrentSkillDefinition(id: string) {
+    if (id === 'wildwarden.renewing-herbs' && !(await store.findPublished(id, 'skill')))
+      return resolveMatureSkillVersion(id, 6)
+    return currentResolver.resolveCurrentSkillDefinition(id)
+  },
+}
 let publicationPromise: Promise<void> | undefined
 export function publishProposedRoster() {
   return (publicationPromise ??= (async () => {
@@ -170,6 +212,7 @@ export function fixture(kit: Kit, level: 1 | 100, identity = { owner, characterI
     characterId,
     schemaVersion: 4,
     buildVersion: 1,
+    supportActionId: kit.supportActionId ?? 'basic.guard',
     primaryDefinition: primary.definition,
     primaryProfile: primary.profile,
     secondaryDefinition: secondary?.definition ?? null,
@@ -214,6 +257,7 @@ export function fixture(kit: Kit, level: 1 | 100, identity = { owner, characterI
       snapshot = {
         schemaVersion: 4,
         buildVersion: build.buildVersion,
+        supportActionId: build.supportActionId,
         primary: { disciplineId: kit.primary, definitionVersion: 1, profileVersion: 1 },
         secondary: kit.secondary ? { disciplineId: kit.secondary, definitionVersion: 1 } : null,
         disciplineSkills: equipped.map((skill) => ({

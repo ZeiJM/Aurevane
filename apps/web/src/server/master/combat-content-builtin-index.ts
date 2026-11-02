@@ -43,22 +43,24 @@ export function builtinCombatContentEntries() {
   ].sort((a, b) => (a.contentKey < b.contentKey ? -1 : a.contentKey > b.contentKey ? 1 : 0))
 }
 export function builtinCombatContentManifest() {
-  return builtinCombatContentEntries().map(({ contentKey, contentKind, definition }) => ({
-    contentKey,
-    contentKind,
-    name:
-      'name' in definition
-        ? definition.name
-        : contentKey
-            .split('.')
-            .at(-1)!
-            .split('-')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' '),
-    contentVersion: definition.contentVersion,
-    versionFloor: builtinCombatContentVersionFloor(contentKind, contentKey)!,
-    sourceDisciplineId: 'sourceDisciplineId' in definition ? definition.sourceDisciplineId : null,
-  }))
+  return builtinCombatContentEntries()
+    .filter((row) => row.contentKey !== 'basic.guard')
+    .map(({ contentKey, contentKind, definition }) => ({
+      contentKey,
+      contentKind,
+      name:
+        'name' in definition
+          ? definition.name
+          : contentKey
+              .split('.')
+              .at(-1)!
+              .split('-')
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' '),
+      contentVersion: definition.contentVersion,
+      versionFloor: builtinCombatContentVersionFloor(contentKind, contentKey)!,
+      sourceDisciplineId: 'sourceDisciplineId' in definition ? definition.sourceDisciplineId : null,
+    }))
 }
 /** Index only mappings the actual current fallback selectors consume. Stage B
  * may replace these consumers; until then each mapping is a real dependency. */

@@ -157,6 +157,17 @@ function tag(
 }
 
 export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze([
+  tag(
+    'loot',
+    [],
+    {},
+    'An inert Pilfer marker. It currently grants no items, inventory, currency or rewards.',
+    {
+      recipients: ['primary-unit'],
+      timing: ['instant'],
+      combinations: [{ activation: 'manual', mode: 'action' }],
+    },
+  ),
   ...(['weak-point', 'spike', 'ruin'] as const).map((id) =>
     tag(
       id,
@@ -644,6 +655,7 @@ export function validateCombatTagPayload(
         keys(
           ability.target,
           [
+            'allTargetPolicyVersion',
             'geometryVersion',
             'categories',
             'maximumSelections',

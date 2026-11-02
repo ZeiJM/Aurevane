@@ -108,7 +108,7 @@ it('retains a selected aim needed by a requirement even when every effect is glo
     deriveSharedEffectAim(aim, [{ type: 'damage', recipient: 'affected-units', target: 'all' }], {
       requiresSelectedUnit: true,
     }),
-  ).toBe(aim)
+  ).toEqual({ ...aim, allTargetPolicyVersion: 1, friendlyFire: 'all-units' })
 })
 
 it('keeps retained Chilled-only cleansing caster-only', () => {

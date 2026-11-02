@@ -23,12 +23,12 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
     id: 'guided-fundamentals',
     name: 'Guided Fundamentals',
     purpose:
-      'Learn movement, Action Economy, attacking, Guard, recovery, and final facing inside one guided exercise.',
+      'Learn movement, Action Economy, attacking, HP Recovery, and final facing inside one guided exercise.',
     defaultArenaId: 'duel-yard',
     coachSteps: [
       'Move at least one tile. Positioning decides what you can threaten, which terrain you can exploit, and how much AP remains for the rest of the turn.',
       'Commit a Basic Attack. Range and target choice turn positioning into pressure while the forecast teaches you to read risk before spending AP.',
-      'Use Guard. Defensive AP is a tempo trade: you give up some immediate offense to reduce incoming damage and survive a bad exchange.',
+      'Use HP Recovery to restore your missing HP. Recovery spends AP you could use for pressure, so compare the trade before committing.',
       'Finish a turn with an intentional facing. Facing protects a direction and teaches you to end each turn thinking about the opponent’s next angle.',
     ],
     combinedDuel: false,

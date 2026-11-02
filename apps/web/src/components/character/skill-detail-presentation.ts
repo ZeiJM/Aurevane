@@ -74,6 +74,7 @@ export function skillEffectDescription(
     legacyHealingDown?: boolean
     legacyBlindsideActivation?: boolean
     legacyReversal?: boolean
+    legacyReflectBarrier?: boolean
     legacyPierceCritical?: boolean
     legacySummonPotency?: boolean
     legacyRuin?: boolean
@@ -89,6 +90,8 @@ export function skillEffectDescription(
   if (isPercentageDotEffect(effect))
     return `Apply ${previewEffect(effect).label} to ${target}. ${percentageDotDescription(effect.type, effect.type === 'burn' ? effect.backlashBasisPoints : undefined, { ...options, ...(effect.type === 'poison' ? { movementRefreshTiles: effect.movementRefreshTiles } : {}) })}`
   switch (effect.type) {
+    case 'loot':
+      return previewEffect(effect, options).explanation
     case 'weak-point':
     case 'spike':
     case 'ruin':
@@ -319,6 +322,7 @@ export function skillParameterRows(
 
 interface ElementalEffectPresentationOptions {
   legacyReversal?: boolean
+  legacyReflectBarrier?: boolean
   legacyPierceCritical?: boolean
   legacySummonPotency?: boolean
   legacyRuin?: boolean

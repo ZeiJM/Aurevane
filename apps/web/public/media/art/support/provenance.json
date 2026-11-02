@@ -1,0 +1,36 @@
+{
+  "request": "ART-SUPPORT-20261102",
+  "purpose": "Owner-requested universal support action icons and a cute mythical moon drake; no plant creature.",
+  "origin": "Original image generation for Aurevane",
+  "derivative": "Sharp resize to 768 x 768, WebP quality 88; originals retained by the generation service.",
+  "assets": [
+    {
+      "file": "pilfer-v01.webp",
+      "generationRequestId": "exec-d9f3f49a-56f3-494e-b8e9-c79792024714",
+      "sourceMaster": "exec-d9f3f49a-56f3-494e-b8e9-c79792024714.png",
+      "width": 768,
+      "height": 768
+    },
+    {
+      "file": "fleetstep-v01.webp",
+      "generationRequestId": "exec-6ea5dfcc-88fd-4095-a68f-273a9a089cc5",
+      "sourceMaster": "exec-6ea5dfcc-88fd-4095-a68f-273a9a089cc5.png",
+      "width": 768,
+      "height": 768
+    },
+    {
+      "file": "invocation-v01.webp",
+      "generationRequestId": "exec-ed92b01a-9c1f-4343-9d60-7ed982de2147",
+      "sourceMaster": "exec-ed92b01a-9c1f-4343-9d60-7ed982de2147.png",
+      "width": 768,
+      "height": 768
+    },
+    {
+      "file": "vesper-portrait-v01.webp",
+      "generationRequestId": "exec-8554861f-3e67-42fa-b6f2-a9629c32a4c0",
+      "sourceMaster": "exec-8554861f-3e67-42fa-b6f2-a9629c32a4c0.png",
+      "width": 768,
+      "height": 768
+    }
+  ]
+}

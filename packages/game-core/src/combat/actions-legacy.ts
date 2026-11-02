@@ -372,6 +372,8 @@ export type CombatTargetShape =
   | { kind: 'all' }
 
 export interface CombatTargetSpec {
+  /** Current explicit All packets honor friendly fire and facing-based caster displacement. */
+  allTargetPolicyVersion?: 1
   /** Private materialized Reveal targeting; never accepted as authoring. */
   revealConcealedTargets?: true
   geometryVersion?: 2 | 3
@@ -412,6 +414,7 @@ export type CombatEffectDefinition = (
   | CombatAttackTag
   | CombatReversalPayload
   | CombatStatusCopyEffect
+  | { type: 'loot'; recipient: CombatEffectRecipient }
   | {
       type: 'damage'
       recipient: CombatEffectRecipient
@@ -656,6 +659,8 @@ interface CapturedElementalApplication {
 }
 
 export interface PendingCombatEffect {
+  /** Frozen per-packet origin/facing for opted-in global Push/Pull. */
+  allDisplacement?: { position: GridPosition; facing: CombatPlacement['facing'] }
   /** Private original-cast identity for Reversal in historical packet-policy encounters. */
   reversalAttackCommandId?: number
   /** Private authored Damage identity, scoped to the original queued cast. */
@@ -740,6 +745,12 @@ export interface CombatEncounterState {
   conditionalDamageRoundingPolicyVersion?: 1
   /** New encounters: grant Blindside only for a damaging flank hit above 100%. */
   blindsideActivationPolicyVersion?: 1
+  /** Current encounters scope authored cooldown groups to their source kind and ability. */
+  abilityCooldownScopeVersion?: 1
+  /** Current Reflect records attacker Barrier absorption before HP loss. */
+  reflectBarrierPolicyVersion?: 1
+  /** Current Support roster; historical absence retains Guard and class Summon commands. */
+  supportActionPolicyVersion?: 1
   /** Current Pierce destroys Barrier before applying its HP damage; old captures retain absorption. */
   modularSkillPolicyVersion?: 1
   ruinPolicyVersion?: 1
@@ -1032,7 +1043,13 @@ export type CombatResolutionEvent = (
       amountPerTick: number
       remainingFutureTicks: number
     }
-  | { event: 'status_expired'; combatantId: string; statusId: string; sourceCombatantId?: string }
+  | {
+      event: 'status_expired'
+      combatantId: string
+      statusId: string
+      sourceCombatantId?: string
+      endureOutcome?: 'empty' | 'no-targets'
+    }
   | {
       event: 'status_removed'
       removalReason?: 'ruin'
@@ -1389,6 +1406,11 @@ export function evaluateCombatAction(
   validateCombatActionDefinition(action, content)
 
   const issues: CombatActionIssue[] = []
+  if (state.supportActionPolicyVersion === 1 && action.id === 'basic.guard')
+    issues.push({
+      code: 'source-disabled',
+      message: 'Guard is retired from current Support Skills.',
+    })
   const battle = state.tactical.battle
   const turn = battle.currentTurn
   const actorId =
@@ -2496,6 +2518,7 @@ function applyCombatRoundBoundary(
             : {}),
           sourceCommandVisibility: pending.sourceCommandVisibility,
           percentageRecoveryByRecipient: pending.percentageRecoveryByRecipient,
+          allDisplacement: pending.allDisplacement,
         },
       )
       const interceptedRecipients = new Set(
@@ -3193,6 +3216,9 @@ export function validateCombatEncounterState(
     'summonPotencyPolicyVersion',
     'blindsideActivationPolicyVersion',
     'modularSkillPolicyVersion',
+    'abilityCooldownScopeVersion',
+    'reflectBarrierPolicyVersion',
+    'supportActionPolicyVersion',
   ] as const) {
     if (state[field] !== undefined && state[field] !== 1)
       issues.push({ field, message: 'Unsupported pinned combat interaction policy.' })
@@ -3256,6 +3282,22 @@ export function validateCombatEncounterState(
       for (const pending of state.pendingEffects) {
         try {
           validateCombatNativeCommandFacts(pending.abilityCommandFacts)
+          if (pending.allDisplacement !== undefined) {
+            const capture = pending.allDisplacement
+            if (
+              pending.effect.type !== 'displace' ||
+              pending.effect.target !== 'all' ||
+              !capture ||
+              Object.keys(capture).some((key) => !['position', 'facing'].includes(key)) ||
+              !['north', 'east', 'south', 'west'].includes(capture.facing) ||
+              !capture.position ||
+              Object.keys(capture.position).some((key) => !['x', 'y'].includes(key)) ||
+              !Number.isSafeInteger(capture.position.x) ||
+              !Number.isSafeInteger(capture.position.y) ||
+              !state.tactical.tiles.some((tile) => samePosition(tile.position, capture.position))
+            )
+              throw new TypeError('Invalid captured All displacement origin.')
+          }
           if (
             pending.timingMode !== undefined &&
             !['instant', 'next-round', 'delayed'].includes(pending.timingMode)
@@ -4465,6 +4507,7 @@ function isReversalDependentEffect(
 }
 
 interface CombatEffectResolutionOptions {
+  allDisplacement?: PendingCombatEffect['allDisplacement']
   reversalReactionGuard?: Pick<CombatNativeExecutionHooks, 'getGuard' | 'setGuard'>
   reversalInterruptedHit?: Map<string, boolean>
   summonDamageCommandId?: number
@@ -4896,6 +4939,16 @@ function resolveActionEffects(
         break
     }
     if (isAttackTag(effect)) continue
+    const allDisplacement =
+      options.allDisplacement ??
+      (effect.type === 'displace' &&
+      effect.target === 'all' &&
+      action.target.allTargetPolicyVersion === 1
+        ? {
+            position: { ...getPlacement(nextState.tactical, actorId).position },
+            facing: getPlacement(nextState.tactical, actorId).facing,
+          }
+        : undefined)
     const effectTiles =
       !resolvingPending && effect.target === 'all'
         ? state.tactical.tiles.map((tile) => tile.position)
@@ -5046,6 +5099,7 @@ function resolveActionEffects(
                   preview: true,
                   statusDurationScope: pending.statusDurationScope,
                   sourceCommandVisibility: pending.sourceCommandVisibility,
+                  allDisplacement: pending.allDisplacement,
                 },
               ).state
             }
@@ -5208,6 +5262,7 @@ function resolveActionEffects(
                   }
                 : {}),
               actionId: action.id,
+              ...(allDisplacement ? { allDisplacement } : {}),
               ...(action.effectTimingModes?.[effectOrdinal]
                 ? { timingMode: action.effectTimingModes[effectOrdinal] }
                 : {}),
@@ -5416,6 +5471,9 @@ function resolveActionEffects(
           const strength = timing
             ? combatEffectStrength(timing.statusId, {
                 ...timing,
+                ...(timing.statusId === 'counter' && state.reflectBarrierPolicyVersion === 1
+                  ? { reflectBarrierPolicyVersion: 1 }
+                  : {}),
                 ...(timing.recovery
                   ? {
                       recoveryAmountPerApplication:
@@ -5591,7 +5649,7 @@ function resolveActionEffects(
           criticalEffectOrdinalsByTarget?.get(recipientId)?.has(effectOrdinal) === true,
           resolvingPending,
           undefined,
-          options,
+          { ...options, allDisplacement },
         )
         nextState = applied.state
         if (
@@ -5762,6 +5820,9 @@ function resolveActionEffects(
             removedStatusIds.push('burn')
           }
           beforeValue = [...new Set(removedStatusIds)].sort(compareStableString).join(',') || 'none'
+          afterValue = 'none'
+        } else if (effect.type === 'loot') {
+          beforeValue = 'none'
           afterValue = 'none'
         } else {
           const statusId = effect.type === 'endure' ? 'endure' : effect.statusId
@@ -6275,6 +6336,7 @@ function applyEffectNative(
   percentageDamage?: CapturedPercentageDotDamage,
   options: CombatEffectResolutionOptions = {},
 ): CombatResolutionTransition & { nativeMutationCaptured?: true } {
+  if (effect.type === 'loot') return { state, events: [] }
   if (effect.type === 'endure')
     return applyCombatEndure(
       state,
@@ -6297,7 +6359,8 @@ function applyEffectNative(
         content,
         options.preview,
         options.preview ? undefined : options.nativeHooks,
-        options.groundArea?.caster.placement.position,
+        options.allDisplacement?.position ?? options.groundArea?.caster.placement.position,
+        options.allDisplacement?.facing,
       ),
       ...(options.nativeHooks && !options.preview ? { nativeMutationCaptured: true as const } : {}),
     }
@@ -6785,6 +6848,9 @@ function applyEffectNative(
       ? status
       : {
           ...tuning,
+          ...(status.statusId === 'counter' && state.reflectBarrierPolicyVersion === 1
+            ? { reflectBarrierPolicyVersion: 1 }
+            : {}),
           blindsideModifiersBasisPoints: status.blindsideModifiersBasisPoints,
         },
   )
@@ -8088,6 +8154,7 @@ function validateCombatActionDefinition(
         'burn',
         'barrier-change',
         'copy-statuses',
+        'loot',
         'endure',
       ],
       'effect type',
@@ -8474,6 +8541,7 @@ function applyDisplacement(
   preview = false,
   nativeHooks?: CombatNativeExecutionHooks,
   capturedSourcePosition?: GridPosition,
+  allFacing?: CombatPlacement['facing'],
 ): CombatResolutionTransition {
   const source = capturedSourcePosition ?? getPlacement(state.tactical, actorId).position
   const placement = getPlacement(state.tactical, recipientId)
@@ -8494,7 +8562,8 @@ function applyDisplacement(
     )
   )
     initialFailure = 'status-restricted'
-  else if (!dx && !dy) initialFailure = 'direction-undefined'
+  else if (!dx && !dy && !(recipientId === actorId && allFacing))
+    initialFailure = 'direction-undefined'
 
   if (initialFailure) {
     return {
@@ -8520,6 +8589,15 @@ function applyDisplacement(
   let stopReason: DisplacementFailureReason | null = null
   let movedTiles = 0
   const movementEffectEvents: CombatResolutionEvent[] = []
+  const selfVector =
+    recipientId === actorId && allFacing
+      ? {
+          north: { x: 0, y: -1 },
+          east: { x: 1, y: 0 },
+          south: { x: 0, y: 1 },
+          west: { x: -1, y: 0 },
+        }[allFacing]
+      : undefined
 
   for (let index = 0; index < effect.distance; index += 1) {
     // Pull follows the caster at each step, rather than overshooting along its original axis.
@@ -8528,8 +8606,12 @@ function applyDisplacement(
     const dy = current.y - source.y
     const horizontal = Math.abs(dx) >= Math.abs(dy)
     const to = {
-      x: current.x + (horizontal ? Math.sign(dx) * directionMultiplier : 0),
-      y: current.y + (horizontal ? 0 : Math.sign(dy) * directionMultiplier),
+      x:
+        current.x +
+        (selfVector ? selfVector.x : horizontal ? Math.sign(dx) : 0) * directionMultiplier,
+      y:
+        current.y +
+        (selfVector ? selfVector.y : horizontal ? 0 : Math.sign(dy)) * directionMultiplier,
     }
     const tile = nextState.tactical.tiles.find((candidate) => samePosition(candidate.position, to))
     const override =
@@ -8540,7 +8622,8 @@ function applyDisplacement(
         : nextState.tactical.terrains.find((row) => row.id === tile.terrainId)?.traversalCost
       : null
 
-    if (effect.direction === 'pull' && samePosition(to, source)) stopReason = 'occupied-tile'
+    if (!selfVector && effect.direction === 'pull' && samePosition(to, source))
+      stopReason = 'occupied-tile'
     else if (!tile) stopReason = 'out-of-bounds'
     else if (terrainCost == null) stopReason = 'blocked-terrain'
     else if (getLivingOccupantId(nextState.tactical, to) !== null) stopReason = 'occupied-tile'
@@ -8786,24 +8869,32 @@ function resolveGroundAtPosition(
         const mask = area.entryEffectEligibleRecipientIds?.[ordinal]
         const capture = area.entryEffectRequirementCaptures?.[ordinal]
         const entrant = current.tactical.battle.combatants.find((unit) => unit.id === recipientId)!
+        const scopedGround =
+          area.targetTeams !== undefined &&
+          (effect.target === undefined ||
+            effect.target === 'ground' ||
+            effect.target === 'empty-tile')
         if (
-          (effect.target === undefined && !groundAreaAllowsCombatant(area, entrant)) ||
-          (effect.type === 'damage' && recipientId === area.sourceCombatantId)
+          (!scopedGround &&
+            effect.target === undefined &&
+            !groundAreaAllowsCombatant(area, entrant)) ||
+          (!scopedGround && effect.type === 'damage' && recipientId === area.sourceCombatantId)
         )
           return []
         if (
           (!capture && mask && !mask.includes(recipientId)) ||
           !combatGroundRequirementAllows(current, recipientId, capture) ||
-          !combatEffectRecipientIds(
-            current,
-            area.sourceCombatantId,
-            recipientId,
-            [recipientId],
-            [getPlacement(current.tactical, recipientId).position],
-            effect,
-            area.target,
-            area.content,
-          ).includes(recipientId)
+          (!scopedGround &&
+            !combatEffectRecipientIds(
+              current,
+              area.sourceCombatantId,
+              recipientId,
+              [recipientId],
+              [getPlacement(current.tactical, recipientId).position],
+              effect,
+              area.target,
+              area.content,
+            ).includes(recipientId))
         )
           return []
         const key = combatGroundContactEffectKey(effect)
@@ -8822,7 +8913,12 @@ function resolveGroundAtPosition(
           (effect) =>
             ({
               ...effect,
-              target: effect.target === 'all' ? undefined : effect.target,
+              target:
+                effect.target === 'all' ||
+                (area.targetTeams !== undefined &&
+                  (effect.target === 'ground' || effect.target === 'empty-tile'))
+                  ? undefined
+                  : effect.target,
               recipient: 'affected-units',
             }) as CombatEffectDefinition,
         ),
@@ -9656,9 +9752,21 @@ function releaseExpiredCombatEndure(
     const origin = expiryState.tactical.placements.find(
       (row) => row.combatantId === combatantId,
     )?.position
-    if (!ledger || !profile || !source || source.hp <= 0 || !origin || ledger.receivedDamage === 0)
-      continue
+    if (!ledger || !profile || !source || source.hp <= 0 || !origin) continue
+    const recordOutcome = (endureOutcome: 'empty' | 'no-targets') => {
+      events = events.map((event) =>
+        event.event === 'status_expired' &&
+        event.statusId === 'endure' &&
+        event.combatantId === combatantId
+          ? { ...event, endureOutcome }
+          : event,
+      )
+    }
     const amount = (BigInt(ledger.receivedDamage) * BigInt(profile.releaseBasisPoints)) / 10000n
+    if (amount === 0n) {
+      recordOutcome('empty')
+      continue
+    }
     const receipts: CombatResolutionEvent[] = []
     const counterReceipts: CombatResolutionEvent[] = []
     const recipients = state.tactical.battle.combatants
@@ -9674,6 +9782,10 @@ function releaseExpiredCombatEndure(
       })
       .map((unit) => unit.id)
       .sort()
+    if (!recipients.length) {
+      recordOutcome('no-targets')
+      continue
+    }
     for (const targetId of recipients) {
       const target = state.tactical.battle.combatants.find((unit) => unit.id === targetId)!
       if (target.hp <= 0) continue
@@ -9727,7 +9839,7 @@ function releaseExpiredCombatEndure(
       if (defeated) receipts.push(...defeated.events)
       state = changed
       receipts.push(...barrier.events, receipt)
-      counterReceipts.push(receipt)
+      counterReceipts.push(...barrier.events, receipt)
       if (receipt.amount > 0) {
         const revealed = removeGameplayTags(
           state,

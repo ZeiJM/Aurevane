@@ -57,7 +57,7 @@ function action(payloads: CombatActionDefinition['effects'] = effects): CombatAc
 const selection = { kind: 'unit', combatantId: 'enemy' } as const
 
 it('settles Damage20 and Push8 All on every living unit independently of Enemy Single aim', () => {
-  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const original = percentageDotEncounter()
   const current = createCurrentStatDrivenCombatEncounterState(
     original,
@@ -418,7 +418,7 @@ it('keeps All target semantics in a captured native Summon ability', () => {
       mysticPower: 20,
     })),
   )
-  const template = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const template = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const ability = {
     ...template.abilities[0]!,
     tags: ['attack'],

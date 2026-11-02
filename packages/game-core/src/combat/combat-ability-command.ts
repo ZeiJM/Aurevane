@@ -84,6 +84,7 @@ import {
 } from './combat-kernel-types'
 import {
   applySkillCooldown,
+  combatAbilityCooldown,
   readSkillCooldown,
   type SkillCooldownDefinition,
 } from './skill-cooldowns'
@@ -203,7 +204,10 @@ export function combatAbilityUsageKey(
   ])
 }
 export function combatAbilityParticipant(
-  state: Pick<CombatEncounterState, 'statusState' | 'terrainOverlays' | 'tactical'>,
+  state: Pick<
+    CombatEncounterState,
+    'statusState' | 'terrainOverlays' | 'tactical' | 'abilityCooldownScopeVersion'
+  >,
   source: CapturedCombatAbilitySource,
   behavior: AbilityBehavior,
   triggerId?: string,
@@ -234,7 +238,7 @@ export function combatAbilityParticipant(
             : intrinsic,
       }
     }),
-    cooldown: behavior.cooldown,
+    cooldown: combatAbilityCooldown(state, source, behavior.cooldown),
     source,
     behavior,
     triggerId,
@@ -260,6 +264,18 @@ export function combatAbilityParticipantIssues(
   if (!participant.source || !participant.behavior) return issues
   const source = participant.source,
     behavior = participant.behavior
+  if (
+    input.state.supportActionPolicyVersion === 1 &&
+    (source.abilityId === 'basic.guard' ||
+      (behavior.effects.some((effect) => effect.payload.type === 'loot') &&
+        !(source.sourceKind === 'basic' && source.abilityId === 'basic.pilfer')) ||
+      (behavior.effects.some((effect) => effect.payload.type === 'summon') &&
+        !(source.sourceKind === 'basic' && source.abilityId === 'basic.invocation')))
+  )
+    issues.push({
+      code: 'source-disabled',
+      message: 'Current Support Skills replace Guard and reserve Summon for Invocation.',
+    })
   if (source.basic?.enabled === false)
     issues.push({
       code: 'source-disabled',
@@ -444,7 +460,7 @@ export function prepareCombatAbilityCommand(
     action = bindBasicSkillAction(
       input.state,
       source,
-      materializeCombatAbilityAction(source, behavior),
+      materializeCombatAbilityAction(source, behavior, input.state),
     )
     participant = combatAbilityParticipant(
       input.state,

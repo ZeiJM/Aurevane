@@ -57,6 +57,7 @@ const variants: readonly AuthorableEffectTag[] = [
   { id: 'move', label: 'Move', opcode: 'move' },
   { id: 'damage-bonus', label: 'Damage Bonus', opcode: 'damage-bonus' },
   { id: 'summon', label: 'Summon', opcode: 'summon' },
+  { id: 'loot', label: 'Loot', opcode: 'loot' },
 ]
 export const REGISTERED_EFFECT_TAGS: readonly AuthorableEffectTag[] = Object.freeze([
   ...variants,

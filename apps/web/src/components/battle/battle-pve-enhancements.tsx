@@ -43,6 +43,7 @@ export function BattlePveEnhancements({
         <BattleLessonCoach
           battleSessionId={initialBattle.battleSessionId}
           recordId={battleHallRecord?.id ?? 'recruit-sparring'}
+          recoveryPractice={initialBattle.snapshot.supportActionPolicyVersion === 1}
         />
       ) : null}
       <PveBattleCompletionBridge initialBattle={initialBattle} />

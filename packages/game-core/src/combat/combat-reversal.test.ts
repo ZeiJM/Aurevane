@@ -1,3 +1,4 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { interceptCombatReversal } from './combat-reversal-interception'
 import { createCombatTriggerGuard } from './combat-kernel-types'
 import { spawnCombatSummon } from './combat-summons'
@@ -45,7 +46,7 @@ import {
   type CombatResolutionEvent,
 } from './actions'
 import { normalBasicAttackDamageAgainst } from './actions-legacy'
-import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { captureBasicSkillSources } from './combat-basic-actions'
 import { grantBarrier, currentBarrierAmount } from './combat-barrier'
 import {
   hasArmedCombatReversal,
@@ -984,7 +985,7 @@ describe('Reversal v1', () => {
     }
     expect(hasArmedCombatReversal(prime(pending, captured).state, 'actor')).toBe(true)
   })
-  it('keeps ordinary inherent Basic Attack and utility legal during Strain, while a Skill remains blocked', () => {
+  it('blocks Basic Attack and Attack Skills during Strain while keeping utility legal', () => {
     const { state, captured } = encounter()
     const armed = prime(state, captured).state
     const strained = cancelCombatControlledAbility({
@@ -998,7 +999,15 @@ describe('Reversal v1', () => {
         kind: 'unit',
         combatantId: 'enemy',
       }).evaluation.legal,
-    ).toBe(true)
+    ).toBe(false)
+    const before = JSON.stringify(strained)
+    expect(() =>
+      executePv1fAction(strained as never, 'basic.attack.unarmed.basic', {
+        kind: 'unit',
+        combatantId: 'enemy',
+      }),
+    ).toThrow(/Reversal Strain/)
+    expect(JSON.stringify(strained)).toBe(before)
     const utility = {
       ...attack(),
       tags: ['utility'],
@@ -1116,7 +1125,7 @@ describe('Reversal v1', () => {
         criticalChance: 0,
       })),
     )
-    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
     const ability = {
       ...profile.abilities[0]!,
       id: 'test.summon-reversal',

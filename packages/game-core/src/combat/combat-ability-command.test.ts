@@ -83,7 +83,7 @@ it.each(['instant', 'next-round'] as const)(
       ),
       initial.statBridge,
     )
-    const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
     const selection = { kind: 'tile' as const, position: { x: 0, y: 1 } }
     const evaluated = evaluatePv1fMatureSkill(state, definition, selection)
     expect(evaluated.evaluation.legal).toBe(true)

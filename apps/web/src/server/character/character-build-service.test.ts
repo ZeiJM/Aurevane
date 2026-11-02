@@ -526,7 +526,13 @@ describe('character build service', () => {
 })
 
 describe('Support Action build intent', () => {
-  it.each(['basic.guard', 'basic.recover', 'basic.recover.mp'] as const)(
+  it.each([
+    'basic.recover',
+    'basic.recover.mp',
+    'basic.pilfer',
+    'basic.fleetstep',
+    'basic.invocation',
+  ] as const)(
     'commits %s independently of the four Discipline Skill slots',
     async (supportActionId) => {
       let active = build()
@@ -562,7 +568,7 @@ describe('Support Action build intent', () => {
       ])
     },
   )
-  it.each(['basic.attack', '', null, 3])(
+  it.each(['basic.guard', 'basic.attack', '', null, 3])(
     'rejects invalid action %s before writing',
     async (supportActionId) => {
       const saveSupportAction = vi.fn()

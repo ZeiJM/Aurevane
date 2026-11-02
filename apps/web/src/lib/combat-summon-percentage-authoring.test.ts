@@ -6,7 +6,7 @@ import {
 } from './combat-percentage-authoring'
 
 it('lets Summon profiles exceed ordinary percentage defaults without widening nested status potency', () => {
-  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
   const profile = { ...native.summonProfile!, potencyBasisPoints: 123456 }
   const canonical = { type: 'summon', recipient: 'selected-tile', profile }
   expect(currentCombatPercentageIssues(canonical)).toEqual([])

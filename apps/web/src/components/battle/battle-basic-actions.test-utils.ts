@@ -19,6 +19,7 @@ export function capturedBasicBattle(
     apCost?: number
     enabled?: boolean
   } = {},
+  preserveDefaults = false,
 ) {
   const original = preparePv1fTurnEconomy(percentageDotEncounter())
   const base = {
@@ -39,48 +40,58 @@ export function capturedBasicBattle(
       ),
     },
   }
-  const definitions = defaultBasicSkills().map((basic) => ({
-    ...basic,
-    contentVersion: 2,
-    name:
-      basic.id === 'unarmed.basic'
-        ? 'Open Palm'
-        : basic.id === support
-          ? 'Second Wind'
-          : basic.name,
-    enabled: basic.id === 'basic.move' ? (move.enabled ?? true) : basic.id !== support || !disabled,
-    ...(basic.id === 'basic.move'
-      ? {
-          execution: {
-            kind: 'basic-move' as const,
-            costBasis: move.costBasis ?? ('per-terrain-point' as const),
+  const definitions = defaultBasicSkills().map((basic) =>
+    preserveDefaults
+      ? basic
+      : {
+          ...basic,
+          contentVersion: 2,
+          name:
+            basic.id === 'unarmed.basic'
+              ? 'Open Palm'
+              : basic.id === support
+                ? 'Second Wind'
+                : basic.name,
+          enabled:
+            basic.id === 'basic.move' ? (move.enabled ?? true) : basic.id !== support || !disabled,
+          ...(basic.id === 'basic.move'
+            ? {
+                execution: {
+                  kind: 'basic-move' as const,
+                  costBasis: move.costBasis ?? ('per-terrain-point' as const),
+                },
+              }
+            : {}),
+          ability: {
+            ...basic.ability,
+            behaviors: basic.ability.behaviors.map((behavior) => ({
+              ...behavior,
+              costs:
+                basic.id === 'basic.move'
+                  ? [{ resource: 'ap' as const, amount: move.apCost ?? 35 }]
+                  : [
+                      { resource: 'ap' as const, amount: 47 },
+                      { resource: 'mp' as const, amount: 3 },
+                      { resource: 'hp' as const, amount: 2 },
+                    ],
+              cooldown:
+                basic.id === 'unarmed.basic'
+                  ? { key: 'open-palm', ownerTurns: 4 }
+                  : behavior.cooldown,
+              effects: behavior.effects.map((effect) =>
+                effect.payload.type === 'move'
+                  ? {
+                      ...effect,
+                      payload: { ...effect.payload, maximumTiles: move.maximumTiles ?? 20 },
+                    }
+                  : effect.payload.type === 'percentage-recovery'
+                    ? { ...effect, payload: { ...effect.payload, percentageBasisPoints: 2200 } }
+                    : effect,
+              ),
+            })),
           },
-        }
-      : {}),
-    ability: {
-      ...basic.ability,
-      behaviors: basic.ability.behaviors.map((behavior) => ({
-        ...behavior,
-        costs:
-          basic.id === 'basic.move'
-            ? [{ resource: 'ap' as const, amount: move.apCost ?? 35 }]
-            : [
-                { resource: 'ap' as const, amount: 47 },
-                { resource: 'mp' as const, amount: 3 },
-                { resource: 'hp' as const, amount: 2 },
-              ],
-        cooldown:
-          basic.id === 'unarmed.basic' ? { key: 'open-palm', ownerTurns: 4 } : behavior.cooldown,
-        effects: behavior.effects.map((effect) =>
-          effect.payload.type === 'move'
-            ? { ...effect, payload: { ...effect.payload, maximumTiles: move.maximumTiles ?? 20 } }
-            : effect.payload.type === 'percentage-recovery'
-              ? { ...effect, payload: { ...effect.payload, percentageBasisPoints: 2200 } }
-              : effect,
-        ),
-      })),
-    },
-  }))
+        },
+  )
   const sources = captureBasicSkillSources({
     ownerCombatantId: 'actor',
     supportActionId: support,

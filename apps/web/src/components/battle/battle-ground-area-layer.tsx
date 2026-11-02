@@ -6,6 +6,15 @@ import {
 import { GroundEffectIcon } from './battle-ground-effect-visuals'
 import styles from './battle-ground-area-layer.module.css'
 
+const groundMembershipLabels = {
+  all: 'Affects all characters',
+  'all-except-self': 'Affects all except caster',
+  enemies: 'Affects caster’s enemies',
+  allies: 'Affects caster’s allies',
+  self: 'Affects caster',
+  'allies-except-self': 'Affects caster’s allies except caster',
+}
+
 function atTile(
   areas: readonly PublicCombatGroundArea[] | undefined,
   round: number,
@@ -31,7 +40,7 @@ export function battleGroundAreaDescriptions(
     const remaining = area.expiresAtRound - Math.max(round, area.activationRound)
     return names.map(
       (name) =>
-        `${name} · ${round < area.activationRound ? `Starts round ${area.activationRound} · ` : ''}${remaining} ${remaining === 1 ? 'round' : 'rounds'}${round < area.activationRound ? '' : ' remaining'}`,
+        `${name} · ${round < area.activationRound ? `Starts round ${area.activationRound} · ` : ''}${remaining} ${remaining === 1 ? 'round' : 'rounds'}${round < area.activationRound ? '' : ' remaining'}${area.targetTeams ? ` · ${groundMembershipLabels[area.targetTeams]}` : ''}`,
     )
   })
 }
@@ -67,7 +76,7 @@ export function BattleGroundAreaLayer({
           id,
           visual,
           area,
-          text: `${visual.label} · ${round < area.activationRound ? `Starts round ${area.activationRound} · ` : ''}${remaining} ${remaining === 1 ? 'round' : 'rounds'}${round < area.activationRound ? '' : ' remaining'}`,
+          text: `${visual.label} · ${round < area.activationRound ? `Starts round ${area.activationRound} · ` : ''}${remaining} ${remaining === 1 ? 'round' : 'rounds'}${round < area.activationRound ? '' : ' remaining'}${area.targetTeams ? ` · ${groundMembershipLabels[area.targetTeams]}` : ''}`,
         },
       ]
     }),
@@ -107,13 +116,6 @@ export function BattleGroundAreaLayer({
       {visible.map((area) => {
         const pending = round < area.activationRound
         const remaining = area.expiresAtRound - Math.max(round, area.activationRound)
-        const material = area.effectVisualIds?.some(
-          (id) => groundEffectVisual(id)?.material === 'frost',
-        )
-          ? 'frost'
-          : area.effectVisualIds?.length
-            ? (groundEffectVisual(area.effectVisualIds[0])?.material ?? area.visualPresetId)
-            : area.visualPresetId
         const name =
           COMBAT_GROUND_VISUAL_PRESETS.find((preset) => preset.id === area.visualPresetId)?.label ??
           'Ground effect'
@@ -123,10 +125,10 @@ export function BattleGroundAreaLayer({
             className={styles.layer}
             data-ground-area-id={area.id}
             data-ground-area-phase={pending ? 'pending' : 'active'}
-            data-ground-area-preset={material}
+            data-ground-area-preset={area.visualPresetId}
             aria-hidden="true"
             title={
-              area.effectVisualIds
+              area.effectVisualIds || area.targetTeams
                 ? battleGroundAreaDescriptions([area], round, position).join('; ')
                 : `${name}: ${pending ? 'pending; ' : ''}${remaining} ${remaining === 1 ? 'round' : 'rounds'}`
             }

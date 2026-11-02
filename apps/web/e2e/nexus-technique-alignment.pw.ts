@@ -59,9 +59,16 @@ test('single-Discipline Nexus aligns its four selected slots and preserves locke
   await expect(
     dialog.locator('[data-technique-group][data-locked="true"] [data-technique-card]'),
   ).toHaveCount(8)
+  const supportActions = dialog.getByRole('radiogroup', { name: 'Support Action' })
+  await expect(supportActions.getByRole('radio')).toHaveCount(5)
+  for (const name of ['HP Recovery', 'MP Recovery', 'Pilfer', 'Fleetstep', 'Invocation']) {
+    await expect(supportActions.getByRole('radio', { name, exact: true })).toBeVisible()
+  }
+  await expect(supportActions.getByRole('radio', { name: 'Guard', exact: true })).toHaveCount(0)
   await expect(
-    dialog.getByRole('radiogroup', { name: 'Support Action' }).getByRole('radio'),
-  ).toHaveCount(3)
+    supportActions.getByRole('radio', { name: 'HP Recovery', exact: true }),
+  ).toBeChecked()
+  await expect(supportActions.locator('input:checked')).toHaveCount(1)
   await assertDesktopTechniqueGeometry(page, testInfo, 'pure')
 })
 

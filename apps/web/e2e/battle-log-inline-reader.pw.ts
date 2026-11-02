@@ -8,7 +8,7 @@ import {
   setBattleChronicleOpen,
 } from './battle-log-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
-import { commitGesture } from './refined-battle-helpers'
+import { commitGesture, equipBraceInFirstSkillSlot } from './refined-battle-helpers'
 
 async function readBoardGeometry(board: Locator) {
   return board.evaluate((element) => {
@@ -82,7 +82,9 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     characterName,
   })
 
-  // Only the read presentation is synthetic; the refresh below follows a real Guard commit.
+  await equipBraceInFirstSkillSlot(page)
+
+  // Only the read presentation is synthetic; the refresh below follows a real Brace commit.
   let entries = Array.from({ length: 20 }, (_, index) => recordedChronicleAction(index + 1)).flat()
   await page.route('**/api/battles/*/events', async (route) => {
     const battleSessionId = new URL(route.request().url()).pathname.split('/')[3]!
@@ -116,7 +118,7 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     await page
       .locator('main[data-unified-battle]')
       .evaluate((element) => (element as HTMLElement).focus({ preventScroll: true }))
-    await page.keyboard.press('Digit3')
+    await page.keyboard.press('Digit4')
     await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
       'data-battle-action-mode',
       'guard',
@@ -125,10 +127,15 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     const refreshed = page.waitForResponse(
       (response) => response.url().endsWith('/events') && response.request().method() === 'GET',
     )
-    await commitGesture(
+    const cast = await commitGesture(
       page,
       page.getByRole('button', { name: new RegExp('occupied by ' + characterName) }),
     )
+    expect(cast.request().postDataJSON().intent).toMatchObject({
+      kind: 'action',
+      actionId: 'vanguard.brace',
+      target: { kind: 'self' },
+    })
     await refreshed
     await expect(actions).toHaveCount(21)
     await actions.last().click()
@@ -183,11 +190,11 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     expect(after.viewport).toEqual(before.viewport)
   }
 
-  // Arm the real Guard flow without scrolling the open history to its cockpit.
+  // Arm the real Brace flow without scrolling the open history to its cockpit.
   await page
     .locator('main[data-unified-battle]')
     .evaluate((element) => (element as HTMLElement).focus({ preventScroll: true }))
-  await page.keyboard.press('Digit3')
+  await page.keyboard.press('Digit4')
   await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
     'data-battle-action-mode',
     'guard',
@@ -199,7 +206,7 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
     const viewport = lower && getComputedStyle(lower).display !== 'contents' ? lower : reader
     return element.getBoundingClientRect().top - viewport.getBoundingClientRect().top
   })
-  // Guard spends AP in the same recorded round; it does not advance the battle to Round 2.
+  // Brace spends AP in the same recorded round; it does not advance the battle to Round 2.
   entries = [...entries, ...recordedChronicleAction(21, 1)]
   const refreshed = page.waitForResponse(
     (response) => response.url().endsWith('/events') && response.request().method() === 'GET',
@@ -207,10 +214,15 @@ test('scrolls the full chronicle and preserves reviewed history after a live com
   const toggle = page.locator('[data-battle-mobile-chronicle-toggle]')
   const mobile = await toggle.isVisible()
   const frameBefore = mobile ? await readMobileFrame(page) : null
-  await commitGesture(
+  const cast = await commitGesture(
     page,
     page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }),
   )
+  expect(cast.request().postDataJSON().intent).toMatchObject({
+    kind: 'action',
+    actionId: 'vanguard.brace',
+    target: { kind: 'self' },
+  })
   await refreshed
   if (mobile) {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')

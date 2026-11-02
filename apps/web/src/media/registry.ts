@@ -1,5 +1,6 @@
 import { WORLD_ART } from './world-art'
 import { BATTLE_ART } from './battle-art'
+import { SUPPORT_ACTION_ART, VESPER_PORTRAIT_ART } from './support-action-art'
 import { disciplineSigilArtwork } from './discipline-sigil-art'
 import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
 import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
@@ -135,6 +136,26 @@ const IMAGE_ASSETS = [
   },
   ...WORLD_ART,
   ...BATTLE_ART,
+  ...SUPPORT_ACTION_ART.map((row) => ({
+    ...row,
+    kind: 'icon' as const,
+    status: 'approved' as const,
+    requestId: 'ART-SUPPORT-20261102',
+    decorative: false,
+    alt: row.name,
+    width: 768,
+    height: 768,
+  })),
+  {
+    ...VESPER_PORTRAIT_ART,
+    kind: 'character',
+    status: 'approved',
+    requestId: 'ART-SUPPORT-20261102',
+    decorative: false,
+    alt: 'Vesper, a silver-blue moon drake with curled ivory horns and a luminous crescent tail.',
+    width: 768,
+    height: 768,
+  },
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,
     kind: 'icon' as const,

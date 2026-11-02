@@ -195,6 +195,7 @@ function effectWeight(effect: MatureSkillEffectDefinition): number {
     case 'apply-status':
       return 1 + duration * 0.35 + (effect.potencyBasisPoints ?? 0) / 5_000
     case 'reversal':
+    case 'loot':
       return 0
     case 'remove-status':
     case 'displace':

@@ -871,7 +871,7 @@ describe('CSR-2 live viewer-relative status projection', () => {
 
   it('omits a concealed queued Summon while keeping an earlier public Summon and owner/allied rows', () => {
     const state = encounter()
-    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
     state.pendingSummons = ['public.call', 'secret.call'].map((sourceSkillId, index) => ({
       input: {
         ownerCombatantId: PLAIN_ENEMY,
@@ -1179,7 +1179,7 @@ it('projects captured Basic Attack geometry under its actual command identity wi
       base,
       captureBasicSkillSources({
         ownerCombatantId: PLAYER,
-        supportActionId: 'basic.guard',
+        supportActionId: 'basic.recover',
         definitions: defaultBasicSkills().map((definition) => ({
           ...definition,
           presentation: {
@@ -1931,7 +1931,7 @@ it('retains a captured stationary summon flag in public effect state', () => {
       spawnedRound: 1,
       turnsCompleted: 0,
       profile: {
-        ...resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!,
+        ...resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!,
         neverMoves: true,
       },
     },

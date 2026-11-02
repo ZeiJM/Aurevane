@@ -454,7 +454,13 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       )
     )
       throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The content list is invalid.')
-    return data as unknown as CombatContentListPage
+    const page = data as unknown as CombatContentListPage
+    return input.lifecycle === 'archived'
+      ? page
+      : {
+          ...page,
+          records: page.records.filter((row) => row.contentKey !== 'basic.guard'),
+        }
   }
   async writeRecord(
     contentKey: string,

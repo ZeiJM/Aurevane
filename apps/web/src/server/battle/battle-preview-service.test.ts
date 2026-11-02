@@ -1,7 +1,5 @@
-import {
-  captureBasicSkillSources,
-  defaultBasicSkills,
-} from '@aurevane/game-core/combat/combat-basic-actions'
+import { historicalBasicSkills as defaultBasicSkills } from '../../../../../packages/game-core/src/combat/combat-basic-history.test-utils'
+import { captureBasicSkillSources } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
   reconcileCombatAbilitySources,
   primeCombatControlledAbility,
@@ -147,7 +145,11 @@ async function createFixture() {
   })
   const creation = battles.createBattleSession.mock.calls[0]?.[0]
   if (!creation) throw new Error('Expected initial battle creation.')
-  const snapshot = creation.initialSnapshot as StatDrivenCombatEncounterState
+  // Explicit saved pre-retirement P2.5 cohort; current Support admission is tested separately.
+  const snapshot = {
+    ...(creation.initialSnapshot as StatDrivenCombatEncounterState),
+    supportActionPolicyVersion: undefined,
+  }
   const record: BattleSessionRecord = {
     battleSessionId: SESSION_ID,
     battleId: snapshot.tactical.battle.battleId,

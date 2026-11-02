@@ -442,6 +442,7 @@ function projectVersion(
   records: readonly BattleEventRecord[],
   journal: BattleHistoryPrivacyJournal,
   viewer: BattleViewerEntitlement,
+  sourceTeams: ReadonlyMap<string, string>,
 ): BattleEventRecord[] {
   if (journal.eventCount !== records.length) {
     throw new Error('Battle history privacy journal event count does not match persisted history.')
@@ -461,6 +462,43 @@ function projectVersion(
     const visibility = overrides.get(record.eventIndex) ?? journal.commandVisibility
     if (!visibilityAllowed(visibility, viewer)) {
       filtered = true
+      const event = objectValue(record.event)
+      const source = event ? stringValue(event.sourceCombatantId) : null
+      const target = event ? stringValue(event.targetCombatantId) : null
+      const tag = event?.event === 'effect_pending' ? event.effectTag : event?.statusId
+      const sourceTeam = source ? sourceTeams.get(source) : undefined
+      if (
+        viewer.kind === 'participant' &&
+        source &&
+        target &&
+        tag === PV1F_COVERT_STATUS.id &&
+        (event?.event === 'status_applied' || event?.event === 'effect_pending') &&
+        (viewer.controlledCombatantIds.has(source) ||
+          (sourceTeam !== undefined && viewer.friendlyTeamIds.has(sourceTeam)))
+      ) {
+        // Match the live reader's opaque own-source confirmation. Shared clocks,
+        // stacks and refresh facts could reveal another concealed application.
+        visible.push({
+          sortIndex: record.eventIndex,
+          record: {
+            ...record,
+            event: {
+              event: event.event,
+              sourceCombatantId: source,
+              targetCombatantId: target,
+              ...(event.event === 'effect_pending'
+                ? {
+                    effectTag: PV1F_COVERT_STATUS.id,
+                    ...(Number.isSafeInteger(event.activationRound) &&
+                    Number(event.activationRound) > 0
+                      ? { activationRound: event.activationRound }
+                      : {}),
+                  }
+                : { statusId: PV1F_COVERT_STATUS.id }),
+            },
+          },
+        })
+      }
       continue
     }
     const event = objectValue(record.event)
@@ -515,6 +553,9 @@ export function projectBattleHistoryForViewer(
   const journalByVersion = new Map(
     journals.map((journal) => [journal.battleVersion, journal] as const),
   )
+  const sourceTeams = new Map(
+    journals.map((journal) => [journal.actorCombatantId, journal.actorTeamId] as const),
+  )
   const recordsByVersion = new Map<number, BattleEventRecord[]>()
   const versionOrder: number[] = []
 
@@ -530,7 +571,7 @@ export function projectBattleHistoryForViewer(
   const projected = versionOrder.flatMap((battleVersion) => {
     const versionRecords = recordsByVersion.get(battleVersion) ?? []
     const journal = journalByVersion.get(battleVersion)
-    return journal ? projectVersion(versionRecords, journal, viewer) : versionRecords
+    return journal ? projectVersion(versionRecords, journal, viewer, sourceTeams) : versionRecords
   })
   // A public tick cannot reveal a Skill whose originating cast was hidden or absent.
   // Prove attribution from the viewer's accepted command AND matching application.
@@ -635,6 +676,14 @@ export function projectBattleHistoryForViewer(
     const event = objectValue(visible.event)
     if (!event) return visible
     const safeEvent = omitCombatExecutionMetadata(event)
+    if (
+      typeof safeEvent.event === 'string' &&
+      safeEvent.event.startsWith('skill_cooldown_') &&
+      typeof safeEvent.combatantId === 'string' &&
+      !viewer.controlledCombatantIds.has(safeEvent.combatantId) &&
+      typeof safeEvent.cooldownKey === 'string'
+    )
+      safeEvent.cooldownKey = 'private'
     if (
       typeof safeEvent.triggeringActorId !== 'string' ||
       !visibleActors.has(`${record.battleVersion}:${safeEvent.triggeringActorId}`)

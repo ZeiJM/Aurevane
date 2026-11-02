@@ -129,6 +129,7 @@ export function readGuidedTrainingCompletionDisposition(
 export function readGuidedTrainingProgress(
   events: readonly Pick<BattleEventRecord, 'battleVersion' | 'event'>[],
   controlledCombatantId: string,
+  supportActionId: 'basic.guard' | 'basic.recover' = 'basic.guard',
 ): GuidedTrainingProgress {
   const progress: GuidedTrainingProgress = {
     move: false,
@@ -165,7 +166,7 @@ export function readGuidedTrainingProgress(
     if (
       type === 'combat_action_used' &&
       event.actorId === controlledCombatantId &&
-      event.actionId === 'basic.guard'
+      event.actionId === supportActionId
     ) {
       progress.guard = true
       continue
@@ -219,7 +220,11 @@ export function createGuidedTrainingCompletionService(
         )
       }
       const events = await collectGuidedTrainingEventHistory(repository, userId, battleSessionId)
-      return readGuidedTrainingProgress(events, controlled)
+      return readGuidedTrainingProgress(
+        events,
+        controlled,
+        state.supportActionPolicyVersion === 1 ? 'basic.recover' : 'basic.guard',
+      )
     },
 
     async complete(input: {
@@ -258,7 +263,11 @@ export function createGuidedTrainingCompletionService(
         return { battleVersion: session.battleVersion, replayed: true }
       }
 
-      const progress = readGuidedTrainingProgress(events, controlled)
+      const progress = readGuidedTrainingProgress(
+        events,
+        controlled,
+        state.supportActionPolicyVersion === 1 ? 'basic.recover' : 'basic.guard',
+      )
       const missing = GUIDED_TRAINING_CRITERIA.filter((criterion) => !progress[criterion])
       if (missing.length > 0) {
         throw new AurevaneError(

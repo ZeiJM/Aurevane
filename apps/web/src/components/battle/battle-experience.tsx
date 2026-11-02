@@ -17,6 +17,7 @@ import {
   canAffordBattleBasicAction,
 } from '@/lib/battle/battle-basic-actions'
 import {
+  battleCapturedActionAttackBlocked,
   battleCapturedActionChoices,
   battleCapturedActionCost,
   battleCapturedControlledAvailability,
@@ -101,6 +102,7 @@ import {
 import {
   DEFAULT_SUPPORT_ACTION_ID,
   parseSupportActionId,
+  SUPPORT_ACTION_IDS,
 } from '@aurevane/game-core/combat/support-actions'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useRouter } from 'next/navigation'
@@ -365,6 +367,7 @@ export function BattleExperience(props: {
         props.initialBattle.snapshot.elementalDamagePolicyVersion ?? null
       }
       reversalPolicyVersion={props.initialBattle.snapshot.reversalPolicyVersion ?? null}
+      reflectBarrierPolicyVersion={props.initialBattle.snapshot.reflectBarrierPolicyVersion ?? null}
       pierceCriticalPolicyVersion={props.initialBattle.snapshot.pierceCriticalPolicyVersion ?? null}
       summonPotencyPolicyVersion={props.initialBattle.snapshot.summonPotencyPolicyVersion ?? null}
       ruinPolicyVersion={props.initialBattle.snapshot.ruinPolicyVersion ?? null}
@@ -748,18 +751,33 @@ function BattleExperienceContent({
       selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
     [selectedBehavior],
   )
+  const actionAttackBlocked = useCallback(
+    (actionId: string, behaviorId?: string) =>
+      battleCapturedActionAttackBlocked(
+        battleCapturedActionChoices(manualActionTargets, actionId, localCombatantId),
+        behaviorId,
+      ),
+    [manualActionTargets, localCombatantId],
+  )
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
   const supportActionId = String(
-    parseSupportActionId(runtime.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
+    parseSupportActionId(runtime.supportActionId) ??
+      (battle.snapshot.supportActionPolicyVersion === 1 ? DEFAULT_SUPPORT_ACTION_ID : GUARD_ID),
   )
   const basicSupport = findBattleBasicAction(battle.snapshot, localCombatantId, supportActionId)
-  const basicPracticeGuard = findBattleBasicAction(battle.snapshot, localCombatantId, GUARD_ID)
+  const practiceSupportId = battle.snapshot.supportActionPolicyVersion === 1 ? RECOVER_ID : GUARD_ID
+  const practiceSupportLabel = practiceSupportId === RECOVER_ID ? 'HP Recovery' : 'Guard'
+  const basicPracticeSupport = findBattleBasicAction(
+    battle.snapshot,
+    localCombatantId,
+    practiceSupportId,
+  )
   const supportSkill = pv1fSkillByActionId(supportActionId)!
   const supportLabel = basicSupport?.name ?? supportSkill.name
   const supportCost = supportSkill.cost.kind === 'flat' ? supportSkill.cost.amount : 0
-  const guidedGuardPractice =
+  const guidedSupportPractice =
     runtime.kind === 'pve' &&
-    supportActionId !== GUARD_ID &&
+    supportActionId !== practiceSupportId &&
     battle.snapshot.statBridge.combatants.some(
       (profile) =>
         profile.provenance.kind === 'scenario' &&
@@ -803,14 +821,18 @@ function BattleExperienceContent({
       artworkSrc: battleSkillArtwork(supportActionId),
       tags: ['Self', 'Support Action'],
     },
-    ...(guidedGuardPractice
+    ...(guidedSupportPractice
       ? [
           {
-            id: GUARD_ID,
-            label: 'Guard',
-            cost: battleBasicCostLabel(basicPracticeGuard, '30 AP', basicBehaviorId(GUARD_ID)),
-            artworkSrc: battleSkillArtwork(GUARD_ID, basicPracticeGuard?.iconKey),
-            tags: ['Self', 'Guard'],
+            id: practiceSupportId,
+            label: practiceSupportLabel,
+            cost: battleBasicCostLabel(
+              basicPracticeSupport,
+              '30 AP',
+              basicBehaviorId(practiceSupportId),
+            ),
+            artworkSrc: battleSkillArtwork(practiceSupportId, basicPracticeSupport?.iconKey),
+            tags: ['Self', 'Support Action'],
           },
         ]
       : []),
@@ -850,7 +872,8 @@ function BattleExperienceContent({
       : []),
   ]
   const selectedAttack =
-    attackOptions.find((option) => option.id === selectedAttackActionId) ?? attackOptions[0]!
+    attackOptions.find((option) => option.id === selectedAttackActionId) ??
+    (selectedAttackActionId === supportActionId ? defenseOptions[0]! : attackOptions[0]!)
   const selectedDefense =
     defenseOptions.find((option) => option.id === selectedDefenseActionId) ?? defenseOptions[0]!
   const preferredHealId = String(selectedTechniqueHealId ?? selectedHealActionId)
@@ -924,6 +947,7 @@ function BattleExperienceContent({
           GUARD_ID,
           RECOVER_ID,
           MP_RECOVER_ID,
+          supportActionId,
           ...selectableTechniques.map((skill) => skill.id),
           ...(selectableSpecial ? [selectableSpecial.id] : []),
         ].map((id) => [
@@ -937,7 +961,15 @@ function BattleExperienceContent({
           ),
         ]),
       ),
-    [battle, localCombatantId, runtime, selectableTechniques, selectableSpecial, selectedBehavior],
+    [
+      battle,
+      localCombatantId,
+      runtime,
+      selectableTechniques,
+      selectableSpecial,
+      selectedBehavior,
+      supportActionId,
+    ],
   )
   const localProfile = battle.snapshot.statBridge.combatants.find(
     (row) => row.combatantId === localCombatantId,
@@ -1314,6 +1346,13 @@ function BattleExperienceContent({
   const requestPreview = useCallback(
     (intent: BattleIntent) => {
       if (!mounted.current) return null
+      if (
+        (intent.kind === 'action' || intent.kind === 'ability-prime') &&
+        actionAttackBlocked(intent.actionId, intent.behaviorId)
+      ) {
+        setNotice('Attacks are currently locked.')
+        return null
+      }
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return null
       const pending = inFlightPreview.current
       if (
@@ -1407,6 +1446,7 @@ function BattleExperienceContent({
       return result
     },
     [
+      actionAttackBlocked,
       actionCooldownTurns,
       battle.battleSessionId,
       battle.battleVersion,
@@ -1428,6 +1468,13 @@ function BattleExperienceContent({
         battleRef.current.snapshot.tactical.battle.lifecycle !== 'active'
       )
         return
+      if (
+        (intent.kind === 'action' || intent.kind === 'ability-prime') &&
+        actionAttackBlocked(intent.actionId, intent.behaviorId)
+      ) {
+        setNotice('Attacks are currently locked.')
+        return
+      }
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
       if (intent.kind === 'action') setTargetAim({ aimSource: 'player', selection: intent.target })
       commitLock.current = true
@@ -1437,6 +1484,34 @@ function BattleExperienceContent({
       }
       setCommitPending(true)
       const before = battle
+      const committedAction =
+        intent.kind === 'action'
+          ? battleCapturedActionChoices(
+              manualActionTargets,
+              intent.actionId,
+              localCombatantId,
+            ).find((row) => !intent.behaviorId || row.behaviorId === intent.behaviorId)
+          : undefined
+      const committedSkill =
+        intent.kind === 'action'
+          ? (selectableTechniques.find((row) => row.id === intent.actionId) ??
+            (selectableSpecial?.id === intent.actionId ? selectableSpecial : undefined))
+          : undefined
+      const committedTarget =
+        committedAction?.target ?? committedSkill?.target ?? committedSkill?.definition?.target
+      const groundOnlyTarget = committedTarget?.categories?.length
+        ? committedTarget.categories.every((category) => category === 'ground')
+        : (committedTarget?.kind ?? committedSkill?.targetKind) === 'ground-tile'
+      const groundCapable =
+        committedAction?.groundIntentCapable ||
+        committedSkill?.groundIntentCapable ||
+        committedTarget?.categories?.includes('ground') ||
+        groundOnlyTarget
+      const groundAction =
+        intent.kind === 'action' &&
+        (groundOnlyTarget ||
+          (intent.target.kind === 'tile' && groundCapable) ||
+          ('ground' in intent.target && intent.target.ground === true))
 
       try {
         const endpoint =
@@ -1475,8 +1550,13 @@ function BattleExperienceContent({
         })
         const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
         if (!response.ok || !body.battle) {
-          clearPlanning()
-          await handleApiFailure(response, body, 'That action could not be committed.')
+          clearPlanning(groundAction ? modeRef.current : 'none')
+          await handleApiFailure(
+            response,
+            body,
+            'That action could not be committed.',
+            groundAction,
+          )
           return
         }
 
@@ -1492,7 +1572,14 @@ function BattleExperienceContent({
         const remaining = nextLocalTurn ? readEconomy(nextLocalCombatant) : 0
 
         const nextBattleState = body.battle.snapshot.tactical.battle
+        const placedGroundField =
+          intent.kind === 'action' &&
+          body.battle.snapshot.groundAreas?.some(
+            (area) => !before.snapshot.groundAreas?.some((previous) => previous.id === area.id),
+          )
         const keepAction =
+          !groundAction &&
+          !placedGroundField &&
           intent.kind !== 'face' &&
           nextBattleState.lifecycle === 'active' &&
           nextLocalTurn &&
@@ -1517,7 +1604,7 @@ function BattleExperienceContent({
                 row.behaviorId === intent.behaviorId &&
                 row.controlled?.kind === 'reversal',
             )
-              ? 'Reversal prepared and paid. It automatically counters one qualifying hit until your next actual turn. Offensive attacks are unavailable while armed.'
+              ? 'Reversal prepared and paid. It automatically counters one qualifying hit. Attacks are locked while armed.'
               : intent.target
                 ? 'Rewind positions captured. Release on the same selection at its full cost.'
                 : 'Ability prepared. Choose a legal target to release it at its full cost.',
@@ -1530,7 +1617,7 @@ function BattleExperienceContent({
                 row.behaviorId === intent.behaviorId &&
                 row.controlled?.kind === 'reversal',
             )
-              ? 'Reversal cancelled. Paid costs and cooldown remain. Reversal Strain restricts Attack Skills through your next complete turn; normal Basic Attack remains available.'
+              ? 'Reversal cancelled. Costs and cooldown remain. Attacks are locked through your next complete turn.'
               : 'Preparation cancelled. This ability cannot be primed again in this battle.',
           )
         } else if (runtime.kind === 'pvp') {
@@ -1590,7 +1677,7 @@ function BattleExperienceContent({
           }
         }
       } catch (error) {
-        clearPlanning()
+        clearPlanning(groundAction ? modeRef.current : 'none')
         setNotice(error instanceof Error ? error.message : 'That action could not be committed.')
       } finally {
         setCommitPending(false)
@@ -1598,6 +1685,7 @@ function BattleExperienceContent({
       }
     },
     [
+      actionAttackBlocked,
       actionCooldownTurns,
       battle,
       clearPlanning,
@@ -1606,6 +1694,8 @@ function BattleExperienceContent({
       localCombatantId,
       localTurn,
       manualActionTargets,
+      selectableTechniques,
+      selectableSpecial,
       runtime,
       viewModel,
       setBattle,
@@ -1623,9 +1713,7 @@ function BattleExperienceContent({
         selectableTechniques.find((item) => item.id === actionId) ??
         (selectableSpecial?.id === actionId ? selectableSpecial : undefined)
       const basic = findBattleBasicAction(battle.snapshot, localCombatantId, actionId)
-      const isBasic = ['basic.move', BASIC_ATTACK_ID, GUARD_ID, RECOVER_ID, MP_RECOVER_ID].includes(
-        actionId,
-      )
+      const isBasic = ['basic.move', BASIC_ATTACK_ID, ...SUPPORT_ACTION_IDS].includes(actionId)
       const native: BattlePreviewSkill = skill ?? {
         id: actionId,
         groundIntentCapable: false,
@@ -1772,6 +1860,10 @@ function BattleExperienceContent({
       )
         return
       if (intent.kind === 'action' || intent.kind === 'ability-prime') {
+        if (actionAttackBlocked(intent.actionId, intent.behaviorId)) {
+          setNotice('Attacks are currently locked.')
+          return
+        }
         const draft = modifierDraftRef.current
         const descriptor = actionDescriptor(intent.actionId, intent.behaviorId, draft)
         if (
@@ -1814,7 +1906,7 @@ function BattleExperienceContent({
         if (mounted.current) setExecutionPending(false)
       }
     },
-    [actionCooldownTurns, actionDescriptor, manualActionTargets, commitValue],
+    [actionCooldownTurns, actionDescriptor, actionAttackBlocked, manualActionTargets, commitValue],
   )
 
   const selection = useMemo(
@@ -1879,6 +1971,10 @@ function BattleExperienceContent({
   const armAction = useCallback(
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
       if (planningDisabled || executionLock.current) return
+      if (actionAttackBlocked(actionId, basicBehaviorId(actionId))) {
+        setNotice('Attacks are currently locked.')
+        return
+      }
       if (actionCooldownTurns(actionId) > 0) return
       const descriptor = actionDescriptor(actionId, undefined, modifierDraftRef.current)
       abandonOtherModifierDraft(descriptor)
@@ -1952,9 +2048,11 @@ function BattleExperienceContent({
       } else setNotice('No eligible target is in range. Select a different action or target.')
     },
     [
+      actionAttackBlocked,
       actionCooldownTurns,
       actionDescriptor,
       controlledAvailabilityForAction,
+      basicBehaviorId,
       replaceModifierDraft,
       abandonOtherModifierDraft,
       manualActionTargets,
@@ -2985,26 +3083,26 @@ function BattleExperienceContent({
           </div>
 
           <div data-battle-header-utilities="true">
-            {guidedGuardPractice ? (
+            {guidedSupportPractice ? (
               <button
                 type="button"
                 className={bridgeStyles.guidedPractice}
-                aria-label={`Practice ${basicPracticeGuard?.name ?? 'Guard'}, ${battleBasicCostLabel(basicPracticeGuard, '30 AP', basicBehaviorId(GUARD_ID))}`}
-                title="Practice Guard for this lesson. Your saved Support Action stays in slot 3."
+                aria-label={`Practice ${basicPracticeSupport?.name ?? practiceSupportLabel}, ${battleBasicCostLabel(basicPracticeSupport, '30 AP', basicBehaviorId(practiceSupportId))}`}
+                title={`Practice ${practiceSupportLabel} for this lesson. Your saved Support Action stays in slot 3.`}
                 disabled={
                   planningDisabled ||
-                  (basicPracticeGuard === undefined
+                  (basicPracticeSupport === undefined
                     ? actionEconomy < 30
                     : !canAffordBattleBasicAction(
-                        basicPracticeGuard,
+                        basicPracticeSupport,
                         {
                           ap: actionEconomy,
                           mp: localCombatant?.mp ?? 0,
                           hp: localCombatant?.hp ?? 0,
                         },
-                        basicBehaviorId(GUARD_ID),
+                        basicBehaviorId(practiceSupportId),
                       )) ||
-                  (cooldowns[GUARD_ID] ?? 0) > 0
+                  (cooldowns[practiceSupportId] ?? 0) > 0
                 }
                 onKeyDown={(event) => {
                   if (event.repeat && (event.key === 'Enter' || event.key === ' '))
@@ -3012,19 +3110,22 @@ function BattleExperienceContent({
                 }}
                 onClick={() => {
                   if (executionLock.current || commitLock.current || planningDisabled) return
-                  if (mode === 'guard' && currentActionId === GUARD_ID) {
+                  if (
+                    (mode === 'guard' || mode === 'recover') &&
+                    currentActionId === practiceSupportId
+                  ) {
                     const intent = selectBattleSkillPreviewIntent(
-                      actionDescriptor(GUARD_ID),
+                      actionDescriptor(practiceSupportId),
                       selection,
                     )
                     if (intent) void executeIntent(intent)
                     return
                   }
-                  setSelectedDefenseActionId(GUARD_ID)
-                  armAction('guard', GUARD_ID)
+                  setSelectedDefenseActionId(practiceSupportId)
+                  armAction('guard', practiceSupportId)
                 }}
               >
-                <span>Practice {basicPracticeGuard?.name ?? 'Guard'}</span>
+                <span>Practice {basicPracticeSupport?.name ?? practiceSupportLabel}</span>
               </button>
             ) : null}
             <BattleInfoPopover
@@ -3237,15 +3338,8 @@ function BattleExperienceContent({
                           combatants: previewCombatants,
                         })
                       : null
-                  // Single-unit utility/healing shows candidates, not empty geometric reach.
-                  // Movement destinations are handled separately by reachable paths above.
-                  const inFootprint =
-                    potentialPath.has(key) &&
-                    (groundTarget ||
-                      (hasAllTargetEffects && !!combatant && combatant.hp > 0) ||
-                      damagingSelection ||
-                      targetSpec?.shape.kind !== 'single' ||
-                      !!skillTarget)
+                  // Potential range remains visible even when only an occupied unit can be selected.
+                  const inFootprint = potentialPath.has(key)
                   const targetRelation = !inFootprint
                     ? undefined
                     : activeTechnique
@@ -3295,13 +3389,7 @@ function BattleExperienceContent({
                         undefined
                       }
                       data-heal-target={
-                        (!groundTarget &&
-                          inFootprint &&
-                          healingSelection &&
-                          !damagingSelection &&
-                          (targetSpec?.shape.kind !== 'single' ||
-                            !!skillTarget ||
-                            (hasAllTargetEffects && !!combatant && combatant.hp > 0))) ||
+                        (!groundTarget && inFootprint && healingSelection && !damagingSelection) ||
                         undefined
                       }
                       data-terrain={terrain}
@@ -3319,9 +3407,11 @@ function BattleExperienceContent({
                         undefined
                       }
                       data-affected={
-                        (preview?.preview.kind === 'action' &&
+                        (selectedActionPreview?.legal &&
                           placement &&
-                          preview.preview.affectedCombatantIds.includes(placement.combatantId)) ||
+                          selectedActionPreview.affectedCombatantIds.includes(
+                            placement.combatantId,
+                          )) ||
                         undefined
                       }
                       onClick={() => handleTile(tile.position)}
@@ -3584,6 +3674,7 @@ function BattleExperienceContent({
                     active={mode === 'move'}
                     disabled={
                       planningDisabled ||
+                      actionAttackBlocked('basic.move', basicBehaviorId('basic.move')) ||
                       (!canPrimeAction('basic.move') &&
                         !controlledAvailabilityForAction('basic.move').chooseAction &&
                         ((reachablePaths.size === 0 &&
@@ -3620,6 +3711,7 @@ function BattleExperienceContent({
                     active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
                     disabled={
                       planningDisabled ||
+                      actionAttackBlocked(BASIC_ATTACK_ID, basicBehaviorId(BASIC_ATTACK_ID)) ||
                       (!canPrimeAction(BASIC_ATTACK_ID) &&
                         !controlledAvailabilityForAction(BASIC_ATTACK_ID).chooseAction &&
                         (basicAttack === undefined
@@ -3658,6 +3750,7 @@ function BattleExperienceContent({
                     }
                     disabled={
                       planningDisabled ||
+                      actionAttackBlocked(supportActionId, basicBehaviorId(supportActionId)) ||
                       (!canPrimeAction(supportActionId) &&
                         !controlledAvailabilityForAction(supportActionId).chooseAction &&
                         (basicSupport === undefined
@@ -3796,7 +3889,11 @@ function BattleExperienceContent({
                   disabled={planningDisabled || executionPending}
                   onChange={(event) => {
                     const descriptor = unboundActionDescriptor(currentActionId, event.target.value)
-                    if (descriptor.unavailable) return
+                    if (
+                      descriptor.unavailable ||
+                      actionAttackBlocked(currentActionId, event.target.value)
+                    )
+                      return
                     const nextMode = battleModifierActionMode(descriptor)
                     if (nextMode === 'attack') setSelectedAttackActionId(currentActionId)
                     else if (nextMode === 'guard') setSelectedDefenseActionId(currentActionId)
@@ -3820,7 +3917,11 @@ function BattleExperienceContent({
                     Choose an action
                   </option>
                   {behaviorChoices.map((choice) => (
-                    <option key={choice.behaviorId} value={choice.behaviorId}>
+                    <option
+                      key={choice.behaviorId}
+                      value={choice.behaviorId}
+                      disabled={actionAttackBlocked(currentActionId, choice.behaviorId)}
+                    >
                       {choice.behaviorId.replace(/[._-]+/g, ' ')}
                     </option>
                   ))}

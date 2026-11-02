@@ -100,7 +100,11 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
       ? effect.statusId
       : null
   const counterText =
-    effect.statusId === 'counter' && effect.counter ? counterDescription(effect.counter) : null
+    effect.statusId === 'counter' && effect.counter
+      ? counterDescription(effect.counter, {
+          legacyReflectBarrier: effect.reflectBarrierPolicyVersion !== 1,
+        })
+      : null
   const endureText =
     effect.statusId === 'endure' && effect.endure ? endureDescription(effect.endure) : null
   const percentageDescription =

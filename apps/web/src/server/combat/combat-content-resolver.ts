@@ -9,6 +9,7 @@ import {
 } from '@aurevane/game-core/content/authored-content'
 import {
   defaultBasicSkills,
+  resolveBuiltinBasicSkillVersion,
   type BasicSkillDefinition,
   type BasicSkillId,
 } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -763,10 +764,7 @@ export function createCombatContentResolver(
       if (!isBasicSkillId(id) || !positiveInteger(version)) return null
       const published = await source.findSkillVersion(id, version)
       if (published) return validatePublishedBasicSkill(published, id, version)
-      const builtin = defaultBasicSkills().find(
-        (basic) => basic.id === id && basic.contentVersion === version,
-      )
-      return builtin ? structuredClone(builtin) : null
+      return resolveBuiltinBasicSkillVersion(id, version)
     },
     async resolveCurrentSkillDefinition(skillId) {
       return (await resolveCurrentSkillDefinitions([skillId])).get(skillId) ?? null

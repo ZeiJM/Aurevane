@@ -276,13 +276,16 @@ it('bounded_list_and_essential_basic_archive', async () => {
       ]),
     /LIST_INVALID/,
   )
-  expect(await record('basic.guard')).toMatchObject({
+  expect(await record('basic.recover')).toMatchObject({
     lifecycle: 'active',
     current: null,
     history: [],
-    builtin: { name: 'Guard' },
+    builtin: { name: 'HP Recovery' },
   })
-  await denied(() => write('basic.guard', { action: 'archive', expectedRevision: 1 }), /ESSENTIAL/)
+  await denied(
+    () => write('basic.recover', { action: 'archive', expectedRevision: 1 }),
+    /ESSENTIAL/,
+  )
 })
 it('four_actor_rpcs_enforce_actual_browser_denial_and_live_selected_grants', async () => {
   const signatures = [
@@ -1204,8 +1207,10 @@ it('globally sorts named content with tied names across bounded cursors and serv
     )
   ).rows[0]!.value
   expect(basicPage.records.map((r) => r.contentKey).sort()).toEqual([
-    'basic.guard',
+    'basic.fleetstep',
+    'basic.invocation',
     'basic.move',
+    'basic.pilfer',
     'basic.recover',
     'basic.recover.mp',
     'unarmed.basic',
@@ -1230,11 +1235,11 @@ it('globally sorts named content with tied names across bounded cursors and serv
 })
 
 it('restores an available system baseline to draft without fabricating a publication and retains its source attribution', async () => {
-  const key = 'basic.guard'
+  const key = 'basic.recover'
   const original = {
     id: key,
     contentVersion: 1,
-    name: 'Guard',
+    name: 'HP Recovery',
     enabled: true,
     privateAccuracy: { kind: 'fixed', chanceBasisPoints: 7777 },
     text: { description: 'Original complete text' },

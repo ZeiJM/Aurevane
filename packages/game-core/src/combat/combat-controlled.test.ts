@@ -59,6 +59,48 @@ function prime(state: ReturnType<typeof setup>['state']) {
 }
 
 describe('Controlled whole Manual actions', () => {
+  it.each(['endure', 'strain'] as const)(
+    'rejects new offensive preparation during %s without state changes',
+    (restriction) => {
+      const { state: base } = setup()
+      const state =
+        restriction === 'endure'
+          ? {
+              ...base,
+              statusState: base.statusState.map((row) =>
+                row.combatantId === 'actor'
+                  ? {
+                      ...row,
+                      statuses: [
+                        {
+                          statusId: 'endure',
+                          statusVersion: 1,
+                          stacks: 1,
+                          remainingOwnerTurnStarts: 2,
+                          sourceCombatantId: 'actor',
+                        },
+                      ],
+                    }
+                  : row,
+              ),
+            }
+          : {
+              ...base,
+              reversalState: {
+                version: 1 as const,
+                armed: [],
+                offensiveTurns: [],
+                strain: [
+                  { combatantId: 'actor', endedTurnNumber: base.tactical.battle.turnNumber },
+                ],
+              },
+            }
+      const before = JSON.stringify(state)
+      expect(() => prime(state as typeof base)).toThrow(/Endure|Reversal Strain/)
+      expect(JSON.stringify(state)).toBe(before)
+    },
+  )
+
   it('allows repeated cancellation under global timing while cooldown blocks new preparation', () => {
     const initial = setup()
     const state = {

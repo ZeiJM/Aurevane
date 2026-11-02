@@ -139,12 +139,22 @@ it('uses shared effect-name and value markup for separate Manual and Ongoing gro
   expect(html).toContain('Once per battle')
   expect(html).toContain('Active while Requirements are met')
 })
-it('renders all five generated Basics with actual structured effects', () => {
+it('renders all seven current Basics with actual structured effects and excludes retired Guard', () => {
   const value = article()
   const block = value.body.find((block) => block.id === 'basic-skills')!
   const html = render({ ...value, body: [block] })
-  expect(block.disclosures).toHaveLength(5)
-  expect(html.match(/data-compact-skill-effect="true"/g)).toHaveLength(5)
+  expect(block.disclosures).toHaveLength(7)
+  expect(block.disclosures!.map((row) => row.title).sort()).toEqual([
+    'Basic Attack',
+    'Fleetstep',
+    'HP Recovery',
+    'Invocation',
+    'Literal <script> & Basic',
+    'MP Recovery',
+    'Pilfer',
+  ])
+  expect(html.match(/data-compact-skill-effect="true"/g)).toHaveLength(8)
+  expect(html).not.toContain('<summary>Guard</summary>')
   expect(html).toContain('per traversal point')
   expect(html).toContain('30 AP')
   expect(html).toContain('50 AP')

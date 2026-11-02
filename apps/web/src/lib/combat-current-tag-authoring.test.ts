@@ -101,7 +101,7 @@ it('replaces retained Frozen Ground with one Chilled on an explicit commit', () 
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { currentSummonForAuthoring } from './combat-current-tag-authoring'
 it('projects current Summon settings without rewriting the retained profile on read', () => {
-  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const before = structuredClone(original)
   const current = currentSummonForAuthoring(original)
   expect(current).toMatchObject({
@@ -128,7 +128,7 @@ it('projects current Summon settings without rewriting the retained profile on r
 it.each(['skill', 'essence', 'resonance'] as const)(
   'inherits parent text for canonical %s Summon only on explicit save',
   (kind) => {
-    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
     const original = {
       description: 'Parent details',
       flavorLine: 'Parent flavor',
@@ -159,7 +159,7 @@ it.each(['skill', 'essence', 'resonance'] as const)(
   },
 )
 it('inherits parent text for retained native Summons and preserves hidden text when parent text is absent', () => {
-  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   expect(
     correctCombatContentEntries('skill', {
       description: 'Edited details',
@@ -177,7 +177,7 @@ it('leaves malformed Summon rows for strict validation instead of throwing durin
 })
 
 it('classifies a healing Summon Skill as an attack when its shared editor adds Damage', () => {
-  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const healing = original.abilities[1]!
   const changed = {
     ...original,
@@ -205,7 +205,7 @@ it('classifies a healing Summon Skill as an attack when its shared editor adds D
 })
 
 it('binds an Endure-only Summon Skill to Self without requiring an enemy selection', () => {
-  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const profile = {
     ...original,
     abilities: [

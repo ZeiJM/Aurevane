@@ -14,6 +14,7 @@ import type { CharacterRecord } from '@aurevane/db/character'
 
 import {
   parseSupportActionId,
+  DEFAULT_SUPPORT_ACTION_ID,
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
 import { createHash } from 'node:crypto'
@@ -825,11 +826,12 @@ export async function captureBattleBuildAbilitySources(
   state: CombatEncounterState,
   authority: BattleBuildAuthoritySnapshot,
   resolver?: CombatContentResolver,
-  practiceGuard = false,
+  practiceRecovery = false,
 ): Promise<readonly CapturedCombatAbilitySource[]> {
   const ids = new Set<BasicSkillId>(['basic.move', 'unarmed.basic'])
-  for (const build of authority.combatants) ids.add(build.supportActionId ?? 'basic.guard')
-  if (practiceGuard) ids.add('basic.guard')
+  for (const build of authority.combatants)
+    ids.add(build.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID)
+  if (practiceRecovery) ids.add(DEFAULT_SUPPORT_ACTION_ID)
   // One current Basic read for the entire admission, shared by both PvP owners.
   // No resolver capability means historical admission keeps its native Basics.
   const basics = resolver?.resolveCurrentBasicSkillDefinitions?.([...ids]) ?? Promise.resolve(null)
@@ -845,21 +847,21 @@ export async function captureBattleBuildAbilitySources(
         basics,
       ])
       if (definitions) {
-        const support = build.supportActionId ?? 'basic.guard'
+        const support = build.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
         const selected = captureBasicSkillSources({
           ownerCombatantId: build.combatantId,
           supportActionId: support,
           definitions: [...definitions.values()],
         })
         sources.push(...selected)
-        if (practiceGuard && support !== 'basic.guard') {
-          // Existing Guided Fundamentals Guard control is an exercise action, not a new equipped slot.
-          const guard = captureBasicSkillSources({
+        if (practiceRecovery && support !== DEFAULT_SUPPORT_ACTION_ID) {
+          // The guided recovery exercise does not change the saved Support slot.
+          const recovery = captureBasicSkillSources({
             ownerCombatantId: build.combatantId,
-            supportActionId: 'basic.guard',
+            supportActionId: DEFAULT_SUPPORT_ACTION_ID,
             definitions: [...definitions.values()],
           })[2]!
-          sources.push(guard)
+          sources.push(recovery)
         }
       }
       if (!regular) throw new TypeError('Pinned battle Skill definition is unavailable.')

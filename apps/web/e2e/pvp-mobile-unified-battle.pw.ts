@@ -128,7 +128,7 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
 
     await expect(commandDeck.getByRole('button', { name: /^Move, / })).toBeVisible()
     await expect(commandDeck.getByRole('button', { name: /^Basic Attack, / })).toBeVisible()
-    await expect(commandDeck.getByRole('button', { name: /^Guard, / })).toBeVisible()
+    await expect(commandDeck.getByRole('button', { name: /^HP Recovery, / })).toBeVisible()
     await expect(commandDeck.getByRole('button', { name: /^End Turn, / })).toBeVisible()
     await expect(activeRoot.getByRole('button', { name: /^Chat/ })).toBeVisible()
     await expect(activeRoot.locator('[data-pvp-spectator-key="true"]')).toBeVisible()

@@ -1,3 +1,4 @@
+import { historicalBasicSkills as defaultBasicSkills } from '../../../../packages/game-core/src/combat/combat-basic-history.test-utils'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { expect, it, vi } from 'vitest'
 import { percentageDotEncounter } from '../../../../packages/game-core/src/combat/combat-percentage-dots.test-utils'
@@ -17,10 +18,7 @@ import {
   preparePv1fTurnEconomy,
   PV1F_COMBAT_CONTENT,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
-import {
-  captureBasicSkillSources,
-  defaultBasicSkills,
-} from '@aurevane/game-core/combat/combat-basic-actions'
+import { captureBasicSkillSources } from '@aurevane/game-core/combat/combat-basic-actions'
 import { BattleSkillCommand } from '@/components/battle/battle-skill-command'
 import type { CombatEncounterState } from '@aurevane/game-core/combat/actions'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'

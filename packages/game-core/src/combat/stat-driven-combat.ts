@@ -265,7 +265,13 @@ export function createStatBalancedCombatEncounterState(
   profiles: readonly StatDrivenCombatProfileV4[],
 ): StatDrivenCombatEncounterStateV4 {
   return createCurrentStatDrivenCombatEncounterState(
-    { ...base, statBalancePolicyVersion: 1 },
+    {
+      ...base,
+      statBalancePolicyVersion: 1,
+      abilityCooldownScopeVersion: 1,
+      reflectBarrierPolicyVersion: 1,
+      supportActionPolicyVersion: 1,
+    },
     profiles.map((profile) => ({ ...profile, statusResistance: profile.statusResistance ?? 0 })),
   )
 }

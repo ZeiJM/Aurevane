@@ -8,6 +8,22 @@ export interface TargetedEffect {
   readonly target?: CombatEffectTarget
 }
 
+/** Current authoring adopts an explicit policy; an ignored historical FF field is not intent. */
+export function withCurrentAllTargetPolicy<T extends CombatTargetSpec>(
+  target: T,
+  effects: readonly TargetedEffect[],
+): T {
+  if (
+    target.allTargetPolicyVersion !== undefined ||
+    !['enemies-only', 'allies-only', 'all-units', 'all-except-actor'].includes(
+      target.friendlyFire,
+    ) ||
+    !effects.some((effect) => effect.target === 'all')
+  )
+    return target
+  return { ...target, allTargetPolicyVersion: 1, friendlyFire: 'all-units' }
+}
+
 /** Only an explicit authoring action changes a recipient. Reading a definition never migrates it. */
 export function withAuthoredEffectTarget<T extends TargetedEffect>(
   effect: T,
@@ -48,6 +64,7 @@ export function deriveSharedEffectAim<T extends CombatTargetSpec>(
   effects: readonly TargetedEffect[],
   options: { requiresSelectedUnit?: boolean } = {},
 ): T {
+  current = withCurrentAllTargetPolicy(current, effects)
   if (!effects.some((effect) => effect.target !== undefined)) return current
   if (effects.some((effect) => effect.target === undefined && effect.recipient !== 'actor'))
     return current

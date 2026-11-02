@@ -902,8 +902,12 @@
   .techniqueGroup:last-child {
     grid-template-rows: auto max-content;
   }
+  .supportGrid {
+    /* The five current choices share one row, leaving both Skill galleries their height. */
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
   .supportGrid .skill {
-    /* Three Support cards need their content height, not an eight-card library share. */
+    /* Support cards need their content height, not an eight-card library share. */
     container-type: normal;
     --av-gameplay-art-size: var(--av-cockpit-art-size);
   }

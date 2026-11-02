@@ -1,4 +1,8 @@
 import { automaticAbilityExecutionRequirements } from './combat-simple-requirements'
+import {
+  automaticAbilityTargetCandidates,
+  isAutomaticAbilityTargetSelector,
+} from './combat-automatic-targets'
 import type { GridPosition } from './board'
 import { canonicalAbilityTargetSpec } from './combat-targeting-shapes'
 import type {
@@ -100,12 +104,13 @@ export type AutomaticAbilitySelectionResult =
         | 'automatic-target-unit-unavailable'
     }
 
-/** Resolve causal identities only; native command admission checks current complete geometry. */
+/** Resolve a causal role or selector anchor; native admission still owns complete legality. */
 export function resolveAutomaticAbilitySelection(
   state: CombatEncounterState,
   source: CapturedCombatAbilitySource,
   behavior: AbilityBehavior,
   frame: CombatAbilityEventFrame,
+  selectorAnchorId?: string,
 ): AutomaticAbilitySelectionResult {
   const target = behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : null
   if (
@@ -124,8 +129,12 @@ export function resolveAutomaticAbilitySelection(
   } else if (target.shape.kind !== 'single')
     return { suppression: 'automatic-targeting-unsupported' }
   const subject = behavior.automaticTarget?.subject
-  const ids =
-    subject === 'owner'
+  const ids = isAutomaticAbilityTargetSelector(subject)
+    ? [
+        selectorAnchorId ??
+          automaticAbilityTargetCandidates(state, source.ownerCombatantId, subject)[0],
+      ].filter((id): id is string => id !== undefined)
+    : subject === 'owner'
       ? [source.ownerCombatantId]
       : subject === 'triggering'
         ? frame.triggeringCombatantId
@@ -252,7 +261,34 @@ function captureAutomaticImpulses(
         continue
       }
       const requirement = automaticAbilityExecutionRequirements(behavior)
-      const context = combatAbilityFrameRequirements(frame, source.ownerCombatantId)
+      const rule = behavior.automaticTarget?.subject
+      const selectorFrames = isAutomaticAbilityTargetSelector(rule)
+        ? automaticAbilityTargetCandidates(after, source.ownerCombatantId, rule).map((id) => ({
+            ...frame,
+            selectedCombatantId: id,
+            selectedCombatantIds: [id],
+          }))
+        : [frame]
+      const requirementFrame =
+        (isAutomaticAbilityTargetSelector(rule)
+          ? selectorFrames.find(
+              (candidate) =>
+                evaluateAutomaticRequirementTrigger(
+                  requirement,
+                  combatAbilityFrameRequirements(candidate, source.ownerCombatantId),
+                  true,
+                ).stateTruth ||
+                candidate.events.some(
+                  (receipt) =>
+                    evaluateAutomaticRequirementTrigger(
+                      requirement,
+                      combatAbilityFrameRequirements(candidate, source.ownerCombatantId, receipt),
+                      true,
+                    ).eventMatched,
+                ),
+            )
+          : undefined) ?? frame
+      const context = combatAbilityFrameRequirements(requirementFrame, source.ownerCombatantId)
       const stateTruth = evaluateAutomaticRequirementTrigger(requirement, context, true).stateTruth
       const prior = truth.find(
         (row) => row.sourceInstanceId === source.sourceInstanceId && row.behaviorId === behavior.id,
@@ -267,7 +303,7 @@ function captureAutomaticImpulses(
         (receipt) =>
           evaluateAutomaticRequirementTrigger(
             requirement,
-            combatAbilityFrameRequirements(frame, source.ownerCombatantId, receipt),
+            combatAbilityFrameRequirements(requirementFrame, source.ownerCombatantId, receipt),
             true,
           ).eventMatched,
       )
@@ -290,7 +326,7 @@ function captureAutomaticImpulses(
             behavior,
             requirementsContext: detached(
               event
-                ? combatAbilityFrameRequirements(frame, source.ownerCombatantId, event)
+                ? combatAbilityFrameRequirements(requirementFrame, source.ownerCombatantId, event)
                 : context,
             ),
             ...(event ? { event } : {}),
@@ -505,51 +541,97 @@ export function processCombatAbilityEvent(
       source.contentVersion,
       behavior.id,
     ])
-    const selection = resolveAutomaticAbilitySelection(
-      next,
-      source,
-      behavior,
-      selectionFrame ?? frame,
-    )
-    if ('suppression' in selection) continue
-    const childInput: CombatAbilityCommandInput = {
-      state: next,
-      actorId: source.ownerCombatantId,
-      root: { kind: 'canonical', source, behaviorId: behavior.id },
-      selection: selection.selection,
-      content,
-      context: {
-        provenance: createCombatActionProvenance({
-          ...context.provenance,
-          sourceKind: source.sourceKind,
-          sourceCombatantId: source.ownerCombatantId,
-          controllerCombatantId: source.ownerCombatantId,
-          actionDefinitionId: source.abilityId,
-          actionVersion: source.contentVersion,
-        }),
-        triggerGuard: session.guard,
-      },
-      trigger: {
-        rootActionId: frame.rootActionId,
-        id: frame.id,
-        type: matching?.type ?? '',
-        phase: matching?.phase ?? 'after',
-        depth: depth + 1,
-        triggeringCombatantId: frame.triggeringCombatantId,
-        requirementsContext: readiness
-          ? {
-              ...requirementsContext,
-              owner: combatAbilitySubject(next, source.ownerCombatantId),
-              selected: combatAbilitySubject(next, selectionFrame?.selectedCombatantId),
-              affected: combatAbilitySubject(next, selectionFrame?.selectedCombatantId),
-            }
-          : requirementsContext,
-      },
-      eventSession: session,
-      eventDepth: depth + 1,
+    const rule = behavior.automaticTarget?.subject
+    const selector = isAutomaticAbilityTargetSelector(rule) ? rule : undefined
+    let childInput: CombatAbilityCommandInput | undefined
+    for (const anchor of selector
+      ? automaticAbilityTargetCandidates(next, source.ownerCombatantId, selector)
+      : [undefined]) {
+      const selection = resolveAutomaticAbilitySelection(
+        next,
+        source,
+        behavior,
+        selectionFrame ?? frame,
+        anchor,
+      )
+      if ('suppression' in selection) continue
+      // Rebind the immutable mutation witness, not another unit's evidence or a
+      // live snapshot that cannot establish resource loss/threshold crossings.
+      const selectorRequirements = selector
+        ? combatAbilityFrameRequirements(
+            {
+              ...(selectionFrame ?? frame),
+              selectedCombatantId: anchor,
+              selectedCombatantIds: anchor ? [anchor] : [],
+              ...(readiness ? { affectedCombatantIds: anchor ? [anchor] : [] } : {}),
+            },
+            source.ownerCombatantId,
+            matching,
+          )
+        : undefined
+      const attempt: CombatAbilityCommandInput = {
+        state: next,
+        actorId: source.ownerCombatantId,
+        root: { kind: 'canonical', source, behaviorId: behavior.id },
+        selection: selection.selection,
+        content,
+        context: {
+          provenance: createCombatActionProvenance({
+            ...context.provenance,
+            sourceKind: source.sourceKind,
+            sourceCombatantId: source.ownerCombatantId,
+            controllerCombatantId: source.ownerCombatantId,
+            actionDefinitionId: source.abilityId,
+            actionVersion: source.contentVersion,
+          }),
+          triggerGuard: session.guard,
+        },
+        trigger: {
+          rootActionId: frame.rootActionId,
+          id: frame.id,
+          type: matching?.type ?? '',
+          phase: matching?.phase ?? 'after',
+          depth: depth + 1,
+          triggeringCombatantId: frame.triggeringCombatantId,
+          requirementsContext:
+            selectorRequirements ??
+            (readiness
+              ? {
+                  ...requirementsContext,
+                  owner: combatAbilitySubject(next, source.ownerCombatantId),
+                  selected: combatAbilitySubject(next, selectionFrame?.selectedCombatantId),
+                  affected: combatAbilitySubject(next, selectionFrame?.selectedCombatantId),
+                }
+              : requirementsContext),
+        },
+        eventSession: session,
+        eventDepth: depth + 1,
+      }
+      if (selector) {
+        const quote = prepareCombatAbilityCommand(attempt)
+        if (!quote.evaluation.legal) continue
+        if (behavior.targeting?.shape.kind === 'line') {
+          const target = canonicalAbilityTargetSpec(behavior.targeting)
+          const position = next.tactical.placements.find(
+            (row) => row.combatantId === anchor,
+          )?.position
+          if (
+            target.kind === 'unit'
+              ? !quote.evaluation.affectedCombatantIds.includes(anchor!)
+              : !position ||
+                !quote.evaluation.affectedTiles.some(
+                  (tile) => tile.x === position.x && tile.y === position.y,
+                )
+          )
+            continue
+        }
+      }
+      childInput = attempt
+      break
     }
+    if (!childInput) continue
     // Unavailable targets must not exhaust the shared trigger-chain budget.
-    if (readiness) {
+    if (readiness && !selector) {
       const quote = prepareCombatAbilityCommand(childInput)
       if (!quote.evaluation.legal) continue
       if (

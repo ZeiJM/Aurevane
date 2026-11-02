@@ -29,7 +29,7 @@ import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
 import { hasGameplayTag } from './gameplay-tags'
 import { isMaterializedCombatEffect } from './summon-content'
-import { readSkillCooldown } from './skill-cooldowns'
+import { combatAbilityCooldown, readSkillCooldown } from './skill-cooldowns'
 import type {
   CombatActionEvaluation,
   CombatEffectDefinition,
@@ -239,7 +239,9 @@ function rangedReposition(
     source.definition.behaviors.filter(
       (behavior) =>
         rangedAction(behavior) &&
-        (!behavior.cooldown || !readSkillCooldown(actor, behavior.cooldown).active),
+        (!behavior.cooldown ||
+          !readSkillCooldown(actor, combatAbilityCooldown(state, source, behavior.cooldown)!)
+            .active),
     ),
   )
   const minimumAp = Math.min(

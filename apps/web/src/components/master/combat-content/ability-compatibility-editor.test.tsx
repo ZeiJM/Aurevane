@@ -92,7 +92,7 @@ it('reenables reach and accuracy for mixed attacks while leaving selected-target
   expect(required).toMatch(/aria-label="Accuracy rule"[^>]*disabled/)
   expect(required).toContain('aria-label="Unit for Target Requirements"')
 })
-it('disables duplicate Move, conflicting Summon and moving an existing Move after another packet', () => {
+it('disables duplicate Move and reordering while excluding Invocation-only Summon from ordinary sources', () => {
   const value = fixture(),
     attack = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
       .effects[0]!
@@ -102,7 +102,7 @@ it('disables duplicate Move, conflicting Summon and moving an existing Move afte
   }
   const html = renderToStaticMarkup(<AbilityDefinitionEditor value={mixed} onChange={() => {}} />)
   expect(html).toMatch(/value="move"[^>]*disabled/)
-  expect(html).toMatch(/value="summon"[^>]*disabled/)
+  expect(html).not.toMatch(/<option[^>]*value="summon"/)
   expect(html).toMatch(/<button[^>]*disabled[^>]*>↓ Down<\/button>/)
 })
 

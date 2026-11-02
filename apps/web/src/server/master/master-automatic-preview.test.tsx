@@ -7,6 +7,7 @@ import { handleCombatContentAuthoringRequest } from './combat-content-authoring-
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { previewActionSelection } from '@/components/master/combat-content/ability-preview-selector'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 
 vi.mock('server-only', () => ({}))
 const records = JSON.parse(
@@ -29,14 +30,17 @@ async function fixture(
   editRoot?: (root: MatureSkillDefinition) => void,
 ) {
   const store = new Store()
-  const root = structuredClone(records.find((r: { id: string }) => r.id === rootId).after)
+  const root = structuredClone(
+    defaultBasicSkills().find((row) => row.id === rootId) ??
+      records.find((r: { id: string }) => r.id === rootId).after,
+  )
   editRoot?.(root)
   await store.publish({
     contentKey: root.id,
     contentKind: 'skill',
     definition: root,
     expectedBaseVersion: null,
-    versionFloor: root.contentVersion - 1,
+    versionFloor: root.contentVersion > 1 ? root.contentVersion - 1 : null,
     actorUserId: owner,
   })
   const resolver = createCombatContentResolver({
@@ -234,7 +238,7 @@ it('does not revive a source owner killed by the incoming reference command', as
 
 it('preserves the updated stat bridge after a legal Summon reference', async () => {
   const def = records.find((r: { id: string }) => r.id === 'ironfist.counter-palm').after
-  const api = await fixture('wildwarden.renewing-herbs')
+  const api = await fixture('basic.invocation')
   const response = await api.request(def)
   expect(response.status, JSON.stringify(await response.clone().json())).toBe(200)
   const { preview } = await response.json()

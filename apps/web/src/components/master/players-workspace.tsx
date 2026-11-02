@@ -15,6 +15,7 @@ import {
 } from './player-correction-form'
 import styles from './players-workspace.module.css'
 import { MasterHelp } from './master-help'
+import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 
 async function request<T>(body: Record<string, unknown>): Promise<T> {
   const response = await fetch('/api/master/players', {
@@ -244,11 +245,7 @@ export function PlayersWorkspace({
               <div>
                 <dt>Support action</dt>
                 <dd>
-                  {player.facts.build.supportActionId === 'basic.guard'
-                    ? 'Guard'
-                    : player.facts.build.supportActionId === 'basic.recover'
-                      ? 'Recover HP'
-                      : 'Recover MP'}
+                  {pv1fSkillByActionId(player.facts.build.supportActionId)?.name ?? 'Unavailable'}
                 </dd>
               </div>
               <div>

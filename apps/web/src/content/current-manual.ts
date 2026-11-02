@@ -45,7 +45,7 @@ const overrides: Record<string, ManualArticle> = {
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
           'Explicitly start Short, Medium, or Extended Passive Training and receive a bounded server-timed Character XP reward when that block completes.',
-          'Enter Battle Hall for movement, Basic Attack, Guard, Recover, final facing, Recruit AI, combat logs, and practice battles.',
+          'Enter Battle Hall for movement, Basic Attack, Support actions, final facing, Recruit AI, combat logs, and practice battles.',
         ],
       },
       {
@@ -225,7 +225,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'combat',
         title: 'Can I play tactical combat?',
         paragraphs: [
-          'Yes. Battle Hall currently exposes the first player-facing tactical slice: movement, Basic Attack, Guard, Recover, final facing, AI opponent turns, combat logs, and practice-battle completion. It remains a focused preview rather than the final breadth of AUREVANE combat.',
+          'Yes. Battle Hall currently exposes the first player-facing tactical slice: movement, Basic Attack, Support actions, final facing, AI opponent turns, combat logs, and practice-battle completion. It remains a focused preview rather than the final breadth of AUREVANE combat.',
         ],
       },
       {
@@ -278,7 +278,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'action-economy-term',
         title: 'Action Economy / AP',
         paragraphs: [
-          `The current turn budget. A movement terrain-cost point costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP; Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Movement also obeys the character’s remaining Movement allowance.`,
+          `The current turn budget. A movement terrain-cost point costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP; Basic Attack costs 30 AP; HP Recovery and MP Recovery cost 50 AP. Movement also obeys the character’s remaining Movement allowance.`,
         ],
       },
       {
@@ -312,7 +312,7 @@ const battleHallArticle: ManualArticle = {
   title: 'Battle Hall & Action Economy',
   summary: 'How the current practice battles, AP spending, previews, facing, and combat log work.',
   category: 'Combat',
-  lastUpdated: '2026-10-07',
+  lastUpdated: '2026-11-02',
   rulesVersion: 'Current AP and character mobility rules',
   body: [
     {
@@ -378,10 +378,10 @@ const battleHallArticle: ManualArticle = {
       id: 'protection-and-position',
       title: 'Protection, concealment and displacement',
       paragraphs: [
-        'Damage Up increases outgoing damage by its saved potency. Healing Down reduces HP and MP recovery by its saved potency, including periodic recovery. Blindside activates only on a successful side or rear Skill hit with a modifier above 100%; front hits and misses do not grant or refresh it. Its side and rear percentages are set separately for each Skill; front hits are unchanged. It expires at the end of its holder’s turn and does not enhance Basic Attack. Master can edit each Skill’s side and rear Blindside percentages. Perfect Opening uses one power-20 hit plus Blindside. Summon Skills create actual allied summon combatants with their own turns.',
+        'Damage Up increases outgoing damage by its saved potency. Healing Down reduces HP and MP recovery by its saved potency, including periodic recovery. Blindside activates only on a successful side or rear Skill hit with a modifier above 100%; front hits and misses do not grant or refresh it. Its side and rear percentages are set separately for each Skill; front hits are unchanged. It expires at the end of its holder’s turn and does not enhance Basic Attack. Master can edit each Skill’s side and rear Blindside percentages. Perfect Opening uses one power-20 hit plus Blindside. Invocation creates an allied summon combatant with its own turns; other current Skills cannot summon.',
         'Invisible prevents ordinary hostile direct unit selection. Ground effects and Reveal can still hit the concealed unit. Taking positive damage or making a damaging command breaks concealment, including a missed basic attack.',
         'Reveal can target Invisible and Covert units. A successful hit against either removes both and applies Revealed for the set duration. Incoming attacks then have 100% accuracy and deal the saved extra damage.',
-        'Reflect returns a set percentage of damage received to its source. Physical Reflect responds to Physical damage, Magical Reflect to Mystic damage, and Full Reflect to both, including damage over time with a known source. Potency may exceed 100%. Reflected damage never triggers another Reflect.',
+        'Reflect returns a set percentage of actual HP damage and damage absorbed by Barrier to its source. Historical encounters retain their captured HP-only rule. Physical Reflect responds to Physical damage, Magical Reflect to Mystic damage, and Full Reflect to both, including damage over time with a known source. Potency may exceed 100%. Reflected damage never triggers another Reflect.',
         'Push moves the target away; Pull moves it toward the caster without entering the caster’s tile. Each follows its authored tile distance and stops at board edges, obstacles, living occupants, illegal elevation or Rooted. No additional status is applied, and resources are not refunded. The preview and Chronicle show the actual movement.',
       ],
     },
@@ -389,8 +389,11 @@ const battleHallArticle: ManualArticle = {
       id: 'ap',
       title: 'Action Economy',
       paragraphs: [
-        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Every ordinary walking tile entered spends 1 Movement, including rough or Frozen Ground; terrain, Haste and Slow change AP cost, not the number of Movement steps. Walking obeys your remaining Movement allowance, even when AP remains. Skill Move is independent: it uses the Skill’s authored distance and total cost without spending ordinary Movement. Movement starts at 2 and caps at 4; Jump starts at 0 and caps at 3.`,
-        'Guard has its own two-owner-turn cooldown. HP Recovery and MP Recovery share a separate two-turn cooldown. A successful use starts that action’s cooldown; server turn progression makes it available again. Recovery immediately restores 10% of the maximum resource, capped at its maximum.',
+        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack costs 30 AP; HP Recovery and MP Recovery cost 50 AP. Every ordinary walking tile entered spends 1 Movement, including rough or Frozen Ground; terrain, Haste and Slow change AP cost, not the number of Movement steps. Walking obeys your remaining Movement allowance, even when AP remains. Skill Move is independent: it uses the Skill’s authored distance and total cost without spending ordinary Movement. Movement starts at 2 and caps at 4; Jump starts at 0 and caps at 3.`,
+        'Choose one Support action: HP Recovery, MP Recovery, Pilfer, Fleetstep or Invocation. HP and MP Recovery share a two-turn cooldown and restore 10% of the maximum resource.',
+        'Pilfer costs 15 AP, deals 4 base Pierce damage to an adjacent enemy and has a one-turn cooldown. Its Loot tag grants no items, currency or rewards. Fleetstep costs 30 AP and moves up to four extra legal tiles without spending ordinary Movement, with a two-turn cooldown.',
+        'Invocation costs 45 AP and 10 MP, has a four-turn cooldown, and summons Vesper, a silver-blue moon drake, for four completed summon turns. Only one Invocation summon may be active or pending per character.',
+        'Guard is retired as a Skill; defensive status effects remain available. Captured reports show the actual authored values.',
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
       ],
     },

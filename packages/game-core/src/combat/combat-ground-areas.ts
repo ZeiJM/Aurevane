@@ -32,16 +32,32 @@ import { isGroundVisualPresetId, type GroundVisualPresetId } from './combat-grou
 import type { GridPosition } from './board'
 import type { StatDrivenCombatProfile } from './stat-driven-combat'
 
+export const COMBAT_GROUND_TARGET_TEAMS = [
+  'all',
+  'all-except-self',
+  'enemies',
+  'allies',
+  'self',
+  'allies-except-self',
+] as const
+export type CombatGroundTargetTeams = (typeof COMBAT_GROUND_TARGET_TEAMS)[number]
+
 export interface CombatGroundAreaDefinition {
+  /** Current profiles place immediately unless field timing is explicit. */
+  placementTimingVersion?: 1
+  /** Explicit field membership is relative to the captured source; omission retains history. */
+  targetTeams?: CombatGroundTargetTeams
   contactPolicyVersion?: 1
   durationRounds: number
   visualPresetId: GroundVisualPresetId
   /** Original effect ordinals keep entry payloads aligned with authored cast effects. */
   entryEffectOrdinals: readonly number[]
-  /** Omitted uses the pinned Ground timing policy, defaulting to next round. */
+  /** Explicit field timing overrides current Instant placement; historical omission uses the pinned Ground policy. */
   timing?: 'instant' | 'next-round' | 'delayed'
 }
 export interface CombatGroundAreaInstance {
+  placementTimingVersion?: 1
+  targetTeams?: CombatGroundTargetTeams
   contactPolicyVersion?: 1
   sourceTags?: readonly string[]
   accuracy?: Pick<
@@ -127,6 +143,10 @@ export function validateCombatGroundAreaDefinition(action: GroundAuthoring): voi
     )
   if (ground.contactPolicyVersion !== undefined && ground.contactPolicyVersion !== 1)
     throw new TypeError('Unsupported Ground contact policy.')
+  if (ground.placementTimingVersion !== undefined && ground.placementTimingVersion !== 1)
+    throw new TypeError('Unsupported Ground placement timing version.')
+  if (ground.targetTeams !== undefined && !COMBAT_GROUND_TARGET_TEAMS.includes(ground.targetTeams))
+    throw new TypeError('Invalid Ground affected teams.')
   if (!isGroundVisualPresetId(ground.visualPresetId))
     throw new TypeError('Ground visual must use a registered preset.')
   if (ground.timing !== undefined && !['instant', 'next-round', 'delayed'].includes(ground.timing))
@@ -194,6 +214,10 @@ export function createCombatGroundArea(
   const area: CombatGroundAreaInstance = JSON.parse(
     JSON.stringify({
       id: `ground.area.${ordinal}`,
+      ...(ground.placementTimingVersion !== undefined
+        ? { placementTimingVersion: ground.placementTimingVersion }
+        : {}),
+      ...(ground.targetTeams !== undefined ? { targetTeams: ground.targetTeams } : {}),
       ...(state.groundContactPolicyVersion === 1
         ? {
             contactPolicyVersion: 1,
@@ -576,6 +600,10 @@ export function validateCombatGroundAreas(
             }
           : {}),
         groundArea: {
+          ...(area.placementTimingVersion !== undefined
+            ? { placementTimingVersion: area.placementTimingVersion }
+            : {}),
+          ...(area.targetTeams !== undefined ? { targetTeams: area.targetTeams } : {}),
           durationRounds: area.expiresAtRound - area.activationRound,
           visualPresetId: area.visualPresetId,
           entryEffectOrdinals: area.entryEffects.map(
@@ -719,7 +747,8 @@ export function resolveCombatGroundEntry(
       area.steamTiles?.some((tile) => tile.x === position.x && tile.y === position.y) ||
       area.activationRound > next.tactical.battle.round ||
       !area.tiles.some((tile) => tile.x === position.x && tile.y === position.y) ||
-      (area.contactPolicyVersion !== 1 && !groundAreaAllowsCombatant(area, unit))
+      ((area.targetTeams !== undefined || area.contactPolicyVersion !== 1) &&
+        !groundAreaAllowsCombatant(area, unit))
     )
       continue
     const claim =
@@ -740,6 +769,24 @@ export function groundAreaAllowsCombatant(
   unit: CombatEncounterState['tactical']['battle']['combatants'][number],
 ): boolean {
   const friendly = unit.teamId === area.sourceTeamId
+  if (area.targetTeams !== undefined) {
+    switch (area.targetTeams) {
+      case 'all':
+        return true
+      case 'all-except-self':
+        return unit.id !== area.sourceCombatantId
+      case 'enemies':
+        return !friendly
+      case 'allies':
+        return friendly
+      case 'self':
+        return unit.id === area.sourceCombatantId
+      case 'allies-except-self':
+        return friendly && unit.id !== area.sourceCombatantId
+      default:
+        return false
+    }
+  }
   if (
     (area.target.teamPolicy === 'enemy' && friendly) ||
     (area.target.teamPolicy === 'ally' && !friendly) ||

@@ -1,3 +1,4 @@
+import { combatActionDealsDamage } from './combat-endure'
 import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import type { AbilityBehavior } from './combat-definition'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
@@ -195,19 +196,12 @@ export function combatReversalAttackIssue(
   >,
 ): string | undefined {
   const offensive =
-    action.tags.includes('attack') ||
-    action.effects.some((effect) => effect.type === 'damage' && effect.recipient !== 'actor')
+    action.tags.includes('attack') || combatActionDealsDamage(state, actorId, action)
   if (!offensive) return undefined
   if (hasArmedCombatReversal(state, actorId))
     return 'Offensive attacks are unavailable while Reversal is armed.'
-  if (
-    hasCombatReversalStrain(state, actorId) &&
-    !(
-      action.sourceType === 'basic-attack' &&
-      (action.nativeBasicAttackCommand === true || action.id === 'basic.attack.unarmed.basic')
-    )
-  )
-    return 'Attack Skills are unavailable during Reversal Strain.'
+  if (hasCombatReversalStrain(state, actorId))
+    return 'Offensive attacks are unavailable during Reversal Strain.'
   return undefined
 }
 export function recordCombatReversalOffense(

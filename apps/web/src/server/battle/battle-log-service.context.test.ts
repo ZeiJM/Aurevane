@@ -1,3 +1,4 @@
+import { historicalBasicSkills } from '../../../../../packages/game-core/src/combat/combat-basic-history.test-utils'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
 import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
@@ -107,82 +108,84 @@ async function getLog(
 }
 
 describe('recorded Battle Log Skill context', () => {
-  it.each(defaultBasicSkills().filter((basic) => basic.id !== 'basic.move'))(
-    'uses the full captured $id record without resolving current content',
-    async (original) => {
-      const basic = {
-        ...original,
-        contentVersion: 12,
-        name: `Recorded ${original.name}`,
-        description: 'Captured Basic explanation.',
-        battleText: '{actor} invokes {ability}.',
-      }
-      const source = captureCombatAbilitySource({
-        schemaVersion: 1,
-        sourceInstanceId: `private-basic-${basic.id}`,
-        ownerCombatantId: ACTOR,
-        abilityId: basic.id,
-        contentVersion: 12,
-        sourceKind: 'basic',
-        tags: basic.tags,
-        definition: basic.ability,
-        basic,
-      })
-      const actionId = basic.id === 'unarmed.basic' ? PV1F_BASIC_ATTACK_ID : basic.id
-      const resolve = vi.fn(async () => null)
-      const result = await getLog(
-        [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
-        resolve,
-        { capturedAbilitySources: [source] },
-      )
-      expect(result.entries[0]?.actionContext).toMatchObject({
-        contentId: basic.id,
-        contentVersion: 12,
-        name: basic.name,
-        description: basic.description,
-        battleText: basic.battleText,
-      })
-      expect(formatBattleLogForClipboard(result.entries)).toContain(basic.name)
-      expect(resolve).not.toHaveBeenCalled()
-      expect(JSON.stringify(result)).not.toMatch(
-        /private-basic|sourceInstanceId|behaviors|accuracy/,
-      )
-      const hidden = await getLog(
-        [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
-        resolve,
-        { hidden: true, capturedAbilitySources: [source] },
-      )
-      expect(JSON.stringify(hidden)).not.toContain(basic.name)
-      const other = await getLog(
-        [record({ event: 'combat_action_used', actorId: OTHER, actionId })],
-        resolve,
-        { capturedAbilitySources: [source] },
-      )
-      expect(other.entries[0]?.actionContext).toBeUndefined()
-      const ambiguous = await getLog(
-        [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
-        resolve,
-        {
-          capturedAbilitySources: [
-            source,
-            captureCombatAbilitySource({
-              ...source,
-              sourceInstanceId: 'other-capture',
-              contentVersion: 13,
-              basic: { ...basic, contentVersion: 13 },
-            }),
-          ],
-        },
-      )
-      expect(ambiguous.entries[0]?.actionContext).toBeUndefined()
-      const withoutBuild = await getLog(
-        [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
-        resolve,
-        { legacy: true, capturedAbilitySources: [source] },
-      )
-      expect(withoutBuild.entries[0]?.actionContext?.name).toBe(basic.name)
-    },
-  )
+  it.each(
+    [
+      ...historicalBasicSkills(),
+      ...defaultBasicSkills().filter((basic) =>
+        ['basic.pilfer', 'basic.fleetstep', 'basic.invocation'].includes(basic.id),
+      ),
+    ].filter((basic) => basic.id !== 'basic.move'),
+  )('uses the full captured $id record without resolving current content', async (original) => {
+    const basic = {
+      ...original,
+      contentVersion: 12,
+      name: `Recorded ${original.name}`,
+      description: 'Captured Basic explanation.',
+      battleText: '{actor} invokes {ability}.',
+    }
+    const source = captureCombatAbilitySource({
+      schemaVersion: 1,
+      sourceInstanceId: `private-basic-${basic.id}`,
+      ownerCombatantId: ACTOR,
+      abilityId: basic.id,
+      contentVersion: 12,
+      sourceKind: 'basic',
+      tags: basic.tags,
+      definition: basic.ability,
+      basic,
+    })
+    const actionId = basic.id === 'unarmed.basic' ? PV1F_BASIC_ATTACK_ID : basic.id
+    const resolve = vi.fn(async () => null)
+    const result = await getLog(
+      [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
+      resolve,
+      { capturedAbilitySources: [source] },
+    )
+    expect(result.entries[0]?.actionContext).toMatchObject({
+      contentId: basic.id,
+      contentVersion: 12,
+      name: basic.name,
+      description: basic.description,
+      battleText: basic.battleText,
+    })
+    expect(formatBattleLogForClipboard(result.entries)).toContain(basic.name)
+    expect(resolve).not.toHaveBeenCalled()
+    expect(JSON.stringify(result)).not.toMatch(/private-basic|sourceInstanceId|behaviors|accuracy/)
+    const hidden = await getLog(
+      [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
+      resolve,
+      { hidden: true, capturedAbilitySources: [source] },
+    )
+    expect(JSON.stringify(hidden)).not.toContain(basic.name)
+    const other = await getLog(
+      [record({ event: 'combat_action_used', actorId: OTHER, actionId })],
+      resolve,
+      { capturedAbilitySources: [source] },
+    )
+    expect(other.entries[0]?.actionContext).toBeUndefined()
+    const ambiguous = await getLog(
+      [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
+      resolve,
+      {
+        capturedAbilitySources: [
+          source,
+          captureCombatAbilitySource({
+            ...source,
+            sourceInstanceId: 'other-capture',
+            contentVersion: 13,
+            basic: { ...basic, contentVersion: 13 },
+          }),
+        ],
+      },
+    )
+    expect(ambiguous.entries[0]?.actionContext).toBeUndefined()
+    const withoutBuild = await getLog(
+      [record({ event: 'combat_action_used', actorId: ACTOR, actionId })],
+      resolve,
+      { legacy: true, capturedAbilitySources: [source] },
+    )
+    expect(withoutBuild.entries[0]?.actionContext?.name).toBe(basic.name)
+  })
   it.each([
     { label: 'typed fallback', notes: undefined, description: 'Heal [17]' },
     {
@@ -213,7 +216,7 @@ describe('recorded Battle Log Skill context', () => {
           ],
         }),
         effectDescriptions: notes,
-        summonProfile: resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile,
+        summonProfile: resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile,
       })
       const resolve = vi.fn(async (id: string, version: number) =>
         id === SKILL && version === 12 ? pinned : definition({ contentVersion: 99 }),
@@ -1127,7 +1130,7 @@ describe('in-battle Skill text', () => {
   it.each(['native', 'canonical', 'canonical-without-spawn'] as const)(
     'uses the exact %s spawned summon ability name and editable text after the summon expires',
     async (kind) => {
-      const parent = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+      const parent = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
       const ability = {
         ...parent.summonProfile!.abilities[1]!,
         ...(kind === 'canonical' ? { name: 'Recorded Mend' } : {}),
@@ -1235,7 +1238,7 @@ describe('departed summon identity', () => {
   it.each(['summon_expired', 'summon_defeated'])(
     'names movement, incoming attacks and the %s receipt without an ability cast',
     async (eventType) => {
-      const parent = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+      const parent = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
       const summonId = 'summon:recorded'
       const records = [
         record(
@@ -1361,13 +1364,11 @@ it('Chronicle and Copy Full Log retain recorded Suppress percentage and lifetime
     ],
     async () => definition(),
   )
-  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain(
-    'outgoing direct damage by 25.34%',
-  )
+  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain('direct damage by 25.34%')
   const copied = formatBattleLogForClipboard(result.entries)
-  expect(copied).toContain('outgoing direct damage by 25.34%')
-  expect(copied).toContain('Suppress refreshes and reduces')
-  expect(copied).toContain('outgoing direct damage by 40%')
+  expect(copied).toContain('direct damage by 25.34%')
+  expect(copied).toContain('Suppress refreshes and cuts')
+  expect(copied).toContain('direct damage by 40%')
   expect(copied).toContain('2 turns')
 })
 
@@ -1464,9 +1465,7 @@ it('admits only identity-matched valid committed strength, without interpreting 
     ],
     async () => definition(),
   )
-  expect(formatBattleLogForClipboard(result.entries)).toContain(
-    'outgoing direct damage to 0 (999% reduction)',
-  )
+  expect(formatBattleLogForClipboard(result.entries)).toContain('direct damage by 999%')
   expect(formatBattleLogForClipboard(result.entries)).not.toMatch(/-899|999% less/)
 })
 

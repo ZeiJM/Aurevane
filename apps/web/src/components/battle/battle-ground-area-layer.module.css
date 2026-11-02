@@ -47,6 +47,451 @@
   background: radial-gradient(circle, transparent 40%, var(--ground-fill) 65%, transparent 80%);
   animation: groundPulse 2.6s ease-out infinite;
 }
+/* Each authored material owns its texture and motion; logical effect glyphs stay separate. */
+.layer[data-ground-area-preset='water'] {
+  --ground-color: #78cbe39c;
+  --ground-fill: #258ca324;
+}
+.layer[data-ground-area-preset='water'] i {
+  background: repeating-radial-gradient(
+    ellipse at 30% 110%,
+    transparent 0 9px,
+    #92dce54d 10px 11px,
+    transparent 13px 22px
+  );
+  background-size: 130% 65%;
+  animation: groundWater 6s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='ripples'] {
+  --ground-color: #97ddd79c;
+  --ground-fill: #399da51c;
+}
+.layer[data-ground-area-preset='ripples'] i {
+  inset: 5%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle,
+    transparent 0 8px,
+    #b9efe466 9px 10px,
+    transparent 11px 19px
+  );
+  animation: groundRipples 4.8s ease-out infinite;
+}
+.layer[data-ground-area-preset='lightning'] {
+  --ground-color: #d2d48e9c;
+  --ground-fill: #b7ad3e1c;
+}
+.layer[data-ground-area-preset='lightning'] i {
+  inset: 6%;
+  background: linear-gradient(160deg, #fff4b899, #b4c9ec4d);
+  clip-path: polygon(
+    54% 0,
+    36% 39%,
+    48% 39%,
+    29% 78%,
+    49% 58%,
+    43% 100%,
+    67% 45%,
+    53% 48%,
+    63% 21%,
+    79% 28%,
+    67% 15%,
+    75% 0
+  );
+  animation: groundLightning 3.8s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='poison'] {
+  --ground-color: #b1d2769c;
+  --ground-fill: #6d972a24;
+}
+.layer[data-ground-area-preset='poison'] i {
+  background:
+    radial-gradient(circle at 25% 75%, transparent 3px, #bad57866 4px 5px, transparent 6px),
+    radial-gradient(circle at 65% 30%, transparent 2px, #a0c45c66 3px 4px, transparent 5px);
+  background-size: 70% 75%;
+  animation: groundPoison 5.4s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='healing'] {
+  --ground-color: #91d8a59c;
+  --ground-fill: #3aa26820;
+}
+.layer[data-ground-area-preset='healing'] i {
+  inset: -20%;
+  background:
+    linear-gradient(#c1efd573 0 0) 26% 70% / 2px 8px,
+    linear-gradient(#c1efd573 0 0) 26% 70% / 8px 2px,
+    linear-gradient(#c1efd55c 0 0) 74% 24% / 2px 6px,
+    linear-gradient(#c1efd55c 0 0) 74% 24% / 6px 2px;
+  background-repeat: no-repeat;
+  animation: groundHealing 4.6s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='sand'] {
+  --ground-color: #d8ba839c;
+  --ground-fill: #ba8c4020;
+}
+.layer[data-ground-area-preset='sand'] i {
+  background: repeating-radial-gradient(
+    ellipse at 50% 150%,
+    transparent 0 7px,
+    #dcc18b4d 8px 9px,
+    transparent 11px 18px
+  );
+  background-size: 80% 50%;
+  animation: groundSand 9s linear infinite;
+}
+.layer[data-ground-area-preset='wind'] {
+  --ground-color: #bbd6cc9c;
+  --ground-fill: #9db9a614;
+}
+.layer[data-ground-area-preset='wind'] i {
+  inset: 15% 6%;
+  border: 2px solid transparent;
+  border-top-color: #d0e7d980;
+  border-bottom-color: #b5d5ca59;
+  border-radius: 50%;
+  background: none;
+  animation: groundWind 7s linear infinite;
+}
+.layer[data-ground-area-preset='vines'] {
+  --ground-color: #95ba779c;
+  --ground-fill: #4b7c2924;
+}
+.layer[data-ground-area-preset='vines'] i {
+  inset: 12%;
+  background:
+    repeating-linear-gradient(
+      74deg,
+      transparent 0 12px,
+      #9ec67766 13px 14px,
+      transparent 15px 24px
+    ),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 18px,
+      #bdd98c4d 19px 22px,
+      transparent 23px 30px
+    );
+  border-radius: 40% 10%;
+  transform-origin: 50% 100%;
+  animation: groundVines 8s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='shadow'] {
+  --ground-color: #9d88b09c;
+  --ground-fill: #392b571f;
+}
+.layer[data-ground-area-preset='shadow'] i {
+  background:
+    radial-gradient(ellipse at 25% 35%, #9180ae59, transparent 45%),
+    radial-gradient(ellipse at 75% 65%, #31213d80, transparent 50%);
+  animation: groundShadow 12s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='lava'] {
+  --ground-color: #e9a06a9c;
+  --ground-fill: #bc452322;
+}
+.layer[data-ground-area-preset='lava'] i {
+  inset: 0;
+  background:
+    linear-gradient(
+      32deg,
+      transparent 28%,
+      #ed9c7059 29% 31%,
+      transparent 32% 68%,
+      #d8774159 69% 71%,
+      transparent 72%
+    ),
+    linear-gradient(112deg, transparent 40%, #ffd08b73 41% 43%, transparent 44%);
+  background-size: 75% 85%;
+  animation: groundLava 7.5s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='rain'] {
+  --ground-color: #8dafcd9c;
+  --ground-fill: #49799820;
+}
+.layer[data-ground-area-preset='rain'] i {
+  background: repeating-linear-gradient(
+    110deg,
+    transparent 0 13px,
+    #b1d8ec66 14px 15px,
+    transparent 16px 25px
+  );
+  background-size: 80% 45%;
+  animation: groundRain 3.6s linear infinite;
+}
+.layer[data-ground-area-preset='snow'] {
+  --ground-color: #c7dbe49c;
+  --ground-fill: #a4c1d21a;
+}
+.layer[data-ground-area-preset='snow'] i {
+  background:
+    radial-gradient(circle at 20% 25%, #e1effa99 0 1px, transparent 2px),
+    radial-gradient(circle at 72% 65%, #e1effa80 0 1.5px, transparent 2.5px);
+  background-size: 55% 60%;
+  animation: groundSnow 9s linear infinite;
+}
+.layer[data-ground-area-preset='holy-light'] {
+  --ground-color: #e0cb8c9c;
+  --ground-fill: #dcc0671c;
+}
+.layer[data-ground-area-preset='holy-light'] i {
+  background: repeating-conic-gradient(
+    from 0deg,
+    transparent 0deg 36deg,
+    #f9df9b40 42deg,
+    transparent 48deg 90deg
+  );
+  border-radius: 50%;
+  animation: groundHolyLight 18s linear infinite;
+}
+.layer[data-ground-area-preset='void'] {
+  --ground-color: #aa9bc89c;
+  --ground-fill: #51447b20;
+}
+.layer[data-ground-area-preset='void'] i {
+  inset: 10%;
+  border: 2px dashed #b4a5d280;
+  border-radius: 50%;
+  background: radial-gradient(circle, #30294240 20%, transparent 50%);
+  box-shadow: inset 0 0 0 7px #b4a5d21a;
+  animation: groundVoid 8.5s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='runes'] {
+  --ground-color: #beaae09c;
+  --ground-fill: #8565ad20;
+}
+.layer[data-ground-area-preset='runes'] i {
+  inset: 19%;
+  border: 2px dashed #d0b9f080;
+  background:
+    linear-gradient(90deg, transparent 47%, #c6a9e659 48% 51%, transparent 52%),
+    linear-gradient(0deg, transparent 47%, #c6a9e659 48% 51%, transparent 52%);
+  outline: 1px solid #c6a9e64d;
+  outline-offset: 4px;
+  animation: groundRunes 16s linear infinite;
+}
+.layer[data-ground-area-preset='crystals'] {
+  --ground-color: #9ed6d29c;
+  --ground-fill: #6ba9c01c;
+}
+.layer[data-ground-area-preset='crystals'] i {
+  inset: 4%;
+  background: conic-gradient(
+    from 45deg at 50% 50%,
+    transparent 0deg 80deg,
+    #b3efe966 82deg 90deg,
+    transparent 92deg 170deg,
+    #afc9e966 172deg 180deg,
+    transparent 182deg 260deg,
+    #b3efe966 262deg 270deg,
+    transparent 272deg 350deg,
+    #afc9e966 352deg
+  );
+  background-size: 22px 28px;
+  animation: groundCrystals 6.5s ease-in-out infinite;
+}
+.layer[data-ground-area-preset='spores'] {
+  --ground-color: #c6c28e9c;
+  --ground-fill: #8589571c;
+}
+.layer[data-ground-area-preset='spores'] i {
+  background:
+    radial-gradient(circle at 22% 35%, #e5dca080 0 2px, transparent 4px),
+    radial-gradient(circle at 70% 65%, #d7d49b66 0 1px, transparent 3px),
+    radial-gradient(ellipse at 55% 80%, #b7bb7933, transparent 60%);
+  background-size: 85% 75%;
+  animation: groundSpores 11s ease-in-out infinite;
+}
+@keyframes groundWater {
+  0%,
+  100% {
+    transform: translateX(-6%) skewY(-3deg);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateX(6%) skewY(3deg);
+    opacity: 0.8;
+  }
+}
+@keyframes groundRipples {
+  from {
+    transform: scale(0.6);
+    opacity: 0.25;
+  }
+  35% {
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.3);
+    opacity: 0.1;
+  }
+}
+@keyframes groundLightning {
+  0%,
+  100% {
+    transform: translate(-2%, 2%) scale(0.94);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translate(2%, -2%) scale(1.02);
+    opacity: 0.75;
+  }
+}
+@keyframes groundPoison {
+  0%,
+  100% {
+    transform: translateY(8%) scale(0.9);
+    opacity: 0.3;
+  }
+  60% {
+    transform: translateY(-12%) scale(1.08);
+    opacity: 0.65;
+  }
+}
+@keyframes groundHealing {
+  from {
+    transform: translateY(15%);
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(-18%);
+    opacity: 0.15;
+  }
+}
+@keyframes groundSand {
+  from {
+    background-position: 0 0;
+    transform: translateY(1%);
+  }
+  to {
+    background-position: 80% 50%;
+    transform: translateY(-1%);
+  }
+}
+@keyframes groundWind {
+  from {
+    transform: rotate(0deg) scale(0.8);
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+  }
+  to {
+    transform: rotate(360deg) scale(0.8);
+  }
+}
+@keyframes groundVines {
+  0%,
+  100% {
+    transform: scaleY(0.8) skewX(-4deg);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1.05) skewX(4deg);
+    opacity: 0.75;
+  }
+}
+@keyframes groundShadow {
+  0%,
+  100% {
+    transform: rotate(-12deg) translateX(-5%) scale(0.9);
+    opacity: 0.5;
+  }
+  50% {
+    transform: rotate(12deg) translateX(5%) scale(1.1);
+    opacity: 0.8;
+  }
+}
+@keyframes groundLava {
+  0%,
+  100% {
+    opacity: 0.35;
+    filter: saturate(0.8);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    filter: saturate(1.2);
+    transform: scale(1.04);
+  }
+}
+@keyframes groundRain {
+  from {
+    transform: translate(4%, -15%);
+    opacity: 0.4;
+  }
+  to {
+    transform: translate(-4%, 15%);
+    opacity: 0.65;
+  }
+}
+@keyframes groundSnow {
+  from {
+    transform: translate(-6%, -12%) rotate(-4deg);
+    opacity: 0.65;
+  }
+  to {
+    transform: translate(6%, 12%) rotate(4deg);
+    opacity: 0.45;
+  }
+}
+@keyframes groundHolyLight {
+  from {
+    transform: rotate(0deg);
+    opacity: 0.65;
+  }
+  to {
+    transform: rotate(360deg);
+    opacity: 0.65;
+  }
+}
+@keyframes groundVoid {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.7;
+  }
+  60% {
+    transform: rotate(-140deg) scale(0.6);
+    opacity: 0.3;
+  }
+}
+@keyframes groundRunes {
+  from {
+    transform: rotate(45deg);
+    opacity: 0.6;
+  }
+  to {
+    transform: rotate(405deg);
+    opacity: 0.6;
+  }
+}
+@keyframes groundCrystals {
+  0%,
+  100% {
+    transform: translateY(2%);
+    filter: brightness(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(-2%);
+    filter: brightness(1.15);
+    opacity: 0.75;
+  }
+}
+@keyframes groundSpores {
+  0%,
+  100% {
+    transform: translate(-4%, 5%) rotate(-8deg);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(5%, -6%) rotate(8deg);
+    opacity: 0.7;
+  }
+}
+
 .layer b {
   position: absolute;
   right: 3px;

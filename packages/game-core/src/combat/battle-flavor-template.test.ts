@@ -1,4 +1,8 @@
-import { latestEnabledMatureSkills, validateMatureSkillDefinition } from './mature-skills'
+import {
+  latestEnabledMatureSkills,
+  resolveMatureSkillVersion,
+  validateMatureSkillDefinition,
+} from './mature-skills'
 import { validateSummonProfileDefinition } from './summon-content'
 import { describe, expect, it } from 'vitest'
 import {
@@ -19,7 +23,7 @@ describe('versioned battle flavor templates', () => {
     }
   })
   it('rejects executable or unknown-token battle text in Skills and summon abilities', () => {
-    const skill = latestEnabledMatureSkills().find((item) => item.summonProfile)!
+    const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
     expect(
       validateMatureSkillDefinition({ ...skill, battleText: '<script>bad</script>' }),
     ).toContain('battleText')

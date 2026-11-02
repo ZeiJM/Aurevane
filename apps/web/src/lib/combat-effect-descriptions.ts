@@ -4,7 +4,7 @@ import type { CombatEndureProfile } from '@aurevane/game-core/combat/actions'
 export function endureDescription(profile: CombatEndureProfile): string {
   const target =
     profile.targetTeams === 'enemies' ? 'enemy' : profile.targetTeams === 'allies' ? 'ally' : 'unit'
-  return `Blocks Basic Attack and damage-dealing manual Skills. Automatic reactions and already-pending casts still resolve. When Endure ends naturally, each living ${target} within ${profile.radiusTiles} ${profile.radiusTiles === 1 ? 'tile' : 'tiles'} of your current position takes ${profile.releaseBasisPoints / 100}% of the HP damage you received. HP costs and Barrier absorption do not count. The burst uses Barrier without applying Defense again. Endure cannot be dispelled. Defeat cancels the burst. Recasting starts a new damage window without releasing the old one.`
+  return `Cannot attack. When Endure expires, each ${target} within ${profile.radiusTiles} ${profile.radiusTiles === 1 ? 'tile' : 'tiles'} takes ${profile.releaseBasisPoints / 100}% of the HP damage you received. Cannot be dispelled; defeat cancels the burst.`
 }
 
 /** Generic tag help describes the rule; individual Skill readers supply its saved values. */
@@ -15,13 +15,14 @@ const descriptions: Readonly<Record<string, string>> = {
     'Guarantees a critical hit when the enemy has more active debuffs than the chosen threshold. The attack must still hit. Pierce cannot critically hit.',
   spike: 'Doubles the damage of this Skill’s critical hits. Pierce cannot critically hit.',
   ruin: 'In current battles, the first landed hit gains the chosen percentage per consumable debuff captured on its target, then consumes those debuffs. Later hits cannot reuse that bonus. Debuffs applied afterward remain. Historical battles keep their recorded Ruin rules.',
+  loot: 'An inert Pilfer marker. It currently grants no items, currency or rewards.',
   damage: 'Deals damage using the Skill’s power and Physical or Mystic damage type.',
   pierce:
     'Breaks Barriers and ignores the chosen share of equipment Armor. Physical and Mystic Defense still apply. Pierce cannot critically hit.',
   counter:
-    'Returns the chosen percentage of incoming damage to its source. Choose Physical Reflect, Magical Reflect or Full Reflect, its potency and duration.',
+    'Returns the chosen percentage of incoming damage to its source, counting HP loss and damage absorbed by Barrier. Choose Physical Reflect, Magical Reflect or Full Reflect, its potency and duration.',
   endure:
-    'Prevents damage-dealing manual actions while active. When it expires naturally, releases the chosen share of HP damage received to each eligible target within the saved radius. Endure cannot be dispelled. Defeat ends it without a burst; recasting replaces the saved damage window.',
+    'Locks attacks while storing HP damage received. On expiry, releases the chosen percentage to nearby targets. Cannot be dispelled; defeat cancels the burst.',
   vengeance: 'Deals damage based on damage previously received, within its saved limits.',
   'hp-recovery': 'Restores a percentage of the target’s maximum HP.',
   'mp-recovery':

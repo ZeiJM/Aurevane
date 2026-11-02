@@ -62,6 +62,17 @@ it('retains the exact legacy preset projection and excludes expired or completed
   expect(projectPublicCombatGroundAreas([area], 2, 'completed')).toEqual([])
 })
 
+it('projects explicit Ground membership without revealing the captured source', () => {
+  const captured = {
+    ...area,
+    targetTeams: 'allies-except-self' as const,
+    sourceCombatantId: 'private.actor',
+  }
+  expect(projectPublicCombatGroundAreas([captured], 2, 'active')).toEqual([
+    { ...area, targetTeams: 'allies-except-self' },
+  ])
+})
+
 it('projects retained Vengeance through Damage while keeping its Pierce variants distinct', () => {
   const damage: CombatEffectDefinition = {
     type: 'damage',
@@ -150,4 +161,24 @@ it('retains the safe preset fallback if no captured effect has a registered visu
     ],
   }
   expect(projectPublicCombatGroundAreas([captured], 2, 'active')).toEqual([area])
+})
+
+it('describes current immediate placement without falsely claiming a next-round field', async () => {
+  const { combatGroundAreaDescription } = await import('./combat-ground-visuals')
+  const profile = {
+    durationRounds: 3,
+    contactPolicyVersion: 1 as const,
+    placementTimingVersion: 1 as const,
+    targetTeams: 'allies' as const,
+  }
+  const current = combatGroundAreaDescription(profile, 'next-round')
+  expect(current).toContain('starting immediately')
+  expect(current).not.toContain('starting next round')
+  expect(current).toContain('Affects allies, including the caster, standing on these tiles.')
+  expect(combatGroundAreaDescription({ ...profile, timing: 'delayed' }, 'instant')).toContain(
+    'starting two rounds after cast',
+  )
+  expect(combatGroundAreaDescription({ durationRounds: 3 }, 'next-round')).toContain(
+    'starting next round',
+  )
 })

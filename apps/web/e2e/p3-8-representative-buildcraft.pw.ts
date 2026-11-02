@@ -244,6 +244,19 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await setSkill(page, 'Barrier', true)
 
   await expect(mixedCapacity).toContainText('4 / 4 selected')
+  const supportActions = page.getByRole('radiogroup', { name: 'Support Action' })
+  await expect(
+    supportActions.getByRole('radio', { name: 'HP Recovery', exact: true }),
+  ).toBeChecked()
+  const supportSaved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/support-action') &&
+      response.request().method() === 'POST',
+  )
+  await supportActions.getByRole('radio', { name: 'MP Recovery', exact: true }).check()
+  expect((await supportSaved).status()).toBe(200)
+  await expect(supportActions.locator('input:checked')).toHaveCount(1)
+  await expect(mixedCapacity).toContainText('4 / 4 selected')
 
   await reloadNexus(page)
   await expect(page.locator('[aria-labelledby="nexus-attunement-heading"]')).toContainText(
@@ -251,6 +264,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   )
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4 selected')
+  await expect(
+    supportActions.getByRole('radio', { name: 'MP Recovery', exact: true }),
+  ).toBeChecked()
+  await expect(supportActions.locator('input:checked')).toHaveCount(1)
   await expect(skillRow(page, 'Forceful Strike').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Cleave').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
@@ -362,9 +379,25 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     await page.setViewportSize(priorViewport)
   }
 
-  const guardPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
-  await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
-  expect((await guardPreview).request().postDataJSON().intent.target).toEqual({ kind: 'self' })
+  // Full MP makes Recovery unavailable, but its real self preview must remain informational.
+  const battleApiUrl = `/api/battles/${new URL(page.url()).pathname.split('/').at(-1)!}`
+  const beforeSupportRead = await page.request.get(battleApiUrl)
+  expect(beforeSupportRead.ok()).toBe(true)
+  const beforeSupportPreview = (await beforeSupportRead.json()).battle
+  const supportActor = beforeSupportPreview.snapshot.tactical.battle.combatants.find(
+    (unit: { id: string }) =>
+      unit.id === beforeSupportPreview.snapshot.tactical.battle.currentTurn.combatantId,
+  )
+  expect(supportActor.mp).toBe(supportActor.maxMp)
+  const supportPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
+  await commandDeck.getByRole('button', { name: 'MP Recovery, 50 AP', exact: true }).click()
+  const supportReceipt = await supportPreview
+  expect(supportReceipt.ok()).toBe(true)
+  expect(supportReceipt.request().postDataJSON().intent.target).toEqual({ kind: 'self' })
+  expect((await supportReceipt.json()).battlePreview.preview).toMatchObject({
+    actionId: 'basic.recover.mp',
+    legal: false,
+  })
   await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
   await commandDeck.getByRole('button', { name: 'Selected Barrier, 40 AP', exact: true }).click()
   const forecast = page.locator('[data-battle-preview-strip] [aria-label="Action preview"]')
@@ -410,13 +443,26 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   )
   await page.keyboard.press('Escape')
   await expect(skillDetails).toHaveCount(0)
+  const repeatedSupportPreview = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/preview') &&
+      response.request().postDataJSON().intent.actionId === 'basic.recover.mp',
+  )
   await page.keyboard.press('Digit3')
+  await repeatedSupportPreview
   await expect(page.locator('main[data-unified-battle]')).toHaveAttribute(
     'data-battle-action-mode',
-    'guard',
+    'recover',
   )
-  await expect(forecast).toContainText('Success 100%')
+  await expect(forecast).toContainText('Blocked')
+  await expect(forecast).not.toContainText('Success 100%')
   await expectBattlePreviewFits(page)
+  await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100')
+  const afterSupportRead = await page.request.get(battleApiUrl)
+  expect(afterSupportRead.ok()).toBe(true)
+  const afterSupportPreview = (await afterSupportRead.json()).battle
+  expect(afterSupportPreview.battleVersion).toBe(beforeSupportPreview.battleVersion)
+  expect(afterSupportPreview.snapshot).toEqual(beforeSupportPreview.snapshot)
   await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
 
   // Current Forceful Strike is melee at equal elevation. Keep the player on the

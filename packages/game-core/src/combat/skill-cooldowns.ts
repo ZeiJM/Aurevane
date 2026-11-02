@@ -1,4 +1,5 @@
 import type { BattleCombatant, BattleTemporaryResource } from './battle-state'
+import type { CombatActionSourceKind } from './combat-kernel-types'
 
 export const SKILL_COOLDOWN_RESOURCE_PREFIX = 'p3.skill-cooldown.' as const
 
@@ -55,6 +56,28 @@ export function validateSkillCooldownDefinition(
     issues.push('ownerTurns')
   }
   return issues
+}
+
+/** Resolve authored groups at the encounter boundary; old snapshots retain literal keys. */
+export function combatAbilityCooldown(
+  state: { readonly abilityCooldownScopeVersion?: 1 } | undefined,
+  source: { readonly sourceKind: CombatActionSourceKind; readonly abilityId: string },
+  definition: SkillCooldownDefinition | null,
+): SkillCooldownDefinition | null {
+  if (!definition || state?.abilityCooldownScopeVersion !== 1) return definition
+  // These engine-owned groups also serve direct native actions and intentionally share Recovery.
+  if (
+    source.sourceKind === 'basic' &&
+    ((source.abilityId === 'basic.guard' && definition.key === 'basic.guard') ||
+      (['basic.recover', 'basic.recover.mp'].includes(source.abilityId) &&
+        definition.key === 'basic.recovery'))
+  )
+    return definition
+  // Fixed-width UTF-16 encoding is injective even for separators and surrogate code units.
+  const identity = Array.from({ length: source.abilityId.length }, (_, index) =>
+    source.abilityId.charCodeAt(index).toString(16).padStart(4, '0'),
+  ).join('')
+  return { ...definition, key: `ability.${source.sourceKind}.${identity}.${definition.key}` }
 }
 
 export function skillCooldownResourceKey(definition: SkillCooldownDefinition): string {

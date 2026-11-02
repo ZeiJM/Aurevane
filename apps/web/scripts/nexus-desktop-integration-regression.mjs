@@ -1,5 +1,5 @@
 // Render production management panels with production global CSS and authoritative-response fixtures.
-// Run: pnpm --filter @aurevane/web exec node scripts/technique-eligibility-browser-regression.mjs
+// Run: pnpm --filter @aurevane/web exec node scripts/nexus-desktop-integration-regression.mjs
 import { createRequire } from 'node:module'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -83,10 +83,12 @@ const errors = []
 const checks = []
 await fs.mkdir(output, { recursive: true })
 console.log(
-  `Technique eligibility browser: ${browser.version()}; executable: ${process.env.AV_CHROMIUM_EXECUTABLE || chromium.executablePath()}`,
+  `Nexus desktop browser: ${browser.version()}; executable: ${process.env.AV_CHROMIUM_EXECUTABLE || chromium.executablePath()}`,
 )
 try {
-  for (const [build, width, height] of [
+  for (const [build, width, height, discipline = 'vanguard'] of [
+    ['pure', 1280, 720, 'ironfist'],
+    ['pure', 1366, 768, 'ironfist'],
     ['pure', 1280, 720],
     ['pure', 1366, 768],
     ['pure', 1536, 614],
@@ -99,6 +101,7 @@ try {
     await page.goto(
       server.resolvedUrls.local[0] +
         '?profilePanel=techniques' +
+        `&discipline=${discipline}` +
         (build === 'pure' ? '&pure=1' : ''),
     )
     await page.getByRole('dialog').waitFor()
@@ -107,6 +110,10 @@ try {
     })
     for (const card of await page.locator('[data-technique-card]:has(input)').all())
       await card.hover()
+    if (discipline === 'ironfist') {
+      await page.getByRole('checkbox', { name: 'Select Counter Palm', exact: true }).focus()
+      assert.match(await page.getByTestId('technique-preview').innerText(), /Counter Palm/)
+    }
     const metrics = await page.evaluate(() => {
       const box = (e) => {
         const r = e.getBoundingClientRect()
@@ -125,6 +132,7 @@ try {
       })
       const dialog = document.querySelector('[role="dialog"]')
       const groups = [...dialog.querySelectorAll('[data-technique-grid]')]
+      const support = dialog.querySelector('[role="radiogroup"][aria-label="Support Action"]')
       return {
         width: innerWidth,
         height: innerHeight,
@@ -134,6 +142,7 @@ try {
           box: box(g),
           overflow: overflow(g),
           cards: [...g.querySelectorAll('[data-technique-card]')].map((c) => ({
+            name: c.querySelector('strong')?.textContent,
             box: box(c),
             overflow: overflow(c),
             art: box(c.querySelector('[data-technique-art]')),
@@ -142,13 +151,21 @@ try {
               .map(box),
           })),
         })),
+        support: {
+          box: box(support),
+          overflow: overflow(support),
+          cards: [...support.querySelectorAll('article')].map((c) => ({
+            name: c.querySelector('input').getAttribute('aria-label'),
+            box: box(c),
+            overflow: overflow(c),
+            art: box(c.querySelector('[data-av-square-media]')),
+          })),
+        },
       }
     })
-    await page.screenshot({ path: resolve(output, `${build}-${width}-${height}.png`) })
-    await fs.writeFile(
-      resolve(output, `${build}-${width}-${height}.json`),
-      JSON.stringify(metrics, null, 2),
-    )
+    const evidenceName = `${build}${discipline === 'vanguard' ? '' : `-${discipline}`}-${width}-${height}`
+    await page.screenshot({ path: resolve(output, `${evidenceName}.png`) })
+    await fs.writeFile(resolve(output, `${evidenceName}.json`), JSON.stringify(metrics, null, 2))
     assert.deepEqual(metrics.overflow, { x: 0, y: 0 }, `${build}: ${JSON.stringify(metrics)}`)
     assert.equal(metrics.groups.length, 2)
     for (const group of metrics.groups) {
@@ -167,7 +184,11 @@ try {
         assert.ok(
           card.box.bottom <= metrics.dialog.bottom && card.box.right <= metrics.dialog.right,
         )
-        assert.deepEqual(card.overflow, { x: 0, y: 0 })
+        assert.deepEqual(
+          card.overflow,
+          { x: 0, y: 0 },
+          `${build} ${width}x${height}: ${card.name} stays inside its card`,
+        )
         for (const c of card.contents)
           assert.ok(
             c.x >= card.box.x - 1 &&
@@ -178,7 +199,28 @@ try {
           )
       }
     }
-    checks.push({ build, width, height })
+    assert.deepEqual(metrics.support.overflow, { x: 0, y: 0 })
+    assert.deepEqual(metrics.support.cards.map((card) => card.name).sort(), [
+      'Fleetstep',
+      'HP Recovery',
+      'Invocation',
+      'MP Recovery',
+      'Pilfer',
+    ])
+    assert.ok(
+      Math.max(...metrics.support.cards.map((card) => card.box.y)) -
+        Math.min(...metrics.support.cards.map((card) => card.box.y)) <=
+        1,
+      'All current Support choices share one desktop row without compressing the Skill galleries',
+    )
+    for (const card of metrics.support.cards) {
+      assert.deepEqual(card.overflow, { x: 0, y: 0 }, `${card.name} stays inside its card`)
+      assert.ok(Math.abs(card.art.width - card.art.height) <= 1)
+      assert.ok(card.art.width >= 64, `readable Support art ${card.name}: ${card.art.width}`)
+      assert.ok(card.art.y >= card.box.y - 1 && card.art.bottom <= card.box.bottom + 1)
+      assert.ok(card.box.bottom <= metrics.dialog.bottom && card.box.right <= metrics.dialog.right)
+    }
+    checks.push({ build, discipline, width, height })
     await page.close()
   }
   assert.deepEqual(errors, [])

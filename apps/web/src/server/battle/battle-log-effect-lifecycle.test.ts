@@ -96,13 +96,13 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
     [
       'fortified',
       { defenseIncreaseBasisPoints: 4000 },
-      "Fortified will increase Recruit's Physical and Mystic Defense by 40% and will reduce outgoing damage by the same percentage",
+      "Fortified will boost Recruit's Physical and Mystic Defense by 40% and cut damage dealt by 40%",
       'Increase Physical and Mystic Defense by 40%',
     ],
     [
       'reckless',
       { potencyBasisPoints: 4000 },
-      "Reckless will increase Recruit's damage dealt and taken by 40%",
+      "Reckless will boost Recruit's damage dealt and taken by 40%",
       'Deal 40% more damage and take 40% more damage',
     ],
   ] as const)(
@@ -141,7 +141,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
       const pending = view.entries.find((entry) => entry.eventType === 'effect_pending')!
       expect(pending).toMatchObject({ statusId, effectStrength })
       const outcome = buildBattleChronicle(view.entries)[0].actors[0].actions[0].outcomes[0]
-      expect(outcome).toMatchObject({ tone: 'neutral', text: `${narration} during rounds 2–3!` })
+      expect(outcome).toMatchObject({ tone: 'neutral', text: `${narration} (rounds 2–3)` })
       expect(formatBattleLogForClipboard(view.entries)).toContain(outcome.text)
       const popup = vi
         .spyOn(popovers, 'BattleInfoPopover')
@@ -160,25 +160,17 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
     },
   )
   it.each([
-    [
-      'blind',
-      { potencyBasisPoints: 3050 },
-      "Blind reduces Weon's Accuracy by 30.5 percentage points",
-    ],
-    [
-      'haste',
-      { movementApAdjustment: 7 },
-      "Haste reduces Weon's movement cost by 7 AP per entered tile",
-    ],
+    ['blind', { potencyBasisPoints: 3050 }, "Blind cuts Weon's Accuracy by 30.5 percentage points"],
+    ['haste', { movementApAdjustment: 7 }, "Haste cuts Weon's movement cost by 7 AP per tile"],
     [
       'wet',
       { potencyBasisPoints: 3525, initiativeReductionBasisPoints: 1200 },
-      "Drenched reduces Weon's Initiative by 12% and increases Storm damage taken by 35.25%",
+      "Drenched cuts Weon's Initiative by 12% and boosts Storm damage taken by 35.25%",
     ],
     [
       'counter',
       { counter: { kind: 'mystic', basisPoints: 12500 } },
-      'Magical Reflect returns 125% of Mystic HP damage received by Weon',
+      'Magical Reflect returns 125% of Mystic HP damage taken by Weon',
     ],
   ] as const)(
     'carries committed %s strength into the shared Chronicle and copied log',
@@ -243,7 +235,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
           expect(html).toContain('35.25% Storm damage')
           expect(html).not.toContain('20% per active')
         }
-        if (statusId === 'counter') expect(html).toContain('Returns 125% of Mystic damage')
+        if (statusId === 'counter') expect(html).toContain('Returns 125% of Mystic HP damage')
       } finally {
         popup.mockRestore()
       }
@@ -285,7 +277,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
       combatantNames: { 'recruit:weon': 'Weon' },
     })
     expect(copied).toContain(
-      "Blind will reduce Weon's Accuracy by 30.5 percentage points during rounds 2–3!",
+      "Blind will cut Weon's Accuracy by 30.5 percentage points (rounds 2–3)",
     )
     expect(buildBattleChronicle(view.entries)[0].actors[0].actions[0].outcomes[0].duration).toBe(
       '2 rounds',
@@ -320,7 +312,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
       })),
     )
     expect(formatBattleLogForClipboard(view.entries)).toContain(
-      'Recruit will recover up to 9 HP per application (2 applications), beginning at the start of round 2!',
+      'Recruit will recover up to 9 HP per application (2 applications; from round 2)',
     )
   })
   it('records Endure release strength without exposing its private accumulated damage', () => {
@@ -355,8 +347,47 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
       })),
     )
     const text = formatBattleLogForClipboard(view.entries)
-    expect(text).toContain('releases 125% of stored HP damage on natural expiry')
+    expect(text).toContain(
+      "Endure locks Wayfarer's attacks and stores received damage for a 125% burst after 2 turns",
+    )
     expect(JSON.stringify(view)).not.toMatch(/applicationId|receivedDamage|nextApplicationId/)
+  })
+  it.each(['empty', 'no-targets'] as const)(
+    'explains a recorded %s Endure expiry in Chronicle and clipboard',
+    (endureOutcome) => {
+      const view = buildBattleLogView('chronicle.effects', [
+        {
+          battleVersion: 2,
+          eventIndex: 0,
+          createdAt: '2026-11-01T00:00:00Z',
+          event: {
+            event: 'status_expired',
+            combatantId: 'character:zei',
+            statusId: 'endure',
+            endureOutcome,
+          },
+        },
+      ])
+      const text = formatBattleLogForClipboard(view.entries)
+      expect(text).toContain(
+        endureOutcome === 'empty' ? 'no stored power to release' : 'no targets are in range',
+      )
+      expect(text).not.toContain(
+        endureOutcome === 'empty' ? 'no targets are in range' : 'no stored power',
+      )
+      expect(JSON.stringify(view)).not.toMatch(/receivedDamage|applicationId/)
+    },
+  )
+  it('does not invent an empty release for historical Endure expiry without an outcome', () => {
+    const view = buildBattleLogView('chronicle.effects', [
+      {
+        battleVersion: 2,
+        eventIndex: 0,
+        createdAt: '2026-11-01T00:00:00Z',
+        event: { event: 'status_expired', combatantId: 'character:zei', statusId: 'endure' },
+      },
+    ])
+    expect(formatBattleLogForClipboard(view.entries)).not.toContain('no stored power')
   })
   it('copies uniform saved application strength and omits a misleading single rate for mixed copied applications', () => {
     const initial = {
@@ -419,7 +450,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
       })),
     )
     expect(formatBattleLogForClipboard(view.entries)).toContain(
-      "Damage Up increases Wayfarer's outgoing damage by 25.34%",
+      "Damage Up boosts Wayfarer's damage by 25.34%",
     )
     const mixed = copy(apply(first.state as typeof initial, 5000).state)
     expect(mixed.events.find((event) => event.event === 'status_applied')).not.toHaveProperty(
@@ -612,7 +643,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
         ),
       )
       expect(texts).toContain(
-        `${statusId === 'poison' ? 'Poison will take hold on Weon' : `Weon will begin ${statusId === 'burn' ? 'burning' : 'bleeding'}`} at the start of round 2, for 2 affected turns!`,
+        `${statusId === 'poison' ? 'Weon will be poisoned' : `Weon will start ${statusId === 'burn' ? 'burning' : 'bleeding'}`} (from round 2; 2 turns)`,
       )
       expect(
         texts.some((text) =>

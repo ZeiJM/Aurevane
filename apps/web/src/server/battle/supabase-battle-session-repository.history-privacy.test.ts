@@ -1,3 +1,4 @@
+import { historicalBasicSkills as defaultBasicSkills } from '../../../../../packages/game-core/src/combat/combat-basic-history.test-utils'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import { createTacticalBattleState } from '@aurevane/game-core/combat/board'
@@ -10,10 +11,7 @@ import {
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { describe, expect, it, vi } from 'vitest'
-import {
-  captureBasicSkillSources,
-  defaultBasicSkills,
-} from '@aurevane/game-core/combat/combat-basic-actions'
+import { captureBasicSkillSources } from '@aurevane/game-core/combat/combat-basic-actions'
 
 vi.mock('server-only', () => ({}))
 

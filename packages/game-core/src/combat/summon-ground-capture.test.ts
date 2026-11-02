@@ -16,7 +16,7 @@ import {
 } from './stat-driven-combat'
 
 function groundProfile() {
-  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   return {
     ...original,
     abilities: [

@@ -116,7 +116,12 @@ function unfilteredCombatEffectRecipientIds(
   return state.tactical.battle.combatants
     .filter((unit) => {
       if (unit.hp <= 0) return false
-      if (effect.target === 'all') return true
+      if (effect.target === 'all') {
+        if (target.allTargetPolicyVersion !== 1) return true
+        if (target.friendlyFire === 'enemies-only') return unit.teamId !== actor.teamId
+        if (target.friendlyFire === 'allies-only') return unit.teamId === actor.teamId
+        return target.friendlyFire !== 'all-except-actor' || unit.id !== actorId
+      }
       if (selectedOnly && unit.id !== primaryCombatantId) return false
       if (
         !state.tactical.placements.some(

@@ -2,6 +2,7 @@ import { activeAbilityForAuthoring } from '@/lib/combat-ability-authoring-compat
 import React from 'react'
 import { SummonProfileEditor } from '@/components/master/combat-content/summon-profile-editor'
 import { currentSummonForAuthoring } from '@/lib/combat-current-tag-authoring'
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
 import {
   defaultBasicSkills,
   validateBasicSkillDefinition,
@@ -151,33 +152,35 @@ window.fetch = async (url) => {
 
 const basicOptions = basicService
   ? await (await nativeFetch('/__basic-acceptance/options')).json()
-  : defaultBasicSkills().map((definition) => ({
-      contentKey: definition.id,
-      contentKind: 'skill',
-      lifecycle: 'active',
-      revision: 1,
-      versionFloor: 1,
-      createdBy: null,
-      createdAt: null,
-      builtin: { contentVersion: 1, name: definition.name },
-      builtinDefinition: definition,
-      current: null,
-      history: [],
-      links: [],
-      usedBy: [],
-      draft:
-        definition.id === 'basic.guard'
-          ? {
-              definition: { ...definition, name: 'Saved Guard draft' },
-              draftVersion: 4,
-              baseVersion: 1,
-              updatedBy: 'fixture-author',
-              updatedAt: '2026-10-23T00:00:00Z',
-              restoredFrom: null,
-              restoredBy: null,
-            }
-          : null,
-    }))
+  : defaultBasicSkills()
+      .filter((basic) => basic.enabled)
+      .map((definition) => ({
+        contentKey: definition.id,
+        contentKind: 'skill',
+        lifecycle: 'active',
+        revision: 1,
+        versionFloor: 1,
+        createdBy: null,
+        createdAt: null,
+        builtin: { contentVersion: 1, name: definition.name },
+        builtinDefinition: definition,
+        current: null,
+        history: [],
+        links: [],
+        usedBy: [],
+        draft:
+          definition.id === 'basic.recover'
+            ? {
+                definition: { ...definition, name: 'Saved HP Recovery draft' },
+                draftVersion: 4,
+                baseVersion: 1,
+                updatedBy: 'fixture-author',
+                updatedAt: '2026-10-23T00:00:00Z',
+                restoredFrom: null,
+                restoredBy: null,
+              }
+            : null,
+      }))
 const fixtureRecords = new Map(basicOptions.map((row) => [row.contentKey, structuredClone(row)]))
 const basicPage = {
   records: basicOptions.map((row) => ({
@@ -540,20 +543,22 @@ function ModularManual() {
   const article = createTechniquesManualArticle({
     skills: [modularSkill],
     basics: projectPublicCombat(
-      defaultBasicSkills().map((basic, index) => ({
-        ...basic,
-        name: `Edited ${basic.id}`,
-        contentVersion: basic.contentVersion + 1,
-        ability: parseAbilityDefinition({
-          schemaVersion: 1,
-          behaviors: [
-            {
-              ...basic.ability.behaviors[0],
-              costs: [{ resource: 'ap', amount: 21 + index }],
-            },
-          ],
-        }),
-      })),
+      defaultBasicSkills()
+        .filter((basic) => basic.enabled)
+        .map((basic, index) => ({
+          ...basic,
+          name: `Edited ${basic.id}`,
+          contentVersion: basic.contentVersion + 1,
+          ability: parseAbilityDefinition({
+            schemaVersion: 1,
+            behaviors: [
+              {
+                ...basic.ability.behaviors[0],
+                costs: [{ resource: 'ap', amount: 21 + index }],
+              },
+            ],
+          }),
+        })),
     ),
     timingPolicy: defaultCombatEffectTimingPolicy(),
   })
@@ -601,7 +606,7 @@ function CanonicalEditor() {
 }
 function TagBatchEditors() {
   const [profile, setProfile] = React.useState(() =>
-    currentSummonForAuthoring(resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile),
+    currentSummonForAuthoring(VESPER_SUMMON_PROFILE),
   )
   const [effects, setEffects] = React.useState([])
   const [reversal, setReversal] = React.useState(() => {
@@ -692,9 +697,7 @@ function EffectLayoutEditors() {
     ],
   })
   const [summon, setSummon] = React.useState(() => {
-    const profile = currentSummonForAuthoring(
-      resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile,
-    )
+    const profile = currentSummonForAuthoring(VESPER_SUMMON_PROFILE)
     return {
       ...profile,
       abilities: profile.abilities.map((ability, i) =>
@@ -877,7 +880,8 @@ function ElementalReaders() {
     effectDescriptions: ['Pinned Water explanation.'],
   }
   const ability = {
-    ...resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile.abilities[0],
+    // A captured pre-retirement Summon reader, independent of current Briar Snare.
+    ...resolveMatureSkillVersion('wildwarden.renewing-herbs', 6).summonProfile.abilities[0],
     name: 'Captured Water',
     effects: [
       {

@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 
 import { openSelectedCombatantDetails, targetForecast } from './refined-battle-helpers'
 
@@ -19,7 +20,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
 }
 
 async function enterGuidedBattle(page: Page) {
-  const identity = uniqueIdentity('QuickGuard')
+  const identity = uniqueIdentity('QuickRecovery')
   await provisionAccountAndEnterCharacter({
     page,
     email: identity.email,
@@ -40,6 +41,21 @@ async function enterGuidedBattle(page: Page) {
   await expect(root).toBeVisible()
   await expect(root).toHaveAttribute('data-local-turn', 'true')
   return root
+}
+
+async function readRecoverableBattle(page: Page) {
+  const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+  const response = await page.request.get(`/api/battles/${battleId}`)
+  expect(response.ok()).toBe(true)
+  const battle = (await response.json()).battle as BattleSessionView
+  expect(battle.snapshot.supportActionPolicyVersion).toBe(1)
+  const actor = battle.snapshot.tactical.battle.combatants.find(
+    (unit) => unit.id === battle.snapshot.tactical.battle.currentTurn!.combatantId,
+  )!
+  // The current guided fixture starts at 75% HP, making the real Recovery action legal.
+  expect(actor.hp).toBeGreaterThan(0)
+  expect(actor.hp).toBeLessThan(actor.maxHp)
+  return { battle, actor }
 }
 
 async function readFacingGlyph(root: Locator, playerName: string): Promise<string> {
@@ -131,22 +147,28 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   await expect(root).not.toHaveAttribute('data-local-turn', 'true', { timeout: 12_000 })
 }
 
-test('arms Guard without spending AP and executes once on a deliberate direction', async ({
+test('arms legal HP Recovery without spending AP and executes once on a deliberate direction', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop keyboard shortcut contract')
   test.slow()
 
   const root = await enterGuidedBattle(page)
+  const before = await readRecoverableBattle(page)
   const deck = root.getByRole('region', { name: 'Command Deck' })
-  const guard = deck.getByRole('button', { name: /^Guard,/ })
+  const recovery = deck.getByRole('button', { name: /^HP Recovery,/ })
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
 
-  await expect(guard.locator('..').locator('[data-battle-command-hotkey]')).toHaveText('3')
+  let commits = 0
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/intents'))
+      commits += 1
+  })
+  await expect(recovery.locator('..').locator('[data-battle-command-hotkey]')).toHaveText('3')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
   await page.keyboard.press('Digit3')
-  await expect(targetForecast(page)).toContainText('Guard')
+  await expect(targetForecast(page)).toContainText('HP Recovery')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
   // Holding a key must never count as the deliberate second press. Chromium and Edge both expose
@@ -163,8 +185,13 @@ test('arms Guard without spending AP and executes once on a deliberate direction
     )
   })
   await page.waitForTimeout(100)
-  await expect(targetForecast(page)).toContainText('Guard')
+  await expect(targetForecast(page)).toContainText('HP Recovery')
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
+
+  const armed = await readRecoverableBattle(page)
+  expect(armed.battle.battleVersion).toBe(before.battle.battleVersion)
+  expect(armed.battle.snapshot).toEqual(before.battle.snapshot)
+  expect(commits).toBe(0)
 
   const commitResponse = page.waitForResponse((response) => {
     const request = response.request()
@@ -172,11 +199,28 @@ test('arms Guard without spending AP and executes once on a deliberate direction
   })
 
   await page.keyboard.press('KeyD')
-  expect((await commitResponse).status()).toBe(200)
-  await expect(economy).toHaveAttribute('aria-valuenow', '70')
+  const response = await commitResponse
+  expect(response.status()).toBe(200)
+  expect(response.request().postDataJSON().intent).toMatchObject({
+    kind: 'action',
+    actionId: 'basic.recover',
+    target: { kind: 'self' },
+  })
+  const after = (await response.json()).battle as BattleSessionView
+  expect(after.battleVersion).toBe(before.battle.battleVersion + 1)
+  expect(
+    after.snapshot.tactical.battle.combatants.find((unit) => unit.id === before.actor.id)?.hp,
+  ).toBeGreaterThan(before.actor.hp)
+  await expect(economy).toHaveAttribute('aria-valuenow', '50')
+  expect(commits).toBe(1)
+  await expect(recovery).toBeDisabled()
+  await page.keyboard.press('Digit3')
+  await page.keyboard.press('KeyD')
+  expect(commits).toBe(1)
+  await expect(economy).toHaveAttribute('aria-valuenow', '50')
 })
 
-test('keeps Guard selection and single-input execution reliable after Inspect closes in a narrow desktop window', async ({
+test('keeps HP Recovery selection and single-input execution reliable after Inspect closes in a narrow desktop window', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Physical keyboard regression')
@@ -200,17 +244,29 @@ test('keeps Guard selection and single-input execution reliable after Inspect cl
   await expect(inspect).not.toHaveAttribute('data-active', 'true')
   await expect(root).toBeFocused()
 
+  const before = await readRecoverableBattle(page)
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
   await page.keyboard.press('Digit3')
-  await expect(targetForecast(page)).toContainText('Guard')
+  await expect(targetForecast(page)).toContainText('HP Recovery')
 
   const commitResponse = page.waitForResponse((response) => {
     const request = response.request()
     return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/intents')
   })
   await page.keyboard.press('KeyD')
-  expect((await commitResponse).status()).toBe(200)
-  await expect(economy).toHaveAttribute('aria-valuenow', '70')
+  const response = await commitResponse
+  expect(response.status()).toBe(200)
+  expect(response.request().postDataJSON().intent).toMatchObject({
+    kind: 'action',
+    actionId: 'basic.recover',
+    target: { kind: 'self' },
+  })
+  const after = (await response.json()).battle as BattleSessionView
+  expect(after.battleVersion).toBe(before.battle.battleVersion + 1)
+  expect(
+    after.snapshot.tactical.battle.combatants.find((unit) => unit.id === before.actor.id)?.hp,
+  ).toBeGreaterThan(before.actor.hp)
+  await expect(economy).toHaveAttribute('aria-valuenow', '50')
 })
 
 test('keeps desktop PvP Space-to-finish reliable across repeated turn handoffs', async ({

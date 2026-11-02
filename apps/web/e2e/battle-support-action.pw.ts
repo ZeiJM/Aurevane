@@ -4,13 +4,13 @@ import { randomUUID } from 'node:crypto'
 
 import { expect, test, type Page } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
-import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
+import type { CurrentSupportActionId } from '@aurevane/game-core/combat/support-actions'
 import { DEFAULT_COMBAT_KEYBINDS } from '@aurevane/validation/player/combat-controls'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { targetForecast } from './refined-battle-helpers'
 
-async function saveSupport(page: Page, supportActionId: SupportActionId) {
+async function saveSupport(page: Page, supportActionId: CurrentSupportActionId) {
   const response = await page.request.get('/api/character/build/support-action')
   expect(response.ok()).toBe(true)
   const { context } = await response.json()
@@ -28,7 +28,7 @@ async function saveSupport(page: Page, supportActionId: SupportActionId) {
   return context.build.characterId as string
 }
 
-async function provisionSupport(page: Page, supportActionId: SupportActionId) {
+async function provisionSupport(page: Page, supportActionId: CurrentSupportActionId) {
   const seed = randomUUID()
   const name = `Support ${seed.replace(/[^a-z]/g, '').slice(0, 10)}`
   await provisionAccountAndEnterCharacter({
@@ -103,8 +103,11 @@ async function expectSupportSelectionFill(page: Page, actionId: string) {
   expect(fill.texture).toContain('terrain-open-stone-v01.webp')
 }
 
-for (const supportActionId of ['basic.recover', 'basic.recover.mp'] as const) {
-  test(`Guided Guard practice remains available with ${supportActionId} and full resources`, async ({
+for (const [supportActionId, label, cost] of [
+  ['basic.recover.mp', 'MP Recovery', '50 AP'],
+  ['basic.pilfer', 'Pilfer', '15 AP'],
+] as const) {
+  test(`Guided HP Recovery heals the scenario's missing HP and preserves equipped ${label}`, async ({
     page,
   }, testInfo) => {
     test.skip(testInfo.project.name === 'laptop-chromium', 'Covered on desktop and mobile')
@@ -120,39 +123,50 @@ for (const supportActionId of ['basic.recover', 'basic.recover.mp'] as const) {
       .getByRole('dialog', { name: 'Complete the tactical fundamentals' })
       .getByRole('button', { name: 'Continue training' })
       .click()
-    // Recruit may own the opening turn. Focusing a disabled practice button is a no-op.
     const root = page.locator('main[data-unified-battle="true"]')
     await expect(root).toHaveAttribute('data-local-turn', 'true')
-    const practice = page.getByRole('button', { name: 'Practice Guard, 30 AP', exact: true })
+    const practice = page.getByRole('button', { name: 'Practice HP Recovery, 50 AP', exact: true })
     await expect(practice).toBeEnabled()
+    await expect(
+      page.getByRole('button', { name: 'Practice Guard, 30 AP', exact: true }),
+    ).toHaveCount(0)
+    // Guided Fundamentals deliberately starts at 75% HP for this exercise.
+    // Full-resource rejection belongs to the regular sparring cases below.
     const before = await readBattle(page)
     const actor = before.snapshot.tactical.battle.combatants.find(
       (unit) => unit.id === `character:${characterId}`,
     )!
+    expect(actor.hp).toBe(Math.max(1, Math.floor(actor.maxHp * 0.75)))
     expect(actor.mp).toBe(actor.maxMp)
     await practice.focus()
     await expect(practice).toBeFocused()
     await page.keyboard.down('Enter')
     await expect(targetForecast(page)).toContainText('Success 100%')
-    await expect(targetForecast(page)).toContainText('Guard')
-    await expect(targetForecast(page)).not.toContainText('30 AP')
+    await expect(targetForecast(page)).not.toContainText('50 AP')
     await page.keyboard.down('Enter')
-    expect((await readBattle(page)).battleVersion).toBe(before.battleVersion)
+    const armed = await readBattle(page)
+    expect(armed.battleVersion).toBe(before.battleVersion)
+    expect(armed.snapshot).toEqual(before.snapshot)
     await page.keyboard.up('Enter')
     await page.keyboard.press('Enter')
     await expect(
       page.getByRole('progressbar', { name: 'Action Economy remaining' }),
-    ).toHaveAttribute('aria-valuenow', '70')
+    ).toHaveAttribute('aria-valuenow', '50')
     const after = await readBattle(page)
     expect(after.battleVersion).toBe(before.battleVersion + 1)
-    expect(after.snapshot.tactical.battle.combatants.find((unit) => unit.id === actor.id)?.mp).toBe(
-      actor.maxMp,
+    const healed = after.snapshot.tactical.battle.combatants.find((unit) => unit.id === actor.id)!
+    expect(healed.hp).toBeGreaterThan(actor.hp)
+    expect(healed.mp).toBe(actor.mp)
+    const savedSlot = root.locator('[data-battle-command="guard"]')
+    await expect(savedSlot).toHaveAccessibleName(
+      `${label}, ${cost}${supportActionId === 'basic.recover.mp' ? ', Cooldown: 2 turns remaining' : ''}`,
     )
-    await expect(
-      page.locator('[data-command-card="guard"] [data-battle-command="guard"]'),
-    ).toHaveAccessibleName(
-      supportActionId === 'basic.recover' ? 'HP Recovery, 50 AP' : 'MP Recovery, 50 AP',
-    )
+    if (supportActionId === 'basic.recover.mp') await expect(savedSlot).toBeDisabled()
+    else await expect(savedSlot).toBeEnabled()
+    expect(
+      after.snapshot.buildAuthority?.combatants.find((unit) => unit.combatantId === actor.id)
+        ?.supportActionId,
+    ).toBe(supportActionId)
     const progress = await page.request.get(`/api/battles/${after.battleSessionId}/guided-training`)
     expect(progress.ok()).toBe(true)
     expect((await progress.json()).progress.guard).toBe(true)
@@ -238,7 +252,6 @@ async function lowerResources(page: Page, characterId: string) {
 }
 
 for (const [supportActionId, label, cost] of [
-  ['basic.guard', 'Guard', 30],
   ['basic.recover', 'HP Recovery', 50],
   ['basic.recover.mp', 'MP Recovery', 50],
 ] as const) {
@@ -261,52 +274,27 @@ for (const [supportActionId, label, cost] of [
     })
     await page.mouse.move(0, 0)
     await root.focus()
-    if (supportActionId === 'basic.guard') {
-      // Recovery is a single saved Support choice, not a second free Basic.
-      const unavailableRequests: string[] = []
-      const observeUnavailable = (request: import('@playwright/test').Request) => {
-        if (
-          request.method() === 'POST' &&
-          /\/(preview|intents|commit|final-turn)$/.test(new URL(request.url()).pathname)
-        )
-          unavailableRequests.push(request.url())
-      }
-      page.on('request', observeUnavailable)
-      try {
-        await page.keyboard.press('KeyR')
-        await expect(root.locator('[data-battle-notice]')).toContainText(
-          'No Recovery action is equipped in this battle.',
-        )
-        await expect(root).toHaveAttribute('data-battle-action-mode', 'none')
-        expect(unavailableRequests).toEqual([])
-        expect(commits).toBe(0)
-      } finally {
-        page.off('request', observeUnavailable)
-      }
-    }
-    if (supportActionId !== 'basic.guard') {
-      // Full HP/MP remains blocked by authority on a deliberate second press.
-      const beforeBlocked = await readBattle(page)
-      const blocked = page.waitForResponse('**/api/battles/*/preview')
-      await page.keyboard.press('KeyG')
-      expect((await (await blocked).json()).battlePreview.preview).toMatchObject({
-        actionId: supportActionId,
-        legal: false,
-      })
-      const rejected = page.waitForResponse('**/api/battles/*/intents')
-      await page.keyboard.press('KeyG')
-      const rejectedResponse = await rejected
-      expect(rejectedResponse.status()).toBe(400)
-      expect((await rejectedResponse.json()).error.code).toBe('INVALID_REQUEST')
-      expect(commits).toBe(1)
-      const unchanged = await readBattle(page)
-      expect(unchanged.battleVersion).toBe(beforeBlocked.battleVersion)
-      expect(unchanged.snapshot).toEqual(beforeBlocked.snapshot)
-      await expect(root).toHaveAttribute('data-battle-action-mode', 'none')
-      commits = 0
-      await page.getByRole('button', { name: 'Cancel Action' }).click()
-      await lowerResources(page, characterId)
-    }
+    // Full HP/MP remains blocked by authority on a deliberate second press.
+    const beforeBlocked = await readBattle(page)
+    const blocked = page.waitForResponse('**/api/battles/*/preview')
+    await page.keyboard.press('KeyG')
+    expect((await (await blocked).json()).battlePreview.preview).toMatchObject({
+      actionId: supportActionId,
+      legal: false,
+    })
+    const rejected = page.waitForResponse('**/api/battles/*/intents')
+    await page.keyboard.press('KeyG')
+    const rejectedResponse = await rejected
+    expect(rejectedResponse.status()).toBe(400)
+    expect((await rejectedResponse.json()).error.code).toBe('INVALID_REQUEST')
+    expect(commits).toBe(1)
+    const unchanged = await readBattle(page)
+    expect(unchanged.battleVersion).toBe(beforeBlocked.battleVersion)
+    expect(unchanged.snapshot).toEqual(beforeBlocked.snapshot)
+    await expect(root).toHaveAttribute('data-battle-action-mode', 'none')
+    commits = 0
+    await page.getByRole('button', { name: 'Cancel Action' }).click()
+    await lowerResources(page, characterId)
     const before = await readBattle(page)
     expect(
       before.snapshot.buildAuthority?.combatants.find(
@@ -314,7 +302,10 @@ for (const [supportActionId, label, cost] of [
       )?.supportActionId,
     ).toBe(supportActionId)
     // Current build edits must not retarget an already-pinned battle.
-    await saveSupport(page, supportActionId === 'basic.guard' ? 'basic.recover.mp' : 'basic.guard')
+    await saveSupport(
+      page,
+      supportActionId === 'basic.recover' ? 'basic.recover.mp' : 'basic.recover',
+    )
     await page.reload()
     await expect(slot).toHaveAccessibleName(`${label}, ${cost} AP`)
     await expect(
@@ -332,10 +323,7 @@ for (const [supportActionId, label, cost] of [
       actionEconomyCost: cost,
     })
     expect(commits).toBe(0)
-    await expect(root).toHaveAttribute(
-      'data-battle-action-mode',
-      supportActionId === 'basic.guard' ? 'guard' : 'recover',
-    )
+    await expect(root).toHaveAttribute('data-battle-action-mode', 'recover')
     await expectSupportSelectionFill(page, supportActionId)
     await page.evaluate(() =>
       window.dispatchEvent(
@@ -381,10 +369,6 @@ for (const [supportActionId, label, cost] of [
     } else if (supportActionId === 'basic.recover.mp') {
       expect(afterActor.mp).toBeGreaterThan(beforeActor.mp)
       expect(afterActor.hp).toBe(beforeActor.hp)
-    } else {
-      expect(
-        after.snapshot.statusState.find((row) => row.combatantId === beforeActor.id)?.statuses,
-      ).toEqual(expect.arrayContaining([expect.objectContaining({ statusId: 'guarded' })]))
     }
     // The server snapshot drives the visual lock; blocked gestures send no authority request.
     await expect(slot).toBeDisabled()
@@ -395,11 +379,9 @@ for (const [supportActionId, label, cost] of [
     expect(
       await supportArt.locator('img').evaluate((image) => getComputedStyle(image).filter),
     ).toContain('grayscale(1)')
-    if (supportActionId === 'basic.guard') {
-      await page.reload()
-      await expect(slot).toBeDisabled()
-      await expect(slot).toHaveAccessibleName('Guard, 30 AP, Cooldown: 2 turns remaining')
-    }
+    await page.reload()
+    await expect(slot).toBeDisabled()
+    await expect(slot).toHaveAccessibleName(`${label}, ${cost} AP, Cooldown: 2 turns remaining`)
     const cooldownRequests: string[] = []
     const observeCooldown = (request: import('@playwright/test').Request) => {
       if (
@@ -415,11 +397,9 @@ for (const [supportActionId, label, cost] of [
       await slot.evaluate((button) => (button as HTMLButtonElement).click())
       await page.keyboard.press('KeyG')
       await page.keyboard.press('KeyG')
-      if (supportActionId !== 'basic.guard') {
-        // HP and MP Recovery share one canonical lock, including the independent R shortcut.
-        await page.keyboard.press('KeyR')
-        await page.keyboard.press('KeyR')
-      }
+      // HP and MP Recovery share one canonical lock, including the independent R shortcut.
+      await page.keyboard.press('KeyR')
+      await page.keyboard.press('KeyR')
       await openBattleInfoMenu(page, `About ${label}`)
       const information = root.getByRole('button', { name: `About ${label}`, exact: true })
       await expect(information).toBeEnabled()
@@ -436,6 +416,202 @@ for (const [supportActionId, label, cost] of [
     } finally {
       page.off('request', observeCooldown)
     }
+  })
+}
+
+for (const [supportActionId, label, cost, cooldown] of [
+  ['basic.pilfer', 'Pilfer', 15, 1],
+  ['basic.fleetstep', 'Fleetstep', 30, 2],
+  ['basic.invocation', 'Invocation', 45, 4],
+] as const) {
+  test(`AI slot 3 pins current ${label}, targets legally and commits once with its custom key`, async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name === 'mobile-chromium', 'Physical keyboard contract')
+    test.slow()
+    const { characterId } = await provisionSupport(page, supportActionId)
+    const root = await enterAi(page)
+    const board = root.locator('#battlefield')
+    const slot = root.locator('[data-battle-command="guard"]')
+    const costLabel = `${cost} AP${supportActionId === 'basic.invocation' ? ' / 10 MP' : ''}`
+    await expect(slot).toHaveAccessibleName(`${label}, ${costLabel}`)
+    // Pilfer is melee. Keep the actor at the protected flat spawn while the real
+    // Recruit approaches; no placement, resource or command history is injected.
+    if (supportActionId === 'basic.pilfer') {
+      const turnBudget = await board.getByRole('button', { name: /^Tile / }).count()
+      for (let turn = 0; turn < turnBudget; turn += 1) {
+        const current = await readBattle(page)
+        const actor = current.snapshot.tactical.placements.find(
+          (unit) => unit.combatantId === `character:${characterId}`,
+        )!
+        const enemy = current.snapshot.tactical.placements.find(
+          (unit) => unit.combatantId !== actor.combatantId,
+        )!
+        if (
+          Math.abs(actor.position.x - enemy.position.x) +
+            Math.abs(actor.position.y - enemy.position.y) ===
+          1
+        )
+          break
+        const finish = root.getByRole('button', { name: /^End Turn,/ })
+        await finish.click()
+        const handedOff = page.waitForResponse('**/api/battles/*/final-turn')
+        const returned = page.waitForResponse('**/api/battles/*/recruit-turn')
+        await finish.press('KeyD')
+        expect((await handedOff).ok()).toBe(true)
+        expect((await returned).ok()).toBe(true)
+        await expect(root).toHaveAttribute('data-local-turn', 'true')
+      }
+    }
+    const before = await readBattle(page)
+    const beforeActor = before.snapshot.tactical.battle.combatants.find(
+      (unit) => unit.id === `character:${characterId}`,
+    )!
+    expect(
+      before.snapshot.buildAuthority?.combatants.find((unit) => unit.combatantId === beforeActor.id)
+        ?.supportActionId,
+    ).toBe(supportActionId)
+    // A later legal Profile save cannot rewrite this battle's captured choice.
+    await saveSupport(page, 'basic.recover.mp')
+    await page.reload()
+    await expect(slot).toHaveAccessibleName(`${label}, ${costLabel}`)
+    let commits = 0
+    const commandRequests: string[] = []
+    page.on('request', (request) => {
+      if (request.method() !== 'POST') return
+      const pathname = new URL(request.url()).pathname
+      if (/\/(preview|intents|commit|final-turn)$/.test(pathname)) commandRequests.push(pathname)
+      if (/\/(intents|commit)$/.test(pathname)) commits++
+    })
+    await page.mouse.move(0, 0)
+    await root.focus()
+    await page.keyboard.press('Digit3')
+    await expect(slot).not.toHaveAttribute('data-active', 'true')
+    const beforeUnavailableShortcut = commandRequests.length
+    await page.keyboard.press('KeyR')
+    await expect(root.locator('[data-battle-notice]')).toContainText(
+      'No Recovery action is equipped in this battle.',
+    )
+    await expect(root).toHaveAttribute('data-battle-action-mode', 'none')
+    expect(commandRequests).toHaveLength(beforeUnavailableShortcut)
+    await page.keyboard.press('KeyG')
+    await expect(slot).toHaveAttribute('data-active', 'true')
+    await expect(
+      root.getByRole('progressbar', { name: 'Action Economy remaining' }),
+    ).toHaveAttribute('aria-valuenow', '100')
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { code: 'KeyG', key: 'g', repeat: true, bubbles: true }),
+      ),
+    )
+    expect(commits).toBe(0)
+    await openBattleInfoMenu(page, `About ${label}`)
+    await root.getByRole('button', { name: `About ${label}`, exact: true }).click()
+    await page.keyboard.press('KeyG')
+    expect(commits).toBe(0)
+    await page.keyboard.press('Escape')
+    const unchanged = await readBattle(page)
+    expect(unchanged.battleVersion).toBe(before.battleVersion)
+    expect(unchanged.snapshot).toEqual(before.snapshot)
+    let target
+    if (supportActionId === 'basic.fleetstep') {
+      target = board.locator('button[data-reachable="true"]').first()
+    } else if (supportActionId === 'basic.pilfer') {
+      target = board.getByRole('button', { name: /occupied by Recruit/ })
+    } else {
+      const actorPosition = before.snapshot.tactical.placements.find(
+        (unit) => unit.combatantId === beforeActor.id,
+      )!.position
+      const emptyAdjacent = before.snapshot.tactical.tiles.find(
+        (tile) =>
+          Math.abs(tile.position.x - actorPosition.x) +
+            Math.abs(tile.position.y - actorPosition.y) ===
+            1 &&
+          !before.snapshot.tactical.placements.some(
+            (unit) => unit.position.x === tile.position.x && unit.position.y === tile.position.y,
+          ) &&
+          tile.elevation ===
+            before.snapshot.tactical.tiles.find(
+              (candidate) =>
+                candidate.position.x === actorPosition.x &&
+                candidate.position.y === actorPosition.y,
+            )!.elevation,
+      )
+      expect(emptyAdjacent).toBeTruthy()
+      target = board.getByRole('button', {
+        name: new RegExp(
+          `^Tile ${emptyAdjacent!.position.x + 1}, ${emptyAdjacent!.position.y + 1};`,
+        ),
+      })
+    }
+    await expect(target).toBeVisible()
+    const committed = page.waitForResponse('**/api/battles/*/intents')
+    await target.click()
+    const response = await committed
+    const body = await response.json()
+    expect(response.ok(), JSON.stringify(body)).toBe(true)
+    const intent = response.request().postDataJSON().intent
+    expect(intent).toMatchObject({
+      kind: 'action',
+      actionId: supportActionId,
+      behaviorId: 'use',
+      manualModifiers: [],
+    })
+    expect(commits).toBe(1)
+    const after = body.battle as BattleSessionView
+    expect(after.battleVersion).toBe(before.battleVersion + 1)
+    const afterActor = after.snapshot.tactical.battle.combatants.find(
+      (unit) => unit.id === beforeActor.id,
+    )!
+    expect(
+      afterActor.temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!
+        .current,
+    ).toBe(100 - cost)
+    expect(afterActor.mp).toBe(beforeActor.mp - (supportActionId === 'basic.invocation' ? 10 : 0))
+    expect(afterActor.hp).toBe(beforeActor.hp)
+    if (supportActionId === 'basic.fleetstep') {
+      expect(intent.target).toEqual({ kind: 'self' })
+      expect(intent.movementPath.length).toBeGreaterThan(1)
+      expect(
+        after.snapshot.tactical.placements.find((unit) => unit.combatantId === beforeActor.id)!
+          .position,
+      ).toEqual(intent.movementPath.at(-1))
+      expect(after.snapshot.tactical.battle.currentTurn!.movementSpent).toBe(
+        before.snapshot.tactical.battle.currentTurn!.movementSpent,
+      )
+    } else if (supportActionId === 'basic.invocation') {
+      expect(intent.target.kind).toBe('tile')
+      expect(after.snapshot.effectState?.summons).toHaveLength(
+        (before.snapshot.effectState?.summons?.length ?? 0) + 1,
+      )
+      expect(after.snapshot.effectState?.summons?.at(-1)?.profile.name).toBe('Vesper')
+    } else {
+      const enemy = before.snapshot.tactical.battle.combatants.find(
+        (unit) => unit.teamId === 'opponents',
+      )!
+      expect(intent.target).toEqual({ kind: 'unit', combatantId: enemy.id })
+      expect(
+        after.snapshot.tactical.battle.combatants.find((unit) => unit.id === enemy.id)!.hp,
+      ).toBeLessThanOrEqual(enemy.hp)
+      expect(after.snapshot.effectState?.summons).toEqual(before.snapshot.effectState?.summons)
+    }
+    await expect(slot).toBeDisabled()
+    await expect(slot).toHaveAccessibleName(
+      `${label}, ${costLabel}, Cooldown: ${cooldown} ${cooldown === 1 ? 'turn' : 'turns'} remaining`,
+    )
+    await page.reload()
+    await expect(slot).toBeDisabled()
+    const cooldownBefore = await readBattle(page)
+    const beforeBlockedCommands = commandRequests.length
+    await page.mouse.move(0, 0)
+    await root.focus()
+    await page.keyboard.press('KeyG')
+    await page.keyboard.press('KeyG')
+    expect(commits).toBe(1)
+    expect(commandRequests).toHaveLength(beforeBlockedCommands)
+    const cooldownAfter = await readBattle(page)
+    expect(cooldownAfter.battleVersion).toBe(cooldownBefore.battleVersion)
+    expect(cooldownAfter.snapshot).toEqual(cooldownBefore.snapshot)
   })
 }
 

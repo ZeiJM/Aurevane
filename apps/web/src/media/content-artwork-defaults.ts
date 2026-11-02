@@ -4,6 +4,7 @@ import {
 } from '@aurevane/game-core/combat/content-media'
 import type { MatureSkillMediaHooks } from '@aurevane/game-core/combat/mature-skills'
 import snapshot from './content-artwork-defaults.json'
+import { SUPPORT_ACTION_ART } from './support-action-art'
 interface ArtworkBaseline {
   readonly iconKey: string | null
   readonly artwork?: FinalizedContentImage
@@ -22,6 +23,7 @@ for (const row of snapshot.records) {
   baselines.set(row.content_key, baseline)
   baselines.set(row.body_id, baseline)
 }
+for (const row of SUPPORT_ACTION_ART) baselines.set(row.actionId, { iconKey: row.id })
 export function contentArtworkDefault(contentId?: string): ArtworkBaseline {
   return structuredClone(
     contentId ? (baselines.get(contentId) ?? { iconKey: null }) : { iconKey: null },

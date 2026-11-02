@@ -60,7 +60,7 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     if (await supportTab.isVisible()) await supportTab.click()
     // Tab selection changes the visible gallery on phones; measure that active pane.
     const supportBaseline = await geometry(dialog)
-    await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
+    await dialog.getByRole('radio', { name: 'MP Recovery', exact: true }).check()
     // Compact Techniques hides its old footer at phone widths; assert the pending
     // live-region state without requiring a visible bottom notification.
     await expect(
@@ -74,7 +74,7 @@ test('Techniques preserves geometry through previews, pending saves and failed s
     )
     releaseSave!()
     await expect(dialog.getByRole('status')).toHaveText(error)
-    await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
+    await expect(dialog.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
     expectGeometry(
       await geometry(dialog),
       supportBaseline,

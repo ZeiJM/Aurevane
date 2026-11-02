@@ -10,10 +10,8 @@ import {
   refreezeCapturedCombatAbilityState,
 } from '../../game-core/src/combat/combat-behavior-runtime'
 import { validateCombatAbilityState } from '../../game-core/src/combat/combat-ability-state'
-import {
-  captureBasicSkillSources,
-  defaultBasicSkills,
-} from '../../game-core/src/combat/combat-basic-actions'
+import { captureBasicSkillSources } from '../../game-core/src/combat/combat-basic-actions'
+import { historicalBasicSkills } from '../../game-core/src/combat/combat-basic-history.test-utils'
 import { commitCombatAbilityCommand } from '../../game-core/src/combat/combat-ability-command'
 import {
   preparePv1fTurnEconomy,
@@ -499,9 +497,14 @@ it.each(['basic', 'discipline'] as const)(
         ? captureBasicSkillSources({
             ownerCombatantId: 'actor',
             supportActionId: 'basic.guard',
-            definitions: defaultBasicSkills(),
+            definitions: historicalBasicSkills(),
           })
         : [captureCombatAbilitySource(source())]
+    if (kind === 'basic')
+      expect(captures.find((row) => row.abilityId === 'basic.guard')).toMatchObject({
+        contentVersion: 1,
+        basic: { enabled: true, contentVersion: 1 },
+      })
     const base = preparePv1fTurnEconomy(percentageDotEncounter())
     const state = reconcileCombatAbilitySources(
       {
