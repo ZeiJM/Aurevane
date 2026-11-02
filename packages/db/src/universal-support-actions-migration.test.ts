@@ -199,6 +199,34 @@ afterAll(async () => {
   await db?.close()
 })
 
+it('omits archived publications from current catalogue snapshots without deleting their pinned versions or pointers', async () => {
+  const read = async () =>
+    (
+      await db.query<{
+        catalogue: { publications: { content_key: string }[]; archivedKeys: string[] }
+      }>('select public.read_combat_content_catalogue_v1() catalogue')
+    ).rows[0]!.catalogue
+  const catalogue = await read()
+  expect(catalogue.archivedKeys).toContain('basic.guard')
+  expect(catalogue.publications.map((row) => row.content_key)).not.toContain('basic.guard')
+  expect(await protectedState()).toEqual(before.protected)
+  await db.exec('begin')
+  try {
+    const current = defaultBasicSkills().find((row) => row.id === 'basic.recover')!
+    await db.query(
+      "insert into app_private.combat_content_versions(content_key,content_kind,content_version,definition,published_by) values('basic.recover','skill',1,$1,$2)",
+      [current, user],
+    )
+    await db.query(
+      "insert into app_private.combat_content_publications(content_key,content_kind,version_id,updated_by) select content_key,content_kind,id,published_by from app_private.combat_content_versions where content_key='basic.recover'",
+    )
+    expect((await read()).publications.map((row) => row.content_key)).toContain('basic.recover')
+    expect((await read()).publications.map((row) => row.content_key)).not.toContain('basic.guard')
+  } finally {
+    await db.exec('rollback')
+  }
+})
+
 it('migrates only current Guard selections with version/audit provenance and leaves all historical data literal', async () => {
   const after = await active()
   expect(after[0]).toEqual({
