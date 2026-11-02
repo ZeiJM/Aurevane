@@ -32,3 +32,18 @@ The PR handoff records the final tree and one current-head GitHub Actions check.
 ## Release boundary
 
 No application deployment, hosted migration, content publication or merge has been performed for this batch. The compatible application and reviewed migration must release together. Installed catalogue overrides, especially the former Wildwarden Summon, must be reconciled through the ordinary versioned publication process before live rollout. Existing encounter clocks, policy flags and captured definitions remain pinned.
+
+## Browser CI follow-up — November 2
+
+One bounded GitHub check of PR #1003 head `ebc11111bf84497da94f3bca01f17fa1636ebdaf` retrieved all 20 configured workflow results, each latest attempt 1: 13 passed and seven browser workflows failed. No job was rerun and no status polling was used.
+
+The browser follow-up fixes the shared causes while retaining the intended coverage:
+
+- Five Support choices now occupy one desktop row. The previous three-column layout consumed a second row and compressed both Discipline galleries. Original CSS reproduces gallery overflow of 25 px and actual Counter Palm card overflow of 26 px; the corrected layout has zero overflow with the same artwork dimensions.
+- Native authoring fixtures use current Vesper. Captured creature readers explicitly pin historical Wildwarden v6; only the explicit historical Controlled fixture captures enabled Guard v1. Ordinary current fixtures use HP Recovery. Generic Skill pickers exclude source-exclusive Summon/Loot while positive Invocation/Pilfer coverage remains.
+- Current authenticated tests expect five Support choices and HP Recovery as the default. Real Support saves change the selected value instead of awaiting a no-op. Current Guarded readers use an equipped, learned Brace through the canonical versioned build API; cooldown and single-submit cases use the actual wounded Guided HP Recovery factory. Full-resource rejection remains covered in regular sparring.
+- Native targeting checks assert the approved full potential range and separately assert that clicking an empty unit-target tile submits no command. Existing route, target and prime/release identity assertions remain.
+
+Fresh follow-up verification passes formatting, repository lint, all eight package type checks, the complete web suite (8,495 Vitest tests plus seven Node checks) and the production build. Native Chromium 151.0.7922.34 passes the full default parameter palette, 14 canonical cases, 57 Controlled cases, 95 combined Move/Controlled/Modifier cases, eight desktop layout cases including Counter Palm, and four adjacent touch/desktop chooser cases. Independent review has no outstanding findings.
+
+Verification scope is deliberate: the follow-up changes one shared character-panel CSS rule and browser fixtures/specifications, with no gameplay, database, dependency, workflow, authoring-service or runtime-command change. The unchanged core/database results from the exact baseline remain applicable; this follow-up does not claim a newly executed full `pnpm check`. Authenticated database-backed Playwright execution remains pending configured CI because disposable local Supabase/Docker is unavailable. Discovery/type/lint checks are not described as authenticated execution. New-head hosted CI is required before integration. No merge, deployment, hosted migration or content publication is included.

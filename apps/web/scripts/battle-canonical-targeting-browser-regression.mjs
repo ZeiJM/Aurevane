@@ -398,8 +398,8 @@ try {
             ]) {
               assert.equal(
                 await tile(x, y).getAttribute(attribute),
-                null,
-                'empty unit-target tiles are not highlighted',
+                'true',
+                'the complete potential range remains highlighted over empty tiles',
               )
             }
             await gesture(tile(3, 1))
@@ -754,6 +754,8 @@ try {
             'direct prime retains an empty attachment set',
           )
           assert.equal(prime.kind, 'ability-prime')
+          if (scenario === 'controlled-basic')
+            assert.equal(prime.actionId, 'basic.guard', 'the explicit legacy capture stays Guard')
           if (scenario === 'controlled-choices') assert.equal(prime.behaviorId, 'second')
           const prepared = await page.evaluate(() => ({
             actor: window.fixtureBattle.snapshot.tactical.battle.combatants[0],
@@ -940,6 +942,7 @@ try {
             await command.locator('[data-battle-controlled-primed]').waitFor({ state: 'hidden' })
             assert.doesNotMatch(await command.getAttribute('aria-label'), /primed/)
             assert.equal(paid[1].body.intent.kind, 'action')
+            assert.equal(paid[1].body.intent.actionId, prime.actionId)
             assert.equal(paid[1].body.intent.behaviorId, prime.behaviorId)
             assert.equal(result.actor.mp, before.mp - 2)
             assert.equal(result.actor.hp, before.hp - 1)

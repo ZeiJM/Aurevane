@@ -1,5 +1,34 @@
 import { setBattleChronicleOpen } from './battle-log-layout-helpers'
+import { randomUUID } from 'node:crypto'
 import { expect, type Locator, type Page } from '@playwright/test'
+import type { CharacterBuildContext } from '../src/server/character/character-build-service'
+
+/** Equip a real learned self Skill before capture; Guarded remains a current status. */
+export async function equipBraceInFirstSkillSlot(page: Page) {
+  const response = await page.request.get('/api/character/build/skills')
+  expect(response.ok()).toBe(true)
+  const { context } = (await response.json()) as { context: CharacterBuildContext }
+  const brace = context.disciplineSkills.learnedSkills.find(
+    (entry) => entry.definition.id === 'vanguard.brace' && entry.activeSource,
+  )
+  expect(brace?.definition.target.kind).toBe('self')
+  const prior = context.disciplineSkills.equippedSkills.map((entry) => entry.definition.id)
+  const skillIds = ['vanguard.brace', ...prior.filter((id) => id !== 'vanguard.brace')].slice(
+    0,
+    context.disciplineSkills.capacity,
+  )
+  if (JSON.stringify(prior) === JSON.stringify(skillIds)) return
+  const saved = await page.request.put('/api/character/build/skills', {
+    data: {
+      expectedBuildVersion: context.build.buildVersion,
+      skillIds,
+      idempotencyKey: randomUUID(),
+    },
+  })
+  const body = (await saved.json()) as { context: CharacterBuildContext }
+  expect(saved.ok(), JSON.stringify(body)).toBe(true)
+  expect(body.context.disciplineSkills.equippedSkills[0]?.definition.id).toBe('vanguard.brace')
+}
 
 export function targetForecast(page: Page) {
   return page.locator('[data-battle-preview-strip="true"]')

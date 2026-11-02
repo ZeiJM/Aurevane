@@ -151,7 +151,7 @@ test('Nexus build launchers stay centered and readable', async ({ page }, testIn
       supportSummary.getByRole('heading', { name: 'Support Action', exact: true }),
     ).toBeVisible()
     await expect(supportSummary).not.toContainText('Support Action · Slot 3')
-    await expect(supportSummary.locator('strong')).toHaveText('Guard')
+    await expect(supportSummary.locator('strong')).toHaveText('HP Recovery')
 
     const [summaryBox, launcherBox] = await Promise.all([
       supportSummary.boundingBox(),

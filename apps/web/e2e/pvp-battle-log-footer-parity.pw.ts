@@ -6,7 +6,7 @@ import {
   expectBattleReferenceLayout,
 } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
-import { commitGesture } from './refined-battle-helpers'
+import { commitGesture, equipBraceInFirstSkillSlot } from './refined-battle-helpers'
 import { expectReadableBattleLog } from './battle-log-layout-helpers'
 import { recordedChronicleAction } from './battle-log-chronicle-fixtures'
 
@@ -136,6 +136,9 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
       characterName: spectatorIdentity.characterName,
     })
 
+    await equipBraceInFirstSkillSlot(host)
+    await equipBraceInFirstSkillSlot(guest)
+
     await host.goto('/game/battle')
     await host.getByRole('button', { name: 'PVP', exact: true }).click()
     await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
@@ -169,15 +172,20 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     const activeName = hostHasTurn ? hostIdentity.characterName : guestIdentity.characterName
     await activeRoot
       .getByRole('region', { name: 'Command Deck' })
-      .getByRole('button', { name: /^Guard,/ })
+      .getByRole('button', { name: /^Selected Brace,/ })
       .click()
-    await commitGesture(
+    const cast = await commitGesture(
       activePage,
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
     )
+    expect(cast.request().postDataJSON().intent).toMatchObject({
+      kind: 'action',
+      actionId: 'vanguard.brace',
+      target: { kind: 'self' },
+    })
     await expect(
       root.locator('[data-battle-inline-log]').locator('[data-battle-chronicle]'),
-    ).toContainText('Guard')
+    ).toContainText('Brace')
     const spectatorKey = (
       await root.locator("[data-pvp-spectator-key='true'] strong").textContent()
     )?.trim()
@@ -213,7 +221,7 @@ test('keeps the desktop PvP battle flow beside compact commands without resizing
     const history = spectatorLog.getByRole('region', { name: 'Battle chronicle', exact: true })
     await expect(history).toBeVisible()
     await expect(history).not.toContainText('temporarily unavailable')
-    await expect(history).toContainText('Guard')
+    await expect(history).toContainText('Brace')
     await expect(history.locator('[data-chronicle-actor]')).toHaveCount(1)
     await expect(history.locator('[data-chronicle-actor] > h3')).toHaveText(activeName)
     await expect(history.getByRole('button', { name: 'Explain Guard', exact: true })).toBeVisible()

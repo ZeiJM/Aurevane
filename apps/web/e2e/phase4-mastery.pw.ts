@@ -80,19 +80,25 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     await checkbox.check()
     expect((await saved).status()).toBe(200)
   }
-  // This trial uses Recovery through the cockpit. Equip it through the same
-  // single Support slot as a player; a Guard-equipped build cannot cast it.
+  // The trial uses HP Recovery. Exercise real Support writes by changing away
+  // from its default first, then saving it again through the single Support slot.
   const capacity = await techniques.getByTestId('skill-capacity').textContent()
   expect(capacity).toBeTruthy()
-  const supportSaved = page.waitForResponse(
-    (response) =>
-      response.url().endsWith('/api/character/build/support-action') &&
-      response.request().method() === 'POST',
-  )
-  await techniques.getByRole('radio', { name: 'HP Recovery', exact: true }).check()
-  expect((await supportSaved).status()).toBe(200)
   await expect(techniques.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
-  await expect(techniques.getByTestId('skill-capacity')).toHaveText(capacity!)
+  for (const name of ['MP Recovery', 'HP Recovery']) {
+    const supportSaved = page.waitForResponse(
+      (response) =>
+        response.url().endsWith('/api/character/build/support-action') &&
+        response.request().method() === 'POST',
+    )
+    await techniques.getByRole('radio', { name, exact: true }).check()
+    expect((await supportSaved).status()).toBe(200)
+    await expect(techniques.getByRole('radio', { name, exact: true })).toBeChecked()
+    await expect(
+      techniques.getByRole('radiogroup', { name: 'Support Action' }).locator('input:checked'),
+    ).toHaveCount(1)
+    await expect(techniques.getByTestId('skill-capacity')).toHaveText(capacity!)
+  }
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('mastery-trial')

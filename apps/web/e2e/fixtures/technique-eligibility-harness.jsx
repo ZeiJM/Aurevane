@@ -4,17 +4,19 @@ import { CharacterSkillBuildPanel } from '@/components/character/character-skill
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import './production-styles'
 
-const pure = new URLSearchParams(location.search).has('pure')
+const params = new URLSearchParams(location.search)
+const pure = params.has('pure')
+const primaryDisciplineId = params.get('discipline') === 'ironfist' ? 'ironfist' : 'vanguard'
 const learned = latestEnabledMatureSkills()
-  .filter((definition) => definition.sourceDisciplineId === 'vanguard')
+  .filter((definition) => definition.sourceDisciplineId === primaryDisciplineId)
   .map((definition, index) => ({
     definition:
-      index === 7
+      primaryDisciplineId === 'vanguard' && index === 7
         ? { ...definition, name: 'Sweeping Strike — A Long Shared Technique Identity' }
         : definition,
     activeSource: true,
     learnedAt: '2026-10-20T00:00:00Z',
-    eligibilityGrants: (pure ? ['vanguard'] : ['vanguard', 'lifebinder']).map(
+    eligibilityGrants: (pure ? [primaryDisciplineId] : [primaryDisciplineId, 'lifebinder']).map(
       (eligibilityDisciplineId) => ({
         eligibilityDisciplineId,
         activeSource: true,
@@ -61,7 +63,10 @@ createRoot(document.getElementById('root')).render(
   <CharacterSkillBuildPanel
     characterId="character-a"
     initialBuildVersion={1}
-    primaryDiscipline={{ id: 'vanguard', name: 'Vanguard' }}
+    primaryDiscipline={{
+      id: primaryDisciplineId,
+      name: primaryDisciplineId === 'ironfist' ? 'Ironfist' : 'Vanguard',
+    }}
     secondaryDiscipline={pure ? null : { id: 'lifebinder', name: 'Lifebinder' }}
     initialCapacity={4}
     initialLearnedSkills={learned}

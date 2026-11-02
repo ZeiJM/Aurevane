@@ -2,6 +2,7 @@ import { activeAbilityForAuthoring } from '@/lib/combat-ability-authoring-compat
 import React from 'react'
 import { SummonProfileEditor } from '@/components/master/combat-content/summon-profile-editor'
 import { currentSummonForAuthoring } from '@/lib/combat-current-tag-authoring'
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
 import {
   defaultBasicSkills,
   validateBasicSkillDefinition,
@@ -605,7 +606,7 @@ function CanonicalEditor() {
 }
 function TagBatchEditors() {
   const [profile, setProfile] = React.useState(() =>
-    currentSummonForAuthoring(resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile),
+    currentSummonForAuthoring(VESPER_SUMMON_PROFILE),
   )
   const [effects, setEffects] = React.useState([])
   const [reversal, setReversal] = React.useState(() => {
@@ -696,9 +697,7 @@ function EffectLayoutEditors() {
     ],
   })
   const [summon, setSummon] = React.useState(() => {
-    const profile = currentSummonForAuthoring(
-      resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile,
-    )
+    const profile = currentSummonForAuthoring(VESPER_SUMMON_PROFILE)
     return {
       ...profile,
       abilities: profile.abilities.map((ability, i) =>
@@ -881,7 +880,8 @@ function ElementalReaders() {
     effectDescriptions: ['Pinned Water explanation.'],
   }
   const ability = {
-    ...resolveMatureSkillVersion('wildwarden.renewing-herbs').summonProfile.abilities[0],
+    // A captured pre-retirement Summon reader, independent of current Briar Snare.
+    ...resolveMatureSkillVersion('wildwarden.renewing-herbs', 6).summonProfile.abilities[0],
     name: 'Captured Water',
     effects: [
       {

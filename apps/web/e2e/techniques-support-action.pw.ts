@@ -29,8 +29,8 @@ test('Techniques saves one Support Action separately from four Discipline Skills
   let dialog = await open()
   const initialCount = (await dialog.getByTestId('skill-capacity').textContent()) ?? ''
   expect(initialCount).toMatch(/Discipline Skills — 0 \/ 4 selected/)
-  await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toBeChecked()
-  await dialog.getByRole('radio', { name: 'Guard', exact: true }).focus()
+  await expect(dialog.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
+  await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).focus()
   const preview = dialog.getByTestId('technique-preview')
   for (const label of [
     'Skill Type',
@@ -44,22 +44,34 @@ test('Techniques saves one Support Action separately from four Discipline Skills
   ]) {
     await expect(preview.locator('dt', { hasText: new RegExp(`^${label}$`) })).toBeVisible()
   }
-  await expect(preview).toContainText('Guard [15%] [2 Turns]')
-  await expect(preview).toContainText('2 Turns')
-  for (const name of ['HP Recovery', 'MP Recovery']) {
+  await expect(dialog.getByRole('radio')).toHaveCount(5)
+  await expect(dialog.getByRole('radio', { name: 'Guard', exact: true })).toHaveCount(0)
+  await expect(preview).toContainText('HP Recovery [10%]')
+  await expect(preview).toContainText('2 turns')
+  for (const name of ['MP Recovery', 'HP Recovery', 'MP Recovery']) {
     const save = page.waitForResponse(
       (response) =>
         response.url().endsWith('/api/character/build/support-action') &&
         response.request().method() === 'POST',
     )
     await dialog.getByRole('radio', { name, exact: true }).check()
-    expect((await save).ok()).toBe(true)
+    const response = await save
+    expect(response.ok()).toBe(true)
+    const request = response.request().postDataJSON()
+    const { context } = await response.json()
+    expect(context.build.buildVersion).toBe(request.expectedBuildVersion + 1)
+    expect(context.build.supportActionId).toBe(request.supportActionId)
     await expect(dialog.getByRole('radio', { name, exact: true })).toBeChecked()
+    await expect(
+      dialog.getByRole('radiogroup', { name: 'Support Action' }).locator('input:checked'),
+    ).toHaveCount(1)
     await expect(preview).toContainText(`${name} [10%]`)
     await expect(preview).toContainText('2 turns')
     await expect(dialog.getByTestId('skill-capacity')).toHaveText(initialCount)
   }
-  const skill = dialog.locator('[data-technique-card] input:not(:checked):not(:disabled)').first()
+  const skill = dialog
+    .locator('[data-technique-card] input[type="checkbox"]:not(:checked):not(:disabled)')
+    .first()
   const disciplineSave = page.waitForResponse(
     (response) =>
       response.url().endsWith('/api/character/build/skills') &&
@@ -94,7 +106,7 @@ test('Techniques saves one Support Action separately from four Discipline Skills
       json: { error: { message: 'The build changed. Please refresh.' } },
     }),
   )
-  await dialog.getByRole('radio', { name: 'Guard', exact: true }).click()
+  await dialog.getByRole('radio', { name: 'HP Recovery', exact: true }).click()
   await expect(dialog.getByRole('status')).toHaveText('The build changed. Please refresh.')
   await expect(dialog.getByRole('radio', { name: 'MP Recovery', exact: true })).toBeChecked()
   await expect(dialog.getByTestId('skill-capacity')).toHaveText(
@@ -112,7 +124,10 @@ test('Techniques saves one Support Action separately from four Discipline Skills
         response.url().endsWith('/api/character/build/skills') &&
         response.request().method() === 'PUT',
     )
-    await dialog.locator('[data-technique-card] input:not(:checked):not(:disabled)').first().check()
+    await dialog
+      .locator('[data-technique-card] input[type="checkbox"]:not(:checked):not(:disabled)')
+      .first()
+      .check()
     expect((await save).ok()).toBe(true)
   }
   await expect(dialog.getByTestId('skill-capacity')).toHaveText(

@@ -665,7 +665,19 @@ async function verifyModularManual(page, viewport) {
   await page.screenshot({ path: resolve(output, `modular-manual-catalog-${viewport.width}.png`) })
   const basics = article.locator('#basic-skills')
   const disclosures = basics.locator('details')
-  assert.equal(await disclosures.count(), 5)
+  assert.deepEqual(
+    await disclosures.locator('summary').allTextContents(),
+    [
+      'basic.move',
+      'unarmed.basic',
+      'basic.recover',
+      'basic.recover.mp',
+      'basic.pilfer',
+      'basic.fleetstep',
+      'basic.invocation',
+    ].map((id) => `Edited ${id}`),
+    'Manual lists all seven current Basics and excludes retired Guard',
+  )
   for (const [index, basic] of (await disclosures.all()).entries()) {
     await basic.locator('summary').click()
     const detail = await basic.innerText()
@@ -1082,6 +1094,7 @@ async function verifyTagBatchEditors(page, viewport) {
   await summon.getByLabel('Summon ability 1 HP cost', { exact: true }).fill('7')
   await summon.getByLabel('Summon ability 1 damage type', { exact: true }).selectOption('mystic')
   const captured = await page.evaluate(() => window.inspectTagBatch().profile)
+  assert.equal(captured.id, 'summon.vesper', 'current Summon authoring uses Invocation')
   assert.equal(captured.coreAttributes.might, 20)
   assert.equal(captured.derivedStatRulesVersion, 5)
   assert.equal(captured.potencyBasisPoints, 5550)
@@ -1325,6 +1338,7 @@ async function verifyEffectControlLayout(page, viewport) {
   })
   // Exercise the shared Range & Area callback in a real Summon Skill editor.
   const originalLayout = await page.evaluate(() => window.inspectEffectLayout())
+  assert.equal(originalLayout.summon.id, 'summon.vesper')
   const summonBody = page
     .getByRole('region', { name: 'Summon effect layout', exact: true })
     .locator('[data-summon-skill-body]')
@@ -1700,13 +1714,22 @@ async function verifyCanonicalEditor(page, viewport) {
     'mp-recovery',
     'status:blindside-vulnerability',
   ])
-  for (const value of ['reveal', 'move', 'summon'])
+  for (const value of ['reveal', 'move'])
     assert.equal(
       await leap
         .getByLabel('New effect', { exact: true })
         .locator(`option[value="${value}"]`)
         .evaluate((option) => option.disabled),
       true,
+    )
+  for (const value of ['summon', 'loot'])
+    assert.equal(
+      await leap
+        .getByLabel('New effect', { exact: true })
+        .locator(`option[value="${value}"]`)
+        .count(),
+      0,
+      `${value} remains exclusive to its universal Support Skill`,
     )
   await leap.getByLabel('New effect', { exact: true }).selectOption('pierce')
   await gesture(leap.getByRole('button', { name: 'Add new effect', exact: true }))
@@ -2343,7 +2366,7 @@ try {
       evidence.push({
         viewport,
         status: 'passed',
-        basics: 5,
+        basics: 7,
         browser: browser.version(),
         transport: originalRpcAcceptance
           ? 'actual handler/service/RPC store/production migration SQL'

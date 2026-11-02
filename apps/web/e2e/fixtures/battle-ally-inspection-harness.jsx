@@ -1,6 +1,7 @@
 import {
   captureBasicSkillSources,
   defaultBasicSkills,
+  resolveBuiltinBasicSkillVersion,
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
@@ -247,7 +248,8 @@ if (new URLSearchParams(location.search).get('airborne') === '1') {
 }
 const groundPreset = new URLSearchParams(location.search).get('ground')
 if (new URLSearchParams(location.search).get('summon') === '1') {
-  const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+  // Preserve this historical creature fixture after current Wildwarden retires Summon.
+  const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)
   const current = createCurrentStatDrivenCombatEncounterState(
     snapshot,
     snapshot.statBridge.combatants.map((profile) => ({ ...profile, level: 1, criticalChance: 0 })),
@@ -322,7 +324,7 @@ const runtime = {
   playerLevel: 1,
   playerPortraitAssetId: 'character.adventure.male-01',
   playerProfileImageUrl: null,
-  supportActionId: 'basic.guard',
+  supportActionId: 'basic.recover',
   techniques: [
     [mend, 'heal', 'Mend'],
     [resolveMatureSkillVersion('dawnshield.sacred-guard'), 'defense', 'Sacred Guard'],
@@ -979,14 +981,17 @@ if (canonicalCase) {
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
 if (canonicalCase === 'controlled-basic') {
+  // Explicit historical Controlled capture: current Guard is retired and disabled.
+  runtime.supportActionId = 'basic.guard'
+  const guard = resolveBuiltinBasicSkillVersion('basic.guard', 1)
   const definitions = defaultBasicSkills().map((row) =>
     row.id !== 'basic.guard'
       ? row
       : {
-          ...row,
+          ...guard,
           ability: {
-            ...row.ability,
-            behaviors: row.ability.behaviors.map((behavior) => ({
+            ...guard.ability,
+            behaviors: guard.ability.behaviors.map((behavior) => ({
               ...behavior,
               costs: [
                 { resource: 'ap', amount: 11 },
@@ -1000,7 +1005,7 @@ if (canonicalCase === 'controlled-basic') {
   )
   const captures = captureBasicSkillSources({
     ownerCombatantId: ids[0],
-    supportActionId: 'basic.guard',
+    supportActionId: runtime.supportActionId,
     definitions,
   })
   canonicalCapture = captures.find((source) => source.abilityId === 'basic.guard')
@@ -1066,7 +1071,7 @@ if (canonicalCase?.startsWith('move-basic')) {
   )
   const captures = captureBasicSkillSources({
     ownerCombatantId: ids[0],
-    supportActionId: 'basic.guard',
+    supportActionId: runtime.supportActionId,
     definitions,
   })
   canonicalCapture = captures.find((source) => source.abilityId === 'basic.move')

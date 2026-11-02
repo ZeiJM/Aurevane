@@ -8,6 +8,7 @@ import {
   targetForecast,
   expectRefinedCockpit,
   commitGesture,
+  equipBraceInFirstSkillSlot,
 } from './refined-battle-helpers'
 import {
   expectBattlePreviewFits,
@@ -210,6 +211,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     password: 'AurevaneTest!42',
     characterName: identity.characterName,
   })
+  await equipBraceInFirstSkillSlot(page)
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
@@ -227,7 +229,9 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   await expect(root.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/, {
     timeout: 15000,
   })
-  await context.getByRole('button', { name: /^Guard,/ }).click()
+  const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
+  const apBeforePreview = await economy.getAttribute('aria-valuenow')
+  await context.getByRole('button', { name: /^Selected Brace,/ }).click()
   const preview = targetForecast(page).locator('[data-react-battle-preview="true"]:visible')
   await expect(targetForecast(page).locator('[aria-label="Action preview"]')).toHaveCount(1)
   await expect(preview).toContainText('Success 100%')
@@ -237,10 +241,15 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       .first()
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
   ).toBeGreaterThanOrEqual(12)
-  await expect(preview).toContainText(/Guard/i)
+  await expect(targetForecast(page).locator('[data-battle-instruction-title]')).toContainText(
+    'Brace',
+  )
+  // The forecast names the current Guarded result, while the instruction names the Skill.
+  await expect(preview).toContainText('Guard')
+  await expect(economy).toHaveAttribute('aria-valuenow', apBeforePreview!)
   await expectBattlePreviewFits(page)
-  await testInfo.attach('combat-guard-forecast', {
-    body: await page.screenshot({ path: testInfo.outputPath('combat-guard-forecast.png') }),
+  await testInfo.attach('combat-brace-forecast', {
+    body: await page.screenshot({ path: testInfo.outputPath('combat-brace-forecast.png') }),
     contentType: 'image/png',
   })
 
@@ -258,14 +267,23 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     await expectDesktopCombatantCard(root)
     await plotOneDesktopWasdStep(page, root, identity.characterName)
     await root.getByRole('button', { name: 'Cancel Action' }).click()
-    await context.getByRole('button', { name: /^Guard,/ }).click()
-    await commitGesture(
+    await context.getByRole('button', { name: /^Selected Brace,/ }).click()
+    const braceCommit = await commitGesture(
       page,
       root.getByRole('button', { name: new RegExp(`occupied by ${identity.characterName}`) }),
     )
+    expect(braceCommit.request().postDataJSON().intent).toMatchObject({
+      kind: 'action',
+      actionId: 'vanguard.brace',
+      target: { kind: 'self' },
+    })
+    expect((await braceCommit.json()).battle.battleVersion).toBe(
+      braceCommit.request().postDataJSON().expectedBattleVersion + 1,
+    )
     const inline = root.locator('[data-battle-inline-log]')
     const chronicle = inline.getByRole('region', { name: 'Battle chronicle', exact: true })
-    await expect(chronicle).toContainText('Guard')
+    await expect(chronicle).toContainText('Brace')
+    // Guard remains the current status reader; only the selectable Guard Skill was retired.
     await expect(chronicle).toContainText('Guard')
     await expect(
       chronicle.getByRole('heading', {
@@ -336,6 +354,9 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
       characterName: guestIdentity.characterName,
     })
 
+    await equipBraceInFirstSkillSlot(host)
+    await equipBraceInFirstSkillSlot(guest)
+
     await host.goto('/game/battle')
     await host.getByRole('button', { name: 'PVP', exact: true }).click()
     await host.getByRole('button', { name: 'Create Lobby', exact: true }).click()
@@ -385,23 +406,31 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
     await activeRoot.getByRole('button', { name: 'Cancel Action' }).click()
     await activeRoot
       .getByRole('region', { name: 'Command Deck' })
-      .getByRole('button', { name: /^Guard,/ })
+      .getByRole('button', { name: /^Selected Brace,/ })
       .click()
-    await commitGesture(
+    const braceCommit = await commitGesture(
       activePage,
       activeRoot.getByRole('button', { name: new RegExp(`occupied by ${activeName}`) }),
+    )
+    expect(braceCommit.request().postDataJSON().intent).toMatchObject({
+      kind: 'action',
+      actionId: 'vanguard.brace',
+      target: { kind: 'self' },
+    })
+    expect((await braceCommit.json()).battle.battleVersion).toBe(
+      braceCommit.request().postDataJSON().expectedBattleVersion + 1,
     )
     await setBattleChronicleOpen(activePage, true)
     if (mobile) {
       const timeline = activeRoot.locator('[data-battle-mobile-chronicle-strip]')
-      const guardAction = timeline
-        .getByRole('button', { name: /Guard.*Show Chronicle details/i })
+      const braceAction = timeline
+        .getByRole('button', { name: /Brace.*Show Chronicle details/i })
         .last()
-      await expect(guardAction).toBeVisible()
-      await guardAction.click()
+      await expect(braceAction).toBeVisible()
+      await braceAction.click()
       const details = activePage.getByRole('region', { name: /Chronicle action:/i })
       await expect(details).toBeVisible()
-      await expect(details).toContainText('Guard')
+      await expect(details).toContainText('Brace')
       await expect(details).toContainText(activeName)
       await details.getByRole('button', { name: 'Close Chronicle action' }).click()
     } else {
@@ -409,7 +438,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
         activeRoot
           .locator('[data-battle-inline-log]')
           .getByRole('region', { name: 'Battle chronicle', exact: true }),
-      ).toContainText('Guard')
+      ).toContainText('Brace')
     }
     await expectReadableBattleLog(activePage, testInfo, mobile ? 'pvp-mobile-log' : 'pvp-log')
   } finally {
