@@ -18,7 +18,10 @@ import {
   readPv1fActionEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { StaleBattleVersionError } from '@aurevane/game-core/errors'
-import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
+import {
+  combatAbilityCooldown,
+  readSkillCooldown,
+} from '@aurevane/game-core/combat/skill-cooldowns'
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
@@ -1539,7 +1542,6 @@ it.each(['recruit-sparring', 'guided-fundamentals'] as const)(
       'basic.move',
       'unarmed.basic',
       'basic.recover',
-      ...(battleHallRecordId === 'guided-fundamentals' ? ['basic.guard'] : []),
     ])
     expect(basicSources[2]!.contentVersion).toBe(2)
     expect(basicSources[2]!.definition.behaviors[0]!.costs).toEqual([
@@ -2165,9 +2167,12 @@ it('actual Reversal preparation atomically pays once, survives reload/retry and 
   )
   expect(owner.mp).toBe(beforeOwner.mp - 5)
   expect(owner.hp).toBe(beforeOwner.hp - 1)
-  expect(readSkillCooldown(owner, { key: 'test.reversal-service', ownerTurns: 3 }).active).toBe(
-    true,
-  )
+  const source = before.capturedAbilitySources!.find(
+    (row) => row.ownerCombatantId === PLAYER_ID && row.abilityId === f.actionId,
+  )!
+  const behavior = source.definition.behaviors.find((row) => row.id === 'controlled')!
+  const cooldown = combatAbilityCooldown(before, source, behavior.cooldown)!
+  expect(readSkillCooldown(owner, cooldown).active).toBe(true)
   expect(f.state().abilityRuntime?.controlled?.primes).toHaveLength(1)
   expect(JSON.stringify(prepared.snapshot)).not.toMatch(
     /reversalState|offensiveTurns|preparedTurnNumber|reversalPreparation/,

@@ -6,9 +6,10 @@ import {
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
 import {
-  SUPPORT_ACTION_IDS,
+  CURRENT_SUPPORT_ACTION_IDS,
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
+import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import { validateAttributeAllocation } from '@aurevane/game-core/character/attribute-allocation'
 import type { MasterPlayerView, PlayerCorrection } from '@/master/players'
 import { disciplineCorrectionFromForm } from '@/master/player-discipline-correction'
@@ -434,13 +435,9 @@ export function PlayerCorrectionForm({
           <label>
             Support action
             <select name="support" defaultValue={player.facts.build.supportActionId}>
-              {SUPPORT_ACTION_IDS.map((id) => (
+              {CURRENT_SUPPORT_ACTION_IDS.map((id) => (
                 <option key={id} value={id}>
-                  {id === 'basic.guard'
-                    ? 'Guard'
-                    : id === 'basic.recover'
-                      ? 'Recover HP'
-                      : 'Recover MP'}
+                  {pv1fSkillByActionId(id)?.name ?? 'Unavailable'}
                 </option>
               ))}
             </select>

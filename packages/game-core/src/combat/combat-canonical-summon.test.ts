@@ -53,7 +53,7 @@ function summoning(
   timing: 'instant' | 'next-round' | 'delayed' = 'instant',
   prefix: readonly AbilityEffect[] = [],
 ): MatureSkillDefinition {
-  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
   const profile = { ...native.summonProfile!, name: 'Captured Companion', neverMoves: true }
   return {
     ...native,

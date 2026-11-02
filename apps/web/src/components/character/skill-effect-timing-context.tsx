@@ -19,6 +19,7 @@ const GroundInteractionContext = createContext({
   legacyHealingDown: false,
   legacyBlindsideActivation: false,
   legacyReversal: false,
+  legacyReflectBarrier: false,
   legacyPierceCritical: false,
   legacySummonPotency: false,
   legacyRuin: false,
@@ -37,6 +38,7 @@ export function SkillEffectTimingProvider({
   healingDownPolicyVersion = 1,
   blindsideActivationPolicyVersion = 1,
   reversalPolicyVersion = 1,
+  reflectBarrierPolicyVersion = 1,
   pierceCriticalPolicyVersion = 1,
   summonPotencyPolicyVersion = 1,
   ruinPolicyVersion = 1,
@@ -52,6 +54,7 @@ export function SkillEffectTimingProvider({
   healingDownPolicyVersion?: 1 | null
   blindsideActivationPolicyVersion?: 1 | null
   reversalPolicyVersion?: 1 | null
+  reflectBarrierPolicyVersion?: 1 | null
   pierceCriticalPolicyVersion?: 1 | null
   summonPotencyPolicyVersion?: 1 | null
   ruinPolicyVersion?: 1 | null
@@ -73,6 +76,7 @@ export function SkillEffectTimingProvider({
               legacyHealingDown: healingDownPolicyVersion !== 1,
               legacyBlindsideActivation: blindsideActivationPolicyVersion !== 1,
               legacyReversal: reversalPolicyVersion !== 1,
+              legacyReflectBarrier: reflectBarrierPolicyVersion !== 1,
               legacyPierceCritical: pierceCriticalPolicyVersion !== 1,
               legacySummonPotency: summonPotencyPolicyVersion !== 1,
               legacyRuin: ruinPolicyVersion !== 1,

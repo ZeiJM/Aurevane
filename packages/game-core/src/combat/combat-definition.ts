@@ -1,5 +1,14 @@
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import {
+  isAutomaticAbilityTargetSelector,
+  automaticAbilityTargetSelectorSubjects,
+  type AutomaticAbilityTargetSelector,
+} from './combat-automatic-targets'
+export {
+  AUTOMATIC_ABILITY_TARGET_SELECTORS,
+  type AutomaticAbilityTargetSelector,
+} from './combat-automatic-targets'
+import {
   isSimpleRequirement,
   simpleRequirementSubjects,
   simpleEffectRequirementSubjects,
@@ -41,7 +50,8 @@ import {
 } from './combat-tag-registry'
 
 export type { RequirementNode, AbilityRequirementContext } from './combat-requirements'
-export type AutomaticAbilityTargetSubject = 'owner' | 'triggering' | 'selected' | 'affected'
+export type AutomaticAbilityTargetSubject =
+  'owner' | 'triggering' | 'selected' | 'affected' | AutomaticAbilityTargetSelector
 export type AbilityActivation = 'manual' | 'automatic' | 'ongoing'
 export type AbilityMode = 'action' | 'modifier'
 export type AbilityActivationLimit =
@@ -409,6 +419,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
             'requiresLineOfSight',
             'maximumElevationDifference',
             'friendlyFire',
+            'allTargetPolicyVersion',
             'maximumSelections',
             'categories',
           ],
@@ -460,7 +471,8 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       const binding = candidate.automaticTarget
       if (
         !record(binding) ||
-        !['owner', 'triggering', 'selected', 'affected'].includes(binding.subject as string) ||
+        (!['owner', 'triggering', 'selected', 'affected'].includes(binding.subject as string) &&
+          !isAutomaticAbilityTargetSelector(binding.subject)) ||
         candidate.activation !== 'automatic' ||
         candidate.mode !== 'action' ||
         !record(target) ||
@@ -487,6 +499,18 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           'Automatic target must bind an available native role compatible with its authored target geometry.',
         )
       if (record(binding)) keys(binding, ['subject'], `${path}.automaticTarget`)
+      if (
+        record(binding) &&
+        isAutomaticAbilityTargetSelector(binding.subject) &&
+        !automaticAbilityTargetSelectorSubjects(
+          record(target) ? (target as unknown as AbilityTargeting) : null,
+        ).includes(binding.subject)
+      )
+        issue(
+          `${path}.automaticTarget`,
+          'invalid-automatic-target',
+          'Automatic selection requires compatible Single/Line unit or Ground targeting.',
+        )
     } else if (
       candidate.activation === 'automatic' &&
       candidate.mode === 'action' &&
@@ -614,7 +638,15 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
       if (record(ground))
         keys(
           ground,
-          ['durationRounds', 'visualPresetId', 'entryEffectIds', 'timing', 'contactPolicyVersion'],
+          [
+            'durationRounds',
+            'visualPresetId',
+            'entryEffectIds',
+            'timing',
+            'contactPolicyVersion',
+            'placementTimingVersion',
+            'targetTeams',
+          ],
           groundPath,
         )
       try {
@@ -648,6 +680,12 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           groundArea: {
             ...(Object.hasOwn(ground, 'contactPolicyVersion')
               ? { contactPolicyVersion: ground.contactPolicyVersion as 1 }
+              : {}),
+            ...(Object.hasOwn(ground, 'placementTimingVersion')
+              ? { placementTimingVersion: ground.placementTimingVersion as 1 }
+              : {}),
+            ...(Object.hasOwn(ground, 'targetTeams')
+              ? { targetTeams: ground.targetTeams as CombatGroundAreaDefinition['targetTeams'] }
               : {}),
             durationRounds: ground.durationRounds as number,
             visualPresetId: ground.visualPresetId as CombatGroundAreaDefinition['visualPresetId'],
@@ -983,7 +1021,9 @@ export function applyAbilityTimingDefaults(
       ? behavior.activationLimits.filter((limit) => limit !== 'once-per-battle')
       : behavior.activationLimits
   const groundArea =
-    policy.tagAuthority === 'global' && behavior.groundArea
+    policy.tagAuthority === 'global' &&
+    behavior.groundArea &&
+    behavior.groundArea.placementTimingVersion !== 1
       ? { ...behavior.groundArea, timing: combatEffectTimingMode(policy, 'ground-area') }
       : behavior.groundArea
   if (

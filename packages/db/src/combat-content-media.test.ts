@@ -1,7 +1,11 @@
 import type { PGlite } from '@electric-sql/pglite'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest'
-import { latestEnabledMatureSkills } from '../../game-core/src/combat/mature-skills'
+import {
+  latestEnabledMatureSkills,
+  resolveMatureSkillVersion,
+} from '../../game-core/src/combat/mature-skills'
+import { defaultBasicSkills } from '../../game-core/src/combat/combat-basic-actions'
 import { currentEssenceDefinitions } from '../../game-core/src/combat/essence'
 const owner = '00000000-0000-4000-8000-000000000001'
 const other = '00000000-0000-4000-8000-000000000002'
@@ -500,43 +504,53 @@ it.each(['native', 'canonical'] as const)(
         ],
       )
     ).rows[0]!.media
-    const native = latestEnabledMatureSkills().find((skill) => skill.summonProfile)!
-    const key = `content.summon-portrait-${mode}`
-    const profile = { ...native.summonProfile!, media: { artwork } }
-    const definition = {
-      ...structuredClone(native),
-      id: key,
-      ...(mode === 'native'
-        ? { summonProfile: profile }
-        : {
-            ability: {
-              schemaVersion: 1,
-              behaviors: [
-                {
-                  id: 'summon',
-                  activation: 'manual',
-                  mode: 'action',
-                  classification: 'utility',
-                  targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
-                  costs: [{ resource: 'ap', amount: 20 }],
-                  cooldown: null,
-                  requirements: null,
-                  effects: [
-                    {
-                      id: 'spawn',
-                      timing: 'instant',
-                      payload: { type: 'summon', recipient: 'selected-tile', profile },
-                    },
-                  ],
-                },
-              ],
-            },
-          }),
+    const current = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    // Native storage remains readable after Briar Snare replaces the current
+    // class Summon. Current canonical authoring uses Invocation exclusively.
+    const native = resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
+    expect(native.summonProfile).toBeDefined()
+    const invocation = defaultBasicSkills().find((row) => row.id === 'basic.invocation')!
+    const summon = invocation.ability.behaviors[0]!.effects[0]!.payload
+    if (summon.type !== 'summon') throw new Error('Expected current Invocation Summon.')
+    const key = mode === 'native' ? `content.summon-portrait-${mode}` : invocation.id
+    const profile = {
+      ...(mode === 'native' ? native.summonProfile! : summon.profile),
+      media: { artwork },
     }
+    const definition =
+      mode === 'native'
+        ? {
+            ...structuredClone(native),
+            id: key,
+            summonProfile: profile,
+          }
+        : {
+            ...structuredClone(invocation),
+            ability: {
+              ...invocation.ability,
+              behaviors: invocation.ability.behaviors.map((behavior) => ({
+                ...behavior,
+                effects: behavior.effects.map((effect) =>
+                  effect.payload.type === 'summon'
+                    ? { ...effect, payload: { ...effect.payload, profile } }
+                    : effect,
+                ),
+              })),
+            },
+          }
+    const initial =
+      mode === 'canonical'
+        ? (
+            await db.query<{ record: { revision: number } }>(
+              'select public.read_combat_content_record_v1($1,null,$2) record',
+              [owner, key],
+            )
+          ).rows[0]!.record
+        : null
     let saved = await writeMedia(key, {
-      action: 'create',
-      requestId: crypto.randomUUID(),
-      contentKind: 'skill',
+      ...(mode === 'native'
+        ? { action: 'create', requestId: crypto.randomUUID(), contentKind: 'skill' }
+        : { action: 'save', expectedRevision: initial!.revision }),
       definition,
     })
     expect(

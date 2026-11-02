@@ -29,6 +29,7 @@ export interface ChronicleAction {
   contentId: string | null
   sourceActionId?: string | null
   contentVersion: number | null
+  artworkKey?: string
   flavorTemplate: string | null
   configuredValues?: Readonly<Record<string, number>>
   triggeringActorName?: string
@@ -260,7 +261,7 @@ function fallbackNarration(entry: BattleLogEntry, actor: string): string {
       if (entry.eventType === 'resonance_activated')
         return `${actor}'s disciplines answer together.`
       if (entry.eventType === 'combat_action_used')
-        return `${actor} uses ${entry.actionLabel ?? 'the skill'}.`
+        return `${actor} uses ${entry.actionContext?.name ?? entry.actionLabel ?? 'the skill'}.`
       return ''
   }
 }
@@ -282,6 +283,7 @@ function action(entry: BattleLogEntry, names: ChronicleNames, ownerId: string): 
     contentId: entry.actionContext?.contentId ?? entry.actionContext?.skillId ?? null,
     sourceActionId: entry.actionId,
     contentVersion: entry.actionContext?.contentVersion ?? null,
+    ...(entry.actionContext?.artworkKey ? { artworkKey: entry.actionContext.artworkKey } : {}),
     flavorTemplate: reflection
       ? null
       : loweredGuard && entry.eventType === 'combat_action_used'

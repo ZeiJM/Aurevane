@@ -116,7 +116,7 @@ it('compact timing labels expose Controlled for a configured tag', () => {
 
 it('reports current Summon potential with a shared round budget', () => {
   const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
-  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const behavior = {
     ...base,
     effects: [

@@ -270,7 +270,7 @@ function buildCandidates(
   }
 
   const hpRatio = actor.maxHp > 0 ? actor.hp / actor.maxHp : 0
-  if (capabilities?.guard !== false && hpRatio < 0.72) {
+  if (state.supportActionPolicyVersion !== 1 && capabilities?.guard !== false && hpRatio < 0.72) {
     pushCandidate(
       candidates,
       profile,

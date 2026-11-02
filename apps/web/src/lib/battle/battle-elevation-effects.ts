@@ -15,6 +15,7 @@ export type BattlePresentedStatus = CombatEffectPresentationStatus & {
   airborneJumpPolicyVersion?: 1
   healingDownPolicyVersion?: 1
   blindsideActivationPolicyVersion?: 1
+  reflectBarrierPolicyVersion?: 1
   presentationDuration?:
     | 'while-elevated'
     | 'while-primed'

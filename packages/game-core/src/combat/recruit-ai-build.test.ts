@@ -1,5 +1,6 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { source as canonicalSource } from './combat-behavior.test-utils'
-import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { captureBasicSkillSources } from './combat-basic-actions'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
 import {
   capturedMatureSkillAbilitySource,

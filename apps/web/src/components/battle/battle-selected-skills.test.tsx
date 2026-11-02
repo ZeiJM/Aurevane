@@ -690,6 +690,54 @@ it('lets passive Resonance artwork be inspected during a waiting turn without ad
   expect(html).not.toContain('ready to release')
 })
 
+it.each(['pve', 'pvp'] as const)(
+  'shows the captured uploaded image of a custom passive Resonance in the %s cockpit',
+  async (mode) => {
+    const { customAutomaticResonance } = await import('./battle-custom-resonance.test-utils')
+    const { projectPublicCombat } =
+      await import('@aurevane/game-core/combat/public-combat-presentation')
+    const definition = projectPublicCombat(customAutomaticResonance())
+    const special = {
+      id: definition.id,
+      contentVersion: definition.contentVersion,
+      name: definition.name,
+      description: definition.description,
+      definition,
+    }
+    const chosenRuntime: BattleRuntime =
+      mode === 'pve'
+        ? { ...runtime, resonance: special }
+        : {
+            kind: 'pvp',
+            playerName: 'Wayfarer',
+            resonance: special,
+            metadata: {
+              lobbyId: 'fixture',
+              mode: '1v1',
+              battleKey: 'AVB-TEST-TEST',
+              localCharacterId: 'actor',
+              participants: [],
+            },
+          }
+    const html = renderToStaticMarkup(
+      <BattleSelectedSkills
+        runtime={chosenRuntime}
+        disabled
+        actionEconomy={0}
+        onSelect={vi.fn()}
+        onInspect={vi.fn()}
+        activeId={definition.id}
+      />,
+    )
+    expect(html).toContain('src="/api/content-media/f6ba91b3-6887-4197-8cc6-22f0aa48361b"')
+    expect(html).not.toContain('/media/skills/missing-art.svg')
+    expect(html).toContain('aria-label="Ultra Instinct, Resonance, inspect"')
+    expect(html).not.toMatch(/aria-label="Ultra Instinct, Resonance, inspect"[^>]*disabled/)
+    expect(html).not.toContain('ready to release')
+    expect(html).not.toMatch(/Ultra Instinct, Resonance, [0-9]+ AP/)
+  },
+)
+
 it('limits read-only selection to an owned noncast ability or an unavailable Resonance', async () => {
   const manual = { ...runtime, techniques: [technique] }
   expect(battleNoncastAbilityInspection(manual, [], 'actor', technique.id)).toBeNull()

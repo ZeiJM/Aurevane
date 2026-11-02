@@ -40,7 +40,9 @@ export function AbilitySelect<T extends string>({
           if (!disabled) onChange(event.currentTarget.value as T)
         }}
       >
-        {!options.includes(value) ? <option value={value}>{value} (incompatible)</option> : null}
+        {!options.includes(value) ? (
+          <option value={value}>{optionLabels?.[value] ?? value} (incompatible)</option>
+        ) : null}
         {options.map((option) => (
           <option key={option} value={option} disabled={disabledOptions.includes(option)}>
             {optionLabels?.[option] ?? (option || 'Any')}

@@ -1,3 +1,4 @@
+import { VESPER_SUMMON_PROFILE } from './universal-support'
 import { abilityPresentationTextIssues, type AbilityPresentationText } from './battle-narration'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import type { CombatEncounterState, CombatActionDefinition } from './actions'
@@ -308,6 +309,58 @@ const selfTarget = {
   maximumSelections: 1,
 }
 
+/** Retained builtin history; current retirement must never rewrite this record. */
+const BUILTIN_GUARD_V1: BasicSkillDefinition = {
+  schemaVersion: 1,
+  id: 'basic.guard',
+  contentVersion: 1,
+  enabled: true,
+  name: 'Guard',
+  description: 'Protect yourself with Guarded.',
+  tags: ['basic'],
+  media: { iconKey: null, audioCueKey: null, vfxKey: null },
+  execution: { kind: 'basic-action' },
+  ability: {
+    schemaVersion: 1,
+    behaviors: [
+      {
+        id: 'use',
+        activation: 'manual',
+        mode: 'action',
+        classification: 'utility',
+        costs: [{ resource: 'ap', amount: 30 }],
+        cooldown: { key: 'basic.guard', ownerTurns: 2 },
+        requirements: null,
+        targeting: {
+          geometryVersion: 3,
+          kind: 'self',
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          categories: ['self'],
+          minimumRange: 0,
+          maximumRange: 0,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [
+          {
+            id: 'guard',
+            payload: {
+              type: 'apply-status',
+              recipient: 'actor',
+              statusId: 'guarded',
+              stacks: 1,
+              durationTurns: 2,
+            },
+          },
+        ],
+      },
+    ],
+  },
+}
+
 export function defaultBasicSkills(): readonly BasicSkillDefinition[] {
   const behavior = (
     cost: number,
@@ -344,7 +397,13 @@ export function defaultBasicSkills(): readonly BasicSkillDefinition[] {
     name,
     description,
     tags: ['basic'],
-    media: { iconKey: null, audioCueKey: null, vfxKey: null },
+    media: {
+      iconKey: ['basic.pilfer', 'basic.fleetstep', 'basic.invocation'].includes(id)
+        ? `${id}.icon`
+        : null,
+      audioCueKey: null,
+      vfxKey: null,
+    },
     execution,
     ability,
   })
@@ -396,28 +455,7 @@ export function defaultBasicSkills(): readonly BasicSkillDefinition[] {
         },
       ),
     ),
-    make(
-      'basic.guard',
-      'Guard',
-      'Protect yourself with Guarded.',
-      { kind: 'basic-action' },
-      behavior(
-        30,
-        [
-          {
-            id: 'guard',
-            payload: {
-              type: 'apply-status',
-              recipient: 'actor',
-              statusId: 'guarded',
-              stacks: 1,
-              durationTurns: 2,
-            },
-          },
-        ],
-        { cooldown: { key: 'basic.guard', ownerTurns: 2 } },
-      ),
-    ),
+    { ...structuredClone(BUILTIN_GUARD_V1), contentVersion: 2, enabled: false },
     make(
       'basic.recover',
       'HP Recovery',
@@ -480,7 +518,108 @@ export function defaultBasicSkills(): readonly BasicSkillDefinition[] {
         },
       ),
     ),
+    make(
+      'basic.pilfer',
+      'Pilfer',
+      'Strike an adjacent enemy with four base Pierce damage. Loot currently grants no items or rewards.',
+      { kind: 'basic-action' },
+      behavior(
+        15,
+        [
+          {
+            id: 'pierce',
+            timing: 'instant',
+            payload: {
+              type: 'pierce',
+              recipient: 'primary-unit',
+              amount: 4,
+              armorIgnoredBasisPoints: 10000,
+              facingModifiersBasisPoints: { front: 10000, side: 10000, rear: 10000 },
+            },
+          },
+          { id: 'loot', timing: 'instant', payload: { type: 'loot', recipient: 'primary-unit' } },
+        ],
+        {
+          classification: 'attack',
+          attackFamily: 'physical',
+          cooldown: { key: 'main', ownerTurns: 1 },
+          targeting: {
+            ...selfTarget,
+            kind: 'unit',
+            teamPolicy: 'enemy',
+            friendlyFire: 'enemies-only',
+            categories: ['enemy'],
+            minimumRange: 1,
+            maximumRange: 1,
+            maximumElevationDifference: 1,
+          },
+        },
+      ),
+    ),
+    make(
+      'basic.fleetstep',
+      'Fleetstep',
+      'Walk up to four extra tiles through a legal route without spending ordinary Movement.',
+      { kind: 'basic-action' },
+      behavior(
+        30,
+        [
+          {
+            id: 'move',
+            timing: 'instant',
+            payload: { type: 'move', recipient: 'actor', maximumTiles: 4 },
+          },
+        ],
+        { cooldown: { key: 'main', ownerTurns: 2 }, targeting: selfTarget },
+      ),
+    ),
+    make(
+      'basic.invocation',
+      'Invocation',
+      'Call Vesper, a little moon drake, to a nearby empty tile. Only one Vesper can accompany each character.',
+      { kind: 'basic-action' },
+      behavior(
+        45,
+        [
+          {
+            id: 'summon',
+            timing: 'instant',
+            payload: { type: 'summon', recipient: 'selected-tile', profile: VESPER_SUMMON_PROFILE },
+          },
+        ],
+        {
+          costs: [
+            { resource: 'ap', amount: 45 },
+            { resource: 'mp', amount: 10 },
+          ],
+          cooldown: { key: 'main', ownerTurns: 4 },
+          targeting: {
+            kind: 'empty-tile',
+            teamPolicy: 'ally',
+            friendlyFire: 'allies-only',
+            shape: { kind: 'single' },
+            minimumRange: 1,
+            maximumRange: 3,
+            maximumElevationDifference: 1,
+            maximumSelections: 1,
+            requiresLineOfSight: true,
+          },
+        },
+      ),
+    ),
   ]
+}
+
+/** Exact builtin fallback only; callers admitting new actions use current definitions. */
+export function resolveBuiltinBasicSkillVersion(
+  id: BasicSkillId,
+  contentVersion: number,
+): BasicSkillDefinition | null {
+  if (id === 'basic.guard' && contentVersion === 1) return structuredClone(BUILTIN_GUARD_V1)
+  const current = defaultBasicSkills().find(
+    (row) => row.id === id && row.contentVersion === contentVersion,
+  )
+  return current ? structuredClone(current) : null
 }
 
 export function resolveBasicSkillVersion(
@@ -508,6 +647,8 @@ export function captureBasicSkillSources(input: {
     if (matches.length !== 1)
       throw new RangeError(`Basic Skill admission needs one resolved definition for ${id}.`)
     const basic = parseBasicSkillDefinition(matches[0])
+    if (basic.id === 'basic.guard' && !basic.enabled)
+      throw new TypeError('Disabled or retired Guard cannot be newly captured.')
     return captureCombatAbilitySource({
       schemaVersion: 1,
       sourceInstanceId: JSON.stringify(['basic', input.ownerCombatantId, id, basic.contentVersion]),

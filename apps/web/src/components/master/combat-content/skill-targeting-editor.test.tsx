@@ -5,6 +5,36 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { SkillTargetingEditor, type SkillTargetingEditorProps } from './skill-targeting-editor'
 
+it('pins a deliberate All friendly-fire choice even when the shared aim is Self', () => {
+  const onChange = vi.fn()
+  const value = target({
+    geometryVersion: 3,
+    kind: 'self',
+    teamPolicy: 'self',
+    categories: ['self'],
+    shape: { kind: 'single' },
+    minimumRange: 0,
+    maximumRange: 0,
+  })
+  const tree = SkillTargetingEditor({
+    value,
+    effects: [{ type: 'damage', target: 'all', recipient: 'affected-units' }],
+    onChange,
+  })
+  function find(
+    node: ReactNode,
+  ): { onChange(event: { currentTarget: { value: string } }): void } | undefined {
+    if (Array.isArray(node)) return node.map(find).find(Boolean)
+    if (!isValidElement<{ children?: ReactNode; 'aria-label'?: string }>(node)) return
+    if (node.props['aria-label'] === 'Friendly Fire') return node.props as never
+    return find(node.props.children)
+  }
+  find(tree)!.onChange({ currentTarget: { value: 'off' } })
+  expect(onChange).toHaveBeenCalledWith(
+    expect.objectContaining({ allTargetPolicyVersion: 1, friendlyFire: 'enemies-only' }),
+  )
+})
+
 function target(overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec {
   return {
     kind: 'unit',
@@ -21,7 +51,7 @@ function target(overrides: Partial<CombatTargetSpec> = {}): CombatTargetSpec {
 
 describe('Master Panel Skill targeting editor', () => {
   it.each([{ kind: 'single' }, { kind: 'circle', radius: 2 }] as const)(
-    'hides irrelevant friendly fire for All-only %j and preserves area Enemy siblings',
+    'offers effective friendly fire for global All with shared %j aim',
     (shape) => {
       const value = target({ geometryVersion: 3, shape })
       const all = { type: 'damage', recipient: 'affected-units', target: 'all' as const }
@@ -29,10 +59,10 @@ describe('Master Panel Skill targeting editor', () => {
         renderToStaticMarkup(
           createElement(SkillTargetingEditor, { value, effects, onChange: vi.fn() }),
         )
-      expect(render([all])).not.toContain('aria-label="Friendly Fire"')
+      expect(render([all])).toContain('aria-label="Friendly Fire"')
+      expect(render([all])).toContain('<option value="on" selected="">On</option>')
       const sibling = render([all, { ...all, target: 'enemy' }])
-      if (shape.kind === 'circle') expect(sibling).toContain('aria-label="Friendly Fire"')
-      else expect(sibling).not.toContain('aria-label="Friendly Fire"')
+      expect(sibling).toContain('aria-label="Friendly Fire"')
     },
   )
   it('keeps Range & Area focused on geometry and moves target choices to Effects', () => {

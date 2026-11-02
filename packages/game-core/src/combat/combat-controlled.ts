@@ -18,7 +18,7 @@ import {
   evaluateAbilityRequirements,
   evaluateAbilitySelectedRequirements,
 } from './combat-requirements'
-import { readSkillCooldown } from './skill-cooldowns'
+import { combatAbilityCooldown, readSkillCooldown } from './skill-cooldowns'
 import { applyAbilityTimingDefaults } from './combat-definition'
 import type { CombatEncounterState, CombatEncounterIssue } from './actions'
 import type { AbilityBehavior } from './combat-definition'
@@ -287,14 +287,14 @@ export function updateCombatControlledAbility(
     behavior.cooldown &&
     readSkillCooldown(
       state.tactical.battle.combatants.find((unit) => unit.id === input.actorId)!,
-      behavior.cooldown,
+      combatAbilityCooldown(state, source, behavior.cooldown)!,
     ).active
   )
     throw new TypeError('controlled-cooldown-active')
   if (operation === 'prime' && combatReversalPayload(behavior))
     throw new TypeError('Reversal requires paid Controlled preparation.')
   if (operation === 'prime') {
-    const action = materializeCombatAbilityAction(source, behavior)
+    const action = materializeCombatAbilityAction(source, behavior, state)
     if (combatEndureBlocksAction(state, input.actorId, action, input.content))
       throw new TypeError('Endure prevents preparing damage-dealing actions while active.')
     const reversalIssue = combatReversalAttackIssue(state, input.actorId, action)
@@ -321,7 +321,7 @@ export function updateCombatControlledAbility(
   let returnAnchors: CombatRewindAnchors | undefined
   if (operation === 'prime' && recipientRewind && !availabilityOnly) {
     if (!input.selection || !input.content) throw new TypeError('controlled-rewind-target-required')
-    const action = materializeCombatAbilityAction(source, behavior)
+    const action = materializeCombatAbilityAction(source, behavior, state)
     const evaluation = evaluateCombatAction(state, action, input.selection, input.content)
     const owner = combatAbilitySubject(state, input.actorId)
     const selected = combatAbilitySubject(state, evaluation.primaryCombatantId)

@@ -9,10 +9,15 @@ import type {
   MatureSkillEffectDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
 import {
-  isCombatGroundEntryEffect,
   combatTargetSupportsGroundArea,
   type CombatGroundAreaDefinition,
 } from '@aurevane/game-core/combat/combat-ground-areas'
+import {
+  groundAreaForEffects,
+  groundTargetTeams,
+  hasGroundAuthoringEffects,
+} from '@/lib/combat-ground-entry-authoring'
+export { groundAreaForEffects } from '@/lib/combat-ground-entry-authoring'
 import {
   COMBAT_GROUND_VISUAL_PRESETS,
   type GroundVisualPresetId,
@@ -20,34 +25,10 @@ import {
 import { BattleGroundAreaLayer } from '../../battle/battle-ground-area-layer'
 import styles from './combat-content-editor.module.css'
 
-/** Current automatic entries preserve independently targeted unit effects. */
-export function groundAreaForEffects(
-  effects: readonly MatureSkillEffectDefinition[],
-  current?: CombatGroundAreaDefinition,
-): CombatGroundAreaDefinition | undefined {
-  const entryEffectOrdinals = effects.flatMap((effect, index) =>
-    isCombatGroundEntryEffect(effect) &&
-    (!('target' in effect) ||
-      effect.target === undefined ||
-      effect.target === 'ground' ||
-      current?.entryEffectOrdinals.includes(index))
-      ? [index]
-      : [],
-  )
-  return entryEffectOrdinals.length
-    ? {
-        durationRounds: current?.durationRounds ?? 2,
-        visualPresetId: current?.visualPresetId ?? 'arcane-pulse',
-        ...(current?.timing ? { timing: current.timing } : {}),
-        contactPolicyVersion: 1,
-        entryEffectOrdinals,
-      }
-    : undefined
-}
 export function SkillGroundEditor({
   target,
   effects,
-  value,
+  value: saved,
   onChange,
   disabled = false,
 }: {
@@ -57,32 +38,61 @@ export function SkillGroundEditor({
   disabled?: boolean
   onChange: (value: CombatGroundAreaDefinition | undefined) => void
 }) {
-  const available = groundAreaForEffects(effects, value)
-  const canEnable = combatTargetSupportsGroundArea(target) && Boolean(available)
-  if (!canEnable && !value) return null
+  const available = groundAreaForEffects(effects, saved, target)
+  const hasGround = hasGroundAuthoringEffects(target, effects)
+  if (hasGround && target.categories?.some((category) => category !== 'ground'))
+    return (
+      <p role="alert">
+        Ground effects need a Ground-only target group. Move independently targeted unit effects
+        into a separate group or Skill.
+      </p>
+    )
+  const canEnable = hasGround && combatTargetSupportsGroundArea(target) && Boolean(available)
+  if (!canEnable)
+    return saved ? (
+      <div role="alert">
+        Saved Ground settings need a supported Ground-targeted effect. Restore its target or{' '}
+        <button type="button" disabled={disabled} onClick={() => onChange(undefined)}>
+          remove obsolete Ground settings
+        </button>
+        .
+      </div>
+    ) : null
+  const value = saved ?? available!
+  const scope = value.targetTeams ?? groundTargetTeams(target)
   return (
     <fieldset className={styles.typedGroup} disabled={disabled}>
-      <legend>Persistent ground effect</legend>
-      {!canEnable ? (
-        <p role="alert">
-          Ground areas need Ground targeting and a supported unit effect. Disable this area or
-          restore its target and effects.
-        </p>
-      ) : null}
-      <label className={styles.field}>
-        <span>Apply effects when units enter the affected tiles</span>
-        <input
-          type="checkbox"
-          aria-label="Persistent ground effect"
-          checked={Boolean(value)}
-          onChange={(event) =>
-            onChange(event.currentTarget.checked && canEnable ? available : undefined)
-          }
-        />
-      </label>
+      <legend>Ground</legend>
       {value ? (
         <>
           <div className={styles.typedGrid}>
+            <label className={styles.field}>
+              <span>Affects</span>
+              <select
+                aria-label="Ground affects"
+                value={scope ?? ''}
+                onChange={(event) =>
+                  onChange({
+                    ...value,
+                    targetTeams: event.currentTarget.value as NonNullable<
+                      CombatGroundAreaDefinition['targetTeams']
+                    >,
+                  })
+                }
+              >
+                {!scope ? (
+                  <option value="" disabled>
+                    Choose affected units
+                  </option>
+                ) : null}
+                <option value="all">Everyone</option>
+                <option value="all-except-self">Everyone except caster</option>
+                <option value="enemies">Enemies</option>
+                <option value="allies">Allies (including caster)</option>
+                <option value="allies-except-self">Allies except caster</option>
+                <option value="self">Caster only</option>
+              </select>
+            </label>
             <label className={styles.field}>
               <span>Duration (rounds)</span>
               <input
@@ -148,9 +158,12 @@ export function SkillGroundEditor({
             />
           </div>
           <p className={styles.fieldHint}>
-            Active tiles apply their effects immediately on contact. Each character can receive each
-            effect type once during its own turn cycle, including overlapping fields. Field
-            activation follows the authored timing. Source-only effects keep their ordinary targets.
+            {value.timing && value.timing !== 'instant'
+              ? 'The field follows its authored placement timing.'
+              : 'The field starts when cast.'}{' '}
+            Active tiles apply their effects on contact. Each character can receive each effect type
+            once during its own turn cycle, including overlapping fields. Source-only effects keep
+            their ordinary targets.
           </p>
         </>
       ) : null}
@@ -210,6 +223,10 @@ export function AbilityGroundEditor({
               ...(area.contactPolicyVersion
                 ? { contactPolicyVersion: area.contactPolicyVersion }
                 : {}),
+              ...(area.placementTimingVersion
+                ? { placementTimingVersion: area.placementTimingVersion }
+                : {}),
+              ...(area.targetTeams ? { targetTeams: area.targetTeams } : {}),
               entryEffectOrdinals: area.entryEffectIds.map((id) =>
                 entries.findIndex((effect) => effect.id === id),
               ),
@@ -220,12 +237,19 @@ export function AbilityGroundEditor({
         const next = { ...value }
         if (ground)
           next.groundArea = {
+            ...area,
             durationRounds: ground.durationRounds,
             visualPresetId: ground.visualPresetId,
             ...(ground.timing ? { timing: ground.timing } : {}),
-            contactPolicyVersion: 1,
-            entryEffectIds: ground.entryEffectOrdinals.flatMap((ordinal) =>
-              entries[ordinal] ? [entries[ordinal]!.id] : [],
+            contactPolicyVersion: area?.contactPolicyVersion ?? 1,
+            placementTimingVersion: area?.placementTimingVersion ?? 1,
+            ...(ground.targetTeams ? { targetTeams: ground.targetTeams } : {}),
+            entryEffectIds: ground.entryEffectOrdinals.flatMap((ordinal, index) =>
+              entries[ordinal]
+                ? [entries[ordinal]!.id]
+                : area?.entryEffectIds[index]
+                  ? [area.entryEffectIds[index]!]
+                  : [],
             ),
           }
         else delete next.groundArea

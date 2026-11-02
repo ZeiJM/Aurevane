@@ -1,3 +1,4 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { projectPublicCombat } from './public-combat-presentation'
 import { validateCombatAbilityState } from './combat-ability-state'
 import {
@@ -6,7 +7,7 @@ import {
   combatAbilityCommandContext,
 } from './combat-behavior-runtime'
 import { PV1F_COMBAT_CONTENT, preparePv1fTurnEconomy } from './pv1f-action-economy'
-import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { captureBasicSkillSources } from './combat-basic-actions'
 import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { describe, expect, it } from 'vitest'
 import { captureCombatAbilitySource } from './combat-behavior-capture'

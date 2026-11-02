@@ -107,6 +107,7 @@ function Harness() {
   const primed = subjects.owner.primeAbilityIds.length > 0
   useEffect(() => {
     window.simpleRequirements = {
+      replaceDraft: setDraft,
       snapshot: () => ({
         draft,
         saved,
@@ -177,6 +178,7 @@ function Harness() {
         />
         <button
           type="button"
+          disabled={validateAbilityDefinition(draft).length > 0}
           onClick={() => {
             const encoded = JSON.stringify(parseAbilityDefinition(draft))
             localStorage.setItem(storageKey, encoded)

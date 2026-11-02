@@ -12,6 +12,7 @@ import { AbilityDefinitionEditor, withSharedEffectAim } from './ability-definiti
 import { defaultAbilityPayload, AbilityEffectEditor } from './ability-effect-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { COMBAT_TAG_REGISTRY } from '@aurevane/game-core/combat/combat-tag-registry'
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh() {} }) }))
 function CompleteFields({ kind, definition }: { kind: CombatContentKind; definition: object }) {
@@ -24,6 +25,18 @@ function CompleteFields({ kind, definition }: { kind: CombatContentKind; definit
   )
 }
 const base = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!
+it('creates an independent current Invocation Summon payload from Vesper without a class Summon template', () => {
+  const payload = defaultAbilityPayload('summon')
+  expect(payload).toEqual({
+    type: 'summon',
+    recipient: 'selected-tile',
+    profile: VESPER_SUMMON_PROFILE,
+  })
+  if (payload.type !== 'summon') throw new Error('Expected Summon payload')
+  expect(payload.profile).not.toBe(VESPER_SUMMON_PROFILE)
+  expect(payload.profile.abilities).not.toBe(VESPER_SUMMON_PROFILE.abilities)
+  expect(defaultAbilityPayload('summon')).toEqual(payload)
+})
 const ability = parseAbilityDefinition({
   schemaVersion: 1,
   behaviors: [
@@ -119,6 +132,9 @@ it.each(COMBAT_TAG_REGISTRY)('provides typed controls for registered $id payload
   }
   const html = renderToStaticMarkup(
     <AbilityDefinitionEditor
+      contentId={
+        tag.id === 'summon' ? 'basic.invocation' : tag.id === 'loot' ? 'basic.pilfer' : undefined
+      }
       value={{ schemaVersion: 1, behaviors: [group] }}
       onChange={() => {}}
     />,
@@ -244,7 +260,8 @@ it('exposes persistent Ground controls on the actual canonical group editor', ()
       onChange={() => {}}
     />,
   )
-  expect(html).toContain('aria-label="Persistent ground effect"')
+  expect(html).not.toContain('aria-label="Persistent ground effect"')
+  expect(html).toContain('aria-label="Ground affects"')
   expect(html).toContain('aria-label="Ground duration (rounds)"')
   expect(html).toContain('aria-label="Ground animation"')
   expect(html).not.toContain('aria-label="Ground activation"')
@@ -278,8 +295,11 @@ it.each(['no-entry', 'unit-target'] as const)(
         onChange={() => {}}
       />,
     )
-    expect(html).toContain('aria-label="Persistent ground effect"')
-    expect(html).toContain('Ground areas')
+    expect(html).not.toContain('aria-label="Persistent ground effect"')
+    expect(html).not.toContain('aria-label="Ground affects"')
+    expect(html).not.toContain('aria-label="Ground duration (rounds)"')
+    expect(html).toContain('Saved Ground settings need a supported Ground-targeted effect')
+    expect(html).toContain('remove obsolete Ground settings')
   },
 )
 

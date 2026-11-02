@@ -44,6 +44,39 @@ describe('Master persistent Ground controls', () => {
       }),
     ).toMatchObject({ entryEffectOrdinals: [0, 2], durationRounds: 7, timing: 'delayed' })
   })
+  it('shows one current Ground profile immediately without an opt-in checkbox or render mutation', () => {
+    const original = resolveMatureSkillVersion('cinderweaver.flame-burst')!
+    const onChange = vi.fn()
+    const html = renderToStaticMarkup(
+      createElement(SkillGroundEditor, {
+        target: original.target,
+        effects: original.effects,
+        onChange,
+      }),
+    )
+    expect(html).toContain('aria-label="Ground duration (rounds)"')
+    expect(html).toContain('aria-label="Ground animation"')
+    expect(html).toContain('aria-label="Ground affects"')
+    expect(html).not.toContain('type="checkbox"')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+  it('hides obsolete Ground settings on non-Ground effects without rewriting the raw draft', () => {
+    const original = resolveMatureSkillVersion('vanguard.forceful-strike')!
+    const value = { durationRounds: 7, visualPresetId: 'frost' as const, entryEffectOrdinals: [0] }
+    const onChange = vi.fn()
+    const html = renderToStaticMarkup(
+      createElement(SkillGroundEditor, {
+        target: original.target,
+        effects: original.effects,
+        value,
+        onChange,
+      }),
+    )
+    for (const label of ['Ground duration (rounds)', 'Ground animation', 'Ground affects'])
+      expect(html).not.toContain(`aria-label="${label}"`)
+    expect(value).toEqual({ durationRounds: 7, visualPresetId: 'frost', entryEffectOrdinals: [0] })
+    expect(onChange).not.toHaveBeenCalled()
+  })
   it('maps canonical Pierce Ground entries through native conversion without dropping their stable ID', () => {
     const group = {
       id: 'main',
@@ -94,6 +127,47 @@ describe('Master persistent Ground controls', () => {
       entryEffectIds: ['pierce'],
       durationRounds: 9,
       contactPolicyVersion: 1,
+    })
+  })
+  it('retains invalid canonical entry links and unknown raw settings when another control is edited', () => {
+    const group = {
+      id: 'main',
+      mode: 'action',
+      targeting: {
+        kind: 'ground-tile',
+        teamPolicy: 'any',
+        friendlyFire: 'all-units',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 3,
+      },
+      effects: [
+        {
+          id: 'hit',
+          payload: { type: 'damage', recipient: 'affected-units', target: 'ground', amount: 5 },
+        },
+      ],
+      groundArea: {
+        durationRounds: 2,
+        visualPresetId: 'frost',
+        entryEffectIds: ['missing'],
+        unsupportedSetting: true,
+      },
+    } as unknown as AbilityBehavior
+    let next: AbilityBehavior | undefined
+    const editor = AbilityGroundEditor({
+      value: group,
+      onChange: (value) => {
+        next = value
+      },
+    })
+    if (!isValidElement<ComponentProps<typeof SkillGroundEditor>>(editor))
+      throw new Error('Missing Ground editor')
+    editor.props.onChange({ ...editor.props.value!, durationRounds: 9 })
+    expect(next!.groundArea).toMatchObject({
+      entryEffectIds: ['missing'],
+      unsupportedSetting: true,
+      durationRounds: 9,
     })
   })
   it('edits duration and registered animations while leaving activation to Master timing', () => {

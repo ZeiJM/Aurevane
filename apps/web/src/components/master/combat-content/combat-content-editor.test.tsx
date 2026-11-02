@@ -67,7 +67,7 @@ it.each(['skill', 'essence'] as const)(
   },
 )
 it('mounts a dedicated retained Summon profile editor', () => {
-  const definition = { ...resolveMatureSkillVersion('wildwarden.renewing-herbs')! }
+  const definition = { ...resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)! }
   const html = renderToStaticMarkup(
     <ContentDefinitionFields
       kind="skill"

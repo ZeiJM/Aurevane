@@ -165,3 +165,12 @@ it('explains explicit elemental tags, stacked Drenched Initiative and caster-onl
   expect(text).toContain('Drenched and hostile recipients’ Chilled remain')
   expect(text).not.toContain('Fire damage clears Drenched and Chilled')
 })
+
+it('describes current universal Support choices and retires Guard as a Skill', () => {
+  const text = articleText('battle-hall')
+  for (const name of ['Pilfer', 'Fleetstep', 'Invocation', 'Vesper']) expect(text).toContain(name)
+  expect(text).toContain('four completed summon turns')
+  expect(text).toContain('Guard is retired as a Skill')
+  expect(JSON.stringify(currentManualArticles)).not.toContain('Basic Attack and Guard cost')
+  expect(JSON.stringify(currentManualArticles)).not.toContain('Guard has its own')
+})

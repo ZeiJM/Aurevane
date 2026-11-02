@@ -256,19 +256,19 @@ race tag-rollback "$tag_publish" "$timing" rollback ''
 echo 'Media/Tag lifecycle, pointer attribution, both actual Tag/Skill lock orders and whole rollback PASS.'
 
 # Exact source-defined Basic original restore participates in both lock orders.
-original_guard="(select value from jsonb_array_elements(:'originals'::jsonb) where value->>'id'='basic.guard')"
+original_recovery="(select value from jsonb_array_elements(:'originals'::jsonb) where value->>'id'='basic.recover')"
 # The command below is transported through psql variables, not interpolated SQL JSON.
-printf '%s\n' "set role service_role; select public.write_combat_content_record_v1(:'actor',null,'basic.guard',jsonb_build_object('action','save','expectedRevision',public.read_combat_content_record_v1(:'actor',null,'basic.guard')->'revision','definition',$original_guard));" | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -v actor="$owner_id" -v originals="$originals_json" -U postgres -d postgres >/dev/null
+printf '%s\n' "set role service_role; select public.write_combat_content_record_v1(:'actor',null,'basic.recover',jsonb_build_object('action','save','expectedRevision',public.read_combat_content_record_v1(:'actor',null,'basic.recover')->'revision','definition',$original_recovery));" | docker exec -i "$db_container" psql -X -v ON_ERROR_STOP=1 -v actor="$owner_id" -v originals="$originals_json" -U postgres -d postgres >/dev/null
 original_restore() {
   local revision
-  revision="$(sql "select revision from app_private.combat_content_records where content_key='basic.guard';")"
-  printf "select public.write_combat_content_record_v1(:'actor',null,'basic.guard',jsonb_build_object('action','restore','expectedRevision',%s,'sourceVersion',1,'sourceKind','builtin','sourceDefinition',%s));" "$revision" "$original_guard"
+  revision="$(sql "select revision from app_private.combat_content_records where content_key='basic.recover';")"
+  printf "select public.write_combat_content_record_v1(:'actor',null,'basic.recover',jsonb_build_object('action','restore','expectedRevision',%s,'sourceVersion',1,'sourceKind','builtin','sourceDefinition',%s));" "$revision" "$original_recovery"
 }
 original_publish() {
   local version base
-  version="$(sql "select draft_version from app_private.combat_content_drafts where content_key='basic.guard';")"
-  base="$(sql "select coalesce(base_version::text,'null') from app_private.combat_content_drafts where content_key='basic.guard';")"
-  printf "select public.publish_saved_combat_content_v1(:'actor',null,'basic.guard',%s,%s,:'token',1);" "$version" "$base"
+  version="$(sql "select draft_version from app_private.combat_content_drafts where content_key='basic.recover';")"
+  base="$(sql "select coalesce(base_version::text,'null') from app_private.combat_content_drafts where content_key='basic.recover';")"
+  printf "select public.publish_saved_combat_content_v1(:'actor',null,'basic.recover',%s,%s,:'token',1);" "$version" "$base"
 }
 race original-before-publication "$(original_restore)" "$(original_publish)"
 race publication-before-original "$(original_publish)" "$(original_restore)" commit COMBAT_CONTENT_RECORD_CONFLICT

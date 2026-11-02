@@ -235,7 +235,7 @@ describe('canonical delayed effects through the shared Chronicle projection', ()
           expect(html).toContain('35.25% Storm damage')
           expect(html).not.toContain('20% per active')
         }
-        if (statusId === 'counter') expect(html).toContain('Returns 125% of Mystic damage')
+        if (statusId === 'counter') expect(html).toContain('Returns 125% of Mystic HP damage')
       } finally {
         popup.mockRestore()
       }

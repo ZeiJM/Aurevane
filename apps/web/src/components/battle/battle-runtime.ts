@@ -12,6 +12,7 @@ import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonanc
 import { normalizeCombatEffectState } from '@aurevane/game-core/combat/combat-effect-state'
 
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import { summonPortraitArtwork } from '@/media/support-action-art'
 import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
@@ -256,7 +257,7 @@ export function battlePresentationParticipantMap(
       seatIndex: owner.seatIndex,
       profileImageUrl: summon.profile.media?.artwork
         ? contentMediaSource(summon.profile.media.artwork)
-        : null,
+        : summonPortraitArtwork(summon.profile.portraitKey),
       portraitAssetId: null,
       local: false,
     })

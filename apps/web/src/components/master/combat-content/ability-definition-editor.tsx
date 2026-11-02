@@ -1,6 +1,7 @@
 'use client'
 import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import { withAbilityEffectDependencies } from '@/lib/combat-ability-effect-dependencies'
+import { withCurrentAbilityGroundArea } from '@/lib/combat-ground-entry-authoring'
 
 import {
   activeAbilityForAuthoring,
@@ -24,11 +25,13 @@ import { AreaRecipientRepair } from './area-recipient-repair'
 import { AbilityCostEditor } from './ability-cost-editor'
 import type { AbilityEditorSection } from './ability-editor-tabs'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
 import {
   ABILITY_DEFINITION_BUDGET,
   validateAbilityDefinition,
   type AbilityBehavior,
   type AbilityDefinition,
+  type AutomaticAbilityTargetSubject,
 } from '@aurevane/game-core/combat/combat-definition'
 import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
@@ -47,13 +50,13 @@ import styles from './combat-content-editor.module.css'
 import { EffectTagLabel } from '../../character/compact-skill-effect-summary'
 import { EffectTagPicker } from './effect-tag-picker'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
-import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import {
   SIMPLE_AUTOMATIC_TRIGGER_OPTIONS,
   createSimpleRequirement,
   readSimpleRequirement,
   simpleRequirementSubjects,
   simpleAutomaticTargetSubjects,
+  automaticAbilityTargetSelectorSubjects,
 } from '@aurevane/game-core/combat/combat-simple-requirements'
 
 const limits = ['once-per-action', 'once-per-round'] as const
@@ -148,8 +151,10 @@ function AbilityGroupEditor({
   onChange: update,
   section,
   category,
+  contentId,
 }: {
   category?: 'manual' | 'passive'
+  contentId?: string
   section?: AbilityEditorSection
   value: AbilityBehavior
   onChange: (next: AbilityBehavior) => void
@@ -175,10 +180,13 @@ function AbilityGroupEditor({
     next = withAbilityEffectDependencies(value, next)
     next = withAuthoredElementalCompanions(value, next)
     update(
-      (next.targeting?.maximumSelections ?? 1) > 1 ||
-        (next.targeting === value.targeting && next.effects === value.effects)
-        ? next
-        : withSharedEffectAim(next),
+      withCurrentAbilityGroundArea(
+        value,
+        (next.targeting?.maximumSelections ?? 1) > 1 ||
+          (next.targeting === value.targeting && next.effects === value.effects)
+          ? next
+          : withSharedEffectAim(next),
+      ),
     )
   }
   const elementRepair = withAuthoredElementalCompanions(value, value)
@@ -186,10 +194,16 @@ function AbilityGroupEditor({
     !section ||
     section === key ||
     (section === 'execution' && ['economy', 'accuracy'].includes(key))
-  const automaticSubjects =
+  const automaticSubjects: readonly AutomaticAbilityTargetSubject[] =
     value.requirementMode === 'simple'
       ? simpleAutomaticTargetSubjects(value)
-      : (['owner', 'triggering', 'selected', 'affected'] as const)
+      : [
+          'owner',
+          'triggering',
+          'selected',
+          'affected',
+          ...automaticAbilityTargetSelectorSubjects(value.targeting),
+        ]
   const automaticArea =
     value.targeting?.shape.kind === 'circle' || value.targeting?.shape.kind === 'all'
   const categoryMismatch =
@@ -392,21 +406,35 @@ function AbilityGroupEditor({
         value.mode === 'action' &&
         !automaticArea ? (
           automaticSubjects.length ? (
-            <AbilitySelect
-              label="Automatic target subject"
-              value={value.automaticTarget?.subject ?? automaticSubjects[0]!}
-              options={automaticSubjects}
-              optionLabels={{
-                owner: 'Self',
-                triggering: 'Triggering unit',
-                selected: 'Action target',
-                affected: 'Affected unit',
-              }}
-              onChange={(subject) => onChange({ ...value, automaticTarget: { subject } })}
-            />
+            <>
+              <AbilitySelect
+                label="Automatic target subject"
+                displayLabel="Automatic target rule"
+                value={value.automaticTarget?.subject ?? automaticSubjects[0]!}
+                options={automaticSubjects}
+                optionLabels={{
+                  owner: value.targeting?.kind === 'ground-tile' ? 'Own Ground tile' : 'Self',
+                  triggering: 'Triggering unit',
+                  selected: 'Action target',
+                  affected: 'Affected unit',
+                  'nearest-enemy': 'Nearest enemy',
+                  'nearest-ally': 'Nearest ally',
+                  'lowest-hp-enemy': 'Lowest HP enemy',
+                  'lowest-hp-ally': 'Lowest HP ally',
+                }}
+                onChange={(subject) => onChange({ ...value, automaticTarget: { subject } })}
+              />
+              <p className={styles.fieldHint}>
+                Effect targets choose who is affected. This rule aims the automatic action; Self
+                effects stay on the caster.
+                {value.targeting?.kind === 'ground-tile'
+                  ? ' Ground uses the chosen unit’s tile.'
+                  : ''}
+              </p>
+            </>
           ) : (
             <p className={styles.fieldHint}>
-              Choose Self targeting or an activation with an available target.
+              Choose a supported unit or Ground target for this automatic action.
             </p>
           )
         ) : null}
@@ -693,13 +721,13 @@ function AbilityGroupEditor({
               ))}
             </div>
             <EffectTagPicker
+              contentId={contentId}
               label="New effect"
               addLabel="Add new effect"
               additionalIssue={(id) => authoringAddedEffectIssue(value, id)}
               combination={{ activation: value.activation, mode: value.mode }}
               context={{
-                summonProfile: latestEnabledMatureSkills().find((skill) => skill.summonProfile)
-                  ?.summonProfile,
+                summonProfile: VESPER_SUMMON_PROFILE,
               }}
               disabled={value.effects.length >= ABILITY_DEFINITION_BUDGET.maximumEffectsPerBehavior}
               onAdd={(payload) => {
@@ -722,7 +750,7 @@ function AbilityGroupEditor({
           </fieldset>
         </>
       )}
-      {show('range') && (
+      {show('effects') && (
         <AbilityGroundEditor
           disabled={moveWithoutSeparateAim(value)}
           value={value}
@@ -740,8 +768,10 @@ export function AbilityDefinitionEditor({
   onChange,
   section,
   category,
+  contentId,
 }: {
   value: AbilityDefinition
+  contentId?: string
   category?: 'manual' | 'passive'
   section?: AbilityEditorSection
   allowEffectDescriptions?: boolean
@@ -873,6 +903,7 @@ export function AbilityDefinitionEditor({
             </>
           )}
           <AbilityGroupEditor
+            contentId={contentId}
             value={behavior}
             section={section}
             category={category}

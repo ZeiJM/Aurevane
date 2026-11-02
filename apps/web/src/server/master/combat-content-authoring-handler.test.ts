@@ -9,6 +9,8 @@ import {
   type CombatContentAuthoringHandlerDependencies,
 } from './combat-content-authoring-handler'
 import type { CombatContentAuthoringService } from './combat-content-authoring-service'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { validateSkillDefinition as strictSkillValidation } from './combat-content-authoring-validation'
 
 const ACTOR = '11111111-1111-4111-8111-111111111111'
 
@@ -104,6 +106,52 @@ function post(body: unknown): Request {
 }
 
 describe('combat content authoring handler', () => {
+  it.each(['garbage', null])(
+    'rejects invalid All friendly-fire %s through real HTTP validation',
+    async (friendlyFire) => {
+      const service = serviceMock()
+      vi.mocked(service.validateSkillDefinition).mockImplementation(strictSkillValidation)
+      const original = resolveMatureSkillVersion('aetherist.arc-bolt')!
+      const definition = {
+        ...original,
+        target: { ...original.target, friendlyFire },
+        effects: [{ type: 'damage', target: 'all', recipient: 'affected-units', amount: 20 }],
+      }
+      const response = await handleCombatContentAuthoringRequest(
+        post({ operation: 'validate', definition }),
+        dependencies(service),
+      )
+      expect(response.status).toBe(200)
+      const body = await response.json()
+      expect(body.validation.valid).toBe(false)
+      expect(service.publishSkill).not.toHaveBeenCalled()
+    },
+  )
+  it('saves a current explicit All choice with its opt-in policy and safe effective default', async () => {
+    const service = serviceMock()
+    const original = {
+      ...resolveMatureSkillVersion('aetherist.arc-bolt')!,
+      effects: [{ type: 'damage', recipient: 'affected-units', target: 'all', amount: 20 }],
+    }
+    const response = await handleCombatContentAuthoringRequest(
+      post({
+        operation: 'save-draft',
+        definition: original,
+        baseVersion: original.contentVersion,
+        expectedDraftVersion: null,
+      }),
+      dependencies(service),
+    )
+    expect(response.status).toBe(200)
+    expect(service.saveSkillDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        definition: expect.objectContaining({
+          target: expect.objectContaining({ allTargetPolicyVersion: 1, friendlyFire: 'all-units' }),
+        }),
+      }),
+    )
+    expect(original.target).not.toHaveProperty('allTargetPolicyVersion')
+  })
   it('requires explicit Master Panel authorization before validate/diff operations', async () => {
     const service = serviceMock()
     vi.mocked(service.requireOperator).mockRejectedValue(

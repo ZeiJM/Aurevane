@@ -525,6 +525,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
     dispel: 'Dispel',
     sensory: 'Reveal',
     summon: 'Summon',
+    loot: 'Loot',
     'apply-burn': 'Burn',
     'apply-bleed': 'Bleed',
     'apply-poison': 'Poison',

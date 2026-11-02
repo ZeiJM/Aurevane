@@ -14,6 +14,7 @@ import {
 } from '@aurevane/game-core/combat/combat-tag-registry'
 import styles from './combat-content-editor.module.css'
 import { effectTagDescription } from '@/lib/combat-effect-descriptions'
+import { currentEffectSourceAllowed } from '@/lib/combat-exclusive-source-authoring'
 
 export function EffectTagPicker({
   label = 'New effect type',
@@ -24,6 +25,7 @@ export function EffectTagPicker({
   context,
   onAdd,
   additionalIssue,
+  contentId,
 }: {
   label?: string
   addLabel?: string
@@ -32,13 +34,16 @@ export function EffectTagPicker({
   combination?: { activation: AbilityActivation; mode: AbilityMode }
   context?: EffectAuthoringContext
   additionalIssue?: (id: string) => string | undefined
+  contentId?: string
   onAdd(payload: CombatTagPayload): void
 }) {
   const id = useId()
   const [query, setQuery] = useState('')
   const [requested, setRequested] = useState('damage')
-  const choices = AUTHORABLE_EFFECT_TAGS.filter((tag) =>
-    `${tag.label} ${tag.id}`.toLowerCase().includes(query.trim().toLowerCase()),
+  const choices = AUTHORABLE_EFFECT_TAGS.filter(
+    (tag) =>
+      currentEffectSourceAllowed(tag.opcode, contentId) &&
+      `${tag.label} ${tag.id}`.toLowerCase().includes(query.trim().toLowerCase()),
   ).sort((a, b) => a.label.localeCompare(b.label, 'en'))
   const selected =
     choices.find((tag) => tag.id === requested) ??
@@ -46,6 +51,8 @@ export function EffectTagPicker({
     choices[0]
   function issue(id: string) {
     const tag = AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id)
+    if (tag && !currentEffectSourceAllowed(tag.opcode, contentId))
+      return 'This effect belongs to its designated Support Action.'
     if (nativeOnly && tag && ['move', 'summon', 'damage-bonus'].includes(tag.opcode))
       return 'Available in modular abilities.'
     return effectAuthoringIssue(id, combination, context) ?? additionalIssue?.(id)

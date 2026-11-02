@@ -1,8 +1,10 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   latestEnabledMatureSkills,
+  resolveMatureSkillVersion,
   validateMatureSkillDefinition,
   type MatureSkillDefinition,
 } from './mature-skills'
@@ -16,7 +18,7 @@ import {
   validateResonanceDefinition,
   type AnyResonanceDefinition,
 } from './resonance'
-import { defaultBasicSkills, validateBasicSkillDefinition } from './combat-basic-actions'
+import { validateBasicSkillDefinition } from './combat-basic-actions'
 import { parseAbilityDefinition, validateAbilityDefinition } from './combat-definition'
 import { projectPublicCombat } from './public-combat-presentation'
 import { validateDisciplineSkillLoadout } from '../character/discipline-skill-loadout'
@@ -80,7 +82,13 @@ function digest(value: unknown): string {
     .digest('hex')
 }
 const source = [
-  ...latestEnabledMatureSkills().map((after) => ({ kind: 'skill', id: after.id, after })),
+  ...latestEnabledMatureSkills().map((current) => {
+    // The October10 design receipt binds its saved publication, not later class replacements.
+    const after = current.authoring.validationTags.includes('universal-support-v1')
+      ? resolveMatureSkillVersion(current.id, current.contentVersion - 1)!
+      : current
+    return { kind: 'skill', id: after.id, after }
+  }),
   ...currentEssenceDefinitions().map((after) => ({ kind: 'essence', id: after.essenceId, after })),
   ...currentResonanceDefinitions().map((after) => ({ kind: 'resonance', id: after.id, after })),
   ...defaultBasicSkills().map((after) => ({ kind: 'basic', id: after.id, after })),
@@ -219,7 +227,7 @@ function nodes(n: RequirementNode | null): RequirementNode[] {
 // No October10 record contains these later mechanics. Their executable coverage lives in
 // combat-endure.test.ts, combat-reversal.test.ts and combat-attack-tags.test.ts.
 // Keep this finite: an unreviewed future registry entry must still fail roster coverage.
-const outsideOctober10Effects = ['endure', 'reversal', 'weak-point', 'spike', 'ruin']
+const outsideOctober10Effects = ['endure', 'reversal', 'weak-point', 'spike', 'ruin', 'loot']
 it('keeps later effect mechanics outside the immutable October10 records', () => {
   const types = new Set<string>(
     manifest.records.flatMap((row) =>

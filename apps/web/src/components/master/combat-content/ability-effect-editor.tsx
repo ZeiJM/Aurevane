@@ -7,7 +7,7 @@ import {
   nativeCombatTagPayload,
   type CombatTagPayload,
 } from '@aurevane/game-core/combat/combat-tag-registry'
-import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
 import { createDefaultCombatEffect } from './skill-effect-list-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
@@ -26,9 +26,7 @@ export function defaultAbilityPayload(
   if (type === 'pierce')
     return { type, recipient: 'primary-unit', amount: 1, armorIgnoredBasisPoints: 2500 }
   if (type === 'summon') {
-    const profile = latestEnabledMatureSkills().find((skill) => skill.summonProfile)?.summonProfile
-    if (!profile) throw new Error('No supported Summon template is available.')
-    return { type, recipient: 'selected-tile', profile: structuredClone(profile) }
+    return { type, recipient: 'selected-tile', profile: structuredClone(VESPER_SUMMON_PROFILE) }
   }
   const effect = createDefaultCombatEffect(type)
   if (effect.type === 'percentage-recovery') {

@@ -7,6 +7,7 @@ import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-sk
 import { abilityBehaviorInformation } from './ability-detail-presentation'
 import { skillPreviewEffects } from './skill-effect-preview'
 import { SkillDetails } from './skill-details'
+import { SkillGroundAreaDetails } from './skill-ground-area-details'
 import { SkillEffectTimingProvider } from './skill-effect-timing-context'
 import { currentGroundBehaviorPresentation } from '@/lib/combat-ground-presentation'
 import { previewEffectWithTag } from './skill-effect-preview'
@@ -171,7 +172,7 @@ it.each(['battle', 'summon'] as const)(
       requirementDescriptions: [],
     }
     const summon = {
-      ...resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!.abilities[0]!,
+      ...resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!.abilities[0]!,
       target: source.target,
       effects: source.effects as readonly CombatEffectDefinition[],
       groundArea: source.groundArea,
@@ -213,7 +214,7 @@ it.each([1, null] as const)(
   (policy) => {
     const source = nativeMist()
     const summon = {
-      ...resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!.abilities[0]!,
+      ...resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!.abilities[0]!,
       target: source.target,
       effects: source.effects as readonly CombatEffectDefinition[],
       groundArea: source.groundArea,
@@ -342,3 +343,45 @@ it.each([false, true])(
     expect(JSON.stringify(source)).toBe(bytes)
   },
 )
+
+it('reports captured current field placement and team scope without borrowing the global Ground delay', () => {
+  const source = mist()
+  const original = source.ability!.behaviors[0]!
+  const behavior = {
+    ...original,
+    groundArea: {
+      ...original.groundArea!,
+      timing: undefined,
+      placementTimingVersion: 1 as const,
+      targetTeams: 'allies' as const,
+    },
+  }
+  const before = JSON.stringify(behavior)
+  const report = abilityBehaviorInformation(behavior, {
+    timingPolicy: { version: 1, tagAuthority: 'global', modes: { 'ground-area': 'next-round' } },
+  })
+  expect(report.targetMethodExplanation).toContain('starting immediately')
+  expect(report.targetMethodExplanation).toContain('Affects allies, including the caster')
+  expect(report.targetMethodExplanation).not.toContain('starting next round')
+  expect(JSON.stringify(behavior)).toBe(before)
+  const html = renderToStaticMarkup(
+    <SkillEffectTimingProvider
+      policy={{ version: 1, modes: { 'ground-area': 'next-round' } }}
+      groundContactPolicyVersion={1}
+    >
+      <SkillGroundAreaDetails
+        skill={{
+          ...source,
+          groundArea: {
+            ...source.groundArea!,
+            placementTimingVersion: 1,
+            timing: undefined,
+            targetTeams: 'allies',
+          },
+        }}
+      />
+    </SkillEffectTimingProvider>,
+  )
+  expect(html.replace(/<[^>]*>/gu, '')).toContain('starting immediately')
+  expect(html).not.toContain('starting next round')
+})

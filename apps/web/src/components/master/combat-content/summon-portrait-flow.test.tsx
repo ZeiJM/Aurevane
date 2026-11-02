@@ -1,3 +1,4 @@
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { isValidElement, type ReactElement, type ReactNode } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -18,7 +19,10 @@ import {
 import { SummonProfileEditor } from './summon-profile-editor'
 import { FinalizedMediaEditor } from './finalized-media-editor'
 import { validateSkillDefinition } from '@/server/master/combat-content-authoring-validation'
-import { previewCombatContentDefinition } from '@/server/master/combat-content-preview'
+import {
+  previewBasicCombatContentDefinition,
+  previewCombatContentDefinition,
+} from '@/server/master/combat-content-preview'
 import { createCurrentStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
 import { projectBattleSnapshot } from '@/server/battle/battle-session-service'
@@ -52,7 +56,7 @@ function all(node: ReactNode): ReactElement<Props>[] {
 it.each([false, true])(
   'captures the image-only Summon portrait editor into spawned public cards and inspection (canonical editor %s)',
   (canonical) => {
-    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
     let profile = native.summonProfile!
     let effect: AbilityEffect = {
       id: 'spawn',
@@ -91,7 +95,7 @@ it.each([false, true])(
     expect(profile).toMatchObject({ media: { artwork } })
     const definition = canonical
       ? {
-          ...native,
+          ...defaultBasicSkills().find((row) => row.id === 'basic.invocation')!,
           ability: parseAbilityDefinition({
             schemaVersion: 1,
             behaviors: [
@@ -108,7 +112,12 @@ it.each([false, true])(
         }
       : { ...native, summonProfile: profile }
     expect(validateSkillDefinition(definition).valid).toBe(true)
-    expect(previewCombatContentDefinition(definition).summon?.profile).toMatchObject({
+    const preview = canonical
+      ? previewBasicCombatContentDefinition(
+          definition as ReturnType<typeof defaultBasicSkills>[number],
+        )
+      : previewCombatContentDefinition(definition as typeof native)
+    expect(preview.summon?.profile).toMatchObject({
       media: { artwork },
     })
     const fixture = capturedBasicBattle()
@@ -164,7 +173,7 @@ it.each([false, true])(
   },
 )
 it('rejects external URLs, audio, forged descriptors and extra portrait metadata', () => {
-  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
   for (const media of [
     { artwork: 'https://external.test/private.png' },
     { artwork: { ...artwork, checksum: 'invalid' } },
@@ -179,4 +188,54 @@ it('rejects external URLs, audio, forged descriptors and extra portrait metadata
   }
   const historical: SummonProfileDefinition = native.summonProfile!
   expect(validateSkillDefinition({ ...native, summonProfile: historical }).valid).toBe(true)
+})
+
+it('projects Vesper static artwork into shared battle cards and Inspect without a hosted upload', () => {
+  const fixture = capturedBasicBattle()
+  const base = createCurrentStatDrivenCombatEncounterState(
+    fixture.state,
+    fixture.state.statBridge.combatants.map((row) => ({
+      ...row,
+      level: 1,
+      physicalPower: 20,
+      mysticPower: 20,
+      criticalChance: 0,
+    })),
+  )
+  const spawned = spawnCombatSummon(base, {
+    ownerCombatantId: 'actor',
+    sourceSkillId: 'basic.invocation',
+    sourceSkillVersion: 1,
+    profile: VESPER_SUMMON_PROFILE,
+    position: { x: 0, y: 3 },
+    facing: 'east',
+  }).state
+  const snapshot = projectBattleSnapshot(
+    spawned,
+    deriveParticipantBattleViewerEntitlement(spawned.tactical.battle.combatants, ['actor']),
+  )
+  const view = { ...fixture.view, snapshot }
+  const owner: BattlePresentationParticipant = {
+    combatantId: 'actor',
+    characterId: null,
+    name: 'Owner',
+    level: 1,
+    teamIndex: 0,
+    seatIndex: 0,
+    profileImageUrl: null,
+    portraitAssetId: null,
+    local: true,
+  }
+  const id = snapshot.effectState!.summons![0]!.combatantId
+  const participant = battlePresentationParticipantMap(view, [owner]).get(id)!
+  const src = '/media/art/support/vesper-portrait-v01.webp'
+  expect(participant.profileImageUrl).toBe(src)
+  expect(readSummonInspectMetadata(snapshot, id)).toMatchObject({
+    name: 'Vesper',
+    portraitUrl: src,
+  })
+  const html = renderToStaticMarkup(
+    <BattleCombatantCard participant={participant} battle={view} teamCount={2} role="selected" />,
+  )
+  expect(html).toContain(`src="${src}"`)
 })

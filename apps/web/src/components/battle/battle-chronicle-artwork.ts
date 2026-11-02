@@ -14,7 +14,9 @@ export function chronicleActionArtwork(action: ChronicleAction): string {
   if (action.family === 'movement') return BATTLE_COMMAND_ARTWORK.move
   if (id) {
     const source =
-      action.family === 'resonance' ? battleResonanceArtwork(id) : battleSkillArtwork(id)
+      action.family === 'resonance'
+        ? battleResonanceArtwork(id, action.artworkKey)
+        : battleSkillArtwork(id, action.artworkKey)
     if (source !== BATTLE_MISSING_ARTWORK) return source
   }
   if (action.outcomes.some((outcome) => outcome.statusId === 'lowered-guard'))

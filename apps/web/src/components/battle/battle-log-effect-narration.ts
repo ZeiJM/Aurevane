@@ -93,7 +93,9 @@ export function narrateBattleEffect(
             : counter
               ? 'Full Reflect'
               : 'Reflect'
-      return `${name} ${verb('returns', 'return')} ${counter ? `${counter.basisPoints / 100}% of ${family} HP damage taken by ${target}` : `matching HP damage taken by ${target} to its source`}`
+      const basis =
+        strength?.reflectBarrierPolicyVersion === 1 ? 'HP and Barrier damage' : 'HP damage'
+      return `${name} ${verb('returns', 'return')} ${counter ? `${counter.basisPoints / 100}% of ${family} ${basis} taken by ${target}` : `matching ${basis} taken by ${target} to its source`}`
     }
     case 'blindside':
     case 'blindside-vulnerability': {

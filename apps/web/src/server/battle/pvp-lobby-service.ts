@@ -667,6 +667,9 @@ export async function startPvpLobby(
   encounter.healingDownPolicyVersion = 1
   encounter.conditionalDamageRoundingPolicyVersion = 1
   encounter.blindsideActivationPolicyVersion = 1
+  encounter.abilityCooldownScopeVersion = 1
+  encounter.reflectBarrierPolicyVersion = 1
+  encounter.supportActionPolicyVersion = 1
   if (encounter.effectTimingPolicy?.tagAuthority === 'global') {
     encounter.modularSkillPolicyVersion = 1
   }

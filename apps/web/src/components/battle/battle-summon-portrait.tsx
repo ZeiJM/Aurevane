@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
+import { isRegisteredSummonPortraitSource } from '../../media/support-action-art'
 
-/** Finalized public portrait routes only; unavailable images retain the established initial. */
+/** Finalized public media or exact registered summon art; unavailable images retain the initial. */
 export function BattleSummonPortrait({
   src,
   name,
@@ -17,7 +18,8 @@ export function BattleSummonPortrait({
   const [failedSource, setFailedSource] = useState<string | null>(null)
   if (
     failedSource === src ||
-    !/^\/api\/content-media\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u.test(src)
+    (!isRegisteredSummonPortraitSource(src) &&
+      !/^\/api\/content-media\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u.test(src))
   )
     return (
       <span className={fallbackClassName ?? className} aria-label={`${name} summon portrait`}>
@@ -25,7 +27,7 @@ export function BattleSummonPortrait({
       </span>
     )
   return (
-    // Finalized media uses the public content reader; never use a draft or external URL.
+    // Uploaded media uses the public reader; static portraits come from the closed registry.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}

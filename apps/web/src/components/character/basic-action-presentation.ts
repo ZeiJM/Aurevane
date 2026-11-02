@@ -22,6 +22,20 @@ import {
   skillEffectInstantTiming,
   type CompactSkillEffectSummaryParts,
 } from './skill-detail-presentation'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { abilityBehaviorInformation } from './ability-detail-presentation'
+
+function supportReport(
+  id: string,
+  timingPolicy?: SkillEffectTimingPolicy,
+  stats?: BasicActionCharacterStats,
+) {
+  if (!['basic.pilfer', 'basic.fleetstep', 'basic.invocation'].includes(id)) return null
+  const basic = defaultBasicSkills().find((row) => row.id === id)
+  return basic
+    ? abilityBehaviorInformation(basic.ability.behaviors[0]!, { basic, timingPolicy, stats })
+    : null
+}
 
 import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { canonicalStatusExplanation } from './canonical-status-explanation'
@@ -48,6 +62,8 @@ export function basicActionEffectSummaryParts(
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   stats: BasicActionCharacterStats = {},
 ): CompactSkillEffectSummaryParts {
+  const current = supportReport(id, timingPolicy, stats)
+  if (current?.effects[0]) return current.effects[0].parts
   if (id === PV1F_GUARD_ACTION_ID) {
     return {
       label: gameplayStatusName('guarded'),
@@ -111,6 +127,8 @@ export function basicActionCharacteristicRows(
   timingPolicy: SkillEffectTimingPolicy = defaultCombatEffectTimingPolicy(),
   stats: BasicActionCharacterStats = {},
 ): readonly SkillCharacteristic[] {
+  const current = supportReport(id, timingPolicy, stats)
+  if (current) return current.rows
   const skill = PV1F_SKILLS.find((entry) => entry.id === id)!
   if (id === 'basic.move') {
     return skillInformationRows({
@@ -163,6 +181,8 @@ export function basicActionIdForCommand(
 
 /** Explain the single inherent effect separately from its numeric parameter fields. */
 export function basicActionEffectExplanation(id: BasicActionPresentationId): string {
+  const current = supportReport(id)
+  if (current) return current.effectDescriptions.join(' ')
   if (id === PV1F_GUARD_ACTION_ID) {
     return canonicalStatusExplanation(
       { type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 },

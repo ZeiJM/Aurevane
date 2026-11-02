@@ -141,7 +141,7 @@ export function combatEffectTimingMode(
   return (
     policy.modes[tag] ??
     (tag === 'push' || tag === 'pull' ? policy.modes.displace : undefined) ??
-    (['damage', 'healing', 'mp-recovery', 'blindside', 'endure'].includes(tag)
+    (['damage', 'healing', 'mp-recovery', 'blindside', 'endure', 'loot'].includes(tag)
       ? 'instant'
       : 'next-round')
   )

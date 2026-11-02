@@ -28,10 +28,10 @@ declare
  v_row record;
  v_before jsonb;
 begin
- if (public.get_character_active_build_v4(v_user,v_character)->>'support_action_id') is distinct from 'basic.guard' then raise exception 'legacy default failed'; end if;
+ if (public.get_character_active_build_v4(v_user,v_character)->>'support_action_id') is distinct from 'basic.recover' then raise exception 'HP Recovery default failed'; end if;
  if public.get_character_active_build_v4(gen_random_uuid(),v_character) is not null then raise exception 'foreign read allowed'; end if;
  v_before := public.get_character_committed_build_snapshot_v2(v_user,v_character)->'disciplineSkills';
- foreach v_choice in array array['basic.guard','basic.recover','basic.recover.mp'] loop
+ foreach v_choice in array array['basic.recover','basic.pilfer','basic.fleetstep','basic.invocation','basic.recover.mp'] loop
    v_key := gen_random_uuid();
    select * into v_row from public.save_character_support_action_v1(v_user,v_character,v_version,v_choice,v_key,'support:'||v_choice);
    v_version := v_version + 1;
@@ -42,18 +42,18 @@ begin
    if public.get_character_committed_build_snapshot_v2(v_user,v_character)->'disciplineSkills' is distinct from v_before then raise exception 'support changed Discipline slots'; end if;
  end loop;
  begin
-   perform public.save_character_support_action_v1(v_user,v_character,v_version,'basic.guard',v_key,'support:conflict');
+   perform public.save_character_support_action_v1(v_user,v_character,v_version,'basic.recover',v_key,'support:conflict');
    raise exception 'conflicting replay allowed';
  exception when raise_exception then if sqlerrm <> 'CHARACTER_SUPPORT_ACTION_IDEMPOTENCY_CONFLICT' then raise; end if; end;
  begin
-   perform public.save_character_support_action_v1(v_user,v_character,1,'basic.guard',gen_random_uuid(),'support:stale');
+   perform public.save_character_support_action_v1(v_user,v_character,1,'basic.recover',gen_random_uuid(),'support:stale');
    raise exception 'stale save allowed';
  exception when raise_exception then if sqlerrm <> 'CHARACTER_BUILD_VERSION_CONFLICT' then raise; end if; end;
  begin
-   perform public.save_character_support_action_v1(gen_random_uuid(),v_character,v_version,'basic.guard',gen_random_uuid(),'support:foreign');
+   perform public.save_character_support_action_v1(gen_random_uuid(),v_character,v_version,'basic.recover',gen_random_uuid(),'support:foreign');
    raise exception 'foreign save allowed';
  exception when raise_exception then if sqlerrm <> 'CHARACTER_BUILD_NOT_FOUND' then raise; end if; end;
- foreach v_choice in array array['basic.attack','',null] loop
+ foreach v_choice in array array['basic.guard','basic.attack','',null] loop
    begin
      perform public.save_character_support_action_v1(v_user,v_character,v_version,v_choice,gen_random_uuid(),'support:invalid');
      raise exception 'invalid action allowed';
@@ -61,7 +61,7 @@ begin
  end loop;
  perform public.save_character_build_loadout_v1(v_user,v_character,1::smallint,'Recovery',v_version,gen_random_uuid(),'support:loadout');
  if (select support_action_id from public.get_character_saved_build_loadouts_v2(v_user,v_character) where slot_index=1) is distinct from 'basic.recover.mp' then raise exception 'loadout omitted support'; end if;
- perform public.save_character_support_action_v1(v_user,v_character,v_version,'basic.guard',gen_random_uuid(),'support:reset');
+ perform public.save_character_support_action_v1(v_user,v_character,v_version,'basic.recover',gen_random_uuid(),'support:reset');
  v_version := v_version + 1;
  v_key := gen_random_uuid();
  select * into v_row from public.activate_character_build_loadout_v1(v_user,v_character,1::smallint,v_version,v_key,'support:activate');

@@ -190,7 +190,7 @@ describe('999 percent effect potency', () => {
         ],
       }),
     ).toEqual([])
-    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
     expect(validateSummonProfileDefinition({ ...profile, potencyBasisPoints: 99900 })).toEqual([])
     expect(validateSummonProfileDefinition({ ...profile, potencyBasisPoints: 100000 })).toEqual([])
     for (const potencyBasisPoints of [-1, 1.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1])

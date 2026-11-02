@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
+import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
@@ -17,7 +18,10 @@ import {
   defaultSkillBattleText,
 } from '@aurevane/game-core/combat/battle-narration'
 import { resolveEssenceForBuild, essenceCombatSkill } from '@aurevane/game-core/combat/essence'
-import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
+import {
+  resolveResonanceForPair,
+  type ResonanceSnapshotReference,
+} from '@aurevane/game-core/combat/resonance'
 import type { CombatEffectOrigin } from '@aurevane/game-core/combat/actions'
 import {
   skillDisplayName,
@@ -65,7 +69,9 @@ function pinnedSkillDescription(definition: MatureSkillDefinition): string {
   }
   return definition.effects
     .map(
-      (effect, index) => definition.effectDescriptions?.[index] ?? skillEffectDescription(effect),
+      (effect, index) =>
+        definition.effectDescriptions?.[index] ??
+        skillEffectDescription(effect, { legacyReflectBarrier: true }),
     )
     .join(' ')
 }
@@ -284,6 +290,7 @@ export async function attachRecordedBattleLogSkillContext(
     projected,
     authority,
     resolver,
+    captures,
   )
   const summonView = await attachRecordedSummonSkillContext(
     extensionView,
@@ -394,6 +401,7 @@ async function attachRecordedBuildExtensionContext(
   projected: readonly BattleEventRecord[],
   authority: BattleBuildAuthoritySnapshot,
   resolver?: ContextResolver,
+  captures: readonly CapturedCombatAbilitySource[] = [],
 ): Promise<BattleLogView> {
   const records = new Map(projected.map((record) => [recordKey(record), record]))
   const builds = new Map(authority.combatants.map((build) => [build.combatantId, build]))
@@ -421,11 +429,15 @@ async function attachRecordedBuildExtensionContext(
       version = essence.contentVersion
     } else if (
       resonance &&
-      event.event === 'resonance_activated' &&
-      event.actorId === build.combatantId &&
-      event.resonanceId === resonance.resonanceId &&
-      event.contentVersion === resonance.contentVersion &&
-      entry.actionId === resonance.resonanceId
+      entry.actionId === resonance.resonanceId &&
+      ((event.event === 'resonance_activated' &&
+        event.actorId === build.combatantId &&
+        event.resonanceId === resonance.resonanceId &&
+        event.contentVersion === resonance.contentVersion) ||
+        (recordedActionId(entry, event) === resonance.resonanceId &&
+          (event.contentVersion === undefined ||
+            event.contentVersion === resonance.contentVersion) &&
+          capturedResonanceMatches(captures, build.combatantId, resonance)))
     ) {
       family = 'resonance'
       id = resonance.resonanceId
@@ -511,6 +523,9 @@ async function attachRecordedBuildExtensionContext(
               skillId: definition.id,
               contentVersion: definition.contentVersion,
               name: definition.name,
+              ...(definition.media?.artwork
+                ? { artworkKey: contentArtworkKey(definition.media)! }
+                : {}),
               ...contextualText(definition),
               description:
                 renderAbilityPresentationText(definition, 'public', { ability: definition.name }) ??
@@ -533,6 +548,32 @@ async function attachRecordedBuildExtensionContext(
       return actionContext ? { ...entry, actionContext } : entry
     }),
   }
+}
+
+/** Canonical receipts omit a version; the exact frozen build and unique pair capture must agree. */
+function capturedResonanceMatches(
+  captures: readonly CapturedCombatAbilitySource[],
+  ownerCombatantId: string,
+  reference: ResonanceSnapshotReference,
+): boolean {
+  const sources = captures.filter(
+    (source) =>
+      source.ownerCombatantId === ownerCombatantId &&
+      source.sourceKind === 'resonance' &&
+      source.abilityId === reference.resonanceId,
+  )
+  return (
+    sources.length === 1 &&
+    sources[0]!.contentVersion === reference.contentVersion &&
+    sources[0]!.sourceInstanceId ===
+      JSON.stringify([
+        'resonance',
+        ownerCombatantId,
+        ...reference.disciplinePair,
+        reference.resonanceId,
+        reference.contentVersion,
+      ])
+  )
 }
 
 /** Visible spawn receipts pin ability names/text even after a summon is removed from live state. */

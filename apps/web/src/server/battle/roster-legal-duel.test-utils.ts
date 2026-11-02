@@ -16,7 +16,7 @@ import {
 import { activateCombatAbilitySources } from '@aurevane/game-core/combat/combat-ability-command'
 import {
   createCharacterDerivedCombatProfile,
-  createDuelBalancedCombatEncounterState,
+  createCurrentStatDrivenCombatEncounterState,
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -181,9 +181,13 @@ export async function createLegalRosterDuel(input: {
       })),
     }),
   )
-  const current = createDuelBalancedCombatEncounterState(
+  const current = createCurrentStatDrivenCombatEncounterState(
     {
       ...raw,
+      // This saved October10 execution cohort pins its original balance policies.
+      // Newly current Support/cooldown/Reflect rules have dedicated current-factory tests.
+      statBalancePolicyVersion: 1,
+      duelBalancePolicyVersion: 1,
       effectTimingPolicy: input.effectTimingPolicy ?? defaultCombatEffectTimingPolicy(),
       ...(input.modularSkillPolicyVersion === 1 ? { modularSkillPolicyVersion: 1 as const } : {}),
       effectStackingPolicyVersion: 1,

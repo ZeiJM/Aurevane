@@ -303,7 +303,7 @@ it('projects a setup-created Summon removed by a valid same-turn native trigger'
   const { previewHistoricalResonanceCombatContentDefinition } =
     await import('./combat-content-preview')
   const { validateMatureSkillDefinition } = await import('@aurevane/game-core/combat/mature-skills')
-  const setup = structuredClone(resolveMatureSkillVersion('wildwarden.renewing-herbs')!)
+  const setup = structuredClone(resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!)
   const trigger: import('@aurevane/game-core/combat/mature-skills').MatureSkillDefinition = {
     ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
     target: {

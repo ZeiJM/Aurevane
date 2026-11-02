@@ -4,7 +4,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
 import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
-import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
+import { parseCurrentSupportActionId } from '@aurevane/game-core/combat/support-actions'
 import {
   validateLevelProgressionCurve,
   type LevelProgressionCurve,
@@ -97,7 +97,7 @@ export function parsePlayerCorrection(value: unknown): PlayerCorrection {
       )
     )
       invalid()
-  } else if (!parseSupportActionId(value.supportActionId)) invalid()
+  } else if (!parseCurrentSupportActionId(value.supportActionId)) invalid()
   return value as unknown as PlayerCorrection
 }
 function projectPlayer(raw: unknown): MasterPlayerView {

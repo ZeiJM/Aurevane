@@ -119,15 +119,15 @@ export function ContentRecordModal({
         relatedPending = (await onCommitRelated?.()) === true
       } catch (cause) {
         throw new Error(
-          `Skill saved; the discipline settings are still uncommitted. ${cause instanceof Error ? cause.message : 'Review the discipline and retry Commit Now.'}`,
+          `Changes committed; discipline settings are still uncommitted. ${cause instanceof Error ? cause.message : 'Review the discipline and retry Commit Now.'}`,
         )
       }
       setNotice(
         contentCommitNotice(
           changedWhileSaving
-            ? 'Saved; newer edits remain uncommitted.'
+            ? 'Changes committed; newer edits remain uncommitted.'
             : relatedPending
-              ? 'Saved; discipline edits remain uncommitted.'
+              ? 'Changes committed; discipline edits remain uncommitted.'
               : 'Changes committed and available to the game.',
           result.corrections,
         ),

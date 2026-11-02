@@ -313,7 +313,7 @@ describe('active Initiative safe round progress', () => {
       })),
     )
     state = cast(state) as typeof state
-    const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const skill = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
     const spawned = spawnCombatSummon(state, {
       ownerCombatantId: 'actor',
       sourceSkillId: skill.id,

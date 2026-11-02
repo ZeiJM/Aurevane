@@ -12,7 +12,7 @@ class Store extends InMemoryCombatContentRepository {
     return userId === owner ? ('owner' as const) : null
   }
 }
-async function fixture(id = 'basic.guard') {
+async function fixture(id = 'basic.recover') {
   const original = structuredClone(defaultBasicSkills().find((row) => row.id === id)!)
   const store = new Store()
   const resolver = createCombatContentResolver({
@@ -25,12 +25,12 @@ async function fixture(id = 'basic.guard') {
   const first = await service.publishSkill({
     actorUserId: owner,
     definition: { ...original, name: 'First edit' },
-    expectedBaseVersion: 1,
+    expectedBaseVersion: original.contentVersion,
   })
   const current = await service.publishSkill({
     actorUserId: owner,
     definition: { ...original, name: 'Current edit' },
-    expectedBaseVersion: 2,
+    expectedBaseVersion: first.contentVersion,
   })
   async function request(actor = owner) {
     return handleCombatContentAuthoringRequest(
@@ -40,8 +40,8 @@ async function fixture(id = 'basic.guard') {
         body: JSON.stringify({
           operation: 'restore-basic-draft',
           skillId: id,
-          targetVersion: 2,
-          expectedBaseVersion: 3,
+          targetVersion: first.contentVersion,
+          expectedBaseVersion: current.contentVersion,
           expectedDraftVersion: null,
         }),
       }),
@@ -59,8 +59,12 @@ it.each(defaultBasicSkills().map((row) => row.id))(
     expect(await f.store.findDraft(id)).toBeNull()
     expect(await f.store.findPublished(id)).toEqual(f.current)
     expect(await f.store.listPublishedVersions(id)).toEqual(before)
-    expect(await f.resolver.resolvePinnedBasicSkillDefinition!(id, 2)).toEqual(f.first.definition)
-    expect(await f.resolver.resolvePinnedBasicSkillDefinition!(id, 3)).toEqual(f.current.definition)
+    expect(await f.resolver.resolvePinnedBasicSkillDefinition!(id, f.first.contentVersion)).toEqual(
+      f.first.definition,
+    )
+    expect(
+      await f.resolver.resolvePinnedBasicSkillDefinition!(id, f.current.contentVersion),
+    ).toEqual(f.current.definition)
   },
 )
 it('requires operator authority even for a retired operation', async () => {
@@ -73,7 +77,7 @@ it('requires operator authority even for a retired operation', async () => {
 })
 it('ordinary new commits retain exact definitions needed by existing captures', async () => {
   const f = await fixture()
-  const pinned = await f.resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 2)
+  const pinned = await f.resolver.resolvePinnedBasicSkillDefinition!('basic.recover', 2)
   const bytes = JSON.stringify(pinned)
   const next = await f.service.publishSkill({
     actorUserId: owner,
@@ -81,9 +85,9 @@ it('ordinary new commits retain exact definitions needed by existing captures', 
     expectedBaseVersion: 3,
   })
   expect(next.contentVersion).toBe(4)
-  expect(await f.resolver.resolvePinnedBasicSkillDefinition!('basic.guard', 2)).toEqual(pinned)
+  expect(await f.resolver.resolvePinnedBasicSkillDefinition!('basic.recover', 2)).toEqual(pinned)
   expect(JSON.stringify(pinned)).toBe(bytes)
   expect(
-    (await f.resolver.resolveCurrentBasicSkillDefinitions!(['basic.guard'])).get('basic.guard'),
+    (await f.resolver.resolveCurrentBasicSkillDefinitions!(['basic.recover'])).get('basic.recover'),
   ).toEqual(next.definition)
 })

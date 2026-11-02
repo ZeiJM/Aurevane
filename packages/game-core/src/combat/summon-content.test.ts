@@ -188,7 +188,7 @@ describe('Combat v5.1 summon content', () => {
   })
 
   it('requires summon effects and profiles to appear together on empty-ground Skills', () => {
-    const base = resolveMatureSkillVersion('wildwarden.renewing-herbs')
+    const base = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)
     if (!base) throw new Error('Expected current Renewing Herbs.')
 
     const summonEffect = {

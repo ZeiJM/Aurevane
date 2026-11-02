@@ -44,7 +44,10 @@ export function battleTagForStatus(
 }
 
 export function battleTagDescription(tag: BattleTagWording | undefined, generated: string): string {
-  return tag
+  const presented = tag
     ? renderCombatTagWording(tag.compact, { details: generated, summary: generated })
     : generated
+  return tag?.tagId === 'counter' && !presented.includes(generated)
+    ? `${presented} ${generated}`
+    : presented
 }

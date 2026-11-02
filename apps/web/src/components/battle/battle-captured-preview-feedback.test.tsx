@@ -37,7 +37,12 @@ vi.mock('./battle-responsive-layout', async (original) => ({
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }))
 import { BattleExperience } from './battle-experience'
 import { BattleSkillCommand } from './battle-skill-command'
+import { BattleActionPreview } from './battle-action-preview'
 import { BattleCombatantCard } from './battle-combatant-card'
+import {
+  captureBasicSkillSources,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import { capturedBasicBattle } from './battle-basic-actions.test-utils'
 import type { BattleRuntime } from './battle-runtime'
 import { createBattlePreviewService } from '@/server/battle/battle-preview-service'
@@ -55,6 +60,17 @@ import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/start
 import { createCurrentStatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 import { spawnCombatSummon } from '@aurevane/game-core/combat/combat-summons'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+import { commitCombatAbilityCommand } from '@aurevane/game-core/combat/combat-ability-command'
+import { combatAbilityCommandContext } from '@aurevane/game-core/combat/combat-behavior-runtime'
+import {
+  readPv1fActionEconomy,
+  PV1F_COMBAT_CONTENT,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
+  AUTHORABLE_EFFECT_TAGS,
+  createAuthorableEffectPayload,
+} from '@aurevane/game-core/combat/combat-effect-authoring'
+import type { CombatTagPayload } from '@aurevane/game-core/combat/combat-tag-registry'
 
 type Props = Record<string, unknown> & { children?: ReactNode }
 function find(
@@ -98,9 +114,16 @@ function fixture(
     blindAttack?: boolean
     withDamage?: boolean
     largeBoard?: boolean
+    targetPayload?: CombatTagPayload
+    selfTarget?: boolean
+    commitResult?: 'success' | 'failure' | 'network-error'
+    dualGroundIntent?: boolean
+    spatialAttack?: boolean
+    currentSupportDefaults?: boolean
+    guidedPractice?: boolean
   } = {},
 ) {
-  const input = capturedBasicBattle(support)
+  const input = capturedBasicBattle(support, false, {}, options.currentSupportDefaults)
   let state: StatDrivenCombatEncounterState = {
     ...input.state,
     tactical: {
@@ -112,6 +135,44 @@ function fixture(
         ),
       },
     },
+  }
+  if (options.currentSupportDefaults) {
+    state = createCurrentStatDrivenCombatEncounterState(
+      state,
+      state.statBridge.combatants.map((row) => ({
+        ...row,
+        physicalPower: row.physicalPower ?? 20,
+        mysticPower: row.mysticPower ?? 20,
+        level: 1,
+        criticalChance: 0,
+      })),
+    )
+  }
+  if (options.guidedPractice) {
+    const recovery = captureBasicSkillSources({
+      ownerCombatantId: 'actor',
+      supportActionId: 'basic.recover',
+      definitions: defaultBasicSkills(),
+    }).find((row) => row.abilityId === 'basic.recover')!
+    state = {
+      ...reconcileCombatAbilitySources(state, [...state.capturedAbilitySources!, recovery]),
+      supportActionPolicyVersion: 1,
+      statBridge: {
+        ...state.statBridge,
+        combatants: state.statBridge.combatants.map((row) =>
+          row.combatantId === 'enemy'
+            ? {
+                ...row,
+                provenance: {
+                  kind: 'scenario',
+                  sourceId: 'scenario:p2-7-recruit:duel-yard:guided-fundamentals:easy',
+                  sourceRulesVersion: 1,
+                },
+              }
+            : row,
+        ),
+      },
+    }
   }
   if (options.largeBoard) {
     state = {
@@ -128,6 +189,7 @@ function fixture(
       },
     }
   }
+  if (options.dualGroundIntent) state = { ...state, elementalDamagePolicyVersion: 2 }
   if (options.targetPreview) {
     const kind = options.targetPreview
     const sources = state.capturedAbilitySources!.map((source) => {
@@ -145,24 +207,43 @@ function fixture(
           ...(kind === 'damage' || options.blindAttack ? { attackFamily: 'physical' } : {}),
           targeting: {
             ...behavior.targeting,
-            geometryVersion: 3,
+            geometryVersion: options.dualGroundIntent ? 2 : 3,
             kind:
-              options.allHealingAim === 'self'
+              options.allHealingAim === 'self' || options.selfTarget
                 ? 'self'
                 : kind === 'ground'
-                  ? 'ground-tile'
+                  ? options.targetPayload?.type === 'summon'
+                    ? 'empty-tile'
+                    : 'ground-tile'
                   : 'unit',
-            categories: [
-              options.allHealingAim === 'self' ? 'self' : kind === 'ground' ? 'ground' : 'enemy',
-            ],
+            categories: options.dualGroundIntent
+              ? undefined
+              : [
+                  options.allHealingAim === 'self' || options.selfTarget
+                    ? 'self'
+                    : kind === 'ground'
+                      ? 'ground'
+                      : 'enemy',
+                ],
             teamPolicy:
-              options.allHealingAim === 'self' ? 'self' : kind === 'ground' ? 'any' : 'enemy',
-            minimumRange: options.blindAttack ? 1 : 0,
+              options.allHealingAim === 'self' || options.selfTarget
+                ? 'self'
+                : kind === 'ground'
+                  ? 'any'
+                  : 'enemy',
+            minimumRange:
+              options.blindAttack || (options.targetPayload && !options.selfTarget) ? 1 : 0,
             maximumRange:
-              options.allHealingAim === 'self' || kind === 'all' ? 0 : options.largeBoard ? 15 : 3,
-            maximumElevationDifference: options.blindAttack
-              ? 3
-              : (behavior.targeting?.maximumElevationDifference ?? null),
+              options.allHealingAim === 'self' || options.selfTarget || kind === 'all'
+                ? 0
+                : options.largeBoard
+                  ? 15
+                  : 3,
+            maximumElevationDifference: options.spatialAttack
+              ? 0
+              : options.blindAttack
+                ? 3
+                : (behavior.targeting?.maximumElevationDifference ?? null),
             shape:
               kind === 'circle'
                 ? { kind: 'circle', radius: 3 }
@@ -171,9 +252,23 @@ function fixture(
                   : kind === 'all'
                     ? { kind: 'all' }
                     : { kind: 'single' },
-            requiresLineOfSight: false,
+            requiresLineOfSight: options.spatialAttack === true,
           },
           effects: [
+            ...(options.dualGroundIntent
+              ? [
+                  {
+                    id: 'fire-cleanse',
+                    payload: {
+                      type: 'remove-status',
+                      recipient: 'actor',
+                      target: 'self',
+                      statusIds: ['frozen'],
+                      removalMode: 'specified',
+                    },
+                  },
+                ]
+              : []),
             ...(options.withMove
               ? [
                   {
@@ -193,9 +288,16 @@ function fixture(
               : []),
             {
               id: 'targeted',
+              ...(options.targetPayload?.type === 'reversal' ? { timing: 'controlled' } : {}),
               payload:
-                kind === 'damage'
-                  ? { type: 'damage', recipient: 'affected-units', amount: 5 }
+                options.targetPayload ??
+                (kind === 'damage'
+                  ? {
+                      type: 'damage',
+                      recipient: 'affected-units',
+                      amount: 5,
+                      ...(options.dualGroundIntent ? { element: 'fire' } : {}),
+                    }
                   : kind === 'healing'
                     ? {
                         type: 'healing',
@@ -211,12 +313,22 @@ function fixture(
                         ...(options.blindAttack
                           ? { potencyBasisPoints: 10000, durationTurns: 2 }
                           : {}),
-                      },
+                      }),
             },
           ],
         })),
       })
-      return { ...source, definition, basic: { ...source.basic!, ability: definition } }
+      return {
+        ...source,
+        definition,
+        basic: {
+          ...source.basic!,
+          ability: definition,
+          ...(options.targetPayload?.type === 'percentage-recovery'
+            ? { execution: { kind: 'basic-action' as const, recoveryRounding: 'floor' as const } }
+            : {}),
+        },
+      }
     })
     state = {
       ...reconcileCombatAbilitySources(
@@ -278,7 +390,7 @@ function fixture(
       ownerCombatantId: 'actor',
       sourceSkillId: 'test.all-healing-summon',
       sourceSkillVersion: 1,
-      profile: resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!,
+      profile: resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!,
       position: { x: 0, y: 3 },
       facing: 'east',
     }).state
@@ -323,6 +435,64 @@ function fixture(
   const network = vi.fn<typeof fetch>(async (_url, requestOptions) => {
     const body = JSON.parse(String(requestOptions?.body))
     requests.push(body)
+    if (options.commitResult && !String(_url).endsWith('/preview')) {
+      if (options.commitResult === 'network-error')
+        throw new Error('The chosen Ground cast was rejected.')
+      if (options.commitResult === 'failure')
+        return Response.json(
+          { error: { code: 'ILLEGAL_COMMAND', message: 'The chosen Ground cast was rejected.' } },
+          { status: 400 },
+        )
+      if (options.currentSupportDefaults && body.intent.kind === 'action') {
+        const source = state.capturedAbilitySources!.find(
+          (row) => row.abilityId === body.intent.actionId,
+        )!
+        const result = commitCombatAbilityCommand({
+          state,
+          actorId: 'actor',
+          root: { kind: 'canonical', source, behaviorId: body.intent.behaviorId },
+          selection: body.intent.target,
+          movementPath: body.intent.movementPath,
+          content: PV1F_COMBAT_CONTENT,
+          context: combatAbilityCommandContext(state, source),
+        })
+        state = result.state as StatDrivenCombatEncounterState
+        record.snapshot = state
+        return Response.json({
+          battle: {
+            ...view,
+            battleVersion: view.battleVersion + 1,
+            snapshot: projectBattleSnapshot(
+              state,
+              deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, ['actor']),
+            ),
+          },
+        })
+      }
+      return Response.json({
+        battle: {
+          ...view,
+          battleVersion: view.battleVersion + 1,
+          snapshot: {
+            ...view.snapshot,
+            ...(options.targetPreview === 'ground'
+              ? {
+                  groundAreas: [
+                    {
+                      id: 'ground.area.1',
+                      tiles: [{ x: 0, y: 0 }],
+                      activationRound: state.tactical.battle.round,
+                      expiresAtRound: state.tactical.battle.round + 2,
+                      visualPresetId: 'arcane-pulse',
+                      effectVisualIds: ['status:guarded'],
+                    },
+                  ],
+                }
+              : {}),
+          },
+        },
+      })
+    }
     const battlePreview = await service.previewIntent({
       ...body,
       userId: 'owner',
@@ -418,8 +588,60 @@ function fixture(
     activate,
     begin,
     release: () => release!(),
+    currentState: () => state,
   }
 }
+it('current Guided Fundamentals offers actual captured HP Recovery without resurrecting Guard or changing slot 3', async () => {
+  const input = fixture('basic.pilfer', 'pve', {
+    currentSupportDefaults: true,
+    guidedPractice: true,
+    commitResult: 'success',
+  })
+  const practice = () =>
+    find(
+      input.render(),
+      (node) =>
+        node.type === 'button' &&
+        String(node.props['aria-label']).startsWith('Practice HP Recovery'),
+    )!
+  expect(practice()).not.toBeNull()
+  expect(
+    find(input.render(), (node) => String(node.props['aria-label']).startsWith('Practice Guard')),
+  ).toBeNull()
+  const before = input
+    .currentState()
+    .tactical.battle.combatants.find((row) => row.id === 'actor')!.hp
+  ;(practice().props.onClick as () => void)()
+  const choices = find(
+    input.render(),
+    (node) => node.type === 'select' && node.props['aria-label'] === 'Ability action',
+  )!
+  if (choices) {
+    const action = find(
+      choices.props.children,
+      (node) => node.type === 'option' && !node.props.disabled,
+    )!
+    ;(choices.props.onChange as (event: unknown) => void)({ target: { value: action.props.value } })
+  }
+  ;(practice().props.onClick as () => void)()
+  await vi.waitFor(() =>
+    expect(
+      input.currentState().tactical.battle.combatants.find((row) => row.id === 'actor')!.hp,
+      JSON.stringify({ notice: input.notice(), requests: input.requests }),
+    ).toBeGreaterThan(before),
+  )
+  expect(
+    input.requests.flatMap((row) => (row.intent.kind === 'action' ? [row.intent.actionId] : [])),
+  ).toContain('basic.recover')
+  expect(
+    input.network.mock.calls.filter(([url]) => !String(url).endsWith('/preview')),
+  ).toHaveLength(1)
+  expect(
+    find(input.render(), (node) => node.type === BattleSkillCommand && node.props.slot === 'guard')!
+      .props.label,
+  ).toBe('Pilfer')
+})
+
 for (const mode of ['pve', 'pvp'] as const) {
   it.each(['self', 'enemy'] as const)(
     mode + ' paints every living All recovery recipient green with a %s Single aim',
@@ -700,6 +922,219 @@ for (const mode of ['pve', 'pvp'] as const) {
   })
 }
 
+function authoredPayload(id: string): CombatTagPayload {
+  const payload = createAuthorableEffectPayload(id)
+  if (!payload) throw new Error(`Expected implemented authoring payload: ${id}`)
+  return payload
+}
+const utilityPayloads = [
+  ...new Set([
+    'copy-buffs',
+    'copy-debuffs',
+    'cleanse',
+    'conditional-cleanse',
+    'dispel',
+    'mp-drain',
+    'barrier',
+    'counter',
+    'status:guarded',
+    'status:mark',
+    'status:inspired',
+    'status:invisible',
+    'status:covert',
+    'status:frozen',
+    'reveal',
+    'push',
+    'pull',
+    ...AUTHORABLE_EFFECT_TAGS.filter(
+      (tag) => tag.opcode === 'apply-status' && !tag.unavailableReason,
+    ).map((tag) => tag.id),
+  ]),
+].map((id) => ({
+  id,
+  payload: { ...authoredPayload(id), recipient: 'primary-unit' } as CombatTagPayload,
+}))
+const recoveryPayloads = ['hp-recovery', 'mp-recovery'].map((id) => ({
+  id,
+  payload: { ...authoredPayload(id), recipient: 'primary-unit' } as CombatTagPayload,
+}))
+const capturedPayloadCases = [
+  ...utilityPayloads.map((row) => ({
+    ...row,
+    kind: 'utility' as const,
+    palette: 'data-buff-path',
+  })),
+  ...recoveryPayloads.map((row) => ({
+    ...row,
+    kind: 'healing' as const,
+    palette: 'data-heal-target',
+  })),
+  {
+    id: 'retained-flat-mp-recovery',
+    kind: 'healing' as const,
+    palette: 'data-heal-target',
+    payload: {
+      type: 'resource-change',
+      recipient: 'primary-unit',
+      resource: 'mp',
+      delta: 2,
+    } as CombatTagPayload,
+  },
+  // Current Chilled Ground and retained Freeze Ground share this captured opcode.
+  {
+    id: 'chilled-ground',
+    kind: 'ground' as const,
+    palette: 'data-ground-path',
+    payload: {
+      type: 'create-terrain',
+      recipient: 'affected-tiles',
+      terrain: 'frozen',
+      skillApSurcharge: 10,
+    } as CombatTagPayload,
+  },
+  {
+    id: 'copy-plus-damage',
+    kind: 'utility' as const,
+    palette: 'data-attack-path',
+    payload: authoredPayload('copy-buffs'),
+    withDamage: true,
+  },
+  ...['damage', 'pierce', 'burn', 'bleed', 'poison'].map((id) => ({
+    id,
+    kind: 'damage' as const,
+    palette: 'data-attack-path',
+    payload: authoredPayload(id),
+  })),
+  ...['weak-point', 'spike', 'ruin'].map((id) => ({
+    id,
+    kind: 'damage' as const,
+    palette: 'data-attack-path',
+    payload: authoredPayload(id),
+    withDamage: true,
+  })),
+  {
+    id: 'summon',
+    kind: 'ground' as const,
+    palette: 'data-ground-path',
+    payload: createAuthorableEffectPayload('summon', {
+      summonProfile: resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!,
+    })!,
+  },
+]
+
+for (const [mode, desktop] of [
+  ['pve', false],
+  ['pvp', true],
+] as const) {
+  it.each(capturedPayloadCases)(
+    `${mode} ${desktop ? 'desktop' : 'mobile'} keeps the full captured $id Single reach and its canonical palette`,
+    ({ payload, kind, palette, ...row }) => {
+      hooks.desktop = desktop
+      const input = fixture(kind === 'healing' ? 'basic.recover' : 'basic.guard', mode, {
+        targetPreview: kind,
+        targetPayload: payload,
+        withDamage: 'withDamage' in row && row.withDamage,
+      })
+      const before = JSON.stringify(input.state)
+      input.begin('guard')
+      const tree = input.render()
+      const actor = input.state.tactical.placements.find(
+        (placement) => placement.combatantId === 'actor',
+      )!
+      for (const tile of input.state.tactical.tiles) {
+        const button = find(
+          tree,
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith(
+              `Tile ${tile.position.x + 1}, ${tile.position.y + 1};`,
+            ),
+        )!
+        const distance =
+          Math.abs(tile.position.x - actor.position.x) +
+          Math.abs(tile.position.y - actor.position.y)
+        const occupied = input.state.tactical.placements.some(
+          (placement) =>
+            placement.position.x === tile.position.x &&
+            placement.position.y === tile.position.y &&
+            input.state.tactical.battle.combatants.some(
+              (unit) => unit.id === placement.combatantId && unit.hp > 0,
+            ),
+        )
+        const eligible = distance >= 1 && distance <= 3 && (payload.type !== 'summon' || !occupied)
+        for (const attr of [
+          'data-buff-path',
+          'data-heal-target',
+          'data-ground-path',
+          'data-attack-path',
+        ])
+          expect(
+            button.props[attr],
+            `${row.id}: ${String(button.props['aria-label'])} ${attr}`,
+          ).toBe(attr === palette && eligible ? true : undefined)
+      }
+      expect(JSON.stringify(input.state)).toBe(before)
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['copy-buffs', 'copy-debuffs', 'cleanse', 'dispel'])(
+    `${mode} a highlighted empty tile cannot commit captured %s`,
+    (id) => {
+      hooks.desktop = desktop
+      const input = fixture('basic.guard', mode, {
+        targetPreview: 'utility',
+        targetPayload: authoredPayload(id),
+      })
+      input.begin('guard')
+      const button = find(
+        input.render(),
+        (node) =>
+          node.type === 'button' && String(node.props['aria-label']).startsWith('Tile 1, 2;'),
+      )!
+      expect(button.props['data-buff-path']).toBe(true)
+      const beforeRequests = input.requests.length
+      ;(button.props.onClick as () => void)()
+      expect(input.notice()).toBe('Choose an eligible target in range.')
+      expect(input.requests).toHaveLength(beforeRequests)
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+
+  it.each(['reversal', 'endure', 'rewind'])(
+    `${mode} captured Self-only %s never paints unrelated range`,
+    (id) => {
+      hooks.desktop = desktop
+      const input = fixture('basic.guard', mode, {
+        targetPreview: 'utility',
+        targetPayload: authoredPayload(id),
+        selfTarget: true,
+      })
+      input.begin('guard')
+      const tree = input.render()
+      const actor = input.state.tactical.placements.find(
+        (placement) => placement.combatantId === 'actor',
+      )!
+      for (const tile of input.state.tactical.tiles) {
+        const button = find(
+          tree,
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith(
+              `Tile ${tile.position.x + 1}, ${tile.position.y + 1};`,
+            ),
+        )!
+        const isSelf = tile.position.x === actor.position.x && tile.position.y === actor.position.y
+        expect(button.props['data-buff-path']).toBe(isSelf ? true : undefined)
+        expect(button.props['data-attack-path']).not.toBe(true)
+        expect(button.props['data-heal-target']).not.toBe(true)
+        expect(button.props['data-ground-path']).not.toBe(true)
+      }
+      expect(input.commit).not.toHaveBeenCalled()
+    },
+  )
+}
+
 for (const desktop of [false, true]) {
   for (const mode of ['pve', 'pvp'] as const) {
     it.each(['utility', 'healing'] as const)(
@@ -867,4 +1302,319 @@ for (const mode of ['pve', 'pvp'] as const) {
     ).not.toBeNull()
     expect(input.commit).not.toHaveBeenCalled()
   })
+}
+
+for (const mode of ['pve', 'pvp'] as const) {
+  it.each(['success', 'failure', 'network-error'] as const)(
+    `${mode} clears Ground targeting only after a successful cast (%s)`,
+    async (commitResult) => {
+      const input = fixture('basic.guard', mode, { targetPreview: 'ground', commitResult })
+      input.begin('guard')
+      const tile = () =>
+        find(
+          input.render(),
+          (node) =>
+            node.type === 'button' && String(node.props['aria-label']).startsWith('Tile 1, 1;'),
+        )!
+      expect(tile().props['data-ground-path']).toBe(true)
+      ;(tile().props.onClick as () => void)()
+      await vi.waitFor(() =>
+        expect(input.notice()).toContain(
+          commitResult === 'success' ? 'AP remains.' : 'The chosen Ground cast was rejected.',
+        ),
+      )
+      expect(tile().props['data-ground-path']).toBe(commitResult === 'success' ? undefined : true)
+      expect(
+        input.network.mock.calls.filter(([url]) => !String(url).endsWith('/preview')),
+      ).toHaveLength(1)
+    },
+  )
+  it(`${mode} keeps a successful ordinary unit cast armed`, async () => {
+    const input = fixture('basic.guard', mode, {
+      targetPreview: 'utility',
+      commitResult: 'success',
+    })
+    input.begin('guard')
+    const tile = () =>
+      find(
+        input.render(),
+        (node) =>
+          node.type === 'button' && String(node.props['aria-label']).startsWith('Tile 3, 2;'),
+      )!
+    expect(tile().props['data-buff-path']).toBe(true)
+    ;(tile().props.onClick as () => void)()
+    await vi.waitFor(() => expect(input.notice()).toContain('AP remains.'))
+    expect(tile().props['data-buff-path']).toBe(true)
+  })
+}
+
+for (const mode of ['pve', 'pvp'] as const) {
+  it.each(['unit', 'ground'] as const)(
+    `${mode} keeps dual Fire unit casts armed and clears actual Ground casts (%s)`,
+    async (aim) => {
+      const input = fixture('basic.guard', mode, {
+        targetPreview: 'damage',
+        dualGroundIntent: true,
+        commitResult: 'success',
+      })
+      expect(
+        input.view.snapshot.manualActionTargets?.find((row) => row.actionId === 'basic.guard')
+          ?.groundIntentCapable,
+      ).toBe(true)
+      input.begin('guard')
+      const tile = () =>
+        find(
+          input.render(),
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith(
+              aim === 'unit' ? 'Tile 3, 2;' : 'Tile 1, 1;',
+            ),
+        )!
+      expect(tile().props['data-ground-path']).toBe(true)
+      ;(tile().props.onClick as () => void)()
+      await vi.waitFor(() => expect(input.notice()).toContain('AP remains.'))
+      const commands = input.requests.filter((row) => row.intent.kind === 'action')
+      expect(commands.at(-1)?.intent).toMatchObject({
+        target: { kind: aim === 'unit' ? 'unit' : 'tile' },
+      })
+      expect(tile().props['data-ground-path']).toBe(aim === 'unit' ? true : undefined)
+    },
+  )
+}
+
+function updateFixtureBoard(
+  input: ReturnType<typeof fixture>,
+  change: (
+    board: StatDrivenCombatEncounterState['tactical'],
+  ) => StatDrivenCombatEncounterState['tactical'],
+) {
+  const tactical = change(input.state.tactical)
+  input.state.tactical = tactical
+  input.view.snapshot.tactical = tactical
+}
+
+for (const mode of ['pve', 'pvp'] as const) {
+  it.each([
+    { id: 'basic.pilfer', label: 'Pilfer', ap: 15, mp: 0, cooldown: 1, tile: 'Tile 3, 2;' },
+    { id: 'basic.fleetstep', label: 'Fleetstep', ap: 30, mp: 0, cooldown: 2, tile: 'Tile 1, 2;' },
+    {
+      id: 'basic.invocation',
+      label: 'Invocation',
+      ap: 45,
+      mp: 10,
+      cooldown: 4,
+      tile: 'Tile 2, 1;',
+    },
+  ] as const)(
+    `${mode} slot3 uses captured $label targeting, payment and cooldown in a single command`,
+    async ({ id, label, ap, mp, cooldown, tile: tileLabel }) => {
+      const input = fixture(id, mode, { currentSupportDefaults: true, commitResult: 'success' })
+      const support = () =>
+        find(
+          input.render(),
+          (node) => node.type === BattleSkillCommand && node.props.slot === 'guard',
+        )!
+      expect(support().props.label).toBe(label)
+      expect(support().props.cost).toBe(mp ? `${ap} AP / ${mp} MP` : `${ap} AP`)
+      input.begin('guard')
+      const tile = find(
+        input.render(),
+        (node) => node.type === 'button' && String(node.props['aria-label']).startsWith(tileLabel),
+      )!
+      expect(tile).not.toBeNull()
+      ;(tile.props.onClick as () => void)()
+      await vi.waitFor(() =>
+        expect(support().props.cooldownTurns, String(input.notice())).toBe(cooldown),
+      )
+      const sent = input.requests.filter(
+        (row) => row.intent.kind === 'action' && row.intent.actionId === id,
+      )
+      expect(
+        input.network.mock.calls.filter(([url]) => !String(url).endsWith('/preview')),
+      ).toHaveLength(1)
+      expect(sent.at(-1)?.intent).toMatchObject({ kind: 'action', actionId: id })
+      expect(readPv1fActionEconomy(input.currentState(), 'actor')?.current).toBe(100 - ap)
+      expect(
+        input.currentState().tactical.battle.combatants.find((row) => row.id === 'actor')?.mp,
+      ).toBe(10 - mp)
+      expect(support().props.cooldownTurns).toBe(cooldown)
+      if (id === 'basic.pilfer')
+        expect(
+          input.currentState().tactical.battle.combatants.find((row) => row.id === 'enemy')?.hp,
+        ).toBe(996)
+      if (id === 'basic.fleetstep')
+        expect(
+          input.currentState().tactical.placements.find((row) => row.combatantId === 'actor')
+            ?.position,
+        ).toEqual({ x: 0, y: 1 })
+      if (id === 'basic.invocation')
+        expect(input.currentState().effectState?.summons).toHaveLength(1)
+    },
+  )
+}
+
+for (const mode of ['pve', 'pvp'] as const) {
+  for (const desktop of [false, true]) {
+    it.each(['basic', 'skill'] as const)(
+      `${mode} ${desktop ? 'desktop' : 'mobile'} keeps an out-of-range Single %s enemy quiet after hover and selection`,
+      (kind) => {
+        hooks.desktop = desktop
+        const input = fixture('basic.guard', mode, {
+          ...(kind === 'skill' ? { targetPreview: 'damage' as const } : {}),
+        })
+        const position = kind === 'basic' ? { x: 3, y: 1 } : { x: 4, y: 2 }
+        updateFixtureBoard(input, (board) => ({
+          ...board,
+          placements: board.placements.map((row) => ({
+            ...row,
+            position:
+              row.combatantId === 'enemy'
+                ? position
+                : row.combatantId === 'other'
+                  ? { x: 4, y: 4 }
+                  : row.position,
+          })),
+        }))
+        input.begin(kind === 'basic' ? 'attack' : 'guard')
+        const tile = () =>
+          find(
+            input.render(),
+            (node) =>
+              node.type === 'button' &&
+              String(node.props['aria-label']).startsWith(
+                `Tile ${position.x + 1}, ${position.y + 1};`,
+              ),
+          )!
+        const quiet = () => {
+          expect(tile().props['data-attack-path']).not.toBe(true)
+          expect(tile().props['data-target']).not.toBe('enemy')
+          expect(tile().props['data-affected']).not.toBe(true)
+        }
+        quiet()
+        const before = input.requests.length
+        ;(tile().props.onPointerEnter as (event: unknown) => void)({ pointerType: 'mouse' })
+        quiet()
+        ;(tile().props.onClick as () => void)()
+        quiet()
+        expect(input.requests).toHaveLength(before)
+        expect(input.notice()).toBe('Choose an eligible target in range.')
+      },
+    )
+    it.each([
+      { kind: 'basic', moved: 'actor' },
+      { kind: 'basic', moved: 'enemy' },
+      { kind: 'skill', moved: 'actor' },
+      { kind: 'skill', moved: 'enemy' },
+    ] as const)(
+      `${mode} ${desktop ? 'desktop' : 'mobile'} removes the old Single $kind forecast when the $moved moves out of range`,
+      async ({ kind, moved }) => {
+        hooks.desktop = desktop
+        const input = fixture('basic.guard', mode, {
+          ...(kind === 'skill' ? { targetPreview: 'damage' as const } : {}),
+        })
+        await input.activate(kind === 'basic' ? 'attack' : 'guard')
+        expect(
+          find(input.render(), (node) => node.type === BattleActionPreview)!.props.preview,
+        ).not.toBeNull()
+        updateFixtureBoard(input, (board) => ({
+          ...board,
+          placements: board.placements.map((row) =>
+            row.combatantId === moved
+              ? { ...row, position: moved === 'actor' ? { x: 0, y: 4 } : { x: 4, y: 2 } }
+              : row,
+          ),
+        }))
+        input.view.battleVersion += 1
+        const tree = input.render()
+        const enemyPosition = moved === 'actor' ? { x: 2, y: 1 } : { x: 4, y: 2 }
+        const tile = find(
+          tree,
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith(
+              `Tile ${enemyPosition.x + 1}, ${enemyPosition.y + 1};`,
+            ),
+        )!
+        expect(tile.props['data-attack-path']).not.toBe(true)
+        expect(tile.props['data-target']).not.toBe('enemy')
+        expect(tile.props['data-affected']).not.toBe(true)
+        expect(find(tree, (node) => node.type === BattleActionPreview)!.props.preview).toBeNull()
+      },
+    )
+    it.each(['elevation', 'line-of-sight'] as const)(
+      `${mode} ${desktop ? 'desktop' : 'mobile'} does not paint a spatially invalid Single enemy (%s)`,
+      (boundary) => {
+        hooks.desktop = desktop
+        const input = fixture('basic.guard', mode, { targetPreview: 'damage', spatialAttack: true })
+        const enemyPosition = boundary === 'elevation' ? { x: 2, y: 1 } : { x: 3, y: 1 }
+        updateFixtureBoard(input, (board) => ({
+          ...board,
+          terrains: [...board.terrains, { id: 'wall', traversalCost: null }],
+          tiles: board.tiles.map((tile) => ({
+            ...tile,
+            elevation:
+              boundary === 'elevation' && tile.position.x === 2 && tile.position.y === 1 ? 1 : 0,
+            terrainId:
+              boundary === 'line-of-sight' && tile.position.x === 2 && tile.position.y === 1
+                ? 'wall'
+                : tile.terrainId,
+          })),
+          placements: board.placements.map((row) =>
+            row.combatantId === 'enemy'
+              ? { ...row, position: enemyPosition }
+              : row.combatantId === 'other'
+                ? { ...row, position: { x: 4, y: 4 } }
+                : row,
+          ),
+        }))
+        input.begin('guard')
+        const tile = () =>
+          find(
+            input.render(),
+            (node) =>
+              node.type === 'button' &&
+              String(node.props['aria-label']).startsWith(
+                `Tile ${enemyPosition.x + 1}, ${enemyPosition.y + 1};`,
+              ),
+          )!
+        expect(tile().props['data-attack-path']).not.toBe(true)
+        expect(tile().props['data-target']).not.toBe('enemy')
+        ;(tile().props.onPointerEnter as (event: unknown) => void)({ pointerType: 'mouse' })
+        expect(tile().props['data-attack-path']).not.toBe(true)
+      },
+    )
+    it(`${mode} ${desktop ? 'desktop' : 'mobile'} keeps Line hover inside its authored length toward an out-of-range enemy`, async () => {
+      hooks.desktop = desktop
+      const input = fixture('basic.guard', mode, {
+        targetPreview: 'line',
+        withDamage: true,
+      })
+      updateFixtureBoard(input, (board) => ({
+        ...board,
+        tiles: board.tiles.map((tile) => ({ ...tile, elevation: 0 })),
+        placements: board.placements.map((row) =>
+          row.combatantId === 'enemy'
+            ? { ...row, position: { x: 4, y: 1 } }
+            : row.combatantId === 'actor'
+              ? { ...row, position: { x: 0, y: 1 } }
+              : row,
+        ),
+      }))
+      input.begin('guard')
+      const tile = (x: number) =>
+        find(
+          input.render(),
+          (node) =>
+            node.type === 'button' &&
+            String(node.props['aria-label']).startsWith(`Tile ${x + 1}, 2;`),
+        )!
+      expect(tile(4).props['data-attack-path']).not.toBe(true)
+      ;(tile(4).props.onPointerEnter as (event: unknown) => void)({ pointerType: 'mouse' })
+      await vi.waitFor(() => expect(input.previews.length).toBeGreaterThan(0))
+      expect(tile(3).props['data-attack-path']).toBe(true)
+      expect(tile(4).props['data-attack-path']).not.toBe(true)
+      expect(tile(4).props['data-target']).not.toBe('enemy')
+    })
+  }
 }

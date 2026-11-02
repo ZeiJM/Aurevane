@@ -9,7 +9,10 @@ import {
   defaultBasicSkills,
   type BasicSkillDefinition,
 } from '@aurevane/game-core/combat/combat-basic-actions'
-import { parseSupportActionId } from '@aurevane/game-core/combat/support-actions'
+import {
+  DEFAULT_SUPPORT_ACTION_ID,
+  parseSupportActionId,
+} from '@aurevane/game-core/combat/support-actions'
 import {
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
@@ -415,6 +418,9 @@ function previewState(
     conditionalDamageRoundingPolicyVersion: 1 as const,
     blindsideActivationPolicyVersion: 1 as const,
     modularSkillPolicyVersion: 1 as const,
+    abilityCooldownScopeVersion: 1 as const,
+    reflectBarrierPolicyVersion: 1 as const,
+    supportActionPolicyVersion: 1 as const,
     displacementPolicyVersion: 1 as const,
     turnOrigin: {
       combatantId: ACTOR_ID,
@@ -743,7 +749,7 @@ export function previewBasicCombatContentDefinition(
   assertPreviewSeed(seed)
   const sources = captureBasicSkillSources({
     ownerCombatantId: ACTOR_ID,
-    supportActionId: parseSupportActionId(definition.id) ?? 'basic.guard',
+    supportActionId: parseSupportActionId(definition.id) ?? DEFAULT_SUPPORT_ACTION_ID,
     definitions: defaultBasicSkills().map((basic) =>
       basic.id === definition.id ? definition : basic,
     ),
@@ -1006,7 +1012,7 @@ export function previewModifierCombatContentDefinition(
     'execution' in reference
       ? captureBasicSkillSources({
           ownerCombatantId: ACTOR_ID,
-          supportActionId: parseSupportActionId(reference.id) ?? 'basic.guard',
+          supportActionId: parseSupportActionId(reference.id) ?? DEFAULT_SUPPORT_ACTION_ID,
           definitions: defaultBasicSkills().map((row) =>
             row.id === reference.id ? reference : row,
           ),
@@ -1192,7 +1198,7 @@ export function previewAutomaticCombatContentDefinition(
     'execution' in reference
       ? captureBasicSkillSources({
           ownerCombatantId: ACTOR_ID,
-          supportActionId: parseSupportActionId(reference.id) ?? 'basic.guard',
+          supportActionId: parseSupportActionId(reference.id) ?? DEFAULT_SUPPORT_ACTION_ID,
           definitions: defaultBasicSkills().map((row) =>
             row.id === reference.id ? reference : row,
           ),
@@ -1416,7 +1422,8 @@ export function previewHistoricalResonanceCombatContentDefinition(
     undefined,
     options.effectTimingPolicy,
   )
-  let state = preparePv1fTurnEconomy(fixture.state)
+  // This reader executes immutable native snapshots, including retired Summon sources.
+  let state = preparePv1fTurnEconomy({ ...fixture.state, supportActionPolicyVersion: undefined })
   let resonanceState = createResonanceCombatState(definition)
   const initialRng = structuredClone(state.tactical.battle.rng)
   const references = options.setup ? [options.setup, trigger] : [trigger]

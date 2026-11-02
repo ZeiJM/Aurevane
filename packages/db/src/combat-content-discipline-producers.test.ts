@@ -55,6 +55,14 @@ beforeAll(async () => {
         )
       ).rows
     }
+    if (name === '20261102031427_universal_support_actions.sql') {
+      // These Core/CAS fixtures start with a current HP choice. Guard retirement
+      // and its deliberate version bump have their own real migration proof.
+      await db.query(
+        "update app_private.character_active_builds set support_action_id='basic.recover' where character_id=$1",
+        [character],
+      )
+    }
     try {
       await db.exec(sql)
     } catch (error) {

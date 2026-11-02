@@ -1,4 +1,5 @@
-import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
+import { captureBasicSkillSources } from './combat-basic-actions'
 import { commitCombatAbilityCommand } from './combat-ability-command'
 import { interceptCombatReversal } from './combat-reversal-interception'
 import { applyCommittedReflect } from './combat-reflect'
@@ -82,7 +83,7 @@ function configured(
   potency: number | null = 4000,
   effects?: readonly CombatEffectDefinition[],
 ) {
-  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const { potencyBasisPoints: _previous, ...base } = original
   void _previous
   const profile = {

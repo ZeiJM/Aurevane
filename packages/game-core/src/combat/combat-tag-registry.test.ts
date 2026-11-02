@@ -211,7 +211,7 @@ describe('implemented combat Tag registry', () => {
   })
 
   it('validates nested summon mechanics and rejects unknown nested handlers/keys', () => {
-    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
     expect(
       validateCombatTagPayload({
         type: 'summon',

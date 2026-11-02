@@ -476,7 +476,7 @@ export function planCombatStatusCopies(
             ),
           )
         : [combatEffectStrength(next.statusId, next)]
-      const receiptStrength =
+      const uniformStrength =
         donor.statusId === 'suppress'
           ? combatEffectStrength(next.statusId, next)
           : strengths.length &&
@@ -485,6 +485,10 @@ export function planCombatStatusCopies(
               )
             ? strengths[0]
             : undefined
+      const receiptStrength =
+        donor.statusId === 'counter' && state.reflectBarrierPolicyVersion === 1
+          ? { ...uniformStrength, reflectBarrierPolicyVersion: 1 as const }
+          : uniformStrength
       return { donor, previous, next, ...(receiptStrength ? { receiptStrength } : {}) }
     },
   )

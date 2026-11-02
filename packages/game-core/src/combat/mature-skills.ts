@@ -1184,7 +1184,7 @@ export function createExplicitElementalSkillVersion(
   }
 }
 
-const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+const PRE_UNIVERSAL_SUPPORT_DISCIPLINE_SKILL_REGISTRY = [
   ...PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY,
   ...latestEnabledMatureSkills(PRE_EXPLICIT_ELEMENTAL_DISCIPLINE_SKILL_REGISTRY).flatMap(
     (definition) => {
@@ -1192,6 +1192,66 @@ const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
       return next ? [next] : []
     },
   ),
+]
+
+/** Append the current class identity; every earlier Summon publication stays addressable. */
+const CURRENT_DISCIPLINE_SKILL_REGISTRY = [
+  ...PRE_UNIVERSAL_SUPPORT_DISCIPLINE_SKILL_REGISTRY,
+  ...latestEnabledMatureSkills(PRE_UNIVERSAL_SUPPORT_DISCIPLINE_SKILL_REGISTRY)
+    .filter((definition) => definition.id === 'wildwarden.renewing-herbs')
+    .map((previous): MatureSkillDefinition => {
+      const {
+        summonProfile: _summon,
+        ability: _ability,
+        groundArea: _ground,
+        ...definition
+      } = previous
+      void _summon
+      void _ability
+      void _ground
+      return {
+        ...definition,
+        contentVersion: previous.contentVersion + 1,
+        name: 'Briar Snare',
+        description: 'Briars lash an enemy and hold them in place.',
+        flavorLine: 'Briars coil around {target} as {actor} draws the snare tight.',
+        apCost: 35,
+        mpCost: 5,
+        tags: ['attack', 'physical', 'control'],
+        target: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          shape: { kind: 'single' },
+          minimumRange: 1,
+          maximumRange: 3,
+          maximumElevationDifference: 1,
+          requiresLineOfSight: true,
+        },
+        requirements: [],
+        effects: [
+          { type: 'damage', recipient: 'primary-unit', amount: 8, durationTurns: 0 },
+          {
+            type: 'apply-status',
+            recipient: 'primary-unit',
+            statusId: 'root',
+            stacks: 1,
+            durationTurns: 2,
+          },
+        ],
+        effectDescriptions: ['Deal 8 Physical damage.', 'Root the target for 2 turns.'],
+        cooldown: { key: previous.id, ownerTurns: 3 },
+        overrides: {},
+        ai: { ...previous.ai, purposeTags: ['damage', 'control', 'root'] },
+        authoring: {
+          ...previous.authoring,
+          validationTags: [
+            ...previous.authoring.validationTags.filter((tag) => tag !== 'owner-rebalance-v5-1'),
+            'universal-support-v1',
+          ],
+        },
+      }
+    }),
 ]
 
 /** Current selection catalog; the historical P3.3/P4 export remains stable for pinned contracts. */

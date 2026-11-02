@@ -326,7 +326,7 @@ it('restores the exact system Basic baseline without accepting a caller definiti
     const source = {
       ...record,
       contentKey: original.id,
-      builtin: { contentVersion: 1, name: original.name },
+      builtin: { contentVersion: original.contentVersion, name: original.name },
       current: {
         contentVersion: 3,
         definition: { ...original, contentVersion: 3, name: 'Edited' },
@@ -344,7 +344,7 @@ it('restores the exact system Basic baseline without accepting a caller definiti
     await store.writeRecord(original.id, {
       action: 'restore',
       expectedRevision: 2,
-      sourceVersion: 1,
+      sourceVersion: original.contentVersion,
       sourceKind: 'builtin',
     })
     expect(rpc).toHaveBeenCalledWith(
@@ -353,13 +353,15 @@ it('restores the exact system Basic baseline without accepting a caller definiti
         p_command: {
           action: 'restore',
           expectedRevision: 2,
-          sourceVersion: 1,
+          sourceVersion: original.contentVersion,
           sourceKind: 'builtin',
           sourceDefinition: original,
         },
       }),
     )
-    expect((await store.readRecord(original.id))?.builtinRestoreVersion).toBe(1)
+    expect((await store.readRecord(original.id))?.builtinRestoreVersion).toBe(
+      original.contentVersion,
+    )
   }
 })
 

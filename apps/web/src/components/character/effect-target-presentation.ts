@@ -94,5 +94,11 @@ export function effectFriendlyFireNote(
     )
   )
     return ''
-  return ` · Friendly fire: ${['all-units', 'all-except-actor'].includes(aim.friendlyFire) ? 'On' : 'Off'}`
+  const unmarkedAll =
+    effects.some((effect) => effect.target === 'all') && aim.allTargetPolicyVersion === undefined
+  if (effects.some((effect) => effect.target === 'all') && aim.allTargetPolicyVersion === 1) {
+    if (aim.friendlyFire === 'allies-only') return ' · Friendly fire: Allies only'
+    if (aim.friendlyFire === 'all-except-actor') return ' · Friendly fire: Everyone except caster'
+  }
+  return ` · Friendly fire: ${unmarkedAll || ['all-units', 'all-except-actor'].includes(aim.friendlyFire) ? 'On' : 'Off'}`
 }

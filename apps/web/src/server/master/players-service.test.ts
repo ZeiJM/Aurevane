@@ -206,7 +206,7 @@ it('resolves display names only after authorized reading and again after correct
   expect(names).toHaveBeenCalledTimes(1)
   await service.edit('owner', 'target', 'f'.repeat(64), 'request', {
     kind: 'support',
-    supportActionId: 'basic.guard',
+    supportActionId: 'basic.recover',
   })
   expect(names).toHaveBeenCalledTimes(2)
   const denied = createMasterPlayersService(

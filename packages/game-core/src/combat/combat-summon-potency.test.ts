@@ -1,3 +1,4 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -227,7 +228,7 @@ import {
   executePv1fMovement,
 } from './pv1f-action-economy'
 import { grantBarrier, absorbIndirectDamageWithBarrier } from './combat-barrier'
-import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { captureBasicSkillSources } from './combat-basic-actions'
 import { createCombatGroundArea } from './combat-ground-areas'
 import { PV1F_COMBAT_CONTENT } from './pv1f-combat-content'
 import { applyCurrentBleedState, applyCurrentPoisonState } from './combat-dots'

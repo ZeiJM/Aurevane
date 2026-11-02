@@ -1,9 +1,6 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { describe, expect, it } from 'vitest'
-import {
-  captureBasicSkillSources,
-  defaultBasicSkills,
-  type BasicSkillDefinition,
-} from './combat-basic-actions'
+import { captureBasicSkillSources, type BasicSkillDefinition } from './combat-basic-actions'
 import {
   combatAbilityCommandContext,
   reconcileCombatAbilitySources,
@@ -233,8 +230,11 @@ describe('captured Basic definitions reach the real action facade', () => {
     expect(() => executePv1fAction(state, 'basic.recover.mp', { kind: 'self' })).toThrow(
       /captur|equipped/i,
     )
-    const disabled = fixture(edit('basic.guard', (row) => ({ ...row, enabled: false })))
-    expect(() => executePv1fAction(disabled.state, 'basic.guard', { kind: 'self' })).toThrow(
+    const disabled = fixture(
+      edit('basic.recover', (row) => ({ ...row, enabled: false })),
+      'basic.recover',
+    )
+    expect(() => executePv1fAction(disabled.state, 'basic.recover', { kind: 'self' })).toThrow(
       /disabled/i,
     )
     expect(ap(disabled.state)).toBe(100)
@@ -474,8 +474,11 @@ describe('captured native Basic Move pricing', () => {
 })
 
 it('quotes a disabled Support as unavailable without failing the availability reader', () => {
-  const { state } = fixture(edit('basic.guard', (row) => ({ ...row, enabled: false })))
-  const quote = evaluatePv1fAction(state, 'basic.guard', { kind: 'self' })
+  const { state } = fixture(
+    edit('basic.recover', (row) => ({ ...row, enabled: false })),
+    'basic.recover',
+  )
+  const quote = evaluatePv1fAction(state, 'basic.recover', { kind: 'self' })
   expect(quote.evaluation.legal).toBe(false)
   expect(quote.evaluation.issues).toContainEqual(
     expect.objectContaining({ code: 'source-disabled' }),

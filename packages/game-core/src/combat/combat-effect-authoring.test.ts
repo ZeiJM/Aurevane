@@ -1,3 +1,4 @@
+import { VESPER_SUMMON_PROFILE } from './universal-support'
 import { expect, it } from 'vitest'
 import {
   AUTHORABLE_EFFECT_TAGS,
@@ -10,7 +11,6 @@ import {
   SUPPORTED_COMBAT_STATUS_IDS,
   validateCombatTagPayload,
 } from './combat-tag-registry'
-import { latestEnabledMatureSkills } from './mature-skills'
 
 it('exposes current individual tags while retaining legacy engine support', () => {
   for (const tag of COMBAT_TAG_REGISTRY.filter(
@@ -47,9 +47,7 @@ it('exposes current individual tags while retaining legacy engine support', () =
   expect(AUTHORABLE_EFFECT_TAGS.some((tag) => tag.statusId === 'regeneration')).toBe(false)
 })
 it('builds independent executable payloads and identifies their exact authoring variant', () => {
-  const summonProfile = latestEnabledMatureSkills().find(
-    (skill) => skill.summonProfile,
-  )?.summonProfile
+  const summonProfile = VESPER_SUMMON_PROFILE
   for (const tag of AUTHORABLE_EFFECT_TAGS) {
     const payload = createAuthorableEffectPayload(tag.id, { summonProfile })
     if (tag.unavailableReason) {

@@ -247,7 +247,7 @@ async function handleBasicRequest(request, response, next) {
     if (url.pathname === '/__basic-acceptance/reset') {
       await basicFixture?.close?.()
       basicFixture = await createBasicEditorServiceFixture({
-        multipleGuardBehaviors: url.searchParams.get('multipleGuardBehaviors') === '1',
+        multipleSupportBehaviors: url.searchParams.get('multipleSupportBehaviors') === '1',
       })
       result = Response.json({ reset: true })
     } else if (url.pathname === '/__basic-acceptance/options')
@@ -404,7 +404,7 @@ const sqlFixtureServer = originalRpcAcceptance
     const origin = server.resolvedUrls.local[0]
     const options = await fetch(`${origin}__basic-acceptance/options`)
     assert.match(options.headers.get('content-type') ?? '', /application\/json/)
-    assert.equal((await options.json()).length, 5)
+    assert.equal((await options.json()).length, 7)
     const before = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
     const restored = await fetch(new URL('/api/master/combat-content', origin), {
       method: 'POST',
@@ -412,7 +412,7 @@ const sqlFixtureServer = originalRpcAcceptance
         operation: 'record',
         command: {
           action: 'restore',
-          contentKey: 'basic.guard',
+          contentKey: 'basic.recover',
           sourceVersion: 2,
           expectedRevision: 3,
         },
@@ -423,18 +423,18 @@ const sqlFixtureServer = originalRpcAcceptance
     const inspection = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
     assert.deepEqual(inspection.records, before.records)
     assert.equal(inspection.oldCapturesUnchanged, true)
-    const reset = await fetch(`${origin}__basic-acceptance/reset?multipleGuardBehaviors=1`, {
+    const reset = await fetch(`${origin}__basic-acceptance/reset?multipleSupportBehaviors=1`, {
       method: 'POST',
     })
     assert.equal(reset.status, 200)
     const seeded = await (await fetch(`${origin}__basic-acceptance/inspect`)).json()
     assert.equal(
-      seeded.records.find((record) => record.id === 'basic.guard').current.definition.ability
+      seeded.records.find((record) => record.id === 'basic.recover').current.definition.ability
         .behaviors.length,
       2,
     )
     console.log(
-      'Actual Basic HTTP handler/service probe passed: five v3 records and retired Guard restore rejected without mutation.',
+      'Actual Basic HTTP handler/service probe passed: seven v3 records and retired restoration rejected without mutation.',
     )
     await sqlFixtureServer?.close()
     await server.close()
@@ -810,14 +810,14 @@ async function verifyBasicEditor(page, viewport) {
   console.log('verifyBasicEditor', viewport.width)
   await page.request.post(`${server.resolvedUrls.local[0]}__basic-acceptance/reset`)
   const initial = await inspectBasics(page)
-  const guard = initial.records.find((row) => row.id === 'basic.guard')
+  const guard = initial.records.find((row) => row.id === 'basic.recover')
   await basicApi(page, {
     operation: 'record',
     command: {
       action: 'save',
       contentKey: guard.id,
       expectedRevision: guard.revision,
-      definition: { ...guard.current.definition, name: 'Saved Guard draft' },
+      definition: { ...guard.current.definition, name: 'Saved HP Recovery draft' },
     },
   })
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
@@ -837,7 +837,15 @@ async function verifyBasicEditor(page, viewport) {
     await editor
       .locator('[data-content-key]')
       .evaluateAll((rows) => rows.map((row) => row.dataset.contentKey)),
-    ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp'],
+    [
+      'basic.move',
+      'unarmed.basic',
+      'basic.recover',
+      'basic.recover.mp',
+      'basic.pilfer',
+      'basic.fleetstep',
+      'basic.invocation',
+    ],
   )
   assert.equal(await page.getByLabel('Content category').inputValue(), 'basic')
   await (await abilityField(editor, 'Move cost basis')).selectOption('flat')
@@ -913,14 +921,24 @@ async function verifyBasicEditor(page, viewport) {
   )
   await (await abilityField(editor, 'Higher Power scaling (%)')).scrollIntoViewIfNeeded()
   await page.screenshot({ path: resolve(output, `basic-editor-attack-${viewport.width}.png`) })
-  for (const [index, id] of ['basic.guard', 'basic.recover', 'basic.recover.mp'].entries()) {
+  for (const [index, id] of [
+    'basic.recover',
+    'basic.recover.mp',
+    'basic.pilfer',
+    'basic.fleetstep',
+    'basic.invocation',
+  ].entries()) {
     await select(id)
-    if (id === 'basic.guard')
-      assert.equal(await (await abilityField(editor, 'Name')).inputValue(), 'Saved Guard draft')
+    if (id === 'basic.recover')
+      assert.equal(
+        await (await abilityField(editor, 'Name')).inputValue(),
+        'Saved HP Recovery draft',
+      )
     await (await abilityField(editor, 'Name')).fill(`Edited ${id}`)
     await (await abilityField(editor, 'AP cost')).fill(String(9 + index))
-    await (await abilityField(editor, 'Recovery rounding')).selectOption('floor')
-    if (id !== 'basic.guard')
+    if (['basic.recover', 'basic.recover.mp'].includes(id))
+      await (await abilityField(editor, 'Recovery rounding')).selectOption('floor')
+    if (['basic.recover', 'basic.recover.mp'].includes(id))
       await (await abilityField(editor, 'Recovery percent')).fill(String(21 + index))
     await commitBasic(editor, viewport)
     await committedBasic(editor)
@@ -938,7 +956,7 @@ async function verifyBasicEditor(page, viewport) {
     [3, 4, 5],
   )
   assert.equal(
-    commits.find((row) => row.command.contentKey === 'basic.guard').command.expectedRevision,
+    commits.find((row) => row.command.contentKey === 'basic.recover').command.expectedRevision,
     4,
   )
   assert.ok(
@@ -1396,13 +1414,21 @@ async function verifyEffectControlLayout(page, viewport) {
 async function verifyBasicPublication(page, viewport) {
   console.log('verifyBasicPublication', viewport.width)
   await page.request.post(
-    `${server.resolvedUrls.local[0]}__basic-acceptance/reset?multipleGuardBehaviors=1`,
+    `${server.resolvedUrls.local[0]}__basic-acceptance/reset?multipleSupportBehaviors=1`,
   )
   await page.goto(`${server.resolvedUrls.local[0]}?surface=basic-editor&basicService=1`, {
     waitUntil: 'networkidle',
   })
   const editor = page.getByRole('region', { name: 'Game Content workspace', exact: true })
-  const ids = ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp']
+  const ids = [
+    'basic.move',
+    'unarmed.basic',
+    'basic.recover',
+    'basic.recover.mp',
+    'basic.pilfer',
+    'basic.fleetstep',
+    'basic.invocation',
+  ]
   const published = []
   for (const id of ids) {
     await editor.locator(`[data-content-key="${id}"]`).click()
@@ -1415,7 +1441,7 @@ async function verifyBasicPublication(page, viewport) {
     await (await abilityField(editor.locator('[data-ability-group="use"]'), 'MP cost')).fill('2')
     await (await abilityField(editor.locator('[data-ability-group="use"]'), 'HP cost')).fill('1')
     let groupId = 'use'
-    if (id === 'basic.guard') {
+    if (id === 'basic.recover') {
       await activateAbilitySection(editor, 'Details & Text')
       assert.equal(
         await editor.getByRole('button', { name: 'Add behavior group', exact: true }).count(),
@@ -1477,7 +1503,7 @@ async function verifyBasicPublication(page, viewport) {
     assert.match(await preview.innerText(), new RegExp(groupId))
     assert.match(
       await preview.innerText(),
-      id === 'basic.guard' ? /17 AP[\s\S]*3 MP[\s\S]*2 HP/ : /11 AP[\s\S]*2 MP[\s\S]*1 HP/,
+      id === 'basic.recover' ? /17 AP[\s\S]*3 MP[\s\S]*2 HP/ : /11 AP[\s\S]*2 MP[\s\S]*1 HP/,
     )
     if (id === 'basic.move') assert.match(await preview.innerText(), /1 tile/)
     assert.equal(
@@ -1498,7 +1524,7 @@ async function verifyBasicPublication(page, viewport) {
   assert.deepEqual(published, ids)
   const result = await inspectBasics(page)
   assert.equal(
-    result.records.find((row) => row.id === 'basic.guard').current.definition.ability.behaviors
+    result.records.find((row) => row.id === 'basic.recover').current.definition.ability.behaviors
       .length,
     2,
   )
@@ -2016,7 +2042,15 @@ async function verifyBasicServiceAuthoring(page, viewport) {
       await page.keyboard.press('Enter')
     }
   }
-  const ids = ['basic.move', 'unarmed.basic', 'basic.guard', 'basic.recover', 'basic.recover.mp']
+  const ids = [
+    'basic.move',
+    'unarmed.basic',
+    'basic.recover',
+    'basic.recover.mp',
+    'basic.pilfer',
+    'basic.fleetstep',
+    'basic.invocation',
+  ]
   assert.deepEqual(
     await editor
       .locator('[data-content-key]')
@@ -2083,15 +2117,15 @@ async function verifyBasicServiceAuthoring(page, viewport) {
   assert.equal(
     result.requests.filter((row) => row.operation === 'record' && row.command.action === 'restore')
       .length,
-    10,
+    14,
     'Each Basic explicitly rejects both previous and builtin restoration',
   )
-  assert.equal(result.requests.filter((row) => row.operation === 'rollback').length, 5)
-  assert.equal(result.requests.filter((row) => row.operation === 'restore-basic-draft').length, 5)
+  assert.equal(result.requests.filter((row) => row.operation === 'rollback').length, 7)
+  assert.equal(result.requests.filter((row) => row.operation === 'restore-basic-draft').length, 7)
   assert.equal(
     result.requests.filter((row) => row.operation === 'record' && row.command.action === 'commit')
       .length,
-    5,
+    7,
   )
   for (const operation of ['validate', 'diff', 'preview'])
     assert.ok(result.requests.filter((row) => row.operation === operation).length >= 5)

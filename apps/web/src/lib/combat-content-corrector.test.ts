@@ -1,6 +1,64 @@
 import { expect, it } from 'vitest'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { correctCombatContentEntries } from './combat-content-corrector'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
+
+it('saves untouched current Ground defaults across canonical, native and nested Summon definitions', () => {
+  const target = {
+    kind: 'ground-tile',
+    geometryVersion: 3,
+    categories: ['ground'],
+    teamPolicy: 'ally',
+    shape: { kind: 'single' },
+    minimumRange: 0,
+    maximumRange: 3,
+    maximumSelections: 1,
+    requiresLineOfSight: false,
+    maximumElevationDifference: null,
+    friendlyFire: 'allies-only',
+  } as const
+  const healing = {
+    type: 'healing',
+    recipient: 'affected-units',
+    target: 'ground',
+    amount: 5,
+  } as const
+  const source = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
+  const native = { ...source, target, effects: [healing] }
+  const normalized = correctCombatContentEntries('skill', native).definition
+  expect(normalized.groundArea).toMatchObject({
+    durationRounds: 2,
+    visualPresetId: 'arcane-pulse',
+    placementTimingVersion: 1,
+    targetTeams: 'allies',
+    entryEffectOrdinals: [0],
+  })
+  const group = {
+    ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
+    targeting: target,
+    effects: [{ id: 'heal', payload: healing }],
+  }
+  const canonical = correctCombatContentEntries('skill', {
+    ...source,
+    ability: { schemaVersion: 1, behaviors: [group] },
+  }).definition
+  expect(canonical.ability.behaviors[0]!.groundArea).toMatchObject({
+    placementTimingVersion: 1,
+    targetTeams: 'allies',
+    entryEffectIds: ['heal'],
+  })
+  const nested = {
+    ...source,
+    summonProfile: {
+      ...source.summonProfile!,
+      abilities: [{ ...source.summonProfile!.abilities[0]!, target, effects: [healing] }],
+    },
+  }
+  expect(
+    correctCombatContentEntries('skill', nested).definition.summonProfile.abilities[0]!.groundArea,
+  ).toMatchObject({ placementTimingVersion: 1, targetTeams: 'allies' })
+  expect(native).not.toHaveProperty('groundArea')
+})
 
 function fixture() {
   const ability = structuredClone(

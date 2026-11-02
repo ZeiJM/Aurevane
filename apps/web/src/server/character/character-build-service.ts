@@ -37,6 +37,7 @@ import {
 } from '@aurevane/game-core/combat/resonance'
 import {
   parseSupportActionId,
+  parseCurrentSupportActionId,
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -975,7 +976,7 @@ export async function saveCharacterSupportAction(
   repository: CharacterBuildRepository,
 ): Promise<CharacterBuildContext & { replayed: boolean }> {
   validateCommitInput(input)
-  const supportActionId = parseSupportActionId(input.supportActionId)
+  const supportActionId = parseCurrentSupportActionId(input.supportActionId)
   if (!supportActionId) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Support Action.')
   await loadCharacterBuildContext(userId, character, repository)
   const requestFingerprint = `sha256:${createHash('sha256')

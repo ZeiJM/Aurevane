@@ -1092,6 +1092,18 @@ export function evaluatePv1fMatureSkill(
       : {}),
   }
   let evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  const retiredSummon =
+    prepared.supportActionPolicyVersion === 1 &&
+    definition.effects.some((effect) => effect.type === 'summon')
+  if (retiredSummon)
+    evaluation = {
+      ...evaluation,
+      legal: false,
+      issues: [
+        ...evaluation.issues,
+        { code: 'source-disabled', message: 'Invocation is the only current Summon Skill.' },
+      ],
+    }
   // Summons are materialized outside legacy resolution. Forecast pinned scheduling without
   // spawning an entity or spending RNG.
   if (
@@ -1131,19 +1143,21 @@ export function evaluatePv1fMatureSkill(
           })),
         }
       : evaluation
-  const command = nativePv1fAbilityCommand(
-    prepared,
-    actorId,
-    action,
-    target,
-    frozenGroundSkillApCost(
-      prepared,
-      actorId,
-      revealedSkillApCost(prepared, actorId, authoredCost),
-    ),
-    options.manualModifiers,
-    definition.sourceDisciplineId,
-  )
+  const command = retiredSummon
+    ? undefined
+    : nativePv1fAbilityCommand(
+        prepared,
+        actorId,
+        action,
+        target,
+        frozenGroundSkillApCost(
+          prepared,
+          actorId,
+          revealedSkillApCost(prepared, actorId, authoredCost),
+        ),
+        options.manualModifiers,
+        definition.sourceDisciplineId,
+      )
   if (command) {
     const result = prepareCombatAbilityCommand(command)
     return {
@@ -1778,7 +1792,8 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'copy-statuses' ||
       effect.type === 'sensory' ||
       effect.type === 'endure' ||
-      effect.type === 'reversal'
+      effect.type === 'reversal' ||
+      effect.type === 'loot'
     ) {
       continue
     }

@@ -10,10 +10,13 @@ import {
   combatModifierCompatibilityFacts,
 } from '@aurevane/game-core/combat/combat-modifier-compatibility'
 import { pv1fCooldownForMatureSkill } from '@aurevane/game-core/combat/pv1f-action-economy'
-import { readSkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
+import {
+  readSkillCooldown,
+  combatAbilityCooldown,
+} from '@aurevane/game-core/combat/skill-cooldowns'
 import { DEFAULT_COMBAT_KEYBINDS } from '@aurevane/validation/player/combat-controls'
 import { setTerrainOverlay } from '@aurevane/game-core/combat/terrain-overlays'
-import { SkillGroundEditor } from '@/components/master/combat-content/skill-ground-editor'
+import { ContentDefinitionFields } from '@/components/master/combat-content/content-definition-fields'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BattleExperience } from '@/components/battle/battle-experience'
@@ -35,6 +38,7 @@ import {
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import {
   finishPv1fTurn,
+  preparePv1fTurnEconomy,
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
   readPv1fActionEconomy,
@@ -125,7 +129,7 @@ function canonicalPublicState(state) {
               classification: behavior.classification,
               modifierRoot: combatCanonicalModifierRootFacts(behavior),
               costs: behavior.costs.map((cost) => ({ ...cost })),
-              cooldown: behavior.cooldown ? { ...behavior.cooldown } : null,
+              cooldown: combatAbilityCooldown(state, source, behavior.cooldown),
               ...(source.basic
                 ? {}
                 : {
@@ -1113,6 +1117,76 @@ if (canonicalCase?.startsWith('move-basic')) {
   })
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
+if (canonicalCase?.startsWith('support-')) {
+  const id = `basic.${canonicalCase.slice('support-'.length)}`
+  runtime.supportActionId = id
+  canonicalState = createCurrentStatDrivenCombatEncounterState(
+    initialBattle.snapshot,
+    initialBattle.snapshot.statBridge.combatants.map((row) => ({
+      ...row,
+      physicalPower: row.physicalPower ?? 20,
+      mysticPower: row.mysticPower ?? 20,
+      level: 1,
+      criticalChance: 0,
+    })),
+  )
+  canonicalState = preparePv1fTurnEconomy(canonicalState)
+  const captures = captureBasicSkillSources({
+    ownerCombatantId: ids[0],
+    supportActionId: id,
+    definitions: defaultBasicSkills(),
+  })
+  canonicalCapture = captures.find((source) => source.abilityId === id)
+  canonicalState = reconcileCombatAbilitySources(canonicalState, captures)
+  canonicalTargets = captures.flatMap((source) =>
+    source.definition.behaviors.map((behavior) => ({
+      actionId:
+        source.basic.execution.kind === 'basic-attack' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+      behaviorId: behavior.id,
+      target: behavior.targeting,
+      dealsDamage: behavior.effects.some((row) =>
+        ['damage', 'pierce', 'burn', 'bleed', 'poison'].includes(row.payload.type),
+      ),
+      ...(behavior.effects.some((row) => row.payload.type === 'move')
+        ? {
+            move: {
+              maximumTiles: behavior.effects.find((row) => row.payload.type === 'move').payload
+                .maximumTiles,
+              conditional: false,
+            },
+          }
+        : {}),
+    })),
+  )
+  canonicalBasics = captures.map((source) => ({
+    ownerCombatantId: source.ownerCombatantId,
+    actionId:
+      source.basic.execution.kind === 'basic-attack' ? PV1F_BASIC_ATTACK_ID : source.abilityId,
+    contentVersion: source.contentVersion,
+    name: source.basic.name,
+    description: source.basic.description,
+    enabled: source.basic.enabled,
+    iconKey: source.basic.media.iconKey,
+    behaviors: source.definition.behaviors.map((behavior) => ({
+      behaviorId: behavior.id,
+      classification: behavior.classification,
+      costs: behavior.costs,
+      cooldown: combatAbilityCooldown(canonicalState, source, behavior.cooldown),
+      target: behavior.targeting,
+      ...abilityBehaviorInformation(behavior, { basic: source.basic }),
+    })),
+  }))
+  if (mode === 'spectator' && id === 'basic.invocation')
+    canonicalState = commitCombatAbilityCommand({
+      state: canonicalState,
+      actorId: ids[0],
+      root: { kind: 'canonical', source: canonicalCapture },
+      selection: { kind: 'tile', position: { x: 3, y: 2 } },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(canonicalState, canonicalCapture),
+    }).state
+  initialBattle.snapshot = canonicalPublicState(canonicalState)
+}
 const fixtureControls = {
   ...DEFAULT_COMBAT_KEYBINDS,
   ...(canonicalCase?.startsWith('modifier-') || mode === 'controls'
@@ -1499,19 +1573,42 @@ function DotDefinitionReport() {
   )
 }
 function GroundEditorHarness() {
-  const skill = resolveMatureSkillVersion('cinderweaver.flame-burst')
-  const [area, setArea] = React.useState(skill.groundArea)
+  const source = resolveMatureSkillVersion('vanguard.forceful-strike')
+  const [skill, setSkill] = React.useState(() => ({
+    ...source,
+    target: {
+      ...source.target,
+      kind: 'ground-tile',
+      geometryVersion: 3,
+      categories: ['ground'],
+      teamPolicy: 'any',
+      friendlyFire: 'all-units',
+    },
+    effects: [
+      { type: 'damage', recipient: 'affected-units', target: 'ground', amount: 5 },
+      {
+        type: 'apply-status',
+        recipient: 'affected-units',
+        target: 'ground',
+        statusId: 'blind',
+        stacks: 1,
+        potencyBasisPoints: 10000,
+        durationTurns: 2,
+      },
+    ],
+  }))
   return (
-    <main style={{ padding: 24, maxWidth: 900 }}>
+    <main style={{ padding: 24, maxWidth: 900, width: '100%', boxSizing: 'border-box' }}>
       <h1>Ground authoring preview</h1>
-      <SkillGroundEditor
-        target={skill.target}
-        effects={skill.effects}
-        value={area}
-        onChange={setArea}
+      <ContentDefinitionFields
+        kind="skill"
+        tab="Parameters"
+        initialAbilitySection="effects"
+        value={skill}
+        onChange={setSkill}
       />
       <pre data-ground-draft style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-        {JSON.stringify(area)}
+        {JSON.stringify(skill.groundArea)}
       </pre>
     </main>
   )

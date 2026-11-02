@@ -7,6 +7,7 @@ import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-ski
 import { essenceSkillArtwork } from './essence-skill-art'
 import { darkFantasySkillArtwork } from './generated-dark-fantasy-art'
 import { regularSkillArtwork } from './regular-skill-art'
+import { SUPPORT_ACTION_ART, supportActionArtwork, VESPER_PORTRAIT_ART } from './support-action-art'
 
 export interface SkillIconHookOption {
   key: string
@@ -39,7 +40,10 @@ function titleSkill(skillId: string): string {
 
 export function registeredSkillArtworkSource(skillId: string): string | null {
   return (
-    regularSkillArtwork(skillId) ?? essenceSkillArtwork(skillId) ?? darkFantasySkillArtwork(skillId)
+    supportActionArtwork(skillId) ??
+    regularSkillArtwork(skillId) ??
+    essenceSkillArtwork(skillId) ??
+    darkFantasySkillArtwork(skillId)
   )
 }
 
@@ -51,8 +55,8 @@ const currentEssenceSkills = DISCIPLINE_ATLAS.flatMap((discipline) => {
 
 const currentSkills = [...latestEnabledMatureSkills(), ...currentEssenceSkills]
 
-export const skillIconHookOptions: readonly SkillIconHookOption[] = currentSkills
-  .flatMap((definition) => {
+export const skillIconHookOptions: readonly SkillIconHookOption[] = [
+  ...currentSkills.flatMap((definition) => {
     const key = definition.media.iconKey
     const previewSrc = registeredSkillArtworkSource(definition.id)
     if (!key || !previewSrc) return []
@@ -65,12 +69,26 @@ export const skillIconHookOptions: readonly SkillIconHookOption[] = currentSkill
         previewSrc,
       },
     ]
-  })
-  .sort(
-    (left, right) =>
-      left.sourceDisciplineId.localeCompare(right.sourceDisciplineId) ||
-      left.skillId.localeCompare(right.skillId),
-  )
+  }),
+  ...SUPPORT_ACTION_ART.map((row) => ({
+    key: row.id,
+    skillId: row.actionId,
+    sourceDisciplineId: 'basic',
+    label: row.name,
+    previewSrc: row.src,
+  })),
+  {
+    key: 'summon.vesper.moon-bolt.icon',
+    skillId: 'summon.vesper.moon-bolt',
+    sourceDisciplineId: 'summon',
+    label: 'Moon Bolt',
+    previewSrc: VESPER_PORTRAIT_ART.src,
+  },
+].sort(
+  (left, right) =>
+    left.sourceDisciplineId.localeCompare(right.sourceDisciplineId) ||
+    left.skillId.localeCompare(right.skillId),
+)
 
 const iconHookByKey = new Map(skillIconHookOptions.map((option) => [option.key, option] as const))
 

@@ -112,7 +112,10 @@ try {
           )
           const activeField = page.locator('[data-current-ground-phase="active"]')
           assert.equal(await activeField.locator('[data-ground-area-clock]').count(), 0)
-          assert.equal(await activeField.locator('[data-ground-area-preset="frost"]').count(), 1)
+          assert.equal(
+            await activeField.locator('[data-ground-area-preset="arcane-pulse"]').count(),
+            1,
+          )
           assert.equal(await activeField.locator('[data-ground-effect-id]').count(), 3)
           assert.ok(
             (await activeField.getAttribute('aria-label')).includes(

@@ -1,3 +1,4 @@
+import { VESPER_SUMMON_PROFILE } from '@aurevane/game-core/combat/universal-support'
 import { withCurrentSummonCoreAttributes } from '@aurevane/game-core/combat/summon-content'
 import type { AbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
 import { parseAbilityDefinition } from '@aurevane/game-core/combat/combat-definition'
@@ -13,10 +14,29 @@ import {
 
 import {
   previewCombatContentDefinition,
+  previewBasicCombatContentDefinition,
   previewModifierCombatContentDefinition,
 } from './combat-content-preview'
 
 const PREVIEW_SEED = 0x4d415354
+
+function invocationWithProfile(profile = VESPER_SUMMON_PROFILE) {
+  const basic = defaultBasicSkills().find((row) => row.id === 'basic.invocation')!
+  return {
+    ...basic,
+    ability: parseAbilityDefinition({
+      ...basic.ability,
+      behaviors: basic.ability.behaviors.map((behavior) => ({
+        ...behavior,
+        effects: behavior.effects.map((effect) =>
+          effect.payload.type === 'summon'
+            ? { ...effect, payload: { ...effect.payload, profile } }
+            : effect,
+        ),
+      })),
+    }),
+  }
+}
 
 it('previews canonical Sensory followed by Mark without losing timing alignment or exposing private packets', () => {
   const native = resolveMatureSkillVersion('farstrider.scouts-mark')!
@@ -75,11 +95,11 @@ it('previews canonical Sensory followed by Mark without losing timing alignment 
 it.each(['instant', 'next-round', 'delayed'] as const)(
   'previews the exact canonical %s summon instead of the stale native envelope',
   (timing) => {
-    const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+    const native = invocationWithProfile()
     const guard = defaultBasicSkills().find((row) => row.id === 'basic.guard')!.ability
       .behaviors[0]!
     const profile = {
-      ...native.summonProfile!,
+      ...VESPER_SUMMON_PROFILE,
       name: 'Canonical Preview Companion',
       neverMoves: true,
     }
@@ -92,7 +112,11 @@ it.each(['instant', 'next-round', 'delayed'] as const)(
             ...guard,
             cooldown: null,
             requirements: null,
-            targeting: { ...native.target, geometryVersion: 3, maximumSelections: 1 },
+            targeting: {
+              ...native.ability.behaviors[0]!.targeting,
+              geometryVersion: 3,
+              maximumSelections: 1,
+            },
             effects: [
               {
                 id: 'spawn',
@@ -104,7 +128,7 @@ it.each(['instant', 'next-round', 'delayed'] as const)(
         ],
       }),
     }
-    const preview = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+    const preview = previewBasicCombatContentDefinition(definition, { seed: PREVIEW_SEED })
     expect(preview.legal).toBe(true)
     expect(preview.simulation.rngConsumed).toBe(false)
     expect(preview.summon?.profile.name).toBe(profile.name)
@@ -240,31 +264,30 @@ describe('Master Panel combat content preview', () => {
   })
 
   it('previews the pinned summon profile, lifetime and authored abilities without consuming RNG', () => {
-    const definition = resolveMatureSkillVersion('wildwarden.renewing-herbs')
-    if (!definition?.summonProfile) throw new Error('Expected current Renewing Herbs summon.')
+    const definition = invocationWithProfile()
+    const profile = VESPER_SUMMON_PROFILE
 
-    const preview = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+    const preview = previewBasicCombatContentDefinition(definition, { seed: PREVIEW_SEED })
 
     expect(preview.legal).toBe(true)
     expect(preview.simulation.rngConsumed).toBe(false)
     expect(preview.targeting.selection).toMatchObject({ kind: 'tile' })
-    expect(preview.derivedTags).toEqual(expect.arrayContaining(['Empty Tile', 'Single', 'Summon']))
+    expect(preview.derivedTags).toEqual(expect.arrayContaining(['Empty Tile', 'Single']))
     expect(preview.summon).toMatchObject({
       profile: {
-        id: definition.summonProfile.id,
-        name: definition.summonProfile.name,
-        lifetimeTurns: definition.summonProfile.lifetimeTurns,
-        maxHp: definition.summonProfile.maxHp,
-        maxMp: definition.summonProfile.maxMp,
-        initiative: definition.summonProfile.initiative,
-        movementBudget: definition.summonProfile.movementBudget,
+        id: profile.id,
+        name: profile.name,
+        lifetimeTurns: profile.lifetimeTurns,
+        maxHp: profile.maxHp,
+        maxMp: profile.maxMp,
+        initiative: profile.initiative,
+        movementBudget: profile.movementBudget,
       },
     })
-    expect(preview.summon?.abilities).toHaveLength(2)
-    expect(preview.summon?.abilities.map((ability) => ability.name)).toEqual([
-      'Thorn Rake',
-      'Verdant Mend',
-    ])
+    expect(preview.summon?.abilities).toHaveLength(profile.abilities.length)
+    expect(preview.summon?.abilities.map((ability) => ability.name)).toEqual(
+      profile.abilities.map((ability) => ability.name),
+    )
   })
 
   it('reports authoritative per-target hit chance without consuming a random result', () => {
@@ -505,16 +528,12 @@ it.each(['pve', 'pvp'] as const)(
 )
 
 it('previews the captured Core-derived summon stats and optional HP costs', () => {
-  const base = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
-  const profile = withCurrentSummonCoreAttributes(base.summonProfile!)
-  const definition = {
-    ...base,
-    summonProfile: {
-      ...profile,
-      abilities: profile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
-    },
-  }
-  const preview = previewCombatContentDefinition(definition)
+  const profile = withCurrentSummonCoreAttributes(VESPER_SUMMON_PROFILE)
+  const definition = invocationWithProfile({
+    ...profile,
+    abilities: profile.abilities.map((ability) => ({ ...ability, hpCost: 3 })),
+  })
+  const preview = previewBasicCombatContentDefinition(definition)
   expect(preview.legal).toBe(true)
   expect(preview.summon?.profile).toMatchObject({
     coreAttributes: profile.coreAttributes,
@@ -526,16 +545,9 @@ it('previews the captured Core-derived summon stats and optional HP costs', () =
 })
 
 it('retains optional authored Summon potency in the Master preview', () => {
-  const native = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
-  const profile = { ...native.summonProfile!, potencyBasisPoints: 4000 }
-  const definition = {
-    ...native,
-    summonProfile: profile,
-    effects: native.effects.map((effect) =>
-      effect.type === 'summon' ? { ...effect, profile } : effect,
-    ),
-  }
-  const preview = previewCombatContentDefinition(definition, { seed: PREVIEW_SEED })
+  const profile = { ...VESPER_SUMMON_PROFILE, potencyBasisPoints: 4000 }
+  const definition = invocationWithProfile(profile)
+  const preview = previewBasicCombatContentDefinition(definition, { seed: PREVIEW_SEED })
   expect(preview.summon?.profile.potencyBasisPoints).toBe(4000)
   expect(preview.simulation.rngConsumed).toBe(false)
 })

@@ -371,7 +371,10 @@ export function BattleSelectedSkills({
               >
                 <span className={styles.artworkFrame} data-av-square-media="true">
                   <Image
-                    src={battleResonanceArtwork(runtime.resonance.id)}
+                    src={battleResonanceArtwork(
+                      runtime.resonance.id,
+                      contentArtworkKey(runtime.resonance.definition?.media ?? {}),
+                    )}
                     width={192}
                     height={192}
                     alt=""

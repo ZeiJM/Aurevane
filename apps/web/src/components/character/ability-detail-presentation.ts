@@ -659,7 +659,9 @@ export function abilityBehaviorInformation(
       : null
   const groundSummary = behavior.groundArea
     ? timingPolicy?.tagAuthority === 'global' &&
-      options.effectContext?.groundContactPolicyVersion !== 1
+      options.effectContext?.groundContactPolicyVersion !== 1 &&
+      behavior.groundArea.placementTimingVersion !== 1 &&
+      behavior.groundArea.targetTeams === undefined
       ? `${behavior.groundArea.durationRounds} ${behavior.groundArea.durationRounds === 1 ? 'Round' : 'Rounds'}${behavior.groundArea.timing === 'instant' ? ' [Instant]' : behavior.groundArea.timing === 'delayed' ? ' [Delayed]' : ''}`
       : `${groundFire ? 'Ground casts: ' : ''}${combatGroundAreaDescription(behavior.groundArea, timingPolicy?.modes['ground-area'] === 'instant' || timingPolicy?.modes['ground-area'] === 'delayed' ? timingPolicy.modes['ground-area'] : 'next-round', true)}`
     : null

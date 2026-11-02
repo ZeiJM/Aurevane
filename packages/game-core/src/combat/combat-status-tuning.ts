@@ -16,6 +16,7 @@ export interface CombatStatusTuning {
 export interface CombatEffectStrength extends CombatStatusTuning {
   readonly potencyBasisPoints?: number
   readonly counter?: CombatCounterProfile
+  readonly reflectBarrierPolicyVersion?: 1
   readonly blindsideModifiersBasisPoints?: BlindsideModifiers
   readonly recoveryAmountPerApplication?: number
   readonly endureReleaseBasisPoints?: number
@@ -79,6 +80,8 @@ export function combatEffectStrength(
   )
   numeric('recoveryAmountPerApplication', ['healing', 'mp-recovery'], 0, Number.MAX_SAFE_INTEGER)
   numeric('endureReleaseBasisPoints', ['endure'], 1, Number.MAX_SAFE_INTEGER)
+  if (statusId === 'counter' && raw.reflectBarrierPolicyVersion === 1)
+    result.reflectBarrierPolicyVersion = 1
   const counter = raw.counter as Partial<CombatCounterProfile> | undefined
   if (
     statusId === 'counter' &&

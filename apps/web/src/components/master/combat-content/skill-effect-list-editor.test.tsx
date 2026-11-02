@@ -99,11 +99,15 @@ describe('Master Panel Skill effect list editor', () => {
     expect(effects.map((effect) => effect.type)).toEqual(['damage', 'apply-status', 'sensory'])
   })
 
-  it('offers every current effect-union member and no raw JSON/script editor', () => {
+  it('offers current native effects except source-exclusive Summon/Loot and no raw JSON/script editor', () => {
     const markup = renderToStaticMarkup(
       createElement(SkillEffectListEditor, { value: effects, onChange: vi.fn() }),
     )
-    for (const tag of AUTHORABLE_EFFECT_TAGS) expect(markup).toContain(`<option value="${tag.id}"`)
+    for (const tag of AUTHORABLE_EFFECT_TAGS) {
+      if (tag.opcode === 'summon' || tag.opcode === 'loot')
+        expect(markup).not.toContain(`<option value="${tag.id}"`)
+      else expect(markup).toContain(`<option value="${tag.id}"`)
+    }
     expect(markup).not.toContain('Player-facing effect description')
     expect(markup).not.toContain('aria-label="Effect 1 player-facing description"')
     expect(markup).toContain('data-effect-collapsible="true"')

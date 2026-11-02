@@ -333,6 +333,11 @@ export function SkillEffectEditor({
   let controls
 
   switch (value.type) {
+    case 'loot':
+      controls = (
+        <p className={styles.effectNote}>Loot is a placeholder and grants no items or rewards.</p>
+      )
+      break
     case 'reversal':
       controls = (
         <>

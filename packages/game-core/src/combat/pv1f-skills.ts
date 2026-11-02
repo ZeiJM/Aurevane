@@ -1,4 +1,4 @@
-export type Pv1fSkillCategory = 'movement' | 'attack' | 'defense' | 'heal'
+export type Pv1fSkillCategory = 'movement' | 'attack' | 'defense' | 'heal' | 'utility'
 
 export type Pv1fSkillCost =
   | { readonly kind: 'flat'; readonly amount: number }
@@ -26,6 +26,9 @@ export const PV1F_BASIC_ATTACK_ID = 'basic.attack.unarmed.basic' as const
 export const PV1F_GUARD_ACTION_ID = 'basic.guard' as const
 export const PV1F_RECOVER_ACTION_ID = 'basic.recover' as const
 export const PV1F_MP_RECOVER_ACTION_ID = 'basic.recover.mp' as const
+export const PV1F_PILFER_ACTION_ID = 'basic.pilfer' as const
+export const PV1F_FLEETSTEP_ACTION_ID = 'basic.fleetstep' as const
+export const PV1F_INVOCATION_ACTION_ID = 'basic.invocation' as const
 
 export const PV1F_SKILLS = [
   {
@@ -68,6 +71,30 @@ export const PV1F_SKILLS = [
     cost: { kind: 'flat', amount: PV1F_MP_RECOVER_COST },
     source: 'inherent',
   },
+  {
+    id: PV1F_PILFER_ACTION_ID,
+    actionId: PV1F_PILFER_ACTION_ID,
+    category: 'attack',
+    name: 'Pilfer',
+    cost: { kind: 'flat', amount: 15 },
+    source: 'inherent',
+  },
+  {
+    id: PV1F_FLEETSTEP_ACTION_ID,
+    actionId: PV1F_FLEETSTEP_ACTION_ID,
+    category: 'movement',
+    name: 'Fleetstep',
+    cost: { kind: 'flat', amount: 30 },
+    source: 'inherent',
+  },
+  {
+    id: PV1F_INVOCATION_ACTION_ID,
+    actionId: PV1F_INVOCATION_ACTION_ID,
+    category: 'utility',
+    name: 'Invocation',
+    cost: { kind: 'flat', amount: 45 },
+    source: 'inherent',
+  },
 ] as const satisfies readonly Pv1fSkillDefinition[]
 
 export function pv1fSkillByActionId(actionId: string): Pv1fSkillDefinition | null {
@@ -75,7 +102,9 @@ export function pv1fSkillByActionId(actionId: string): Pv1fSkillDefinition | nul
 }
 
 export function pv1fSkillsByCategory(category: Pv1fSkillCategory): readonly Pv1fSkillDefinition[] {
-  return PV1F_SKILLS.filter((skill) => skill.category === category)
+  return PV1F_SKILLS.filter(
+    (skill) => skill.actionId !== PV1F_GUARD_ACTION_ID && skill.category === category,
+  )
 }
 
 export function pv1fFlatActionCost(actionId: string): number | null {

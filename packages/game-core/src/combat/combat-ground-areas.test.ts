@@ -295,3 +295,16 @@ it('preserves all three active Ground rounds after Delayed activation and JSON r
   expect(area(advanceCombatGroundAreas(atRound(loaded, 5)))).toBeDefined()
   expect(area(advanceCombatGroundAreas(atRound(loaded, 6)))).toBeUndefined()
 })
+
+it.each([{ placementTimingVersion: 2 }, { targetTeams: 'strangers' }, { targetTeams: null }])(
+  'rejects invalid captured Ground scope/timing metadata %j on definition and reload',
+  (patch) => {
+    const definition = { ...action, groundArea: { ...action.groundArea, ...patch } }
+    expect(() =>
+      createCombatGroundArea(encounter(), 'actor', definition as never, tiles, content),
+    ).toThrow()
+    const placed = createCombatGroundArea(encounter(), 'actor', action, tiles, content)
+    Object.assign(placed.groundAreas![0]!, patch)
+    expect(validateCombatGroundAreas(placed)).not.toEqual([])
+  },
+)

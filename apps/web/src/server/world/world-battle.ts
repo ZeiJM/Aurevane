@@ -85,6 +85,9 @@ export async function attackWorldPlayer(
   const encounter = createPvpEncounter(roster, [1, 1, 0], authority, elevationPolicy)
   encounter.effectTimingPolicy = timingPolicy
   encounter.effectStackingPolicyVersion = 1
+  encounter.abilityCooldownScopeVersion = 1
+  encounter.reflectBarrierPolicyVersion = 1
+  encounter.supportActionPolicyVersion = 1
   encounter.percentageDotPolicyVersion = 1
   encounter.dotTriggerPolicyVersion = 2
   encounter.skillPacketPolicyVersion = 1

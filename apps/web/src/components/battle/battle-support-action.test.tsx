@@ -86,6 +86,19 @@ describe('pinned battle Support Action slot', () => {
     expect(markup).toContain('data-battle-command="guard"')
     expect(markup).toMatch(/data-battle-command-hotkey="true">3<\/span>/)
   })
+  it('defaults current policy encounters without a support field to HP Recovery', () => {
+    const markup = renderToStaticMarkup(
+      <BattleExperience
+        initialBattle={{
+          ...battle,
+          snapshot: { ...battle.snapshot, supportActionPolicyVersion: 1 },
+        }}
+        runtime={runtime}
+      />,
+    )
+    expect(markup).toContain('aria-label="HP Recovery, 50 AP"')
+    expect(markup).not.toContain('aria-label="Guard, 30 AP"')
+  })
   it('keeps Guard for legacy snapshots without a support field', () => {
     expect(slotMarkup()).toContain('aria-label="Guard, 30 AP"')
   })

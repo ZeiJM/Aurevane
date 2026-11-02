@@ -47,7 +47,14 @@ it.each(
   '$name offense40/Vitality40 mirror reaches a natural result within the defensive pacing ceiling',
   async (kit) => {
     const duel = await createLegalRosterDuel({ kit, level: 100, context: 'pvp', seed: 12345 })
+    // This immutable October10 benchmark used Guard v1, not today's HP Recovery default.
+    expect(duel.state.supportActionPolicyVersion).toBeUndefined()
     for (const p of duel.participants) {
+      expect(p.committed.supportActionId).toBe('basic.guard')
+      const support = p.sources.find(
+        (source) => source.basic && !['basic.move', 'unarmed.basic'].includes(source.abilityId),
+      )
+      expect(support?.basic).toMatchObject({ id: 'basic.guard', contentVersion: 1, enabled: true })
       expect(p.character.attributes.vitality).toBe(40)
       expect(p.character.attributes[kit.primary === 'dawnshield' ? 'intellect' : 'might']).toBe(40)
     }
@@ -61,6 +68,7 @@ it.each(
         process.env.AUREVANE_DEFENSIVE_PACING_EVIDENCE,
         JSON.stringify({
           kit: kit.name,
+          supportActionId: duel.participants[0]!.committed.supportActionId,
           seed: 12345,
           level: 100,
           context: 'pvp',
@@ -92,3 +100,40 @@ it.each(
   },
   120000,
 )
+
+// Explicit counterfactual: the new default is an intentional Support choice, not a change
+// to this archived benchmark's damage, timing, AI or 24-round completion requirement.
+it('isolates the HP Recovery choice under the same archived Bastion mirror rules', async () => {
+  const kit = legalRosterCycleKits.find((row) => !row.secondary && row.primary === 'bastion')!
+  const duel = await createLegalRosterDuel({
+    kit: { ...kit, supportActionId: 'basic.recover' },
+    level: 100,
+    context: 'pvp',
+    seed: 12345,
+  })
+  expect(duel.state.supportActionPolicyVersion).toBeUndefined()
+  for (const participant of duel.participants) {
+    expect(participant.committed.supportActionId).toBe('basic.recover')
+    expect(
+      participant.sources.find((source) => source.abilityId === 'basic.recover')?.basic,
+    ).toMatchObject({ contentVersion: 1, enabled: true })
+    expect(participant.sources.some((source) => source.abilityId === 'basic.guard')).toBe(false)
+  }
+  const result = playLegalRosterDuel(duel, { maximumRounds: 24 })
+  expect(result.errors).toEqual([])
+  expect(result.commands.some((command) => command.abilityId === 'basic.recover')).toBe(true)
+  expect(result.commands.some((command) => command.abilityId === 'basic.guard')).toBe(false)
+  if (process.env.AUREVANE_DEFENSIVE_PACING_EVIDENCE)
+    appendFileSync(
+      process.env.AUREVANE_DEFENSIVE_PACING_EVIDENCE,
+      JSON.stringify({
+        kit: kit.name,
+        supportActionId: 'basic.recover',
+        seed: 12345,
+        horizon: 24,
+        round: result.state.tactical.battle.round,
+        lifecycle: result.state.tactical.battle.lifecycle,
+        commands: result.commands,
+      }) + '\n',
+    )
+}, 120000)

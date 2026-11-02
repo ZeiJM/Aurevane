@@ -1,3 +1,4 @@
+import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { interceptCombatReversal } from './combat-reversal-interception'
 import { createCombatTriggerGuard } from './combat-kernel-types'
 import { spawnCombatSummon } from './combat-summons'
@@ -45,7 +46,7 @@ import {
   type CombatResolutionEvent,
 } from './actions'
 import { normalBasicAttackDamageAgainst } from './actions-legacy'
-import { captureBasicSkillSources, defaultBasicSkills } from './combat-basic-actions'
+import { captureBasicSkillSources } from './combat-basic-actions'
 import { grantBarrier, currentBarrierAmount } from './combat-barrier'
 import {
   hasArmedCombatReversal,
@@ -1124,7 +1125,7 @@ describe('Reversal v1', () => {
         criticalChance: 0,
       })),
     )
-    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+    const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
     const ability = {
       ...profile.abilities[0]!,
       id: 'test.summon-reversal',

@@ -10,7 +10,7 @@ export {
   combatPrimedAbilityIds,
 } from './combat-controlled'
 import type { CombatEffectTimingPolicy } from './combat-effect-timing'
-import { readSkillCooldown } from './skill-cooldowns'
+import { combatAbilityCooldown, readSkillCooldown } from './skill-cooldowns'
 import { pruneCombatAbilityActionHistory } from './combat-ability-state'
 import { hasCurrentPoison, hasCurrentBleed, currentBurnInstance } from './combat-dots'
 import {
@@ -159,6 +159,7 @@ export function combatAbilityBehavior(
 export function materializeCombatAbilityAction(
   source: CapturedCombatAbilitySource,
   behavior: AbilityBehavior,
+  state?: Pick<CombatEncounterState, 'abilityCooldownScopeVersion'>,
 ): CombatActionDefinition {
   if (!behavior.targeting) throw new TypeError('ability-action-targeting-required')
   const target = behavior.targeting
@@ -178,13 +179,21 @@ export function materializeCombatAbilityAction(
     target: canonicalAbilityTargetSpec(target),
     cost: { spendsAction: false, mp: 0 },
     requirements: [],
-    ...(behavior.cooldown ? { cooldown: behavior.cooldown } : {}),
+    ...(behavior.cooldown
+      ? { cooldown: combatAbilityCooldown(state, source, behavior.cooldown)! }
+      : {}),
     ...(behavior.accuracy ? { accuracyRule: behavior.accuracy } : {}),
     ...(behavior.groundArea
       ? {
           groundArea: {
             ...(behavior.groundArea.contactPolicyVersion === 1
               ? { contactPolicyVersion: 1 as const }
+              : {}),
+            ...(behavior.groundArea.placementTimingVersion !== undefined
+              ? { placementTimingVersion: behavior.groundArea.placementTimingVersion }
+              : {}),
+            ...(behavior.groundArea.targetTeams !== undefined
+              ? { targetTeams: behavior.groundArea.targetTeams }
               : {}),
             durationRounds: behavior.groundArea.durationRounds,
             visualPresetId: behavior.groundArea.visualPresetId,
@@ -330,11 +339,11 @@ export function combatManualModifierAvailability(
               resource: cost.resource,
               amount: cost.amount,
             })),
-            cooldown: behavior.cooldown
+            cooldown: participant.cooldown
               ? {
-                  key: behavior.cooldown.key,
-                  ownerTurns: behavior.cooldown.ownerTurns,
-                  ticksRemaining: readSkillCooldown(owner, behavior.cooldown).ticksRemaining,
+                  key: participant.cooldown.key,
+                  ownerTurns: participant.cooldown.ownerTurns,
+                  ticksRemaining: readSkillCooldown(owner, participant.cooldown).ticksRemaining,
                 }
               : null,
             ownerEligible: blockedReasons.length === 0,

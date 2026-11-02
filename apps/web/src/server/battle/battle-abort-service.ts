@@ -1,3 +1,4 @@
+import { SKILL_COOLDOWN_RESOURCE_PREFIX } from '@aurevane/game-core/combat/skill-cooldowns'
 import { reconcileCombatReversalState } from '@aurevane/game-core/combat/combat-reversal'
 import { projectPublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
@@ -114,7 +115,10 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
       ...createCombatEncounterState({ ...state.tactical, battle: transition.state }),
       ...Object.fromEntries(
         Object.entries(state).filter(
-          ([key]) => key.endsWith('PolicyVersion') || key === 'effectTimingPolicy',
+          ([key]) =>
+            key.endsWith('PolicyVersion') ||
+            key === 'abilityCooldownScopeVersion' ||
+            key === 'effectTimingPolicy',
         ),
       ),
       ...(state.ruinState ? { ruinState: state.ruinState } : {}),
@@ -162,7 +166,10 @@ function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
   }
 }
 
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
+function projectBattleSnapshot(
+  state: StatDrivenCombatEncounterState,
+  controlledCombatantIds: readonly string[],
+): BattleSessionProjection {
   const battle = state.tactical.battle
   return projectPublicCombat({
     ...omitPendingBattlePayloads(state),
@@ -174,7 +181,16 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
         rulesVersion: battle.rulesVersion,
         contentVersion: battle.contentVersion,
         lifecycle: battle.lifecycle,
-        combatants: battle.combatants,
+        combatants: battle.combatants.map((combatant) =>
+          controlledCombatantIds.includes(combatant.id)
+            ? combatant
+            : {
+                ...combatant,
+                temporaryResources: combatant.temporaryResources.filter(
+                  (resource) => !resource.key.startsWith(SKILL_COOLDOWN_RESOURCE_PREFIX),
+                ),
+              },
+        ),
         initiativeOrder: battle.initiativeOrder,
         ...(battle.initiativeTieOrder ? { initiativeTieOrder: battle.initiativeTieOrder } : {}),
         ...(battle.roundInitiativeModifiers
@@ -222,6 +238,7 @@ export function createBattleAbortService(battles: BattleSessionRepository): Batt
               battleVersion: replayOrStale.result.battleVersion,
               snapshot: replayOrStale.result.snapshot,
             }),
+            current.controlledCombatantIds,
           ),
           replayed: replayOrStale.replayed,
           invalidation: createBattleSessionChangedInvalidation({
@@ -258,6 +275,7 @@ export function createBattleAbortService(battles: BattleSessionRepository): Batt
             battleVersion: committed.result.battleVersion,
             snapshot: committed.result.snapshot,
           }),
+          current.controlledCombatantIds,
         ),
         replayed: committed.replayed,
         invalidation: createBattleSessionChangedInvalidation({

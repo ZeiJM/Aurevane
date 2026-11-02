@@ -25,7 +25,7 @@ class Store extends InMemoryCombatContentRepository {
     return id === actorUserId ? ('owner' as const) : null
   }
 }
-export async function createBasicEditorServiceFixture({ multipleGuardBehaviors = false } = {}) {
+export async function createBasicEditorServiceFixture({ multipleSupportBehaviors = false } = {}) {
   const store = new Store()
   const resolver = createCombatContentResolver({
     findCurrentSkill: (key) => store.findPublished(key, 'skill'),
@@ -34,15 +34,20 @@ export async function createBasicEditorServiceFixture({ multipleGuardBehaviors =
       null,
   })
   const service = createCombatContentAuthoringService({ store, resolver })
-  const basics = defaultBasicSkills()
+  const basics = defaultBasicSkills().filter((basic) => basic.enabled)
   // Record genuine publications in this disposable repository. Builtin v1 has
   // no invented history row; unchanged v2 remains an immutable test oracle.
   for (const basic of basics) {
     await service.publishSkill({ actorUserId, definition: basic, expectedBaseVersion: 1 })
     const definition = structuredClone(basic)
     Object.assign(definition, { name: `Current ${basic.name}` })
-    Object.assign(definition.ability.behaviors[0]!, { costs: [{ resource: 'ap', amount: 29 }] })
-    if (multipleGuardBehaviors && definition.id === 'basic.guard') {
+    Object.assign(definition.ability.behaviors[0]!, {
+      costs: [
+        { resource: 'ap', amount: 29 },
+        ...definition.ability.behaviors[0]!.costs.filter((cost) => cost.resource !== 'ap'),
+      ],
+    })
+    if (multipleSupportBehaviors && definition.id === 'basic.recover') {
       Object.assign(definition, {
         ability: {
           ...definition.ability,
@@ -221,7 +226,7 @@ export async function createBasicEditorServiceFixture({ multipleGuardBehaviors =
   const initial = await resolver.resolveCurrentBasicSkillDefinitions!(basics.map((row) => row.id))
   const oldCaptures = captureBasicSkillSources({
     ownerCombatantId: 'local-actor',
-    supportActionId: 'basic.guard',
+    supportActionId: 'basic.recover',
     definitions: [...initial.values()],
   })
   const oldCaptureBytes = JSON.stringify(oldCaptures),

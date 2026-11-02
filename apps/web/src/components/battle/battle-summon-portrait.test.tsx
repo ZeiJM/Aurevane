@@ -37,3 +37,12 @@ it.each([
   expect(fallback.type).toBe('span')
   expect(fallback.props.children).toBe('V')
 })
+it('renders the registered moon drake portrait while rejecting arbitrary static paths', () => {
+  const src = '/media/art/support/vesper-portrait-v01.webp'
+  const image = BattleSummonPortrait({ src, name: 'Vesper' })
+  expect(image.type).toBe('img')
+  expect(image.props.src).toBe(src)
+  expect(BattleSummonPortrait({ src: '/media/art/unregistered.webp', name: 'Vesper' }).type).toBe(
+    'span',
+  )
+})

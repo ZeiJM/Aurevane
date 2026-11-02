@@ -1,4 +1,8 @@
 import { expect, it } from 'vitest'
+import {
+  automaticAbilityTargetCandidates,
+  isAutomaticAbilityTargetSelector,
+} from './combat-automatic-targets'
 import type { CombatActionEvaluation } from './actions'
 import {
   captureCombatAbilityMutation,
@@ -81,7 +85,13 @@ function satisfyingFrame(row: IdentityRow) {
               payload.recipient === 'actor'
                 ? ['actor']
                 : payload.recipient === 'primary-unit'
-                  ? [roles[behavior.automaticTarget?.subject ?? 'owner']]
+                  ? isAutomaticAbilityTargetSelector(behavior.automaticTarget?.subject)
+                    ? automaticAbilityTargetCandidates(
+                        state,
+                        'actor',
+                        behavior.automaticTarget.subject,
+                      ).slice(0, 1)
+                    : [roles[behavior.automaticTarget?.subject ?? 'owner']]
                   : state.tactical.battle.combatants
                       .filter((unit) =>
                         behavior.targeting?.teamPolicy === 'enemy'

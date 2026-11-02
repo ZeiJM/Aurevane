@@ -488,9 +488,11 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         path: resolve(output, `resonance-passive-${viewport.width}.png`),
       })
       await activation.selectOption('turn-started')
-      await expect(target.locator('option')).toHaveCount(1)
+      await expect(automaticTarget).toHaveValue('nearest-enemy')
+      await expect(target.locator('option')).toHaveText(['Self', 'Target'])
       await expect(target).toHaveValue('owner')
       await activation.selectOption('damage-taken')
+      await automaticTarget.selectOption('triggering')
       await target.selectOption('triggering')
       await save()
       evidence.push({
@@ -639,6 +641,98 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       evidence.push({
         viewport,
         case: 'Beam element changes add/delete required companion tags and save/reload without clearing costs or geometry',
+        passed: true,
+      })
+      const automatic = structuredClone(beam)
+      automatic.behaviors[0] = {
+        ...automatic.behaviors[0],
+        activation: 'automatic',
+        classification: 'utility',
+        costs: [],
+        cooldown: null,
+        requirements: null,
+        automaticTrigger: 'turn-started',
+        automaticTarget: { subject: 'owner' },
+        targeting: {
+          ...automatic.behaviors[0].targeting,
+          geometryVersion: 3,
+          kind: 'self',
+          categories: ['self'],
+          teamPolicy: 'self',
+          friendlyFire: 'allies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 0,
+        },
+        effects: [
+          {
+            id: 'hit',
+            payload: {
+              type: 'apply-status',
+              recipient: 'actor',
+              target: 'self',
+              statusId: 'guarded',
+              stacks: 1,
+              durationTurns: 2,
+            },
+          },
+        ],
+      }
+      delete automatic.behaviors[0].attackFamily
+      await page.evaluate(
+        (definition) =>
+          localStorage.setItem('simple-requirements-native-definition', JSON.stringify(definition)),
+        automatic,
+      )
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      await openEffectParameters(firstEffect)
+      for (const purpose of ['attack', 'utility', 'recovery']) {
+        await group
+          .getByRole('combobox', { name: 'Group classification', exact: true })
+          .selectOption(purpose)
+        for (const [effectTarget, rule] of [
+          ['enemy', 'lowest-hp-enemy'],
+          ['ally', 'lowest-hp-ally'],
+          ['ground', 'nearest-enemy'],
+        ]) {
+          await recipient.selectOption(effectTarget)
+          const ruleControl = group.getByRole('combobox', {
+            name: 'Automatic target subject',
+            exact: true,
+          })
+          await expect(ruleControl).toContainText(
+            effectTarget === 'ally' ? 'Lowest HP ally' : 'Nearest enemy',
+          )
+          await ruleControl.selectOption(rule)
+          await save()
+          const record = (await snapshot()).saved.behaviors[0]
+          assert.equal(record.classification, purpose)
+          assert.equal(record.effects[0].payload.target, effectTarget)
+          assert.deepEqual(record.automaticTarget, { subject: rule })
+          assert.deepEqual((await snapshot()).validationIssues, [])
+        }
+      }
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      assert.equal((await snapshot()).saved.behaviors[0].automaticTarget.subject, 'nearest-enemy')
+      await openEffectParameters(firstEffect)
+      await recipient.selectOption('self')
+      const invalid = (await snapshot()).draft
+      invalid.behaviors[0].automaticTarget = { subject: 'nearest-enemy' }
+      const savedBeforeInvalid = (await snapshot()).saved
+      await page.evaluate((value) => window.simpleRequirements.replaceDraft(value), invalid)
+      await expect(
+        group.getByRole('combobox', { name: 'Automatic target subject', exact: true }),
+      ).toContainText('Nearest enemy (incompatible)')
+      await expect(
+        master.getByRole('button', { name: 'Save definition JSON', exact: true }),
+      ).toBeDisabled()
+      assert.deepEqual((await snapshot()).saved, savedBeforeInvalid)
+      assert.deepEqual(errors, [])
+      evidence.push({
+        viewport,
+        case: 'All purposes save Enemy, Ally and Ground automatic rules; Self-only invalid drafts cannot save',
         passed: true,
       })
       await page.close()

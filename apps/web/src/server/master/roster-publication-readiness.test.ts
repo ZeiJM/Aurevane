@@ -15,6 +15,14 @@ import { createCombatContentResolver } from '@/server/combat/combat-content-reso
 import { createCombatContentAuthoringService } from './combat-content-authoring-service'
 
 vi.mock('server-only', () => ({}))
+vi.mock('@aurevane/game-core/combat/combat-basic-actions', async (original) => {
+  const actual = await original<typeof import('@aurevane/game-core/combat/combat-basic-actions')>()
+  return (await import('./roster-proposal-history.test-utils')).proposalBasicModule(actual)
+})
+vi.mock('@aurevane/game-core/combat/mature-skills', async (original) => {
+  const actual = await original<typeof import('@aurevane/game-core/combat/mature-skills')>()
+  return (await import('./roster-proposal-history.test-utils')).proposalMatureSkillModule(actual)
+})
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh() {} }) }))
 
 const OWNER = '11111111-1111-4111-8111-111111111111'
@@ -72,7 +80,7 @@ describe('accepted complete roster through real Master publication validation', 
   })
 })
 
-describe('accepted versions through local publication and current/pinned resolution', () => {
+describe('saved October proposal through local publication against its captured baseline', () => {
   it.each(manifest.records.filter((row) => row.kind !== 'basic'))(
     '$kind $id appends its version and preserves the previous definition',
     async (row) => {

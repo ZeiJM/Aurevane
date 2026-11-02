@@ -1,4 +1,13 @@
-import type { AbilityBehavior, AbilityEffect } from './combat-definition'
+import type {
+  AbilityBehavior,
+  AbilityEffect,
+  AutomaticAbilityTargetSubject,
+} from './combat-definition'
+import {
+  automaticAbilityTargetSelectorSubjects,
+  isAutomaticAbilityTargetSelector,
+} from './combat-automatic-targets'
+export { automaticAbilityTargetSelectorSubjects } from './combat-automatic-targets'
 import type { AbilityRequirementSubject, RequirementNode } from './combat-requirements'
 import { validateAbilityRequirements } from './combat-requirements'
 import { PHASE4_STATUSES, combatStatusDetails } from './status-content'
@@ -104,12 +113,17 @@ export function isSimpleRequirement(node: RequirementNode | null): boolean {
 
 /** One Target label maps to the genuine native role of this execution path. */
 export function simpleRequirementSubjects(
-  behavior: Pick<AbilityBehavior, 'activation' | 'mode' | 'automaticTrigger' | 'targeting'>,
+  behavior: Pick<
+    AbilityBehavior,
+    'activation' | 'mode' | 'automaticTrigger' | 'targeting' | 'automaticTarget'
+  >,
 ): readonly AbilityRequirementSubject[] {
   if (behavior.activation === 'ongoing') return ['owner']
   if (behavior.mode === 'modifier') return ['owner', 'selected']
   if (behavior.activation === 'manual')
     return hasSimpleUnitSelection(behavior.targeting) ? ['owner', 'selected'] : ['owner']
+  if (isAutomaticAbilityTargetSelector(behavior.automaticTarget?.subject))
+    return ['owner', 'selected']
   const target = SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(
     ({ id }) => id === behavior.automaticTrigger,
   )?.targetSubject
@@ -120,7 +134,7 @@ type SimpleUnitCategory = 'self' | 'ally' | 'enemy'
 /** Only causal roles produced by a native frame may bind a Simple Automatic command. */
 export function simpleAutomaticTargetSubjects(
   behavior: Pick<AbilityBehavior, 'activation' | 'mode' | 'automaticTrigger' | 'targeting'>,
-): readonly AbilityRequirementSubject[] {
+): readonly AutomaticAbilityTargetSubject[] {
   const target = behavior.targeting
   if (behavior.activation !== 'automatic' || behavior.mode !== 'action' || !target) return []
   if (!['single', 'line'].includes(target.shape?.kind)) return []
@@ -144,19 +158,22 @@ export function simpleAutomaticTargetSubjects(
         ? ['self', 'ally']
         : [target.teamPolicy]
   const spec = target.geometryVersion === 3 ? target : { ...target, categories: legacyCategories }
-  return available.filter((subject) =>
-    automaticTargetCategories(trigger, subject).some((category) => {
-      if (category === 'self' && (target.minimumRange > 0 || target.shape.kind === 'line'))
-        return false
-      if (target.kind === 'ground-tile')
-        return target.geometryVersion !== 3 || target.categories?.includes('ground') === true
-      const unit =
-        category === 'self'
-          ? actor
-          : { id: category, teamId: category === 'ally' ? actor.teamId : 'enemy-team' }
-      return combatTargetUnitCategoryAllowed(spec, actor, unit)
-    }),
-  )
+  return [
+    ...available.filter((subject) =>
+      automaticTargetCategories(trigger, subject).some((category) => {
+        if (category === 'self' && (target.minimumRange > 0 || target.shape.kind === 'line'))
+          return false
+        if (target.kind === 'ground-tile')
+          return target.geometryVersion !== 3 || target.categories?.includes('ground') === true
+        const unit =
+          category === 'self'
+            ? actor
+            : { id: category, teamId: category === 'ally' ? actor.teamId : 'enemy-team' }
+        return combatTargetUnitCategoryAllowed(spec, actor, unit)
+      }),
+    ),
+    ...automaticAbilityTargetSelectorSubjects(target),
+  ]
 }
 function automaticTargetCategories(
   trigger: SimpleAutomaticTriggerId | undefined,

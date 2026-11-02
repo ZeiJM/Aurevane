@@ -767,7 +767,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       const selectFlame = async () => {
         await selectContentRecord(page, 'cinderweaver.flame-burst')
         await expectSelectedContentHeading(page, 'Flame Burst')
-        await page.getByRole('tab', { name: 'Range & Area', exact: true }).click()
+        await page.getByRole('tab', { name: 'Effects', exact: true }).click()
       }
       await selectFlame()
       const flameBaseline = await commitContent(page)
@@ -789,6 +789,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
         duration: await duration.inputValue(),
         preset: await preset.inputValue(),
         backlash: await backlash.inputValue(),
+        groundScope: await page.getByLabel('Ground affects', { exact: true }).inputValue(),
       }
       // Repeats share the disposable catalogue, including edits left by a failed run.
       const authored = {
@@ -823,6 +824,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
             groundArea: {
               durationRounds: Number(authored.duration),
               visualPresetId: authored.preset,
+              targetTeams: original.groundScope,
             },
             effects: expect.arrayContaining([
               expect.objectContaining({
@@ -843,7 +845,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
       await showBurnParameters()
       await expect(backlash).toHaveValue(authored.backlash)
-      await page.getByRole('tab', { name: 'Range & Area', exact: true }).click()
+      await page.getByRole('tab', { name: 'Effects', exact: true }).click()
       await duration.scrollIntoViewIfNeeded()
       const fieldBox = await duration.boundingBox()
       expect(fieldBox).not.toBeNull()
@@ -857,6 +859,16 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       )
       const beforeGround = await readBattle(page, createdGroundBattle.battleSessionId)
       expect(pinnedSkillVersion(beforeGround, 'cinderweaver.flame-burst')).toBe(flameVersion)
+      const beforeSnapshot =
+        isRecord(beforeGround) &&
+        isRecord(beforeGround.battle) &&
+        isRecord(beforeGround.battle.snapshot)
+          ? beforeGround.battle.snapshot
+          : null
+      const castTactical = beforeSnapshot?.tactical
+      if (!isRecord(castTactical) || !isRecord(castTactical.battle))
+        throw new Error('Ground cast has no recorded starting round.')
+      const castRound = castTactical.battle.round
       const cast = await page.request.post(
         `/api/battles/${createdGroundBattle.battleSessionId}/intents`,
         {
@@ -884,11 +896,14 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
         'effectVisualIds',
         'expiresAtRound',
         'id',
+        'targetTeams',
         'tiles',
         'visualPresetId',
       ])
       expect(publicAreas[0].effectVisualIds).toEqual(['damage', 'status:burn'])
       expect(publicAreas[0].visualPresetId).toBe(authored.preset)
+      expect(publicAreas[0].targetTeams).toBe(original.groundScope)
+      expect(publicAreas[0].activationRound).toBe(castRound)
       expect(Array.isArray(publicAreas[0].tiles) && publicAreas[0].tiles.length > 0).toBe(true)
       expect(
         queryLocalDatabase(
@@ -900,7 +915,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       expect(reloadedGround).toMatchObject({ battle: { snapshot: { groundAreas: publicAreas } } })
       const groundLayer = page.locator(`[data-ground-area-id="${publicAreas[0].id}"]`).first()
       await expect(groundLayer).toBeVisible()
-      await expect(groundLayer).toHaveAttribute('data-ground-area-preset', 'arcane-pulse')
+      await expect(groundLayer).toHaveAttribute('data-ground-area-preset', authored.preset)
       for (const id of ['damage', 'status:burn'])
         await expect(page.locator(`[data-ground-effect-id="${id}"]`).first()).toBeVisible()
       await page.screenshot({

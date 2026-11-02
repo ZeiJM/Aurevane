@@ -41,7 +41,10 @@ import {
 } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import { SkillFormatUpgradeControl } from './skill-format-upgrade-control'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
-import { withRemappedGroundEntries } from '@/lib/combat-ground-entry-authoring'
+import {
+  withRemappedGroundEntries,
+  withCurrentSkillGroundArea,
+} from '@/lib/combat-ground-entry-authoring'
 import { ResonanceMechanicsFields } from './resonance-mechanics-fields'
 import { SummonProfileEditor } from './summon-profile-editor'
 import { isMaterializedCombatEffect } from '@aurevane/game-core/combat/summon-content'
@@ -542,7 +545,7 @@ function SkillMechanics({
         ...next,
         effects: withAuthoredAreaRecipients(next.target, next.effects, { requiresSelectedUnit }),
       }
-    update({
+    const authored = {
       ...next,
       target:
         next.ability ||
@@ -552,7 +555,13 @@ function SkillMechanics({
           : deriveSharedEffectAim(next.target, next.effects, {
               requiresSelectedUnit: hasSelectedAimRequirement(next.requirements),
             }),
-    })
+    }
+    const normalized = next.ability ? authored : withCurrentSkillGroundArea(value, authored)
+    update(
+      normalized.groundArea !== value.groundArea && !next.ability
+        ? withSkillGroundArea(normalized, normalized.groundArea)
+        : normalized,
+    )
   }
   if (value.ability)
     return (
@@ -583,12 +592,6 @@ function SkillMechanics({
             requiresSelectedUnit={requiresSelectedUnit}
             v51Rules={value.authoring.validationTags.includes('owner-rebalance-v5-1')}
             onChange={(target) => onChange({ ...value, target })}
-          />
-          <SkillGroundEditor
-            target={value.target}
-            effects={value.effects}
-            value={value.groundArea}
-            onChange={(groundArea) => onChange(withSkillGroundArea(value, groundArea))}
           />
         </>
       )}
@@ -626,6 +629,12 @@ function SkillMechanics({
                 ],
               })
             }
+          />
+          <SkillGroundEditor
+            target={value.target}
+            effects={value.effects}
+            value={value.groundArea}
+            onChange={(groundArea) => onChange(withSkillGroundArea(value, groundArea))}
           />
           {value.summonProfile ? (
             <SummonProfileEditor
@@ -928,7 +937,13 @@ export function ContentDefinitionFields({
                             })
                           }
                         />
-                      ) : (
+                      ) : skill.ability.behaviors.some((behavior) =>
+                          behavior.effects.some(
+                            (effect) =>
+                              effect.payload.type === 'percentage-recovery' ||
+                              effect.payload.type === 'healing',
+                          ),
+                        ) ? (
                         <AbilitySelect
                           label="Recovery rounding"
                           value={skill.execution.recoveryRounding ?? 'floor'}
@@ -937,12 +952,13 @@ export function ContentDefinitionFields({
                             set({ execution: { ...skill.execution, recoveryRounding } })
                           }
                         />
-                      )}
+                      ) : null}
                     </fieldset>
                   </>
                 )}
                 <AbilityDefinitionEditor
                   value={skill.ability}
+                  contentId={skill.id}
                   section={abilitySection}
                   allowEffectDescriptions={false}
                   onChange={(ability) => set({ ability })}

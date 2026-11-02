@@ -82,6 +82,8 @@ export interface BattleLogEntry {
     skillId: string
     contentVersion: number
     name: string
+    /** Opaque finalized artwork identity from the exact viewer-visible pinned definition. */
+    artworkKey?: string
     description: string
     flavor: string | null
     battleText?: string | null
@@ -133,6 +135,9 @@ function actionLabel(value: unknown): string {
   if (actionId === 'basic.guard') return 'Guard'
   if (actionId === 'basic.recover') return 'HP Recovery'
   if (actionId === 'basic.recover.mp') return 'MP Recovery'
+  if (actionId === 'basic.pilfer') return 'Pilfer'
+  if (actionId === 'basic.fleetstep') return 'Fleetstep'
+  if (actionId === 'basic.invocation') return 'Invocation'
   if (!actionId) return 'Action'
   return actionId
     .split(/[._-]+/u)

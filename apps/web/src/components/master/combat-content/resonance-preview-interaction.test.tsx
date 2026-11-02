@@ -301,7 +301,7 @@ it('renders actual native Summon addition/removal with absent resources as N/A',
     await import('@/server/master/combat-content-preview')
   const { resolveMatureSkillVersion, validateMatureSkillDefinition } =
     await import('@aurevane/game-core/combat/mature-skills')
-  const setup = resolveMatureSkillVersion('wildwarden.renewing-herbs')!
+  const setup = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!
   const trigger: MatureSkillDefinition = {
     ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
     target: {

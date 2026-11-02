@@ -34,7 +34,10 @@ function chronicleEffectDescription(
     return result.potencyBasisPoints === undefined
       ? 'Recorded Suppress percentage unavailable.'
       : statusPotencyDescription(id, result.potencyBasisPoints)
-  if (strength?.counter) return counterDescription(strength.counter)
+  if (strength?.counter)
+    return counterDescription(strength.counter, {
+      legacyReflectBarrier: strength.reflectBarrierPolicyVersion !== 1,
+    })
   if (strength?.blindsideModifiersBasisPoints) {
     const description = blindsideDebuffDescription(strength.blindsideModifiersBasisPoints)
     return id === 'blindside' ? description.replace(/^Take/u, 'Deal') : description

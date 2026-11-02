@@ -108,6 +108,18 @@ jobs:
           AV_GROUND_PREVIEW_EVIDENCE_DIR: /tmp/battle-ground-preview-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-ground-preview-browser-regression.mjs
 
+      - name: Verify all Ground animation presets and reduced motion
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_GROUND_PRESETS_EVIDENCE_DIR: /tmp/battle-ground-presets-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-ground-presets-browser-regression.mjs
+
+      - name: Verify universal Support actions and Vesper portraits across modes
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        env:
+          AV_SUPPORT_EVIDENCE_DIR: /tmp/battle-support-review
+        run: pnpm --filter @aurevane/web exec node scripts/battle-support-browser-regression.mjs
+
       - name: Verify captured plural targeting and Manual behavior choices
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}
         env:
@@ -252,6 +264,22 @@ jobs:
         with:
           name: battle-ground-preview-review
           path: /tmp/battle-ground-preview-review
+          retention-days: 7
+
+      - name: Save Ground animation palette evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-ground-presets-review
+          path: /tmp/battle-ground-presets-review
+          retention-days: 7
+
+      - name: Save universal Support action and Vesper evidence
+        if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: battle-support-review
+          path: /tmp/battle-support-review
           retention-days: 7
 
       - name: Save captured targeting evidence

@@ -15,7 +15,7 @@ import {
 } from './stat-driven-combat'
 
 function prepared(apCost: number) {
-  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const original = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const ability = {
     ...original.abilities[0]!,
     apCost,

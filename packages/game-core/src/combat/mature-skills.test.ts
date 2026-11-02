@@ -131,6 +131,8 @@ describe('P3.3 mature Skill schema', () => {
     for (const definition of latestEnabledMatureSkills()) {
       if (definition.tags.includes('mystic')) {
         expect(definition.mpCost).toBe(currentMysticMpCost(definition.apCost))
+      } else if (definition.authoring.validationTags.includes('universal-support-v1')) {
+        expect(definition.mpCost).toBe(5)
       } else {
         expect(definition.mpCost ?? 0).toBe(0)
       }

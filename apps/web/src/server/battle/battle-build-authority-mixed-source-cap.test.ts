@@ -387,10 +387,10 @@ describe('bulk current Skill authority preparation', () => {
       resolveCurrentBasicSkillDefinitions: basics,
     })
     expect(basics).toHaveBeenCalledTimes(1)
-    expect(basics.mock.calls[0]).toEqual([['basic.move', 'unarmed.basic', 'basic.guard']])
+    expect(basics.mock.calls[0]).toEqual([['basic.move', 'unarmed.basic', 'basic.recover']])
     expect(sources.map((source) => [source.ownerCombatantId, source.abilityId])).toEqual(
       ids.flatMap((id) =>
-        ['basic.move', 'unarmed.basic', 'basic.guard'].map((skill) => [id, skill]),
+        ['basic.move', 'unarmed.basic', 'basic.recover'].map((skill) => [id, skill]),
       ),
     )
   })
@@ -563,13 +563,13 @@ it('captures current canonical Tag presentation through the actual admission pro
   const { captureCombatTagPresentation } =
     await import('@aurevane/game-core/combat/combat-tag-registry')
   const tag = (version: number, name: string) => ({
-    id: 'tag.apply-status',
+    id: 'tag.percentage-recovery',
     schemaVersion: 1,
     contentVersion: version,
     enabled: true,
     sortOrder: 0,
     media: {},
-    tagId: 'apply-status',
+    tagId: 'percentage-recovery',
     name,
     description: 'Apply a configured status.',
     explanation: 'Status magnitudes and lifetimes come from the actual effect.',
@@ -643,7 +643,7 @@ it('captures current canonical Tag presentation through the actual admission pro
   const bytes = JSON.stringify(old)
   expect(
     old
-      .filter((row) => row.basic?.id === 'basic.guard')
+      .filter((row) => row.basic?.id === 'basic.recover')
       .map((row) => row.definition.tagPresentation),
   ).toEqual(ids.map(() => [captureCombatTagPresentation(current)]))
   current = tag(2, 'Condition')
@@ -651,7 +651,7 @@ it('captures current canonical Tag presentation through the actual admission pro
   const next = await captureBattleBuildAbilitySources(state, authority, newer.resolver)
   expect(
     next
-      .filter((row) => row.basic?.id === 'basic.guard')
+      .filter((row) => row.basic?.id === 'basic.recover')
       .map((row) => row.definition.tagPresentation?.[0]?.name),
   ).toEqual(ids.map(() => 'Condition'))
   expect(JSON.stringify(old)).toBe(bytes)

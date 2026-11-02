@@ -12,6 +12,14 @@ import { resolveCombatContentCatalogueSnapshot } from '@/server/combat/combat-co
 import { validateCombatCatalogueTiming } from '@/server/combat/combat-catalogue-timing-compatibility'
 
 vi.mock('server-only', () => ({}))
+vi.mock('@aurevane/game-core/combat/combat-basic-actions', async (original) => {
+  const actual = await original<typeof import('@aurevane/game-core/combat/combat-basic-actions')>()
+  return (await import('./roster-proposal-history.test-utils')).proposalBasicModule(actual)
+})
+vi.mock('@aurevane/game-core/combat/mature-skills', async (original) => {
+  const actual = await original<typeof import('@aurevane/game-core/combat/mature-skills')>()
+  return (await import('./roster-proposal-history.test-utils')).proposalMatureSkillModule(actual)
+})
 
 const manifestBytes = readFileSync(
   new URL(
@@ -68,7 +76,7 @@ const publications: CombatContentVersionRecord[] = manifest.records
     publishedAt: '2026-10-17T11:04:17.539348Z',
   }))
 
-it('reconciles every before identity, version and digest with the actual builtin catalogue', () => {
+it('reconciles every before identity, version and digest with the captured October builtin catalogue', () => {
   const current = resolveCombatContentCatalogueSnapshot({ token, policy, publications: [] })
   expect(current.entries).toHaveLength(294)
   expect(manifest.requiredRecordCount).toBe(294)

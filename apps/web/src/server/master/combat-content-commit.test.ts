@@ -5,11 +5,11 @@ import { defaultCombatTagDefinitions } from '@aurevane/game-core/combat/combat-t
 vi.mock('server-only', () => ({}))
 const owner = '00000000-0000-4000-8000-000000000001'
 const definition = {
-  ...defaultBasicSkills().find((s) => s.id === 'basic.guard')!,
-  name: 'Owner Guard',
+  ...defaultBasicSkills().find((s) => s.id === 'basic.recover')!,
+  name: 'Owner Recovery',
 }
 const existing = {
-  contentKey: 'basic.guard',
+  contentKey: 'basic.recover',
   contentKind: 'skill',
   lifecycle: 'active',
   revision: 7,
@@ -53,14 +53,14 @@ beforeEach(() => {
 })
 it('commits unsaved complete edits through one atomic mutation and returns the actual publication', async () => {
   const store = new RpcCombatContentAuthoringStore(rpc, owner)
-  const result = await store.commitRecord('basic.guard', 7, definition)
-  expect(result.current?.definition.name).toBe('Owner Guard')
+  const result = await store.commitRecord('basic.recover', 7, definition)
+  expect(result.current?.definition.name).toBe('Owner Recovery')
   expect(result.draft).toBeNull()
   expect(rpc).toHaveBeenCalledWith(
     'commit_combat_content_record_v1',
     expect.objectContaining({
       p_actor_user_id: owner,
-      p_content_key: 'basic.guard',
+      p_content_key: 'basic.recover',
       p_expected_revision: 7,
       p_definition: definition,
       p_expected_catalogue_token: 'a'.repeat(32),
@@ -75,7 +75,7 @@ it('commits unsaved complete edits through one atomic mutation and returns the a
 })
 it('rejects a stale editor before submitting any mutation', async () => {
   const store = new RpcCombatContentAuthoringStore(rpc, owner)
-  await expect(store.commitRecord('basic.guard', 6, definition)).rejects.toMatchObject({
+  await expect(store.commitRecord('basic.recover', 6, definition)).rejects.toMatchObject({
     code: 'STALE_VERSION',
   })
   expect(rpc.mock.calls.some(([name]) => name === 'commit_combat_content_record_v1')).toBe(false)
@@ -90,7 +90,7 @@ it('does not report success when the returned state is still a draft', async () 
     }
   })
   const store = new RpcCombatContentAuthoringStore(rpc, owner)
-  await expect(store.commitRecord('basic.guard', 7, definition)).rejects.toMatchObject({
+  await expect(store.commitRecord('basic.recover', 7, definition)).rejects.toMatchObject({
     code: 'PERSISTENCE_UNAVAILABLE',
   })
 })
@@ -101,7 +101,7 @@ it('does not create another publication when current authored settings are uncha
     throw new Error(`Unexpected redundant mutation ${name}`)
   })
   const store = new RpcCombatContentAuthoringStore(rpc, owner)
-  const result = await store.commitRecord('basic.guard', 9, definition)
+  const result = await store.commitRecord('basic.recover', 9, definition)
   expect(result.revision).toBe(9)
   expect(result.current?.contentVersion).toBe(2)
   expect(rpc).toHaveBeenCalledTimes(1)
@@ -119,7 +119,7 @@ it('an unchanged neutral legacy modifier does not create a redundant publication
     throw new Error(`Unexpected redundant mutation ${name}`)
   })
   const result = await new RpcCombatContentAuthoringStore(rpc, owner).commitRecord(
-    'basic.guard',
+    'basic.recover',
     9,
     definition,
   )
@@ -142,7 +142,7 @@ it('committing current settings removes an active hidden modifier even with no o
     return previous(name, args)
   })
   await new RpcCombatContentAuthoringStore(rpc, owner).commitRecord(
-    'basic.guard',
+    'basic.recover',
     9,
     modified.current.definition,
   )

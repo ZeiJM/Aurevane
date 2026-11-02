@@ -20,6 +20,15 @@ import { resolveCombatContentCatalogueSnapshot } from '@/server/combat/combat-co
 import { validateCombatCatalogueTiming } from '@/server/combat/combat-catalogue-timing-compatibility'
 
 vi.mock('server-only', () => ({}))
+// Replay this immutable October publication chain against its captured builtin inputs.
+vi.mock('@aurevane/game-core/combat/combat-basic-actions', async (original) => {
+  const actual = await original<typeof import('@aurevane/game-core/combat/combat-basic-actions')>()
+  return (await import('./roster-proposal-history.test-utils')).proposalBasicModule(actual)
+})
+vi.mock('@aurevane/game-core/combat/mature-skills', async (original) => {
+  const actual = await original<typeof import('@aurevane/game-core/combat/mature-skills')>()
+  return (await import('./roster-proposal-history.test-utils')).proposalMatureSkillModule(actual)
+})
 type Row = {
   id: string
   beforeVersion: number

@@ -104,20 +104,22 @@ beforeEach(() => {
 })
 
 it('renders the real current canonical catalogue and every edited Basic from one coherent read', async () => {
-  const basics = defaultBasicSkills().map((row, index) => ({
-    ...row,
-    name: `Edited Basic ${index} <once> &`,
-    contentVersion: row.contentVersion + 1,
-    ability: parseAbilityDefinition({
-      schemaVersion: 1,
-      behaviors: [
-        {
-          ...row.ability.behaviors[0]!,
-          costs: [{ resource: 'ap', amount: 21 + index }],
-        },
-      ],
-    }),
-  }))
+  const basics = defaultBasicSkills()
+    .filter((row) => row.enabled)
+    .map((row, index) => ({
+      ...row,
+      name: `Edited Basic ${index} <once> &`,
+      contentVersion: row.contentVersion + 1,
+      ability: parseAbilityDefinition({
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...row.ability.behaviors[0]!,
+            costs: [{ resource: 'ap', amount: 21 + index }],
+          },
+        ],
+      }),
+    }))
   const catalogue = resolveCombatContentCatalogueSnapshot({
     token: 'private-catalogue-token',
     policy: defaultCombatEffectTimingPolicy(),

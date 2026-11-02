@@ -27,6 +27,31 @@ import { capSummonDamage } from './combat-summon-potency'
 const REFLECT_ACTION_ID = 'status.reflect.current.v1'
 const REFLECT_BASIS_POINTS = 10_000
 
+/** Barrier receipts precede their matching damage packet. Pair them once, retaining
+ * that packet's captured family/rate; orphan absorption and overkill are not damage. */
+function reflectDamageReceipts(
+  state: CombatEncounterState,
+  events: readonly CombatResolutionEvent[],
+) {
+  const absorbed = new Map<string, bigint>()
+  const receipts: {
+    receipt: Extract<CombatResolutionEvent, { event: 'damage_applied' }>
+    basis: bigint
+  }[] = []
+  for (const event of events) {
+    if (event.event !== 'damage_applied' && event.event !== 'barrier_absorbed') continue
+    const key = JSON.stringify([event.sourceCombatantId, event.actionId, event.targetCombatantId])
+    if (event.event === 'barrier_absorbed') {
+      if (state.reflectBarrierPolicyVersion === 1 && event.amount > 0)
+        absorbed.set(key, (absorbed.get(key) ?? 0n) + BigInt(event.amount))
+    } else {
+      receipts.push({ receipt: event, basis: BigInt(event.amount) + (absorbed.get(key) ?? 0n) })
+      absorbed.delete(key)
+    }
+  }
+  return receipts
+}
+
 /** One bounded pass over original damage receipts. Returns additional events only. */
 export function applyCommittedReflect(
   state: CombatEncounterState,
@@ -62,7 +87,29 @@ export function applyCommittedReflect(
   ) {
     return { state, events: [], triggerGuard }
   }
-  const damageByTarget = collectCommittedHostileCommandDamage(state, committedEvents, command)
+  const receipts = reflectDamageReceipts(state, committedEvents)
+  const damageByTarget =
+    state.reflectBarrierPolicyVersion === 1
+      ? new Map<string, bigint>()
+      : new Map(
+          [...collectCommittedHostileCommandDamage(state, committedEvents, command)].map(
+            ([id, amount]) => [id, BigInt(amount)],
+          ),
+        )
+  if (state.reflectBarrierPolicyVersion === 1) {
+    for (const { receipt, basis } of receipts) {
+      const target = battle.combatants.find((unit) => unit.id === receipt.targetCombatantId)
+      if (
+        basis <= 0n ||
+        receipt.sourceCombatantId !== attacker.id ||
+        receipt.actionId !== command.actionId ||
+        !target ||
+        target.teamId === attacker.teamId
+      )
+        continue
+      damageByTarget.set(target.id, (damageByTarget.get(target.id) ?? 0n) + basis)
+    }
+  }
   const ordered = [...damageByTarget].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
   let nextState = state
   const events: CombatResolutionEvent[] = []
@@ -73,17 +120,17 @@ export function applyCommittedReflect(
     if (!currentAttacker || currentAttacker.hp <= 0) break
     const rate = counterOnly ? 0 : activeReflectBasisPoints(state, content, defenderId)
     // Reflect floors once per defender, with no Absorb-specific minimum-1 rule.
-    const counterDamage = committedEvents.reduce((total, event) => {
+    const counterDamage = receipts.reduce((total, { receipt: event, basis }) => {
       if (
         event.event !== 'damage_applied' ||
-        event.amount <= 0 ||
+        basis <= 0n ||
         event.targetCombatantId !== defenderId ||
         event.sourceCombatantId !== attacker.id ||
         event.actionId !== command.actionId ||
         event.actionId === REFLECT_ACTION_ID
       )
         return total
-      return total + BigInt(event.amount) * BigInt(event.counterReturnBasisPoints ?? '0')
+      return total + basis * BigInt(event.counterReturnBasisPoints ?? '0')
     }, 0n)
     const requested = (BigInt(damage) * BigInt(rate) + counterDamage) / BigInt(REFLECT_BASIS_POINTS)
     const amount = Number(
@@ -215,9 +262,8 @@ export function applyPeriodicCounterReturns(
   let nextState = state
   const events: CombatResolutionEvent[] = []
   const commands = new Map<string, CommittedCombatCommand>()
-  for (const event of receipts) {
-    if (event.event !== 'damage_applied' || !event.counterReturnBasisPoints || event.amount <= 0)
-      continue
+  for (const { receipt: event, basis } of reflectDamageReceipts(state, receipts)) {
+    if (!event.counterReturnBasisPoints || basis <= 0n) continue
     const command = { sourceCombatantId: event.sourceCombatantId, actionId: event.actionId }
     commands.set(JSON.stringify(command), command)
   }

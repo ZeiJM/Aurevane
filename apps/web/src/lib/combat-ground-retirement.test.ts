@@ -359,7 +359,7 @@ it('commits native retirement with correct entry ordinals and aligned independen
   expect(original.effects).toHaveLength(3)
 })
 it('retains a Summon Ground capture while converting its retired packets and remapping ordinals', () => {
-  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const original = {
     ...profile,
     abilities: [
@@ -405,7 +405,7 @@ it('leaves malformed native Ground references visible for strict validation rath
   expect(current).toHaveProperty('groundArea', captured.groundArea)
 })
 it('projects canonical and nested Summon drafts while keeping wrappers, notes and Ground mappings', () => {
-  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs')!.summonProfile!
+  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
   const currentProfile = {
     ...profile,
     abilities: [
