@@ -1,4 +1,5 @@
-import { combatReversalPayload } from './combat-reversal'
+import { combatEndureBlocksAction } from './combat-endure'
+import { combatReversalPayload, combatReversalAttackIssue } from './combat-reversal'
 import { prepareCombatAbilityCommand } from './combat-ability-command'
 import { combatAbilityCommandContext } from './combat-behavior-runtime'
 import {
@@ -292,6 +293,13 @@ export function updateCombatControlledAbility(
     throw new TypeError('controlled-cooldown-active')
   if (operation === 'prime' && combatReversalPayload(behavior))
     throw new TypeError('Reversal requires paid Controlled preparation.')
+  if (operation === 'prime') {
+    const action = materializeCombatAbilityAction(source, behavior)
+    if (combatEndureBlocksAction(state, input.actorId, action, input.content))
+      throw new TypeError('Endure prevents preparing damage-dealing actions while active.')
+    const reversalIssue = combatReversalAttackIssue(state, input.actorId, action)
+    if (reversalIssue) throw new TypeError(reversalIssue)
+  }
   if (operation === 'cancel' && input.manualModifiers !== undefined)
     throw new TypeError('controlled-cancel-modifiers-invalid')
   const manualModifiers =

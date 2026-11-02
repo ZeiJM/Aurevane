@@ -149,6 +149,19 @@ export function battleCapturedActionChoices(
   )
 }
 
+/** Mixed-action abilities keep their unblocked choices available. */
+export function battleCapturedActionAttackBlocked(
+  choices: readonly BattleCapturedActionTarget[],
+  behaviorId?: string,
+): boolean {
+  const blocked = (row: BattleCapturedActionTarget) =>
+    (row.endureBlocked === true || row.reversalBlocked === true) &&
+    !(row.controlled?.kind === 'reversal' && row.controlled.canCancel)
+  return behaviorId
+    ? choices.some((row) => row.behaviorId === behaviorId && blocked(row))
+    : choices.length > 0 && choices.every(blocked)
+}
+
 /** Presentation only. A deliberate commit still pays through the versioned server authority. */
 export function battleCapturedControlledAvailability(
   choices: readonly BattleCapturedActionTarget[],
@@ -160,10 +173,15 @@ export function battleCapturedControlledAvailability(
       ? choices[0]
       : undefined
   const selectedSpent = selected?.controlled?.phase === 'spent'
+  const reversal =
+    selected?.controlled?.kind === 'reversal'
+      ? selected.controlled
+      : !behaviorId
+        ? choices.find((row) => row.controlled?.kind === 'reversal' && row.controlled.canCancel)
+            ?.controlled
+        : undefined
   return {
-    ...(selected?.controlled?.kind === 'reversal'
-      ? { controlledKind: 'reversal' as const, canCancel: selected.controlled.canCancel }
-      : {}),
+    ...(reversal ? { controlledKind: 'reversal' as const, canCancel: reversal.canCancel } : {}),
     controlledPrimed: choices.some((row) => row.controlled?.phase === 'primed'),
     controlledSpent:
       selectedSpent ||
@@ -194,6 +212,7 @@ export function battleCapturedActionCost(
   const cooldown = selected?.cooldown
   return {
     ...battleCapturedControlledAvailability(choices, behaviorId),
+    attackBlocked: battleCapturedActionAttackBlocked(choices, behaviorId),
     report: selected ? selected.report : choices.length || behaviorId ? null : undefined,
     costLabel: costs ? abilityCostDescription(costs) : behaviorId ? 'Unavailable' : 'Choose action',
     cooldownLabel: selected
@@ -233,10 +252,12 @@ export function battleCapturedActionCanSelect(
     canCancel?: boolean
     chooseAction?: boolean
     affordable: boolean
+    attackBlocked?: boolean
   },
   primeAvailable: boolean,
   cooldownTurns: number,
 ): boolean {
+  if (payment.attackBlocked && !payment.canCancel) return false
   if (payment.controlledKind === 'reversal')
     return (
       payment.canCancel === true || (primeAvailable && payment.affordable && cooldownTurns <= 0)

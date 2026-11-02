@@ -17,6 +17,7 @@ import {
   canAffordBattleBasicAction,
 } from '@/lib/battle/battle-basic-actions'
 import {
+  battleCapturedActionAttackBlocked,
   battleCapturedActionChoices,
   battleCapturedActionCost,
   battleCapturedControlledAvailability,
@@ -748,6 +749,14 @@ function BattleExperienceContent({
       selectedBehavior?.actionId === actionId ? selectedBehavior.behaviorId : undefined,
     [selectedBehavior],
   )
+  const actionAttackBlocked = useCallback(
+    (actionId: string, behaviorId?: string) =>
+      battleCapturedActionAttackBlocked(
+        battleCapturedActionChoices(manualActionTargets, actionId, localCombatantId),
+        behaviorId,
+      ),
+    [manualActionTargets, localCombatantId],
+  )
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
   const supportActionId = String(
     parseSupportActionId(runtime.supportActionId) ?? DEFAULT_SUPPORT_ACTION_ID,
@@ -1314,6 +1323,13 @@ function BattleExperienceContent({
   const requestPreview = useCallback(
     (intent: BattleIntent) => {
       if (!mounted.current) return null
+      if (
+        (intent.kind === 'action' || intent.kind === 'ability-prime') &&
+        actionAttackBlocked(intent.actionId, intent.behaviorId)
+      ) {
+        setNotice('Attacks are currently locked.')
+        return null
+      }
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return null
       const pending = inFlightPreview.current
       if (
@@ -1407,6 +1423,7 @@ function BattleExperienceContent({
       return result
     },
     [
+      actionAttackBlocked,
       actionCooldownTurns,
       battle.battleSessionId,
       battle.battleVersion,
@@ -1428,6 +1445,13 @@ function BattleExperienceContent({
         battleRef.current.snapshot.tactical.battle.lifecycle !== 'active'
       )
         return
+      if (
+        (intent.kind === 'action' || intent.kind === 'ability-prime') &&
+        actionAttackBlocked(intent.actionId, intent.behaviorId)
+      ) {
+        setNotice('Attacks are currently locked.')
+        return
+      }
       if (intent.kind === 'action' && actionCooldownTurns(intent.actionId) > 0) return
       if (intent.kind === 'action') setTargetAim({ aimSource: 'player', selection: intent.target })
       commitLock.current = true
@@ -1517,7 +1541,7 @@ function BattleExperienceContent({
                 row.behaviorId === intent.behaviorId &&
                 row.controlled?.kind === 'reversal',
             )
-              ? 'Reversal prepared and paid. It automatically counters one qualifying hit until your next actual turn. Offensive attacks are unavailable while armed.'
+              ? 'Reversal prepared and paid. It automatically counters one qualifying hit. Attacks are locked while armed.'
               : intent.target
                 ? 'Rewind positions captured. Release on the same selection at its full cost.'
                 : 'Ability prepared. Choose a legal target to release it at its full cost.',
@@ -1530,7 +1554,7 @@ function BattleExperienceContent({
                 row.behaviorId === intent.behaviorId &&
                 row.controlled?.kind === 'reversal',
             )
-              ? 'Reversal cancelled. Paid costs and cooldown remain. Reversal Strain restricts Attack Skills through your next complete turn; normal Basic Attack remains available.'
+              ? 'Reversal cancelled. Costs and cooldown remain. Attacks are locked through your next complete turn.'
               : 'Preparation cancelled. This ability cannot be primed again in this battle.',
           )
         } else if (runtime.kind === 'pvp') {
@@ -1598,6 +1622,7 @@ function BattleExperienceContent({
       }
     },
     [
+      actionAttackBlocked,
       actionCooldownTurns,
       battle,
       clearPlanning,
@@ -1772,6 +1797,10 @@ function BattleExperienceContent({
       )
         return
       if (intent.kind === 'action' || intent.kind === 'ability-prime') {
+        if (actionAttackBlocked(intent.actionId, intent.behaviorId)) {
+          setNotice('Attacks are currently locked.')
+          return
+        }
         const draft = modifierDraftRef.current
         const descriptor = actionDescriptor(intent.actionId, intent.behaviorId, draft)
         if (
@@ -1814,7 +1843,7 @@ function BattleExperienceContent({
         if (mounted.current) setExecutionPending(false)
       }
     },
-    [actionCooldownTurns, actionDescriptor, manualActionTargets, commitValue],
+    [actionCooldownTurns, actionDescriptor, actionAttackBlocked, manualActionTargets, commitValue],
   )
 
   const selection = useMemo(
@@ -1879,6 +1908,10 @@ function BattleExperienceContent({
   const armAction = useCallback(
     (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
       if (planningDisabled || executionLock.current) return
+      if (actionAttackBlocked(actionId, basicBehaviorId(actionId))) {
+        setNotice('Attacks are currently locked.')
+        return
+      }
       if (actionCooldownTurns(actionId) > 0) return
       const descriptor = actionDescriptor(actionId, undefined, modifierDraftRef.current)
       abandonOtherModifierDraft(descriptor)
@@ -1952,9 +1985,11 @@ function BattleExperienceContent({
       } else setNotice('No eligible target is in range. Select a different action or target.')
     },
     [
+      actionAttackBlocked,
       actionCooldownTurns,
       actionDescriptor,
       controlledAvailabilityForAction,
+      basicBehaviorId,
       replaceModifierDraft,
       abandonOtherModifierDraft,
       manualActionTargets,
@@ -3237,15 +3272,8 @@ function BattleExperienceContent({
                           combatants: previewCombatants,
                         })
                       : null
-                  // Single-unit utility/healing shows candidates, not empty geometric reach.
-                  // Movement destinations are handled separately by reachable paths above.
-                  const inFootprint =
-                    potentialPath.has(key) &&
-                    (groundTarget ||
-                      (hasAllTargetEffects && !!combatant && combatant.hp > 0) ||
-                      damagingSelection ||
-                      targetSpec?.shape.kind !== 'single' ||
-                      !!skillTarget)
+                  // Potential range remains visible even when only an occupied unit can be selected.
+                  const inFootprint = potentialPath.has(key)
                   const targetRelation = !inFootprint
                     ? undefined
                     : activeTechnique
@@ -3295,13 +3323,7 @@ function BattleExperienceContent({
                         undefined
                       }
                       data-heal-target={
-                        (!groundTarget &&
-                          inFootprint &&
-                          healingSelection &&
-                          !damagingSelection &&
-                          (targetSpec?.shape.kind !== 'single' ||
-                            !!skillTarget ||
-                            (hasAllTargetEffects && !!combatant && combatant.hp > 0))) ||
+                        (!groundTarget && inFootprint && healingSelection && !damagingSelection) ||
                         undefined
                       }
                       data-terrain={terrain}
@@ -3584,6 +3606,7 @@ function BattleExperienceContent({
                     active={mode === 'move'}
                     disabled={
                       planningDisabled ||
+                      actionAttackBlocked('basic.move', basicBehaviorId('basic.move')) ||
                       (!canPrimeAction('basic.move') &&
                         !controlledAvailabilityForAction('basic.move').chooseAction &&
                         ((reachablePaths.size === 0 &&
@@ -3620,6 +3643,7 @@ function BattleExperienceContent({
                     active={mode === 'attack' && selectedAttackActionId === BASIC_ATTACK_ID}
                     disabled={
                       planningDisabled ||
+                      actionAttackBlocked(BASIC_ATTACK_ID, basicBehaviorId(BASIC_ATTACK_ID)) ||
                       (!canPrimeAction(BASIC_ATTACK_ID) &&
                         !controlledAvailabilityForAction(BASIC_ATTACK_ID).chooseAction &&
                         (basicAttack === undefined
@@ -3658,6 +3682,7 @@ function BattleExperienceContent({
                     }
                     disabled={
                       planningDisabled ||
+                      actionAttackBlocked(supportActionId, basicBehaviorId(supportActionId)) ||
                       (!canPrimeAction(supportActionId) &&
                         !controlledAvailabilityForAction(supportActionId).chooseAction &&
                         (basicSupport === undefined
@@ -3796,7 +3821,11 @@ function BattleExperienceContent({
                   disabled={planningDisabled || executionPending}
                   onChange={(event) => {
                     const descriptor = unboundActionDescriptor(currentActionId, event.target.value)
-                    if (descriptor.unavailable) return
+                    if (
+                      descriptor.unavailable ||
+                      actionAttackBlocked(currentActionId, event.target.value)
+                    )
+                      return
                     const nextMode = battleModifierActionMode(descriptor)
                     if (nextMode === 'attack') setSelectedAttackActionId(currentActionId)
                     else if (nextMode === 'guard') setSelectedDefenseActionId(currentActionId)
@@ -3820,7 +3849,11 @@ function BattleExperienceContent({
                     Choose an action
                   </option>
                   {behaviorChoices.map((choice) => (
-                    <option key={choice.behaviorId} value={choice.behaviorId}>
+                    <option
+                      key={choice.behaviorId}
+                      value={choice.behaviorId}
+                      disabled={actionAttackBlocked(currentActionId, choice.behaviorId)}
+                    >
                       {choice.behaviorId.replace(/[._-]+/g, ' ')}
                     </option>
                   ))}

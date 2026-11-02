@@ -2,7 +2,10 @@ import {
   COMBAT_STATUS_TUNING_FIELDS,
   combatStatusTuning,
 } from '@aurevane/game-core/combat/combat-status-tuning'
-import { combatReversalStatusProfiles } from '@aurevane/game-core/combat/combat-reversal'
+import {
+  combatReversalStatusProfiles,
+  combatReversalAttackIssue,
+} from '@aurevane/game-core/combat/combat-reversal'
 import { battleTagForStatus } from '@/lib/battle/battle-tag-wording'
 import type { BattleBuildAuthoritySnapshot } from './battle-build-authority'
 import { combatEffectPresentationId } from '@aurevane/game-core/combat/combat-effect-identities'
@@ -18,6 +21,7 @@ import {
   isFreeOffensiveBasicMove,
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
+  materializeCombatAbilityAction,
   combatManualModifierAvailability,
   combatControlledAbilityAvailability,
   combatPrimedAbilityIds,
@@ -62,7 +66,10 @@ import {
 } from '../../lib/battle/battle-elevation-effects'
 
 import { battleViewerRelationship, type BattleViewerEntitlement } from './battle-viewer-entitlement'
-import type { CombatSourceCommandVisibility } from '@aurevane/game-core/combat/actions'
+import {
+  combatEndureBlocksAction,
+  type CombatSourceCommandVisibility,
+} from '@aurevane/game-core/combat/actions'
 
 function pendingCovertConcealsInstance(
   state: Pick<StatDrivenCombatEncounterState, 'pendingEffects'>,
@@ -168,6 +175,27 @@ export function projectBattleManualActionTargets(
                 ? PV1F_BASIC_ATTACK_ID
                 : source.abilityId,
             behaviorId: behavior.id,
+            ...(combatEndureBlocksAction(
+              state,
+              source.ownerCombatantId,
+              {
+                ...materializeCombatAbilityAction(source, behavior),
+                ...(source.basic?.execution.kind === 'basic-attack'
+                  ? { sourceType: 'basic-attack' as const }
+                  : {}),
+              },
+              PV1F_COMBAT_CONTENT,
+            )
+              ? { endureBlocked: true as const }
+              : {}),
+            ...(combatReversalAttackIssue(state, source.ownerCombatantId, {
+              ...materializeCombatAbilityAction(source, behavior),
+              ...(source.basic?.execution.kind === 'basic-attack'
+                ? { sourceType: 'basic-attack' as const }
+                : {}),
+            })
+              ? { reversalBlocked: true as const }
+              : {}),
             ...(behavior.classification ? { classification: behavior.classification } : {}),
             dealsDamage: battleActionDealsDamage(behavior.effects.map((effect) => effect.payload)),
             ...(behavior.effects.some(
@@ -603,7 +631,9 @@ export function projectBattleStatusStateForViewer(
           ...(profile.kind === 'armed'
             ? {
                 reversal: {
-                  family: profile.family,
+                  ...(relationship === 'self' || relationship === 'ally'
+                    ? { family: profile.family }
+                    : {}),
                   reflectionBasisPoints: profile.reflectionBasisPoints,
                   attackerMaxHpCapBasisPoints: profile.attackerMaxHpCapBasisPoints,
                   defenderMaxHpCapBasisPoints: profile.defenderMaxHpCapBasisPoints,

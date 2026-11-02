@@ -984,7 +984,7 @@ describe('Reversal v1', () => {
     }
     expect(hasArmedCombatReversal(prime(pending, captured).state, 'actor')).toBe(true)
   })
-  it('keeps ordinary inherent Basic Attack and utility legal during Strain, while a Skill remains blocked', () => {
+  it('blocks Basic Attack and Attack Skills during Strain while keeping utility legal', () => {
     const { state, captured } = encounter()
     const armed = prime(state, captured).state
     const strained = cancelCombatControlledAbility({
@@ -998,7 +998,15 @@ describe('Reversal v1', () => {
         kind: 'unit',
         combatantId: 'enemy',
       }).evaluation.legal,
-    ).toBe(true)
+    ).toBe(false)
+    const before = JSON.stringify(strained)
+    expect(() =>
+      executePv1fAction(strained as never, 'basic.attack.unarmed.basic', {
+        kind: 'unit',
+        combatantId: 'enemy',
+      }),
+    ).toThrow(/Reversal Strain/)
+    expect(JSON.stringify(strained)).toBe(before)
     const utility = {
       ...attack(),
       tags: ['utility'],

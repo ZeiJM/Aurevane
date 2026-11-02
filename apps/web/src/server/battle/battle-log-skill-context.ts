@@ -112,6 +112,46 @@ export async function attachRecordedBattleLogSkillContext(
   captures: readonly CapturedCombatAbilitySource[] = [],
 ): Promise<BattleLogView> {
   const records = new Map(projected.map((record) => [recordKey(record), record]))
+  // Keep the single preparation outcome; its paired cast receipt could identify
+  // the hidden family through a pinned Skill report or authored name.
+  const reversalPreparations = new Set(
+    projected.flatMap((record) => {
+      const event = eventObject(record)
+      return event?.event === 'reversal_prepared'
+        ? [JSON.stringify([record.battleVersion, event.combatantId, event.actionId])]
+        : []
+    }),
+  )
+  const matchingReversalPreparation = (entry: BattleLogEntry) =>
+    reversalPreparations.has(
+      JSON.stringify([entry.battleVersion, entry.actorCombatantId, entry.actionId]),
+    )
+  view = {
+    ...view,
+    entries: view.entries
+      .filter(
+        (entry) => entry.eventType !== 'combat_action_used' || !matchingReversalPreparation(entry),
+      )
+      .map((entry) =>
+        entry.eventType === 'reversal_prepared' || matchingReversalPreparation(entry)
+          ? {
+              ...entry,
+              actionId: null,
+              actionLabel: 'Reversal',
+              actionContext: undefined,
+              effectOrigin: undefined,
+              ...(entry.eventType === 'reversal_prepared'
+                ? {
+                    message: 'Reversal prepared.',
+                    messageTemplate: '{actor} prepares a Reversal.',
+                    templateValues: {},
+                    headline: 'Reversal',
+                  }
+                : {}),
+            }
+          : entry,
+      ),
+  }
   view = {
     ...view,
     entries: view.entries.map((entry) => {

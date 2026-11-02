@@ -362,6 +362,16 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         : {}),
     ...(entry.effectStrength ? { effectStrength: entry.effectStrength } : {}),
   }
+  if (entry.eventType === 'status_expired' && entry.statusId === 'endure') {
+    if (value.endureOutcome === 'empty')
+      return { ...base, text: `${target} has no stored power to release as Endure ends.` }
+    if (value.endureOutcome === 'no-targets')
+      return {
+        ...base,
+        text: `${target} releases Endure's stored power, but no targets are in range.`,
+      }
+    return null
+  }
   if (entry.effectTimingState === 'pending') return null
   if (
     !entry.periodicStatusId &&
@@ -396,7 +406,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
     case 'reversal_prepared':
       return {
         ...base,
-        text: `${chronicleCombatantName(entry.actorCombatantId, names)} prepares ${value.family} Reversal`,
+        text: `${chronicleCombatantName(entry.actorCombatantId, names)} prepares a Reversal`,
         tone: 'benefit',
       }
     case 'reversal_triggered':
@@ -438,8 +448,8 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
           text:
             entry.effectStrength?.recoveryAmountPerApplication !== undefined &&
             entry.targetCombatantId
-              ? `${target} will recover up to ${entry.effectStrength.recoveryAmountPerApplication} ${entry.statusId === 'healing' ? 'HP' : 'MP'} per application (${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}), beginning at the start of ${round}!`
-              : `${label} will restore ${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}${entry.targetCombatantId ? ` on ${target}` : ''}, beginning at the start of ${round}!`,
+              ? `${target} will recover up to ${entry.effectStrength.recoveryAmountPerApplication} ${entry.statusId === 'healing' ? 'HP' : 'MP'} per application (${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}; from ${round})`
+              : `${label}: ${entry.effectTiming.recoveryApplications} application${entry.effectTiming.recoveryApplications === 1 ? '' : 's'}${entry.targetCombatantId ? ` on ${target}` : ''} (from ${round})`,
           ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
         }
       const remaining = entry.effectTiming?.remainingRoundBoundaries
@@ -447,17 +457,17 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
       const endRound = candidateEnd && Number.isSafeInteger(candidateEnd) ? candidateEnd : undefined
       const span =
         remaining && remaining > 1 && endRound
-          ? `during rounds ${recordedRound}–${endRound}`
-          : `at the start of ${round}`
-      const effectNarration = narrateBattleEffect(entry, target, true)
+          ? `rounds ${recordedRound}–${endRound}`
+          : `from ${round}`
+      const effectNarration = narrateBattleEffect(entry, target, true, duration(entry))
       const ownerTurns = !remaining ? entry.effectTiming?.remainingOwnerTurnEnds : undefined
-      const timing = `${span}${ownerTurns ? `, for ${ownerTurns} affected turn${ownerTurns === 1 ? '' : 's'}` : ''}`
+      const timing = `${span}${ownerTurns ? `; ${ownerTurns} turn${ownerTurns === 1 ? '' : 's'}` : ''}`
       return {
         ...base,
         tone: effectTone(entry.statusId),
         text: effectNarration
-          ? `${effectNarration} ${timing}!`
-          : `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} ${timing}!`,
+          ? `${effectNarration} (${timing})`
+          : `${label} will take effect${entry.targetCombatantId ? ` on ${target}` : ''} (${timing})`,
         ...(entry.statusId ? { statusId: entry.statusId, duration: duration(entry) } : {}),
       }
     }
@@ -552,7 +562,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
           text: `${target} is left wide open to the enemy${turns ? ` for ${turns}` : ''}.${value.stacks && value.stacks !== '1' ? ` · ×${value.stacks}` : ''}`,
           ...(turns ? { duration: turns } : {}),
         }
-      const narration = narrateBattleEffect(entry, target)
+      const narration = narrateBattleEffect(entry, target, false, turns)
       const effectName = statusId ? combatStatusDetails(statusId).name : ''
       const narratedChange =
         narration && value.statusChange === 'REFRESHED'
@@ -564,7 +574,7 @@ function outcome(entry: BattleLogEntry, names: ChronicleNames): ChronicleOutcome
         return {
           ...base,
           tone: effectTone(statusId),
-          text: `${value.statusChange === 'STACKED' ? `${effectName} stacks to ×${value.stacks}: ` : ''}${narratedChange}${turns ? ` for ${turns}` : ''}${value.stacks && value.stacks !== '1' ? `${value.statusChange === 'STACKED' ? '' : ` · ×${value.stacks}`}${entry.effectStrength ? ' (strength per application)' : ''}` : ''}`,
+          text: `${value.statusChange === 'STACKED' ? `${effectName} stacks to ×${value.stacks}: ` : ''}${narratedChange}${turns && statusId !== 'endure' ? ` for ${turns}` : ''}${value.stacks && value.stacks !== '1' ? `${value.statusChange === 'STACKED' ? '' : ` · ×${value.stacks}`}${entry.effectStrength ? ' (strength per application)' : ''}` : ''}`,
           ...(statusId ? { statusId } : {}),
           ...(turns ? { duration: turns } : {}),
         }
@@ -702,7 +712,16 @@ export function buildBattleChronicle(
     )
       command = null
     const idle = idleTurns.has(eventKey(entry))
-    if (OMITTED_EVENTS.has(entry.eventType) && !idle) continue
+    if (
+      OMITTED_EVENTS.has(entry.eventType) &&
+      !idle &&
+      !(
+        entry.eventType === 'status_expired' &&
+        entry.statusId === 'endure' &&
+        ['empty', 'no-targets'].includes(entry.templateValues.endureOutcome ?? '')
+      )
+    )
+      continue
     const roundNumber = entry.round ?? 1
     const round = rounds.get(roundNumber) ?? { round: roundNumber, actors: [] }
     const ownerId: string =

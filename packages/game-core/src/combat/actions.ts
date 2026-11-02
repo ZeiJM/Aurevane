@@ -1,6 +1,7 @@
 import { prepareCombatRuinCommand } from './combat-ruin'
 import { normalizeCombatGroundContacts, combatGroundSourceAction } from './combat-ground-contact'
 import { combatEndureBlocksAction } from './combat-endure'
+export { combatEndureBlocksAction } from './combat-endure'
 import type { CombatStatusTuning } from './combat-status-tuning'
 export type { CombatEndureProfile, CombatEndureEffect, CombatEndureState } from './combat-endure'
 export type { CombatStatusTuning } from './combat-status-tuning'

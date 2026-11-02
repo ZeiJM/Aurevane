@@ -1032,7 +1032,13 @@ export type CombatResolutionEvent = (
       amountPerTick: number
       remainingFutureTicks: number
     }
-  | { event: 'status_expired'; combatantId: string; statusId: string; sourceCombatantId?: string }
+  | {
+      event: 'status_expired'
+      combatantId: string
+      statusId: string
+      sourceCombatantId?: string
+      endureOutcome?: 'empty' | 'no-targets'
+    }
   | {
       event: 'status_removed'
       removalReason?: 'ruin'
@@ -9656,9 +9662,21 @@ function releaseExpiredCombatEndure(
     const origin = expiryState.tactical.placements.find(
       (row) => row.combatantId === combatantId,
     )?.position
-    if (!ledger || !profile || !source || source.hp <= 0 || !origin || ledger.receivedDamage === 0)
-      continue
+    if (!ledger || !profile || !source || source.hp <= 0 || !origin) continue
+    const recordOutcome = (endureOutcome: 'empty' | 'no-targets') => {
+      events = events.map((event) =>
+        event.event === 'status_expired' &&
+        event.statusId === 'endure' &&
+        event.combatantId === combatantId
+          ? { ...event, endureOutcome }
+          : event,
+      )
+    }
     const amount = (BigInt(ledger.receivedDamage) * BigInt(profile.releaseBasisPoints)) / 10000n
+    if (amount === 0n) {
+      recordOutcome('empty')
+      continue
+    }
     const receipts: CombatResolutionEvent[] = []
     const counterReceipts: CombatResolutionEvent[] = []
     const recipients = state.tactical.battle.combatants
@@ -9674,6 +9692,10 @@ function releaseExpiredCombatEndure(
       })
       .map((unit) => unit.id)
       .sort()
+    if (!recipients.length) {
+      recordOutcome('no-targets')
+      continue
+    }
     for (const targetId of recipients) {
       const target = state.tactical.battle.combatants.find((unit) => unit.id === targetId)!
       if (target.hp <= 0) continue

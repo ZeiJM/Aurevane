@@ -1361,13 +1361,11 @@ it('Chronicle and Copy Full Log retain recorded Suppress percentage and lifetime
     ],
     async () => definition(),
   )
-  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain(
-    'outgoing direct damage by 25.34%',
-  )
+  expect(JSON.stringify(buildBattleChronicle(result.entries))).toContain('direct damage by 25.34%')
   const copied = formatBattleLogForClipboard(result.entries)
-  expect(copied).toContain('outgoing direct damage by 25.34%')
-  expect(copied).toContain('Suppress refreshes and reduces')
-  expect(copied).toContain('outgoing direct damage by 40%')
+  expect(copied).toContain('direct damage by 25.34%')
+  expect(copied).toContain('Suppress refreshes and cuts')
+  expect(copied).toContain('direct damage by 40%')
   expect(copied).toContain('2 turns')
 })
 
@@ -1464,9 +1462,7 @@ it('admits only identity-matched valid committed strength, without interpreting 
     ],
     async () => definition(),
   )
-  expect(formatBattleLogForClipboard(result.entries)).toContain(
-    'outgoing direct damage to 0 (999% reduction)',
-  )
+  expect(formatBattleLogForClipboard(result.entries)).toContain('direct damage by 999%')
   expect(formatBattleLogForClipboard(result.entries)).not.toMatch(/-899|999% less/)
 })
 

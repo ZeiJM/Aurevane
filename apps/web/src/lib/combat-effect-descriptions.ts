@@ -4,7 +4,7 @@ import type { CombatEndureProfile } from '@aurevane/game-core/combat/actions'
 export function endureDescription(profile: CombatEndureProfile): string {
   const target =
     profile.targetTeams === 'enemies' ? 'enemy' : profile.targetTeams === 'allies' ? 'ally' : 'unit'
-  return `Blocks Basic Attack and damage-dealing manual Skills. Automatic reactions and already-pending casts still resolve. When Endure ends naturally, each living ${target} within ${profile.radiusTiles} ${profile.radiusTiles === 1 ? 'tile' : 'tiles'} of your current position takes ${profile.releaseBasisPoints / 100}% of the HP damage you received. HP costs and Barrier absorption do not count. The burst uses Barrier without applying Defense again. Endure cannot be dispelled. Defeat cancels the burst. Recasting starts a new damage window without releasing the old one.`
+  return `Cannot attack. When Endure expires, each ${target} within ${profile.radiusTiles} ${profile.radiusTiles === 1 ? 'tile' : 'tiles'} takes ${profile.releaseBasisPoints / 100}% of the HP damage you received. Cannot be dispelled; defeat cancels the burst.`
 }
 
 /** Generic tag help describes the rule; individual Skill readers supply its saved values. */
@@ -21,7 +21,7 @@ const descriptions: Readonly<Record<string, string>> = {
   counter:
     'Returns the chosen percentage of incoming damage to its source. Choose Physical Reflect, Magical Reflect or Full Reflect, its potency and duration.',
   endure:
-    'Prevents damage-dealing manual actions while active. When it expires naturally, releases the chosen share of HP damage received to each eligible target within the saved radius. Endure cannot be dispelled. Defeat ends it without a burst; recasting replaces the saved damage window.',
+    'Locks attacks while storing HP damage received. On expiry, releases the chosen percentage to nearby targets. Cannot be dispelled; defeat cancels the burst.',
   vengeance: 'Deals damage based on damage previously received, within its saved limits.',
   'hp-recovery': 'Restores a percentage of the target’s maximum HP.',
   'mp-recovery':

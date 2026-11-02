@@ -15,7 +15,11 @@ vi.mock('./battle-info-popover', () => ({
 }))
 
 import { BattleSelectedSkills } from './battle-selected-skills'
-import { battleNoncastAbilityInspection } from './battle-captured-action-cost'
+import {
+  battleNoncastAbilityInspection,
+  battleCapturedActionCost,
+  battleCapturedActionCanSelect,
+} from './battle-captured-action-cost'
 import type { BattleRuntime } from './battle-runtime'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { abilityBehaviorInformation } from '../character/ability-detail-presentation'
@@ -48,6 +52,87 @@ const runtime: BattleRuntime = {
   resonance: null,
   essence: null,
 }
+
+it.each([
+  ['discipline', 'endureBlocked'],
+  ['essence', 'endureBlocked'],
+  ['discipline', 'reversalBlocked'],
+  ['essence', 'reversalBlocked'],
+] as const)('disables a %s with %s even when priming is free', (kind, restriction) => {
+  const html = renderToStaticMarkup(
+    <BattleSelectedSkills
+      runtime={{
+        ...runtime,
+        techniques: kind === 'discipline' ? [technique] : [],
+        essence: kind === 'essence' ? { ...technique, description: '' } : null,
+      }}
+      actorId="actor"
+      disabled={false}
+      actionEconomy={100}
+      primeAvailableIds={[technique.id]}
+      onSelect={vi.fn()}
+      manualActionTargets={[
+        {
+          ownerCombatantId: 'actor',
+          actionId: technique.id,
+          behaviorId: 'use',
+          target: defaultBasicSkills()[0]!.ability.behaviors[0]!.targeting!,
+          costs: [],
+          [restriction]: true,
+        },
+      ]}
+    />,
+  )
+  const button = html.match(/<button[^>]*aria-label="[^"]*Forceful Strike[^>]*>/)?.[0]
+  expect(button).toBeTruthy()
+  expect(button).toContain('disabled=""')
+  expect(html).toContain('About Forceful Strike')
+})
+
+it('keeps mixed action support and armed Reversal cancellation selectable under attack restrictions', () => {
+  const target = defaultBasicSkills()[0]!.ability.behaviors[0]!.targeting!
+  const choices = [
+    { actionId: technique.id, behaviorId: 'attack', target, costs: [], reversalBlocked: true },
+    { actionId: technique.id, behaviorId: 'support', target, costs: [] },
+  ]
+  const resources = { ap: 100, mp: 10, hp: 100 }
+  expect(
+    battleCapturedActionCanSelect(battleCapturedActionCost(choices, [], resources), true, 0),
+  ).toBe(true)
+  expect(
+    battleCapturedActionCanSelect(
+      battleCapturedActionCost(choices, [], resources, 'attack'),
+      true,
+      0,
+    ),
+  ).toBe(false)
+  expect(
+    battleCapturedActionCanSelect(
+      battleCapturedActionCost(choices, [], resources, 'support'),
+      false,
+      0,
+    ),
+  ).toBe(true)
+  const armed = [
+    {
+      ...choices[0]!,
+      endureBlocked: true,
+      controlled: {
+        kind: 'reversal' as const,
+        phase: 'primed' as const,
+        canPrime: false,
+        canCancel: true,
+      },
+    },
+  ]
+  expect(
+    battleCapturedActionCanSelect(
+      battleCapturedActionCost(armed, [], { ap: 0, mp: 0, hp: 1 }),
+      false,
+      3,
+    ),
+  ).toBe(true)
+})
 
 it.each(['discipline', 'essence', 'resonance'] as const)(
   'keeps a captured %s prime visible while disabled and removes it when consumed',
@@ -677,7 +762,7 @@ it.each(['pve', 'pvp'] as const)(
   },
 )
 
-it('keeps an armed Reversal cancellation enabled despite paid resources and active cooldown', () => {
+it('keeps mixed armed Reversal cancellation enabled despite attack locks, paid resources and active cooldown', () => {
   const captured = [
     {
       ownerCombatantId: 'actor',
@@ -694,6 +779,8 @@ it('keeps an armed Reversal cancellation enabled despite paid resources and acti
         maximumElevationDifference: null,
       },
       costs: [{ resource: 'ap' as const, amount: 35 }],
+      endureBlocked: true,
+      reversalBlocked: true,
       controlled: {
         kind: 'reversal' as const,
         phase: 'primed' as const,
@@ -702,10 +789,18 @@ it('keeps an armed Reversal cancellation enabled despite paid resources and acti
       },
     },
   ]
+  const mixed = [
+    ...captured,
+    {
+      ...captured[0]!,
+      behaviorId: 'attack',
+      controlled: undefined,
+    },
+  ]
   const html = renderToStaticMarkup(
     <BattleSelectedSkills
       runtime={{ ...runtime, techniques: [technique] }}
-      manualActionTargets={captured}
+      manualActionTargets={mixed}
       actorId="actor"
       actionEconomy={0}
       resources={{ mp: 0, hp: 1 }}

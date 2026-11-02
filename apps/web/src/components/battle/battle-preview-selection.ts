@@ -46,6 +46,9 @@ export type BattlePreviewSkill = Pick<
   behaviorId?: string
   classification?: AbilityBehavior['classification']
   dealsDamage?: boolean
+  /** Safe owner-relative restriction; absent on historical projections. */
+  endureBlocked?: boolean
+  reversalBlocked?: boolean
   hasAllTargetEffects?: boolean
   modifierRoot?: CombatModifierRootFacts
   controlled?: BattleControlledActionAvailability
@@ -63,6 +66,8 @@ export interface BattleCapturedActionTarget {
   behaviorId: string
   classification?: AbilityBehavior['classification']
   dealsDamage?: boolean
+  endureBlocked?: boolean
+  reversalBlocked?: boolean
   hasAllTargetEffects?: boolean
   modifierRoot?: CombatModifierRootFacts
   controlled?: BattleControlledActionAvailability
@@ -121,6 +126,8 @@ export function resolveBattleCapturedSkill(
     behaviorId: choice.behaviorId,
     classification: choice.classification,
     dealsDamage: choice.dealsDamage,
+    endureBlocked: choice.endureBlocked,
+    reversalBlocked: choice.reversalBlocked,
     hasAllTargetEffects: choice.hasAllTargetEffects,
     modifierRoot: choice.modifierRoot,
     controlled: choice.controlled,

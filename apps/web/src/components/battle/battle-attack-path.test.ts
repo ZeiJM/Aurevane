@@ -317,3 +317,140 @@ it('retains the complete Ground Single range after aiming, without depending on 
     ).toEqual(reach)
   }
 })
+
+describe('Single status potential spatial legality', () => {
+  const origin = { x: 1, y: 1 }
+  const board = {
+    width: 9,
+    height: 7,
+    tiles: Array.from({ length: 63 }, (_, index) => {
+      const position = { x: index % 9, y: Math.floor(index / 9) }
+      return {
+        position,
+        elevation: position.x === 4 && position.y === 1 ? 3 : 0,
+        terrainId: position.x === 3 && position.y === 1 ? 'wall' : 'open',
+      }
+    }),
+    terrains: [
+      { id: 'open', traversalCost: 1 },
+      { id: 'wall', traversalCost: null },
+    ],
+    placements: [
+      {
+        combatantId: 'actor',
+        position: origin,
+        facing: 'east' as const,
+        movementProfileId: 'ground',
+      },
+      {
+        combatantId: 'enemy',
+        position: { x: 2, y: 1 },
+        facing: 'west' as const,
+        movementProfileId: 'ground',
+      },
+      {
+        combatantId: 'ally',
+        position: { x: 1, y: 2 },
+        facing: 'east' as const,
+        movementProfileId: 'ground',
+      },
+      {
+        combatantId: 'defeated',
+        position: { x: 8, y: 6 },
+        facing: 'west' as const,
+        movementProfileId: 'ground',
+      },
+    ],
+    battle: {
+      combatants: [
+        { id: 'actor', hp: 100, teamId: 'one' },
+        { id: 'enemy', hp: 100, teamId: 'two' },
+        { id: 'ally', hp: 100, teamId: 'one' },
+        { id: 'defeated', hp: 0, teamId: 'two' },
+      ],
+    },
+  }
+  const target = {
+    ...basic.target,
+    geometryVersion: 3 as const,
+    categories: ['enemy' as const],
+    minimumRange: 1,
+    maximumRange: 15,
+    maximumElevationDifference: 3,
+    requiresLineOfSight: false,
+  }
+  const spatial = {
+    tactical: board,
+    actorId: 'actor',
+    terrainOverlays: [{ kind: 'steam', position: { x: 1, y: 3 } }],
+  }
+  it('keeps every Single15 tile including empty height-three tiles without LOS', () => {
+    const before = JSON.stringify(board)
+    const reach = battleTargetReachTiles(
+      board,
+      origin,
+      target,
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(reach.size).toBe(62)
+    expect(reach.has('1:1')).toBe(false)
+    expect(reach.has('4:1')).toBe(true)
+    expect(reach.has('8:6')).toBe(true)
+    expect(reach.has('1:4')).toBe(true)
+    expect(
+      battleTargetReachTiles(
+        board,
+        origin,
+        target,
+        [{ x: 2, y: 1 }],
+        {
+          aimSource: 'player',
+          selection: { kind: 'unit', combatantId: 'enemy' },
+        },
+        spatial,
+      ),
+    ).toEqual(reach)
+    expect(JSON.stringify(board)).toBe(before)
+  })
+  it('retains authored elevation and LOS exclusions instead of broadening legality', () => {
+    const elevation = battleTargetReachTiles(
+      board,
+      origin,
+      { ...target, maximumElevationDifference: 1 },
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(elevation.has('4:1')).toBe(false)
+    expect(elevation.has('5:1')).toBe(true)
+    const visible = battleTargetReachTiles(
+      board,
+      origin,
+      { ...target, requiresLineOfSight: true },
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(visible.has('2:1')).toBe(true)
+    expect(visible.has('4:1')).toBe(false)
+    expect(visible.has('5:1')).toBe(false)
+    expect(visible.has('1:4')).toBe(false)
+    expect(visible.has('0:1')).toBe(true)
+  })
+  it('keeps living occupancy exclusions for Empty Tile while defeated units free tiles', () => {
+    const reach = battleTargetReachTiles(
+      board,
+      origin,
+      { ...target, kind: 'empty-tile', categories: ['ground'] },
+      [],
+      { aimSource: 'implicit' },
+      spatial,
+    )
+    expect(reach.has('2:1')).toBe(false)
+    expect(reach.has('1:2')).toBe(false)
+    expect(reach.has('8:6')).toBe(true)
+    expect(reach.has('0:1')).toBe(true)
+  })
+})

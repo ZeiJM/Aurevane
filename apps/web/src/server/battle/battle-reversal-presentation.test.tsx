@@ -20,6 +20,11 @@ import { percentageDotEncounter } from '../../../../../packages/game-core/src/co
 import { projectBattleSnapshot } from './battle-session-service'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 import { BattleCombatantEffects } from '@/components/battle/battle-combatant-effects'
+import * as popovers from '@/components/battle/battle-info-popover'
+import { buildBattleLogView } from './battle-log-service'
+import { attachRecordedBattleLogSkillContext } from './battle-log-skill-context'
+import { buildBattleChronicle } from '@/components/battle/battle-log-chronicle-model'
+import { formatBattleLogForClipboard } from '@/components/battle/battle-log-clipboard'
 import {
   projectBattleManualActionTargets,
   projectBattleStatusStateForViewer,
@@ -31,7 +36,7 @@ import {
 
 vi.mock('server-only', () => ({}))
 
-function fixture(currentPolicy = false) {
+function fixture(currentPolicy = false, family: 'physical' | 'mystic' = 'physical') {
   const captured = captureCombatAbilitySource({
     ...source({
       id: 'prepare',
@@ -62,7 +67,7 @@ function fixture(currentPolicy = false) {
             type: 'reversal',
             recipient: 'actor',
             version: 1,
-            family: 'physical',
+            family,
             reflectionBasisPoints: 12500,
             attackerMaxHpCapBasisPoints: 1800,
             defenderMaxHpCapBasisPoints: 2400,
@@ -81,17 +86,15 @@ function fixture(currentPolicy = false) {
     reconcileCombatAbilitySources(preparePv1fTurnEconomy(base), [captured]),
     base.statBridge,
   )
-  const state = reattachStatDrivenCombatBridge(
-    primeCombatControlledAbility({
-      state: initial,
-      actorId: 'actor',
-      sourceInstanceId: captured.sourceInstanceId,
-      behaviorId: 'prepare',
-      content: PV1F_COMBAT_CONTENT,
-    }).state,
-    base.statBridge,
-  )
-  return { state, captured, initial }
+  const prepared = primeCombatControlledAbility({
+    state: initial,
+    actorId: 'actor',
+    sourceInstanceId: captured.sourceInstanceId,
+    behaviorId: 'prepare',
+    content: PV1F_COMBAT_CONTENT,
+  })
+  const state = reattachStatDrivenCombatBridge(prepared.state, base.statBridge)
+  return { state, captured, initial, events: prepared.events }
 }
 
 describe('Reversal captured readers and viewer profiles', () => {
@@ -108,10 +111,11 @@ describe('Reversal captured readers and viewer profiles', () => {
     expect(report.effectDescriptions[0]).toContain('24%')
     expect(report.effects[0]?.parts.timing).toBe('Controlled')
   })
-  it('shows armed state to owner, ordinary opponent and spectator without leaking the ledger', () => {
+  it('shows armed state while keeping its family exclusive to owners and allies', () => {
     const { state } = fixture()
     for (const viewer of [
       deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, ['actor']),
+      deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, ['ally']),
       deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, ['enemy']),
       createSpectatorBattleViewerEntitlement(),
     ]) {
@@ -122,12 +126,13 @@ describe('Reversal captured readers and viewer profiles', () => {
       const statuses = publicSnapshot.statusState.find(
         (row) => row.combatantId === 'actor',
       )!.statuses
+      const friendly = viewer.kind === 'participant' && viewer.friendlyTeamIds.has('players')
       expect(statuses).toContainEqual(
         expect.objectContaining({
           statusId: 'reversal',
           presentationDuration: 'until-reversal-ends',
           reversal: {
-            family: 'physical',
+            ...(friendly ? { family: 'physical' } : {}),
             reflectionBasisPoints: 12500,
             attackerMaxHpCapBasisPoints: 1800,
             defenderMaxHpCapBasisPoints: 2400,
@@ -147,6 +152,108 @@ describe('Reversal captured readers and viewer profiles', () => {
       }
     }
   })
+  it.each(['physical', 'mystic'] as const)(
+    'keeps generated %s preparation generic in safe logs and the shared clipboard',
+    async (family) => {
+      const { events, captured } = fixture(true, family)
+      expect(events).toContainEqual(expect.objectContaining({ event: 'reversal_prepared', family }))
+      const records = events.map((event, eventIndex) => ({
+        battleVersion: 1,
+        eventIndex,
+        createdAt: '2026-11-02T00:00:00Z',
+        event,
+      }))
+      const view = buildBattleLogView('session', records)
+      const preparation = view.entries.find((entry) => entry.eventType === 'reversal_prepared')!
+      expect(preparation.messageTemplate).toBe('{actor} prepares a Reversal.')
+      expect(preparation.templateValues).not.toHaveProperty('family')
+      expect(preparation.actionId).toBeNull()
+      // Existing enriched history must lose the full report as well as fresh enrichment.
+      const enriched = await attachRecordedBattleLogSkillContext(
+        {
+          ...view,
+          entries: view.entries.map((entry) =>
+            entry.actionId === captured.abilityId
+              ? {
+                  ...entry,
+                  actionContext: {
+                    family: 'skill' as const,
+                    skillId: captured.abilityId,
+                    contentVersion: captured.contentVersion,
+                    name: `${family} secret counter`,
+                    description: `${family} secret counter report`,
+                    flavor: null,
+                  },
+                }
+              : entry,
+          ),
+        },
+        records,
+        undefined,
+      )
+      expect(enriched.entries.some((entry) => entry.eventType === 'combat_action_used')).toBe(false)
+      expect(enriched.entries).toHaveLength(view.entries.length - 1)
+      expect(enriched.entries.filter((entry) => entry.eventType !== 'reversal_prepared')).toEqual(
+        view.entries.filter(
+          (entry) => !['combat_action_used', 'reversal_prepared'].includes(entry.eventType),
+        ),
+      )
+      expect(JSON.stringify(enriched)).not.toMatch(/physical|mystic|secret counter/i)
+      const names = { combatantNames: { actor: 'A' } }
+      const copied = formatBattleLogForClipboard(enriched.entries, names)
+      expect(copied.match(/A prepares a Reversal/g)).toHaveLength(1)
+      expect(copied).not.toMatch(/physical|mystic|uses Reversal/i)
+      const outcomes = buildBattleChronicle(enriched.entries, names).flatMap((round) =>
+        round.actors.flatMap((actor) =>
+          actor.actions.flatMap((action) => action.outcomes.map((outcome) => outcome.text)),
+        ),
+      )
+      expect(outcomes).toEqual(['A prepares a Reversal'])
+      const historical = {
+        ...preparation,
+        templateValues: { family: family === 'physical' ? 'Physical' : 'Mystic' },
+      }
+      expect(JSON.stringify(buildBattleChronicle([historical], names))).not.toMatch(
+        /physical|mystic/i,
+      )
+    },
+  )
+  it.each([false, true])(
+    'keeps enemy and spectator armed popovers generic under current policy %s',
+    (current) => {
+      const { state } = fixture(current)
+      const popup = vi
+        .spyOn(popovers, 'BattleInfoPopover')
+        .mockImplementation(({ trigger, children }) =>
+          createElement('aside', null, trigger, children),
+        )
+      try {
+        for (const viewer of [
+          deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, ['enemy']),
+          createSpectatorBattleViewerEntitlement(),
+        ]) {
+          const status = projectBattleSnapshot(state, viewer)
+            .statusState.find((row) => row.combatantId === 'actor')!
+            .statuses.find((row) => row.statusId === 'reversal')!
+          expect(status.reversal).not.toHaveProperty('family')
+          expect(status.reversal?.reflectionBasisPoints).toBe(12500)
+          for (const compact of [true, false]) {
+            const html = renderToStaticMarkup(
+              createElement(BattleCombatantEffects, { name: 'A', statuses: [status], compact }),
+            )
+            expect(html).toContain('125%')
+            expect(html).toContain('matching')
+            expect(html).not.toMatch(/Physical|Mystic/)
+            expect(html).toContain(
+              current ? 'Until triggered or cancelled' : 'next actual owner turn',
+            )
+          }
+        }
+      } finally {
+        popup.mockRestore()
+      }
+    },
+  )
   it.each([false, true])(
     'pins armed and captured reader lifetime without exposing execution metadata (current: %s)',
     (current) => {

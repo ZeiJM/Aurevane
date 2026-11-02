@@ -2,8 +2,8 @@ import type { CombatReversalPayload } from '@aurevane/game-core/combat/combat-re
 /** Saved values shared by authored reports and viewer-only armed-counter rows. */
 export type ReversalPresentationValues = Pick<
   CombatReversalPayload,
-  'family' | 'reflectionBasisPoints' | 'attackerMaxHpCapBasisPoints' | 'defenderMaxHpCapBasisPoints'
-> & { policyVersion?: 1 }
+  'reflectionBasisPoints' | 'attackerMaxHpCapBasisPoints' | 'defenderMaxHpCapBasisPoints'
+> & { family?: CombatReversalPayload['family']; policyVersion?: 1 }
 
 export interface ReversalPresentationOptions {
   legacyReversal?: boolean
@@ -16,10 +16,10 @@ export function isReversalPresentationEffect(effect: unknown): effect is CombatR
 }
 
 export const REVERSAL_STRAIN_DESCRIPTION =
-  'Attack Skills and offensive automatic Skills are unavailable through the end of the next complete owner turn. The normal inherent Basic Attack, movement, Guard, Recover, healing and non-offensive utility remain available. Reversal cannot be prepared during Strain. Reversal Strain cannot be copied, stacked, cleansed or dispelled.'
+  'Basic Attack, Attack Skills and offensive automatic Skills are unavailable through the end of the next complete owner turn. Movement, Guard, Recover, healing and non-offensive utility remain available. Reversal cannot be prepared during Strain. Reversal Strain cannot be copied, stacked, cleansed or dispelled.'
 
 export function reversalMagnitude(values: ReversalPresentationValues): string {
-  return `${values.reflectionBasisPoints / 100}% ${values.family === 'physical' ? 'Physical' : 'Mystic'}`
+  return `${values.reflectionBasisPoints / 100}%${values.family ? ` ${values.family === 'physical' ? 'Physical' : 'Mystic'}` : ''}`
 }
 
 export function reversalRuleDescription(options: ReversalPresentationOptions = {}): string {
@@ -30,7 +30,8 @@ export function reversalDescription(
   values: ReversalPresentationValues,
   options: ReversalPresentationOptions = {},
 ): string {
-  const family = values.family === 'physical' ? 'Physical' : 'Mystic'
+  const family =
+    values.family === 'physical' ? 'Physical' : values.family === 'mystic' ? 'Mystic' : 'matching'
   const lifetime = options.legacyReversal
     ? `Expires at the next actual owner turn; return is capped at the lower of ${values.attackerMaxHpCapBasisPoints / 100}% attacker maximum HP or ${values.defenderMaxHpCapBasisPoints / 100}% your maximum HP.`
     : 'Remains armed until triggered or cancelled.'

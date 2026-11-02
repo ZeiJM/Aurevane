@@ -93,8 +93,11 @@ function fixture(
     stale?: boolean
     blocked?: boolean
     withMove?: boolean
-    targetPreview?: 'utility' | 'healing' | 'damage' | 'circle' | 'ground' | 'line'
+    targetPreview?: 'utility' | 'healing' | 'damage' | 'circle' | 'ground' | 'line' | 'all'
     allHealingAim?: 'self' | 'enemy'
+    blindAttack?: boolean
+    withDamage?: boolean
+    largeBoard?: boolean
   } = {},
 ) {
   const input = capturedBasicBattle(support)
@@ -110,6 +113,21 @@ function fixture(
       },
     },
   }
+  if (options.largeBoard) {
+    state = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        width: 9,
+        height: 7,
+        tiles: Array.from({ length: 63 }, (_, index) => ({
+          position: { x: index % 9, y: Math.floor(index / 9) },
+          elevation: index % 4,
+          terrainId: 'open',
+        })),
+      },
+    }
+  }
   if (options.targetPreview) {
     const kind = options.targetPreview
     const sources = state.capturedAbilitySources!.map((source) => {
@@ -119,8 +137,12 @@ function fixture(
         behaviors: source.definition.behaviors.map((behavior) => ({
           ...behavior,
           classification:
-            kind === 'healing' ? 'recovery' : kind === 'damage' ? 'attack' : 'utility',
-          ...(kind === 'damage' ? { attackFamily: 'physical' } : {}),
+            kind === 'healing'
+              ? 'recovery'
+              : kind === 'damage' || options.blindAttack
+                ? 'attack'
+                : 'utility',
+          ...(kind === 'damage' || options.blindAttack ? { attackFamily: 'physical' } : {}),
           targeting: {
             ...behavior.targeting,
             geometryVersion: 3,
@@ -135,14 +157,20 @@ function fixture(
             ],
             teamPolicy:
               options.allHealingAim === 'self' ? 'self' : kind === 'ground' ? 'any' : 'enemy',
-            minimumRange: 0,
-            maximumRange: options.allHealingAim === 'self' ? 0 : 3,
+            minimumRange: options.blindAttack ? 1 : 0,
+            maximumRange:
+              options.allHealingAim === 'self' || kind === 'all' ? 0 : options.largeBoard ? 15 : 3,
+            maximumElevationDifference: options.blindAttack
+              ? 3
+              : (behavior.targeting?.maximumElevationDifference ?? null),
             shape:
               kind === 'circle'
                 ? { kind: 'circle', radius: 3 }
                 : kind === 'line'
                   ? { kind: 'line', length: 3 }
-                  : { kind: 'single' },
+                  : kind === 'all'
+                    ? { kind: 'all' }
+                    : { kind: 'single' },
             requiresLineOfSight: false,
           },
           effects: [
@@ -152,6 +180,14 @@ function fixture(
                     id: 'move',
                     timing: 'instant',
                     payload: { type: 'move', recipient: 'actor', maximumTiles: 3 },
+                  },
+                ]
+              : []),
+            ...(options.withDamage
+              ? [
+                  {
+                    id: 'damage',
+                    payload: { type: 'damage', recipient: 'affected-units', amount: 1 },
                   },
                 ]
               : []),
@@ -170,8 +206,11 @@ function fixture(
                     : {
                         type: 'apply-status',
                         recipient: 'affected-units',
-                        statusId: 'guarded',
+                        statusId: options.blindAttack ? 'blind' : 'guarded',
                         stacks: 1,
+                        ...(options.blindAttack
+                          ? { potencyBasisPoints: 10000, durationTurns: 2 }
+                          : {}),
                       },
             },
           ],
@@ -661,45 +700,94 @@ for (const mode of ['pve', 'pvp'] as const) {
   })
 }
 
-for (const mode of ['pve', 'pvp'] as const) {
-  it.each(['utility', 'healing'] as const)(
-    mode + ' highlights only selectable single-unit %s tiles',
-    (kind) => {
-      const input = fixture(kind === 'healing' ? 'basic.recover' : 'basic.guard', mode, {
-        targetPreview: kind,
-      })
-      input.begin('guard')
-      const tree = input.render()
-      const enemy = input.state.tactical.placements.find((row) => row.combatantId === 'enemy')!
-      const tileAt = (x: number, y: number) =>
-        find(
+for (const desktop of [false, true]) {
+  for (const mode of ['pve', 'pvp'] as const) {
+    it.each(['utility', 'healing'] as const)(
+      `${mode} ${desktop ? 'desktop' : 'mobile'} paints the complete Single %s potential range`,
+      (kind) => {
+        hooks.desktop = desktop
+        const input = fixture(kind === 'healing' ? 'basic.recover' : 'basic.guard', mode, {
+          targetPreview: kind,
+        })
+        const before = JSON.stringify(input.state)
+        input.begin('guard')
+        const tree = input.render()
+        const actor = input.state.tactical.placements.find((row) => row.combatantId === 'actor')!
+        const attr = kind === 'healing' ? 'data-heal-target' : 'data-buff-path'
+        for (const tile of input.state.tactical.tiles) {
+          const button = find(
+            tree,
+            (node) =>
+              node.type === 'button' &&
+              String(node.props['aria-label']).startsWith(
+                `Tile ${tile.position.x + 1}, ${tile.position.y + 1};`,
+              ),
+          )!
+          const distance =
+            Math.abs(tile.position.x - actor.position.x) +
+            Math.abs(tile.position.y - actor.position.y)
+          expect(button.props[attr], String(button.props['aria-label'])).toBe(
+            distance <= 3 ? true : undefined,
+          )
+          expect(button.props['data-attack-path']).not.toBe(true)
+          expect(button.props['data-ground-path']).not.toBe(true)
+        }
+        expect(JSON.stringify(input.state)).toBe(before)
+        expect(input.commit).not.toHaveBeenCalled()
+      },
+    )
+    it.each([false, true])(
+      `${mode} ${desktop ? 'desktop' : 'mobile'} keeps Attack Physical Blind Single15 reach with damage=%s`,
+      (withDamage) => {
+        hooks.desktop = desktop
+        const input = fixture('basic.guard', mode, {
+          targetPreview: 'utility',
+          blindAttack: true,
+          withDamage,
+          largeBoard: true,
+        })
+        const before = JSON.stringify(input.state)
+        input.begin('guard')
+        const tree = input.render()
+        const actor = input.state.tactical.placements.find((row) => row.combatantId === 'actor')!
+        for (const tile of input.state.tactical.tiles) {
+          const button = find(
+            tree,
+            (node) =>
+              node.type === 'button' &&
+              String(node.props['aria-label']).startsWith(
+                `Tile ${tile.position.x + 1}, ${tile.position.y + 1};`,
+              ),
+          )!
+          const isActor =
+            tile.position.x === actor.position.x && tile.position.y === actor.position.y
+          expect(
+            button.props[withDamage ? 'data-attack-path' : 'data-buff-path'],
+            String(button.props['aria-label']),
+          ).toBe(isActor ? undefined : true)
+          expect(button.props[withDamage ? 'data-buff-path' : 'data-attack-path']).not.toBe(true)
+          expect(button.props['data-heal-target']).not.toBe(true)
+          expect(button.props['data-ground-path']).not.toBe(true)
+        }
+        const ally = input.state.tactical.placements.find((row) => row.combatantId === 'ally')!
+        const allyTile = find(
           tree,
           (node) =>
             node.type === 'button' &&
-            String(node.props['aria-label']).startsWith(`Tile ${x + 1}, ${y + 1};`),
+            String(node.props['aria-label']).startsWith(
+              `Tile ${ally.position.x + 1}, ${ally.position.y + 1};`,
+            ),
         )!
-      const enemyTile = tileAt(enemy.position.x, enemy.position.y)
-      expect(enemyTile).not.toBeNull()
-      expect(
-        enemyTile.props[kind === 'healing' ? 'data-heal-target' : 'data-buff-path'],
-        String(enemyTile.props['aria-label']),
-      ).toBe(true)
-      const emptyTile = find(
-        tree,
-        (node) =>
-          node.type === 'button' &&
-          String(node.props['aria-label']).startsWith('Tile ') &&
-          !String(node.props['aria-label']).includes('occupied by') &&
-          (node.props['data-buff-path'] === true || node.props['data-heal-target'] === true),
-      )
-      expect(emptyTile).toBeNull()
-      expect(input.commit).not.toHaveBeenCalled()
-    },
-  )
+        if (mode === 'pve') expect(allyTile.props['data-target']).toBeUndefined()
+        expect(JSON.stringify(input.state)).toBe(before)
+        expect(input.commit).not.toHaveBeenCalled()
+      },
+    )
+  }
 }
 
 for (const mode of ['pve', 'pvp'] as const) {
-  it.each(['damage', 'circle', 'ground'] as const)(
+  it.each(['damage', 'line', 'circle', 'all', 'ground'] as const)(
     mode + ' retains empty-tile %s footprints',
     (kind) => {
       const input = fixture('basic.guard', mode, {
@@ -713,20 +801,35 @@ for (const mode of ['pve', 'pvp'] as const) {
           : kind === 'ground'
             ? 'data-ground-path'
             : 'data-buff-path'
-      expect(
-        find(
+      const actor = input.state.tactical.placements.find((row) => row.combatantId === 'actor')!
+      for (const tile of input.state.tactical.tiles) {
+        const button = find(
           tree,
           (node) =>
             node.type === 'button' &&
-            String(node.props['aria-label']).startsWith('Tile ') &&
-            !String(node.props['aria-label']).includes('occupied by') &&
-            node.props[attr] === true,
-        ),
-      ).not.toBeNull()
+            String(node.props['aria-label']).startsWith(
+              `Tile ${tile.position.x + 1}, ${tile.position.y + 1};`,
+            ),
+        )!
+        const dx = Math.abs(tile.position.x - actor.position.x)
+        const dy = Math.abs(tile.position.y - actor.position.y)
+        const expected =
+          kind === 'all' ||
+          (kind === 'line'
+            ? (dx === 0 || dy === 0) && dx + dy >= 1 && dx + dy <= 3
+            : kind === 'circle'
+              ? Math.max(dx, dy) >= 1 && Math.max(dx, dy) <= 3
+              : dx + dy <= 3)
+        expect(button.props[attr], String(button.props['aria-label'])).toBe(
+          expected ? true : undefined,
+        )
+        if (kind !== 'damage') expect(button.props['data-attack-path']).not.toBe(true)
+        if (kind !== 'ground') expect(button.props['data-ground-path']).not.toBe(true)
+      }
       expect(input.commit).not.toHaveBeenCalled()
     },
   )
-  it(mode + ' separates legal Move destinations from post-move unit-only aim', () => {
+  it(mode + ' separates legal Move destinations from post-move potential range', () => {
     const input = fixture('basic.guard', mode, { targetPreview: 'utility', withMove: true })
     input.begin('guard')
     const tree = input.render()
@@ -761,7 +864,7 @@ for (const mode of ['pve', 'pvp'] as const) {
           !String(node.props['aria-label']).includes('occupied by') &&
           node.props['data-buff-path'] === true,
       ),
-    ).toBeNull()
+    ).not.toBeNull()
     expect(input.commit).not.toHaveBeenCalled()
   })
 }

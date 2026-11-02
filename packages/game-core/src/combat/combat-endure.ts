@@ -96,11 +96,22 @@ export function combatEndureBlocksAction(
   action: Pick<CombatActionDefinition, 'effects' | 'sourceType'>,
   content?: CombatContentCatalog,
 ): boolean {
-  if (!activeCombatEndure(state, actorId)) return false
+  return (
+    activeCombatEndure(state, actorId) !== undefined &&
+    combatActionDealsDamage(state, actorId, action, content)
+  )
+}
+/** Shared offensive payload classifier, independent of any active restriction. */
+export function combatActionDealsDamage(
+  state: Pick<CombatEncounterState, 'statusState' | 'effectState'>,
+  actorId: string,
+  action: Pick<CombatActionDefinition, 'effects' | 'sourceType'>,
+  content?: CombatContentCatalog,
+): boolean {
   return (
     action.sourceType === 'basic-attack' ||
     action.effects.some((effect) => {
-      if (effect.type === 'damage') return effect.amount > 0 || effect.vengeance !== undefined
+      if (effect.type === 'damage') return true
       if (['burn', 'poison', 'bleed'].includes(effect.type)) return true
       if (effect.type === 'apply-status') return statusDealsDamage(effect.statusId, content)
       if (effect.type !== 'copy-statuses' || effect.mode !== 'curse') return false

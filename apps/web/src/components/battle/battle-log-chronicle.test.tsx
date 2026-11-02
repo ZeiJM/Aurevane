@@ -117,9 +117,7 @@ describe('approved Battle Chronicle', () => {
       expect(html).toContain('24 damage')
       expect(html).toContain('+3 MP')
       expect(html).toContain('aria-label="Explain Slow"')
-      expect(html).toContain(
-        'Slow increases Weon&#x27;s movement cost per entered tile for 2 rounds',
-      )
+      expect(html).toContain('Slow raises Weon&#x27;s movement cost per tile for 2 rounds')
       expect(html).toContain('to Weon')
       expect(html).not.toContain('Action recorded; no effect result available.')
       expect(JSON.stringify(entries)).toBe(before)
@@ -584,7 +582,7 @@ describe('approved Battle Chronicle', () => {
     expect(html).toMatch(/data-outcome-tone="recovery"[^]*?\+12 HP/)
     expect(html).toMatch(/data-outcome-tone="recovery"[^]*?\+4 MP/)
     expect(html).toContain('aria-label="Explain Bleed"')
-    expect(html).toContain('Weon begins bleeding for 3 turns')
+    expect(html).toContain('Weon starts bleeding for 3 turns')
   })
 
   it('places only recorded and verified Resonance results under its pinned special entry', () => {
@@ -703,7 +701,7 @@ describe('approved Battle Chronicle', () => {
       }),
     ])
     expect(html).toContain(
-      'Marked will increase its source&#x27;s Accuracy against Weon at the start of round 3, for 2 affected turns!',
+      'Marked will boost its source&#x27;s Accuracy against Weon (from round 3; 2 turns)',
     )
     expect(html).not.toContain('during rounds 3–4')
   })
@@ -740,9 +738,7 @@ describe('approved Battle Chronicle', () => {
       }),
     ])
     expect(html).toContain('Zei lowered his guard!')
-    expect(html).toContain(
-      'Lowered Guard will take effect on Zei at the start of round 3, for 1 affected turn!',
-    )
+    expect(html).toContain('Lowered Guard will take effect on Zei (from round 3; 1 turn)')
     expect(html).toContain('Zei is left wide open to the enemy for 1 turn.')
     expect(html).not.toContain('Battle Lowered Guard Apply')
     expect(html).not.toContain('Lowered Guard, 1 turn')
@@ -796,7 +792,7 @@ describe('approved Battle Chronicle', () => {
     ])
     expect(html).toContain('aria-label="Explain Rooted"')
     expect(html).toContain('aria-label="Explain Barrier"')
-    expect(html).toContain('Rooted will prevent Weon from moving at the start of round 3!')
+    expect(html).toContain('Rooted will lock Weon&#x27;s movement (from round 3)')
     expect(html).not.toContain('Root pending')
     expect(html).toContain('gained 9 Barrier.')
   })
@@ -814,9 +810,9 @@ describe('approved Battle Chronicle', () => {
         templateValues: { effect: 'Slow' },
       }),
     ])
-    expect(html).toContain('Rooted will prevent Weon from moving at the start of round 6!')
+    expect(html).toContain('Rooted will lock Weon&#x27;s movement (from round 6)')
     expect(html).toContain(
-      'Slow will increase Zei&#x27;s movement cost per entered tile at the start of a future round!',
+      'Slow will raise Zei&#x27;s movement cost per tile (from a future round)',
     )
     expect(html).not.toContain('round undefined')
   })
@@ -835,7 +831,7 @@ it.each([1, 4])(
     ]
     const html = render(rows)
     const copied = formatBattleLogForClipboard(rows, { playerName: 'Zei', combatantNames: names })
-    const expected = `HP Recovery will restore ${applications} application${applications === 1 ? '' : 's'} on Weon, beginning at the start of round 4!`
+    const expected = `HP Recovery: ${applications} application${applications === 1 ? '' : 's'} on Weon (from round 4)`
     expect(html).toContain(expected)
     expect(copied).toContain(expected)
     expect(copied).not.toContain('during rounds')

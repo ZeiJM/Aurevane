@@ -72,6 +72,58 @@ function incoming(state: CombatEncounterState, amount = 20) {
   ).state
 }
 describe('Endure', () => {
+  it('rejects zero-base manual damage before any resources or RNG change', () => {
+    const state = cast()
+    const before = JSON.stringify(state)
+    const attack = action([{ type: 'damage', recipient: 'primary-unit', amount: 0 }], false)
+    const target = { kind: 'unit' as const, combatantId: 'enemy' }
+    expect(evaluateCombatAction(state, attack, target, PV1F_COMBAT_CONTENT).issues).toContainEqual(
+      expect.objectContaining({ code: 'endure-active' }),
+    )
+    expect(() => executeCombatAction(state, attack, target, PV1F_COMBAT_CONTENT)).toThrow(
+      /endure-active/,
+    )
+    expect(JSON.stringify(state)).toBe(before)
+  })
+  it('records an empty natural release without exposing accumulated damage', () => {
+    const result = release(finish(cast()).state)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'status_expired',
+        combatantId: 'actor',
+        statusId: 'endure',
+        endureOutcome: 'empty',
+      }),
+    )
+    expect(result.events.some((event) => event.event === 'damage_applied')).toBe(false)
+    expect(result.state.endureState?.applications).toEqual([])
+    expect(JSON.stringify(result.events)).not.toContain('receivedDamage')
+  })
+  it('distinguishes stored power with no targets from an empty release', () => {
+    const charged = incoming(cast({ radiusTiles: 1 }))
+    const moved = {
+      ...charged,
+      tactical: {
+        ...charged.tactical,
+        placements: charged.tactical.placements.map((row) =>
+          row.combatantId === 'actor' ? { ...row, position: { x: 4, y: 4 } } : row,
+        ),
+      },
+    }
+    const result = release(moved)
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'status_expired',
+        combatantId: 'actor',
+        statusId: 'endure',
+        endureOutcome: 'no-targets',
+      }),
+    )
+    expect(result.events.some((event) => event.event === 'damage_applied')).toBe(false)
+    expect(result.state.endureState?.applications).toEqual([])
+    expect(finish(result.state).events.some((event) => 'endureOutcome' in event)).toBe(false)
+    expect(JSON.stringify(result.events)).not.toContain('receivedDamage')
+  })
   it('captures a private actual HP damage ledger and blocks damaging actions while leaving utility legal', () => {
     const state = cast()
     expect(state.statusState.find((row) => row.combatantId === 'actor')!.statuses[0]).toMatchObject(

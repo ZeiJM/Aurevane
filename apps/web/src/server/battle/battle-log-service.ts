@@ -381,11 +381,10 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       if (!['physical', 'mystic'].includes(String(event.family))) return null
       const actorCombatantId = stringValue(event.combatantId)
       return createEntry(record, eventType, {
-        messageTemplate: '{actor} prepares {family} Reversal.',
-        templateValues: { family: event.family === 'physical' ? 'Physical' : 'Mystic' },
+        messageTemplate: '{actor} prepares a Reversal.',
         actorCombatantId,
         targetCombatantId: actorCombatantId,
-        actionId: presentationActionId(event.actionId),
+        actionId: null,
         kind: 'status',
         headline: 'Reversal prepared',
         facts: fact('One counter armed'),
@@ -1025,6 +1024,29 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'status_expired': {
       const targetCombatantId = stringValue(event.combatantId)
       const label = statusLabel(event.statusId)
+      const endureOutcome =
+        event.statusId === 'endure' && ['empty', 'no-targets'].includes(String(event.endureOutcome))
+          ? String(event.endureOutcome)
+          : null
+      if (endureOutcome)
+        return createEntry(record, eventType, {
+          message:
+            endureOutcome === 'empty'
+              ? `${combatantLabel(event.combatantId)} has no stored power to release as Endure ends.`
+              : `${combatantLabel(event.combatantId)} releases Endure's stored power, but no targets are in range.`,
+          messageTemplate:
+            endureOutcome === 'empty'
+              ? '{target} has no stored power to release as Endure ends.'
+              : "{target} releases Endure's stored power, but no targets are in range.",
+          templateValues: { endureOutcome },
+          actorCombatantId: targetCombatantId,
+          targetCombatantId,
+          actionId: 'status.endure.release',
+          statusId: 'endure',
+          kind: 'status',
+          headline: 'Endure',
+          facts: [],
+        })
       return createEntry(record, eventType, {
         message: `${label} expired on ${combatantLabel(event.combatantId)}.`,
         messageTemplate: '{status} expired on {target}.',

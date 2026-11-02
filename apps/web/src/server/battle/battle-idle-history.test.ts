@@ -146,7 +146,7 @@ describe('idle narration from persisted command events', () => {
       outcomes: [
         expect.objectContaining({
           statusId: 'lowered-guard',
-          text: 'Defenseless will take effect on Zei at the start of round 4!',
+          text: 'Defenseless will take effect on Zei (from round 4)',
           duration: '1 round',
         }),
       ],
