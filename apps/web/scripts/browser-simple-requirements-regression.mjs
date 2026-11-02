@@ -146,7 +146,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
           .locator('dt')
           .filter({ hasText: /^Requirements$/ })
           .locator('xpath=following-sibling::dd[1]')
-      async function assertReaders(text) {
+      async function assertReaders(text, linkedTag = true) {
         for (const name of readerNames) {
           const reader = page.getByRole('region', { name, exact: true })
           await expect(requirementLine(reader)).toContainText(text)
@@ -154,7 +154,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
             /event|action|Discipline|All conditions|Any condition/i,
           )
           const notes = reader.getByRole('list', { name: 'Requirement explanations' })
-          if (text === 'None') {
+          if (text === 'None' || !linkedTag) {
             await expect(notes).toHaveCount(0)
           } else {
             const reference = requirementLine(reader).locator('[data-combat-tag-reference]').first()
@@ -440,36 +440,97 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       await group
         .getByRole('combobox', { name: 'Group activation', exact: true })
         .selectOption('automatic')
-      const activation = group.getByRole('combobox', { name: 'Automatic activation', exact: true })
-      await expect(activation).toHaveValue('requirements-met')
+      const requirements = group.locator('[data-resonance-requirements="true"]')
+      const requirementType = requirements.getByRole('combobox', {
+        name: 'Requirement type',
+        exact: true,
+      })
+      const activation = requirements.getByRole('combobox', {
+        name: 'Automatic activation',
+        exact: true,
+      })
+      // The retained prerequisite trigger is still literal, but no longer an event option.
+      await expect(requirementType).toHaveValue('tags')
+      await expect(activation).toHaveCount(0)
+      await expect(tag).toHaveValue('wet')
+      await expect(target).toHaveValue('owner')
       await save()
       assert.equal((await snapshot()).saved.behaviors[0].automaticTrigger, 'requirements-met')
       assert.deepEqual((await snapshot()).validationIssues, [])
+      await assertReaders('Drenched [Self]')
+      await requirementType.selectOption('automatic')
+      await expect(activation).toHaveValue('turn-started')
+      await expect(tag).toHaveCount(0)
+      await expect(target).toHaveCount(0)
+      const eventIds = await activation
+        .locator('option')
+        .evaluateAll((nodes) => nodes.map((node) => node.value))
+      assert.equal(eventIds.length, 11)
+      assert.ok(!eventIds.includes('condition-entry'))
+      assert.ok(!eventIds.includes('requirements-met'))
       assert.ok((await activation.locator('option').allTextContents()).includes('Damage Taken'))
       await activation.selectOption('damage-taken')
       const automaticTarget = group.getByRole('combobox', {
         name: 'Automatic target subject',
         exact: true,
       })
-      await expect(automaticTarget).toHaveValue('selected')
       await automaticTarget.selectOption('triggering')
-      await tag.selectOption('burn')
-      await target.selectOption('triggering')
       await group.getByRole('checkbox', { name: 'Once per action', exact: true }).check()
       await group.getByRole('checkbox', { name: 'Once per round', exact: true }).check()
       await save()
       let saved = (await snapshot()).saved.behaviors[0]
       assert.equal(saved.automaticTrigger, 'damage-taken')
+      assert.equal(saved.requirements, null)
       assert.deepEqual(saved.automaticTarget, { subject: 'triggering' })
       assert.deepEqual([...saved.activationLimits].sort(), ['once-per-action', 'once-per-round'])
       assert.deepEqual((await snapshot()).validationIssues, [])
-      assert.deepEqual(saved.requirements, {
+      await assertReaders('Damage Taken', false)
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      await expect(requirementType).toHaveValue('automatic')
+      await expect(target).toHaveCount(0)
+      await assertReaders('Damage Taken', false)
+      evidence.push({
+        viewport,
+        case: 'Requirements category replaces the prerequisite with a meaningful event, hides its target and survives saved reader reload',
+        passed: true,
+      })
+
+      // Historical combined definitions still execute both fields. Seed one as stored
+      // JSON, then prove opening and unrelated edits preserve its original predicate.
+      const historicalCombined = structuredClone((await snapshot()).saved)
+      historicalCombined.behaviors[0].requirements = {
         kind: 'status-presence',
         subject: 'triggering',
         statusId: 'burn',
         present: true,
+      }
+      await page.evaluate(
+        (definition) =>
+          localStorage.setItem('simple-requirements-native-definition', JSON.stringify(definition)),
+        historicalCombined,
+      )
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.waitForFunction(() => Boolean(window.simpleRequirements))
+      await expect(requirements).toContainText('Retained prerequisite: Burn [Target]')
+      await expect(target).toHaveCount(0)
+      assert.deepEqual(
+        (await snapshot()).draft.behaviors[0].requirements,
+        historicalCombined.behaviors[0].requirements,
+      )
+      await openEffectParameters(firstEffect)
+      await firstEffect.getByRole('spinbutton', { name: 'Healing amount', exact: true }).fill('3')
+      await save()
+      saved = (await snapshot()).saved.behaviors[0]
+      assert.deepEqual(saved.requirements, historicalCombined.behaviors[0].requirements)
+      assert.equal(saved.automaticTrigger, 'damage-taken')
+      assert.deepEqual((await snapshot()).validationIssues, [])
+      await assertReaders('Damage Taken; Burn [Target]')
+      evidence.push({
+        viewport,
+        case: 'Historical event plus prerequisite remains literal through opening, unrelated edits and all three saved readers',
+        passed: true,
       })
-      await assertReaders('Burn [Target]')
       for (const name of readerNames.slice(0, 2)) {
         const reader = page.getByRole('region', { name, exact: true })
         await expect(reader).toContainText('Automatic: Damage Taken')
@@ -489,12 +550,14 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
       })
       await activation.selectOption('turn-started')
       await expect(automaticTarget).toHaveValue('nearest-enemy')
-      await expect(target.locator('option')).toHaveText(['Self', 'Target'])
-      await expect(target).toHaveValue('owner')
+      await expect(target).toHaveCount(0)
+      assert.equal((await snapshot()).draft.behaviors[0].requirements.subject, 'owner')
+      await save()
+      await assertReaders('Your Turn Starts; Burn [Self]')
       await activation.selectOption('damage-taken')
       await automaticTarget.selectOption('triggering')
-      await target.selectOption('triggering')
       await save()
+      await assertReaders('Damage Taken; Burn [Self]')
       evidence.push({
         viewport,
         case: 'finite activation and limits remain programmable without redundant Resonance notes',
@@ -551,7 +614,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         .toEqual(['burn', 'wet'])
       await expect(activation).toHaveValue('damage-taken')
       assert.equal(JSON.stringify((await snapshot()).saved), encodedBeforeReload)
-      await assertReaders('Burn [Target]')
+      await assertReaders('Damage Taken; Burn [Self]')
       await page.screenshot({
         path: resolve(output, `simple-master-${viewport.width}.png`),
         fullPage: true,

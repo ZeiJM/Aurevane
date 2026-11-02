@@ -26,3 +26,5 @@ Verification ruling: the existing approved handover already specifies this desig
 Independent review finding resolved: queued Self/All must retain cast-time facing even after the caster walks. The expanded queued matrix failed before the one-guard correction and all 73 All/displacement tests pass afterward; the reviewer independently confirmed the repair. No deferred findings.
 
 Final local gate: `pnpm check` exit0, 16,045 Vitest + seven Node tests, all formatting/lint/types/build; native 78 targeting +30 canonical +38 Move +18 Support cases pass. Remaining: publish the exact tree/PR and require its applicable remote CI before integration.
+
+Reader-browser CI follow-up: reproduce stale line444 `requirements-met` selector assertion, update native navigation for Requirements categories and event-in-Requirements output, retain historical combined-predicate and all adjacent controls/roundtrip coverage. Test-only correction:34 native cases plus fixture compilation, focused format/lint and diff checks pass. Application source is unchanged; new exact-head CI remains required.
