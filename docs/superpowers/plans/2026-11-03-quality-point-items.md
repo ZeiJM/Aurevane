@@ -70,11 +70,11 @@
 
 **Interfaces:** `loadCharacterItems(userId,characterId) -> CharacterItemsView`, mutation(command,expectedRevision); current/pinned runtime Item APIs; public ItemPresentation with canonical reports/image paths; no raw private source inventory in UI.
 
-- [ ] RED complete request roundtrip: first grant, equip/swap/unequip, persisted sort, reload, current media changes, source Support fallback, unauthorized grants and stale commands.
-- [ ] Enable Item runtime publication only after real adapters exist; retain other future-kind blockers. Validate builtin/finalized art and supported passive/action bindings.
-- [ ] Extend sanitized shared Master editor and actual Item preview; duplicate/test grant through existing staff audit/capability paths.
-- [ ] Add immutable inventory-shape publication checks and fresh token/revision checks.
-- [ ] Verify API/DB/editor integration, current-publication readback and draft persistence; commit.
+- [x] RED complete request roundtrip: first grant, equip/swap/unequip, persisted sort, reload, current media changes, source Support fallback, unauthorized grants and stale commands.
+- [x] Enable Item runtime publication only after real adapters exist; retain other future-kind blockers. Validate builtin/finalized art and supported passive/action bindings.
+- [x] Extend sanitized shared Master editor and actual Item preview; duplicate/test grant through existing staff audit/capability paths.
+- [x] Add immutable inventory-shape publication checks and fresh token/revision checks.
+- [x] Verify API/DB/editor integration, current-publication readback and draft persistence; commit.
 
 ### Task 4: Arsenal inventory/equipment UI
 

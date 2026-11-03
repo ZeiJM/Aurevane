@@ -481,10 +481,13 @@ it('keeps archived owned items visible, suppresses source fallback and permits u
     [helm.id],
   )
   expect((await read()).stacks[0]!.id).toBe(stack.id)
-  await fails(
-    () => db.query('select public.read_current_runtime_item_v1($1)', [helm.id]),
-    'ITEM_DEFINITION_UNAVAILABLE',
-  )
+  expect(
+    (
+      await db.query<{ item: unknown }>('select public.read_current_runtime_item_v1($1) item', [
+        helm.id,
+      ])
+    ).rows[0]!.item,
+  ).toBeNull()
   await fails(
     () =>
       db.query('select public.assert_character_item_admission_v1($1,$2,$3)', [user, character, 2]),
@@ -499,6 +502,10 @@ it('keeps archived owned items visible, suppresses source fallback and permits u
   ])
   await equip(3, {}, undefined, ['head'])
   await fails(() => equip(4, { head: stack.id }), 'ITEM_DEFINITION_UNAVAILABLE')
+  await fails(
+    () => grant('archived-new', [{ itemId: helm.id, quantity: 1 }], 4),
+    'ITEM_DEFINITION_UNAVAILABLE',
+  )
 })
 it('initializes the one support selection from the existing committed Basic support', async () => {
   await db.query(
@@ -719,5 +726,107 @@ it('bounds staff test grants to the authorized selected owned character with an 
   await fails(
     () => run([user, character, material.id, 1, 0, view.catalogueToken, parameters[6]]),
     'ITEM_GRANT_CONFLICT',
+  )
+})
+
+it('returns expected unavailable current identities as null but propagates unrelated database failures', async () => {
+  const current = (id: string) =>
+    db.query<{ item: unknown }>('select public.read_current_runtime_item_v1($1) item', [id])
+  expect((await current('missing.item')).rows[0]!.item).toBeNull()
+  await db.query(
+    "update app_private.combat_content_records set content_kind='ascension' where content_key=$1",
+    [helm.id],
+  )
+  expect((await current(helm.id)).rows[0]!.item).toBeNull()
+  await db.exec(`create or replace function app_private.current_runtime_item_v1(p_item_id text)
+    returns jsonb language plpgsql stable security definer set search_path='' as $$ begin
+    raise exception using errcode='22023',message='ITEM_DEFINITION_INVALID'; end; $$;`)
+  await fails(() => current(helm.id), 'ITEM_DEFINITION_INVALID')
+  await db.exec(`create or replace function app_private.current_runtime_item_v1(p_item_id text)
+    returns jsonb language plpgsql stable security definer set search_path='' as $$ begin
+    raise exception using errcode='XX000',message='ITEM_DEFINITION_UNAVAILABLE'; end; $$;`)
+  await fails(() => current(helm.id), 'ITEM_DEFINITION_UNAVAILABLE')
+})
+
+it('takes the common inventory locks before saved-loadout build locks and Master player-edit row locks', async () => {
+  const definition = async (signature: string) =>
+    (
+      await db.query<{ body: string }>('select pg_get_functiondef($1::regprocedure) body', [
+        signature,
+      ])
+    ).rows[0]!.body
+  const activation = await definition(
+    'public.activate_character_build_loadout_v1(uuid,uuid,smallint,bigint,uuid,text)',
+  )
+  const lock = activation.indexOf(
+    'perform app_private.lock_character_item_inventory_v1(p_user_id,p_character_id,false)',
+  )
+  expect(lock).toBeGreaterThan(0)
+  expect(lock).toBeLessThan(activation.indexOf('from app_private.character_active_builds build'))
+  expect(lock).toBeLessThan(activation.indexOf('save_character_support_action_v1'))
+  const master = await definition(
+    'public.edit_master_player_v1(uuid,uuid,text,uuid,jsonb,boolean,uuid)',
+  )
+  const catalogue = master.indexOf("hashtextextended('combat-catalogue-publication',0)")
+  const account = master.indexOf('hashtextextended(v_character.user_id::text,0)')
+  const world = master.indexOf('hashtextextended(v_character.user_id::text,1)')
+  expect(catalogue).toBeGreaterThan(0)
+  expect(account).toBeGreaterThan(catalogue)
+  expect(world).toBeGreaterThan(account)
+  expect(world).toBeLessThan(master.indexOf('for update nowait'))
+  expect(master).toContain("errcode='PT409',message='PLAYER_EDIT_RETRY'")
+})
+
+it('activates a saved Basic Support after inventory exists with atomic synchronization and exact replay', async () => {
+  const initial = await read()
+  const version = async () =>
+    (
+      await db.query<{ value: number }>(
+        'select build_version value from app_private.character_active_builds where character_id=$1',
+        [character],
+      )
+    ).rows[0]!.value
+  await db.query('select public.save_character_build_loadout_v1($1,$2,1::smallint,$3,$4,$5,$6)', [
+    user,
+    character,
+    'Original recovery',
+    await version(),
+    crypto.randomUUID(),
+    'saved-support-roundtrip',
+  ])
+  await db.query('select public.save_character_support_action_v1($1,$2,$3,$4,$5,$6)', [
+    user,
+    character,
+    await version(),
+    'basic.pilfer',
+    crypto.randomUUID(),
+    'change-support-before-activation',
+  ])
+  expect((await read()).selectedSupport).toEqual({ kind: 'basic', actionId: 'basic.pilfer' })
+  const expected = await version(),
+    request = crypto.randomUUID()
+  const activate = () =>
+    db.query<{ build_version: number; replayed: boolean }>(
+      'select * from public.activate_character_build_loadout_v1($1,$2,1::smallint,$3,$4,$5)',
+      [user, character, expected, request, 'saved-support-activation'],
+    )
+  const result = (await activate()).rows[0]!
+  expect(result.replayed).toBe(false)
+  const after = await read()
+  expect(after).toMatchObject({
+    revision: initial.revision + 2,
+    selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+    previousBasicSupport: 'basic.recover',
+  })
+  expect(await version()).toBe(result.build_version)
+  expect((await activate()).rows[0]).toMatchObject({ ...result, replayed: true })
+  expect(await read()).toEqual(after)
+  await fails(
+    () =>
+      db.query(
+        'select * from public.activate_character_build_loadout_v1($1,$2,1::smallint,$3,$4,$5)',
+        [user, character, expected, crypto.randomUUID(), 'stale-support-activation'],
+      ),
+    'CHARACTER_BUILD_VERSION_CONFLICT',
   )
 })

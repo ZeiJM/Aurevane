@@ -3,7 +3,14 @@ vi.mock('server-only', () => ({}))
 import { createCombatContentTestDatabase } from '../../../../../packages/db/src/test-support/combat-content-test-database'
 import { itemFixture } from '../../../../../packages/game-core/src/content/items-test-fixtures'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
-import { createRpcCharacterItemsRepository } from './supabase-character-items-repository'
+import {
+  createRpcCharacterItemsRepository,
+  type ItemRpc,
+} from './supabase-character-items-repository'
+import {
+  createCombatContentResolver,
+  RpcPublishedCombatContentSource,
+} from '../combat/combat-content-resolver'
 import { grantCharacterItems, type CharacterItemsView } from './character-items-service'
 import { createCharacterItemsHandler } from './character-items-handler'
 const user = '00000000-0000-4000-8000-000000008001',
@@ -34,7 +41,7 @@ const sword = itemFixture({
   },
 })
 let db: Awaited<ReturnType<typeof createCombatContentTestDatabase>>
-const repository = createRpcCharacterItemsRepository(async (name, parameters) => {
+const rpc: ItemRpc = async (name, parameters) => {
   try {
     const values = Object.values(parameters).map((value) =>
       typeof value === 'object' && value !== null ? JSON.stringify(value) : value,
@@ -46,7 +53,8 @@ const repository = createRpcCharacterItemsRepository(async (name, parameters) =>
   } catch (error) {
     return { data: null, error: error as { code?: string; message?: string } }
   }
-})
+}
+const repository = createRpcCharacterItemsRepository(rpc)
 const handler = createCharacterItemsHandler({
   selected: async () => ({ userId: user, characterId: character }),
   repository: () => repository,
@@ -224,3 +232,65 @@ it('grants only the selected staff character through the bounded audited endpoin
   expect((await submit(payload)).status).toBe(200)
   expect((await submit({ ...payload, characterId: 'foreign' })).status).toBe(400)
 })
+
+it('repairs and sorts archived owned Items through the real owner/current adapters without losing pinned history', async () => {
+  await db.exec('begin')
+  try {
+    let view = await read()
+    const ownedHelm = view.stacks.find((row) => row.itemId === helm.id)!
+    const ownedSword = view.stacks.find((row) => row.itemId === sword.id)!
+    const resolver = createCombatContentResolver(new RpcPublishedCombatContentSource(rpc))
+    const pinned = await resolver.resolvePinnedItemDefinition!(
+      helm.id,
+      ownedHelm.item!.contentVersion,
+    )
+    let response = await post(view, { action: 'equip', stackId: ownedHelm.id, position: 'head' })
+    expect(response.status).toBe(200)
+    view = (await response.json()).view
+    const beforeArchiveToken = view.catalogueToken
+    await db.query(
+      "update app_private.combat_content_records set lifecycle='archived' where content_key=$1",
+      [helm.id],
+    )
+    const result = await rpc('read_character_items_view_v1', {
+      p_user_id: user,
+      p_character_id: character,
+    })
+    expect(result.error).toBeNull()
+    expect(result.data).toMatchObject({ definitions: { [helm.id]: null } })
+    expect(await resolver.resolveCurrentItemDefinition!(helm.id)).toBeNull()
+    expect(await resolver.resolvePinnedItemDefinition!(helm.id, pinned!.contentVersion)).toEqual(
+      pinned,
+    )
+    view = await read()
+    expect(view.catalogueToken).not.toBe(beforeArchiveToken)
+    expect(view.stacks.find((row) => row.id === ownedHelm.id)!.item).toBeNull()
+    expect(view.equipmentIssue).not.toBeNull()
+    response = await post(view, { action: 'unequip', position: 'head' })
+    expect(response.status).toBe(200)
+    view = (await response.json()).view
+    expect(view.equipmentIssue).toBeNull()
+    const order = [...view.stacks].sort((a, b) => b.slotIndex - a.slotIndex).map((row) => row.id)
+    response = await post(view, { action: 'sort', category: 'gear', order })
+    expect(response.status).toBe(200)
+    view = await read()
+    expect([...view.stacks].sort((a, b) => a.slotIndex - b.slotIndex).map((row) => row.id)).toEqual(
+      order,
+    )
+    expect(
+      (await post(view, { action: 'equip', stackId: ownedHelm.id, position: 'head' })).status,
+    ).toBe(400)
+    response = await post(view, { action: 'equip', stackId: ownedSword.id, position: 'main-hand' })
+    expect(response.status).toBe(200)
+    view = await read()
+    expect(view.equipment).toEqual({ 'main-hand': ownedSword.id })
+    expect(
+      view.stacks.filter((row) => row.itemId === helm.id).every((row) => row.item === null),
+    ).toBe(true)
+    expect(await resolver.resolvePinnedItemDefinition!(helm.id, pinned!.contentVersion)).toEqual(
+      pinned,
+    )
+  } finally {
+    await db.exec('rollback')
+  }
+}, 60000)
