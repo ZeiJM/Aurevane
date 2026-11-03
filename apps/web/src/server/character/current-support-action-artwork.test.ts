@@ -49,7 +49,25 @@ it('prefers finalized published Invocation artwork while keeping native Support 
   const keys = await resolveCurrentSupportActionArtwork(resolver)
   expect(keys['basic.invocation']).toBe('content-media.00000000-0000-4000-8000-000000000099')
   expect(keys['basic.recover']).toBeNull()
-  expect(Object.keys(keys)).toHaveLength(6)
+  expect(Object.keys(keys)).toHaveLength(5)
   expect(JSON.stringify(keys)).not.toMatch(/checksum|ability|execution|audio/)
   expect(JSON.stringify(invocation)).toBe(before)
+})
+
+it('does not load a retired Guard publication to paint the current Support choices', async () => {
+  const calls: string[] = []
+  const resolver = createCombatContentResolver({
+    async findCurrentSkill(id) {
+      calls.push(id)
+      if (id === 'basic.guard') throw new Error('Retired Guard is unavailable to current readers')
+      return null
+    },
+    async findSkillVersion() {
+      return null
+    },
+  })
+  await expect(resolveCurrentSupportActionArtwork(resolver)).resolves.toHaveProperty(
+    'basic.invocation',
+  )
+  expect(calls).not.toContain('basic.guard')
 })
