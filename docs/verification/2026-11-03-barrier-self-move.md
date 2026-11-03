@@ -1,6 +1,8 @@
 # November 3 combat, editor, media and support corrections
 
-Status: implemented, independently reviewed and locally verified on `agent/barrier-damage-triggers`, based on main `b8f6b68c86a3ada7c86c7aa95f60db9b89d4b54b`. PR #1006 is already live; this follow-up is not deployed. No hosted data mutation, applied migration, content republication or application deployment is included. A source-only additive image-finalizer migration is included for the eventual coordinated release.
+**Release status: LIVE for Owner testing through PR #1008.** See the [combined release receipt](2026-11-03-combat-items-release.md) and [complete checklist](2026-11-03-owner-combat-items-checklist.md). The following status and local results are historical implementation checkpoints.
+
+Historical status: implemented, independently reviewed and locally verified on `agent/barrier-damage-triggers`, based on main `b8f6b68c86a3ada7c86c7aa95f60db9b89d4b54b`. PR #1006 is already live; this follow-up is not deployed. No hosted data mutation, applied migration, content republication or application deployment is included. A source-only additive image-finalizer migration is included for the eventual coordinated release.
 
 ## Owner requirements
 

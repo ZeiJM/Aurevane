@@ -104,9 +104,9 @@
 
 **Files:** current starter Item definitions/seed manifest, registered per-item artwork/thumbnails/provenance; tests; active authority docs and Owner checklist.
 
-- [ ] Author11armor/2passivehand/8weapon/11battle/15sample items using real effects and100AP economy; include Movement+1/+2 boots and50QP2Hweapon.
-- [ ] Check weapon baseline output roughly60–70% comparable Discipline, perAP and scenario, plus actual double hit/element/Guard/Defense behaviors. Avoid prose-only mechanics.
-- [ ] Generate and inspect all47 item images, optimize/registry-prove allpaths, actualpreviewpane thumbnails; retain prompt/source manifests.
-- [ ] Verify starter grants idempotent and stack12/40/99 samples persist; current items editable through Master with correct history.
-- [ ] Fresh-main reconcile, independent whole-branch review, full required CI at exact head and coordinated release/migrations/publications through existing procedures.
-- [ ] Publish the Owner checklist only with truthful implementation/release status; human tests stay unchecked until performed.
+- [x] Author11armor/2passivehand/8weapon/11battle/15sample items using real effects and100AP economy; include Movement+1/+2 boots and50QP2Hweapon.
+- [x] Check weapon baseline output roughly60–70% comparable Discipline, perAP and scenario, plus actual double hit/element/Guard/Defense behaviors. Avoid prose-only mechanics.
+- [x] Generate and inspect all47 item images, optimize/registry-prove allpaths, actualpreviewpane thumbnails; retain prompt/source manifests.
+- [x] Verify starter grants idempotent and stack12/40/99 samples persist; current items editable through Master with correct history.
+- [x] Fresh-main reconcile, independent whole-branch review, full required CI at exact head and coordinated release/migrations/publications through existing procedures.
+- [x] Publish the Owner checklist only with truthful implementation/release status; human tests stay unchecked until performed.

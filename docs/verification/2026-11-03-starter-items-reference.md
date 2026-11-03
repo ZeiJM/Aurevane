@@ -1,6 +1,6 @@
 # November 3 starter Item reference
 
-**Implemented source version 1; not live.** Independent whole-branch review, exact-head CI, coordinated migration/content release and Owner gameplay acceptance remain required. This reference describes the genuine source defaults; a later Master publication can change the current catalogue while captured battles retain their exact definitions.
+**Live for Owner testing.** [Release receipt](2026-11-03-combat-items-release.md) and [96-case checklist](2026-11-03-owner-combat-items-checklist.md). This reference describes the genuine source defaults; a later Master publication can change the current catalogue while captured battles retain their exact definitions. Human balance and gameplay acceptance remain open.
 
 All 47 Items use their adopted immutable `item.<identity>.art.v1` image and thumbnail. Full artwork provenance: [47-image manifest](../artwork/2026-11-03-starter-items.json). The implementation source is `packages/game-core/src/content/starter-items.ts`.
 
