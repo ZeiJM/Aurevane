@@ -10,12 +10,14 @@ export function CharacterDeletionDialog({
   busy,
   onDismiss,
   className,
+  surface = 'moonstone',
   children,
 }: {
   titleId: string
   busy: boolean
   onDismiss: () => void
   className?: string
+  surface?: 'moonstone' | 'ink'
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -63,9 +65,15 @@ export function CharacterDeletionDialog({
         if (event.key !== 'Tab') return
         const controls = Array.from(
           event.currentTarget.querySelectorAll<HTMLElement>(
-            'input:not(:disabled), button:not(:disabled)',
+            'button, input:not([type="hidden"]), select, textarea, a[href], area[href], summary, [tabindex], [contenteditable]',
           ),
-        ).filter((control) => control.tabIndex >= 0 && control.getClientRects().length > 0)
+        ).filter(
+          (control) =>
+            !control.matches(':disabled') &&
+            !control.closest('[inert]') &&
+            control.tabIndex >= 0 &&
+            control.getClientRects().length > 0,
+        )
         const first = controls[0]
         const last = controls[controls.length - 1]
         if (!first) {
@@ -87,7 +95,7 @@ export function CharacterDeletionDialog({
       <section
         ref={panelRef}
         className={[styles.modal, className].filter(Boolean).join(' ')}
-        data-av-surface="moonstone"
+        data-av-surface={surface}
         tabIndex={-1}
       >
         {children}

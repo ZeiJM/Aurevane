@@ -4,8 +4,8 @@ export const SUPPORT_ACTION_ART = [
     id: 'basic.pilfer.icon',
     actionId: 'basic.pilfer',
     name: 'Pilfer',
-    src: '/media/art/support/pilfer-v01.webp',
-    generationRequestId: 'exec-d9f3f49a-56f3-494e-b8e9-c79792024714',
+    src: '/media/art/support/pilfer-v02.webp',
+    generationRequestId: 'exec-9ace1570-07ae-47b4-b109-4d6ca896a193',
   },
   {
     id: 'basic.fleetstep.icon',
@@ -18,8 +18,8 @@ export const SUPPORT_ACTION_ART = [
     id: 'basic.invocation.icon',
     actionId: 'basic.invocation',
     name: 'Invocation',
-    src: '/media/art/support/invocation-v01.webp',
-    generationRequestId: 'exec-ed92b01a-9c1f-4343-9d60-7ed982de2147',
+    src: '/media/art/support/invocation-v02.webp',
+    generationRequestId: 'exec-d4d9da12-8f44-496f-bfb1-0b76811b08d4',
   },
 ] as const
 export const VESPER_PORTRAIT_ART = {

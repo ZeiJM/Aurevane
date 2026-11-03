@@ -1,4 +1,5 @@
 import 'server-only'
+import { throwItemRpcError } from './supabase-character-items-repository'
 import { parseDisciplineSkillReference } from './discipline-skill-reference-parser'
 import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
@@ -183,6 +184,7 @@ export function createSupabaseCharacterSavedBuildLoadoutRepository(): CharacterS
         p_idempotency_key: input.idempotencyKey,
         p_request_fingerprint: input.requestFingerprint,
       })
+      if (error?.message.startsWith('ITEM_')) throwItemRpcError(error)
       if (error) throw mutationError(error)
       const result =
         Array.isArray(data) && data.length === 1 ? parseActivationResult(data[0]) : null

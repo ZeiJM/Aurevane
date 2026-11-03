@@ -8,21 +8,21 @@ vi.mock('./battle-info-popover', () => ({
 }))
 
 describe('inherent action characteristics', () => {
-  it('keeps the upcoming Items slot locked even when other commands are available', () => {
+  it('enables the Item slot only when the owner presentation admits a usable choice', () => {
     const markup = renderToStaticMarkup(
       <BattleSkillCommand
         slot="items"
         hotkey="P"
-        label="Items"
-        cost="Coming soon"
+        label="Item"
+        cost="Choose Item"
         artworkSrc="/media/skills/missing-art.svg"
         active={false}
         disabled={false}
         onActivate={() => {}}
       />,
     )
-    expect(markup).toMatch(/data-command-slot="items"[^>]*disabled=""/)
-    expect(markup).toContain('Coming soon')
+    expect(markup).not.toMatch(/data-command-slot="items"[^>]*disabled=""/)
+    expect(markup).not.toContain('Coming soon')
     expect(markup).toContain('data-battle-command-hotkey="true">P</span>')
     expect(markup).not.toContain('aria-haspopup="listbox"')
   })

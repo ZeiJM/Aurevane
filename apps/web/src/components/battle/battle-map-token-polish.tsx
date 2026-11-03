@@ -260,7 +260,11 @@ function polishBattlefieldTokens(
 
     const name = token.querySelector<HTMLElement>(':scope > strong')
     const combatantName = combatantNameForTile(tile, token, combatantAccents)
-    const identityAccent = combatantName ? combatantAccents[combatantName] : undefined
+    // React resolves every visible summon through its owner. Prefer that pinned identity over
+    // the original roster's name lookup, which omits summons and can contain duplicate names.
+    const identityAccent =
+      token.style.getPropertyValue('--battle-combatant-accent').trim() ||
+      (combatantName ? combatantAccents[combatantName] : undefined)
     const tokenAccent = identityAccent
     if (tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
     else token.style.removeProperty('border-color')

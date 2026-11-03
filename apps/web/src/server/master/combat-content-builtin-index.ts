@@ -1,3 +1,4 @@
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 import { defaultCombatTagDefinitions } from '@aurevane/game-core/combat/combat-tag-wording'
 import 'server-only'
 import type { CombatContentDefinition, CombatContentKind } from '@aurevane/db/combat-content'
@@ -98,6 +99,12 @@ export function exactBuiltinCombatContentDefinition(
   key: string,
   version: number,
 ): CombatContentDefinition | null {
+  if (kind === 'item')
+    return (
+      (starterItemDefinitions().find(
+        (item) => item.id === key && item.contentVersion === version,
+      ) as unknown as CombatContentDefinition) ?? null
+    )
   const current = builtinCombatContentDefinition(kind, key)
   if (!current) return null
   let definition: unknown = current.contentVersion === version ? current : null

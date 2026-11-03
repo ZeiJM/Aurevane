@@ -1,3 +1,4 @@
+import { parseRuntimeItemDefinition, type RuntimeItemDefinition } from './items'
 import { isCombatPresentationTagId } from '../combat/combat-effect-identities'
 import { isFinalizedContentMedia, type FinalizedContentImage } from '../combat/content-media'
 import { parseAbilityDefinition, type AbilityDefinition } from '../combat/combat-definition'
@@ -80,7 +81,7 @@ export interface AuthoredTag extends AuthoredIdentity {
   readonly explanation: string
 }
 export type NoncombatContentDefinition =
-  AuthoredItem | AuthoredTransformation | AuthoredDiscipline | AuthoredTag
+  AuthoredItem | RuntimeItemDefinition | AuthoredTransformation | AuthoredDiscipline | AuthoredTag
 export function isNoncombatContentKind(value: unknown): value is NoncombatContentKind {
   return NONCOMBAT_CONTENT_KINDS.includes(value as NoncombatContentKind)
 }
@@ -155,7 +156,7 @@ function validateDisciplineUnlock(
     )
   } else invalid(path, 'This prerequisite has no authoritative progression producer.')
 }
-/** Finite authoring intents only. These records never grant ownership or activate a runtime. */
+/** Retains V1 authoring intents and dispatches executable Item V2 to its strict runtime parser. */
 export function parseNoncombatContentDefinition(
   kind: NoncombatContentKind,
   value: unknown,
@@ -176,6 +177,14 @@ function parseNoncombatDefinition(
   value: unknown,
   boundary: 'authoring' | 'retained',
 ): NoncombatContentDefinition {
+  if (
+    kind === 'item' &&
+    value &&
+    typeof value === 'object' &&
+    'schemaVersion' in value &&
+    value.schemaVersion === 2
+  )
+    return parseRuntimeItemDefinition(value)
   const specific =
     kind === 'discipline'
       ? [

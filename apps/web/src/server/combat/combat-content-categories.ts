@@ -1,3 +1,4 @@
+import { assertRuntimeItemPublication } from './runtime-item-validation'
 import { combatCategoryIssues } from '@/lib/combat-category-authoring'
 import {
   contentEditorDefaults,
@@ -209,11 +210,32 @@ export const COMBAT_CONTENT_CATEGORIES: readonly CombatContentCategoryDescriptor
       category: kind,
       storedKind: kind,
       identityField: 'id',
-      runtime: kind === 'discipline' || kind === 'tag' ? 'container' : 'unsupported',
-      catalogueProjection: 'container',
+      runtime:
+        kind === 'item'
+          ? 'combat'
+          : kind === 'discipline' || kind === 'tag'
+            ? 'container'
+            : 'unsupported',
+      catalogueProjection: kind === 'item' ? 'combat' : 'container',
       authoringBlocker: null,
       publicationBlocker:
-        kind === 'discipline' || kind === 'tag' ? null : noncombatPublicationBlocker(kind),
+        kind === 'discipline' || kind === 'tag' || kind === 'item'
+          ? null
+          : noncombatPublicationBlocker(kind),
+      ...(kind === 'item'
+        ? {
+            validatePublication: assertRuntimeItemPublication,
+            parsePublished(record: CombatContentVersionRecord) {
+              const definition = parseNoncombatContentDefinition('item', record.definition)
+              if (
+                definition.id !== record.contentKey ||
+                definition.contentVersion !== record.contentVersion
+              )
+                throw new TypeError('Item publication identity mismatch.')
+              return { ...definition }
+            },
+          }
+        : {}),
       ...(kind === 'discipline' ? { validatePublication: assertDisciplinePublicationReady } : {}),
       ...(kind === 'tag'
         ? {

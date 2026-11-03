@@ -149,9 +149,7 @@ describe('battlefield semantic target polish', () => {
       'const combatantName = combatantNameForTile(tile, token, combatantAccents)',
     )
     expect(source).toContain('const occupiedName = label.match(/occupied by ([^;]+)(?:;|$)/i)')
-    expect(source).toContain(
-      'const identityAccent = combatantName ? combatantAccents[combatantName] : undefined',
-    )
+    expect(source).toContain("token.style.getPropertyValue('--battle-combatant-accent').trim() ||")
     expect(source).toContain("token.style.setProperty('border-color', tokenAccent, 'important')")
   })
 })

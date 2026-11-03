@@ -1,3 +1,5 @@
+import type { CombatElement } from './gameplay-tags'
+import { captureCombatTurnMovementBonus } from './combat-stat-bonuses'
 import {
   combatReversalPayload,
   combatReversalPreparationIssue,
@@ -113,6 +115,7 @@ export interface ManualCombatModifierSelection {
   readonly behaviorId: string
 }
 export interface CombatCommandDamageBonus {
+  readonly elementFilter?: CombatElement
   readonly sourceInstanceId: string
   readonly contentId: string
   readonly contentVersion: number
@@ -203,6 +206,46 @@ export function combatAbilityUsageKey(
     behavior.id,
   ])
 }
+/** Private authority query. Callers must project this only to the controlling owner. */
+export function combatAbilityRemainingUses(
+  state: CombatEncounterState,
+  source: CapturedCombatAbilitySource,
+  behavior: AbilityBehavior,
+): number | null {
+  if (behavior.maximumUsesPerBattle === undefined) return null
+  const usage = state.abilityRuntime?.usage.find(
+    (row) => row.key === combatAbilityUsageKey(state, source, behavior),
+  )
+  return Math.max(0, behavior.maximumUsesPerBattle - (usage?.usageCount ?? (usage ? 1 : 0)))
+}
+/** Shared persisted usage authority for execution and owner-visible availability. */
+export function combatAbilityUsageLimitReached(
+  state: CombatEncounterState,
+  source: CapturedCombatAbilitySource,
+  behavior: AbilityBehavior,
+  rootActionId?: string,
+  actionUsage?: ReadonlySet<string>,
+): boolean {
+  const key = combatAbilityUsageKey(state, source, behavior)
+  const usage = state.abilityRuntime?.usage.find((row) => row.key === key)
+  if (combatAbilityRemainingUses(state, source, behavior) === 0) return true
+  return Boolean(
+    usage &&
+    behavior.activationLimits?.some((scope) =>
+      scope === 'once-per-battle' ||
+      (scope === 'once-per-action' && state.abilityUsageLimitPolicyVersion === 1)
+        ? true
+        : scope === 'once-per-round'
+          ? usage.round === state.tactical.battle.round
+          : scope === 'once-per-owner-turn'
+            ? usage.ownerCycle === combatTurnCycle(state, source.ownerCombatantId)
+            : rootActionId !== undefined &&
+              (usage.rootActionId === rootActionId ||
+                usage.pendingRootActionIds?.includes(rootActionId) ||
+                actionUsage?.has(rootActionId)),
+    ),
+  )
+}
 export function combatAbilityParticipant(
   state: Pick<
     CombatEncounterState,
@@ -231,9 +274,10 @@ export function combatAbilityParticipant(
         amount:
           cost.amount > 0 &&
           behavior.mode === 'action' &&
-          ['discipline-skill', 'essence', 'resonance', 'tactical-entity'].includes(
+          (['discipline-skill', 'essence', 'resonance', 'tactical-entity'].includes(
             source.sourceKind,
-          )
+          ) ||
+            (source.sourceKind === 'equipment' && source.equipment?.roles.attack !== behavior.id))
             ? frozenGroundSkillApCost(state, source.ownerCombatantId, intrinsic)
             : intrinsic,
       }
@@ -297,6 +341,7 @@ export function combatAbilityParticipantIssues(
   )
     issues.push({ code: 'source-owner-mismatch', message: 'Captured source is inactive.' })
   if (
+    input.state.abilityUsageLimitPolicyVersion !== 1 &&
     isFreeOffensiveBasicMove(source, behavior) &&
     source.definition.behaviors.some(
       (other) =>
@@ -338,17 +383,12 @@ export function combatAbilityParticipantIssues(
       message: 'Automatic activation exceeds the shared trigger guard.',
     })
   if (
-    usage &&
-    behavior.activationLimits?.some((scope) =>
-      scope === 'once-per-battle'
-        ? true
-        : scope === 'once-per-round'
-          ? usage.round === input.state.tactical.battle.round
-          : scope === 'once-per-owner-turn'
-            ? usage.ownerCycle === combatTurnCycle(input.state, input.actorId)
-            : usage.rootActionId === rootActionId ||
-              usage.pendingRootActionIds?.includes(rootActionId) ||
-              input.eventSession?.actionUsage.get(key)?.has(rootActionId),
+    combatAbilityUsageLimitReached(
+      input.state,
+      source,
+      behavior,
+      rootActionId,
+      input.eventSession?.actionUsage.get(key),
     )
   )
     issues.push({
@@ -425,7 +465,22 @@ function captureNativeAbilityMutation(
     ...facts,
     events: transition.events.flatMap((event) =>
       automaticAbilityEventSupported(event.event, 'after') &&
-      !(event.event === 'damage_applied' && event.amount === 0)
+      !(
+        event.event === 'damage_applied' &&
+        event.amount === 0 &&
+        !(
+          after.barrierDamageEventPolicyVersion === 1 &&
+          ((facts.barrierAbsorbedDamage ?? 0) > 0 ||
+            transition.events.some(
+              (receipt) =>
+                receipt.event === 'barrier_absorbed' &&
+                receipt.amount > 0 &&
+                receipt.actionId === event.actionId &&
+                receipt.sourceCombatantId === event.sourceCombatantId &&
+                receipt.targetCombatantId === event.targetCombatantId,
+            ))
+        )
+      )
         ? [{ type: event.event as AutomaticAbilityEventType, phase: 'after' as const }]
         : [],
     ),
@@ -873,6 +928,10 @@ export function commitCombatAbilityCommand(
       ...usage.filter((row) => row.key !== key),
       {
         key,
+        ...(participant.behavior.maximumUsesPerBattle !== undefined ||
+        previous?.usageCount !== undefined
+          ? { usageCount: (previous?.usageCount ?? (previous ? 1 : 0)) + 1 }
+          : {}),
         rootActionId,
         ...(pendingRootActionIds.length ? { pendingRootActionIds } : {}),
         commandId: participant.triggerId
@@ -975,6 +1034,8 @@ export function commitCombatAbilityCommand(
           path: prepared.movement.path,
           maximumTiles: prepared.movement.maximumTiles,
           independentAllowance: prepared.movement.independentAllowance,
+          maximumElevation: prepared.movement.maximumElevation,
+          requiresLineOfSight: prepared.movement.requiresLineOfSight,
         }
       : undefined,
     prepared.returnAnchor,
@@ -1162,6 +1223,8 @@ export function commitCombatAbilityCommand(
       {
         maximumTiles: prepared.movement.maximumTiles,
         independentAllowance: prepared.movement.independentAllowance,
+        maximumElevation: prepared.movement.maximumElevation,
+        requiresLineOfSight: prepared.movement.requiresLineOfSight,
         committed: committedExecution,
         nativeHooks,
         actionId: prepared.action.id,
@@ -1427,7 +1490,7 @@ export function activateCombatAbilitySources(
     },
     { newlyActivatedSourceIds: sources.map((row) => row.sourceInstanceId) },
   )
-  return processCombatAbilityEvent(
+  const settled = processCombatAbilityEvent(
     captured.state,
     captured.frame,
     content,
@@ -1439,4 +1502,8 @@ export function activateCombatAbilitySources(
         ? commitCombatAbilityCommand(child)
         : { state: child.state, events: [] },
   )
+  return {
+    ...settled,
+    state: battleStarted ? captureCombatTurnMovementBonus(settled.state) : settled.state,
+  }
 }

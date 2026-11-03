@@ -191,6 +191,20 @@ try {
       if (view === 'players') {
         await page.getByLabel('Character name', { exact: true }).fill('Reader Target')
         await page.getByRole('button', { name: 'Find players', exact: true }).click()
+        // A frame may run before React commits an asynchronous read. Focus must
+        // follow the mounted details, rather than depend on that frame ordering.
+        await page.evaluate(() => {
+          window.__playersNativeAnimationFrame = window.requestAnimationFrame
+          window.__playersEarlyFocusFrames = 0
+          window.requestAnimationFrame = (callback) => {
+            queueMicrotask(() => {
+              if (!document.querySelector('[data-player-pane="details"] h2'))
+                window.__playersEarlyFocusFrames += 1
+              callback(performance.now())
+            })
+            return 0
+          }
+        })
         await page.getByRole('button', { name: 'Inspect Reader Target', exact: true }).click()
         const refresh = page.getByRole('button', { name: 'Refresh player', exact: true })
         await refresh.waitFor()
@@ -265,6 +279,10 @@ try {
         await expect(reader).toContainText('100 HP · 30 MP')
         await expect(reader.getByText('Active Skills', { exact: true })).toHaveCount(0)
         const playerHeading = reader.getByRole('heading', { name: 'Reader Target', exact: true })
+        console.log(
+          'Players precommit-frame witness:',
+          await page.evaluate(() => window.__playersEarlyFocusFrames),
+        )
         await expect(playerHeading).toBeFocused()
         assert.equal(
           await playerHeading.evaluate((element) => getComputedStyle(element).outlineStyle),
@@ -304,6 +322,9 @@ try {
         await unequipped.check()
         await reader.getByRole('button', { name: 'Review correction', exact: true }).click()
         await expect(
+          reader.getByRole('heading', { name: 'Review correction', exact: true }),
+        ).toBeFocused()
+        await expect(
           reader.getByText('Cleave, Brace → Brace, Rally', { exact: true }),
         ).toBeVisible()
         await reader.getByRole('button', { name: 'Cancel review', exact: true }).click()
@@ -317,6 +338,23 @@ try {
         ).toHaveCount(0)
         await sections.getByRole('button', { name: 'Stats & Progression', exact: true }).click()
         await expect(reader.getByText('No active encounter.', { exact: true })).toBeHidden()
+        const might = reader.getByLabel('Might', { exact: true })
+        await might.fill('13')
+        await expect(might).toBeFocused()
+        await reader.getByRole('button', { name: 'Review correction', exact: true }).click()
+        await expect(
+          reader.getByRole('heading', { name: 'Review correction', exact: true }),
+        ).toBeFocused()
+        await reader
+          .getByRole('checkbox', {
+            name: 'I confirm this correction for Reader Target.',
+            exact: true,
+          })
+          .check()
+        await reader.getByRole('button', { name: 'Save confirmed correction', exact: true }).click()
+        await expect(reader.getByRole('status')).toContainText('Correction saved.')
+        await expect(playerHeading).toBeFocused()
+        await expect(reader.getByLabel('Might', { exact: true })).toHaveValue('13')
         const geometry = await reader.evaluate((element) => ({
           clientWidth: element.clientWidth,
           scrollWidth: element.scrollWidth,
@@ -329,7 +367,17 @@ try {
             window.__operationsRequests.filter((row) => row.body.operation === 'read').length === 2,
         )
         assert.equal(await protectedPlayerReader(page).count(), 1)
-        playerEvidence.push({ viewport, broadMatches, readerCount: count, geometry })
+        await expect(playerHeading).toBeFocused()
+        await page.evaluate(() => {
+          window.requestAnimationFrame = window.__playersNativeAnimationFrame
+        })
+        playerEvidence.push({
+          viewport,
+          broadMatches,
+          readerCount: count,
+          geometry,
+          focus: ['inspect', 'review', 'save', 'refresh', 'typing remains focused'],
+        })
       } else if (view === 'rules') {
         await page.getByLabel('Search effect tags').fill('damage')
         await page.getByLabel('Sort effect tags').selectOption('timing-desc')

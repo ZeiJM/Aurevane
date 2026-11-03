@@ -318,6 +318,27 @@ it.each([undefined, null, '8', 1.5, -1])(
     expect((await db.query('select id from app_private.battle_sessions')).rows).toEqual([])
   },
 )
+it('nested Master Basic Support changes existing inventory once and preserves audited replay', async () => {
+  const inventory = async () =>
+    (
+      await db.query<{ value: { snapshot: { revision: number; selectedSupport: unknown } } }>(
+        'select public.read_character_items_view_v1($1,$2) value',
+        [other, character],
+      )
+    ).rows[0]!.value.snapshot
+  const initial = await inventory()
+  const fingerprint = String((await read()).rows[0]!.result.fingerprint)
+  const command = { kind: 'support', supportActionId: 'basic.recover.mp' }
+  expect((await edit(command, request, fingerprint)).rows[0]!.result.replayed).toBe(false)
+  const after = await inventory()
+  expect(after).toMatchObject({
+    revision: initial.revision + 1,
+    selectedSupport: { kind: 'basic', actionId: 'basic.recover.mp' },
+  })
+  expect((await edit(command, request, fingerprint)).rows[0]!.result.replayed).toBe(true)
+  expect(await inventory()).toEqual(after)
+  expect((await db.query('select * from app_private.player_support_audit')).rows).toHaveLength(1)
+})
 it('every support-only correction requires BOTH source hash and generation', async () => {
   const old = await snapshot()
   await edit({ kind: 'support', supportActionId: 'basic.recover.mp' })

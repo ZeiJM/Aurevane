@@ -93,7 +93,7 @@ it('retires the nested Essence Skill modifier without changing status or effect 
   expect(authored.skill).toMatchObject({ effects: value.skill.effects })
   expect(category.parseRetained(value, value.essenceId)).toEqual(value)
 })
-it.each(['item', 'ascension', 'severence'] as const)(
+it.each(['ascension', 'severence'] as const)(
   'retains the specific unsupported %s capability',
   (kind) => {
     const descriptor = combatContentCategory(kind)!
@@ -146,7 +146,9 @@ it('provides finite editor defaults through the shared descriptor for every crea
     const editor = descriptor.editor
     expect(editor.label.length).toBeGreaterThan(0)
     if (!editor.defaultDefinition) continue
-    expect(() => descriptor.parseAuthoring(editor.defaultDefinition)).not.toThrow()
+    if (descriptor.category === 'item')
+      expect(() => descriptor.parseAuthoring(editor.defaultDefinition)).toThrow(/Artwork/)
+    else expect(() => descriptor.parseAuthoring(editor.defaultDefinition)).not.toThrow()
     expect(JSON.parse(JSON.stringify(editor))).toEqual(editor)
   }
 })

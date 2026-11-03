@@ -241,83 +241,86 @@ describe('captured Basic definitions reach the real action facade', () => {
   })
 })
 
-it.each([0, 25])(
-  'bounds a zero-AP offensive Basic Move, including a miss; positive AP %s repeats',
-  (cost) => {
-    const definitions = edit('basic.move', (row) => ({
-      ...row,
-      execution: { kind: 'basic-move', costBasis: 'flat' },
-      ability: {
-        ...row.ability,
-        behaviors: row.ability.behaviors.map((behavior) => ({
-          ...behavior,
-          costs: cost ? [{ resource: 'ap', amount: cost }] : [],
-          classification: 'attack',
-          attackFamily: 'physical',
-          accuracy: { kind: 'fixed', chanceBasisPoints: 0 },
-          targeting: {
-            ...behavior.targeting!,
-            kind: 'unit',
-            categories: ['enemy'],
-            teamPolicy: 'enemy',
-            friendlyFire: 'enemies-only',
-            maximumRange: 3,
-          },
-          effects: [
-            ...behavior.effects,
-            { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 10 } },
-          ],
-        })),
-      },
-    }))
-    const { state, sources } = fixture(definitions)
-    const initial = {
-      ...state,
-      tactical: {
-        ...state.tactical,
-        placements: state.tactical.placements.map((row) =>
-          row.combatantId === 'enemy'
-            ? { ...row, position: { x: 3, y: 1 } }
-            : row.combatantId === 'other'
-              ? { ...row, position: { x: 4, y: 4 } }
-              : row,
-        ),
-      },
-    }
-    const source = sources[0]!
-    const input = {
-      state: initial,
-      actorId: 'actor',
-      root: { kind: 'canonical' as const, source },
-      selection: { kind: 'unit' as const, combatantId: 'enemy' },
-      movementPath: [
-        { x: 1, y: 1 },
-        { x: 2, y: 1 },
-      ],
-      content: PV1F_COMBAT_CONTENT,
-      context: combatAbilityCommandContext(initial, source),
-    }
-    expect(() => commitCombatAbilityCommand({ ...input, movementPath: [] })).toThrow()
-    expect(prepareCombatAbilityCommand(input).evaluation.legal).toBe(true)
-    const cast = commitCombatAbilityCommand(input)
-    expect(cast.state.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp).toBe(1000)
-    const repeated = {
-      ...input,
-      state: cast.state,
-      movementPath: [
-        { x: 2, y: 1 },
-        { x: 1, y: 1 },
-      ],
-      context: combatAbilityCommandContext(cast.state, source),
-    }
-    expect(prepareCombatAbilityCommand(repeated).evaluation.legal).toBe(cost > 0)
-    if (cost)
-      expect(
-        commitCombatAbilityCommand(repeated).state.tactical.battle.currentTurn!.movementRemaining,
-      ).toBe(2)
-    else expect(() => commitCombatAbilityCommand(repeated)).toThrow()
-  },
-)
+it.each([
+  { cost: 0, current: false },
+  { cost: 25, current: false },
+  { cost: 0, current: true },
+  { cost: 25, current: true },
+])('honors authored reuse for offensive Basic Move: %j', ({ cost, current }) => {
+  const definitions = edit('basic.move', (row) => ({
+    ...row,
+    execution: { kind: 'basic-move', costBasis: 'flat' },
+    ability: {
+      ...row.ability,
+      behaviors: row.ability.behaviors.map((behavior) => ({
+        ...behavior,
+        costs: cost ? [{ resource: 'ap', amount: cost }] : [],
+        classification: 'attack',
+        attackFamily: 'physical',
+        accuracy: { kind: 'fixed', chanceBasisPoints: 0 },
+        targeting: {
+          ...behavior.targeting!,
+          kind: 'unit',
+          categories: ['enemy'],
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          maximumRange: 3,
+        },
+        effects: [
+          ...behavior.effects,
+          { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 10 } },
+        ],
+      })),
+    },
+  }))
+  const { state, sources } = fixture(definitions)
+  const initial = {
+    ...state,
+    ...(current ? { abilityUsageLimitPolicyVersion: 1 as const } : {}),
+    tactical: {
+      ...state.tactical,
+      placements: state.tactical.placements.map((row) =>
+        row.combatantId === 'enemy'
+          ? { ...row, position: { x: 3, y: 1 } }
+          : row.combatantId === 'other'
+            ? { ...row, position: { x: 4, y: 4 } }
+            : row,
+      ),
+    },
+  }
+  const source = sources[0]!
+  const input = {
+    state: initial,
+    actorId: 'actor',
+    root: { kind: 'canonical' as const, source },
+    selection: { kind: 'unit' as const, combatantId: 'enemy' },
+    movementPath: [
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+    ],
+    content: PV1F_COMBAT_CONTENT,
+    context: combatAbilityCommandContext(initial, source),
+  }
+  expect(() => commitCombatAbilityCommand({ ...input, movementPath: [] })).toThrow()
+  expect(prepareCombatAbilityCommand(input).evaluation.legal).toBe(true)
+  const cast = commitCombatAbilityCommand(input)
+  expect(cast.state.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp).toBe(1000)
+  const repeated = {
+    ...input,
+    state: cast.state,
+    movementPath: [
+      { x: 2, y: 1 },
+      { x: 1, y: 1 },
+    ],
+    context: combatAbilityCommandContext(cast.state, source),
+  }
+  expect(prepareCombatAbilityCommand(repeated).evaluation.legal).toBe(cost > 0 || current)
+  if (cost || current)
+    expect(
+      commitCombatAbilityCommand(repeated).state.tactical.battle.currentTurn!.movementRemaining,
+    ).toBe(2)
+  else expect(() => commitCombatAbilityCommand(repeated)).toThrow()
+})
 
 it('shares the free offensive Move bound across different Manual groups', () => {
   const definitions = edit('basic.move', (row) => {

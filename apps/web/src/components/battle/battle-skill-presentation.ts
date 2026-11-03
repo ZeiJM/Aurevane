@@ -1,3 +1,4 @@
+import { imageAssetRegistry } from '@/media/registry'
 import { contentMediaKeySource } from '@aurevane/game-core/combat/content-media'
 import {
   PV1F_BASIC_ATTACK_ID,
@@ -70,6 +71,7 @@ export function battleSkillArtwork(actionId: string, iconKey?: string | null): s
   const hooked = resolveSkillIconHook(iconKey)
   return (
     contentMediaKeySource(iconKey) ??
+    imageAssetRegistry.get(iconKey ?? '')?.src ??
     (hooked ? disciplineSkillArtwork(hooked.skillId) : null) ??
     disciplineSkillArtwork(actionId) ??
     ACTION_ARTWORK.get(actionId) ??

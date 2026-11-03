@@ -1,3 +1,4 @@
+import { BattleLessonCoach } from '@/components/battle/battle-lesson-coach'
 import {
   captureBasicSkillSources,
   defaultBasicSkills,
@@ -70,6 +71,7 @@ import {
   cancelCombatControlledAbility,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
+  combatAbilityUsageLimitReached,
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
 } from '@aurevane/game-core/combat/combat-ability-command'
@@ -77,11 +79,18 @@ import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
 const canonicalCase = new URLSearchParams(location.search).get('canonical')
+const guidedCase = new URLSearchParams(location.search).get('guided')
+const guidedRun = new URLSearchParams(location.search).get('run')
+const nativeFetch = window.fetch.bind(window)
+const { equipmentFixtureSources, equipmentFixtureAction, projectEquipmentFixture } =
+  canonicalCase?.startsWith('items') ? await import('@/../e2e/fixtures/equipment-viewer-state') : {}
 let canonicalState
 let canonicalCapture
 let canonicalTargets
 let canonicalBasics
 function canonicalPublicState(state) {
+  if (canonicalCase?.startsWith('items'))
+    return projectEquipmentFixture(state, mode === 'spectator')
   const publicState = { ...projectPercentageDotFixtureState(state) }
   Reflect.deleteProperty(publicState, 'capturedAbilitySources')
   Reflect.deleteProperty(publicState, 'abilityRuntime')
@@ -128,6 +137,7 @@ function canonicalPublicState(state) {
         ...(source && behavior
           ? {
               ownerCombatantId: source.ownerCombatantId,
+              usageLimitReached: combatAbilityUsageLimitReached(state, source, behavior),
               classification: behavior.classification,
               modifierRoot: combatCanonicalModifierRootFacts(behavior),
               costs: behavior.costs.map((cost) => ({ ...cost })),
@@ -927,9 +937,42 @@ if (canonicalCase) {
       },
     ]
   }
+  if (canonicalCase === 'usage-once') {
+    source.definition.behaviors[0].targeting = {
+      ...target,
+      categories: ['enemy'],
+      maximumSelections: 1,
+    }
+    source.definition.behaviors[0].activationLimits = ['once-per-action']
+    source.definition.behaviors[0].costs = []
+    source.definition.behaviors[0].cooldown = null
+  }
+  if (canonicalCase === 'self-damage') {
+    const behavior = source.definition.behaviors[0]
+    behavior.accuracy = undefined
+    behavior.targeting = {
+      ...target,
+      kind: 'self',
+      categories: ['self'],
+      teamPolicy: 'self',
+      minimumRange: 0,
+      maximumRange: 0,
+      maximumSelections: 1,
+      friendlyFire: 'allies-only',
+    }
+    behavior.effects = [
+      {
+        id: 'self-hit',
+        timing: 'instant',
+        payload: { type: 'damage', recipient: 'actor', target: 'self', amount: 20 },
+      },
+    ]
+  }
   canonicalCapture = captureCombatAbilitySource(source)
   canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, [canonicalCapture])
   if (canonicalCase === 'all-self') canonicalState.displacementOriginPolicyVersion = 1
+  if (canonicalCase === 'self-damage') canonicalState.selfDamagePolicyVersion = 1
+  if (canonicalCase === 'usage-once') canonicalState.abilityUsageLimitPolicyVersion = 1
   if (canonicalCase === 'controlled-price') {
     // Execution costs 11 AP / 2 MP / 1 HP; the old presentation envelope says 15 AP.
     runtime.techniques[0].apCost = 15
@@ -1240,8 +1283,48 @@ if (canonicalCase?.startsWith('support-')) {
     }).state
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
+if (canonicalCase?.startsWith('items')) {
+  const sources = equipmentFixtureSources(
+    canonicalCase === 'items-weapon' || canonicalCase === 'items-starter',
+    canonicalCase === 'items-controlled',
+    canonicalCase === 'items-starter' || canonicalCase.startsWith('items-global-'),
+  )
+  canonicalState = reconcileCombatAbilitySources(
+    preparePv1fTurnEconomy({
+      ...snapshot,
+      abilityUsageLimitPolicyVersion: 1,
+      ...(canonicalCase.startsWith('items-global-')
+        ? {
+            effectTimingPolicy: {
+              version: 12,
+              tagAuthority: 'global',
+              modes: { healing: canonicalCase.endsWith('controlled') ? 'controlled' : 'delayed' },
+            },
+          }
+        : {}),
+      tactical: {
+        ...snapshot.tactical,
+        battle: {
+          ...snapshot.tactical.battle,
+          combatants: snapshot.tactical.battle.combatants.map((unit) =>
+            unit.id === ids[0] ? { ...unit, hp: 40 } : unit,
+          ),
+        },
+      },
+    }),
+    sources,
+  )
+  canonicalCapture = sources.find((source) => source.equipment)
+  runtime.techniques = []
+  runtime.essence = undefined
+  runtime.resonance = undefined
+  initialBattle.snapshot = canonicalPublicState(canonicalState)
+}
 const fixtureControls = {
   ...DEFAULT_COMBAT_KEYBINDS,
+  ...(canonicalCase?.startsWith('items')
+    ? { items: { code: 'KeyI', shift: false }, inspect: { code: 'KeyP', shift: false } }
+    : {}),
   ...(canonicalCase?.startsWith('modifier-') || mode === 'controls'
     ? { inspect: { code: 'KeyM', shift: false }, modifiers: { code: 'KeyM', shift: true } }
     : {}),
@@ -1259,12 +1342,39 @@ if (new URLSearchParams(location.search).has('cooldownOverlay')) {
     maximum: 2,
   })
 }
+if (guidedCase) {
+  const data = await (
+    await nativeFetch(`/__guided/start?loadout=${guidedCase}&run=${guidedRun}`)
+  ).json()
+  if (!data.battle) throw new Error(data.error?.message ?? 'Guided fixture admission failed')
+  Object.assign(initialBattle, data.battle)
+  runtime.supportActionId = data.supportActionId
+  runtime.techniques = []
+  runtime.essence = null
+  runtime.resonance = null
+}
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
+  if (
+    guidedCase &&
+    /^\/api\/battles\/fixture(?:\/(preview|intents|commit|final-turn|guided-training))?$/.test(path)
+  ) {
+    const response = await nativeFetch(
+      `/__guided/request?loadout=${guidedCase}&run=${guidedRun}&path=${encodeURIComponent(path)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    )
+    const data = await response.clone().json()
+    if (data.battle) window.fixtureBattle = data.battle
+    return response
+  }
   if (path.endsWith('/turn-clock'))
     return Response.json({
       tick: {
@@ -1282,6 +1392,17 @@ window.fetch = async (url, options = {}) => {
     })
   if (canonicalCase && (path.endsWith('/preview') || /\/(commit|intents)$/.test(path))) {
     const intent = body.intent
+    if (canonicalCase?.startsWith('items')) {
+      canonicalCapture = equipmentFixtureAction(canonicalState, intent.actionId)
+      if (!canonicalCapture)
+        return Response.json({ error: { message: 'Unadmitted Item role.' } }, { status: 400 })
+      intent.behaviorId ??=
+        intent.actionId === PV1F_BASIC_ATTACK_ID
+          ? canonicalCapture.equipment.roles.attack
+          : Object.entries(canonicalCapture.equipment.roles).find(([role]) =>
+              intent.actionId.endsWith(`.${role}`),
+            )?.[1]
+    }
     const input = {
       state: canonicalState,
       actorId: ids[0],
@@ -1332,7 +1453,9 @@ window.fetch = async (url, options = {}) => {
               defenseKind: null,
               defenseRating: null,
               mitigatedBaseDamage: null,
-              ...(canonicalCase.startsWith('controlled-') || canonicalCase === 'modifier-controlled'
+              ...(canonicalCase.startsWith('controlled-') ||
+              canonicalCase === 'modifier-controlled' ||
+              canonicalCase === 'items-controlled'
                 ? {
                     controlledReady:
                       quote.evaluation.legal &&
@@ -1353,6 +1476,13 @@ window.fetch = async (url, options = {}) => {
             },
           },
         })
+      }
+      if (canonicalCase?.startsWith('items') && window.holdItemCommit) {
+        await new Promise((resolve) => {
+          window.releaseItemCommit = resolve
+        })
+        window.holdItemCommit = false
+        delete window.releaseItemCommit
       }
       if (body.expectedBattleVersion !== window.fixtureBattle.battleVersion)
         return Response.json({ error: { message: 'Stale battle version.' } }, { status: 409 })
@@ -1700,6 +1830,71 @@ function ResonanceEditorHarness() {
     </main>
   )
 }
+function MoveEditorHarness() {
+  const kind =
+    new URLSearchParams(location.search).get('author-kind') === 'resonance' ? 'resonance' : 'skill'
+  const key = `move-authoring-${kind}`
+  const [value, setValue] = React.useState(() => {
+    const saved = localStorage.getItem(key)
+    if (saved) return JSON.parse(saved)
+    const base =
+      kind === 'resonance'
+        ? resolveResonanceForPair('wildwarden', 'edgedancer')
+        : resolveMatureSkillVersion('vanguard.forceful-strike')
+    const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic').ability
+      .behaviors[0]
+    return {
+      ...base,
+      ability: {
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...behavior,
+            activation: 'manual',
+            classification: 'utility',
+            attackFamily: undefined,
+            accuracy: undefined,
+            costs: [],
+            cooldown: null,
+            requirements: null,
+            targeting: {
+              ...behavior.targeting,
+              kind: 'self',
+              categories: ['self'],
+              geometryVersion: 3,
+              teamPolicy: 'self',
+              minimumRange: 0,
+              maximumRange: 0,
+              friendlyFire: 'allies-only',
+              requiresLineOfSight: false,
+            },
+            effects: [
+              { id: 'move', payload: { type: 'move', recipient: 'actor', maximumTiles: 3 } },
+            ],
+          },
+        ],
+      },
+    }
+  })
+  const update = (next) => {
+    localStorage.setItem(key, JSON.stringify(next))
+    setValue(next)
+  }
+  return (
+    <main style={{ padding: 24, maxWidth: 900, width: '100%', boxSizing: 'border-box' }}>
+      <ContentDefinitionFields
+        kind={kind}
+        tab="Parameters"
+        initialAbilitySection="range"
+        value={value}
+        onChange={update}
+      />
+      <pre data-move-draft style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {JSON.stringify(value)}
+      </pre>
+    </main>
+  )
+}
 function GroundEditorHarness() {
   const source = resolveMatureSkillVersion('vanguard.forceful-strike')
   const [skill, setSkill] = React.useState(() => ({
@@ -1745,6 +1940,7 @@ if (mode === 'controls')
   fixtureRoot.render(<CombatControlsSettings initialBindings={fixtureControls} />)
 else if (mode === 'master-resonance') fixtureRoot.render(<ResonanceEditorHarness />)
 else if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
+else if (mode === 'master-move') fixtureRoot.render(<MoveEditorHarness />)
 else
   fixtureRoot.render(
     <AudioProvider>
@@ -1775,6 +1971,13 @@ else
       ) : (
         <BattleInteractionLifecycleProvider>
           <BattleExperience initialBattle={initialBattle} runtime={runtime} />
+          {guidedCase && initialBattle.snapshot.tactical.battle.lifecycle === 'active' ? (
+            <BattleLessonCoach
+              battleSessionId="fixture"
+              recordId="guided-fundamentals"
+              recoveryPractice
+            />
+          ) : null}
           {mode === 'pvp' && new URLSearchParams(location.search).has('chat') ? (
             <>
               <PvpBattleChatBridge battleSessionId="fixture" metadata={metadata} />

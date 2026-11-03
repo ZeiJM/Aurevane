@@ -15,6 +15,8 @@ const descriptions: Readonly<Record<string, string>> = {
     'Guarantees a critical hit when the enemy has more active debuffs than the chosen threshold. The attack must still hit. Pierce cannot critically hit.',
   spike: 'Doubles the damage of this Skill’s critical hits. Pierce cannot critically hit.',
   ruin: 'In current battles, the first landed hit gains the chosen percentage per consumable debuff captured on its target, then consumes those debuffs. Later hits cannot reuse that bonus. Debuffs applied afterward remain. Historical battles keep their recorded Ruin rules.',
+  'stat-bonus':
+    'Adds the authored flat amount to the chosen combat stat while this passive source is active. Its conditions still apply.',
   loot: 'An inert Pilfer marker. It currently grants no items, currency or rewards.',
   damage: 'Deals damage using the Skill’s power and Physical or Mystic damage type.',
   pierce:

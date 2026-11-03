@@ -25,11 +25,11 @@ import {
   resolveWorldIntent,
 } from './world-service'
 
-export function worldRpcError(error: { message?: string }): never {
+export function worldRpcError(error: { message?: string; code?: string }): never {
   const message = error.message ?? ''
   if (message.includes('WORLD_NOT_OWNED'))
     throw new AurevaneError('FORBIDDEN', 'That character is unavailable.')
-  if (message.includes('WORLD_STALE'))
+  if (message.includes('WORLD_STALE') || error.code === 'PT409' || error.code === '40001')
     throw new AurevaneError(
       'STALE_VERSION',
       'The world changed. Refresh your position and try again.',

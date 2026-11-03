@@ -122,7 +122,9 @@ try {
           assert.ok((await command.getAttribute('aria-label')).startsWith(`${action.name},`))
           const icon = command.locator('img')
           assert.ok(
-            (await icon.getAttribute('src')).includes(`/media/art/support/${action.id}-v01.webp`),
+            (await icon.getAttribute('src')).includes(
+              `/media/art/support/${action.id}-v${['pilfer', 'invocation'].includes(action.id) ? '02' : '01'}.webp`,
+            ),
           )
           await icon.evaluate((img) => img.decode())
           if (width > 821) await page.keyboard.press('3')

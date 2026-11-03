@@ -26,12 +26,14 @@ export function registerBattleTabCyclePrevention(
         if (ownerDocument.querySelector('[role="dialog"], dialog[open], [data-battle-info-panel]'))
           return
         const focus = ownerDocument.activeElement
-        // A contextual report restores its still-visible trigger. A later Escape releases it.
+        // Preserve the contextual trigger or a new Item choice focused before this frame.
+        // A later Escape without a closing reader releases the control.
         if (
           closingReader &&
           focus instanceof HTMLElement &&
-          focus.matches('[data-battle-info-trigger]') &&
-          focus.closest('[data-battle-preview-reader]:not([hidden])')
+          (focus.closest('[data-battle-item-choices]') ||
+            (focus.matches('[data-battle-info-trigger]') &&
+              focus.closest('[data-battle-preview-reader]:not([hidden])')))
         )
           return
         if (

@@ -1285,7 +1285,10 @@ export function validateMatureSkillDefinition(
     (typeof definition.description !== 'string' || definition.description.length > 2000)
   )
     issues.push('description')
-  if (Object.hasOwn(definition, 'nativeBasicAttackCommand'))
+  if (
+    Object.hasOwn(definition, 'nativeBasicAttackCommand') ||
+    Object.hasOwn(definition, 'equipmentBasicAttackCommand')
+  )
     issues.push('private-native-basic-command-not-authored')
   const canonical = Object.hasOwn(definition, 'ability')
   if (canonical && validateAbilityDefinition(definition.ability).length > 0) issues.push('ability')

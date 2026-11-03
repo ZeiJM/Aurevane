@@ -111,7 +111,7 @@ export function currentGroundBehaviorPresentation(
   const source = {
     target: behavior.targeting ? canonicalAbilityTargetSpec(behavior.targeting) : undefined,
     effects: behavior.effects.map(({ payload }) =>
-      ['move', 'damage-bonus', 'summon', 'reversal'].includes(payload.type)
+      ['stat-bonus', 'move', 'damage-bonus', 'summon', 'reversal'].includes(payload.type)
         ? (payload as unknown as MatureSkillEffectDefinition)
         : nativeCombatTagPayload(payload),
     ),

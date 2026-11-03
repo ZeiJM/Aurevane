@@ -13,8 +13,15 @@ import {
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { equipmentActionId } from '@aurevane/game-core/combat/combat-equipment'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 
 import { collectBattleEventHistory } from './battle-log-service'
+import {
+  capturedBattleActionSource,
+  parseBattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
+import type { BattleAuthoritativeEncounterState } from './battle-session-service'
 
 export const GUIDED_TRAINING_CRITERIA = ['move', 'attack', 'guard', 'facing'] as const
 export type GuidedTrainingCriterion = (typeof GUIDED_TRAINING_CRITERIA)[number]
@@ -35,16 +42,35 @@ function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
 
-function readEncounter(snapshot: unknown): StatDrivenCombatEncounterState {
+function readEncounter(snapshot: unknown): BattleAuthoritativeEncounterState {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored training battle is invalid.')
   }
-  const candidate = snapshot as StatDrivenCombatEncounterState
+  const candidate = snapshot as BattleAuthoritativeEncounterState
   const issues = validateStatDrivenCombatEncounterState(candidate)
   if (issues.length > 0) {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored training battle is invalid.')
   }
   return candidate
+}
+
+function admittedTrainingAttackId(
+  state: BattleAuthoritativeEncounterState,
+  combatantId: string,
+): string {
+  if (!state.buildAuthority) return PV1F_BASIC_ATTACK_ID
+  try {
+    const authority = parseBattleBuildAuthoritySnapshot(state.buildAuthority)
+    if (!authority) throw new TypeError('Invalid captured training build.')
+    // The same exact frozen role/source check used by action admission; names and
+    // arbitrary Item attack suffixes cannot award the Basic Attack objective.
+    const source = capturedBattleActionSource(state, authority, combatantId, PV1F_BASIC_ATTACK_ID)
+    return source?.equipment?.roles.attack
+      ? equipmentActionId(source.equipment.unit, 'attack')
+      : PV1F_BASIC_ATTACK_ID
+  } catch {
+    throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored training attack is invalid.')
+  }
 }
 
 function assertGuidedFundamentals(state: StatDrivenCombatEncounterState): void {
@@ -130,6 +156,7 @@ export function readGuidedTrainingProgress(
   events: readonly Pick<BattleEventRecord, 'battleVersion' | 'event'>[],
   controlledCombatantId: string,
   supportActionId: 'basic.guard' | 'basic.recover' = 'basic.guard',
+  attackActionId: string = PV1F_BASIC_ATTACK_ID,
 ): GuidedTrainingProgress {
   const progress: GuidedTrainingProgress = {
     move: false,
@@ -158,7 +185,7 @@ export function readGuidedTrainingProgress(
     if (
       type === 'combat_action_used' &&
       event.actorId === controlledCombatantId &&
-      event.actionId === 'basic.attack.unarmed.basic'
+      event.actionId === attackActionId
     ) {
       progress.attack = true
       continue
@@ -224,6 +251,7 @@ export function createGuidedTrainingCompletionService(
         events,
         controlled,
         state.supportActionPolicyVersion === 1 ? 'basic.recover' : 'basic.guard',
+        admittedTrainingAttackId(state, controlled),
       )
     },
 
@@ -267,6 +295,7 @@ export function createGuidedTrainingCompletionService(
         events,
         controlled,
         state.supportActionPolicyVersion === 1 ? 'basic.recover' : 'basic.guard',
+        admittedTrainingAttackId(state, controlled),
       )
       const missing = GUIDED_TRAINING_CRITERIA.filter((criterion) => !progress[criterion])
       if (missing.length > 0) {

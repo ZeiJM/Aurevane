@@ -21,7 +21,7 @@ import { defaultCombatEffectTimingPolicy } from '@aurevane/game-core/combat/comb
 import './production-styles'
 
 // Player facts are a local transport fixture; both nested sections are real components.
-const player = {
+let player = {
   characterId: 'fixture-player',
   name: 'Reader Target',
   portraitRef: 'portrait',
@@ -190,6 +190,23 @@ window.fetch = async (input, options) => {
       })
     if (body.operation === 'read' && body.characterId === player.characterId)
       return Response.json({ player })
+    // Controlled transport response for the post-save focus proof. Authority
+    // and persistence are covered by the authenticated recovery workflow.
+    if (
+      body.operation === 'edit' &&
+      body.characterId === player.characterId &&
+      body.confirmed === true &&
+      body.command?.kind === 'source' &&
+      body.command.xp === 0 &&
+      body.command.attributes?.might === 13
+    ) {
+      player = {
+        ...player,
+        fingerprint: 'e'.repeat(64),
+        facts: { ...player.facts, attributes: body.command.attributes },
+      }
+      return Response.json({ player })
+    }
     throw new Error('Unexpected Players fixture request')
   }
   if (input === '/api/master/site-music') {

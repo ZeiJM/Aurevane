@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile } from './combat-stat-bonuses'
 import { validateCombatGroundRequirementCapture } from './combat-ground-contact-requirements'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
 import { captureAttackTagDamage } from './combat-attack-tags'
@@ -213,7 +214,7 @@ export function createCombatGroundArea(
   const activationRound = state.tactical.battle.round + combatEffectTimingRoundOffset(timing)
   const expiresAtRound = activationRound + ground.durationRounds
   if (!Number.isSafeInteger(expiresAtRound)) throw new RangeError('Ground expiry overflow.')
-  const statProfile = state.statBridge?.combatants.find((unit) => unit.combatantId === actorId)
+  const statProfile = effectiveCombatStatProfile(state, actorId)
   const area: CombatGroundAreaInstance = JSON.parse(
     JSON.stringify({
       id: `ground.area.${ordinal}`,

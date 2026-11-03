@@ -43,7 +43,8 @@ describe('compact repeated effect reports', () => {
       'Dmg [9] [Self]',
       'Dmg [9] [Enemy]',
     ])
-    expect(skillPreviewEffects(definition).map((row) => row.explanation)).toContain('distinct')
+    expect(skillPreviewEffects(definition)).toHaveLength(1)
+    expect(skillPreviewEffects(definition)[0]!.explanation).toContain('distinct')
   })
   it('keeps Resonance enemy recipient labels after grouping repeated self recovery', () => {
     const original = resolveResonanceForPair('vanguard', 'lifebinder')!
@@ -69,4 +70,46 @@ describe('compact repeated effect reports', () => {
     expect(html).toContain('Trigger Skill selected unit')
     expect(html.match(/data-compact-skill-effect="true"/g)).toHaveLength(2)
   })
+})
+
+it('shows one native bottom explanation per stable Tag while retaining distinct custom notes and every Effects row', () => {
+  const skill = resolveEssenceForBuild('edgedancer', null)!.skill
+  const definition = {
+    ...skill,
+    effects: [
+      { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 12 },
+      { type: 'damage' as const, recipient: 'primary-unit' as const, amount: 5 },
+    ],
+    effectDescriptions: ['First damage note.', 'Bonus damage note.'],
+  }
+  const entries = skillPreviewEffects(definition)
+  expect(entries).toHaveLength(1)
+  expect(entries[0]!.explanation).toContain('First damage note.')
+  expect(entries[0]!.explanation).toContain('Bonus damage note.')
+  expect(skillEffectSummaries(definition)).toEqual(['Dmg [12] [Enemy]', 'Dmg [5] [Enemy]'])
+  expect(definition.effects).toHaveLength(2)
+})
+
+it('groups native Resonance explanations by stable Tag without collapsing differing Effects rows', () => {
+  const original = resolveResonanceForPair('vanguard', 'lifebinder')!
+  const definition = {
+    ...original,
+    authoring: { ...original.authoring, schemaVersion: 2 as const },
+    trigger: {
+      kind: 'skill-trigger-v2' as const,
+      mode: 'immediate' as const,
+      setup: null,
+      trigger: normalizedResonanceMechanics(original).trigger,
+      aiSetupUtilityBonus: 0,
+      aiTriggerUtilityBonus: 1,
+      resultEffects: [
+        { type: 'healing' as const, recipient: 'actor' as const, amount: 4 },
+        { type: 'healing' as const, recipient: 'actor' as const, amount: 5 },
+      ],
+    },
+  }
+  const html = renderToStaticMarkup(<ResonanceParameters definition={definition} />)
+  const explanation = html.slice(html.indexOf('aria-label="Effect explanations"'))
+  expect(explanation.match(/<li/g)).toHaveLength(1)
+  expect(html.match(/data-compact-skill-effect="true"/g)).toHaveLength(2)
 })

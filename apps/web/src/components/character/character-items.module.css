@@ -1,0 +1,516 @@
+.page {
+  composes: frame from './loadout-frame.module.css';
+}
+
+.workspace {
+  color: #e7dac4;
+  min-width: 0;
+  max-width: 1500px;
+  margin: auto;
+  padding: clamp(12px, 2vw, 28px);
+}
+.workspace button,
+.workspace input,
+.workspace select {
+  font: inherit;
+}
+.workspace button {
+  border: 1px solid #776344;
+  background: #20282c;
+  color: #e9dbbf;
+  border-radius: 6px;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+.workspace button:hover:not(:disabled),
+.workspace button[aria-pressed='true'] {
+  border-color: #e4bc71;
+  background: #3b3328;
+}
+.workspace button:focus-visible,
+.workspace input:focus-visible,
+.workspace select:focus-visible {
+  outline: 2px solid #f5cc7e;
+  outline-offset: 3px;
+}
+.workspace button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.title,
+.panelHeading,
+.dialogHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.title {
+  margin-bottom: 20px;
+}
+.title h2 {
+  font-family: Georgia, serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin: 0.3rem 0;
+}
+.title p {
+  color: #b7b4a9;
+  margin: 0.4rem 0;
+}
+.eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  color: #d2ac6c;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(270px, 0.75fr) minmax(0, 1.75fr);
+  gap: 20px;
+  align-items: start;
+}
+.panel {
+  border: 1px solid #5b503d;
+  border-radius: 10px;
+  padding: 16px;
+  min-width: 0;
+  background: linear-gradient(130deg, #222b2eee, #111b22f2);
+  box-shadow: 0 12px 30px #0003;
+}
+.panelHeading {
+  margin-bottom: 14px;
+}
+.panelHeading h3 {
+  margin: 0;
+  font-family: Georgia, serif;
+}
+.panelHeading strong {
+  font-size: 0.86rem;
+  color: #e7c78a;
+}
+.workspace meter {
+  width: 100%;
+  height: 12px;
+  accent-color: #d6ae65;
+}
+.muted {
+  color: #acaeaa;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+.warning {
+  border: 1px solid #a47556;
+  background: #493026;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #ffe0b4;
+}
+.warning p {
+  margin: 0.4rem 0;
+}
+.notice {
+  padding: 10px;
+  border: 1px solid #67917b;
+  color: #bfe8ce;
+  border-radius: 6px;
+}
+.equipment {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.workspace .equipmentSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 9px 5px;
+  min-height: 149px;
+}
+.equipmentSlot > span:first-child {
+  color: #c4b492;
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+}
+.equipmentSlot img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.equipmentSlot strong {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+.equipmentSlot small {
+  color: #c4b8a3;
+  font-size: 0.7rem;
+}
+.emptyIcon {
+  height: 70px;
+  display: grid;
+  place-items: center;
+  font-size: 2rem;
+  color: #9c8969;
+}
+.attack {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #574c38;
+  font-size: 0.83rem;
+}
+.attack p {
+  color: #b5b8ad;
+  line-height: 1.5;
+}
+.tabs {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.workspace .tabs button {
+  font-size: 0.8rem;
+  flex: 1 0 auto;
+  padding: 0.55rem 0.65rem;
+}
+.controls {
+  display: grid;
+  grid-template-columns: minmax(100px, 1.5fr) minmax(100px, 1fr) minmax(90px, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+.controls label,
+.proposal > label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.75rem;
+  color: #d7c39d;
+}
+.controls input,
+.controls select,
+.proposal select {
+  width: 100%;
+  min-width: 0;
+  background: #111b22;
+  color: #eddfc6;
+  border: 1px solid #6d624e;
+  border-radius: 5px;
+  padding: 0.55rem;
+}
+.controls button {
+  font-size: 0.8rem;
+}
+.inventoryScroll {
+  max-height: 620px;
+  overflow-y: auto;
+  padding: 3px;
+  scrollbar-color: #87704c #131e24;
+}
+.inventory {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.inventoryCell {
+  aspect-ratio: 0.84;
+  min-width: 0;
+  border: 1px solid #4f4b3e;
+  background: #111a21aa;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.workspace .item {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 0;
+  border-radius: 4px;
+  background: #161e25;
+}
+.item img {
+  width: 100%;
+  height: 74%;
+  object-fit: contain;
+}
+.item[data-tier='S'] {
+  box-shadow: inset 0 0 0 2px #e4b751;
+}
+.item[data-tier='A'] {
+  box-shadow: inset 0 0 0 1px #b38ae4;
+}
+.item[data-tier='B'] {
+  box-shadow: inset 0 0 0 1px #6cabe1;
+}
+.quantity {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  background: #111b22db;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 0.73rem;
+  color: #ffe6af;
+}
+.itemName {
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px;
+  font-size: 0.67rem;
+  line-height: 1.1;
+}
+.equipped {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  background: #2d4b3de8;
+  color: #c9eace;
+  font-size: 0.55rem;
+  padding: 2px 3px;
+}
+.slotNumber {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: #5e645f;
+  font-size: 0.75rem;
+}
+.dialog.dialog {
+  width: min(720px, 100%);
+  max-height: 90dvh;
+  background: linear-gradient(120deg, #252d2f, #14202a);
+  border: 1px solid #907952;
+  color: #e9ddc6;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.dialogHeading {
+  padding: 15px;
+  border-bottom: 1px solid #65573e;
+}
+.dialogHeading h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.dialogBody {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: calc(90dvh - 80px);
+}
+.dialog button {
+  border: 1px solid #887149;
+  color: #f0ddba;
+  background: #33362d;
+  padding: 0.65rem 0.9rem;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.dialog .remove {
+  margin: 8px 8px 8px 0;
+}
+.proposal {
+  border-top: 1px solid #705d3b;
+  margin-top: 15px;
+  padding-top: 8px;
+  font-size: 0.88rem;
+}
+.proposal fieldset {
+  border: 1px solid #65583e;
+  padding: 10px;
+  margin-bottom: 14px;
+}
+.proposal fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+}
+.proposal input {
+  width: 18px;
+  height: 18px;
+  accent-color: #b99657;
+}
+.dialog .confirm {
+  width: 100%;
+  background: #625035;
+}
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.2fr);
+    gap: 12px;
+  }
+  .controls {
+    grid-template-columns: 1fr 1fr;
+  }
+  .inventory {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .panel {
+    padding: 12px;
+  }
+}
+@media (max-width: 650px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .title {
+    align-items: start;
+  }
+  .title > button {
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    flex-shrink: 0;
+  }
+  .equipment {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .workspace .equipmentSlot {
+    min-height: 138px;
+  }
+  .equipmentSlot strong {
+    font-size: 0.73rem;
+  }
+  .inventory {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .inventoryScroll {
+    max-height: 430px;
+  }
+  .itemName {
+    font-size: 0.57rem;
+  }
+  .quantity {
+    font-size: 0.65rem;
+  }
+  .equipped {
+    top: auto;
+    bottom: 21%;
+    font-size: 0.5rem;
+  }
+  .dialog.dialog {
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 12px 12px 6px 6px;
+  }
+  .dialogBody {
+    max-height: calc(94dvh - 80px);
+    padding: 12px;
+  }
+  .panelHeading strong {
+    font-size: 0.76rem;
+  }
+}
+
+/* Override the shared modal surface explicitly while retaining its native focus behavior. */
+.dialog.dialog h2,
+.dialog.dialog h3,
+.dialog.dialog h4,
+.dialog.dialog p,
+.dialog.dialog label,
+.dialog.dialog legend {
+  color: #eadfc9;
+}
+.dialog.dialog h2 {
+  font-size: 1.15rem;
+  margin: 0;
+}
+.dialog.dialog p {
+  font-size: 0.88rem;
+}
+.dialog.dialog .proposal input {
+  width: 18px;
+  min-height: 18px;
+  padding: 0;
+}
+.dialog.dialog .proposal fieldset label {
+  display: flex;
+  margin: 0;
+  font-size: 0.82rem;
+}
+.dialog.dialog .proposal > label {
+  margin: 0;
+}
+.dialog summary {
+  padding: 0.7rem 0;
+  cursor: pointer;
+  color: #dfbd7f;
+}
+.dialog.dialog .warning {
+  color: #ffe0b4;
+}
+
+.workspace .equipmentSlot:disabled {
+  opacity: 1;
+  background: #1b2429;
+}
+.equipmentSlot:disabled > span:first-child {
+  color: #a79b85;
+}
+
+.dialogBody article > img {
+  max-height: min(38dvh, 340px);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* The ordinary desktop shell owns the viewport; each Items panel owns its content scroll. */
+@media (min-width: 981px) {
+  .page {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .page > .workspace {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: clamp(12px, 1.4vw, 20px);
+    overflow: hidden;
+  }
+  .page .title {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+  }
+  .page .columns {
+    flex: 1;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .page .panel {
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-color: #87704c #131e24;
+  }
+  .page .panel:last-child {
+    display: flex;
+    flex-direction: column;
+  }
+  .page .panel:last-child > :not(.inventoryScroll) {
+    flex-shrink: 0;
+  }
+  .page .inventoryScroll {
+    min-height: 0;
+    max-height: none;
+    flex: 1;
+  }
+}

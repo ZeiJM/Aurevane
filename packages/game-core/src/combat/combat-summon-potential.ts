@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile } from './combat-stat-bonuses'
 import { hasGameplayTag } from './gameplay-tags'
 import { PV1F_COMBAT_CONTENT } from './pv1f-combat-content'
 import type { CombatEffectDefinition } from './actions'
@@ -68,7 +69,7 @@ function effectDamage(
   actorId: string,
   effects: readonly CombatEffectDefinition[],
 ): number {
-  const profile = state.statBridge.combatants.find((row) => row.combatantId === actorId)!
+  const profile = effectiveCombatStatProfile(state, actorId)!
   const direct = effects.reduce((sum, effect) => {
     if (effect.type !== 'damage' || effect.vengeance) return sum
     const scaling = effect.scaling
@@ -118,14 +119,20 @@ function sourcePotential(
     source,
     combatAbilityBehavior(source, authored.id, state.effectTimingPolicy),
   )
-  const repeats = activations(
-    state,
-    source.ownerCombatantId,
-    behavior.costs,
-    Boolean(
-      behavior.cooldown ||
-      behavior.activationLimits?.some((limit) => limit !== 'once-per-action') ||
-      behavior.effects.some((row) => row.timing === 'controlled'),
+  // Potential models a fresh allowance, independent of the live usage ledger.
+  const repeats = Math.min(
+    behavior.maximumUsesPerBattle ?? Number.MAX_SAFE_INTEGER,
+    activations(
+      state,
+      source.ownerCombatantId,
+      behavior.costs,
+      Boolean(
+        behavior.cooldown ||
+        behavior.activationLimits?.some(
+          (limit) => limit !== 'once-per-action' || state.abilityUsageLimitPolicyVersion === 1,
+        ) ||
+        behavior.effects.some((row) => row.timing === 'controlled'),
+      ),
     ),
   )
   if (!repeats) return 0
@@ -198,7 +205,7 @@ export function combatantDamagePotential(
   id: string,
 ): number {
   const unit = state.tactical.battle.combatants.find((row) => row.id === id)
-  const stats = state.statBridge.combatants.find((row) => row.combatantId === id)
+  const stats = effectiveCombatStatProfile(state, id)
   if (!unit || !stats)
     throw new TypeError('Summon potential requires its committed combatant profile.')
   const sources = (state.capturedAbilitySources ?? []).filter(
@@ -208,7 +215,10 @@ export function combatantDamagePotential(
   )
   const summon = state.effectState?.summons?.find((row) => row.combatantId === id)
   let best =
-    unit.kind === 'summon' || sources.some((row) => row.basic?.execution.kind === 'basic-attack')
+    unit.kind === 'summon' ||
+    sources.some(
+      (row) => row.basic?.execution.kind === 'basic-attack' || row.equipment?.roles.attack,
+    )
       ? 0
       : calculatePv1fBasicAttackDamage({
           physicalPower: Math.max(stats.physicalPower ?? 0, stats.mysticPower ?? 0),

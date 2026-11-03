@@ -1,3 +1,4 @@
+import { combatEffectRecipientIds } from './combat-effect-recipients'
 import { deriveSharedEffectAim } from './combat-effect-target-authoring'
 import { describe, expect, it } from 'vitest'
 import {
@@ -643,3 +644,23 @@ it('creates Ground terrain and applies a unit packet through the same selected-u
   ).toBe(true)
   expect(result.state.tactical.battle.combatants.find((row) => row.id === 'enemy')!.hp).toBe(893)
 })
+
+it.each(['all-units', 'all-except-actor'] as const)(
+  'preserves the %s friendly-fire mask for current Ground damage',
+  (friendlyFire) => {
+    const state = { ...encounter(), selfDamagePolicyVersion: 1 as const }
+    const recipients = combatEffectRecipientIds(
+      state,
+      'actor',
+      null,
+      [],
+      state.tactical.placements.map((row) => row.position),
+      { type: 'damage', target: 'ground', recipient: 'affected-units', amount: 10 },
+      { ...action([]).target, friendlyFire },
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(recipients.includes('actor')).toBe(friendlyFire === 'all-units')
+    if (friendlyFire === 'all-units') expect(recipients.at(-1)).toBe('actor')
+    expect(recipients).toEqual(expect.arrayContaining(['ally', 'enemy', 'other']))
+  },
+)

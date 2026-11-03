@@ -1,3 +1,7 @@
+import {
+  DEFAULT_RECKLESS_POTENCY_BASIS_POINTS,
+  DEFAULT_FORTIFIED_DEFENSE_BASIS_POINTS,
+} from './combat-status-tuning'
 import { selectableCombatStatusIds } from './combat-status-selection'
 export { AUTHORABLE_EFFECT_TAGS, type AuthorableEffectTag } from './combat-effect-identities'
 import { AUTHORABLE_EFFECT_TAGS, combatEffectIdentity } from './combat-effect-identities'
@@ -62,7 +66,12 @@ export function createAuthorableEffectPayload(
       stacks: 1,
       ...(tag.statusId === 'blind' ? { potencyBasisPoints: 1500 } : {}),
       ...(tag.statusId === 'wet' ? { initiativeReductionBasisPoints: 1000 } : {}),
-      ...(tag.statusId === 'fortified' ? { defenseIncreaseBasisPoints: 1500 } : {}),
+      ...(tag.statusId === 'fortified'
+        ? { defenseIncreaseBasisPoints: DEFAULT_FORTIFIED_DEFENSE_BASIS_POINTS }
+        : {}),
+      ...(tag.statusId === 'reckless'
+        ? { potencyBasisPoints: DEFAULT_RECKLESS_POTENCY_BASIS_POINTS }
+        : {}),
       ...(['haste', 'slow'].includes(tag.statusId!) ? { movementApAdjustment: 10 } : {}),
       ...(tag.statusId === 'lowered-guard' ? { damageTakenMultiplierBasisPoints: 15000 } : {}),
       durationTurns: isBlindsideStatusId(tag.statusId!) ? 1 : 2,
@@ -221,6 +230,8 @@ export function createAuthorableEffectPayload(
       return { type: 'displace', recipient: 'primary-unit', direction: id, distance: 1 }
     case 'move':
       return { type: 'move', recipient: 'actor', maximumTiles: 1 }
+    case 'stat-bonus':
+      return { type: 'stat-bonus', recipient: 'actor', stat: 'movement', amount: 1 }
     case 'damage-bonus':
       return { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 }
     case 'summon':

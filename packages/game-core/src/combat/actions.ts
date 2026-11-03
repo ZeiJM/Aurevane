@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile } from './combat-stat-bonuses'
 import { prepareCombatRuinCommand } from './combat-ruin'
 import { normalizeCombatGroundContacts, combatGroundSourceAction } from './combat-ground-contact'
 import { combatEndureBlocksAction } from './combat-endure'
@@ -610,9 +611,7 @@ export function executeCombatAction(
   const accuracyEvents: legacy.CombatResolutionEvent[] = action.nativeBasicAttackCommand
     ? accuracy.events.map((event) => {
         const defenseKind = action.tags.includes('mystic') ? 'ward' : 'armor'
-        const profile = state.statBridge?.combatants.find(
-          (row) => row.combatantId === event.targetCombatantId,
-        )
+        const profile = effectiveCombatStatProfile(state, event.targetCombatantId)
         if (!profile || ![1, 2, 3, 4].includes(state.statBridge?.rulesVersion ?? 0))
           throw new TypeError('native-basic-command-stat-bridge-required')
         return {
@@ -889,9 +888,7 @@ function materializeStatScaledDamage(
     // Let the legacy evaluator report an inactive/invalid turn before requiring actor stats.
     if (!actorId) return legacyEffect
 
-    const profile = state.statBridge?.combatants.find(
-      (candidate) => candidate.combatantId === actorId,
-    )
+    const profile = effectiveCombatStatProfile(state, actorId)
     const offensivePower =
       scaling.source === 'physical-power' ? profile?.physicalPower : profile?.mysticPower
     if (offensivePower === undefined) {

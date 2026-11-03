@@ -1,3 +1,9 @@
+import type { CombatElement } from './gameplay-tags'
+import {
+  COMBAT_BONUS_STATS,
+  COMBAT_BONUS_STAT_LABELS,
+  type CombatBonusStat,
+} from './combat-stat-bonus-definition'
 import {
   CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
   CURRENT_EFFECT_PERCENT_MAXIMUM,
@@ -62,9 +68,20 @@ export type CombatTagPayload =
       readonly type: 'move'
       readonly recipient: 'actor'
       readonly maximumTiles: number
+      /** Omitted captures retain the character's ordinary Jump. */
+      readonly maximumElevation?: number
+      readonly requiresLineOfSight?: boolean
+    }
+  | {
+      readonly type: 'stat-bonus'
+      readonly recipient: 'actor'
+      readonly target?: 'self'
+      readonly stat: CombatBonusStat
+      readonly amount: number
     }
   | {
       readonly type: 'damage-bonus'
+      readonly elementFilter?: CombatElement
       readonly recipient: 'actor'
       readonly multiplierBasisPoints: number
     }
@@ -241,11 +258,17 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'move',
-    ['maximumTiles'],
+    ['maximumTiles', 'maximumElevation', 'requiresLineOfSight'],
     { maximumTiles: 'tiles' },
     'Move across reachable Ground tiles before the Skill’s other effects. The Skill’s total cost includes this movement; follow-up effects use the position reached.',
     {
-      payloadFields: ['type', 'recipient', 'maximumTiles'],
+      payloadFields: [
+        'type',
+        'recipient',
+        'maximumTiles',
+        'maximumElevation',
+        'requiresLineOfSight',
+      ],
       recipients: ['actor'],
       combinations: [{ activation: 'manual', mode: 'action' }],
       timing: ['instant'],
@@ -392,18 +415,34 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     combinations: [{ activation: 'manual', mode: 'action' }],
   }),
   tag(
+    'stat-bonus',
+    ['stat', 'amount'],
+    { stat: 'identity', amount: 'power' },
+    'Adds a flat Self stat bonus while Requirements hold. Movement is captured at own-turn start. Evasion uses basis points (100 = 1 percentage point).',
+    {
+      payloadFields: ['type', 'recipient', 'target', 'stat', 'amount'],
+      recipients: ['actor'],
+      handler: 'damage-modifiers',
+      stacking: 'source-owned',
+      runtimeCapability: 'maintained-source-resolver-required',
+      combinations: [{ activation: 'ongoing', mode: 'modifier' }],
+      timing: ['instant'],
+    },
+  ),
+  tag(
     'damage-bonus',
     ['multiplierBasisPoints'],
     { multiplierBasisPoints: 'basis-points' },
-    'A manual modifier increases the selected Attack’s damage. An ongoing modifier increases outgoing damage while its requirements hold.',
+    'A manual or automatic modifier increases the selected Attack’s direct damage. An ongoing modifier increases direct outgoing damage while its requirements hold. An element filter applies to each matching packet only.',
     {
-      payloadFields: ['type', 'recipient', 'multiplierBasisPoints'],
+      payloadFields: ['type', 'recipient', 'multiplierBasisPoints', 'elementFilter'],
       recipients: ['actor'],
       handler: 'damage-modifiers',
       stacking: 'source-owned',
       runtimeCapability: 'maintained-source-resolver-required',
       combinations: [
         { activation: 'manual', mode: 'modifier' },
+        { activation: 'automatic', mode: 'modifier' },
         { activation: 'ongoing', mode: 'modifier' },
       ],
       timing: ['instant'],
@@ -543,9 +582,28 @@ export function validateCombatTagPayload(
     }
     if (value.type === 'move') {
       integer(value.maximumTiles, 1, 20, 'Move maximum entered tiles')
+      if (value.maximumElevation !== undefined)
+        integer(value.maximumElevation, 0, 3, 'Move elevation')
+      if (value.requiresLineOfSight !== undefined && typeof value.requiresLineOfSight !== 'boolean')
+        issue(
+          'payload.requiresLineOfSight',
+          'invalid-payload',
+          'Move line of sight must be boolean.',
+        )
+      return issues
+    }
+    if (value.type === 'stat-bonus') {
+      if (!COMBAT_BONUS_STATS.includes(value.stat as CombatBonusStat))
+        throw new TypeError('Unsupported passive stat.')
+      integer(value.amount, 1, Number.MAX_SAFE_INTEGER, 'Flat stat bonus')
       return issues
     }
     if (value.type === 'damage-bonus') {
+      if (
+        value.elementFilter !== undefined &&
+        !['fire', 'water', 'ice', 'storm'].includes(value.elementFilter as string)
+      )
+        throw new TypeError('Unsupported damage bonus element filter.')
       integer(
         value.multiplierBasisPoints,
         10000,
@@ -837,7 +895,12 @@ export function validateCombatTagPayload(
 export function nativeCombatTagPayload(
   payload: Exclude<CombatTagPayload, { type: 'damage-bonus' | 'summon' }> | CombatTagPayload,
 ): CombatEffectDefinition {
-  if (payload.type === 'summon' || payload.type === 'damage-bonus' || payload.type === 'move')
+  if (
+    payload.type === 'stat-bonus' ||
+    payload.type === 'summon' ||
+    payload.type === 'damage-bonus' ||
+    payload.type === 'move'
+  )
     throw new TypeError('Tag requires its specialized canonical resolver.')
   if (payload.type === 'pierce') {
     const { armorIgnoredBasisPoints: _ignored, ...damage } = payload
@@ -887,17 +950,19 @@ export function combatTagPayloadExplanation(payload: CombatTagPayload): {
   if (!definition || validateCombatTagPayload(payload).length > 0)
     throw new TypeError('Unsupported combat Tag explanation.')
   const concise =
-    payload.type === 'move'
-      ? `Move · Maximum Tiles [${payload.maximumTiles}]`
-      : payload.type === 'damage-bonus'
-        ? `Damage Up [${(payload.multiplierBasisPoints - 10000) / 100}%]`
-        : payload.type === 'pierce'
-          ? `Pierce [${payload.amount}] · Armor Ignored [${payload.armorIgnoredBasisPoints / 100}%]`
-          : payload.type === 'summon'
-            ? 'Summon'
-            : payload.type === 'reversal'
-              ? 'Reversal'
-              : combatEffectPresentationTags(nativeCombatTagPayload(payload)).join(' · ')
+    payload.type === 'stat-bonus'
+      ? `${COMBAT_BONUS_STAT_LABELS[payload.stat]} +${payload.amount}`
+      : payload.type === 'move'
+        ? `Move · Maximum Tiles [${payload.maximumTiles}]`
+        : payload.type === 'damage-bonus'
+          ? `Damage Up [${(payload.multiplierBasisPoints - 10000) / 100}%]`
+          : payload.type === 'pierce'
+            ? `Pierce [${payload.amount}] · Armor Ignored [${payload.armorIgnoredBasisPoints / 100}%]`
+            : payload.type === 'summon'
+              ? 'Summon'
+              : payload.type === 'reversal'
+                ? 'Reversal'
+                : combatEffectPresentationTags(nativeCombatTagPayload(payload)).join(' · ')
   return { concise, full: definition.fullExplanation }
 }
 

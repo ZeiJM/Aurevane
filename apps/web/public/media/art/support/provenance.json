@@ -32,5 +32,30 @@
       "width": 768,
       "height": 768
     }
+  ],
+  "revisions": [
+    {
+      "request": "ART-SUPPORT-20261103",
+      "origin": "Built-in image generation and edit",
+      "purpose": "Replace awkward Pilfer hand composition and improve a generic Invocation summoning sigil suitable for future summons.",
+      "assets": [
+        {
+          "file": "pilfer-v02.webp",
+          "generationRequestId": "exec-9ace1570-07ae-47b4-b109-4d6ca896a193",
+          "sourceMaster": "exec-9ace1570-07ae-47b4-b109-4d6ca896a193.png",
+          "width": 768,
+          "height": 768,
+          "prompt": "Square premium dark fantasy RPG skill art. A single anatomically clear black leather gloved hand lifts a coin purse by its drawstring from a belt hook, isolated against dark cloak folds. Warm amber coins, strong readable silhouettes. No dagger, body, legs, pelvis, face, text or UI."
+        },
+        {
+          "file": "invocation-v02.webp",
+          "generationRequestId": "exec-d4d9da12-8f44-496f-bfb1-0b76811b08d4",
+          "sourceMaster": "exec-d4d9da12-8f44-496f-bfb1-0b76811b08d4.png",
+          "width": 768,
+          "height": 768,
+          "prompt": "Edit the violet Invocation artwork: remove all creatures and replace their space with violet sparks and ribbons. Keep the summoning circle, brilliant four-point moon-white star, indigo ruined temple and moonlit atmosphere. Generic summoning skill symbol for future summons. Dark fantasy anime-style, readable icon, no animals, people, text, UI or border."
+        }
+      ]
+    }
   ]
 }

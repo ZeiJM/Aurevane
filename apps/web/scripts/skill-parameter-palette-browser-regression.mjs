@@ -1813,7 +1813,12 @@ async function verifyCanonicalEditor(page, viewport) {
   await gesture(hit.getByRole('button', { name: 'Remove effect', exact: true }))
   await gesture(pierce.getByRole('button', { name: 'Remove effect', exact: true }))
   assert.equal(await leap.getByLabel('Accuracy rule', { exact: true }).isDisabled(), true)
-  assert.equal(await leap.getByLabel('Maximum target range', { exact: true }).isDisabled(), true)
+  assert.equal(await leap.getByLabel('Maximum target range', { exact: true }).count(), 0)
+  assert.equal(await leap.getByLabel('Move elevation', { exact: true }).isEnabled(), true)
+  assert.equal(
+    await leap.getByLabel('Move requires line of sight', { exact: true }).isEnabled(),
+    true,
+  )
   const pure = await page.evaluate(() => ({
     raw: window.inspectRawEditedAbility(),
     active: window.inspectEditedAbility(),

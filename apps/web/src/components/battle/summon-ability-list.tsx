@@ -144,6 +144,7 @@ export function SummonAbilityList({
       pierceCriticalPolicyVersion={policies.pierceCriticalPolicyVersion ?? null}
       summonPotencyPolicyVersion={policies.summonPotencyPolicyVersion ?? null}
       ruinPolicyVersion={policies.ruinPolicyVersion ?? null}
+      pairedStatusPolicyVersion={policies.pairedStatusPolicyVersion ?? null}
     >
       <div className={styles.list} aria-label="Summon abilities">
         {abilities.map((ability) => (

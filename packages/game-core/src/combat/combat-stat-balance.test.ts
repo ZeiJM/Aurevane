@@ -95,8 +95,20 @@ const skill: CombatActionDefinition = {
 }
 
 describe('Owner stat balance policy', () => {
-  it('pins current displacement origins only at new balanced encounter creation', () => {
+  it('pins current displacement and damage policies only at new balanced encounter creation', () => {
     const { base, profiles } = fixture(0, 10000)
+    const current = createStatBalancedCombatEncounterState(base, profiles)
+    const historical = createStatDrivenCombatEncounterState(base, profiles)
+    expect(current.barrierDamageEventPolicyVersion).toBe(1)
+    expect(current.selfDamagePolicyVersion).toBe(1)
+    expect(current.abilityUsageLimitPolicyVersion).toBe(1)
+    expect(historical.barrierDamageEventPolicyVersion).toBeUndefined()
+    expect(historical.selfDamagePolicyVersion).toBeUndefined()
+    expect(historical.abilityUsageLimitPolicyVersion).toBeUndefined()
+    expect(createStatBalancedCombatEncounterState(base, profiles).pairedStatusPolicyVersion).toBe(1)
+    expect(
+      createStatDrivenCombatEncounterState(base, profiles).pairedStatusPolicyVersion,
+    ).toBeUndefined()
     expect(
       createStatBalancedCombatEncounterState(base, profiles).displacementOriginPolicyVersion,
     ).toBe(1)

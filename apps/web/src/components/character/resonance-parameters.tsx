@@ -9,7 +9,7 @@ import { useSkillEffectTimingPolicy } from './skill-effect-timing-context'
 import type { AnyResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { normalizedResonanceMechanics } from '@aurevane/game-core/combat/resonance-v2'
-import { previewEffectWithTag } from './skill-effect-preview'
+import { skillPreviewEffects } from './skill-effect-preview'
 import { CompactSkillEffectSummary, EffectTagLabel } from './compact-skill-effect-summary'
 import {
   resonanceCharacteristicRows,
@@ -56,7 +56,10 @@ export function ResonanceParameters({
   const mechanics = definition ? normalizedResonanceMechanics(definition) : null
   const effects = mechanics?.resultEffects ?? []
   const supplemental = resonanceSupplementalRows(definition)
-  const explanations = supplemental.find(([label]) => label === 'Result details')?.[1]
+  const explanations = skillPreviewEffects({
+    effects,
+    tagPresentation: definition?.tagPresentation,
+  })
   return (
     <div
       className={[styles.report, className].filter(Boolean).join(' ')}
@@ -97,17 +100,13 @@ export function ResonanceParameters({
       </dl>
       {Array.isArray(explanations) && explanations.length ? (
         <ul aria-label="Effect explanations">
-          {explanations.map((explanation, index) => {
-            const preview = previewEffectWithTag(
-              groupSkillEffects(effects)[index]!.effect,
-              definition?.tagPresentation,
-            )
+          {explanations.map((preview, index) => {
             return (
               <li key={index}>
                 <strong>
                   <EffectTagLabel label={preview.label} tagPresentation={preview.tagPresentation} />
                 </strong>{' '}
-                — {explanation}
+                — {preview.explanation}
               </li>
             )
           })}

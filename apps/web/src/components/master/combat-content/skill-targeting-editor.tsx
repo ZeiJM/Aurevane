@@ -1,4 +1,5 @@
 'use client'
+import type { ReactNode } from 'react'
 
 import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
@@ -18,6 +19,8 @@ export interface SkillTargetingEditorProps {
   readonly effects?: readonly TargetedEffect[]
   readonly requiresSelectedUnit?: boolean
   readonly disabled?: boolean
+  readonly movementOnly?: boolean
+  readonly movementControls?: ReactNode
   readonly v51Rules?: boolean
   readonly onChange: (value: CombatTargetSpec) => void
 }
@@ -27,6 +30,8 @@ export function SkillTargetingEditor({
   effects,
   requiresSelectedUnit = false,
   disabled = false,
+  movementOnly = false,
+  movementControls,
   v51Rules = false,
   onChange,
 }: SkillTargetingEditorProps) {
@@ -83,11 +88,21 @@ export function SkillTargetingEditor({
     (hasAll && value.allTargetPolicyVersion === undefined) ||
     value.friendlyFire === 'all-units' ||
     value.friendlyFire === 'all-except-actor'
+  if (movementOnly)
+    return (
+      <fieldset className={styles.typedGroup} aria-label="Range & Area">
+        <p className={styles.fieldHint}>
+          Move selects a Ground destination. Set its elevation and visibility here.
+        </p>
+        {movementControls}
+      </fieldset>
+    )
   return (
     <fieldset className={styles.typedGroup} aria-label="Range & Area" disabled={disabled}>
       <p className={styles.fieldHint}>
         Choose each effect’s Target in Effects. This area controls their shared reach and footprint.
       </p>
+      {movementControls}
       {singleRequired ? (
         <p className={styles.fieldHint}>
           Single is required by this effect or its selected-target Requirement/Condition. Keep those

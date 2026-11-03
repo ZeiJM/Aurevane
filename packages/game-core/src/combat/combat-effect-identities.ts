@@ -55,6 +55,7 @@ const variants: readonly AuthorableEffectTag[] = [
   { id: 'push', label: 'Push', opcode: 'displace' },
   { id: 'pull', label: 'Pull', opcode: 'displace' },
   { id: 'move', label: 'Move', opcode: 'move' },
+  { id: 'stat-bonus', label: 'Stat Bonus', opcode: 'stat-bonus' },
   { id: 'damage-bonus', label: 'Damage Bonus', opcode: 'damage-bonus' },
   { id: 'summon', label: 'Summon', opcode: 'summon' },
   { id: 'loot', label: 'Loot', opcode: 'loot' },

@@ -5,6 +5,8 @@ import type { CombatTriggerGuard } from './combat-kernel-types'
 import type { AbilityRequirementContext } from './combat-requirements'
 
 export interface CombatNativeMutationFacts {
+  /** Actual absorption for the same direct packet whose HP settlement is being observed. */
+  readonly barrierAbsorbedDamage?: number
   readonly rootActionId?: string
   readonly actionId?: string
   readonly triggeringCombatantId?: string

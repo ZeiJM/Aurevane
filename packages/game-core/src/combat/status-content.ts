@@ -1,6 +1,6 @@
 import type { CombatStatusDefinition } from './actions'
 import { BLINDSIDE_DEBUFF_STATUS_ID, BLINDSIDE_DEBUFF_DESCRIPTION } from './combat-blindside'
-import { airborneDescription } from './combat-airborne'
+import { airborneDescription } from './combat-airborne-description'
 import type { CombatDamageModifier, DamageCondition } from './damage-modifiers'
 
 export interface NamedCombatStatus extends CombatStatusDefinition {

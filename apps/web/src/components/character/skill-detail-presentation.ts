@@ -77,7 +77,9 @@ export function skillEffectDescription(
     legacyReflectBarrier?: boolean
     legacyPierceCritical?: boolean
     legacySummonPotency?: boolean
+    legacyActionUsageLimits?: boolean
     legacyRuin?: boolean
+    legacyPairedStatus?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     rewindPrimeAnchor?: boolean
@@ -327,6 +329,7 @@ interface ElementalEffectPresentationOptions {
   legacyPierceCritical?: boolean
   legacySummonPotency?: boolean
   legacyRuin?: boolean
+  legacyPairedStatus?: boolean
   timingMode?: 'instant' | 'delayed' | 'controlled' | 'next-round'
   legacyHealingDown?: boolean
   legacyElemental?: boolean

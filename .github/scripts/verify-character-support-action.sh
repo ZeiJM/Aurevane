@@ -105,12 +105,35 @@ printf 'Support Action ownership, defaults, idempotency, versions, snapshots, lo
 # Race two independent writers against the same version. The row lock must admit exactly
 # one mutation and reject the other as stale; retrying its intent must preserve both fields.
 race_dir="$(mktemp -d)"
-trap 'rm -rf "$race_dir"' EXIT
+gate_app="support-gate-$$"
+skills_app="support-skills-$$"
+support_app="support-writer-$$"
+gate_pid=''; skills_pid=''; support_pid=''
+sql() { docker exec "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -U postgres -d postgres -c "$1"; }
+cleanup() {
+  local status=$?
+  trap - EXIT
+  if [ "$status" -ne 0 ]; then
+    mkdir -p /tmp/aurevane-support-race-failure
+    sql "select application_name,state,wait_event_type,wait_event,pg_blocking_pids(pid),query from pg_stat_activity where application_name in ('$gate_app','$skills_app','$support_app');" >"$race_dir/activity.log" 2>&1 || true
+  fi
+  sql "select pg_terminate_backend(pid) from pg_stat_activity where application_name in ('$gate_app','$skills_app','$support_app');" >/dev/null || true
+  for pid in "$gate_pid" "$skills_pid" "$support_pid"; do if [ -n "$pid" ]; then wait "$pid" 2>/dev/null || true; fi; done
+  if [ "$status" -ne 0 ]; then
+    for log in "$race_dir"/*.log "$race_dir"/*.status; do
+      if [ -f "$log" ]; then cp "$log" /tmp/aurevane-support-race-failure/; cat "$log" >&2; fi
+    done
+  fi
+  sql 'drop trigger if exists support_skill_race_gate on app_private.character_skill_loadout_change_audit; drop schema if exists support_skill_race cascade;' >/dev/null || true
+  rm -rf "$race_dir"
+  exit "$status"
+}
+trap cleanup EXIT
 support_sql="set role service_role; select * from public.save_character_support_action_v1('$user_id','$character_id',1,'basic.recover',gen_random_uuid(),'support:race');"
 skills_sql="set role service_role; select * from public.save_character_discipline_skill_loadout_v1('$user_id','$character_id',1,jsonb_build_array((select jsonb_build_object('skillId',skill_id,'contentVersion',skill_content_version,'sourceDisciplineId',source_discipline_id) from public.get_character_learned_skills_v1('$user_id','$character_id') where skill_id='vanguard.forceful-strike')),gen_random_uuid(),'skills:race');"
 run_race_save() {
   local label="$1" sql="$2" result=0
-  docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "$sql" >"$race_dir/$label" 2>&1 || result=$?
+  docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "set statement_timeout='15s'; $sql" >"$race_dir/$label.log" 2>&1 || result=$?
   printf '%s' "$result" >"$race_dir/$label.status"
 }
 run_race_save support "$support_sql" &
@@ -121,11 +144,11 @@ wait "$support_pid"
 wait "$skills_pid"
 if [ "$(cat "$race_dir/support.status")" = 0 ]; then
   test "$(cat "$race_dir/skills.status")" != 0
-  grep -Fq 'CHARACTER_BUILD_VERSION_CONFLICT' "$race_dir/skills"
+  grep -Fq 'CHARACTER_BUILD_VERSION_CONFLICT' "$race_dir/skills.log"
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "${skills_sql/,1,/,2,}" >/dev/null
 else
   test "$(cat "$race_dir/skills.status")" = 0
-  grep -Fq 'CHARACTER_BUILD_VERSION_CONFLICT' "$race_dir/support"
+  grep -Fq 'CHARACTER_BUILD_VERSION_CONFLICT' "$race_dir/support.log"
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "${support_sql/,1,/,2,}" >/dev/null
 fi
 final="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -134,3 +157,50 @@ final="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d post
  from (select public.get_character_committed_build_snapshot_v2('$user_id','$character_id') snapshot) current;")"
 test "$final" = '3|basic.recover|vanguard.forceful-strike'
 printf 'Concurrent Support Action and Discipline Skill saves preserved both intents.\n'
+
+# Force the previously unsafe interleaving: Skills owns build but has not inserted
+# its character-FK audit; Support must now wait at account seed0 without owning the
+# character row. Releasing the audit gate must finish Skills and make Support stale.
+docker exec -i "$db_container" psql -X -q -v ON_ERROR_STOP=1 -U postgres -d postgres < .github/scripts/support-discipline-race-fixture.sql
+wait_for() {
+  local query="$1" label="$2"
+  for ((attempt=0;attempt<100;attempt++)); do
+    if [ "$(sql "$query")" = t ]; then return; fi
+    sleep 0.1
+  done
+  echo "Did not observe $label" >&2; return 1
+}
+docker exec -e PGAPPNAME="$gate_app" "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -U postgres -d postgres -c "begin; select pg_advisory_xact_lock(hashtextextended('$gate_app',0)); select pg_sleep(45); rollback;" >"$race_dir/gate.log" 2>&1 &
+gate_pid=$!
+wait_for "select exists(select 1 from pg_stat_activity where application_name='$gate_app' and wait_event='PgSleep');" 'audit gate holder'
+skill_key="$(sql 'select gen_random_uuid();')"
+support_key="$(sql 'select gen_random_uuid();')"
+paused_skills="set role service_role; select * from public.save_character_discipline_skill_loadout_v1('$user_id','$character_id',3,'[]'::jsonb,'$skill_key','skills:before-audit');"
+blocked_support="set role service_role; select * from public.save_character_support_action_v1('$user_id','$character_id',3,'basic.recover.mp','$support_key','support:before-audit');"
+run_named() {
+  local label="$1" app="$2" statement="$3" result=0
+  docker exec -e PGAPPNAME="$app" "$db_container" psql -X -Atq -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set statement_timeout='20s'; set deadlock_timeout='500ms'; $statement" >"$race_dir/$label.log" 2>&1 || result=$?
+  printf '%s' "$result" >"$race_dir/$label.status"
+}
+run_named audit-skills "$skills_app" "set aurevane.support_race_gate='$gate_app'; $paused_skills" &
+skills_pid=$!
+wait_for "select exists(select 1 from pg_stat_activity w join pg_stat_activity h on h.application_name='$gate_app' where w.application_name='$skills_app' and h.pid=any(pg_blocking_pids(w.pid)));" 'actual Discipline writer before audit FK'
+run_named audit-support "$support_app" "$blocked_support" &
+support_pid=$!
+wait_for "select exists(select 1 from pg_stat_activity w join pg_stat_activity h on h.application_name='$skills_app' where w.application_name='$support_app' and h.pid=any(pg_blocking_pids(w.pid)) and w.wait_event_type='Lock' and w.wait_event='advisory');" 'Support waiting on the outer account lock'
+# The blocked Support writer cannot already own the incompatible character lock.
+sql "begin; select id from public.characters where id='$character_id' for key share nowait; rollback;" >"$race_dir/character-key-share.log" 2>&1
+sql "select pg_terminate_backend(pid) from pg_stat_activity where application_name='$gate_app';" >/dev/null
+wait "$gate_pid" || true; gate_pid=''
+wait "$skills_pid"; skills_pid=''
+wait "$support_pid"; support_pid=''
+test "$(cat "$race_dir/audit-skills.status")" = 0
+test "$(cat "$race_dir/audit-support.status")" != 0
+grep -Fq 'CHARACTER_BUILD_VERSION_CONFLICT' "$race_dir/audit-support.log"
+if grep -Eq 'deadlock detected|statement timeout' "$race_dir/audit-skills.log" "$race_dir/audit-support.log"; then exit 1; fi
+sql "${blocked_support/,3,/,4,}" >"$race_dir/support-retry.log"
+test "$(sql "set role service_role; select build_version||'|'||replayed from public.save_character_discipline_skill_loadout_v1('$user_id','$character_id',3,'[]'::jsonb,'$skill_key','skills:before-audit');")" = '4|true'
+test "$(sql "set role service_role; select build_version||'|'||replayed from public.save_character_support_action_v1('$user_id','$character_id',4,'basic.recover.mp','$support_key','support:before-audit');")" = '5|true'
+test "$(sql "select build_version||'|'||support_action_id||'|'||(select count(*) from app_private.character_build_discipline_skills where character_id='$character_id') from app_private.character_active_builds where character_id='$character_id';")" = '5|basic.recover.mp|0'
+test "$(sql "select revision||'|'||(selected_support->>'actionId') from app_private.character_item_inventory where character_id='$character_id';")" = '2|basic.recover.mp'
+printf 'PASS deterministic Discipline-before-audit / Support account lock, stale retry and exact replay.\n'

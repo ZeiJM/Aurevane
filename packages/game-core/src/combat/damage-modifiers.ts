@@ -1,3 +1,4 @@
+import type { CombatElement } from './gameplay-tags'
 import { CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import { combatStatusApplications } from './combat-status-applications'
 import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gameplay-tags'
@@ -27,11 +28,14 @@ export function validateCombatCommandDamageBonuses(value: unknown): void {
             'behaviorId',
             'effectId',
             'multiplierBasisPoints',
+            'elementFilter',
           ].includes(key),
       ) ||
       ['sourceInstanceId', 'contentId', 'behaviorId', 'effectId'].some(
         (key) => typeof bonus[key] !== 'string' || !bonus[key] || bonus[key].trim() !== bonus[key],
       ) ||
+      (bonus.elementFilter !== undefined &&
+        !['fire', 'water', 'ice', 'storm'].includes(bonus.elementFilter)) ||
       !Number.isSafeInteger(bonus.contentVersion) ||
       bonus.contentVersion < 1 ||
       !Number.isSafeInteger(bonus.multiplierBasisPoints) ||
@@ -83,6 +87,7 @@ type ConditionalDamageArguments = [
   content: CombatContentCatalog,
   elementalMultiplier?: number,
   options?: {
+    packetElement?: CombatElement
     ignoreIncomingMitigation?: boolean
     outgoingState?: CombatEncounterState
     commandDamageBonuses?: readonly CombatCommandDamageBonus[]
@@ -109,6 +114,7 @@ function calculateConditionalDamageRatio(
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
   options: {
+    packetElement?: CombatElement
     ignoreIncomingMitigation?: boolean
     outgoingState?: CombatEncounterState
     commandDamageBonuses?: readonly CombatCommandDamageBonus[]
@@ -153,13 +159,15 @@ function calculateConditionalDamageRatio(
     }
   }
   validateCombatCommandDamageBonuses(options.commandDamageBonuses)
-  for (const bonus of options.commandDamageBonuses ?? [])
-    [numerator, denominator] = multiplyRepeatedRatio(
+  for (const bonus of options.commandDamageBonuses ?? []) {
+    if (bonus.elementFilter !== undefined && bonus.elementFilter !== options.packetElement) continue
+    ;[numerator, denominator] = multiplyRepeatedRatio(
       numerator,
       denominator,
       bonus.multiplierBasisPoints,
       1,
     )
+  }
   const owner = outgoingState.tactical.battle.combatants.find((unit) => unit.id === attackerId)
   if (owner && owner.hp > 0 && outgoingState.tactical.battle.lifecycle === 'active') {
     const context = { owner: combatAbilitySubject(outgoingState, attackerId) }
@@ -178,6 +186,8 @@ function calculateConditionalDamageRatio(
         for (const effect of behavior.effects) {
           if (
             effect.payload.type !== 'damage-bonus' ||
+            (effect.payload.elementFilter !== undefined &&
+              effect.payload.elementFilter !== options.packetElement) ||
             !evaluateAbilityRequirements(effect.requirements ?? null, context)
           )
             continue

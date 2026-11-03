@@ -49,6 +49,7 @@ export async function attackWorldPlayer(
         entry.userId,
         entry.characterId,
         builds,
+        true,
       )
       const member: PvpLobbyMemberView = {
         ...entry,

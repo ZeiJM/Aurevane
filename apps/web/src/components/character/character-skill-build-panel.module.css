@@ -870,20 +870,22 @@
     letter-spacing: 0.035em;
   }
   .techniqueArea {
-    grid-template-rows: repeat(2, minmax(0, 1fr)) max-content;
+    /* Equipment choices and load errors may add rows. Keep each library's readable
+       content height and scroll the library instead of squeezing its cards. */
+    grid-template-rows: repeat(3, max-content);
+    overflow-y: auto;
   }
   .techniqueGroup {
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: auto max-content;
   }
   .skill,
   .lockedSkill {
-    container-type: size;
-    /* Eight-column galleries retain their assigned row and reserve readable name/type lines. */
-    --av-gameplay-art-size: min(var(--av-cockpit-art-size), calc(100cqb - 3.5rem));
+    container-type: inline-size;
+    --av-gameplay-art-size: var(--av-cockpit-art-size);
   }
   .lockedSkill {
-    /* Match the available card's container budget; its padding belongs to the inner label. */
-    padding: 0;
+    /* Match the available card's label inset, including room below the locked caption. */
+    padding: 0.2rem 0;
   }
   .lockedSkill > span {
     width: min(calc(100% - 0.32rem), var(--av-gameplay-art-size));

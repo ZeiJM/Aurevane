@@ -1,3 +1,5 @@
+import { equipmentBehaviorActionId } from './combat-equipment'
+import { synchronizeCombatInitiative } from './actions-legacy'
 import {
   combatReversalPayload,
   endCombatReversal,
@@ -62,6 +64,7 @@ import {
 } from './combat-controlled'
 
 interface CombatAbilityUsage {
+  readonly usageCount?: number
   readonly key: string
   readonly rootActionId: string
   readonly pendingRootActionIds?: readonly string[]
@@ -169,9 +172,15 @@ export function materializeCombatAbilityAction(
   if (behavior.effects.some((effect) => effect.payload.type === 'damage-bonus'))
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
-    id: source.abilityId,
+    id: source.equipment
+      ? equipmentBehaviorActionId(source.equipment, behavior.id)
+      : source.abilityId,
     version: source.contentVersion,
-    sourceType: 'discipline-skill',
+    sourceType:
+      source.equipment?.roles.attack === behavior.id ? 'basic-attack' : 'discipline-skill',
+    ...(source.equipment?.roles.attack === behavior.id
+      ? { nativeBasicAttackCommand: true, equipmentBasicAttackCommand: true }
+      : {}),
     tags: [
       ...source.tags.filter((tag) => !['attack', 'mystic', 'physical'].includes(tag)),
       ...(behavior.classification === 'attack' ? ['attack', behavior.attackFamily!] : []),
@@ -414,6 +423,7 @@ export function reconcileCombatAbilitySources(
       )
         continue
       for (const effect of behavior.effects) {
+        if (effect.payload.type === 'stat-bonus') continue
         if (effect.payload.type !== 'damage-bonus') throw new TypeError('unsupported-ongoing-tag')
         maintained.push({
           sourceInstanceId: source.sourceInstanceId,
@@ -425,53 +435,55 @@ export function reconcileCombatAbilitySources(
       }
     }
   }
-  return reconcileCombatReversalState({
-    ...state,
-    capturedAbilitySources: [
-      ...(state.capturedAbilitySources ?? []).map(captureCombatAbilitySource),
-      ...captured.filter(
-        (source) =>
-          !state.capturedAbilitySources?.some(
-            (old) => old.sourceInstanceId === source.sourceInstanceId,
-          ),
-      ),
-    ],
-    abilityRuntime: {
-      ...state.abilityRuntime,
-      schemaVersion: 1,
-      activeSourceIds: captured.map((row) => row.sourceInstanceId),
-      usage: state.abilityRuntime?.usage ?? [],
-      maintained,
-      conditionTruth: [
-        ...(state.abilityRuntime?.conditionTruth ?? []),
-        ...captured.flatMap((source) =>
-          source.definition.behaviors
-            .filter(
-              (behavior) =>
-                behavior.activation === 'automatic' &&
-                behavior.mode === 'action' &&
-                !state.abilityRuntime?.conditionTruth?.some(
-                  (row) =>
-                    row.sourceInstanceId === source.sourceInstanceId &&
-                    row.behaviorId === behavior.id,
-                ),
-            )
-            .map((behavior) => ({
-              sourceInstanceId: source.sourceInstanceId,
-              behaviorId: behavior.id,
-              holds: evaluateAutomaticRequirementTrigger(
-                behavior.requirements,
-                { owner: combatAbilitySubject(state, source.ownerCombatantId) },
-                true,
-              ).stateTruth,
-            })),
+  return synchronizeCombatInitiative(
+    reconcileCombatReversalState({
+      ...state,
+      capturedAbilitySources: [
+        ...(state.capturedAbilitySources ?? []).map(captureCombatAbilitySource),
+        ...captured.filter(
+          (source) =>
+            !state.capturedAbilitySources?.some(
+              (old) => old.sourceInstanceId === source.sourceInstanceId,
+            ),
         ),
       ],
-      ...(state.abilityRuntime?.nextCommandSequence === undefined
-        ? {}
-        : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),
-    },
-  }).state
+      abilityRuntime: {
+        ...state.abilityRuntime,
+        schemaVersion: 1,
+        activeSourceIds: captured.map((row) => row.sourceInstanceId),
+        usage: state.abilityRuntime?.usage ?? [],
+        maintained,
+        conditionTruth: [
+          ...(state.abilityRuntime?.conditionTruth ?? []),
+          ...captured.flatMap((source) =>
+            source.definition.behaviors
+              .filter(
+                (behavior) =>
+                  behavior.activation === 'automatic' &&
+                  behavior.mode === 'action' &&
+                  !state.abilityRuntime?.conditionTruth?.some(
+                    (row) =>
+                      row.sourceInstanceId === source.sourceInstanceId &&
+                      row.behaviorId === behavior.id,
+                  ),
+              )
+              .map((behavior) => ({
+                sourceInstanceId: source.sourceInstanceId,
+                behaviorId: behavior.id,
+                holds: evaluateAutomaticRequirementTrigger(
+                  behavior.requirements,
+                  { owner: combatAbilitySubject(state, source.ownerCombatantId) },
+                  true,
+                ).stateTruth,
+              })),
+          ),
+        ],
+        ...(state.abilityRuntime?.nextCommandSequence === undefined
+          ? {}
+          : { nextCommandSequence: state.abilityRuntime.nextCommandSequence }),
+      },
+    }).state,
+  )
 }
 
 /** Free state commands deliberately do not dispatch paid action-use hooks. */

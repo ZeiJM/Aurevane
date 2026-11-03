@@ -44,7 +44,7 @@ export function validateCombatEffectTarget(
     throw new TypeError('Empty Tile effects require an empty shared aim.')
   if (!COMBAT_EFFECT_TARGETS.includes(effect.target as CombatEffectTarget))
     throw new TypeError('Unknown effect target.')
-  if (['move', 'damage-bonus', 'endure', 'reversal'].includes(effect.type)) {
+  if (['stat-bonus', 'move', 'damage-bonus', 'endure', 'reversal'].includes(effect.type)) {
     if (effect.target !== 'self' || effect.recipient !== 'actor')
       throw new TypeError('This effect supports only the Self target.')
     return
@@ -67,6 +67,7 @@ export function validateCombatEffectTarget(
     throw new TypeError('Effect target must agree with its actor recipient.')
   if (
     (effect.type === 'copy-statuses' ||
+      effect.type === 'loot' ||
       (effect.type === 'sensory' && effect.target !== 'ground')) &&
     !['ally', 'enemy', 'anyone'].includes(effect.target as string)
   )
@@ -134,8 +135,9 @@ function unfilteredCombatEffectRecipientIds(
         )
       )
         return false
-      // The actor is not a legal direct-damage recipient until self-defeat is supported.
-      if (effect.type === 'damage' && unit.id === actorId) return false
+      // Historical captures retain their pre-Self-damage recipient filtering.
+      if (effect.type === 'damage' && unit.id === actorId && state.selfDamagePolicyVersion !== 1)
+        return false
       if (effect.target === 'ally') return unit.teamId === actor.teamId && unit.id !== actorId
       if (effect.target === 'enemy')
         return (
@@ -148,7 +150,10 @@ function unfilteredCombatEffectRecipientIds(
           unit.teamId !== actor.teamId ||
           (friendlyFire &&
             (unit.id !== actorId ||
-              (effect.type === 'displace' && state.displacementOriginPolicyVersion === 1)))
+              (effect.type === 'displace' && state.displacementOriginPolicyVersion === 1) ||
+              (effect.type === 'damage' &&
+                state.selfDamagePolicyVersion === 1 &&
+                target.friendlyFire === 'all-units')))
         )
       return true
     })
@@ -189,6 +194,10 @@ export function combatEffectRecipientIds(
     content,
     capturedRecipients,
   )
+  // Current native and captured packets can include their caster even without an authored target.
+  // Finish the packet before actor defeat advances a turn or decides the battle.
+  if (state.selfDamagePolicyVersion === 1 && effect.type === 'damage')
+    recipients.sort((left, right) => (left === actorId ? 1 : right === actorId ? -1 : 0))
   if (
     !content ||
     capturedRecipients ||

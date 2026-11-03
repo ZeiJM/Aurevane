@@ -1,7 +1,10 @@
 'use client'
 import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
 import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
-import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
+import {
+  DEFAULT_RECKLESS_POTENCY_BASIS_POINTS,
+  maximumCombatStatusPotencyBasisPoints,
+} from '@aurevane/game-core/combat/combat-status-tuning'
 import {
   selectableCombatStatusIds,
   combatStatusSelectionSummary,
@@ -1034,11 +1037,13 @@ export function SkillEffectEditor({
               }
               value={
                 (value.potencyBasisPoints ??
-                  (value.statusId === 'suppress'
-                    ? 2500
-                    : ['wet', 'conductive'].includes(value.statusId)
-                      ? 2000
-                      : 1500)) / 100
+                  (value.statusId === 'reckless'
+                    ? DEFAULT_RECKLESS_POTENCY_BASIS_POINTS
+                    : value.statusId === 'suppress'
+                      ? 2500
+                      : ['wet', 'conductive'].includes(value.statusId)
+                        ? 2000
+                        : 1500)) / 100
               }
               min={1}
               max={maximumCombatStatusPotencyBasisPoints(value.statusId) / 100}

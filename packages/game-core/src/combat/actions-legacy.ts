@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile, combatStatBonus } from './combat-stat-bonuses'
 import { validateSummonPotencyState } from './combat-summon-potency'
 import {
   prepareCombatRuinCommand,
@@ -70,6 +71,7 @@ import {
 } from './combat-endure'
 import {
   combatStatusTuning,
+  withPairedCombatStatusDefaults,
   combatEffectStrength,
   type CombatEffectStrength,
   maximumCombatStatusPotencyBasisPoints,
@@ -539,6 +541,8 @@ export interface CombatActionDefinition {
   groundTargetedRecipientIds?: readonly string[]
   /** Private trusted composed Basic adapter; never authored or projected. */
   nativeBasicAttackCommand?: true
+  /** Private equipment adapter, preserving authored targeting and accuracy. */
+  equipmentBasicAttackCommand?: true
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   groundArea?: CombatGroundAreaDefinition
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]
@@ -755,6 +759,14 @@ export interface CombatEncounterState {
   abilityCooldownScopeVersion?: 1
   /** Current Reflect records attacker Barrier absorption before HP loss. */
   reflectBarrierPolicyVersion?: 1
+  /** Absorbed positive damage also emits the ordinary damage trigger, once per packet. */
+  barrierDamageEventPolicyVersion?: 1
+  /** Authored Self/Anyone damage uses the existing actor defeat lifecycle. */
+  selfDamagePolicyVersion?: 1
+  /** Authored Once per action permits one use in the entire battle. */
+  abilityUsageLimitPolicyVersion?: 1
+  /** Newly applied unconfigured Reckless/Fortified capture equal tradeoff magnitudes. */
+  pairedStatusPolicyVersion?: 1
   /** Current Support roster; historical absence retains Guard and class Summon commands. */
   supportActionPolicyVersion?: 1
   /** Current Pierce destroys Barrier before applying its HP damage; old captures retain absorption. */
@@ -1243,7 +1255,8 @@ export function synchronizeCombatInitiative<T extends CombatEncounterState>(stat
         ?.statuses.filter(
           (status) => status.statusId === 'wet' && status.timingState !== 'pending',
         ) ?? []
-    if (!wet.length) return []
+    const bonus = combatStatBonus(state, unit.id, 'initiative')
+    if (!wet.length) return bonus ? [{ combatantId: unit.id, amount: bonus }] : []
     const tempo =
       battle.roundInitiativeModifiers?.find((row) => row.combatantId === unit.id)?.amount ?? 0
     if (
@@ -1255,7 +1268,9 @@ export function synchronizeCombatInitiative<T extends CombatEncounterState>(stat
       return [
         {
           combatantId: unit.id,
-          amount: -Math.ceil((unit.initiative + tempo) / DRENCHED_INITIATIVE_APPLICATION_LIMIT),
+          amount:
+            bonus -
+            Math.ceil((unit.initiative + tempo + bonus) / DRENCHED_INITIATIVE_APPLICATION_LIMIT),
         },
       ]
     // Clamp the count before arithmetic; recorded applications may exceed ten or have multiplicity.
@@ -1273,11 +1288,11 @@ export function synchronizeCombatInitiative<T extends CombatEncounterState>(stat
           ),
         0,
       )
-    const effective = BigInt(unit.initiative) + BigInt(tempo)
+    const effective = BigInt(unit.initiative) + BigInt(tempo) + BigInt(bonus)
     const denominator = 10000n
     const reduction =
       effective > 0n ? (effective * BigInt(applications) + denominator - 1n) / denominator : 0n
-    return [{ combatantId: unit.id, amount: -Number(reduction) }]
+    return [{ combatantId: unit.id, amount: bonus - Number(reduction) }]
   })
 
   return {
@@ -3245,6 +3260,10 @@ export function validateCombatEncounterState(
     'modularSkillPolicyVersion',
     'abilityCooldownScopeVersion',
     'reflectBarrierPolicyVersion',
+    'barrierDamageEventPolicyVersion',
+    'selfDamagePolicyVersion',
+    'abilityUsageLimitPolicyVersion',
+    'pairedStatusPolicyVersion',
     'supportActionPolicyVersion',
   ] as const) {
     if (state[field] !== undefined && state[field] !== 1)
@@ -4448,6 +4467,7 @@ function collectSelfDamageIssues(
   target?: CombatTargetSpec,
   content?: CombatContentCatalog,
 ): void {
+  if (state?.selfDamagePolicyVersion === 1) return
   for (const effect of effects) {
     if (effect.type !== 'damage' || effect.target === 'all') continue
     const recipients =
@@ -4958,7 +4978,16 @@ function resolveActionEffects(
         }),
     )
   }
-  for (const [effectOrdinal, effect] of action.effects.entries()) {
+  for (const [effectOrdinal, authoredEffect] of action.effects.entries()) {
+    const effect = withPairedCombatStatusDefaults(
+      authoredEffect,
+      state.pairedStatusPolicyVersion === 1,
+      state.pairedStatusPolicyVersion === 1 &&
+        authoredEffect.type === 'apply-status' &&
+        ['reckless', 'fortified'].includes(authoredEffect.statusId)
+        ? content.statuses.find((status) => status.id === authoredEffect.statusId)
+        : undefined,
+    )
     if (reversalDefeatedActor) break
     if (options.groundArea?.contactPolicyVersion === 1 && primaryCombatantId) {
       const livePosition = nextState.tactical.placements.find(
@@ -5024,7 +5053,7 @@ function resolveActionEffects(
         capabilityIssues,
         options.returnAnchor,
       )
-      collectSelfDamageIssues([effect], actorId, null, [], capabilityIssues)
+      collectSelfDamageIssues([effect], actorId, null, [], capabilityIssues, nextState)
       if (capabilityIssues.length) continue
     }
     const firstEvent = events.length
@@ -6692,7 +6721,10 @@ function applyEffectNative(
       hpAfter,
     }
     const defeatedCurrent =
-      (resolvingPending || actorId !== recipientId || effect.target === 'all') &&
+      (resolvingPending ||
+        actorId !== recipientId ||
+        effect.target === 'all' ||
+        state.selfDamagePolicyVersion === 1) &&
       hpAfter === 0 &&
       barrierState.tactical.battle.currentTurn?.combatantId === recipientId
         ? defeatCombatActionActor(barrierState, recipientId, content, hooks, damageReceipt)
@@ -6706,7 +6738,7 @@ function applyEffectNative(
           state: withUpdatedCombatant(barrierState, recipientId, { ...target, hp: hpAfter }),
           events: [damageReceipt],
         },
-        facts,
+        { ...facts, barrierAbsorbedDamage: barrier.absorbed },
       ).state
     const removed =
       hpAfter < target.hp
@@ -7038,9 +7070,7 @@ export function normalBasicAttackDamageAgainst(
   recipientId: string,
   content: CombatContentCatalog,
 ): number {
-  const profile = (state as import('./actions').CombatEncounterState).statBridge?.combatants.find(
-    (row) => row.combatantId === actorId,
-  )
+  const profile = effectiveCombatStatProfile(state, actorId)
   if (!profile) throw new TypeError('Summon damage reference requires its summoner stat profile.')
   const source = capturedBasicSkillSource(state, actorId, 'unarmed.basic')
   const captured = source?.definition.behaviors.find(
@@ -7129,9 +7159,7 @@ function resolveDamageAmount(
   const outgoingState = groundArea ? withGroundCasterForDamage(state, groundArea) : state
   let amount = effect.amount
   if (effect.defenseKind && amount > 0 && effect.piercing !== true) {
-    const defense = state.statBridge?.combatants.find((unit) => unit.combatantId === recipientId)?.[
-      effect.defenseKind
-    ]
+    const defense = effectiveCombatStatProfile(state, recipientId)?.[effect.defenseKind]
     if (defense === undefined)
       throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
     amount = mitigateDamageByDefense(amount, terrainAdjustedDefense(state, recipientId, defense))
@@ -7153,10 +7181,8 @@ function resolveDamageAmount(
     actorId !== recipientId &&
     amount > 0
   ) {
-    const attacker = outgoingState.statBridge?.combatants.find(
-      (unit) => unit.combatantId === actorId,
-    )
-    const defender = state.statBridge.combatants.find((unit) => unit.combatantId === recipientId)
+    const attacker = effectiveCombatStatProfile(outgoingState, actorId)
+    const defender = effectiveCombatStatProfile(state, recipientId)
     if (attacker?.level === undefined || defender?.level === undefined) {
       throw new TypeError('Combat rules v3 damage requires attacker and defender Levels.')
     }
@@ -7251,6 +7277,7 @@ function resolveDamageAmount(
     content,
     elementalMultiplier,
     {
+      packetElement: effect.element,
       ignoreIncomingMitigation: effect.piercing === true,
       outgoingState,
       commandDamageBonuses,
@@ -9272,6 +9299,23 @@ function withGroundCasterForDamage(
   const caster = area.caster
   return {
     ...state,
+    // This is an ephemeral outgoing calculation view, never an encounter capture.
+    // The Ground profile already includes its cast-time passive stats. Preserve all
+    // other source payloads (including damage modifiers) without adding stats twice.
+    capturedAbilitySources: state.capturedAbilitySources?.map((source) =>
+      source.ownerCombatantId !== area.sourceCombatantId
+        ? source
+        : {
+            ...source,
+            definition: {
+              ...source.definition,
+              behaviors: source.definition.behaviors.map((behavior) => ({
+                ...behavior,
+                effects: behavior.effects.filter((effect) => effect.payload.type !== 'stat-bonus'),
+              })),
+            },
+          },
+    ),
     tactical: {
       ...state.tactical,
       battle: {

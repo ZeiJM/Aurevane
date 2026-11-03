@@ -1,3 +1,7 @@
+import { projectBattleItems } from './battle-item-projection'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
+import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
 import { SKILL_COOLDOWN_RESOURCE_PREFIX } from '@aurevane/game-core/combat/skill-cooldowns'
 import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from './battle-source-authority'
@@ -111,6 +115,7 @@ import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
   capturedBattleActionSource,
+  capturedBattleActionBehaviorId,
   captureBattleBuildAbilitySources,
   resolvePinnedBattleEssenceDefinition,
   createResolvedBattleBuildAuthoritySnapshot,
@@ -162,6 +167,7 @@ export type BattleSessionProjection = PublicCombat<
       ReturnType<typeof projectBattleManualActionTargets>[number],
       'modifierRoot' | 'dealsDamage'
     >[]
+    equipmentActions?: ReturnType<typeof projectBattleItems>
     basicActions?: ReturnType<typeof projectBattleBasicActions>
     tagPresentations?: ReturnType<typeof projectBattleTagPresentations>
     groundAreas?: readonly PublicCombatGroundArea[]
@@ -508,11 +514,31 @@ export function projectBattleSnapshot(
   viewer: BattleViewerEntitlement,
 ): BattleSessionProjection {
   const battle = state.tactical.battle
-  const basicActions = projectBattleBasicActions(state, viewer)
+  const equipmentActions = projectBattleItems(state, viewer)
+  const nativeBasics = projectBattleBasicActions(state, viewer)
+  const basicActions =
+    nativeBasics === undefined && equipmentActions.length === 0
+      ? undefined
+      : [
+          ...(nativeBasics ?? []),
+          ...equipmentActions
+            .filter((item) => item.role !== 'use')
+            .map((item) => ({
+              ...item,
+              actionId: item.role === 'attack' ? PV1F_BASIC_ATTACK_ID : item.actionId,
+            })),
+        ]
   return projectPublicCombat({
     ...omitPendingBattlePayloads(state),
+    statBridge: {
+      ...state.statBridge,
+      combatants: state.statBridge.combatants.map((row) =>
+        effectiveCombatStatProfile(state, row.combatantId)!,
+      ),
+    },
     ...(state.capturedAbilitySources
       ? {
+          ...(equipmentActions.length ? { equipmentActions } : {}),
           tagPresentations: projectBattleTagPresentations(state, viewer),
           manualModifierAvailability: projectBattleManualModifierAvailability(state, viewer),
           manualActionTargets: projectBattleManualActionTargets(state, viewer),
@@ -523,6 +549,10 @@ export function projectBattleSnapshot(
     ...(state.effectState ? { effectState: projectBattleEffectStateForViewer(state, viewer) } : {}),
     tactical: {
       ...state.tactical,
+      movementProfiles:
+        battle.currentTurn && viewer.controlledCombatantIds.has(battle.currentTurn.combatantId)
+          ? airborneMovementTactical(state, PV1F_COMBAT_CONTENT).movementProfiles
+          : state.tactical.movementProfiles,
       battle: {
         schemaVersion: battle.schemaVersion,
         battleId: battle.battleId,
@@ -609,8 +639,13 @@ async function resolveIntent(
       const actorId = state.tactical.battle.currentTurn?.combatantId
       if (!actorId) throw invalidBattleIntent()
       const source =
-        capturedBasicSkillSource(state, actorId, intent.actionId) ??
-        capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
+        capturedBattleActionSource(
+          state,
+          state.buildAuthority,
+          actorId,
+          intent.actionId,
+          intent.behaviorId,
+        ) ?? capturedBasicSkillSource(state, actorId, intent.actionId)
       if (!source)
         throw invalidBattleIntent('That captured action is not available to this character.')
       const transition = (
@@ -621,7 +656,7 @@ async function resolveIntent(
         state,
         actorId,
         sourceInstanceId: source.sourceInstanceId,
-        behaviorId: intent.behaviorId,
+        behaviorId: capturedBattleActionBehaviorId(source, intent.actionId, intent.behaviorId)!,
         ...(intent.kind === 'ability-prime'
           ? {
               manualModifiers: intent.manualModifiers,
@@ -645,13 +680,27 @@ async function resolveIntent(
       const actorId = state.tactical.battle.currentTurn?.combatantId
       const build = actorId ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId) : null
       const capturedSource = actorId
-        ? capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
+        ? capturedBattleActionSource(
+            state,
+            state.buildAuthority,
+            actorId,
+            intent.actionId,
+            intent.behaviorId,
+          )
         : null
       if (capturedSource && actorId) {
         const transition = commitCombatAbilityCommand({
           state,
           actorId,
-          root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+          root: {
+            kind: 'canonical',
+            source: capturedSource,
+            behaviorId: capturedBattleActionBehaviorId(
+              capturedSource,
+              intent.actionId,
+              intent.behaviorId,
+            ),
+          },
           movementPath: intent.movementPath,
           manualModifiers: intent.manualModifiers,
           selection: intent.target,
@@ -768,38 +817,6 @@ export function createBattleSessionService({
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
-      // Current character entry may refresh its published Primary profile. Capture only
-      // after it completes so Core totals and the immutable build share that version.
-      const character = await findOwnedCharacter(characters, command.userId, command.characterId)
-      if (!character) {
-        throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
-      }
-      const [committedBuildResult, committedBuildSnapshotResult] = await Promise.allSettled([
-        builds
-          ? builds.findActiveBuild(command.userId, command.characterId)
-          : Promise.resolve(null),
-        builds
-          ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds)
-          : Promise.resolve(null),
-      ])
-
-      if (committedBuildResult.status === 'rejected') throw committedBuildResult.reason
-      if (committedBuildSnapshotResult.status === 'rejected') {
-        throw committedBuildSnapshotResult.reason
-      }
-      const committedBuild = committedBuildResult.value
-      const committedBuildSnapshot = committedBuildSnapshotResult.value
-
-      if (builds && (!committedBuild || !committedBuildSnapshot)) {
-        throw new AurevaneError(
-          'PERSISTENCE_UNAVAILABLE',
-          'The committed character build is unavailable right now.',
-        )
-      }
-
-      if (committedBuildSnapshot)
-        assertPreparedBattleSource(character, committedBuildSnapshot, committedBuild?.buildVersion)
-
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
       const allyCount = command.allyCount ?? 0,
         enemyCount = command.enemyCount ?? 1
@@ -823,6 +840,84 @@ export function createBattleSessionService({
       // Battle Hall difficulty is server-owned: full duels always use High AI,
       // while guided/legacy teaching records stay Easy regardless of client input.
       const aiDifficulty = authoritativeBattleHallAiDifficulty(battleHallRecordId)
+      const requestFingerprint = fingerprint({
+        command: 'battle.create.v5',
+        userId: command.userId,
+        characterId: command.characterId,
+        arenaId,
+        aiDifficulty,
+        battleHallRecordId,
+        allyCount,
+        enemyCount,
+      })
+      const readCreationReplay = async (): Promise<BattleSessionView | null> => {
+        const replay = await battles.findBattleCreationReplay?.({
+          actorKey: command.userId,
+          userId: command.userId,
+          idempotencyKey: command.idempotencyKey,
+          requestFingerprint,
+        })
+        if (!replay) return null
+        const state = readPersistedEncounter(replay.snapshot)
+        return {
+          battleSessionId: replay.battleSessionId,
+          battleVersion: replay.battleVersion,
+          snapshot: projectBattleSnapshot(
+            state,
+            deriveBattleViewerEntitlement(state, [`character:${command.characterId}`]),
+          ),
+          replayed: true,
+          invalidation: createBattleSessionChangedInvalidation({
+            battleSessionId: replay.battleSessionId,
+            battleVersion: replay.battleVersion,
+            occurredAt: replay.createdAt,
+            reason: 'created',
+          }),
+        }
+      }
+      const replay = await readCreationReplay()
+      if (replay) return replay
+      // Current character entry may refresh its published Primary profile. Capture only
+      // after it completes so Core totals and the immutable build share that version.
+      const character = await findOwnedCharacter(characters, command.userId, command.characterId)
+      if (!character) {
+        throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+      }
+      const [committedBuildResult, committedBuildSnapshotResult] = await Promise.allSettled([
+        builds
+          ? builds.findActiveBuild(command.userId, command.characterId)
+          : Promise.resolve(null),
+        builds
+          ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds, true)
+          : Promise.resolve(null),
+      ])
+
+      if (
+        committedBuildResult.status === 'rejected' ||
+        committedBuildSnapshotResult.status === 'rejected'
+      ) {
+        // A concurrent identical request may have committed after the first receipt read,
+        // making fresh outside-battle preparation invalid. Its frozen result still wins.
+        const racedReplay = await readCreationReplay()
+        if (racedReplay) return racedReplay
+      }
+      if (committedBuildResult.status === 'rejected') throw committedBuildResult.reason
+      if (committedBuildSnapshotResult.status === 'rejected') {
+        throw committedBuildSnapshotResult.reason
+      }
+      const committedBuild = committedBuildResult.value
+      const committedBuildSnapshot = committedBuildSnapshotResult.value
+
+      if (builds && (!committedBuild || !committedBuildSnapshot)) {
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The committed character build is unavailable right now.',
+        )
+      }
+
+      if (committedBuildSnapshot)
+        assertPreparedBattleSource(character, committedBuildSnapshot, committedBuild?.buildVersion)
+
       const elevationPolicy = parseBattlefieldElevationPolicy(
         readElevationPolicy ? await readElevationPolicy() : defaultBattlefieldElevationPolicy(),
       )
@@ -939,16 +1034,7 @@ export function createBattleSessionService({
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
-        requestFingerprint: fingerprint({
-          command: 'battle.create.v5',
-          userId: command.userId,
-          characterId: command.characterId,
-          arenaId,
-          aiDifficulty,
-          battleHallRecordId,
-          allyCount,
-          enemyCount,
-        }),
+        requestFingerprint,
         userId: command.userId,
         battleId: battle.battleId,
         rulesVersion: battle.rulesVersion,

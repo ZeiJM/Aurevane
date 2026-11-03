@@ -1,3 +1,4 @@
+import { combatAbilityUsageKey } from '@aurevane/game-core/combat/combat-ability-command'
 import { applySkillCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import { readFileSync } from 'node:fs'
 import {
@@ -2131,4 +2132,200 @@ it('copies explicitly chosen concealed buffs without revealing the Covert donor 
   expect(
     rowStatuses({ statusState: projectBattleStatusStateForViewer(next, enemy) }, PLAYER),
   ).toEqual([])
+})
+
+it.each(['once-per-action', 'once-per-round'] as const)(
+  'projects owner-only %s availability from captured usage',
+  (limit) => {
+    const base = encounter()
+    const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+      .behaviors[0]!
+    const source = captureCombatAbilitySource({
+      schemaVersion: 1,
+      sourceInstanceId: 'private-usage-source',
+      ownerCombatantId: PLAYER,
+      abilityId: 'fixture.limited',
+      contentVersion: 1,
+      sourceKind: 'discipline-skill',
+      sourceDisciplineId: 'vanguard',
+      tags: ['attack'],
+      definition: { schemaVersion: 1, behaviors: [{ ...behavior, activationLimits: [limit] }] },
+    })
+    const state = reattachStatDrivenCombatBridge(
+      reconcileCombatAbilitySources({ ...base, abilityUsageLimitPolicyVersion: 1 }, [source]),
+      base.statBridge,
+    )
+    state.abilityRuntime = {
+      ...state.abilityRuntime!,
+      usage: [
+        {
+          key: combatAbilityUsageKey(state, source, source.definition.behaviors[0]!),
+          rootActionId: 'private-command',
+          commandId: 'private-command',
+          ownerCycle: 0,
+          round: state.tactical.battle.round,
+          battleId: state.tactical.battle.battleId,
+        },
+      ],
+    }
+    const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+      PLAYER,
+    ])
+    const before = JSON.stringify(state)
+    const row = projectBattleManualActionTargets(state, viewer)[0]!
+    expect(row.usageLimitReached).toBe(true)
+    expect(resolveBattleCapturedSkill({ id: source.abilityId } as never, [row])?.unavailable).toBe(
+      true,
+    )
+    expect(row.report?.limits).toContain(
+      limit === 'once-per-action' ? 'Once per battle' : 'Once per round',
+    )
+    expect(JSON.stringify(row)).not.toMatch(
+      /private-command|private-usage-source|ownerCycle|rootActionId/,
+    )
+    const later = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        battle: { ...state.tactical.battle, round: state.tactical.battle.round + 1 },
+      },
+    }
+    expect(projectBattleManualActionTargets(later, viewer)[0]!.usageLimitReached).toBe(
+      limit === 'once-per-action' ? true : undefined,
+    )
+    expect(
+      projectBattleManualActionTargets(state, createSpectatorBattleViewerEntitlement()),
+    ).toEqual([])
+    expect(
+      projectBattleManualActionTargets(
+        state,
+        deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [ENEMY]),
+      ),
+    ).toEqual([])
+    expect(JSON.stringify(state)).toBe(before)
+  },
+)
+
+it('projects finite remaining uses only to the controlling owner without private ledger identities', () => {
+  const base = encounter()
+  const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+    .behaviors[0]!
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'private-finite-source',
+    ownerCombatantId: PLAYER,
+    abilityId: 'fixture.finite',
+    contentVersion: 1,
+    sourceKind: 'discipline-skill',
+    sourceDisciplineId: 'vanguard',
+    tags: ['attack'],
+    definition: { schemaVersion: 1, behaviors: [{ ...behavior, maximumUsesPerBattle: 3 }] },
+  })
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(base, [source]),
+    base.statBridge,
+  )
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  expect(projectBattleManualActionTargets(state, viewer)[0]).toMatchObject({
+    maximumUsesPerBattle: 3,
+    remainingUses: 3,
+  })
+  state.abilityRuntime = {
+    ...state.abilityRuntime!,
+    usage: [
+      {
+        key: combatAbilityUsageKey(state, source, source.definition.behaviors[0]!),
+        usageCount: 2,
+        rootActionId: 'private-command',
+        commandId: 'private-command',
+        ownerCycle: 0,
+        round: state.tactical.battle.round,
+        battleId: state.tactical.battle.battleId,
+      },
+    ],
+  }
+  const row = projectBattleManualActionTargets(state, viewer)[0]!
+  expect(row).toMatchObject({ maximumUsesPerBattle: 3, remainingUses: 1 })
+  expect(row.report?.limits).toContain('3 uses per battle')
+  expect(JSON.stringify(row)).not.toMatch(
+    /private-finite-source|private-command|usageCount|rootActionId/,
+  )
+  expect(projectBattleManualActionTargets(state, createSpectatorBattleViewerEntitlement())).toEqual(
+    [],
+  )
+  expect(
+    projectBattleManualActionTargets(
+      state,
+      deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [ENEMY]),
+    ),
+  ).toEqual([])
+})
+it('projects effective numeric defense and owner Jump geometry without changing captured base profiles', () => {
+  const base = encounter()
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'private-stat-source',
+    ownerCombatantId: PLAYER,
+    abilityId: 'fixture.stats',
+    contentVersion: 1,
+    sourceKind: 'discipline-skill',
+    sourceDisciplineId: 'vanguard',
+    tags: [],
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          id: 'passive',
+          activation: 'ongoing',
+          mode: 'modifier',
+          classification: 'utility',
+          costs: [],
+          cooldown: null,
+          requirements: null,
+          targeting: null,
+          effects: [
+            {
+              id: 'jump',
+              payload: { type: 'stat-bonus', recipient: 'actor', stat: 'jump', amount: 1 },
+            },
+            {
+              id: 'defense',
+              payload: {
+                type: 'stat-bonus',
+                recipient: 'actor',
+                stat: 'physical-defense',
+                amount: 10,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  })
+  const state = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(base, [source]),
+    base.statBridge,
+  )
+  const before = JSON.stringify(state)
+  const viewer = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const projected = projectBattleSnapshot(state, viewer)
+  const baseDefense = state.statBridge.combatants.find((row) => row.combatantId === PLAYER)!.armor!
+  expect(projected.statBridge.combatants.find((row) => row.combatantId === PLAYER)!.armor).toBe(
+    baseDefense + 10,
+  )
+  const profileId = state.tactical.placements.find(
+    (row) => row.combatantId === PLAYER,
+  )!.movementProfileId
+  const baseJump = state.tactical.movementProfiles.find(
+    (row) => row.id === profileId,
+  )!.maxElevationStep
+  expect(
+    projected.tactical.movementProfiles.find((row) => row.id === profileId)!.maxElevationStep,
+  ).toBe(baseJump + 1)
+  expect(JSON.stringify(projected)).not.toContain('private-stat-source')
+  expect(JSON.stringify(state)).toBe(before)
 })

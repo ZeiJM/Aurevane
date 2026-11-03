@@ -1,3 +1,5 @@
+import { effectExplanationIdentity } from './effect-explanation-identity'
+import { withPairedCombatStatusDefaults } from '@aurevane/game-core/combat/combat-status-tuning'
 import { currentGroundNote, currentGroundPresentation } from '@/lib/combat-ground-presentation'
 import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
 import {
@@ -282,12 +284,14 @@ function previewEffectPayload(
     legacyReflectBarrier?: boolean
     legacyPierceCritical?: boolean
     legacyRuin?: boolean
+    legacyPairedStatus?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
     skillEffects?: readonly MatureSkillEffectDefinition[]
   } = {},
 ): PreviewEffect {
+  effect = withPairedCombatStatusDefaults(effect, !options.legacyPairedStatus)
   const target =
     effect.recipient === 'actor'
       ? 'you'
@@ -725,6 +729,7 @@ export function skillPreviewEffects(
     legacyReflectBarrier?: boolean
     legacyPierceCritical?: boolean
     legacyRuin?: boolean
+    legacyPairedStatus?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean
     timingPolicy?: CombatEffectTimingPolicy | null
@@ -735,51 +740,68 @@ export function skillPreviewEffects(
     options.groundContactPolicyVersion,
     options.timingPolicy,
   ).view
-  const seen = new Set<string>()
-  return groupSkillEffects(skill.effects, skill.effectDescriptions)
-    .map(({ effect, firstIndex: index }) => {
-      const entry = previewEffectWithTag(effect, skill.tagPresentation, {
+  const effectGroups = groupSkillEffects(skill.effects, skill.effectDescriptions)
+  const noteVariants = new Map<string, Set<string | null>>()
+  for (const { effect, firstIndex } of effectGroups) {
+    const identity = effectExplanationIdentity(effect)
+    const notes = noteVariants.get(identity) ?? new Set<string | null>()
+    notes.add(skill.effectDescriptions?.[firstIndex]?.trim() || null)
+    noteVariants.set(identity, notes)
+  }
+  const entries = effectGroups.map(({ effect, firstIndex: index }) => {
+    const entry = {
+      ...previewEffectWithTag(effect, skill.tagPresentation, {
         ...options,
         skillEffects: skill.effects,
-      })
-      if (entry.tagPresentation) return entry
-      const override = skill.effectDescriptions?.[index]?.trim()
-      if (
-        override &&
-        effect.type === 'apply-status' &&
-        !options.legacyElemental &&
-        options.explicitElemental !== false &&
-        ['frozen', 'wet', 'conductive'].includes(effect.statusId)
-      )
-        return { ...entry, explanation: `${override} ${entry.explanation}` }
-      return override
-        ? {
-            ...entry,
-            explanation: withCurrentAttackRuleHelp(
-              effect,
-              options,
-              override +
-                (!options.legacyElemental
-                  ? skillDamageElementInteraction(
-                      effect,
-                      false,
-                      options.timingPolicy,
-                      skill.effects,
-                      options.explicitElemental,
-                      options.groundContactPolicyVersion,
-                    )
-                  : ''),
-              entry.explanation,
-            ),
-          }
+      }),
+    }
+    const override = skill.effectDescriptions?.[index]?.trim()
+    if (entry.tagPresentation)
+      return override && (noteVariants.get(effectExplanationIdentity(effect))?.size ?? 0) > 1
+        ? { ...entry, explanation: [...new Set([entry.explanation, override])].join(' ') }
         : entry
-    })
-    .filter((entry) => {
-      const key = JSON.stringify([entry.label, entry.explanation])
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+    if (
+      override &&
+      effect.type === 'apply-status' &&
+      !options.legacyElemental &&
+      options.explicitElemental !== false &&
+      ['frozen', 'wet', 'conductive'].includes(effect.statusId)
+    )
+      return { ...entry, explanation: `${override} ${entry.explanation}` }
+    return override
+      ? {
+          ...entry,
+          explanation: withCurrentAttackRuleHelp(
+            effect,
+            options,
+            override +
+              (!options.legacyElemental
+                ? skillDamageElementInteraction(
+                    effect,
+                    false,
+                    options.timingPolicy,
+                    skill.effects,
+                    options.explicitElemental,
+                    options.groundContactPolicyVersion,
+                  )
+                : ''),
+            entry.explanation,
+          ),
+        }
+      : entry
+  })
+
+  const groups = new Map<string, { entry: PreviewEffect; notes: Set<string> }>()
+  for (const [index, entry] of entries.entries()) {
+    const identity = effectExplanationIdentity(effectGroups[index]!.effect)
+    const group = groups.get(identity) ?? { entry, notes: new Set<string>() }
+    group.notes.add(entry.explanation)
+    groups.set(identity, group)
+  }
+  return [...groups.values()].map(({ entry, notes }) => ({
+    ...entry,
+    explanation: [...notes].join(' '),
+  }))
 }
 
 export function effectSummary(effect: PreviewEffect): string {

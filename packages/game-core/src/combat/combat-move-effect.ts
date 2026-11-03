@@ -11,6 +11,8 @@ import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 export type CombatMovePayload = Extract<CombatTagPayload, { type: 'move' }>
 export interface PreparedCombatMove {
+  readonly maximumElevation?: number
+  readonly requiresLineOfSight?: boolean
   readonly independentAllowance?: boolean
   readonly path: readonly GridPosition[]
   readonly eligible: boolean
@@ -110,11 +112,13 @@ export function prepareCombatMove(input: MoveInput, effect: AbilityEffect): Prep
     independentAllowance: input.independentAllowance,
     maximumTiles: payload.maximumTiles,
     ignorePoisonForecast: true,
+    maximumElevation: payload.maximumElevation,
+    requiresLineOfSight: payload.requiresLineOfSight,
   })
   if (!quote.movement.legal)
     return invalid(quote.movement.issues[0]?.message ?? 'Move path is not legal.')
   const moved = moveCurrentCombatant(
-    airborneMovementTactical(state, input.content),
+    airborneMovementTactical(state, input.content, payload.maximumElevation),
     copy,
     input.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
     state.statBalancePolicyVersion,
@@ -122,6 +126,8 @@ export function prepareCombatMove(input: MoveInput, effect: AbilityEffect): Prep
   )
   return {
     path: copy,
+    maximumElevation: payload.maximumElevation,
+    requiresLineOfSight: payload.requiresLineOfSight,
     independentAllowance: input.independentAllowance,
     eligible,
     maximumTiles: payload.maximumTiles,

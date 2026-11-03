@@ -1,3 +1,4 @@
+import { withPairedCombatStatusDefaults } from '@aurevane/game-core/combat/combat-status-tuning'
 import { mechanicText, mechanicTag, type MechanicTextPart } from './mechanic-text'
 import type { MatureSkillEffectDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { previewEffect } from './skill-effect-preview'
@@ -19,6 +20,7 @@ export function canonicalStatusExplanation(
   parts: Partial<CompactSkillEffectSummaryParts>
   structuredTiming?: boolean
 } | null {
+  effect = withPairedCombatStatusDefaults(effect, !options.legacyPairedStatus)
   const secondary = canonicalSecondaryStatusExplanation(effect, options)
   if (secondary) return secondary
   const descriptions: Readonly<Record<string, string | ReturnType<typeof mechanicText>>> = {

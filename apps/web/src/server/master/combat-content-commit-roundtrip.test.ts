@@ -415,3 +415,66 @@ it.each(['complete', 'newer-edits', 'discipline-edits', 'parent-error'] as const
     ).toBe('Committed Resonance from dialog')
   },
 )
+
+it('reads a genuine source Item baseline, preserves draft edits, duplicates it and commits the next immutable current version', async () => {
+  const { itemFixture } =
+    await import('../../../../../packages/game-core/src/content/items-test-fixtures')
+  const source = itemFixture({
+    id: 'test.source-helm',
+    media: { artworkId: 'environment.entry.gateway' },
+  })
+  await db.query('select public.seed_runtime_item_sources_v1($1::jsonb)', [
+    JSON.stringify([source]),
+  ])
+  const initial = await command({ action: 'read', contentKey: source.id })
+  expect(initial.status, JSON.stringify(initial.body)).toBe(200)
+  expect(initial.body.record.builtinDefinition).toEqual(source)
+  const duplicate = await command({
+    action: 'duplicate',
+    sourceKey: source.id,
+    expectedSourceRevision: initial.body.record.revision,
+    requestId: '00000000-0000-4000-8000-000000007771',
+  })
+  expect(duplicate.status, JSON.stringify(duplicate.body)).toBe(200)
+  expect(duplicate.body.record.draft!.definition).toMatchObject({
+    schemaVersion: 2,
+    id: 'item.00000000-0000-4000-8000-000000007771',
+    media: source.media,
+  })
+  const draft = await command({
+    action: 'save',
+    contentKey: source.id,
+    expectedRevision: initial.body.record.revision,
+    definition: { ...source, name: 'Owner helm', qualityPoints: 22 },
+  })
+  expect(draft.status, JSON.stringify(draft.body)).toBe(200)
+  expect(
+    (await command({ action: 'read', contentKey: source.id })).body.record.draft!.definition.name,
+  ).toBe('Owner helm')
+  const commit = await command({
+    action: 'commit',
+    contentKey: source.id,
+    expectedRevision: draft.body.record.revision,
+    definition: draft.body.record.draft!.definition,
+  })
+  expect(commit.status, JSON.stringify(commit.body)).toBe(200)
+  expect(commit.body.record.current).toMatchObject({
+    contentVersion: 2,
+    definition: { name: 'Owner helm', qualityPoints: 22 },
+  })
+  const { RpcPublishedCombatContentSource, createCombatContentResolver } =
+    await import('../combat/combat-content-resolver')
+  const resolver = createCombatContentResolver(new RpcPublishedCombatContentSource(session.rpc))
+  expect(await resolver.resolveCurrentItemDefinition!(source.id)).toEqual(
+    commit.body.record.current!.definition,
+  )
+  expect(await resolver.resolvePinnedItemDefinition!(source.id, 1)).toEqual(source)
+  const restore = await command({
+    action: 'restore',
+    contentKey: source.id,
+    expectedRevision: commit.body.record.revision,
+    sourceKind: 'builtin',
+    sourceVersion: 1,
+  })
+  expect(restore.status, JSON.stringify(restore.body)).toBe(400)
+})

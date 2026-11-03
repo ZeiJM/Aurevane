@@ -1,3 +1,5 @@
+November 3 Items guide — **prepared for the implemented feature; not live yet**. Arsenal → Items holds Gear, Battle Items, Materials, General, Event and Companion, with 40 positions per category. Equip Head, Body, Pants, Boots and two hands within 100 Quality Points. A two-handed weapon occupies both hands and counts its QP once. Main Hand weapon supplies Basic Attack, falling back to an Off Hand weapon; select one Support action. Use the singular Item control after Basic Attack to choose an equipped hand supply and then its target. Supplies have limited uses per battle and refill next battle without reducing owned stacks. Material/story/companion samples offer no future mechanics. Starter grants happen once; full inventory or a pending/active battle can defer the grant with a notice. Older five-slot/locked-placeholder descriptions are superseded. [All 47 starter Items and their actual effects](verification/2026-11-03-starter-items-reference.md).
+
 Owner Suppress follow-up — October9: Suppress reduces outgoing direct damage by its displayed percentage, from1% to100%, independently for1–4 turns. It never stacks; reapplication retains the stronger percentage and longer remaining duration. Cleanse removes it, Dispel does not, and Copy Debuffs can copy it.100% prevents direct damage. New Burn/Poison/Bleed still use actual HP lost from their qualifying hit; existing captured ticks continue unchanged. No current Skill, Essence or summon gains Suppress automatically. Implementation is under verification; not yet deployed.
 
 # AUREVANE — Adventurer's Guide: Current Rules Draft
@@ -1047,14 +1049,15 @@ Important Disciplines should not be permanently locked behind one nation choice.
 
 # 44. Equipment, Crafting and Professions
 
-Equipment uses a deliberately manageable core slot structure such as:
+The November 3 implemented equipment positions are:
 
 ```text
+Head
+Body
+Pants
+Boots
 Main Hand
 Off Hand
-Armor
-Accessory I
-Accessory II
 ```
 
 Later profession design uses one Craft specialization and one Gathering specialization at a time.

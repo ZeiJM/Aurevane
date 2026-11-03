@@ -29,8 +29,6 @@ export function withAuthoredEffectTarget<T extends TargetedEffect>(
   effect: T,
   target: CombatEffectTarget,
 ): T & { target: CombatEffectTarget } {
-  if ((effect.type === 'damage' || effect.type === 'pierce') && target === 'self')
-    throw new TypeError('Direct damage cannot target Self.')
   if (isCleanseChilledEffect(effect) && target !== 'self')
     throw new TypeError('This retained Chilled-only cleanse supports only Self.')
   const recipient =
@@ -40,7 +38,9 @@ export function withAuthoredEffectTarget<T extends TargetedEffect>(
         ? 'affected-tiles'
         : target === 'self'
           ? 'actor'
-          : effect.type === 'copy-statuses' || (effect.type === 'sensory' && target !== 'ground')
+          : effect.type === 'copy-statuses' ||
+              effect.type === 'loot' ||
+              (effect.type === 'sensory' && target !== 'ground')
             ? 'primary-unit'
             : 'affected-units'
   const next = {

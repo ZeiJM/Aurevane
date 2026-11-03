@@ -179,7 +179,10 @@ it('names a linked tradeoff and explains both halves on the correct recipient', 
   expect(skillTargetTags(frenzy)).toEqual(['Self', 'Single', 'Reckless'])
   const description = skillEffectDescription(frenzy.effects[0]!)
   expect(description).toContain('to yourself')
-  expect(description).toContain('Deal 40% more damage and take 25% more damage')
+  expect(description).toContain('Deal 40% more damage and take 40% more damage')
+  expect(skillEffectDescription(frenzy.effects[0]!, { legacyPairedStatus: true })).toContain(
+    'Deal 40% more damage and take 25% more damage',
+  )
   expect(description).toContain('expire or are removed together')
 })
 it('describes source-specific modifiers, cleansing and periodic timing', () => {

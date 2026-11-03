@@ -23,7 +23,7 @@ export function tagWordingDefaults(tagId: string): { full: string; short: string
     ? combatStatusDetails(tag.statusId).description
     : (operation?.conciseExplanation ?? tag.label)
   const full =
-    payload && !['move', 'damage-bonus', 'summon'].includes(payload.type)
+    payload && !['stat-bonus', 'move', 'damage-bonus', 'summon'].includes(payload.type)
       ? payload.type === 'pierce'
         ? operation!.fullExplanation
         : skillEffectDescription(nativeCombatTagPayload(payload))

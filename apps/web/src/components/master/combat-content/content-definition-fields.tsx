@@ -1,4 +1,7 @@
 'use client'
+import { RuntimeItemEditor, RetainedItemUpgrade } from './runtime-item-editor'
+import type { RuntimeItemDefinition } from '@aurevane/game-core/content/items'
+import { imageAssetRegistry } from '@/media/registry'
 
 import { AreaRecipientRepair } from './area-recipient-repair'
 import { readMechanicsBody, writeMechanicsBody } from './essence-editor-mechanics'
@@ -729,11 +732,13 @@ export function ContentDefinitionFields({
         <FinalizedMediaEditor
           value={objectValue(value.media)}
           allowAudio={false}
-          showArtworkRemoval={kind !== 'discipline'}
+          showArtworkRemoval={kind !== 'discipline' && kind !== 'item'}
           fallbackArtwork={
             kind === 'discipline'
               ? (disciplineSigilArtwork(String(value.id)) ?? undefined)
-              : undefined
+              : kind === 'item'
+                ? imageAssetRegistry.get(String(objectValue(value.media).artworkId))?.src
+                : undefined
           }
           onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
           onPendingMediaChange={onPendingMediaChange}
@@ -823,6 +828,12 @@ export function ContentDefinitionFields({
           <FinalizedMediaEditor
             value={objectValue(value.media)}
             allowAudio={false}
+            showArtworkRemoval={kind !== 'item'}
+            fallbackArtwork={
+              kind === 'item'
+                ? imageAssetRegistry.get(String(objectValue(value.media).artworkId))?.src
+                : undefined
+            }
             onChange={(media) => set({ media: { ...objectValue(value.media), ...media } })}
             onPendingMediaChange={onPendingMediaChange}
           />
@@ -1034,13 +1045,26 @@ export function ContentDefinitionFields({
       {details && combat && (
         <ContentDescriptionFields kind={kind} value={value} choices={choices} onChange={onChange} />
       )}
-      {kind === 'item' || kind === 'ascension' || kind === 'severence'
+      {kind === 'item' && value.schemaVersion === 2 ? (
+        <RuntimeItemEditor
+          key={String(value.id)}
+          value={value as unknown as RuntimeItemDefinition}
+          onChange={(next) => onChange(asDefinition(next))}
+        />
+      ) : null}
+      {(kind === 'item' && value.schemaVersion !== 2) ||
+      kind === 'ascension' ||
+      kind === 'severence'
         ? (() => {
             const future = value as unknown as AuthoredItem | AuthoredTransformation
             return (
               <>
                 {kind === 'item' ? (
                   <>
+                    <RetainedItemUpgrade
+                      value={future as AuthoredItem}
+                      onChange={(next) => onChange(asDefinition(next))}
+                    />
                     <AbilitySelect
                       label="Item class"
                       value={(future as AuthoredItem).itemClass}

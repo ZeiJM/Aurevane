@@ -56,7 +56,11 @@ it.each(current)(
     expect(html).not.toMatch(
       /sourceInstanceId|automaticTarget|chanceBasisPoints|accuracyRule|coefficientBasisPoints|\[object Object\]|undefined/,
     )
-    expect(html).not.toContain('Once per battle')
+    expect(html.includes('Once per battle')).toBe(
+      definition.behaviors.some((behavior) =>
+        behavior.activationLimits?.includes('once-per-action'),
+      ),
+    )
     expect(JSON.stringify(row)).toBe(before)
   },
 )

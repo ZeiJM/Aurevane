@@ -1443,6 +1443,8 @@ export function evaluatePv1fMovement(
     ? {
         apPerTraversalPoint: behavior!.costs.find((cost) => cost.resource === 'ap')!.amount,
         maximumTiles: move?.type === 'move' ? move.maximumTiles : undefined,
+        maximumElevation: move?.type === 'move' ? move.maximumElevation : undefined,
+        requiresLineOfSight: move?.type === 'move' ? move.requiresLineOfSight : undefined,
       }
     : {}
   const quote = evaluatePreparedCombatWalking(prepared, path, PV1F_COMBAT_CONTENT, walkingOptions)

@@ -1,3 +1,4 @@
+import { battleEffectStrengthInformation } from './battle-effect-strength-information'
 import type { CombatStatusInstance } from '@aurevane/game-core/combat/actions'
 import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 
@@ -23,9 +24,29 @@ function effectDefinition(effect: CombatStatusInstance) {
   )
 }
 
-function EffectModifiers({ effect }: { effect: CombatStatusInstance }) {
+function EffectModifiers({ effect }: { effect: BattlePresentedStatus }) {
   const definition = effectDefinition(effect)
   if (effect.timingState === 'pending') return null
+  if (
+    effect.statusId === 'fortified' &&
+    (effect.defenseIncreaseBasisPoints !== undefined ||
+      effect.applicationModifiers?.some(
+        (application) => application.defenseIncreaseBasisPoints !== undefined,
+      ))
+  )
+    return (
+      <>
+        {battleEffectStrengthInformation(effect).rows.map((row) => (
+          <span
+            className={styles.modifier}
+            data-tone={row.label.startsWith('Outgoing') ? 'negative' : 'positive'}
+            key={row.label}
+          >
+            {row.label} <b>{row.magnitude}</b>
+          </span>
+        ))}
+      </>
+    )
   return (
     <>
       {summarizeBattleEffects([effect]).map((item) => (

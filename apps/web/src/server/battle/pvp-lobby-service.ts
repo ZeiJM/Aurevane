@@ -1,3 +1,4 @@
+import { throwItemRpcError } from '@/server/character/supabase-character-items-repository'
 import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
 import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from '@/server/battle/battle-source-authority'
@@ -184,6 +185,7 @@ function unavailable(message = 'PvP services are unavailable right now.'): Aurev
 
 function mapRpcError(error: { code?: string; message?: string }): never {
   throwCoreConversionAdmissionError(error)
+  if (error.message?.startsWith('ITEM_')) throwItemRpcError(error)
   const message = error.message ?? ''
   if (error.code === '42501') {
     throw new AurevaneError(
@@ -632,6 +634,7 @@ export async function startPvpLobby(
       member.userId,
       character.id,
       builds,
+      true,
     )
     assertPreparedBattleSource(character, buildSnapshot)
     roster.push({ member, character, buildSnapshot })

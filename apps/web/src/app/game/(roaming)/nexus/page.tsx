@@ -1,3 +1,5 @@
+import { loadCharacterItems } from '@/server/character/character-items-service'
+import { createSupabaseCharacterItemsRepository } from '@/server/character/supabase-character-items-repository'
 import { AccountBannedError } from '@aurevane/game-core/errors'
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
@@ -20,6 +22,7 @@ import { loadCharacterBuildContext } from '@/server/character/character-build-se
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
+import { resolveCurrentSupportActionArtwork } from '@/server/character/current-support-action-artwork'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
@@ -94,12 +97,14 @@ export default async function CharacterNexusPage() {
     character,
     createSupabaseCharacterBuildRepository(),
   )
-  const currentDisciplineSkillsPromise = disciplineBuildPromise.then((disciplineBuild) =>
-    resolveCurrentCharacterSkillDetails(
-      disciplineBuild.disciplineSkills,
-      createServerCombatContentResolver(),
-    ),
-  )
+  const currentDisciplineSkillsPromise = disciplineBuildPromise.then(async (disciplineBuild) => {
+    const contentResolver = createServerCombatContentResolver()
+    const [skills, supportActionArtworkKeys] = await Promise.all([
+      resolveCurrentCharacterSkillDetails(disciplineBuild.disciplineSkills, contentResolver),
+      resolveCurrentSupportActionArtwork(contentResolver),
+    ])
+    return { ...skills, supportActionArtworkKeys }
+  })
 
   const [
     timingPolicyResult,
@@ -109,6 +114,7 @@ export default async function CharacterNexusPage() {
     attributeAllocationResult,
     titleStateResult,
     displayStateResult,
+    itemsResult,
   ] = await Promise.allSettled([
     readCombatEffectTimingPolicy(),
     loadLevelProgressionCurve(
@@ -124,6 +130,9 @@ export default async function CharacterNexusPage() {
     ),
     loadCharacterTitleState(actor.userId, character.id),
     loadCharacterProfileDisplay(actor.userId, character.id),
+    Promise.resolve().then(() =>
+      loadCharacterItems(actor.userId, character.id, createSupabaseCharacterItemsRepository()),
+    ),
   ])
 
   if (timingPolicyResult.status === 'rejected') {
@@ -178,12 +187,14 @@ export default async function CharacterNexusPage() {
   return (
     <SkillEffectTimingProvider policy={timingPolicyResult.value}>
       <CharacterArsenalShell
+        itemsView={itemsResult.status === 'fulfilled' ? itemsResult.value : null}
         profile={buildCharacterProfileReadModel(character, levelCurve)}
         attributeAllocation={attributeAllocation}
         disciplineBuild={{
           disciplineNames: disciplineBuild.disciplineNames,
           buildVersion: disciplineBuild.build.buildVersion,
           supportActionId: disciplineBuild.build.supportActionId,
+          supportActionArtworkKeys: currentDisciplineSkills.supportActionArtworkKeys,
           current: disciplineBuild.current,
           currentSecondary: disciplineBuild.currentSecondary,
           availablePrimaries: disciplineBuild.availablePrimaries,

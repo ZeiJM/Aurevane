@@ -1,3 +1,4 @@
+import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
 import 'server-only'
 
 import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
@@ -170,6 +171,34 @@ export async function attachRecordedBattleLogSkillContext(
         recordedActionId(entry, event) !== entry.actionId
       )
         return entry
+      const equipment = captures.filter(
+        (source) =>
+          source.ownerCombatantId === entry.actorCombatantId &&
+          source.equipment &&
+          source.definition.behaviors.some(
+            (behavior) =>
+              equipmentBehaviorActionId(source.equipment!, behavior.id) === entry.actionId,
+          ),
+      )
+      if (equipment.length === 1) {
+        const item = equipment[0]!.equipment!.unit.item
+        return {
+          ...entry,
+          actionContext: {
+            family: 'skill' as const,
+            skillId: entry.actionId,
+            contentId: item.id,
+            contentVersion: item.contentVersion,
+            name: item.name,
+            ...(contentArtworkKey({ ...item.media, iconKey: item.media.artworkId })
+              ? { artworkKey: contentArtworkKey({ ...item.media, iconKey: item.media.artworkId })! }
+              : {}),
+            description: item.description,
+            flavor: null,
+            battleText: '{actor} uses {ability}.',
+          },
+        }
+      }
       const id = entry.actionId === PV1F_BASIC_ATTACK_ID ? 'unarmed.basic' : entry.actionId
       const matches = captures.filter(
         (source) =>
@@ -297,6 +326,7 @@ export async function attachRecordedBattleLogSkillContext(
     projected,
     authority,
     resolver,
+    captures,
   )
   return {
     ...summonView,
@@ -582,10 +612,17 @@ async function attachRecordedSummonSkillContext(
   projected: readonly BattleEventRecord[],
   authority: BattleBuildAuthoritySnapshot,
   resolver?: ContextResolver,
+  captures: readonly CapturedCombatAbilitySource[] = [],
 ): Promise<BattleLogView> {
   const sources = new Map<
     string,
-    { record: BattleEventRecord; skillId: string; version: number; profileId: string }
+    {
+      record: BattleEventRecord
+      ownerCombatantId?: string
+      skillId: string
+      version: number
+      profileId: string
+    }
   >()
   for (const record of projected) {
     const event = eventObject(record)
@@ -599,6 +636,8 @@ async function attachRecordedSummonSkillContext(
       continue
     sources.set(event.combatantId, {
       record,
+      ownerCombatantId:
+        typeof event.ownerCombatantId === 'string' ? event.ownerCombatantId : undefined,
       skillId: event.sourceSkillId,
       version: event.sourceSkillVersion,
       profileId: event.profileId,
@@ -616,25 +655,42 @@ async function attachRecordedSummonSkillContext(
       while (nextIndex < pending.length) {
         const [id, source] = pending[nextIndex++]!
         try {
-          const definition =
-            authority.catalogVersion === 3
+          // Invocation is a captured Basic action, not a catalogue Mature Skill.
+          // The visible spawn pins its exact owner/version; never borrow today's profile.
+          const capturedBasics = captures.filter(
+            (capture) =>
+              capture.sourceKind === 'basic' &&
+              capture.ownerCombatantId === source.ownerCombatantId &&
+              capture.abilityId === source.skillId &&
+              capture.contentVersion === source.version,
+          )
+          if (capturedBasics.length > 1) continue
+          const capturedBasic = capturedBasics[0]
+          if (capturedBasic?.basic?.enabled === false) continue
+          const definition = capturedBasic
+            ? undefined
+            : authority.catalogVersion === 3
               ? await resolver?.resolvePinnedSkillDefinition(source.skillId, source.version)
               : resolveMatureSkillVersion(source.skillId, source.version)
           if (
-            !definition?.enabled ||
-            definition.id !== source.skillId ||
-            definition.contentVersion !== source.version
+            !capturedBasic &&
+            (!definition?.enabled ||
+              definition.id !== source.skillId ||
+              definition.contentVersion !== source.version)
           )
             continue
-          const profiles = Object.hasOwn(definition, 'ability')
-            ? definition.ability!.behaviors.flatMap((behavior) =>
+          const canonical =
+            capturedBasic?.definition ??
+            (definition && Object.hasOwn(definition, 'ability') ? definition.ability : undefined)
+          const profiles = canonical
+            ? canonical.behaviors.flatMap((behavior) =>
                 behavior.effects.flatMap((effect) =>
                   effect.payload.type === 'summon' && effect.payload.profile.id === source.profileId
                     ? [effect.payload.profile]
                     : [],
                 ),
               )
-            : definition.summonProfile?.id === source.profileId
+            : definition?.summonProfile?.id === source.profileId
               ? [definition.summonProfile]
               : []
           // A canonical definition cannot borrow a native adapter's stale summon profile.

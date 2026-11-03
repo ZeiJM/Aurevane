@@ -28,7 +28,7 @@ export interface FinalizedContentAudio extends FinalizedMediaIdentity {
 export type FinalizedContentMedia = FinalizedContentImage | FinalizedContentAudio
 export const CONTENT_MEDIA_MAX_BYTES = 2 * 1024 * 1024
 export const CONTENT_MEDIA_GUIDANCE =
-  'Images: PNG, JPEG or WebP, up to 2 MiB and 4096 × 4096 pixels; automatically centered and cropped to a square, then saved as PNG. Sound: PCM16 WAV, mono or stereo, 44.1 or 48 kHz, up to 10 seconds and 2 MiB. Other audio formats are unavailable.'
+  'Images: PNG, JPEG or WebP, up to 2 MiB and 4096 × 4096 pixels; automatically centered and cropped to a square, resized if needed to fit, then saved as PNG. Sound: PCM16 WAV, mono or stereo, 44.1 or 48 kHz, up to 10 seconds and 2 MiB. Other audio formats are unavailable.'
 const record = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 const integer = (value: unknown, min: number, max: number): value is number =>
@@ -62,9 +62,9 @@ export function isFinalizedContentMedia(value: unknown): value is FinalizedConte
       Object.keys(crop).length === 3 &&
       integer(crop.x, 0, 4095) &&
       integer(crop.y, 0, 4095) &&
-      crop.size === value.width &&
-      crop.x + value.width <= value.sourceWidth &&
-      crop.y + value.width <= value.sourceHeight
+      integer(crop.size, value.width, 4096) &&
+      crop.x + crop.size <= value.sourceWidth &&
+      crop.y + crop.size <= value.sourceHeight
     )
   }
   return (

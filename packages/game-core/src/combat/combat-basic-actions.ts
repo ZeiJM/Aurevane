@@ -694,7 +694,7 @@ export function effectiveBasicSkillBehavior(
   if (basic.execution.kind === 'basic-move') {
     if (basic.execution.costBasis === 'per-terrain-point')
       throw new TypeError('Native Basic Move requires its captured walking facade.')
-    if (isFreeOffensiveBasicMove(source, behavior))
+    if (state.abilityUsageLimitPolicyVersion !== 1 && isFreeOffensiveBasicMove(source, behavior))
       return {
         ...behavior,
         activationLimits: [

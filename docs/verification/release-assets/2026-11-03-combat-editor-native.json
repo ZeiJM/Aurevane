@@ -1,0 +1,160 @@
+{
+  "date": "2026-11-03",
+  "base": "b8f6b68c86a3ada7c86c7aa95f60db9b89d4b54b",
+  "scope": "Local production components and authoritative kernels. No hosted gameplay, deployed migration or release claim.",
+  "browser": "Native Chromium headless shell, desktop and mobile",
+  "reports": {
+    "canonical-targeting": {
+      "cases": 38,
+      "errors": [],
+      "scope": "Local production PvE/PvP controls and real canonical kernel; no hosted gameplay claim."
+    },
+    "targeting-editor": {
+      "cases": 82,
+      "errors": [],
+      "scope": "Local production components with canonical kernel forecasts/commands; not an authenticated Production test."
+    },
+    "canonical-move": {
+      "cases": 38,
+      "errors": [],
+      "scope": "Local production PvE/PvP controls and real canonical kernel; no hosted gameplay claim."
+    },
+    "summon-owner-colors": {
+      "results": [
+        {
+          "mode": "pve",
+          "width": 1366,
+          "colors": [
+            {
+              "ring": "rgb(208, 170, 98)",
+              "arrow": "rgb(208, 170, 98)"
+            },
+            {
+              "ring": "rgb(224, 189, 121)",
+              "arrow": "rgb(224, 189, 121)"
+            },
+            {
+              "ring": "rgb(170, 134, 207)",
+              "arrow": "rgb(170, 134, 207)"
+            },
+            {
+              "ring": "rgb(192, 155, 221)",
+              "arrow": "rgb(192, 155, 221)"
+            }
+          ]
+        },
+        {
+          "mode": "pve",
+          "width": 390,
+          "colors": [
+            {
+              "ring": "rgb(208, 170, 98)",
+              "arrow": "rgb(208, 170, 98)"
+            },
+            {
+              "ring": "rgb(224, 189, 121)",
+              "arrow": "rgb(224, 189, 121)"
+            },
+            {
+              "ring": "rgb(170, 134, 207)",
+              "arrow": "rgb(170, 134, 207)"
+            },
+            {
+              "ring": "rgb(192, 155, 221)",
+              "arrow": "rgb(192, 155, 221)"
+            }
+          ]
+        },
+        {
+          "mode": "pvp",
+          "width": 1366,
+          "colors": [
+            {
+              "ring": "rgb(208, 170, 98)",
+              "arrow": "rgb(208, 170, 98)"
+            },
+            {
+              "ring": "rgb(224, 189, 121)",
+              "arrow": "rgb(224, 189, 121)"
+            },
+            {
+              "ring": "rgb(170, 134, 207)",
+              "arrow": "rgb(170, 134, 207)"
+            },
+            {
+              "ring": "rgb(192, 155, 221)",
+              "arrow": "rgb(192, 155, 221)"
+            }
+          ]
+        },
+        {
+          "mode": "pvp",
+          "width": 390,
+          "colors": [
+            {
+              "ring": "rgb(208, 170, 98)",
+              "arrow": "rgb(208, 170, 98)"
+            },
+            {
+              "ring": "rgb(224, 189, 121)",
+              "arrow": "rgb(224, 189, 121)"
+            },
+            {
+              "ring": "rgb(170, 134, 207)",
+              "arrow": "rgb(170, 134, 207)"
+            },
+            {
+              "ring": "rgb(192, 155, 221)",
+              "arrow": "rgb(192, 155, 221)"
+            }
+          ]
+        },
+        {
+          "mode": "spectator",
+          "width": 1366,
+          "colors": [
+            {
+              "ring": "rgb(208, 170, 98)",
+              "arrow": "rgb(208, 170, 98)"
+            },
+            {
+              "ring": "rgb(224, 189, 121)",
+              "arrow": "rgb(224, 189, 121)"
+            },
+            {
+              "ring": "rgb(170, 134, 207)",
+              "arrow": "rgb(170, 134, 207)"
+            },
+            {
+              "ring": "rgb(192, 155, 221)",
+              "arrow": "rgb(192, 155, 221)"
+            }
+          ]
+        },
+        {
+          "mode": "spectator",
+          "width": 390,
+          "colors": [
+            {
+              "ring": "rgb(208, 170, 98)",
+              "arrow": "rgb(208, 170, 98)"
+            },
+            {
+              "ring": "rgb(224, 189, 121)",
+              "arrow": "rgb(224, 189, 121)"
+            },
+            {
+              "ring": "rgb(170, 134, 207)",
+              "arrow": "rgb(170, 134, 207)"
+            },
+            {
+              "ring": "rgb(192, 155, 221)",
+              "arrow": "rgb(192, 155, 221)"
+            }
+          ]
+        }
+      ],
+      "errors": []
+    }
+  }
+}

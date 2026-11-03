@@ -187,10 +187,16 @@ it('refreshes each participant before capturing its build while preparing both p
     expect(loadBuildSnapshot).not.toHaveBeenCalled()
     characters[0]!.resolve(characterRecord('actor', 'owner', 'Attacker'))
     await vi.waitFor(() => expect(loadBuildSnapshot).toHaveBeenCalledTimes(1))
-    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(1, 'owner', 'actor', expect.anything())
+    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(1, 'owner', 'actor', expect.anything(), true)
     characters[1]!.resolve(characterRecord('target', 'opponent', 'Target'))
     await vi.waitFor(() => expect(loadBuildSnapshot).toHaveBeenCalledTimes(2))
-    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(2, 'opponent', 'target', expect.anything())
+    expect(loadBuildSnapshot).toHaveBeenNthCalledWith(
+      2,
+      'opponent',
+      'target',
+      expect.anything(),
+      true,
+    )
     builds[0]!.resolve(pureSnapshot())
     await builds[0]!.promise
     expect(rpc.mock.calls.some(([name]) => name === 'start_world_encounter_v1')).toBe(false)

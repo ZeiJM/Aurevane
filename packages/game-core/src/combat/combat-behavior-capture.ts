@@ -1,5 +1,15 @@
+import { parseRuntimeItemDefinition } from '../content/items'
+import { EQUIPMENT_POSITIONS } from '../character/item-inventory'
 import { finalizedContentMediaIssues, type FinalizedContentMediaSlots } from './content-media'
 import { parseAbilityDefinition, type AbilityDefinition } from './combat-definition'
+import {
+  compileEquipmentAbility,
+  compileEquipmentRoles,
+  equipmentRoles,
+  type BattleEquipmentCapture,
+  type BattleEquipmentUnit,
+  type EquipmentActionRole,
+} from './combat-equipment'
 import { parseBasicSkillDefinition, type BasicSkillDefinition } from './combat-basic-actions'
 import {
   combatActionSourceKind,
@@ -22,6 +32,38 @@ export interface CapturedCombatAbilitySource {
   readonly audioCueKey?: string | null
   readonly media?: FinalizedContentMediaSlots
   readonly basic?: BasicSkillDefinition
+  readonly equipment?: {
+    readonly unit: BattleEquipmentUnit
+    readonly roles: Partial<Record<EquipmentActionRole, string>>
+  }
+}
+
+export function captureEquipmentAbilitySource(
+  capture: BattleEquipmentCapture,
+  unit: BattleEquipmentUnit,
+  ownerCombatantId: string,
+): CapturedCombatAbilitySource | null {
+  const definition = compileEquipmentAbility(capture, unit)
+  if (!definition.behaviors.length) return null
+  return captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: JSON.stringify([
+      'equipment',
+      ownerCombatantId,
+      unit.position,
+      unit.ownedStackId,
+      unit.item.id,
+      unit.item.contentVersion,
+    ]),
+    ownerCombatantId,
+    abilityId: `item.${unit.item.id}.${unit.position}`,
+    contentVersion: unit.item.contentVersion,
+    sourceKind: 'equipment',
+    tags: unit.item.tags,
+    definition,
+    equipment: { unit: structuredClone(unit), roles: equipmentRoles(capture, unit) },
+    ...(unit.item.media.artwork ? { media: { artwork: unit.item.media.artwork } } : {}),
+  })
 }
 
 export function captureCombatAbilitySource(
@@ -46,6 +88,7 @@ export function captureCombatAbilitySource(
           'basic',
           'media',
           'audioCueKey',
+          'equipment',
         ].includes(key),
     ) ||
     !Array.isArray(input.tags) ||
@@ -85,7 +128,43 @@ export function captureCombatAbilitySource(
       ? { media: JSON.parse(JSON.stringify(input.media)) as FinalizedContentMediaSlots }
       : {}),
     ...(input.basic === undefined ? {} : { basic: parseBasicSkillDefinition(input.basic) }),
+    ...(input.equipment === undefined ? {} : { equipment: structuredClone(input.equipment) }),
   }
+  if (result.equipment) {
+    const { unit, roles } = result.equipment
+    const item = parseRuntimeItemDefinition(unit.item)
+    if (
+      Object.keys(result.equipment).some((key) => !['unit', 'roles'].includes(key)) ||
+      !EQUIPMENT_POSITIONS.includes(unit.position) ||
+      Object.keys(unit).some((key) => !['position', 'ownedStackId', 'item'].includes(key)) ||
+      typeof unit.ownedStackId !== 'string' ||
+      !unit.ownedStackId.trim() ||
+      !roles ||
+      Object.entries(roles).some(
+        ([role, id]) =>
+          !['attack', 'support', 'use'].includes(role) ||
+          item.actions?.[role as EquipmentActionRole]?.behaviorId !== id,
+      ) ||
+      result.sourceKind !== 'equipment' ||
+      result.sourceDisciplineId !== undefined ||
+      result.basic !== undefined ||
+      result.abilityId !== `item.${item.id}.${unit.position}` ||
+      result.contentVersion !== item.contentVersion ||
+      result.sourceInstanceId !==
+        JSON.stringify([
+          'equipment',
+          result.ownerCombatantId,
+          unit.position,
+          unit.ownedStackId,
+          item.id,
+          item.contentVersion,
+        ]) ||
+      !sameCaptureValue(result.definition, compileEquipmentRoles(unit, roles)) ||
+      !sameCaptureValue(result.tags, item.tags)
+    )
+      throw new TypeError('invalid-captured-equipment-definition')
+  }
+
   if (
     result.basic &&
     (result.sourceKind !== 'basic' ||

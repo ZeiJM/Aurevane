@@ -1,3 +1,6 @@
+import { seedStarterItemSources } from '../character/starter-item-sources'
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
+import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import {
   combatDamageForAuthoring,
   automaticDamageDefinitionIssues,
@@ -382,6 +385,8 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
   }
 
   async readRecord(contentKey: string): Promise<CompleteCombatContentRecord | null> {
+    if (starterItemDefinitions().some((item) => item.id === contentKey))
+      await seedStarterItemSources(this.#rpc)
     const { data, error } = await this.#rpc('read_combat_content_record_v1', {
       p_actor_user_id: this.#actorUserId,
       p_content_key: contentKey,
@@ -389,6 +394,20 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     if (error) mapRpcError(error)
     if (data === null) return null
     const record = withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
+    if (record.contentKind === 'item' && record.builtin) {
+      const definition = await this.#itemSource(record.contentKey, record.builtin.contentVersion)
+      if (!definition)
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The Item source baseline is unavailable.',
+        )
+      return {
+        ...record,
+        ...(!record.current && record.lifecycle !== 'archived'
+          ? { builtinDefinition: definition }
+          : {}),
+      }
+    }
     if (record.builtin && !record.current && record.lifecycle !== 'archived') {
       let definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
       if (record.contentKind === 'discipline') {
@@ -419,6 +438,18 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     }
     return record
   }
+  async #itemSource(key: string, version: number): Promise<CombatContentDefinition | null> {
+    const { data, error } = await this.#rpc('read_runtime_item_source_v1', {
+      p_item_id: key,
+      p_content_version: version,
+    })
+    if (error) mapRpcError(error)
+    if (data === null) return null
+    const definition = parseRuntimeItemDefinition(data)
+    if (definition.id !== key || definition.contentVersion !== version)
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The Item source identity does not match.')
+    return { ...definition }
+  }
   async listRecords(input: {
     sort?: CombatContentSort
     category?: 'basic' | 'discipline-skill'
@@ -428,6 +459,7 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     after?: string
     limit?: number
   }): Promise<CombatContentListPage> {
+    if (!input.kind || input.kind === 'item') await seedStarterItemSources(this.#rpc)
     const { data, error } = await this.#rpc('list_combat_content_records_v1', {
       p_actor_user_id: this.#actorUserId,
       p_kind: input.category ?? input.kind ?? null,

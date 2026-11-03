@@ -67,7 +67,7 @@ describe('battle Tab cycle prevention', () => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('Escape reader focus ownership', () => {
-  function fixture(contextual: boolean) {
+  function fixture(contextual: boolean | 'item', informationTrigger = true) {
     let readerOpen = true
     let frame: FrameRequestCallback | undefined
     class FocusedTrigger {
@@ -75,11 +75,12 @@ describe('Escape reader focus ownership', () => {
       closest(selector: string) {
         if (selector.includes('input, textarea')) return null
         if (selector === '[data-battle-preview-reader]:not([hidden])')
-          return contextual ? this : null
+          return contextual === true ? this : null
+        if (selector === '[data-battle-item-choices]') return contextual === 'item' ? this : null
         return selector.includes('main[data-battle-concept') ? this : null
       }
       matches(selector: string) {
-        return selector === '[data-battle-info-trigger]'
+        return informationTrigger && selector === '[data-battle-info-trigger]'
       }
     }
     vi.stubGlobal('HTMLElement', FocusedTrigger)
@@ -112,6 +113,24 @@ describe('Escape reader focus ownership', () => {
       flush: () => frame?.(0),
     }
   }
+
+  it('does not steal a newly focused Item choice before the Escape animation frame', () => {
+    const f = fixture('item', false)
+    f.target.dispatchEvent(keyEvent('Escape'))
+    f.closeReader()
+    f.flush()
+    expect(f.root.focus).not.toHaveBeenCalled()
+    f.cleanup()
+  })
+
+  it('preserves the hand choice information trigger after Escape', () => {
+    const f = fixture('item')
+    f.target.dispatchEvent(keyEvent('Escape'))
+    f.closeReader()
+    f.flush()
+    expect(f.root.focus).not.toHaveBeenCalled()
+    f.cleanup()
+  })
 
   it('preserves the contextual trigger after reader dismissal and releases it on a second Escape', () => {
     const f = fixture(true)

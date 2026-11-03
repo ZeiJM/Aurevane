@@ -1,3 +1,7 @@
+import {
+  ADVANCED_DISCIPLINE_SKILLS,
+  ADVANCED_DISCIPLINE_ESSENCES,
+} from './advanced-discipline-content'
 import { applyCombatStatusCopies } from './combat-status-copy'
 import { pendingCombatStatusRows } from './combat-effect-timing'
 import { selectCurrentFinalFacing } from './board'
@@ -519,3 +523,206 @@ it('honors explicit zero outgoing damage and vulnerability above 100 percent', (
   })
   expect(multiplier(revealed, 'actor', 'enemy')).toBe(35000)
 })
+
+it.each([false, true])('captures paired defaults only for new policy (current=%s)', (current) => {
+  const original = encounter()
+  const state = { ...original, ...(current ? { pairedStatusPolicyVersion: 1 as const } : {}) }
+  const out = executeCombatAction(
+    state,
+    action([
+      { type: 'apply-status', recipient: 'actor', statusId: 'reckless', stacks: 1 },
+      { type: 'apply-status', recipient: 'actor', statusId: 'fortified', stacks: 1 },
+    ]),
+    target,
+    PV1F_COMBAT_CONTENT,
+  )
+  const restored = JSON.parse(JSON.stringify(out.state))
+  const reckless = restored.statusState
+    .find((row: { combatantId: string }) => row.combatantId === 'actor')
+    .statuses.find((row: { statusId: string }) => row.statusId === 'reckless')
+  const fortified = restored.statusState
+    .find((row: { combatantId: string }) => row.combatantId === 'actor')
+    .statuses.find((row: { statusId: string }) => row.statusId === 'fortified')
+  expect(reckless.potencyBasisPoints).toBe(current ? 4000 : undefined)
+  expect(fortified.defenseIncreaseBasisPoints).toBe(current ? 1500 : undefined)
+  expect(multiplier(restored, 'actor', 'enemy')).toBe(current ? 11900 : 11200)
+  expect(multiplier(restored, 'enemy', 'actor')).toBe(current ? 14000 : 8750)
+  expect(terrainAdjustedDefense(restored, 'actor', 100)).toBe(current ? 115 : 100)
+  expect(validateCombatEncounterState(restored)).toEqual([])
+  if (current)
+    expect(out.events).toContainEqual(
+      expect.objectContaining({
+        event: 'status_applied',
+        statusId: 'reckless',
+        effectStrength: { potencyBasisPoints: 4000 },
+      }),
+    )
+})
+
+it('preserves explicit tradeoff potency and Defense fields in current policy', () => {
+  const state = { ...encounter(), pairedStatusPolicyVersion: 1 as const }
+  const out = executeCombatAction(
+    state,
+    action([
+      {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'reckless',
+        stacks: 1,
+        potencyBasisPoints: 2750,
+      },
+      {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'fortified',
+        stacks: 1,
+        potencyBasisPoints: 2200,
+      },
+    ]),
+    target,
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(multiplier(out.state, 'actor', 'enemy')).toBe(9945)
+  expect(multiplier(out.state, 'enemy', 'actor')).toBe(9945)
+  expect(terrainAdjustedDefense(out.state, 'actor', 100)).toBe(100)
+  expect(createAuthorableEffectPayload('status:reckless')).toMatchObject({
+    potencyBasisPoints: 4000,
+  })
+})
+
+it('rejects unknown paired status policy versions', () => {
+  expect(
+    validateCombatEncounterState({ ...encounter(), pairedStatusPolicyVersion: 2 } as never),
+  ).toContainEqual(expect.objectContaining({ field: 'pairedStatusPolicyVersion' }))
+})
+
+it('captures paired defaults into delayed native packets before serialization', () => {
+  const state = {
+    ...encounter(),
+    pairedStatusPolicyVersion: 1 as const,
+    effectTimingPolicy: {
+      version: 1 as const,
+      modes: { reckless: 'next-round' as const, fortified: 'next-round' as const },
+    },
+  }
+  const out = executeCombatAction(
+    state,
+    action([
+      { type: 'apply-status', recipient: 'actor', statusId: 'reckless', stacks: 1 },
+      { type: 'apply-status', recipient: 'actor', statusId: 'fortified', stacks: 1 },
+    ]),
+    target,
+    PV1F_COMBAT_CONTENT,
+  )
+  const restored = JSON.parse(JSON.stringify(out.state))
+  expect(restored.pendingEffects.map((row: { effect: unknown }) => row.effect)).toEqual([
+    expect.objectContaining({ statusId: 'reckless', potencyBasisPoints: 4000 }),
+    expect.objectContaining({ statusId: 'fortified', defenseIncreaseBasisPoints: 1500 }),
+  ])
+  expect(validateCombatEncounterState(restored)).toEqual([])
+})
+
+it('retains explicit shared Fortified Defense even when legacy potency is also present', () => {
+  const out = executeCombatAction(
+    { ...encounter(), pairedStatusPolicyVersion: 1 as const },
+    action([
+      {
+        type: 'apply-status',
+        recipient: 'actor',
+        statusId: 'fortified',
+        stacks: 1,
+        potencyBasisPoints: 1800,
+        defenseIncreaseBasisPoints: 2750,
+      },
+    ]),
+    target,
+    PV1F_COMBAT_CONTENT,
+  )
+  expect(terrainAdjustedDefense(out.state, 'actor', 100)).toBe(127)
+  expect(multiplier(out.state, 'actor', 'enemy')).toBe(7250)
+  expect(multiplier(out.state, 'enemy', 'actor')).toBe(10000)
+})
+
+it('keeps explicit Master status definition modifiers literal when payload tuning is absent', () => {
+  const content = {
+    ...PV1F_COMBAT_CONTENT,
+    statuses: PV1F_COMBAT_CONTENT.statuses.map((status) =>
+      status.id === 'reckless'
+        ? {
+            ...status,
+            damageModifiers: [
+              {
+                direction: 'outgoing' as const,
+                multiplierBasisPoints: 18000,
+                condition: { kind: 'always' as const },
+              },
+              {
+                direction: 'incoming' as const,
+                multiplierBasisPoints: 16000,
+                condition: { kind: 'always' as const },
+              },
+            ],
+          }
+        : status.id === 'fortified'
+          ? {
+              ...status,
+              damageModifiers: [
+                {
+                  direction: 'incoming' as const,
+                  multiplierBasisPoints: 6500,
+                  condition: { kind: 'always' as const },
+                },
+                {
+                  direction: 'outgoing' as const,
+                  multiplierBasisPoints: 7500,
+                  condition: { kind: 'always' as const },
+                },
+              ],
+            }
+          : status,
+    ),
+  }
+  const out = executeCombatAction(
+    { ...encounter(), pairedStatusPolicyVersion: 1 as const },
+    action([
+      { type: 'apply-status', recipient: 'actor', statusId: 'reckless', stacks: 1 },
+      { type: 'apply-status', recipient: 'actor', statusId: 'fortified', stacks: 1 },
+    ]),
+    target,
+    content,
+  )
+  const statuses = out.state.statusState.find((row) => row.combatantId === 'actor')!.statuses
+  expect(
+    statuses.every(
+      (row) => row.potencyBasisPoints === undefined && row.defenseIncreaseBasisPoints === undefined,
+    ),
+  ).toBe(true)
+  expect(conditionalDamageMultiplier(out.state, 'actor', 'enemy', content)).toBe(13500)
+  expect(conditionalDamageMultiplier(out.state, 'enemy', 'actor', content)).toBe(10400)
+  expect(terrainAdjustedDefense(out.state, 'actor', 100)).toBe(100)
+})
+
+it.each(['ravager.frenzy', 'bastion.fortress', 'essence.bastion.last-bastion'])(
+  'captures equal native defaults for %s without rewriting its definition',
+  (id) => {
+    const definition =
+      ADVANCED_DISCIPLINE_SKILLS.find((row) => row.id === id) ??
+      ADVANCED_DISCIPLINE_ESSENCES.find((row) => row.essenceId === id)!.skill
+    const before = JSON.stringify(definition)
+    const effects = definition.effects.filter(
+      (effect): effect is Extract<CombatEffectDefinition, { type: 'apply-status' }> =>
+        effect.type === 'apply-status' && ['reckless', 'fortified'].includes(effect.statusId),
+    )
+    expect(effects).toHaveLength(1)
+    const state = executeCombatAction(
+      { ...encounter(), pairedStatusPolicyVersion: 1 as const },
+      action(effects),
+      target,
+      PV1F_COMBAT_CONTENT,
+    ).state
+    expect(multiplier(state, 'actor', 'enemy')).toBe(id === 'ravager.frenzy' ? 14000 : 8500)
+    expect(multiplier(state, 'enemy', 'actor')).toBe(id === 'ravager.frenzy' ? 14000 : 10000)
+    expect(terrainAdjustedDefense(state, 'actor', 100)).toBe(id === 'ravager.frenzy' ? 100 : 115)
+    expect(JSON.stringify(definition)).toBe(before)
+  },
+)

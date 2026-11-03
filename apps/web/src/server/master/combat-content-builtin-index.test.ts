@@ -27,7 +27,7 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
     readFileSync(resolve(process.cwd(), '../../supabase/content-builtin-manifest.json'), 'utf8'),
   )
   // Applied source manifests remain historical. The additive support migration
-  // changes only these identities plus the replacement class utility.
+  // adds current Support identities, the replacement class utility and passive stats.
   const current = manifest
     .filter((row: { contentKey: string }) => row.contentKey !== 'basic.guard')
     .map((row: { contentKind: string; contentKey: string; name: string }) => ({
@@ -46,6 +46,7 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
     ['basic.fleetstep', 'Fleetstep', 'skill'],
     ['basic.invocation', 'Invocation', 'skill'],
     ['tag.loot', 'Loot', 'tag'],
+    ['tag.stat-bonus', 'Stat Bonus', 'tag'],
   ])
     current.push({
       contentKey,

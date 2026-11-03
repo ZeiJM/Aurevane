@@ -348,3 +348,24 @@ it.each(['pve', 'pvp'] as const)(
     expect(JSON.stringify(captured)).toBe(before)
   },
 )
+
+it('shows saved finalized Invocation artwork in the Arsenal support summary', () => {
+  const props = workspace(loadout())
+  const html = renderToStaticMarkup(
+    <CharacterArsenalShell
+      {...props}
+      disciplineBuild={{
+        ...props.disciplineBuild,
+        ...{
+          supportActionId: 'basic.invocation' as const,
+          supportActionArtworkKeys: {
+            'basic.invocation': 'content-media.00000000-0000-4000-8000-000000000099',
+          },
+        },
+      }}
+    />,
+  )
+  expect(html).toMatch(
+    /data-testid="nexus-support-action"[\s\S]*?src="\/api\/content-media\/00000000-0000-4000-8000-000000000099"/,
+  )
+})

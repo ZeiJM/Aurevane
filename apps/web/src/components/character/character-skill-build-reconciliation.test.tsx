@@ -10,7 +10,7 @@ vi.mock('react', async () => {
   return {
     ...actual,
     useSyncExternalStore: () => true,
-    useState: (initial: unknown) => actual.useState(hooks.state++ === 10 ? hooks.touch : initial),
+    useState: (initial: unknown) => actual.useState(hooks.state++ === 13 ? hooks.touch : initial),
   }
 })
 vi.mock('react-dom', async () => ({

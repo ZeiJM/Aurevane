@@ -6,6 +6,7 @@ const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
 
 import { createSupabaseBattleSessionRepository } from './supabase-battle-session-repository'
+import { toServerErrorResponse } from '../http/error-response'
 import { joinPvpLobby } from './pvp-lobby-service'
 import { getPvpLobbyMapSettings } from './pvp-lobby-quality-service'
 
@@ -59,3 +60,20 @@ it.each(boundaries)('retains unrelated SQL failure handling through %s', async (
   await expect(call()).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
   expect(rpc).toHaveBeenCalledTimes(1)
 })
+
+it.each(
+  boundaries.flatMap(([name, call]) =>
+    ['ITEM_ADMISSION_RETRY', 'ITEM_PREPARATION_STALE'].map((message) => ({ name, call, message })),
+  ),
+)(
+  'returns a conflict for $message through $name without replaying a rejected RPC',
+  async ({ call, message }) => {
+    rpc.mockResolvedValue({ data: null, error: { code: 'PT409', message } })
+    const response = await call().then(() => {
+      throw new Error('Expected admission rejection')
+    }, toServerErrorResponse)
+    expect(response.status).toBe(409)
+    expect((await response.json()).error.code).toBe('STALE_VERSION')
+    expect(rpc).toHaveBeenCalledTimes(1)
+  },
+)

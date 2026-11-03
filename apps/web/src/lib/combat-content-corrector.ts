@@ -1,3 +1,4 @@
+import { normalizeWholeAbilityRequirements } from './combat-whole-requirements'
 import { currentCombatPercentageEntries } from './combat-percentage-authoring'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from '@aurevane/game-core/combat/combat-effect-duration'
 import { maximumCombatStatusPotencyBasisPoints } from '@aurevane/game-core/combat/combat-status-tuning'
@@ -34,7 +35,8 @@ const object = (value: unknown): value is Record<string, unknown> =>
 
 /** Conservative current-entry repairs. Strict parsing still runs before any persistence.
  * Intent comes from authored mechanics, never inferred from prose. Unknown/ambiguous entries stay
- * intact for the validator, and requirements, targets, triggers and effect identities never change.
+ * intact for the validator, and unsupported requirements, triggers and effect identities remain for strict validation.
+ * Reviewed whole-ability prerequisite corrections are explicit in the returned correction list.
  */
 export function correctCombatContentEntries<T>(
   kind: CombatContentKind,
@@ -51,7 +53,9 @@ export function correctCombatContentEntries<T>(
     corrections.push(
       'Excluded inactive targeting and accuracy settings from the active definition.',
     )
-  const definition = structuredClone(active)
+  const wholeRequirements = normalizeWholeAbilityRequirements(active)
+  corrections.push(...wholeRequirements.corrections)
+  const definition = wholeRequirements.definition
   const root = definition as Record<string, unknown>
   const owner =
     kind === 'essence' && !Object.hasOwn(root, 'ability') && object(root.skill) ? root.skill : root

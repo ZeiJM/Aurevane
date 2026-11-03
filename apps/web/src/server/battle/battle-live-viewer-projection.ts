@@ -1,3 +1,9 @@
+import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
+import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import {
+  combatAbilityUsageLimitReached,
+  combatAbilityRemainingUses,
+} from '@aurevane/game-core/combat/combat-ability-command'
 import { combatAbilityCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import {
   COMBAT_STATUS_TUNING_FIELDS,
@@ -22,6 +28,7 @@ import {
   isFreeOffensiveBasicMove,
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
+  combatAbilityBehavior,
   materializeCombatAbilityAction,
   combatManualModifierAvailability,
   combatControlledAbilityAvailability,
@@ -91,6 +98,7 @@ function pendingCovertConcealsInstance(
 
 function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
   return {
+    legacyActionUsageLimits: state.abilityUsageLimitPolicyVersion !== 1,
     legacyTriggers: state.dotTriggerPolicyVersion === undefined,
     legacyPoisonMovement: state.dotTriggerPolicyVersion !== 2,
     groundContactPolicyVersion: state.groundContactPolicyVersion ?? null,
@@ -104,6 +112,7 @@ function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
     legacyPierceCritical: state.pierceCriticalPolicyVersion !== 1,
     legacySummonPotency: state.summonPotencyPolicyVersion !== 1,
     legacyRuin: state.ruinPolicyVersion !== 1,
+    legacyPairedStatus: state.pairedStatusPolicyVersion !== 1,
     legacyElemental: state.elementalDamagePolicyVersion === undefined,
     explicitElemental: state.elementalDamagePolicyVersion === 2,
   }
@@ -173,10 +182,28 @@ export function projectBattleManualActionTargets(
           return {
             ownerCombatantId: source.ownerCombatantId,
             actionId:
-              source.basic?.execution.kind === 'basic-attack'
+              source.basic?.execution.kind === 'basic-attack' ||
+              source.equipment?.roles.attack === behavior.id
                 ? PV1F_BASIC_ATTACK_ID
-                : source.abilityId,
+                : source.equipment
+                  ? equipmentBehaviorActionId(source.equipment, behavior.id)
+                  : source.abilityId,
             behaviorId: behavior.id,
+            ...(behavior.maximumUsesPerBattle === undefined
+              ? {}
+              : {
+                  maximumUsesPerBattle: behavior.maximumUsesPerBattle,
+                  remainingUses: combatAbilityRemainingUses(state, source, behavior)!,
+                }),
+            ...(combatAbilityUsageLimitReached(
+              state,
+              source,
+              isFreeOffensiveBasicMove(source, behavior)
+                ? effectiveBasicSkillBehavior(state, source, behavior)
+                : combatAbilityBehavior(source, behavior.id, state.effectTimingPolicy),
+            )
+              ? { usageLimitReached: true as const }
+              : {}),
             ...(combatEndureBlocksAction(
               state,
               source.ownerCombatantId,
@@ -236,6 +263,12 @@ export function projectBattleManualActionTargets(
               ? {
                   move: {
                     maximumTiles: move.payload.maximumTiles,
+                    ...(move.payload.maximumElevation !== undefined
+                      ? { maximumElevation: move.payload.maximumElevation }
+                      : {}),
+                    ...(move.payload.requiresLineOfSight !== undefined
+                      ? { requiresLineOfSight: move.payload.requiresLineOfSight }
+                      : {}),
                     conditional: move.requirements != null,
                   },
                 }
@@ -306,7 +339,8 @@ export function projectBattleBasicActions(
       const owner = state.tactical.battle.combatants.find(
         (unit) => unit.id === source.ownerCombatantId,
       )!
-      const profile = state.statBridge.combatants.find(
+      const profile = effectiveCombatStatProfile(state, source.ownerCombatantId)!
+      const rawProfile = state.statBridge.combatants.find(
         (row) => row.combatantId === source.ownerCombatantId,
       )!
       const behaviors = source.definition.behaviors
@@ -322,11 +356,14 @@ export function projectBattleBasicActions(
               timingPolicy: state.effectTimingPolicy ?? null,
               effectContext: capturedAbilityEffectContext(state),
               stats: {
-                move: owner.baseMovementBudget,
+                move:
+                  state.tactical.battle.currentTurn?.combatantId === owner.id
+                    ? state.tactical.battle.currentTurn.movementMaximum
+                    : owner.baseMovementBudget,
                 jump: airborneJump(
                   state,
                   source.ownerCombatantId,
-                  profile.jump,
+                  rawProfile.jump,
                   PV1F_COMBAT_CONTENT,
                 ),
                 physicalPower: profile.physicalPower,
@@ -345,6 +382,12 @@ export function projectBattleBasicActions(
               ? {
                   move: {
                     maximumTiles: move.payload.maximumTiles,
+                    ...(move.payload.maximumElevation !== undefined
+                      ? { maximumElevation: move.payload.maximumElevation }
+                      : {}),
+                    ...(move.payload.requiresLineOfSight !== undefined
+                      ? { requiresLineOfSight: move.payload.requiresLineOfSight }
+                      : {}),
                     conditional: move.requirements != null,
                   },
                 }
@@ -391,6 +434,12 @@ export function projectBattleBasicActions(
                     }
                   : {}),
                 maximumTiles: native.move!.maximumTiles,
+                ...(native.move!.maximumElevation !== undefined
+                  ? { maximumElevation: native.move!.maximumElevation }
+                  : {}),
+                ...(native.move!.requiresLineOfSight !== undefined
+                  ? { requiresLineOfSight: native.move!.requiresLineOfSight }
+                  : {}),
               },
             }
           : {}),
@@ -941,6 +990,10 @@ export function omitPendingBattlePayloads<
         combatants: authority.combatants.map((combatant: Record<string, unknown>) => {
           const publicCombatant = { ...combatant }
           delete publicCombatant.narratorIdentity
+          if (publicCombatant.extensions && typeof publicCombatant.extensions === 'object') {
+            publicCombatant.extensions = { ...publicCombatant.extensions }
+            Reflect.deleteProperty(publicCombatant.extensions as object, 'equipmentSkills')
+          }
           return publicCombatant
         }),
       },

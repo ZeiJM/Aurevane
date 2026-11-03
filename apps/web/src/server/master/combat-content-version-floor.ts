@@ -1,3 +1,4 @@
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 import { defaultCombatTagDefinitions } from '@aurevane/game-core/combat/combat-tag-wording'
 import 'server-only'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
@@ -11,6 +12,8 @@ export function builtinCombatContentVersionFloor(
   kind: CombatContentKind,
   key: string,
 ): number | null {
+  if (kind === 'item')
+    return starterItemDefinitions().find((item) => item.id === key)?.contentVersion ?? null
   if (kind === 'tag')
     return defaultCombatTagDefinitions().find((tag) => tag.id === key)?.contentVersion ?? null
   if (kind === 'skill')

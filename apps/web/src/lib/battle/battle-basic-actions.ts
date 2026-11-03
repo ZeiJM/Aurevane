@@ -12,7 +12,12 @@ export interface BattleBasicBehaviorPresentation extends BattleAbilityBehaviorRe
   readonly costs: AbilityBehavior['costs']
   readonly cooldown: AbilityBehavior['cooldown']
   readonly target: CombatTargetSpec
-  readonly move?: { readonly maximumTiles: number; readonly conditional: boolean }
+  readonly move?: {
+    readonly maximumTiles: number
+    readonly conditional: boolean
+    readonly maximumElevation?: number
+    readonly requiresLineOfSight?: boolean
+  }
 }
 export interface BattleBasicActionPresentation {
   readonly ownerCombatantId: string
@@ -27,13 +32,18 @@ export interface BattleBasicActionPresentation {
     readonly costBasis: 'flat' | 'per-terrain-point'
     readonly apPerTraversalPoint?: number
     readonly maximumTiles: number
+    readonly maximumElevation?: number
+    readonly requiresLineOfSight?: boolean
   }
   readonly behaviors: readonly BattleBasicBehaviorPresentation[]
 }
 
 /** Undefined is historical native metadata; null means an action is absent from saved ownership. */
 export function findBattleBasicAction(
-  snapshot: { basicActions?: readonly BattleBasicActionPresentation[] },
+  snapshot: {
+    basicActions?: readonly BattleBasicActionPresentation[]
+    equipmentActions?: readonly BattleBasicActionPresentation[]
+  },
   actorId: string | null,
   actionId: string,
 ): BattleBasicActionPresentation | null | undefined {
@@ -41,7 +51,11 @@ export function findBattleBasicAction(
   return (
     snapshot.basicActions.find(
       (action) => action.ownerCombatantId === actorId && action.actionId === actionId,
-    ) ?? null
+    ) ??
+    snapshot.equipmentActions?.find(
+      (action) => action.ownerCombatantId === actorId && action.actionId === actionId,
+    ) ??
+    null
   )
 }
 

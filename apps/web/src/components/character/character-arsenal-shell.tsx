@@ -25,6 +25,8 @@ import { ResonanceParameters } from './resonance-parameters'
 import { SkillParameters } from './skill-parameters'
 import { EffectTagLabel } from './compact-skill-effect-summary'
 import styles from './character-arsenal-shell.module.css'
+import type { CharacterItemsView } from '@/server/character/character-items-service'
+import { itemSupportOptions } from './item-support-options'
 
 const OVERVIEW_TECHNIQUE_SLOTS = 4
 
@@ -199,7 +201,8 @@ export function CharacterArsenalShell({
   profile,
   attributeAllocation,
   disciplineBuild,
-}: CharacterWorkspaceProps) {
+  itemsView,
+}: CharacterWorkspaceProps & { itemsView?: CharacterItemsView | null }) {
   const learnedSkillCatalogKey = disciplineBuild.disciplineSkills.learnedSkills
     .map((entry) => entry.definition.id + '@' + entry.definition.contentVersion)
     .sort()
@@ -217,6 +220,16 @@ export function CharacterArsenalShell({
   const essence = disciplineBuild.disciplineSkills.extensions.essence
   const supportActionId = disciplineBuild.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
   const supportAction = pv1fSkillByActionId(supportActionId)!
+  const supportSelection = itemsView?.selectedSupport
+  const equipmentSupport =
+    itemsView && supportSelection?.kind === 'equipment'
+      ? itemSupportOptions(itemsView).find(
+          (option) =>
+            option.selection.position === supportSelection.position &&
+            option.selection.itemId === supportSelection.itemId &&
+            option.selection.behaviorId === supportSelection.behaviorId,
+        )
+      : undefined
   const equipped = [...disciplineBuild.disciplineSkills.equippedSkills].sort(
     (left, right) => left.slotIndex - right.slotIndex,
   )
@@ -335,7 +348,13 @@ export function CharacterArsenalShell({
               </header>
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
-                  src={battleSkillArtwork(supportActionId)}
+                  src={
+                    equipmentSupport?.item.artworkSrc ??
+                    battleSkillArtwork(
+                      supportActionId,
+                      disciplineBuild.supportActionArtworkKeys?.[supportActionId],
+                    )
+                  }
                   width={160}
                   height={160}
                   unoptimized
@@ -343,7 +362,14 @@ export function CharacterArsenalShell({
                 />
               </span>
               <div>
-                <strong>{supportAction.name}</strong>
+                <strong>
+                  {equipmentSupport?.label ??
+                    (itemsView === null
+                      ? 'Support unavailable · reload Techniques'
+                      : supportSelection?.kind === 'equipment'
+                        ? 'Unavailable equipment Support · repair Items'
+                        : supportAction.name)}
+                </strong>
               </div>
             </div>
           </div>
@@ -354,6 +380,8 @@ export function CharacterArsenalShell({
             initialBuildVersion={disciplineBuild.buildVersion}
             disciplineNames={disciplineBuild.disciplineNames}
             initialSupportActionId={supportActionId}
+            initialItemsView={itemsView}
+            supportActionArtworkKeys={disciplineBuild.supportActionArtworkKeys}
             primaryDiscipline={{
               id: disciplineBuild.current.definition.id,
               name: disciplineBuild.current.definition.name,

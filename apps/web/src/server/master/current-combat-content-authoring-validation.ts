@@ -1,3 +1,4 @@
+import { currentEffectRequirementIssues } from '@/lib/combat-whole-requirements'
 import { combatCategoryForAuthoring, combatCategoryIssues } from '@/lib/combat-category-authoring'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
 import {
@@ -150,7 +151,7 @@ function groundAuthoringIssues(kind: CombatContentKind, definition: unknown) {
 }
 
 /** Current editable requests add authoring rules; immutable cohort/capture validators stay exact. */
-function current(
+export function validateCurrentCombatContent(
   kind: CombatContentKind,
   definition: unknown,
   validate: (value: unknown) => CombatContentValidationResult,
@@ -159,6 +160,7 @@ function current(
   const result = validate(projected)
   const issues = [
     ...result.issues,
+    ...currentEffectRequirementIssues(projected),
     ...automaticDamageDefinitionIssues(kind, projected),
     ...combatCategoryIssues(kind, projected),
     ...groundAuthoringIssues(kind, projected),
@@ -167,8 +169,8 @@ function current(
   return { ...result, valid: result.valid && !issues.length, issues }
 }
 export const validateSkillDefinition = (definition: unknown) =>
-  current('skill', definition, validateHistoricalSkill)
+  validateCurrentCombatContent('skill', definition, validateHistoricalSkill)
 export const validateEssenceAuthoringDefinition = (definition: unknown) =>
-  current('essence', definition, validateHistoricalEssence)
+  validateCurrentCombatContent('essence', definition, validateHistoricalEssence)
 export const validateResonanceAuthoringDefinition = (definition: unknown) =>
-  current('resonance', definition, validateHistoricalResonance)
+  validateCurrentCombatContent('resonance', definition, validateHistoricalResonance)

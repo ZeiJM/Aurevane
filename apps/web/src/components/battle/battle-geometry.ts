@@ -9,6 +9,7 @@ import { pv1fMovementModifiers } from '@aurevane/game-core/combat/pv1f-action-ec
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
 import { canEnterElevation } from '@aurevane/game-core/combat/board'
+import { hasCombatTargetLineOfSight } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import {
   PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
   movementApCostForTile,
@@ -108,18 +109,15 @@ export function buildReachablePaths(
     maximumTiles: number
     costs: AbilityBehavior['costs']
     independentAllowance?: boolean
+    maximumElevation?: number
+    requiresLineOfSight?: boolean
   },
 ): Map<string, BattleGridPosition[]> {
-  const tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT)
+  let tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT)
   const turn = tactical.battle.currentTurn
   if (!turn || !activePlacement || turn.combatantId !== activePlacement.combatantId) {
     return new Map()
   }
-
-  const profile = tactical.movementProfiles.find(
-    (candidate) => candidate.id === activePlacement.movementProfileId,
-  )
-  if (!profile) return new Map()
 
   const basic = attachedMove
     ? undefined
@@ -127,6 +125,12 @@ export function buildReachablePaths(
   if (basic === null || basic?.enabled === false) return new Map()
   const actor = tactical.battle.combatants.find((unit) => unit.id === activePlacement.combatantId)!
   const behavior = basic ? battleBasicBehavior(basic, behaviorId) : undefined
+  const movementRules = attachedMove ?? behavior?.move ?? basic?.movement
+  tactical = airborneMovementTactical(state, PV1F_COMBAT_CONTENT, movementRules?.maximumElevation)
+  const profile = tactical.movementProfiles.find(
+    (candidate) => candidate.id === activePlacement.movementProfileId,
+  )
+  if (!profile) return new Map()
   const flat = Boolean(attachedMove) || basic?.movement?.costBasis === 'flat'
   if (
     attachedMove &&
@@ -205,6 +209,16 @@ export function buildReachablePaths(
       }
 
       const neighborKey = positionKey(neighbor)
+      if (
+        movementRules?.requiresLineOfSight &&
+        !hasCombatTargetLineOfSight(
+          tactical,
+          activePlacement.position,
+          neighbor,
+          state.terrainOverlays,
+        )
+      )
+        continue
       const neighborTile = tiles.get(neighborKey)
       const currentTile = tiles.get(positionKey(current.position))
       if (!neighborTile || !currentTile) continue

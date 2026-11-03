@@ -109,6 +109,7 @@ export interface AbilityBehavior {
   /** Private authoring; public projections must recursively omit this and accuracyRule. */
   readonly accuracy?: CombatAccuracyRule
   readonly automaticTarget?: { readonly subject: AutomaticAbilityTargetSubject }
+  readonly maximumUsesPerBattle?: number
   readonly activationLimits?: readonly AbilityActivationLimit[]
 }
 export interface AbilityDefinition {
@@ -226,12 +227,26 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
         'effects',
         'accuracy',
         'activationLimits',
+        'maximumUsesPerBattle',
         'automaticTarget',
         'groundArea',
       ],
       path,
     )
     stableId(candidate.id, `${path}.id`, behaviorIds)
+    if (
+      Object.hasOwn(candidate, 'maximumUsesPerBattle') &&
+      (!Number.isSafeInteger(candidate.maximumUsesPerBattle) ||
+        (candidate.maximumUsesPerBattle as number) < 1 ||
+        (candidate.maximumUsesPerBattle as number) > 99 ||
+        candidate.activation !== 'manual' ||
+        candidate.mode !== 'action')
+    )
+      issue(
+        `${path}.maximumUsesPerBattle`,
+        'invalid-activation-limit',
+        'Finite battle uses require an integer 1–99 on a Manual action.',
+      )
     if (Object.hasOwn(candidate, 'activationLimits')) {
       const limits = candidate.activationLimits
       if (
@@ -672,7 +687,9 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
           (effect) =>
             record(effect) &&
             record(effect.payload) &&
-            !['move', 'summon', 'damage-bonus'].includes(effect.payload.type as string),
+            !['stat-bonus', 'move', 'summon', 'damage-bonus'].includes(
+              effect.payload.type as string,
+            ),
         ) as unknown as AbilityEffect[]
         validateCombatGroundAreaDefinition({
           target: canonicalAbilityTargetSpec(target as unknown as CombatTargetSpec),
@@ -762,6 +779,7 @@ export function validateAbilityDefinition(value: unknown): readonly AbilityDefin
             .filter(
               (payload) =>
                 payload.type !== 'summon' &&
+                payload.type !== 'stat-bonus' &&
                 payload.type !== 'damage-bonus' &&
                 payload.type !== 'move' &&
                 payload.type !== 'reversal',
@@ -1003,6 +1021,7 @@ export function applyAbilityTimingDefaults(
     if (
       (policy.tagAuthority !== 'global' && effect.timing !== undefined) ||
       effect.payload.type === 'move' ||
+      effect.payload.type === 'stat-bonus' ||
       effect.payload.type === 'damage-bonus' ||
       ['weak-point', 'spike', 'ruin', 'reversal'].includes(effect.payload.type)
     )

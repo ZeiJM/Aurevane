@@ -1,3 +1,4 @@
+import type { BattleEquipmentCapture } from './combat-equipment'
 import { parseSupportActionId } from './support-actions'
 import {
   readCombatBuildSnapshot,
@@ -139,7 +140,8 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
                 skillContentVersion: essence.skillContentVersion,
               }
             : null,
-      equipmentSkills: [],
+      equipmentSkills: (value.extensions.equipmentSkills ??
+        []) as readonly BattleEquipmentCapture[],
       supernatural: null,
       prestige: null,
     },

@@ -1,3 +1,4 @@
+import { throwItemRpcError } from '@/server/character/supabase-character-items-repository'
 import { throwCoreConversionAdmissionError } from './core-conversion-admission-error'
 import 'server-only'
 
@@ -30,6 +31,7 @@ function persistenceUnavailable(message: string): AurevaneError {
 
 function throwRpcError(error: { code?: string; message?: string }): never {
   throwCoreConversionAdmissionError(error)
+  if (error.message?.startsWith('ITEM_')) throwItemRpcError(error)
   if (error.code === '22023' && error.message?.includes('IDEMPOTENCY_CONFLICT')) {
     throw new AurevaneError(
       'IDEMPOTENCY_CONFLICT',
@@ -58,6 +60,27 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
   BattleEventRepository &
   BattleHistoryPrivacyRepository {
   return {
+    async findBattleCreationReplay(input) {
+      const { data, error } = await createSupabaseAdminClient().rpc(
+        'get_battle_creation_replay_v1',
+        {
+          p_user_id: input.userId,
+          p_idempotency_key: input.idempotencyKey,
+          p_request_fingerprint: input.requestFingerprint,
+        },
+      )
+      if (error) throwRpcError(error)
+      if (Array.isArray(data) && data.length === 0) return null
+      const row = parseBattleSessionCreationPersistenceRow(data)
+      if (!row)
+        throw persistenceUnavailable('The server returned an invalid battle-creation replay.')
+      return {
+        battleSessionId: row.battle_session_id,
+        battleVersion: row.battle_version,
+        snapshot: row.snapshot,
+        createdAt: row.created_at,
+      }
+    },
     async createBattleSession(input) {
       const supabase = createSupabaseAdminClient()
       const { data, error } = await supabase.rpc(

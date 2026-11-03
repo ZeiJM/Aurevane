@@ -1,5 +1,6 @@
 'use client'
 
+import { effectInflictsOwnPrerequisite } from '@/lib/combat-whole-requirements'
 import {
   validateAbilityDefinition,
   type AbilityBehavior,
@@ -51,16 +52,16 @@ export function LegacyEffectRequirements({
       (node.kind === 'subject-relation' && !availableSubjects.includes(node.otherSubject))
     )
   }
-  const conflict = retained.some(
-    (effect) => fingerprint(effect.requirements) !== fingerprint(requirement),
-  )
-    ? 'These effects have different conditions. Choose the whole-ability Requirement above, then explicitly remove the retained conditions when ready.'
-    : value.requirements && fingerprint(value.requirements) !== fingerprint(requirement)
-      ? 'The current whole-ability Requirement differs from these conditions. Keep or change it above, then explicitly remove the retained conditions when ready.'
-      : hasUnavailableSubject(requirement) ||
-          validateAbilityDefinition({ schemaVersion: 1, behaviors: [promoted] }).length
-        ? 'These conditions are incompatible with whole-ability activation or the current configuration. An affected-unit condition cannot become an area-wide Requirement. Choose a compatible Requirement above, then explicitly remove the retained conditions when ready.'
-        : null
+  const conflict = retained.some(effectInflictsOwnPrerequisite)
+    ? 'This prerequisite requires the status inflicted by the same effect. Remove the retained condition so the effect can apply to a fresh target.'
+    : retained.some((effect) => fingerprint(effect.requirements) !== fingerprint(requirement))
+      ? 'These effects have different conditions. Choose the whole-ability Requirement above, then explicitly remove the retained conditions when ready.'
+      : value.requirements && fingerprint(value.requirements) !== fingerprint(requirement)
+        ? 'The current whole-ability Requirement differs from these conditions. Keep or change it above, then explicitly remove the retained conditions when ready.'
+        : hasUnavailableSubject(requirement) ||
+            validateAbilityDefinition({ schemaVersion: 1, behaviors: [promoted] }).length
+          ? 'These conditions are incompatible with whole-ability activation or the current configuration. An affected-unit condition cannot become an area-wide Requirement. Choose a compatible Requirement above, then explicitly remove the retained conditions when ready.'
+          : null
   const unconditionalCount = value.effects.length - retained.length
   return (
     <fieldset className={styles.typedGroup} data-legacy-effect-requirements="true">

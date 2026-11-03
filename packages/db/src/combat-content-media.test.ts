@@ -114,9 +114,9 @@ it.each(['skill', 'essence'] as const)(
             contentType: 'image/png',
             width: 2,
             height: 2,
-            sourceWidth: 4,
-            sourceHeight: 2,
-            crop: { x: 1, y: 0, size: 2 },
+            sourceWidth: 8,
+            sourceHeight: 4,
+            crop: { x: 2, y: 0, size: 4 },
           },
         ],
       )
@@ -606,3 +606,53 @@ it.each(['native', 'canonical'] as const)(
     ).rejects.toThrow(/MEDIA_REFERENCE_INVALID/)
   },
 )
+
+it('finalizes a downscaled square while retaining its full source crop and preventing upscaling claims', async () => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADklEQVQImWNg+A+FMAYAQ84H+QDi4rkAAAAASUVORK5CYII=',
+    'base64',
+  )
+  const descriptor = {
+    kind: 'image',
+    contentType: 'image/png',
+    width: 2,
+    height: 2,
+    sourceWidth: 8,
+    sourceHeight: 4,
+    crop: { x: 2, y: 0, size: 4 },
+  }
+  const media = (
+    await db.query<{ media: Record<string, unknown> }>(
+      'select public.finalize_combat_content_media_v1($1,null,$2,$3) media',
+      [owner, png, descriptor],
+    )
+  ).rows[0]!.media
+  expect(media).toMatchObject(descriptor)
+  const read = (
+    await db.query<{ value: { descriptor: unknown } }>(
+      'select public.read_combat_content_media_v1($1,null,$2) value',
+      [owner, media.id],
+    )
+  ).rows[0]!.value
+  expect(read.descriptor).toEqual(media)
+})
+
+it('rejects a finalized image whose output is larger than its original crop', async () => {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADklEQVQImWNg+A+FMAYAQ84H+QDi4rkAAAAASUVORK5CYII=',
+    'base64',
+  )
+  await expect(
+    db.query('select public.finalize_combat_content_media_v1($1,null,$2,$3)', [
+      owner,
+      png,
+      {
+        kind: 'image',
+        contentType: 'image/png',
+        sourceWidth: 4,
+        sourceHeight: 4,
+        crop: { x: 0, y: 0, size: 1 },
+      },
+    ]),
+  ).rejects.toThrow(/CROP_INVALID/)
+})

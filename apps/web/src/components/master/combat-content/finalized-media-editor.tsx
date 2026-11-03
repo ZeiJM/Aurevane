@@ -200,7 +200,8 @@ export function FinalizedMediaEditor({
       </div>
       <div className={styles.mediaUploadDetails}>
         <p className={styles.mediaHint}>
-          Images are automatically centered and cropped to a square.
+          Images are automatically centered and cropped to a square. Large crops are resized
+          automatically to fit.
         </p>
         <div className={styles.mediaUploadControls}>
           <label className={styles.field}>

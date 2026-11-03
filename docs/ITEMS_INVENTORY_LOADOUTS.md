@@ -1,3 +1,5 @@
+November 3 Quality Point Items — **implemented on the feature branch; not live**: 47 genuine illustrated defaults use the shared source/current/pinned publication authority and atomic starter receipt. Six categories each hold 40 positions; Gear stacks to 1 and other Items to 99. Equipment has Head, Body, Pants, Boots, Main Hand and Off Hand, capped at 100 QP. Weapons supply Basic Attack; equipped supplies refill their finite uses each battle without consuming owned quantities; one selected equipment Support can replace normal Support. The cockpit is Inspect → Move → Basic Attack → Item → Support, retaining internal custom binding keys. Archived/disabled owned Items remain repairable; first-load grants defer clearly for capacity or pending/active battles. This supersedes older five-slot and locked Items-placeholder direction. Independent whole-branch review, exact-head CI, coordinated migrations/current publications and Owner release/testing remain open. No deployment or hosted publication is claimed. Full 47 reference, balance and lifecycle: [starter Items reference](verification/2026-11-03-starter-items-reference.md).
+
 # AUREVANE — Items, Effect Catalog, Inventory & Loadout System
 
 **Status:** Authoritative item/inventory/loadout specification subordinate to `docs/GAME_MASTER_PLAN.md` and `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, complementary to `docs/COMBAT.md`, `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/MASTER_PANEL.md`, `docs/PLAYER_MANUAL.md`, and `docs/MONETIZATION.md`.
@@ -28,37 +30,41 @@ The former Current/Legacy, Art, Confluence, separate Trait/Reaction/Movement Art
 
 ## 1. One Item Architecture, Multiple Player-Facing Inventories
 
-Recommended player-facing views:
+Current implemented player-facing categories:
 
 ```text
-EQUIPMENT
-CONSUMABLES
+GEAR
+BATTLE ITEMS
 MATERIALS
-QUEST & KEY ITEMS
-COLLECTION / RELICS where appropriate
+GENERAL
+EVENT
+COMPANION
 ```
 
 Crowns and other ledger currencies are not physical inventory stacks.
 
-Internally, these views should share one coherent item/inventory domain where practical rather than five unrelated persistence systems.
+Internally, these views should share one coherent item/inventory domain where practical rather than six unrelated persistence systems.
 
 ---
 
 ## 2. Equipment Inventory
 
-Core slots remain:
+Current equipment positions (November 3 supersession):
 
 ```text
+Head
+Body
+Pants
+Boots
 Main Hand
 Off Hand
-Armor
-Accessory I
-Accessory II
 ```
 
 Do not casually add many permanent equipment slots. Depth comes from effects and interactions rather than slot inflation.
 
-Equipment inventory supports:
+Current Item inventory supports equip/unequip, compare, category/search/sort/filter and the authoritative 100 QP limit. The remaining broader capabilities below are future design, not claims of delivery:
+
+Equipment inventory design includes:
 
 - equip/unequip;
 - compare;
@@ -698,11 +704,12 @@ optional Secondary Discipline
 selected Discipline Skills
 resolved build route: Resonance or Essence
 Soulmark configuration OR Soul-Severed/Mantle configuration where legal
+Head
+Body
+Pants
+Boots
 Main Hand
 Off Hand
-Armor
-Accessory I
-Accessory II
 combat consumable kit
 optional safe cosmetic battle-presentation choices
 ```

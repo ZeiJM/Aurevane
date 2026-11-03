@@ -1,3 +1,5 @@
+import { COMBAT_BONUS_STAT_LABELS } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import { effectExplanationIdentity } from './effect-explanation-identity'
 import {
   currentGroundBehaviorPresentation,
   currentGroundNote,
@@ -271,6 +273,11 @@ function requirementReferenceParts(
 }
 
 export interface AbilityEffectPresentation {
+  readonly explanationAdditionalNotes?: readonly string[]
+  readonly explanationTagId?: string
+  readonly explanationBaseDescription?: string
+  readonly explanationBaseParts?: readonly MechanicTextPart[]
+  readonly tagPresentation?: CombatTagPresentationSnapshot
   readonly parts: CompactSkillEffectSummaryParts
   readonly explanationParts?: readonly MechanicTextPart[]
   readonly condition: string | null
@@ -323,13 +330,28 @@ function effectPresentation(
       basic?.execution.kind === 'basic-move'
         ? 'Move to the chosen Ground within your remaining Movement and Jump.'
         : 'Move to the chosen Ground within this Skill’s Move distance and Jump, independent of ordinary walking.'
+    if (payload.maximumElevation !== undefined)
+      description += ` Move elevation: ${payload.maximumElevation}.`
+    if (payload.requiresLineOfSight) description += ' Requires line of sight to each entered tile.'
+  } else if (payload.type === 'stat-bonus') {
+    parts = {
+      label: COMBAT_BONUS_STAT_LABELS[payload.stat],
+      magnitude: `+${payload.amount}`,
+      duration: null,
+    }
+    description =
+      payload.stat === 'movement'
+        ? 'Adds Movement at each own-turn start while Requirements hold; AP and terrain costs still apply.'
+        : `Adds ${payload.amount} to ${COMBAT_BONUS_STAT_LABELS[payload.stat]} while Requirements hold.`
   } else if (payload.type === 'damage-bonus') {
     parts = {
       label: 'Damage Up',
       magnitude: `${(payload.multiplierBasisPoints - 10000) / 100}%`,
       duration: null,
     }
-    description = 'Increase damage dealt.'
+    description = payload.elementFilter
+      ? `Increase direct ${payload.elementFilter[0]!.toUpperCase() + payload.elementFilter.slice(1)} damage dealt.`
+      : 'Increase damage dealt.'
   } else if (payload.type === 'summon') {
     parts = {
       label: 'Summon',
@@ -508,6 +530,7 @@ export function abilityBehaviorInformation(
     ...options.effectContext,
     skillEffects: behavior.effects.flatMap(({ payload }) =>
       payload.type === 'move' ||
+      payload.type === 'stat-bonus' ||
       payload.type === 'damage-bonus' ||
       payload.type === 'summon' ||
       payload.type === 'reversal'
@@ -587,6 +610,9 @@ export function abilityBehaviorInformation(
       presentation: {
         ...described.presentation,
         tagPresentation,
+        explanationTagId: effectExplanationIdentity(effect.payload),
+        explanationBaseDescription: baseDescription,
+        explanationBaseParts: tagPresentation ? undefined : described.presentation.explanationParts,
         explanationParts,
         parts: {
           ...described.presentation.parts,
@@ -737,30 +763,42 @@ export function abilityBehaviorInformation(
             ? 'Single'
             : skillTargetMethodDescription({ target })
           : 'N/A',
-      'Target Elevation': nativeMove
-        ? options.stats?.jump === undefined
-          ? 'Character Jump stat'
-          : String(options.stats.jump)
-        : target
-          ? skillTargetElevationDescription({ target })
-          : 'N/A',
-      'Line of Sight': nativeMove
-        ? 'Not required'
-        : target
-          ? skillLineOfSightDescription({ target })
-          : 'N/A',
+      'Target Elevation':
+        nativeMove || moveOnly
+          ? move?.type === 'move' && move.maximumElevation !== undefined
+            ? String(move.maximumElevation)
+            : options.stats?.jump === undefined
+              ? 'Character Jump stat'
+              : String(options.stats.jump)
+          : target
+            ? skillTargetElevationDescription({ target })
+            : 'N/A',
+      'Line of Sight':
+        nativeMove || moveOnly
+          ? move?.type === 'move' && move.requiresLineOfSight
+            ? 'Required'
+            : 'Not required'
+          : target
+            ? skillLineOfSightDescription({ target })
+            : 'N/A',
     }),
-    effects: effects.map((effect) => effect.presentation),
+    effects: effects.map((effect): AbilityEffectPresentation => effect.presentation),
     effectDescriptions: effects.map((effect) => effect.description),
-    limits:
-      behavior.activationLimits?.map(
+    limits: [
+      ...(behavior.maximumUsesPerBattle === undefined
+        ? []
+        : [`${behavior.maximumUsesPerBattle} uses per battle`]),
+      ...(behavior.activationLimits?.map(
         (limit) =>
           ({
-            'once-per-action': 'Once per action',
+            'once-per-action': options.effectContext?.legacyActionUsageLimits
+              ? 'Once per action'
+              : 'Once per battle',
             'once-per-owner-turn': 'Once per owner turn',
             'once-per-round': 'Once per round',
             'once-per-battle': 'Once per battle',
           })[limit],
-      ) ?? [],
+      ) ?? []),
+    ],
   }
 }

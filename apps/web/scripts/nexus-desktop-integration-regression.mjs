@@ -179,7 +179,7 @@ console.log(
   `Nexus desktop browser: ${browser.version()}; executable: ${process.env.AV_CHROMIUM_EXECUTABLE || chromium.executablePath()}`,
 )
 try {
-  for (const [build, width, height, discipline = 'vanguard'] of [
+  for (const [build, width, height, discipline = 'vanguard', equipmentReadError = false] of [
     ['pure', 1280, 720, 'ironfist'],
     ['pure', 1366, 768, 'ironfist'],
     ['pure', 1280, 720],
@@ -188,6 +188,9 @@ try {
     ['pure', 1920, 1080],
     ['mixed', 1366, 768],
     ['mixed', 1440, 900],
+    ['pure', 1280, 720, 'ironfist', true],
+    ['pure', 1536, 614, 'vanguard', true],
+    ['mixed', 1366, 768, 'vanguard', true],
   ]) {
     const page = await browser.newPage({ viewport: { width, height } })
     page.on('pageerror', (error) => errors.push(error.message))
@@ -195,6 +198,7 @@ try {
       server.resolvedUrls.local[0] +
         '?profilePanel=techniques' +
         `&discipline=${discipline}` +
+        (equipmentReadError ? '&equipmentReadError=1' : '') +
         (build === 'pure' ? '&pure=1' : ''),
     )
     await page.getByRole('dialog').waitFor()
@@ -256,7 +260,7 @@ try {
         },
       }
     })
-    const evidenceName = `${build}${discipline === 'vanguard' ? '' : `-${discipline}`}-${width}-${height}`
+    const evidenceName = `${build}${discipline === 'vanguard' ? '' : `-${discipline}`}-${width}-${height}${equipmentReadError ? '-equipment-error' : ''}`
     await page.screenshot({ path: resolve(output, `${evidenceName}.png`) })
     await fs.writeFile(resolve(output, `${evidenceName}.json`), JSON.stringify(metrics, null, 2))
     assert.deepEqual(metrics.overflow, { x: 0, y: 0 }, `${build}: ${JSON.stringify(metrics)}`)
@@ -313,8 +317,9 @@ try {
       assert.ok(card.art.y >= card.box.y - 1 && card.art.bottom <= card.box.bottom + 1)
       assert.ok(card.box.bottom <= metrics.dialog.bottom && card.box.right <= metrics.dialog.right)
     }
-    checks.push({ build, discipline, width, height })
-    await verifySupportReports(page, `${build}-${discipline}-${width}x${height}`)
+    assert.equal(await page.getByRole('alert').count(), equipmentReadError ? 1 : 0)
+    checks.push({ build, discipline, width, height, equipmentReadError })
+    await verifySupportReports(page, evidenceName)
     await page.close()
   }
   for (const [width, height] of [
