@@ -103,4 +103,21 @@ for label in read-first activate-read write-first activate-write; do
  test "$(sql "select b.support_action_id from item_race.contexts c join app_private.character_active_builds b on b.character_id=c.character_id where c.label='$label';")" = basic.recover
  test "$(sql "select item_race.activate('$label')->>'replayed';")" = true
 done
-printf 'PASS 12 native Item admission, first-grant and nested loadout races\n'
+race starter-replay grant "prepare_starter('starter-replay')" "prepare_starter('starter-replay')"
+test "$(sql "select item_race.read_item('starter-replay')->>'revision';")" = 1
+test "$(sql "select jsonb_array_length(item_race.read_item('starter-replay')->'stacks');")" = 1
+test "$(sql "select jsonb_array_length(item_race.read_item('starter-replay')->'grants');")" = 1
+for lifecycle in archive disable; do
+ label="starter-$lifecycle-first"
+ race "$label" grant "${lifecycle}_starter('$label')" "prepare_starter('$label')"
+ test "$(sql "select item_race.read_item('$label')->>'revision';")" = 0
+ test "$(sql "select jsonb_array_length(item_race.read_item('$label')->'grants');")" = 0
+ test "$(sql "select item_race.prepare_starter('$label')->>'starterNotice';")" = starter-items-unavailable
+ label="starter-first-$lifecycle"
+ race "$label" grant "prepare_starter('$label')" "${lifecycle}_starter('$label')"
+ test "$(sql "select item_race.read_item('$label')->>'revision';")" = 1
+ test "$(sql "select jsonb_array_length(item_race.read_item('$label')->'stacks');")" = 1
+ test "$(sql "select jsonb_array_length(item_race.read_item('$label')->'grants');")" = 1
+ test "$(sql "select item_race.prepare_starter('$label') ? 'starterNotice';")" = f
+done
+printf 'PASS 17 native Item admission, starter initialization/catalogue and nested loadout races\n'

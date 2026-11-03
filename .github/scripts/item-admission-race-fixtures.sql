@@ -8,6 +8,7 @@ begin
  insert into auth.users(id,email,email_confirmed_at) values(a,a::text||'@items.test',now()),(b,b::text||'@items.test',now());
  insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
  values(c,a,0,1,'Race A',c::text,'default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now()),(d,b,0,1,'Race B',d::text,'default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());
+ insert into app_private.master_panel_character_access(character_id,user_id,roles,updated_by) values(c,a,array['content-staff'],a);
  perform public.read_character_item_inventory_v1(a,c);
  perform public.read_character_item_inventory_v1(b,d);
  if p_mode<>'grant' then
@@ -73,6 +74,29 @@ create function item_race.activate(p_label text) returns jsonb language plpgsql 
 declare c item_race.contexts%rowtype; r jsonb;
 begin select * into strict c from item_race.contexts where label=p_label;
  select to_jsonb(x) into r from public.activate_character_build_loadout_v1(c.owner_id,c.character_id,1::smallint,c.build_version,c.request_id,'item-race:'||p_label) x; return r; end; $$;
+-- Use a different source identity per schedule so archive/disable races cannot
+-- contaminate other cases. The new startup wrapper itself owns seed and grant.
+create function item_race.starter_source(p_label text) returns jsonb language sql as $$
+ select public.read_runtime_item_source_v1('test.race.helm',1)||jsonb_build_object('id','test.race.starter.'||p_label);
+$$;
+create function item_race.prepare_starter(p_label text) returns jsonb language plpgsql as $$
+declare c item_race.contexts%rowtype; d jsonb:=item_race.starter_source(p_label);
+begin
+ select * into strict c from item_race.contexts where label=p_label;
+ return public.prepare_character_starter_items_v1(c.owner_id,c.character_id,jsonb_build_array(d),'race-starter',jsonb_build_array(jsonb_build_object('itemId',d->>'id','quantity',1)));
+end; $$;
+create function item_race.archive_starter(p_label text) returns jsonb language plpgsql as $$
+declare c item_race.contexts%rowtype; d jsonb:=item_race.starter_source(p_label); r jsonb;
+begin
+ select * into strict c from item_race.contexts where label=p_label;
+ perform public.seed_runtime_item_sources_v1(jsonb_build_array(d));
+ r:=public.read_combat_content_record_v1(c.owner_id,c.character_id,d->>'id');
+ return public.write_combat_content_record_v1(c.owner_id,c.character_id,d->>'id',jsonb_build_object('action','archive','expectedRevision',r->'revision'));
+end; $$;
+create function item_race.disable_starter(p_label text) returns void language plpgsql as $$
+begin
+ perform public.seed_runtime_item_sources_v1(jsonb_build_array(item_race.starter_source(p_label)||'{"contentVersion":2,"enabled":false}'::jsonb));
+end; $$;
 grant usage on schema item_race to service_role;
 grant select on item_race.contexts to service_role;
 grant execute on all functions in schema item_race to service_role;

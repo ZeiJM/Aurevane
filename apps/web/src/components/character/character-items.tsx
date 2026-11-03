@@ -150,8 +150,8 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
           .toLowerCase()
           .includes(search.toLowerCase())) &&
       (filter === 'all' ||
-        (filter === 'equippable' && !!s.item?.equipment) ||
-        (filter === 'unavailable' && !s.item) ||
+        (filter === 'equippable' && s.item?.enabled && !!s.item.equipment) ||
+        (filter === 'unavailable' && (!s.item || !s.item.enabled)) ||
         (filter.startsWith('slot:') && s.item?.equipment?.slot === filter.slice(5)) ||
         filter === s.item?.itemClass)
     )
@@ -179,6 +179,20 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
       {notice ? (
         <p role="status" className={styles.notice}>
           {notice}
+        </p>
+      ) : null}
+      {view.notices.includes('starter-items-deferred-capacity') ? (
+        <p role="status" className={styles.warning}>
+          Starter Items have not been granted because there is not enough inventory space. Existing
+          Items are unchanged; the grant will be tried again on reload.
+        </p>
+      ) : view.notices.includes('starter-items-deferred-battle') ? (
+        <p role="status" className={styles.notice}>
+          Starter Items will be granted after the battle. Reload Items when it ends.
+        </p>
+      ) : view.notices.includes('starter-items-unavailable') ? (
+        <p role="status" className={styles.notice}>
+          No starter Items are currently available. Existing Items are unchanged.
         </p>
       ) : null}
       {view.battleLocked ? (
@@ -407,6 +421,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
           busy={busy}
           onDismiss={() => setSelected(null)}
           className={styles.dialog}
+          surface="ink"
         >
           <header className={styles.dialogHeading}>
             <h2 id="item-dialog-title">{chosen.item?.name ?? 'Unavailable Item'}</h2>

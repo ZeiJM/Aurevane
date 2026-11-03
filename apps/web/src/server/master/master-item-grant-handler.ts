@@ -1,3 +1,4 @@
+import { seedStarterItemSources } from '../character/starter-item-sources'
 import 'server-only'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { toServerErrorResponse } from '@/server/http/error-response'
@@ -52,6 +53,7 @@ export function createMasterItemGrantHandler(dependencies: {
           'INVALID_REQUEST',
           'Choose one current Item and the selected owned test character. Refresh changed inventory before trying again.',
         )
+      await seedStarterItemSources(dependencies.rpc)
       const { data, error } = await dependencies.rpc('grant_master_test_item_v1', {
         p_actor_user_id: actor.userId,
         p_actor_character_id: actor.characterId,

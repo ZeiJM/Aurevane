@@ -10,12 +10,14 @@ export function CharacterDeletionDialog({
   busy,
   onDismiss,
   className,
+  surface = 'moonstone',
   children,
 }: {
   titleId: string
   busy: boolean
   onDismiss: () => void
   className?: string
+  surface?: 'moonstone' | 'ink'
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -93,7 +95,7 @@ export function CharacterDeletionDialog({
       <section
         ref={panelRef}
         className={[styles.modal, className].filter(Boolean).join(' ')}
-        data-av-surface="moonstone"
+        data-av-surface={surface}
         tabIndex={-1}
       >
         {children}

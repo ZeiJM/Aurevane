@@ -23,7 +23,10 @@ import { parseCurrentSupportActionId } from '@aurevane/game-core/combat/support-
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { presentItem, type ItemPresentation } from '@/lib/items/item-presentation'
 
+export type StarterItemNotice =
+  'starter-items-deferred-capacity' | 'starter-items-deferred-battle' | 'starter-items-unavailable'
 export interface CharacterItemsState {
+  readonly starterNotice?: StarterItemNotice
   readonly snapshot: ItemInventorySnapshot
   readonly definitions: ItemCatalogue
   readonly catalogueToken: string
@@ -77,7 +80,7 @@ export interface CharacterItemsView {
     readonly quantity: number
     readonly item: ItemPresentation | null
   }[]
-  readonly notices: readonly 'equipment-support-removed'[]
+  readonly notices: readonly ('equipment-support-removed' | StarterItemNotice)[]
 }
 export function characterItemsView(
   state: CharacterItemsState,
@@ -100,7 +103,7 @@ export function characterItemsView(
     equipmentIssue: validation.ok ? null : validation.issue,
     equipment: { ...snapshot.equipment },
     selectedSupport: { ...snapshot.selectedSupport },
-    notices,
+    notices: [...notices, ...(state.starterNotice ? [state.starterNotice] : [])],
     stacks: snapshot.stacks.map((stack) => {
       const definition = definitions[stack.itemId]
       return {

@@ -1031,6 +1031,47 @@ it('executes the shared native race fixtures through real PvE, PvP, World and lo
       )
     ).rows[0]!.result.replayed,
   ).toBe(true)
+  await db.query("select item_race.setup('starter-replay','grant')")
+  const firstStarter = (
+    await db.query<{ result: unknown }>("select item_race.prepare_starter('starter-replay') result")
+  ).rows[0]!.result
+  expect(firstStarter).toMatchObject({
+    snapshot: { revision: 1, stacks: [{ quantity: 1 }], grants: [{ key: 'race-starter' }] },
+  })
+  expect(
+    (
+      await db.query<{ result: unknown }>(
+        "select item_race.prepare_starter('starter-replay') result",
+      )
+    ).rows[0]!.result,
+  ).toEqual(firstStarter)
+  for (const lifecycle of ['archive', 'disable']) {
+    const label = `starter-${lifecycle}`
+    await db.query("select item_race.setup($1,'grant')", [label])
+    await db.query(`select item_race.${lifecycle}_starter($1)`, [label])
+    expect(
+      (await db.query<{ result: unknown }>('select item_race.prepare_starter($1) result', [label]))
+        .rows[0]!.result,
+    ).toMatchObject({
+      snapshot: { revision: 0, stacks: [], grants: [] },
+      starterNotice: 'starter-items-unavailable',
+    })
+    const ownedLabel = `${label}-owned`
+    await db.query("select item_race.setup($1,'grant')", [ownedLabel])
+    await db.exec('set local role service_role')
+    await db.query('select item_race.prepare_starter($1)', [ownedLabel])
+    await db.query(`select item_race.${lifecycle}_starter($1)`, [ownedLabel])
+    const owned = (
+      await db.query<{ result: unknown }>('select item_race.prepare_starter($1) result', [
+        ownedLabel,
+      ])
+    ).rows[0]!.result
+    expect(owned).toMatchObject({
+      snapshot: { revision: 1, stacks: [{ quantity: 1 }], grants: [{ key: 'race-starter' }] },
+    })
+    expect(owned).not.toHaveProperty('starterNotice')
+    await db.exec('reset role')
+  }
   await db.query("select item_race.setup('grant','grant')")
   await db.query("select item_race.grant_item('grant','first')")
   await db.query("select item_race.grant_item('grant','first')")

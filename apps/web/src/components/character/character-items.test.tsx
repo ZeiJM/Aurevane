@@ -134,3 +134,25 @@ it('keeps unavailable owned equipment visible and marks partial QP as invalid', 
   expect(html).toContain('QP incomplete')
   expect(html).toContain('Repair equipment')
 })
+
+it('shows armor position without a hand count while preserving one/two-hand weapon information', async () => {
+  const { ItemDetails } = await import('./item-details')
+  for (const slot of ['head', 'body', 'pants', 'boots'] as const) {
+    const html = renderToStaticMarkup(
+      <ItemDetails item={item({ equipment: { slot, hands: 1 } })} />,
+    )
+    expect(html).toContain(`<dd>${slot}</dd>`)
+    expect(html).not.toContain(`${slot} · 1 hand`)
+  }
+  for (const hands of [1, 2] as const)
+    expect(
+      renderToStaticMarkup(<ItemDetails item={item({ equipment: { slot: 'hand', hands } })} />),
+    ).toContain(`hand · ${hands} hand`)
+})
+it('shows why a starter grant is deferred without implying any quantity was granted', () => {
+  const html = renderToStaticMarkup(
+    <CharacterItems initialView={{ ...view, notices: ['starter-items-deferred-capacity'] }} />,
+  )
+  expect(html).toContain('Starter Items have not been granted')
+  expect(html).toContain('inventory space')
+})

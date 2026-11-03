@@ -1281,8 +1281,9 @@ if (canonicalCase?.startsWith('support-')) {
 }
 if (canonicalCase?.startsWith('items')) {
   const sources = equipmentFixtureSources(
-    canonicalCase === 'items-weapon',
+    canonicalCase === 'items-weapon' || canonicalCase === 'items-starter',
     canonicalCase === 'items-controlled',
+    canonicalCase === 'items-starter',
   )
   canonicalState = reconcileCombatAbilitySources(
     preparePv1fTurnEconomy({

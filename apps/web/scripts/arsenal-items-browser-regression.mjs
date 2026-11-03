@@ -172,7 +172,7 @@ try {
     })
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
     await expect(page.locator('[data-inventory-slot]')).toHaveCount(40)
-    await expect(page.getByText('48 / 100 QP', { exact: true })).toBeVisible()
+    await expect(page.getByText('66 / 100 QP', { exact: true })).toBeVisible()
     const image = page
       .locator('img[src="/media/art/items/thumbnails/wayfarer-hood-v01.webp"]')
       .first()
@@ -185,6 +185,7 @@ try {
     await page.keyboard.press('Enter')
     let dialog = page.getByRole('dialog')
     await expect(dialog).toBeVisible()
+    await expect(dialog.locator(':scope > section')).toHaveAttribute('data-av-surface', 'ink')
     await expect(dialog.getByRole('img', { name: 'Wayfarer Hood', exact: true })).toBeVisible()
     const bounds = await dialog.locator(':scope > section').boundingBox()
     assert(
@@ -208,12 +209,23 @@ try {
     else await page.mouse.click(2, 2)
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(hood).toBeFocused()
-    await page.getByRole('button', { name: /Slot 2: Warden Helm/ }).click()
+    await page.evaluate(() => window.setItemEnabled('iron-shortsword', false))
+    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
+    await page.getByRole('combobox', { name: 'Filter', exact: true }).selectOption('unavailable')
+    await expect(page.locator('[data-inventory-slot] button')).toHaveCount(2)
+    await expect(page.getByRole('button', { name: /Slot \d+: Iron Shortsword/ })).toBeVisible()
+    await page.getByRole('combobox', { name: 'Filter', exact: true }).selectOption('equippable')
+    await expect(page.getByRole('button', { name: /Slot \d+: Iron Shortsword/ })).toHaveCount(0)
+    await page.getByRole('combobox', { name: 'Filter', exact: true }).selectOption('all')
+    await expect(page.locator('[data-inventory-slot] button')).toHaveCount(22)
+    await page.evaluate(() => window.setItemEnabled('iron-shortsword', true))
+    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
+    await page.getByRole('button', { name: /Slot \d+: Warden Helm/ }).click()
     dialog = page.getByRole('dialog')
     await expect(dialog.getByText(/Confirm replacement: Head/)).toBeVisible()
     await dialog.getByRole('button', { name: 'Confirm swap · Head', exact: true }).click()
     await expect(dialog).toHaveCount(0)
-    await expect(page.getByText('72 / 100 QP', { exact: true })).toBeVisible()
+    await expect(page.getByText('87 / 100 QP', { exact: true })).toBeVisible()
     let last = await page.evaluate(() => window.calls.at(-1))
     assert.deepEqual(last.replacePositions, ['head'])
     assert.equal(last.expectedRevision, 1)
@@ -236,7 +248,7 @@ try {
     await expect(page.locator('[data-inventory-slot] button')).toHaveCount(1)
     await page.getByRole('button', { name: /Slot \d+: Sunsplitter/ }).click()
     dialog = page.getByRole('dialog')
-    await expect(dialog.getByText(/Short by 6 QP/)).toBeVisible()
+    await expect(dialog.getByText(/Short by 12 QP/)).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Confirm swap · Main Hand' })).toBeDisabled()
     // Follow the real forward tab order, then reverse it, without locator.focus or pointer input.
     const closeItem = dialog.getByRole('button', { name: 'Close', exact: true })
@@ -256,13 +268,13 @@ try {
       await expect(checkbox).toBeFocused()
       if (
         (await checkbox.getAttribute('type')) === 'checkbox' &&
-        (await checkbox.locator('..').textContent()).includes('Body · Traveler Jerkin')
+        (await checkbox.locator('..').textContent()).includes('Body · Stormweave Robe')
       ) {
         await page.keyboard.press('Space')
         await expect(checkbox).toBeChecked()
       }
     }
-    await expect(dialog.getByText(/Confirm replacement:.*Body \(Traveler Jerkin\)/)).toBeVisible()
+    await expect(dialog.getByText(/Confirm replacement:.*Body \(Stormweave Robe\)/)).toBeVisible()
     await expect(confirmSwap).toBeEnabled()
     await page.keyboard.press('Tab')
     await expect(confirmSwap).toBeFocused()
@@ -279,7 +291,7 @@ try {
     }
     await page.screenshot({ path: resolve(output, `arsenal-keyboard-swap-${viewport.width}.png`) })
     await page.keyboard.press('Enter')
-    await expect(page.getByText('98 / 100 QP', { exact: true })).toBeVisible()
+    await expect(page.getByText('92 / 100 QP', { exact: true })).toBeVisible()
     await expect(
       page.getByRole('button', { name: 'Off Hand: Occupied by two-handed weapon', exact: true }),
     ).toBeVisible()
@@ -290,15 +302,15 @@ try {
       .getByRole('dialog')
       .getByRole('button', { name: 'Unequip Main Hand', exact: true })
       .click()
-    await expect(page.getByText('48 / 100 QP', { exact: true })).toBeVisible()
+    await expect(page.getByText('42 / 100 QP', { exact: true })).toBeVisible()
     await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('')
     await page.getByRole('button', { name: 'Battle Items', exact: true }).click()
-    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 99/ }).click()
+    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 12/ }).click()
     dialog = page.getByRole('dialog')
     await expect(dialog.getByText(/3 uses per battle\. Uses refill/)).toBeVisible()
     await expect(dialog.locator('[data-ability-parameters]')).toHaveCount(1)
     await dialog.getByRole('button', { name: 'Equip · Main Hand', exact: true }).click()
-    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 99/ }).click()
+    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 12/ }).click()
     await page
       .getByRole('dialog')
       .getByRole('combobox', { name: 'Equip position' })
@@ -307,7 +319,7 @@ try {
       .getByRole('dialog')
       .getByRole('button', { name: 'Equip · Off Hand', exact: true })
       .click()
-    await expect(page.getByText('62 / 100 QP', { exact: true })).toBeVisible()
+    await expect(page.getByText('58 / 100 QP', { exact: true })).toBeVisible()
     await page.reload({ waitUntil: 'networkidle' })
     await expect(
       page.getByRole('button', { name: 'Main Hand: Mender Salve', exact: true }),
@@ -344,7 +356,7 @@ try {
       kind: 'equipment',
       position: 'off-hand',
       itemId: 'wardstone-bracer',
-      behaviorId: 'use',
+      behaviorId: 'ward',
     })
     await page.reload({ waitUntil: 'networkidle' })
     await page.evaluate(() => {

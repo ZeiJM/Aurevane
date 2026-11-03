@@ -1,3 +1,4 @@
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 import { itemFixture } from '../../../../packages/game-core/src/content/items-test-fixtures'
 import {
   captureBasicSkillSources,
@@ -22,7 +23,7 @@ import {
 import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 
-export function equipmentFixtureSources(weapon = false, controlled = false) {
+export function equipmentFixtureSources(weapon = false, controlled = false, genuine = false) {
   const ability = structuredClone(
     defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability,
   )
@@ -38,18 +39,20 @@ export function equipmentFixtureSources(weapon = false, controlled = false) {
       },
     ],
   })
-  const tonic = itemFixture({
-    id: 'fixture.salve',
-    name: 'Mender Salve',
-    itemClass: 'battle-item',
-    inventoryCategory: 'battle-items',
-    equipment: { slot: 'hand', hands: 1 },
-    maximumStack: 99,
-    battleUses: 2,
-    ability,
-    actions: { use: { behaviorId: ability.behaviors[0]!.id, name: 'Apply' } },
-    media: { artworkId: 'item.mender-salve.art.v1' },
-  })
+  const tonic = genuine
+    ? starterItemDefinitions().find((item) => item.id === 'mender-salve')!
+    : itemFixture({
+        id: 'fixture.salve',
+        name: 'Mender Salve',
+        itemClass: 'battle-item',
+        inventoryCategory: 'battle-items',
+        equipment: { slot: 'hand', hands: 1 },
+        maximumStack: 99,
+        battleUses: 2,
+        ability,
+        actions: { use: { behaviorId: ability.behaviors[0]!.id, name: 'Apply' } },
+        media: { artworkId: 'item.mender-salve.art.v1' },
+      })
   const strike = source({
     costs: [{ resource: 'ap', amount: 15 }],
     effects: [
@@ -64,24 +67,30 @@ export function equipmentFixtureSources(weapon = false, controlled = false) {
       },
     ],
   }).definition.behaviors[0]!
-  const sword = itemFixture({
-    id: 'fixture.sword',
-    name: 'Iron Shortsword',
-    itemClass: 'weapon',
-    equipment: { slot: 'hand', hands: 1 },
-    ability: { schemaVersion: 1, behaviors: [strike, { ...ability.behaviors[0]!, id: 'support' }] },
-    actions: {
-      attack: { behaviorId: strike.id, name: 'Cut' },
-      support: { behaviorId: 'support', name: 'Mend' },
-    },
-    media: { artworkId: 'item.iron-shortsword.art.v1' },
-  })
+  const sword = genuine
+    ? starterItemDefinitions().find((item) => item.id === 'iron-shortsword')!
+    : itemFixture({
+        id: 'fixture.sword',
+        name: 'Iron Shortsword',
+        itemClass: 'weapon',
+        equipment: { slot: 'hand', hands: 1 },
+        ability: {
+          schemaVersion: 1,
+          behaviors: [strike, { ...ability.behaviors[0]!, id: 'support' }],
+        },
+        actions: {
+          attack: { behaviorId: strike.id, name: 'Cut' },
+          support: { behaviorId: 'support', name: 'Mend' },
+        },
+        media: { artworkId: 'item.iron-shortsword.art.v1' },
+      })
   const capture: BattleEquipmentCapture = {
     schemaVersion: 1,
     inventoryRevision: 1,
-    selectedSupport: weapon
-      ? { kind: 'equipment', position: 'main-hand', itemId: sword.id, behaviorId: 'support' }
-      : { kind: 'basic', actionId: 'basic.recover' },
+    selectedSupport:
+      weapon && !genuine
+        ? { kind: 'equipment', position: 'main-hand', itemId: sword.id, behaviorId: 'support' }
+        : { kind: 'basic', actionId: 'basic.recover' },
     equipment: [
       {
         position: 'main-hand',
@@ -96,7 +105,10 @@ export function equipmentFixtureSources(weapon = false, controlled = false) {
       ownerCombatantId: 'character:player',
       supportActionId: 'basic.recover',
       definitions: defaultBasicSkills(),
-    }).filter((x) => !weapon || x.abilityId === 'basic.move'),
+    }).filter(
+      (x) =>
+        !weapon || x.abilityId === 'basic.move' || (genuine && x.abilityId === 'basic.recover'),
+    ),
     ...capture.equipment.map((unit) =>
       captureEquipmentAbilitySource(capture, unit, 'character:player')!,
     ),

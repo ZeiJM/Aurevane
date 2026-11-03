@@ -320,7 +320,9 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       .locator('..'),
   ).toContainText('[Self]')
   await expect(dialog.locator('dt').filter({ hasText: /^Damage$/ })).toHaveCount(0)
-  await expect(dialog).toContainText('Take 15% less damage and deal 15% less damage.')
+  await expect(dialog).toContainText(
+    'Increase Physical and Mystic Defense by 15% and deal 15% less damage.',
+  )
   expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
     false,
   )

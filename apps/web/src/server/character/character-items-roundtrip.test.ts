@@ -54,7 +54,7 @@ const rpc: ItemRpc = async (name, parameters) => {
     return { data: null, error: error as { code?: string; message?: string } }
   }
 }
-const repository = createRpcCharacterItemsRepository(rpc)
+const repository = createRpcCharacterItemsRepository(rpc, false)
 const handler = createCharacterItemsHandler({
   selected: async () => ({ userId: user, characterId: character }),
   repository: () => repository,
@@ -206,6 +206,8 @@ it('grants only the selected staff character through the bounded audited endpoin
       }
     },
   })
+  const { seedStarterItemSources } = await import('./starter-item-sources')
+  await seedStarterItemSources(rpc)
   const view = await read()
   const payload = {
     characterId: character,

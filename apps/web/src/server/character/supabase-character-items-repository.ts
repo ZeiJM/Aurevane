@@ -1,4 +1,5 @@
 import 'server-only'
+import { starterItemDefinitions, starterItemGrant } from '@aurevane/game-core/content/starter-items'
 import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import { ITEM_INVENTORY_CATEGORIES } from '@aurevane/game-core/content/items'
 import {
@@ -122,9 +123,24 @@ export function parseCharacterItemsState(value: unknown, characterId: string): C
     definitions,
     catalogueToken: value.catalogueToken,
     battleLocked: value.battleLocked,
+    ...(value.starterNotice === undefined
+      ? {}
+      : { starterNotice: parseStarterNotice(value.starterNotice) }),
   }
 }
-export function createRpcCharacterItemsRepository(rpc: ItemRpc): CharacterItemsRepository {
+function parseStarterNotice(value: unknown): NonNullable<CharacterItemsState['starterNotice']> {
+  if (
+    value !== 'starter-items-deferred-capacity' &&
+    value !== 'starter-items-deferred-battle' &&
+    value !== 'starter-items-unavailable'
+  )
+    unavailable()
+  return value
+}
+export function createRpcCharacterItemsRepository(
+  rpc: ItemRpc,
+  initializeStarters = true,
+): CharacterItemsRepository {
   async function call(name: string, parameters: Readonly<Record<string, unknown>>) {
     const { data, error } = await rpc(name, parameters)
     if (error) throwItemRpcError(error)
@@ -133,10 +149,22 @@ export function createRpcCharacterItemsRepository(rpc: ItemRpc): CharacterItemsR
   return {
     async read(userId, characterId) {
       return parseCharacterItemsState(
-        await call('read_character_items_view_v1', {
-          p_user_id: userId,
-          p_character_id: characterId,
-        }),
+        await call(
+          initializeStarters
+            ? 'prepare_character_starter_items_v1'
+            : 'read_character_items_view_v1',
+          {
+            ...(initializeStarters
+              ? {
+                  p_definitions: starterItemDefinitions(),
+                  p_grant_key: starterItemGrant.key,
+                  p_items: starterItemGrant.items,
+                }
+              : {}),
+            p_user_id: userId,
+            p_character_id: characterId,
+          },
+        ),
         characterId,
       )
     },

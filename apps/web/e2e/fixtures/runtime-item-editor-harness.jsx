@@ -3,23 +3,11 @@ import { createRoot } from 'react-dom/client'
 import { ContentDefinitionFields } from '@/components/master/combat-content/content-definition-fields'
 import { ItemDetails } from '@/components/character/item-details'
 import { presentItem } from '@/lib/items/item-presentation'
-import { itemFixture } from '@aurevane/game-core/content/items-test-fixtures'
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
-import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import './production-styles'
 const key = 'runtime-item-editor-native'
-const ability = defaultBasicSkills().find((row) => row.id === 'basic.recover').ability
-const original = itemFixture({
-  name: 'Native Draught',
-  media: { artworkId: 'environment.entry.gateway' },
-  inventoryCategory: 'battle-items',
-  itemClass: 'battle-item',
-  equipment: { slot: 'hand', hands: 1 },
-  maximumStack: 99,
-  battleUses: 3,
-  ability,
-  actions: { use: { behaviorId: ability.behaviors[0].id, name: 'Drink' } },
-})
+const original = starterItemDefinitions().find((item) => item.id === 'mender-salve')
 function App() {
   const [value, setValue] = useState(
     () => JSON.parse(localStorage.getItem(key) || 'null') ?? original,

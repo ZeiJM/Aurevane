@@ -102,7 +102,7 @@ const errors = [],
 try {
   for (const mode of ['pve', 'pvp', 'spectator'])
     for (const width of [1366, 390, 412])
-      for (const scenario of ['items', 'items-weapon', 'items-controlled']) {
+      for (const scenario of ['items', 'items-weapon', 'items-controlled', 'items-starter']) {
         const page = await browser.newPage({
           viewport: { width, height: 915 },
           isMobile: width < 821,
@@ -142,7 +142,7 @@ try {
           )
           assert.equal(
             await choices.locator('[data-item-action]').count(),
-            scenario === 'items-weapon' ? 1 : 2,
+            ['items-weapon', 'items-starter'].includes(scenario) ? 1 : 2,
           )
           await choices
             .locator('img')
@@ -189,6 +189,49 @@ try {
             await choices.locator('[data-item-action]').first().focus()
             await page.keyboard.press('Enter')
           } else await choices.locator('[data-item-action]').first().tap()
+          if (scenario === 'items-starter') {
+            assert.equal(
+              (
+                await page.evaluate(() =>
+                  window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)),
+                )
+              ).length,
+              0,
+            )
+            await page
+              .locator('#battlefield')
+              .getByRole('button', { name: /^Tile 4, 4;/ })
+              .click()
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+            const resources = () =>
+              page.evaluate(() => ({
+                hp: window.fixtureBattle.snapshot.tactical.battle.combatants[0].hp,
+                ap: window.fixtureBattle.snapshot.tactical.battle.combatants[0].temporaryResources.find(
+                  (row) => row.key === 'pv1f.action-economy',
+                ).current,
+                uses: window.fixtureBattle.snapshot.equipmentActions.find(
+                  (row) => row.role === 'use',
+                ).remainingUses,
+              }))
+            assert.deepEqual(await resources(), { hp: 52, ap: 65, uses: 2 })
+            await page.evaluate(() => window.restoreCanonicalBattle())
+            assert.deepEqual(await resources(), { hp: 52, ap: 65, uses: 2 })
+            const attack = page.locator('[data-command-slot="attack"]')
+            assert.ok((await attack.getAttribute('aria-label')).startsWith('Iron Shortsword,'))
+            await attack.click()
+            await page
+              .locator('#battlefield')
+              .getByRole('button', { name: /^Tile 5, 4;/ })
+              .click()
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 4)
+            assert.deepEqual(await resources(), { hp: 52, ap: 35, uses: 2 })
+            await page.screenshot({
+              path: resolve(output, `items-${mode}-${scenario}-${width}.png`),
+            })
+            results.push({ mode, width, scenario, passed: true })
+            await page.close()
+            continue
+          }
           if (scenario === 'items-controlled') {
             await page
               .waitForFunction(() => window.fixtureBattle.battleVersion === 2, null, {

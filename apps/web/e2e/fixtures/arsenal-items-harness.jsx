@@ -10,97 +10,13 @@ import {
   characterItemsView,
   mutateCharacterItems,
 } from '@/server/character/character-items-service'
-import { imageAssetRegistry } from '@/media/registry'
-import { itemFixture } from '@aurevane/game-core/content/items-test-fixtures'
-import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { starterItemDefinitions, starterItemGrant } from '@aurevane/game-core/content/starter-items'
 import { selectInventorySupport } from '@aurevane/game-core/character/item-inventory'
-import manifest from '@item-art-manifest'
 import './production-styles'
-// Test-only definitions. Genuine production source definitions belong to the source installer.
-const attackAbility = defaultBasicSkills().find((s) => s.id === 'unarmed.basic').ability
-const ability = defaultBasicSkills().find((s) => s.id === 'basic.recover').ability
-const descriptions = [
-  ['wayfarer-hood', 'armor', 'head', 8],
-  ['warden-helm', 'armor', 'head', 32],
-  ['traveler-jerkin', 'armor', 'body', 8],
-  ['duskplate-cuirass', 'armor', 'body', 38],
-  ['roadworn-trousers', 'armor', 'pants', 8],
-  ['trailbound-boots', 'armor', 'boots', 8],
-  ['iron-shortsword', 'weapon', 'hand', 8],
-  ['hollow-dagger', 'weapon', 'hand', 6],
-  ['wardstone-bracer', 'hand-armor', 'hand', 8],
-  ['sunsplitter', 'weapon', 'hand', 50],
-  ['mender-salve', 'battle-item', 'hand', 7],
-  ['clarity-draught', 'battle-item', 'hand', 6],
-]
-const definitions = Object.fromEntries(
-  descriptions.map(([key, itemClass, slot, qualityPoints], index) => {
-    const art = manifest.items.find((row) => row.assetKey === key)
-    imageAssetRegistry.set(`test.${key}`, {
-      id: `test.${key}`,
-      src: art.assets.preview.path,
-      status: 'approved',
-      kind: 'icon',
-      requestId: 'native-only',
-      decorative: false,
-      alt: art.name,
-    })
-    return [
-      key,
-      itemFixture({
-        id: key,
-        name: art.name,
-        description: 'A finished Aurevane illustration with an ordinary shared mechanics report.',
-        media: { artworkId: `test.${key}` },
-        inventoryCategory: itemClass === 'battle-item' ? 'battle-items' : 'gear',
-        itemClass,
-        qualityPoints,
-        equipment: { slot, hands: key === 'sunsplitter' ? 2 : 1 },
-        maximumStack: itemClass === 'battle-item' ? 99 : 1,
-        tier: qualityPoints >= 38 ? 'S' : qualityPoints >= 20 ? 'B' : 'D',
-        ability:
-          itemClass === 'weapon'
-            ? attackAbility
-            : itemClass === 'battle-item' || key === 'wardstone-bracer'
-              ? ability
-              : null,
-        battleUses: itemClass === 'battle-item' ? 3 : null,
-        actions:
-          itemClass === 'weapon'
-            ? { attack: { name: 'Weapon strike', behaviorId: attackAbility.behaviors[0].id } }
-            : itemClass === 'battle-item'
-              ? { use: { name: 'Apply remedy', behaviorId: ability.behaviors[0].id } }
-              : key === 'wardstone-bracer'
-                ? { support: { name: 'Warding Prayer', behaviorId: ability.behaviors[0].id } }
-                : undefined,
-        sortOrder: index,
-      }),
-    ]
-  }),
-)
-const sampleCategories = ['materials', 'general', 'event', 'companion']
-manifest.items.slice(-15).forEach((art, index) => {
-  const category = sampleCategories[Math.min(3, Math.floor(index / 4))]
-  imageAssetRegistry.set(`test.${art.assetKey}`, {
-    id: `test.${art.assetKey}`,
-    src: art.assets.preview.path,
-    status: 'approved',
-    kind: 'icon',
-    requestId: 'native-only',
-    decorative: false,
-    alt: art.name,
-  })
-  definitions[art.assetKey] = itemFixture({
-    id: art.assetKey,
-    name: art.name,
-    media: { artworkId: `test.${art.assetKey}` },
-    itemClass: category === 'materials' ? 'material' : category,
-    inventoryCategory: category,
-    qualityPoints: 0,
-    equipment: null,
-    maximumStack: 99,
-  })
-})
+const definitions = Object.fromEntries(starterItemDefinitions().map((item) => [item.id, item]))
+window.setItemEnabled = (id, enabled) => {
+  definitions[id] = { ...definitions[id], enabled }
+}
 let slots = {}
 const stacks = Object.values(definitions).map((item, index) => ({
   id: `owned-${item.id}`,
@@ -108,7 +24,7 @@ const stacks = Object.values(definitions).map((item, index) => ({
   itemId: item.id,
   inventoryCategory: item.inventoryCategory,
   slotIndex: (slots[item.inventoryCategory] = (slots[item.inventoryCategory] ?? -1) + 1),
-  quantity: item.maximumStack === 99 ? 99 : 1,
+  quantity: starterItemGrant.items.find((grant) => grant.itemId === item.id).quantity,
   acquiredAt: `2026-11-03T00:${String(index).padStart(2, '0')}:00Z`,
   acquiredContentVersion: 1,
   provenance: 'test-only',
@@ -118,7 +34,7 @@ stacks.push({
   characterId: 'native',
   itemId: 'archived',
   inventoryCategory: 'gear',
-  slotIndex: 10,
+  slotIndex: 21,
   quantity: 1,
   acquiredAt: '2026-11-03T00:00:00Z',
   acquiredContentVersion: 1,
@@ -130,7 +46,7 @@ const original = {
   stacks,
   equipment: {
     head: 'owned-wayfarer-hood',
-    body: 'owned-traveler-jerkin',
+    body: 'owned-stormweave-robe',
     pants: 'owned-roadworn-trousers',
     boots: 'owned-trailbound-boots',
     'main-hand': 'owned-iron-shortsword',

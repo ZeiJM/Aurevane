@@ -35,7 +35,9 @@ export function ItemDetails({ item }: { item: ItemPresentation }) {
           <dt>Equipment</dt>
           <dd>
             {item.equipment
-              ? `${item.equipment.slot} · ${item.equipment.hands} ${item.equipment.hands === 1 ? 'hand' : 'hands'}`
+              ? item.equipment.slot === 'hand'
+                ? `hand · ${item.equipment.hands} ${item.equipment.hands === 1 ? 'hand' : 'hands'}`
+                : item.equipment.slot
               : 'None'}
           </dd>
         </div>

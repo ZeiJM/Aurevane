@@ -22,7 +22,7 @@ interface CombatControlsSettingsProps {
 const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: string }> = {
   items: {
     label: 'Item',
-    description: 'Reserved for the upcoming battle Items update; currently locked.',
+    description: 'Choose an equipped hand Item in the battle preview, then select its target.',
   },
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {

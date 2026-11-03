@@ -93,12 +93,12 @@
 
 **Interfaces:** frozen equipped Item references and weapon/support/use action bindings; sourceKind equipment; existing canonical action intents and shared finite-use engine. BattleItemPresentation is owner-only with hand, image, action/behavior, costs, uses and eligibility reason.
 
-- [ ] RED equip versus admission race, invalid currentQP/noitem ownership, source fingerprints, pending/active battle restriction and frozen reload after Master edits.
-- [ ] Capture authenticated sources and passives at startup; weapon keeps BasicAttack semantics; selected granted Support competes in the one slot, no live catalogue lookups during battle.
-- [ ] RED actual quote/payment/effect/use count/Chronicle for item action; rejected/stale/replayed requests unchanged; source visibility and opponent/spectator omission.
-- [ ] Implement cockpit order/Item singular, unlock allmouse/keyboard/touch paths, preview pane1/2image+name+AP+uses+ichoices, shared info/target/forecast/commit; own weapon art/report.
-- [ ] Native PvE/PvP/spectator desktop/mobile actual full flow, including same-name/same-item hand identity, Self deliberate click and custom keybindings.
-- [ ] Run focused then assembled quality/build and commit.
+- [x] RED equip versus admission race, invalid currentQP/noitem ownership, source fingerprints, pending/active battle restriction and frozen reload after Master edits.
+- [x] Capture authenticated sources and passives at startup; weapon keeps BasicAttack semantics; selected granted Support competes in the one slot, no live catalogue lookups during battle.
+- [x] RED actual quote/payment/effect/use count/Chronicle for item action; rejected/stale/replayed requests unchanged; source visibility and opponent/spectator omission.
+- [x] Implement cockpit order/Item singular, unlock allmouse/keyboard/touch paths, preview pane1/2image+name+AP+uses+ichoices, shared info/target/forecast/commit; own weapon art/report.
+- [x] Native PvE/PvP/spectator desktop/mobile actual full flow, including same-name/same-item hand identity, Self deliberate click and custom keybindings.
+- [x] Run focused then assembled quality/build and commit.
 
 ### Task 6: Starter set, art and delivery
 
