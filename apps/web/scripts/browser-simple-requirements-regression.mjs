@@ -538,7 +538,7 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
           'Once per round',
         )
         await expect(reader.getByRole('list', { name: 'Usage limits' })).toContainText(
-          'Once per action',
+          'Once per battle',
         )
       }
       const resonance = page.getByRole('region', { name: readerNames[2], exact: true })
