@@ -119,16 +119,20 @@ function sourcePotential(
     source,
     combatAbilityBehavior(source, authored.id, state.effectTimingPolicy),
   )
-  const repeats = activations(
-    state,
-    source.ownerCombatantId,
-    behavior.costs,
-    Boolean(
-      behavior.cooldown ||
-      behavior.activationLimits?.some(
-        (limit) => limit !== 'once-per-action' || state.abilityUsageLimitPolicyVersion === 1,
-      ) ||
-      behavior.effects.some((row) => row.timing === 'controlled'),
+  // Potential models a fresh allowance, independent of the live usage ledger.
+  const repeats = Math.min(
+    behavior.maximumUsesPerBattle ?? Number.MAX_SAFE_INTEGER,
+    activations(
+      state,
+      source.ownerCombatantId,
+      behavior.costs,
+      Boolean(
+        behavior.cooldown ||
+        behavior.activationLimits?.some(
+          (limit) => limit !== 'once-per-action' || state.abilityUsageLimitPolicyVersion === 1,
+        ) ||
+        behavior.effects.some((row) => row.timing === 'controlled'),
+      ),
     ),
   )
   if (!repeats) return 0

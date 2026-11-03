@@ -1,6 +1,6 @@
 import { historicalBasicSkills as defaultBasicSkills } from './combat-basic-history.test-utils'
 import { captureBasicSkillSources } from './combat-basic-actions'
-import { commitCombatAbilityCommand } from './combat-ability-command'
+import { commitCombatAbilityCommand, combatAbilityRemainingUses } from './combat-ability-command'
 import { interceptCombatReversal } from './combat-reversal-interception'
 import { applyCommittedReflect } from './combat-reflect'
 import { describe, expect, it } from 'vitest'
@@ -144,6 +144,63 @@ function sourceRow(state: StatDrivenCombatEncounterState) {
 }
 
 describe('current encounter-based Summon damage potential', () => {
+  it.each([1, 3])(
+    'caps fresh-turn potential by authored max%d, independently of spent uses',
+    (maximumUsesPerBattle) => {
+      const base = encounter()
+      base.statBridge.combatants = base.statBridge.combatants.map((row) => ({
+        ...row,
+        physicalPower: 0,
+        mysticPower: 0,
+      }))
+      const finite = source({
+        maximumUsesPerBattle,
+        costs: [{ resource: 'ap', amount: 10 }],
+        effects: [
+          { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+        ],
+      })
+      const state = reconcileCombatAbilitySources(base, [finite]) as StatDrivenCombatEncounterState
+      expect(combatantDamagePotential(state, 'actor')).toBe(20 * maximumUsesPerBattle)
+      const committed = commitCombatAbilityCommand({
+        state,
+        actorId: 'actor',
+        root: { kind: 'canonical', source: finite },
+        selection: { kind: 'unit', combatantId: 'enemy' },
+        content: PV1F_COMBAT_CONTENT,
+        context: combatAbilityCommandContext(state, finite),
+      })
+      const restored = JSON.parse(JSON.stringify(committed.state)) as StatDrivenCombatEncounterState
+      expect(combatAbilityRemainingUses(restored, finite, finite.definition.behaviors[0]!)).toBe(
+        maximumUsesPerBattle - 1,
+      )
+      expect(combatantDamagePotential(restored, 'actor')).toBe(20 * maximumUsesPerBattle)
+    },
+  )
+  it.each(['cooldown', 'once'] as const)(
+    'retains narrower %s repetition bounds with a finite allowance',
+    (limit) => {
+      const base = encounter()
+      base.statBridge.combatants = base.statBridge.combatants.map((row) => ({
+        ...row,
+        physicalPower: 0,
+        mysticPower: 0,
+      }))
+      const finite = source({
+        maximumUsesPerBattle: 3,
+        costs: [{ resource: 'ap', amount: 10 }],
+        ...(limit === 'cooldown'
+          ? { cooldown: { key: 'finite-potential', ownerTurns: 2 } }
+          : { activationLimits: ['once-per-owner-turn'] }),
+        effects: [
+          { id: 'hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 20 } },
+        ],
+      })
+      const state = reconcileCombatAbilitySources(base, [finite]) as StatDrivenCombatEncounterState
+      expect(combatantDamagePotential(state, 'actor')).toBe(20)
+    },
+  )
+
   it('keeps the fractional geometric mean until final percentage rounding', () => {
     expect(summonPotentialBudget(2, 100, 9990)).toBe(14)
     expect(summonPotentialBudget(100, 1000, 4000)).toBe(126)

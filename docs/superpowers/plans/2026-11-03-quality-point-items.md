@@ -58,11 +58,11 @@
 
 **Interfaces:** `stat-bonus {recipient:'actor',stat,amount}` ongoing modifier; optional `damage-bonus.elementFilter`; `AbilityBehavior.maximumUsesPerBattle`, persisted usageCount and shared remaining-use query.
 
-- [ ] RED: Movement boots+1/+2 affect initial and next own turns without extra AP or double-add after reload; bonus removal/conditional next-turn semantics; shared direct defense/power/accuracy/summon/Ground captures.
-- [ ] RED: Fire/Water mixed action boosts Fire only; absent filter is unchanged and periodic effects are not boosted twice.
-- [ ] RED: max3 allows3committed attempts then blocks; previews/stale retries/priming/queued effects do not increment; new battle resets; existing once/round/cooldown bounds still win.
-- [ ] Implement common primitive/validators and shared accessors, preserving historical absent fields, current raw profiles and original base Movement. Expose shared editor/report support without duplicating Item effect fields.
-- [ ] Run adjacent mechanics/current-history tests and types/lint; commit owned files.
+- [x] RED: Movement boots+1/+2 affect initial and next own turns without extra AP or double-add after reload; bonus removal/conditional next-turn semantics; shared direct defense/power/accuracy/summon/Ground captures.
+- [x] RED: Fire/Water mixed action boosts Fire only; absent filter is unchanged and periodic effects are not boosted twice.
+- [x] RED: max3 allows3committed attempts then blocks; previews/stale retries/priming/queued effects do not increment; new battle resets; existing once/round/cooldown bounds still win.
+- [x] Implement common primitive/validators and shared accessors, preserving historical absent fields, current raw profiles and original base Movement. Expose shared editor/report support without duplicating Item effect fields.
+- [x] Run adjacent mechanics/current-history tests and types/lint; commit owned files.
 
 ### Task 3: Persistent player service and Master publication/editor
 
