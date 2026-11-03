@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { starterItemDefinitions } from '../content/starter-items'
 import { captureEquipmentAbilitySource } from './combat-behavior-capture'
@@ -126,7 +127,11 @@ it.each([100, 200])(
         }
       }
     }
-    console.log(JSON.stringify(rows))
+    if (process.env.AV_STARTER_BALANCE_EVIDENCE)
+      writeFileSync(
+        `${process.env.AV_STARTER_BALANCE_EVIDENCE}-${power}.json`,
+        JSON.stringify(rows, null, 2),
+      )
   },
 )
 it('executes two distinct cuts, storm Conductive, Guard bash and defensive shield passives', () => {
@@ -198,6 +203,18 @@ it.each([
     expect(result.state.statusState.find((s) => s.combatantId === 'actor')!.statuses).toEqual([])
   if (id === 'ward-sigil-scroll') expect(currentBarrierAmount(result.state, 'actor')).toBe(200)
   if (id === 'emberflask') expect(damage(result.events)[0]).toBeGreaterThan(0)
+  if (id === 'frostbind-powder')
+    expect(
+      result.state.statusState
+        .find((s) => s.combatantId === 'enemy')!
+        .statuses.some((s) => s.statusId === 'frozen'),
+    ).toBe(true)
+  if (id === 'smoke-veil')
+    expect(
+      result.state.statusState
+        .find((s) => s.combatantId === 'actor')!
+        .statuses.find((s) => s.statusId === 'guarded'),
+    ).toMatchObject({ potencyBasisPoints: 2000 })
 })
 it.each([
   ['trailbound-boots', 1],
@@ -211,4 +228,145 @@ it.each([
     { x: 0, y: 1 },
   ])
   expect(ap(moved.state)).toBe(80)
+})
+
+it('uses Emberbrand only on matching direct packets and never reapplies it to captured Burn ticks', async () => {
+  const { percentageDotEncounter } = await import('./combat-percentage-dots.test-utils')
+  const { materializeCombatAbilityAction, reconcileCombatAbilitySources } =
+    await import('./combat-behavior-runtime')
+  const { executeCombatAction } = await import('./actions')
+  const { applyCurrentBurnState } = await import('./combat-dots')
+  const { finishPv1fTurn } = await import('./pv1f-action-economy')
+  const ember = ready(['emberbrand']).sources[0]!
+  let state = reconcileCombatAbilitySources(percentageDotEncounter(), [ember])
+  const action = {
+    ...materializeCombatAbilityAction(ember, ember.definition.behaviors[0]!),
+    costs: [],
+    effectTimingModes: undefined,
+    effectOrigins: undefined,
+    effects: (['fire', 'water'] as const).map((element) => ({
+      type: 'damage' as const,
+      recipient: 'primary-unit' as const,
+      amount: 10,
+      element,
+    })),
+  }
+  expect(
+    damage(
+      executeCombatAction(
+        state,
+        action,
+        { kind: 'unit', combatantId: 'enemy' },
+        PV1F_COMBAT_CONTENT,
+      ).events,
+    ),
+  ).toEqual([11, 10])
+  state = applyCurrentBurnState(state, 'actor', 'enemy', 'captured-burn', false, undefined, 2, {
+    capturedDamage: 100,
+    profile: { kind: 'attack-percentage', basisPoints: 1500 },
+  })
+  const events = []
+  while (state.tactical.battle.round === 1) {
+    const next = finishPv1fTurn(state as never, 'east')
+    state = next.state
+    events.push(...(next.events as import('./actions').CombatResolutionEvent[]))
+  }
+  expect(damage(events)).toEqual([15])
+})
+it('executes selected genuine Support Actions with their AP, cooldown and protection', () => {
+  for (const [id, behaviorId] of [
+    ['wardstone-bracer', 'ward'],
+    ['tower-shield', 'guard'],
+  ] as const) {
+    const r = ready([id])
+    const capture: BattleEquipmentCapture = {
+      ...r.capture,
+      selectedSupport: { kind: 'equipment', position: 'main-hand', itemId: id, behaviorId },
+    }
+    const source = captureEquipmentAbilitySource(capture, capture.equipment[0]!, 'actor')!
+    const state = activateCombatAbilitySources(
+      ready([]).state,
+      [source],
+      PV1F_COMBAT_CONTENT,
+      true,
+    ).state
+    const result = commitCombatAbilityCommand(input(state, source, behaviorId))
+    expect(ap(result.state)).toBe(70)
+    expect(
+      prepareCombatAbilityCommand(input(result.state, source, behaviorId)).evaluation.legal,
+    ).toBe(false)
+    if (id === 'wardstone-bracer') expect(currentBarrierAmount(result.state, 'actor')).toBe(80)
+    else
+      expect(
+        result.state.statusState
+          .find((x) => x.combatantId === 'actor')!
+          .statuses.find((x) => x.statusId === 'guarded'),
+      ).toMatchObject({ potencyBasisPoints: 3000 })
+  }
+})
+it.each([
+  ['whetstone-charm', 'higher'],
+  ['ironbark-tonic', 'lower'],
+  ['vulnerability-oil', 'higher'],
+] as const)('%s changes actual subsequent Discipline damage', (id, direction) => {
+  const r = ready([id]),
+    strike = captured('vanguard.forceful-strike')
+  const state = activateCombatAbilitySources(
+    r.state,
+    [...r.sources, strike],
+    PV1F_COMBAT_CONTENT,
+    true,
+  ).state
+  const baseline = damage(commitCombatAbilityCommand(input(state, strike)).events).reduce(
+    (a, b) => a + b,
+    0,
+  )
+  const applied = commitCombatAbilityCommand(input(state, r.sources[0]!))
+  const actual = damage(commitCombatAbilityCommand(input(applied.state, strike)).events).reduce(
+    (a, b) => a + b,
+    0,
+  )
+  if (direction === 'higher') expect(actual).toBeGreaterThan(baseline)
+  else expect(actual).toBeLessThan(baseline)
+})
+it('Swiftleaf Tea reduces paid ordinary Move AP while preserving movement accounting', () => {
+  const r = ready(['swiftleaf-tea'])
+  const used = commitCombatAbilityCommand(input(r.state, r.sources[0]!))
+  const moved = executePv1fMovement(used.state as ReturnType<typeof fixture>, [
+    { x: 1, y: 1 },
+    { x: 0, y: 1 },
+  ])
+  expect(ap(used.state)).toBe(80)
+  expect(ap(moved.state)).toBe(70)
+})
+
+it('Iron Shortsword reaches distance two where unarmed cannot attack', () => {
+  const sword = ready(['iron-shortsword'])
+  for (const placement of sword.state.tactical.placements) {
+    if (placement.combatantId === 'actor') placement.position = { x: 0, y: 1 }
+    if (placement.combatantId === 'enemy') placement.position = { x: 2, y: 1 }
+  }
+  const command = input(sword.state, sword.sources[0]!)
+  expect(prepareCombatAbilityCommand(command).evaluation.legal).toBe(true)
+  const result = commitCombatAbilityCommand(command)
+  expect(damage(result.events)).toEqual([23])
+  expect(ap(result.state)).toBe(70)
+  const unarmed = captureBasicSkillSources({
+    ownerCombatantId: 'actor',
+    supportActionId: 'basic.recover',
+    definitions: defaultBasicSkills(),
+  }).find((source) => source.basic?.id === 'unarmed.basic')!
+  const unarmedState = activateCombatAbilitySources(
+    ready([]).state,
+    [unarmed],
+    PV1F_COMBAT_CONTENT,
+    true,
+  ).state
+  for (const placement of unarmedState.tactical.placements) {
+    if (placement.combatantId === 'actor') placement.position = { x: 0, y: 1 }
+    if (placement.combatantId === 'enemy') placement.position = { x: 2, y: 1 }
+  }
+  const rejected = prepareCombatAbilityCommand(input(unarmedState, unarmed)).evaluation
+  expect(rejected.legal).toBe(false)
+  expect(rejected.issues).toContainEqual(expect.objectContaining({ code: 'target-out-of-range' }))
 })

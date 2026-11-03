@@ -358,11 +358,12 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
     weapon(
       'iron-shortsword',
       'Iron Shortsword',
-      'A plain, dependable blade with no hidden trick.',
+      'A dependable blade that can strike an opening one tile beyond unarmed reach.',
       'C',
       9,
       30,
       [damage(5, 1250)],
+      { range: 2 },
     ),
     weapon(
       'hollow-dagger',

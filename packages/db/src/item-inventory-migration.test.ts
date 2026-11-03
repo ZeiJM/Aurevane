@@ -251,6 +251,20 @@ it('prepares exact versioned equipment and validates it inside the actual creati
 })
 it('reads no foreign character and denies direct browser RPC/table access with RLS enabled', async () => {
   await fails(() => read(other), 'ITEM_OWNERSHIP')
+  const prepare = (as = user) =>
+    db.query('select public.prepare_character_starter_items_v1($1,$2,$3::jsonb,$4,$5::jsonb)', [
+      as,
+      character,
+      JSON.stringify([helm]),
+      'starter-acl',
+      JSON.stringify([{ itemId: helm.id, quantity: 1 }]),
+    ])
+  await fails(() => prepare(other), 'ITEM_OWNERSHIP')
+  for (const role of ['anon', 'authenticated']) {
+    await db.exec(`set local role ${role}`)
+    await fails(() => prepare(), 'permission denied')
+    await db.exec('reset role')
+  }
   await db.exec('set local role authenticated')
   await fails(
     () => db.query('select public.read_character_item_inventory_v1($1,$2)', [user, character]),

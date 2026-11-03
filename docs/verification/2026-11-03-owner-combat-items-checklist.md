@@ -1,8 +1,10 @@
 # Owner testing checklist: combat corrections and Items
 
-**Status: preparation only. This is not a claim that the item feature is implemented or live.** Fill the release receipt/source/migration/publication links here after the coordinated release. Leave human acceptance boxes unchecked until tested. Start fresh battles for newly captured gameplay policies; older saved battles deliberately retain their original mechanics.
+**Status: Items implementation and local automated verification complete on the feature branch; not live. Independent review, exact-head required CI and coordinated release remain open.** Fill the release receipt/source/migration/publication links here after the coordinated release. Leave human acceptance boxes unchecked until tested. Start fresh battles for newly captured gameplay policies; older saved battles deliberately retain their original mechanics.
 
-Release URL: pending. Source: pending. Database migration/publication receipt: pending.
+Release URL: pending. Source/release receipt: pending controller integration. Database migration/publication receipt: pending.
+
+Review [all 47 genuine starter Items: categories, quantities, QP, effects, AP and uses](2026-11-03-starter-items-reference.md) before gameplay checks. Automated checks do not fill human acceptance boxes.
 
 ## Combat and targeting
 
@@ -60,6 +62,10 @@ Release URL: pending. Source: pending. Database migration/publication receipt: p
 - [ ] Open Arsenal→Items. The six categories are Gear, Battle Items, Materials, General, Event and Companion.
 - [ ] Each category has40 inventory positions with internal scrolling, clear empty slots, search and useful sorting/filtering.
 - [ ] Verify starter items are granted once, survive refresh/relogin, and repeated first loads do not duplicate them.
+- [ ] For a first load with a full category or a pending/active battle, confirm the inventory remains readable, explains the deferred grant, and grants once when eligible.
+- [ ] Archive/disable a default before first load: only current enabled available defaults are granted. Later unarchive does not top up a completed receipt.
+- [ ] Archive/disable an already-owned Item: refresh still works, Unavailable includes it, Equippable excludes it, and All Items retains its row.
+- [ ] Armor reports its armor position without a hand count; hand Items report their true hand requirement.
 - [ ] Verify sample stacks12/40/99 show correctly. Identical stackable items never exceed99 in one slot; Gear remains one unit per slot.
 - [ ] A full category rejects an extra unmergeable grant clearly and loses no existing items.
 - [ ] Sort inventory, reload, and verify the order persists without changing quantities or categories.
