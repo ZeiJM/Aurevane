@@ -849,6 +849,7 @@ export function createBattleSessionService({
       baseEncounter.dotTriggerPolicyVersion = 2
       baseEncounter.skillPacketPolicyVersion = 1
       baseEncounter.displacementPolicyVersion = 1
+      baseEncounter.displacementOriginPolicyVersion = 1
       baseEncounter.frozenGroundPolicyVersion = 1
       baseEncounter.airbornePolicyVersion = 1
       baseEncounter.airborneJumpPolicyVersion = 1

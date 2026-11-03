@@ -1,7 +1,11 @@
 'use client'
 import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import { withAbilityEffectDependencies } from '@/lib/combat-ability-effect-dependencies'
-import { withCurrentAbilityGroundArea } from '@/lib/combat-ground-entry-authoring'
+import {
+  hasGroundAuthoringEffects,
+  withCurrentAbilityGroundArea,
+} from '@/lib/combat-ground-entry-authoring'
+import { canonicalAbilityTargetSpec } from '@aurevane/game-core/combat/combat-targeting-shapes'
 
 import {
   activeAbilityForAuthoring,
@@ -49,6 +53,7 @@ import { AbilityGroundEditor } from './skill-ground-editor'
 import styles from './combat-content-editor.module.css'
 import { EffectTagLabel } from '../../character/compact-skill-effect-summary'
 import { EffectTagPicker } from './effect-tag-picker'
+import { abilityRequirementDescription } from '../../character/ability-detail-presentation'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 import {
   SIMPLE_AUTOMATIC_TRIGGER_OPTIONS,
@@ -146,6 +151,74 @@ export function withSharedEffectAim(next: AbilityBehavior): AbilityBehavior {
   })
 }
 
+/** Authoring categories reuse the existing predicate and event fields; captures stay literal. */
+function ResonanceRequirementsEditor({
+  value,
+  onChange,
+}: {
+  value: AbilityBehavior
+  onChange: (next: AbilityBehavior) => void
+}) {
+  const automatic = !!value.automaticTrigger && value.automaticTrigger !== 'requirements-met'
+  const events = SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.filter(({ id }) => id !== 'requirements-met')
+  return (
+    <fieldset className={styles.typedGroup} data-resonance-requirements="true">
+      <legend>Requirements</legend>
+      <AbilitySelect
+        label="Requirement type"
+        value={automatic ? 'automatic' : 'tags'}
+        options={['tags', 'automatic']}
+        optionLabels={{ tags: 'Prerequisite tags', automatic: 'Automatic activation' }}
+        onChange={(type) => {
+          const next = { ...value }
+          if (type === 'automatic') {
+            next.requirements = null
+            next.automaticTrigger = 'turn-started'
+          } else delete next.automaticTrigger
+          onChange(rebindSimpleRequirement(next))
+        }}
+      />
+      {automatic ? (
+        <>
+          <AbilitySelect
+            label="Automatic activation"
+            value={value.automaticTrigger!}
+            options={events.map(({ id }) => id)}
+            optionLabels={Object.fromEntries(events.map(({ id, label }) => [id, label]))}
+            onChange={(automaticTrigger) => {
+              const next = { ...value, automaticTrigger }
+              if (
+                !value.automaticTarget ||
+                !simpleAutomaticTargetSubjects(next).includes(value.automaticTarget.subject)
+              )
+                delete next.automaticTarget
+              onChange(rebindSimpleRequirement(next))
+            }}
+          />
+          {value.requirements ? (
+            <div className={styles.fieldHint}>
+              <p>
+                Retained prerequisite: {abilityRequirementDescription(value.requirements, value)}.
+                This saved condition still applies alongside the activation event.
+              </p>
+              <button type="button" onClick={() => onChange({ ...value, requirements: null })}>
+                Remove retained prerequisite
+              </button>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <AbilityRequirementEditor
+          label="Prerequisite tags"
+          behavior={value}
+          value={value.requirements}
+          onChange={(requirements) => onChange({ ...value, requirements })}
+        />
+      )}
+    </fieldset>
+  )
+}
+
 function AbilityGroupEditor({
   value,
   onChange: update,
@@ -159,6 +232,13 @@ function AbilityGroupEditor({
   value: AbilityBehavior
   onChange: (next: AbilityBehavior) => void
 }) {
+  const groundTarget = value.targeting ? canonicalAbilityTargetSpec(value.targeting) : undefined
+  const firstGroundEffect =
+    value.mode === 'action' && groundTarget
+      ? value.effects.findIndex((effect) =>
+          hasGroundAuthoringEffects(groundTarget, [effect.payload]),
+        )
+      : -1
   const requiresSelectedUnit = hasSelectedAimRequirement([
     value.requirements,
     ...value.effects.map((effect) => effect.requirements),
@@ -195,15 +275,17 @@ function AbilityGroupEditor({
     section === key ||
     (section === 'execution' && ['economy', 'accuracy'].includes(key))
   const automaticSubjects: readonly AutomaticAbilityTargetSubject[] =
-    value.requirementMode === 'simple'
-      ? simpleAutomaticTargetSubjects(value)
-      : [
-          'owner',
-          'triggering',
-          'selected',
-          'affected',
-          ...automaticAbilityTargetSelectorSubjects(value.targeting),
-        ]
+    value.targeting?.kind === 'self'
+      ? ['owner']
+      : value.requirementMode === 'simple'
+        ? simpleAutomaticTargetSubjects(value)
+        : [
+            'owner',
+            'triggering',
+            'selected',
+            'affected',
+            ...automaticAbilityTargetSelectorSubjects(value.targeting),
+          ]
   const automaticArea =
     value.targeting?.shape.kind === 'circle' || value.targeting?.shape.kind === 'all'
   const categoryMismatch =
@@ -405,7 +487,8 @@ function AbilityGroupEditor({
         value.activation === 'automatic' &&
         value.mode === 'action' &&
         !automaticArea ? (
-          automaticSubjects.length ? (
+          automaticSubjects.length > 1 ||
+          (value.automaticTarget && !automaticSubjects.includes(value.automaticTarget.subject)) ? (
             <>
               <AbilitySelect
                 label="Automatic target subject"
@@ -432,7 +515,7 @@ function AbilityGroupEditor({
                   : ''}
               </p>
             </>
-          ) : (
+          ) : automaticSubjects.length ? null : (
             <p className={styles.fieldHint}>
               Choose a supported unit or Ground target for this automatic action.
             </p>
@@ -487,42 +570,6 @@ function AbilityGroupEditor({
           </>
         )}
       </div>
-      {show('details') &&
-      value.requirementMode === 'simple' &&
-      value.activation === 'automatic' &&
-      value.mode === 'action' ? (
-        <AbilitySelect
-          label="Automatic activation"
-          value={value.automaticTrigger ?? 'condition-entry'}
-          options={['condition-entry', ...SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.map(({ id }) => id)]}
-          optionLabels={{
-            'condition-entry': 'When requirement becomes true',
-            ...Object.fromEntries(
-              SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.map(({ id, label }) => [id, label]),
-            ),
-          }}
-          onChange={(trigger) => {
-            const bindingUnavailable =
-              !value.automaticTarget ||
-              !simpleAutomaticTargetSubjects(value).includes(value.automaticTarget.subject)
-            const next = { ...value }
-            if (bindingUnavailable) delete next.automaticTarget
-            if (trigger === 'condition-entry') delete next.automaticTrigger
-            else next.automaticTrigger = trigger
-            const selected = readSimpleRequirement(next.requirements)
-            if (selected && selected.tagId !== 'none' && selected.subject !== 'owner') {
-              const subject =
-                simpleRequirementSubjects(next).find((subject) => subject !== 'owner') ?? 'owner'
-              next.requirements = createSimpleRequirement(
-                selected.tagId,
-                subject,
-                selected.percent ?? 50,
-              )
-            }
-            onChange(rebindSimpleRequirement(next))
-          }}
-        />
-      ) : null}
       {show('details') && (
         <>
           <fieldset className={`${styles.typedGroup} ${styles.usageLimits}`}>
@@ -616,11 +663,17 @@ function AbilityGroupEditor({
               </MasterHelp>
             </>
           ) : null}
-          <AbilityRequirementEditor
-            behavior={value}
-            value={value.requirements}
-            onChange={(requirements) => onChange({ ...value, requirements })}
-          />
+          {value.requirementMode === 'simple' &&
+          value.activation === 'automatic' &&
+          value.mode === 'action' ? (
+            <ResonanceRequirementsEditor value={value} onChange={onChange} />
+          ) : (
+            <AbilityRequirementEditor
+              behavior={value}
+              value={value.requirements}
+              onChange={(requirements) => onChange({ ...value, requirements })}
+            />
+          )}
           <LegacyEffectRequirements value={value} onChange={onChange} />
         </>
       )}
@@ -716,6 +769,13 @@ function AbilityGroupEditor({
                         })
                       }
                     />
+                    {index === firstGroundEffect ? (
+                      <AbilityGroundEditor
+                        disabled={moveWithoutSeparateAim(value)}
+                        value={value}
+                        onChange={onChange}
+                      />
+                    ) : null}
                   </details>
                 </article>
               ))}
@@ -748,14 +808,14 @@ function AbilityGroupEditor({
               }}
             />
           </fieldset>
+          {firstGroundEffect < 0 && value.groundArea ? (
+            <AbilityGroundEditor
+              disabled={moveWithoutSeparateAim(value)}
+              value={value}
+              onChange={onChange}
+            />
+          ) : null}
         </>
-      )}
-      {show('effects') && (
-        <AbilityGroundEditor
-          disabled={moveWithoutSeparateAim(value)}
-          value={value}
-          onChange={onChange}
-        />
       )}
     </div>
   )

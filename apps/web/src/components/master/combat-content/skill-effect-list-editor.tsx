@@ -1,7 +1,8 @@
 'use client'
 
 import type { CombatEffectDefinition, CombatTargetSpec } from '@aurevane/game-core/combat/actions'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { hasGroundAuthoringEffects } from '@/lib/combat-ground-entry-authoring'
 import {
   reconcileAuthoredEffectDependencies,
   authoredReversalCombinationIssue,
@@ -199,6 +200,7 @@ export function moveCombatEffectDescription(
 
 export interface SkillEffectListEditorProps {
   readonly aim?: CombatTargetSpec
+  readonly groundSettings?: ReactNode
   readonly canonicalDamage?: boolean
   readonly allowReversal?: boolean
   readonly value: readonly CombatEffectDefinition[]
@@ -213,6 +215,7 @@ export interface SkillEffectListEditorProps {
 export function SkillEffectListEditor({
   value: captured,
   aim,
+  groundSettings,
   effectDescriptions: capturedDescriptions,
   maxEffects,
   canonicalDamage = false,
@@ -263,6 +266,9 @@ export function SkillEffectListEditor({
     rowIdentity.value === value ? rowIdentity : reconcileEffectRowIdentity(rowIdentity, value)
   if (rows !== rowIdentity) setRowIdentity(rows)
   const alignedDescriptions = alignedEffectDescriptions(value, effectDescriptions)
+  const firstGroundEffect = aim
+    ? value.findIndex((effect) => hasGroundAuthoringEffects(aim, [effect]))
+    : -1
 
   return (
     <fieldset className={styles.typedGroup}>
@@ -338,10 +344,13 @@ export function SkillEffectListEditor({
                   )
                 }
               />
+              {index === firstGroundEffect ? groundSettings : null}
             </details>
           </article>
         ))}
       </div>
+
+      {firstGroundEffect < 0 ? groundSettings : null}
 
       <EffectTagPicker
         nativeOnly

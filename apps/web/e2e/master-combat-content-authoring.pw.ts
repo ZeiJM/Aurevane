@@ -6,6 +6,7 @@ import { expect, test, type Page, type Response } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { selectDiscipline } from './discipline-library-helpers'
+import { openGroundEffectParameters } from './ground-authoring-helpers'
 
 const SKILL_ID = 'vanguard.forceful-strike'
 
@@ -785,6 +786,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
           await panel.locator(':scope > summary').click()
         await expect(backlash).toBeVisible()
       }
+      await openGroundEffectParameters(page)
       const original = {
         duration: await duration.inputValue(),
         preset: await preset.inputValue(),
@@ -840,12 +842,13 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       await page.reload()
       await selectFlame()
       expect(await currentContentVersion(page)).toBe(flameVersion)
+      await openGroundEffectParameters(page)
       await expect(duration).toHaveValue(authored.duration)
       await expect(preset).toHaveValue(authored.preset)
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)
       await showBurnParameters()
       await expect(backlash).toHaveValue(authored.backlash)
-      await page.getByRole('tab', { name: 'Effects', exact: true }).click()
+      await openGroundEffectParameters(page)
       await duration.scrollIntoViewIfNeeded()
       const fieldBox = await duration.boundingBox()
       expect(fieldBox).not.toBeNull()
@@ -941,6 +944,7 @@ test('Master combat authoring publishes and pins versioned content, rejects reti
       })
       await page.reload()
       await selectFlame()
+      await openGroundEffectParameters(page)
       await expect(duration).toHaveValue(original.duration)
       await expect(preset).toHaveValue(original.preset)
       await expect(page.getByLabel('Ground activation', { exact: true })).toHaveCount(0)

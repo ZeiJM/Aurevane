@@ -2386,6 +2386,7 @@ function BattleExperienceContent({
       attackDefinition?.effects.some((effect) => 'target' in effect && effect.target === 'all') ??
       false)
   const potentialPath =
+    !(executionPending && currentDescriptor.move) &&
     !choosingActionMovement &&
     (mode === 'attack' || mode === 'guard' || mode === 'recover' || flatMoveMode) &&
     localPlacement &&

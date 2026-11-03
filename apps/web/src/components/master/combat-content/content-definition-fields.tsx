@@ -610,6 +610,14 @@ function SkillMechanics({
           <SkillFormatUpgradeControl value={value} onChange={onChange} />
           <SkillEffectListEditor
             aim={value.target}
+            groundSettings={
+              <SkillGroundEditor
+                target={value.target}
+                effects={value.effects}
+                value={value.groundArea}
+                onChange={(groundArea) => onChange(withSkillGroundArea(value, groundArea))}
+              />
+            }
             value={value.effects.filter(isMaterializedCombatEffect)}
             effectDescriptions={value.effectDescriptions?.filter(
               (_, index) => value.effects[index]?.type !== 'summon',
@@ -629,12 +637,6 @@ function SkillMechanics({
                 ],
               })
             }
-          />
-          <SkillGroundEditor
-            target={value.target}
-            effects={value.effects}
-            value={value.groundArea}
-            onChange={(groundArea) => onChange(withSkillGroundArea(value, groundArea))}
           />
           {value.summonProfile ? (
             <SummonProfileEditor

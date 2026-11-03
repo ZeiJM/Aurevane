@@ -422,6 +422,7 @@ function previewState(
     reflectBarrierPolicyVersion: 1 as const,
     supportActionPolicyVersion: 1 as const,
     displacementPolicyVersion: 1 as const,
+    displacementOriginPolicyVersion: 1 as const,
     turnOrigin: {
       combatantId: ACTOR_ID,
       turnNumber: battle.turnNumber,

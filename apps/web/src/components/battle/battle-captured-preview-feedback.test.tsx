@@ -644,7 +644,7 @@ it('current Guided Fundamentals offers actual captured HP Recovery without resur
 
 for (const mode of ['pve', 'pvp'] as const) {
   it.each(['self', 'enemy'] as const)(
-    mode + ' paints every living All recovery recipient green with a %s Single aim',
+    mode + ' keeps All recovery recipient detection separate from a %s Single aiming glow',
     (allHealingAim) => {
       const input = fixture('basic.recover', mode, { targetPreview: 'healing', allHealingAim })
       input.begin('guard')
@@ -1617,4 +1617,46 @@ for (const mode of ['pve', 'pvp'] as const) {
       expect(tile(4).props['data-target']).not.toBe('enemy')
     })
   }
+}
+
+for (const mode of ['pve', 'pvp'] as const) {
+  it.each(['fleetstep', 'authored'] as const)(
+    `${mode} does not flash a blue self-target glow while a pure Move %s command is submitted`,
+    (kind) => {
+      const input =
+        kind === 'fleetstep'
+          ? fixture('basic.fleetstep', mode, {
+              currentSupportDefaults: true,
+              commitResult: 'success',
+            })
+          : fixture('basic.guard', mode, {
+              targetPreview: 'utility',
+              withMove: true,
+              selfTarget: true,
+              commitResult: 'success',
+            })
+      input.begin('guard')
+      const destination = find(
+        input.render(),
+        (node) => node.type === 'button' && node.props['data-reachable'] === true,
+      )!
+      expect(destination).not.toBeNull()
+      ;(destination.props.onClick as () => void)()
+      const tree = input.render()
+      expect(
+        find(tree, (node) => node.props['data-battle-execution-pending'] === true),
+      ).not.toBeNull()
+      expect(
+        find(
+          tree,
+          (node) =>
+            node.type === 'button' &&
+            (node.props['data-buff-path'] === true || node.props['data-self-target'] === true),
+        ),
+      ).toBeNull()
+      expect(
+        input.network.mock.calls.filter(([url]) => !String(url).endsWith('/preview')),
+      ).toHaveLength(1)
+    },
+  )
 }

@@ -95,6 +95,15 @@ const skill: CombatActionDefinition = {
 }
 
 describe('Owner stat balance policy', () => {
+  it('pins current displacement origins only at new balanced encounter creation', () => {
+    const { base, profiles } = fixture(0, 10000)
+    expect(
+      createStatBalancedCombatEncounterState(base, profiles).displacementOriginPolicyVersion,
+    ).toBe(1)
+    expect(
+      createStatDrivenCombatEncounterState(base, profiles).displacementOriginPolicyVersion,
+    ).toBeUndefined()
+  })
   it('scales direct damage after defenses in new forecasts and leaves old forecasts intact', () => {
     const { base, profiles } = fixture()
     const direct = {

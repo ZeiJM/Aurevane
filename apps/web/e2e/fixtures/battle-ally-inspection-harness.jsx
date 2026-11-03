@@ -17,6 +17,7 @@ import {
 } from '@aurevane/game-core/combat/skill-cooldowns'
 import { DEFAULT_COMBAT_KEYBINDS } from '@aurevane/validation/player/combat-controls'
 import { setTerrainOverlay } from '@aurevane/game-core/combat/terrain-overlays'
+import { ResonanceParameters } from '@/components/character/resonance-parameters'
 import { ContentDefinitionFields } from '@/components/master/combat-content/content-definition-fields'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -158,6 +159,8 @@ const positions = [
   { x: 2, y: 3 },
 ]
 if (targetingCase || dotCase) positions[3] = { x: 5, y: 3 }
+// Leave the first enemy's recoil destination free in the radial Push demonstration.
+if (canonicalCase === 'all-self') positions[3] = { x: 7, y: 3 }
 if (
   (canonicalCase?.startsWith('move-') && canonicalCase !== 'move-stationary') ||
   canonicalCase === 'controlled-move'
@@ -480,6 +483,18 @@ if (targetingCase) {
               : effect,
           ),
         })
+  if (new URLSearchParams(location.search).get('glow')?.startsWith('all')) {
+    definition.effects = [
+      { type: 'damage', recipient: 'affected-units', target: 'enemy', amount: 20 },
+      {
+        type: 'displace',
+        recipient: 'affected-units',
+        target: 'all',
+        direction: 'push',
+        distance: 10,
+      },
+    ]
+  }
   runtime.techniques = [
     {
       ...runtime.techniques[0],
@@ -883,8 +898,38 @@ if (canonicalCase) {
       effects: [{ id: 'mend', payload: { type: 'healing', recipient: 'primary-unit', amount: 5 } }],
     })
   }
+  if (canonicalCase === 'all-self') {
+    source.definition.behaviors[0].targeting = {
+      ...target,
+      kind: 'self',
+      categories: ['self'],
+      teamPolicy: 'self',
+      minimumRange: 0,
+      maximumRange: 0,
+      maximumSelections: 1,
+      friendlyFire: 'all-units',
+      allTargetPolicyVersion: 1,
+    }
+    source.definition.behaviors[0].effects = [
+      {
+        id: 'hit',
+        payload: { type: 'damage', recipient: 'affected-units', target: 'all', amount: 20 },
+      },
+      {
+        id: 'push',
+        payload: {
+          type: 'displace',
+          recipient: 'affected-units',
+          target: 'all',
+          direction: 'push',
+          distance: 1,
+        },
+      },
+    ]
+  }
   canonicalCapture = captureCombatAbilitySource(source)
   canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, [canonicalCapture])
+  if (canonicalCase === 'all-self') canonicalState.displacementOriginPolicyVersion = 1
   if (canonicalCase === 'controlled-price') {
     // Execution costs 11 AP / 2 MP / 1 HP; the old presentation envelope says 15 AP.
     runtime.techniques[0].apCost = 15
@@ -929,6 +974,9 @@ if (canonicalCase) {
     actionId: source.abilityId,
     behaviorId: behavior.id,
     ...(unitUtility ? { classification: behavior.classification, dealsDamage: false } : {}),
+    ...(behavior.effects.some((effect) => effect.payload.target === 'all')
+      ? { hasAllTargetEffects: true }
+      : {}),
     target: behavior.targeting,
     ...(movement
       ? {
@@ -1518,6 +1566,15 @@ window.publishBattle = () =>
       detail: window.fixtureBattle,
     }),
   )
+window.finishCanonicalTurn = () => {
+  canonicalState = finishPv1fTurn(canonicalState, 'east').state
+  window.fixtureBattle = {
+    ...window.fixtureBattle,
+    battleVersion: window.fixtureBattle.battleVersion + 1,
+    snapshot: canonicalPublicState(canonicalState),
+  }
+  window.publishBattle()
+}
 window.restoreCanonicalBattle = () => {
   canonicalState = JSON.parse(JSON.stringify(canonicalState))
   window.fixtureBattle = {
@@ -1577,6 +1634,72 @@ function DotDefinitionReport() {
     </>
   )
 }
+function ResonanceEditorHarness() {
+  const current = resolveResonanceForPair('wildwarden', 'edgedancer')
+  const [definition, setDefinition] = React.useState(() => ({
+    ...current,
+    ability: {
+      schemaVersion: 1,
+      behaviors: [
+        {
+          ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic').ability.behaviors[0],
+          activation: 'automatic',
+          mode: 'action',
+          classification: 'utility',
+          attackFamily: undefined,
+          requirementMode: 'simple',
+          automaticTrigger: 'turn-started',
+          automaticTarget: { subject: 'owner' },
+          requirements: null,
+          costs: [],
+          cooldown: null,
+          targeting: {
+            kind: 'self',
+            geometryVersion: 3,
+            categories: ['self'],
+            teamPolicy: 'self',
+            friendlyFire: 'allies-only',
+            maximumElevationDifference: null,
+            minimumRange: 0,
+            maximumRange: 0,
+            maximumSelections: 1,
+            shape: { kind: 'single' },
+            requiresLineOfSight: false,
+          },
+          effects: [
+            {
+              id: 'guard',
+              payload: {
+                type: 'apply-status',
+                recipient: 'actor',
+                target: 'self',
+                statusId: 'guarded',
+                stacks: 1,
+                durationTurns: 2,
+              },
+            },
+          ],
+        },
+      ],
+    },
+  }))
+  return (
+    <main style={{ padding: 24, maxWidth: 900, width: '100%', boxSizing: 'border-box' }}>
+      <h1>Resonance Requirements</h1>
+      <ContentDefinitionFields
+        kind="resonance"
+        tab="Parameters"
+        initialAbilitySection="details"
+        value={definition}
+        onChange={setDefinition}
+      />
+      <ResonanceParameters definition={definition} />
+      <pre data-resonance-draft style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {JSON.stringify(definition)}
+      </pre>
+    </main>
+  )
+}
 function GroundEditorHarness() {
   const source = resolveMatureSkillVersion('vanguard.forceful-strike')
   const [skill, setSkill] = React.useState(() => ({
@@ -1620,6 +1743,7 @@ function GroundEditorHarness() {
 }
 if (mode === 'controls')
   fixtureRoot.render(<CombatControlsSettings initialBindings={fixtureControls} />)
+else if (mode === 'master-resonance') fixtureRoot.render(<ResonanceEditorHarness />)
 else if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
 else
   fixtureRoot.render(

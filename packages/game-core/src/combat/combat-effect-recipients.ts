@@ -143,7 +143,13 @@ function unfilteredCombatEffectRecipientIds(
           (isHostile && isArea && friendlyFire && unit.id !== actorId)
         )
       if (effect.target === 'ground' || effect.target === 'empty-tile')
-        return !isHostile || unit.teamId !== actor.teamId || (friendlyFire && unit.id !== actorId)
+        return (
+          !isHostile ||
+          unit.teamId !== actor.teamId ||
+          (friendlyFire &&
+            (unit.id !== actorId ||
+              (effect.type === 'displace' && state.displacementOriginPolicyVersion === 1)))
+        )
       return true
     })
     .map((unit) => unit.id)

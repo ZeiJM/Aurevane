@@ -170,8 +170,10 @@ function activeCommandSlug(): string | null {
 }
 
 function activeSemanticColor(tile: HTMLButtonElement): string | null {
-  // The React-owned full-tile layer is the sole friendly selection color authority.
+  // The React-owned full-tile layer owns every action palette, including occupied tiles.
   if (
+    tile.dataset.attackPath === 'true' ||
+    tile.dataset.buffPath === 'true' ||
     tile.dataset.groundPath === 'true' ||
     tile.dataset.selfTarget === 'true' ||
     tile.dataset.healTarget === 'true'
@@ -316,7 +318,14 @@ export function BattleMapTokenPolish({
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-target', 'data-self-target', 'data-heal-target'],
+      attributeFilter: [
+        'data-target',
+        'data-attack-path',
+        'data-buff-path',
+        'data-ground-path',
+        'data-self-target',
+        'data-heal-target',
+      ],
     })
 
     const boardViewport = battlefield.querySelector('[data-board-auto-fit]')?.parentElement

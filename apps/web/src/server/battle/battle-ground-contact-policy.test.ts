@@ -68,6 +68,7 @@ it('persists the current Ground contact policy at server admission and reloads e
     idempotencyKey: '44444444-4444-4444-8444-444444444444',
   })
   const state = JSON.parse(JSON.stringify(snapshot)) as CombatEncounterState
+  expect(state.displacementOriginPolicyVersion).toBe(1)
   expect(state.groundEffectPolicyVersion).toBe(1)
   expect(state.groundContactPolicyVersion).toBe(1)
   expect(state.reversalPolicyVersion).toBe(1)

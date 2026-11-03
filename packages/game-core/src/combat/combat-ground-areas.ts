@@ -56,6 +56,8 @@ export interface CombatGroundAreaDefinition {
   timing?: 'instant' | 'next-round' | 'delayed'
 }
 export interface CombatGroundAreaInstance {
+  /** Cast-time Ground anchor for current forced movement; never follows the caster. */
+  displacementOrigin?: GridPosition
   placementTimingVersion?: 1
   targetTeams?: CombatGroundTargetTeams
   contactPolicyVersion?: 1
@@ -184,6 +186,7 @@ export function createCombatGroundArea(
   tiles: readonly GridPosition[],
   content: CombatContentCatalog,
   options?: {
+    displacementOrigin?: GridPosition
     sourceCommandVisibility?: CombatSourceCommandVisibility
     abilityCommandFacts?: CapturedCombatNativeCommandFacts
   },
@@ -214,6 +217,11 @@ export function createCombatGroundArea(
   const area: CombatGroundAreaInstance = JSON.parse(
     JSON.stringify({
       id: `ground.area.${ordinal}`,
+      ...(state.displacementOriginPolicyVersion === 1 &&
+      options?.displacementOrigin &&
+      ground.entryEffectOrdinals.some((index) => action.effects[index]?.type === 'displace')
+        ? { displacementOrigin: { ...options.displacementOrigin } }
+        : {}),
       ...(ground.placementTimingVersion !== undefined
         ? { placementTimingVersion: ground.placementTimingVersion }
         : {}),
@@ -551,6 +559,15 @@ export function validateCombatGroundAreas(
       for (const capture of area.entryEffectRequirementCaptures ?? [])
         validateCombatGroundRequirementCapture(capture)
       validateCombatNativeCommandFacts(area.abilityCommandFacts)
+      if (area.displacementOrigin !== undefined) {
+        if (
+          state.displacementOriginPolicyVersion !== 1 ||
+          !area.displacementOrigin ||
+          Object.keys(area.displacementOrigin).some((key) => !['x', 'y'].includes(key))
+        )
+          throw new TypeError('Invalid Ground displacement origin.')
+        validateGroundTiles(state, [area.displacementOrigin])
+      }
       validateGroundTiles(state, area.tiles)
       if (area.steamTiles) {
         if (state.elementalDamagePolicyVersion === undefined)

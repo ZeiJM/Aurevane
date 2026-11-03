@@ -628,6 +628,15 @@ export function abilityBehaviorInformation(
     ? undefined
     : requirementReferenceParts(behavior.requirements, effectContext, behavior)
   const requirementEntries: { text: string; parts: readonly MechanicTextPart[] }[] = []
+  const activationEvent =
+    !nativeMove &&
+    behavior.requirementMode === 'simple' &&
+    behavior.activation === 'automatic' &&
+    behavior.mode === 'action' &&
+    behavior.automaticTrigger !== 'requirements-met'
+      ? SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(({ id }) => id === behavior.automaticTrigger)?.label
+      : undefined
+  if (activationEvent) requirementEntries.push({ text: activationEvent, parts: [activationEvent] })
   if (primaryRequirement !== 'None' && primaryRequirement !== 'N/A')
     requirementEntries.push({
       text: primaryRequirement,

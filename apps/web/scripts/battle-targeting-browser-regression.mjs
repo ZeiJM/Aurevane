@@ -6,6 +6,7 @@ import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { openGroundEffectParameters } from '../e2e/ground-authoring-helpers.ts'
 
 const require = createRequire(import.meta.url)
 const { createServer } = await import(
@@ -393,8 +394,10 @@ try {
             await page.locator('[data-command-slot="attack"]').click()
             await page.waitForFunction(
               () =>
-                document.querySelector('#battlefield button[aria-label^="Tile 5, 4;"]')?.style
-                  .borderColor === 'rgb(255, 118, 111)',
+                getComputedStyle(
+                  document.querySelector('#battlefield button[aria-label^="Tile 5, 4;"]'),
+                  '::after',
+                ).backgroundColor === 'rgba(189, 38, 58, 0.22)',
             )
             await page.evaluate(() => {
               window.fixtureBattle = {
@@ -917,7 +920,19 @@ try {
       0,
     )
     await page.getByRole('tab', { name: 'Effects', exact: true }).click()
-    await page.getByLabel('Ground duration (rounds)', { exact: true }).fill('4')
+    const groundCard = page.locator('details[data-effect-collapsible]').filter({
+      has: page.getByLabel('Ground duration (rounds)', { exact: true }),
+    })
+    assert.equal(await groundCard.count(), 1, 'shared Ground controls belong to one effect card')
+    assert.equal(await groundCard.getAttribute('open'), null)
+    await openGroundEffectParameters(page)
+    assert.equal(
+      await groundCard.getByLabel('Ground duration (rounds)', { exact: true }).isVisible(),
+      true,
+    )
+    assert.equal(await groundCard.getByLabel('Ground affects', { exact: true }).count(), 1)
+    assert.equal(await groundCard.getByLabel('Ground animation', { exact: true }).count(), 1)
+    await groundCard.getByLabel('Ground duration (rounds)', { exact: true }).fill('4')
     await page.getByLabel('Ground animation', { exact: true }).selectOption('frost')
     assert.equal(await page.getByLabel('Ground activation', { exact: true }).count(), 0)
     assert.ok(
@@ -962,6 +977,57 @@ try {
       JSON.parse(await page.locator('[data-ground-draft]').innerText()).durationRounds,
       2,
     )
+    cases++
+    await page.close()
+  }
+  for (const width of [1366, 390]) {
+    const page = await browser.newPage({ viewport: { width, height: 900 } })
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.goto(server.resolvedUrls.local[0] + '?mode=master-resonance')
+    await page.getByLabel('Requirement type', { exact: true }).waitFor()
+    assert.equal(
+      await page.getByText('Resolve compatibility before publishing', { exact: true }).count(),
+      0,
+    )
+    const requirements = page.locator('[data-resonance-requirements="true"]')
+    assert.equal(
+      await requirements.getByLabel('Requirement type', { exact: true }).inputValue(),
+      'automatic',
+    )
+    assert.equal(await page.getByLabel('Requirement target', { exact: true }).count(), 0)
+    const event = requirements.getByLabel('Automatic activation', { exact: true })
+    assert.equal(await event.locator('option').count(), 11)
+    assert.equal(
+      await event
+        .locator('option[value="condition-entry"], option[value="requirements-met"]')
+        .count(),
+      0,
+    )
+    await event.selectOption('damage-taken')
+    const report = page.locator('[data-resonance-parameters]')
+    await page.waitForFunction(() =>
+      document.querySelector('[data-resonance-parameters]')?.textContent.includes('Damage Taken'),
+    )
+    assert.match(await report.innerText(), /Requirements\s+Damage Taken/)
+    await requirements.getByLabel('Requirement type', { exact: true }).selectOption('tags')
+    await requirements.getByLabel('Requirement tag', { exact: true }).selectOption('wet')
+    assert.equal(
+      await requirements.getByLabel('Requirement target', { exact: true }).isVisible(),
+      true,
+    )
+    assert.equal(await event.count(), 0)
+    assert.match(await report.innerText(), /Requirements\s+Drenched \[Self\]/)
+    await requirements.getByLabel('Requirement type', { exact: true }).selectOption('automatic')
+    assert.equal(await requirements.getByLabel('Requirement target', { exact: true }).count(), 0)
+    assert.match(await report.innerText(), /Requirements\s+Your Turn Starts/)
+    const draft = JSON.parse(await page.locator('[data-resonance-draft]').innerText())
+    assert.equal(draft.ability.behaviors[0].requirements, null)
+    assert.equal(draft.ability.behaviors[0].automaticTrigger, 'turn-started')
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    await page.screenshot({
+      path: resolve(output, `master-${width}-resonance-requirements.png`),
+      fullPage: true,
+    })
     cases++
     await page.close()
   }

@@ -9,6 +9,7 @@ import {
 } from './ability-detail-presentation'
 import { AbilityParameters } from './ability-parameters'
 import { plainMechanicText } from './mechanic-text'
+import { SIMPLE_AUTOMATIC_TRIGGER_OPTIONS } from '@aurevane/game-core/combat/combat-simple-requirements'
 
 function report(requirements: RequirementNode | null) {
   const group: AbilityBehavior = {
@@ -68,7 +69,7 @@ it('renders None without adding an event or action prerequisite', () => {
   )
 })
 
-it('keeps automatic timing outside the simple requirement line', () => {
+it('includes automatic activation alongside its retained prerequisite in Requirements', () => {
   const r = abilityBehaviorInformation({
     ...defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability.behaviors[0]!,
     activation: 'automatic',
@@ -77,10 +78,10 @@ it('keeps automatic timing outside the simple requirement line', () => {
     automaticTarget: { subject: 'affected' },
     requirements: { kind: 'status-presence', subject: 'affected', statusId: 'burn', present: true },
   })
-  expect(Object.fromEntries(r.rows).Requirements).toBe('Burn [Target]')
+  expect(Object.fromEntries(r.rows).Requirements).toBe('Damage Dealt; Burn [Target]')
   const html = renderToStaticMarkup(<AbilityParameters report={r} />)
   expect(html).toContain('Automatic: Damage Dealt')
-  expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Damage Dealt')
+  expect(html.slice(0, html.indexOf('</dl>'))).toContain('Damage Dealt')
 })
 
 const candidate = JSON.parse(
@@ -95,7 +96,7 @@ const candidate = JSON.parse(
   records: { id: string; after: { ability: { behaviors: AbilityBehavior[] } } }[]
 }
 it.each(candidate.records)(
-  '$id renders its complete saved requirement as one tag or None',
+  '$id renders its complete saved predicate and any meaningful activation event',
   (row) => {
     for (const behavior of row.after.ability.behaviors) {
       const result = abilityBehaviorInformation(behavior)
@@ -105,7 +106,16 @@ it.each(candidate.records)(
         /^(None|[^\[\]&]+ \[(Self|Target)\]|(?:HP|MP) (?:less|more) than \[[\d.]+%\] \[(Self|Target)\])$/,
       )
       if (root !== 'None') expect(requirement).toContain(root)
-      expect(requirement).toBe(root)
+      const event =
+        behavior.activation === 'automatic' &&
+        behavior.mode === 'action' &&
+        behavior.automaticTrigger !== 'requirements-met'
+          ? SIMPLE_AUTOMATIC_TRIGGER_OPTIONS.find(({ id }) => id === behavior.automaticTrigger)
+              ?.label
+          : undefined
+      expect(requirement).toBe(
+        [event, root === 'None' && event ? undefined : root].filter(Boolean).join('; '),
+      )
       result.effects.forEach((effect, index) => {
         if (effect.condition) {
           expect(result.effectDescriptions[index]).toContain(
@@ -114,10 +124,10 @@ it.each(candidate.records)(
           expect(Object.fromEntries(result.rows).Effects).not.toContain(effect.condition)
         }
       })
-      expect(requirement).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
+      expect(root).not.toMatch(/After|Tidecaller|Trigger|Action|\bIf\b/)
       const html = renderToStaticMarkup(<AbilityParameters report={result} />)
       expect(html.match(/<dt>/g)).toHaveLength(8)
-      if (requirement !== 'None') expect(html).toContain('data-combat-tag-reference=')
+      if (root !== 'None') expect(html).toContain('data-combat-tag-reference=')
       if (result.automaticActivation)
         expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Automatic:')
     }
