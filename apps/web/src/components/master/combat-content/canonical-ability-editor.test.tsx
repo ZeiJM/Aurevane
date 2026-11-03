@@ -89,7 +89,10 @@ function assertCanonicalEditor(html: string, { resonance = false } = {}) {
     expect(html).toContain('Once per battle')
   }
   expect(html).toContain('<legend>Usage limits')
-  expect(html).toContain('Once per round resets when the global round advances.')
+  expect(html).toContain(
+    'Once per action allows one use for the entire battle, even without a cooldown.',
+  )
+  expect(html).toContain('Once per round allows one use each global round.')
   expect(html).not.toContain('aria-label="Action Economy (AP)"')
   expect(html).not.toContain('aria-label="Accuracy mode"')
 }
@@ -424,4 +427,36 @@ it('keeps effect parameters collapsed and directs retained conditions to Details
   expect(html).not.toContain('<legend>Effect requirements</legend>')
   expect(JSON.stringify(definition)).toBe(before)
   expect(onChange).not.toHaveBeenCalled()
+})
+
+it('every offered effect target produces a payload accepted by the shared tag validator', async () => {
+  const { withAuthoredEffectTarget } =
+    await import('@aurevane/game-core/combat/combat-effect-target-authoring')
+  const { validateCombatTagPayload } =
+    await import('@aurevane/game-core/combat/combat-tag-registry')
+  for (const tag of COMBAT_TAG_REGISTRY) {
+    if (
+      ['weak-point', 'spike', 'ruin', 'endure', 'reversal', 'move', 'damage-bonus'].includes(tag.id)
+    )
+      continue
+    const payload = defaultAbilityPayload(tag.id)
+    for (const target of [
+      'self',
+      'ally',
+      'enemy',
+      'anyone',
+      'all',
+      'ground',
+      'empty-tile',
+    ] as const) {
+      if (target === 'empty-tile' && !['summon', 'create-terrain'].includes(payload.type)) continue
+      let next
+      try {
+        next = withAuthoredEffectTarget(payload, target)
+      } catch {
+        continue
+      }
+      expect(validateCombatTagPayload(next), `${tag.id}/${target}`).toEqual([])
+    }
+  }
 })

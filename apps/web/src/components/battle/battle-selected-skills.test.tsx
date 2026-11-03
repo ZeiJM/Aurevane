@@ -58,6 +58,8 @@ it.each([
   ['essence', 'endureBlocked'],
   ['discipline', 'reversalBlocked'],
   ['essence', 'reversalBlocked'],
+  ['discipline', 'usageLimitReached'],
+  ['essence', 'usageLimitReached'],
 ] as const)('disables a %s with %s even when priming is free', (kind, restriction) => {
   const html = renderToStaticMarkup(
     <BattleSelectedSkills

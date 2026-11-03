@@ -82,6 +82,7 @@ interface CharacterSkillBuildPanelProps {
   characterId: string
   disciplineNames?: Readonly<Record<string, string>>
   initialBuildVersion: number
+  supportActionArtworkKeys?: Readonly<Partial<Record<SupportActionId, string | null>>>
   initialSupportActionId?: SupportActionId
   primaryDiscipline: { id: string; name: string }
   secondaryDiscipline: { id: string; name: string } | null
@@ -596,7 +597,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     aria-hidden="true"
                   >
                     <Image
-                      src={battleSkillArtwork(id)}
+                      src={battleSkillArtwork(id, props.supportActionArtworkKeys?.[id])}
                       width={160}
                       height={160}
                       unoptimized

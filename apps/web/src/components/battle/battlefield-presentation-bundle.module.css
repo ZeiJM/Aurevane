@@ -68,6 +68,15 @@
   main[data-battle-concept='true']
     section#battlefield
     button[aria-label^='Tile '][data-attack-path='true']
+) {
+  border-color: #ed6878b3 !important;
+  box-shadow: none !important;
+}
+
+:global(
+  main[data-battle-concept='true']
+    section#battlefield
+    button[aria-label^='Tile '][data-attack-path='true']
 )::after {
   content: '';
   position: absolute;

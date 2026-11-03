@@ -77,6 +77,7 @@ export function skillEffectDescription(
     legacyReflectBarrier?: boolean
     legacyPierceCritical?: boolean
     legacySummonPotency?: boolean
+    legacyActionUsageLimits?: boolean
     legacyRuin?: boolean
     legacyElemental?: boolean
     explicitElemental?: boolean

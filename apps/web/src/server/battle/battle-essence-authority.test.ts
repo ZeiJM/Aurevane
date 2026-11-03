@@ -1942,19 +1942,34 @@ it('actual Controlled prime is free, privately persisted and reloadable before a
   expect(battles.commitBattleIntent).toHaveBeenCalledTimes(2)
 })
 
-it('actual Controlled cancel preserves the once-per-battle bound and never charges a paid action', async () => {
-  const { service, battles, request, state } = await controlledServiceFixture()
-  const before = state().tactical
-  await service.submitIntent(request('ability-prime', 1))
-  await service.submitIntent(request('ability-cancel-prime', 2))
-  expect(state().tactical).toEqual(before)
-  expect(state().abilityRuntime!.controlled!.primes).toEqual([])
-  expect(state().abilityRuntime!.controlled!.used).toHaveLength(1)
-  await expect(service.submitIntent(request('ability-prime', 3))).rejects.toThrow(
-    'controlled-prime-used',
-  )
-  expect(battles.commitBattleIntent).toHaveBeenCalledTimes(2)
-})
+it.each([false, true])(
+  'Controlled cancel preserves payment and policy-specific reuse (current=%s)',
+  async (current) => {
+    const { service, battles, request, state } = await controlledServiceFixture()
+    if (!current) {
+      const historical = { ...state() }
+      delete historical.abilityUsageLimitPolicyVersion
+      battles.replaceSnapshot(historical)
+    }
+    const before = state().tactical
+    await service.submitIntent(request('ability-prime', 1))
+    await service.submitIntent(request('ability-cancel-prime', 2))
+    expect(state().tactical).toEqual(before)
+    expect(state().abilityRuntime!.controlled!.primes).toEqual([])
+    expect(state().abilityRuntime!.controlled!.used).toHaveLength(1)
+    if (current) {
+      await service.submitIntent(request('ability-prime', 3))
+      expect(state().tactical).toEqual(before)
+      expect(state().abilityRuntime!.controlled!.primes).toHaveLength(1)
+      expect(battles.commitBattleIntent).toHaveBeenCalledTimes(3)
+    } else {
+      await expect(service.submitIntent(request('ability-prime', 3))).rejects.toThrow(
+        'controlled-prime-used',
+      )
+      expect(battles.commitBattleIntent).toHaveBeenCalledTimes(2)
+    }
+  },
+)
 
 it('Controlled state commands never masquerade as a final-turn targeting preview', async () => {
   const { battles, request, state } = await controlledServiceFixture()

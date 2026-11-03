@@ -33,22 +33,24 @@ export function airborneMovementTactical<
   T extends Omit<TacticalBattleState, 'battle'> & {
     battle: Pick<TacticalBattleState['battle'], 'currentTurn'>
   },
->(state: AirborneMovementState & { tactical: T }, content: CombatContentCatalog): T {
+>(
+  state: AirborneMovementState & { tactical: T },
+  content: CombatContentCatalog,
+  authoredMaximumElevation?: number,
+): T {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   const placement = state.tactical.placements.find((row) => row.combatantId === actorId)
   const profile = state.tactical.movementProfiles.find(
     (row) => row.id === placement?.movementProfileId,
   )
-  if (
-    !actorId ||
-    !profile ||
-    airborneJump(state, actorId, profile.maxElevationStep, content) === profile.maxElevationStep
-  )
-    return state.tactical
+  const jump = profile
+    ? (authoredMaximumElevation ?? airborneJump(state, actorId!, profile.maxElevationStep, content))
+    : undefined
+  if (!actorId || !profile || jump === profile.maxElevationStep) return state.tactical
   return {
     ...state.tactical,
     movementProfiles: state.tactical.movementProfiles.map((row) =>
-      row.id === profile.id ? { ...row, maxElevationStep: AIRBORNE_JUMP } : row,
+      row.id === profile.id ? { ...row, maxElevationStep: jump! } : row,
     ),
   }
 }

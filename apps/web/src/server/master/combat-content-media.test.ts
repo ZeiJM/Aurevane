@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import sharp from 'sharp'
 import { describe, expect, it, vi } from 'vitest'
+import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-media'
 import { normalizeContentMedia } from './combat-content-media'
 
 vi.mock('server-only', () => ({}))
@@ -91,4 +92,40 @@ it('rejects malformed finalized media in actual Skill and auxiliary authoring', 
     expect(result.valid).toBe(false)
     expect(result.issues.some((issue) => issue.path.includes('media.artwork'))).toBe(true)
   }
+})
+
+it('automatically fits a valid high-detail JPEG when its finalized square PNG exceeds the byte limit', async () => {
+  const edge = 1024
+  const pixels = Buffer.alloc(edge * edge * 3)
+  let seed = 0x12345678
+  for (let i = 0; i < pixels.length; i++) {
+    seed ^= seed << 13
+    seed ^= seed >>> 17
+    seed ^= seed << 5
+    pixels[i] = seed & 255
+  }
+  const input = await sharp(pixels, { raw: { width: edge, height: edge, channels: 3 } })
+    .jpeg({ quality: 88 })
+    .toBuffer()
+  expect(input.length).toBeLessThanOrEqual(2 * 1024 * 1024)
+  const fullPng = await sharp(input).png().toBuffer()
+  expect(fullPng.length).toBeGreaterThan(2 * 1024 * 1024)
+  const media = await normalizeContentMedia(input, 'image/jpeg')
+  expect(media.bytes.length).toBeLessThanOrEqual(2 * 1024 * 1024)
+  expect(
+    isFinalizedContentMedia({ ...media.descriptor, id: '00000000-0000-4000-8000-000000000012' }),
+  ).toBe(true)
+  const output = await sharp(media.bytes).metadata()
+  expect(output.format).toBe('png')
+  expect(output.width).toBeLessThan(edge)
+  expect(output.width).toBe(output.height)
+  expect(media.descriptor).toMatchObject({
+    sourceWidth: edge,
+    sourceHeight: edge,
+    crop: { x: 0, y: 0, size: edge },
+    width: output.width,
+    height: output.height,
+  })
+  expect(media.descriptor.byteLength).toBe(media.bytes.length)
+  expect(media.descriptor.checksum).toBe(createHash('sha256').update(media.bytes).digest('hex'))
 })

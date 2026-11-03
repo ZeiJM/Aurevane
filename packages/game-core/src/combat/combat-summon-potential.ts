@@ -124,7 +124,9 @@ function sourcePotential(
     behavior.costs,
     Boolean(
       behavior.cooldown ||
-      behavior.activationLimits?.some((limit) => limit !== 'once-per-action') ||
+      behavior.activationLimits?.some(
+        (limit) => limit !== 'once-per-action' || state.abilityUsageLimitPolicyVersion === 1,
+      ) ||
       behavior.effects.some((row) => row.timing === 'controlled'),
     ),
   )

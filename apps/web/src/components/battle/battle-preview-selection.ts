@@ -50,11 +50,17 @@ export type BattlePreviewSkill = Pick<
   /** Safe owner-relative restriction; absent on historical projections. */
   endureBlocked?: boolean
   reversalBlocked?: boolean
+  usageLimitReached?: boolean
   hasAllTargetEffects?: boolean
   modifierRoot?: CombatModifierRootFacts
   controlled?: BattleControlledActionAvailability
   unavailable?: boolean
-  move?: { maximumTiles: number; conditional: boolean }
+  move?: {
+    maximumTiles: number
+    conditional: boolean
+    maximumElevation?: number
+    requiresLineOfSight?: boolean
+  }
   costs?: AbilityBehavior['costs']
   movementPath?: readonly { x: number; y: number }[]
   manualModifiers?: readonly ManualCombatModifierSelection[]
@@ -69,11 +75,17 @@ export interface BattleCapturedActionTarget {
   dealsDamage?: boolean
   endureBlocked?: boolean
   reversalBlocked?: boolean
+  usageLimitReached?: boolean
   hasAllTargetEffects?: boolean
   modifierRoot?: CombatModifierRootFacts
   controlled?: BattleControlledActionAvailability
   target: CombatTargetSpec
-  move?: { maximumTiles: number; conditional: boolean }
+  move?: {
+    maximumTiles: number
+    conditional: boolean
+    maximumElevation?: number
+    requiresLineOfSight?: boolean
+  }
   costs?: AbilityBehavior['costs']
   cooldown?: AbilityBehavior['cooldown']
   report?: BattleAbilityBehaviorReport
@@ -123,12 +135,16 @@ export function resolveBattleCapturedSkill(
   if (!choice) return null
   return {
     ...skill,
-    ...(choice.controlled?.phase === 'spent' ? { unavailable: true } : {}),
+    ...(choice.controlled?.phase === 'spent' ||
+    (choice.usageLimitReached && !choice.controlled?.canCancel)
+      ? { unavailable: true }
+      : {}),
     behaviorId: choice.behaviorId,
     classification: choice.classification,
     dealsDamage: choice.dealsDamage,
     endureBlocked: choice.endureBlocked,
     reversalBlocked: choice.reversalBlocked,
+    usageLimitReached: choice.usageLimitReached,
     hasAllTargetEffects: choice.hasAllTargetEffects,
     modifierRoot: choice.modifierRoot,
     controlled: choice.controlled,

@@ -755,6 +755,12 @@ export interface CombatEncounterState {
   abilityCooldownScopeVersion?: 1
   /** Current Reflect records attacker Barrier absorption before HP loss. */
   reflectBarrierPolicyVersion?: 1
+  /** Absorbed positive damage also emits the ordinary damage trigger, once per packet. */
+  barrierDamageEventPolicyVersion?: 1
+  /** Authored Self/Anyone damage uses the existing actor defeat lifecycle. */
+  selfDamagePolicyVersion?: 1
+  /** Authored Once per action permits one use in the entire battle. */
+  abilityUsageLimitPolicyVersion?: 1
   /** Current Support roster; historical absence retains Guard and class Summon commands. */
   supportActionPolicyVersion?: 1
   /** Current Pierce destroys Barrier before applying its HP damage; old captures retain absorption. */
@@ -3245,6 +3251,9 @@ export function validateCombatEncounterState(
     'modularSkillPolicyVersion',
     'abilityCooldownScopeVersion',
     'reflectBarrierPolicyVersion',
+    'barrierDamageEventPolicyVersion',
+    'selfDamagePolicyVersion',
+    'abilityUsageLimitPolicyVersion',
     'supportActionPolicyVersion',
   ] as const) {
     if (state[field] !== undefined && state[field] !== 1)
@@ -4448,6 +4457,7 @@ function collectSelfDamageIssues(
   target?: CombatTargetSpec,
   content?: CombatContentCatalog,
 ): void {
+  if (state?.selfDamagePolicyVersion === 1) return
   for (const effect of effects) {
     if (effect.type !== 'damage' || effect.target === 'all') continue
     const recipients =
@@ -5024,7 +5034,7 @@ function resolveActionEffects(
         capabilityIssues,
         options.returnAnchor,
       )
-      collectSelfDamageIssues([effect], actorId, null, [], capabilityIssues)
+      collectSelfDamageIssues([effect], actorId, null, [], capabilityIssues, nextState)
       if (capabilityIssues.length) continue
     }
     const firstEvent = events.length
@@ -6692,7 +6702,10 @@ function applyEffectNative(
       hpAfter,
     }
     const defeatedCurrent =
-      (resolvingPending || actorId !== recipientId || effect.target === 'all') &&
+      (resolvingPending ||
+        actorId !== recipientId ||
+        effect.target === 'all' ||
+        state.selfDamagePolicyVersion === 1) &&
       hpAfter === 0 &&
       barrierState.tactical.battle.currentTurn?.combatantId === recipientId
         ? defeatCombatActionActor(barrierState, recipientId, content, hooks, damageReceipt)
@@ -6706,7 +6719,7 @@ function applyEffectNative(
           state: withUpdatedCombatant(barrierState, recipientId, { ...target, hp: hpAfter }),
           events: [damageReceipt],
         },
-        facts,
+        { ...facts, barrierAbsorbedDamage: barrier.absorbed },
       ).state
     const removed =
       hpAfter < target.hp

@@ -1,4 +1,5 @@
 import { Children, isValidElement, type ReactNode } from 'react'
+import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { CharacterArsenalShell } from '@/components/character/character-arsenal-shell'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import CharacterNexusPage from '../nexus/page'
@@ -20,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   timingPolicy: vi.fn(),
   disciplineBuild: vi.fn(),
   currentSkillDetails: vi.fn(),
+  currentBasicSkills: vi.fn(),
   attributeAllocation: vi.fn(),
   titleState: vi.fn(),
   displayState: vi.fn(),
@@ -58,7 +60,9 @@ vi.mock('@/server/character/current-skill-detail-loader', () => ({
   resolveCurrentCharacterSkillDetails: mocks.currentSkillDetails,
 }))
 vi.mock('@/server/combat/combat-content-resolver', () => ({
-  createServerCombatContentResolver: () => ({}),
+  createServerCombatContentResolver: () => ({
+    resolveCurrentBasicSkillDefinitions: mocks.currentBasicSkills,
+  }),
 }))
 vi.mock('@/server/character/character-attribute-service', () => ({
   loadCharacterAttributeAllocation: mocks.attributeAllocation,
@@ -225,6 +229,9 @@ describe('Profile persistence recovery diagnostics', () => {
     })
     mocks.disciplineBuild.mockResolvedValue(disciplineBuild)
     mocks.currentSkillDetails.mockImplementation(async (skills) => skills)
+    mocks.currentBasicSkills.mockResolvedValue(
+      new Map(defaultBasicSkills().map((row) => [row.id, row])),
+    )
     mocks.attributeAllocation.mockResolvedValue(attributeAllocation)
     mocks.titleState.mockResolvedValue({ personalTitle: null, personalTitleSetAt: null })
     mocks.displayState.mockResolvedValue({ imageUrl: null })
@@ -251,6 +258,50 @@ describe('Profile persistence recovery diagnostics', () => {
     }
     visit(CharacterArsenalShell(shell.props))
     expect(panels).toEqual([disciplineNames])
+  })
+
+  it('carries current published Support artwork through Nexus and Arsenal to Skill Manager', async () => {
+    const definitions = defaultBasicSkills().map((definition) => ({
+      ...definition,
+      media:
+        definition.id === 'basic.invocation'
+          ? { ...definition.media, iconKey: 'skill.basic.pilfer.icon' }
+          : definition.media,
+    }))
+    mocks.currentBasicSkills.mockResolvedValue(new Map(definitions.map((row) => [row.id, row])))
+    const page = await CharacterNexusPage()
+    const shell = page.props.children
+    expect(shell.props.disciplineBuild.supportActionArtworkKeys['basic.invocation']).toBe(
+      'skill.basic.pilfer.icon',
+    )
+    const panels: unknown[] = []
+    function visit(node: ReactNode) {
+      Children.forEach(node, (child) => {
+        if (!isValidElement<{ children?: ReactNode; supportActionArtworkKeys?: unknown }>(child))
+          return
+        if (child.type === CharacterSkillBuildPanel)
+          panels.push(child.props.supportActionArtworkKeys)
+        visit(child.props.children)
+      })
+    }
+    visit(CharacterArsenalShell(shell.props))
+    expect(panels).toEqual([
+      expect.objectContaining({ 'basic.invocation': 'skill.basic.pilfer.icon' }),
+    ])
+  })
+
+  it('renders Nexus recovery when current Support artwork cannot be loaded', async () => {
+    mocks.currentBasicSkills.mockRejectedValue(
+      new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Private media detail'),
+    )
+    const page = await CharacterNexusPage()
+    expect(page.type).toBe(AuthenticatedGameRecoveryContent)
+    const entry = JSON.parse(String(vi.mocked(console.error).mock.calls[0]?.[0]))
+    expect(entry).toMatchObject({
+      event: 'character_nexus.persistence_unavailable',
+      stage: 'discipline_build',
+    })
+    expect(JSON.stringify(entry)).not.toContain('Private media detail')
   })
 
   it.each(recoveryStages)('records the %s stage when rendering recovery', async (stage, load) => {

@@ -576,8 +576,9 @@ function AbilityGroupEditor({
             <legend>
               Usage limits{' '}
               <MasterHelp label="Usage limits">
-                Once per action resets for each command. Once per round resets when the global round
-                advances.
+                Once per action allows one use for the entire battle, even without a cooldown. Once
+                per round allows one use each global round. Leave both unticked for unlimited uses,
+                subject to costs, Requirements and cooldown.
               </MasterHelp>
             </legend>
             <div className={styles.typedGrid}>
@@ -683,6 +684,7 @@ function AbilityGroupEditor({
           effects={value.effects}
           requiresSelectedUnit={requiresSelectedUnit}
           disabled={moveWithoutSeparateAim(value)}
+          onChangeEffects={(effects) => onChange({ ...value, effects })}
           onChange={(targeting) => onChange({ ...value, targeting })}
         />
       ) : null}

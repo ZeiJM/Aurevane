@@ -1110,6 +1110,82 @@ describe('recorded Battle Log Skill context', () => {
 })
 
 describe('in-battle Skill text', () => {
+  it('names expired Vesper actions from the captured Invocation profile', async () => {
+    const basic = {
+      ...defaultBasicSkills().find((row) => row.id === 'basic.invocation')!,
+      contentVersion: 12,
+    }
+    const source = captureCombatAbilitySource({
+      schemaVersion: 1,
+      sourceInstanceId: 'private-recorded-invocation',
+      ownerCombatantId: ACTOR,
+      abilityId: basic.id,
+      contentVersion: basic.contentVersion,
+      sourceKind: 'basic',
+      tags: basic.tags,
+      definition: basic.ability,
+      basic,
+    })
+    const summonId = 'summon:recorded-vesper'
+    const records = [
+      record({
+        event: 'summon_spawned',
+        combatantId: summonId,
+        ownerCombatantId: ACTOR,
+        sourceSkillId: basic.id,
+        sourceSkillVersion: basic.contentVersion,
+        profileId: 'summon.vesper',
+      }),
+      record(
+        { event: 'combat_action_used', actorId: summonId, actionId: 'summon.vesper.moon-bolt' },
+        1,
+      ),
+      record({ event: 'summon_expired', combatantId: summonId }, 2),
+    ]
+    const resolve = vi.fn(async () => null)
+    const result = await getLog(records, resolve, { capturedAbilitySources: [source] })
+    expect(
+      result.entries.find((entry) => entry.eventType === 'combat_action_used')?.actionContext,
+    ).toMatchObject({
+      name: 'Moon Bolt',
+      battleText: '{actor} sends a small bolt of moonlight toward {target}.',
+      narrator: { actor: { name: 'Vesper' } },
+    })
+    const actions = buildBattleChronicle(result.entries).flatMap((round) =>
+      round.actors.flatMap((actor) => actor.actions),
+    )
+    expect(actions.some((action) => action.title === 'Moon Bolt')).toBe(true)
+    expect(formatBattleLogForClipboard(result.entries)).not.toContain('Summon Vesper Moon Bolt')
+    expect(resolve).not.toHaveBeenCalled()
+    expect(JSON.stringify(result)).not.toMatch(
+      /private-recorded-invocation|sourceInstanceId|behaviors/,
+    )
+    const hidden = await getLog(records, resolve, {
+      hidden: true,
+      capturedAbilitySources: [source],
+    })
+    expect(JSON.stringify(hidden)).not.toMatch(/Vesper|Moon Bolt/)
+    const hiddenSpawn = await getLog(records, resolve, {
+      capturedAbilitySources: [source],
+      eventVisibilityOverrides: [
+        { eventIndex: 0, visibility: { kind: 'team-only', teamId: 'team:a' } },
+      ],
+    })
+    expect(
+      hiddenSpawn.entries.find((entry) => entry.eventType === 'combat_action_used')?.actionContext,
+    ).toBeUndefined()
+    for (const invalid of [
+      [{ ...source, ownerCombatantId: OTHER }],
+      [{ ...source, contentVersion: source.contentVersion + 1 }],
+      [source, { ...source, sourceInstanceId: 'ambiguous-invocation' }],
+      [{ ...source, basic: { ...basic, enabled: false } }],
+    ]) {
+      const unmatched = await getLog(records, resolve, { capturedAbilitySources: invalid })
+      expect(
+        unmatched.entries.find((entry) => entry.eventType === 'combat_action_used')?.actionContext,
+      ).toBeUndefined()
+    }
+  })
   it('uses editable action text separately from the catalogue flavor', async () => {
     const result = await getLog(
       [record({ event: 'combat_action_used', actorId: ACTOR, actionId: SKILL })],

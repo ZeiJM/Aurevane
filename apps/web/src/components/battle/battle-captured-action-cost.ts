@@ -155,7 +155,9 @@ export function battleCapturedActionAttackBlocked(
   behaviorId?: string,
 ): boolean {
   const blocked = (row: BattleCapturedActionTarget) =>
-    (row.endureBlocked === true || row.reversalBlocked === true) &&
+    (row.endureBlocked === true ||
+      row.reversalBlocked === true ||
+      row.usageLimitReached === true) &&
     !(row.controlled?.kind === 'reversal' && row.controlled.canCancel)
   return behaviorId
     ? choices.some((row) => row.behaviorId === behaviorId && blocked(row))

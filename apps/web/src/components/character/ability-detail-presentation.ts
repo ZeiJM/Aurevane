@@ -323,6 +323,9 @@ function effectPresentation(
       basic?.execution.kind === 'basic-move'
         ? 'Move to the chosen Ground within your remaining Movement and Jump.'
         : 'Move to the chosen Ground within this Skill’s Move distance and Jump, independent of ordinary walking.'
+    if (payload.maximumElevation !== undefined)
+      description += ` Move elevation: ${payload.maximumElevation}.`
+    if (payload.requiresLineOfSight) description += ' Requires line of sight to each entered tile.'
   } else if (payload.type === 'damage-bonus') {
     parts = {
       label: 'Damage Up',
@@ -737,18 +740,24 @@ export function abilityBehaviorInformation(
             ? 'Single'
             : skillTargetMethodDescription({ target })
           : 'N/A',
-      'Target Elevation': nativeMove
-        ? options.stats?.jump === undefined
-          ? 'Character Jump stat'
-          : String(options.stats.jump)
-        : target
-          ? skillTargetElevationDescription({ target })
-          : 'N/A',
-      'Line of Sight': nativeMove
-        ? 'Not required'
-        : target
-          ? skillLineOfSightDescription({ target })
-          : 'N/A',
+      'Target Elevation':
+        nativeMove || moveOnly
+          ? move?.type === 'move' && move.maximumElevation !== undefined
+            ? String(move.maximumElevation)
+            : options.stats?.jump === undefined
+              ? 'Character Jump stat'
+              : String(options.stats.jump)
+          : target
+            ? skillTargetElevationDescription({ target })
+            : 'N/A',
+      'Line of Sight':
+        nativeMove || moveOnly
+          ? move?.type === 'move' && move.requiresLineOfSight
+            ? 'Required'
+            : 'Not required'
+          : target
+            ? skillLineOfSightDescription({ target })
+            : 'N/A',
     }),
     effects: effects.map((effect) => effect.presentation),
     effectDescriptions: effects.map((effect) => effect.description),
@@ -756,7 +765,9 @@ export function abilityBehaviorInformation(
       behavior.activationLimits?.map(
         (limit) =>
           ({
-            'once-per-action': 'Once per action',
+            'once-per-action': options.effectContext?.legacyActionUsageLimits
+              ? 'Once per action'
+              : 'Once per battle',
             'once-per-owner-turn': 'Once per owner turn',
             'once-per-round': 'Once per round',
             'once-per-battle': 'Once per battle',

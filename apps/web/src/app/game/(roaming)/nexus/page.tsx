@@ -20,6 +20,7 @@ import { loadCharacterBuildContext } from '@/server/character/character-build-se
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
+import { resolveCurrentSupportActionArtwork } from '@/server/character/current-support-action-artwork'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
@@ -94,12 +95,14 @@ export default async function CharacterNexusPage() {
     character,
     createSupabaseCharacterBuildRepository(),
   )
-  const currentDisciplineSkillsPromise = disciplineBuildPromise.then((disciplineBuild) =>
-    resolveCurrentCharacterSkillDetails(
-      disciplineBuild.disciplineSkills,
-      createServerCombatContentResolver(),
-    ),
-  )
+  const currentDisciplineSkillsPromise = disciplineBuildPromise.then(async (disciplineBuild) => {
+    const contentResolver = createServerCombatContentResolver()
+    const [skills, supportActionArtworkKeys] = await Promise.all([
+      resolveCurrentCharacterSkillDetails(disciplineBuild.disciplineSkills, contentResolver),
+      resolveCurrentSupportActionArtwork(contentResolver),
+    ])
+    return { ...skills, supportActionArtworkKeys }
+  })
 
   const [
     timingPolicyResult,
@@ -184,6 +187,7 @@ export default async function CharacterNexusPage() {
           disciplineNames: disciplineBuild.disciplineNames,
           buildVersion: disciplineBuild.build.buildVersion,
           supportActionId: disciplineBuild.build.supportActionId,
+          supportActionArtworkKeys: currentDisciplineSkills.supportActionArtworkKeys,
           current: disciplineBuild.current,
           currentSecondary: disciplineBuild.currentSecondary,
           availablePrimaries: disciplineBuild.availablePrimaries,

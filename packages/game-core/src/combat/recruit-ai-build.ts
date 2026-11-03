@@ -733,6 +733,7 @@ function canonicalSkillCandidates(
                 move.payload.maximumTiles,
                 profile.maxCandidates,
                 move.requirements != null,
+                move.payload,
               )
             : [undefined]
         return paths.flatMap((movementPath) => {
@@ -893,6 +894,7 @@ function walkingPaths(
   maximumTiles: number,
   limit: number,
   conditional: boolean,
+  rules: { maximumElevation?: number; requiresLineOfSight?: boolean } = {},
 ): (readonly GridPosition[])[] {
   const actorId = state.tactical.battle.currentTurn!.combatantId
   const origin = state.tactical.placements.find((row) => row.combatantId === actorId)!.position
@@ -922,6 +924,8 @@ function walkingPaths(
       const legal = evaluatePreparedCombatWalking(state, next, PV1F_COMBAT_CONTENT, {
         independentAllowance: true,
         maximumTiles,
+        maximumElevation: rules.maximumElevation,
+        requiresLineOfSight: rules.requiresLineOfSight,
         ignorePoisonForecast: true,
       }).movement.legal
       // An ineligible conditional Move may legitimately leave a rooted actor in place.

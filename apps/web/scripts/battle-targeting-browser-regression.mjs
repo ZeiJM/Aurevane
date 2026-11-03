@@ -1031,6 +1031,46 @@ try {
     cases++
     await page.close()
   }
+  for (const width of [1366, 390])
+    for (const kind of ['skill', 'resonance']) {
+      const page = await browser.newPage({
+        viewport: { width, height: 900 },
+        isMobile: width < 821,
+        hasTouch: width < 821,
+      })
+      page.on('pageerror', (error) => errors.push(error.message))
+      await page.goto(server.resolvedUrls.local[0] + `?mode=master-move&author-kind=${kind}`)
+      const range = page.getByRole('group', { name: 'Range & Area', exact: true })
+      await range.getByLabel('Move elevation', { exact: true }).fill('2')
+      await range.getByLabel('Move requires line of sight', { exact: true }).check()
+      let draft = JSON.parse(await page.locator('[data-move-draft]').innerText())
+      assert.equal(draft.ability.behaviors[0].effects[0].payload.maximumElevation, 2)
+      assert.equal(draft.ability.behaviors[0].effects[0].payload.requiresLineOfSight, true)
+      await page.reload()
+      assert.equal(await page.getByLabel('Move elevation', { exact: true }).inputValue(), '2')
+      assert.equal(
+        await page.getByLabel('Move requires line of sight', { exact: true }).isChecked(),
+        true,
+      )
+      await page.getByRole('tab', { name: 'Effects', exact: true }).click()
+      await page.getByLabel('New effect', { exact: true }).selectOption('damage')
+      await page.getByRole('button', { name: 'Add new effect', exact: true }).click()
+      const damage = page
+        .locator('details[data-effect-collapsible]')
+        .filter({ has: page.getByLabel('Target', { exact: true }) })
+      await damage.locator('summary').click()
+      await damage.getByLabel('Target', { exact: true }).selectOption('enemy')
+      await damage.getByLabel('Target', { exact: true }).selectOption('self')
+      draft = JSON.parse(await page.locator('[data-move-draft]').innerText())
+      assert.equal(draft.ability.behaviors[0].effects[1].payload.target, 'self')
+      assert.equal(draft.ability.behaviors[0].effects[1].payload.recipient, 'actor')
+      await page.screenshot({
+        path: resolve(output, `master-${kind}-${width}-move-range.png`),
+        fullPage: true,
+      })
+      cases++
+      await page.close()
+    }
   assert.deepEqual(errors, [])
   await fs.writeFile(
     resolve(output, 'results.json'),

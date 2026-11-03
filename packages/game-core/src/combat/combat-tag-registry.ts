@@ -62,6 +62,9 @@ export type CombatTagPayload =
       readonly type: 'move'
       readonly recipient: 'actor'
       readonly maximumTiles: number
+      /** Omitted captures retain the character's ordinary Jump. */
+      readonly maximumElevation?: number
+      readonly requiresLineOfSight?: boolean
     }
   | {
       readonly type: 'damage-bonus'
@@ -241,11 +244,17 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
   ),
   tag(
     'move',
-    ['maximumTiles'],
+    ['maximumTiles', 'maximumElevation', 'requiresLineOfSight'],
     { maximumTiles: 'tiles' },
     'Move across reachable Ground tiles before the Skill’s other effects. The Skill’s total cost includes this movement; follow-up effects use the position reached.',
     {
-      payloadFields: ['type', 'recipient', 'maximumTiles'],
+      payloadFields: [
+        'type',
+        'recipient',
+        'maximumTiles',
+        'maximumElevation',
+        'requiresLineOfSight',
+      ],
       recipients: ['actor'],
       combinations: [{ activation: 'manual', mode: 'action' }],
       timing: ['instant'],
@@ -543,6 +552,14 @@ export function validateCombatTagPayload(
     }
     if (value.type === 'move') {
       integer(value.maximumTiles, 1, 20, 'Move maximum entered tiles')
+      if (value.maximumElevation !== undefined)
+        integer(value.maximumElevation, 0, 3, 'Move elevation')
+      if (value.requiresLineOfSight !== undefined && typeof value.requiresLineOfSight !== 'boolean')
+        issue(
+          'payload.requiresLineOfSight',
+          'invalid-payload',
+          'Move line of sight must be boolean.',
+        )
       return issues
     }
     if (value.type === 'damage-bonus') {

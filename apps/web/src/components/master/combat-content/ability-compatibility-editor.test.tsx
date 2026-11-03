@@ -26,11 +26,11 @@ function fixture() {
     })),
   }
 }
-it('greys pure Move attack controls while keeping the raw aim and fixed accuracy recoverable', () => {
+it('retains pure Move attack controls while keeping the raw aim and fixed accuracy recoverable', () => {
   const value = fixture(),
     before = JSON.stringify(value)
   const html = renderToStaticMarkup(<AbilityDefinitionEditor value={value} onChange={() => {}} />)
-  expect(html).toMatch(/<fieldset[^>]*aria-label="Range &amp; Area"[^>]*disabled/)
+  expect(html).not.toMatch(/<fieldset[^>]*aria-label="Range &amp; Area"[^>]*disabled/)
   expect(html).toMatch(/aria-label="Accuracy rule"[^>]*disabled/)
   expect(html).toContain('77.77%')
   expect(html).not.toContain('Resolve compatibility before publishing')
@@ -174,4 +174,12 @@ it('authors an independent enemy Requirement aim from a freshly committed pure M
   expect(changed.behaviors[0]!.effects).toEqual(value.behaviors[0]!.effects)
   expect(changed.behaviors[0]!.requirements).toEqual(value.behaviors[0]!.requirements)
   expect(changed.behaviors[0]!.costs).toEqual(value.behaviors[0]!.costs)
+})
+
+it('offers working Move elevation and visibility under Range & Area without enabling attack geometry', () => {
+  const value = fixture()
+  const html = renderToStaticMarkup(<AbilityDefinitionEditor value={value} onChange={() => {}} />)
+  expect(html).toContain('aria-label="Move elevation"')
+  expect(html).toContain('aria-label="Move requires line of sight"')
+  expect(html).not.toMatch(/<fieldset[^>]*aria-label="Range &amp; Area"[^>]*disabled/)
 })

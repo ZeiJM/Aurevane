@@ -1,6 +1,9 @@
 import { combatEndureBlocksAction } from './combat-endure'
 import { combatReversalPayload, combatReversalAttackIssue } from './combat-reversal'
-import { prepareCombatAbilityCommand } from './combat-ability-command'
+import {
+  prepareCombatAbilityCommand,
+  combatAbilityUsageLimitReached,
+} from './combat-ability-command'
 import { combatAbilityCommandContext } from './combat-behavior-runtime'
 import {
   captureCombatRewindAnchors,
@@ -198,6 +201,7 @@ export function combatControlledAbilityAvailability(input: CombatControlledAbili
   const used =
     !combatReversalPayload(behavior) &&
     input.state.effectTimingPolicy?.tagAuthority !== 'global' &&
+    input.state.abilityUsageLimitPolicyVersion !== 1 &&
     input.state.abilityRuntime?.controlled?.used.some(
       (row) => combatControlledAbilityKey(row) === key,
     )
@@ -293,6 +297,8 @@ export function updateCombatControlledAbility(
     throw new TypeError('controlled-cooldown-active')
   if (operation === 'prime' && combatReversalPayload(behavior))
     throw new TypeError('Reversal requires paid Controlled preparation.')
+  if (operation === 'prime' && combatAbilityUsageLimitReached(state, source, behavior))
+    throw new TypeError('controlled-activation-limit-used')
   if (operation === 'prime') {
     const action = materializeCombatAbilityAction(source, behavior, state)
     if (combatEndureBlocksAction(state, input.actorId, action, input.content))
@@ -399,6 +405,7 @@ export function updateCombatControlledAbility(
     operation === 'prime' &&
     (controlled.primes.some((prime) => combatControlledAbilityKey(prime) === key) ||
       (state.effectTimingPolicy?.tagAuthority !== 'global' &&
+        state.abilityUsageLimitPolicyVersion !== 1 &&
         controlled.used.some((used) => combatControlledAbilityKey(used) === key)))
   )
     throw new TypeError('controlled-prime-used')
@@ -416,7 +423,8 @@ export function updateCombatControlledAbility(
               used: [
                 ...controlled.used.filter(
                   (used) =>
-                    state.effectTimingPolicy?.tagAuthority !== 'global' ||
+                    (state.effectTimingPolicy?.tagAuthority !== 'global' &&
+                      state.abilityUsageLimitPolicyVersion !== 1) ||
                     combatControlledAbilityKey(used) !== key,
                 ),
                 {

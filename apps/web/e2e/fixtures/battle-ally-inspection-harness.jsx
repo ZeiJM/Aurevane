@@ -70,6 +70,7 @@ import {
   cancelCombatControlledAbility,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
+  combatAbilityUsageLimitReached,
   prepareCombatAbilityCommand,
   commitCombatAbilityCommand,
 } from '@aurevane/game-core/combat/combat-ability-command'
@@ -128,6 +129,7 @@ function canonicalPublicState(state) {
         ...(source && behavior
           ? {
               ownerCombatantId: source.ownerCombatantId,
+              usageLimitReached: combatAbilityUsageLimitReached(state, source, behavior),
               classification: behavior.classification,
               modifierRoot: combatCanonicalModifierRootFacts(behavior),
               costs: behavior.costs.map((cost) => ({ ...cost })),
@@ -927,9 +929,42 @@ if (canonicalCase) {
       },
     ]
   }
+  if (canonicalCase === 'usage-once') {
+    source.definition.behaviors[0].targeting = {
+      ...target,
+      categories: ['enemy'],
+      maximumSelections: 1,
+    }
+    source.definition.behaviors[0].activationLimits = ['once-per-action']
+    source.definition.behaviors[0].costs = []
+    source.definition.behaviors[0].cooldown = null
+  }
+  if (canonicalCase === 'self-damage') {
+    const behavior = source.definition.behaviors[0]
+    behavior.accuracy = undefined
+    behavior.targeting = {
+      ...target,
+      kind: 'self',
+      categories: ['self'],
+      teamPolicy: 'self',
+      minimumRange: 0,
+      maximumRange: 0,
+      maximumSelections: 1,
+      friendlyFire: 'allies-only',
+    }
+    behavior.effects = [
+      {
+        id: 'self-hit',
+        timing: 'instant',
+        payload: { type: 'damage', recipient: 'actor', target: 'self', amount: 20 },
+      },
+    ]
+  }
   canonicalCapture = captureCombatAbilitySource(source)
   canonicalState = reconcileCombatAbilitySources(initialBattle.snapshot, [canonicalCapture])
   if (canonicalCase === 'all-self') canonicalState.displacementOriginPolicyVersion = 1
+  if (canonicalCase === 'self-damage') canonicalState.selfDamagePolicyVersion = 1
+  if (canonicalCase === 'usage-once') canonicalState.abilityUsageLimitPolicyVersion = 1
   if (canonicalCase === 'controlled-price') {
     // Execution costs 11 AP / 2 MP / 1 HP; the old presentation envelope says 15 AP.
     runtime.techniques[0].apCost = 15
@@ -1700,6 +1735,71 @@ function ResonanceEditorHarness() {
     </main>
   )
 }
+function MoveEditorHarness() {
+  const kind =
+    new URLSearchParams(location.search).get('author-kind') === 'resonance' ? 'resonance' : 'skill'
+  const key = `move-authoring-${kind}`
+  const [value, setValue] = React.useState(() => {
+    const saved = localStorage.getItem(key)
+    if (saved) return JSON.parse(saved)
+    const base =
+      kind === 'resonance'
+        ? resolveResonanceForPair('wildwarden', 'edgedancer')
+        : resolveMatureSkillVersion('vanguard.forceful-strike')
+    const behavior = defaultBasicSkills().find((row) => row.id === 'unarmed.basic').ability
+      .behaviors[0]
+    return {
+      ...base,
+      ability: {
+        schemaVersion: 1,
+        behaviors: [
+          {
+            ...behavior,
+            activation: 'manual',
+            classification: 'utility',
+            attackFamily: undefined,
+            accuracy: undefined,
+            costs: [],
+            cooldown: null,
+            requirements: null,
+            targeting: {
+              ...behavior.targeting,
+              kind: 'self',
+              categories: ['self'],
+              geometryVersion: 3,
+              teamPolicy: 'self',
+              minimumRange: 0,
+              maximumRange: 0,
+              friendlyFire: 'allies-only',
+              requiresLineOfSight: false,
+            },
+            effects: [
+              { id: 'move', payload: { type: 'move', recipient: 'actor', maximumTiles: 3 } },
+            ],
+          },
+        ],
+      },
+    }
+  })
+  const update = (next) => {
+    localStorage.setItem(key, JSON.stringify(next))
+    setValue(next)
+  }
+  return (
+    <main style={{ padding: 24, maxWidth: 900, width: '100%', boxSizing: 'border-box' }}>
+      <ContentDefinitionFields
+        kind={kind}
+        tab="Parameters"
+        initialAbilitySection="range"
+        value={value}
+        onChange={update}
+      />
+      <pre data-move-draft style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {JSON.stringify(value)}
+      </pre>
+    </main>
+  )
+}
 function GroundEditorHarness() {
   const source = resolveMatureSkillVersion('vanguard.forceful-strike')
   const [skill, setSkill] = React.useState(() => ({
@@ -1745,6 +1845,7 @@ if (mode === 'controls')
   fixtureRoot.render(<CombatControlsSettings initialBindings={fixtureControls} />)
 else if (mode === 'master-resonance') fixtureRoot.render(<ResonanceEditorHarness />)
 else if (mode === 'master-ground') fixtureRoot.render(<GroundEditorHarness />)
+else if (mode === 'master-move') fixtureRoot.render(<MoveEditorHarness />)
 else
   fixtureRoot.render(
     <AudioProvider>

@@ -119,3 +119,30 @@ it.each([
     ).toEqual([label])
   },
 )
+
+it('shows saved finalized Invocation artwork in Skill Manager instead of its default icon', () => {
+  const tree = CharacterSkillBuildPanel({
+    supportActionArtworkKeys: {
+      'basic.invocation': 'content-media.00000000-0000-4000-8000-000000000099',
+    },
+    characterId: 'character',
+    initialBuildVersion: 7,
+    initialSupportActionId: 'basic.invocation',
+    primaryDiscipline: { id: 'vanguard', name: 'Vanguard' },
+    secondaryDiscipline: null,
+    initialCapacity: 4,
+    initialLearnedSkills: [],
+    initialEquippedSkills: [],
+    initialResonance: null,
+    initialEssence: null,
+  })
+  const invocation = nodes(tree).find(
+    (row) =>
+      row.type === 'article' &&
+      nodes(row).some((child) => child.props['aria-label'] === 'Invocation'),
+  )!
+  expect(nodes(invocation).find((row) => row.props.width === 160)?.props.src).toBe(
+    '/api/content-media/00000000-0000-4000-8000-000000000099',
+  )
+  expect(nodes(tree).some((row) => row.props.src === '/media/skills/hp-recovery.webp')).toBe(true)
+})

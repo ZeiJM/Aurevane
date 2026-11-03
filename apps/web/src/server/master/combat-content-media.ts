@@ -156,12 +156,30 @@ export async function normalizeContentMedia(
       crop.y + crop.size > height
     )
       invalid('Crop must be a whole-pixel square inside the image.')
-    const bytes = await sharp(oriented.data)
-      .extract({ left: crop.x, top: crop.y, width: crop.size, height: crop.size })
-      .png()
-      .toBuffer()
-    if (bytes.length > CONTENT_MEDIA_MAX_BYTES)
-      invalid('The finalized crop exceeds 2 MiB. Choose a smaller crop.')
+    const cropped = sharp(oriented.data).extract({
+      left: crop.x,
+      top: crop.y,
+      width: crop.size,
+      height: crop.size,
+    })
+    let outputSize = crop.size
+    let bytes = await cropped.clone().png({ compressionLevel: 9 }).toBuffer()
+    // JPEG/WebP can expand substantially as canonical PNG. Preserve the crop and
+    // alpha, reducing output resolution only when lossless compression is insufficient.
+    while (bytes.length > CONTENT_MEDIA_MAX_BYTES && outputSize > 1) {
+      outputSize = Math.max(
+        1,
+        Math.min(
+          outputSize - 1,
+          Math.floor(outputSize * Math.sqrt(CONTENT_MEDIA_MAX_BYTES / bytes.length) * 0.94),
+        ),
+      )
+      bytes = await cropped
+        .clone()
+        .resize(outputSize, outputSize)
+        .png({ compressionLevel: 9 })
+        .toBuffer()
+    }
     return {
       bytes,
       descriptor: {
@@ -169,8 +187,8 @@ export async function normalizeContentMedia(
         contentType: 'image/png',
         byteLength: bytes.length,
         checksum: createHash('sha256').update(bytes).digest('hex'),
-        width: crop.size,
-        height: crop.size,
+        width: outputSize,
+        height: outputSize,
         sourceWidth: width,
         sourceHeight: height,
         crop,

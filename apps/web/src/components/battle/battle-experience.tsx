@@ -2277,6 +2277,8 @@ function BattleExperienceContent({
             maximumTiles: movementMaximum,
             costs: movementCosts,
             independentAllowance: !flatMoveMode,
+            maximumElevation: currentDescriptor.move?.maximumElevation,
+            requiresLineOfSight: currentDescriptor.move?.requiresLineOfSight,
           })
         : new Map<string, BattleGridPosition[]>(),
     [
@@ -2287,6 +2289,8 @@ function BattleExperienceContent({
       movementMaximum,
       movementCosts,
       flatMoveMode,
+      currentDescriptor.move?.maximumElevation,
+      currentDescriptor.move?.requiresLineOfSight,
     ],
   )
   const movementGuideRange = choosingActionMovement

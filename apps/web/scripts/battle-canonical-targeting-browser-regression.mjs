@@ -174,6 +174,13 @@ try {
             'rgba(189, 38, 58, 0.22)',
           )
         }
+        for (const cell of [caster, allEnemy]) {
+          assert.equal(
+            await cell.evaluate((tile) => getComputedStyle(tile).boxShadow),
+            'none',
+            'Damage highlight must not blend with a friendly/selected parent shadow',
+          )
+        }
         await page.screenshot({ path: resolve(output, `${mode}-${width}-all-uniform.png`) })
         await allEnemy.click()
         await page.waitForFunction(() => window.fixtureBattle.battleVersion > 1)
@@ -199,6 +206,58 @@ try {
           { x: 5, y: 3 },
           'Push All repels enemy from original caster position',
         )
+        cases++
+        await page.goto(
+          server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=self-damage`,
+        )
+        await page.getByRole('button', { name: /^Selected Targeting Test,/ }).click()
+        await page.waitForFunction(() =>
+          document.querySelector('#battlefield button[data-attack-path="true"]'),
+        )
+        const selfCell = page.locator('#battlefield button[aria-label^="Tile 4, 4;"]')
+        assert.equal(await page.locator('#battlefield button[data-attack-path="true"]').count(), 1)
+        assert.equal(
+          await selfCell.evaluate((tile) => getComputedStyle(tile, '::after').backgroundColor),
+          'rgba(189, 38, 58, 0.22)',
+        )
+        assert.equal(await selfCell.evaluate((tile) => getComputedStyle(tile).boxShadow), 'none')
+        const selfHp = await page.evaluate(
+          () =>
+            window.fixtureBattle.snapshot.tactical.battle.combatants.find(
+              (unit) => unit.id === 'character:player',
+            ).hp,
+        )
+        await selfCell.click()
+        await page.waitForFunction(() => window.fixtureBattle.battleVersion > 1)
+        assert.ok(
+          await page.evaluate(
+            (before) =>
+              window.fixtureBattle.snapshot.tactical.battle.combatants.find(
+                (unit) => unit.id === 'character:player',
+              ).hp < before,
+            selfHp,
+          ),
+          'Self Damage executes through the canonical command',
+        )
+        await page.screenshot({ path: resolve(output, `${mode}-${width}-self-damage.png`) })
+        cases++
+        await page.goto(
+          server.resolvedUrls.local[0] + `?mode=${mode}&targeting=single&canonical=usage-once`,
+        )
+        const onceButton = page.getByRole('button', { name: /^Selected Targeting Test,/ })
+        assert.equal(await onceButton.isEnabled(), true)
+        await onceButton.click()
+        await page.waitForFunction(() =>
+          document.querySelector('#battlefield button[data-attack-path="true"]'),
+        )
+        await page.locator('#battlefield button[aria-label^="Tile 5, 4;"]').click()
+        await page.waitForFunction(() => window.fixtureBattle.battleVersion > 1)
+        assert.equal(
+          await onceButton.isDisabled(),
+          true,
+          'Once per action disables the cockpit after one battle use without cooldown',
+        )
+        await page.screenshot({ path: resolve(output, `${mode}-${width}-usage-once.png`) })
         cases++
         await page.goto(server.resolvedUrls.local[0] + `?mode=${mode}&canonical=support-fleetstep`)
         await page.locator('button[data-command-slot="guard"]').click()

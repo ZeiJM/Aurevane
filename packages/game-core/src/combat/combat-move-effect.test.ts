@@ -721,3 +721,77 @@ it('permits a reference-free stationary follow-up only when conditional Move is 
     prepareCombatAbilityCommand({ ...required, movementPath: undefined }).evaluation.legal,
   ).toBe(false)
 })
+
+it('uses authored Move elevation for quote and commit without changing ordinary Jump', () => {
+  const command = input([], {
+    accuracy: undefined,
+    effects: [{ ...move, payload: { ...move.payload, maximumElevation: 1 } }],
+    targeting: {
+      kind: 'self',
+      teamPolicy: 'self',
+      shape: { kind: 'single' },
+      minimumRange: 0,
+      maximumRange: 0,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+      friendlyFire: 'allies-only',
+      maximumSelections: 1,
+    },
+  })
+  command.selection = { kind: 'self' } as never
+  command.movementPath = [
+    { x: 1, y: 1 },
+    { x: 1, y: 0 },
+  ]
+  command.state.tactical.tiles = command.state.tactical.tiles.map((tile) =>
+    tile.position.x === 1 && tile.position.y === 0 ? { ...tile, elevation: 1 } : tile,
+  )
+  const before = JSON.stringify(command.state)
+  expect(prepareCombatAbilityCommand(command).evaluation.legal).toBe(true)
+  const out = commitCombatAbilityCommand(command)
+  expect(
+    out.state.tactical.placements.find((row) => row.combatantId === 'actor')!.position,
+  ).toEqual({ x: 1, y: 0 })
+  expect(out.state.tactical.movementProfiles).toEqual(command.state.tactical.movementProfiles)
+  expect(JSON.stringify(command.state)).toBe(before)
+})
+
+it.each([false, true])(
+  'honours authored Move line of sight=%s for a walk around opaque terrain',
+  (requiresLineOfSight) => {
+    const command = input([], {
+      accuracy: undefined,
+      effects: [{ ...move, payload: { ...move.payload, maximumTiles: 4, requiresLineOfSight } }],
+      targeting: {
+        kind: 'self',
+        teamPolicy: 'self',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 0,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'allies-only',
+        maximumSelections: 1,
+      },
+    })
+    command.selection = { kind: 'self' } as never
+    command.movementPath = [
+      { x: 1, y: 1 },
+      { x: 1, y: 0 },
+      { x: 2, y: 0 },
+      { x: 3, y: 0 },
+      { x: 3, y: 1 },
+    ]
+    command.state.tactical.placements = command.state.tactical.placements.map((row) =>
+      row.combatantId === 'enemy' ? { ...row, position: { x: 4, y: 1 } } : row,
+    )
+    command.state.tactical.terrains = [
+      ...command.state.tactical.terrains,
+      { id: 'wall', traversalCost: null },
+    ]
+    command.state.tactical.tiles = command.state.tactical.tiles.map((tile) =>
+      tile.position.x === 2 && tile.position.y === 1 ? { ...tile, terrainId: 'wall' } : tile,
+    )
+    expect(prepareCombatAbilityCommand(command).evaluation.legal).toBe(!requiresLineOfSight)
+  },
+)

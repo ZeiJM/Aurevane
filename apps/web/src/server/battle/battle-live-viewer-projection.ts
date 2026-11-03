@@ -1,3 +1,4 @@
+import { combatAbilityUsageLimitReached } from '@aurevane/game-core/combat/combat-ability-command'
 import { combatAbilityCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import {
   COMBAT_STATUS_TUNING_FIELDS,
@@ -22,6 +23,7 @@ import {
   isFreeOffensiveBasicMove,
 } from '@aurevane/game-core/combat/combat-basic-actions'
 import {
+  combatAbilityBehavior,
   materializeCombatAbilityAction,
   combatManualModifierAvailability,
   combatControlledAbilityAvailability,
@@ -91,6 +93,7 @@ function pendingCovertConcealsInstance(
 
 function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
   return {
+    legacyActionUsageLimits: state.abilityUsageLimitPolicyVersion !== 1,
     legacyTriggers: state.dotTriggerPolicyVersion === undefined,
     legacyPoisonMovement: state.dotTriggerPolicyVersion !== 2,
     groundContactPolicyVersion: state.groundContactPolicyVersion ?? null,
@@ -177,6 +180,15 @@ export function projectBattleManualActionTargets(
                 ? PV1F_BASIC_ATTACK_ID
                 : source.abilityId,
             behaviorId: behavior.id,
+            ...(combatAbilityUsageLimitReached(
+              state,
+              source,
+              isFreeOffensiveBasicMove(source, behavior)
+                ? effectiveBasicSkillBehavior(state, source, behavior)
+                : combatAbilityBehavior(source, behavior.id, state.effectTimingPolicy),
+            )
+              ? { usageLimitReached: true as const }
+              : {}),
             ...(combatEndureBlocksAction(
               state,
               source.ownerCombatantId,
@@ -236,6 +248,12 @@ export function projectBattleManualActionTargets(
               ? {
                   move: {
                     maximumTiles: move.payload.maximumTiles,
+                    ...(move.payload.maximumElevation !== undefined
+                      ? { maximumElevation: move.payload.maximumElevation }
+                      : {}),
+                    ...(move.payload.requiresLineOfSight !== undefined
+                      ? { requiresLineOfSight: move.payload.requiresLineOfSight }
+                      : {}),
                     conditional: move.requirements != null,
                   },
                 }
@@ -345,6 +363,12 @@ export function projectBattleBasicActions(
               ? {
                   move: {
                     maximumTiles: move.payload.maximumTiles,
+                    ...(move.payload.maximumElevation !== undefined
+                      ? { maximumElevation: move.payload.maximumElevation }
+                      : {}),
+                    ...(move.payload.requiresLineOfSight !== undefined
+                      ? { requiresLineOfSight: move.payload.requiresLineOfSight }
+                      : {}),
                     conditional: move.requirements != null,
                   },
                 }
@@ -391,6 +415,12 @@ export function projectBattleBasicActions(
                     }
                   : {}),
                 maximumTiles: native.move!.maximumTiles,
+                ...(native.move!.maximumElevation !== undefined
+                  ? { maximumElevation: native.move!.maximumElevation }
+                  : {}),
+                ...(native.move!.requiresLineOfSight !== undefined
+                  ? { requiresLineOfSight: native.move!.requiresLineOfSight }
+                  : {}),
               },
             }
           : {}),

@@ -9,6 +9,7 @@ import type {
 } from './actions-legacy'
 import { resolveCombatMovementStepEffects } from './actions-legacy'
 import { airborneMovementTactical } from './combat-airborne'
+import { hasCombatTargetLineOfSight } from './combat-targeting-shapes'
 import {
   consumeCommittedCombatMovement,
   type CommittedCombatExecution,
@@ -198,6 +199,8 @@ function forecastPv1fPoisonMovement(
 }
 
 export interface Pv1fMovementQuoteOptions {
+  readonly maximumElevation?: number
+  readonly requiresLineOfSight?: boolean
   readonly independentAllowance?: boolean
   readonly maximumTiles?: number
   /** Captured native Basic Move price; committed attached Move always costs zero here. */
@@ -211,7 +214,7 @@ export function evaluatePreparedCombatWalking(
   content: CombatContentCatalog,
   options: Pv1fMovementQuoteOptions = {},
 ) {
-  const movementTactical = airborneMovementTactical(prepared, content)
+  const movementTactical = airborneMovementTactical(prepared, content, options.maximumElevation)
   let movement = evaluateCurrentMovementPath(
     movementTactical,
     path,
@@ -220,6 +223,34 @@ export function evaluatePreparedCombatWalking(
     prepared.airborneJumpPolicyVersion,
   )
   const modifiers = combatWalkingModifiers(prepared, content)
+  if (
+    options.requiresLineOfSight &&
+    path[0] &&
+    path
+      .slice(1)
+      .some(
+        (position) =>
+          !hasCombatTargetLineOfSight(
+            prepared.tactical,
+            path[0]!,
+            position,
+            prepared.terrainOverlays,
+          ),
+      )
+  ) {
+    movement = {
+      ...movement,
+      legal: false,
+      issues: [
+        ...movement.issues,
+        {
+          code: 'blocked-terrain',
+          stepIndex: null,
+          message: 'Move requires line of sight to each entered tile.',
+        },
+      ],
+    }
+  }
   if (options.maximumTiles !== undefined && path.length - 1 > options.maximumTiles) {
     movement.legal = false
     movement.issues = [
@@ -285,6 +316,8 @@ export function evaluatePreparedCombatWalking(
 }
 
 export interface CombatWalkingExecutionOptions {
+  readonly maximumElevation?: number
+  readonly requiresLineOfSight?: boolean
   readonly independentAllowance?: boolean
   readonly maximumTiles?: number
   /** Captured native Basic Move price; committed attached Move always costs zero here. */
@@ -307,6 +340,8 @@ export function executePreparedCombatWalking(
       path: movementPath,
       maximumTiles: options.maximumTiles!,
       independentAllowance: options.independentAllowance,
+      maximumElevation: options.maximumElevation,
+      requiresLineOfSight: options.requiresLineOfSight,
     })
   const nativeHooks = options.nativeHooks
   let next = prepared
@@ -324,6 +359,11 @@ export function executePreparedCombatWalking(
     if (modifiers.blocked || (options.maximumTiles !== undefined && index > options.maximumTiles))
       break
     const position = movementPath[index]!
+    if (
+      options.requiresLineOfSight &&
+      !hasCombatTargetLineOfSight(next.tactical, movementPath[0]!, position, next.terrainOverlays)
+    )
+      break
     const traversal = movementTraversalCostAt(next.tactical, actorId, position)
     if (traversal === null) break
     const stepCost = options.committed
@@ -344,7 +384,7 @@ export function executePreparedCombatWalking(
       break
     if (
       !evaluateCurrentMovementPath(
-        airborneMovementTactical(next, content),
+        airborneMovementTactical(next, content, options.maximumElevation),
         [movementPath[index - 1]!, position],
         options.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
         next.statBalancePolicyVersion,
@@ -354,7 +394,7 @@ export function executePreparedCombatWalking(
       break
     const beforeStep = next
     const moved = moveCurrentCombatant(
-      airborneMovementTactical(next, content),
+      airborneMovementTactical(next, content, options.maximumElevation),
       [movementPath[index - 1]!, position],
       options.independentAllowance ? 'skill-entered-tiles' : 'entered-tiles',
       next.statBalancePolicyVersion,

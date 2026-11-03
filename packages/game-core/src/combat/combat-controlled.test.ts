@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { parseAbilityDefinition, validateAbilityDefinition } from './combat-definition'
+import {
+  parseAbilityDefinition,
+  validateAbilityDefinition,
+  type AbilityBehavior,
+} from './combat-definition'
 import { source } from './combat-behavior.test-utils'
 import { captureCombatAbilitySource } from './combat-behavior-capture'
 import * as runtime from './combat-behavior-runtime'
@@ -12,10 +16,12 @@ import { validateBattleState } from './battle-state'
 
 function setup(
   cooldown: { key: string; ownerTurns: number } | null = { key: 'controlled-test', ownerTurns: 2 },
+  activationLimits?: AbilityBehavior['activationLimits'],
 ) {
   const captured = captureCombatAbilitySource(
     source({
       cooldown,
+      ...(activationLimits ? { activationLimits } : {}),
       effects: [
         {
           id: 'hit',
@@ -667,3 +673,26 @@ it('derives generic Primed only from a living current Controlled capture through
   }
   expect(runtime.combatAbilitySubject(stale, 'actor')!.primeAbilityIds).toEqual([])
 })
+
+it.each([false, true])(
+  'uses only authored limits for current Controlled action reuse (limited=%s)',
+  (limited) => {
+    const { state, captured } = setup(null, limited ? ['once-per-action'] : [])
+    const base = { ...state, abilityUsageLimitPolicyVersion: 1 as const }
+    const primed = prime(base).state
+    const used = commitCombatAbilityCommand(command(primed, captured)).state
+    const availability = runtime.combatControlledAbilityAvailability({
+      state: used,
+      actorId: 'actor',
+      sourceInstanceId: captured.sourceInstanceId,
+      behaviorId: 'strike',
+    })
+    expect(availability?.canPrime).toBe(!limited)
+    if (limited) expect(() => prime(used)).toThrow('controlled-activation-limit-used')
+    else {
+      const next = prime(JSON.parse(JSON.stringify(used))).state
+      expect(prepareCombatAbilityCommand(command(next, captured)).evaluation.legal).toBe(true)
+      expect(validateCombatAbilityState(next)).toEqual([])
+    }
+  },
+)

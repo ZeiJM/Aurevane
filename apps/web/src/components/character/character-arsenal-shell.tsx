@@ -335,7 +335,10 @@ export function CharacterArsenalShell({
               </header>
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
-                  src={battleSkillArtwork(supportActionId)}
+                  src={battleSkillArtwork(
+                    supportActionId,
+                    disciplineBuild.supportActionArtworkKeys?.[supportActionId],
+                  )}
                   width={160}
                   height={160}
                   unoptimized
@@ -354,6 +357,7 @@ export function CharacterArsenalShell({
             initialBuildVersion={disciplineBuild.buildVersion}
             disciplineNames={disciplineBuild.disciplineNames}
             initialSupportActionId={supportActionId}
+            supportActionArtworkKeys={disciplineBuild.supportActionArtworkKeys}
             primaryDiscipline={{
               id: disciplineBuild.current.definition.id,
               name: disciplineBuild.current.definition.name,

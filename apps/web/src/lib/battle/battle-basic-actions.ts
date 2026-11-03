@@ -12,7 +12,12 @@ export interface BattleBasicBehaviorPresentation extends BattleAbilityBehaviorRe
   readonly costs: AbilityBehavior['costs']
   readonly cooldown: AbilityBehavior['cooldown']
   readonly target: CombatTargetSpec
-  readonly move?: { readonly maximumTiles: number; readonly conditional: boolean }
+  readonly move?: {
+    readonly maximumTiles: number
+    readonly conditional: boolean
+    readonly maximumElevation?: number
+    readonly requiresLineOfSight?: boolean
+  }
 }
 export interface BattleBasicActionPresentation {
   readonly ownerCombatantId: string
@@ -27,6 +32,8 @@ export interface BattleBasicActionPresentation {
     readonly costBasis: 'flat' | 'per-terrain-point'
     readonly apPerTraversalPoint?: number
     readonly maximumTiles: number
+    readonly maximumElevation?: number
+    readonly requiresLineOfSight?: boolean
   }
   readonly behaviors: readonly BattleBasicBehaviorPresentation[]
 }
