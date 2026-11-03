@@ -361,7 +361,7 @@ export function SkillEffectListEditor({
           const reversalIssue = authoredReversalCombinationIssue(value, payload?.type)
           if (reversalIssue) return reversalIssue
           if (maxEffects === undefined) return undefined
-          if (!payload || ['move', 'summon', 'damage-bonus'].includes(payload.type))
+          if (!payload || ['stat-bonus', 'move', 'summon', 'damage-bonus'].includes(payload.type))
             return undefined
           const proposed = reconcileAuthoredEffectDependencies(value, [
             ...value,

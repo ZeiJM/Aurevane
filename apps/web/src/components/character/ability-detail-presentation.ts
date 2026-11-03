@@ -1,3 +1,4 @@
+import { COMBAT_BONUS_STAT_LABELS } from '@aurevane/game-core/combat/combat-stat-bonuses'
 import { effectExplanationIdentity } from './effect-explanation-identity'
 import {
   currentGroundBehaviorPresentation,
@@ -332,13 +333,25 @@ function effectPresentation(
     if (payload.maximumElevation !== undefined)
       description += ` Move elevation: ${payload.maximumElevation}.`
     if (payload.requiresLineOfSight) description += ' Requires line of sight to each entered tile.'
+  } else if (payload.type === 'stat-bonus') {
+    parts = {
+      label: COMBAT_BONUS_STAT_LABELS[payload.stat],
+      magnitude: `+${payload.amount}`,
+      duration: null,
+    }
+    description =
+      payload.stat === 'movement'
+        ? 'Adds Movement at each own-turn start while Requirements hold; AP and terrain costs still apply.'
+        : `Adds ${payload.amount} to ${COMBAT_BONUS_STAT_LABELS[payload.stat]} while Requirements hold.`
   } else if (payload.type === 'damage-bonus') {
     parts = {
       label: 'Damage Up',
       magnitude: `${(payload.multiplierBasisPoints - 10000) / 100}%`,
       duration: null,
     }
-    description = 'Increase damage dealt.'
+    description = payload.elementFilter
+      ? `Increase direct ${payload.elementFilter[0]!.toUpperCase() + payload.elementFilter.slice(1)} damage dealt.`
+      : 'Increase damage dealt.'
   } else if (payload.type === 'summon') {
     parts = {
       label: 'Summon',
@@ -517,6 +530,7 @@ export function abilityBehaviorInformation(
     ...options.effectContext,
     skillEffects: behavior.effects.flatMap(({ payload }) =>
       payload.type === 'move' ||
+      payload.type === 'stat-bonus' ||
       payload.type === 'damage-bonus' ||
       payload.type === 'summon' ||
       payload.type === 'reversal'
@@ -770,8 +784,11 @@ export function abilityBehaviorInformation(
     }),
     effects: effects.map((effect): AbilityEffectPresentation => effect.presentation),
     effectDescriptions: effects.map((effect) => effect.description),
-    limits:
-      behavior.activationLimits?.map(
+    limits: [
+      ...(behavior.maximumUsesPerBattle === undefined
+        ? []
+        : [`${behavior.maximumUsesPerBattle} uses per battle`]),
+      ...(behavior.activationLimits?.map(
         (limit) =>
           ({
             'once-per-action': options.effectContext?.legacyActionUsageLimits
@@ -781,6 +798,7 @@ export function abilityBehaviorInformation(
             'once-per-round': 'Once per round',
             'once-per-battle': 'Once per battle',
           })[limit],
-      ) ?? [],
+      ) ?? []),
+    ],
   }
 }

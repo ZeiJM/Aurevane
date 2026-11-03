@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile } from './combat-stat-bonuses'
 import { hasConfiguredRevealed } from './combat-status-tuning'
 import { outgoingSuppressionBasisPoints, scaleSuppressedDirectDamage } from './combat-suppress'
 import { terrainAdjustedDefense, terrainEvasionBonusBasisPoints } from './combat-stat-balance'
@@ -463,9 +464,7 @@ export function getStatDrivenCombatProfile(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
 ): StatDrivenCombatProfile {
-  const profile = state.statBridge.combatants.find(
-    (candidate) => candidate.combatantId === combatantId,
-  )
+  const profile = effectiveCombatStatProfile(state, combatantId)
   if (!profile) {
     throw new Error(`Missing stat-driven combat profile for ${combatantId}.`)
   }

@@ -12,7 +12,11 @@ import { createDefaultCombatEffect } from './skill-effect-list-editor'
 import { SkillEffectEditor } from './skill-effect-editor'
 import { currentTagForAuthoring } from '@/lib/combat-current-tag-authoring'
 import { SummonProfileEditor } from './summon-profile-editor'
-import { AbilityNumber } from './ability-editor-fields'
+import {
+  COMBAT_BONUS_STATS,
+  COMBAT_BONUS_STAT_LABELS,
+} from '@aurevane/game-core/combat/combat-stat-bonuses'
+import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import { EffectTargetEditor } from './effect-target-editor'
 import { withAuthoredEffectTarget } from '@aurevane/game-core/combat/combat-effect-target-authoring'
 import styles from './combat-content-editor.module.css'
@@ -21,6 +25,7 @@ import styles from './combat-content-editor.module.css'
 export function defaultAbilityPayload(
   type: CombatTagPayload['type'] | 'conditional-cleanse',
 ): CombatTagPayload {
+  if (type === 'stat-bonus') return { type, recipient: 'actor', stat: 'movement', amount: 1 }
   if (type === 'move') return { type, recipient: 'actor', maximumTiles: 1 }
   if (type === 'damage-bonus') return { type, recipient: 'actor', multiplierBasisPoints: 11250 }
   if (type === 'pierce')
@@ -63,17 +68,55 @@ export function AbilityEffectEditor({
         />
       </>
     )
+  } else if (payload.type === 'stat-bonus') {
+    controls = (
+      <>
+        <AbilitySelect
+          label="Stat"
+          value={payload.stat}
+          options={COMBAT_BONUS_STATS}
+          optionLabels={COMBAT_BONUS_STAT_LABELS}
+          onChange={(stat) => update({ ...payload, stat })}
+        />
+        <AbilityNumber
+          label="Flat stat bonus"
+          value={payload.amount}
+          min={1}
+          max={Number.MAX_SAFE_INTEGER}
+          onChange={(amount) => update({ ...payload, amount })}
+        />
+      </>
+    )
   } else if (payload.type === 'damage-bonus') {
     controls = (
-      <AbilityNumber
-        label="Damage Up (%)"
-        value={(payload.multiplierBasisPoints - 10000) / 100}
-        max={CURRENT_EFFECT_PERCENT_MAXIMUM}
-        step={0.01}
-        onChange={(percent) =>
-          update({ ...payload, multiplierBasisPoints: 10000 + Math.round(percent * 100) })
-        }
-      />
+      <>
+        <AbilityNumber
+          label="Damage Up (%)"
+          value={(payload.multiplierBasisPoints - 10000) / 100}
+          max={CURRENT_EFFECT_PERCENT_MAXIMUM}
+          step={0.01}
+          onChange={(percent) =>
+            update({ ...payload, multiplierBasisPoints: 10000 + Math.round(percent * 100) })
+          }
+        />
+        <AbilitySelect
+          label="Direct damage element"
+          value={payload.elementFilter ?? ''}
+          options={['', 'fire', 'water', 'ice', 'storm'] as const}
+          optionLabels={{
+            '': 'All elements',
+            fire: 'Fire',
+            water: 'Water',
+            ice: 'Ice',
+            storm: 'Storm',
+          }}
+          onChange={(elementFilter) => {
+            const { elementFilter: _previous, ...base } = payload
+            void _previous
+            update(elementFilter ? { ...base, elementFilter } : base)
+          }}
+        />
+      </>
     )
   } else if (payload.type === 'summon') {
     controls = (
@@ -138,7 +181,9 @@ export function AbilityEffectEditor({
   }
   return (
     <div className={styles.effectParameters}>
-      {!['weak-point', 'spike', 'ruin', 'endure', 'reversal'].includes(payload.type) ? (
+      {!['stat-bonus', 'weak-point', 'spike', 'ruin', 'endure', 'reversal'].includes(
+        payload.type,
+      ) ? (
         <EffectTargetEditor
           value={payload}
           aim={behavior?.targeting ?? undefined}

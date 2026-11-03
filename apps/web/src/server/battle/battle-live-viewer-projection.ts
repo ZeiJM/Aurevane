@@ -1,4 +1,8 @@
-import { combatAbilityUsageLimitReached } from '@aurevane/game-core/combat/combat-ability-command'
+import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import {
+  combatAbilityUsageLimitReached,
+  combatAbilityRemainingUses,
+} from '@aurevane/game-core/combat/combat-ability-command'
 import { combatAbilityCooldown } from '@aurevane/game-core/combat/skill-cooldowns'
 import {
   COMBAT_STATUS_TUNING_FIELDS,
@@ -181,6 +185,12 @@ export function projectBattleManualActionTargets(
                 ? PV1F_BASIC_ATTACK_ID
                 : source.abilityId,
             behaviorId: behavior.id,
+            ...(behavior.maximumUsesPerBattle === undefined
+              ? {}
+              : {
+                  maximumUsesPerBattle: behavior.maximumUsesPerBattle,
+                  remainingUses: combatAbilityRemainingUses(state, source, behavior)!,
+                }),
             ...(combatAbilityUsageLimitReached(
               state,
               source,
@@ -325,7 +335,8 @@ export function projectBattleBasicActions(
       const owner = state.tactical.battle.combatants.find(
         (unit) => unit.id === source.ownerCombatantId,
       )!
-      const profile = state.statBridge.combatants.find(
+      const profile = effectiveCombatStatProfile(state, source.ownerCombatantId)!
+      const rawProfile = state.statBridge.combatants.find(
         (row) => row.combatantId === source.ownerCombatantId,
       )!
       const behaviors = source.definition.behaviors
@@ -341,11 +352,14 @@ export function projectBattleBasicActions(
               timingPolicy: state.effectTimingPolicy ?? null,
               effectContext: capturedAbilityEffectContext(state),
               stats: {
-                move: owner.baseMovementBudget,
+                move:
+                  state.tactical.battle.currentTurn?.combatantId === owner.id
+                    ? state.tactical.battle.currentTurn.movementMaximum
+                    : owner.baseMovementBudget,
                 jump: airborneJump(
                   state,
                   source.ownerCombatantId,
-                  profile.jump,
+                  rawProfile.jump,
                   PV1F_COMBAT_CONTENT,
                 ),
                 physicalPower: profile.physicalPower,

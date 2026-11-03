@@ -1,3 +1,4 @@
+import { captureCombatTurnMovementBonus } from './combat-stat-bonuses'
 import { PV1F_TURN_ACTIVITY_RESOURCE_KEY } from './pv1f-turn-activity'
 import type { CombatEncounterState, CombatResolutionTransition } from './actions-legacy'
 import { advanceSkillCooldownsAtOwnerTurnStart } from './skill-cooldowns'
@@ -13,7 +14,8 @@ export function prepareNativePv1fTurn<T extends CombatEncounterState>(
   const turn = battle.currentTurn
   if (battle.lifecycle !== 'active' || !turn) return { state, events: [] }
 
-  const actor = battle.combatants.find((unit) => unit.id === turn.combatantId)!
+  const actorId = turn.combatantId
+  const actor = battle.combatants.find((unit) => unit.id === actorId)!
   const marker = actor.temporaryResources.find(
     (resource) => resource.key === PV1F_ACTION_ECONOMY_TURN_KEY,
   )
@@ -28,7 +30,7 @@ export function prepareNativePv1fTurn<T extends CombatEncounterState>(
       unit.temporaryResources.some((resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY),
     )
   )
-    return { state, events: [] }
+    return { state: captureCombatTurnMovementBonus(state), events: [] }
   const placement = state.tactical.placements.find((unit) => unit.combatantId === actor.id)!
   state = {
     ...state,
@@ -62,7 +64,7 @@ export function prepareNativePv1fTurn<T extends CombatEncounterState>(
   ])
 
   return {
-    state: {
+    state: captureCombatTurnMovementBonus({
       ...state,
       tactical: {
         ...state.tactical,
@@ -76,7 +78,7 @@ export function prepareNativePv1fTurn<T extends CombatEncounterState>(
           currentTurn: { ...turn, actionState: 'ready' },
         },
       },
-    },
+    }),
     events: cooldownTransition.events,
   }
 }

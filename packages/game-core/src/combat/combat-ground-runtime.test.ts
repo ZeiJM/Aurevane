@@ -1,3 +1,4 @@
+import { spawnCombatSummon, removeCombatSummon } from './combat-summons'
 import { commitCombatAbilityCommand } from './combat-ability-command'
 import { combatAbilityCommandContext } from './combat-behavior-runtime'
 import { finishPv1fTurn } from './pv1f-action-economy'
@@ -26,7 +27,10 @@ import {
   readPv1fActionEconomy,
   PV1F_COMBAT_CONTENT,
 } from './pv1f-action-economy'
-import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
+import {
+  createCurrentStatDrivenCombatEncounterState,
+  type StatDrivenCombatEncounterState,
+} from './stat-driven-combat'
 import { resolveMatureSkillVersion, toCombatActionDefinition } from './mature-skills'
 import { applyCurrentBurnState, applyCurrentPoisonState } from './combat-dots'
 import { grantBarrier } from './combat-barrier'
@@ -1209,4 +1213,181 @@ it('keeps mixed persistent Ground/unit entry effects independent for an Airborne
   const result = move(state, path)
   expect(hp(result.state)).toBe(hp(state) - 7)
   expect(groundDamage(result.events)).toHaveLength(1)
+})
+
+it('captures effective passive caster stats once and retains them after reload and departure', () => {
+  const bonus = {
+    ...source({
+      activation: 'ongoing',
+      mode: 'modifier',
+      classification: 'utility',
+      attackFamily: undefined,
+      costs: [],
+      targeting: null,
+      effects: [
+        {
+          id: 'power',
+          payload: {
+            type: 'stat-bonus' as const,
+            recipient: 'actor' as const,
+            stat: 'physical-power' as const,
+            amount: 30,
+          },
+        },
+      ],
+    }),
+    ownerCombatantId: 'enemy',
+  }
+  const active = reconcileCombatAbilitySources(encounter(), [
+    bonus,
+  ]) as StatDrivenCombatEncounterState
+  const state = seedArea(active)
+  expect(state.groundAreas![0]!.caster.statProfile!.physicalPower).toBe(50)
+  expect(
+    state.statBridge.combatants.find((row) => row.combatantId === 'enemy')!.physicalPower,
+  ).toBe(20)
+  const restored = reconcileCombatAbilitySources(JSON.parse(JSON.stringify(state)), [bonus])
+  expect(restored.groundAreas![0]!.caster.statProfile!.physicalPower).toBe(50)
+  const detached = reconcileCombatAbilitySources(restored, [])
+  expect(detached.groundAreas![0]!.caster.statProfile!.physicalPower).toBe(50)
+})
+
+it.each(['active', 'source-removed', 'defeated'] as const)(
+  'keeps exactly one cast-time passive Power contribution in Ground damage with %s caster',
+  (condition) => {
+    const bonus = source({
+      activation: 'ongoing',
+      mode: 'modifier',
+      classification: 'utility',
+      attackFamily: undefined,
+      costs: [],
+      targeting: null,
+      effects: [
+        {
+          id: 'power',
+          payload: { type: 'stat-bonus', recipient: 'actor', stat: 'physical-power', amount: 30 },
+        },
+      ],
+    })
+    let state = reconcileCombatAbilitySources(encounter(), [
+      bonus,
+    ]) as StatDrivenCombatEncounterState
+    const action: CombatActionDefinition = {
+      ...groundAction(10),
+      effects: [
+        {
+          type: 'damage',
+          recipient: 'affected-units',
+          amount: 10,
+          scaling: { source: 'physical-power', coefficientBasisPoints: 10000 },
+        },
+      ],
+    }
+    state = executeCombatAction(state, action, { kind: 'tile', position: { x: 2, y: 1 } }, content)
+      .state as StatDrivenCombatEncounterState
+    expect(state.groundAreas![0]!.entryEffects[0]).toMatchObject({ amount: 60 })
+    expect(state.groundAreas![0]!.caster.statProfile!.physicalPower).toBe(50)
+    state = JSON.parse(JSON.stringify(state))
+    if (condition === 'source-removed')
+      state = reconcileCombatAbilitySources(state, []) as StatDrivenCombatEncounterState
+    if (condition === 'defeated')
+      state = surrenderPvpCombatant(state, 'actor').state as StatDrivenCombatEncounterState
+    if (state.tactical.battle.currentTurn?.combatantId === 'actor')
+      state = finishPv1fTurn(state, 'east').state
+    expect(state.tactical.battle.currentTurn?.combatantId).toBe('enemy')
+    const result = move(state, [
+      { x: 4, y: 3 },
+      { x: 3, y: 3 },
+      { x: 2, y: 3 },
+      { x: 2, y: 2 },
+      { x: 2, y: 1 },
+    ])
+    expect(groundDamage(result.events)).toEqual([
+      expect.objectContaining({ amount: 60, targetCombatantId: 'enemy' }),
+    ])
+  },
+)
+
+it('retains frozen passive Power after the actual Ground caster summon departs and reloads', () => {
+  const profile = resolveMatureSkillVersion('wildwarden.renewing-herbs', 6)!.summonProfile!
+  const base = encounter()
+  const current = createCurrentStatDrivenCombatEncounterState(
+    base,
+    base.statBridge.combatants.map((row) => ({
+      ...row,
+      level: 1,
+      criticalChance: 0,
+      physicalPower: 20,
+      mysticPower: 20,
+    })),
+  )
+  let state = spawnCombatSummon(
+    { ...current, groundContactPolicyVersion: 1 },
+    {
+      ownerCombatantId: 'actor',
+      sourceSkillId: 'wildwarden.renewing-herbs',
+      sourceSkillVersion: 6,
+      profile,
+      position: { x: 0, y: 1 },
+      facing: 'east',
+    },
+  ).state
+  const summonId = state.effectState!.summons![0]!.combatantId
+  const rawPower = state.statBridge.combatants.find(
+    (row) => row.combatantId === summonId,
+  )!.physicalPower!
+  const bonus = {
+    ...source({
+      activation: 'ongoing',
+      mode: 'modifier',
+      classification: 'utility',
+      attackFamily: undefined,
+      costs: [],
+      targeting: null,
+      effects: [
+        {
+          id: 'power',
+          payload: { type: 'stat-bonus', recipient: 'actor', stat: 'physical-power', amount: 30 },
+        },
+      ],
+    }),
+    ownerCombatantId: summonId,
+  }
+  state = reconcileCombatAbilitySources(state, [bonus]) as StatDrivenCombatEncounterState
+  for (let i = 0; i < 10 && state.tactical.battle.currentTurn?.combatantId !== summonId; i++)
+    state = finishPv1fTurn(state, 'east').state
+  expect(state.tactical.battle.currentTurn?.combatantId).toBe(summonId)
+  const action: CombatActionDefinition = {
+    ...groundAction(10),
+    effects: [
+      {
+        type: 'damage',
+        recipient: 'affected-units',
+        amount: 10,
+        scaling: { source: 'physical-power', coefficientBasisPoints: 10000 },
+      },
+    ],
+  }
+  state = executeCombatAction(state, action, { kind: 'tile', position: { x: 2, y: 1 } }, content)
+    .state as StatDrivenCombatEncounterState
+  const expected = 10 + rawPower + 30
+  expect(state.groundAreas![0]!.entryEffects[0]).toMatchObject({ amount: expected })
+  state = finishPv1fTurn(state, 'east').state
+  state = removeCombatSummon(state, summonId, 'expired').state
+  state = JSON.parse(JSON.stringify(state))
+  for (let i = 0; i < 10 && state.tactical.battle.currentTurn?.combatantId !== 'enemy'; i++)
+    state = finishPv1fTurn(state, 'east').state
+  expect(state.tactical.battle.currentTurn?.combatantId).toBe('enemy')
+  const result = move(state, [
+    { x: 4, y: 3 },
+    { x: 3, y: 3 },
+    { x: 2, y: 3 },
+    { x: 2, y: 2 },
+    { x: 2, y: 1 },
+  ])
+  expect(groundDamage(result.events)).toEqual([
+    expect.objectContaining({ amount: expected, targetCombatantId: 'enemy' }),
+  ])
+  expect(result.state.tactical.battle.combatants.some((row) => row.id === summonId)).toBe(false)
+  expect(result.state.statBridge.combatants.some((row) => row.combatantId === summonId)).toBe(false)
 })

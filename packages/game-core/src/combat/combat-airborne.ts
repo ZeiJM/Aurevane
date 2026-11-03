@@ -1,3 +1,4 @@
+import { combatStatBonus } from './combat-stat-bonuses'
 import { effectUsesGroundDelivery } from './combat-effect-delivery'
 import type {
   CombatActionDefinition,
@@ -8,8 +9,12 @@ import type {
 import { hasGameplayTag } from './gameplay-tags'
 import type { TacticalBattleState } from './board'
 
-export const AIRBORNE_JUMP = 3
-export const AIRBORNE_ATTACK_TARGET_ELEVATION = 3
+import { AIRBORNE_JUMP, AIRBORNE_ATTACK_TARGET_ELEVATION } from './combat-airborne-description'
+export {
+  AIRBORNE_JUMP,
+  AIRBORNE_ATTACK_TARGET_ELEVATION,
+  airborneDescription,
+} from './combat-airborne-description'
 
 type AirborneMovementState = Pick<
   CombatEncounterState,
@@ -23,10 +28,14 @@ export function airborneJump(
   baseJump: number,
   content: CombatContentCatalog,
 ): number {
+  const bonus =
+    'capturedAbilitySources' in state && 'tactical' in state
+      ? combatStatBonus(state as CombatEncounterState, actorId, 'jump')
+      : 0
   return state.airborneJumpPolicyVersion === 1 &&
     hasGameplayTag(state, actorId, 'Airborne', content)
     ? AIRBORNE_JUMP
-    : baseJump
+    : baseJump + bonus
 }
 
 export function airborneMovementTactical<
@@ -53,12 +62,6 @@ export function airborneMovementTactical<
       row.id === profile.id ? { ...row, maxElevationStep: jump! } : row,
     ),
   }
-}
-
-export function airborneDescription(legacyAirborne = false, legacyJump = false): string {
-  if (legacyAirborne)
-    return 'Ignore the Frozen Ground AP surcharge. Board bounds, elevation, obstacles, occupancy, Rooted and Movement allowance still apply.'
-  return `Ground-targeted Skills always miss you (100% evasion), including area activations. ${legacyJump ? '' : `Your Jump is ${AIRBORNE_JUMP} while Airborne is active. `}Your Attack Skills have Target Elevation ${AIRBORNE_ATTACK_TARGET_ELEVATION} while Airborne is active. Ignore the Frozen Ground AP surcharge; board bounds, movement elevation, obstacles, occupancy, Rooted, Slow and Movement allowance still apply.`
 }
 
 export function airborneGroundMiss(

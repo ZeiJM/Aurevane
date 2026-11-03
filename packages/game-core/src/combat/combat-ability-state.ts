@@ -72,19 +72,23 @@ export function validateCombatAbilityState(
     )
   if (!Array.isArray(runtime.usage) || !Array.isArray(runtime.maintained))
     issue('abilityRuntime', 'Invalid private usage/maintenance inventory.')
-  const knownUsage = new Set(
+  const knownUsage = new Map(
     validCaptures.flatMap((source) =>
       source.definition.behaviors
         .filter((behavior) => behavior.activation !== 'ongoing')
-        .map((behavior) =>
-          JSON.stringify([
-            state.tactical.battle.battleId,
-            source.sourceInstanceId,
-            source.ownerCombatantId,
-            source.abilityId,
-            source.contentVersion,
-            behavior.id,
-          ]),
+        .map(
+          (behavior) =>
+            [
+              JSON.stringify([
+                state.tactical.battle.battleId,
+                source.sourceInstanceId,
+                source.ownerCombatantId,
+                source.abilityId,
+                source.contentVersion,
+                behavior.id,
+              ]),
+              behavior.maximumUsesPerBattle,
+            ] as const,
         ),
     ),
   )
@@ -101,6 +105,7 @@ export function validateCombatAbilityState(
           (key) =>
             ![
               'key',
+              'usageCount',
               'rootActionId',
               'pendingRootActionIds',
               'commandId',
@@ -109,6 +114,10 @@ export function validateCombatAbilityState(
               'battleId',
             ].includes(key),
         ) ||
+        (row.usageCount !== undefined &&
+          (!Number.isSafeInteger(row.usageCount) ||
+            row.usageCount < 1 ||
+            row.usageCount > (knownUsage.get(row.key) ?? Number.MAX_SAFE_INTEGER))) ||
         !knownUsage.has(row.key) ||
         seenUsage.has(row.key) ||
         typeof row.rootActionId !== 'string' ||

@@ -44,7 +44,7 @@ export function validateCombatEffectTarget(
     throw new TypeError('Empty Tile effects require an empty shared aim.')
   if (!COMBAT_EFFECT_TARGETS.includes(effect.target as CombatEffectTarget))
     throw new TypeError('Unknown effect target.')
-  if (['move', 'damage-bonus', 'endure', 'reversal'].includes(effect.type)) {
+  if (['stat-bonus', 'move', 'damage-bonus', 'endure', 'reversal'].includes(effect.type)) {
     if (effect.target !== 'self' || effect.recipient !== 'actor')
       throw new TypeError('This effect supports only the Self target.')
     return

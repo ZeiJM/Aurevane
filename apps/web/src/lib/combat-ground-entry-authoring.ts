@@ -183,12 +183,12 @@ export function withCurrentAbilityGroundArea(
     if (next.groundArea !== undefined && !supportedGroundProfile(next.groundArea, 'entryEffectIds'))
       return next
     const entries = next.effects.filter(
-      (effect) => !['move', 'summon', 'damage-bonus'].includes(effect.payload.type),
+      (effect) => !['stat-bonus', 'move', 'summon', 'damage-bonus'].includes(effect.payload.type),
     )
     const effects = entries.map((effect) => nativeCombatTagPayload(effect.payload))
     const target = canonicalAbilityTargetSpec(next.targeting)
     const previousEntries = previous.effects.filter(
-      (effect) => !['move', 'summon', 'damage-bonus'].includes(effect.payload.type),
+      (effect) => !['stat-bonus', 'move', 'summon', 'damage-bonus'].includes(effect.payload.type),
     )
     const previousTarget = previous.targeting
       ? canonicalAbilityTargetSpec(previous.targeting)

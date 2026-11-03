@@ -51,6 +51,9 @@ export type BattlePreviewSkill = Pick<
   endureBlocked?: boolean
   reversalBlocked?: boolean
   usageLimitReached?: boolean
+  /** Present only in the controlling owner’s projection for an explicitly bounded action. */
+  maximumUsesPerBattle?: number
+  remainingUses?: number
   hasAllTargetEffects?: boolean
   modifierRoot?: CombatModifierRootFacts
   controlled?: BattleControlledActionAvailability
@@ -76,6 +79,9 @@ export interface BattleCapturedActionTarget {
   endureBlocked?: boolean
   reversalBlocked?: boolean
   usageLimitReached?: boolean
+  /** Present only in the controlling owner’s projection for an explicitly bounded action. */
+  maximumUsesPerBattle?: number
+  remainingUses?: number
   hasAllTargetEffects?: boolean
   modifierRoot?: CombatModifierRootFacts
   controlled?: BattleControlledActionAvailability
@@ -145,6 +151,9 @@ export function resolveBattleCapturedSkill(
     endureBlocked: choice.endureBlocked,
     reversalBlocked: choice.reversalBlocked,
     usageLimitReached: choice.usageLimitReached,
+    ...(choice.maximumUsesPerBattle === undefined
+      ? {}
+      : { maximumUsesPerBattle: choice.maximumUsesPerBattle, remainingUses: choice.remainingUses }),
     hasAllTargetEffects: choice.hasAllTargetEffects,
     modifierRoot: choice.modifierRoot,
     controlled: choice.controlled,

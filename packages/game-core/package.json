@@ -112,7 +112,8 @@
     "./combat/pv1f-combat-content": "./src/combat/pv1f-combat-content.ts",
     "./combat/combat-reversal": "./src/combat/combat-reversal.ts",
     "./content/items": "./src/content/items.ts",
-    "./character/item-inventory": "./src/character/item-inventory.ts"
+    "./character/item-inventory": "./src/character/item-inventory.ts",
+    "./combat/combat-stat-bonuses": "./src/combat/combat-stat-bonuses.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

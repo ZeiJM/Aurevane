@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile, combatStatBonus } from './combat-stat-bonuses'
 import { validateSummonPotencyState } from './combat-summon-potency'
 import {
   prepareCombatRuinCommand,
@@ -1252,7 +1253,8 @@ export function synchronizeCombatInitiative<T extends CombatEncounterState>(stat
         ?.statuses.filter(
           (status) => status.statusId === 'wet' && status.timingState !== 'pending',
         ) ?? []
-    if (!wet.length) return []
+    const bonus = combatStatBonus(state, unit.id, 'initiative')
+    if (!wet.length) return bonus ? [{ combatantId: unit.id, amount: bonus }] : []
     const tempo =
       battle.roundInitiativeModifiers?.find((row) => row.combatantId === unit.id)?.amount ?? 0
     if (
@@ -1264,7 +1266,9 @@ export function synchronizeCombatInitiative<T extends CombatEncounterState>(stat
       return [
         {
           combatantId: unit.id,
-          amount: -Math.ceil((unit.initiative + tempo) / DRENCHED_INITIATIVE_APPLICATION_LIMIT),
+          amount:
+            bonus -
+            Math.ceil((unit.initiative + tempo + bonus) / DRENCHED_INITIATIVE_APPLICATION_LIMIT),
         },
       ]
     // Clamp the count before arithmetic; recorded applications may exceed ten or have multiplicity.
@@ -1282,11 +1286,11 @@ export function synchronizeCombatInitiative<T extends CombatEncounterState>(stat
           ),
         0,
       )
-    const effective = BigInt(unit.initiative) + BigInt(tempo)
+    const effective = BigInt(unit.initiative) + BigInt(tempo) + BigInt(bonus)
     const denominator = 10000n
     const reduction =
       effective > 0n ? (effective * BigInt(applications) + denominator - 1n) / denominator : 0n
-    return [{ combatantId: unit.id, amount: -Number(reduction) }]
+    return [{ combatantId: unit.id, amount: bonus - Number(reduction) }]
   })
 
   return {
@@ -7064,9 +7068,7 @@ export function normalBasicAttackDamageAgainst(
   recipientId: string,
   content: CombatContentCatalog,
 ): number {
-  const profile = (state as import('./actions').CombatEncounterState).statBridge?.combatants.find(
-    (row) => row.combatantId === actorId,
-  )
+  const profile = effectiveCombatStatProfile(state, actorId)
   if (!profile) throw new TypeError('Summon damage reference requires its summoner stat profile.')
   const source = capturedBasicSkillSource(state, actorId, 'unarmed.basic')
   const captured = source?.definition.behaviors.find(
@@ -7155,9 +7157,7 @@ function resolveDamageAmount(
   const outgoingState = groundArea ? withGroundCasterForDamage(state, groundArea) : state
   let amount = effect.amount
   if (effect.defenseKind && amount > 0 && effect.piercing !== true) {
-    const defense = state.statBridge?.combatants.find((unit) => unit.combatantId === recipientId)?.[
-      effect.defenseKind
-    ]
+    const defense = effectiveCombatStatProfile(state, recipientId)?.[effect.defenseKind]
     if (defense === undefined)
       throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
     amount = mitigateDamageByDefense(amount, terrainAdjustedDefense(state, recipientId, defense))
@@ -7179,10 +7179,8 @@ function resolveDamageAmount(
     actorId !== recipientId &&
     amount > 0
   ) {
-    const attacker = outgoingState.statBridge?.combatants.find(
-      (unit) => unit.combatantId === actorId,
-    )
-    const defender = state.statBridge.combatants.find((unit) => unit.combatantId === recipientId)
+    const attacker = effectiveCombatStatProfile(outgoingState, actorId)
+    const defender = effectiveCombatStatProfile(state, recipientId)
     if (attacker?.level === undefined || defender?.level === undefined) {
       throw new TypeError('Combat rules v3 damage requires attacker and defender Levels.')
     }
@@ -7277,6 +7275,7 @@ function resolveDamageAmount(
     content,
     elementalMultiplier,
     {
+      packetElement: effect.element,
       ignoreIncomingMitigation: effect.piercing === true,
       outgoingState,
       commandDamageBonuses,
@@ -9298,6 +9297,23 @@ function withGroundCasterForDamage(
   const caster = area.caster
   return {
     ...state,
+    // This is an ephemeral outgoing calculation view, never an encounter capture.
+    // The Ground profile already includes its cast-time passive stats. Preserve all
+    // other source payloads (including damage modifiers) without adding stats twice.
+    capturedAbilitySources: state.capturedAbilitySources?.map((source) =>
+      source.ownerCombatantId !== area.sourceCombatantId
+        ? source
+        : {
+            ...source,
+            definition: {
+              ...source.definition,
+              behaviors: source.definition.behaviors.map((behavior) => ({
+                ...behavior,
+                effects: behavior.effects.filter((effect) => effect.payload.type !== 'stat-bonus'),
+              })),
+            },
+          },
+    ),
     tactical: {
       ...state.tactical,
       battle: {

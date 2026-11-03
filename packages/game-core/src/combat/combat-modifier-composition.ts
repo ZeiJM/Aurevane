@@ -234,6 +234,9 @@ export function composeCombatModifiers(
             behaviorId: behavior.id,
             effectId: effect.id,
             multiplierBasisPoints: effect.payload.multiplierBasisPoints,
+            ...(effect.payload.elementFilter
+              ? { elementFilter: effect.payload.elementFilter }
+              : {}),
           })
         continue
       }

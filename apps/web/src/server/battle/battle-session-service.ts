@@ -1,3 +1,5 @@
+import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
 import { SKILL_COOLDOWN_RESOURCE_PREFIX } from '@aurevane/game-core/combat/skill-cooldowns'
 import { createBattleUsageProvenance } from './usage-balance-provenance'
 import { assertPreparedBattleSource } from './battle-source-authority'
@@ -511,6 +513,12 @@ export function projectBattleSnapshot(
   const basicActions = projectBattleBasicActions(state, viewer)
   return projectPublicCombat({
     ...omitPendingBattlePayloads(state),
+    statBridge: {
+      ...state.statBridge,
+      combatants: state.statBridge.combatants.map((row) =>
+        effectiveCombatStatProfile(state, row.combatantId)!,
+      ),
+    },
     ...(state.capturedAbilitySources
       ? {
           tagPresentations: projectBattleTagPresentations(state, viewer),
@@ -523,6 +531,10 @@ export function projectBattleSnapshot(
     ...(state.effectState ? { effectState: projectBattleEffectStateForViewer(state, viewer) } : {}),
     tactical: {
       ...state.tactical,
+      movementProfiles:
+        battle.currentTurn && viewer.controlledCombatantIds.has(battle.currentTurn.combatantId)
+          ? airborneMovementTactical(state, PV1F_COMBAT_CONTENT).movementProfiles
+          : state.tactical.movementProfiles,
       battle: {
         schemaVersion: battle.schemaVersion,
         battleId: battle.battleId,

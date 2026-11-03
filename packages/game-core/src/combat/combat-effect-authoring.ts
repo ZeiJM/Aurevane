@@ -230,6 +230,8 @@ export function createAuthorableEffectPayload(
       return { type: 'displace', recipient: 'primary-unit', direction: id, distance: 1 }
     case 'move':
       return { type: 'move', recipient: 'actor', maximumTiles: 1 }
+    case 'stat-bonus':
+      return { type: 'stat-bonus', recipient: 'actor', stat: 'movement', amount: 1 }
     case 'damage-bonus':
       return { type: 'damage-bonus', recipient: 'actor', multiplierBasisPoints: 11250 }
     case 'summon':

@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile } from './combat-stat-bonuses'
 import { hasGameplayTag } from './gameplay-tags'
 import { PV1F_COMBAT_CONTENT } from './pv1f-combat-content'
 import type { CombatEffectDefinition } from './actions'
@@ -68,7 +69,7 @@ function effectDamage(
   actorId: string,
   effects: readonly CombatEffectDefinition[],
 ): number {
-  const profile = state.statBridge.combatants.find((row) => row.combatantId === actorId)!
+  const profile = effectiveCombatStatProfile(state, actorId)!
   const direct = effects.reduce((sum, effect) => {
     if (effect.type !== 'damage' || effect.vengeance) return sum
     const scaling = effect.scaling
@@ -200,7 +201,7 @@ export function combatantDamagePotential(
   id: string,
 ): number {
   const unit = state.tactical.battle.combatants.find((row) => row.id === id)
-  const stats = state.statBridge.combatants.find((row) => row.combatantId === id)
+  const stats = effectiveCombatStatProfile(state, id)
   if (!unit || !stats)
     throw new TypeError('Summon potential requires its committed combatant profile.')
   const sources = (state.capturedAbilitySources ?? []).filter(

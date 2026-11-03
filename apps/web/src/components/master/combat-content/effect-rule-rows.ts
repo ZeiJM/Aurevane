@@ -27,7 +27,7 @@ export const EFFECT_RULE_ROWS = [
         ? 'summon'
         : id === 'revealed'
           ? 'sensory'
-          : payload && !['move', 'damage-bonus', 'summon'].includes(payload.type)
+          : payload && !['stat-bonus', 'move', 'damage-bonus', 'summon'].includes(payload.type)
             ? currentCombatEffectTimingTag(nativeCombatTagPayload(payload))
             : null
     const suffix = timingTag && (primary[timingTag] ?? timingTag) !== id ? `-${id}` : ''

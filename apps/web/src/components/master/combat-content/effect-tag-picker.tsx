@@ -53,7 +53,7 @@ export function EffectTagPicker({
     const tag = AUTHORABLE_EFFECT_TAGS.find((tag) => tag.id === id)
     if (tag && !currentEffectSourceAllowed(tag.opcode, contentId))
       return 'This effect belongs to its designated Support Action.'
-    if (nativeOnly && tag && ['move', 'summon', 'damage-bonus'].includes(tag.opcode))
+    if (nativeOnly && tag && ['stat-bonus', 'move', 'summon', 'damage-bonus'].includes(tag.opcode))
       return 'Available in modular abilities.'
     return effectAuthoringIssue(id, combination, context) ?? additionalIssue?.(id)
   }

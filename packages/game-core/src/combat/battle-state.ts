@@ -36,6 +36,7 @@ export interface BattleCombatant {
 export interface BattleTurnState {
   combatantId: string
   initiativeIndex: number
+  movementBonusAtTurnStart?: number
   movementMaximum: number
   movementRemaining: number
   movementSpent: number
@@ -986,10 +987,19 @@ function collectCurrentTurnIssues(issues: BattleInvariantIssue[], state: BattleS
     })
   }
 
-  if (turn.movementMaximum !== combatant.baseMovementBudget) {
+  if (turn.movementBonusAtTurnStart !== undefined)
+    collectNonNegativeIntegerIssue(
+      issues,
+      turn.movementBonusAtTurnStart,
+      'currentTurn.movementBonusAtTurnStart',
+    )
+  if (
+    turn.movementMaximum !==
+    combatant.baseMovementBudget + (turn.movementBonusAtTurnStart ?? 0)
+  ) {
     issues.push({
       field: 'currentTurn.movementMaximum',
-      message: 'Turn Movement Budget must match the combatant baseline in P2.1.',
+      message: 'Turn Movement Budget must equal the baseline plus its captured own-turn bonus.',
     })
   }
 

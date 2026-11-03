@@ -205,7 +205,7 @@ export function AbilityGroundEditor({
   const target = canonicalAbilityTargetSpec(value.targeting)
   if (!combatTargetSupportsGroundArea(target) && !value.groundArea) return null
   const entries = value.effects.filter(
-    (effect) => !['move', 'summon', 'damage-bonus'].includes(effect.payload.type),
+    (effect) => !['stat-bonus', 'move', 'summon', 'damage-bonus'].includes(effect.payload.type),
   )
   const effects = entries.map((effect) => nativeCombatTagPayload(effect.payload))
   const area = value.groundArea

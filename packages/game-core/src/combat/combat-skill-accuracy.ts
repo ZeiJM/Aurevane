@@ -1,3 +1,4 @@
+import { effectiveCombatStatProfile } from './combat-stat-bonuses'
 import { hasConfiguredRevealed } from './combat-status-tuning'
 import { accuracyActionForRecipient } from './combat-effect-delivery-eligibility'
 import { combatEvaluatedEffectRecipientIds } from './combat-effect-recipients'
@@ -327,7 +328,7 @@ function committedRating(
   const matches = profiles.filter((row) => row.combatantId === combatantId)
   if (matches.length !== 1)
     throw new TypeError('Combat accuracy requires exactly one committed profile per recipient.')
-  const value = matches[0]?.[field]
+  const value = effectiveCombatStatProfile(state, combatantId)?.[field]
   if (
     typeof value !== 'number' ||
     !Number.isSafeInteger(value) ||
