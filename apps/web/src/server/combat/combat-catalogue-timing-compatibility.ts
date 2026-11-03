@@ -120,7 +120,12 @@ export function combatTimingUsedBy(
             tags.add(combatEffectPresentationId(effect.payload))
             continue
           }
-          if (effect.payload.type === 'move' || effect.payload.type === 'damage-bonus') continue
+          if (
+            effect.payload.type === 'move' ||
+            effect.payload.type === 'stat-bonus' ||
+            effect.payload.type === 'damage-bonus'
+          )
+            continue
           tags.add(
             effect.payload.type === 'summon'
               ? 'summon'

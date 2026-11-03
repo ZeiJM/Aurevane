@@ -3,6 +3,7 @@ import { beforeEach, expect, it, vi } from 'vitest'
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
 import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 vi.mock('server-only', () => ({}))
 const rpc = vi.fn()
 vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: () => ({ rpc }) }))
@@ -137,19 +138,26 @@ it.each([
   expect(rpc).toHaveBeenCalledTimes(1)
 })
 
-it('reads Used-by and current timing from one actual catalogue snapshot', async () => {
+it('reads Combat Rules with genuine starter passives and timed actions from one catalogue snapshot', async () => {
   const { readCombatTimingWorkspace } = await import('./combat-effect-timing-policy-store')
   rpc.mockResolvedValueOnce({
     data: {
       token: 'a'.repeat(32),
       policy: { version: 8, tagAuthority: 'global', modes: { damage: 'instant' } },
       publications: [],
+      runtimeItems: starterItemDefinitions(),
     },
     error: null,
   })
   const result = await readCombatTimingWorkspace()
   expect(result.policy.version).toBe(8)
   expect(result.usedBy.damage?.some((row) => row.contentKey === 'unarmed.basic')).toBe(true)
+  expect(result.usedBy.damage?.some((row) => row.contentKey === 'iron-shortsword')).toBe(true)
+  expect(result.usedBy.healing?.some((row) => row.contentKey === 'mender-salve')).toBe(true)
+  expect(result.usedBy['stat-bonus']).toBeUndefined()
+  expect(result.effectUsedBy['stat-bonus']?.map((row) => row.contentKey)).toEqual(
+    expect.arrayContaining(['wayfarer-hood', 'galewalker-boots']),
+  )
   expect(rpc).toHaveBeenCalledTimes(1)
   expect(rpc.mock.calls[0]?.[0]).toBe('read_combat_content_catalogue_v1')
 })
