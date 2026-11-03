@@ -7,6 +7,7 @@ import {
 import {
   combatAbilityBehavior,
   combatAbilityCommandContext,
+  combatControlledAbilityAvailability,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import {
   canonicalAbilityTargetSpec,
@@ -41,12 +42,29 @@ export function projectBattleItems(
         .filter((role) => roles[role] !== undefined)
         .map((role) => {
           const behavior = combatAbilityBehavior(source, roles[role], state.effectTimingPolicy)
-          const selections = enumerateCombatTargetSelections(
+          const controlled = combatControlledAbilityAvailability({
             state,
-            source.ownerCombatantId,
-            canonicalAbilityTargetSpec(behavior.targeting!),
-          )
-          let unavailableReason: string | null = 'No legal target is available.'
+            actorId: source.ownerCombatantId,
+            sourceInstanceId: source.sourceInstanceId,
+            behaviorId: behavior.id,
+            content: PV1F_COMBAT_CONTENT,
+          })
+          // Preparation is a distinct command. An unprimed action must remain reachable
+          // even though an ordinary release quote would reject it as not yet primed.
+          const selections =
+            controlled && controlled.phase !== 'primed'
+              ? []
+              : controlled?.releaseTarget
+                ? [controlled.releaseTarget]
+                : enumerateCombatTargetSelections(
+                    state,
+                    source.ownerCombatantId,
+                    canonicalAbilityTargetSpec(behavior.targeting!),
+                  )
+          let unavailableReason: string | null =
+            controlled && controlled.phase !== 'primed'
+              ? 'This Controlled action cannot be prepared now.'
+              : 'No legal target is available.'
           for (const [index, selection] of selections.entries()) {
             const evaluation = prepareCombatAbilityCommand({
               state,
@@ -55,6 +73,7 @@ export function projectBattleItems(
               selection,
               content: PV1F_COMBAT_CONTENT,
               context: combatAbilityCommandContext(state, source),
+              manualModifiers: controlled?.manualModifiers,
             }).evaluation
             if (evaluation.legal) {
               unavailableReason = null
@@ -62,6 +81,9 @@ export function projectBattleItems(
             }
             if (index === 0) unavailableReason = evaluation.issues[0]?.message ?? unavailableReason
           }
+          // Keep the existing prime/cancel controls accessible, including a primed
+          // action whose bound release currently has no legal recipient or payment.
+          if (controlled?.canPrime || controlled?.canCancel) unavailableReason = null
           return {
             ownerCombatantId: source.ownerCombatantId,
             actionId: equipmentActionId(unit, role),

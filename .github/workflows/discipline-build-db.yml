@@ -11,6 +11,7 @@ on:
       - '.github/scripts/verify-p36-essence.sh'
       - '.github/scripts/verify-p37-saved-build-loadouts.sh'
       - '.github/scripts/verify-character-support-action.sh'
+      - '.github/scripts/support-discipline-race-fixture.sql'
       - '.github/scripts/verify-p38-representative-buildcraft.sh'
       - '.github/scripts/verify-p4-discipline-rebalance-publication.sh'
       - '.github/workflows/discipline-build-db.yml'
@@ -34,6 +35,7 @@ on:
       - '.github/scripts/verify-p36-essence.sh'
       - '.github/scripts/verify-p37-saved-build-loadouts.sh'
       - '.github/scripts/verify-character-support-action.sh'
+      - '.github/scripts/support-discipline-race-fixture.sql'
       - '.github/scripts/verify-p38-representative-buildcraft.sh'
       - '.github/scripts/verify-p4-discipline-rebalance-publication.sh'
       - '.github/workflows/discipline-build-db.yml'
@@ -179,3 +181,11 @@ jobs:
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup
+
+      - name: Upload Support and Discipline race failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: support-discipline-race-failure
+          path: /tmp/aurevane-support-race-failure
+          if-no-files-found: ignore

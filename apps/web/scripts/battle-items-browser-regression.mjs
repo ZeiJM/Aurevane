@@ -102,7 +102,7 @@ const errors = [],
 try {
   for (const mode of ['pve', 'pvp', 'spectator'])
     for (const width of [1366, 390, 412])
-      for (const scenario of ['items', 'items-weapon']) {
+      for (const scenario of ['items', 'items-weapon', 'items-controlled']) {
         const page = await browser.newPage({
           viewport: { width, height: 915 },
           isMobile: width < 821,
@@ -142,7 +142,7 @@ try {
           )
           assert.equal(
             await choices.locator('[data-item-action]').count(),
-            scenario === 'items' ? 2 : 1,
+            scenario === 'items-weapon' ? 1 : 2,
           )
           await choices
             .locator('img')
@@ -189,6 +189,87 @@ try {
             await choices.locator('[data-item-action]').first().focus()
             await page.keyboard.press('Enter')
           } else await choices.locator('[data-item-action]').first().tap()
+          if (scenario === 'items-controlled') {
+            await page
+              .waitForFunction(() => window.fixtureBattle.battleVersion === 2, null, {
+                timeout: 5000,
+              })
+              .catch(async (error) => {
+                console.error(
+                  JSON.stringify({
+                    mode,
+                    width,
+                    scenario,
+                    errors,
+                    details: await page.evaluate(() => ({
+                      calls: window.calls,
+                      targets: window.fixtureBattle.snapshot.manualActionTargets,
+                      text: document.body.innerText.slice(-2500),
+                    })),
+                  }),
+                )
+                throw error
+              })
+            const resources = () =>
+              page.evaluate(() => ({
+                hp: window.fixtureBattle.snapshot.tactical.battle.combatants[0].hp,
+                ap: window.fixtureBattle.snapshot.tactical.battle.combatants[0].temporaryResources.find(
+                  (row) => row.key === 'pv1f.action-economy',
+                ).current,
+                uses: window.fixtureBattle.snapshot.equipmentActions[0].remainingUses,
+              }))
+            assert.deepEqual(await resources(), { hp: 40, ap: 100, uses: 2 })
+            await page.screenshot({
+              path: resolve(output, `items-${mode}-${scenario}-${width}-primed.png`),
+            })
+            await page.evaluate(() => window.restoreCanonicalBattle())
+            await page.getByRole('button', { name: 'Cancel prime', exact: true }).click()
+            await page
+              .waitForFunction(() => window.fixtureBattle.battleVersion === 4, null, {
+                timeout: 5000,
+              })
+              .catch(async (error) => {
+                console.error(
+                  JSON.stringify({
+                    mode,
+                    width,
+                    scenario,
+                    errors,
+                    details: await page.evaluate(() => ({
+                      calls: window.calls,
+                      text: document.body.innerText.slice(-2500),
+                    })),
+                  }),
+                )
+                throw error
+              })
+            assert.deepEqual(await resources(), { hp: 40, ap: 100, uses: 2 })
+            await itemCommand.click()
+            await choices.locator('[data-item-action]').first().click()
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 5)
+            await page
+              .locator('#battlefield')
+              .getByRole('button', { name: /^Tile 4, 4;/ })
+              .click()
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 6)
+            assert.deepEqual(await resources(), { hp: 60, ap: 90, uses: 1 })
+            const intents = await page.evaluate(() =>
+              window.calls
+                .filter((call) => /\/(commit|intents)$/.test(call.path))
+                .map((call) => call.body.intent.kind),
+            )
+            assert.deepEqual(intents, [
+              'ability-prime',
+              'ability-cancel-prime',
+              'ability-prime',
+              'action',
+            ])
+            await page.evaluate(() => window.restoreCanonicalBattle())
+            assert.deepEqual(await resources(), { hp: 60, ap: 90, uses: 1 })
+            results.push({ mode, width, scenario })
+            await page.close()
+            continue
+          }
           assert.equal(
             (
               await page.evaluate(() =>

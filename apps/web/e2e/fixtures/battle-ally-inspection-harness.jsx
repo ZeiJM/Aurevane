@@ -1280,10 +1280,14 @@ if (canonicalCase?.startsWith('support-')) {
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
 if (canonicalCase?.startsWith('items')) {
-  const sources = equipmentFixtureSources(canonicalCase === 'items-weapon')
+  const sources = equipmentFixtureSources(
+    canonicalCase === 'items-weapon',
+    canonicalCase === 'items-controlled',
+  )
   canonicalState = reconcileCombatAbilitySources(
     preparePv1fTurnEconomy({
       ...snapshot,
+      abilityUsageLimitPolicyVersion: 1,
       tactical: {
         ...snapshot.tactical,
         battle: {
@@ -1408,7 +1412,9 @@ window.fetch = async (url, options = {}) => {
               defenseKind: null,
               defenseRating: null,
               mitigatedBaseDamage: null,
-              ...(canonicalCase.startsWith('controlled-') || canonicalCase === 'modifier-controlled'
+              ...(canonicalCase.startsWith('controlled-') ||
+              canonicalCase === 'modifier-controlled' ||
+              canonicalCase === 'items-controlled'
                 ? {
                     controlledReady:
                       quote.evaluation.legal &&

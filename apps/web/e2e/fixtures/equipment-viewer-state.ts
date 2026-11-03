@@ -22,7 +22,7 @@ import {
 import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 
-export function equipmentFixtureSources(weapon = false) {
+export function equipmentFixtureSources(weapon = false, controlled = false) {
   const ability = structuredClone(
     defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability,
   )
@@ -30,7 +30,13 @@ export function equipmentFixtureSources(weapon = false) {
     costs: [{ resource: 'ap', amount: 10 }],
     cooldown: null,
     requirements: null,
-    effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 20 } }],
+    effects: [
+      {
+        id: 'heal',
+        ...(controlled ? { timing: 'controlled' } : {}),
+        payload: { type: 'healing', recipient: 'actor', amount: 20 },
+      },
+    ],
   })
   const tonic = itemFixture({
     id: 'fixture.salve',

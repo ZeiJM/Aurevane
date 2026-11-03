@@ -2008,6 +2008,7 @@ async function controlledServiceFixture(
   configured = false,
   overrides: Partial<AbilityBehavior> = {},
   modifiers: readonly AbilityBehavior[] = [],
+  equipmentRoot = false,
 ) {
   const original = resolveEssenceForBuild('vanguard', null)!
   const ability: AbilityDefinition = {
@@ -2060,11 +2061,37 @@ async function controlledServiceFixture(
     resolveCurrentEssenceDefinition: async () => structuredClone(published),
     resolvePinnedEssenceDefinition: async () => structuredClone(published),
   }
+  const builds = buildRepository(pureSnapshot()).repository
+  const controlledItem = itemFixture({
+    id: 'test.controlled',
+    itemClass: 'battle-item',
+    inventoryCategory: 'battle-items',
+    equipment: { slot: 'hand', hands: 1 },
+    maximumStack: 99,
+    battleUses: 2,
+    ability: { schemaVersion: 1, behaviors: [ability.behaviors[0]!] },
+    actions: { use: { behaviorId: 'controlled', name: 'Release' } },
+  })
+  if (equipmentRoot) {
+    builds.loadBattleEquipment = async () => ({
+      schemaVersion: 1,
+      inventoryRevision: 1,
+      selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+      equipment: [
+        { position: 'main-hand', ownedStackId: 'private-controlled', item: controlledItem },
+      ],
+    })
+    resolver.resolveCurrentItemDefinition = async () => controlledItem
+    resolver.resolvePinnedItemDefinition = async () => controlledItem
+    resolver.resolveCurrentBasicSkillDefinitions = async () =>
+      new Map(defaultBasicSkills().map((definition) => [definition.id, definition]))
+  }
+  const actionId = equipmentRoot ? 'item.test.controlled.main-hand.use' : original.essenceId
   const battles = battleRepository()
   const service = createBattleSessionService({
     characters: characterRepository(),
     battles: battles.repository,
-    builds: buildRepository(pureSnapshot()).repository,
+    builds,
     combatContentResolver: resolver,
     ...(configured
       ? {
@@ -2084,117 +2111,116 @@ async function controlledServiceFixture(
     const parsed = parseBattleIntentRequest({
       idempotencyKey: `99999999-9999-4999-8999-${String(version).padStart(12, '0')}`,
       expectedBattleVersion: version,
-      intent: { kind, actionId: original.essenceId, behaviorId: 'controlled' },
+      intent: { kind, actionId, behaviorId: 'controlled' },
     })
     expect(parsed).not.toBeNull()
     return { ...parsed!, userId: USER_ID, battleSessionId: SESSION_ID }
   }
   const state = () => battles.record!.snapshot as BattleAuthoritativeEncounterState
-  return { service, battles, request, state, actionId: original.essenceId }
+  return { service, battles, request, state, actionId, modifierActionId: original.essenceId }
 }
 
-it('actual Controlled service pins Manual attachments across reload and rejects a changed release bundle without payment', async () => {
-  const modifier: AbilityBehavior = {
-    id: 'bonus',
-    activation: 'manual',
-    mode: 'modifier',
-    classification: 'attack',
-    attackFamily: 'physical',
-    costs: [
-      { resource: 'ap', amount: 7 },
-      { resource: 'mp', amount: 1 },
-    ],
-    cooldown: { key: 'bonus', ownerTurns: 2 },
-    requirements: null,
-    targeting: null,
-    effects: [
-      { id: 'extra-hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } },
-    ],
-  }
-  const f = await controlledServiceFixture(
-    false,
-    {
+it.each([false, true])(
+  'actual Controlled service pins Manual attachments across reload and rejects a changed release bundle without payment (Item=%s)',
+  async (equipmentRoot) => {
+    const modifier: AbilityBehavior = {
+      id: 'bonus',
+      activation: 'manual',
+      mode: 'modifier',
       classification: 'attack',
       attackFamily: 'physical',
-      targeting: {
-        kind: 'unit',
-        teamPolicy: 'enemy',
-        friendlyFire: 'enemies-only',
-        shape: { kind: 'single' },
-        minimumRange: 0,
-        maximumRange: 20,
-        requiresLineOfSight: false,
-        maximumElevationDifference: null,
-        maximumSelections: 1,
-      },
-      effects: [
-        {
-          id: 'hit',
-          timing: 'controlled',
-          payload: { type: 'damage', recipient: 'primary-unit', amount: 3 },
-        },
+      costs: [
+        { resource: 'ap', amount: 7 },
+        { resource: 'mp', amount: 1 },
       ],
-    },
-    [modifier, { ...modifier, id: 'z-bonus', costs: [], cooldown: null }],
-  )
-  const source = f
-    .state()
-    .capturedAbilitySources!.find((source) => source.abilityId === f.actionId)!
-  const manualModifiers = [
-    { sourceInstanceId: source.sourceInstanceId, behaviorId: 'bonus' },
-    { sourceInstanceId: source.sourceInstanceId, behaviorId: 'z-bonus' },
-  ]
-  const initial = f.state()
-  const primeRequest = parseBattleIntentRequest({
-    idempotencyKey: '99999999-9999-4999-8999-000000000001',
-    expectedBattleVersion: 1,
-    intent: {
-      kind: 'ability-prime',
-      actionId: f.actionId,
-      behaviorId: 'controlled',
-      manualModifiers,
-    },
-  })
-  expect(primeRequest).not.toBeNull()
-  const primed = await f.service.submitIntent({
-    ...primeRequest!,
-    userId: USER_ID,
-    battleSessionId: SESSION_ID,
-  })
-  expect(f.state().tactical).toEqual(initial.tactical)
-  expect(
-    primed.snapshot.manualActionTargets?.find((row) => row.actionId === f.actionId)?.controlled,
-  ).toMatchObject({ phase: 'primed', manualModifiers })
-  expect(JSON.stringify(primed.snapshot)).not.toMatch(
-    /contentVersion.*extra-hit|capturedAbilitySources|abilityRuntime|chanceBasisPoints/,
-  )
-  f.battles.replaceSnapshot(JSON.parse(JSON.stringify(f.state())))
-  await f.service.getSession(USER_ID, SESSION_ID)
-  const committedPrime = f.battles.commitBattleIntent.mock.calls[0]![0]
-  f.battles.findBattleIntentReplay.mockImplementation(async (retry) =>
-    retry.requestFingerprint === committedPrime.requestFingerprint
-      ? {
-          battleSessionId: SESSION_ID,
-          battleVersion: 2,
-          snapshot: committedPrime.nextSnapshot,
-          committedAt: CREATED_AT,
-        }
-      : null,
-  )
-  const replay = await f.service.submitIntent({
-    ...primeRequest!,
-    userId: USER_ID,
-    battleSessionId: SESSION_ID,
-    intent: {
-      kind: 'ability-prime',
-      actionId: f.actionId,
-      behaviorId: 'controlled',
-      manualModifiers: [...manualModifiers].reverse(),
-    },
-  })
-  expect(replay.replayed).toBe(true)
-  await expect(
-    f.service.submitIntent({
+      cooldown: { key: 'bonus', ownerTurns: 2 },
+      requirements: null,
+      targeting: null,
+      effects: [
+        { id: 'extra-hit', payload: { type: 'damage', recipient: 'primary-unit', amount: 2 } },
+      ],
+    }
+    const f = await controlledServiceFixture(
+      false,
+      {
+        classification: 'attack',
+        attackFamily: 'physical',
+        targeting: {
+          kind: 'unit',
+          teamPolicy: 'enemy',
+          friendlyFire: 'enemies-only',
+          shape: { kind: 'single' },
+          minimumRange: 0,
+          maximumRange: 20,
+          requiresLineOfSight: false,
+          maximumElevationDifference: null,
+          maximumSelections: 1,
+        },
+        effects: [
+          {
+            id: 'hit',
+            timing: 'controlled',
+            payload: { type: 'damage', recipient: 'primary-unit', amount: 3 },
+          },
+        ],
+      },
+      [modifier, { ...modifier, id: 'z-bonus', costs: [], cooldown: null }],
+      equipmentRoot,
+    )
+    const source = f
+      .state()
+      .capturedAbilitySources!.find((source) => source.abilityId === f.modifierActionId)!
+    const manualModifiers = [
+      { sourceInstanceId: source.sourceInstanceId, behaviorId: 'bonus' },
+      { sourceInstanceId: source.sourceInstanceId, behaviorId: 'z-bonus' },
+    ]
+    const initial = f.state()
+    if (equipmentRoot) {
+      const owner = (await f.service.getSession(USER_ID, SESSION_ID)).snapshot
+      expect
+        .soft(owner.equipmentActions?.[0])
+        .toMatchObject({ unavailableReason: null, remainingUses: 2 })
+      expect(
+        owner.manualActionTargets?.find((row) => row.actionId === f.actionId)?.controlled,
+      ).toMatchObject({ phase: 'unprimed', canPrime: true })
+    }
+    const primeRequest = parseBattleIntentRequest({
+      idempotencyKey: '99999999-9999-4999-8999-000000000001',
+      expectedBattleVersion: 1,
+      intent: {
+        kind: 'ability-prime',
+        actionId: f.actionId,
+        behaviorId: 'controlled',
+        manualModifiers,
+      },
+    })
+    expect(primeRequest).not.toBeNull()
+    const primed = await f.service.submitIntent({
+      ...primeRequest!,
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+    })
+    expect(f.state().tactical).toEqual(initial.tactical)
+    expect(
+      primed.snapshot.manualActionTargets?.find((row) => row.actionId === f.actionId)?.controlled,
+    ).toMatchObject({ phase: 'primed', manualModifiers })
+    expect(JSON.stringify(primed.snapshot)).not.toMatch(
+      /contentVersion.*extra-hit|capturedAbilitySources|abilityRuntime|chanceBasisPoints/,
+    )
+    f.battles.replaceSnapshot(JSON.parse(JSON.stringify(f.state())))
+    await f.service.getSession(USER_ID, SESSION_ID)
+    const committedPrime = f.battles.commitBattleIntent.mock.calls[0]![0]
+    f.battles.findBattleIntentReplay.mockImplementation(async (retry) =>
+      retry.requestFingerprint === committedPrime.requestFingerprint
+        ? {
+            battleSessionId: SESSION_ID,
+            battleVersion: 2,
+            snapshot: committedPrime.nextSnapshot,
+            committedAt: CREATED_AT,
+          }
+        : null,
+    )
+    const replay = await f.service.submitIntent({
       ...primeRequest!,
       userId: USER_ID,
       battleSessionId: SESSION_ID,
@@ -2202,41 +2228,136 @@ it('actual Controlled service pins Manual attachments across reload and rejects 
         kind: 'ability-prime',
         actionId: f.actionId,
         behaviorId: 'controlled',
-        manualModifiers: [],
+        manualModifiers: [...manualModifiers].reverse(),
       },
-    }),
-  ).rejects.toThrow(StaleBattleVersionError)
-  const before = JSON.stringify(f.state())
-  const release = {
+    })
+    expect(replay.replayed).toBe(true)
+    await expect(
+      f.service.submitIntent({
+        ...primeRequest!,
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        intent: {
+          kind: 'ability-prime',
+          actionId: f.actionId,
+          behaviorId: 'controlled',
+          manualModifiers: [],
+        },
+      }),
+    ).rejects.toThrow(StaleBattleVersionError)
+    const before = JSON.stringify(f.state())
+    const release = {
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      idempotencyKey: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      expectedBattleVersion: 2,
+      intent: {
+        kind: 'action' as const,
+        actionId: f.actionId,
+        behaviorId: 'controlled',
+        target: { kind: 'unit' as const, combatantId: 'recruit:p2-4-1' },
+      },
+    }
+    await expect(f.service.submitIntent(release)).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(JSON.stringify(f.state())).toBe(before)
+    expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+    const quoted = await createBattlePreviewService(f.battles.repository).previewIntent({
+      ...release,
+      intent: { ...release.intent, manualModifiers },
+    })
+    expect(quoted.preview).toMatchObject({ legal: true, actionEconomyCost: 18 })
+    const result = await f.service.submitIntent({
+      ...release,
+      intent: { ...release.intent, manualModifiers },
+    })
+    expect(result.battleVersion).toBe(3)
+    expect(readPv1fActionEconomy(f.state(), PLAYER_ID)!.current).toBe(
+      readPv1fActionEconomy(initial, PLAYER_ID)!.current - 18,
+    )
+    expect(f.state().abilityRuntime!.controlled!.primes).toEqual([])
+    expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(2)
+    if (equipmentRoot) {
+      expect(result.snapshot.equipmentActions?.[0]?.remainingUses).toBe(1)
+      const beforeCancel = structuredClone(f.state())
+      const secondPrime = f.request('ability-prime', 3)
+      if (secondPrime.intent.kind !== 'ability-prime') throw new Error('Expected a prime intent')
+      const nextPrime = await f.service.submitIntent({
+        ...secondPrime,
+        intent: { ...secondPrime.intent, manualModifiers },
+      })
+      expect(nextPrime.snapshot.equipmentActions?.[0]).toMatchObject({
+        unavailableReason: null,
+        remainingUses: 1,
+      })
+      f.battles.replaceSnapshot(JSON.parse(JSON.stringify(f.state())))
+      expect(
+        (await f.service.getSession(USER_ID, SESSION_ID)).snapshot.manualActionTargets?.find(
+          (row) => row.actionId === f.actionId,
+        )?.controlled,
+      ).toMatchObject({ phase: 'primed', canCancel: true, manualModifiers })
+      const cancelled = await f.service.submitIntent(f.request('ability-cancel-prime', 4))
+      expect(cancelled.snapshot.equipmentActions?.[0]?.remainingUses).toBe(1)
+      expect(f.state().tactical).toEqual(beforeCancel.tactical)
+      expect(f.state().abilityRuntime!.controlled!.primes).toEqual([])
+    }
+  },
+)
+
+it('projects a Controlled Item Rewind with its bound recipient through prime, reload and release', async () => {
+  const f = await controlledServiceFixture(
+    false,
+    {
+      targeting: {
+        geometryVersion: 3,
+        categories: ['enemy'],
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        friendlyFire: 'enemies-only',
+        shape: { kind: 'single' },
+        minimumRange: 0,
+        maximumRange: 20,
+        maximumElevationDifference: null,
+        requiresLineOfSight: false,
+        maximumSelections: 1,
+      },
+      effects: [
+        {
+          id: 'rewind',
+          timing: 'controlled',
+          payload: {
+            type: 'return-to-turn-start',
+            recipient: 'primary-unit',
+            target: 'enemy',
+            anchorMode: 'cast-position',
+          },
+        },
+      ],
+    },
+    [],
+    true,
+  )
+  const target = { kind: 'unit' as const, combatantId: 'recruit:p2-4-1' }
+  const request = f.request('ability-prime', 1)
+  if (request.intent.kind !== 'ability-prime') throw new Error('Expected a prime intent')
+  const primed = await f.service.submitIntent({ ...request, intent: { ...request.intent, target } })
+  expect(primed.snapshot.equipmentActions?.[0]).toMatchObject({
+    unavailableReason: null,
+    remainingUses: 2,
+  })
+  f.battles.replaceSnapshot(JSON.parse(JSON.stringify(f.state())))
+  const restored = await f.service.getSession(USER_ID, SESSION_ID)
+  expect(
+    restored.snapshot.manualActionTargets?.find((row) => row.actionId === f.actionId)?.controlled,
+  ).toMatchObject({ phase: 'primed', releaseTarget: target })
+  const result = await f.service.submitIntent({
     userId: USER_ID,
     battleSessionId: SESSION_ID,
-    idempotencyKey: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
     expectedBattleVersion: 2,
-    intent: {
-      kind: 'action' as const,
-      actionId: f.actionId,
-      behaviorId: 'controlled',
-      target: { kind: 'unit' as const, combatantId: 'recruit:p2-4-1' },
-    },
-  }
-  await expect(f.service.submitIntent(release)).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
-  expect(JSON.stringify(f.state())).toBe(before)
-  expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(1)
-  const quoted = await createBattlePreviewService(f.battles.repository).previewIntent({
-    ...release,
-    intent: { ...release.intent, manualModifiers },
+    idempotencyKey: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    intent: { kind: 'action', actionId: f.actionId, behaviorId: 'controlled', target },
   })
-  expect(quoted.preview).toMatchObject({ legal: true, actionEconomyCost: 18 })
-  const result = await f.service.submitIntent({
-    ...release,
-    intent: { ...release.intent, manualModifiers },
-  })
-  expect(result.battleVersion).toBe(3)
-  expect(readPv1fActionEconomy(f.state(), PLAYER_ID)!.current).toBe(
-    readPv1fActionEconomy(initial, PLAYER_ID)!.current - 18,
-  )
-  expect(f.state().abilityRuntime!.controlled!.primes).toEqual([])
-  expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(2)
+  expect(result.snapshot.equipmentActions?.[0]?.remainingUses).toBe(1)
+  expect(readPv1fActionEconomy(f.state(), PLAYER_ID)!.current).toBe(89)
 })
 
 it.each([0, 10000])(
@@ -2573,93 +2694,115 @@ describe('Players correction preparation uses actual PvE producer', () => {
   })
 })
 
-it('actual Reversal preparation atomically pays once, survives reload/retry and cannot refund or manually release', async () => {
-  const f = await controlledServiceFixture(false, {
-    costs: [
-      { resource: 'ap', amount: 50 },
-      { resource: 'mp', amount: 5 },
-      { resource: 'hp', amount: 1 },
-    ],
-    cooldown: { key: 'test.reversal-service', ownerTurns: 3 },
-    effects: [
+it.each([false, true])(
+  'actual Reversal preparation atomically pays once, survives reload/retry and cannot refund or manually release (Item=%s)',
+  async (equipmentRoot) => {
+    const f = await controlledServiceFixture(
+      false,
       {
-        id: 'reversal',
-        timing: 'controlled',
-        payload: {
-          type: 'reversal',
-          recipient: 'actor',
-          version: 1,
-          family: 'physical',
-          reflectionBasisPoints: 10000,
-          attackerMaxHpCapBasisPoints: 2000,
-          defenderMaxHpCapBasisPoints: 2500,
-        },
+        costs: [
+          { resource: 'ap', amount: 50 },
+          { resource: 'mp', amount: 5 },
+          { resource: 'hp', amount: 1 },
+        ],
+        cooldown: { key: 'test.reversal-service', ownerTurns: 3 },
+        effects: [
+          {
+            id: 'reversal',
+            timing: 'controlled',
+            payload: {
+              type: 'reversal',
+              recipient: 'actor',
+              version: 1,
+              family: 'physical',
+              reflectionBasisPoints: 10000,
+              attackerMaxHpCapBasisPoints: 2000,
+              defenderMaxHpCapBasisPoints: 2500,
+            },
+          },
+        ],
       },
-    ],
-  })
-  const before = structuredClone(f.state())
-  const beforeOwner = before.tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!
-  const prepared = await f.service.submitIntent(f.request('ability-prime', 1))
-  const owner = f.state().tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!
-  expect(readPv1fActionEconomy(f.state(), PLAYER_ID)?.current).toBe(
-    readPv1fActionEconomy(before, PLAYER_ID)!.current - 50,
-  )
-  expect(owner.mp).toBe(beforeOwner.mp - 5)
-  expect(owner.hp).toBe(beforeOwner.hp - 1)
-  const source = before.capturedAbilitySources!.find(
-    (row) => row.ownerCombatantId === PLAYER_ID && row.abilityId === f.actionId,
-  )!
-  const behavior = source.definition.behaviors.find((row) => row.id === 'controlled')!
-  const cooldown = combatAbilityCooldown(before, source, behavior.cooldown)!
-  expect(readSkillCooldown(owner, cooldown).active).toBe(true)
-  expect(f.state().abilityRuntime?.controlled?.primes).toHaveLength(1)
-  expect(JSON.stringify(prepared.snapshot)).not.toMatch(
-    /reversalState|offensiveTurns|preparedTurnNumber|reversalPreparation/,
-  )
-  const saved = f.battles.commitBattleIntent.mock.calls[0]![0]
-  const events = saved.events as readonly { event: string }[]
-  for (const event of [
-    'ap_spent',
-    'mp_spent',
-    'hp_spent',
-    'skill_cooldown_started',
-    'combat_action_used',
-    'reversal_prepared',
-  ])
-    expect(events.filter((row) => row.event === event)).toHaveLength(1)
-  f.battles.replaceSnapshot(JSON.parse(JSON.stringify(f.state())))
-  const paid = JSON.stringify(f.state().tactical)
-  await f.service.getSession(USER_ID, SESSION_ID)
-  expect(JSON.stringify(f.state().tactical)).toBe(paid)
-  f.battles.findBattleIntentReplay.mockResolvedValueOnce({
-    battleSessionId: SESSION_ID,
-    battleVersion: 2,
-    snapshot: saved.nextSnapshot,
-    committedAt: CREATED_AT,
-  })
-  expect((await f.service.submitIntent(f.request('ability-prime', 1))).replayed).toBe(true)
-  expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(1)
-  expect(JSON.stringify(f.state().tactical)).toBe(paid)
-  await f.service.submitIntent(f.request('ability-cancel-prime', 2))
-  expect(JSON.stringify(f.state().tactical)).toBe(paid)
-  expect(f.state().reversalState?.strain).toHaveLength(1)
-  await expect(
-    f.service.submitIntent({
-      userId: USER_ID,
+      [],
+      equipmentRoot,
+    )
+    if (equipmentRoot)
+      expect(
+        (await f.service.getSession(USER_ID, SESSION_ID)).snapshot.equipmentActions?.[0]
+          ?.unavailableReason,
+      ).toBeNull()
+    const before = structuredClone(f.state())
+    const beforeOwner = before.tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!
+    const prepared = await f.service.submitIntent(f.request('ability-prime', 1))
+    const owner = f.state().tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!
+    expect(readPv1fActionEconomy(f.state(), PLAYER_ID)?.current).toBe(
+      readPv1fActionEconomy(before, PLAYER_ID)!.current - 50,
+    )
+    expect(owner.mp).toBe(beforeOwner.mp - 5)
+    expect(owner.hp).toBe(beforeOwner.hp - 1)
+    const source = capturedBattleActionSource(
+      before,
+      before.buildAuthority,
+      PLAYER_ID,
+      f.actionId,
+      'controlled',
+    )!
+    const behavior = source.definition.behaviors.find((row) => row.id === 'controlled')!
+    const cooldown = combatAbilityCooldown(before, source, behavior.cooldown)!
+    expect(readSkillCooldown(owner, cooldown).active).toBe(true)
+    expect(f.state().abilityRuntime?.controlled?.primes).toHaveLength(1)
+    expect(JSON.stringify(prepared.snapshot)).not.toMatch(
+      /reversalState|offensiveTurns|preparedTurnNumber|reversalPreparation/,
+    )
+    if (equipmentRoot)
+      expect(prepared.snapshot.equipmentActions?.[0]).toMatchObject({
+        remainingUses: 1,
+        unavailableReason: null,
+      })
+    const saved = f.battles.commitBattleIntent.mock.calls[0]![0]
+    const events = saved.events as readonly { event: string }[]
+    for (const event of [
+      'ap_spent',
+      'mp_spent',
+      'hp_spent',
+      'skill_cooldown_started',
+      'combat_action_used',
+      'reversal_prepared',
+    ])
+      expect(events.filter((row) => row.event === event)).toHaveLength(1)
+    f.battles.replaceSnapshot(JSON.parse(JSON.stringify(f.state())))
+    const paid = JSON.stringify(f.state().tactical)
+    await f.service.getSession(USER_ID, SESSION_ID)
+    expect(JSON.stringify(f.state().tactical)).toBe(paid)
+    f.battles.findBattleIntentReplay.mockResolvedValueOnce({
       battleSessionId: SESSION_ID,
-      idempotencyKey: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
-      expectedBattleVersion: 3,
-      intent: {
-        kind: 'action',
-        actionId: f.actionId,
-        behaviorId: 'controlled',
-        target: { kind: 'self' },
-      },
-    }),
-  ).rejects.toThrow()
-  expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(2)
-  expect(JSON.stringify(f.state().tactical)).toBe(paid)
-})
+      battleVersion: 2,
+      snapshot: saved.nextSnapshot,
+      committedAt: CREATED_AT,
+    })
+    expect((await f.service.submitIntent(f.request('ability-prime', 1))).replayed).toBe(true)
+    expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(f.state().tactical)).toBe(paid)
+    await f.service.submitIntent(f.request('ability-cancel-prime', 2))
+    expect(JSON.stringify(f.state().tactical)).toBe(paid)
+    expect(f.state().reversalState?.strain).toHaveLength(1)
+    await expect(
+      f.service.submitIntent({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        idempotencyKey: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        expectedBattleVersion: 3,
+        intent: {
+          kind: 'action',
+          actionId: f.actionId,
+          behaviorId: 'controlled',
+          target: { kind: 'self' },
+        },
+      }),
+    ).rejects.toThrow()
+    expect(f.battles.commitBattleIntent).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(f.state().tactical)).toBe(paid)
+  },
+)
 
 it('practice termination ends an armed Reversal with its normal receipt and preserves paid resources', async () => {
   const f = await controlledServiceFixture(false, {
