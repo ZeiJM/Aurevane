@@ -23,6 +23,7 @@ import { pv1fSkillByActionId } from '@aurevane/game-core/combat/pv1f-skills'
 import {
   DEFAULT_SUPPORT_ACTION_ID,
   CURRENT_SUPPORT_ACTION_IDS,
+  parseCurrentSupportActionId,
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
@@ -50,6 +51,10 @@ import {
   skillTypeDescription,
 } from './skill-detail-presentation'
 import styles from './character-skill-build-panel.module.css'
+import type { CharacterItemsView } from '@/server/character/character-items-service'
+import { itemSupportOptions } from './item-support-options'
+import { ItemDetails } from './item-details'
+import { OperationalDialog } from '@/components/master/operational-dialog'
 import {
   basicActionCharacteristicRows,
   type SkillCharacteristic,
@@ -84,6 +89,7 @@ interface CharacterSkillBuildPanelProps {
   initialBuildVersion: number
   supportActionArtworkKeys?: Readonly<Partial<Record<SupportActionId, string | null>>>
   initialSupportActionId?: SupportActionId
+  initialItemsView?: CharacterItemsView | null
   primaryDiscipline: { id: string; name: string }
   secondaryDiscipline: { id: string; name: string } | null
   initialCapacity: number
@@ -190,6 +196,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const open = searchParams.get(PROFILE_PANEL_QUERY) === TECHNIQUES_PANEL
   const buildVersionRef = useRef(initialBuildVersion)
   const pendingRef = useRef(false)
+  const supportReadVersionRef = useRef(0)
   const [supportActionId, setSupportActionId] = useState(
     props.initialSupportActionId ?? DEFAULT_SUPPORT_ACTION_ID,
   )
@@ -197,6 +204,12 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     props.initialSupportActionId ?? DEFAULT_SUPPORT_ACTION_ID,
   )
   const [focusedSupportActionId, setFocusedSupportActionId] = useState<SupportActionId | null>(null)
+  const [itemSupportView, setItemSupportView] = useState<CharacterItemsView | null>(
+    props.initialItemsView ?? null,
+  )
+  const [itemSupportError, setItemSupportError] = useState<string | null>(null)
+  const [itemSupportLoading, setItemSupportLoading] = useState(false)
+  const equipmentSupportSelected = itemSupportView?.selectedSupport.kind === 'equipment'
   const [capacity, setCapacity] = useState(initialCapacity)
   const [learnedSkills, setLearnedSkills] =
     useState<readonly SkillCatalogEntryView[]>(initialLearnedSkills)
@@ -298,6 +311,31 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     media.addEventListener?.('change', sync)
     return () => media.removeEventListener?.('change', sync)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    let active = true
+    const readVersion = supportReadVersionRef.current
+    void fetch('/api/character/items', { cache: 'no-store' })
+      .then(async (response) => {
+        const body = await response.json()
+        if (!response.ok || !body.view)
+          throw new Error(body.error?.message ?? 'Equipment Support choices could not be loaded.')
+        if (active && supportReadVersionRef.current === readVersion) {
+          setItemSupportView(body.view)
+          setItemSupportError(null)
+        }
+      })
+      .catch(() => {
+        if (active && supportReadVersionRef.current === readVersion)
+          setItemSupportError(
+            'Equipment Support choices could not be loaded. Reopen Techniques to retry.',
+          )
+      })
+    return () => {
+      active = false
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -501,7 +539,8 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
 
   async function commitSupportAction(nextId: SupportActionId) {
     setFocusedSupportActionId(nextId)
-    if (pendingRef.current || nextId === supportActionId) return
+    if (pendingRef.current || (nextId === supportActionId && !equipmentSupportSelected)) return
+    supportReadVersionRef.current += 1
     pendingRef.current = true
     setSupportActionId(nextId)
     setPending(true)
@@ -529,6 +568,18 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
       buildVersionRef.current = body.context.build.buildVersion
       setSupportActionId(committedSupport)
       setCommittedSupportActionId(committedSupport)
+      setItemSupportView((current) =>
+        current
+          ? {
+              ...current,
+              selectedSupport: {
+                kind: 'basic',
+                actionId:
+                  parseCurrentSupportActionId(committedSupport) ?? DEFAULT_SUPPORT_ACTION_ID,
+              },
+            }
+          : current,
+      )
       setCapacity(body.context.disciplineSkills.capacity)
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
       setCommittedIds(committed)
@@ -547,6 +598,60 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
     }
   }
 
+  async function commitItemSupport(
+    selection: ReturnType<typeof itemSupportOptions>[number]['selection'],
+  ) {
+    if (pendingRef.current) return
+    supportReadVersionRef.current += 1
+    pendingRef.current = true
+    setPending(true)
+    setItemSupportLoading(true)
+    setItemSupportError(null)
+    try {
+      // The Basic writer and Skill editor can advance build/inventory revisions in this same modal.
+      const read = await fetch('/api/character/items', { cache: 'no-store' })
+      const current = (await read.json()) as {
+        view?: CharacterItemsView
+        error?: { message?: string }
+      }
+      if (!read.ok || !current.view)
+        throw new Error(current.error?.message ?? 'Reload equipment before choosing Support.')
+      const response = await fetch('/api/character/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          characterId: props.characterId,
+          expectedRevision: current.view.revision,
+          catalogueToken: current.view.catalogueToken,
+          action: 'support',
+          selection,
+        }),
+      })
+      const body = (await response.json()) as {
+        view?: CharacterItemsView
+        error?: { message?: string }
+      }
+      if (!response.ok || !body.view)
+        throw new Error(body.error?.message ?? 'The Support Action could not be saved.')
+      setItemSupportView(body.view)
+      refreshOnCloseRef.current = true
+      // Item Support advances the build revision too. Close and refresh before another build edit.
+      pendingRef.current = false
+      setPanelOpen(false)
+    } catch (cause) {
+      refreshOnCloseRef.current = true
+      setItemSupportError(
+        cause instanceof Error
+          ? cause.message
+          : 'The save could not be confirmed. Close Techniques to refresh.',
+      )
+    } finally {
+      pendingRef.current = false
+      setPending(false)
+      setItemSupportLoading(false)
+    }
+  }
+
   function renderSupportActions() {
     return (
       <section
@@ -560,11 +665,11 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             <span aria-hidden="true">✦</span>
             <h3>Support Action</h3>
           </div>
-          <small>Choose one · Battle slot 3</small>
+          <small>Choose one Support Action</small>
         </header>
         <div className={styles.supportGrid} role="radiogroup" aria-label="Support Action">
           {CURRENT_SUPPORT_ACTION_IDS.map((id) => {
-            const selected = supportActionId === id
+            const selected = !equipmentSupportSelected && supportActionId === id
             const name = pv1fSkillByActionId(id)!.name
             return (
               <article
@@ -579,7 +684,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     type="radio"
                     name={`support-action-${props.characterId}`}
                     checked={selected}
-                    disabled={pending}
+                    disabled={pending || itemSupportView?.battleLocked}
                     aria-label={name}
                     onClick={(event) => {
                       if (!coarsePointer) return
@@ -618,6 +723,61 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
               </article>
             )
           })}
+          {itemSupportView
+            ? itemSupportOptions(itemSupportView).map((option) => {
+                const selected =
+                  equipmentSupportSelected &&
+                  itemSupportView.selectedSupport.kind === 'equipment' &&
+                  itemSupportView.selectedSupport.position === option.selection.position &&
+                  itemSupportView.selectedSupport.itemId === option.selection.itemId &&
+                  itemSupportView.selectedSupport.behaviorId === option.selection.behaviorId
+                return (
+                  <article
+                    className={styles.skill}
+                    key={option.key}
+                    data-selected={selected ? 'true' : 'false'}
+                  >
+                    <label>
+                      <input
+                        type="radio"
+                        name={`support-action-${props.characterId}`}
+                        aria-label={option.label}
+                        checked={selected}
+                        disabled={
+                          pending ||
+                          itemSupportLoading ||
+                          itemSupportView.battleLocked ||
+                          !!itemSupportView.equipmentIssue
+                        }
+                        onChange={() => void commitItemSupport(option.selection)}
+                      />
+                      <span className={styles.skillArt}>
+                        {option.item.artworkSrc ? (
+                          <Image
+                            src={option.item.artworkSrc}
+                            width={160}
+                            height={160}
+                            unoptimized
+                            alt=""
+                          />
+                        ) : null}
+                        {selected ? <b>✓</b> : null}
+                      </span>
+                      <strong>{option.label}</strong>
+                      <span className={styles.skillMeta}>{option.item.name}</span>
+                    </label>
+                    <OperationalDialog
+                      id={`support-${option.key}`}
+                      title={option.item.name}
+                      trigger="Details"
+                      triggerLabel={`Inspect ${option.label}`}
+                    >
+                      <ItemDetails item={option.item} />
+                    </OperationalDialog>
+                  </article>
+                )
+              })
+            : null}
           {Array.from(
             { length: TECHNIQUES_PER_DISCIPLINE - CURRENT_SUPPORT_ACTION_IDS.length },
             (_, index) => (
@@ -633,6 +793,16 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             ),
           )}
         </div>
+        {equipmentSupportSelected ? (
+          <p>
+            Equipment supplies your one Support Action. Removing its source restores your previous
+            Basic choice.
+          </p>
+        ) : null}
+        {itemSupportError ? <p role="alert">{itemSupportError}</p> : null}
+        {itemSupportView?.battleLocked ? (
+          <p role="status">Support changes are locked during a pending or active battle.</p>
+        ) : null}
       </section>
     )
   }
@@ -1037,11 +1207,19 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           <button
                             type="button"
                             className={styles.equipAction}
-                            data-equipped={supportActionId === focusedSupportActionId || undefined}
-                            disabled={pending || supportActionId === focusedSupportActionId}
+                            data-equipped={
+                              (!equipmentSupportSelected &&
+                                supportActionId === focusedSupportActionId) ||
+                              undefined
+                            }
+                            disabled={
+                              pending ||
+                              (!equipmentSupportSelected &&
+                                supportActionId === focusedSupportActionId)
+                            }
                             onClick={() => void commitSupportAction(focusedSupportActionId)}
                           >
-                            {supportActionId === focusedSupportActionId
+                            {!equipmentSupportSelected && supportActionId === focusedSupportActionId
                               ? '✓ Current Support Action'
                               : 'Use as Support Action'}
                           </button>

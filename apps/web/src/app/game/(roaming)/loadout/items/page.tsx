@@ -1,32 +1,20 @@
 import { LoadoutHeader } from '@/components/character/loadout-header'
+import { CharacterItems } from '@/components/character/character-items'
 import { requireRoamingCharacter } from '@/server/character/require-roaming-character'
-
-import styles from '../page.module.css'
-
+import { loadCharacterItems } from '@/server/character/character-items-service'
+import { createSupabaseCharacterItemsRepository } from '@/server/character/supabase-character-items-repository'
 export const dynamic = 'force-dynamic'
-
 export default async function ItemsPage() {
-  await requireRoamingCharacter()
+  const { actor, character } = await requireRoamingCharacter()
+  const view = await Promise.resolve()
+    .then(() =>
+      loadCharacterItems(actor.userId, character.id, createSupabaseCharacterItemsRepository()),
+    )
+    .catch(() => null)
   return (
-    <section className={styles.itemsWorkspace} data-composition="correction">
+    <section data-composition="correction">
       <LoadoutHeader active="items" />
-      <div className={styles.items}>
-        <div className={styles.equipment} aria-label="Future equipment slots">
-          {['Weapon', 'Head', 'Body', 'Hands', 'Legs', 'Feet', 'Accessory 1', 'Accessory 2'].map(
-            (slot) => (
-              <div key={slot}>
-                <span aria-hidden="true">◇</span>
-                <strong>{slot}</strong>
-              </div>
-            ),
-          )}
-        </div>
-        <div className={styles.comingSoon}>
-          <span className="av-soon">Coming Soon</span>
-          <h2>Your next adventure, equipped.</h2>
-          <p>Your equipment, keepsakes, and discoveries will find their place here.</p>
-        </div>
-      </div>
+      <CharacterItems initialView={view} />
     </section>
   )
 }

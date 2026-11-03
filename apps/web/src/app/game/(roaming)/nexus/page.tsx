@@ -1,3 +1,5 @@
+import { loadCharacterItems } from '@/server/character/character-items-service'
+import { createSupabaseCharacterItemsRepository } from '@/server/character/supabase-character-items-repository'
 import { AccountBannedError } from '@aurevane/game-core/errors'
 import { SkillEffectTimingProvider } from '@/components/character/skill-effect-timing-context'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
@@ -112,6 +114,7 @@ export default async function CharacterNexusPage() {
     attributeAllocationResult,
     titleStateResult,
     displayStateResult,
+    itemsResult,
   ] = await Promise.allSettled([
     readCombatEffectTimingPolicy(),
     loadLevelProgressionCurve(
@@ -127,6 +130,9 @@ export default async function CharacterNexusPage() {
     ),
     loadCharacterTitleState(actor.userId, character.id),
     loadCharacterProfileDisplay(actor.userId, character.id),
+    Promise.resolve().then(() =>
+      loadCharacterItems(actor.userId, character.id, createSupabaseCharacterItemsRepository()),
+    ),
   ])
 
   if (timingPolicyResult.status === 'rejected') {
@@ -181,6 +187,7 @@ export default async function CharacterNexusPage() {
   return (
     <SkillEffectTimingProvider policy={timingPolicyResult.value}>
       <CharacterArsenalShell
+        itemsView={itemsResult.status === 'fulfilled' ? itemsResult.value : null}
         profile={buildCharacterProfileReadModel(character, levelCurve)}
         attributeAllocation={attributeAllocation}
         disciplineBuild={{

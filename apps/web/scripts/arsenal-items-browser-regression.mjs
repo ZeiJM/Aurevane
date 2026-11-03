@@ -1,0 +1,316 @@
+import assert from 'node:assert/strict'
+import fs from 'node:fs/promises'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+const require = createRequire(import.meta.url)
+const { createServer } = await import(
+  pathToFileURL(require.resolve('vite', { paths: [require.resolve('vitest')] }))
+)
+const { chromium } = require(
+  require.resolve('playwright', { paths: [require.resolve('@playwright/test')] }),
+)
+const { expect } = require('@playwright/test')
+const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const root = resolve(web, '../..')
+const fixture = await fs.mkdtemp(resolve(tmpdir(), 'arsenal-items-browser-'))
+const output =
+  process.env.AV_ARSENAL_ITEMS_EVIDENCE_DIR || resolve(tmpdir(), 'arsenal-items-browser-evidence')
+await fs.mkdir(output, { recursive: true })
+await fs.copyFile(
+  resolve(web, 'e2e/fixtures/arsenal-items-harness.jsx'),
+  resolve(fixture, 'entry.jsx'),
+)
+await fs.writeFile(
+  resolve(fixture, 'index.html'),
+  '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div id="root"></div><script type="module" src="/entry.jsx"></script></body></html>',
+)
+await fs.writeFile(
+  resolve(fixture, 'production-styles.js'),
+  "import '@aurevane/ui/styles.css';import '@/app/globals.css'",
+)
+// next/image is reached by AbilityEffectEditor → SummonProfileEditor → SkillMediaEditor.
+// Next replaces these public build constants; this standalone Vite fixture must do so too.
+// Keep real image components and never expose a process object or server environment.
+const nextImageBrowserDefines = {
+  'process.env.__NEXT_IMAGE_OPTS': 'undefined',
+  'process.env.NEXT_DEPLOYMENT_ID': 'undefined',
+  'process.env.NEXT_SUPPORTS_IMMUTABLE_ASSETS': 'false',
+}
+await fs.writeFile(resolve(fixture, 'empty.js'), 'export {}')
+await fs.copyFile(
+  resolve(web, 'e2e/fixtures/discipline-management-navigation.jsx'),
+  resolve(fixture, 'next-mock.jsx'),
+)
+const config = {
+  define: nextImageBrowserDefines,
+  configFile: false,
+  root: fixture,
+  publicDir: resolve(web, 'public'),
+  resolve: {
+    alias: {
+      '@': resolve(web, 'src'),
+      '@item-art-manifest': resolve(root, 'docs/artwork/2026-11-03-starter-items.json'),
+      'server-only': resolve(fixture, 'empty.js'),
+      'next/navigation': resolve(fixture, 'next-mock.jsx'),
+      '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
+      '@aurevane/validation': resolve(root, 'packages/validation/src'),
+      '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
+      '@baseline-cohort': resolve(
+        root,
+        'docs/superpowers/specs/2026-10-18-modular-correction-cohort.json',
+      ),
+      react: resolve(web, 'node_modules/react'),
+      'react-dom': resolve(web, 'node_modules/react-dom'),
+    },
+  },
+  esbuild: { jsx: 'automatic' },
+  server: { host: '127.0.0.1', port: 0, hmr: false, watch: null, fs: { allow: [root, fixture] } },
+  optimizeDeps: {
+    include: ['react', 'react-dom/client'],
+    rolldownOptions: { transform: { define: nextImageBrowserDefines } },
+  },
+}
+
+const server = await createServer(config)
+await server.listen()
+const browser = await chromium.launch({
+  headless: true,
+  args: ['--no-sandbox'],
+  ...(process.env.AV_CHROMIUM_EXECUTABLE
+    ? { executablePath: process.env.AV_CHROMIUM_EXECUTABLE }
+    : {}),
+})
+try {
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+  ]) {
+    const page = await browser.newPage({
+      viewport,
+      ...(viewport.width < 500 ? { hasTouch: true, isMobile: true } : {}),
+    })
+    const errors = []
+    page.on('pageerror', (error) => errors.push(error.message))
+    await page.route('**/_next/image?*', async (route) => {
+      const url = new URL(route.request().url())
+      await route.continue({
+        url: new URL(url.searchParams.get('url'), server.resolvedUrls.local[0]).href,
+      })
+    })
+    await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
+    await expect(page.locator('[data-inventory-slot]')).toHaveCount(40)
+    await expect(page.getByText('48 / 100 QP', { exact: true })).toBeVisible()
+    const image = page
+      .locator('img[src="/media/art/items/thumbnails/wayfarer-hood-v01.webp"]')
+      .first()
+    assert(
+      await image.evaluate((img) => img.complete && img.naturalWidth === 256),
+      'real thumbnail decoded',
+    )
+    const hood = page.getByRole('button', { name: /Slot 1: Wayfarer Hood/ })
+    await hood.focus()
+    await page.keyboard.press('Enter')
+    let dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await expect(dialog.getByRole('img', { name: 'Wayfarer Hood', exact: true })).toBeVisible()
+    const bounds = await dialog.locator(':scope > section').boundingBox()
+    assert(
+      bounds.x >= 8 && bounds.x + bounds.width <= viewport.width - 8,
+      'detail panel fits inside viewport',
+    )
+    await page.screenshot({
+      path: resolve(output, `arsenal-item-detail-${viewport.width}.png`),
+      fullPage: false,
+    })
+    await page.keyboard.press('Tab')
+    assert(
+      await dialog.evaluate((el) => el.contains(document.activeElement)),
+      'detail retains keyboard focus',
+    )
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(hood).toBeFocused()
+    await hood.click()
+    if (viewport.width < 500) await page.touchscreen.tap(2, 2)
+    else await page.mouse.click(2, 2)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(hood).toBeFocused()
+    await page.getByRole('button', { name: /Slot 2: Warden Helm/ }).click()
+    dialog = page.getByRole('dialog')
+    await expect(dialog.getByText(/Confirm replacement: Head/)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Confirm swap · Head', exact: true }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(page.getByText('72 / 100 QP', { exact: true })).toBeVisible()
+    let last = await page.evaluate(() => window.calls.at(-1))
+    assert.deepEqual(last.replacePositions, ['head'])
+    assert.equal(last.expectedRevision, 1)
+    assert.equal(last.catalogueToken, 'a'.repeat(32))
+    await page.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('quality-points')
+    await page.getByRole('button', { name: 'Save order', exact: true }).click()
+    await expect(page.getByRole('status')).toContainText('Items saved.')
+    const before = await page
+      .locator('[data-inventory-slot] button')
+      .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label')))
+    await page.reload({ waitUntil: 'networkidle' })
+    assert.deepEqual(
+      await page
+        .locator('[data-inventory-slot] button')
+        .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label'))),
+      before,
+    )
+    await expect(page.getByRole('button', { name: 'Head: Warden Helm', exact: true })).toBeVisible()
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('Sunsplitter')
+    await expect(page.locator('[data-inventory-slot] button')).toHaveCount(1)
+    await page.getByRole('button', { name: /Slot \d+: Sunsplitter/ }).click()
+    dialog = page.getByRole('dialog')
+    await expect(dialog.getByText(/Short by 6 QP/)).toBeVisible()
+    await expect(dialog.getByRole('button', { name: 'Confirm swap · Main Hand' })).toBeDisabled()
+    await dialog.getByRole('checkbox', { name: /Body · Traveler Jerkin/ }).check()
+    await expect(dialog.getByText(/Confirm replacement:.*Body \(Traveler Jerkin\)/)).toBeVisible()
+    await dialog.getByRole('button', { name: 'Confirm swap · Main Hand' }).click()
+    await expect(page.getByText('98 / 100 QP', { exact: true })).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Off Hand: Occupied by two-handed weapon', exact: true }),
+    ).toBeVisible()
+    last = await page.evaluate(() => window.calls.at(-1))
+    assert.deepEqual(last.replacePositions, ['main-hand', 'off-hand', 'body'])
+    await page.getByRole('button', { name: 'Main Hand: Sunsplitter', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Unequip Main Hand', exact: true })
+      .click()
+    await expect(page.getByText('48 / 100 QP', { exact: true })).toBeVisible()
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('')
+    await page.getByRole('button', { name: 'Battle Items', exact: true }).click()
+    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 99/ }).click()
+    dialog = page.getByRole('dialog')
+    await expect(dialog.getByText(/3 uses per battle\. Uses refill/)).toBeVisible()
+    await expect(dialog.locator('[data-ability-parameters]')).toHaveCount(1)
+    await dialog.getByRole('button', { name: 'Equip · Main Hand', exact: true }).click()
+    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 99/ }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('combobox', { name: 'Equip position' })
+      .selectOption('off-hand')
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Equip · Off Hand', exact: true })
+      .click()
+    await expect(page.getByText('62 / 100 QP', { exact: true })).toBeVisible()
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(
+      page.getByRole('button', { name: 'Main Hand: Mender Salve', exact: true }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: 'Off Hand: Mender Salve', exact: true }),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Off Hand: Mender Salve', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Unequip Off Hand', exact: true })
+      .click()
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('Wardstone')
+    await page.getByRole('button', { name: /Slot \d+: Wardstone Bracer/ }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('combobox', { name: 'Equip position' })
+      .selectOption('off-hand')
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Equip · Off Hand', exact: true })
+      .click()
+    // Existing single Support selector, with five current Basic choices and equipped grants.
+    await page.getByRole('button', { name: /Manage Techniques/ }).click()
+    const supportTab = page.getByRole('tab', { name: 'Support', exact: true })
+    if (await supportTab.isVisible()) await supportTab.click()
+    await expect(
+      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
+    ).toBeVisible()
+    await page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    last = await page.evaluate(() => window.calls.at(-1))
+    assert.deepEqual(last.selection, {
+      kind: 'equipment',
+      position: 'off-hand',
+      itemId: 'wardstone-bracer',
+      behaviorId: 'use',
+    })
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.evaluate(() => {
+      window.testState.deferRead = true
+    })
+    await page.getByRole('button', { name: /Manage Techniques/ }).click()
+    if (await supportTab.isVisible()) await supportTab.click()
+    await expect(
+      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
+    ).toBeChecked()
+    await page.getByRole('radio', { name: 'HP Recovery', exact: true }).click()
+    if (viewport.width < 500)
+      await page.getByRole('button', { name: 'Use as Support Action', exact: true }).click()
+    await expect(page.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
+    // A late GET from opening the selector must not restore the old equipment choice.
+    await page.evaluate(() => window.releaseItemRead())
+    await expect(page.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
+    await expect(
+      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
+    ).not.toBeChecked()
+    await page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.getByRole('button', { name: 'Off Hand: Wardstone Bracer', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Unequip Off Hand', exact: true })
+      .click()
+    await expect(page.getByRole('status')).toContainText('previous Basic Support Action')
+    await page.evaluate(() => window.archiveEquipment())
+    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
+    await expect(page.getByText('Repair equipment', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Head: Unavailable Item', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Unequip Head', exact: true })
+      .click()
+    await expect(page.getByText('Repair equipment', { exact: true })).toHaveCount(0)
+    await page.evaluate(() => {
+      window.testState.failNext = true
+    })
+    await page.getByRole('button', { name: 'Save order', exact: true }).click()
+    await expect(page.getByRole('alert')).toContainText('Items changed.')
+    await expect(page.getByRole('button', { name: 'Save order', exact: true })).toBeDisabled()
+    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
+    await expect(page.getByRole('button', { name: 'Save order', exact: true })).toBeEnabled()
+    await page.evaluate(() => {
+      window.testState.battleLocked = true
+    })
+    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
+    await expect(page.getByRole('status')).toContainText('locked during a pending or active battle')
+    await expect(page.getByRole('button', { name: 'Save order', exact: true })).toBeDisabled()
+    await page.evaluate(() => {
+      window.testState.battleLocked = false
+    })
+    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('')
+    await page.screenshot({
+      path: resolve(output, `arsenal-items-${viewport.width}.png`),
+      fullPage: true,
+    })
+    assert(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      'page does not overflow',
+    )
+    assert.deepEqual(errors, [])
+    await page.close()
+    console.log(
+      `Arsenal ${viewport.width}: request CAS, explicit swaps, QP, dual stacks, Support fallback, repair, reload, art and layout passed`,
+    )
+  }
+} finally {
+  await browser.close()
+  await server.close()
+  await fs.rm(fixture, { recursive: true, force: true })
+}

@@ -14,6 +14,7 @@ import type { CharacterBuildContext } from '@/server/character/character-build-s
 
 const mocks = vi.hoisted(() => ({
   actor: vi.fn(),
+  items: vi.fn(),
   activeBattle: vi.fn(),
   activeSpectating: vi.fn(),
   selectedCharacter: vi.fn(),
@@ -32,6 +33,10 @@ const mocks = vi.hoisted(() => ({
   }),
 }))
 
+vi.mock('@/server/character/character-items-service', () => ({ loadCharacterItems: mocks.items }))
+vi.mock('@/server/character/supabase-character-items-repository', () => ({
+  createSupabaseCharacterItemsRepository: () => ({}),
+}))
 vi.mock('server-only', () => ({}))
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ host: '127.0.0.1:3100' }) }))
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }))

@@ -693,3 +693,19 @@ test('the real final-gate CLI writes a receipt only for the verified actual chec
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+test('Item UI, support projection and native runner changes always select production component browser checks', () => {
+  for (const path of [
+    'apps/web/src/components/character/character-items.tsx',
+    'apps/web/src/components/character/character-items.module.css',
+    'apps/web/src/components/character/item-equipment-preview.ts',
+    'apps/web/src/components/character/item-support-options.ts',
+    'apps/web/scripts/arsenal-items-browser-regression.mjs',
+    'apps/web/scripts/runtime-item-editor-browser-regression.mjs',
+    'apps/web/e2e/fixtures/arsenal-items-harness.jsx',
+    'apps/web/e2e/fixtures/runtime-item-editor-harness.jsx',
+  ]) {
+    const result = classifyChanges([{ path, status: 'M' }], specs)
+    assert.equal(result.battle, true, path)
+  }
+})
