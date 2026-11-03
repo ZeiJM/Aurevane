@@ -544,6 +544,8 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
         'read_character_battle_equipment_v1',
         { p_user_id: userId, p_character_id: characterId },
       )
+      if (error?.message === 'ITEM_BATTLE_ACTIVE')
+        throw new AurevaneError('STALE_VERSION', 'Battle admission changed. Refresh and try again.')
       if (error) throwItemRpcError(error)
       return parseBattleEquipmentCapture(data)
     },

@@ -1,5 +1,9 @@
 import { openMapSettings, closeMapSettings } from './world-map-settings-helpers'
 import { randomUUID } from 'node:crypto'
+import {
+  gateWorldMutationDefinition,
+  WORLD_MUTATION_GATE_SIGNATURES,
+} from './world-contention-gate'
 import { writeFileSync } from 'node:fs'
 import { execFileSync, spawn } from 'node:child_process'
 import { expect, test, type APIResponse, type Page, type TestInfo } from '@playwright/test'
@@ -87,13 +91,14 @@ function sql(query: string): string {
     { encoding: 'utf8' },
   ).trim()
 }
-// Hold only these disposable accounts' mutation locks until the real HTTP
-// requests are demonstrably waiting in Postgres. This tests contention rather
-// than relying on Promise.all happening to overlap on a fast runner.
+// Travel retains its account-lock gate. Attack tests pause only these disposable
+// characters at mutation RPC entry after preparation, before unchanged authority
+// locks; inventory preparation must not contend against a fabricated account lock.
 async function contend(
   characterIds: string[],
   send: () => Promise<APIResponse>[],
   whileBlocked?: () => Promise<void>,
+  afterPreparation = false,
 ) {
   for (const id of characterIds) expect(id).toMatch(/^[0-9a-f-]{36}$/)
   const application = `atlas-gate-${randomUUID()}`
@@ -112,7 +117,9 @@ async function contend(
       '-d',
       'postgres',
       '-Atqc',
-      `begin; select pg_advisory_xact_lock(hashtextextended(user_id::text,1)) from public.characters where id in (${characterIds.map((id) => `'${id}'::uuid`).join(',')}) order by user_id; select pg_sleep(45); rollback;`,
+      afterPreparation
+        ? `begin; select pg_advisory_xact_lock(hashtextextended('${application}',0)); select pg_sleep(45); rollback;`
+        : `begin; select pg_advisory_xact_lock(hashtextextended(user_id::text,1)) from public.characters where id in (${characterIds.map((id) => `'${id}'::uuid`).join(',')}) order by user_id; select pg_sleep(45); rollback;`,
     ],
     { stdio: 'ignore' },
   )
@@ -121,7 +128,14 @@ async function contend(
     gate.once('error', () => resolve())
   })
   let pending: Promise<APIResponse>[] = []
+  const originalDefinitions: string[] = []
   try {
+    if (afterPreparation)
+      for (const signature of WORLD_MUTATION_GATE_SIGNATURES) {
+        const definition = sql(`select pg_get_functiondef('${signature}'::regprocedure)`)
+        originalDefinitions.push(definition)
+        sql(gateWorldMutationDefinition(definition, application, characterIds))
+      }
     await expect
       .poll(
         () =>
@@ -157,7 +171,11 @@ async function contend(
       `select pg_terminate_backend(pid) from pg_stat_activity where application_name='${application}'`,
     )
     await Promise.allSettled(pending)
-    await closed
+    try {
+      for (const definition of originalDefinitions) sql(definition)
+    } finally {
+      await closed
+    }
   }
 }
 
@@ -961,26 +979,31 @@ test('simultaneous mutual attacks create one shared active encounter', async ({
     place(second.characterId, 'crown-road', 6, 4)
     await world(page)
     await world(opponent)
-    const responses = await contend([first.characterId, second.characterId], () => [
-      page.request.post('/api/world', {
-        data: {
-          characterId: first.characterId,
-          expectedVersion: first.version,
-          commandId: randomUUID(),
-          intent: { kind: 'attack', targetId: second.characterId },
-        },
-        timeout: 20000,
-      }),
-      opponent.request.post('/api/world', {
-        data: {
-          characterId: second.characterId,
-          expectedVersion: second.version,
-          commandId: randomUUID(),
-          intent: { kind: 'attack', targetId: first.characterId },
-        },
-        timeout: 20000,
-      }),
-    ])
+    const responses = await contend(
+      [first.characterId, second.characterId],
+      () => [
+        page.request.post('/api/world', {
+          data: {
+            characterId: first.characterId,
+            expectedVersion: first.version,
+            commandId: randomUUID(),
+            intent: { kind: 'attack', targetId: second.characterId },
+          },
+          timeout: 20000,
+        }),
+        opponent.request.post('/api/world', {
+          data: {
+            characterId: second.characterId,
+            expectedVersion: second.version,
+            commandId: randomUUID(),
+            intent: { kind: 'attack', targetId: first.characterId },
+          },
+          timeout: 20000,
+        }),
+      ],
+      undefined,
+      true,
+    )
     expect(responses.map((response) => response.status()).sort()).toEqual([200, 409])
     expect((await responses.find((response) => response.status() === 409)!.json()).error.code).toBe(
       'STALE_VERSION',
@@ -1028,26 +1051,31 @@ test('a due movement step and an attack cannot both commit from the same target 
     )
     await world(page)
     await world(opponent)
-    const [attack, move] = await contend([attacker.characterId, target.characterId], () => [
-      page.request.post('/api/world', {
-        data: {
-          characterId: attacker.characterId,
-          expectedVersion: attacker.version,
-          commandId: randomUUID(),
-          intent: { kind: 'attack', targetId: target.characterId },
-        },
-        timeout: 20000,
-      }),
-      opponent.request.post('/api/world', {
-        data: {
-          characterId: target.characterId,
-          expectedVersion: target.version,
-          commandId: randomUUID(),
-          intent: { kind: 'tick' },
-        },
-        timeout: 20000,
-      }),
-    ])
+    const [attack, move] = await contend(
+      [attacker.characterId, target.characterId],
+      () => [
+        page.request.post('/api/world', {
+          data: {
+            characterId: attacker.characterId,
+            expectedVersion: attacker.version,
+            commandId: randomUUID(),
+            intent: { kind: 'attack', targetId: target.characterId },
+          },
+          timeout: 20000,
+        }),
+        opponent.request.post('/api/world', {
+          data: {
+            characterId: target.characterId,
+            expectedVersion: target.version,
+            commandId: randomUUID(),
+            intent: { kind: 'tick' },
+          },
+          timeout: 20000,
+        }),
+      ],
+      undefined,
+      true,
+    )
     expect([attack!.status(), move!.status()].sort()).toEqual([200, 409])
     const loser = attack!.ok() ? move! : attack!
     expect((await loser.json()).error.code).toBe('STALE_VERSION')
@@ -1148,6 +1176,7 @@ for (const change of ['training', 'build'] as const)
             ).toEqual(skillIds)
           }
         },
+        true,
       )
       expect(attack!.status()).toBe(change === 'training' ? 400 : 409)
       expect((await attack!.json()).error.code).toBe(

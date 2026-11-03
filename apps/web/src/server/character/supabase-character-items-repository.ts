@@ -25,7 +25,7 @@ function unavailable(): never {
 }
 export function throwItemRpcError(error: { code?: string; message?: string }): never {
   const message = error.message ?? ''
-  if (error.code === '40001' || /ITEM_STALE_/.test(message))
+  if (error.code === '40001' || error.code === 'PT409' || /ITEM_STALE_/.test(message))
     throw new AurevaneError('STALE_VERSION', 'Items changed. Refresh and try again.')
   if (error.code === '42501')
     throw new AurevaneError(

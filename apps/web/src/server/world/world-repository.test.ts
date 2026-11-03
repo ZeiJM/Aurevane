@@ -32,6 +32,7 @@ import {
   readWorldAttackAuthority,
   settleWorldAttackAuthority,
   resetWorldReadCaches,
+  worldRpcError,
 } from './world-repository'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { projectWorld } from './world-service'
@@ -1096,3 +1097,12 @@ it('materializes expired training before settling due owned steps for an attack'
   ])
   expect(sceneRpc).not.toHaveBeenCalled()
 })
+
+it.each(['ITEM_ADMISSION_RETRY', 'ITEM_CATALOGUE_RETRY', 'ITEM_PREPARATION_STALE'])(
+  'surfaces final encounter admission %s as a world conflict',
+  (message) => {
+    expect(() => worldRpcError({ code: 'PT409', message })).toThrow(
+      expect.objectContaining({ code: 'STALE_VERSION' }),
+    )
+  },
+)

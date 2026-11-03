@@ -3,6 +3,10 @@ import type { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, beforeEach, afterEach, expect, it } from 'vitest'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
 import { itemFixture } from '../../game-core/src/content/items-test-fixtures'
+import {
+  gateWorldMutationDefinition,
+  WORLD_MUTATION_GATE_SIGNATURES,
+} from '../../../apps/web/e2e/world-contention-gate'
 import { defaultBasicSkills } from '../../game-core/src/combat/combat-basic-actions'
 import type { ItemInventorySnapshot } from '../../game-core/src/character/item-inventory'
 const user = '00000000-0000-4000-8000-000000009001',
@@ -153,17 +157,20 @@ it('prepares exact versioned equipment and validates it inside the actual creati
     { combatant_id: 'enemy', participant_role: 'opponent', character_id: null },
   ]
   const create = (snapshot: unknown) =>
-    db.query('select * from public.create_battle_session_v2($1,$2,$3,$4,$5,1,1,$6,$7,$6,$8,$9)', [
-      user,
-      '00000000-0000-4000-8000-000000009099',
-      'item-admission',
-      user,
-      'item-admission',
-      snapshot,
-      participants,
-      [],
-      { schemaVersion: 1, commandVisibility: { kind: 'public' }, eventVisibilityOverrides: [] },
-    ])
+    db.query<Record<string, unknown>>(
+      'select * from public.create_battle_session_v2($1,$2,$3,$4,$5,1,1,$6,$7,$6,$8,$9)',
+      [
+        user,
+        '00000000-0000-4000-8000-000000009099',
+        'item-admission',
+        user,
+        'item-admission',
+        snapshot,
+        participants,
+        [],
+        { schemaVersion: 1, commandVisibility: { kind: 'public' }, eventVisibilityOverrides: [] },
+      ],
+    )
   for (const patch of [
     { inventoryRevision: 1 },
     { equipment: [] },
@@ -1031,4 +1038,61 @@ it('executes the shared native race fixtures through real PvE, PvP, World and lo
     () => db.query("select item_race.grant_item('grant','different')"),
     'ITEM_STALE_REVISION',
   )
+})
+
+it('installs and restores the disposable post-preparation Atlas barrier without changing World authority or ACLs', async () => {
+  await db.exec(
+    readFileSync(
+      new URL('../../../.github/scripts/item-admission-race-fixtures.sql', import.meta.url),
+      'utf8',
+    ),
+  )
+  await db.query("select item_race.setup('atlas-gated','world')")
+  const context = (
+    await db.query<{ character_id: string; target_id: string }>(
+      "select character_id,target_id from item_race.contexts where label='atlas-gated'",
+    )
+  ).rows[0]!
+  const originals: { signature: string; definition: string; acl: string; owner: number }[] = []
+  try {
+    for (const signature of WORLD_MUTATION_GATE_SIGNATURES) {
+      const original = (
+        await db.query<{ definition: string; acl: string; owner: number }>(
+          'select pg_get_functiondef(oid) definition,proacl::text acl,proowner owner from pg_proc where oid=$1::regprocedure',
+          [signature],
+        )
+      ).rows[0]!
+      originals.push({ signature, ...original })
+      const gated = gateWorldMutationDefinition(
+        original.definition,
+        'atlas-gate-11111111-1111-4111-8111-111111111111',
+        [context.character_id, context.target_id],
+      )
+      await db.exec(gated)
+      expect(
+        (
+          await db.query(
+            'select proacl::text acl,proowner owner from pg_proc where oid=$1::regprocedure',
+            [signature],
+          )
+        ).rows[0],
+      ).toEqual({ acl: original.acl, owner: original.owner })
+    }
+    await db.exec('set local role service_role')
+    expect((await db.query("select item_race.admit('atlas-gated') result")).rows[0]).toHaveProperty(
+      'result',
+    )
+    await db.exec('reset role')
+  } finally {
+    for (const original of originals) await db.exec(original.definition)
+  }
+  for (const original of originals)
+    expect(
+      (
+        await db.query<{ definition: string }>(
+          'select pg_get_functiondef($1::regprocedure) definition',
+          [original.signature],
+        )
+      ).rows[0]!.definition,
+    ).toBe(original.definition)
 })

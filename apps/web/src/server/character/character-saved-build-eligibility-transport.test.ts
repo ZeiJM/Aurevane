@@ -48,6 +48,8 @@ it.each([null, 42, ' vanguard', 'vanguard\n'])(
 it.each([
   ['40001', 'ITEM_CATALOGUE_RETRY', 'STALE_VERSION'],
   ['40001', 'ITEM_ADMISSION_RETRY', 'STALE_VERSION'],
+  ['PT409', 'ITEM_CATALOGUE_RETRY', 'STALE_VERSION'],
+  ['PT409', 'ITEM_ADMISSION_RETRY', 'STALE_VERSION'],
   ['22023', 'ITEM_BATTLE_ACTIVE', 'INVALID_REQUEST'],
   ['22023', 'ITEM_DELETION_PENDING', 'INVALID_REQUEST'],
 ])('surfaces activation Item lock result %s %s as %s', async (code, message, expected) => {

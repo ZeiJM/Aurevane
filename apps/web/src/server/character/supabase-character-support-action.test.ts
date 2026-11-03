@@ -46,6 +46,8 @@ describe('Support Action database boundary', () => {
 it.each([
   ['ITEM_CATALOGUE_RETRY', '40001', 'STALE_VERSION'],
   ['ITEM_ADMISSION_RETRY', '40001', 'STALE_VERSION'],
+  ['ITEM_CATALOGUE_RETRY', 'PT409', 'STALE_VERSION'],
+  ['ITEM_ADMISSION_RETRY', 'PT409', 'STALE_VERSION'],
   ['ITEM_BATTLE_ACTIVE', '22023', 'INVALID_REQUEST'],
 ] as const)(
   'maps synchronized Item admission failure %s through the existing Basic support writer',
@@ -54,5 +56,21 @@ it.each([
     await expect(
       createSupabaseCharacterBuildRepository().saveSupportAction(command),
     ).rejects.toMatchObject({ code })
+  },
+)
+
+it.each(['ITEM_ADMISSION_RETRY', 'ITEM_BATTLE_ACTIVE'])(
+  'treats changed battle admission %s as stale preparation',
+  async (message) => {
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { message, code: message.endsWith('ACTIVE') ? '22023' : 'PT409' },
+    })
+    await expect(
+      createSupabaseCharacterBuildRepository().loadBattleEquipment!(
+        command.userId,
+        command.characterId,
+      ),
+    ).rejects.toMatchObject({ code: 'STALE_VERSION' })
   },
 )
