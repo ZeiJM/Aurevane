@@ -1,0 +1,142 @@
+[
+  {
+    "order": 1,
+    "ledgerLine": 14,
+    "original": "- Ruling: Owner carryon and suppliedautonomous/noquestionsoutline is authorization toexecute \u2014 avoidsparkingonoptionalquestion \u2014 costsreworkifpreferencechanges.",
+    "decision": "Continue autonomously within the supplied update and release instructions.",
+    "costIfWrong": "Preference changes can require rework."
+  },
+  {
+    "order": 2,
+    "ledgerLine": 15,
+    "original": "- Ruling: Starterbattleitemsresetusesperbattle,consumeOnUsefalse \u2014 Ownerexplicitconfirmedoutline \u2014 truefutureconsumptionmustnotbeshippedwithoutatomicsettlement.",
+    "decision": "Starter battle items refill uses each battle; their inventory quantities are not consumed.",
+    "costIfWrong": "True consumption will require atomic settlement before it can be offered."
+  },
+  {
+    "order": 3,
+    "ledgerLine": 16,
+    "original": "- Ruling: Itemwrapperrequirementsnull;combatRequirementNodeonlyboundabilitygroups \u2014 persistentoutofbattleequipfactsnotrepresented \u2014 addingequipprerequisiteslaterrequiresnewcontract.",
+    "decision": "Item wrappers have no separate equipment prerequisites; combat requirements belong to shared ability groups.",
+    "costIfWrong": "Future equipment prerequisites require a new contract."
+  },
+  {
+    "order": 4,
+    "ledgerLine": 17,
+    "original": "- Ruling: Inventorycategory/gearstackshape stableafterdistribution; incompatiblepublicationsreject \u2014 preventsstackloss/overflow \u2014 authorcanmakenewItemidentity.",
+    "decision": "Inventory category and stack shape remain stable after distribution; incompatible edits are rejected.",
+    "costIfWrong": "Changing that shape requires a new Item identity."
+  },
+  {
+    "order": 5,
+    "ledgerLine": 18,
+    "original": "- Ruling: Mainweaponattack,offweaponpassivesonly(unlessmainnoweapon) \u2014 explicitOwneroutline \u2014 UImustexplain.",
+    "decision": "Main-hand weapons supply Basic Attack. Off-hand weapons supply it only when main hand has no weapon; other admitted passives still work.",
+    "costIfWrong": "Dual weapons do not grant two independent Basic Attack buttons."
+  },
+  {
+    "order": 6,
+    "ledgerLine": 19,
+    "original": "- Ruling: Movementbonusatownturnstart(initialafterstartup),basepreserved,APcostsstillenforced \u2014 strictturninvariants \u2014 conditionalmidturnchangeswaitnextownturn.",
+    "decision": "Movement bonuses are captured at own-turn start, including the initial turn after startup. Base stats and AP costs remain intact.",
+    "costIfWrong": "Conditional Movement changes during a turn wait until the next own turn."
+  },
+  {
+    "order": 7,
+    "ledgerLine": 20,
+    "original": "- Ruling: Elementalpassiveboostdirectpacketsperactualelement,periodicformulasnotmultipliedagain \u2014 existingdamageboundaries \u2014 publicproseexplicitdirect.",
+    "decision": "Elemental passive bonuses apply to matching direct damage packets. Periodic formulas are not boosted a second time.",
+    "costIfWrong": "Different future periodic scaling would require an explicit policy change."
+  },
+  {
+    "order": 8,
+    "ledgerLine": 21,
+    "original": "- Ruling: BattleItemexactlyoneManualusebehavior \u2014 existingusagekeyisperbehavior \u2014 avoidschargepoolbypass.",
+    "decision": "Each battle item has one Manual use behavior and one finite-use pool per equipped hand.",
+    "costIfWrong": "Multi-action consumables would require a shared pool contract to prevent bypasses."
+  },
+  {
+    "order": 9,
+    "ledgerLine": 22,
+    "original": "- Ruling: Skillselfgateonexactinflictedpacketremoved(OpenWound);siblingdamagestatuscomboconditionshoist \u2014 OwnerwantsallRequiredupfront \u2014 someformerlypartialskillsgatewholeactionnowintentionally.",
+    "decision": "Remove Open Wound\u2019s same-effect Bleed gate; move legitimate sibling damage/status prerequisites to the whole ability.",
+    "costIfWrong": "Some formerly partial actions now require the prerequisite before any packet executes."
+  },
+  {
+    "order": 10,
+    "ledgerLine": 23,
+    "original": "- Ruling: ExecutionCut/Desperateexistingstrict<35comparatorspreserved ANDreviewedstatus;CloseQuarryEnemySingleMarkedfollowup \u2014 selectedunitrequirementinvalidonGround \u2014 keepMove/Damage/MPvalues/costs/media.",
+    "decision": "Preserve strict below-35% comparators for execution skills with their reviewed status requirement. Close Quarry uses an Enemy Single marked follow-up while retaining Move, damage, MP, costs and media.",
+    "costIfWrong": "These skills retain their exact threshold and targeted follow-up rather than introducing new balance rules."
+  },
+  {
+    "order": 11,
+    "ledgerLine": 67,
+    "original": "Ruling: optional consumable consumeOnUsetrue is not required for starterrelease;rejecttrueunlessatomicsettlementimplemented \u2014 nofalsefuturefeature \u2014 lateradditionneedsownmigration/tests.",
+    "decision": "Reject consumeOnUse=true until atomic inventory consumption is implemented.",
+    "costIfWrong": "Consumed-stack mechanics are unavailable in this release."
+  },
+  {
+    "order": 12,
+    "ledgerLine": 75,
+    "original": "Ruling: privatefullItemcaptureisnotManualadmission \u2014 Task5mustfreezeallowedpublicrolebindingsandrejectforgedoffhand/unselectedsupportcommands \u2014 UIhidingaloneisnotauthority \u2014 testsrequired.",
+    "decision": "Private captured Item definitions do not authorize every Manual action. Freeze admitted attack, Support and use roles and reject forged alternatives.",
+    "costIfWrong": "Future role changes require explicit authority and tests, not just UI changes."
+  },
+  {
+    "order": 13,
+    "ledgerLine": 83,
+    "original": "Ruling: ordinarySkill usageCheckboxUIunchanged; maximumUsesPerBattle is genericcapturedenginefieldcompiledfromexplicitItem.battleUses withsharedreports \u2014 preservesbothuntickedunlimitedforordinarySkills \u2014 noextraunusedthirdUIcontrol.",
+    "decision": "Keep the two ordinary Skill usage checkboxes. Item battle-use limits compile into the generic captured maximumUsesPerBattle field and shared reports.",
+    "costIfWrong": "There is no separate third usage checkbox for ordinary Skills."
+  },
+  {
+    "order": 14,
+    "ledgerLine": 91,
+    "original": "Ruling: Controller may generate isolated Task6 artwork while Task2 implementer finishes \u2014 imagery depends only on the approved47-object art brief, not unsettled engine APIs; no second implementation worker, shared-index writes, product registration, or unreviewed feature advancement. Final Task6 still owns asset inspection/optimization/registry/content integration and review. Costs if wrong are regenerating individual silhouettes. Prompt source task-6-art-prompts.json.",
+    "decision": "Generate the approved 47-object artwork independently while engine work proceeds; final integration still verifies every asset.",
+    "costIfWrong": "Individual silhouettes could need regeneration if the approved brief changes."
+  },
+  {
+    "order": 15,
+    "ledgerLine": 141,
+    "original": "Task5 brief rewritten in clear prose, preserving prior constraints and adding one-passive-per-equipped-unit protection when weapon supplies both roles. Ruling: versioned shared Item artwork registration may move fromTask6 toTask5 if needed for actual captured native images; assets alreadyadopted, no newproductiondefinitions/grants. FinalTask6 reuses thoseimmutablekeys. This changes delivery order only, not spec or behavior.",
+    "decision": "Register the already generated versioned Item artwork when battle integration needs it, then reuse those immutable keys in starter delivery.",
+    "costIfWrong": "Only implementation order changes; replacing art later needs a new version."
+  },
+  {
+    "order": 16,
+    "ledgerLine": 200,
+    "original": "Task5 lateCI55 RepresentativeBuildcraft41638092993 fails3widths only currentFortified prose assertion leftover17b: expectedTake15%lessdamage/deal15%less, actualapprovedIncreasePhysicalMysticDefense15%/deal15%less. Label15%alreadycorrect; nofunctionaldiscrepancy. Ruling: fixthissinglecurrent-contentfixtureinTask6finalpolish, preservingDefensevsflatDRdistinctionandold/customcases; do notexpandscopedTask5I1/I2fixloop. Task6briefupdatedverbatimexpected/actual, workerinformed. ThisisnotwaivedfinalCI: finalheadmustpass.",
+    "decision": "Correct the stale Fortified browser expectation in final polish; preserve Defense-versus-flat-reduction semantics and old/custom cases.",
+    "costIfWrong": "An incorrect interpretation would require fixture or mechanic rework; required CI is never waived."
+  },
+  {
+    "order": 17,
+    "ledgerLine": 206,
+    "original": "Task5fix1I2competingwritertracerootrequested: installedchange_character_disciplines_v2/v3 andsave_character_build_loadout_v1 alsotakebuildbeforecharacter/FKwithoutaccountseed0; current-profilerefreshnests v3whileholdingNOWAITrows. Ruling: includetheseconcretewriterouterseed0guardsinthesameadditiveI2migration, preservingexactbodies/ACL/owner/replay/CAS; refreshmustnonblockingseed0beforeinnerrowsandretainCOMBAT_CONTENT_ADMISSION_RETRY. Thisisload-bearingconfirmedboundaryrepairnotnewspecfeature; costsifwrongscopedreview/rework. Workercheckingtraining/othernestedcallersnotjustdirectSkillcallers. No broader speculative rewrite authorized.",
+    "decision": "Extend the confirmed shared-writer lock repair to Discipline/build writers and nonblocking current-profile refresh while preserving body, ACL, owner, replay and CAS.",
+    "costIfWrong": "Incorrect lock changes would require scoped correction and concurrency verification."
+  },
+  {
+    "order": 18,
+    "ledgerLine": 211,
+    "original": "Task5: fix round1/5 (2 addressed,0 open in source \u2014 Controlledprepare/modifierprojection and5sharedwriterouteraccountlocks; commits837f8f1..b534f4b). Scopedoriginalreviewer clean, no newCritical/Important/minorbreakage; existingControls/noise deferred. Rootreadcannotverify+actualscopedreport/logrefs. Ruling: holdTask5verificationactiveuntilfixed-sourceDiscipline41644473932passesactualnewdeterministictwobackendwitness; confirmedpriornativefailuremadeproofload-bearing. Sourcefindingsclosed, notwaivingCI. Otherfinalall20gates+Task6genuine47 remainlater; knownFortifiedfixture deferredTask6. No humanpermissionpause.",
+    "decision": "Do not accept the lock repair until the actual deterministic two-backend PostgreSQL witness passes.",
+    "costIfWrong": "Release waits for real contention evidence; sequential tests alone are insufficient."
+  },
+  {
+    "order": 19,
+    "ledgerLine": 240,
+    "original": "Ruling: Task6sourceimplementation/reviewcompletesbeforeoperationalfinalization; itsplanlast2deliverycheckboxes(wholebranchCI+releaseandfinalOwnerreceipt)remainuncheckeduntiltheiractualcompletion. Finalwholebranchreviewmustprecedepublication/deployment, avoidingaplan-ordercycle; ifwrongonlydocumentationorderneedsrework,noreleasegateorwaiver.",
+    "decision": "Complete source review before operational release; keep release and human checklist steps pending until actually completed.",
+    "costIfWrong": "Only documentation order needs adjustment if this sequencing is unsuitable; no gate is waived."
+  },
+  {
+    "order": 20,
+    "ledgerLine": 261,
+    "original": "Ruling: Actual deployedb8 catalogue parser strictly allows only token/policy/publications/archivedKeys; migration4 unconditionally addsruntimeItems, so applyingDBwhileoldappserveswouldbreakoldcurrentlookups. StageONEProductioncandidateREADYbeforehostedDDL, thenbriefmaintenance503/Retry-Afterononlyoldcompatiblehosts(includingcanonical), preservingnineexistingretirementrulesandallowingnewuniquecandidatefortesting. Apply10migrations/fresh14normalCommit/stagedchecks, promoteREADYcandidatewhilemaintenanceholds, thenatomicroutingfinalizationremovesonlyourtemporarymaintenanceandnarrowsfourallowliststonewrelease(preservingallnineoriginalrules). Costifwrong:briefavailabilityinterruptionandrouteconfigrework; avoidsservingoldappagainstnewcatalogueshape. No secondbuild, sourcechange, approvalpause, orCIwaiver. Sourceoldstrictparserreadconfirmed16:08Z. Nohostedwritesyet.",
+    "decision": "Stage the single Production build before database changes. Hold the old compatible hosts in brief maintenance while the catalogue format changes, then promote and remove only that temporary rule while preserving all nine existing retirement rules.",
+    "costIfWrong": "A brief availability interruption and routing rework if unsuitable; this prevents the old application reading an incompatible new catalogue."
+  }
+]
