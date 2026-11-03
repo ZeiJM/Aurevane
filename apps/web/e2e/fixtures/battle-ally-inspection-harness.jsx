@@ -1,3 +1,4 @@
+import { BattleLessonCoach } from '@/components/battle/battle-lesson-coach'
 import {
   captureBasicSkillSources,
   defaultBasicSkills,
@@ -78,6 +79,9 @@ import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
 const canonicalCase = new URLSearchParams(location.search).get('canonical')
+const guidedCase = new URLSearchParams(location.search).get('guided')
+const guidedRun = new URLSearchParams(location.search).get('run')
+const nativeFetch = window.fetch.bind(window)
 const { equipmentFixtureSources, equipmentFixtureAction, projectEquipmentFixture } =
   canonicalCase?.startsWith('items') ? await import('@/../e2e/fixtures/equipment-viewer-state') : {}
 let canonicalState
@@ -1283,12 +1287,21 @@ if (canonicalCase?.startsWith('items')) {
   const sources = equipmentFixtureSources(
     canonicalCase === 'items-weapon' || canonicalCase === 'items-starter',
     canonicalCase === 'items-controlled',
-    canonicalCase === 'items-starter',
+    canonicalCase === 'items-starter' || canonicalCase.startsWith('items-global-'),
   )
   canonicalState = reconcileCombatAbilitySources(
     preparePv1fTurnEconomy({
       ...snapshot,
       abilityUsageLimitPolicyVersion: 1,
+      ...(canonicalCase.startsWith('items-global-')
+        ? {
+            effectTimingPolicy: {
+              version: 12,
+              tagAuthority: 'global',
+              modes: { healing: canonicalCase.endsWith('controlled') ? 'controlled' : 'delayed' },
+            },
+          }
+        : {}),
       tactical: {
         ...snapshot.tactical,
         battle: {
@@ -1329,12 +1342,39 @@ if (new URLSearchParams(location.search).has('cooldownOverlay')) {
     maximum: 2,
   })
 }
+if (guidedCase) {
+  const data = await (
+    await nativeFetch(`/__guided/start?loadout=${guidedCase}&run=${guidedRun}`)
+  ).json()
+  if (!data.battle) throw new Error(data.error?.message ?? 'Guided fixture admission failed')
+  Object.assign(initialBattle, data.battle)
+  runtime.supportActionId = data.supportActionId
+  runtime.techniques = []
+  runtime.essence = null
+  runtime.resonance = null
+}
 window.fixtureBattle = initialBattle
 window.calls = []
 window.fetch = async (url, options = {}) => {
   const path = String(url)
   const body = options.body ? JSON.parse(options.body) : null
   window.calls.push({ path, method: options.method || 'GET', body })
+  if (
+    guidedCase &&
+    /^\/api\/battles\/fixture(?:\/(preview|intents|commit|final-turn|guided-training))?$/.test(path)
+  ) {
+    const response = await nativeFetch(
+      `/__guided/request?loadout=${guidedCase}&run=${guidedRun}&path=${encodeURIComponent(path)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      },
+    )
+    const data = await response.clone().json()
+    if (data.battle) window.fixtureBattle = data.battle
+    return response
+  }
   if (path.endsWith('/turn-clock'))
     return Response.json({
       tick: {
@@ -1931,6 +1971,13 @@ else
       ) : (
         <BattleInteractionLifecycleProvider>
           <BattleExperience initialBattle={initialBattle} runtime={runtime} />
+          {guidedCase && initialBattle.snapshot.tactical.battle.lifecycle === 'active' ? (
+            <BattleLessonCoach
+              battleSessionId="fixture"
+              recordId="guided-fundamentals"
+              recoveryPractice
+            />
+          ) : null}
           {mode === 'pvp' && new URLSearchParams(location.search).has('chat') ? (
             <>
               <PvpBattleChatBridge battleSessionId="fixture" metadata={metadata} />

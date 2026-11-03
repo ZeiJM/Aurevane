@@ -909,7 +909,10 @@ export async function captureBattleBuildAbilitySources(
                 (source.abilityId !== support || equipment.selectedSupport.kind === 'basic')),
           ),
         )
-        if (!equipment && practiceRecovery && support !== DEFAULT_SUPPORT_ACTION_ID) {
+        if (
+          practiceRecovery &&
+          !sources.some((source) => source.abilityId === DEFAULT_SUPPORT_ACTION_ID)
+        ) {
           // The guided recovery exercise does not change the saved Support slot.
           const recovery = captureBasicSkillSources({
             ownerCombatantId: build.combatantId,

@@ -803,7 +803,7 @@ function BattleExperienceContent({
   const supportCost = supportSkill?.cost.kind === 'flat' ? supportSkill.cost.amount : 0
   const guidedSupportPractice =
     runtime.kind === 'pve' &&
-    battle.snapshot.equipmentActions === undefined &&
+    (battle.snapshot.supportActionPolicyVersion !== 1 || Boolean(basicPracticeSupport)) &&
     supportActionId !== practiceSupportId &&
     battle.snapshot.statBridge.combatants.some(
       (profile) =>

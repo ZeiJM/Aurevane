@@ -1,3 +1,7 @@
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
+import { createGuidedTrainingCompletionService } from './guided-training-completion-service'
+import { presentItem } from '@/lib/items/item-presentation'
+import type { CombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { source as equipmentTestSource } from '../../../../../packages/game-core/src/combat/combat-behavior.test-utils'
 import { combatStatBonus } from '@aurevane/game-core/combat/combat-stat-bonuses'
 import { formatBattleLogForClipboard } from '@/components/battle/battle-log-clipboard'
@@ -2845,3 +2849,331 @@ it('practice termination ends an armed Reversal with its normal receipt and pres
     expect.objectContaining({ event: 'reversal_ended', reason: 'battle-ended' }),
   )
 })
+
+it.each(['weapon-recovery', 'empty-mp', 'passive-pilfer', 'equipment-support'] as const)(
+  'completes all Guided Fundamentals criteria through admitted %s actions after reload',
+  async (loadout) => {
+    const catalogue = starterItemDefinitions()
+    const item = (id: string) => catalogue.find((row) => row.id === id)!
+    const supportActionId =
+      loadout === 'empty-mp'
+        ? 'basic.recover.mp'
+        : loadout === 'passive-pilfer'
+          ? 'basic.pilfer'
+          : 'basic.recover'
+    const equipment: BattleEquipmentCapture = {
+      schemaVersion: 1,
+      inventoryRevision: 4,
+      selectedSupport:
+        loadout === 'equipment-support'
+          ? {
+              kind: 'equipment',
+              position: 'main-hand',
+              itemId: 'tower-shield',
+              behaviorId: 'guard',
+            }
+          : { kind: 'basic', actionId: supportActionId },
+      equipment:
+        loadout === 'empty-mp'
+          ? []
+          : [
+              {
+                position: loadout === 'passive-pilfer' ? 'boots' : 'main-hand',
+                ownedStackId: 'private-guided-stack',
+                item: item(
+                  loadout === 'weapon-recovery'
+                    ? 'iron-shortsword'
+                    : loadout === 'passive-pilfer'
+                      ? 'trailbound-boots'
+                      : 'tower-shield',
+                ),
+              },
+            ],
+    }
+    const savedEquipment = structuredClone(equipment)
+    const builds = buildRepository({ ...pureSnapshot(), supportActionId })
+    builds.repository.loadBattleEquipment = async () => equipment
+    const resolver = createCombatContentResolver({
+      findCurrentSkill: async () => null,
+      findSkillVersion: async () => null,
+    })
+    resolver.resolveCurrentItemDefinition = async (id) => item(id)
+    resolver.resolvePinnedItemDefinition = async (id) => item(id)
+    const battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      builds: builds.repository,
+      battles: battles.repository,
+      combatContentResolver: resolver,
+      readElevationPolicy: async () => ({
+        version: 2,
+        model: 'independent-highest',
+        level1BasisPoints: 0,
+        level2BasisPoints: 0,
+        level3BasisPoints: 0,
+      }),
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      battleHallRecordId: 'guided-fundamentals',
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    let state = battles.record!.snapshot as BattleAuthoritativeEncounterState
+    expect(
+      state.capturedAbilitySources!.filter((source) => source.abilityId === 'basic.recover'),
+    ).toHaveLength(1)
+    expect(
+      created.snapshot.basicActions?.some((source) => source.actionId === 'basic.recover'),
+    ).toBe(true)
+    const frozenSources = structuredClone(state.capturedAbilitySources)
+    // Use a legal short approach to the exercise opponent; all accomplishments below are real service commits.
+    const enemyId = state.tactical.battle.combatants.find((unit) => unit.id !== PLAYER_ID)!.id
+    state = {
+      ...state,
+      tactical: {
+        ...state.tactical,
+        placements: state.tactical.placements.map((placement) => ({
+          ...placement,
+          position: placement.combatantId === PLAYER_ID ? { x: 2, y: 1 } : { x: 4, y: 1 },
+        })),
+        battle: {
+          ...state.tactical.battle,
+          combatants: state.tactical.battle.combatants.map((unit) =>
+            unit.id === PLAYER_ID ? { ...unit, hp: unit.maxHp - 20 } : unit,
+          ),
+        },
+      },
+    }
+    battles.replaceSnapshot(JSON.parse(JSON.stringify(state)))
+    let extraEvents: { event: string; actorId: string; actionId: string }[] = []
+    const historyRepository = {
+      ...battles.repository,
+      findBattleEvents: async () => [
+        ...extraEvents.map((event, eventIndex) => ({
+          battleVersion: 1,
+          eventIndex,
+          event,
+          createdAt: CREATED_AT,
+        })),
+        ...battles.commitBattleIntent.mock.calls.flatMap(([input]) =>
+          input.events.map((event, eventIndex) => ({
+            battleVersion: input.expectedBattleVersion + 1,
+            eventIndex,
+            event,
+            createdAt: CREATED_AT,
+          })),
+        ),
+      ],
+    }
+    const completion = createGuidedTrainingCompletionService(historyRepository)
+    extraEvents = [
+      'item.forged.main-hand.attack',
+      'item.iron-shortsword.off-hand.attack',
+      'item.tower-shield.main-hand.support',
+    ].map((actionId) => ({ event: 'combat_action_used', actorId: PLAYER_ID, actionId }))
+    if (loadout === 'weapon-recovery' || loadout === 'equipment-support')
+      extraEvents.push({
+        event: 'combat_action_used',
+        actorId: PLAYER_ID,
+        actionId: PV1F_BASIC_ATTACK_ID,
+      })
+    expect((await completion.getProgress(USER_ID, SESSION_ID)).attack).toBe(false)
+    extraEvents = []
+    const submit = (intent: Parameters<typeof service.submitIntent>[0]['intent']) =>
+      service.submitIntent({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: battles.record!.battleVersion,
+        idempotencyKey: `99999999-9999-4999-8999-${String(battles.record!.battleVersion).padStart(12, '0')}`,
+        intent,
+      })
+    await submit({
+      kind: 'move',
+      path: [
+        { x: 2, y: 1 },
+        { x: 3, y: 1 },
+      ],
+    })
+    await submit({
+      kind: 'action',
+      actionId: PV1F_BASIC_ATTACK_ID,
+      target: { kind: 'unit', combatantId: enemyId },
+    })
+    expect((await completion.getProgress(USER_ID, SESSION_ID)).attack).toBe(true)
+    const hp = (
+      battles.record!.snapshot as BattleAuthoritativeEncounterState
+    ).tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!.hp
+    await submit({ kind: 'action', actionId: 'basic.recover', target: { kind: 'self' } })
+    expect(
+      (
+        battles.record!.snapshot as BattleAuthoritativeEncounterState
+      ).tactical.battle.combatants.find((unit) => unit.id === PLAYER_ID)!.hp,
+    ).toBeGreaterThan(hp)
+    await submit({ kind: 'face', facing: 'east' })
+    battles.replaceSnapshot(JSON.parse(JSON.stringify(battles.record!.snapshot)))
+    await service.getSession(USER_ID, SESSION_ID)
+    expect(await completion.getProgress(USER_ID, SESSION_ID)).toEqual({
+      move: true,
+      attack: true,
+      guard: true,
+      facing: true,
+    })
+    expect(
+      (battles.record!.snapshot as BattleAuthoritativeEncounterState).capturedAbilitySources,
+    ).toEqual(frozenSources)
+    expect(equipment).toEqual(savedEquipment)
+    expect(
+      (battles.record!.snapshot as BattleAuthoritativeEncounterState).buildAuthority!.combatants[0]!
+        .supportActionId,
+    ).toBe(supportActionId)
+    expect(JSON.stringify(await service.getSession(USER_ID, SESSION_ID))).not.toMatch(
+      /private-guided-stack|ownedStackId|capturedAbilitySources/,
+    )
+    await completion.complete({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      idempotencyKey: '77777777-7777-4777-8777-777777777777',
+    })
+    expect(
+      (battles.record!.snapshot as BattleAuthoritativeEncounterState).tactical.battle.lifecycle,
+    ).toBe('completed')
+    expect(
+      (
+        await completion.complete({
+          userId: USER_ID,
+          battleSessionId: SESSION_ID,
+          idempotencyKey: '77777777-7777-4777-8777-777777777777',
+        })
+      ).replayed,
+    ).toBe(true)
+  },
+)
+
+it.each(['controlled', 'delayed'] as const)(
+  'pins genuine Item information to the captured global %s policy after current policy changes',
+  async (timing) => {
+    const salve = starterItemDefinitions().find((item) => item.id === 'mender-salve')!
+    expect(salve.ability!.behaviors[0]!.effects[0]!.timing).toBe('instant')
+    const capturedPolicy: CombatEffectTimingPolicy = {
+      version: 12,
+      tagAuthority: 'global',
+      modes: { healing: timing },
+    }
+    let currentPolicy = capturedPolicy
+    let currentTags = [
+      {
+        contentKey: 'tag.hp-recovery',
+        contentVersion: 6,
+        tagId: 'hp-recovery',
+        name: 'HP Recovery',
+        compact: 'Captured recovery description.',
+        full: 'Captured healing explanation.',
+      },
+    ]
+    const builds = buildRepository(pureSnapshot())
+    builds.repository.loadBattleEquipment = async () => ({
+      schemaVersion: 1,
+      inventoryRevision: 1,
+      selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+      equipment: [{ position: 'main-hand', ownedStackId: 'private-salve', item: salve }],
+    })
+    const battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      builds: builds.repository,
+      battles: battles.repository,
+      combatContentResolver: {
+        ...createCombatContentResolver({
+          findCurrentSkill: async () => null,
+          findSkillVersion: async () => null,
+        }),
+        resolveCurrentItemDefinition: async () => salve,
+        resolvePinnedItemDefinition: async () => salve,
+        resolveCurrentTagPresentations: async () => currentTags,
+      },
+      readEffectTimingPolicy: async () => currentPolicy,
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    const choice = created.snapshot.equipmentActions![0]!
+    const label = timing === 'controlled' ? 'Controlled' : 'Delayed'
+    expect(JSON.stringify(choice.behaviors[0]!.rows)).toContain(label)
+    expect(choice.item.reports[0]!.rows).toEqual(choice.behaviors[0]!.rows)
+    expect(JSON.stringify(choice.item.reports[0]!.limits)).toContain('3 uses per battle')
+    expect(JSON.stringify(choice.item.reports)).toContain('Captured healing explanation.')
+    expect(JSON.stringify(presentItem(salve).reports)).toContain('Instant')
+    currentTags = [{ ...currentTags[0]!, contentVersion: 7, full: 'New current wording.' }]
+    currentPolicy = { version: 13, tagAuthority: 'global', modes: { healing: 'instant' } }
+    battles.replaceSnapshot(JSON.parse(JSON.stringify(battles.record!.snapshot)))
+    expect(
+      (await service.getSession(USER_ID, SESSION_ID)).snapshot.equipmentActions![0]!.item.reports,
+    ).toEqual(choice.item.reports)
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  },
+)
+
+it.each(['basic', 'equipment'] as const)(
+  'rejects unselected Recovery outside Guided Fundamentals with %s Support',
+  async (kind) => {
+    const shield = starterItemDefinitions().find((item) => item.id === 'tower-shield')!
+    const builds = buildRepository({ ...pureSnapshot(), supportActionId: 'basic.pilfer' })
+    builds.repository.loadBattleEquipment = async () => ({
+      schemaVersion: 1,
+      inventoryRevision: 1,
+      selectedSupport:
+        kind === 'basic'
+          ? { kind: 'basic', actionId: 'basic.pilfer' }
+          : { kind: 'equipment', position: 'main-hand', itemId: shield.id, behaviorId: 'guard' },
+      equipment:
+        kind === 'basic'
+          ? []
+          : [{ position: 'main-hand', ownedStackId: 'private-shield', item: shield }],
+    })
+    const resolver = {
+      ...createCombatContentResolver({
+        findCurrentSkill: async () => null,
+        findSkillVersion: async () => null,
+      }),
+      resolveCurrentItemDefinition: async () => shield,
+      resolvePinnedItemDefinition: async () => shield,
+    }
+    const battles = battleRepository()
+    const service = createBattleSessionService({
+      characters: characterRepository(),
+      builds: builds.repository,
+      battles: battles.repository,
+      combatContentResolver: resolver,
+    })
+    const created = await service.createSession({
+      userId: USER_ID,
+      characterId: CHARACTER_ID,
+      battleHallRecordId: 'recruit-sparring',
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+    })
+    expect(created.snapshot.basicActions?.some((row) => row.actionId === 'basic.recover')).toBe(
+      false,
+    )
+    const before = JSON.stringify(battles.record!.snapshot)
+    const request = {
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '99999999-9999-4999-8999-999999999999',
+      intent: {
+        kind: 'action' as const,
+        actionId: 'basic.recover',
+        target: { kind: 'self' as const },
+      },
+    }
+    await expect(
+      createBattlePreviewService(battles.repository, resolver).previewIntent(request),
+    ).rejects.toThrow('Basic Skill is not in the captured equipped actions')
+    await expect(service.submitIntent(request)).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  },
+)

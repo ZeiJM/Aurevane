@@ -1,3 +1,4 @@
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 import type { BattleEventRecord, BattleEventRepository } from '@aurevane/db/battle-session'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -9,7 +10,10 @@ import {
   readGuidedTrainingProgress,
 } from './guided-training-completion-service'
 
-import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import {
+  capturedBasicSkillSource,
+  defaultBasicSkills,
+} from '@aurevane/game-core/combat/combat-basic-actions'
 import {
   captureBattleBuildAbilitySources,
   type BattleBuildAuthoritySnapshot,
@@ -134,6 +138,70 @@ describe('guided training completion progress', () => {
     ])
     expect(authority.combatants[0]!.supportActionId).toBe('basic.pilfer')
   })
+  it.each(['pve', 'pvp'] as const)(
+    'does not grant contextual Recovery in ordinary %s admission for equipment Support',
+    async (combatContext) => {
+      const { state } = capturedBasicBattle('basic.pilfer', false, {}, true)
+      const item = starterItemDefinitions().find((item) => item.id === 'tower-shield')!
+      const authority: BattleBuildAuthoritySnapshot = {
+        schemaVersion: 1,
+        combatContext,
+        combatants: [
+          {
+            combatantId: 'actor',
+            characterId: 'actor',
+            snapshotSchemaVersion: 1,
+            buildSchemaVersion: 1,
+            buildVersion: 1,
+            fingerprint: 'native-roles',
+            primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+            secondary: null,
+            disciplineSkills: [],
+            supportActionId: 'basic.pilfer',
+            extensions: {
+              essence: null,
+              resonance: null,
+              equipmentSkills: [
+                {
+                  schemaVersion: 1,
+                  inventoryRevision: 1,
+                  selectedSupport: {
+                    kind: 'equipment',
+                    position: 'main-hand',
+                    itemId: item.id,
+                    behaviorId: 'guard',
+                  },
+                  equipment: [{ position: 'main-hand', ownedStackId: 'private-guard', item }],
+                },
+              ],
+            },
+          },
+        ],
+      }
+      const sources = await captureBattleBuildAbilitySources(state, authority, {
+        resolveCurrentSkillDefinition: async () => null,
+        resolvePinnedSkillDefinition: async () => null,
+        resolveCurrentBasicSkillDefinitions: async () =>
+          new Map(defaultBasicSkills().map((basic) => [basic.id, basic])),
+        resolvePinnedItemDefinition: async () => item,
+      })
+      expect(sources.filter((source) => source.basic).map((source) => source.abilityId)).toEqual([
+        'basic.move',
+      ])
+      expect(sources.find((source) => source.equipment)!.equipment!.roles).toEqual({
+        attack: 'attack',
+        support: 'guard',
+      })
+      expect(() =>
+        capturedBasicSkillSource(
+          { ...state, capturedAbilitySources: sources },
+          'actor',
+          'basic.recover',
+        ),
+      ).toThrow('Basic Skill is not in the captured equipped actions')
+    },
+  )
+
   it('counts the actual captured HP Recovery commit after restoring missing health', () => {
     const { state } = capturedBasicBattle('basic.recover', false, {}, true)
     state.supportActionPolicyVersion = 1

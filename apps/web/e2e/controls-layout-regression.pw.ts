@@ -182,7 +182,10 @@ test('Controls shows every binding and account action without desktop scrolling 
       COMBAT_KEYBIND_ACTIONS.length,
     )
     await expect(page.getByTestId('keybind-items').locator('kbd')).toHaveText('P')
-    await expect(page.getByTestId('keybind-items')).toContainText('currently locked')
+    await expect(page.getByTestId('keybind-items').locator('strong')).toHaveText('Item')
+    await expect(page.getByTestId('keybind-items')).toContainText(
+      'Choose an equipped hand Item in the battle preview, then select its target.',
+    )
     const label = `controls-desktop-${viewport.width}x${viewport.height}`
     await expectDesktopControlsFit(page, info, `${label}-baseline`)
 

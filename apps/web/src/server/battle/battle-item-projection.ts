@@ -37,7 +37,7 @@ export function projectBattleItems(
     )
     .flatMap((source) => {
       const { unit, roles } = source.equipment!
-      const item = presentItem(unit.item)
+      const item = presentItem(unit.item, { timingPolicy: state.effectTimingPolicy ?? null })
       return (['attack', 'support', 'use'] as const)
         .filter((role) => roles[role] !== undefined)
         .map((role) => {

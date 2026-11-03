@@ -83,6 +83,7 @@ jobs:
           pnpm --filter @aurevane/web exec node scripts/runtime-item-editor-browser-regression.mjs
           pnpm --filter @aurevane/web exec node scripts/arsenal-items-browser-regression.mjs
           pnpm --filter @aurevane/web exec node scripts/battle-items-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/guided-items-browser-regression.mjs
 
       - name: Save Item native evidence
         if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
@@ -93,6 +94,7 @@ jobs:
             /tmp/runtime-item-editor-browser-evidence
             /tmp/arsenal-items-browser-evidence
             /tmp/battle-items-browser-evidence
+            /tmp/guided-items-browser-evidence
           if-no-files-found: error
 
       - name: Verify complete Master operational components

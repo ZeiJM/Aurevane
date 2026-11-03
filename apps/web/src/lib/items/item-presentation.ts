@@ -2,9 +2,13 @@ import type { RuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 import { imageAssetRegistry } from '@/media/registry'
+import type { CombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 
 /** Safe shared reader for inventory, Master previews and captured Item information. */
-export function presentItem(definition: RuntimeItemDefinition) {
+export function presentItem(
+  definition: RuntimeItemDefinition,
+  context: { timingPolicy?: CombatEffectTimingPolicy | null } = {},
+) {
   const image = definition.media.artwork
     ? contentMediaSource(definition.media.artwork)
     : (imageAssetRegistry.get(definition.media.artworkId ?? '')?.src ?? null)
@@ -41,7 +45,7 @@ export function presentItem(definition: RuntimeItemDefinition) {
               ),
             }
           : behavior,
-        { tagPresentation: definition.ability?.tagPresentation },
+        { ...context, tagPresentation: definition.ability?.tagPresentation },
       ),
     })),
   }
