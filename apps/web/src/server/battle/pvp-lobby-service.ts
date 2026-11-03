@@ -632,6 +632,7 @@ export async function startPvpLobby(
       member.userId,
       character.id,
       builds,
+      true,
     )
     assertPreparedBattleSource(character, buildSnapshot)
     roster.push({ member, character, buildSnapshot })

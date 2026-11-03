@@ -41,7 +41,7 @@ export function toCombatBuildSnapshot(
           }
         : null,
       essence: committed.extensions.essence ? { ...committed.extensions.essence } : null,
-      equipmentSkills: [] as readonly never[],
+      equipmentSkills: structuredClone(committed.extensions.equipmentSkills),
       supernatural: null,
       prestige: null,
     },

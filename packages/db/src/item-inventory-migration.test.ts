@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import type { PGlite } from '@electric-sql/pglite'
 import { afterAll, beforeAll, beforeEach, afterEach, expect, it } from 'vitest'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
@@ -80,6 +81,134 @@ beforeEach(async () => {
 })
 afterEach(async () => {
   await db.exec('rollback')
+})
+it('prepares exact versioned equipment and validates it inside the actual creation transaction', async () => {
+  await grant('battle-equipment', [{ itemId: helm.id, quantity: 1 }])
+  const owned = await read()
+  await equip(1, { head: owned.stacks[0]!.id })
+  const captured = (
+    await db.query<{ value: unknown }>(
+      'select public.read_character_battle_equipment_v1($1,$2) value',
+      [user, character],
+    )
+  ).rows[0]!.value
+  expect(captured).toEqual({
+    schemaVersion: 1,
+    inventoryRevision: 2,
+    selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+    equipment: [{ position: 'head', ownedStackId: owned.stacks[0]!.id, item: helm }],
+  })
+  const body = (
+    await db.query<{ body: string }>(
+      "select pg_get_functiondef('app_private.guard_player_battle_admission_v1()'::regprocedure) body",
+    )
+  ).rows[0]!.body
+  expect(body).toContain('assert_character_item_admission_v1')
+  expect(body.indexOf('assert_character_item_admission_v1')).toBeLessThan(
+    body.indexOf('for update nowait'),
+  )
+  const build = (
+    await db.query<{ value: Record<string, unknown> }>(
+      'select public.get_character_committed_build_snapshot_v2($1,$2) value',
+      [user, character],
+    )
+  ).rows[0]!.value
+  const initial = {
+    tactical: {
+      battle: {
+        battleId: 'item-admission',
+        rulesVersion: 1,
+        contentVersion: 1,
+        rng: { algorithm: 'xorshift32-v1', seed: 7, state: 7, draws: 0 },
+        lifecycle: 'active',
+        currentTurn: { combatantId: `character:${character}` },
+        combatants: [
+          { id: `character:${character}`, teamId: 'player' },
+          { id: 'enemy', teamId: 'enemy' },
+        ],
+      },
+    },
+    buildAuthority: {
+      combatants: [
+        {
+          ...build,
+          combatantId: `character:${character}`,
+          characterId: character,
+          extensions: { ...(build.extensions as object), equipmentSkills: [captured] },
+        },
+      ],
+    },
+  }
+  const participants = [
+    { combatant_id: `character:${character}`, participant_role: 'player', character_id: character },
+    { combatant_id: 'enemy', participant_role: 'opponent', character_id: null },
+  ]
+  const create = (snapshot: unknown) =>
+    db.query('select * from public.create_battle_session_v2($1,$2,$3,$4,$5,1,1,$6,$7,$6,$8,$9)', [
+      user,
+      '00000000-0000-4000-8000-000000009099',
+      'item-admission',
+      user,
+      'item-admission',
+      snapshot,
+      participants,
+      [],
+      { schemaVersion: 1, commandVisibility: { kind: 'public' }, eventVisibilityOverrides: [] },
+    ])
+  for (const patch of [
+    { inventoryRevision: 1 },
+    { equipment: [] },
+    { equipment: [{ position: 'head', ownedStackId: 'foreign-stack', item: helm }] },
+  ]) {
+    const forged = structuredClone(initial)
+    forged.buildAuthority.combatants[0]!.extensions.equipmentSkills[0] = {
+      ...(captured as object),
+      ...patch,
+    }
+    await fails(
+      () => create(forged),
+      patch.inventoryRevision ? 'ITEM_STALE_REVISION' : 'ITEM_PREPARATION_STALE',
+    )
+    expect(
+      (
+        await db.query('select * from app_private.battle_participants where character_id=$1', [
+          character,
+        ])
+      ).rows,
+    ).toEqual([])
+  }
+
+  const changed = structuredClone(initial)
+  changed.buildAuthority.combatants[0]!.extensions.equipmentSkills = []
+  await fails(
+    () =>
+      db.query(
+        'select * from public.create_battle_session_v2($1,$2,$3,$4,$5,1,1,$6,$7,$8,$9,$10)',
+        [
+          user,
+          '00000000-0000-4000-8000-000000009099',
+          'item-admission',
+          user,
+          'item-admission',
+          changed,
+          participants,
+          initial,
+          [],
+          { schemaVersion: 1, commandVisibility: { kind: 'public' }, eventVisibilityOverrides: [] },
+        ],
+      ),
+    'ITEM_STARTUP_CAPTURE_CHANGED',
+  )
+  await db.exec('savepoint catalogue_change')
+  await seed([
+    { ...helm, contentVersion: 2, qualityPoints: 60, media: { artworkId: 'changed.art' } },
+  ])
+  await fails(() => create(initial), 'ITEM_PREPARATION_STALE')
+  await db.exec('rollback to savepoint catalogue_change; release savepoint catalogue_change')
+  const admitted = await create(initial)
+  expect(admitted.rows).toHaveLength(1)
+  await fails(() => equip(2, {}, undefined, ['head']), 'ITEM_BATTLE_ACTIVE')
+  expect((await create(initial)).rows[0]).toMatchObject({ replayed: true })
 })
 it('reads no foreign character and denies direct browser RPC/table access with RLS enabled', async () => {
   await fails(() => read(other), 'ITEM_OWNERSHIP')
@@ -828,5 +957,46 @@ it('activates a saved Basic Support after inventory exists with atomic synchroni
         [user, character, expected, crypto.randomUUID(), 'stale-support-activation'],
       ),
     'CHARACTER_BUILD_VERSION_CONFLICT',
+  )
+})
+
+it('executes the shared native race fixtures through real PvE, PvP, World and loadout transactions', async () => {
+  await db.exec(
+    readFileSync(
+      new URL('../../../.github/scripts/item-admission-race-fixtures.sql', import.meta.url),
+      'utf8',
+    ),
+  )
+  for (const mode of ['pve', 'pvp', 'world']) {
+    await db.query('select item_race.setup($1,$1)', [mode])
+    await db.exec('set local role service_role')
+    expect((await db.query('select item_race.admit($1) result', [mode])).rows[0]).toHaveProperty(
+      'result',
+    )
+    await fails(() => db.query('select item_race.equip($1)', [mode]), 'ITEM_BATTLE_ACTIVE')
+    await db.exec('reset role')
+  }
+  await db.query("select item_race.setup('loadout','loadout')")
+  await db.query("select item_race.activate('loadout')")
+  expect(
+    (
+      await db.query<{ result: ItemInventorySnapshot }>(
+        "select item_race.read_item('loadout') result",
+      )
+    ).rows[0]!.result.selectedSupport,
+  ).toEqual({ kind: 'basic', actionId: 'basic.recover' })
+  expect(
+    (
+      await db.query<{ result: { replayed: boolean } }>(
+        "select item_race.activate('loadout') result",
+      )
+    ).rows[0]!.result.replayed,
+  ).toBe(true)
+  await db.query("select item_race.setup('grant','grant')")
+  await db.query("select item_race.grant_item('grant','first')")
+  await db.query("select item_race.grant_item('grant','first')")
+  await fails(
+    () => db.query("select item_race.grant_item('grant','different')"),
+    'ITEM_STALE_REVISION',
   )
 })

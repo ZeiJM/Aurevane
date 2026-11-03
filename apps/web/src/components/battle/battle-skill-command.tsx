@@ -114,6 +114,7 @@ export function BattleSkillCommand({
   characterStats,
   basicAction,
   behaviorId,
+  unavailableReason,
 }: {
   slot: BattleCommandSlot
   hotkey: string
@@ -132,6 +133,7 @@ export function BattleSkillCommand({
   characterStats?: BasicActionCharacterStats
   basicAction?: BattleBasicActionPresentation | null
   behaviorId?: string
+  unavailableReason?: string | null
   children?: ReactNode
 }) {
   const timingPolicy = useSkillEffectTimingPolicy()
@@ -147,7 +149,6 @@ export function BattleSkillCommand({
       (behavior) => !behaviorId || behavior.behaviorId === behaviorId,
     ) ?? []
   const actionDisabled =
-    slot === 'items' ||
     (controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction) ||
     disabled ||
     (!primeAvailable &&
@@ -279,9 +280,10 @@ export function BattleSkillCommand({
         data-command-slot={slot}
         data-action-cost={cost}
         disabled={actionDisabled}
+        title={unavailableReason ?? undefined}
         data-battle-cooldown-active={cooldownTurns > 0 || undefined}
         onClick={onActivate}
-        aria-label={`${label}, ${battleControlledActionCostLabel(controlledAvailability, primeAvailable && !controlledAvailability?.controlledSpent, cost)}${battleCooldownLabel(cooldownTurns)}${controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction ? ', already used this battle' : ''}${controlledAvailability?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}
+        aria-label={`${label}, ${battleControlledActionCostLabel(controlledAvailability, primeAvailable && !controlledAvailability?.controlledSpent, cost)}${battleCooldownLabel(cooldownTurns)}${controlledAvailability?.controlledSpent && !controlledAvailability.chooseAction ? ', already used this battle' : ''}${controlledAvailability?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}${unavailableReason ? `, ${unavailableReason}` : ''}`}
       >
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
@@ -291,7 +293,7 @@ export function BattleSkillCommand({
           data-av-square-media-fit="contain"
           aria-hidden="true"
         >
-          {slot === 'items' ? (
+          {slot === 'items' && artworkSrc === BATTLE_MISSING_ARTWORK ? (
             <svg viewBox="0 0 100 100" width="100%" height="100%" fill="none" aria-hidden="true">
               <path d="M34 44V32a16 16 0 0 1 32 0v12" stroke="#c4a56c" strokeWidth="5" />
               <rect
@@ -424,7 +426,8 @@ export function BattleSkillCommand({
           ) : (
             <p>
               {slot === 'items'
-                ? 'Battle Items are coming soon. This slot is locked and cannot issue a command.'
+                ? (unavailableReason ??
+                  'Choose an equipped hand Item in the preview. Uses refill each battle.')
                 : slot === 'inspect'
                   ? 'Select a character or tile to inspect it for free.'
                   : slot === 'finish'

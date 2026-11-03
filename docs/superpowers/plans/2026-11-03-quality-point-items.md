@@ -82,10 +82,10 @@
 
 **Interfaces:** consumes CharacterItemsView/mutation API and ItemPresentation from Task3. Owns selection/search/filter/scroll/dialog UI, not authoritative eligibility.
 
-- [ ] RED render/interaction:6tabs/40slots, real thumbnails/99counts, search/sorts/filters, six gear positions andQPsum, shortage/swap explanations.
-- [ ] Implement persisted equip/unequip/sort and candidate previews, two-hand occupancy, item/slot comparison; current selected equipment-support notice/fallback.
-- [ ] Native desktop390/412 exercise slot/detail/equip/reload and real visible art; no page-level clipping or inaccessible actions.
-- [ ] Verify appropriate component/service/browser checks, types/lint; commit.
+- [x] RED render/interaction:6tabs/40slots, real thumbnails/99counts, search/sorts/filters, six gear positions andQPsum, shortage/swap explanations.
+- [x] Implement persisted equip/unequip/sort and candidate previews, two-hand occupancy, item/slot comparison; current selected equipment-support notice/fallback.
+- [x] Native desktop390/412 exercise slot/detail/equip/reload and real visible art; no page-level clipping or inaccessible actions.
+- [x] Verify appropriate component/service/browser checks, types/lint; commit.
 
 ### Task 5: Frozen battle admission and cockpit actions
 

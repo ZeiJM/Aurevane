@@ -78,11 +78,15 @@ import './production-styles'
 
 const targetingCase = new URLSearchParams(location.search).get('targeting')
 const canonicalCase = new URLSearchParams(location.search).get('canonical')
+const { equipmentFixtureSources, equipmentFixtureAction, projectEquipmentFixture } =
+  canonicalCase?.startsWith('items') ? await import('@/../e2e/fixtures/equipment-viewer-state') : {}
 let canonicalState
 let canonicalCapture
 let canonicalTargets
 let canonicalBasics
 function canonicalPublicState(state) {
+  if (canonicalCase?.startsWith('items'))
+    return projectEquipmentFixture(state, mode === 'spectator')
   const publicState = { ...projectPercentageDotFixtureState(state) }
   Reflect.deleteProperty(publicState, 'capturedAbilitySources')
   Reflect.deleteProperty(publicState, 'abilityRuntime')
@@ -1275,8 +1279,34 @@ if (canonicalCase?.startsWith('support-')) {
     }).state
   initialBattle.snapshot = canonicalPublicState(canonicalState)
 }
+if (canonicalCase?.startsWith('items')) {
+  const sources = equipmentFixtureSources(canonicalCase === 'items-weapon')
+  canonicalState = reconcileCombatAbilitySources(
+    preparePv1fTurnEconomy({
+      ...snapshot,
+      tactical: {
+        ...snapshot.tactical,
+        battle: {
+          ...snapshot.tactical.battle,
+          combatants: snapshot.tactical.battle.combatants.map((unit) =>
+            unit.id === ids[0] ? { ...unit, hp: 40 } : unit,
+          ),
+        },
+      },
+    }),
+    sources,
+  )
+  canonicalCapture = sources.find((source) => source.equipment)
+  runtime.techniques = []
+  runtime.essence = undefined
+  runtime.resonance = undefined
+  initialBattle.snapshot = canonicalPublicState(canonicalState)
+}
 const fixtureControls = {
   ...DEFAULT_COMBAT_KEYBINDS,
+  ...(canonicalCase?.startsWith('items')
+    ? { items: { code: 'KeyI', shift: false }, inspect: { code: 'KeyP', shift: false } }
+    : {}),
   ...(canonicalCase?.startsWith('modifier-') || mode === 'controls'
     ? { inspect: { code: 'KeyM', shift: false }, modifiers: { code: 'KeyM', shift: true } }
     : {}),
@@ -1317,6 +1347,17 @@ window.fetch = async (url, options = {}) => {
     })
   if (canonicalCase && (path.endsWith('/preview') || /\/(commit|intents)$/.test(path))) {
     const intent = body.intent
+    if (canonicalCase?.startsWith('items')) {
+      canonicalCapture = equipmentFixtureAction(canonicalState, intent.actionId)
+      if (!canonicalCapture)
+        return Response.json({ error: { message: 'Unadmitted Item role.' } }, { status: 400 })
+      intent.behaviorId ??=
+        intent.actionId === PV1F_BASIC_ATTACK_ID
+          ? canonicalCapture.equipment.roles.attack
+          : Object.entries(canonicalCapture.equipment.roles).find(([role]) =>
+              intent.actionId.endsWith(`.${role}`),
+            )?.[1]
+    }
     const input = {
       state: canonicalState,
       actorId: ids[0],

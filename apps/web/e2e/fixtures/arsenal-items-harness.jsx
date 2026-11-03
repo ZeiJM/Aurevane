@@ -1,5 +1,6 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
+import { CharacterSelectShell } from '@/components/character/character-select-shell'
 import { CharacterItems } from '@/components/character/character-items'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import {
@@ -181,7 +182,18 @@ const repository = {
     return { state: state(), notices }
   },
 }
+window.deletionCalls = []
 window.fetch = async (url, init = {}) => {
+  if (url === '/api/account/deletion' || url === '/api/characters/roster-fixture/deletion') {
+    window.deletionCalls.push({ url, method: init.method })
+    await new Promise((resolve) => {
+      window.releaseDeletion = resolve
+    })
+    return Response.json(
+      { error: { message: 'Native fixture request rejected; no deletion scheduled.' } },
+      { status: 400 },
+    )
+  }
   if (url === '/api/character/items') {
     if (!init.method) {
       const view = characterItemsView(state())
@@ -244,21 +256,54 @@ window.archiveEquipment = () => {
   save()
 }
 const view = characterItemsView(state())
+const rosterCharacter = {
+  id: 'roster-fixture',
+  userId: 'owner',
+  slotIndex: 0,
+  rulesVersion: 1,
+  name: 'Aurelia',
+  nameKey: 'aurelia',
+  presentationId: 'androgynous',
+  pronounPresetId: 'they_them',
+  portraitRef: 'portrait.starter.wayfarer-01',
+  starterAppearanceRef: 'appearance.starter.roadworn',
+  foundationDisciplineId: 'vanguard',
+  attributes: { might: 6, finesse: 6, vitality: 6, agility: 6, intellect: 6, resolve: 6 },
+  level: 2,
+  xp: 0,
+  progressionCycle: { number: 1 },
+  createdAt: '',
+  cycleStartedAt: '',
+  lastActiveAt: '',
+  deletionRequestedAt: null,
+  deletionExecuteAfter: null,
+  reselectAvailableAt: null,
+  disciplines: { primary: { id: 'vanguard', name: 'Vanguard' }, secondary: null },
+}
 createRoot(document.getElementById('root')).render(
-  <main style={{ maxWidth: 1400, margin: 'auto', background: '#101a22', minHeight: '100vh' }}>
-    <CharacterItems initialView={view} />
-    <CharacterSkillBuildPanel
-      characterId="native"
-      initialBuildVersion={1}
-      initialItemsView={view}
-      initialSupportActionId="basic.recover"
-      primaryDiscipline={{ id: 'vanguard', name: 'Vanguard' }}
-      secondaryDiscipline={null}
-      initialCapacity={4}
-      initialLearnedSkills={[]}
-      initialEquippedSkills={[]}
-      initialResonance={null}
-      initialEssence={null}
+  new URLSearchParams(location.search).has('roster') ? (
+    <CharacterSelectShell
+      characters={[rosterCharacter]}
+      selectedCharacter={rosterCharacter}
+      profileImageUrls={{}}
+      accountDeletion={null}
     />
-  </main>,
+  ) : (
+    <main style={{ maxWidth: 1400, margin: 'auto', background: '#101a22', minHeight: '100vh' }}>
+      <CharacterItems initialView={view} />
+      <CharacterSkillBuildPanel
+        characterId="native"
+        initialBuildVersion={1}
+        initialItemsView={view}
+        initialSupportActionId="basic.recover"
+        primaryDiscipline={{ id: 'vanguard', name: 'Vanguard' }}
+        secondaryDiscipline={null}
+        initialCapacity={4}
+        initialLearnedSkills={[]}
+        initialEquippedSkills={[]}
+        initialResonance={null}
+        initialEssence={null}
+      />
+    </main>
+  ),
 )

@@ -77,11 +77,12 @@ jobs:
           if [ "$AV_VERIFY_BATTLE" = 'true' ]; then browsers+=(msedge); fi
           pnpm --filter @aurevane/web exec playwright install --with-deps "${browsers[@]}"
 
-      - name: Verify Item editor and Arsenal inventory across desktop and mobile
+      - name: Verify Item editor, Arsenal and battle actions across desktop and mobile
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}
         run: |
           pnpm --filter @aurevane/web exec node scripts/runtime-item-editor-browser-regression.mjs
           pnpm --filter @aurevane/web exec node scripts/arsenal-items-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/battle-items-browser-regression.mjs
 
       - name: Save Item native evidence
         if: ${{ always() && needs.verification-plan.outputs.battle == 'true' }}
@@ -91,6 +92,7 @@ jobs:
           path: |
             /tmp/runtime-item-editor-browser-evidence
             /tmp/arsenal-items-browser-evidence
+            /tmp/battle-items-browser-evidence
           if-no-files-found: error
 
       - name: Verify complete Master operational components

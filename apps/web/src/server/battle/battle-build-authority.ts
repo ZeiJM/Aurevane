@@ -1,3 +1,14 @@
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  parseBattleEquipmentCapture,
+  equipmentRoles,
+  equipmentActionId,
+  type BattleEquipmentCapture,
+} from '@aurevane/game-core/combat/combat-equipment'
+import {
+  captureEquipmentAbilitySource,
+  sameCapturedCombatAbilitySource,
+} from '@aurevane/game-core/combat/combat-behavior-capture'
 import {
   bindCombatTagPresentations,
   combatTagPresentationIssues,
@@ -100,6 +111,7 @@ export interface BattleBuildAuthorityCombatantSnapshot {
   extensions: {
     resonance: ResonanceSnapshotReference | null
     essence: EssenceSnapshotReference | null
+    equipmentSkills?: readonly BattleEquipmentCapture[]
   }
 }
 
@@ -118,6 +130,24 @@ interface BattleBuildAuthorityInput {
   combatantId: string
   characterId: string
   snapshot: CharacterCommittedBuildSnapshotRecord
+}
+
+function sameCapturedValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true
+  if (!left || !right || typeof left !== 'object' || typeof right !== 'object') return false
+  if (Array.isArray(left) || Array.isArray(right))
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((x, i) => sameCapturedValue(x, right[i]))
+    )
+  const a = left as Record<string, unknown>,
+    b = right as Record<string, unknown>
+  return (
+    Object.keys(a).length === Object.keys(b).length &&
+    Object.keys(a).every((k) => Object.hasOwn(b, k) && sameCapturedValue(a[k], b[k]))
+  )
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -231,7 +261,7 @@ function combatSnapshotFromCommitted(
           }
         : null,
       essence: snapshot.extensions.essence ? { ...snapshot.extensions.essence } : null,
-      equipmentSkills: [],
+      equipmentSkills: structuredClone(snapshot.extensions.equipmentSkills),
       supernatural: null,
       prestige: null,
     },
@@ -343,7 +373,8 @@ function parseCombatant(
     extensions: {
       resonance,
       essence,
-      equipmentSkills: [],
+      equipmentSkills: (value.extensions.equipmentSkills ??
+        []) as readonly BattleEquipmentCapture[],
       supernatural: null,
       prestige: null,
     },
@@ -423,7 +454,13 @@ function parseCombatant(
     secondary,
     disciplineSkills,
     ...(supportActionId ? { supportActionId } : {}),
-    extensions: { resonance, essence },
+    extensions: {
+      resonance,
+      essence,
+      ...(combatSnapshot.extensions.equipmentSkills.length
+        ? { equipmentSkills: combatSnapshot.extensions.equipmentSkills }
+        : {}),
+    },
   }
 }
 
@@ -507,6 +544,9 @@ function createBattleBuildAuthoritySnapshotForCatalog(
           ? {}
           : { supportActionId: combatSnapshot.supportActionId }),
         extensions: {
+          ...(combatSnapshot.extensions.equipmentSkills.length
+            ? { equipmentSkills: structuredClone(combatSnapshot.extensions.equipmentSkills) }
+            : {}),
           resonance: combatSnapshot.extensions.resonance
             ? {
                 ...combatSnapshot.extensions.resonance,
@@ -572,6 +612,14 @@ export async function createResolvedBattleBuildAuthoritySnapshot(
         })
       }
 
+      for (const equipment of input.snapshot.extensions.equipmentSkills) {
+        parseBattleEquipmentCapture(equipment)
+        for (const unit of equipment.equipment) {
+          const current = await resolver.resolveCurrentItemDefinition?.(unit.item.id)
+          if (!current || !sameCapturedValue(current, unit.item))
+            throw new TypeError('Prepared equipment no longer matches the current Item definition.')
+        }
+      }
       const primary = input.snapshot.primary.disciplineId
       const secondary = input.snapshot.secondary?.disciplineId ?? null
       const builtinEssence = resolveEssenceForBuild(primary, secondary)
@@ -846,6 +894,9 @@ export async function captureBattleBuildAbilitySources(
         resolvePinnedBattleResonanceDefinition(authority, build.combatantId, resolver),
         basics,
       ])
+      const equipment = build.extensions.equipmentSkills?.[0]
+      if (equipment && !definitions)
+        throw new TypeError('Current equipment admission requires captured Basic actions.')
       if (definitions) {
         const support = build.supportActionId ?? DEFAULT_SUPPORT_ACTION_ID
         const selected = captureBasicSkillSources({
@@ -853,8 +904,16 @@ export async function captureBattleBuildAbilitySources(
           supportActionId: support,
           definitions: [...definitions.values()],
         })
-        sources.push(...selected)
-        if (practiceRecovery && support !== DEFAULT_SUPPORT_ACTION_ID) {
+        sources.push(
+          ...selected.filter(
+            (source) =>
+              !equipment ||
+              ((source.abilityId !== 'unarmed.basic' ||
+                !equipment.equipment.some((unit) => equipmentRoles(equipment, unit).attack)) &&
+                (source.abilityId !== support || equipment.selectedSupport.kind === 'basic')),
+          ),
+        )
+        if (!equipment && practiceRecovery && support !== DEFAULT_SUPPORT_ACTION_ID) {
           // The guided recovery exercise does not change the saved Support slot.
           const recovery = captureBasicSkillSources({
             ownerCombatantId: build.combatantId,
@@ -862,6 +921,22 @@ export async function captureBattleBuildAbilitySources(
             definitions: [...definitions.values()],
           })[2]!
           sources.push(recovery)
+        }
+      }
+      if (equipment) {
+        for (const unit of equipment.equipment) {
+          const pinned = await resolver?.resolvePinnedItemDefinition?.(
+            unit.item.id,
+            unit.item.contentVersion,
+          )
+          if (!pinned || !sameCapturedValue(pinned, unit.item))
+            throw new TypeError('Pinned equipped Item differs from its exact admission.')
+          const source = captureEquipmentAbilitySource(
+            equipment,
+            bindAdmittedBattleTagWording(authority, unit),
+            build.combatantId,
+          )
+          if (source) sources.push(source)
         }
       }
       if (!regular) throw new TypeError('Pinned battle Skill definition is unavailable.')
@@ -906,9 +981,36 @@ export function capturedBattleActionSource(
   authority: BattleBuildAuthoritySnapshot | null | undefined,
   combatantId: string,
   actionId: string,
+  behaviorId?: string,
 ): CapturedCombatAbilitySource | null {
   const build = battleBuildAuthorityForCombatant(authority, combatantId)
   if (!build) return null
+  const equipment = build.extensions.equipmentSkills?.[0]
+  if (equipment) {
+    for (const unit of equipment.equipment) {
+      const roles = equipmentRoles(equipment, unit)
+      for (const role of Object.keys(roles) as Array<keyof typeof roles>) {
+        if (
+          equipmentActionId(unit, role) !== actionId &&
+          !(role === 'attack' && actionId === PV1F_BASIC_ATTACK_ID)
+        )
+          continue
+        if (behaviorId !== undefined && behaviorId !== roles[role])
+          throw new TypeError('Equipment action role does not admit that behavior.')
+        const expected = captureEquipmentAbilitySource(
+          equipment,
+          bindAdmittedBattleTagWording(authority, unit),
+          combatantId,
+        )
+        const captured = state.capturedAbilitySources?.find(
+          (source) => source.sourceInstanceId === expected?.sourceInstanceId,
+        )
+        if (!expected || !captured || !sameCapturedCombatAbilitySource(expected, captured))
+          throw new TypeError('Captured equipment source does not match its exact admitted role.')
+        return captured
+      }
+    }
+  }
   const regular = build.disciplineSkills.find((row) => row.skillId === actionId)
   const essence = build.extensions.essence?.skillId === actionId ? build.extensions.essence : null
   const resonance =
@@ -940,4 +1042,23 @@ export function capturedBattleActionSource(
   )
     throw new TypeError('Captured battle source does not match its exact build reference.')
   return source
+}
+
+/** A role selects exactly one Manual group, even when the unit supplies two roles. */
+export function capturedBattleActionBehaviorId(
+  source: CapturedCombatAbilitySource,
+  actionId: string,
+  requested?: string,
+): string | undefined {
+  if (!source.equipment) return requested
+  const role = (
+    Object.keys(source.equipment.roles) as Array<keyof typeof source.equipment.roles>
+  ).find(
+    (role) =>
+      equipmentActionId(source.equipment!.unit, role) === actionId ||
+      (role === 'attack' && actionId === PV1F_BASIC_ATTACK_ID),
+  )
+  if (!role || (requested !== undefined && source.equipment.roles[role] !== requested))
+    throw new TypeError('Equipment role is not admitted.')
+  return source.equipment.roles[role]
 }

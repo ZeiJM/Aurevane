@@ -1602,7 +1602,7 @@ async function verifyFinalFacing(page, viewport, mode) {
       await panel.waitFor()
       assert.match(
         await panel.innerText(),
-        /Parameters|Skill|Inspect|Items|Turn|Ascension|Resonance/,
+        /Parameters|Skill|Inspect|Item|Turn|Ascension|Resonance/,
       )
       await page.keyboard.press('KeyW')
       assert.equal(
@@ -1732,10 +1732,10 @@ async function verifyFinalFacing(page, viewport, mode) {
     assert.ok(geometry.headerHeight <= 56, `Desktop header stays compact: ${geometry.headerHeight}`)
   } else {
     assert.deepEqual(geometry.order.slice(0, 6), [
-      'items',
       'inspect',
       'move',
       'attack',
+      'items',
       'guard',
       'finish',
     ])
@@ -1971,16 +1971,20 @@ try {
           continue
         }
         const items = page.locator('button[data-command-slot="items"]')
-        assert.equal(await items.isDisabled(), true, 'Items stays locked in each playable mode')
-        assert.equal(await items.locator('strong').innerText(), 'Items')
+        assert.equal(
+          await items.isDisabled(),
+          true,
+          'Item is unavailable without an equipped hand Item',
+        )
+        assert.equal(await items.locator('strong').innerText(), 'Item')
         const deck = page.locator('[data-unified-command-deck]')
         assert.equal(
           await deck.locator('[data-command-slot]').first().getAttribute('data-command-slot'),
-          'items',
+          'inspect',
         )
         assert.equal(
-          await deck.locator('[data-command-slot]').nth(1).getAttribute('data-command-slot'),
-          'inspect',
+          await deck.locator('[data-command-slot]').nth(3).getAttribute('data-command-slot'),
+          'items',
         )
         const geometry = await page.evaluate(() => {
           const deck = document.querySelector('[data-unified-command-deck]')
@@ -2034,7 +2038,7 @@ try {
               ).length,
           ),
           beforeItemsKey,
-          'The locked Items key issues no command or preview',
+          'The unavailable Item key issues no command or preview',
         )
         // Hold only transport boundaries. The production component owns selection, execution,
         // request startup and locks; no fake interaction controller is mounted.

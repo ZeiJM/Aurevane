@@ -48,17 +48,25 @@ export interface CombatSkillAccuracyResolvedEvent extends CombatTargetHitChance 
 export function validateCombatAccuracyDefinition(
   definition: CombatAccuracyAuthoring & {
     readonly nativeBasicAttackCommand?: true
+    readonly equipmentBasicAttackCommand?: true
     readonly sourceType?: string
     readonly target?: CombatActionDefinition['target']
     readonly effects?: readonly { readonly recipient: string; readonly target?: unknown }[]
   },
 ): void {
   if (
+    definition.equipmentBasicAttackCommand !== undefined &&
+    (definition.equipmentBasicAttackCommand !== true ||
+      definition.nativeBasicAttackCommand !== true ||
+      definition.sourceType !== 'basic-attack')
+  )
+    throw new TypeError('invalid-equipment-basic-command-marker')
+  if (
     definition.nativeBasicAttackCommand !== undefined &&
     (definition.nativeBasicAttackCommand !== true ||
       definition.sourceType !== 'basic-attack' ||
-      definition.target?.kind !== 'unit' ||
-      definition.accuracyRule !== undefined ||
+      (!definition.equipmentBasicAttackCommand &&
+        (definition.target?.kind !== 'unit' || definition.accuracyRule !== undefined)) ||
       definition.accuracyMode !== undefined ||
       definition.accuracyModifierBasisPoints !== undefined)
   )
@@ -71,7 +79,7 @@ export function validateCombatAccuracyDefinition(
       definition.accuracyModifierBasisPoints !== undefined
     )
       throw new TypeError('Canonical and legacy combat accuracy authoring conflict.')
-    if (definition.sourceType === 'basic-attack')
+    if (definition.sourceType === 'basic-attack' && !definition.equipmentBasicAttackCommand)
       throw new TypeError(
         'Canonical Basic Attack accuracy requires its canonical activation adapter.',
       )

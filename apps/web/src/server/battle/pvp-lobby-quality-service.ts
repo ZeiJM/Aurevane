@@ -341,6 +341,7 @@ export async function startPvpLobbyWithQuality(
         member.userId,
         member.characterId,
         builds,
+        true,
       )
       assertPreparedBattleSource(character, buildSnapshot)
       return { member, character, buildSnapshot }

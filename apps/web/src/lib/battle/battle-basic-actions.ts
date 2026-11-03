@@ -40,7 +40,10 @@ export interface BattleBasicActionPresentation {
 
 /** Undefined is historical native metadata; null means an action is absent from saved ownership. */
 export function findBattleBasicAction(
-  snapshot: { basicActions?: readonly BattleBasicActionPresentation[] },
+  snapshot: {
+    basicActions?: readonly BattleBasicActionPresentation[]
+    equipmentActions?: readonly BattleBasicActionPresentation[]
+  },
   actorId: string | null,
   actionId: string,
 ): BattleBasicActionPresentation | null | undefined {
@@ -48,7 +51,11 @@ export function findBattleBasicAction(
   return (
     snapshot.basicActions.find(
       (action) => action.ownerCombatantId === actorId && action.actionId === actionId,
-    ) ?? null
+    ) ??
+    snapshot.equipmentActions?.find(
+      (action) => action.ownerCombatantId === actorId && action.actionId === actionId,
+    ) ??
+    null
   )
 }
 

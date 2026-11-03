@@ -1,3 +1,4 @@
+import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
 import 'server-only'
 
 import type { CapturedCombatAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
@@ -170,6 +171,34 @@ export async function attachRecordedBattleLogSkillContext(
         recordedActionId(entry, event) !== entry.actionId
       )
         return entry
+      const equipment = captures.filter(
+        (source) =>
+          source.ownerCombatantId === entry.actorCombatantId &&
+          source.equipment &&
+          source.definition.behaviors.some(
+            (behavior) =>
+              equipmentBehaviorActionId(source.equipment!, behavior.id) === entry.actionId,
+          ),
+      )
+      if (equipment.length === 1) {
+        const item = equipment[0]!.equipment!.unit.item
+        return {
+          ...entry,
+          actionContext: {
+            family: 'skill' as const,
+            skillId: entry.actionId,
+            contentId: item.id,
+            contentVersion: item.contentVersion,
+            name: item.name,
+            ...(contentArtworkKey({ ...item.media, iconKey: item.media.artworkId })
+              ? { artworkKey: contentArtworkKey({ ...item.media, iconKey: item.media.artworkId })! }
+              : {}),
+            description: item.description,
+            flavor: null,
+            battleText: '{actor} uses {ability}.',
+          },
+        }
+      }
       const id = entry.actionId === PV1F_BASIC_ATTACK_ID ? 'unarmed.basic' : entry.actionId
       const matches = captures.filter(
         (source) =>

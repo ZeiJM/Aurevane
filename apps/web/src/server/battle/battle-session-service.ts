@@ -1,3 +1,5 @@
+import { projectBattleItems } from './battle-item-projection'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
 import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
 import { SKILL_COOLDOWN_RESOURCE_PREFIX } from '@aurevane/game-core/combat/skill-cooldowns'
@@ -113,6 +115,7 @@ import {
   battleBuildAuthorityForCombatant,
   createBattleBuildAuthoritySnapshot,
   capturedBattleActionSource,
+  capturedBattleActionBehaviorId,
   captureBattleBuildAbilitySources,
   resolvePinnedBattleEssenceDefinition,
   createResolvedBattleBuildAuthoritySnapshot,
@@ -164,6 +167,7 @@ export type BattleSessionProjection = PublicCombat<
       ReturnType<typeof projectBattleManualActionTargets>[number],
       'modifierRoot' | 'dealsDamage'
     >[]
+    equipmentActions?: ReturnType<typeof projectBattleItems>
     basicActions?: ReturnType<typeof projectBattleBasicActions>
     tagPresentations?: ReturnType<typeof projectBattleTagPresentations>
     groundAreas?: readonly PublicCombatGroundArea[]
@@ -510,7 +514,20 @@ export function projectBattleSnapshot(
   viewer: BattleViewerEntitlement,
 ): BattleSessionProjection {
   const battle = state.tactical.battle
-  const basicActions = projectBattleBasicActions(state, viewer)
+  const equipmentActions = projectBattleItems(state, viewer)
+  const nativeBasics = projectBattleBasicActions(state, viewer)
+  const basicActions =
+    nativeBasics === undefined && equipmentActions.length === 0
+      ? undefined
+      : [
+          ...(nativeBasics ?? []),
+          ...equipmentActions
+            .filter((item) => item.role !== 'use')
+            .map((item) => ({
+              ...item,
+              actionId: item.role === 'attack' ? PV1F_BASIC_ATTACK_ID : item.actionId,
+            })),
+        ]
   return projectPublicCombat({
     ...omitPendingBattlePayloads(state),
     statBridge: {
@@ -521,6 +538,7 @@ export function projectBattleSnapshot(
     },
     ...(state.capturedAbilitySources
       ? {
+          ...(equipmentActions.length ? { equipmentActions } : {}),
           tagPresentations: projectBattleTagPresentations(state, viewer),
           manualModifierAvailability: projectBattleManualModifierAvailability(state, viewer),
           manualActionTargets: projectBattleManualActionTargets(state, viewer),
@@ -621,8 +639,13 @@ async function resolveIntent(
       const actorId = state.tactical.battle.currentTurn?.combatantId
       if (!actorId) throw invalidBattleIntent()
       const source =
-        capturedBasicSkillSource(state, actorId, intent.actionId) ??
-        capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
+        capturedBattleActionSource(
+          state,
+          state.buildAuthority,
+          actorId,
+          intent.actionId,
+          intent.behaviorId,
+        ) ?? capturedBasicSkillSource(state, actorId, intent.actionId)
       if (!source)
         throw invalidBattleIntent('That captured action is not available to this character.')
       const transition = (
@@ -633,7 +656,7 @@ async function resolveIntent(
         state,
         actorId,
         sourceInstanceId: source.sourceInstanceId,
-        behaviorId: intent.behaviorId,
+        behaviorId: capturedBattleActionBehaviorId(source, intent.actionId, intent.behaviorId)!,
         ...(intent.kind === 'ability-prime'
           ? {
               manualModifiers: intent.manualModifiers,
@@ -657,13 +680,27 @@ async function resolveIntent(
       const actorId = state.tactical.battle.currentTurn?.combatantId
       const build = actorId ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId) : null
       const capturedSource = actorId
-        ? capturedBattleActionSource(state, state.buildAuthority, actorId, intent.actionId)
+        ? capturedBattleActionSource(
+            state,
+            state.buildAuthority,
+            actorId,
+            intent.actionId,
+            intent.behaviorId,
+          )
         : null
       if (capturedSource && actorId) {
         const transition = commitCombatAbilityCommand({
           state,
           actorId,
-          root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+          root: {
+            kind: 'canonical',
+            source: capturedSource,
+            behaviorId: capturedBattleActionBehaviorId(
+              capturedSource,
+              intent.actionId,
+              intent.behaviorId,
+            ),
+          },
           movementPath: intent.movementPath,
           manualModifiers: intent.manualModifiers,
           selection: intent.target,
@@ -791,7 +828,7 @@ export function createBattleSessionService({
           ? builds.findActiveBuild(command.userId, command.characterId)
           : Promise.resolve(null),
         builds
-          ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds)
+          ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds, true)
           : Promise.resolve(null),
       ])
 

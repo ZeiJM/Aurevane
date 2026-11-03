@@ -31,7 +31,8 @@ export function registerBattleTabCyclePrevention(
           closingReader &&
           focus instanceof HTMLElement &&
           focus.matches('[data-battle-info-trigger]') &&
-          focus.closest('[data-battle-preview-reader]:not([hidden])')
+          (focus.closest('[data-battle-preview-reader]:not([hidden])') ||
+            focus.closest('[data-battle-item-choices]'))
         )
           return
         if (

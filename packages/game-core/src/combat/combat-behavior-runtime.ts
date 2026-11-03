@@ -1,3 +1,4 @@
+import { equipmentBehaviorActionId } from './combat-equipment'
 import { synchronizeCombatInitiative } from './actions-legacy'
 import {
   combatReversalPayload,
@@ -171,9 +172,15 @@ export function materializeCombatAbilityAction(
   if (behavior.effects.some((effect) => effect.payload.type === 'damage-bonus'))
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
-    id: source.abilityId,
+    id: source.equipment
+      ? equipmentBehaviorActionId(source.equipment, behavior.id)
+      : source.abilityId,
     version: source.contentVersion,
-    sourceType: 'discipline-skill',
+    sourceType:
+      source.equipment?.roles.attack === behavior.id ? 'basic-attack' : 'discipline-skill',
+    ...(source.equipment?.roles.attack === behavior.id
+      ? { nativeBasicAttackCommand: true, equipmentBasicAttackCommand: true }
+      : {}),
     tags: [
       ...source.tags.filter((tag) => !['attack', 'mystic', 'physical'].includes(tag)),
       ...(behavior.classification === 'attack' ? ['attack', behavior.attackFamily!] : []),

@@ -43,7 +43,10 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
-  if (Object.hasOwn(action, 'nativeBasicAttackCommand'))
+  if (
+    Object.hasOwn(action, 'nativeBasicAttackCommand') ||
+    Object.hasOwn(action, 'equipmentBasicAttackCommand')
+  )
     throw new TypeError('private-native-basic-command-not-authored')
   validateAttackTagAction(action)
   validateIndependentPercentageDotDamageSources(action.effects)

@@ -225,9 +225,17 @@ function nodes(n: RequirementNode | null): RequirementNode[] {
   return n ? [n, ...('children' in n ? n.children.flatMap(nodes) : [])] : []
 }
 // No October10 record contains these later mechanics. Their executable coverage lives in
-// combat-endure.test.ts, combat-reversal.test.ts and combat-attack-tags.test.ts.
+// combat-endure.test.ts, combat-reversal.test.ts, combat-attack-tags.test.ts and combat-passive-stats.test.ts.
 // Keep this finite: an unreviewed future registry entry must still fail roster coverage.
-const outsideOctober10Effects = ['endure', 'reversal', 'weak-point', 'spike', 'ruin', 'loot']
+const outsideOctober10Effects = [
+  'endure',
+  'reversal',
+  'weak-point',
+  'spike',
+  'ruin',
+  'loot',
+  'stat-bonus',
+]
 it('keeps later effect mechanics outside the immutable October10 records', () => {
   const types = new Set<string>(
     manifest.records.flatMap((row) =>

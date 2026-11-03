@@ -1,4 +1,14 @@
+import { source as equipmentTestSource } from '../../../../../packages/game-core/src/combat/combat-behavior.test-utils'
+import { combatStatBonus } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import { formatBattleLogForClipboard } from '@/components/battle/battle-log-clipboard'
+import {
+  capturedBattleActionSource,
+  parseBattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
+import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
+import { itemFixture } from '../../../../../packages/game-core/src/content/items-test-fixtures'
+import type { BattleEquipmentCapture } from '@aurevane/game-core/combat/combat-equipment'
 import type {
   BattleSessionCommitRecord,
   BattleSessionRepository,
@@ -67,6 +77,359 @@ const CHARACTER_ID = '22222222-2222-4222-8222-222222222222'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 const CREATED_AT = '2026-09-04T03:45:00.000Z'
 const PLAYER_ID = `character:${CHARACTER_ID}`
+
+it('freezes same-Item hand roles through actual service quote, payment, rejection, replay and serialized viewer privacy', async () => {
+  const healing = structuredClone(
+    defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability,
+  )
+  Object.assign(healing.behaviors[0]!, {
+    costs: [{ resource: 'ap', amount: 10 }],
+    cooldown: null,
+    requirements: null,
+    effects: [{ id: 'heal', payload: { type: 'healing', recipient: 'actor', amount: 20 } }],
+  })
+  const item = itemFixture({
+    id: 'test.tonic',
+    name: 'Captured Tonic',
+    itemClass: 'battle-item',
+    inventoryCategory: 'battle-items',
+    equipment: { slot: 'hand', hands: 1 },
+    maximumStack: 99,
+    battleUses: 2,
+    ability: healing,
+    actions: { use: { behaviorId: healing.behaviors[0]!.id, name: 'Drink' } },
+    media: { artworkId: 'item.mender-salve.art.v1' },
+  })
+  const equipment: BattleEquipmentCapture = {
+    schemaVersion: 1,
+    inventoryRevision: 4,
+    selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+    equipment: ['main-hand', 'off-hand'].map((position) => ({
+      position: position as 'main-hand' | 'off-hand',
+      ownedStackId: 'private-owned-stack',
+      item,
+    })),
+  }
+  let current = item
+  const resolver = createCombatContentResolver({
+    findCurrentSkill: async () => null,
+    findSkillVersion: async () => null,
+  })
+  resolver.resolveCurrentItemDefinition = vi.fn(async () => current)
+  resolver.resolvePinnedItemDefinition = vi.fn(async () => item)
+  const builds = buildRepository(pureSnapshot())
+  builds.repository.loadBattleEquipment = async () => equipment
+  const battles = battleRepository()
+  const service = createBattleSessionService({
+    characters: characterRepository(),
+    builds: builds.repository,
+    battles: battles.repository,
+    combatContentResolver: resolver,
+  })
+  await service.createSession({
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: '88888888-8888-4888-8888-888888888888',
+  })
+  let state = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  state = {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: {
+        ...state.tactical.battle,
+        combatants: state.tactical.battle.combatants.map((x) =>
+          x.id === PLAYER_ID ? { ...x, hp: x.maxHp - 100 } : x,
+        ),
+      },
+    },
+  }
+  battles.replaceSnapshot(JSON.parse(JSON.stringify(state)))
+  const intent = {
+    kind: 'action' as const,
+    actionId: 'item.test.tonic.main-hand.use',
+    target: { kind: 'self' as const },
+  }
+  const request = {
+    userId: USER_ID,
+    battleSessionId: SESSION_ID,
+    expectedBattleVersion: 1,
+    idempotencyKey: '99999999-9999-4999-8999-999999999999',
+    intent,
+  }
+  const before = JSON.stringify(battles.record!.snapshot)
+  const quoted = await createBattlePreviewService(battles.repository, resolver).previewIntent(
+    request,
+  )
+  expect(quoted.preview).toMatchObject({ legal: true, actionEconomyCost: 10 })
+  expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+  for (const forged of [
+    { ...intent, actionId: 'item.test.tonic.main-hand.support' },
+    { ...intent, behaviorId: 'forged' },
+    { ...intent, actionId: 'item.test.tonic.main-hand' },
+  ]) {
+    await expect(service.submitIntent({ ...request, intent: forged })).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+    })
+    expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+  }
+  current = {
+    ...item,
+    contentVersion: 2,
+    name: 'Changed Tonic',
+    enabled: false,
+    qualityPoints: 100,
+  }
+  const committed = await service.submitIntent(request)
+  const next = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  expect(next.tactical.battle.combatants.find((x) => x.id === PLAYER_ID)!.hp).toBe(
+    state.tactical.battle.combatants.find((x) => x.id === PLAYER_ID)!.hp + 20,
+  )
+  expect(readPv1fActionEconomy(next)!.current).toBe(90)
+  const saved = battles.commitBattleIntent.mock.calls[0]![0]
+  const history = await createViewerSafeBattleLogService(
+    {
+      findBattleEvents: async () =>
+        saved.events.map((event, eventIndex) => ({
+          battleVersion: 2,
+          eventIndex,
+          event,
+          createdAt: CREATED_AT,
+        })),
+    },
+    {
+      findBattleHistoryPrivacy: async () => ({
+        viewer: deriveParticipantBattleViewerEntitlement(next.tactical.battle.combatants, [
+          PLAYER_ID,
+        ]),
+        journals: [
+          {
+            ...saved.privacyJournal!,
+            battleVersion: 2,
+            actorCombatantId: PLAYER_ID,
+            actorTeamId: next.tactical.battle.combatants.find((x) => x.id === PLAYER_ID)!.teamId,
+            eventCount: saved.events.length,
+          },
+        ],
+        buildAuthority: next.buildAuthority!,
+        capturedAbilitySources: next.capturedAbilitySources,
+      }),
+    },
+    resolver,
+  ).getLog(USER_ID, SESSION_ID)
+  expect(history.entries).toContainEqual(
+    expect.objectContaining({
+      actionContext: expect.objectContaining({
+        name: 'Captured Tonic',
+        contentVersion: 1,
+        artworkKey: 'item.mender-salve.art.v1',
+      }),
+    }),
+  )
+  expect(formatBattleLogForClipboard(history.entries)).toContain('Captured Tonic')
+  expect(JSON.stringify(history)).not.toMatch(
+    /Changed Tonic|private-owned-stack|ownedStackId|remainingUses/,
+  )
+
+  expect(
+    committed.snapshot.equipmentActions?.map((x) => [x.position, x.remainingUses, x.name]),
+  ).toEqual([
+    ['main-hand', 1, 'Captured Tonic'],
+    ['off-hand', 2, 'Captured Tonic'],
+  ])
+  await expect(
+    service.submitIntent({ ...request, idempotencyKey: '77777777-7777-4777-8777-777777777777' }),
+  ).rejects.toBeInstanceOf(StaleBattleVersionError)
+  battles.findBattleIntentReplay.mockResolvedValueOnce({
+    battleSessionId: SESSION_ID,
+    battleVersion: 2,
+    snapshot: next,
+    committedAt: CREATED_AT,
+  })
+  expect((await service.submitIntent(request)).replayed).toBe(true)
+  expect(battles.commitBattleIntent).toHaveBeenCalledTimes(1)
+  battles.replaceSnapshot(JSON.parse(JSON.stringify(next)))
+  expect(
+    (await service.getSession(USER_ID, SESSION_ID)).snapshot.equipmentActions?.[0]?.remainingUses,
+  ).toBe(1)
+  const viewers = [
+    deriveParticipantBattleViewerEntitlement(next.tactical.battle.combatants, [PLAYER_ID]),
+    deriveParticipantBattleViewerEntitlement(next.tactical.battle.combatants, ['recruit:p2-4-1']),
+    createSpectatorBattleViewerEntitlement(),
+  ]
+  for (const [index, viewer] of viewers.entries()) {
+    const serialized = JSON.stringify(projectBattleSnapshot(next, viewer))
+    expect(serialized).not.toMatch(
+      /private-owned-stack|ownedStackId|inventoryRevision|equipmentSkills|capturedAbilitySources|abilityRuntime|provenance.*grant/,
+    )
+    if (index > 0) expect(serialized).not.toMatch(/Captured Tonic|remainingUses|equipmentActions/)
+  }
+})
+
+it('admits only the main weapon and selected Support, once per unit passive, and rejects source role forgery', async () => {
+  const attack = equipmentTestSource({
+    costs: [{ resource: 'ap', amount: 15 }],
+    effects: [
+      {
+        id: 'hit',
+        payload: {
+          type: 'damage',
+          recipient: 'primary-unit',
+          amount: 12,
+          scaling: { source: 'physical-power', coefficientBasisPoints: 6500 },
+        },
+      },
+    ],
+  }).definition.behaviors[0]!
+  const support = {
+    ...structuredClone(
+      defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability.behaviors[0]!,
+    ),
+    id: 'mend',
+  }
+  const passive: AbilityBehavior = {
+    id: 'passive',
+    activation: 'ongoing',
+    mode: 'modifier',
+    classification: 'utility',
+    targeting: null,
+    costs: [],
+    cooldown: null,
+    requirements: null,
+    effects: [
+      {
+        id: 'power',
+        payload: { type: 'stat-bonus', recipient: 'actor', stat: 'physical-power', amount: 4 },
+      },
+    ],
+  }
+  const item = itemFixture({
+    id: 'test.weapon',
+    name: 'Captured Sword',
+    itemClass: 'weapon',
+    equipment: { slot: 'hand', hands: 1 },
+    ability: { schemaVersion: 1, behaviors: [attack, support, passive] },
+    actions: {
+      attack: { behaviorId: attack.id, name: 'Cut' },
+      support: { behaviorId: support.id, name: 'Mend' },
+    },
+    media: { artworkId: 'item.iron-shortsword.art.v1' },
+  })
+  const equipment: BattleEquipmentCapture = {
+    schemaVersion: 1,
+    inventoryRevision: 1,
+    selectedSupport: {
+      kind: 'equipment',
+      position: 'main-hand',
+      itemId: item.id,
+      behaviorId: support.id,
+    },
+    equipment: ['main-hand', 'off-hand'].map((position) => ({
+      position: position as 'main-hand' | 'off-hand',
+      ownedStackId: `private-${position}`,
+      item,
+    })),
+  }
+  const resolver = createCombatContentResolver({
+    findCurrentSkill: async () => null,
+    findSkillVersion: async () => null,
+  })
+  resolver.resolveCurrentItemDefinition = vi.fn(async () => item)
+  resolver.resolvePinnedItemDefinition = vi.fn(async () => item)
+  const builds = buildRepository(pureSnapshot())
+  builds.repository.loadBattleEquipment = async () => equipment
+  const battles = battleRepository()
+  const service = createBattleSessionService({
+    characters: characterRepository(),
+    builds: builds.repository,
+    battles: battles.repository,
+    combatContentResolver: resolver,
+  })
+  const request = {
+    userId: USER_ID,
+    characterId: CHARACTER_ID,
+    idempotencyKey: '88888888-8888-4888-8888-888888888888',
+  }
+  resolver.resolveCurrentItemDefinition = vi.fn(async () => ({ ...item, name: 'Uncaptured edit' }))
+  await expect(service.createSession(request)).rejects.toThrow('Prepared equipment')
+  expect(battles.createBattleSession).not.toHaveBeenCalled()
+  resolver.resolveCurrentItemDefinition = vi.fn(async () => item)
+  const view = await service.createSession(request)
+  const state = battles.record!.snapshot as BattleAuthoritativeEncounterState
+  expect(combatStatBonus(state, PLAYER_ID, 'physical-power')).toBe(8)
+  expect(state.capturedAbilitySources!.filter((x) => x.equipment)).toHaveLength(2)
+  expect(view.snapshot.equipmentActions?.map((x) => x.actionId)).toEqual([
+    'item.test.weapon.main-hand.attack',
+    'item.test.weapon.main-hand.support',
+  ])
+  const ids = state
+    .capturedAbilitySources!.filter((x) => x.ownerCombatantId === PLAYER_ID)
+    .map((x) => x.abilityId)
+  expect(ids).not.toContain('unarmed.basic')
+  expect(ids).not.toContain('basic.recover')
+  expect(view.snapshot.manualActionTargets?.map((x) => x.actionId)).toEqual([
+    PV1F_BASIC_ATTACK_ID,
+    'basic.move',
+    'item.test.weapon.main-hand.support',
+  ])
+  const before = JSON.stringify(state)
+  for (const actionId of [
+    'item.test.weapon.off-hand.attack',
+    'item.test.weapon.off-hand.support',
+    'basic.recover',
+    'unarmed.basic',
+  ]) {
+    await expect(
+      service.submitIntent({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: 1,
+        idempotencyKey: crypto.randomUUID(),
+        intent: { kind: 'action', actionId, target: { kind: 'self' } },
+      }),
+    ).rejects.toThrow()
+    expect(JSON.stringify(battles.record!.snapshot)).toBe(before)
+  }
+  const selected = capturedBattleActionSource(
+    state,
+    state.buildAuthority,
+    PLAYER_ID,
+    PV1F_BASIC_ATTACK_ID,
+  )!
+  expect(selected.equipment?.roles).toEqual({ attack: 'strike', support: 'mend' })
+  const fingerprintForgery = structuredClone(state.buildAuthority!)
+  const tampered = JSON.parse(JSON.stringify(fingerprintForgery))
+  tampered.combatants[0].extensions.equipmentSkills[0].equipment[0].item.name = 'Forged history'
+  expect(parseBattleBuildAuthoritySnapshot(tampered)).toBeNull()
+  const forged = structuredClone(state)
+  const index = forged.capturedAbilitySources!.findIndex(
+    (x) => x.sourceInstanceId === selected.sourceInstanceId,
+  )
+  const changed = {
+    ...selected,
+    equipment: { ...selected.equipment!, roles: { attack: 'mend', support: 'strike' } },
+  }
+  forged.capturedAbilitySources = forged.capturedAbilitySources!.map((x, i) =>
+    i === index ? changed : x,
+  )
+  expect(() =>
+    capturedBattleActionSource(forged, forged.buildAuthority, PLAYER_ID, PV1F_BASIC_ATTACK_ID),
+  ).toThrow('exact admitted role')
+  resolver.resolvePinnedItemDefinition = vi.fn(async () => ({
+    ...item,
+    name: 'Wrong pinned version',
+  }))
+  const other = battleRepository()
+  await expect(
+    createBattleSessionService({
+      characters: characterRepository(),
+      builds: builds.repository,
+      battles: other.repository,
+      combatContentResolver: resolver,
+    }).createSession(request),
+  ).rejects.toThrow('Pinned equipped Item')
+  expect(other.createBattleSession).not.toHaveBeenCalled()
+})
 
 it('actual reference parser, preview and atomic CAS commit share plural geometry and a safe owner targeting DTO', async () => {
   const original = resolveEssenceForBuild('vanguard', null)!

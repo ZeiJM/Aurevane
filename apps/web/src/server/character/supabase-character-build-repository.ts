@@ -1,4 +1,5 @@
 import { throwItemRpcError } from './supabase-character-items-repository'
+import { parseBattleEquipmentCapture } from '@aurevane/game-core/combat/combat-equipment'
 import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-media'
 import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
 import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
@@ -538,6 +539,14 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
       return parsed as CharacterEquippedDisciplineSkillRecord[]
     },
 
+    async loadBattleEquipment(userId, characterId) {
+      const { data, error } = await createSupabaseAdminClient().rpc(
+        'read_character_battle_equipment_v1',
+        { p_user_id: userId, p_character_id: characterId },
+      )
+      if (error) throwItemRpcError(error)
+      return parseBattleEquipmentCapture(data)
+    },
     async loadCommittedBuildSnapshot(userId, characterId) {
       const supabase = createSupabaseAdminClient()
       const { data, error } = await supabase.rpc('get_character_committed_build_snapshot_v2', {

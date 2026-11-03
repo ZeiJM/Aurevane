@@ -48,6 +48,7 @@ import {
   resolveBattleDisciplineSkillDefinition,
   resolvePinnedBattleEssenceDefinition,
   capturedBattleActionSource,
+  capturedBattleActionBehaviorId,
   type BattleBuildAuthoritySnapshot,
 } from './battle-build-authority'
 
@@ -280,7 +281,7 @@ async function previewIntent(
     ).buildAuthority
     const build = actorId ? battleBuildAuthorityForCombatant(authority, actorId) : null
     const capturedSource = actorId
-      ? capturedBattleActionSource(state, authority, actorId, intent.actionId)
+      ? capturedBattleActionSource(state, authority, actorId, intent.actionId, intent.behaviorId)
       : null
     const essence =
       !capturedSource && actorId
@@ -303,14 +304,26 @@ async function previewIntent(
     const reversalPreparation =
       capturedSource &&
       combatReversalPayload(
-        combatAbilityBehavior(capturedSource, intent.behaviorId, preparedState.effectTimingPolicy),
+        combatAbilityBehavior(
+          capturedSource,
+          capturedBattleActionBehaviorId(capturedSource, intent.actionId, intent.behaviorId),
+          preparedState.effectTimingPolicy,
+        ),
       )
     const canonical =
       capturedSource && actorId
         ? prepareCombatAbilityCommand({
             state: preparedState,
             actorId,
-            root: { kind: 'canonical', source: capturedSource, behaviorId: intent.behaviorId },
+            root: {
+              kind: 'canonical',
+              source: capturedSource,
+              behaviorId: capturedBattleActionBehaviorId(
+                capturedSource,
+                intent.actionId,
+                intent.behaviorId,
+              ),
+            },
             movementPath: intent.movementPath,
             manualModifiers: intent.manualModifiers,
             selection: intent.target,

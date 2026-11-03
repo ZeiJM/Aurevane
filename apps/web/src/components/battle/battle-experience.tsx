@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleItemPicker } from './battle-item-picker'
+
 import { BattleSummonPortrait } from './battle-summon-portrait'
 
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
@@ -744,6 +746,28 @@ function BattleExperienceContent({
       },
       selectedBehavior?.actionId === skill.id ? selectedBehavior.behaviorId : undefined,
     ).costLabel
+  const [itemsOpen, setItemsOpen] = useState(false)
+  const equipmentActions = (battle.snapshot.equipmentActions ?? []).filter(
+    (item) => item.ownerCombatantId === localCombatantId,
+  )
+  const handItems = equipmentActions.filter((item) => item.role === 'use')
+  const itemOptions = equipmentActions
+    .filter((item) => item.role !== 'attack')
+    .map((item) => ({
+      id: item.actionId,
+      label: item.name,
+      cost: battleBasicCostLabel(item, ''),
+      artworkSrc: item.artworkSrc ?? BATTLE_MISSING_ARTWORK,
+      tags: item.item.tags,
+      classification: item.behaviors[0]?.classification,
+    }))
+  const itemUnavailableReason = handItems.length
+    ? handItems.every((item) => item.unavailableReason !== null)
+      ? handItems.map((item) => item.unavailableReason).join(' ')
+      : null
+    : equipmentActions.some((item) => item.role === 'attack' && item.item.equipment?.hands === 2)
+      ? 'Your two-handed weapon occupies both hands.'
+      : 'Equip a Battle Item in a free hand before battle.'
   const basicMove = findBattleBasicAction(battle.snapshot, localCombatantId, 'basic.move')
   const basicAttack = findBattleBasicAction(battle.snapshot, localCombatantId, BASIC_ATTACK_ID)
   const attackLabel = basicAttack?.name ?? 'Basic Attack'
@@ -762,7 +786,8 @@ function BattleExperienceContent({
   )
   const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
   const supportActionId = String(
-    parseSupportActionId(runtime.supportActionId) ??
+    equipmentActions.find((item) => item.role === 'support')?.actionId ??
+      parseSupportActionId(runtime.supportActionId) ??
       (battle.snapshot.supportActionPolicyVersion === 1 ? DEFAULT_SUPPORT_ACTION_ID : GUARD_ID),
   )
   const basicSupport = findBattleBasicAction(battle.snapshot, localCombatantId, supportActionId)
@@ -773,11 +798,12 @@ function BattleExperienceContent({
     localCombatantId,
     practiceSupportId,
   )
-  const supportSkill = pv1fSkillByActionId(supportActionId)!
-  const supportLabel = basicSupport?.name ?? supportSkill.name
-  const supportCost = supportSkill.cost.kind === 'flat' ? supportSkill.cost.amount : 0
+  const supportSkill = pv1fSkillByActionId(supportActionId)
+  const supportLabel = basicSupport?.name ?? supportSkill?.name ?? 'Support unavailable'
+  const supportCost = supportSkill?.cost.kind === 'flat' ? supportSkill.cost.amount : 0
   const guidedSupportPractice =
     runtime.kind === 'pve' &&
+    battle.snapshot.equipmentActions === undefined &&
     supportActionId !== practiceSupportId &&
     battle.snapshot.statBridge.combatants.some(
       (profile) =>
@@ -799,6 +825,7 @@ function BattleExperienceContent({
       artworkSrc: BATTLE_COMMAND_ARTWORK.attack,
       tags: ['Enemy', 'Single target', 'Damage'],
     },
+    ...itemOptions.filter((item) => item.classification === 'attack'),
     ...attackTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
@@ -837,6 +864,7 @@ function BattleExperienceContent({
           },
         ]
       : []),
+    ...itemOptions.filter((item) => item.classification === 'utility'),
     ...defenseTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
@@ -861,6 +889,7 @@ function BattleExperienceContent({
         basicBehaviorId(option.id),
       ),
     })),
+    ...itemOptions.filter((item) => item.classification === 'recovery'),
     ...healTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
@@ -1110,6 +1139,7 @@ function BattleExperienceContent({
 
   const clearPlanning = useCallback(
     (nextMode: Mode = 'none') => {
+      setItemsOpen(false)
       setCostPreviewInvalidated(false)
       setInfoSelectionVersion((version) => version + 1)
       setInspectedAbilityId(null)
@@ -1714,7 +1744,8 @@ function BattleExperienceContent({
         selectableTechniques.find((item) => item.id === actionId) ??
         (selectableSpecial?.id === actionId ? selectableSpecial : undefined)
       const basic = findBattleBasicAction(battle.snapshot, localCombatantId, actionId)
-      const isBasic = ['basic.move', BASIC_ATTACK_ID, ...SUPPORT_ACTION_IDS].includes(actionId)
+      const isBasic =
+        !!basic || ['basic.move', BASIC_ATTACK_ID, ...SUPPORT_ACTION_IDS].includes(actionId)
       const native: BattlePreviewSkill = skill ?? {
         id: actionId,
         groundIntentCapable: false,
@@ -2745,7 +2776,12 @@ function BattleExperienceContent({
       )
         return
       if (planningDisabled || executionLock.current) return
-      if (selected === 'move') chooseMode('move')
+      if (selected === 'items') {
+        if (!itemUnavailableReason) {
+          clearPlanning()
+          setItemsOpen(true)
+        }
+      } else if (selected === 'move') chooseMode('move')
       else if (selected === 'basicAttack') chooseMode('attack')
       else if (selected === 'guard') {
         const descriptor = actionDescriptor(supportActionId)
@@ -2771,6 +2807,7 @@ function BattleExperienceContent({
     replaceModifierDraft,
     battle.snapshot,
     chooseMode,
+    itemUnavailableReason,
     clearPlanning,
     commitSelected,
     commitValue,
@@ -2958,6 +2995,7 @@ function BattleExperienceContent({
       )
     : null
   const contextTitle =
+    (itemsOpen ? 'Choose Item' : undefined) ??
     inspectedAbility?.name ??
     (battleState.lifecycle !== 'active'
       ? resultLabel()
@@ -3530,6 +3568,7 @@ function BattleExperienceContent({
             <div data-battle-mobile-chat-host="true" />
             <section
               data-battle-preview-strip="true"
+              data-battle-item-picker-open={itemsOpen || undefined}
               aria-label="Target forecast"
               data-battle-turn-state={
                 battleState.lifecycle !== 'active' ? 'complete' : localTurn ? 'yours' : 'waiting'
@@ -3547,6 +3586,21 @@ function BattleExperienceContent({
                     ? `${terrainPreview.active ? 'Active' : 'Inactive'} · ${terrainPreview.description}`
                     : 'Choose a terrain below to read its effects.'}
                 </p>
+              ) : itemsOpen ? (
+                <BattleItemPicker
+                  items={handItems}
+                  disabled={planningDisabled}
+                  onSelect={(item) =>
+                    selectAction(
+                      item.actionId,
+                      item.behaviors[0]?.classification === 'attack'
+                        ? 'attack'
+                        : item.behaviors[0]?.classification === 'recovery'
+                          ? 'heal'
+                          : 'defense',
+                    )
+                  }
+                />
               ) : inspectedAbility ? (
                 <p data-battle-instruction-description="true">{inspectedAbility.caption}</p>
               ) : mode === 'finish' ? (
@@ -3636,17 +3690,6 @@ function BattleExperienceContent({
                 <div className={styles.commands} data-battle-command-group="true">
                   <BattleSkillCommand
                     characterStats={characterStats}
-                    slot="items"
-                    hotkey={formatCombatKeybind(bindings.items)}
-                    label="Items"
-                    cost="Coming soon"
-                    artworkSrc={BATTLE_MISSING_ARTWORK}
-                    active={false}
-                    disabled
-                    onActivate={() => {}}
-                  />
-                  <BattleSkillCommand
-                    characterStats={characterStats}
                     slot="inspect"
                     hotkey={formatCombatKeybind(bindings.inspect)}
                     label="Inspect"
@@ -3733,6 +3776,24 @@ function BattleExperienceContent({
                             )))
                     }
                     onActivate={() => chooseMode('attack')}
+                  />
+                  <BattleSkillCommand
+                    characterStats={characterStats}
+                    slot="items"
+                    hotkey={formatCombatKeybind(bindings.items)}
+                    label="Item"
+                    cost={itemUnavailableReason ? 'Unavailable' : 'Choose Item'}
+                    artworkSrc={handItems[0]?.artworkSrc ?? BATTLE_MISSING_ARTWORK}
+                    active={
+                      itemsOpen ||
+                      handItems.some((item) => item.actionId === currentActionId && mode !== 'none')
+                    }
+                    disabled={planningDisabled || itemUnavailableReason !== null}
+                    unavailableReason={itemUnavailableReason}
+                    onActivate={() => {
+                      clearPlanning()
+                      setItemsOpen(true)
+                    }}
                   />
                   <BattleSkillCommand
                     characterStats={characterStats}

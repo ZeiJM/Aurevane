@@ -215,7 +215,10 @@ export function combatantDamagePotential(
   )
   const summon = state.effectState?.summons?.find((row) => row.combatantId === id)
   let best =
-    unit.kind === 'summon' || sources.some((row) => row.basic?.execution.kind === 'basic-attack')
+    unit.kind === 'summon' ||
+    sources.some(
+      (row) => row.basic?.execution.kind === 'basic-attack' || row.equipment?.roles.attack,
+    )
       ? 0
       : calculatePv1fBasicAttackDamage({
           physicalPower: Math.max(stats.physicalPower ?? 0, stats.mysticPower ?? 0),

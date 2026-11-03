@@ -541,6 +541,8 @@ export interface CombatActionDefinition {
   groundTargetedRecipientIds?: readonly string[]
   /** Private trusted composed Basic adapter; never authored or projected. */
   nativeBasicAttackCommand?: true
+  /** Private equipment adapter, preserving authored targeting and accuracy. */
+  equipmentBasicAttackCommand?: true
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   groundArea?: CombatGroundAreaDefinition
   effectOrigins?: readonly (CombatEffectOrigin | undefined)[]

@@ -1,3 +1,4 @@
+import type { BattleEquipmentCapture } from '@aurevane/game-core/combat/combat-equipment'
 import 'server-only'
 
 import { createHash } from 'node:crypto'
@@ -110,7 +111,7 @@ export interface CharacterCommittedBuildSnapshotRecord {
   extensions: {
     resonance: ResonanceSnapshotReference | null
     essence: EssenceSnapshotReference | null
-    equipmentSkills: readonly never[]
+    equipmentSkills: readonly BattleEquipmentCapture[]
     supernatural: null
     prestige: null
   }
@@ -163,6 +164,7 @@ export interface CharacterBuildRepository {
     userId: string,
     characterId: string,
   ): Promise<readonly CharacterEquippedDisciplineSkillRecord[]>
+  loadBattleEquipment?(userId: string, characterId: string): Promise<BattleEquipmentCapture>
   loadCommittedBuildSnapshot(
     userId: string,
     characterId: string,
@@ -515,6 +517,7 @@ export async function loadCharacterCommittedBuildSnapshot(
   userId: string,
   characterId: string,
   repository: CharacterBuildRepository,
+  captureEquipment = false,
 ): Promise<CharacterCommittedBuildSnapshotRecord> {
   const snapshot = await repository.loadCommittedBuildSnapshot(userId, characterId)
   if (!snapshot) throw persistenceUnavailable('The committed build snapshot is unavailable.')
@@ -624,7 +627,15 @@ export async function loadCharacterCommittedBuildSnapshot(
     }
   }
 
-  return snapshot
+  return captureEquipment && repository.loadBattleEquipment
+    ? {
+        ...snapshot,
+        extensions: {
+          ...snapshot.extensions,
+          equipmentSkills: [await repository.loadBattleEquipment(userId, characterId)],
+        },
+      }
+    : snapshot
 }
 
 export async function previewCharacterDisciplines(

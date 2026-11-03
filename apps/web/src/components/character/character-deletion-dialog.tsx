@@ -63,9 +63,15 @@ export function CharacterDeletionDialog({
         if (event.key !== 'Tab') return
         const controls = Array.from(
           event.currentTarget.querySelectorAll<HTMLElement>(
-            'input:not(:disabled), button:not(:disabled)',
+            'button, input:not([type="hidden"]), select, textarea, a[href], area[href], summary, [tabindex], [contenteditable]',
           ),
-        ).filter((control) => control.tabIndex >= 0 && control.getClientRects().length > 0)
+        ).filter(
+          (control) =>
+            !control.matches(':disabled') &&
+            !control.closest('[inert]') &&
+            control.tabIndex >= 0 &&
+            control.getClientRects().length > 0,
+        )
         const first = controls[0]
         const last = controls[controls.length - 1]
         if (!first) {

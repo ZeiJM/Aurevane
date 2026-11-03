@@ -1,3 +1,4 @@
+import { parseBattleEquipmentCapture, type BattleEquipmentCapture } from './combat-equipment'
 import {
   MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY,
   disciplineSkillCapacity,
@@ -37,7 +38,7 @@ export interface CombatBuildSnapshot {
   readonly extensions: {
     readonly resonance: ResonanceSnapshotReference | null
     readonly essence: EssenceSnapshotReference | null
-    readonly equipmentSkills: readonly never[]
+    readonly equipmentSkills: readonly BattleEquipmentCapture[]
     readonly supernatural: null
     readonly prestige: null
   }
@@ -224,10 +225,15 @@ export function validateCombatBuildSnapshot(
       })
     }
   }
-  if (snapshot.extensions.equipmentSkills.length !== 0) {
+  try {
+    if (snapshot.extensions.equipmentSkills.length > 1)
+      throw new TypeError('Ambiguous equipment admission.')
+    for (const equipment of snapshot.extensions.equipmentSkills)
+      parseBattleEquipmentCapture(equipment)
+  } catch {
     issues.push({
       field: 'extensions.equipmentSkills',
-      message: 'Equipment Skill snapshots are not supported by the current build bridge.',
+      message: 'Invalid versioned equipment admission.',
     })
   }
   if (snapshot.extensions.supernatural !== null || snapshot.extensions.prestige !== null) {
@@ -346,7 +352,7 @@ function copyEntry(entry: CombatBuildBridgeEntry): CombatBuildBridgeEntry {
         essence: entry.snapshot.extensions.essence
           ? { ...entry.snapshot.extensions.essence }
           : null,
-        equipmentSkills: [],
+        equipmentSkills: structuredClone(entry.snapshot.extensions.equipmentSkills),
         supernatural: null,
         prestige: null,
       },

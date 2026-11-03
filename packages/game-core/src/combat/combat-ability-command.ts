@@ -274,9 +274,10 @@ export function combatAbilityParticipant(
         amount:
           cost.amount > 0 &&
           behavior.mode === 'action' &&
-          ['discipline-skill', 'essence', 'resonance', 'tactical-entity'].includes(
+          (['discipline-skill', 'essence', 'resonance', 'tactical-entity'].includes(
             source.sourceKind,
-          )
+          ) ||
+            (source.sourceKind === 'equipment' && source.equipment?.roles.attack !== behavior.id))
             ? frozenGroundSkillApCost(state, source.ownerCombatantId, intrinsic)
             : intrinsic,
       }

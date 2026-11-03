@@ -1,3 +1,4 @@
+import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
 import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
 import {
   combatAbilityUsageLimitReached,
@@ -181,9 +182,12 @@ export function projectBattleManualActionTargets(
           return {
             ownerCombatantId: source.ownerCombatantId,
             actionId:
-              source.basic?.execution.kind === 'basic-attack'
+              source.basic?.execution.kind === 'basic-attack' ||
+              source.equipment?.roles.attack === behavior.id
                 ? PV1F_BASIC_ATTACK_ID
-                : source.abilityId,
+                : source.equipment
+                  ? equipmentBehaviorActionId(source.equipment, behavior.id)
+                  : source.abilityId,
             behaviorId: behavior.id,
             ...(behavior.maximumUsesPerBattle === undefined
               ? {}
@@ -986,6 +990,10 @@ export function omitPendingBattlePayloads<
         combatants: authority.combatants.map((combatant: Record<string, unknown>) => {
           const publicCombatant = { ...combatant }
           delete publicCombatant.narratorIdentity
+          if (publicCombatant.extensions && typeof publicCombatant.extensions === 'object') {
+            publicCombatant.extensions = { ...publicCombatant.extensions }
+            Reflect.deleteProperty(publicCombatant.extensions as object, 'equipmentSkills')
+          }
           return publicCombatant
         }),
       },

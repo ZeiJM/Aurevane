@@ -7,6 +7,8 @@ on:
       - 'supabase/tests/captured_ability_startup.sql'
       - '.github/scripts/verify-battle-session-persistence.sh'
       - '.github/scripts/verify-battle-session-concurrency.sh'
+      - '.github/scripts/verify-item-admission-concurrency.sh'
+      - '.github/scripts/item-admission-race-fixtures.sql'
       - '.github/scripts/verify-battle-session-http.sh'
       - '.github/scripts/verify-battle-event-read.sh'
       - '.github/scripts/verify-battle-privacy-journal.sh'
@@ -25,6 +27,8 @@ on:
       - 'supabase/tests/captured_ability_startup.sql'
       - '.github/scripts/verify-battle-session-persistence.sh'
       - '.github/scripts/verify-battle-session-concurrency.sh'
+      - '.github/scripts/verify-item-admission-concurrency.sh'
+      - '.github/scripts/item-admission-race-fixtures.sql'
       - '.github/scripts/verify-battle-session-http.sh'
       - '.github/scripts/verify-battle-event-read.sh'
       - '.github/scripts/verify-battle-privacy-journal.sh'
@@ -80,6 +84,17 @@ jobs:
 
       - name: Verify concurrent intent ordering + history
         run: bash .github/scripts/verify-battle-session-concurrency.sh
+
+      - name: Verify Item admission and inventory concurrency
+        run: bash .github/scripts/verify-item-admission-concurrency.sh
+
+      - name: Save Item concurrency failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: item-admission-concurrency-failure
+          path: /tmp/aurevane-item-race-failure
+          if-no-files-found: ignore
 
       - name: Verify service-only battle event reads
         run: bash .github/scripts/verify-battle-event-read.sh

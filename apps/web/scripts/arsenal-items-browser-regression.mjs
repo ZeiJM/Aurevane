@@ -169,9 +169,47 @@ try {
     dialog = page.getByRole('dialog')
     await expect(dialog.getByText(/Short by 6 QP/)).toBeVisible()
     await expect(dialog.getByRole('button', { name: 'Confirm swap · Main Hand' })).toBeDisabled()
-    await dialog.getByRole('checkbox', { name: /Body · Traveler Jerkin/ }).check()
+    // Follow the real forward tab order, then reverse it, without locator.focus or pointer input.
+    const closeItem = dialog.getByRole('button', { name: 'Close', exact: true })
+    const equipPosition = dialog.getByRole('combobox', { name: 'Equip position' })
+    const comparison = dialog.locator('summary')
+    const optionalRemovals = await dialog.getByRole('checkbox').all()
+    const confirmSwap = dialog.getByRole('button', { name: 'Confirm swap · Main Hand' })
+    if (!(await closeItem.evaluate((el) => el === document.activeElement)))
+      await page.keyboard.press('Tab')
+    await expect(closeItem).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(equipPosition).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(comparison).toBeFocused()
+    for (const checkbox of optionalRemovals) {
+      await page.keyboard.press('Tab')
+      await expect(checkbox).toBeFocused()
+      if (
+        (await checkbox.getAttribute('type')) === 'checkbox' &&
+        (await checkbox.locator('..').textContent()).includes('Body · Traveler Jerkin')
+      ) {
+        await page.keyboard.press('Space')
+        await expect(checkbox).toBeChecked()
+      }
+    }
     await expect(dialog.getByText(/Confirm replacement:.*Body \(Traveler Jerkin\)/)).toBeVisible()
-    await dialog.getByRole('button', { name: 'Confirm swap · Main Hand' }).click()
+    await expect(confirmSwap).toBeEnabled()
+    await page.keyboard.press('Tab')
+    await expect(confirmSwap).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(closeItem).toBeFocused()
+    const forwardOrder = [closeItem, equipPosition, comparison, ...optionalRemovals, confirmSwap]
+    for (const control of [...forwardOrder].reverse()) {
+      await page.keyboard.press('Shift+Tab')
+      await expect(control).toBeFocused()
+    }
+    for (const control of forwardOrder.slice(1)) {
+      await page.keyboard.press('Tab')
+      await expect(control).toBeFocused()
+    }
+    await page.screenshot({ path: resolve(output, `arsenal-keyboard-swap-${viewport.width}.png`) })
+    await page.keyboard.press('Enter')
     await expect(page.getByText('98 / 100 QP', { exact: true })).toBeVisible()
     await expect(
       page.getByRole('button', { name: 'Off Hand: Occupied by two-handed weapon', exact: true }),
@@ -303,10 +341,80 @@ try {
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
       'page does not overflow',
     )
+    // Exercise the two existing callers of the shared dialog, including pending-request behavior.
+    await page.goto(`${server.resolvedUrls.local[0]}?roster`, { waitUntil: 'networkidle' })
+    for (const caller of [
+      {
+        opener: 'Delete Character',
+        name: 'Schedule deletion of Aurelia?',
+        input: /Type exactly:/,
+        value: 'DELETE Aurelia',
+        cancel: 'Cancel',
+        confirm: 'Start 24-hour deletion',
+      },
+      {
+        opener: 'Permanently delete login and game data',
+        name: 'Delete your entire AUREVANE account?',
+        input: 'Current account password',
+        value: 'native-fixture-only',
+        cancel: 'Never mind',
+        confirm: 'Start 24-hour account deletion',
+      },
+    ]) {
+      const opener = page.getByRole('button', { name: caller.opener, exact: true })
+      await opener.click()
+      const modal = page.getByRole('dialog', { name: caller.name, exact: true })
+      const input = modal.getByLabel(caller.input)
+      const cancel = modal.getByRole('button', { name: caller.cancel, exact: true })
+      const confirm = modal.getByRole('button', { name: caller.confirm, exact: true })
+      await input.fill(caller.value)
+      await expect(input).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(cancel).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(confirm).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(input).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect(confirm).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect(cancel).toBeFocused()
+      await page.keyboard.press('Shift+Tab')
+      await expect(input).toBeFocused()
+      await page.keyboard.press('Tab')
+      await page.keyboard.press('Tab')
+      await page.keyboard.press('Enter')
+      await expect(input).toBeDisabled()
+      await expect(modal.locator(':scope > section')).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(modal.locator(':scope > section')).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(modal).toBeVisible()
+      if (viewport.width < 500) await page.touchscreen.tap(2, 2)
+      else await page.mouse.click(2, 2)
+      await expect(modal).toBeVisible()
+      await page.evaluate(() => window.releaseDeletion())
+      await expect(input).toBeEnabled()
+      await page.keyboard.press('Tab')
+      await expect(input).toBeFocused()
+      await page.keyboard.press('Escape')
+      await expect(modal).toHaveCount(0)
+      await expect(opener).toBeFocused()
+      await opener.click()
+      if (viewport.width < 500) await page.touchscreen.tap(2, 2)
+      else await page.mouse.click(2, 2)
+      await expect(modal).toHaveCount(0)
+      await expect(opener).toBeFocused()
+    }
+    assert.deepEqual(await page.evaluate(() => window.deletionCalls), [
+      { url: '/api/characters/roster-fixture/deletion', method: 'POST' },
+      { url: '/api/account/deletion', method: 'POST' },
+    ])
+    assert.equal(await page.evaluate(() => document.documentElement.style.overflow), '')
     assert.deepEqual(errors, [])
     await page.close()
     console.log(
-      `Arsenal ${viewport.width}: request CAS, explicit swaps, QP, dual stacks, Support fallback, repair, reload, art and layout passed`,
+      `Arsenal ${viewport.width}: keyboard swap, reverse traversal, deletion caller busy/focus, request CAS, QP, dual stacks, Support fallback, repair, reload, art and layout passed`,
     )
   }
 } finally {
