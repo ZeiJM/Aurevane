@@ -30,7 +30,26 @@ window.fixtureSkills = learned.map(({ definition }) => ({
 }))
 let buildVersion = 1
 // Only the HTTP response boundary is supplied. Component selection, payload and reconciliation are real.
-window.fetch = async (_url, options) => {
+window.fetch = async (url, options) => {
+  if (url === '/api/character/items' && !options?.body) {
+    if (params.has('equipmentReadError'))
+      return Response.json({ error: { message: 'Equipment unavailable.' } }, { status: 503 })
+    return Response.json({
+      view: {
+        characterId: 'character-a',
+        revision: 0,
+        catalogueToken: 'empty-items',
+        battleLocked: false,
+        qualityPoints: 0,
+        qualityPointLimit: 100,
+        equipmentIssue: null,
+        equipment: {},
+        selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+        stacks: [],
+        notices: [],
+      },
+    })
+  }
   const payload = JSON.parse(options.body)
   window.calls.push(payload)
   if (window.rejectNext || payload.expectedBuildVersion !== buildVersion) {
@@ -43,7 +62,7 @@ window.fetch = async (_url, options) => {
   buildVersion += 1
   return Response.json({
     context: {
-      build: { buildVersion, supportActionId: 'basic.guard' },
+      build: { buildVersion, supportActionId: 'basic.recover' },
       disciplineSkills: {
         capacity: 4,
         learnedSkills: learned,
