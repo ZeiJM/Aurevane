@@ -1,3 +1,4 @@
+import { throwItemRpcError } from './supabase-character-items-repository'
 import { isFinalizedContentMedia } from '@aurevane/game-core/combat/content-media'
 import type { DisciplinePresentationMedia } from '@aurevane/game-core/character/discipline-build'
 import { disciplineAttributePolicyFromCore } from '@aurevane/game-core/character/attribute-allocation'
@@ -620,6 +621,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
         },
       )
       if (error) {
+        if (error.message.startsWith('ITEM_')) throwItemRpcError(error)
         throwCombatContentAdmissionError(error)
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT'))
           throw new AurevaneError(

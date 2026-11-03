@@ -291,7 +291,18 @@ it('saves and publishes V2 via the current atomic Master writer and resolves cur
   )
   const definition = { ...helm, id: 'test.published' }
   await seed([definition])
-  const record = await writeItem({ ...definition, qualityPoints: 55 })
+  const sourceRecord = (
+    await db.query<{ record: { revision: number } }>(
+      'select public.read_combat_content_record_v1($1,null,$2) record',
+      [user, definition.id],
+    )
+  ).rows[0]!.record
+  const record = await writeItem(
+    { ...definition, qualityPoints: 55 },
+    definition.id,
+    'save',
+    sourceRecord.revision,
+  )
   const publication = await publishItem(definition.id, record.draft.draftVersion)
   expect(publication.current.definition).toMatchObject({ schemaVersion: 2, qualityPoints: 55 })
   const current = (
@@ -466,7 +477,7 @@ it('keeps archived owned items visible, suppresses source fallback and permits u
   const stack = (await read()).stacks[0]!
   await equip(1, { head: stack.id })
   await db.query(
-    "insert into app_private.combat_content_records(content_key,content_kind,lifecycle,version_floor) values($1,'item','archived',1)",
+    "insert into app_private.combat_content_records(content_key,content_kind,lifecycle,version_floor) values($1,'item','archived',1) on conflict(content_key) do update set lifecycle='archived'",
     [helm.id],
   )
   expect((await read()).stacks[0]!.id).toBe(stack.id)
@@ -498,4 +509,215 @@ it('initializes the one support selection from the existing committed Basic supp
     selectedSupport: { kind: 'basic', actionId: 'basic.pilfer' },
     previousBasicSupport: 'basic.pilfer',
   })
+})
+
+it('reads one owner snapshot with current definitions/token and rejects a stale catalogue mutation', async () => {
+  await grant('starter', [{ itemId: helm.id, quantity: 1 }])
+  const result = await db.query<{
+    view: {
+      catalogueToken: string
+      definitions: Record<string, unknown>
+      snapshot: ItemInventorySnapshot
+    }
+  }>('select public.read_character_items_view_v1($1,$2) view', [user, character])
+  const view = result.rows[0]!.view
+  expect(view.definitions[helm.id]).toEqual(helm)
+  await seed([{ ...helm, contentVersion: 2, qualityPoints: 60 }])
+  await fails(
+    () =>
+      db.query('select public.write_character_items_v1($1,$2,$3,$4,$5::jsonb)', [
+        user,
+        character,
+        view.snapshot.revision,
+        view.catalogueToken,
+        JSON.stringify({
+          action: 'equipment',
+          equipment: { head: view.snapshot.stacks[0]!.id },
+          selectedSupport: view.snapshot.selectedSupport,
+          replacePositions: [],
+        }),
+      ]),
+    'ITEM_STALE_CATALOGUE',
+  )
+  expect((await read()).equipment).toEqual({})
+})
+it('synchronizes the existing Basic support writer and inventory revision atomically', async () => {
+  const initial = await read()
+  const build = (
+    await db.query<{ build_version: number }>(
+      'select build_version from app_private.character_active_builds where character_id=$1',
+      [character],
+    )
+  ).rows[0]!
+  await db.query('select public.save_character_support_action_v1($1,$2,$3,$4,$5,$6)', [
+    user,
+    character,
+    build.build_version,
+    'basic.pilfer',
+    '00000000-0000-4000-8000-000000009991',
+    'support-test-fingerprint',
+  ])
+  expect(await read()).toMatchObject({
+    revision: initial.revision + 1,
+    selectedSupport: { kind: 'basic', actionId: 'basic.pilfer' },
+    previousBasicSupport: 'basic.pilfer',
+  })
+  await db.query('select public.save_character_support_action_v1($1,$2,$3,$4,$5,$6)', [
+    user,
+    character,
+    build.build_version,
+    'basic.pilfer',
+    '00000000-0000-4000-8000-000000009991',
+    'support-test-fingerprint',
+  ])
+  expect((await read()).revision).toBe(initial.revision + 1)
+  await equip(initial.revision + 1, {}, { kind: 'basic', actionId: 'basic.recover.mp' })
+  expect(
+    (
+      await db.query<{ support_action_id: string }>(
+        'select support_action_id from app_private.character_active_builds where character_id=$1',
+        [character],
+      )
+    ).rows[0]!.support_action_id,
+  ).toBe('basic.recover.mp')
+})
+it('captures genuine source Items in the current catalogue generation and pins immutable old source media', async () => {
+  const first = (
+    await db.query<{ snapshot: { token: string; runtimeItems: unknown[] } }>(
+      'select public.read_combat_content_catalogue_v1() snapshot',
+    )
+  ).rows[0]!.snapshot
+  expect(first.runtimeItems).toContainEqual(helm)
+  await seed([{ ...helm, contentVersion: 2, name: 'New Helm' }])
+  const next = (
+    await db.query<{ snapshot: { token: string; runtimeItems: unknown[] } }>(
+      'select public.read_combat_content_catalogue_v1() snapshot',
+    )
+  ).rows[0]!.snapshot
+  expect(next.token).not.toBe(first.token)
+  expect(next.runtimeItems).toContainEqual({ ...helm, contentVersion: 2, name: 'New Helm' })
+  expect(
+    (
+      await db.query<{ definition: unknown }>(
+        'select public.read_runtime_item_version_v1($1,1) definition',
+        [helm.id],
+      )
+    ).rows[0]!.definition,
+  ).toEqual(helm)
+})
+it('reserves source Item publication versions and preserves source drafts when a higher baseline is installed', async () => {
+  const initial = (
+    await db.query<{ version_floor: number; builtin_version: number }>(
+      'select version_floor,builtin_version from app_private.combat_content_records where content_key=$1',
+      [helm.id],
+    )
+  ).rows[0]
+  expect(initial).toMatchObject({ version_floor: 1, builtin_version: 1 })
+  await db.query(
+    "insert into app_private.master_panel_role_assignments(user_id,role) values($1,'game-owner')",
+    [user],
+  )
+  const record = (
+    await db.query<{ record: { revision: number } }>(
+      'select public.read_combat_content_record_v1($1,null,$2) record',
+      [user, helm.id],
+    )
+  ).rows[0]!.record
+  const draft = (
+    await db.query<{ record: { draft: { draftVersion: number } } }>(
+      'select public.write_combat_content_record_v1($1,null,$2,$3::jsonb) record',
+      [
+        user,
+        helm.id,
+        JSON.stringify({
+          action: 'save',
+          expectedRevision: record.revision,
+          definition: { ...helm, name: 'Owner edited helm' },
+        }),
+      ],
+    )
+  ).rows[0]!.record
+  await publishItem(helm.id, draft.draft.draftVersion)
+  const published = (
+    await db.query<{ definition: { contentVersion: number } }>(
+      'select public.read_current_runtime_item_v1($1) definition',
+      [helm.id],
+    )
+  ).rows[0]!.definition
+  expect(published.contentVersion).toBe(2)
+  expect(
+    (
+      await db.query<{ definition: unknown }>(
+        'select public.read_runtime_item_version_v1($1,1) definition',
+        [helm.id],
+      )
+    ).rows[0]!.definition,
+  ).toEqual(helm)
+  await fails(
+    () => seed([{ ...helm, contentVersion: 2, name: 'Conflicting source' }]),
+    'ITEM_SOURCE_VERSION_CONFLICT',
+  )
+})
+it('bounds staff test grants to the authorized selected owned character with an idempotent audit', async () => {
+  const view = (
+    await db.query<{ view: { catalogueToken: string } }>(
+      'select public.read_character_items_view_v1($1,$2) view',
+      [user, character],
+    )
+  ).rows[0]!.view
+  const parameters = [
+    user,
+    character,
+    helm.id,
+    1,
+    0,
+    view.catalogueToken,
+    '00000000-0000-4000-8000-000000009998',
+  ]
+  const run = (args: unknown[] = parameters) =>
+    db.query('select public.grant_master_test_item_v1($1,$2,$3,$4,$5,$6,$7)', args)
+  await fails(() => run(), 'MASTER_PANEL_OPERATOR_REQUIRED')
+  await db.query(
+    "insert into app_private.master_panel_role_assignments(user_id,role) values($1,'game-owner')",
+    [user],
+  )
+  await run()
+  await run()
+  expect((await read()).stacks).toHaveLength(1)
+  expect(
+    (
+      await db.query<{ count: number }>(
+        'select count(*)::int count from app_private.player_support_audit where actor_user_id=$1',
+        [user],
+      )
+    ).rows[0]!.count,
+  ).toBe(1)
+  const refreshed = (
+    await db.query<{ view: { catalogueToken: string } }>(
+      'select public.read_character_items_view_v1($1,$2) view',
+      [user, character],
+    )
+  ).rows[0]!.view
+  await fails(
+    () =>
+      run([
+        user,
+        character,
+        helm.id,
+        2,
+        1,
+        refreshed.catalogueToken,
+        '00000000-0000-4000-8000-000000009997',
+      ]),
+    'ITEM_TEST_GRANT_INVALID',
+  )
+  await fails(
+    () =>
+      run([user, null, helm.id, 1, 0, view.catalogueToken, '00000000-0000-4000-8000-000000009996']),
+    'ITEM_TEST_GRANT_INVALID',
+  )
+  await fails(
+    () => run([user, character, material.id, 1, 0, view.catalogueToken, parameters[6]]),
+    'ITEM_GRANT_CONFLICT',
+  )
 })

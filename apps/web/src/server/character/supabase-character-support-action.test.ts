@@ -42,3 +42,17 @@ describe('Support Action database boundary', () => {
     })
   })
 })
+
+it.each([
+  ['ITEM_CATALOGUE_RETRY', '40001', 'STALE_VERSION'],
+  ['ITEM_ADMISSION_RETRY', '40001', 'STALE_VERSION'],
+  ['ITEM_BATTLE_ACTIVE', '22023', 'INVALID_REQUEST'],
+] as const)(
+  'maps synchronized Item admission failure %s through the existing Basic support writer',
+  async (message, dbCode, code) => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message, code: dbCode } })
+    await expect(
+      createSupabaseCharacterBuildRepository().saveSupportAction(command),
+    ).rejects.toMatchObject({ code })
+  },
+)

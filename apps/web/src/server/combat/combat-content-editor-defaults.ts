@@ -108,12 +108,18 @@ export function contentEditorDefaults(
         group: 'Items',
         defaultDefinition: {
           ...common,
-          itemClass: 'consumable',
-          usage: 'active',
-          equipmentSlot: null,
-          acquisition: 'unimplemented',
+          schemaVersion: 2,
+          inventoryCategory: 'materials',
+          itemClass: 'material',
+          tier: 'D',
+          qualityPoints: 0,
+          equipment: null,
+          maximumStack: 99,
           requirements: null,
           ability: null,
+          battleUses: null,
+          consumeOnUse: false,
+          tags: [],
         },
       }
     case 'ascension':

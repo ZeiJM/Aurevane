@@ -136,6 +136,9 @@ begin
   if to_regclass('app_private.usage_balance_sessions') is not null then
     new_actor_signatures := new_actor_signatures || array['public.read_master_usage_balance_v1(uuid,uuid,text)']::text[];
   end if;
+  if to_regprocedure('public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)']::text[];
+  end if;
   if to_regprocedure('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)') is not null then
     new_actor_signatures := new_actor_signatures || array['public.read_master_usage_balance_week_v1(uuid,uuid,text,date)']::text[];
   end if;
@@ -302,6 +305,7 @@ begin
       ('public.review_discipline_deletion_v1(uuid,uuid,text)','select public.review_discipline_deletion_v1($1,$2,''vanguard'')','MASTER_PANEL_OPERATOR_REQUIRED'),
       ('public.delete_discipline_v1(uuid,uuid,text,text)','select public.delete_discipline_v1($1,$2,''vanguard'',repeat(''a'',32))','MASTER_PANEL_OPERATOR_REQUIRED'),
       ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')','MASTER_PANEL_OPERATOR_REQUIRED'),
+      ('public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)','select public.grant_master_test_item_v1($1,$2,''item.test'',1,0,''token'',gen_random_uuid())','MASTER_PANEL_OPERATOR_REQUIRED'),
       ('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','select public.read_master_usage_balance_week_v1($1,$2,''vanguard'',null)','MASTER_PANEL_OPERATOR_REQUIRED')
   ) contracts(signature,command,denial) loop
     if not probe.signature=any(new_actor_signatures) then continue; end if;
@@ -393,6 +397,7 @@ do $$ declare probe record; begin
       ('public.review_discipline_deletion_v1(uuid,uuid,text)','select public.review_discipline_deletion_v1($1,$2,''vanguard'')'),
       ('public.delete_discipline_v1(uuid,uuid,text,text)','select public.delete_discipline_v1($1,$2,''vanguard'',repeat(''a'',32))'),
       ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')'),
+      ('public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)','select public.grant_master_test_item_v1($1,$2,''item.test'',1,0,''token'',gen_random_uuid())'),
       ('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','select public.read_master_usage_balance_week_v1($1,$2,''vanguard'',null)'),
       ('public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v1($1,1,''{}'',null,$2)')
   ) contracts(signature,command) loop

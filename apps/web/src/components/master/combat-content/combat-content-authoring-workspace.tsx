@@ -1,4 +1,5 @@
 'use client'
+import { ItemMasterActions } from './item-master-actions'
 import { PendingMediaBoundary } from './pending-media-boundary'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
@@ -858,6 +859,30 @@ export function CombatContentAuthoringWorkspace({
                   />
                 ) : null}
               </header>
+              {!newDefinition && record?.contentKind === 'item' && !readOnly ? (
+                <ItemMasterActions
+                  key={record.contentKey}
+                  record={record}
+                  disabled={
+                    busy ||
+                    restoring ||
+                    conflict ||
+                    pendingMedia ||
+                    recordIsDirty(record, activeDefinition)
+                  }
+                  onDuplicated={(copy) => {
+                    accept(copy)
+                    setNotice(
+                      'Item duplicated as a new draft. Configure it and Commit Now to publish.',
+                    )
+                    void list(categoryOf(copy))
+                      .then(setPage)
+                      .catch(() =>
+                        setError('The Item was duplicated, but the list could not refresh.'),
+                      )
+                  }}
+                />
+              ) : null}
               {conflict && record ? (
                 <div className={styles.error} role="alert">
                   This content changed after your recovered edits. Review the latest saved settings

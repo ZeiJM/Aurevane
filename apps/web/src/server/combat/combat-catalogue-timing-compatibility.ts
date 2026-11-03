@@ -54,6 +54,7 @@ export function validateCombatCatalogueTiming(
               'controlled',
           )
         : entry.category !== 'basic' &&
+          entry.category !== 'item' &&
           (['pve', 'pvp'] as const).some((context) => {
             const action = toMaterializedCombatActionDefinition(
               entry.category === 'essence' ? entry.definition.skill : entry.definition,
@@ -133,7 +134,7 @@ export function combatTimingUsedBy(
             ? combatEffectPresentationId(effect)
             : currentCombatEffectTimingTag(effect),
         )
-    } else if (entry.category !== 'basic') {
+    } else if (entry.category !== 'basic' && entry.category !== 'item') {
       for (const context of ['pve', 'pvp'] as const) {
         const action = toMaterializedCombatActionDefinition(
           entry.category === 'essence' ? entry.definition.skill : entry.definition,

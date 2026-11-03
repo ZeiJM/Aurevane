@@ -1,3 +1,4 @@
+import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import {
   combatDamageForAuthoring,
   automaticDamageDefinitionIssues,
@@ -389,6 +390,20 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
     if (error) mapRpcError(error)
     if (data === null) return null
     const record = withBuiltinRestoreCapability(parseCompleteCombatContentRecord(data))
+    if (record.contentKind === 'item' && record.builtin) {
+      const definition = await this.#itemSource(record.contentKey, record.builtin.contentVersion)
+      if (!definition)
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The Item source baseline is unavailable.',
+        )
+      return {
+        ...record,
+        ...(!record.current && record.lifecycle !== 'archived'
+          ? { builtinDefinition: definition }
+          : {}),
+      }
+    }
     if (record.builtin && !record.current && record.lifecycle !== 'archived') {
       let definition = builtinCombatContentDefinition(record.contentKind, record.contentKey)
       if (record.contentKind === 'discipline') {
@@ -418,6 +433,18 @@ export class RpcCombatContentAuthoringStore implements CombatContentAuthoringSto
       return { ...record, builtinDefinition: definition }
     }
     return record
+  }
+  async #itemSource(key: string, version: number): Promise<CombatContentDefinition | null> {
+    const { data, error } = await this.#rpc('read_runtime_item_source_v1', {
+      p_item_id: key,
+      p_content_version: version,
+    })
+    if (error) mapRpcError(error)
+    if (data === null) return null
+    const definition = parseRuntimeItemDefinition(data)
+    if (definition.id !== key || definition.contentVersion !== version)
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The Item source identity does not match.')
+    return { ...definition }
   }
   async listRecords(input: {
     sort?: CombatContentSort

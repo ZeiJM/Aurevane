@@ -1,4 +1,8 @@
 import {
+  parseRuntimeItemDefinition,
+  type RuntimeItemDefinition,
+} from '@aurevane/game-core/content/items'
+import {
   captureCombatTagPresentation,
   bindCombatTagPresentations,
   type CombatTagPresentationSnapshot,
@@ -62,6 +66,11 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export interface CombatContentResolver {
+  resolveCurrentItemDefinition?(itemId: string): Promise<RuntimeItemDefinition | null>
+  resolvePinnedItemDefinition?(
+    itemId: string,
+    version: number,
+  ): Promise<RuntimeItemDefinition | null>
   resolveCurrentTagPresentations?(): Promise<readonly CombatTagPresentationSnapshot[]>
   resolvePinnedTagPresentation?(
     key: string,
@@ -117,6 +126,7 @@ export interface PublishedCombatContentCatalogueSnapshot {
   readonly policy: CombatEffectTimingPolicy
   readonly publications: readonly CombatContentVersionRecord[]
   readonly archivedKeys?: readonly string[]
+  readonly runtimeItems?: readonly RuntimeItemDefinition[]
 }
 type CatalogueIdentity = {
   readonly contentKey: string
@@ -130,6 +140,7 @@ export type CombatContentCatalogueEntry = CatalogueIdentity &
     | { readonly category: 'skill'; readonly definition: MatureSkillDefinition }
     | { readonly category: 'essence'; readonly definition: EssenceDefinition }
     | { readonly category: 'resonance'; readonly definition: AnyResonanceDefinition }
+    | { readonly category: 'item'; readonly definition: RuntimeItemDefinition }
     | { readonly category: 'status'; readonly definition: CombatContentDefinition }
     | {
         readonly category: 'effect-profile'
@@ -154,6 +165,8 @@ export interface CurrentDisciplineSelection {
 }
 
 export interface PublishedCombatContentSource {
+  findCurrentRuntimeItem?(id: string): Promise<RuntimeItemDefinition | null>
+  findRuntimeItemVersion?(id: string, version: number): Promise<RuntimeItemDefinition | null>
   readCurrentDisciplineSelection?(
     primary: string,
     secondary: string | null,
@@ -167,11 +180,11 @@ export interface PublishedCombatContentSource {
   ): Promise<CombatContentVersionRecord | null>
   findCurrentContent?(
     contentKey: string,
-    contentKind: 'essence' | 'resonance' | 'tag',
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
   ): Promise<CombatContentVersionRecord | null>
   findContentVersion?(
     contentKey: string,
-    contentKind: 'essence' | 'resonance' | 'tag',
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
     contentVersion: number,
   ): Promise<CombatContentVersionRecord | null>
 }
@@ -391,7 +404,8 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
       if (
         !isObject(data) ||
         Object.keys(data).some(
-          (key) => !['token', 'policy', 'publications', 'archivedKeys'].includes(key),
+          (key) =>
+            !['token', 'policy', 'publications', 'archivedKeys', 'runtimeItems'].includes(key),
         ) ||
         typeof data.token !== 'string' ||
         !/^[a-f0-9]{32}$/.test(data.token) ||
@@ -423,6 +437,9 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
       )
         throw new TypeError('Invalid archived identities.')
       return {
+        ...(data.runtimeItems === undefined
+          ? {}
+          : { runtimeItems: parseRuntimeItems(data.runtimeItems) }),
         ...(data.archivedKeys === undefined ? {} : { archivedKeys: data.archivedKeys as string[] }),
         token: data.token,
         policy: parseStoredCombatEffectTimingPolicy(data.policy),
@@ -437,6 +454,19 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
     }
   }
 
+  async findCurrentRuntimeItem(id: string): Promise<RuntimeItemDefinition | null> {
+    const { data, error } = await this.#rpc('read_current_runtime_item_v1', { p_item_id: id })
+    if (error) mapRpcFailure(error)
+    return checkedItem(data, id)
+  }
+  async findRuntimeItemVersion(id: string, version: number): Promise<RuntimeItemDefinition | null> {
+    const { data, error } = await this.#rpc('read_runtime_item_version_v1', {
+      p_item_id: id,
+      p_content_version: version,
+    })
+    if (error) mapRpcFailure(error)
+    return checkedItem(data, id, version)
+  }
   async findCurrentSkill(contentKey: string): Promise<CombatContentVersionRecord | null> {
     const { data, error } = await this.#rpc('read_current_combat_content_v1', {
       p_content_key: contentKey,
@@ -448,7 +478,7 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
 
   async findCurrentContent(
     contentKey: string,
-    contentKind: 'essence' | 'resonance' | 'tag',
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
   ): Promise<CombatContentVersionRecord | null> {
     const { data, error } = await this.#rpc('read_current_combat_content_v1', {
       p_content_key: contentKey,
@@ -473,7 +503,7 @@ export class RpcPublishedCombatContentSource implements PublishedCombatContentSo
 
   async findContentVersion(
     contentKey: string,
-    contentKind: 'essence' | 'resonance' | 'tag',
+    contentKind: 'essence' | 'resonance' | 'tag' | 'item',
     contentVersion: number,
   ): Promise<CombatContentVersionRecord | null> {
     const { data, error } = await this.#rpc('read_combat_content_version_v1', {
@@ -504,6 +534,14 @@ export function resolveCombatContentCatalogueSnapshot(
   snapshot: PublishedCombatContentCatalogueSnapshot,
 ): CombatContentCatalogue {
   const entries: CombatContentCatalogueEntry[] = [
+    ...(snapshot.runtimeItems ?? []).map((definition) => ({
+      contentKey: definition.id,
+      contentKind: 'item' as const,
+      contentVersion: definition.contentVersion,
+      source: 'builtin' as const,
+      category: 'item' as const,
+      definition: structuredClone(definition),
+    })),
     ...defaultBasicSkills().map((definition) => ({
       contentKey: definition.id,
       contentKind: 'skill' as const,
@@ -553,7 +591,11 @@ export function resolveCombatContentCatalogueSnapshot(
     if (!descriptor)
       throw new InvalidPublishedCombatContentError('Unsupported current content kind.')
     const definition = descriptor.parsePublished(record)
-    if (descriptor.catalogueProjection === 'container') continue
+    if (
+      descriptor.catalogueProjection === 'container' ||
+      (record.contentKind === 'item' && definition.schemaVersion !== 2)
+    )
+      continue
     const entry = {
       contentKey: record.contentKey,
       contentKind: record.contentKind,
@@ -655,6 +697,24 @@ export function createCombatContentResolver(
   }
 
   const resolver: CombatContentResolver = {
+    async resolveCurrentItemDefinition(id) {
+      return checkedItem(
+        source.findCurrentRuntimeItem
+          ? await source.findCurrentRuntimeItem(id)
+          : ((await source.findCurrentContent?.(id, 'item'))?.definition ?? null),
+        id,
+      )
+    },
+    async resolvePinnedItemDefinition(id, version) {
+      if (!positiveInteger(version)) return null
+      return checkedItem(
+        source.findRuntimeItemVersion
+          ? await source.findRuntimeItemVersion(id, version)
+          : ((await source.findContentVersion?.(id, 'item', version))?.definition ?? null),
+        id,
+        version,
+      )
+    },
     ...(source.readCatalogueSnapshot
       ? {
           async captureCurrentCatalogue() {
@@ -705,6 +765,24 @@ export function createCombatContentResolver(
                       },
                     }
                   : {}),
+                findCurrentRuntimeItem: async (key) =>
+                  checkedItem(
+                    current(key, 'item')?.definition ??
+                      snapshot.runtimeItems?.find((row) => row.id === key) ??
+                      null,
+                    key,
+                  ),
+                findRuntimeItemVersion: async (key, version) =>
+                  checkedItem(
+                    pinned(key, 'item', version)?.definition ??
+                      snapshot.runtimeItems?.find(
+                        (row) => row.id === key && row.contentVersion === version,
+                      ) ??
+                      (await source.findRuntimeItemVersion?.(key, version)) ??
+                      null,
+                    key,
+                    version,
+                  ),
                 findCurrentSkill: async (key) => structuredClone(current(key, 'skill')),
                 findCurrentSkills: async (keys) =>
                   keys
@@ -971,4 +1049,19 @@ export function createServerCombatContentResolver(): CombatContentResolver {
     serverCombatCatalogueSnapshotCache,
   )
   return createCombatContentResolver(source)
+}
+
+function checkedItem(value: unknown, id: string, version?: number): RuntimeItemDefinition | null {
+  if (value === null) return null
+  const definition = parseRuntimeItemDefinition(value)
+  if (definition.id !== id || (version !== undefined && definition.contentVersion !== version))
+    throw new InvalidPublishedCombatContentError('Item identity or version mismatch.')
+  return definition
+}
+function parseRuntimeItems(value: unknown): readonly RuntimeItemDefinition[] {
+  if (!Array.isArray(value)) throw new TypeError('Invalid source Item catalogue.')
+  const definitions = value.map(parseRuntimeItemDefinition)
+  if (new Set(definitions.map((definition) => definition.id)).size !== definitions.length)
+    throw new TypeError('Duplicate source Item identity.')
+  return definitions
 }
