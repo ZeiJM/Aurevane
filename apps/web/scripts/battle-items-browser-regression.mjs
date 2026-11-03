@@ -165,6 +165,9 @@ try {
             true,
             'Both hand choices and i buttons fit the existing preview pane',
           )
+          await page.screenshot({
+            path: resolve(output, `items-${mode}-${scenario}-${width}-choices.png`),
+          })
           const info = choices.getByRole('button', { name: /^Information about/ }).first()
           await info.click()
           await page.locator('[data-battle-info-panel]').waitFor()
@@ -194,10 +197,31 @@ try {
             ).length,
             0,
           )
+          await page.evaluate(() => {
+            window.holdItemCommit = true
+          })
           await page
             .locator('#battlefield')
             .getByRole('button', { name: /^Tile 4, 4;/ })
             .click()
+          await page.waitForFunction(() => typeof window.releaseItemCommit === 'function', null, {
+            timeout: 3000,
+          })
+          // Repeated input during the in-flight commit cannot submit or spend twice.
+          const selfTile = await page
+            .locator('#battlefield')
+            .getByRole('button', { name: /^Tile 4, 4;/ })
+            .boundingBox()
+          await page.mouse.click(selfTile.x + selfTile.width / 2, selfTile.y + selfTile.height / 2)
+          await page.keyboard.press('i')
+          const inFlight = await page.evaluate(() => ({
+            calls: window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+            uses: window.fixtureBattle.snapshot.equipmentActions.find((row) => row.role === 'use')
+              .remainingUses,
+            hp: window.fixtureBattle.snapshot.tactical.battle.combatants[0].hp,
+          }))
+          assert.deepEqual(inFlight, { calls: 1, uses: 2, hp: 40 })
+          await page.evaluate(() => window.releaseItemCommit())
           await page
             .waitForFunction(() => window.fixtureBattle.battleVersion > 1)
             .catch(async (error) => {
@@ -251,6 +275,28 @@ try {
             await choices.waitFor()
             assert.equal(await choices.locator('[data-item-action]').first().isDisabled(), true)
             assert.equal(await choices.locator('[data-item-action]').nth(1).isEnabled(), true)
+            await choices.locator('[data-item-action]').nth(1).click()
+            await page
+              .locator('#battlefield')
+              .getByRole('button', { name: /^Tile 4, 4;/ })
+              .click()
+            await page.waitForFunction(
+              () =>
+                window.fixtureBattle.snapshot.equipmentActions.find(
+                  (row) => row.role === 'use' && row.position === 'off-hand',
+                ).remainingUses === 1,
+            )
+            assert.deepEqual(
+              await page.evaluate(() =>
+                window.fixtureBattle.snapshot.equipmentActions
+                  .filter((row) => row.role === 'use')
+                  .map((row) => [row.position, row.remainingUses]),
+              ),
+              [
+                ['main-hand', 0],
+                ['off-hand', 1],
+              ],
+            )
           } else {
             assert.equal(await itemCommand.isDisabled(), true)
             const support = page.locator('[data-command-slot="guard"]')

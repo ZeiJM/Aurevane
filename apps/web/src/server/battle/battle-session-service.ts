@@ -817,38 +817,6 @@ export function createBattleSessionService({
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
-      // Current character entry may refresh its published Primary profile. Capture only
-      // after it completes so Core totals and the immutable build share that version.
-      const character = await findOwnedCharacter(characters, command.userId, command.characterId)
-      if (!character) {
-        throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
-      }
-      const [committedBuildResult, committedBuildSnapshotResult] = await Promise.allSettled([
-        builds
-          ? builds.findActiveBuild(command.userId, command.characterId)
-          : Promise.resolve(null),
-        builds
-          ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds, true)
-          : Promise.resolve(null),
-      ])
-
-      if (committedBuildResult.status === 'rejected') throw committedBuildResult.reason
-      if (committedBuildSnapshotResult.status === 'rejected') {
-        throw committedBuildSnapshotResult.reason
-      }
-      const committedBuild = committedBuildResult.value
-      const committedBuildSnapshot = committedBuildSnapshotResult.value
-
-      if (builds && (!committedBuild || !committedBuildSnapshot)) {
-        throw new AurevaneError(
-          'PERSISTENCE_UNAVAILABLE',
-          'The committed character build is unavailable right now.',
-        )
-      }
-
-      if (committedBuildSnapshot)
-        assertPreparedBattleSource(character, committedBuildSnapshot, committedBuild?.buildVersion)
-
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
       const allyCount = command.allyCount ?? 0,
         enemyCount = command.enemyCount ?? 1
@@ -872,6 +840,84 @@ export function createBattleSessionService({
       // Battle Hall difficulty is server-owned: full duels always use High AI,
       // while guided/legacy teaching records stay Easy regardless of client input.
       const aiDifficulty = authoritativeBattleHallAiDifficulty(battleHallRecordId)
+      const requestFingerprint = fingerprint({
+        command: 'battle.create.v5',
+        userId: command.userId,
+        characterId: command.characterId,
+        arenaId,
+        aiDifficulty,
+        battleHallRecordId,
+        allyCount,
+        enemyCount,
+      })
+      const readCreationReplay = async (): Promise<BattleSessionView | null> => {
+        const replay = await battles.findBattleCreationReplay?.({
+          actorKey: command.userId,
+          userId: command.userId,
+          idempotencyKey: command.idempotencyKey,
+          requestFingerprint,
+        })
+        if (!replay) return null
+        const state = readPersistedEncounter(replay.snapshot)
+        return {
+          battleSessionId: replay.battleSessionId,
+          battleVersion: replay.battleVersion,
+          snapshot: projectBattleSnapshot(
+            state,
+            deriveBattleViewerEntitlement(state, [`character:${command.characterId}`]),
+          ),
+          replayed: true,
+          invalidation: createBattleSessionChangedInvalidation({
+            battleSessionId: replay.battleSessionId,
+            battleVersion: replay.battleVersion,
+            occurredAt: replay.createdAt,
+            reason: 'created',
+          }),
+        }
+      }
+      const replay = await readCreationReplay()
+      if (replay) return replay
+      // Current character entry may refresh its published Primary profile. Capture only
+      // after it completes so Core totals and the immutable build share that version.
+      const character = await findOwnedCharacter(characters, command.userId, command.characterId)
+      if (!character) {
+        throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+      }
+      const [committedBuildResult, committedBuildSnapshotResult] = await Promise.allSettled([
+        builds
+          ? builds.findActiveBuild(command.userId, command.characterId)
+          : Promise.resolve(null),
+        builds
+          ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds, true)
+          : Promise.resolve(null),
+      ])
+
+      if (
+        committedBuildResult.status === 'rejected' ||
+        committedBuildSnapshotResult.status === 'rejected'
+      ) {
+        // A concurrent identical request may have committed after the first receipt read,
+        // making fresh outside-battle preparation invalid. Its frozen result still wins.
+        const racedReplay = await readCreationReplay()
+        if (racedReplay) return racedReplay
+      }
+      if (committedBuildResult.status === 'rejected') throw committedBuildResult.reason
+      if (committedBuildSnapshotResult.status === 'rejected') {
+        throw committedBuildSnapshotResult.reason
+      }
+      const committedBuild = committedBuildResult.value
+      const committedBuildSnapshot = committedBuildSnapshotResult.value
+
+      if (builds && (!committedBuild || !committedBuildSnapshot)) {
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The committed character build is unavailable right now.',
+        )
+      }
+
+      if (committedBuildSnapshot)
+        assertPreparedBattleSource(character, committedBuildSnapshot, committedBuild?.buildVersion)
+
       const elevationPolicy = parseBattlefieldElevationPolicy(
         readElevationPolicy ? await readElevationPolicy() : defaultBattlefieldElevationPolicy(),
       )
@@ -988,16 +1034,7 @@ export function createBattleSessionService({
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
-        requestFingerprint: fingerprint({
-          command: 'battle.create.v5',
-          userId: command.userId,
-          characterId: command.characterId,
-          arenaId,
-          aiDifficulty,
-          battleHallRecordId,
-          allyCount,
-          enemyCount,
-        }),
+        requestFingerprint,
         userId: command.userId,
         battleId: battle.battleId,
         rulesVersion: battle.rulesVersion,

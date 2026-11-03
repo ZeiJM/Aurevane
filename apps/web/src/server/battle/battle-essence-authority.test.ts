@@ -131,6 +131,51 @@ it('freezes same-Item hand roles through actual service quote, payment, rejectio
     characterId: CHARACTER_ID,
     idempotencyKey: '88888888-8888-4888-8888-888888888888',
   })
+  const creation = battles.createBattleSession.mock.calls[0]![0]
+  let receiptVisible = true
+  battles.repository.findBattleCreationReplay = vi.fn(async (input) => {
+    expect(input.requestFingerprint).toBe(creation.requestFingerprint)
+    if (!receiptVisible) {
+      receiptVisible = true
+      return null
+    }
+    return {
+      battleSessionId: SESSION_ID,
+      battleVersion: 1,
+      snapshot: battles.record!.snapshot,
+      createdAt: CREATED_AT,
+    }
+  })
+  builds.repository.loadBattleEquipment = vi.fn(async () => {
+    throw new Error('ITEM_BATTLE_ACTIVE')
+  })
+  resolver.resolveCurrentItemDefinition = vi.fn(async () => {
+    throw new Error('Current catalogue changed')
+  })
+  expect(
+    (
+      await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: '88888888-8888-4888-8888-888888888888',
+      })
+    ).replayed,
+  ).toBe(true)
+  expect(battles.createBattleSession).toHaveBeenCalledTimes(1)
+  expect(builds.repository.loadBattleEquipment).not.toHaveBeenCalled()
+  expect(resolver.resolveCurrentItemDefinition).not.toHaveBeenCalled()
+  receiptVisible = false // The first request commits while the retry is preparing equipment.
+  expect(
+    (
+      await service.createSession({
+        userId: USER_ID,
+        characterId: CHARACTER_ID,
+        idempotencyKey: '88888888-8888-4888-8888-888888888888',
+      })
+    ).replayed,
+  ).toBe(true)
+  expect(builds.repository.loadBattleEquipment).toHaveBeenCalledOnce()
+  expect(battles.createBattleSession).toHaveBeenCalledTimes(1)
   let state = battles.record!.snapshot as BattleAuthoritativeEncounterState
   state = {
     ...state,
@@ -397,6 +442,22 @@ it('admits only the main weapon and selected Support, once per unit passive, and
     PV1F_BASIC_ATTACK_ID,
   )!
   expect(selected.equipment?.roles).toEqual({ attack: 'strike', support: 'mend' })
+  // PostgreSQL jsonb preserves values, not authored object-property order.
+  const reorderJson = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(reorderJson)
+      : value !== null && typeof value === 'object'
+        ? Object.fromEntries(
+            Object.entries(value)
+              .reverse()
+              .map(([key, child]) => [key, reorderJson(child)]),
+          )
+        : value
+  expect(parseBattleBuildAuthoritySnapshot(reorderJson(state.buildAuthority))).not.toBeNull()
+  battles.replaceSnapshot(reorderJson(state))
+  expect((await service.getSession(USER_ID, SESSION_ID)).snapshot.equipmentActions).toEqual(
+    view.snapshot.equipmentActions,
+  )
   const fingerprintForgery = structuredClone(state.buildAuthority!)
   const tampered = JSON.parse(JSON.stringify(fingerprintForgery))
   tampered.combatants[0].extensions.equipmentSkills[0].equipment[0].item.name = 'Forged history'

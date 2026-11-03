@@ -99,6 +99,10 @@ export interface CommitBattleIntentInput extends FindBattleIntentReplayInput {
 }
 
 export interface BattleSessionRepository {
+  /** Existing creation receipt; fresh creation remains transactional in createBattleSession. */
+  findBattleCreationReplay?(
+    input: BattleIdempotentInput & { userId: string },
+  ): Promise<BattleSessionCreationRecord | null>
   createBattleSession(
     input: CreateBattleSessionInput,
   ): Promise<TransactionalCommandResult<BattleSessionCreationRecord>>

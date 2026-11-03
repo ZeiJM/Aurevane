@@ -1,6 +1,9 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { CharacterSelectShell } from '@/components/character/character-select-shell'
+import { AuthenticatedShellPresentation } from '@/components/shell/authenticated-shell-presentation'
+import { LoadoutHeader } from '@/components/character/loadout-header'
+import itemStyles from '@/components/character/character-items.module.css'
 import { CharacterItems } from '@/components/character/character-items'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import {
@@ -281,7 +284,14 @@ const rosterCharacter = {
   disciplines: { primary: { id: 'vanguard', name: 'Vanguard' }, secondary: null },
 }
 createRoot(document.getElementById('root')).render(
-  new URLSearchParams(location.search).has('roster') ? (
+  new URLSearchParams(location.search).has('shell') ? (
+    <AuthenticatedShellPresentation>
+      <section data-composition="correction" className={itemStyles.page}>
+        <LoadoutHeader active="items" />
+        <CharacterItems initialView={view} />
+      </section>
+    </AuthenticatedShellPresentation>
+  ) : new URLSearchParams(location.search).has('roster') ? (
     <CharacterSelectShell
       characters={[rosterCharacter]}
       selectedCharacter={rosterCharacter}

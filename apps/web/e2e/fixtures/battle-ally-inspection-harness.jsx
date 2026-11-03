@@ -1430,6 +1430,13 @@ window.fetch = async (url, options = {}) => {
           },
         })
       }
+      if (canonicalCase?.startsWith('items') && window.holdItemCommit) {
+        await new Promise((resolve) => {
+          window.releaseItemCommit = resolve
+        })
+        window.holdItemCommit = false
+        delete window.releaseItemCommit
+      }
       if (body.expectedBattleVersion !== window.fixtureBattle.battleVersion)
         return Response.json({ error: { message: 'Stale battle version.' } }, { status: 409 })
       const transition =

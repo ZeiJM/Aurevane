@@ -28,7 +28,7 @@ import {
   DEFAULT_SUPPORT_ACTION_ID,
   type SupportActionId,
 } from '@aurevane/game-core/combat/support-actions'
-import { createHash } from 'node:crypto'
+import { fingerprintCombatSnapshot } from '@/server/character/character-combat-build-snapshot'
 
 import {
   COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
@@ -266,10 +266,6 @@ function combatSnapshotFromCommitted(
       prestige: null,
     },
   }
-}
-
-function fingerprintCombatSnapshot(snapshot: Omit<CombatBuildSnapshot, 'fingerprint'>): string {
-  return `sha256:${createHash('sha256').update(JSON.stringify(snapshot)).digest('hex')}`
 }
 
 function validateCanonicalCombatSnapshot(

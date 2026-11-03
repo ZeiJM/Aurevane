@@ -133,7 +133,7 @@ it('exposes every auxiliary as a reference independently of the selected slot an
       'severence',
     ]),
   )
-  expect(props.categories?.find((row) => row.category === 'item')?.publicationBlocker).toBeTruthy()
+  expect(props.categories?.find((row) => row.category === 'item')?.publicationBlocker).toBeNull()
 })
 it('preserves selected current, deeper history and disabled custom content without synthesizing a baseline', async () => {
   const record = {

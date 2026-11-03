@@ -65,7 +65,16 @@ const equip = (
   )
 async function fails(fn: () => Promise<unknown>, message: string) {
   await db.exec('savepoint rejected')
-  await expect(fn()).rejects.toThrow(message)
+  if (
+    message.endsWith('_STALE_REVISION') ||
+    message.endsWith('_STALE_CATALOGUE') ||
+    message === 'ITEM_PREPARATION_STALE' ||
+    message === 'ITEM_STARTUP_CAPTURE_CHANGED'
+  ) {
+    await expect(fn()).rejects.toMatchObject({ code: 'PT409', message })
+  } else {
+    await expect(fn()).rejects.toThrow(message)
+  }
   await db.exec('rollback to savepoint rejected; release savepoint rejected')
 }
 beforeAll(async () => {
@@ -209,6 +218,29 @@ it('prepares exact versioned equipment and validates it inside the actual creati
   expect(admitted.rows).toHaveLength(1)
   await fails(() => equip(2, {}, undefined, ['head']), 'ITEM_BATTLE_ACTIVE')
   expect((await create(initial)).rows[0]).toMatchObject({ replayed: true })
+  // Retry uses frozen startup history even though fresh equipment preparation is now blocked.
+  const creationKey = '00000000-0000-4000-8000-000000009099'
+  const replay = (as = user, fingerprint = 'item-admission') =>
+    db.query('select * from public.get_battle_creation_replay_v1($1,$2,$3)', [
+      as,
+      creationKey,
+      fingerprint,
+    ])
+  await fails(
+    () => db.query('select public.read_character_battle_equipment_v1($1,$2)', [user, character]),
+    'ITEM_BATTLE_ACTIVE',
+  )
+  await seed([{ ...helm, contentVersion: 2, name: 'Archived later', enabled: false }])
+  await db.exec('set local role service_role')
+  expect((await replay()).rows).toEqual([{ ...admitted.rows[0], replayed: true }])
+  expect((await replay(other)).rows).toEqual([])
+  await fails(() => replay(user, 'different-request'), 'BATTLE_IDEMPOTENCY_CONFLICT')
+  await db.exec('reset role')
+  for (const role of ['anon', 'authenticated']) {
+    await db.exec(`set local role ${role}`)
+    await fails(() => replay(), 'permission denied')
+    await db.exec('reset role')
+  }
 })
 it('reads no foreign character and denies direct browser RPC/table access with RLS enabled', async () => {
   await fails(() => read(other), 'ITEM_OWNERSHIP')

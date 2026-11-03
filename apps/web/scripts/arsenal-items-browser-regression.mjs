@@ -29,7 +29,24 @@ await fs.writeFile(
 )
 await fs.writeFile(
   resolve(fixture, 'production-styles.js'),
-  "import '@aurevane/ui/styles.css';import '@/app/globals.css'",
+  [
+    '@aurevane/ui/styles.css',
+    ...[
+      'globals',
+      'pv1e-shell-fixes',
+      'mobile-ui-batch',
+      'portrait-ratio-standardization',
+      'desktop-readability',
+      'desktop-page-fit',
+      'mobile-readability',
+      'concept-shell',
+      'profile-ui-readability-pass',
+      'sitewide-layout-v2',
+      'approved-adventure',
+    ].map((name) => `@/app/${name}.css`),
+  ]
+    .map((path) => `import '${path}'`)
+    .join('\n'),
 )
 // next/image is reached by AbilityEffectEditor → SummonProfileEditor → SkillMediaEditor.
 // Next replaces these public build constants; this standalone Vite fixture must do so too.
@@ -40,6 +57,10 @@ const nextImageBrowserDefines = {
   'process.env.NEXT_SUPPORTS_IMMUTABLE_ASSETS': 'false',
 }
 await fs.writeFile(resolve(fixture, 'empty.js'), 'export {}')
+await fs.writeFile(
+  resolve(fixture, 'next-link.jsx'),
+  `import React from 'react';export default function Link({prefetch,...props}){return <a {...props}/>} `,
+)
 await fs.copyFile(
   resolve(web, 'e2e/fixtures/discipline-management-navigation.jsx'),
   resolve(fixture, 'next-mock.jsx'),
@@ -55,6 +76,7 @@ const config = {
       '@item-art-manifest': resolve(root, 'docs/artwork/2026-11-03-starter-items.json'),
       'server-only': resolve(fixture, 'empty.js'),
       'next/navigation': resolve(fixture, 'next-mock.jsx'),
+      'next/link': resolve(fixture, 'next-link.jsx'),
       '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
       '@aurevane/validation': resolve(root, 'packages/validation/src'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
@@ -84,6 +106,53 @@ const browser = await chromium.launch({
     : {}),
 })
 try {
+  for (const viewport of [
+    { width: 1728, height: 885 },
+    { width: 1440, height: 900 },
+    { width: 1366, height: 768 },
+    { width: 1280, height: 720 },
+    { width: 1024, height: 768 },
+    { width: 1024, height: 576 },
+    { width: 390, height: 844 },
+    { width: 412, height: 915 },
+  ]) {
+    const shellPage = await browser.newPage({ viewport })
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items`, {
+      waitUntil: 'networkidle',
+    })
+    await expect(shellPage.locator('[data-inventory-slot]')).toHaveCount(40)
+    const measure = () =>
+      shellPage.evaluate(() => {
+        const main = document.querySelector('#game-main')
+        return {
+          mainOverflowY: main.scrollHeight - main.clientHeight,
+          pageOverflowX: document.documentElement.scrollWidth - innerWidth,
+          pageOverflowY: document.documentElement.scrollHeight - innerHeight,
+        }
+      })
+    const fit = await measure()
+    assert.ok(
+      fit.pageOverflowX <= 1 &&
+        (viewport.width < 981 || (fit.mainOverflowY <= 1 && fit.pageOverflowY <= 1)),
+      JSON.stringify({ viewport, fit }),
+    )
+    await shellPage.screenshot({
+      path: resolve(output, `arsenal-items-shell-${viewport.width}-${viewport.height}.png`),
+    })
+    await shellPage.getByRole('button', { name: /^Off Hand:/ }).click()
+    await expect(shellPage.getByRole('dialog')).toBeVisible()
+    await shellPage.keyboard.press('Escape')
+    await shellPage.locator('[data-inventory-slot="40"]').scrollIntoViewIfNeeded()
+    if (viewport.width >= 981) {
+      assert.ok((await measure()).mainOverflowY <= 1)
+      const last = await shellPage.locator('[data-inventory-slot="40"]').boundingBox()
+      assert.ok(last.y >= 0 && last.y + last.height <= viewport.height + 1)
+    }
+    await shellPage.close()
+  }
+  console.log(
+    'Arsenal production shell: eight viewports, internal scroll reachability and hand details passed',
+  )
   for (const viewport of [
     { width: 1366, height: 768 },
     { width: 390, height: 844 },

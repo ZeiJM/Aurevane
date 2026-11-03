@@ -1,4 +1,5 @@
 import { LoadoutHeader } from '@/components/character/loadout-header'
+import styles from '@/components/character/character-items.module.css'
 import { CharacterItems } from '@/components/character/character-items'
 import { requireRoamingCharacter } from '@/server/character/require-roaming-character'
 import { loadCharacterItems } from '@/server/character/character-items-service'
@@ -12,7 +13,7 @@ export default async function ItemsPage() {
     )
     .catch(() => null)
   return (
-    <section data-composition="correction">
+    <section data-composition="correction" className={styles.page}>
       <LoadoutHeader active="items" />
       <CharacterItems initialView={view} />
     </section>
