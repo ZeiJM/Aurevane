@@ -730,6 +730,64 @@ it('reads one owner snapshot with current definitions/token and rejects a stale 
   )
   expect((await read()).equipment).toEqual({})
 })
+it.each(['pending', 'active'] as const)(
+  'saves next-battle Basic Support during a %s battle without changing frozen combat or unlocking gear',
+  async (lifecycle) => {
+    const initial = await read()
+    const build = (
+      await db.query<{ build_version: number }>(
+        'select build_version from app_private.character_active_builds where character_id=$1',
+        [character],
+      )
+    ).rows[0]!
+    const battle = crypto.randomUUID()
+    const frozen = { retained: true, supportActionId: 'basic.recover', equipment: initial }
+    // Retained battle fixture: admission itself is covered through the real creation RPC above.
+    await db.exec('set local session_replication_role=replica')
+    await db.query(
+      `insert into app_private.battle_sessions(id,owner_user_id,battle_id,rules_version,content_version,lifecycle,current_snapshot)
+       values($1,$2,'retained-support',1,1,$3,$4)`,
+      [battle, user, lifecycle, frozen],
+    )
+    await db.query(
+      "insert into app_private.battle_participants(battle_session_id,combatant_id,participant_role,user_id,character_id) values($1,'player','player',$2,$3)",
+      [battle, user, character],
+    )
+    await db.exec('set local session_replication_role=origin')
+    const command = [
+      user,
+      character,
+      build.build_version,
+      'basic.recover.mp',
+      crypto.randomUUID(),
+      'next-battle-support',
+    ]
+    await db.query('select public.save_character_support_action_v1($1,$2,$3,$4,$5,$6)', command)
+    const next = await read()
+    expect(next).toMatchObject({
+      revision: initial.revision + 1,
+      selectedSupport: { kind: 'basic', actionId: 'basic.recover.mp' },
+      previousBasicSupport: 'basic.recover.mp',
+      equipment: initial.equipment,
+      stacks: initial.stacks,
+    })
+    expect(
+      (
+        await db.query<{ current_snapshot: unknown }>(
+          'select current_snapshot from app_private.battle_sessions where id=$1',
+          [battle],
+        )
+      ).rows[0]!.current_snapshot,
+    ).toEqual(frozen)
+    await db.query('select public.save_character_support_action_v1($1,$2,$3,$4,$5,$6)', command)
+    expect((await read()).revision).toBe(next.revision)
+    await fails(() => equip(next.revision, {}), 'ITEM_BATTLE_ACTIVE')
+    await fails(
+      () => grant('still-locked', [{ itemId: material.id, quantity: 1 }], next.revision),
+      'ITEM_BATTLE_ACTIVE',
+    )
+  },
+)
 it('synchronizes the existing Basic support writer and inventory revision atomically', async () => {
   const initial = await read()
   const build = (

@@ -1,8 +1,11 @@
+import './production-styles'
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { CharacterSelectShell } from '@/components/character/character-select-shell'
 import { AuthenticatedShellPresentation } from '@/components/shell/authenticated-shell-presentation'
 import { LoadoutHeader } from '@/components/character/loadout-header'
+import { Surface } from '@aurevane/ui'
+import arsenalStyles from '@/components/character/character-arsenal-shell.module.css'
 import itemStyles from '@/components/character/character-items.module.css'
 import { CharacterItems } from '@/components/character/character-items'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
@@ -12,7 +15,6 @@ import {
 } from '@/server/character/character-items-service'
 import { starterItemDefinitions, starterItemGrant } from '@aurevane/game-core/content/starter-items'
 import { selectInventorySupport } from '@aurevane/game-core/character/item-inventory'
-import './production-styles'
 const definitions = Object.fromEntries(starterItemDefinitions().map((item) => [item.id, item]))
 window.setItemEnabled = (id, enabled) => {
   definitions[id] = { ...definitions[id], enabled }
@@ -202,10 +204,23 @@ const rosterCharacter = {
 createRoot(document.getElementById('root')).render(
   new URLSearchParams(location.search).has('shell') ? (
     <AuthenticatedShellPresentation>
-      <section data-composition="correction" className={itemStyles.page}>
-        <LoadoutHeader active="items" />
-        <CharacterItems initialView={view} />
-      </section>
+      {new URLSearchParams(location.search).get('shell') === 'nexus' ? (
+        <div
+          className={arsenalStyles.layout}
+          data-arsenal-workspace
+          data-character-concept="nexus"
+          data-composition="correction"
+        >
+          <Surface className={arsenalStyles.arsenal} tone="elevated" data-arsenal-sheet="true">
+            <LoadoutHeader active="nexus" />
+          </Surface>
+        </div>
+      ) : (
+        <section data-composition="correction" className={itemStyles.page}>
+          <LoadoutHeader active="items" />
+          <CharacterItems initialView={view} />
+        </section>
+      )}
     </AuthenticatedShellPresentation>
   ) : new URLSearchParams(location.search).has('roster') ? (
     <CharacterSelectShell

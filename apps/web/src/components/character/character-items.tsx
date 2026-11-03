@@ -197,8 +197,8 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
       ) : null}
       {view.battleLocked ? (
         <p role="status" className={styles.warning}>
-          Equipment, sorting and Support changes are locked during a pending or active battle.
-          Reload Items after the battle ends.
+          Equipment, sorting and equipment Support changes are locked during a pending or active
+          battle. Reload Items after the battle ends.
         </p>
       ) : null}
       <div className={styles.columns}>

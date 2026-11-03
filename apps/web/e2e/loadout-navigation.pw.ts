@@ -36,9 +36,17 @@ test('Loadout opens Nexus and its Hall-style sections switch directly to Items a
       .getByRole('navigation', { name: 'Primary game navigation' })
       .getByRole('link', { name: 'Arsenal', exact: true }),
   ).toHaveAttribute('aria-current', 'page')
-  await expect(page.getByText('Coming Soon', { exact: true })).toBeVisible()
-  const slots = page.getByLabel('Future equipment slots')
-  await expect(slots.locator(':scope > div')).toHaveCount(8)
+  await expect(page.getByRole('heading', { name: 'Inventory', exact: true })).toBeVisible()
+  await expect(page.getByRole('meter', { name: 'Equipped Quality Points' })).toHaveAttribute(
+    'max',
+    '100',
+  )
+  const slots = page.getByRole('region', { name: 'Equipment', exact: true })
+  const equipment = slots.getByRole('button', {
+    name: /^(Head|Body|Pants|Boots|Main Hand|Off Hand):/,
+  })
+  await expect(equipment).toHaveCount(6)
+  await expect(page.locator('[data-inventory-slot]')).toHaveCount(40)
   const viewports =
     info.project.name === 'mobile-chromium'
       ? [{ width: 390, height: 844 }]
@@ -70,7 +78,7 @@ test('Loadout opens Nexus and its Hall-style sections switch directly to Items a
           .evaluate((element) => element.scrollHeight - element.clientHeight),
       ).toBeLessThanOrEqual(1)
     }
-    for (const slot of await slots.locator(':scope > div').all()) await expect(slot).toBeVisible()
+    for (const slot of await equipment.all()) await expect(slot).toBeVisible()
   }
   await tabs.getByRole('link', { name: 'Nexus', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/nexus$/)

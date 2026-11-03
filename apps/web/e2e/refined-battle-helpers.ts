@@ -142,10 +142,10 @@ export async function expectRefinedCockpit(page: Page) {
       ).matches,
   )
   expect(order).toEqual([
-    'items',
     'inspect',
     'move',
     'attack',
+    'items',
     'guard',
     ...(!desktop ? ['finish'] : []),
     '1',

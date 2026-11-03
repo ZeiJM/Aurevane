@@ -80,6 +80,7 @@ const config = {
       '@aurevane/game-core': resolve(root, 'packages/game-core/src'),
       '@aurevane/validation': resolve(root, 'packages/validation/src'),
       '@aurevane/ui/styles.css': resolve(root, 'packages/ui/src/styles.css'),
+      '@aurevane/ui': resolve(root, 'packages/ui/src/index.ts'),
       '@baseline-cohort': resolve(
         root,
         'docs/superpowers/specs/2026-10-18-modular-correction-cohort.json',
@@ -108,6 +109,7 @@ const browser = await chromium.launch({
 try {
   for (const viewport of [
     { width: 1728, height: 885 },
+    { width: 1536, height: 614 },
     { width: 1440, height: 900 },
     { width: 1366, height: 768 },
     { width: 1280, height: 720 },
@@ -121,6 +123,24 @@ try {
       waitUntil: 'networkidle',
     })
     await expect(shellPage.locator('[data-inventory-slot]')).toHaveCount(40)
+    const itemsHeader = await shellPage
+      .getByRole('navigation', { name: 'Arsenal sections' })
+      .boundingBox()
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=nexus`, {
+      waitUntil: 'networkidle',
+    })
+    const nexusHeader = await shellPage
+      .getByRole('navigation', { name: 'Arsenal sections' })
+      .boundingBox()
+    for (const key of ['x', 'y', 'width', 'height']) {
+      assert.ok(
+        Math.abs(itemsHeader[key] - nexusHeader[key]) <= 1,
+        JSON.stringify({ viewport, key, itemsHeader, nexusHeader }),
+      )
+    }
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items`, {
+      waitUntil: 'networkidle',
+    })
     const measure = () =>
       shellPage.evaluate(() => {
         const main = document.querySelector('#game-main')
@@ -151,7 +171,7 @@ try {
     await shellPage.close()
   }
   console.log(
-    'Arsenal production shell: eight viewports, internal scroll reachability and hand details passed',
+    'Arsenal production shell: nine viewports, shared header geometry, internal scroll reachability and hand details passed',
   )
   for (const viewport of [
     { width: 1366, height: 768 },
