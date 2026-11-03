@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type {
   MasterPlayerSearchResult,
   MasterPlayerView,
@@ -47,8 +47,13 @@ export function PlayersWorkspace({
   const [notice, setNotice] = useState<string | null>(null)
   const [review, setReview] = useState<Review | null>(null)
   const [confirmed, setConfirmed] = useState(false)
+  const [focusRequest, setFocusRequest] = useState<{ target: 'player' | 'review' } | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   const reviewHeading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => {
+    if (focusRequest?.target === 'player') heading.current?.focus()
+    if (focusRequest?.target === 'review') reviewHeading.current?.focus()
+  }, [focusRequest])
   async function run(action: () => Promise<void>) {
     if (busy) return
     setBusy(true)
@@ -78,13 +83,13 @@ export function PlayersWorkspace({
       setPlayer(result.player)
       setReview(null)
       setConfirmed(false)
-      requestAnimationFrame(() => heading.current?.focus())
+      setFocusRequest({ target: 'player' })
     })
   }
   function preview(next: Review) {
     setReview(next)
     setConfirmed(false)
-    requestAnimationFrame(() => reviewHeading.current?.focus())
+    setFocusRequest({ target: 'review' })
   }
   function save() {
     if (!player || !review || !confirmed) return
@@ -126,7 +131,7 @@ export function PlayersWorkspace({
       }
       setReview(null)
       setConfirmed(false)
-      requestAnimationFrame(() => heading.current?.focus())
+      setFocusRequest({ target: 'player' })
     })
   }
   return (
