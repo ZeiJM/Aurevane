@@ -371,6 +371,7 @@ export function BattleExperience(props: {
       pierceCriticalPolicyVersion={props.initialBattle.snapshot.pierceCriticalPolicyVersion ?? null}
       summonPotencyPolicyVersion={props.initialBattle.snapshot.summonPotencyPolicyVersion ?? null}
       ruinPolicyVersion={props.initialBattle.snapshot.ruinPolicyVersion ?? null}
+      pairedStatusPolicyVersion={props.initialBattle.snapshot.pairedStatusPolicyVersion ?? null}
       airbornePolicyVersion={props.initialBattle.snapshot.airbornePolicyVersion ?? null}
       airborneJumpPolicyVersion={props.initialBattle.snapshot.airborneJumpPolicyVersion ?? null}
       healingDownPolicyVersion={props.initialBattle.snapshot.healingDownPolicyVersion ?? null}

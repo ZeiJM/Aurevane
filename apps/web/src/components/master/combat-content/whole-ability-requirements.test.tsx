@@ -285,3 +285,38 @@ it('promoted Details requirements reject the whole command before costs and allo
     }
   }
 })
+
+it('does not offer promotion of a prerequisite requiring the same Bleed inflicted by its packet', () => {
+  const initial = ability([null])
+  const e = editor({
+    ...initial,
+    behaviors: [
+      {
+        ...initial.behaviors[0]!,
+        effects: [
+          {
+            id: 'bleed',
+            requirements: {
+              kind: 'status-presence',
+              subject: 'selected',
+              statusId: 'bleed',
+              present: true,
+            },
+            payload: {
+              type: 'bleed',
+              recipient: 'primary-unit',
+              ticks: 3,
+              durationTurns: 3,
+              damageProfile: { kind: 'attack-percentage', basisPoints: 2000 },
+            },
+          },
+        ],
+      },
+    ],
+  })
+  expect(e.button('Apply matching conditions to whole ability').props.disabled).toBe(true)
+  expect(renderToStaticMarkup(e.tree('details'))).toContain('same effect')
+  ;(e.button('Remove all retained effect conditions').props.onClick as () => void)()
+  expect(e.draft().behaviors[0]!.requirements).toBeNull()
+  expect(e.draft().behaviors[0]!.effects[0]!.requirements).toBeUndefined()
+})

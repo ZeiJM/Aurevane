@@ -107,6 +107,7 @@ function capturedAbilityEffectContext(state: StatDrivenCombatEncounterState) {
     legacyPierceCritical: state.pierceCriticalPolicyVersion !== 1,
     legacySummonPotency: state.summonPotencyPolicyVersion !== 1,
     legacyRuin: state.ruinPolicyVersion !== 1,
+    legacyPairedStatus: state.pairedStatusPolicyVersion !== 1,
     legacyElemental: state.elementalDamagePolicyVersion === undefined,
     explicitElemental: state.elementalDamagePolicyVersion === 2,
   }

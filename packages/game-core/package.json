@@ -110,7 +110,9 @@
     "./content/authored-content": "./src/content/authored-content.ts",
     "./combat/content-media": "./src/combat/content-media.ts",
     "./combat/pv1f-combat-content": "./src/combat/pv1f-combat-content.ts",
-    "./combat/combat-reversal": "./src/combat/combat-reversal.ts"
+    "./combat/combat-reversal": "./src/combat/combat-reversal.ts",
+    "./content/items": "./src/content/items.ts",
+    "./character/item-inventory": "./src/character/item-inventory.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

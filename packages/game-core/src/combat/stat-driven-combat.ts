@@ -274,6 +274,7 @@ export function createStatBalancedCombatEncounterState(
       barrierDamageEventPolicyVersion: 1,
       selfDamagePolicyVersion: 1,
       abilityUsageLimitPolicyVersion: 1,
+      pairedStatusPolicyVersion: 1,
       supportActionPolicyVersion: 1,
     },
     profiles.map((profile) => ({ ...profile, statusResistance: profile.statusResistance ?? 0 })),

@@ -1,0 +1,501 @@
+import type { PGlite } from '@electric-sql/pglite'
+import { afterAll, beforeAll, beforeEach, afterEach, expect, it } from 'vitest'
+import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
+import { itemFixture } from '../../game-core/src/content/items-test-fixtures'
+import { defaultBasicSkills } from '../../game-core/src/combat/combat-basic-actions'
+import type { ItemInventorySnapshot } from '../../game-core/src/character/item-inventory'
+const user = '00000000-0000-4000-8000-000000009001',
+  other = '00000000-0000-4000-8000-000000009002',
+  character = '00000000-0000-4000-8000-000000009011'
+let db: PGlite
+const helm = itemFixture({ qualityPoints: 50 })
+const body = itemFixture({
+  id: 'test.body',
+  equipment: { slot: 'body', hands: 1 },
+  qualityPoints: 50,
+})
+const material = itemFixture({
+  id: 'test.ore',
+  inventoryCategory: 'materials',
+  itemClass: 'material',
+  qualityPoints: 0,
+  equipment: null,
+  maximumStack: 99,
+})
+const ability = defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability!
+const potion = itemFixture({
+  id: 'test.potion',
+  inventoryCategory: 'battle-items',
+  itemClass: 'battle-item',
+  equipment: { slot: 'hand', hands: 1 },
+  qualityPoints: 10,
+  maximumStack: 99,
+  ability,
+  actions: { use: { behaviorId: ability.behaviors[0]!.id, name: 'Drink' } },
+  battleUses: 2,
+})
+const seed = (definitions: unknown[]) =>
+  db.query('select public.seed_runtime_item_sources_v1($1::jsonb)', [JSON.stringify(definitions)])
+async function read(as = user) {
+  return (
+    await db.query<{ snapshot: ItemInventorySnapshot }>(
+      'select public.read_character_item_inventory_v1($1,$2) snapshot',
+      [as, character],
+    )
+  ).rows[0]!.snapshot
+}
+const grant = (key: string, items: unknown[], revision = 0) =>
+  db.query('select public.grant_character_items_v1($1,$2,$3,$4,$5::jsonb)', [
+    user,
+    character,
+    revision,
+    key,
+    JSON.stringify(items),
+  ])
+const equip = (
+  revision: number,
+  equipment: object,
+  support: object = { kind: 'basic', actionId: 'basic.recover' },
+  replace: string[] = [],
+) =>
+  db.query(
+    'select public.set_character_item_equipment_v1($1,$2,$3,$4::jsonb,$5::jsonb,$6::text[])',
+    [user, character, revision, JSON.stringify(equipment), JSON.stringify(support), replace],
+  )
+async function fails(fn: () => Promise<unknown>, message: string) {
+  await db.exec('savepoint rejected')
+  await expect(fn()).rejects.toThrow(message)
+  await db.exec('rollback to savepoint rejected; release savepoint rejected')
+}
+beforeAll(async () => {
+  db = await createCombatContentTestDatabase()
+  await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${user}','items@example.test',now()),('${other}','other-items@example.test',now());
+ insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
+ values('${character}','${user}',0,1,'Item Tester','item-tester','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());`)
+}, 60000)
+afterAll(async () => db?.close())
+beforeEach(async () => {
+  await db.exec('begin')
+  await seed([helm, body, material, potion])
+})
+afterEach(async () => {
+  await db.exec('rollback')
+})
+it('reads no foreign character and denies direct browser RPC/table access with RLS enabled', async () => {
+  await fails(() => read(other), 'ITEM_OWNERSHIP')
+  await db.exec('set local role authenticated')
+  await fails(
+    () => db.query('select public.read_character_item_inventory_v1($1,$2)', [user, character]),
+    'permission denied',
+  )
+  await fails(() => db.exec('select * from app_private.character_item_stacks'), 'permission denied')
+  await db.exec('reset role')
+  const rows = (
+    await db.query<{ relrowsecurity: boolean }>(
+      "select relrowsecurity from pg_class where oid='app_private.character_item_stacks'::regclass",
+    )
+  ).rows
+  expect(rows).toEqual([{ relrowsecurity: true }])
+})
+it('idempotently grants duplicate first loads and preserves quantities and provenance', async () => {
+  await grant('starter', [{ itemId: material.id, quantity: 100 }])
+  const first = await read()
+  expect(first.stacks.map((x) => x.quantity)).toEqual([99, 1])
+  expect(first.revision).toBe(1)
+  await grant('starter', [{ itemId: material.id, quantity: 100 }])
+  expect(await read()).toEqual(first)
+  await fails(
+    () => grant('starter', [{ itemId: material.id, quantity: 101 }], 1),
+    'ITEM_GRANT_CONFLICT',
+  )
+  await fails(() => grant('next', [{ itemId: material.id, quantity: 1 }], 0), 'ITEM_STALE_REVISION')
+})
+it('validates exact current 100/101 QP, explicit replacement and stale equipment CAS', async () => {
+  await grant('gear', [
+    { itemId: helm.id, quantity: 1 },
+    { itemId: body.id, quantity: 1 },
+  ])
+  const inventory = await read()
+  const [a, b] = inventory.stacks
+  await equip(1, { head: a!.id, body: b!.id })
+  expect((await read()).revision).toBe(2)
+  await fails(() => equip(1, {}), 'ITEM_STALE_REVISION')
+  await fails(() => equip(2, {}), 'ITEM_EXPLICIT_SWAP_REQUIRED')
+  await seed([{ ...body, contentVersion: 2, qualityPoints: 51 }])
+  await fails(
+    () =>
+      db.query('select public.assert_character_item_admission_v1($1,$2,$3)', [user, character, 2]),
+    'ITEM_OVER_QP',
+  )
+  await equip(2, { head: a!.id }, undefined, ['body'])
+  expect((await read()).equipment).toEqual({ head: a!.id })
+})
+it('rejects unavailable or repeated foreign assignments and quantity-poor duplicate hand stacks', async () => {
+  await grant('one', [{ itemId: potion.id, quantity: 1 }])
+  const [stack] = (await read()).stacks
+  await fails(() => equip(1, { 'main-hand': stack!.id, 'off-hand': stack!.id }), 'ITEM_QUANTITY')
+  await fails(() => equip(1, { head: crypto.randomUUID() }), 'ITEM_OWNERSHIP')
+  await grant('second', [{ itemId: potion.id, quantity: 1 }], 1)
+  await equip(2, { 'main-hand': stack!.id, 'off-hand': stack!.id })
+  expect((await read()).revision).toBe(3)
+})
+it('rolls back an entire full-category grant with no partial stacks or grant receipts', async () => {
+  await grant('full', [{ itemId: material.id, quantity: 3960 }])
+  const before = await read()
+  expect(before.stacks).toHaveLength(40)
+  await fails(
+    () =>
+      grant(
+        'overflow',
+        [
+          { itemId: helm.id, quantity: 1 },
+          { itemId: material.id, quantity: 1 },
+        ],
+        1,
+      ),
+    'ITEM_CAPACITY',
+  )
+  expect(await read()).toEqual(before)
+})
+it('protects published/distributed category and maximum-stack shape under catalogue authority', async () => {
+  await grant('ore', [{ itemId: material.id, quantity: 99 }])
+  await fails(
+    () =>
+      seed([
+        { ...material, contentVersion: 2, inventoryCategory: 'general', itemClass: 'general' },
+      ]),
+    'ITEM_IDENTITY_SHAPE',
+  )
+  await fails(
+    () => seed([{ ...material, contentVersion: 2, maximumStack: 98 }]),
+    'ITEM_STACK_SHAPE',
+  )
+  await fails(() => seed([{ ...material, name: 'same version rewrite' }]), 'ITEM_SOURCE_CONFLICT')
+  expect((await read()).stacks[0]!.quantity).toBe(99)
+})
+it('sorts only complete owned category permutations with persisted revisions', async () => {
+  await grant('gear', [{ itemId: helm.id, quantity: 2 }])
+  const before = await read()
+  const ids = before.stacks.map((s) => s.id).reverse()
+  await db.query('select public.sort_character_item_inventory_v1($1,$2,$3,$4,$5::uuid[])', [
+    user,
+    character,
+    1,
+    'gear',
+    ids,
+  ])
+  expect((await read()).stacks.map((s) => s.id)).toEqual(ids)
+  await fails(
+    () =>
+      db.query('select public.sort_character_item_inventory_v1($1,$2,$3,$4,$5::uuid[])', [
+        user,
+        character,
+        2,
+        'gear',
+        [ids[0], ids[0]],
+      ]),
+    'ITEM_PERMUTATION',
+  )
+})
+it('locks catalogue, account, character and build and refuses pending/active battle mutations', async () => {
+  await read()
+  await db.query('select public.assert_character_item_admission_v1($1,$2,$3)', [user, character, 0])
+  const locks = await db.query<{ locktype: string }>('select locktype from pg_locks where granted')
+  expect(locks.rows.some((x) => x.locktype === 'advisory')).toBe(true)
+  for (const seed of [0, 1]) {
+    const held = (
+      await db.query<{ held: boolean }>(
+        `select exists(select 1 from pg_locks where locktype='advisory' and granted and classid::bigint=((hashtextextended($1,$2)>>32)&4294967295) and objid::bigint=(hashtextextended($1,$2)&4294967295) and objsubid=1) held`,
+        [user, seed],
+      )
+    ).rows[0]!.held
+    expect(held).toBe(true)
+  }
+  for (const relation of [
+    'public.characters',
+    'app_private.character_active_builds',
+    'app_private.character_item_inventory',
+  ]) {
+    expect(
+      (
+        await db.query<{ held: boolean }>(
+          "select exists(select 1 from pg_locks where relation=$1::regclass and granted and mode='RowShareLock') held",
+          [relation],
+        )
+      ).rows[0]!.held,
+    ).toBe(true)
+  }
+
+  // The real session table has strict capture triggers; imported retained fixtures use replica mode.
+  await db.exec('set local session_replication_role=replica')
+  const battle = crypto.randomUUID()
+  await db.query(
+    "insert into app_private.battle_sessions(id,owner_user_id,battle_id,rules_version,content_version,lifecycle,current_snapshot) values($1,$2,'test.items',1,1,'pending','{}')",
+    [battle, user],
+  )
+  await db.query(
+    "insert into app_private.battle_participants(battle_session_id,combatant_id,participant_role,user_id,character_id) values($1,'player','player',$2,$3)",
+    [battle, user, character],
+  )
+  await db.exec('set local session_replication_role=origin')
+  await fails(() => equip(0, {}), 'ITEM_BATTLE_ACTIVE')
+  await fails(() => grant('blocked', [{ itemId: material.id, quantity: 1 }]), 'ITEM_BATTLE_ACTIVE')
+})
+async function writeItem(
+  definition: object,
+  key = 'test.published',
+  action = 'create',
+  revision?: number,
+) {
+  return (
+    await db.query<{
+      record: {
+        revision: number
+        draft: { draftVersion: number }
+        current: { contentVersion: number; definition: unknown }
+      }
+    }>('select public.write_combat_content_record_v1($1,null,$2,$3::jsonb) record', [
+      user,
+      key,
+      action === 'create'
+        ? { action, requestId: crypto.randomUUID(), contentKind: 'item', definition }
+        : { action, definition, expectedRevision: revision },
+    ])
+  ).rows[0]!.record
+}
+async function publishItem(key: string, draftVersion: number, base: number | null = null) {
+  const token = (
+    await db.query<{ token: string }>(
+      "select public.read_combat_content_catalogue_v1()->>'token' token",
+    )
+  ).rows[0]!.token
+  return (
+    await db.query<{
+      record: {
+        revision: number
+        current: { contentVersion: number; definition: Record<string, unknown> }
+      }
+    }>('select public.publish_saved_combat_content_v1($1,null,$2,$3,$4,$5,null) record', [
+      user,
+      key,
+      draftVersion,
+      base,
+      token,
+    ])
+  ).rows[0]!.record
+}
+it('saves and publishes V2 via the current atomic Master writer and resolves current above source', async () => {
+  await db.query(
+    "insert into app_private.master_panel_role_assignments(user_id,role) values($1,'game-owner')",
+    [user],
+  )
+  const definition = { ...helm, id: 'test.published' }
+  await seed([definition])
+  const record = await writeItem({ ...definition, qualityPoints: 55 })
+  const publication = await publishItem(definition.id, record.draft.draftVersion)
+  expect(publication.current.definition).toMatchObject({ schemaVersion: 2, qualityPoints: 55 })
+  const current = (
+    await db.query<{ definition: unknown }>(
+      'select public.read_current_runtime_item_v1($1) definition',
+      [definition.id],
+    )
+  ).rows[0]!.definition
+  expect(current).toEqual(publication.current.definition)
+  await grant('published', [{ itemId: definition.id, quantity: 1 }])
+  expect((await read()).stacks[0]!.acquiredContentVersion).toBe(publication.current.contentVersion)
+  const before = (
+    await db.query(
+      'select definition from app_private.combat_content_versions where content_key=$1',
+      [definition.id],
+    )
+  ).rows
+  const next = await writeItem(
+    {
+      ...definition,
+      inventoryCategory: 'general',
+      itemClass: 'general',
+      equipment: null,
+      qualityPoints: 0,
+    },
+    definition.id,
+    'save',
+    publication.revision,
+  )
+  await fails(
+    () => publishItem(definition.id, next.draft.draftVersion, publication.current.contentVersion),
+    'ITEM_IDENTITY_SHAPE',
+  )
+  expect(
+    (
+      await db.query(
+        'select definition from app_private.combat_content_versions where content_key=$1',
+        [definition.id],
+      )
+    ).rows,
+  ).toEqual(before)
+})
+it('rejects invalid V2 authoring and keeps retained V1 publication blocked', async () => {
+  await db.query(
+    "insert into app_private.master_panel_role_assignments(user_id,role) values($1,'game-owner')",
+    [user],
+  )
+  for (const patch of [
+    { qualityPoints: 101 },
+    { equipment: { slot: 'accessory', hands: 1 } },
+    { consumeOnUse: true },
+    { requirements: { kind: 'event' } },
+    { maximumStack: 2 },
+    { extra: true },
+    { media: {} },
+  ])
+    await fails(() => writeItem({ ...helm, id: 'test.published', ...patch }), 'ITEM_')
+  const legacy = {
+    schemaVersion: 1,
+    id: 'test.legacy',
+    contentVersion: 1,
+    name: 'Legacy intent',
+    description: 'Must remain literal.',
+    sortOrder: 0,
+    enabled: true,
+    media: { artworkId: 'test.art' },
+    itemClass: 'material',
+    usage: 'none',
+    equipmentSlot: null,
+    acquisition: 'unimplemented',
+    requirements: null,
+    ability: null,
+  }
+  const saved = await writeItem(legacy, legacy.id)
+  await fails(
+    () => publishItem(legacy.id, saved.draft.draftVersion),
+    'COMBAT_CONTENT_ITEM_RUNTIME_UNSUPPORTED',
+  )
+})
+it('counts a two-handed weapon once and requires an explicit swap of conflicting hands', async () => {
+  const weaponAbility = defaultBasicSkills().find((x) => x.id === 'unarmed.basic')!.ability!
+  const blade = itemFixture({
+    id: 'test.blade',
+    itemClass: 'weapon',
+    equipment: { slot: 'hand', hands: 2 },
+    qualityPoints: 50,
+    ability: weaponAbility,
+    actions: { attack: { behaviorId: weaponAbility.behaviors[0]!.id, name: 'Cut' } },
+  })
+  await seed([blade])
+  await grant('hands', [
+    { itemId: blade.id, quantity: 1 },
+    { itemId: potion.id, quantity: 1 },
+  ])
+  const stacks = (await read()).stacks
+  const bladeId = stacks.find((x) => x.itemId === blade.id)!.id,
+    potionId = stacks.find((x) => x.itemId === potion.id)!.id
+  await equip(1, { 'main-hand': bladeId })
+  const admitted = (
+    await db.query<{ result: { qualityPoints: number } }>(
+      'select public.assert_character_item_admission_v1($1,$2,$3) result',
+      [user, character, 2],
+    )
+  ).rows[0]!.result
+  expect(admitted.qualityPoints).toBe(50)
+  await fails(() => equip(2, { 'main-hand': bladeId, 'off-hand': potionId }), 'ITEM_HAND_CONFLICT')
+  await equip(2, { 'off-hand': potionId }, undefined, ['main-hand'])
+  await fails(() => equip(3, { 'main-hand': bladeId, 'off-hand': potionId }), 'ITEM_HAND_CONFLICT')
+})
+it('checks equipment support binding and explicitly notices fallback when its source is removed', async () => {
+  const support = itemFixture({
+    id: 'test.support',
+    itemClass: 'hand-armor',
+    equipment: { slot: 'hand', hands: 1 },
+    ability,
+    actions: { support: { behaviorId: ability.behaviors[0]!.id, name: 'Steady' } },
+  })
+  await seed([support])
+  await grant('support', [{ itemId: support.id, quantity: 1 }])
+  const stack = (await read()).stacks[0]!
+  const selection = {
+    kind: 'equipment',
+    position: 'main-hand',
+    itemId: support.id,
+    behaviorId: ability.behaviors[0]!.id,
+  }
+  await fails(
+    () => equip(1, { 'main-hand': stack.id }, { ...selection, behaviorId: 'missing' }),
+    'ITEM_SUPPORT',
+  )
+  await equip(1, { 'main-hand': stack.id }, selection)
+  const result = await equip(2, {}, selection, ['main-hand'])
+  expect(result.rows[0]).toMatchObject({
+    set_character_item_equipment_v1: { notices: ['equipment-support-removed'] },
+  })
+  expect((await read()).selectedSupport).toEqual({ kind: 'basic', actionId: 'basic.recover' })
+})
+it('allows removal-only repair while remaining pieces are still over QP', async () => {
+  const boots = itemFixture({
+    id: 'test.boots',
+    equipment: { slot: 'boots', hands: 1 },
+    qualityPoints: 1,
+  })
+  await seed([boots])
+  await grant('repair', [
+    { itemId: helm.id, quantity: 1 },
+    { itemId: body.id, quantity: 1 },
+    { itemId: boots.id, quantity: 1 },
+  ])
+  const stacks = (await read()).stacks
+  const headId = stacks.find((s) => s.itemId === helm.id)!.id,
+    bodyId = stacks.find((s) => s.itemId === body.id)!.id,
+    bootsId = stacks.find((s) => s.itemId === boots.id)!.id
+  await seed([{ ...helm, contentVersion: 2, qualityPoints: 49 }])
+  await equip(1, { head: headId, body: bodyId, boots: bootsId })
+  await seed([
+    { ...helm, contentVersion: 3, qualityPoints: 100 },
+    { ...body, contentVersion: 2, qualityPoints: 100 },
+    { ...boots, contentVersion: 2, qualityPoints: 100 },
+  ])
+  await equip(2, { body: bodyId, boots: bootsId }, undefined, ['head'])
+  expect((await read()).equipment).toEqual({ body: bodyId, boots: bootsId })
+  await fails(
+    () =>
+      db.query('select public.assert_character_item_admission_v1($1,$2,$3)', [user, character, 3]),
+    'ITEM_OVER_QP',
+  )
+  await equip(3, { boots: bootsId }, undefined, ['body'])
+})
+it('keeps archived owned items visible, suppresses source fallback and permits unequip/sort', async () => {
+  await grant('archive', [{ itemId: helm.id, quantity: 1 }])
+  const stack = (await read()).stacks[0]!
+  await equip(1, { head: stack.id })
+  await db.query(
+    "insert into app_private.combat_content_records(content_key,content_kind,lifecycle,version_floor) values($1,'item','archived',1)",
+    [helm.id],
+  )
+  expect((await read()).stacks[0]!.id).toBe(stack.id)
+  await fails(
+    () => db.query('select public.read_current_runtime_item_v1($1)', [helm.id]),
+    'ITEM_DEFINITION_UNAVAILABLE',
+  )
+  await fails(
+    () =>
+      db.query('select public.assert_character_item_admission_v1($1,$2,$3)', [user, character, 2]),
+    'ITEM_DEFINITION_UNAVAILABLE',
+  )
+  await db.query('select public.sort_character_item_inventory_v1($1,$2,$3,$4,$5::uuid[])', [
+    user,
+    character,
+    2,
+    'gear',
+    [stack.id],
+  ])
+  await equip(3, {}, undefined, ['head'])
+  await fails(() => equip(4, { head: stack.id }), 'ITEM_DEFINITION_UNAVAILABLE')
+})
+it('initializes the one support selection from the existing committed Basic support', async () => {
+  await db.query(
+    "update app_private.character_active_builds set support_action_id='basic.pilfer' where character_id=$1",
+    [character],
+  )
+  expect(await read()).toMatchObject({
+    selectedSupport: { kind: 'basic', actionId: 'basic.pilfer' },
+    previousBasicSupport: 'basic.pilfer',
+  })
+})

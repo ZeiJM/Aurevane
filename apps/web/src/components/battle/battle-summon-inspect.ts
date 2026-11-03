@@ -25,6 +25,7 @@ export interface BattleSummonInspectMetadata {
     | 'pierceCriticalPolicyVersion'
     | 'summonPotencyPolicyVersion'
     | 'ruinPolicyVersion'
+    | 'pairedStatusPolicyVersion'
   >
   readonly profileId: string
   readonly name: string
@@ -66,6 +67,7 @@ export function readSummonInspectMetadata(
       airborneJumpPolicyVersion: snapshot.airborneJumpPolicyVersion,
       elementalDamagePolicyVersion: snapshot.elementalDamagePolicyVersion,
       healingDownPolicyVersion: snapshot.healingDownPolicyVersion,
+      pairedStatusPolicyVersion: snapshot.pairedStatusPolicyVersion,
       blindsideActivationPolicyVersion: snapshot.blindsideActivationPolicyVersion,
       ...(snapshot.reversalPolicyVersion === 1 ? { reversalPolicyVersion: 1 as const } : {}),
       ...(snapshot.reflectBarrierPolicyVersion === 1

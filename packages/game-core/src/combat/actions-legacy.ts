@@ -70,6 +70,7 @@ import {
 } from './combat-endure'
 import {
   combatStatusTuning,
+  withPairedCombatStatusDefaults,
   combatEffectStrength,
   type CombatEffectStrength,
   maximumCombatStatusPotencyBasisPoints,
@@ -761,6 +762,8 @@ export interface CombatEncounterState {
   selfDamagePolicyVersion?: 1
   /** Authored Once per action permits one use in the entire battle. */
   abilityUsageLimitPolicyVersion?: 1
+  /** Newly applied unconfigured Reckless/Fortified capture equal tradeoff magnitudes. */
+  pairedStatusPolicyVersion?: 1
   /** Current Support roster; historical absence retains Guard and class Summon commands. */
   supportActionPolicyVersion?: 1
   /** Current Pierce destroys Barrier before applying its HP damage; old captures retain absorption. */
@@ -3254,6 +3257,7 @@ export function validateCombatEncounterState(
     'barrierDamageEventPolicyVersion',
     'selfDamagePolicyVersion',
     'abilityUsageLimitPolicyVersion',
+    'pairedStatusPolicyVersion',
     'supportActionPolicyVersion',
   ] as const) {
     if (state[field] !== undefined && state[field] !== 1)
@@ -4968,7 +4972,16 @@ function resolveActionEffects(
         }),
     )
   }
-  for (const [effectOrdinal, effect] of action.effects.entries()) {
+  for (const [effectOrdinal, authoredEffect] of action.effects.entries()) {
+    const effect = withPairedCombatStatusDefaults(
+      authoredEffect,
+      state.pairedStatusPolicyVersion === 1,
+      state.pairedStatusPolicyVersion === 1 &&
+        authoredEffect.type === 'apply-status' &&
+        ['reckless', 'fortified'].includes(authoredEffect.statusId)
+        ? content.statuses.find((status) => status.id === authoredEffect.statusId)
+        : undefined,
+    )
     if (reversalDefeatedActor) break
     if (options.groundArea?.contactPolicyVersion === 1 && primaryCombatantId) {
       const livePosition = nextState.tactical.placements.find(

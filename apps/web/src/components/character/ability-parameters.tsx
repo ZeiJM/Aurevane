@@ -1,10 +1,6 @@
-import { MechanicTextView } from './mechanic-text-view'
+import { AbilityEffectExplanations } from './ability-effect-explanations'
 import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-actions'
-import {
-  CompactEffectSummary,
-  EffectTagLabel,
-  EffectExplanationNotes,
-} from './compact-skill-effect-summary'
+import { CompactEffectSummary } from './compact-skill-effect-summary'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
 
 /** Render the shared public mechanics report without raw execution data or prose parsing. */
@@ -13,11 +9,13 @@ export function AbilityParameters({
   characteristicsClassName,
   effectExplanationsClassName,
   showActivationNotes = true,
+  showEffectExplanations = true,
 }: {
   report: BattleAbilityBehaviorReport
   characteristicsClassName?: string
   effectExplanationsClassName?: string
   showActivationNotes?: boolean
+  showEffectExplanations?: boolean
 }) {
   const visibleLimits = report.limits.filter((limit) => limit !== 'Once per round')
   return (
@@ -42,34 +40,8 @@ export function AbilityParameters({
         <p>Automatic: {report.automaticActivation}</p>
       ) : null}
       {report.maintenance ? <p>{report.maintenance}</p> : null}
-      {report.effectDescriptions.length ? (
-        <ul className={effectExplanationsClassName} aria-label="Effect explanations">
-          {report.effectDescriptions.map((description, index) => (
-            <li key={index}>
-              {report.effects[index] ? (
-                <>
-                  <strong>
-                    <EffectTagLabel
-                      label={report.effects[index]!.parts.label}
-                      tagPresentation={report.effects[index]!.tagPresentation}
-                    />
-                  </strong>{' '}
-                  —{' '}
-                </>
-              ) : null}
-              <MechanicTextView
-                text={description}
-                parts={report.effects[index]?.explanationParts}
-              />
-              {report.effects[index] ? (
-                <EffectExplanationNotes
-                  parts={report.effects[index]!.parts}
-                  repeatsOnEntry={report.effects[index]!.repeatsOnEntry}
-                />
-              ) : null}
-            </li>
-          ))}
-        </ul>
+      {showEffectExplanations ? (
+        <AbilityEffectExplanations reports={[report]} className={effectExplanationsClassName} />
       ) : null}
       {showActivationNotes && visibleLimits.length ? (
         <ul aria-label="Usage limits">

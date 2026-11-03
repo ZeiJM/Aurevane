@@ -26,32 +26,38 @@ export function battleEffectStrengthInformation(effect: BattlePresentedStatus) {
   const scope = pending ? 'on activation' : 'from this effect'
   const current = effect.effectStackingPolicyVersion === 1
   const applications = current
-    ? (effect.applicationModifiers ?? [
-        {
-          stacks: effect.stacks,
-          potencyBasisPoints: effect.potencyBasisPoints,
-          sourceCombatantId: effect.sourceCombatantId,
-        },
-      ])
-    : [
-        {
-          stacks: 1,
-          potencyBasisPoints: effect.potencyBasisPoints,
-          sourceCombatantId: effect.sourceCombatantId,
-        },
-      ]
-  function add(direction: 'outgoing' | 'incoming', base: number, inspired = false, qualifier = '') {
-    const label = `${direction === 'outgoing' ? 'Outgoing' : 'Incoming'} damage ${scope}${qualifier ? ` ${qualifier}` : ''}`
+    ? (effect.applicationModifiers ?? [effect])
+    : [{ ...effect, stacks: 1 }]
+  function add(
+    direction: 'outgoing' | 'incoming' | 'defense',
+    base: number,
+    inspired = false,
+    qualifier = '',
+  ) {
+    const label = `${direction === 'defense' ? 'Physical and Mystic Defense' : direction === 'outgoing' ? 'Outgoing damage' : 'Incoming damage'} ${scope}${qualifier ? ` ${qualifier}` : ''}`
+    const applicable = applications.filter(
+      (application) =>
+        effect.statusId !== 'fortified' ||
+        (direction === 'defense'
+          ? application.defenseIncreaseBasisPoints !== undefined
+          : direction !== 'incoming' || application.defenseIncreaseBasisPoints === undefined),
+    )
+    if (!applicable.length) return
     let total = BASIS
     let denominator = 1n
     let steps = 0
     try {
-      for (const application of applications) {
-        const potency = application.potencyBasisPoints
+      for (const application of applicable) {
+        const potency =
+          direction === 'defense'
+            ? application.defenseIncreaseBasisPoints
+            : effect.statusId === 'fortified'
+              ? (application.defenseIncreaseBasisPoints ?? application.potencyBasisPoints)
+              : application.potencyBasisPoints
         const value =
           potency === undefined
             ? base
-            : base < 10_000
+            : direction !== 'defense' && base < 10_000
               ? Math.max(0, 10_000 - potency)
               : 10_000 + potency
         if (inspired) {
@@ -87,7 +93,8 @@ export function battleEffectStrengthInformation(effect: BattlePresentedStatus) {
       magnitude: percent(BigInt(Math.max(0, 10_000 - (effect.potencyBasisPoints ?? 2500)))),
     })
   } else if (effect.statusId === 'inspired') add('outgoing', 11_000, true)
-  else
+  else {
+    if (effect.statusId === 'fortified') add('defense', 10_000)
     for (const modifier of definition.damageModifiers ?? [])
       if (modifier.condition.kind === 'always')
         add(modifier.direction, modifier.multiplierBasisPoints)
@@ -116,6 +123,7 @@ export function battleEffectStrengthInformation(effect: BattlePresentedStatus) {
           )
         else notes.push('Combined damage depends on which source is attacked.')
       }
+  }
   if (effect.statusId === 'warded')
     notes.push('Damage that bypasses incoming protection is unaffected by Burn Ward.')
   if (effect.statusId === 'warded' || effect.statusId === 'challenged')

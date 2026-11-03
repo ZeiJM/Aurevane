@@ -1,5 +1,7 @@
 'use client'
 
+import { effectExplanationIdentity } from './effect-explanation-identity'
+import { AbilityEffectExplanations } from './ability-effect-explanations'
 import {
   currentGroundBehaviorPresentation,
   currentGroundNote,
@@ -44,99 +46,123 @@ export function AbilityDefinitionParameters({
     definition.behaviors.reduce((sum, behavior) => sum + behavior.effects.length, 0)
       ? effectDescriptions
       : undefined
+  const noteVariants = new Map<string, Set<string | null>>()
+  let noteOrdinal = 0
+  for (const behavior of definition.behaviors)
+    for (const effect of behavior.effects) {
+      const identity = effectExplanationIdentity(effect.payload)
+      const notes = noteVariants.get(identity) ?? new Set<string | null>()
+      notes.add(authored?.[noteOrdinal++]?.trim() || null)
+      noteVariants.set(identity, notes)
+    }
+  const groups = definition.behaviors.map((behavior, index) => {
+    const offset = definition.behaviors
+      .slice(0, index)
+      .reduce((sum, group) => sum + group.effects.length, 0)
+    const savedRuleHelp = (effectIndex: number, wording: string) => {
+      const payload = behavior.effects[effectIndex]!.payload
+      return payload.type === 'pierce' ||
+        payload.type === 'weak-point' ||
+        payload.type === 'spike' ||
+        payload.type === 'ruin'
+        ? withCurrentAttackRuleHelp(
+            payload,
+            groundRules,
+            wording,
+            report.effectDescriptions[effectIndex],
+          )
+        : wording
+    }
+    const savedExplanations = authored?.slice(offset, offset + behavior.effects.length)
+    const report = abilityBehaviorInformation(behavior, {
+      tagPresentation: definition.tagPresentation,
+      basic,
+      stats,
+      timingPolicy,
+      effectContext: {
+        ...groundRules,
+        legacyTriggers: dotPolicy === null,
+        legacyPoisonMovement: dotPolicy !== 2,
+      },
+    })
+    const groundPresentation = currentGroundBehaviorPresentation(
+      behavior,
+      groundRules.groundContactPolicyVersion,
+      timingPolicy,
+    )
+    const explanations =
+      savedExplanations &&
+      groundPresentation.sourceOrdinals.map((ordinal) => {
+        const wording = savedExplanations[ordinal]
+        if (wording == null) return wording
+        if (
+          groundRules.groundContactPolicyVersion === 1 &&
+          (behavior.effects[ordinal]!.payload.type === 'create-terrain' ||
+            groundPresentation.fieldOrdinals.has(ordinal))
+        )
+          return currentGroundNote(wording, behavior.effects[ordinal]!.payload)
+        return savedRuleHelp(ordinal, wording)
+      })
+    const label = `${behavior.activation === 'manual' ? 'Manual' : behavior.activation === 'automatic' ? 'Automatic' : 'Ongoing'} ${behavior.mode === 'action' ? 'Action' : 'Modifier'}${definition.behaviors.length > 1 ? ` ${index + 1}` : ''}`
+    return {
+      behavior,
+      label,
+      report: {
+        ...report,
+        effects: report.effects.map((effect, effectIndex) => {
+          if (explanations?.[effectIndex] == null) return effect
+          if (effect.tagPresentation)
+            return (noteVariants.get(effect.explanationTagId ?? '')?.size ?? 0) > 1
+              ? { ...effect, explanationAdditionalNotes: [explanations[effectIndex]!] }
+              : effect
+          const { explanationParts: _generated, ...authoredEffect } = effect
+          void _generated
+          return {
+            ...authoredEffect,
+            explanationBaseDescription: explanations![effectIndex]!,
+            explanationBaseParts: undefined,
+            explanationParts: effect.condition
+              ? [
+                  explanations![effectIndex]!,
+                  ' Applies only when ',
+                  ...(effect.conditionParts ?? [effect.condition]),
+                  '.',
+                ]
+              : undefined,
+          }
+        }),
+        effectDescriptions: report.effectDescriptions.map((fallback, effectIndex) =>
+          report.effects[effectIndex]?.tagPresentation
+            ? fallback
+            : explanations?.[effectIndex] == null
+              ? fallback
+              : `${explanations[effectIndex]}${report.effects[effectIndex]?.condition ? ` Applies only when ${report.effects[effectIndex]!.condition}.` : ''}`,
+        ),
+      },
+    }
+  })
   return (
     <div data-ability-definition-parameters="true">
-      {definition.behaviors.map((behavior, index) => {
-        const offset = definition.behaviors
-          .slice(0, index)
-          .reduce((sum, group) => sum + group.effects.length, 0)
-        const savedRuleHelp = (effectIndex: number, wording: string) => {
-          const payload = behavior.effects[effectIndex]!.payload
-          return payload.type === 'pierce' ||
-            payload.type === 'weak-point' ||
-            payload.type === 'spike' ||
-            payload.type === 'ruin'
-            ? withCurrentAttackRuleHelp(
-                payload,
-                groundRules,
-                wording,
-                report.effectDescriptions[effectIndex],
-              )
-            : wording
-        }
-        const savedExplanations = authored?.slice(offset, offset + behavior.effects.length)
-        const report = abilityBehaviorInformation(behavior, {
-          tagPresentation: definition.tagPresentation,
-          basic,
-          stats,
-          timingPolicy,
-          effectContext: {
-            ...groundRules,
-            legacyTriggers: dotPolicy === null,
-            legacyPoisonMovement: dotPolicy !== 2,
-          },
-        })
-        const groundPresentation = currentGroundBehaviorPresentation(
-          behavior,
-          groundRules.groundContactPolicyVersion,
-          timingPolicy,
-        )
-        const explanations =
-          savedExplanations &&
-          groundPresentation.sourceOrdinals.map((ordinal) => {
-            const wording = savedExplanations[ordinal]
-            if (wording == null) return wording
-            if (
-              groundRules.groundContactPolicyVersion === 1 &&
-              (behavior.effects[ordinal]!.payload.type === 'create-terrain' ||
-                groundPresentation.fieldOrdinals.has(ordinal))
-            )
-              return currentGroundNote(wording, behavior.effects[ordinal]!.payload)
-            return savedRuleHelp(ordinal, wording)
-          })
-        const label = `${behavior.activation === 'manual' ? 'Manual' : behavior.activation === 'automatic' ? 'Automatic' : 'Ongoing'} ${behavior.mode === 'action' ? 'Action' : 'Modifier'}${definition.behaviors.length > 1 ? ` ${index + 1}` : ''}`
-        return (
-          <section
-            className={styles.group}
-            aria-label={label}
-            data-ability-behavior={behavior.id}
-            key={behavior.id}
-          >
-            {definition.behaviors.length > 1 ? <h4 className={styles.heading}>{label}</h4> : null}
-            <AbilityParameters
-              report={{
-                ...report,
-                effects: report.effects.map((effect, effectIndex) => {
-                  if (effect.tagPresentation || explanations?.[effectIndex] == null) return effect
-                  const { explanationParts: _generated, ...authoredEffect } = effect
-                  void _generated
-                  return {
-                    ...authoredEffect,
-                    explanationParts: effect.condition
-                      ? [
-                          explanations![effectIndex]!,
-                          ' Applies only when ',
-                          ...(effect.conditionParts ?? [effect.condition]),
-                          '.',
-                        ]
-                      : undefined,
-                  }
-                }),
-                effectDescriptions: report.effectDescriptions.map((fallback, effectIndex) =>
-                  report.effects[effectIndex]?.tagPresentation
-                    ? fallback
-                    : explanations?.[effectIndex] == null
-                      ? fallback
-                      : `${explanations[effectIndex]}${report.effects[effectIndex]?.condition ? ` Applies only when ${report.effects[effectIndex]!.condition}.` : ''}`,
-                ),
-              }}
-              characteristicsClassName={characteristicsClassName}
-              effectExplanationsClassName={effectExplanationsClassName}
-              showActivationNotes={showActivationNotes}
-            />
-          </section>
-        )
-      })}
+      {groups.map(({ behavior, label, report }) => (
+        <section
+          className={styles.group}
+          aria-label={label}
+          data-ability-behavior={behavior.id}
+          key={behavior.id}
+        >
+          {definition.behaviors.length > 1 ? <h4 className={styles.heading}>{label}</h4> : null}
+          <AbilityParameters
+            report={report}
+            characteristicsClassName={characteristicsClassName}
+            showActivationNotes={showActivationNotes}
+            showEffectExplanations={false}
+          />
+        </section>
+      ))}
+      <AbilityEffectExplanations
+        reports={groups.map(({ report }) => report)}
+        className={effectExplanationsClassName}
+      />
     </div>
   )
 }

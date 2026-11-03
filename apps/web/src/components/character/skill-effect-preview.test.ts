@@ -176,8 +176,8 @@ describe('compact Technique explanations', () => {
     const status = (statusId: string) =>
       previewEffect({ type: 'apply-status', recipient: 'primary-unit', statusId, stacks: 1 })
     expect(status('mark').magnitude).toBe('+15 pp Accuracy')
-    expect(status('reckless').magnitude).toBe('+40% outgoing / +25% incoming')
-    expect(status('fortified').magnitude).toBe('−30% incoming / −20% outgoing')
+    expect(status('reckless').magnitude).toBe('+40% outgoing / +40% incoming')
+    expect(status('fortified').magnitude).toBe('+15% Defense / −15% outgoing')
     expect(status('guarded').magnitude).toBe('−15% incoming')
   })
 })

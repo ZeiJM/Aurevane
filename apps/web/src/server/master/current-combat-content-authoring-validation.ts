@@ -1,3 +1,4 @@
+import { currentEffectRequirementIssues } from '@/lib/combat-whole-requirements'
 import { combatCategoryForAuthoring, combatCategoryIssues } from '@/lib/combat-category-authoring'
 import type { CombatContentKind } from '@aurevane/db/combat-content'
 import {
@@ -159,6 +160,7 @@ function current(
   const result = validate(projected)
   const issues = [
     ...result.issues,
+    ...currentEffectRequirementIssues(projected),
     ...automaticDamageDefinitionIssues(kind, projected),
     ...combatCategoryIssues(kind, projected),
     ...groundAuthoringIssues(kind, projected),

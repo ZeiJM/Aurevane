@@ -105,6 +105,10 @@ describe('Owner stat balance policy', () => {
     expect(historical.barrierDamageEventPolicyVersion).toBeUndefined()
     expect(historical.selfDamagePolicyVersion).toBeUndefined()
     expect(historical.abilityUsageLimitPolicyVersion).toBeUndefined()
+    expect(createStatBalancedCombatEncounterState(base, profiles).pairedStatusPolicyVersion).toBe(1)
+    expect(
+      createStatDrivenCombatEncounterState(base, profiles).pairedStatusPolicyVersion,
+    ).toBeUndefined()
     expect(
       createStatBalancedCombatEncounterState(base, profiles).displacementOriginPolicyVersion,
     ).toBe(1)

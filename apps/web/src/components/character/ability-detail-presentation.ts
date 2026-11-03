@@ -1,3 +1,4 @@
+import { effectExplanationIdentity } from './effect-explanation-identity'
 import {
   currentGroundBehaviorPresentation,
   currentGroundNote,
@@ -271,6 +272,11 @@ function requirementReferenceParts(
 }
 
 export interface AbilityEffectPresentation {
+  readonly explanationAdditionalNotes?: readonly string[]
+  readonly explanationTagId?: string
+  readonly explanationBaseDescription?: string
+  readonly explanationBaseParts?: readonly MechanicTextPart[]
+  readonly tagPresentation?: CombatTagPresentationSnapshot
   readonly parts: CompactSkillEffectSummaryParts
   readonly explanationParts?: readonly MechanicTextPart[]
   readonly condition: string | null
@@ -590,6 +596,9 @@ export function abilityBehaviorInformation(
       presentation: {
         ...described.presentation,
         tagPresentation,
+        explanationTagId: effectExplanationIdentity(effect.payload),
+        explanationBaseDescription: baseDescription,
+        explanationBaseParts: tagPresentation ? undefined : described.presentation.explanationParts,
         explanationParts,
         parts: {
           ...described.presentation.parts,
@@ -759,7 +768,7 @@ export function abilityBehaviorInformation(
             ? skillLineOfSightDescription({ target })
             : 'N/A',
     }),
-    effects: effects.map((effect) => effect.presentation),
+    effects: effects.map((effect): AbilityEffectPresentation => effect.presentation),
     effectDescriptions: effects.map((effect) => effect.description),
     limits:
       behavior.activationLimits?.map(

@@ -96,6 +96,7 @@ export function PvpSpectatorExperience(props: Parameters<typeof PvpSpectatorExpe
       frozenGroundPolicyVersion={snapshot.frozenGroundPolicyVersion ?? null}
       elementalDamagePolicyVersion={snapshot.elementalDamagePolicyVersion ?? null}
       reflectBarrierPolicyVersion={snapshot.reflectBarrierPolicyVersion ?? null}
+      pairedStatusPolicyVersion={snapshot.pairedStatusPolicyVersion ?? null}
     >
       <PvpSpectatorExperienceContent {...props} />
     </SkillEffectTimingProvider>

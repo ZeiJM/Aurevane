@@ -23,6 +23,7 @@ const GroundInteractionContext = createContext({
   legacyPierceCritical: false,
   legacySummonPotency: false,
   legacyRuin: false,
+  legacyPairedStatus: false,
 })
 export const AirborneAttackElevationContext = createContext(false)
 const ElementalDamagePolicyContext = createContext<1 | 2 | null>(null)
@@ -42,6 +43,7 @@ export function SkillEffectTimingProvider({
   pierceCriticalPolicyVersion = 1,
   summonPotencyPolicyVersion = 1,
   ruinPolicyVersion = 1,
+  pairedStatusPolicyVersion = 1,
   elementalDamagePolicyVersion = 2,
   children,
 }: {
@@ -58,6 +60,7 @@ export function SkillEffectTimingProvider({
   pierceCriticalPolicyVersion?: 1 | null
   summonPotencyPolicyVersion?: 1 | null
   ruinPolicyVersion?: 1 | null
+  pairedStatusPolicyVersion?: 1 | null
   elementalDamagePolicyVersion?: 1 | 2 | null
   children: ReactNode
 }) {
@@ -80,6 +83,7 @@ export function SkillEffectTimingProvider({
               legacyPierceCritical: pierceCriticalPolicyVersion !== 1,
               legacySummonPotency: summonPotencyPolicyVersion !== 1,
               legacyRuin: ruinPolicyVersion !== 1,
+              legacyPairedStatus: pairedStatusPolicyVersion !== 1,
             }}
           >
             {children}

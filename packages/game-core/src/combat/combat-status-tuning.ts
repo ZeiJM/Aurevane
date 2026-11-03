@@ -1,5 +1,5 @@
 import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
-import type { CombatStatusInstance } from './actions'
+import type { CombatStatusDefinition, CombatStatusInstance } from './actions'
 import type { CombatCounterProfile } from './combat-counter'
 import type { BlindsideModifiers } from './combat-blindside'
 
@@ -170,4 +170,52 @@ export function hasConfiguredRevealed(
 export function maximumCombatStatusPotencyBasisPoints(statusId?: string): number {
   void statusId
   return CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
+}
+
+export const DEFAULT_RECKLESS_POTENCY_BASIS_POINTS = 4000
+export const DEFAULT_FORTIFIED_DEFENSE_BASIS_POINTS = 1500
+
+/** Capture current paired defaults without replacing explicit values or historical omissions. */
+export function withPairedCombatStatusDefaults<
+  T extends {
+    type: string
+    statusId?: string
+    potencyBasisPoints?: number
+    defenseIncreaseBasisPoints?: number
+  },
+>(effect: T, current: boolean, definition?: CombatStatusDefinition): T {
+  if (
+    !current ||
+    effect.type !== 'apply-status' ||
+    !['reckless', 'fortified'].includes(effect.statusId ?? '') ||
+    effect.potencyBasisPoints !== undefined ||
+    effect.defenseIncreaseBasisPoints !== undefined
+  )
+    return effect
+  // Master-authored status definitions retain their explicit modifier rules.
+  if (definition) {
+    const expected =
+      effect.statusId === 'reckless'
+        ? { outgoing: 14000, incoming: 12500 }
+        : { outgoing: 8000, incoming: 7000 }
+    if (
+      definition.id !== effect.statusId ||
+      definition.version !== 1 ||
+      definition.damageTakenMultiplierBasisPoints !== 10000 ||
+      definition.damageModifiers?.length !== 2 ||
+      !definition.damageModifiers.every(
+        (modifier) =>
+          modifier.multiplierBasisPoints === expected[modifier.direction] &&
+          modifier.condition.kind === 'always' &&
+          Object.keys(modifier.condition).length === 1,
+      ) ||
+      new Set(definition.damageModifiers.map((modifier) => modifier.direction)).size !== 2
+    )
+      return effect
+  }
+  if (effect.statusId === 'reckless')
+    return { ...effect, potencyBasisPoints: DEFAULT_RECKLESS_POTENCY_BASIS_POINTS }
+  if (effect.statusId === 'fortified')
+    return { ...effect, defenseIncreaseBasisPoints: DEFAULT_FORTIFIED_DEFENSE_BASIS_POINTS }
+  return effect
 }

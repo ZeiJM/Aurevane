@@ -72,7 +72,12 @@ it('keeps authored status values and historical Fortified tradeoffs in full read
   expect(skillEffectDescription({ ...effect, defenseIncreaseBasisPoints: 3250 })).toContain(
     'Physical and Mystic Defense',
   )
-  expect(skillEffectDescription(effect)).toContain('30% less damage and deal 20% less damage')
+  expect(skillEffectDescription(effect, { legacyPairedStatus: true })).toContain(
+    '30% less damage and deal 20% less damage',
+  )
+  expect(skillEffectDescription(effect)).toContain(
+    'Increase Physical and Mystic Defense by 15% and deal 15% less damage',
+  )
   expect(
     skillEffectDescription({ ...effect, statusId: 'slow', movementApAdjustment: 27 }),
   ).toContain('27 extra AP')
