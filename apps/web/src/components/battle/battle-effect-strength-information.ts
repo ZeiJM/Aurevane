@@ -1,3 +1,4 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import type { BattlePresentedStatus } from '@/lib/battle/battle-elevation-effects'
 import {
@@ -33,9 +34,10 @@ export function battleEffectStrengthInformation(effect: BattlePresentedStatus) {
     base: number,
     inspired = false,
     qualifier = '',
+    selectedApplications = applications,
   ) {
     const label = `${direction === 'defense' ? 'Physical and Mystic Defense' : direction === 'outgoing' ? 'Outgoing damage' : 'Incoming damage'} ${scope}${qualifier ? ` ${qualifier}` : ''}`
-    const applicable = applications.filter(
+    const applicable = selectedApplications.filter(
       (application) =>
         effect.statusId !== 'fortified' ||
         (direction === 'defense'
@@ -92,8 +94,19 @@ export function battleEffectStrengthInformation(effect: BattlePresentedStatus) {
       label: `Outgoing direct damage ${scope}`,
       magnitude: percent(BigInt(Math.max(0, 10_000 - (effect.potencyBasisPoints ?? 2500)))),
     })
-  } else if (effect.statusId === 'inspired') add('outgoing', 11_000, true)
-  else {
+  } else if (effect.statusId === 'inspired') {
+    if (applications.some((application) => application.damageTypes !== undefined)) {
+      applications.forEach((application, index) =>
+        add(
+          'outgoing',
+          11_000,
+          true,
+          `(${damageUpTypeSummary(application.damageTypes)}; application ${index + 1})`,
+          [application],
+        ),
+      )
+    } else add('outgoing', 11_000, true)
+  } else {
     if (effect.statusId === 'fortified') add('defense', 10_000)
     for (const modifier of definition.damageModifiers ?? [])
       if (modifier.condition.kind === 'always')

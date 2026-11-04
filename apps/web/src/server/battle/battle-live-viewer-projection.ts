@@ -1,3 +1,4 @@
+import { combatSealBlocksSkill } from '@aurevane/game-core/combat/combat-seal'
 import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
 import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
 import {
@@ -204,6 +205,14 @@ export function projectBattleManualActionTargets(
                 : combatAbilityBehavior(source, behavior.id, state.effectTimingPolicy),
             )
               ? { usageLimitReached: true as const }
+              : {}),
+            ...(combatSealBlocksSkill(
+              state,
+              source.ownerCombatantId,
+              source.sourceKind,
+              behavior.classification,
+            )
+              ? { sealBlocked: true as const }
               : {}),
             ...(combatEndureBlocksAction(
               state,
@@ -759,6 +768,8 @@ export function projectBattleStatusStateForViewer(
               sourceCombatantId: last.sourceCombatantId,
             }
             for (const field of COMBAT_STATUS_TUNING_FIELDS) delete visible[field]
+            delete visible.damageTypes
+            delete visible.sealedCategories
             Object.assign(visible, combatStatusTuning(last))
             delete visible.counter
             if (last.counter) visible.counter = last.counter

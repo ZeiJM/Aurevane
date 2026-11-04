@@ -1,3 +1,4 @@
+import { combatSealBlocksSkill } from './combat-seal'
 import { combatEndureBlocksAction } from './combat-endure'
 import { combatReversalPayload, combatReversalAttackIssue } from './combat-reversal'
 import {
@@ -300,6 +301,8 @@ export function updateCombatControlledAbility(
   if (operation === 'prime' && combatAbilityUsageLimitReached(state, source, behavior))
     throw new TypeError('controlled-activation-limit-used')
   if (operation === 'prime') {
+    if (combatSealBlocksSkill(state, input.actorId, source.sourceKind, behavior.classification))
+      throw new TypeError('Seal prevents preparing this discipline skill category.')
     const action = materializeCombatAbilityAction(source, behavior, state)
     if (combatEndureBlocksAction(state, input.actorId, action, input.content))
       throw new TypeError('Endure prevents preparing damage-dealing actions while active.')
@@ -312,6 +315,15 @@ export function updateCombatControlledAbility(
     operation === 'prime'
       ? resolveCombatManualModifierReferences(state, input.actorId, input.manualModifiers).map(
           ({ source: modifierSource, behavior: modifier }) => {
+            if (
+              combatSealBlocksSkill(
+                state,
+                input.actorId,
+                modifierSource.sourceKind,
+                modifier.classification,
+              )
+            )
+              throw new TypeError('Seal prevents preparing this discipline modifier category.')
             if (!combatModifierRootCompatible(modifier, controlledModifierRootFacts(behavior)))
               throw new TypeError('modifier-root-incompatible')
             return Object.freeze({

@@ -57,6 +57,7 @@ it('new Cleanse clears every negative status while leaving buffs and neutral eff
             .sort((a, b) => (a.id < b.id ? -1 : 1))
             .map((definition) => ({
               statusId: definition.id,
+              ...(definition.id === 'seal' ? { sealedCategories: ['attack'] as const } : {}),
               statusVersion: definition.version,
               stacks: 1,
               remainingOwnerTurnStarts: 1,

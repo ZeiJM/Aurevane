@@ -155,7 +155,8 @@ export function battleCapturedActionAttackBlocked(
   behaviorId?: string,
 ): boolean {
   const blocked = (row: BattleCapturedActionTarget) =>
-    (row.endureBlocked === true ||
+    (row.sealBlocked === true ||
+      row.endureBlocked === true ||
       row.reversalBlocked === true ||
       row.usageLimitReached === true) &&
     !(row.controlled?.kind === 'reversal' && row.controlled.canCancel)
@@ -215,6 +216,13 @@ export function battleCapturedActionCost(
   return {
     ...battleCapturedControlledAvailability(choices, behaviorId),
     attackBlocked: battleCapturedActionAttackBlocked(choices, behaviorId),
+    unavailableReason: (
+      selected
+        ? selected.sealBlocked
+        : choices.length > 0 && choices.every((row) => row.sealBlocked)
+    )
+      ? 'Sealed: this category of discipline skill is unavailable.'
+      : undefined,
     report: selected ? selected.report : choices.length || behaviorId ? null : undefined,
     costLabel: costs ? abilityCostDescription(costs) : behaviorId ? 'Unavailable' : 'Choose action',
     cooldownLabel: selected

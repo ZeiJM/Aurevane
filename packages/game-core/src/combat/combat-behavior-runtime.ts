@@ -172,6 +172,7 @@ export function materializeCombatAbilityAction(
   if (behavior.effects.some((effect) => effect.payload.type === 'damage-bonus'))
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
+    canonicalAbilityAction: true,
     id: source.equipment
       ? equipmentBehaviorActionId(source.equipment, behavior.id)
       : source.abilityId,

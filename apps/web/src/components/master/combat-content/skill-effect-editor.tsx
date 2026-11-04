@@ -1,4 +1,6 @@
 'use client'
+import { DamageUpTypeControls } from './damage-up-type-controls'
+import { SEAL_CATEGORIES, type SealCategory } from '@aurevane/game-core/combat/combat-seal'
 import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
 import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
 import {
@@ -640,7 +642,9 @@ export function SkillEffectEditor({
       }
       controls = (
         <div className={styles.typedGrid}>
-          {!['covert', 'invisible', 'mark', 'marked', 'blind', 'root'].includes(value.statusId) ? (
+          {!['covert', 'invisible', 'mark', 'marked', 'blind', 'root', 'seal'].includes(
+            value.statusId,
+          ) ? (
             <label className={styles.field}>
               <span>Status stacks</span>
               <input
@@ -656,6 +660,59 @@ export function SkillEffectEditor({
                 }
               />
             </label>
+          ) : null}
+          {value.statusId === 'inspired' ? (
+            <DamageUpTypeControls
+              value={value.damageTypes}
+              onChange={(damageTypes) => {
+                const { damageTypes: previous, ...base } = value
+                void previous
+                onChange(damageTypes === undefined ? base : { ...base, damageTypes })
+              }}
+            />
+          ) : null}
+          {value.statusId === 'seal' ? (
+            <fieldset className={styles.typedGrid}>
+              <legend>Discipline categories sealed</legend>
+              <label className={styles.checkField}>
+                <input
+                  type="checkbox"
+                  aria-label="Seal all categories"
+                  checked={SEAL_CATEGORIES.every((category) =>
+                    value.sealedCategories?.includes(category),
+                  )}
+                  onChange={(event) =>
+                    onChange({
+                      ...value,
+                      sealedCategories: event.currentTarget.checked ? [...SEAL_CATEGORIES] : [],
+                    })
+                  }
+                />
+                <span>All categories</span>
+              </label>
+              {SEAL_CATEGORIES.map((category) => {
+                const label = category[0]!.toUpperCase() + category.slice(1)
+                return (
+                  <label key={category} className={styles.checkField}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Seal ${label}`}
+                      checked={value.sealedCategories?.includes(category) ?? false}
+                      onChange={(event) => {
+                        const selected = new Set<SealCategory>(value.sealedCategories ?? [])
+                        if (event.currentTarget.checked) selected.add(category)
+                        else selected.delete(category)
+                        onChange({
+                          ...value,
+                          sealedCategories: SEAL_CATEGORIES.filter((entry) => selected.has(entry)),
+                        })
+                      }}
+                    />
+                    <span>{label}</span>
+                  </label>
+                )
+              })}
+            </fieldset>
           ) : null}
           {value.statusId === 'wet' ? (
             <AbilityNumber

@@ -58,7 +58,8 @@ it('changes only the current finite timing whitelist and leaves history, auth bo
   expect(await writers(db)).toEqual(
     before.map((row) => ({
       ...row,
-      definition: row.definition.replace('entry.key not in (', "entry.key not in ('blind',"),
+      // The fixture applies all migrations, including the later additive Seal identity.
+      definition: row.definition.replace('entry.key not in (', "entry.key not in ('seal','blind',"),
     })),
   )
   expect(

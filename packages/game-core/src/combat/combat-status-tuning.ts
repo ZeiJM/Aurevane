@@ -1,10 +1,13 @@
+import { validateDamageUpTypes, type DamageUpScope } from './combat-damage-up'
+import { validateSealCategories, type SealCategory } from './combat-seal'
 import { CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import type { CombatStatusDefinition, CombatStatusInstance } from './actions'
 import type { CombatCounterProfile } from './combat-counter'
 import type { BlindsideModifiers } from './combat-blindside'
 
 /** Optional fields distinguish new authored behavior from immutable historical captures. */
-export interface CombatStatusTuning {
+export interface CombatStatusTuning extends DamageUpScope {
+  readonly sealedCategories?: readonly SealCategory[]
   readonly initiativeReductionBasisPoints?: number
   readonly defenseIncreaseBasisPoints?: number
   readonly movementApAdjustment?: number
@@ -30,6 +33,14 @@ export function combatEffectStrength(
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
   const raw = value as Record<string, unknown>
   const result: Record<string, unknown> = {}
+  if (statusId === 'inspired' && raw.damageTypes !== undefined) {
+    validateDamageUpTypes(raw.damageTypes)
+    result.damageTypes = [...(raw.damageTypes as readonly string[])]
+  }
+  if (statusId === 'seal' && raw.sealedCategories !== undefined) {
+    validateSealCategories(raw.sealedCategories)
+    result.sealedCategories = [...raw.sealedCategories]
+  }
   const numeric = (key: string, ids: readonly string[], minimum: number, maximum: number) => {
     const amount = raw[key]
     if (
@@ -112,13 +123,24 @@ export const COMBAT_STATUS_TUNING_FIELDS = [
   'increasedDamageTakenBasisPoints',
 ] as const
 export function combatStatusTuning(value: CombatStatusTuning): CombatStatusTuning {
-  return Object.fromEntries(
-    COMBAT_STATUS_TUNING_FIELDS.flatMap((key) =>
-      value[key] === undefined ? [] : [[key, value[key]]],
+  return {
+    ...Object.fromEntries(
+      COMBAT_STATUS_TUNING_FIELDS.flatMap((key) =>
+        value[key] === undefined ? [] : [[key, value[key]]],
+      ),
     ),
-  )
+    ...(value.damageTypes === undefined ? {} : { damageTypes: [...value.damageTypes] }),
+    ...(value.sealedCategories === undefined
+      ? {}
+      : { sealedCategories: [...value.sealedCategories] }),
+  }
 }
 export function validateCombatStatusTuning(value: CombatStatusTuning, statusId: string): void {
+  if (statusId === 'inspired') validateDamageUpTypes(value.damageTypes)
+  else if (value.damageTypes !== undefined) throw new TypeError('Damage types require Damage Up.')
+  if (statusId === 'seal') validateSealCategories(value.sealedCategories)
+  else if (value.sealedCategories !== undefined)
+    throw new TypeError('Category restrictions require Seal.')
   for (const key of COMBAT_STATUS_TUNING_FIELDS) {
     const amount = value[key]
     if (amount === undefined) continue

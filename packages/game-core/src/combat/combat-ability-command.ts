@@ -1,3 +1,5 @@
+import type { DamageUpScope } from './combat-damage-up'
+import { combatSealBlocksSkill } from './combat-seal'
 import type { CombatElement } from './gameplay-tags'
 import { captureCombatTurnMovementBonus } from './combat-stat-bonuses'
 import {
@@ -114,7 +116,7 @@ export interface ManualCombatModifierSelection {
   readonly sourceInstanceId: string
   readonly behaviorId: string
 }
-export interface CombatCommandDamageBonus {
+export interface CombatCommandDamageBonus extends DamageUpScope {
   readonly elementFilter?: CombatElement
   readonly sourceInstanceId: string
   readonly contentId: string
@@ -319,6 +321,11 @@ export function combatAbilityParticipantIssues(
     issues.push({
       code: 'source-disabled',
       message: 'Current Support Skills replace Guard and reserve Summon for Invocation.',
+    })
+  if (combatSealBlocksSkill(input.state, input.actorId, source.sourceKind, behavior.classification))
+    issues.push({
+      code: 'skill-sealed',
+      message: `Seal prevents activating ${behavior.classification} discipline skills.`,
     })
   if (source.basic?.enabled === false)
     issues.push({

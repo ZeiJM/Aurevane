@@ -64,6 +64,9 @@ export function createAuthorableEffectPayload(
       recipient: tag.statusId === 'blindside' ? 'actor' : 'primary-unit',
       statusId: tag.statusId!,
       stacks: 1,
+      ...(tag.statusId === 'seal'
+        ? { sealedCategories: ['attack', 'recovery', 'utility'] as const }
+        : {}),
       ...(tag.statusId === 'blind' ? { potencyBasisPoints: 1500 } : {}),
       ...(tag.statusId === 'wet' ? { initiativeReductionBasisPoints: 1000 } : {}),
       ...(tag.statusId === 'fortified'

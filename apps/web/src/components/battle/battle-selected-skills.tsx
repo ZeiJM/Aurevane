@@ -196,7 +196,8 @@ export function BattleSelectedSkills({
                     type="button"
                     className={styles.skillAction}
                     data-battle-skill-hotkey={hotkey}
-                    aria-label={`Selected ${skill.name}, ${castMode?.canCast === false ? castMode.label : `${battleControlledActionCostLabel(payment, primeAvailable, payment!.costLabel)}${battleCooldownLabel(cooldownTurns)}${payment?.controlledSpent && !payment.chooseAction ? ', already used this battle' : ''}${payment?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}`}
+                    title={payment?.unavailableReason}
+                    aria-label={`Selected ${skill.name}, ${payment?.unavailableReason ? `${payment.unavailableReason}, ` : ''}${castMode?.canCast === false ? castMode.label : `${battleControlledActionCostLabel(payment, primeAvailable, payment!.costLabel)}${battleCooldownLabel(cooldownTurns)}${payment?.controlledSpent && !payment.chooseAction ? ', already used this battle' : ''}${payment?.controlledPrimed ? ', primed' : ''}${ready ? ', ready to release' : ''}`}`}
                     aria-pressed={activeId === skill.id}
                     disabled={castMode?.canCast === false && onInspect ? false : actionDisabled}
                     data-battle-cooldown-active={cooldownTurns > 0 || undefined}

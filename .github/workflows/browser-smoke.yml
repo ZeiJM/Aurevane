@@ -183,6 +183,13 @@ jobs:
         env:
           AV_SUPPRESS_EVIDENCE_DIR: /tmp/battle-suppress-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-suppress-browser-regression.mjs
+      - name: Seal authoring and category reload regression
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        run: pnpm --filter @aurevane/web exec node scripts/seal-browser-regression.mjs
+
+      - name: Damage Up scope editor, reload and battle settlement
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        run: pnpm --filter @aurevane/web exec node scripts/damage-up-browser-regression.mjs
 
       - name: Verify elevated rail effects and viewer privacy
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}

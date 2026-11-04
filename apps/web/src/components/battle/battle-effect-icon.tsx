@@ -34,6 +34,7 @@ const effectPaths: Readonly<Record<string, string>> = {
   guarded: 'M4 5l8-3 8 3v7c0 5-5 8-8 10-3-2-8-5-8-10ZM8 11l3 3 5-6',
   exposed: 'M3 5l7-3v7l-3 3 3 3v7c-3-2-7-5-7-10ZM14 2l7 3v7c0 5-4 8-7 10v-7l3-3-3-3Z',
   'lowered-guard': 'M4 5l8-3 8 3v7c0 5-5 8-8 10-3-2-8-5-8-10ZM7 12h10M12 8v9M9 14l3 3 3-3',
+  seal: 'M6 10V7a6 6 0 0 1 12 0v3M4 10h16v12H4zM12 14v4',
   blind: 'M3 3l18 18M9 5c6-2 10 3 13 7l-3 3M15 19c-6 2-10-3-13-7l3-3M10 10a3 3 0 0 0 4 4',
   blindside:
     'M15 4a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM8 21v-8a4 4 0 0 1 8 0v8M2 11l4 4-4 4M6 15H2M22 11l-4 4 4 4M18 15h4',

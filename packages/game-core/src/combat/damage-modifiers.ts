@@ -1,3 +1,4 @@
+import { damageUpMatchesPacket, validateDamageUpTypes } from './combat-damage-up'
 import type { CombatElement } from './gameplay-tags'
 import { CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS } from './combat-effect-percentages'
 import { combatStatusApplications } from './combat-status-applications'
@@ -29,6 +30,7 @@ export function validateCombatCommandDamageBonuses(value: unknown): void {
             'effectId',
             'multiplierBasisPoints',
             'elementFilter',
+            'damageTypes',
           ].includes(key),
       ) ||
       ['sourceInstanceId', 'contentId', 'behaviorId', 'effectId'].some(
@@ -43,6 +45,9 @@ export function validateCombatCommandDamageBonuses(value: unknown): void {
       bonus.multiplierBasisPoints > CURRENT_EFFECT_BONUS_MULTIPLIER_MAXIMUM_BASIS_POINTS
     )
       throw new TypeError('invalid-command-damage-bonuses')
+    validateDamageUpTypes(bonus.damageTypes)
+    if (bonus.damageTypes !== undefined && bonus.elementFilter !== undefined)
+      throw new TypeError('Conflicting command Damage Up scope fields.')
     const identity = JSON.stringify([
       bonus.sourceInstanceId,
       bonus.contentId,
@@ -87,6 +92,7 @@ type ConditionalDamageArguments = [
   content: CombatContentCatalog,
   elementalMultiplier?: number,
   options?: {
+    packetPiercing?: boolean
     packetElement?: CombatElement
     ignoreIncomingMitigation?: boolean
     outgoingState?: CombatEncounterState
@@ -114,6 +120,7 @@ function calculateConditionalDamageRatio(
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
   options: {
+    packetPiercing?: boolean
     packetElement?: CombatElement
     ignoreIncomingMitigation?: boolean
     outgoingState?: CombatEncounterState
@@ -139,6 +146,8 @@ function calculateConditionalDamageRatio(
     for (const application of state.effectStackingPolicyVersion === 1
       ? combatStatusApplications(inspired)
       : [{ ...inspired, stacks: 1 }]) {
+      if (!damageUpMatchesPacket(application, options.packetElement, options.packetPiercing))
+        continue
       const multiplier = 10_000 + (application.potencyBasisPoints ?? 1_000)
       if (exact) {
         ;[numerator, denominator] = multiplyRepeatedRatio(
@@ -160,7 +169,7 @@ function calculateConditionalDamageRatio(
   }
   validateCombatCommandDamageBonuses(options.commandDamageBonuses)
   for (const bonus of options.commandDamageBonuses ?? []) {
-    if (bonus.elementFilter !== undefined && bonus.elementFilter !== options.packetElement) continue
+    if (!damageUpMatchesPacket(bonus, options.packetElement, options.packetPiercing)) continue
     ;[numerator, denominator] = multiplyRepeatedRatio(
       numerator,
       denominator,
@@ -186,8 +195,7 @@ function calculateConditionalDamageRatio(
         for (const effect of behavior.effects) {
           if (
             effect.payload.type !== 'damage-bonus' ||
-            (effect.payload.elementFilter !== undefined &&
-              effect.payload.elementFilter !== options.packetElement) ||
+            !damageUpMatchesPacket(effect.payload, options.packetElement, options.packetPiercing) ||
             !evaluateAbilityRequirements(effect.requirements ?? null, context)
           )
             continue
