@@ -476,7 +476,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
           : 'Conditional Cleanse',
       ]
     }
-    if (isCleanseChilledEffect(effect)) return ['Cleanse Chilled']
+    if (isCleanseChilledEffect(effect)) return ['Conditional Cleanse']
     return [
       ids.length > 0 && ids.every((id) => HISTORICAL_DISPEL_STATUS_IDS.has(id))
         ? 'Dispel'

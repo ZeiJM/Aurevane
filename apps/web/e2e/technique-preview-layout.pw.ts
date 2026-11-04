@@ -52,13 +52,13 @@ test('Technique Preview keeps compact effects aligned and contained', async ({
     const effectsRow = preview.locator('dt', { hasText: 'Effects' }).locator('..')
     await expect(effectsRow.locator('ul')).toHaveCount(0)
     const compactEffects = effectsRow.locator('[data-compact-skill-effect="true"]')
-    await expect(compactEffects.first()).toHaveText(/^Dmg \[\d+\] \[Enemy\]$/)
+    await expect(compactEffects.first()).toHaveText(/^Dmg \[\d+\] \[Instant\] \[Enemy\]$/)
     const shortGeometry = await effectGeometry(compactEffects.first())
     expect(shortGeometry.textHeight).toBeLessThanOrEqual(shortGeometry.lineHeight + 1)
     await expectEffectsContained(compactEffects)
     await expectPreviewContained(preview)
 
-    // Longer authored values may wrap, while retaining every parameter.
+    // Longer authored values retain every parameter within the preview.
     await dialog.getByRole('checkbox', { name: 'Select Brace', exact: true }).hover()
     await expect(compactEffects.first()).toHaveText(/^Guard \[[\d.]+%\] \[2 Turns\] \[Self\]$/)
     await expectEffectsContained(compactEffects)

@@ -53,7 +53,7 @@ it.each(['burn', 'poison', 'create-terrain'])(
                   ]
           expect(report.effects[index]!.parts.details).toEqual(expect.arrayContaining(facts))
           if (type === 'create-terrain')
-            expect(report.effects[index]!.parts.duration).toBe('2 global round boundaries')
+            expect(report.effects[index]!.parts.duration).toBe('2 Turns')
           const html = renderToStaticMarkup(
             <SkillEffectTimingProvider
               policy={defaultCombatEffectTimingPolicy()}
@@ -145,7 +145,7 @@ it.each([
       effectContext: { legacyFrozenGround, legacyElemental },
     })
     expect(report.effects[index]!.parts).toMatchObject({
-      duration: '2 global round boundaries',
+      duration: '2 Turns',
       details: expect.arrayContaining([
         { label: 'Movement surcharge', value: '+10 AP per entered tile' },
         { label: 'Affected units', value: legacyFrozenGround ? 'Both teams' : 'Caster’s enemies' },

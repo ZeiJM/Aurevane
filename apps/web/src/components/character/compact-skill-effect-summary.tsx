@@ -78,7 +78,7 @@ export function CompactSkillEffectSummary({
   return <CompactEffectSummary parts={parts} count={count} tagPresentation={tagPresentation} />
 }
 
-/** Shared label, magnitude and duration markup for authored and inherent effects. */
+/** Shared effect tokens stay one readable inline phrase inside the flex row. */
 export function CompactEffectSummary({
   parts,
   count = 1,
@@ -89,48 +89,50 @@ export function CompactEffectSummary({
   count?: number
 }) {
   return (
-    <span data-compact-skill-effect="true">
-      <strong className={styles.label} data-compact-effect-label="true">
-        <EffectTagLabel label={parts.label} tagPresentation={tagPresentation} />
-      </strong>
-      {parts.magnitude ? (
-        <>
-          {' '}
-          <span className={styles.magnitude} data-compact-effect-magnitude="true">
-            [{parts.magnitude}]
+    <span className={styles.effectLine} data-compact-skill-effect="true">
+      <span data-compact-effect-phrase="true">
+        <strong className={styles.label} data-compact-effect-label="true">
+          <EffectTagLabel label={parts.label} tagPresentation={tagPresentation} />
+        </strong>
+        {parts.magnitude ? (
+          <>
+            {' '}
+            <span className={styles.magnitude} data-compact-effect-magnitude="true">
+              [{parts.magnitude}]
+            </span>
+          </>
+        ) : null}
+        {parts.duration ? (
+          <>
+            {' '}
+            <span className={styles.timing} data-compact-effect-duration="true">
+              [{parts.duration}]
+            </span>
+          </>
+        ) : null}
+        {parts.timing ? (
+          <>
+            {' '}
+            <span className={styles.timing} data-compact-effect-timing="true">
+              [{parts.timing}]
+            </span>
+          </>
+        ) : null}
+        {parts.target ? (
+          <>
+            {' '}
+            <span className={styles.target} data-compact-effect-target="true">
+              [{parts.target}]
+            </span>
+          </>
+        ) : null}
+        {count > 1 ? (
+          <span data-compact-effect-count={count} aria-label={`${count} applications`}>
+            {' '}
+            ×{count}
           </span>
-        </>
-      ) : null}
-      {parts.duration ? (
-        <>
-          {' '}
-          <span className={styles.timing} data-compact-effect-duration="true">
-            [{parts.duration}]
-          </span>
-        </>
-      ) : null}
-      {parts.timing ? (
-        <>
-          {' '}
-          <span className={styles.timing} data-compact-effect-timing="true">
-            [{parts.timing}]
-          </span>
-        </>
-      ) : null}
-      {parts.target ? (
-        <>
-          {' '}
-          <span className={styles.target} data-compact-effect-target="true">
-            [{parts.target}]
-          </span>
-        </>
-      ) : null}
-      {count > 1 ? (
-        <span data-compact-effect-count={count} aria-label={`${count} applications`}>
-          {' '}
-          ×{count}
-        </span>
-      ) : null}
+        ) : null}
+      </span>
     </span>
   )
 }

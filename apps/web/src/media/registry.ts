@@ -1,4 +1,5 @@
 import { ITEM_ART } from './item-art'
+import { EQUIPMENT_ART } from './equipment-art'
 import { WORLD_ART } from './world-art'
 import { BATTLE_ART } from './battle-art'
 import { SUPPORT_ACTION_ART, VESPER_PORTRAIT_ART } from './support-action-art'
@@ -71,6 +72,7 @@ const legacySquareStarterPortraitAssetIds = [
 ] as const
 
 const IMAGE_ASSETS = [
+  ...EQUIPMENT_ART,
   ...(['additional', 'prestige'] as const).map((name) => ({
     id: `environment.entry.${name}-doorway` as const,
     kind: 'environment' as const,

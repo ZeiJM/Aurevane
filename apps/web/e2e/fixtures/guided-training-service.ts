@@ -30,7 +30,7 @@ export async function createGuidedNativeFixture(loadout: string) {
   const supportActionId = loadout === 'empty-mp' ? 'basic.recover.mp' : 'basic.recover'
   const catalogue = starterItemDefinitions()
   const equipment: BattleEquipmentCapture = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     inventoryRevision: 1,
     selectedSupport:
       loadout === 'equipment-support'

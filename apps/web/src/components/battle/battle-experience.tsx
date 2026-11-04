@@ -3701,6 +3701,24 @@ function BattleExperienceContent({
                   />
                   <BattleSkillCommand
                     characterStats={characterStats}
+                    slot="items"
+                    hotkey={formatCombatKeybind(bindings.items)}
+                    label="Item"
+                    cost={itemUnavailableReason ? 'Unavailable' : 'Choose Item'}
+                    artworkSrc={handItems[0]?.artworkSrc ?? BATTLE_MISSING_ARTWORK}
+                    active={
+                      itemsOpen ||
+                      handItems.some((item) => item.actionId === currentActionId && mode !== 'none')
+                    }
+                    disabled={planningDisabled || itemUnavailableReason !== null}
+                    unavailableReason={itemUnavailableReason}
+                    onActivate={() => {
+                      clearPlanning()
+                      setItemsOpen(true)
+                    }}
+                  />
+                  <BattleSkillCommand
+                    characterStats={characterStats}
                     slot="move"
                     hotkey={formatCombatKeybind(bindings.move)}
                     label={basicMove?.name ?? 'Move'}
@@ -3776,24 +3794,6 @@ function BattleExperienceContent({
                             )))
                     }
                     onActivate={() => chooseMode('attack')}
-                  />
-                  <BattleSkillCommand
-                    characterStats={characterStats}
-                    slot="items"
-                    hotkey={formatCombatKeybind(bindings.items)}
-                    label="Item"
-                    cost={itemUnavailableReason ? 'Unavailable' : 'Choose Item'}
-                    artworkSrc={handItems[0]?.artworkSrc ?? BATTLE_MISSING_ARTWORK}
-                    active={
-                      itemsOpen ||
-                      handItems.some((item) => item.actionId === currentActionId && mode !== 'none')
-                    }
-                    disabled={planningDisabled || itemUnavailableReason !== null}
-                    unavailableReason={itemUnavailableReason}
-                    onActivate={() => {
-                      clearPlanning()
-                      setItemsOpen(true)
-                    }}
                   />
                   <BattleSkillCommand
                     characterStats={characterStats}

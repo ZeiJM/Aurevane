@@ -160,6 +160,7 @@
 
 .body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   min-width: 0;
   padding: clamp(0.2rem, 1vw, 0.6rem) clamp(0rem, 1vw, 0.5rem);
   color: #bcb7ad;
@@ -169,6 +170,7 @@
 }
 
 .section {
+  min-width: 0;
   padding: clamp(1.2rem, 2.7vw, 2rem) clamp(0.8rem, 2vw, 1.5rem);
   scroll-margin-top: 5.4rem;
   border-top: 1px solid rgba(211, 183, 115, 0.1);
@@ -199,6 +201,7 @@
 
 .section ul {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.45rem;
   margin: 0.8rem 0 0;
   padding-left: 1.2rem;

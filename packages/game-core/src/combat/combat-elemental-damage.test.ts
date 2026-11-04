@@ -1430,7 +1430,7 @@ describe('explicit elemental policy 2', () => {
       2500,
     )
     const action = fire()
-    expect(combatEffectPresentationTags(action.effects[1]!)).toEqual(['Cleanse Chilled'])
+    expect(combatEffectPresentationTags(action.effects[1]!)).toEqual(['Conditional Cleanse'])
     const out = executeCombatAction(base, action, target, PV1F_COMBAT_CONTENT)
     expect(statuses(out.state, 'actor').map((s) => s.statusId)).toEqual(['suppress', 'wet'])
   })

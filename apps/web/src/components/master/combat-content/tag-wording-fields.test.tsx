@@ -17,7 +17,9 @@ it('edits only full and battle descriptions for an existing engine tag', () => {
     />,
   )
   expect(html).toContain('Skill Manager description')
-  expect(html).toContain('Shown below Effects in full ability details.')
+  expect(html).toContain(
+    'Shown below Effects in Skill Manager and full ability reports, including battle Parameters.',
+  )
   expect(html).not.toContain('Master preview')
   expect(html).toContain('Battle description')
   expect(html).toContain('Leave blank to use the standard description')

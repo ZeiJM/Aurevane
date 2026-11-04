@@ -8,6 +8,7 @@ vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
   useMemo: (callback: () => unknown) => callback(),
   useRef: (current: unknown) => ({ current }),
+  useId: () => 'summon-portrait-guidance',
   useEffect: () => {},
 }))
 import { AbilityEffectEditor } from './ability-effect-editor'

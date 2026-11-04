@@ -242,7 +242,7 @@ it.each([
     })
     const rounds = timing === 'next-round' || timing === 'delayed'
     expect(report.effects[0]!.parts).toMatchObject({
-      duration: rounds ? '1 Round' : timing === 'instant' ? null : '1 Turn',
+      duration: timing === 'instant' ? null : '1 Turn',
       details: expect.arrayContaining([
         {
           label: 'Expiry',

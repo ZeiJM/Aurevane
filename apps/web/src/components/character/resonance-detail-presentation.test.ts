@@ -87,7 +87,7 @@ describe('passive Resonance Skill information', () => {
     expect(JSON.stringify(rows.Effects)).toContain('[Trigger Skill affected units]')
     expect(rows.Effects).toEqual([
       'Farstrider Skills tagged Attack + Ranged: Heal [3] [Instant] [Self]',
-      'Farstrider Skills tagged Attack + Ranged: Dmg [2] [Trigger Skill affected units]',
+      'Farstrider Skills tagged Attack + Ranged: Dmg [2] [Instant] [Trigger Skill affected units]',
     ])
     expect(rows).not.toHaveProperty('Range')
     expect(JSON.stringify(rows.Requirements)).not.toContain('next Discipline Skill')

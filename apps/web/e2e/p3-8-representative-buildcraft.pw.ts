@@ -218,7 +218,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(resonanceField('Requirements')).toHaveText('Lifebinder Skills tagged Heal')
   await expect(resonancePreview.locator('dt', { hasText: /^(Mode|Setup|Trigger)$/ })).toHaveCount(0)
   await expect(resonanceField('Effects').locator(':scope > div')).toHaveText([
-    'Vanguard Skills tagged Attack + Melee: Dmg [6] [Trigger Skill selected unit]',
+    'Vanguard Skills tagged Attack + Melee: Dmg [6] [Instant] [Trigger Skill selected unit]',
     'Vanguard Skills tagged Attack + Melee: HP Recovery [4%] [Instant] [Self]',
   ])
   await expect(resonancePreview.getByRole('list', { name: 'Effect explanations' })).toContainText(
@@ -341,6 +341,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     await expect(report).toHaveAttribute('data-battle-info-layout', 'compact')
     const dimensions = await report.evaluate((panel) => ({
       width: panel.getBoundingClientRect().width,
+      availableWidth: document.documentElement.clientWidth,
       top: panel.getBoundingClientRect().top,
       bottom: panel.getBoundingClientRect().bottom,
       scrollable: panel.scrollHeight > panel.clientHeight,
@@ -348,7 +349,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
         (table) => getComputedStyle(table).columnCount,
       ),
     }))
-    expect(dimensions.width).toBeLessThanOrEqual(320)
+    expect(dimensions.width).toBeLessThanOrEqual(Math.min(480, dimensions.availableWidth - 16))
     expect(dimensions.top).toBeGreaterThanOrEqual(8)
     expect(dimensions.bottom).toBeLessThanOrEqual(193)
     expect(dimensions.scrollable).toBe(true)

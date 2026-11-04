@@ -483,7 +483,7 @@ it('reports the visible limited Fire cleanse separately without claiming a full 
     { type: 'remove-status' as const, recipient: 'actor' as const, statusIds: ['frozen'] },
   ]
   const rows = skillPreviewEffects({ effects })
-  expect(rows.map((row) => row.label)).toEqual(['Fire Dmg', 'Cleanse Chilled'])
+  expect(rows.map((row) => row.label)).toEqual(['Fire Dmg', 'Conditional Cleanse'])
   expect(rows[0]!.explanation).toContain('Steam')
   expect(rows[0]!.explanation).not.toContain('cleanses Chilled')
   expect(rows[1]!.explanation).toBe('Removes Chilled from the caster only; other statuses remain.')
@@ -517,8 +517,8 @@ it('shows the separate limited cleanse for every current Fire Skill', () => {
   expect(skills.length).toBeGreaterThan(0)
   for (const skill of skills) {
     const rows = skillPreviewEffects(skill)
-    expect(rows.filter((row) => row.label === 'Cleanse Chilled')).toHaveLength(1)
-    expect(rows.find((row) => row.label === 'Cleanse Chilled')!.explanation).toBe(
+    expect(rows.filter((row) => row.label === 'Conditional Cleanse')).toHaveLength(1)
+    expect(rows.find((row) => row.label === 'Conditional Cleanse')!.explanation).toBe(
       'Removes Chilled from the caster only; other statuses remain.',
     )
     const damage = rows.filter((row) => row.label === 'Fire Dmg')

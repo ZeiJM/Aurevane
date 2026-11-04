@@ -16,8 +16,13 @@ import {
 import { starterItemDefinitions, starterItemGrant } from '@aurevane/game-core/content/starter-items'
 import { selectInventorySupport } from '@aurevane/game-core/character/item-inventory'
 const definitions = Object.fromEntries(starterItemDefinitions().map((item) => [item.id, item]))
+const availability = JSON.parse(sessionStorage.getItem('arsenal-item-availability') || '{}')
+for (const [id, enabled] of Object.entries(availability))
+  definitions[id] = { ...definitions[id], enabled }
 window.setItemEnabled = (id, enabled) => {
   definitions[id] = { ...definitions[id], enabled }
+  availability[id] = enabled
+  sessionStorage.setItem('arsenal-item-availability', JSON.stringify(availability))
 }
 let slots = {}
 const stacks = Object.values(definitions).map((item, index) => ({
@@ -61,7 +66,11 @@ const original = {
 const storage = 'arsenal-items-native-v1'
 let snapshot = JSON.parse(localStorage.getItem(storage) || 'null') ?? original
 window.calls = []
-window.testState = { battleLocked: false }
+window.testState = { battleLocked: sessionStorage.getItem('arsenal-battle-locked') === 'true' }
+window.setBattleLocked = (locked) => {
+  window.testState.battleLocked = locked
+  sessionStorage.setItem('arsenal-battle-locked', JSON.stringify(locked))
+}
 const state = () => ({
   snapshot,
   definitions,
@@ -177,6 +186,11 @@ window.archiveEquipment = () => {
   save()
 }
 const view = characterItemsView(state())
+const presentationId = ['masculine', 'feminine', 'androgynous'].includes(
+  new URLSearchParams(location.search).get('presentation'),
+)
+  ? new URLSearchParams(location.search).get('presentation')
+  : 'androgynous'
 const rosterCharacter = {
   id: 'roster-fixture',
   userId: 'owner',
@@ -218,7 +232,7 @@ createRoot(document.getElementById('root')).render(
       ) : (
         <section data-composition="correction" className={itemStyles.page}>
           <LoadoutHeader active="items" />
-          <CharacterItems initialView={view} />
+          <CharacterItems initialView={view} presentationId={presentationId} />
         </section>
       )}
     </AuthenticatedShellPresentation>
@@ -231,7 +245,7 @@ createRoot(document.getElementById('root')).render(
     />
   ) : (
     <main style={{ maxWidth: 1400, margin: 'auto', background: '#101a22', minHeight: '100vh' }}>
-      <CharacterItems initialView={view} />
+      <CharacterItems initialView={view} presentationId={presentationId} />
       <CharacterSkillBuildPanel
         characterId="native"
         initialBuildVersion={1}

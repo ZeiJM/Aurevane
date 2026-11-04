@@ -133,7 +133,8 @@ it('keeps receipt-bearing inventory readable after disable and archive, retainin
       JSON.stringify([
         {
           ...starterItemDefinitions().find((x) => x.id === 'mender-salve')!,
-          contentVersion: 2,
+          contentVersion:
+            starterItemDefinitions().find((x) => x.id === 'mender-salve')!.contentVersion + 1,
           enabled: false,
         },
       ]),
@@ -157,7 +158,8 @@ it('first grants only available enabled current defaults and records the actual 
       JSON.stringify([
         {
           ...starterItemDefinitions().find((x) => x.id === 'mender-salve')!,
-          contentVersion: 2,
+          contentVersion:
+            starterItemDefinitions().find((x) => x.id === 'mender-salve')!.contentVersion + 1,
           enabled: false,
         },
       ]),

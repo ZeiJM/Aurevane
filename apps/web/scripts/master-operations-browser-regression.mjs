@@ -16,6 +16,7 @@ const { chromium } = require(
 )
 const worldEnvironmentOnly = process.env.AV_MASTER_WORLD_CONTROLS_ONLY === '1'
 const playersReaderOnly = process.env.AV_MASTER_PLAYERS_READER_ONLY === '1'
+const tagsOnly = process.env.AV_MASTER_TAGS_ONLY === '1'
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'master-operations-'))
@@ -130,11 +131,13 @@ try {
       errors.push(String(error))
       console.error('Operational browser error:', String(error))
     })
-    for (const view of playersReaderOnly
-      ? ['players']
-      : worldEnvironmentOnly
-        ? ['world']
-        : ['rules', 'tags', 'world', 'music', 'players']) {
+    for (const view of tagsOnly
+      ? ['tags']
+      : playersReaderOnly
+        ? ['players']
+        : worldEnvironmentOnly
+          ? ['world']
+          : ['rules', 'tags', 'world', 'music', 'players']) {
       if (view === 'world') await page.clock.install({ time: new Date('2026-10-23T00:00:00Z') })
       await page.goto(`${origin}?view=${view}`)
       await page.locator('body').evaluate((body, zoom) => {
@@ -598,11 +601,13 @@ try {
     JSON.stringify(playerEvidence, null, 2),
   )
   console.log(
-    worldEnvironmentOnly
-      ? 'Mounted World save controls passed; no live cadence or expiry claim.'
-      : playersReaderOnly
-        ? 'Real nested Master shell/Players reader regression passed.'
-        : 'Master operational desktop/mobile/150% controls, native playback and nested Players reader passed.',
+    tagsOnly
+      ? 'Master Tag wording controls passed at desktop, mobile and 150% zoom.'
+      : worldEnvironmentOnly
+        ? 'Mounted World save controls passed; no live cadence or expiry claim.'
+        : playersReaderOnly
+          ? 'Real nested Master shell/Players reader regression passed.'
+          : 'Master operational desktop/mobile/150% controls, native playback and nested Players reader passed.',
   )
 } finally {
   await browser.close()

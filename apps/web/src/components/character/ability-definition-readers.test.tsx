@@ -218,7 +218,7 @@ it('renders the exact repeated Ground subset in actual Skill details and Skill M
       </SkillEffectTimingProvider>,
     )
     const effects = [
-      ...html.matchAll(/<div>(<span data-compact-skill-effect[\s\S]*?)<\/div>/g),
+      ...html.matchAll(/<div>(<span[^>]*data-compact-skill-effect[\s\S]*?)<\/div>/g),
     ].map((m) => m[1]!)
     expect(effects).toHaveLength(3)
     expect(effects.map((effect) => effect.includes('Repeats on entry'))).toEqual([

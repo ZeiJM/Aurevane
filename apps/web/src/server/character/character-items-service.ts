@@ -22,6 +22,10 @@ import {
 import { parseCurrentSupportActionId } from '@aurevane/game-core/combat/support-actions'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { presentItem, type ItemPresentation } from '@/lib/items/item-presentation'
+import {
+  equipmentStatBonuses,
+  type EquipmentStatBonus,
+} from '@/lib/items/equipment-stat-presentation'
 
 export type StarterItemNotice =
   'starter-items-deferred-capacity' | 'starter-items-deferred-battle' | 'starter-items-unavailable'
@@ -63,6 +67,7 @@ export interface CharacterItemsRepository {
   ): Promise<void>
 }
 export interface CharacterItemsView {
+  readonly statBonuses?: readonly EquipmentStatBonus[] | null
   readonly characterId: string
   readonly revision: number
   readonly catalogueToken: string
@@ -94,6 +99,7 @@ export function characterItemsView(
     return sum + (definition?.schemaVersion === 2 ? definition.qualityPoints : 0)
   }, 0)
   return {
+    statBonuses: validation.ok ? equipmentStatBonuses(snapshot, definitions) : null,
     characterId: snapshot.characterId,
     revision: snapshot.revision,
     catalogueToken: state.catalogueToken,

@@ -204,12 +204,23 @@ export function RuntimeItemEditor({
         />
         {value.equipment ? (
           <>
-            <AbilitySelect
-              label="Equipment slot"
-              value={value.equipment.slot}
-              options={value.itemClass === 'armor' ? ['head', 'body', 'pants', 'boots'] : ['hand']}
-              onChange={(slot) => set({ equipment: { ...value.equipment!, slot } })}
-            />
+            {value.itemClass === 'armor' ? (
+              <AbilitySelect
+                label="Equipment slot"
+                value={value.equipment.slot}
+                options={['head', 'body', 'pants', 'boots']}
+                onChange={(slot) => set({ equipment: { ...value.equipment!, slot } })}
+              />
+            ) : (
+              <p>
+                Equipment position:{' '}
+                {value.itemClass === 'weapon'
+                  ? 'Main Hand'
+                  : value.itemClass === 'hand-armor'
+                    ? 'Off Hand'
+                    : 'Consumable 1 or Consumable 2'}
+              </p>
+            )}
             {value.itemClass === 'weapon' ? (
               <AbilitySelect
                 label="Hands"
@@ -219,6 +230,11 @@ export function RuntimeItemEditor({
                   set({ equipment: { ...value.equipment!, hands: Number(hands) as 1 | 2 } })
                 }
               />
+            ) : null}
+            {value.itemClass === 'weapon' && value.equipment.hands === 2 ? (
+              <p>
+                Uses both hands and blocks Off Hand armor. Both consumable slots remain available.
+              </p>
             ) : null}
           </>
         ) : null}

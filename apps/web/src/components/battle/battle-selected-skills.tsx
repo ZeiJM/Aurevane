@@ -311,7 +311,6 @@ export function BattleSelectedSkills({
               shortcutAction="essence"
               hotkey={formatCombatKeybind(bindings.essence)}
             >
-              <p>{runtime.essence.description}</p>
               <BattleSkillParameters
                 skill={runtime.essence}
                 costLabel={essenceCost?.costLabel}
@@ -405,7 +404,6 @@ export function BattleSelectedSkills({
               shortcutAction="essence"
               hotkey={formatCombatKeybind(bindings.essence)}
             >
-              {!runtime.resonance.definition ? <p>{runtime.resonance.description}</p> : null}
               <ResonanceParameters
                 definition={runtime.resonance.definition}
                 knownSkills={(runtime.techniques ?? []).flatMap((skill) =>

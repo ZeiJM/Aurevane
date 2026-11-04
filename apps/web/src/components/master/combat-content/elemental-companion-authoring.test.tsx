@@ -119,6 +119,26 @@ function editor(group = kamehameha()) {
     },
   }
 }
+it('authors new standard Damage explicitly Instant while preserving existing delayed packets', () => {
+  const group = kamehameha()
+  const e = editor({
+    ...group,
+    effects: group.effects.map((effect) => ({ ...effect, timing: 'delayed' })),
+  })
+  const picker = controls(e.tree()).find(
+    (node) => typeof node.type === 'function' && node.type.name === 'EffectTagPicker',
+  )
+  expect(picker).toBeDefined()
+  ;(picker!.props.onAdd as (payload: unknown) => void)({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 1,
+  })
+  expect(e.draft().behaviors[0]!.effects.map((effect) => effect.timing)).toEqual([
+    'delayed',
+    'instant',
+  ])
+})
 it.each([
   ['ice', 'frozen'],
   ['water', 'wet'],
@@ -453,6 +473,7 @@ it('shows the Fire companion as Conditional Cleanse with only Chilled selected',
     recipient: 'actor',
     target: 'self',
     removalMode: 'specified',
+    selectionKind: 'debuffs',
     statusIds: ['frozen'],
   })
   expect(validateAbilityDefinition(e.draft())).toEqual([])

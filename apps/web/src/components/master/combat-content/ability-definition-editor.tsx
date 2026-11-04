@@ -800,6 +800,7 @@ function AbilityGroupEditor({
                   effects: insertAuthoringEffect(value.effects, {
                     id: nextId('effect', value.effects),
                     ...(payload.type === 'reversal' ? { timing: 'controlled' as const } : {}),
+                    ...(payload.type === 'damage' ? { timing: 'instant' as const } : {}),
                     payload: value.targeting
                       ? withAuthoredAreaRecipients(value.targeting, [payload], {
                           requiresSelectedUnit,

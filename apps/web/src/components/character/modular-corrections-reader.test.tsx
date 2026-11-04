@@ -56,8 +56,8 @@ it('renders a shared effect tag as bold text in a compact Resonance-style summar
 
 it.each([
   ['instant', '2 Turns'],
-  ['next-round', '2 Rounds'],
-] as const)('keeps the actual duration unit while shortening %s labels', (mode, duration) => {
+  ['next-round', '2 Turns'],
+] as const)('uses Turns labels with accurate clock help for %s effects', (mode, duration) => {
   const report = abilityBehaviorInformation({
     ...base,
     effects: [
@@ -75,6 +75,13 @@ it.each([
     ],
   })
   expect(report.effects[0]!.parts.duration).toBe(duration)
+  expect(report.effects[0]!.parts.details).toContainEqual({
+    label: 'Duration clock',
+    value:
+      mode === 'next-round'
+        ? 'Global round boundaries after activation'
+        : 'Affected character turns after activation',
+  })
 })
 
 it('uses the shared colored tag in supplementary effect explanation bullets', () => {
@@ -165,7 +172,7 @@ it('adds only conflicting recipients to a Ground Move, enemy damage and self hea
   expect(html).toContain('[Ground]')
   const report = abilityBehaviorInformation(definition.behaviors[0]!)
   expect(Object.fromEntries(report.rows).Effects).toBe(
-    'Move [1] [Instant] [Ground], Dmg [13] [Enemy], Heal [3] [Instant] [Self]',
+    'Move [1] [Instant] [Ground], Dmg [13] [Instant] [Enemy], Heal [3] [Instant] [Self]',
   )
 })
 

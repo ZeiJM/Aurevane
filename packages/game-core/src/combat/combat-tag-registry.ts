@@ -35,7 +35,11 @@ import {
   validateCombatActionDefinition,
   validateCombatDamageFacingModifiers,
 } from './combat-authoring-validation'
-import { validateGameplayEffectMetadata, combatEffectPresentationTags } from './gameplay-tags'
+import {
+  validateGameplayEffectMetadata,
+  combatEffectPresentationTags,
+  isCleanseChilledEffect,
+} from './gameplay-tags'
 import {
   validateCurrentBleedEffect,
   validateCurrentBurnEffect,
@@ -982,6 +986,12 @@ export function combatEffectTagPresentation(
   // Older mixed abilities captured a distinct bonus row alongside their timed buff row.
   if (payload.type === 'damage-bonus') {
     const historical = presentations?.find((row) => row.tagId === 'damage-bonus')
+    if (historical) return historical
+  }
+  // Retained Chilled-only packets may have their own pinned wording beside a generic cleanse.
+  // The current display alias must not cause us to select that sibling's captured text.
+  if (isCleanseChilledEffect(payload)) {
+    const historical = presentations?.find((row) => row.tagId === 'cleanse-chilled')
     if (historical) return historical
   }
   return (

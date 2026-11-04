@@ -71,7 +71,12 @@ describe('inherent action characteristics', () => {
         } else {
           expect(markup).not.toContain('data-compact-effect-duration')
         }
-        if (slot === 'move' || label === 'HP Recovery' || label === 'MP Recovery') {
+        if (
+          slot === 'move' ||
+          slot === 'attack' ||
+          label === 'HP Recovery' ||
+          label === 'MP Recovery'
+        ) {
           expect(markup).toContain('data-compact-effect-timing="true">[Instant]</span>')
         } else {
           expect(markup).not.toContain('data-compact-effect-timing')

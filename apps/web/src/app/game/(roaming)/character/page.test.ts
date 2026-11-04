@@ -15,6 +15,7 @@ import type { CharacterBuildContext } from '@/server/character/character-build-s
 const mocks = vi.hoisted(() => ({
   actor: vi.fn(),
   items: vi.fn(),
+  itemsRepository: vi.fn(),
   activeBattle: vi.fn(),
   activeSpectating: vi.fn(),
   selectedCharacter: vi.fn(),
@@ -35,7 +36,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/server/character/character-items-service', () => ({ loadCharacterItems: mocks.items }))
 vi.mock('@/server/character/supabase-character-items-repository', () => ({
-  createSupabaseCharacterItemsRepository: () => ({}),
+  createSupabaseCharacterItemsRepository: mocks.itemsRepository,
 }))
 vi.mock('server-only', () => ({}))
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ host: '127.0.0.1:3100' }) }))
@@ -242,6 +243,8 @@ describe('Profile persistence recovery diagnostics', () => {
     mocks.displayState.mockResolvedValue({ imageUrl: null })
     mocks.supernaturalState.mockResolvedValue(null)
     mocks.testKit.mockResolvedValue(false)
+    mocks.items.mockResolvedValue({ statBonuses: [], equipmentIssue: null })
+    mocks.itemsRepository.mockReturnValue({ profileEquipmentRepository: true })
   })
 
   afterEach(() => vi.restoreAllMocks())
@@ -341,6 +344,54 @@ describe('Profile persistence recovery diagnostics', () => {
     expect(page.props.children.props.supernatural).toEqual({ state: null, choices: [] })
     expect(console.error).not.toHaveBeenCalled()
   })
+
+  it('loads verified equipment for Profile without granting starter Items', async () => {
+    const statBonuses = [
+      {
+        itemId: 'cowl',
+        itemName: 'Ember-Stitched Cowl',
+        position: 'head',
+        stat: 'mystic-power',
+        amount: 12,
+        conditional: false,
+      },
+    ]
+    mocks.items.mockResolvedValue({ statBonuses, equipmentIssue: null })
+    const page = await CharacterProfilePage()
+    expect(mocks.itemsRepository).toHaveBeenCalledWith(false)
+    expect(mocks.items).toHaveBeenCalledWith(character.userId, character.id, {
+      profileEquipmentRepository: true,
+    })
+    expect(page.props.children.props.equipmentBonuses).toEqual(statBonuses)
+    expect(page.props.children.props.disciplineBuild.current.derived).toEqual(
+      disciplineBuild.current.derived,
+    )
+  })
+
+  it.each(['unavailable', 'invalid', 'missing-projection'] as const)(
+    'shows base Profile with an explicit equipment status for %s equipment',
+    async (state) => {
+      if (state === 'unavailable')
+        mocks.items.mockRejectedValue(
+          new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Private inventory detail'),
+        )
+      else
+        mocks.items.mockResolvedValue(
+          state === 'invalid'
+            ? {
+                statBonuses: [],
+                equipmentIssue: { code: 'definition', message: 'Unavailable Item' },
+              }
+            : { equipmentIssue: null },
+        )
+      const page = await CharacterProfilePage()
+      expect(page.type).toBe(SkillEffectTimingProvider)
+      expect(page.props.children.props.equipmentBonuses).toBeNull()
+      expect(page.props.children.props.disciplineBuild.current.derived).toEqual(
+        disciplineBuild.current.derived,
+      )
+    },
+  )
 
   it('projects authored permanent supernatural choices only after the threshold is initialized', async () => {
     mocks.supernaturalState.mockResolvedValue({

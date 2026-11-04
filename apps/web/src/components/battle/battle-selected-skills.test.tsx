@@ -66,7 +66,10 @@ it.each([
       runtime={{
         ...runtime,
         techniques: kind === 'discipline' ? [technique] : [],
-        essence: kind === 'essence' ? { ...technique, description: '' } : null,
+        essence:
+          kind === 'essence'
+            ? { ...technique, description: 'Legacy Essence flavour paragraph' }
+            : null,
       }}
       actorId="actor"
       disabled={false}
@@ -89,6 +92,7 @@ it.each([
   expect(button).toBeTruthy()
   expect(button).toContain('disabled=""')
   expect(html).toContain('About Forceful Strike')
+  expect(html).not.toContain('Legacy Essence flavour paragraph')
 })
 
 it('keeps mixed action support and armed Reversal cancellation selectable under attack restrictions', () => {

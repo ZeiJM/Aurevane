@@ -44,6 +44,9 @@
   gap: 6px;
   margin-bottom: 6px;
 }
+.panel:has([data-compact-skill-effect]) {
+  --battle-info-preferred-width: 480px;
+}
 .inspectPanel {
   z-index: 17000;
 }
@@ -86,9 +89,22 @@
   overflow-wrap: anywhere;
 }
 .panel [data-compact-skill-effect] {
-  display: block;
+  display: flex;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
   margin: 2px 0;
   background: transparent;
+}
+.panel dl > div > dd {
+  min-width: 0;
+}
+@media (max-width: 580px) {
+  .panel dl > div:has([data-compact-skill-effect]) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
 }
 
 /* Pinned battle, Nexus and Chronicle readers share one paper report. Inline Nexus stays unchanged. */

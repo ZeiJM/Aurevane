@@ -232,13 +232,16 @@ export function skillTargetTags(
 ): readonly string[] {
   return combatActionPresentationTags({
     target: skill.target,
-    effects: skill.effects.filter(isMaterializedCombatEffect),
-  }).map((tag) =>
-    (options.legacyElemental || options.explicitElemental === false) &&
-    tag.startsWith('Cleanse Chilled')
-      ? tag.replace('Cleanse Chilled', 'Cleanse')
-      : tag,
-  )
+    effects: skill.effects
+      .filter(isMaterializedCombatEffect)
+      .map((effect) =>
+        (options.legacyElemental || options.explicitElemental === false) &&
+        isCleanseChilledEffect(effect) &&
+        effect.type === 'remove-status'
+          ? { ...effect, statusIds: [...effect.statusIds, 'suppress'] }
+          : effect,
+      ),
+  })
 }
 
 export function skillTypeDescription(
@@ -376,7 +379,7 @@ export function skillEffectInstantTiming(
     ? 'Controlled'
     : mode === 'delayed'
       ? 'Delayed'
-      : effect.type !== 'damage' && mode === 'instant'
+      : mode === 'instant'
         ? 'Instant'
         : undefined
 }
@@ -404,7 +407,7 @@ function compactDuration(
                 : 0
             : 0))
   if (turns <= 0) return null
-  return `${turns} ${percentage ? (turns === 1 ? 'turn' : 'turns') : turns === 1 ? 'Turn' : 'Turns'}`
+  return `${turns} ${turns === 1 ? 'Turn' : 'Turns'}`
 }
 
 function compactMagnitude(

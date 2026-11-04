@@ -117,17 +117,20 @@ export function AbilityText({
   value,
   onChange,
   maxLength = 96,
+  describedBy,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   maxLength?: number
+  describedBy?: string
 }) {
   return (
     <label className={styles.field}>
       <span>{label}</span>
       <input
         aria-label={label}
+        aria-describedby={describedBy}
         value={value}
         maxLength={maxLength}
         onChange={(event) => onChange(event.currentTarget.value)}

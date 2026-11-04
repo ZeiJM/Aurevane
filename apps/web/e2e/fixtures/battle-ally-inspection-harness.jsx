@@ -1285,9 +1285,12 @@ if (canonicalCase?.startsWith('support-')) {
 }
 if (canonicalCase?.startsWith('items')) {
   const sources = equipmentFixtureSources(
-    canonicalCase === 'items-weapon' || canonicalCase === 'items-starter',
+    ['items-weapon', 'items-starter', 'items-two-handed'].includes(canonicalCase),
     canonicalCase === 'items-controlled',
-    canonicalCase === 'items-starter' || canonicalCase.startsWith('items-global-'),
+    ['items-starter', 'items-two-handed', 'items-barrier'].includes(canonicalCase) ||
+      canonicalCase.startsWith('items-global-'),
+    canonicalCase === 'items-two-handed',
+    canonicalCase === 'items-barrier',
   )
   canonicalState = reconcileCombatAbilitySources(
     preparePv1fTurnEconomy({

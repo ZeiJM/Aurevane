@@ -106,7 +106,7 @@ it('prepares exact versioned equipment and validates it inside the actual creati
     )
   ).rows[0]!.value
   expect(captured).toEqual({
-    schemaVersion: 1,
+    schemaVersion: 2,
     inventoryRevision: 2,
     selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
     equipment: [{ position: 'head', ownedStackId: owned.stacks[0]!.id, item: helm }],
@@ -173,6 +173,7 @@ it('prepares exact versioned equipment and validates it inside the actual creati
     )
   for (const patch of [
     { inventoryRevision: 1 },
+    { schemaVersion: 1 },
     { equipment: [] },
     { equipment: [{ position: 'head', ownedStackId: 'foreign-stack', item: helm }] },
   ]) {
@@ -312,13 +313,16 @@ it('validates exact current 100/101 QP, explicit replacement and stale equipment
   await equip(2, { head: a!.id }, undefined, ['body'])
   expect((await read()).equipment).toEqual({ head: a!.id })
 })
-it('rejects unavailable or repeated foreign assignments and quantity-poor duplicate hand stacks', async () => {
+it('rejects unavailable or repeated foreign assignments and quantity-poor duplicate consumable stacks', async () => {
   await grant('one', [{ itemId: potion.id, quantity: 1 }])
   const [stack] = (await read()).stacks
-  await fails(() => equip(1, { 'main-hand': stack!.id, 'off-hand': stack!.id }), 'ITEM_QUANTITY')
+  await fails(
+    () => equip(1, { 'consumable-1': stack!.id, 'consumable-2': stack!.id }),
+    'ITEM_QUANTITY',
+  )
   await fails(() => equip(1, { head: crypto.randomUUID() }), 'ITEM_OWNERSHIP')
   await grant('second', [{ itemId: potion.id, quantity: 1 }], 1)
-  await equip(2, { 'main-hand': stack!.id, 'off-hand': stack!.id })
+  await equip(2, { 'consumable-1': stack!.id, 'consumable-2': stack!.id })
   expect((await read()).revision).toBe(3)
 })
 it('rolls back an entire full-category grant with no partial stacks or grant receipts', async () => {
@@ -590,9 +594,9 @@ it('counts a two-handed weapon once and requires an explicit swap of conflicting
     )
   ).rows[0]!.result
   expect(admitted.qualityPoints).toBe(50)
-  await fails(() => equip(2, { 'main-hand': bladeId, 'off-hand': potionId }), 'ITEM_HAND_CONFLICT')
-  await equip(2, { 'off-hand': potionId }, undefined, ['main-hand'])
-  await fails(() => equip(3, { 'main-hand': bladeId, 'off-hand': potionId }), 'ITEM_HAND_CONFLICT')
+  await fails(() => equip(2, { 'main-hand': bladeId, 'off-hand': potionId }), 'ITEM_SLOT')
+  await equip(2, { 'consumable-1': potionId }, undefined, ['main-hand'])
+  await equip(3, { 'main-hand': bladeId, 'consumable-1': potionId })
 })
 it('checks equipment support binding and explicitly notices fallback when its source is removed', async () => {
   const support = itemFixture({
@@ -607,16 +611,16 @@ it('checks equipment support binding and explicitly notices fallback when its so
   const stack = (await read()).stacks[0]!
   const selection = {
     kind: 'equipment',
-    position: 'main-hand',
+    position: 'off-hand',
     itemId: support.id,
     behaviorId: ability.behaviors[0]!.id,
   }
   await fails(
-    () => equip(1, { 'main-hand': stack.id }, { ...selection, behaviorId: 'missing' }),
+    () => equip(1, { 'off-hand': stack.id }, { ...selection, behaviorId: 'missing' }),
     'ITEM_SUPPORT',
   )
-  await equip(1, { 'main-hand': stack.id }, selection)
-  const result = await equip(2, {}, selection, ['main-hand'])
+  await equip(1, { 'off-hand': stack.id }, selection)
+  const result = await equip(2, {}, selection, ['off-hand'])
   expect(result.rows[0]).toMatchObject({
     set_character_item_equipment_v1: { notices: ['equipment-support-removed'] },
   })

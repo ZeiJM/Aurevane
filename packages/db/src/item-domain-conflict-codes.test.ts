@@ -13,8 +13,20 @@ interface Definition {
 }
 let db: PGlite
 let predecessors: Definition[] = []
+let installed: Definition[] = []
 beforeAll(async () => {
   db = await createCombatContentTestDatabase(async (database, name) => {
+    if (name > migration && predecessors.length && !installed.length) {
+      installed = (
+        await database.query<Definition>(
+          `select format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) signature,
+          pg_get_functiondef(p.oid) definition,proacl::text acl,proowner owner
+          from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+          where p.oid=any($1::regprocedure[]) order by signature`,
+          [predecessors.map((row) => row.signature)],
+        )
+      ).rows
+    }
     if (name === migration) {
       predecessors = (
         await database.query<Definition>(
@@ -34,12 +46,8 @@ it('changes exactly the 17 Item domain conflicts and preserves all function bodi
   expect(predecessors).toHaveLength(12)
   expect(predecessors.reduce((sum, row) => sum + row.count, 0)).toBe(17)
   for (const before of predecessors) {
-    const after = (
-      await db.query<Definition>(
-        'select pg_get_functiondef(oid) definition,proacl::text acl,proowner owner from pg_proc where oid=$1::regprocedure',
-        [before.signature],
-      )
-    ).rows[0]!
+    // Inspect the installed domain-code boundary before later additive migrations.
+    const after = installed.find((row) => row.signature === before.signature)!
     expect(after.definition, before.signature).toBe(
       before.definition.replace(/errcode\s*=\s*'40001'/gi, "errcode='PT409'"),
     )

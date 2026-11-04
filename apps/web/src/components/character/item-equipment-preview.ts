@@ -1,5 +1,6 @@
 import {
   EQUIPMENT_POSITIONS,
+  equipmentPositionsForItem,
   type EquipmentPosition,
 } from '@aurevane/game-core/character/item-inventory'
 import type { ItemPresentation } from '@/lib/items/item-presentation'
@@ -11,15 +12,13 @@ export const positionNames: Record<EquipmentPosition, string> = {
   boots: 'Boots',
   'main-hand': 'Main Hand',
   'off-hand': 'Off Hand',
+  'consumable-1': 'Consumable 1',
+  'consumable-2': 'Consumable 2',
 }
 export type OwnedItem = CharacterItemsView['stacks'][number]
 export function itemPositions(item: ItemPresentation): EquipmentPosition[] {
   if (!item.equipment) return []
-  return item.equipment.slot === 'hand'
-    ? item.equipment.hands === 2
-      ? ['main-hand']
-      : ['main-hand', 'off-hand']
-    : [item.equipment.slot]
+  return [...equipmentPositionsForItem(item)]
 }
 /** Explanatory projection only; the intent service remains authoritative. */
 export function equipmentProposal(
@@ -59,7 +58,7 @@ export function equipmentProposal(
       : !itemPositions(item).includes(position)
         ? 'This Item does not fit this position.'
         : otherUses && (item.itemClass !== 'battle-item' || stack.quantity < otherUses + 1)
-          ? 'Holding this stack in both hands requires two owned copies of a Battle Item.'
+          ? 'Readying this stack in both consumable slots requires two owned copies of a Battle Item.'
           : null
   return {
     requiredReplacements,

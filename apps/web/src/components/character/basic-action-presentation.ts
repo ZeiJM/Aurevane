@@ -76,11 +76,17 @@ export function basicActionEffectSummaryParts(
     }
   }
   if (id === PV1F_BASIC_ATTACK_ID) {
+    const timing = skillEffectInstantTiming(
+      createPv1fBasicAttackDefinition(PV1F_BASIC_ATTACK_BASE_DAMAGE, attackFamily(stats))
+        .effects[0]!,
+      timingPolicy,
+    )
     return {
       label: 'Dmg',
       target: 'Enemy',
       magnitude: `${PV1F_BASIC_ATTACK_BASE_DAMAGE} + floor(${PV1F_BASIC_ATTACK_POWER_SCALING_BASIS_POINTS / 100}% ${attackFamily(stats) === 'mystic' ? 'Mystic' : 'Physical'} Power)`,
       duration: null,
+      ...(timing ? { timing } : {}),
     }
   }
   if (id === 'basic.move') {

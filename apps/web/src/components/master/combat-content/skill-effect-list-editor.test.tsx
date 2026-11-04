@@ -127,11 +127,14 @@ it('provides reusable Instant one-turn Blindside authoring', () => {
   })
 })
 
-it('authors the visible limited Cleanse Chilled using the existing removal payload', () => {
+it('normalizes the retired Chilled-only default key to explicit Conditional Cleanse', () => {
   expect(createDefaultCombatEffect('cleanse-chilled')).toEqual({
     type: 'remove-status',
     recipient: 'actor',
+    target: 'self',
     statusIds: ['frozen'],
+    removalMode: 'specified',
+    selectionKind: 'debuffs',
   })
 })
 
@@ -142,6 +145,7 @@ it('offers Conditional Cleanse using only the native specified removal payload',
     recipient: 'primary-unit',
     statusIds: ['burn'],
     removalMode: 'specified',
+    selectionKind: 'debuffs',
   })
   const html = renderToStaticMarkup(
     createElement(SkillEffectListEditor, {

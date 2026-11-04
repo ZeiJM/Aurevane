@@ -11,7 +11,10 @@ vi.mock('@/server/character/supabase-character-items-repository', () => ({
 import ItemsPage from './page'
 beforeEach(() => {
   vi.resetAllMocks()
-  mocks.guard.mockResolvedValue({ actor: { userId: 'owner' }, character: { id: 'selected' } })
+  mocks.guard.mockResolvedValue({
+    actor: { userId: 'owner' },
+    character: { id: 'selected', presentationId: 'feminine' },
+  })
   mocks.repository.mockReturnValue({})
 })
 it('reads only the guarded selected owner and passes its returned inventory view', async () => {
@@ -21,6 +24,7 @@ it('reads only the guarded selected owner and passes its returned inventory view
   expect(mocks.read).toHaveBeenCalledWith('owner', 'selected', {})
   expect(page.props.children[1].type).toBe(CharacterItems)
   expect(page.props.children[1].props.initialView).toBe(view)
+  expect(page.props.children[1].props.presentationId).toBe('feminine')
 })
 it('preserves battle/auth redirects before any Item read', async () => {
   mocks.guard.mockRejectedValue(new Error('redirect battle'))

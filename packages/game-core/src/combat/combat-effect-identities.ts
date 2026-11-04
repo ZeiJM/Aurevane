@@ -93,6 +93,7 @@ export const AUTHORABLE_EFFECT_TAGS = Object.freeze(
   ),
 )
 export function currentCombatTagName(tagId: string, name: string): string {
+  if (tagId === 'cleanse-chilled' && name === 'Cleanse Chilled') return 'Conditional Cleanse'
   if (tagId === 'mp-restore' && name === 'MP Restore') return 'MP Recovery'
   if (tagId === 'counter' && name === 'Counter') return 'Reflect'
   if (tagId === 'challenged' && name === 'Taunted') return 'Taunt'

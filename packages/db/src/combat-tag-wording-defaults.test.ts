@@ -6,7 +6,9 @@ import {
   COMBAT_PRESENTATION_TAG_IDS,
   SUPPORTED_COMBAT_STATUS_IDS,
   combatEffectPresentationId,
+  REGISTERED_EFFECT_TAGS,
 } from '../../game-core/src/combat/combat-effect-identities'
+import { isCleanseChilledEffect } from '../../game-core/src/combat/gameplay-tags'
 import {
   createAuthorableEffectPayload,
   AUTHORABLE_EFFECT_TAGS,
@@ -95,7 +97,10 @@ it('seeds only tag metadata and preserves an existing publication, floor and rev
         "select count(*)::integer n from app_private.combat_content_records where content_kind='tag' and builtin_version=1",
       )
     ).rows[0]!.n,
-  ).toBe(defaultCombatTagDefinitions().length)
+  ).toBe(REGISTERED_EFFECT_TAGS.length)
+  // Applied metadata remains addressable after a current authoring default retires.
+  expect(defaultCombatTagDefinitions().some((row) => row.tagId === 'cleanse-chilled')).toBe(false)
+  expect((await read('tag.cleanse-chilled')).builtin.contentVersion).toBe(1)
   expect(
     (
       await db.query<{ n: number }>(
@@ -178,7 +183,19 @@ it('keeps the SQL presentation identity vocabulary equal to the engine variants 
     from jsonb_array_elements($1::jsonb)`,
     [JSON.stringify(payloads)],
   )
-  expect(rows.rows.map((row) => row.id)).toEqual(payloads.map(combatEffectPresentationId))
+  // The historical SQL identity remains literal; current readers use its generic display alias.
+  expect(rows.rows.map((row) => row.id)).toEqual(
+    payloads.map((payload) =>
+      isCleanseChilledEffect(payload) ? 'cleanse-chilled' : combatEffectPresentationId(payload),
+    ),
+  )
+  expect(
+    combatEffectPresentationId({
+      type: 'remove-status',
+      recipient: 'actor',
+      statusIds: ['frozen'],
+    }),
+  ).toBe('conditional-cleanse')
 })
 
 it('rejects unregistered placeholders through the database publication boundary', async () => {

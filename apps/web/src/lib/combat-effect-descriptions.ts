@@ -42,7 +42,7 @@ const descriptions: Readonly<Record<string, string>> = {
   cleanse: 'Removes all removable debuffs from the target.',
   dispel: 'Removes the selected buffs from the target.',
   'conditional-cleanse': 'Removes only the selected debuffs from the target.',
-  'cleanse-chilled': 'Removes Chilled.',
+  'cleanse-chilled': 'Conditional Cleanse selecting only Chilled. Other statuses remain.',
   reveal:
     'Can target Invisible and Covert units, and armed Reversal independently qualifies. A successful hit removes both concealments, disarms Reversal with Reversal Strain, and applies Revealed: incoming attacks have 100% accuracy and deal increased damage for the chosen duration.',
   rewind:

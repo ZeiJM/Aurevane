@@ -46,7 +46,7 @@ describe('shared percentage DoT readers', () => {
     const effect = skill.effects.find(
       (effect) => effect.type === 'burn' || effect.type === 'poison' || effect.type === 'bleed',
     )!
-    expect(skillEffectSummaries(skill)).toContain(`${bracket} [Enemy]`)
+    expect(skillEffectSummaries(skill)).toContain(`${bracket.replace('turns', 'Turns')} [Enemy]`)
     expect(
       combatEffectPresentationTags(effect as Parameters<typeof combatEffectPresentationTags>[0]),
     ).toContain(bracket)

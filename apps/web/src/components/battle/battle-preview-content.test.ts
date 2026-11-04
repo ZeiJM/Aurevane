@@ -85,7 +85,7 @@ describe('copy-statuses player forecast presentation', () => {
       'Cost: 31 AP / 6 MP',
       'Cooldown: 2 turns',
       'Requirements: None',
-      'Effects: Dmg [12] [Enemy]',
+      'Effects: Dmg [12] [Instant] [Enemy]',
       'Target Method: Single [1]',
       'Target Elevation: 1',
       'Line of Sight: Not required',

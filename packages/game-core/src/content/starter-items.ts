@@ -51,7 +51,7 @@ const status = (
   potencyBasisPoints?: number,
   recipient: 'actor' | 'primary-unit' = 'actor',
   durationTurns = 2,
-): CombatTagPayload => ({
+): Extract<CombatTagPayload, { type: 'apply-status' }> => ({
   type: 'apply-status',
   recipient,
   statusId,
@@ -95,8 +95,27 @@ const damage = (
 const fireCleanse: CombatTagPayload = {
   type: 'remove-status',
   recipient: 'actor',
+  target: 'self',
+  removalMode: 'specified',
+  selectionKind: 'debuffs',
   statusIds: ['frozen'],
 }
+/** Only changed defaults advance; distributed source bodies remain immutable. */
+const revisedItemIds = new Set([
+  'twinfang-blade',
+  'stormcaller-staff',
+  'emberbrand',
+  'mender-salve',
+  'clarity-draught',
+  'whetstone-charm',
+  'ironbark-tonic',
+  'swiftleaf-tea',
+  'emberflask',
+  'vulnerability-oil',
+  'frostbind-powder',
+  'smoke-veil',
+  'ward-sigil-scroll',
+])
 function item(
   key: string,
   name: string,
@@ -112,7 +131,7 @@ function item(
   return {
     schemaVersion: 2,
     id: key,
-    contentVersion: 1,
+    contentVersion: revisedItemIds.has(key) ? 2 : 1,
     name,
     description,
     sortOrder: 0,
@@ -164,6 +183,7 @@ function weapon(
     range?: number
     passives?: CombatTagPayload[]
     support?: AbilityBehavior
+    supportName?: string
   } = {},
 ) {
   return item(
@@ -186,7 +206,7 @@ function weapon(
     {
       attack: { behaviorId: 'attack', name },
       ...(options.support
-        ? { support: { behaviorId: options.support.id, name: 'Tower Guard' } }
+        ? { support: { behaviorId: options.support.id, name: options.supportName ?? name } }
         : {}),
     },
   )
@@ -216,7 +236,7 @@ function supply(
   )
 }
 
-/** Source version 1 is immutable once distributed. Master publishes later versions normally. */
+/** Distributed source versions are immutable. Master publishes successor versions normally. */
 export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
   return [
     armor(
@@ -391,6 +411,20 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       20,
       40,
       [damage(3, 850), damage(3, 850)],
+      {
+        supportName: 'Quickstep',
+        support: action(
+          'quickstep',
+          15,
+          [
+            {
+              ...status('haste', undefined, 'actor', 1),
+              movementApAdjustment: 5,
+            },
+          ],
+          { cooldown: { key: 'quickstep', ownerTurns: 2 } },
+        ),
+      },
     ),
     weapon(
       'tower-shield',
@@ -402,6 +436,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       [damage(3, 850)],
       {
         passives: [stat('physical-defense', 18), stat('mystic-defense', 10)],
+        supportName: 'Tower Guard',
         support: action('guard', 30, [status('guarded', 3000)], {
           cooldown: { key: 'guard', ownerTurns: 2 },
         }),
@@ -415,7 +450,25 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       22,
       35,
       [damage(5, 1500, 'mystic', 'storm'), status('conductive', 1000, 'primary-unit', 1)],
-      { family: 'mystic', range: 3 },
+      {
+        family: 'mystic',
+        range: 3,
+        supportName: 'Storm Ward',
+        support: action(
+          'storm-ward',
+          25,
+          [
+            {
+              type: 'barrier-change',
+              recipient: 'actor',
+              amount: 8,
+              basis: 'maximum-hp-percent',
+              durationTurns: 2,
+            },
+          ],
+          { cooldown: { key: 'storm-ward', ownerTurns: 2 } },
+        ),
+      },
     ),
     weapon(
       'emberbrand',
@@ -426,6 +479,10 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       35,
       [damage(6, 1300, 'physical', 'fire'), fireCleanse],
       {
+        supportName: 'Kindle',
+        support: action('kindle', 20, [status('inspired', 1000)], {
+          cooldown: { key: 'kindle', ownerTurns: 2 },
+        }),
         passives: [
           {
             type: 'damage-bonus',
@@ -452,7 +509,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A small jar of restorative herbal salve.',
       'C',
       8,
-      35,
+      20,
       3,
       [
         {
@@ -470,7 +527,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A clear draught that steadies a depleted spirit.',
       'C',
       8,
-      35,
+      20,
       3,
       [
         {
@@ -505,7 +562,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'An etched stone lends a brief edge to outgoing damage.',
       'C',
       12,
-      25,
+      15,
       2,
       [status('inspired', 1500)],
     ),
@@ -515,7 +572,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'Bitter bark favors defense at the cost of outgoing force.',
       'C',
       12,
-      25,
+      10,
       2,
       [{ ...status('fortified', 1500), defenseIncreaseBasisPoints: 1500 } as CombatTagPayload],
     ),
@@ -525,7 +582,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A sharp green brew makes each ordinary step less costly.',
       'B',
       14,
-      20,
+      25,
       2,
       [
         {
@@ -544,7 +601,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A modest thrown flame, useful beyond a blade’s reach.',
       'C',
       10,
-      30,
+      20,
       3,
       [damage(8, 800, 'mystic', 'fire'), fireCleanse],
       { classification: 'attack', attackFamily: 'mystic', targeting: enemy(3) },
@@ -555,7 +612,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A thrown coating exposes the next opening.',
       'B',
       16,
-      25,
+      15,
       2,
       [status('exposed', 1500, 'primary-unit')],
       { targeting: enemy(3) },
@@ -566,7 +623,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A pinch of icy powder leaves an enemy Chilled.',
       'B',
       16,
-      25,
+      30,
       2,
       [status('frozen', undefined, 'primary-unit')],
       { targeting: enemy(3) },
@@ -577,7 +634,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A sheltering veil softens incoming blows for a short time.',
       'B',
       18,
-      25,
+      20,
       2,
       [status('guarded', 2000)],
     ),
@@ -587,7 +644,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       'A single-use battle ward unfolds from an old sigil.',
       'A',
       22,
-      35,
+      30,
       1,
       [
         {

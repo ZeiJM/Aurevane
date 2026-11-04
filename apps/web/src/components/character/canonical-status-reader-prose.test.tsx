@@ -144,8 +144,11 @@ it.each(clockCases)(
     expect(status()).toMatchObject({ durationScope: 'rounds', remainingRoundBoundaries: 2 })
     const report = abilityBehaviorInformation(group)
     expect(report.effects[index]!.parts).toMatchObject({
-      duration: '2 Rounds',
-      details: expect.arrayContaining([{ label: 'Activation', value: activation }]),
+      duration: '2 Turns',
+      details: expect.arrayContaining([
+        { label: 'Activation', value: activation },
+        { label: 'Duration clock', value: 'Global round boundaries after activation' },
+      ]),
     })
     expect(report.effectDescriptions[index]).not.toContain('(Instant)')
     expect(report.effectDescriptions[index]).not.toContain('Activates')
@@ -155,7 +158,7 @@ it.each(clockCases)(
       const html = renderToStaticMarkup(
         <ResonanceParameters definition={definition as unknown as AnyResonanceDefinition} />,
       )
-      expect(html).toContain('[2 Rounds]')
+      expect(html).toContain('[2 Turns]')
       expect(html).toContain(activation)
       expect(html).not.toContain('Lasts 2 affected turns starting when damage settles (Instant)')
     }
@@ -215,7 +218,7 @@ it('keeps a standalone elemental status independent of a matching damage gate', 
   expect(report.effectDescriptions[0]).not.toContain('damages an enemy’s HP')
   expect(report.effects[0]!.parts).toMatchObject({
     magnitude: '23%',
-    duration: '2 affected turns',
+    duration: '2 Turns',
     details: expect.arrayContaining([{ label: 'Activation', value: 'On effect activation' }]),
   })
 })

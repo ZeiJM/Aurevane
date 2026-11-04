@@ -11,6 +11,7 @@ import {
   type ItemInventorySnapshot,
 } from './item-inventory'
 import { parseRuntimeItemDefinition, type RuntimeItemDefinition } from '../content/items'
+import { starterItemDefinitions } from '../content/starter-items'
 const catalogue = (items: readonly RuntimeItemDefinition[]) =>
   Object.fromEntries(items.map((item) => [item.id, item]))
 const empty = (): ItemInventorySnapshot => ({
@@ -38,6 +39,28 @@ function owned(items: readonly RuntimeItemDefinition[]): ItemInventorySnapshot {
     })),
   }
 }
+it('reserves hands for weapon and armor while two independent supplies remain usable with Sunsplitter', () => {
+  const definitions = starterItemDefinitions()
+  const items = ['sunsplitter', 'wardstone-bracer', 'mender-salve', 'ward-sigil-scroll'].map((id) =>
+    definitions.find((item) => item.id === id)!,
+  )
+  const s = owned(items),
+    d = catalogue(items)
+  const equipment = { 'main-hand': 'stack-0', 'consumable-1': 'stack-2', 'consumable-2': 'stack-3' }
+  expect(validateEquipmentLoadout({ ...s, equipment }, d)).toEqual({ ok: true, qualityPoints: 80 })
+  expect(
+    validateEquipmentLoadout({ ...s, equipment: { ...equipment, 'off-hand': 'stack-1' } }, d),
+  ).toMatchObject({ ok: false, issue: { code: 'hand-conflict' } })
+  for (const [position, stack] of [
+    ['off-hand', 'stack-0'],
+    ['main-hand', 'stack-1'],
+    ['main-hand', 'stack-2'],
+    ['off-hand', 'stack-2'],
+    ['consumable-1', 'stack-0'],
+  ] as const)
+    expect(equipInventoryItem(s, d, 0, stack, position).ok).toBe(false)
+  expect(equipInventoryItem(s, d, 0, 'stack-1', 'off-hand').ok).toBe(true)
+})
 it('accepts exactly 100 QP, rejects 101, and counts a two-handed stack once', () => {
   const blade = itemFixture({
     id: 'test.blade',
@@ -108,7 +131,7 @@ it('requires explicit replacement and rejects stale CAS without mutating inputs'
   })
   expect(snapshot).toEqual(before)
 })
-it('keeps duplicate-item hand references separate and falls back when selected support is removed', () => {
+it('restores Basic Support when selected off-hand armor is removed', () => {
   const item = itemFixture({
     equipment: { slot: 'hand', hands: 1 },
     itemClass: 'hand-armor',
@@ -122,7 +145,7 @@ it('keeps duplicate-item hand references separate and falls back when selected s
   })
   const snapshot = {
     ...owned([item, item]),
-    equipment: { 'main-hand': 'stack-0', 'off-hand': 'stack-1' },
+    equipment: { 'off-hand': 'stack-1' },
   }
   const definitions = catalogue([item])
   const selected = selectInventorySupport(snapshot, definitions, 0, {
@@ -229,7 +252,7 @@ it('sorts a complete owned category permutation and rejects foreign/repeated IDs
       issue: { code: 'permutation' },
     })
 })
-it('readies two units of one battle-item stack only with quantity two and charges QP for each hand', () => {
+it('readies two units of one battle-item stack only with quantity two and charges QP for each slot', () => {
   const ability = defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability!
   const item = itemFixture({
     inventoryCategory: 'battle-items',
@@ -243,7 +266,7 @@ it('readies two units of one battle-item stack only with quantity two and charge
   })
   const snapshot = {
     ...owned([item]),
-    equipment: { 'main-hand': 'stack-0', 'off-hand': 'stack-0' },
+    equipment: { 'consumable-1': 'stack-0', 'consumable-2': 'stack-0' },
   }
   expect(validateEquipmentLoadout(snapshot, catalogue([item]))).toMatchObject({
     ok: false,
@@ -286,16 +309,16 @@ it('reverts selected support when its stack is explicitly swapped for an identic
   })
   const snapshot = {
     ...owned([item, item]),
-    equipment: { 'main-hand': 'stack-0' },
+    equipment: { 'off-hand': 'stack-0' },
     selectedSupport: {
       kind: 'equipment' as const,
-      position: 'main-hand' as const,
+      position: 'off-hand' as const,
       itemId: item.id,
       behaviorId,
     },
   }
   expect(
-    equipInventoryItem(snapshot, catalogue([item]), 0, 'stack-1', 'main-hand', ['main-hand']),
+    equipInventoryItem(snapshot, catalogue([item]), 0, 'stack-1', 'off-hand', ['off-hand']),
   ).toMatchObject({
     ok: true,
     snapshot: { selectedSupport: { kind: 'basic', actionId: 'basic.recover' } },
