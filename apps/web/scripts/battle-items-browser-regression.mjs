@@ -101,8 +101,12 @@ const geometryOnly = process.env.AV_ITEMS_GEOMETRY_ONLY === '1'
 async function assertCompactHeadingGeometry(page, report, width, requireFit = false) {
   const headings = await report.locator('[data-compact-skill-effect]').evaluateAll((lines) =>
     lines.map((line) => ({
-      text: line.textContent,
-      tops: Array.from(line.children, (token) => token.getBoundingClientRect().top),
+      text: line.textContent.replace(/\s+/gu, ' ').trim(),
+      renderedText: line.innerText.trim(),
+      tops: Array.from(
+        (line.querySelector('[data-compact-effect-phrase]') ?? line).children,
+        (token) => token.getBoundingClientRect().top,
+      ),
       clientWidth: line.clientWidth,
       scrollWidth: line.scrollWidth,
       overflowX: getComputedStyle(line).overflowX,
@@ -110,6 +114,7 @@ async function assertCompactHeadingGeometry(page, report, width, requireFit = fa
   )
   assert.ok(headings.length > 0)
   for (const heading of headings) {
+    assert.equal(heading.renderedText, heading.text, JSON.stringify(heading))
     assert.ok(heading.tops.length >= 2, JSON.stringify(heading))
     assert.ok(Math.max(...heading.tops) - Math.min(...heading.tops) <= 3, JSON.stringify(heading))
     if (width >= 821 || requireFit)

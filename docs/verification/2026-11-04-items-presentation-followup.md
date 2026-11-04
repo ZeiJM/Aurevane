@@ -23,7 +23,7 @@ All runs mount real production components with local fixture/service transport, 
 | Surface | Passing evidence |
 | --- | --- |
 | Final battle Item flow |45/45: PvE/PvP/spectator ×1366/390/412 ×five scenarios, including actual two-handed Sunsplitter with a consumable; no private receipt leakage. `/tmp/aurevane-battle-items-final-combined-evidence/results.json` |
-| Full Barrier heading |6/6 strict geometry/fit cases;280px full heading fits1366/390/412, tokens share baseline, Info does not execute and Escape restores focus; no heading/page overflow. `/tmp/aurevane-battle-items-geometry-fit-evidence/results.json` |
+| Full Barrier heading |6/6 strict geometry/fit cases;Full heading fits1366/390/412, tokens share baseline, Info does not execute and Escape restores focus; no heading/page overflow. `/tmp/aurevane-battle-items-geometry-fit-evidence/results.json` |
 | Arsenal |Nine shell viewports, three saved presentation variants, three interaction viewports. Eight slots/QP fit without Equipment scroll; toolbar≤176px; square art; card bottom gap≤12px; no slot/footer overlap; authority/focus/swap/repair cases retained. `/tmp/arsenal-items-browser-evidence/` |
 | Guided real service |10/10. `/tmp/aurevane-guided-items-followup-evidence/results.json` |
 | Runtime Item editor |1366/390/412 controls, bound report, serialization, class reset and limits. `/tmp/runtime-item-editor-browser-evidence/` |
@@ -51,6 +51,8 @@ Two actual presentation defects were also repaired: Manual grid/list tracks now 
 Focused followup evidence:57 Controlled cases pass; complete modular reader/Manual/authoring browser run passes at1366/390; actual Tag commit controls pass desktop/mobile/150% zoom; all12 text-guidance cases pass with the new dialog names;34 affected unit tests and web typecheck pass. A focused diagnostic reproduced Manual width510px at viewport390 before the track fix and375px afterward; the full original no-page-overflow assertion remains in place. The final source production build passed after moving aside a corrupt disposable Turbopack persistence cache (`/tmp/aurevane-ci-followup-build-clean.log`). Scoped formatting, ESLint, web types and an additional independent13-test guidance review pass. Exact-head remote CI remains a separate gate below.
 
 The complete palette/browser script also passes at1366/390, including captured elemental/Summon readers and current Conditional Cleanse. A subsequent remote run passed16of18 workflows; the remaining failures were old tests expecting320px engine readers and an omitted Instant on Water Damage. Those assertions now preserve the current480px engine-reader cap, usable viewport-minus16px bound, typography, internal scrolling and exact Water Damage timing. No production behavior changed in this test-contract continuation.
+
+A later smoke stage reproduced token-level flex `innerText` breaks in the unchanged Suppress reader check. The shared effect renderer now groups all styled tokens in one inline phrase within the existing flex row, preserving geometry, colors, selectors and overflow while keeping readable text continuous. The unmodified Suppress script passes14interaction and12Chronicle cases; all6 geometry cases additionally require rendered text to equal normalized DOM text.110 reader tests, the full palette suite, nine Arsenal shell sizes, three variants and three interaction sizes pass. Fresh web types/build and an independent two-file source review pass. This resolves the shared cause rather than revising each status assertion.
 
 ## Remaining gates
 
