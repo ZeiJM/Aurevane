@@ -1733,9 +1733,9 @@ async function verifyFinalFacing(page, viewport, mode) {
   } else {
     assert.deepEqual(geometry.order.slice(0, 6), [
       'inspect',
+      'items',
       'move',
       'attack',
-      'items',
       'guard',
       'finish',
     ])
@@ -1974,17 +1974,16 @@ try {
         assert.equal(
           await items.isDisabled(),
           true,
-          'Item is unavailable without an equipped hand Item',
+          'Item is unavailable without an equipped consumable',
         )
         assert.equal(await items.locator('strong').innerText(), 'Item')
         const deck = page.locator('[data-unified-command-deck]')
-        assert.equal(
-          await deck.locator('[data-command-slot]').first().getAttribute('data-command-slot'),
-          'inspect',
-        )
-        assert.equal(
-          await deck.locator('[data-command-slot]').nth(3).getAttribute('data-command-slot'),
-          'items',
+        assert.deepEqual(
+          await deck
+            .locator('[data-command-slot]')
+            .evaluateAll((slots) => slots.map((slot) => slot.getAttribute('data-command-slot'))),
+          ['inspect', 'items', 'move', 'attack', 'guard', 'finish'],
+          'Cockpit command order follows the current Item-after-Inspect design',
         )
         const geometry = await page.evaluate(() => {
           const deck = document.querySelector('[data-unified-command-deck]')
