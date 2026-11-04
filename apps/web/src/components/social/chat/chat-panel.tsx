@@ -14,6 +14,7 @@ import { ChatLine } from './chat-message'
 import { activeMentionQuery, applyMention, EMOJI_CHOICES } from './chat-format'
 import styles from './chat.module.css'
 import { FriendsView, SettingsView } from './friends-view'
+import { startVisibleChatPolling } from './chat-polling'
 
 type View = 'chat' | 'friends' | 'settings'
 
@@ -56,7 +57,6 @@ function channelTitle(channel: ChannelId, inbox: ChatInbox | null): string {
 }
 
 const FEED_POLL_MS = 2500
-const HIDDEN_POLL_MS = 15000
 
 export function ChatPanel({
   selfName,
@@ -107,23 +107,19 @@ export function ChatPanel({
       .catch(() => undefined)
   }, [lockedChannel, selfName])
 
-  const refreshInbox = useCallback(() => {
-    void chatApi
-      .inbox()
-      .then(setInbox)
-      .catch(() => undefined)
+  const refreshInbox = useCallback(async () => {
+    setInbox(await chatApi.inbox())
   }, [])
   useEffect(() => {
     if (lockedChannel) return
-    refreshInbox()
-    const timer = window.setInterval(refreshInbox, 10000)
-    return () => window.clearInterval(timer)
+    return startVisibleChatPolling(refreshInbox, 10000)
   }, [lockedChannel, refreshInbox])
 
   // Load and poll the active channel.
   useEffect(() => {
     if (view !== 'chat') return
     let cancelled = false
+    let acknowledgedId = 0
     lastId.current = 0
     pollRound.current = 0
     const load = async () => {
@@ -134,32 +130,35 @@ export function ChatPanel({
           wireChannel,
           includeRecent ? 0 : lastId.current,
         )
-        if (cancelled || fresh.length === 0) return
-        lastId.current = Math.max(lastId.current, ...fresh.map((m) => m.id))
-        setMessages((current) => {
-          const byId = new Map(current.map((message) => [message.id, message]))
-          for (const message of fresh) byId.set(message.id, message)
-          return [...byId.values()].sort((a, b) => a.id - b.id).slice(-200)
-        })
-        void chatApi.read(wireChannel, lastId.current).catch(() => undefined)
+        if (cancelled || document.visibilityState !== 'visible') return
+        if (fresh.length > 0) {
+          lastId.current = Math.max(lastId.current, ...fresh.map((m) => m.id))
+          setMessages((current) => {
+            const byId = new Map(current.map((message) => [message.id, message]))
+            for (const message of fresh) byId.set(message.id, message)
+            return [...byId.values()].sort((a, b) => a.id - b.id).slice(-200)
+          })
+        }
+        const readId = lastId.current
+        if (readId > acknowledgedId) {
+          // Recent-message refreshes update reactions, but need no duplicate write.
+          // Keep failed receipts eligible even when the next delta is empty.
+          await chatApi
+            .read(wireChannel, readId)
+            .then(() => {
+              acknowledgedId = readId
+            })
+            .catch(() => undefined)
+        }
       } catch (error) {
         if (!cancelled) setNotice(error instanceof Error ? error.message : 'Chat is unavailable.')
+        throw error
       }
     }
-    void load()
-    let timer = window.setInterval(() => void load(), FEED_POLL_MS)
-    const onVisibility = () => {
-      window.clearInterval(timer)
-      timer = window.setInterval(
-        () => void load(),
-        document.visibilityState === 'hidden' ? HIDDEN_POLL_MS : FEED_POLL_MS,
-      )
-    }
-    document.addEventListener('visibilitychange', onVisibility)
+    const stopPolling = startVisibleChatPolling(load, FEED_POLL_MS)
     return () => {
       cancelled = true
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', onVisibility)
+      stopPolling()
     }
   }, [wireChannel, view])
 
@@ -174,15 +173,15 @@ export function ChatPanel({
       try {
         const { typers: current } = await chatApi.typers(wireChannel)
         if (active) setTypers(current)
-      } catch {
+      } catch (error) {
         if (active) setTypers([])
+        throw error
       }
     }
-    void poll()
-    const timer = window.setInterval(() => void poll(), 2500)
+    const stopPolling = startVisibleChatPolling(poll, 2500)
     return () => {
       active = false
-      window.clearInterval(timer)
+      stopPolling()
     }
   }, [wireChannel, channel, view])
 
@@ -250,7 +249,7 @@ export function ChatPanel({
       setReplyTo(null)
       setMention(null)
       stickToBottom.current = true
-      refreshInbox()
+      void refreshInbox().catch(() => undefined)
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'Message not sent.')
     } finally {
@@ -489,7 +488,7 @@ export function ChatPanel({
         <FriendsView
           onWhisper={(id) => pickChannel(`whisper:${id}`)}
           onOpenGroup={(id) => pickChannel(`group:${id}`)}
-          onChanged={refreshInbox}
+          onChanged={() => void refreshInbox().catch(() => undefined)}
         />
       ) : view === 'settings' ? (
         <SettingsView settings={settings} onSaved={setSettings} />
