@@ -1,3 +1,4 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
 import { sealCategorySummary } from '@aurevane/game-core/combat/combat-seal'
 import type { CombatStatusTuning } from '@aurevane/game-core/combat/actions'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
@@ -41,6 +42,8 @@ export function statusPotencyDescription(
     elementalPotencyUnavailable?: boolean
   } & CombatStatusTuning = {},
 ): string {
+  if (statusId === 'inspired' && options.damageTypes !== undefined)
+    return `Deal ${(potencyBasisPoints ?? 1000) / 100}% more ${damageUpTypeSummary(options.damageTypes)} damage per application. Other damage types are unchanged.`
   if (statusId === 'seal')
     return `Prevents activating ${options.sealedCategories ? sealCategorySummary(options.sealedCategories) : 'selected'} discipline skills. Essence, Resonance, Support, Severance and Ascension remain usable. Existing effects continue.`
   if (statusId === 'fortified' && options.defenseIncreaseBasisPoints !== undefined)

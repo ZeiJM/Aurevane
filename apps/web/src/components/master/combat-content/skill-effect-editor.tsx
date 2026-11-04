@@ -1,4 +1,5 @@
 'use client'
+import { DamageUpTypeControls } from './damage-up-type-controls'
 import { SEAL_CATEGORIES, type SealCategory } from '@aurevane/game-core/combat/combat-seal'
 import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
 import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
@@ -659,6 +660,16 @@ export function SkillEffectEditor({
                 }
               />
             </label>
+          ) : null}
+          {value.statusId === 'inspired' ? (
+            <DamageUpTypeControls
+              value={value.damageTypes}
+              onChange={(damageTypes) => {
+                const { damageTypes: previous, ...base } = value
+                void previous
+                onChange(damageTypes === undefined ? base : { ...base, damageTypes })
+              }}
+            />
           ) : null}
           {value.statusId === 'seal' ? (
             <fieldset className={styles.typedGrid}>

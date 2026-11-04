@@ -1,3 +1,4 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
 import { sealCategorySummary } from '@aurevane/game-core/combat/combat-seal'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
@@ -33,7 +34,7 @@ export function narrateBattleEffect(
     case 'mark':
       return `${label} ${verb('boosts', 'boost')} its source's Accuracy against ${target}${percent === undefined ? '' : ` by ${percent} percentage points`}`
     case 'inspired':
-      return `${label} ${verb('boosts', 'boost')} ${target}'s damage${byPercent(percent)}`
+      return `${label} ${verb('boosts', 'boost')} ${target}'s ${strength?.damageTypes ? `${damageUpTypeSummary(strength.damageTypes)} ` : ''}damage${byPercent(percent)}`
     case 'guarded':
       return reduce(label, 'damage taken', percent)
     case 'hexed':

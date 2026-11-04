@@ -1,3 +1,4 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
 import { sealCategorySummary } from '@aurevane/game-core/combat/combat-seal'
 import { effectExplanationIdentity } from './effect-explanation-identity'
 import { withPairedCombatStatusDefaults } from '@aurevane/game-core/combat/combat-status-tuning'
@@ -213,7 +214,7 @@ function statusPreview(
     if (percent)
       result.magnitude =
         id === 'inspired'
-          ? `+${percent} outgoing`
+          ? `+${percent} ${tuning.damageTypes ? damageUpTypeSummary(tuning.damageTypes) : 'outgoing'}`
           : id === 'hexed'
             ? `−${percent} ${legacyHealingDown ? 'healing' : 'HP/MP recovery'}`
             : `+${percent} Storm`

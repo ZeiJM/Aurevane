@@ -82,6 +82,7 @@
     "./combat/terrain-overlays": "./src/combat/terrain-overlays.ts",
     "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts",
     "./combat/combat-status-selection": "./src/combat/combat-status-selection.ts",
+    "./combat/combat-damage-up": "./src/combat/combat-damage-up.ts",
     "./combat/combat-seal": "./src/combat/combat-seal.ts",
     "./combat/combat-status-tuning": "./src/combat/combat-status-tuning.ts",
     "./combat/combat-status-copy": "./src/combat/combat-status-copy.ts",

@@ -1,3 +1,4 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
 import { COMBAT_BONUS_STAT_LABELS } from '@aurevane/game-core/combat/combat-stat-bonuses'
 import { effectExplanationIdentity } from './effect-explanation-identity'
 import {
@@ -346,12 +347,14 @@ function effectPresentation(
   } else if (payload.type === 'damage-bonus') {
     parts = {
       label: 'Damage Up',
-      magnitude: `${(payload.multiplierBasisPoints - 10000) / 100}%`,
+      magnitude: `${(payload.multiplierBasisPoints - 10000) / 100}%${payload.damageTypes ? ` ${damageUpTypeSummary(payload.damageTypes)}` : ''}`,
       duration: null,
     }
-    description = payload.elementFilter
-      ? `Increase direct ${payload.elementFilter[0]!.toUpperCase() + payload.elementFilter.slice(1)} damage dealt.`
-      : 'Increase damage dealt.'
+    description = payload.damageTypes
+      ? `Increase direct ${damageUpTypeSummary(payload.damageTypes)} damage dealt. Other damage types are unchanged.`
+      : payload.elementFilter
+        ? `Increase direct ${payload.elementFilter[0]!.toUpperCase() + payload.elementFilter.slice(1)} damage dealt.`
+        : 'Increase damage dealt.'
   } else if (payload.type === 'summon') {
     parts = {
       label: 'Summon',

@@ -2389,3 +2389,67 @@ it('projects effective numeric defense and owner Jump geometry without changing 
   expect(JSON.stringify(projected)).not.toContain('private-stat-source')
   expect(JSON.stringify(state)).toBe(before)
 })
+
+it('rebuilds visible Damage Up scope without inheriting a concealed stacked application', () => {
+  for (const publicScope of [undefined, ['ice'] as const]) {
+    const state = encounter()
+    state.effectStackingPolicyVersion = 1
+    const visibility = { kind: 'team-only' as const, teamId: 'team:b' }
+    state.pendingEffects = [
+      {
+        actorId: ENEMY,
+        actionId: 'hidden.covert',
+        recipientIds: [ENEMY],
+        affectedTiles: [],
+        effect: { type: 'apply-status', recipient: 'actor', statusId: 'covert', stacks: 1 },
+        activationRound: 2,
+        content: PV1F_COMBAT_CONTENT,
+        sourceCommandVisibility: visibility,
+      },
+    ]
+    state.statusState = state.statusState.map((row) =>
+      row.combatantId === PLAIN_ENEMY
+        ? {
+            ...row,
+            statuses: [
+              {
+                ...status('inspired', PLAIN_ENEMY),
+                stacks: 2,
+                potencyBasisPoints: 5000,
+                damageTypes: ['fire'],
+                applicationModifiers: [
+                  {
+                    stacks: 1,
+                    sourceCombatantId: PLAIN_ENEMY,
+                    potencyBasisPoints: 2000,
+                    ...(publicScope ? { damageTypes: publicScope } : {}),
+                  },
+                  {
+                    stacks: 1,
+                    sourceCombatantId: ENEMY,
+                    potencyBasisPoints: 5000,
+                    damageTypes: ['fire'],
+                    sourceCommandVisibility: visibility,
+                  },
+                ],
+              },
+            ],
+          }
+        : row,
+    )
+    const before = JSON.stringify(state)
+    for (const viewer of [
+      createSpectatorBattleViewerEntitlement(),
+      deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+    ]) {
+      const visible = projectBattleStatusStateForViewer(state, viewer)
+        .find((row) => row.combatantId === PLAIN_ENEMY)!
+        .statuses.find((row) => row.statusId === 'inspired')!
+      expect(visible).toMatchObject({ stacks: 1, potencyBasisPoints: 2000 })
+      expect(visible.damageTypes).toEqual(publicScope)
+      expect(visible.applicationModifiers).toHaveLength(1)
+      expect(JSON.stringify(visible)).not.toContain('fire')
+    }
+    expect(JSON.stringify(state)).toBe(before)
+  }
+})

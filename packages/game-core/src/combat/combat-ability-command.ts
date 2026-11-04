@@ -1,3 +1,4 @@
+import type { DamageUpScope } from './combat-damage-up'
 import { combatSealBlocksSkill } from './combat-seal'
 import type { CombatElement } from './gameplay-tags'
 import { captureCombatTurnMovementBonus } from './combat-stat-bonuses'
@@ -115,7 +116,7 @@ export interface ManualCombatModifierSelection {
   readonly sourceInstanceId: string
   readonly behaviorId: string
 }
-export interface CombatCommandDamageBonus {
+export interface CombatCommandDamageBonus extends DamageUpScope {
   readonly elementFilter?: CombatElement
   readonly sourceInstanceId: string
   readonly contentId: string

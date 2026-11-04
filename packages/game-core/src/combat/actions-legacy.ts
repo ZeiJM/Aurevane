@@ -7287,6 +7287,7 @@ function resolveDamageAmount(
     elementalMultiplier,
     {
       packetElement: effect.element,
+      packetPiercing: effect.shattersBarrier === true || effect.piercing === true,
       ignoreIncomingMitigation: effect.piercing === true,
       outgoingState,
       commandDamageBonuses,
@@ -8939,6 +8940,7 @@ function resolveGroundAtPosition(
       cost: { spendsAction: false, mp: 0 },
       requirements: [],
       effects: area.entryEffects,
+      ...(area.commandDamageBonuses ? { commandDamageBonuses: area.commandDamageBonuses } : {}),
       ...(area.entryEffectTimingModes
         ? { effectTimingModes: area.entryEffectTimingModes.map((mode) => mode ?? undefined) }
         : {}),

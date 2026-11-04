@@ -1,4 +1,5 @@
 'use client'
+import { DamageUpTypeControls } from './damage-up-type-controls'
 import { CURRENT_EFFECT_PERCENT_MAXIMUM } from '@aurevane/game-core/combat/combat-effect-percentages'
 import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
 
@@ -99,21 +100,15 @@ export function AbilityEffectEditor({
             update({ ...payload, multiplierBasisPoints: 10000 + Math.round(percent * 100) })
           }
         />
-        <AbilitySelect
-          label="Direct damage element"
-          value={payload.elementFilter ?? ''}
-          options={['', 'fire', 'water', 'ice', 'storm'] as const}
-          optionLabels={{
-            '': 'All elements',
-            fire: 'Fire',
-            water: 'Water',
-            ice: 'Ice',
-            storm: 'Storm',
-          }}
-          onChange={(elementFilter) => {
-            const { elementFilter: _previous, ...base } = payload
-            void _previous
-            update(elementFilter ? { ...base, elementFilter } : base)
+        <DamageUpTypeControls
+          value={
+            payload.damageTypes ?? (payload.elementFilter ? [payload.elementFilter] : undefined)
+          }
+          onChange={(damageTypes) => {
+            const { elementFilter: previous, damageTypes: previousTypes, ...base } = payload
+            void previous
+            void previousTypes
+            update(damageTypes === undefined ? base : { ...base, damageTypes })
           }}
         />
       </>

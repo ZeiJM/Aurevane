@@ -72,6 +72,7 @@ export function battleEffectInformation(effect: BattlePresentedStatus) {
           const text = describeBattleEffect({
             ...effect,
             ...application,
+            damageTypes: application.damageTypes,
             potencyBasisPoints: application.potencyBasisPoints,
             blindsideModifiersBasisPoints: application.blindsideModifiersBasisPoints,
             applicationModifiers: undefined,

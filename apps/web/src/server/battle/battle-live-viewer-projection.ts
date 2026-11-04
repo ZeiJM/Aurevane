@@ -768,6 +768,8 @@ export function projectBattleStatusStateForViewer(
               sourceCombatantId: last.sourceCombatantId,
             }
             for (const field of COMBAT_STATUS_TUNING_FIELDS) delete visible[field]
+            delete visible.damageTypes
+            delete visible.sealedCategories
             Object.assign(visible, combatStatusTuning(last))
             delete visible.counter
             if (last.counter) visible.counter = last.counter

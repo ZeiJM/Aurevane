@@ -1,3 +1,5 @@
+import { validateCombatCommandDamageBonuses } from './damage-modifiers'
+import type { CombatCommandDamageBonus } from './combat-ability-command'
 import { effectiveCombatStatProfile } from './combat-stat-bonuses'
 import { validateCombatGroundRequirementCapture } from './combat-ground-contact-requirements'
 import { CURRENT_EFFECT_DURATION_MAXIMUM_TURNS } from './combat-effect-duration'
@@ -57,6 +59,8 @@ export interface CombatGroundAreaDefinition {
   timing?: 'instant' | 'next-round' | 'delayed'
 }
 export interface CombatGroundAreaInstance {
+  /** Cast-time modifier contributions remain private and frozen with the field. */
+  commandDamageBonuses?: readonly CombatCommandDamageBonus[]
   /** Cast-time Ground anchor for current forced movement; never follows the caster. */
   displacementOrigin?: GridPosition
   placementTimingVersion?: 1
@@ -245,6 +249,7 @@ export function createCombatGroundArea(
           }
         : {}),
       ...(options?.abilityCommandFacts ? { abilityCommandFacts: options.abilityCommandFacts } : {}),
+      ...(action.commandDamageBonuses ? { commandDamageBonuses: action.commandDamageBonuses } : {}),
       sourceCommandVisibility: options
         ? options.sourceCommandVisibility
         : combatSourceCommandVisibility(state, actorId),
@@ -559,6 +564,7 @@ export function validateCombatGroundAreas(
         throw new TypeError('Invalid Ground requirements alignment.')
       for (const capture of area.entryEffectRequirementCaptures ?? [])
         validateCombatGroundRequirementCapture(capture)
+      validateCombatCommandDamageBonuses(area.commandDamageBonuses)
       validateCombatNativeCommandFacts(area.abilityCommandFacts)
       if (area.displacementOrigin !== undefined) {
         if (
@@ -596,6 +602,7 @@ export function validateCombatGroundAreas(
         cost: { spendsAction: false, mp: 0 },
         requirements: [],
         effects: area.entryEffects,
+        ...(area.commandDamageBonuses ? { commandDamageBonuses: area.commandDamageBonuses } : {}),
         ...(area.entryEffectTimingModes !== undefined
           ? {
               effectTimingModes: area.entryEffectTimingModes.map(
