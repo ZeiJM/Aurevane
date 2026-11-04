@@ -1,3 +1,4 @@
+import { sealCategorySummary } from '@aurevane/game-core/combat/combat-seal'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
@@ -25,6 +26,8 @@ export function narrateBattleEffect(
   switch (id) {
     case 'suppress':
       return reduce(label, 'direct damage', percent)
+    case 'seal':
+      return `${label} ${verb('blocks', 'block')} ${target}'s ${strength?.sealedCategories ? sealCategorySummary(strength.sealedCategories) : 'selected'} discipline skills`
     case 'blind':
       return `${label} ${verb('cuts', 'cut')} ${target}'s Accuracy${percent === undefined ? '' : ` by ${percent} percentage points`}`
     case 'mark':

@@ -1,3 +1,4 @@
+import { sealCategorySummary } from '@aurevane/game-core/combat/combat-seal'
 import type { CombatStatusTuning } from '@aurevane/game-core/combat/actions'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 
@@ -40,6 +41,8 @@ export function statusPotencyDescription(
     elementalPotencyUnavailable?: boolean
   } & CombatStatusTuning = {},
 ): string {
+  if (statusId === 'seal')
+    return `Prevents activating ${options.sealedCategories ? sealCategorySummary(options.sealedCategories) : 'selected'} discipline skills. Essence, Resonance, Support, Severance and Ascension remain usable. Existing effects continue.`
   if (statusId === 'fortified' && options.defenseIncreaseBasisPoints !== undefined)
     return `Increase Physical and Mystic Defense by ${options.defenseIncreaseBasisPoints / 100}% and deal ${options.defenseIncreaseBasisPoints / 100}% less damage.`
   if (['haste', 'slow'].includes(statusId) && options.movementApAdjustment !== undefined)

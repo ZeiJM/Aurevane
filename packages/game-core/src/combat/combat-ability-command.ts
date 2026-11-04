@@ -1,3 +1,4 @@
+import { combatSealBlocksSkill } from './combat-seal'
 import type { CombatElement } from './gameplay-tags'
 import { captureCombatTurnMovementBonus } from './combat-stat-bonuses'
 import {
@@ -319,6 +320,11 @@ export function combatAbilityParticipantIssues(
     issues.push({
       code: 'source-disabled',
       message: 'Current Support Skills replace Guard and reserve Summon for Invocation.',
+    })
+  if (combatSealBlocksSkill(input.state, input.actorId, source.sourceKind, behavior.classification))
+    issues.push({
+      code: 'skill-sealed',
+      message: `Seal prevents activating ${behavior.classification} discipline skills.`,
     })
   if (source.basic?.enabled === false)
     issues.push({

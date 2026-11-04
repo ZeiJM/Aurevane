@@ -1,3 +1,4 @@
+import { sealCategoriesForStatus } from '@aurevane/game-core/combat/combat-seal'
 import {
   percentageDotDescription,
   percentageDotTickDamage,
@@ -50,6 +51,7 @@ const identifiers: Readonly<Record<string, string>> = {
   mark: 'MRK',
   warded: 'WAR',
   blind: 'BLI',
+  seal: 'SEA',
   blindside: 'BLS',
   'blindside-vulnerability': 'BLV',
   barrier: 'BAR',
@@ -161,6 +163,9 @@ export function describeBattleEffect(effect: BattlePresentedStatus) {
                   : effect.potencyBasisPoints,
                 {
                   ...effect,
+                  ...(effect.statusId === 'seal'
+                    ? { sealedCategories: sealCategoriesForStatus(effect) }
+                    : {}),
                   legacyHealingDown: effect.healingDownPolicyVersion !== 1,
                   legacyElemental: effect.elementalDamagePolicyVersion == null,
                   explicitElemental: effect.elementalDamagePolicyVersion === 2,

@@ -50,6 +50,7 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
     ['basic.invocation', 'Invocation', 'skill'],
     ['tag.loot', 'Loot', 'tag'],
     ['tag.stat-bonus', 'Stat Bonus', 'tag'],
+    ['tag.seal', 'Seal', 'tag'],
   ])
     current.push({
       contentKey,
@@ -110,6 +111,7 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
           'tag.ruin',
           'tag.reversal',
           'tag.blind',
+          'tag.seal',
         ].includes(row.contentKey),
     ),
   )

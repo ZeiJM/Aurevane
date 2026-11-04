@@ -82,7 +82,9 @@ export function battleEffectInformation(effect: BattlePresentedStatus) {
   const applications = effect.battleTag ? [] : capturedApplications
   const description = battleTagDescription(
     effect.battleTag,
-    capturedApplications.length ? capturedApplications.join(' ') : baseDescription,
+    capturedApplications.length
+      ? `${effect.statusId === 'seal' ? `${baseDescription} ` : ''}${capturedApplications.join(' ')}`
+      : baseDescription,
   )
   const summary = incoming ? `Incoming damage from this effect: ${incoming}.` : null
   const amountFacts = known ? battleEffectAmountInformation(effect) : { rows: [], notes: [] }

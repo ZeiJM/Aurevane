@@ -37,6 +37,13 @@ function status(
 /** Short names and descriptions are shared by Techniques, combat inspection and AI. */
 export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   status(
+    'seal',
+    'Seal',
+    'Debuff',
+    'Prevents activation of selected Attack, Recovery or Utility discipline skills. Essence, Resonance, Support, Severance and Ascension remain usable. Existing effects continue.',
+    { reactionClass: 'ordinary', curseCopyable: true, durationOwnerTurnStarts: 3 },
+  ),
+  status(
     'endure',
     'Endure',
     'Buff',
