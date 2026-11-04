@@ -7,3 +7,5 @@ Approaches: one type per tag was simpler but restricts authoring diversity; appr
 Reports and active/captured/stacked/copied status details show each application's actual types. Copy retains scope; expiry and Dispel use ordinary lifecycle. Existing absent-scope history retains its behavior. No unrelated balance, resource, duration or catalogue change.
 
 Delivery: separate Damage Up PR stacked on Seal #1014. Owner authorizes one coordinated live release of both after final exact-head checks, required additive Seal registration and production verification; do not release either alone or rewrite Owner drafts/inventory/history. No broad automatic content republication. Human acceptance stays open.
+
+Final integration refinement: combined PR #1015 targets main directly and includes the reviewed Seal source from #1014, so configured checks evaluate the entire intended release candidate. This replaces only the original stacked-PR merge sequence; the approved behavior and coordinated release gate are unchanged.
