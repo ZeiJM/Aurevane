@@ -17,7 +17,7 @@ Status: source implementation complete; not deployed. Verification and remaining
 ## Reports, text and stats
 
 - Skill, Support, weapon and battle-item reports share the current Parameters contract and semantic tag explanations. No redundant per-effect target arrows, flavor paragraphs or repeated teaching explanation for the same tag. Preserve authored effect rows, prerequisites, costs and captured mechanical distinctions.
-- Each effect heading and its brackets stay together on one line in ordinary desktop popups; adjust available width and spacing. Narrow layouts retain accessible reading without page overflow or unreadable font reduction.
+- Engine-bearing popups prefer480px, bounded by the usable viewport minus16px; generic information keeps its320px default and explicit nested widths remain authoritative. Each effect heading and its brackets stay together on one line in ordinary desktop popups; adjust available width and spacing. Narrow layouts retain accessible reading without page overflow or unreadable font reduction.
 - Battle-item information shows a small thumbnail, actual skill mechanics and remaining uses; it does not reuse the oversized inventory report. Item inventory details use compact art/facts and Parameters. Already-equipped slot inspection offers Unequip without comparing the item to itself.
 - Current standard Damage explicitly reports **[Instant]** when it actually resolves instantly. Deliberately authored timing and historical execution remain authoritative.
 - Use **Turns** for compact effect-duration labels. Preserve the actual pinned expiry clock in precise explanatory help; terminology changes do not rebalance execution or usage-reset boundaries.

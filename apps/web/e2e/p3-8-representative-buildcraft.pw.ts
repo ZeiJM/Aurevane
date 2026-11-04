@@ -341,6 +341,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     await expect(report).toHaveAttribute('data-battle-info-layout', 'compact')
     const dimensions = await report.evaluate((panel) => ({
       width: panel.getBoundingClientRect().width,
+      availableWidth: document.documentElement.clientWidth,
       top: panel.getBoundingClientRect().top,
       bottom: panel.getBoundingClientRect().bottom,
       scrollable: panel.scrollHeight > panel.clientHeight,
@@ -348,7 +349,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
         (table) => getComputedStyle(table).columnCount,
       ),
     }))
-    expect(dimensions.width).toBeLessThanOrEqual(320)
+    expect(dimensions.width).toBeLessThanOrEqual(Math.min(480, dimensions.availableWidth - 16))
     expect(dimensions.top).toBeGreaterThanOrEqual(8)
     expect(dimensions.bottom).toBeLessThanOrEqual(193)
     expect(dimensions.scrollable).toBe(true)

@@ -50,6 +50,8 @@ Two actual presentation defects were also repaired: Manual grid/list tracks now 
 
 Focused followup evidence:57 Controlled cases pass; complete modular reader/Manual/authoring browser run passes at1366/390; actual Tag commit controls pass desktop/mobile/150% zoom; all12 text-guidance cases pass with the new dialog names;34 affected unit tests and web typecheck pass. A focused diagnostic reproduced Manual width510px at viewport390 before the track fix and375px afterward; the full original no-page-overflow assertion remains in place. The final source production build passed after moving aside a corrupt disposable Turbopack persistence cache (`/tmp/aurevane-ci-followup-build-clean.log`). Scoped formatting, ESLint, web types and an additional independent13-test guidance review pass. Exact-head remote CI remains a separate gate below.
 
+The complete palette/browser script also passes at1366/390, including captured elemental/Summon readers and current Conditional Cleanse. A subsequent remote run passed16of18 workflows; the remaining failures were old tests expecting320px engine readers and an omitted Instant on Water Damage. Those assertions now preserve the current480px engine-reader cap, usable viewport-minus16px bound, typography, internal scrolling and exact Water Damage timing. No production behavior changed in this test-contract continuation.
+
 ## Remaining gates
 
 Configured exact-head CI is required before integration/release. No Preview/Production deployment, hosted migration or current publication was performed. Git deployments remain disabled in `apps/web/vercel.json`. Owner visual acceptance, physical devices/screen readers, authenticated production flows and human multiplayer checks remain open. No Phase5 closure is claimed.

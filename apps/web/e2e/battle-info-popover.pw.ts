@@ -109,11 +109,12 @@ test('shared compact readers retain complete reports and consume the first armed
     body: getComputedStyle(panel).fontSize,
     heading: getComputedStyle(panel.querySelector('header strong')!).fontSize,
     width: panel.getBoundingClientRect().width,
+    availableWidth: document.documentElement.clientWidth,
   }))
   expect(typography.body).toBe('13px')
   expect(typography.heading).toBe('16px')
   await expect(panels).toHaveAttribute('data-battle-info-layout', 'compact')
-  expect(typography.width).toBeLessThanOrEqual(320)
+  expect(typography.width).toBeLessThanOrEqual(Math.min(480, typography.availableWidth - 16))
   await page.keyboard.press('Space')
   await expectUnchangedBattle()
   await page.keyboard.press('Escape')
