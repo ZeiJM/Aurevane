@@ -1,0 +1,99 @@
+{
+  "status": "application-promoted-master-held-drain-pending",
+  "pr": 1015,
+  "testedHead": "c632198c075e365ec431a52845cb8c516acc38be",
+  "merge": "dc6ba0349dc127018044fd59dcc78ed9316f9d61",
+  "tree": "7d88851e41518c374ce384df8c7be99d6f791f82",
+  "deployment": "dpl_E9j4htHeNBGb5a385ea3H5TuhxJT",
+  "host": "aurevane-3bcyfzpnq-zeijms-projects.vercel.app",
+  "canonical": "https://aurevane.vercel.app",
+  "all19WorkflowsPassed": true,
+  "stagedProbesPassed": 10,
+  "canonicalRetirementProbes": [
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {},
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/manual",
+      "headers": {},
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/master",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/master/access",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane-6xkck8928-zeijms-projects.vercel.app/",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/?dpl=dpl_4oqVgUh9J6PJKEuw5NwepntitgS2",
+      "headers": {},
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {
+        "x-deployment-id": "dpl_4oqVgUh9J6PJKEuw5NwepntitgS2"
+      },
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {
+        "Cookie": "__vdpl=dpl_4oqVgUh9J6PJKEuw5NwepntitgS2"
+      },
+      "expected": 503,
+      "status": 503,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/?dpl=dpl_E9j4htHeNBGb5a385ea3H5TuhxJT",
+      "headers": {},
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "headers": {
+        "x-deployment-id": "dpl_E9j4htHeNBGb5a385ea3H5TuhxJT"
+      },
+      "expected": 200,
+      "status": 200,
+      "pass": true
+    }
+  ],
+  "retirementRoutingVersion": "31125157-0fb5-4e58-8156-fe1b1136fdef",
+  "routingRuleCount": 10,
+  "holdRuleId": "b8d7f6c0-1c2a-4c0e-9b11-6520b6781015",
+  "retirementVerifiedAt": "2026-11-04T22:16:41.294834+00:00",
+  "drainNotBefore": "2026-11-04T22:49:11.294834+00:00",
+  "sealMigrationApplied": false,
+  "finalReleaseVerified": false,
+  "automaticDomainAssignmentDisabled": true,
+  "next": "After drain deadline, verify no old transactions/current canonical source/routes/main; apply only guarded additive Seal registration preserving all content/drafts/items/function ACLs; verify registration; remove only Master hold; run canonical public/guest/pin/API smoke; persist final receipt; disable task."
+}
