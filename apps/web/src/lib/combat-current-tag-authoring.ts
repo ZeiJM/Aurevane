@@ -19,6 +19,25 @@ import {
 } from './combat-ground-entry-authoring'
 import { effectAuthoringTag } from '@aurevane/game-core/combat/combat-effect-authoring'
 
+// Recognize the actual historical All Debuffs rosters, independent of future additions.
+// Only an explicit authoring edit expands these; retained captures remain literal.
+const historicalAllDebuffsBeforeBlind = [
+  'exposed',
+  'wet',
+  'frozen',
+  'conductive',
+  'blindside-vulnerability',
+  'suppress',
+  'hexed',
+  'slow',
+  'root',
+  'mark',
+]
+const historicalAllDebuffSelections = [
+  historicalAllDebuffsBeforeBlind,
+  [...historicalAllDebuffsBeforeBlind, 'blind'],
+]
+
 export function currentSummonForAuthoring(
   profile: SummonProfileDefinition,
 ): SummonProfileDefinition {
@@ -127,9 +146,10 @@ export function currentTagForAuthoring(
       }
     }
     const selected = value.statusIds?.filter((id) => !COPY_DEBUFF_EXCLUDED_STATUS_IDS.includes(id))
-    const priorAll = allowed.filter((id) => id !== 'blind')
-    const wasAll =
-      selected?.length === priorAll.length && priorAll.every((id) => selected.includes(id))
+    const wasAll = historicalAllDebuffSelections.some(
+      (priorAll) =>
+        selected?.length === priorAll.length && priorAll.every((id) => selected.includes(id)),
+    )
     return {
       ...value,
       durationPolicyVersion: 1,
