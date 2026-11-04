@@ -5,6 +5,7 @@ import { source } from './combat-behavior.test-utils'
 import {
   compileEquipmentAbility,
   equipmentActionId,
+  parseBattleEquipmentCapture,
   type BattleEquipmentCapture,
 } from './combat-equipment'
 import { captureEquipmentAbilitySource } from './combat-behavior-capture'
@@ -18,6 +19,40 @@ import { percentageDotEncounter } from './combat-percentage-dots.test-utils'
 import { combatAbilityCommandContext } from './combat-behavior-runtime'
 import { PV1F_COMBAT_CONTENT, preparePv1fTurnEconomy } from './pv1f-action-economy'
 import { combatStatBonus } from './combat-stat-bonuses'
+import { starterItemDefinitions } from '../content/starter-items'
+import type { EquipmentPosition } from '../character/item-inventory'
+
+it('admits current main-hand and separate consumable captures while retaining literal six-slot history', () => {
+  const definitions = starterItemDefinitions()
+  const current: BattleEquipmentCapture = {
+    schemaVersion: 2,
+    inventoryRevision: 1,
+    selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+    equipment: [
+      ['main-hand', 'sunsplitter'],
+      ['consumable-1', 'mender-salve'],
+      ['consumable-2', 'ward-sigil-scroll'],
+    ].map(([position, id], index) => ({
+      position: position as EquipmentPosition,
+      ownedStackId: `unit-${index}`,
+      item: definitions.find((item) => item.id === id)!,
+    })),
+  }
+  expect(parseBattleEquipmentCapture(current)).toEqual(current)
+  expect(() => parseBattleEquipmentCapture({ ...current, schemaVersion: 1 })).toThrow()
+  expect(() =>
+    parseBattleEquipmentCapture({
+      ...current,
+      equipment: [{ ...current.equipment[1]!, position: 'off-hand' }],
+    }),
+  ).toThrow()
+  expect(() =>
+    parseBattleEquipmentCapture({
+      ...current,
+      equipment: [current.equipment[0]!, { ...current.equipment[2]!, position: 'off-hand' }],
+    }),
+  ).toThrow()
+})
 
 const weapon = itemFixture({
   id: 'test.sword',
@@ -118,65 +153,71 @@ it('executes the authored weapon as Basic Attack and activates each unit passive
     }),
   ).toThrow('ability-action-behavior-required')
 })
-it('charges each hand independently through actual payment, retains a narrower cap, and survives reload', () => {
-  const behavior = {
-    ...source().definition.behaviors[0]!,
-    costs: [{ resource: 'ap' as const, amount: 10 }],
-    maximumUsesPerBattle: 1,
-  }
-  const item = itemFixture({
-    id: 'test.tonic',
-    itemClass: 'battle-item',
-    inventoryCategory: 'battle-items',
-    equipment: { slot: 'hand', hands: 1 },
-    maximumStack: 99,
-    battleUses: 3,
-    ability: { schemaVersion: 1, behaviors: [behavior] },
-    actions: { use: { behaviorId: 'strike', name: 'Throw' } },
-  })
-  const equipment: BattleEquipmentCapture = {
-    schemaVersion: 1,
-    inventoryRevision: 1,
-    selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
-    equipment: ['main-hand', 'off-hand'].map((position) => ({
-      position: position as 'main-hand' | 'off-hand',
-      ownedStackId: 'same-private-stack',
-      item,
-    })),
-  }
-  const sources = equipment.equipment.map((unit) =>
-    captureEquipmentAbilitySource(equipment, unit, 'actor')!,
-  )
-  let state = activateCombatAbilitySources(
-    preparePv1fTurnEconomy(percentageDotEncounter()),
-    sources,
-    PV1F_COMBAT_CONTENT,
-    true,
-  ).state
-  const command = () => ({
-    state,
-    actorId: 'actor',
-    root: { kind: 'canonical' as const, source: sources[0]! },
-    selection: { kind: 'unit' as const, combatantId: 'enemy' },
-    content: PV1F_COMBAT_CONTENT,
-    context: combatAbilityCommandContext(state, sources[0]!),
-  })
-  expect(prepareCombatAbilityCommand(command()).evaluation.legal).toBe(true)
-  const before = structuredClone(state)
-  prepareCombatAbilityCommand(command())
-  expect(state).toEqual(before)
-  const committed = commitCombatAbilityCommand(command())
-  state = JSON.parse(JSON.stringify(committed.state))
-  expect(combatAbilityRemainingUses(state, sources[0]!, sources[0]!.definition.behaviors[0]!)).toBe(
-    0,
-  )
-  expect(combatAbilityRemainingUses(state, sources[1]!, sources[1]!.definition.behaviors[0]!)).toBe(
-    1,
-  )
-  expect(prepareCombatAbilityCommand(command()).evaluation.legal).toBe(false)
-  expect(() => commitCombatAbilityCommand(command())).toThrow()
-  expect(state).toEqual(committed.state)
-})
+it.each([1, 2] as const)(
+  'charges schema %i supplies independently through actual payment, retains a narrower cap, and survives reload',
+  (schemaVersion) => {
+    const behavior = {
+      ...source().definition.behaviors[0]!,
+      costs: [{ resource: 'ap' as const, amount: 10 }],
+      maximumUsesPerBattle: 1,
+    }
+    const item = itemFixture({
+      id: 'test.tonic',
+      itemClass: 'battle-item',
+      inventoryCategory: 'battle-items',
+      equipment: { slot: 'hand', hands: 1 },
+      maximumStack: 99,
+      battleUses: 3,
+      ability: { schemaVersion: 1, behaviors: [behavior] },
+      actions: { use: { behaviorId: 'strike', name: 'Throw' } },
+    })
+    const equipment: BattleEquipmentCapture = {
+      schemaVersion,
+      inventoryRevision: 1,
+      selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+      equipment: (schemaVersion === 1
+        ? ['main-hand', 'off-hand']
+        : ['consumable-1', 'consumable-2']
+      ).map((position) => ({
+        position: position as EquipmentPosition,
+        ownedStackId: 'same-private-stack',
+        item,
+      })),
+    }
+    const sources = equipment.equipment.map((unit) =>
+      captureEquipmentAbilitySource(equipment, unit, 'actor')!,
+    )
+    let state = activateCombatAbilitySources(
+      preparePv1fTurnEconomy(percentageDotEncounter()),
+      sources,
+      PV1F_COMBAT_CONTENT,
+      true,
+    ).state
+    const command = () => ({
+      state,
+      actorId: 'actor',
+      root: { kind: 'canonical' as const, source: sources[0]! },
+      selection: { kind: 'unit' as const, combatantId: 'enemy' },
+      content: PV1F_COMBAT_CONTENT,
+      context: combatAbilityCommandContext(state, sources[0]!),
+    })
+    expect(prepareCombatAbilityCommand(command()).evaluation.legal).toBe(true)
+    const before = structuredClone(state)
+    prepareCombatAbilityCommand(command())
+    expect(state).toEqual(before)
+    const committed = commitCombatAbilityCommand(command())
+    state = JSON.parse(JSON.stringify(committed.state))
+    expect(
+      combatAbilityRemainingUses(state, sources[0]!, sources[0]!.definition.behaviors[0]!),
+    ).toBe(0)
+    expect(
+      combatAbilityRemainingUses(state, sources[1]!, sources[1]!.definition.behaviors[0]!),
+    ).toBe(1)
+    expect(prepareCombatAbilityCommand(command()).evaluation.legal).toBe(false)
+    expect(() => commitCombatAbilityCommand(command())).toThrow()
+    expect(state).toEqual(committed.state)
+  },
+)
 
 it('keeps authored weapon accuracy and scaling through the Basic adapter', () => {
   const equipment = capture()

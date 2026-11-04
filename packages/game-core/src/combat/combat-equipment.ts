@@ -1,5 +1,6 @@
 import {
   EQUIPMENT_POSITIONS,
+  equipmentPositionsForItem,
   type EquipmentPosition,
   type ItemSupportSelection,
 } from '../character/item-inventory'
@@ -13,7 +14,7 @@ export interface BattleEquipmentUnit {
   readonly item: RuntimeItemDefinition
 }
 export interface BattleEquipmentCapture {
-  readonly schemaVersion: 1
+  readonly schemaVersion: 1 | 2
   readonly inventoryRevision: number
   readonly selectedSupport: ItemSupportSelection
   readonly equipment: readonly BattleEquipmentUnit[]
@@ -39,7 +40,9 @@ export function equipmentRoles(
 ): Partial<Record<EquipmentActionRole, string>> {
   const weapon =
     capture.equipment.find((x) => x.position === 'main-hand' && x.item.itemClass === 'weapon') ??
-    capture.equipment.find((x) => x.position === 'off-hand' && x.item.itemClass === 'weapon')
+    (capture.schemaVersion === 1
+      ? capture.equipment.find((x) => x.position === 'off-hand' && x.item.itemClass === 'weapon')
+      : undefined)
   const support = capture.selectedSupport
   return {
     ...(weapon?.position === unit.position && unit.item.actions?.attack
@@ -87,11 +90,11 @@ export function parseBattleEquipmentCapture(value: unknown): BattleEquipmentCapt
   if (!value || typeof value !== 'object') throw new TypeError('Invalid equipment capture.')
   const capture = value as BattleEquipmentCapture
   if (
-    capture.schemaVersion !== 1 ||
+    ![1, 2].includes(capture.schemaVersion) ||
     !Number.isSafeInteger(capture.inventoryRevision) ||
     capture.inventoryRevision < 0 ||
     !Array.isArray(capture.equipment) ||
-    capture.equipment.length > 6 ||
+    capture.equipment.length > (capture.schemaVersion === 1 ? 6 : 8) ||
     Object.keys(capture).some(
       (x) => !['schemaVersion', 'inventoryRevision', 'selectedSupport', 'equipment'].includes(x),
     )
@@ -103,6 +106,7 @@ export function parseBattleEquipmentCapture(value: unknown): BattleEquipmentCapt
     if (
       !unit ||
       !EQUIPMENT_POSITIONS.includes(unit.position) ||
+      (capture.schemaVersion === 1 && unit.position.startsWith('consumable-')) ||
       seen.has(unit.position) ||
       typeof unit.ownedStackId !== 'string' ||
       !unit.ownedStackId.trim() ||
@@ -113,9 +117,11 @@ export function parseBattleEquipmentCapture(value: unknown): BattleEquipmentCapt
     if (
       !item.enabled ||
       !item.equipment ||
-      (item.equipment.slot === 'hand'
-        ? !['main-hand', 'off-hand'].includes(unit.position)
-        : unit.position !== item.equipment.slot) ||
+      (capture.schemaVersion === 2
+        ? !equipmentPositionsForItem(item).includes(unit.position)
+        : item.equipment.slot === 'hand'
+          ? !['main-hand', 'off-hand'].includes(unit.position)
+          : unit.position !== item.equipment.slot) ||
       (item.equipment.hands === 2 &&
         (unit.position !== 'main-hand' ||
           capture.equipment.some((x) => x.position === 'off-hand'))) ||

@@ -1,3 +1,5 @@
+November 4 Owner followup — **implemented, not live**: current equipment has eight positions (four armor, Main Hand weapon/shield, Off Hand passive armor, two independent consumable slots); two-handed weapons block Off Hand only. The cockpit begins Inspect → Item → Move → Basic Attack → Support. Compact shared reports use Turns and explicit Instant for instant standard Damage; current Chilled-only removal is Conditional Cleanse. Equipment templates are detailed, presentation-specific, neutral and faceless. Compact inventory/report layout, packed filters, actual equipment stat deltas and accurate shared editor text guidance supersede older designs. Follow the [current authority and regression boundaries](superpowers/specs/2026-11-04-items-presentation-followup.md) before reusing an earlier component, fixture or checkpoint. Prior live release receipts below remain historical evidence; this followup has no deployment or hosted-publication authorization.
+
 November 3 Quality Point Items — **LIVE for Owner testing**: 47 genuine illustrated defaults use the shared source/current/pinned publication authority and atomic starter receipt. Six categories each hold 40 positions; Gear stacks to 1 and other Items to 99. Equipment has Head, Body, Pants, Boots, Main Hand and Off Hand, capped at 100 QP. Weapons supply Basic Attack; equipped supplies refill their finite uses each battle without consuming owned quantities; one selected equipment Support can replace normal Support. The cockpit is Inspect → Move → Basic Attack → Item → Support, retaining internal custom binding keys. Archived/disabled owned Items remain repairable; first-load grants defer clearly for capacity or pending/active battles. This supersedes older five-slot and locked Items-placeholder direction. PR #1008 merge `0af2782adea552ad7d2b18f7159fb8200356ab24` is live at https://aurevane.vercel.app on READY Production `dpl_DQpfKyFbeNKXEMxBqAMHnh76dfkE`. All 20 exact-source workflows, 112 staged and 112 canonical probes pass. Eleven migrations and 14 reviewed current publications are applied with old history and drafts preserved. Temporary maintenance is removed; nine retirement rules remain. Human acceptance and Phase 5 closure remain open. [Release receipt](verification/2026-11-03-combat-items-release.md) and [96-case Owner checklist](verification/2026-11-03-owner-combat-items-checklist.md). Full 47 reference, balance and lifecycle: [starter Items reference](verification/2026-11-03-starter-items-reference.md).
 
 # AUREVANE — Items, Effect Catalog, Inventory & Loadout System
@@ -49,15 +51,17 @@ Internally, these views should share one coherent item/inventory domain where pr
 
 ## 2. Equipment Inventory
 
-Current equipment positions (November 3 supersession):
+Current equipment positions (November 4 supersession; source followup pending release):
 
 ```text
 Head
 Body
 Pants
 Boots
-Main Hand
-Off Hand
+Main Hand (weapon or shield)
+Off Hand (passive hand armor; unavailable with a two-handed Main Hand)
+Consumable 1
+Consumable 2
 ```
 
 Do not casually add many permanent equipment slots. Depth comes from effects and interactions rather than slot inflation.
@@ -710,7 +714,8 @@ Pants
 Boots
 Main Hand
 Off Hand
-combat consumable kit
+Consumable 1
+Consumable 2
 optional safe cosmetic battle-presentation choices
 ```
 

@@ -207,8 +207,6 @@ export function createAuthorableEffectPayload(
         selectionKind: 'debuffs',
         ...(context.combination?.mode === 'modifier' ? { target: 'self' as const } : {}),
       }
-    case 'cleanse-chilled':
-      return { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }
     case 'reveal':
       return {
         type: 'sensory',

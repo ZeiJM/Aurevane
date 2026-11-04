@@ -118,8 +118,12 @@ it('keeps captured Basic supplemental parameters below the Effects table', () =>
   )!
   const basic = {
     ...original,
+    description: 'Legacy weapon flavour paragraph',
+    compactText: 'Legacy compact flavour paragraph',
     behaviors: original.behaviors.map((behavior) => ({
       ...behavior,
+      maintenance: 'Captured upkeep: 3 MP each round.',
+      limits: [...behavior.limits, 'Captured limit: twice per battle'],
       effects: behavior.effects.map((effect) => ({
         ...effect,
         parts: { ...effect.parts, details: [{ label: 'Armor ignored', value: '50%' }] },
@@ -141,4 +145,9 @@ it('keeps captured Basic supplemental parameters below the Effects table', () =>
   )
   expect(html.slice(0, html.indexOf('</dl>'))).not.toContain('Armor ignored')
   expect(html.slice(html.indexOf('</dl>'))).toContain('Armor ignored: 50%.')
+  expect(html).toContain('Captured upkeep: 3 MP each round.')
+  expect(html).toContain('Captured limit: twice per battle')
+  expect(html).not.toContain('Legacy weapon flavour paragraph')
+  expect(html).not.toContain('Legacy compact flavour paragraph')
+  expect(html).not.toContain(' → ')
 })

@@ -7,6 +7,7 @@ import {
 import { captureEquipmentAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
 import {
   equipmentBehaviorActionId,
+  parseBattleEquipmentCapture,
   type BattleEquipmentCapture,
 } from '@aurevane/game-core/combat/combat-equipment'
 import { source } from '../../../../packages/game-core/src/combat/combat-behavior.test-utils'
@@ -23,7 +24,13 @@ import {
 import { PV1F_BASIC_ATTACK_ID } from '@aurevane/game-core/combat/pv1f-skills'
 import type { StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
 
-export function equipmentFixtureSources(weapon = false, controlled = false, genuine = false) {
+export function equipmentFixtureSources(
+  weapon = false,
+  controlled = false,
+  genuine = false,
+  twoHanded = false,
+  barrier = false,
+) {
   const ability = structuredClone(
     defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability,
   )
@@ -31,16 +38,17 @@ export function equipmentFixtureSources(weapon = false, controlled = false, genu
     costs: [{ resource: 'ap', amount: 10 }],
     cooldown: null,
     requirements: null,
-    effects: [
-      {
-        id: 'heal',
-        ...(controlled ? { timing: 'controlled' } : {}),
-        payload: { type: 'healing', recipient: 'actor', amount: 20 },
-      },
-    ],
+    // Two equal packets preserve total recovery while witnessing grouped Tag explanations.
+    effects: ['heal-first', 'heal-second'].map((id) => ({
+      id,
+      ...(controlled ? { timing: 'controlled' } : {}),
+      payload: { type: 'healing', recipient: 'actor', amount: 10 },
+    })),
   })
   const tonic = genuine
-    ? starterItemDefinitions().find((item) => item.id === 'mender-salve')!
+    ? starterItemDefinitions().find(
+        (item) => item.id === (barrier ? 'ward-sigil-scroll' : 'mender-salve'),
+      )!
     : itemFixture({
         id: 'fixture.salve',
         name: 'Mender Salve',
@@ -68,7 +76,9 @@ export function equipmentFixtureSources(weapon = false, controlled = false, genu
     ],
   }).definition.behaviors[0]!
   const sword = genuine
-    ? starterItemDefinitions().find((item) => item.id === 'iron-shortsword')!
+    ? starterItemDefinitions().find(
+        (item) => item.id === (twoHanded ? 'sunsplitter' : 'iron-shortsword'),
+      )!
     : itemFixture({
         id: 'fixture.sword',
         name: 'Iron Shortsword',
@@ -84,22 +94,21 @@ export function equipmentFixtureSources(weapon = false, controlled = false, genu
         },
         media: { artworkId: 'item.iron-shortsword.art.v1' },
       })
-  const capture: BattleEquipmentCapture = {
-    schemaVersion: 1,
+  const capture: BattleEquipmentCapture = parseBattleEquipmentCapture({
+    schemaVersion: 2,
     inventoryRevision: 1,
     selectedSupport:
       weapon && !genuine
         ? { kind: 'equipment', position: 'main-hand', itemId: sword.id, behaviorId: 'support' }
         : { kind: 'basic', actionId: 'basic.recover' },
     equipment: [
-      {
-        position: 'main-hand',
-        ownedStackId: weapon ? 'private-sword' : 'private-salve-stack',
-        item: weapon ? sword : tonic,
-      },
-      { position: 'off-hand', ownedStackId: 'private-salve-stack', item: tonic },
+      ...(weapon ? [{ position: 'main-hand', ownedStackId: 'private-sword', item: sword }] : []),
+      { position: 'consumable-1', ownedStackId: 'private-salve-stack', item: tonic },
+      ...(!weapon
+        ? [{ position: 'consumable-2', ownedStackId: 'private-salve-stack', item: tonic }]
+        : []),
     ],
-  }
+  })
   return [
     ...captureBasicSkillSources({
       ownerCombatantId: 'character:player',

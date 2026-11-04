@@ -198,7 +198,12 @@ export function createRpcCharacterItemsRepository(
     },
   }
 }
-export function createSupabaseCharacterItemsRepository(): CharacterItemsRepository {
+export function createSupabaseCharacterItemsRepository(
+  initializeStarters = true,
+): CharacterItemsRepository {
   const client = createSupabaseAdminClient()
-  return createRpcCharacterItemsRepository((name, parameters) => client.rpc(name, parameters))
+  return createRpcCharacterItemsRepository(
+    (name, parameters) => client.rpc(name, parameters),
+    initializeStarters,
+  )
 }

@@ -84,8 +84,11 @@ it('keeps multi-group prerequisite prefixes and conditional effect links in the 
   expect(explanations).toContain('Applies only when <button')
   expect(explanations).toContain('data-combat-tag-reference="exposed"')
   expect(explanations.replace(/<[^>]*>/gu, '')).toContain(
-    'execution-cut: Deal 4 base damage to the selected unit. Applies only when Vulnerable.',
+    'Deal 4 base damage to the selected unit. Effect 3: Applies only when Vulnerable.',
   )
+  expect(explanations.match(/<li>/g)).toHaveLength(1)
+  expect(explanations).toContain('data-effect-tag-label="true"')
+  expect(html).not.toContain(' → ')
   expect(html).not.toContain('execution-cut: If ')
 })
 it('links only the selected captured group without borrowing other group prerequisites', () => {

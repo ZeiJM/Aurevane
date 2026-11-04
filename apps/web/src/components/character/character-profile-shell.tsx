@@ -19,6 +19,7 @@ import { Surface } from '@aurevane/ui'
 import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
+import type { EquipmentStatBonus } from '@/lib/items/equipment-stat-presentation'
 import { type SupernaturalChoiceOption } from '@/components/character/character-supernatural-choice-controls'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
@@ -51,6 +52,7 @@ interface AttributeAllocationView {
 }
 
 export interface CharacterWorkspaceProps {
+  equipmentBonuses?: readonly EquipmentStatBonus[] | null
   profile: CharacterProfileReadModel
   attributeAllocation: AttributeAllocationView
   disciplineBuild: {
@@ -142,6 +144,7 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
+  equipmentBonuses,
 }: CharacterWorkspaceProps) {
   const attributePolicy = disciplineAttributePolicyForProfile(disciplineBuild.current.profile)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
@@ -207,6 +210,7 @@ export function CharacterProfileShell({
           cycleNumber={profile.progression.cycleNumber}
           attributes={profile.attributes}
           derived={disciplineBuild.current.derived}
+          equipmentBonuses={equipmentBonuses}
           showBuildTendencies
           attributeResetControl={
             <CharacterAttributeAllocationPanel

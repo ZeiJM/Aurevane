@@ -100,6 +100,7 @@ function companionPayload(companion: Companion, existing?: ElementalPayload): Co
       target: 'self',
       statusIds: ['frozen'],
       removalMode: 'specified',
+      selectionKind: 'debuffs',
     }
   const payload = existing?.type === 'apply-status' ? { ...existing } : {}
   Reflect.deleteProperty(payload, 'target')

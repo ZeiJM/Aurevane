@@ -232,7 +232,9 @@ try {
       })
       await page.goto(`${server.resolvedUrls.local[0]}?mode=pve&canonical=items-global-${timing}`)
       await page.locator('[data-command-slot="items"]').click()
-      await page.getByRole('button', { name: /^Information about Mender Salve, Main Hand/ }).click()
+      await page
+        .getByRole('button', { name: /^Information about Mender Salve, Consumable 1/ })
+        .click()
       const panel = page.locator('[data-battle-info-panel]')
       await expect(panel).toContainText(timing === 'controlled' ? 'Controlled' : 'Delayed')
       await expect(panel).toContainText('3 uses per battle')
@@ -251,7 +253,9 @@ try {
       await page.keyboard.press('Escape')
       await page.evaluate(() => window.restoreCanonicalBattle())
       await page.locator('[data-command-slot="items"]').click()
-      await page.getByRole('button', { name: /^Information about Mender Salve, Main Hand/ }).click()
+      await page
+        .getByRole('button', { name: /^Information about Mender Salve, Consumable 1/ })
+        .click()
       await expect(panel).toContainText(timing === 'controlled' ? 'Controlled' : 'Delayed')
       results.push({ timing, width, reader: 'pinned, no execution' })
       await page.close()

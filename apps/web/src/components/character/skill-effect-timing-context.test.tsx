@@ -80,7 +80,7 @@ it('uses a battle’s pinned policy rather than newer Master timing, including l
     markup.match(new RegExp(`<section id="${id}">(.*?)</section>`))![1]!
   expect(timingMarks(section('current'))).toHaveLength(1)
   expect(timingMarks(section('pinned'))).toHaveLength(0)
-  expect(timingMarks(section('legacy'))).toHaveLength(1)
+  expect(timingMarks(section('legacy'))).toHaveLength(2)
 })
 
 it('uses saved elemental policy across full reports and retains policy 1 and absent history', () => {
@@ -144,7 +144,7 @@ it('uses saved elemental policy across full reports and retains policy 1 and abs
   expect(legacy).not.toContain('Enemy / Ground')
 })
 
-it('shows default Instant only on elemental tags that overlap typed damage across reports', () => {
+it('shows Instant on Damage and overlapping elemental tags across reports', () => {
   const base = resolveMatureSkillVersion('tidecaller.water-lance')!
   const wet = {
     type: 'apply-status' as const,
@@ -190,7 +190,7 @@ it('shows default Instant only on elemental tags that overlap typed damage acros
     </SkillEffectTimingProvider>,
   )
   expect(markup.replace(/<[^>]*>/g, '')).toContain('Drenched [35%] [2 Turns] [Instant]')
-  expect(timingMarks(markup)).toHaveLength(2) // Both readers mark only the overlapping tag; their actor tags remain Normal.
+  expect(timingMarks(markup)).toHaveLength(4) // Both readers mark Damage and its overlapping tag; actor tags retain their configured timing.
   expect(markup).toContain('2 affected turns starting when damage settles (Instant)')
   expect(markup).toContain('2 full rounds starting next round after the effect activates')
 })

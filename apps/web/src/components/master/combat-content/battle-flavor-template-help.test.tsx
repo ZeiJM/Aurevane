@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
+import { CONTENT_TEXT_GUIDANCE } from './content-text-guidance'
 
 describe('compact writing tag help', () => {
   it('places the usable identity tags and neutral behavior in an i dialog without expandable samples', () => {
@@ -63,4 +64,20 @@ describe('compact writing tag help', () => {
     expect(markup).toContain('aria-label="Battle narration validation"')
     expect(markup).toContain('aria-label="Battle narration sample">Asha calls on Quiet Edge.')
   })
+})
+
+it('explains actual Flavor card and Chronicle contexts before showing illustrative identity tags', () => {
+  const markup = renderToStaticMarkup(
+    createElement(BattleFlavorTemplateHelp, {
+      value: '(name) calls (ability).',
+      ability: 'Quiet Edge',
+      onChange: () => {},
+      guidance: CONTENT_TEXT_GUIDANCE.resonanceFlavor,
+      outsideBattle: true,
+    }),
+  )
+  expect(markup).toContain(CONTENT_TEXT_GUIDANCE.resonanceFlavor.hint)
+  expect(markup).toContain(CONTENT_TEXT_GUIDANCE.resonanceFlavor.help)
+  expect(markup).toContain('Missing character names read as Combatant')
+  expect(markup).toContain('The sample below illustrates battle identities.')
 })

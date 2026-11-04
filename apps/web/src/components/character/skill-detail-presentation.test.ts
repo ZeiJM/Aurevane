@@ -45,7 +45,7 @@ it('uses Self/Ally only when the friendly Skill can actually include its caster'
   )
 })
 
-it('marks instant effects from their timing tags, retaining duration and excluding direct damage', () => {
+it('marks instant effects from their timing tags, retaining duration and including direct damage', () => {
   const effect = {
     type: 'apply-status' as const,
     recipient: 'actor' as const,
@@ -80,13 +80,13 @@ it('marks instant effects from their timing tags, retaining duration and excludi
       { type: 'damage', recipient: 'primary-unit', amount: 9 },
       defaultCombatEffectTimingPolicy(),
     ).timing,
-  ).toBeUndefined()
+  ).toBe('Instant')
 })
 
 it('keeps configured timing in the text report for mixed damage and utility effects', () => {
   const skill = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
   const summaries = skillEffectSummaries(skill, { version: 2, modes: { burn: 'instant' } })
-  expect(summaries[0]).not.toContain('Instant')
+  expect(summaries[0]).toContain('[Instant]')
   expect(summaries[1]).toContain('[Instant]')
 })
 
@@ -338,7 +338,7 @@ it('classifies Techniques only as Attack, Heal, or Utility', () => {
 it('returns one effect summary per authored effect with positive durations only', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
   expect(skillEffectSummaries(siphon)).toEqual([
-    expect.stringMatching(/^Dmg \[\d+\] \[Enemy\]$/),
+    expect.stringMatching(/^Dmg \[\d+\] \[Instant\] \[Enemy\]$/),
     expect.stringMatching(/^MP Drain \[\d+\] \[Enemy\]$/),
     expect.stringMatching(/^MP Recovery \[\d+%\] \[Instant\] \[Self\]$/),
   ])
@@ -351,14 +351,14 @@ it('returns one effect summary per authored effect with positive durations only'
 it('lists authored magnitudes as effects without leaking design tags', () => {
   const siphon = resolveMatureSkillVersion('runeblade.siphon-slash')!
   expect(skillEffectsSummary(siphon)).toBe(
-    'Dmg [13] [Enemy], MP Drain [7] [Enemy], MP Recovery [7%] [Instant] [Self]',
+    'Dmg [13] [Instant] [Enemy], MP Drain [7] [Enemy], MP Recovery [7%] [Instant] [Self]',
   )
   expect(skillEffectsSummary({ ...siphon, tags: [...siphon.tags, 'setup', 'melee'] })).toBe(
     skillEffectsSummary(siphon),
   )
   const brand = skillEffectsSummary(resolveMatureSkillVersion('runeblade.sigil-brand')!)
   expect(brand).toBe(
-    'Dmg [10] [Enemy], Vulnerable [14.26%] [2 Turns] [Enemy], Healing Down [20.74%] [2 Turns] [Enemy]',
+    'Dmg [10] [Instant] [Enemy], Vulnerable [14.26%] [2 Turns] [Enemy], Healing Down [20.74%] [2 Turns] [Enemy]',
   )
   expect(skillEffectsSummary(resolveMatureSkillVersion('runeblade.rune-mending')!)).not.toContain(
     'Dmg',
@@ -481,6 +481,7 @@ describe('Combat v5.1 compact effect summaries', () => {
       label: 'Dmg',
       magnitude: '9',
       duration: null,
+      timing: 'Instant',
     })
   })
 })
@@ -700,11 +701,11 @@ it('puts current elemental duration and potency solely on the explicit status ta
   const skill = { effects }
   const timing = { version: 9, modes: { wet: 'delayed' as const } }
   expect(skillEffectSummaries(skill, timing)).toEqual([
-    'Water Dmg [10] [Trigger Skill selected unit]',
+    'Water Dmg [10] [Instant] [Trigger Skill selected unit]',
     'Drenched [42%] [4 Turns] [Delayed] [Trigger Skill selected unit]',
   ])
   expect(skillEffectSummaries(skill, timing, { explicitElemental: false })[0]).toBe(
-    'Water Dmg [10] [3 Turns] [Trigger Skill selected unit]',
+    'Water Dmg [10] [3 Turns] [Instant] [Trigger Skill selected unit]',
   )
 })
 
@@ -740,11 +741,13 @@ it('keeps limited-cleanse Effects timing and historical tag aliases consistent',
     effectDescriptions: [],
   }
   const policy = { version: 7, modes: { 'remove-status': 'instant' as const } }
-  expect(skillEffectSummaries(skill, policy)).toEqual(['Cleanse Chilled [Instant] [Self]'])
+  expect(skillEffectSummaries(skill, policy)).toEqual([
+    'Conditional Cleanse [Chilled] [Instant] [Self]',
+  ])
   expect(skillEffectSummaries(skill, policy, { explicitElemental: false })).toEqual([
     'Cleanse [Instant] [Self]',
   ])
-  expect(skillTargetTags(skill)).toContain('Cleanse Chilled · Self')
+  expect(skillTargetTags(skill)).toContain('Conditional Cleanse · Self')
   expect(skillTargetTags(skill, { explicitElemental: false })).toContain('Cleanse · Self')
 })
 
@@ -756,7 +759,7 @@ it('shows both intents for current Flame Burst while preserving its captured Gro
   expect(skillTargetMethodExplanation(skill)).toContain('Aim: Enemy / Ground')
   expect(rows['Target Method']).toMatch(/^Circle \[1\]/)
   expect(rows.Effects).toContain('Fire Dmg')
-  expect(rows.Effects).toContain('Cleanse Chilled')
+  expect(rows.Effects).toContain('Conditional Cleanse')
   expect(
     Object.fromEntries(
       skillParameterRows(skill, skill, defaultCombatEffectTimingPolicy(), {

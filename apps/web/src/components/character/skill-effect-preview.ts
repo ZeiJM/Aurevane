@@ -538,7 +538,8 @@ function previewEffectPayload(
         options.explicitElemental !== false
       )
         return {
-          label: 'Cleanse Chilled',
+          label: 'Conditional Cleanse',
+          magnitude: 'Chilled',
           explanation: `Removes Chilled from ${effect.recipient === 'actor' ? 'the caster' : effect.recipient === 'affected-units' ? 'each affected unit' : 'the selected unit'} only; other statuses remain.`,
         }
       const legacyCleanse = combatEffectPresentationTags(effect).includes('Cleanse')

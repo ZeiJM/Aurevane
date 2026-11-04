@@ -37,7 +37,6 @@
   opacity: 0.6;
   cursor: default;
 }
-.title,
 .panelHeading,
 .dialogHeading {
   display: flex;
@@ -45,26 +44,9 @@
   align-items: center;
   gap: 12px;
 }
-.title {
-  margin-bottom: 20px;
-}
-.title h2 {
-  font-family: Georgia, serif;
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  margin: 0.3rem 0;
-}
-.title p {
-  color: #b7b4a9;
-  margin: 0.4rem 0;
-}
-.eyebrow {
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  color: #d2ac6c;
-}
 .columns {
   display: grid;
-  grid-template-columns: minmax(270px, 0.75fr) minmax(0, 1.75fr);
+  grid-template-columns: minmax(330px, 0.9fr) minmax(0, 1.6fr);
   gap: 20px;
   align-items: start;
 }
@@ -77,11 +59,13 @@
   box-shadow: 0 12px 30px #0003;
 }
 .panelHeading {
-  margin-bottom: 14px;
+  margin-bottom: 6px;
 }
 .panelHeading h3 {
   margin: 0;
   font-family: Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.2;
 }
 .panelHeading strong {
   font-size: 0.86rem;
@@ -95,7 +79,12 @@
 .muted {
   color: #acaeaa;
   font-size: 0.8rem;
-  line-height: 1.5;
+  line-height: 1.35;
+  margin: 8px 0;
+}
+.reload {
+  align-self: start;
+  margin-bottom: 8px;
 }
 .warning {
   border: 1px solid #a47556;
@@ -117,64 +106,167 @@
 }
 .equipment {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 9px;
+  grid-template-columns: minmax(0, 1fr) minmax(64px, 0.8fr) minmax(0, 1fr);
+  grid-template-rows: repeat(4, minmax(68px, 1fr));
+  gap: 8px 5px;
+  isolation: isolate;
+  position: relative;
+  padding-block: 6px;
+  margin-top: 2px;
+  border-top: 1px solid #a58b5033;
+  border-bottom: 1px solid #a58b5033;
+  background: radial-gradient(ellipse at 50% 46%, #a8883c20, transparent 67%);
+}
+.mannequin {
+  grid-column: 2;
+  grid-row: 1 / 5;
+  display: grid;
+  place-items: center;
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  align-self: stretch;
+}
+.mannequin img {
+  width: 220%;
+  max-width: none;
+  height: 100%;
+  object-fit: contain;
+  position: absolute;
+  filter: drop-shadow(0 6px 10px #0009);
+  z-index: -1;
+}
+.mannequinHalo {
+  position: absolute;
+  width: 105%;
+  height: 84%;
+  border: 1px solid #a98d4438;
+  border-radius: 50%;
+  box-shadow:
+    0 0 0 7px #b6975110,
+    inset 0 0 24px #b88c2b12;
+  transform: rotate(-8deg);
+  z-index: -2;
+}
+.mannequinCaption {
+  align-self: end;
+  color: #c8af75;
+  font:
+    0.6rem/1.2 Georgia,
+    serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 0;
+  text-shadow: 0 2px 4px #000;
+}
+.equipmentSlot[data-equipment-position='head'] {
+  grid-area: 1 / 1;
+}
+.equipmentSlot[data-equipment-position='body'] {
+  grid-area: 2 / 1;
+}
+.equipmentSlot[data-equipment-position='pants'] {
+  grid-area: 3 / 1;
+}
+.equipmentSlot[data-equipment-position='boots'] {
+  grid-area: 4 / 1;
+}
+.equipmentSlot[data-equipment-position='main-hand'] {
+  grid-area: 1 / 3;
+}
+.equipmentSlot[data-equipment-position='off-hand'] {
+  grid-area: 2 / 3;
+}
+.equipmentSlot[data-equipment-position='consumable-1'] {
+  grid-area: 3 / 3;
+}
+.equipmentSlot[data-equipment-position='consumable-2'] {
+  grid-area: 4 / 3;
 }
 .workspace .equipmentSlot {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  padding: 9px 5px;
-  min-height: 149px;
+  background: linear-gradient(135deg, #39382be8, #182229f5);
+  box-shadow:
+    inset 0 1px 0 #d4bb7920,
+    0 4px 8px #0003;
 }
-.equipmentSlot > span:first-child {
+.workspace .equipmentSlot {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: max-content max-content max-content;
+  align-items: center;
+  align-content: center;
+  column-gap: 5px;
+  row-gap: 1px;
+  min-width: 0;
+  padding: 5px;
+  min-height: 0;
+  text-align: left;
+}
+.workspace .equipmentSlot > span:first-child {
+  grid-column: 1 / 3;
+  grid-row: 1;
   color: #c4b492;
-  font-size: 0.74rem;
-  letter-spacing: 0.06em;
+  font-size: 0.66rem;
+  line-height: 1.1;
 }
 .equipmentSlot img {
-  width: 70px;
-  height: 70px;
+  grid-column: 1;
+  grid-row: 2 / 4;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
   border-radius: 4px;
 }
-.equipmentSlot strong {
-  font-size: 0.8rem;
+.workspace .equipmentSlot strong {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 0.72rem;
+  line-height: 1.15;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
-.equipmentSlot small {
+.workspace .equipmentSlot small {
+  grid-column: 2;
+  grid-row: 3;
   color: #c4b8a3;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
+  line-height: 1.1;
 }
 .emptyIcon {
-  height: 70px;
+  grid-column: 1;
+  grid-row: 2 / 4;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   font-size: 2rem;
   color: #9c8969;
 }
 .attack {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #574c38;
-  font-size: 0.83rem;
+  margin-top: 8px;
+  padding-top: 0;
+  font-size: 0.75rem;
 }
 .attack p {
   color: #b5b8ad;
-  line-height: 1.5;
+  line-height: 1.35;
+  margin: 5px 0;
 }
 .tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 5px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 6px;
 }
 .workspace .tabs button {
-  font-size: 0.8rem;
-  flex: 1 0 auto;
-  padding: 0.55rem 0.65rem;
+  font-size: 0.74rem;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0.35rem 0.3rem;
+  line-height: 1.2;
 }
 .controls {
   display: grid;
@@ -185,8 +277,8 @@
 .controls label,
 .proposal > label {
   display: grid;
-  gap: 5px;
-  font-size: 0.75rem;
+  gap: 3px;
+  font-size: 0.7rem;
   color: #d7c39d;
 }
 .controls input,
@@ -198,10 +290,19 @@
   color: #eddfc6;
   border: 1px solid #6d624e;
   border-radius: 5px;
-  padding: 0.55rem;
+  padding: 0.35rem 0.45rem;
+  min-height: 34px;
+  font-size: 0.8rem;
 }
 .controls button {
-  font-size: 0.8rem;
+  font-size: 0.74rem;
+  min-height: 34px;
+  padding: 0.35rem 0.5rem;
+}
+.controls + .muted {
+  font-size: 0.7rem;
+  line-height: 1.25;
+  margin: 4px 0;
 }
 .inventoryScroll {
   max-height: 620px;
@@ -213,9 +314,9 @@
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
+  grid-auto-rows: 1fr;
 }
 .inventoryCell {
-  aspect-ratio: 0.84;
   min-width: 0;
   border: 1px solid #4f4b3e;
   background: #111a21aa;
@@ -226,9 +327,9 @@
   position: relative;
   width: 100%;
   height: 100%;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
+  padding: 4px;
+  display: grid;
+  grid-template-rows: auto minmax(1.2em, auto);
   gap: 0;
   border: 0;
   border-radius: 4px;
@@ -236,8 +337,11 @@
 }
 .item img {
   width: 100%;
-  height: 74%;
+  height: auto;
+  aspect-ratio: 1;
+  display: block;
   object-fit: contain;
+  object-position: center;
 }
 .item[data-tier='S'] {
   box-shadow: inset 0 0 0 2px #e4b751;
@@ -262,10 +366,13 @@
   width: 100%;
   text-align: center;
   overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 2px;
-  font-size: 0.67rem;
-  line-height: 1.1;
+  padding: 4px 2px 2px;
+  font-size: 0.7rem;
+  line-height: 1.2;
+  align-self: center;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 .equipped {
   position: absolute;
@@ -280,11 +387,12 @@
   display: grid;
   place-items: center;
   height: 100%;
+  min-height: 90px;
   color: #5e645f;
   font-size: 0.75rem;
 }
 .dialog.dialog {
-  width: min(720px, 100%);
+  width: min(960px, calc(100% - 24px));
   max-height: 90dvh;
   background: linear-gradient(120deg, #252d2f, #14202a);
   border: 1px solid #907952;
@@ -294,7 +402,7 @@
   border-radius: 12px;
 }
 .dialogHeading {
-  padding: 15px;
+  padding: 10px 14px;
   border-bottom: 1px solid #65573e;
 }
 .dialogHeading h2 {
@@ -302,15 +410,19 @@
   font-size: 1.15rem;
 }
 .dialogBody {
-  padding: 16px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(220px, 1fr);
+  align-items: start;
+  gap: 16px;
   overflow-y: auto;
-  max-height: calc(90dvh - 80px);
+  max-height: calc(90dvh - 60px);
 }
 .dialog button {
   border: 1px solid #887149;
   color: #f0ddba;
   background: #33362d;
-  padding: 0.65rem 0.9rem;
+  padding: 0.45rem 0.7rem;
   border-radius: 5px;
   cursor: pointer;
 }
@@ -319,24 +431,37 @@
   cursor: default;
 }
 .dialog .remove {
-  margin: 8px 8px 8px 0;
+  margin: 0;
+}
+.equipmentActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.dialogBody[data-equipped-inspection='true'] {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 .proposal {
-  border-top: 1px solid #705d3b;
-  margin-top: 15px;
-  padding-top: 8px;
-  font-size: 0.88rem;
+  border-left: 1px solid #705d3b;
+  padding-left: 12px;
+  font-size: 0.78rem;
+}
+.proposal h3 {
+  font-size: 1rem;
+  margin: 0 0 8px;
 }
 .proposal fieldset {
   border: 1px solid #65583e;
-  padding: 10px;
-  margin-bottom: 14px;
+  padding: 6px 8px;
+  margin: 8px 0;
 }
 .proposal fieldset label {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 0;
+  padding: 4px 0;
+  line-height: 1.25;
 }
 .proposal input {
   width: 18px;
@@ -363,44 +488,53 @@
     padding: 12px;
   }
 }
+@media (min-width: 981px) and (max-width: 1100px) {
+  .columns {
+    grid-template-columns: minmax(330px, 0.85fr) minmax(0, 1.65fr);
+    gap: 12px;
+  }
+  .panel {
+    padding: 12px;
+  }
+  .workspace .tabs button {
+    font-size: 0.66rem;
+    padding-inline: 2px;
+  }
+  .inventory {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
 @media (max-width: 650px) {
   .columns {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .title {
-    align-items: start;
-  }
-  .title > button {
-    font-size: 0.75rem;
-    padding: 0.5rem;
-    flex-shrink: 0;
-  }
-  .equipment {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .workspace .equipmentSlot {
-    min-height: 138px;
   }
   .equipmentSlot strong {
     font-size: 0.73rem;
   }
   .inventory {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 5px;
   }
   .inventoryScroll {
     max-height: 430px;
   }
   .itemName {
-    font-size: 0.57rem;
+    font-size: 0.67rem;
   }
   .quantity {
     font-size: 0.65rem;
   }
   .equipped {
-    top: auto;
-    bottom: 21%;
     font-size: 0.5rem;
+  }
+  .tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .workspace .tabs button,
+  .controls input,
+  .controls select,
+  .controls button {
+    min-height: 44px;
   }
   .dialog.dialog {
     width: 100%;
@@ -408,8 +542,19 @@
     border-radius: 12px 12px 6px 6px;
   }
   .dialogBody {
-    max-height: calc(94dvh - 80px);
+    max-height: calc(94dvh - 60px);
     padding: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .dialogBody[data-equipped-inspection='true'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .proposal {
+    border-left: 0;
+    padding-left: 0;
+    border-top: 1px solid #705d3b;
+    padding-top: 10px;
   }
   .panelHeading strong {
     font-size: 0.76rem;
@@ -430,7 +575,9 @@
   margin: 0;
 }
 .dialog.dialog p {
-  font-size: 0.88rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin: 6px 0;
 }
 .dialog.dialog .proposal input {
   width: 18px;
@@ -440,7 +587,7 @@
 .dialog.dialog .proposal fieldset label {
   display: flex;
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.74rem;
 }
 .dialog.dialog .proposal > label {
   margin: 0;
@@ -462,11 +609,16 @@
   color: #a79b85;
 }
 
-.dialogBody article > img {
-  max-height: min(38dvh, 340px);
-  width: auto;
-  max-width: 100%;
-  object-fit: contain;
+@media (min-width: 1280px) {
+  .inventory {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+@media (min-width: 981px) and (max-height: 660px) {
+  .equipment {
+    grid-template-rows: repeat(4, minmax(65px, 1fr));
+    gap: 5px;
+  }
 }
 
 /* The ordinary desktop shell owns the viewport; each Items panel owns its content scroll. */
@@ -487,10 +639,6 @@
     padding: clamp(12px, 1.4vw, 20px);
     overflow: hidden;
   }
-  .page .title {
-    flex-shrink: 0;
-    margin-bottom: 12px;
-  }
   .page .columns {
     flex: 1;
     min-height: 0;
@@ -504,6 +652,17 @@
   .page .panel:last-child {
     display: flex;
     flex-direction: column;
+  }
+  .page .equipmentPanel {
+    display: flex;
+    flex-direction: column;
+  }
+  .page .equipment {
+    flex: 1;
+    min-height: 0;
+  }
+  .page .equipmentPanel > :not(.equipment) {
+    flex-shrink: 0;
   }
   .page .panel:last-child > :not(.inventoryScroll) {
     flex-shrink: 0;

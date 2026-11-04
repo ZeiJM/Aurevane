@@ -15,7 +15,7 @@ export default async function ItemsPage() {
   return (
     <section data-composition="correction" className={styles.page}>
       <LoadoutHeader active="items" />
-      <CharacterItems initialView={view} />
+      <CharacterItems initialView={view} presentationId={character.presentationId} />
     </section>
   )
 }

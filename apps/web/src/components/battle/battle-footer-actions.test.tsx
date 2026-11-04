@@ -9,7 +9,7 @@ vi.mock('server-only', () => ({}))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: vi.fn() }) }))
 
 it.each(['pve', 'pvp'] as const)(
-  'omits the Modifiers footer button in %s even with owned modifiers',
+  'keeps Item after Inspect and omits the Modifiers footer button in %s',
   (kind) => {
     const { view } = capturedBasicBattle()
     const battle = {
@@ -69,6 +69,8 @@ it.each(['pve', 'pvp'] as const)(
       /<footer[^>]*data-unified-battle-footer="true"[\s\S]*?<\/footer>/,
     )?.[0]
     expect(footer).toBeTruthy()
+    const commandOrder = [...html.matchAll(/data-command-card="([^"]+)"/g)].map((match) => match[1])
+    expect(commandOrder.slice(0, 5)).toEqual(['inspect', 'items', 'move', 'attack', 'guard'])
     expect(footer).not.toContain('Modifiers')
     expect(footer).toContain('Terrain')
     expect(html).toContain('data-battle-turn-state="yours"')

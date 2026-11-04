@@ -19,6 +19,8 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterAttributeAllocation } from '@/server/character/character-attribute-service'
 import { loadCharacterBuildContext } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
+import { loadCharacterItems } from '@/server/character/character-items-service'
+import { createSupabaseCharacterItemsRepository } from '@/server/character/supabase-character-items-repository'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
 import { findAuthoredSupernaturalStoryState } from '@/server/character/supernatural-story-state-service'
@@ -113,6 +115,7 @@ export default async function CharacterProfilePage() {
     titleStateResult,
     displayStateResult,
     supernaturalStateResult,
+    equipmentResult,
   ] = await Promise.allSettled([
     readCombatEffectTimingPolicy(),
     loadLevelProgressionCurve(
@@ -133,6 +136,7 @@ export default async function CharacterProfilePage() {
       character.id,
       createSupabaseSupernaturalStoryStateRepository(),
     ),
+    loadCharacterItems(actor.userId, character.id, createSupabaseCharacterItemsRepository(false)),
   ])
 
   if (timingPolicyResult.status === 'rejected') {
@@ -226,6 +230,13 @@ export default async function CharacterProfilePage() {
         }}
         personalTitle={personalTitle}
         imageUrl={imageUrl}
+        equipmentBonuses={
+          equipmentResult.status === 'fulfilled' &&
+          equipmentResult.value &&
+          !equipmentResult.value.equipmentIssue
+            ? (equipmentResult.value.statBonuses ?? null)
+            : null
+        }
         supernatural={{ state: supernaturalState, choices: supernaturalChoices }}
       />
     </SkillEffectTimingProvider>

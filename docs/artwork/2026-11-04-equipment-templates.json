@@ -1,0 +1,41 @@
+{
+  "requestId": "ART-EQUIPMENT-20261104",
+  "createdAt": "2026-11-04",
+  "provider": "OpenAI built-in image generation",
+  "purpose": "Decorative faceless equipment templates; body/clothing variants selected by saved character presentation. These are not rendered equipped gear.",
+  "review": "Inspected for neutral featureless heads/hands, full outfit, alpha and runtime dimensions; Owner visual acceptance remains open. Not deployed.",
+  "prompt": "Preserve detailed midnight fantasy traveler outfit, aged gold filigree, wine sash, leather bracers, full boots, body proportions and front-view pose. Replace entire human head and hair with a smooth featureless charcoal mannequin head and neck; replace exposed hands with charcoal mannequin hands. No face, eyes, nose, mouth, ears, hair, human skin, text, UI or weapons. Isolated transparent alpha background.",
+  "derivative": "sharp.resize({height:900,withoutEnlargement:true}).webp({quality:85}); alpha preserved.",
+  "assets": [
+    {
+      "presentationId": "masculine",
+      "assetId": "ui.equipment.masculine.v1",
+      "generationRequestId": "exec-30380337-59f9-4f99-af25-bab451df36a7",
+      "runtimePath": "apps/web/public/media/art/items/equipment-masculine-v01.webp",
+      "runtimeWidth": 600,
+      "runtimeHeight": 900,
+      "runtimeBytes": 72374,
+      "runtimeSha256": "48fc54e08aa55aef5a180dee7e455ea839c594a1db091e992910380c2ddeba5f"
+    },
+    {
+      "presentationId": "feminine",
+      "assetId": "ui.equipment.feminine.v1",
+      "generationRequestId": "exec-e02de5ea-45f1-4848-a8a7-6c9de0ad5e8c",
+      "runtimePath": "apps/web/public/media/art/items/equipment-feminine-v01.webp",
+      "runtimeWidth": 600,
+      "runtimeHeight": 900,
+      "runtimeBytes": 71744,
+      "runtimeSha256": "d5ba8083e5bd34ec696af2b31263c0711500c0d9223d9dacc4082de1047ee684"
+    },
+    {
+      "presentationId": "androgynous",
+      "assetId": "ui.equipment.androgynous.v1",
+      "generationRequestId": "exec-3ddf444e-0fa9-4ed1-a0fb-18d5c9e59d39",
+      "runtimePath": "apps/web/public/media/art/items/equipment-androgynous-v01.webp",
+      "runtimeWidth": 600,
+      "runtimeHeight": 900,
+      "runtimeBytes": 74310,
+      "runtimeSha256": "d26d3e357944930e2637e12b3d7b7e3ab822e63343bbf0b3b8019dad44796690"
+    }
+  ]
+}

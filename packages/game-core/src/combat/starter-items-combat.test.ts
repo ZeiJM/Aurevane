@@ -18,16 +18,18 @@ import { combatStatBonus } from './combat-stat-bonuses'
 import { currentBarrierAmount } from './combat-barrier'
 const catalogue = starterItemDefinitions()
 const equipment = (ids: string[]): BattleEquipmentCapture => ({
-  schemaVersion: 1,
+  schemaVersion: 2,
   inventoryRevision: 1,
   selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
   equipment: ids.map((id, index) => ({
     position:
-      catalogue.find((x) => x.id === id)!.equipment!.slot === 'boots'
-        ? 'boots'
-        : index === 0
-          ? 'main-hand'
-          : 'off-hand',
+      catalogue.find((x) => x.id === id)!.itemClass === 'battle-item'
+        ? 'consumable-1'
+        : catalogue.find((x) => x.id === id)!.itemClass === 'hand-armor'
+          ? 'off-hand'
+          : catalogue.find((x) => x.id === id)!.equipment!.slot === 'boots'
+            ? 'boots'
+            : 'main-hand',
     ownedStackId: `private-${index}`,
     item: catalogue.find((x) => x.id === id)!,
   })),
@@ -281,7 +283,12 @@ it('executes selected genuine Support Actions with their AP, cooldown and protec
     const r = ready([id])
     const capture: BattleEquipmentCapture = {
       ...r.capture,
-      selectedSupport: { kind: 'equipment', position: 'main-hand', itemId: id, behaviorId },
+      selectedSupport: {
+        kind: 'equipment',
+        position: r.capture.equipment[0]!.position,
+        itemId: id,
+        behaviorId,
+      },
     }
     const source = captureEquipmentAbilitySource(capture, capture.equipment[0]!, 'actor')!
     const state = activateCombatAbilitySources(
@@ -304,6 +311,59 @@ it('executes selected genuine Support Actions with their AP, cooldown and protec
       ).toMatchObject({ potencyBasisPoints: 3000 })
   }
 })
+
+it.each([
+  ['twinfang-blade', 'quickstep', 15],
+  ['stormcaller-staff', 'storm-ward', 25],
+  ['emberbrand', 'kindle', 20],
+] as const)(
+  'executes selectable %s Support through the real command and cooldown',
+  (id, behaviorId, cost) => {
+    const r = ready([id])
+    expect(r.sources[0]!.definition.behaviors.map((b) => b.id)).not.toContain(behaviorId)
+    const capture: BattleEquipmentCapture = {
+      ...r.capture,
+      selectedSupport: { kind: 'equipment', position: 'main-hand', itemId: id, behaviorId },
+    }
+    const source = captureEquipmentAbilitySource(capture, capture.equipment[0]!, 'actor')!
+    const state = activateCombatAbilitySources(
+      ready([]).state,
+      [source],
+      PV1F_COMBAT_CONTENT,
+      true,
+    ).state
+    const command = input(state, source, behaviorId)
+    expect(prepareCombatAbilityCommand(command).evaluation.legal).toBe(true)
+    const result = commitCombatAbilityCommand(command)
+    expect(ap(result.state)).toBe(100 - cost)
+    expect(
+      prepareCombatAbilityCommand(
+        input(JSON.parse(JSON.stringify(result.state)), source, behaviorId),
+      ).evaluation.legal,
+    ).toBe(false)
+    if (id === 'stormcaller-staff') expect(currentBarrierAmount(result.state, 'actor')).toBe(80)
+    else {
+      const status = result.state.statusState
+        .find((row) => row.combatantId === 'actor')!
+        .statuses.find((status) => status.statusId === (id === 'emberbrand' ? 'inspired' : 'haste'))
+      expect(status).toMatchObject(
+        id === 'emberbrand' ? { potencyBasisPoints: 1000 } : { movementApAdjustment: 5 },
+      )
+      if (id === 'twinfang-blade') {
+        const moved = executePv1fMovement(result.state as ReturnType<typeof fixture>, [
+          { x: 1, y: 1 },
+          { x: 0, y: 1 },
+        ])
+        expect(ap(moved.state)).toBe(70)
+      }
+    }
+    expect(
+      compileEquipmentAbility(capture, capture.equipment[0]!).behaviors.filter(
+        (b) => b.id === behaviorId,
+      ),
+    ).toHaveLength(1)
+  },
+)
 it.each([
   ['whetstone-charm', 'higher'],
   ['ironbark-tonic', 'lower'],
@@ -336,8 +396,8 @@ it('Swiftleaf Tea reduces paid ordinary Move AP while preserving movement accoun
     { x: 1, y: 1 },
     { x: 0, y: 1 },
   ])
-  expect(ap(used.state)).toBe(80)
-  expect(ap(moved.state)).toBe(70)
+  expect(ap(used.state)).toBe(75)
+  expect(ap(moved.state)).toBe(65)
 })
 
 it('Iron Shortsword reaches distance two where unarmed cannot attack', () => {

@@ -1921,6 +1921,66 @@ it('omits private Counter settlement rates from public damage receipts', () => {
   expect(receipt.counterReturnBasisPoints).toBe('17500')
 })
 
+it('retains exact pending Chilled-only captured wording beside a generic Conditional Cleanse sibling', () => {
+  const state = encounter()
+  state.pendingEffects = [
+    {
+      actorId: PLAYER,
+      actionId: 'saved.chilled-cleanse',
+      recipientIds: [PLAYER],
+      affectedTiles: [],
+      effect: { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] },
+      activationRound: 2,
+      content: PV1F_COMBAT_CONTENT,
+    },
+  ]
+  const words = {
+    contentKey: 'tag.cleanse-chilled',
+    contentVersion: 7,
+    tagId: 'cleanse-chilled',
+    name: 'Thawing Ember',
+    compact: 'Saved compact Chilled-only text.',
+    full: 'Saved full Chilled-only text.',
+  }
+  const captured = {
+    ...state,
+    buildAuthority: {
+      schemaVersion: 1 as const,
+      combatContext: 'pve' as const,
+      combatants: [],
+      tagPresentations: [
+        {
+          ...words,
+          contentKey: 'tag.conditional-cleanse',
+          tagId: 'conditional-cleanse',
+          name: 'Other Cleanse',
+          compact: 'Wrong sibling.',
+        },
+        words,
+      ],
+    },
+  }
+  const before = JSON.stringify(captured)
+  const rows = projectBattleStatusStateForViewer(
+    captured,
+    deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [PLAYER]),
+  )
+  expect(rows.find((row) => row.combatantId === PLAYER)!.statuses).toContainEqual(
+    expect.objectContaining({
+      statusId: 'remove-status',
+      timingState: 'pending',
+      battleTag: {
+        tagId: 'cleanse-chilled',
+        contentVersion: 7,
+        name: 'Thawing Ember',
+        compact: 'Saved compact Chilled-only text.',
+      },
+    }),
+  )
+  expect(JSON.stringify(rows)).not.toContain('Wrong sibling.')
+  expect(JSON.stringify(captured)).toBe(before)
+})
+
 it('retains a captured stationary summon flag in public effect state', () => {
   const state = encounter()
   state.effectState!.summons = [

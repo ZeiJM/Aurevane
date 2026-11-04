@@ -89,7 +89,7 @@ export function CompactEffectSummary({
   count?: number
 }) {
   return (
-    <span data-compact-skill-effect="true">
+    <span className={styles.effectLine} data-compact-skill-effect="true">
       <strong className={styles.label} data-compact-effect-label="true">
         <EffectTagLabel label={parts.label} tagPresentation={tagPresentation} />
       </strong>

@@ -383,7 +383,7 @@ function effectPresentation(
           ? 'Controlled'
           : mode === 'delayed'
             ? 'Delayed'
-            : mode === 'instant' && native.type !== 'damage'
+            : mode === 'instant'
               ? 'Instant'
               : undefined,
     }
@@ -468,14 +468,26 @@ function effectPresentation(
           : detail,
       ),
     }
+  const durationClock = /(?:full rounds?|global round boundar(?:y|ies))/u.test(parts.duration ?? '')
+    ? 'Global round boundaries after activation'
+    : /(?:affected turns?|recipient turn ends?)/u.test(parts.duration ?? '')
+      ? 'Affected character turns after activation'
+      : null
   parts = {
     ...parts,
+    ...(durationClock
+      ? { details: [...(parts.details ?? []), { label: 'Duration clock', value: durationClock }] }
+      : {}),
     duration:
       parts.duration
-        ?.replace(/recipient turn ends/gu, 'Turns')
+        ?.replace(/global round boundaries/gu, 'Turns')
+        .replace(/global round boundary/gu, 'Turn')
+        .replace(/affected turns/gu, 'Turns')
+        .replace(/affected turn/gu, 'Turn')
+        .replace(/recipient turn ends/gu, 'Turns')
         .replace(/recipient turn end/gu, 'Turn')
-        .replace(/full rounds/gu, 'Rounds')
-        .replace(/full round/gu, 'Round') ?? null,
+        .replace(/full rounds/gu, 'Turns')
+        .replace(/full round/gu, 'Turn') ?? null,
   }
   if (parts.timing === 'Instant' && /^1 (?:affected )?turns?$/iu.test(parts.duration ?? ''))
     parts = { ...parts, duration: null }

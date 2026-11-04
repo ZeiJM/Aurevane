@@ -29,7 +29,10 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
   // Applied source manifests remain historical. The additive support migration
   // adds current Support identities, the replacement class utility and passive stats.
   const current = manifest
-    .filter((row: { contentKey: string }) => row.contentKey !== 'basic.guard')
+    .filter(
+      (row: { contentKey: string }) =>
+        !['basic.guard', 'tag.cleanse-chilled'].includes(row.contentKey),
+    )
     .map((row: { contentKind: string; contentKey: string; name: string }) => ({
       ...row,
       ...(row.contentKey === 'wildwarden.renewing-herbs'

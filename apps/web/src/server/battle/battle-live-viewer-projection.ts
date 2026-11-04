@@ -16,6 +16,7 @@ import {
 import { battleTagForStatus } from '@/lib/battle/battle-tag-wording'
 import type { BattleBuildAuthoritySnapshot } from './battle-build-authority'
 import { combatEffectPresentationId } from '@aurevane/game-core/combat/combat-effect-identities'
+import { combatEffectTagPresentation } from '@aurevane/game-core/combat/combat-tag-registry'
 import { renderAbilityPresentationText } from '@aurevane/game-core/combat/battle-narration'
 import { contentArtworkKey } from '@aurevane/game-core/combat/content-media'
 import { airborneJump } from '@aurevane/game-core/combat/combat-airborne'
@@ -600,7 +601,8 @@ export function projectBattleStatusStateForViewer(
           battleTag: battleTagForStatus(
             state.buildAuthority?.tagPresentations,
             row.status,
-            combatEffectPresentationId(effect.effect),
+            combatEffectTagPresentation(state.buildAuthority?.tagPresentations, effect.effect)
+              ?.tagId ?? combatEffectPresentationId(effect.effect),
           ),
         } as BattlePresentedStatus
       const visibility = effect.sourceCommandVisibility

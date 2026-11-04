@@ -97,12 +97,42 @@ const browser = await chromium.launch({
   args: ['--no-sandbox'],
   headless: true,
 })
+const geometryOnly = process.env.AV_ITEMS_GEOMETRY_ONLY === '1'
+async function assertCompactHeadingGeometry(page, report, width, requireFit = false) {
+  const headings = await report.locator('[data-compact-skill-effect]').evaluateAll((lines) =>
+    lines.map((line) => ({
+      text: line.textContent,
+      tops: Array.from(line.children, (token) => token.getBoundingClientRect().top),
+      clientWidth: line.clientWidth,
+      scrollWidth: line.scrollWidth,
+      overflowX: getComputedStyle(line).overflowX,
+    })),
+  )
+  assert.ok(headings.length > 0)
+  for (const heading of headings) {
+    assert.ok(heading.tops.length >= 2, JSON.stringify(heading))
+    assert.ok(Math.max(...heading.tops) - Math.min(...heading.tops) <= 3, JSON.stringify(heading))
+    if (width >= 821 || requireFit)
+      assert.ok(heading.scrollWidth <= heading.clientWidth + 1, JSON.stringify(heading))
+    if (width < 821) assert.equal(heading.overflowX, 'auto', JSON.stringify(heading))
+  }
+  assert.equal(
+    await page.evaluate(
+      () =>
+        Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) <= innerWidth + 1,
+    ),
+    true,
+  )
+  return headings
+}
 const errors = [],
   results = []
 try {
-  for (const mode of ['pve', 'pvp', 'spectator'])
+  for (const mode of geometryOnly ? ['pve'] : ['pve', 'pvp', 'spectator'])
     for (const width of [1366, 390, 412])
-      for (const scenario of ['items', 'items-weapon', 'items-controlled', 'items-starter']) {
+      for (const scenario of geometryOnly
+        ? ['items', 'items-barrier']
+        : ['items', 'items-weapon', 'items-controlled', 'items-starter', 'items-two-handed']) {
         const page = await browser.newPage({
           viewport: { width, height: 915 },
           isMobile: width < 821,
@@ -122,13 +152,17 @@ try {
           ),
         )
         if (mode === 'spectator') {
-          assert.ok(!/equipmentActions|remainingUses|Mender Salve|Iron Shortsword/.test(serialized))
+          assert.ok(
+            !/equipmentActions|remainingUses|Mender Salve|Iron Shortsword|Sunsplitter/.test(
+              serialized,
+            ),
+          )
           assert.equal(await page.locator('[data-command-slot="items"]').count(), 0)
         } else {
           const slots = await page
             .locator('[data-command-slot]')
             .evaluateAll((nodes) => nodes.map((node) => node.dataset.commandSlot))
-          assert.deepEqual(slots.slice(0, 5), ['inspect', 'move', 'attack', 'items', 'guard'])
+          assert.deepEqual(slots.slice(0, 5), ['inspect', 'items', 'move', 'attack', 'guard'])
           const itemCommand = page.locator('[data-command-slot="items"]')
           assert.equal(await itemCommand.isEnabled(), true)
           assert.ok((await itemCommand.getAttribute('aria-label')).startsWith('Item,'))
@@ -142,7 +176,7 @@ try {
           )
           assert.equal(
             await choices.locator('[data-item-action]').count(),
-            ['items-weapon', 'items-starter'].includes(scenario) ? 1 : 2,
+            ['items-weapon', 'items-starter', 'items-two-handed'].includes(scenario) ? 1 : 2,
           )
           await choices
             .locator('img')
@@ -163,7 +197,7 @@ try {
           assert.equal(
             bounded,
             true,
-            'Both hand choices and i buttons fit the existing preview pane',
+            'Consumable choices and i buttons fit the existing preview pane',
           )
           await page.screenshot({
             path: resolve(output, `items-${mode}-${scenario}-${width}-choices.png`),
@@ -171,6 +205,50 @@ try {
           const info = choices.getByRole('button', { name: /^Information about/ }).first()
           await info.click()
           await page.locator('[data-battle-info-panel]').waitFor()
+          const report = page.locator('[data-battle-item-report]')
+          await report.waitFor()
+          const headingGeometry = await assertCompactHeadingGeometry(
+            page,
+            report,
+            width,
+            scenario === 'items-barrier',
+          )
+          const reportText = await report.innerText()
+          assert.ok(reportText.includes('Parameters'))
+          assert.ok(!/Tier|Maximum stack| → /.test(reportText))
+          assert.equal(await report.locator('[data-ability-parameters]').count(), 1)
+          assert.equal(await report.locator('ul[aria-label="Effect explanations"] > li').count(), 1)
+          const tagLabels = await report
+            .locator('[data-effect-tag-label], [data-combat-tag-reference]')
+            .allTextContents()
+          assert.equal(
+            tagLabels.length,
+            ['items-starter', 'items-two-handed', 'items-barrier'].includes(scenario) ? 2 : 3,
+          )
+          const expectedTag =
+            scenario === 'items-barrier'
+              ? 'Barrier'
+              : ['items-starter', 'items-two-handed'].includes(scenario)
+                ? 'HP Recovery'
+                : 'Heal'
+          assert.ok(
+            tagLabels.every((label) => label.startsWith(expectedTag)),
+            JSON.stringify({ mode, width, scenario, tagLabels, reportText }),
+          )
+          const infoImage = report.locator('img')
+          await infoImage.evaluate((image) => image.decode())
+          const infoImageBounds = await infoImage.boundingBox()
+          assert.ok(infoImageBounds.width <= 48 && infoImageBounds.height <= 48)
+          assert.ok(infoImageBounds.width > 0 && infoImageBounds.height > 0)
+          const capturedDescription = await page.evaluate(
+            () =>
+              window.fixtureBattle.snapshot.equipmentActions.find((item) => item.role === 'use')
+                .description,
+          )
+          if (capturedDescription) assert.ok(!reportText.includes(capturedDescription))
+          await page.screenshot({
+            path: resolve(output, `items-${mode}-${scenario}-${width}-info.png`),
+          })
           assert.equal(
             (
               await page.evaluate(() =>
@@ -185,11 +263,47 @@ try {
             true,
             `Info Escape ${mode}/${width}/${scenario}: ${await page.evaluate(() => document.activeElement?.outerHTML.slice(0, 150))}`,
           )
+          if (geometryOnly) {
+            results.push({ mode, width, scenario, passed: true, headingGeometry })
+            await page.close()
+            continue
+          }
           if (width === 1366) {
             await choices.locator('[data-item-action]').first().focus()
             await page.keyboard.press('Enter')
           } else await choices.locator('[data-item-action]').first().tap()
-          if (scenario === 'items-starter') {
+          if (['items-starter', 'items-two-handed'].includes(scenario)) {
+            const expected = await page.evaluate(() => {
+              const items = window.fixtureBattle.snapshot.equipmentActions
+              const consumable = items.find((item) => item.role === 'use')
+              const weapon = items.find((item) => item.role === 'attack')
+              const apCost = (item) =>
+                item.behaviors[0].costs
+                  .filter((cost) => cost.resource === 'ap')
+                  .reduce((sum, cost) => sum + cost.amount, 0)
+              return {
+                useCost: apCost(consumable),
+                attackCost: apCost(weapon),
+                remainingUses: consumable.maximumUsesPerBattle - 1,
+                weaponName: weapon.name,
+                usePosition: consumable.position,
+                weaponPosition: weapon.position,
+                hands: weapon.item.equipment.hands,
+                usePositions: items
+                  .filter((item) => item.role === 'use')
+                  .map((item) => item.position),
+                offHandActions: items.filter((item) => item.position === 'off-hand').length,
+              }
+            })
+            assert.equal(expected.usePosition, 'consumable-1')
+            assert.equal(expected.weaponPosition, 'main-hand')
+            assert.deepEqual(expected.usePositions, ['consumable-1'])
+            assert.equal(expected.offHandActions, 0)
+            assert.equal(expected.hands, scenario === 'items-two-handed' ? 2 : 1)
+            assert.equal(
+              expected.weaponName,
+              scenario === 'items-two-handed' ? 'Sunsplitter' : 'Iron Shortsword',
+            )
             assert.equal(
               (
                 await page.evaluate(() =>
@@ -213,18 +327,32 @@ try {
                   (row) => row.role === 'use',
                 ).remainingUses,
               }))
-            assert.deepEqual(await resources(), { hp: 52, ap: 65, uses: 2 })
+            assert.deepEqual(await resources(), {
+              hp: 52,
+              ap: 100 - expected.useCost,
+              uses: expected.remainingUses,
+            })
             await page.evaluate(() => window.restoreCanonicalBattle())
-            assert.deepEqual(await resources(), { hp: 52, ap: 65, uses: 2 })
+            assert.deepEqual(await resources(), {
+              hp: 52,
+              ap: 100 - expected.useCost,
+              uses: expected.remainingUses,
+            })
             const attack = page.locator('[data-command-slot="attack"]')
-            assert.ok((await attack.getAttribute('aria-label')).startsWith('Iron Shortsword,'))
+            assert.ok(
+              (await attack.getAttribute('aria-label')).startsWith(`${expected.weaponName},`),
+            )
             await attack.click()
             await page
               .locator('#battlefield')
               .getByRole('button', { name: /^Tile 5, 4;/ })
               .click()
             await page.waitForFunction(() => window.fixtureBattle.battleVersion === 4)
-            assert.deepEqual(await resources(), { hp: 52, ap: 35, uses: 2 })
+            assert.deepEqual(await resources(), {
+              hp: 52,
+              ap: 100 - expected.useCost - expected.attackCost,
+              uses: expected.remainingUses,
+            })
             await page.screenshot({
               path: resolve(output, `items-${mode}-${scenario}-${width}.png`),
             })
@@ -374,11 +502,7 @@ try {
             90,
           )
           assert.equal(first.calls.length, 1)
-          assert.ok(
-            first.calls[0].body.intent.actionId.endsWith(
-              scenario === 'items' ? '.main-hand.use' : '.off-hand.use',
-            ),
-          )
+          assert.ok(first.calls[0].body.intent.actionId.endsWith('.consumable-1.use'))
           assert.equal(first.items.find((row) => row.role === 'use').remainingUses, 1)
           await page.evaluate(() => window.restoreCanonicalBattle())
           await itemCommand.click()
@@ -407,7 +531,7 @@ try {
             await page.waitForFunction(
               () =>
                 window.fixtureBattle.snapshot.equipmentActions.find(
-                  (row) => row.role === 'use' && row.position === 'off-hand',
+                  (row) => row.role === 'use' && row.position === 'consumable-2',
                 ).remainingUses === 1,
             )
             assert.deepEqual(
@@ -417,8 +541,8 @@ try {
                   .map((row) => [row.position, row.remainingUses]),
               ),
               [
-                ['main-hand', 0],
-                ['off-hand', 1],
+                ['consumable-1', 0],
+                ['consumable-2', 1],
               ],
             )
           } else {
@@ -485,6 +609,7 @@ try {
       {
         boundary:
           'Production battle UI, owner projections and canonical engine; local fixture transport. Actual admission and service authority verified separately.',
+        geometryOnly,
         results,
         errors,
       },

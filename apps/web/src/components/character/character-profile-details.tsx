@@ -19,9 +19,11 @@ import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 
 import { createPortal } from 'react-dom'
 
 import { CharacterBuildTendencies } from './character-build-tendencies'
+import { equippedStatValue, type EquipmentStatBonus } from '@/lib/items/equipment-stat-presentation'
 import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
+  equipmentBonuses?: readonly EquipmentStatBonus[] | null
   presentationLabel: string
   buildTypeLabel: 'Resonance Build' | 'Essence Build'
   cycleNumber: number
@@ -37,7 +39,7 @@ export interface ProfileDetailContent {
   body: string
 }
 
-type Detail = (ProfileDetailContent & { anchor: Element }) | null
+type Detail = (ProfileDetailContent & { anchor: Element; focusPopover: boolean }) | null
 
 const attributeLabels: Readonly<Record<CharacterAttributeId, string>> = {
   might: 'Might',
@@ -135,15 +137,16 @@ export function CharacterProfileDetails({
   derived,
   attributeResetControl,
   showBuildTendencies = false,
+  equipmentBonuses,
 }: CharacterProfileDetailsProps) {
   const [detail, setDetail] = useState<Detail>(null)
   const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
   const popoverRef = useRef<HTMLElement>(null)
   const popoverIsPositioned = popoverPosition !== null
 
-  function openDetail(anchor: Element, content: ProfileDetailContent) {
+  function openDetail(anchor: Element, content: ProfileDetailContent, focusPopover = true) {
     setPopoverPosition(null)
-    setDetail({ ...content, anchor })
+    setDetail({ ...content, anchor, focusPopover })
   }
 
   useEffect(() => {
@@ -170,7 +173,8 @@ export function CharacterProfileDetails({
   }, [detail])
 
   useEffect(() => {
-    if (detail && popoverIsPositioned) popoverRef.current?.focus({ preventScroll: true })
+    if (detail?.focusPopover && popoverIsPositioned)
+      popoverRef.current?.focus({ preventScroll: true })
   }, [detail, popoverIsPositioned])
 
   useEffect(() => {
@@ -359,25 +363,54 @@ export function CharacterProfileDetails({
               >
                 <div>
                   {ATTRIBUTE_STAT_GROUPS[attributeId].map((statId) => {
-                    const stat = derived.stats[statId]
+                    const baseStat = derived.stats[statId]
+                    const equipment = equippedStatValue(baseStat, equipmentBonuses ?? [])
+                    const stat = equipment.stat
                     const formattedValue = formatDerivedStat(stat)
+                    const delta = `${equipment.delta >= 0 ? '+' : ''}${formatDerivedStat({ ...stat, value: equipment.delta })}`
+                    const equipmentHelp = equipment.sources.length
+                      ? ` Base: ${formatDerivedStat(baseStat)}. Equipped total: ${formattedValue}. ${equipment.sources.map((source) => `${source.itemName} (${source.position.replaceAll('-', ' ')}): ${source.amount >= 0 ? '+' : ''}${formatDerivedStat({ ...stat, value: source.amount })}${source.conditional ? ' when its battle Requirements are met; excluded from this total' : ''}`).join('; ')}.`
+                      : ''
+                    const content = {
+                      eyebrow: `${attributeLabels[attributeId]} capability`,
+                      title: stat.label,
+                      body: DERIVED_STAT_PROFILE_HELP[statId] + equipmentHelp,
+                    }
                     return (
                       <button
                         key={statId}
                         type="button"
                         data-testid={`derived-stat-${statId}`}
                         aria-label={`${stat.label}, ${formattedValue}. Select for details.`}
-                        onClick={(event) =>
-                          openDetail(event.currentTarget, {
-                            eyebrow: `${attributeLabels[attributeId]} capability`,
-                            title: stat.label,
-                            body: DERIVED_STAT_PROFILE_HELP[statId],
-                          })
+                        onClick={(event) => openDetail(event.currentTarget, content)}
+                        onMouseEnter={
+                          equipment.sources.length
+                            ? (event) => openDetail(event.currentTarget, content, false)
+                            : undefined
                         }
                       >
                         <span aria-hidden="true">{statGlyphs[statId]}</span>
                         <span>{stat.label}</span>
-                        <strong>{formattedValue}</strong>
+                        <strong>
+                          {formattedValue}
+                          {equipment.sources.length ? (
+                            <span
+                              className={
+                                equipment.delta < 0
+                                  ? styles.equipmentPenalty
+                                  : styles.equipmentBonus
+                              }
+                              data-equipment-stat-delta={equipment.delta}
+                            >
+                              {' '}
+                              (
+                              {equipment.sources.every((source) => source.conditional)
+                                ? 'conditional'
+                                : delta}
+                              )
+                            </span>
+                          ) : null}
+                        </strong>
                       </button>
                     )
                   })}
@@ -386,6 +419,12 @@ export function CharacterProfileDetails({
             )
           })}
         </div>
+        {equipmentBonuses === null ? (
+          <p role="status">
+            Equipment bonuses could not be verified. Base stats are shown; check your Items or
+            reload.
+          </p>
+        ) : null}
       </section>
 
       {showBuildTendencies ? (

@@ -117,8 +117,10 @@ describe('pinned summon ability characteristics', () => {
         abilities={abilities}
       />,
     )
-    expect(markup).toContain('[Delayed]')
-    expect(markup).not.toContain('[Instant]')
+    const cards = markup.split('data-summon-ability=')
+    expect(cards[1]).toContain('[Instant]')
+    expect(cards[2]).toContain('[Delayed]')
+    expect(cards[2]).not.toContain('[Instant]')
   })
 
   it('keeps historical Airborne targeting limits', () => {

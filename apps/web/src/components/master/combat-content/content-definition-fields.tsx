@@ -32,6 +32,11 @@ import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { AbilityRequirementEditor } from './ability-requirement-editor'
 import { AbilityNumber, AbilitySelect, AbilityText } from './ability-editor-fields'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
+import {
+  CONTENT_TEXT_GUIDANCE,
+  contentDescriptionGuidance,
+  contentFlavorGuidance,
+} from './content-text-guidance'
 import { SkillMediaEditor } from './skill-media-editor'
 import { FinalizedMediaEditor } from './finalized-media-editor'
 import { SkillTargetingEditor } from './skill-targeting-editor'
@@ -1161,6 +1166,8 @@ function ContentDescriptionFields({
   onChange(value: CombatContentDefinition): void
 }) {
   const hintId = useId()
+  const descriptionGuidance = contentDescriptionGuidance(kind)
+  const flavorGuidance = contentFlavorGuidance(kind)
   const set = (patch: Record<string, unknown>) => onChange({ ...value, ...patch })
   const body = readMechanicsBody(kind, value)
   const setBody = (next: CombatContentDefinition) => onChange(writeMechanicsBody(kind, value, next))
@@ -1171,28 +1178,23 @@ function ContentDescriptionFields({
   return (
     <div className={styles.descriptionFields}>
       <div className={styles.descriptionField}>
-        <label>
-          <span>Description</span>
-          <textarea
-            aria-label="Description"
-            aria-describedby={`${hintId}-description`}
-            value={text(value.description)}
-            onChange={(event) =>
-              onChange(
-                withContentIdentityText(kind, value, 'description', event.currentTarget.value),
-              )
-            }
-          />
-        </label>
-        <small id={`${hintId}-description`}>
-          {kind === 'resonance'
-            ? 'Shown in Resonance details.'
-            : kind === 'skill' || kind === 'essence'
-              ? 'Shown in the full ability details.'
-              : kind === 'discipline'
-                ? 'Shown in Discipline details.'
-                : 'Shown in this content’s details.'}
-        </small>
+        <div>
+          <label htmlFor={`${hintId}-description-input`}>Description</label>{' '}
+          <MasterHelp label="Description">
+            <p>{descriptionGuidance.hint}</p>
+            <p>{descriptionGuidance.help}</p>
+          </MasterHelp>
+        </div>
+        <textarea
+          id={`${hintId}-description-input`}
+          aria-label="Description"
+          aria-describedby={`${hintId}-description`}
+          value={text(value.description)}
+          onChange={(event) =>
+            onChange(withContentIdentityText(kind, value, 'description', event.currentTarget.value))
+          }
+        />
+        <small id={`${hintId}-description`}>{descriptionGuidance.hint}</small>
       </div>
       {kind === 'tag' ? (
         <div className={styles.descriptionField}>
@@ -1200,12 +1202,17 @@ function ContentDescriptionFields({
             <span>Full Tag explanation</span>
             <textarea
               aria-label="Full Tag explanation"
+              aria-describedby={`${hintId}-tag-full`}
               value={text(value.explanation)}
               onChange={(event) => set({ explanation: event.currentTarget.value })}
             />
           </label>
-          <small>
-            Compact wording: up to 240 characters. Full explanation: up to 2000 characters.
+          <MasterHelp label="Full Tag explanation">
+            <p>{CONTENT_TEXT_GUIDANCE.tagFull.hint}</p>
+            <p>{CONTENT_TEXT_GUIDANCE.tagFull.help}</p>
+          </MasterHelp>
+          <small id={`${hintId}-tag-full`}>
+            {CONTENT_TEXT_GUIDANCE.tagFull.hint} Full explanation: up to 2000 characters.
           </small>
         </div>
       ) : null}
@@ -1215,34 +1222,39 @@ function ContentDescriptionFields({
             <div className={styles.writingField}>
               <AbilityText
                 label="Flavor line"
+                describedBy={`${hintId}-flavor`}
                 value={text(value.flavorLine)}
                 maxLength={160}
                 onChange={(flavorLine) => set({ flavorLine })}
               />
               <BattleFlavorTemplateHelp
                 label="Flavor line tags"
+                guidance={flavorGuidance}
+                outsideBattle
                 value={text(value.flavorLine)}
                 ability={name}
                 onChange={(flavorLine) => set({ flavorLine })}
               />
-              <small>Shown on the Skill card.</small>
+              <small id={`${hintId}-flavor`}>{flavorGuidance.hint}</small>
             </div>
           ) : null}
           {kind !== 'resonance' ? (
             <div className={styles.writingField}>
               <AbilityText
                 label="In-battle text"
+                describedBy={`${hintId}-battle-text`}
                 value={text(body.battleText)}
                 maxLength={160}
                 onChange={(battleText) => setBody({ ...body, battleText })}
               />
               <BattleFlavorTemplateHelp
                 label="In-battle text tags"
+                guidance={CONTENT_TEXT_GUIDANCE.battleText}
                 value={text(body.battleText)}
                 ability={name}
                 onChange={(battleText) => setBody({ ...body, battleText })}
               />
-              <small>Shown in the battle log when this ability is used.</small>
+              <small id={`${hintId}-battle-text`}>{CONTENT_TEXT_GUIDANCE.battleText.hint}</small>
             </div>
           ) : null}
         </>

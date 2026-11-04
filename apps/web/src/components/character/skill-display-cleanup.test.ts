@@ -38,9 +38,7 @@ it('uses final canonical wrapper timing when hiding single-turn durations', () =
       ...base,
       effects: [{ id: 'blindside', timing, payload }],
     })
-    expect(report.effects[0]!.parts.duration).toBe(
-      timing === 'instant' ? null : timing === 'delayed' ? '1 Round' : '1 Turn',
-    )
+    expect(report.effects[0]!.parts.duration).toBe(timing === 'instant' ? null : '1 Turn')
   }
 })
 it('uses modular action requirements without dropping the attack family or setup', () => {

@@ -3,7 +3,7 @@ import type { AuthoredTag } from '../content/authored-content'
 
 /** Defaults preserve the generated parameter-aware text until an Owner edits this tag. */
 export function defaultCombatTagDefinitions(): readonly AuthoredTag[] {
-  return REGISTERED_EFFECT_TAGS.map((tag) => {
+  return REGISTERED_EFFECT_TAGS.filter((tag) => tag.id !== 'cleanse-chilled').map((tag) => {
     const tagId = tag.id.replace(/^status:/u, '')
     return {
       schemaVersion: 1,

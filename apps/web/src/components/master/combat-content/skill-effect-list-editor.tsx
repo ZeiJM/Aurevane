@@ -84,13 +84,21 @@ export function createDefaultCombatEffect(type: CombatEffectType): CombatEffectD
     case 'apply-status':
       return { type, recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }
     case 'cleanse-chilled':
-      return { type: 'remove-status', recipient: 'actor', statusIds: ['frozen'] }
+      return {
+        type: 'remove-status',
+        recipient: 'actor',
+        target: 'self',
+        statusIds: ['frozen'],
+        removalMode: 'specified',
+        selectionKind: 'debuffs',
+      }
     case 'conditional-cleanse':
       return {
         type: 'remove-status',
         recipient: 'primary-unit',
         statusIds: ['burn'],
         removalMode: 'specified',
+        selectionKind: 'debuffs',
       }
     case 'remove-status':
       return nativeCombatTagPayload(createAuthorableEffectPayload('cleanse')!)

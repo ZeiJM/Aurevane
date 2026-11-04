@@ -15,10 +15,22 @@ export const EQUIPMENT_POSITIONS = [
   'boots',
   'main-hand',
   'off-hand',
+  'consumable-1',
+  'consumable-2',
 ] as const
 export type EquipmentPosition = (typeof EQUIPMENT_POSITIONS)[number]
 export type EquipmentAssignments = Readonly<Partial<Record<EquipmentPosition, string>>>
 export type ItemCatalogue = Readonly<Record<string, ItemDefinition>>
+/** Current equipment roles; retained battle captures use their own versioned policy. */
+export function equipmentPositionsForItem(
+  item: Pick<Extract<ItemDefinition, { schemaVersion: 2 }>, 'itemClass' | 'equipment'>,
+): readonly EquipmentPosition[] {
+  if (!item.equipment) return []
+  if (item.itemClass === 'weapon') return ['main-hand']
+  if (item.itemClass === 'hand-armor') return ['off-hand']
+  if (item.itemClass === 'battle-item') return ['consumable-1', 'consumable-2']
+  return item.equipment.slot === 'hand' ? [] : [item.equipment.slot]
+}
 export interface OwnedItemStack {
   readonly id: string
   readonly characterId: string
@@ -174,15 +186,11 @@ export function validateEquipmentLoadout(
       return failure('hand-conflict', 'Two-handed weapons require Main Hand and an empty Off Hand.')
     const units = (seen.get(id) ?? 0) + 1
     if (units > stack.quantity)
-      return failure('quantity', 'Each readied hand requires an owned unit.')
+      return failure('quantity', 'Each equipped slot requires an owned unit.')
     if (units > 1 && item.itemClass !== 'battle-item')
-      return failure('ownership', 'Only a battle-item stack may supply both hands.')
+      return failure('ownership', 'Only a battle-item stack may supply both consumable slots.')
     seen.set(id, units)
-    if (
-      item.equipment.slot === 'hand'
-        ? !['main-hand', 'off-hand'].includes(position)
-        : item.equipment.slot !== position
-    )
+    if (!equipmentPositionsForItem(item).includes(position as EquipmentPosition))
       return failure('slot', 'Item does not fit this position.')
     if (
       !Number.isSafeInteger(item.qualityPoints) ||

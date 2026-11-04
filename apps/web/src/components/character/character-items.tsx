@@ -10,6 +10,8 @@ import {
   type ItemInventoryCategory,
 } from '@aurevane/game-core/content/items'
 import type { CharacterItemsView } from '@/server/character/character-items-service'
+import type { CharacterPresentationId } from '@aurevane/game-core/character/creation'
+import { getImageAsset } from '@/media/registry'
 import { ItemDetails } from './item-details'
 import { CharacterDeletionDialog } from './character-deletion-dialog'
 import {
@@ -45,13 +47,20 @@ type Intent =
     }
   | { action: 'unequip'; position: EquipmentPosition }
   | { action: 'sort'; category: ItemInventoryCategory; order: string }
-export function CharacterItems({ initialView }: { initialView: CharacterItemsView | null }) {
+export function CharacterItems({
+  initialView,
+  presentationId = 'androgynous',
+}: {
+  initialView: CharacterItemsView | null
+  presentationId?: CharacterPresentationId
+}) {
   const [view, setView] = useState(initialView),
     [category, setCategory] = useState<ItemInventoryCategory>('gear'),
     [search, setSearch] = useState(''),
     [filter, setFilter] = useState('all'),
     [sort, setSort] = useState('name'),
     [selected, setSelected] = useState<string | null>(null),
+    [equippedInspection, setEquippedInspection] = useState(false),
     [position, setPosition] = useState<EquipmentPosition>('head'),
     [extra, setExtra] = useState<EquipmentPosition[]>([]),
     [busy, setBusy] = useState(false),
@@ -60,6 +69,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
     ),
     [notice, setNotice] = useState<string | null>(null),
     [needsReload, setNeedsReload] = useState(false)
+  const equipmentArtwork = getImageAsset(`ui.equipment.${presentationId}.v1`)
   const pending = useRef(false)
   async function reload() {
     if (pending.current) return
@@ -126,6 +136,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
   }
   function open(stack: OwnedItem, p?: EquipmentPosition) {
     setSelected(stack.id)
+    setEquippedInspection(p !== undefined)
     setPosition(p ?? (stack.item ? itemPositions(stack.item)[0] : undefined) ?? 'head')
     setExtra([])
   }
@@ -156,21 +167,14 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
         filter === s.item?.itemClass)
     )
   }
+  const packedMatches =
+    search.trim() || filter !== 'all'
+      ? categoryStacks.filter(matches).sort((a, b) => a.slotIndex - b.slotIndex)
+      : null
   const main = view.stacks.find((s) => s.id === view.equipment['main-hand'])?.item
-  const off = view.stacks.find((s) => s.id === view.equipment['off-hand'])?.item
-  const attack = main?.itemClass === 'weapon' ? main : off?.itemClass === 'weapon' ? off : null
+  const attack = main?.itemClass === 'weapon' ? main : null
   return (
     <section className={styles.workspace} aria-label="Arsenal Items" aria-busy={busy}>
-      <header className={styles.title}>
-        <div>
-          <span className={styles.eyebrow}>ARSENAL · ITEMS</span>
-          <h2>Ready for the road</h2>
-          <p>Equip your discoveries. Every piece has its place.</p>
-        </div>
-        <button disabled={busy} onClick={() => void reload()}>
-          Reload Items
-        </button>
-      </header>
       {error ? (
         <p role="alert" className={styles.warning}>
           {error}
@@ -201,8 +205,16 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
           battle. Reload Items after the battle ends.
         </p>
       ) : null}
+      {!selected &&
+      (needsReload ||
+        view.battleLocked ||
+        view.notices.some((message) => message.startsWith('starter-items-deferred-'))) ? (
+        <button className={styles.reload} disabled={busy} onClick={() => void reload()}>
+          Reload Items
+        </button>
+      ) : null}
       <div className={styles.columns}>
-        <section className={styles.panel} aria-label="Equipment">
+        <section className={`${styles.panel} ${styles.equipmentPanel}`} aria-label="Equipment">
           <div className={styles.panelHeading}>
             <h3>Equipment</h3>
             <strong>
@@ -230,10 +242,26 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
                 repaired.
               </p>
             </div>
-          ) : (
-            <p className={styles.muted}>{100 - view.qualityPoints} QP available</p>
-          )}
+          ) : null}
           <div className={styles.equipment}>
+            <div
+              className={styles.mannequin}
+              data-equipment-template={presentationId}
+              aria-hidden="true"
+            >
+              <span className={styles.mannequinHalo} />
+              {equipmentArtwork.src ? (
+                <Image
+                  src={equipmentArtwork.src}
+                  width={equipmentArtwork.width}
+                  height={equipmentArtwork.height}
+                  alt=""
+                  loading="eager"
+                  unoptimized
+                />
+              ) : null}
+              <span className={styles.mannequinCaption}>Template</span>
+            </div>
             {EQUIPMENT_POSITIONS.map((p) => {
               const s = view.stacks.find((s) => s.id === view.equipment[p])
               const blocked = p === 'off-hand' && main?.equipment?.hands === 2
@@ -241,6 +269,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
                 <button
                   key={p}
                   className={styles.equipmentSlot}
+                  data-equipment-position={p}
                   disabled={!s}
                   onClick={() => s && open(s, p)}
                   aria-label={`${positionNames[p]}: ${blocked ? 'Occupied by two-handed weapon' : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}`}
@@ -269,7 +298,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
                         ? `${s.item.qualityPoints} QP`
                         : s
                           ? 'Remove to repair'
-                          : 'Select from inventory'}
+                          : 'Unequipped'}
                   </small>
                 </button>
               )
@@ -277,17 +306,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
           </div>
           <div className={styles.attack}>
             <strong>Basic Attack · {attack?.actions.attack?.name ?? 'Unarmed'}</strong>
-            <p>
-              {attack ? `${attack.name} supplies your attack.` : 'No weapon equipped.'}{' '}
-              {main?.itemClass === 'weapon' && off?.itemClass === 'weapon'
-                ? 'Off Hand contributes passives only.'
-                : ''}
-            </p>
           </div>
-          <p className={styles.muted}>
-            One Support Action is selected in Arsenal Techniques. Unequipping its source restores
-            your previous Basic choice.
-          </p>
         </section>
         <section className={styles.panel} aria-label="Inventory">
           <div className={styles.panelHeading}>
@@ -360,8 +379,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
             </button>
           </div>
           <p className={styles.muted}>
-            Sort order is saved to your character. Search and filters keep each Item in its saved
-            slot.
+            Search and filters show matches first. Only Save order changes saved slots.
           </p>
           <div className={styles.inventoryScroll}>
             <div
@@ -369,16 +387,15 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
               aria-label={`${categoryNames[category]} inventory slots`}
             >
               {Array.from({ length: 40 }, (_, index) => {
-                const s = bySlot.get(index)
-                const visible = s && matches(s)
+                const s = packedMatches ? packedMatches[index] : bySlot.get(index)
                 return (
                   <div key={index} data-inventory-slot={index + 1} className={styles.inventoryCell}>
-                    {visible ? (
+                    {s ? (
                       <button
                         className={styles.item}
                         data-tier={s.item?.tier}
                         onClick={() => open(s)}
-                        aria-label={`Slot ${index + 1}: ${s.item?.name ?? 'Unavailable Item'}, quantity ${s.quantity}`}
+                        aria-label={`Slot ${s.slotIndex + 1}: ${s.item?.name ?? 'Unavailable Item'}, quantity ${s.quantity}`}
                         title={s.item?.name ?? 'Unavailable Item'}
                       >
                         {s.item?.artworkSrc ? (
@@ -401,10 +418,7 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
                         ) : null}
                       </button>
                     ) : (
-                      <span
-                        className={styles.slotNumber}
-                        aria-label={`Slot ${index + 1}: ${s ? 'Filtered' : 'Empty'}`}
-                      >
+                      <span className={styles.slotNumber} aria-label={`Slot ${index + 1}: Empty`}>
                         {index + 1}
                       </span>
                     )}
@@ -429,9 +443,9 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
               Close
             </button>
           </header>
-          <div className={styles.dialogBody}>
+          <div className={styles.dialogBody} data-equipped-inspection={equippedInspection}>
             {chosen.item ? (
-              <ItemDetails item={chosen.item} />
+              <ItemDetails item={chosen.item} showName={false} />
             ) : (
               <p className={styles.warning}>
                 This owned Item is unavailable in the current catalogue (archived, missing or no
@@ -439,149 +453,152 @@ export function CharacterItems({ initialView }: { initialView: CharacterItemsVie
                 repair your loadout.
               </p>
             )}
-            {EQUIPMENT_POSITIONS.filter((p) => view.equipment[p] === chosen.id).map((p) => (
-              <button
-                className={styles.remove}
-                key={p}
-                disabled={disabled}
-                onClick={() => void mutate({ action: 'unequip', position: p })}
-              >
-                Unequip {positionNames[p]}
-              </button>
-            ))}
-            {chosen.item?.equipment ? (
-              <section className={styles.proposal} aria-label="Equipment comparison">
-                <h3>Compare & equip</h3>
-                <label>
-                  Equip position
-                  <select
-                    value={position}
-                    onChange={(e) => {
-                      setPosition(e.target.value as EquipmentPosition)
-                      setExtra([])
-                    }}
-                  >
-                    {itemPositions(chosen.item).map((p) => (
-                      <option key={p} value={p}>
-                        {positionNames[p]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <p>
-                  {positionNames[position]}:{' '}
-                  {view.stacks.find((s) => s.id === view.equipment[position])?.item?.name ??
-                    (view.equipment[position] ? 'Unavailable Item' : 'Empty')}{' '}
-                  → {chosen.item.name}
-                </p>
-                {view.stacks.find((s) => s.id === view.equipment[position])?.item ? (
-                  <details>
-                    <summary>Compare currently equipped Item report</summary>
-                    <ItemDetails
-                      item={view.stacks.find((s) => s.id === view.equipment[position])!.item!}
-                    />
-                  </details>
-                ) : null}
-                <p>
-                  QP: {view.qualityPoints} → {proposal?.qualityPoints} / 100
-                </p>
-                {proposal?.removals.length ? (
-                  <p className={styles.warning}>
-                    Confirm replacement:{' '}
-                    {proposal.removals
-                      .map(
-                        (p) =>
-                          `${positionNames[p]} (${view.stacks.find((s) => s.id === view.equipment[p])?.item?.name ?? 'Unavailable Item'})`,
-                      )
-                      .join(', ')}{' '}
-                    will be unequipped.
-                  </p>
-                ) : null}
-                {proposal?.shortage ? (
-                  <p role="status" className={styles.warning}>
-                    Short by {proposal.shortage} QP. Choose equipment to remove below.
-                  </p>
-                ) : null}
-                <fieldset>
-                  <legend>Optional equipment to remove in this swap</legend>
-                  {EQUIPMENT_POSITIONS.filter(
-                    (p) =>
-                      view.equipment[p] &&
-                      p !== position &&
-                      !proposal?.requiredReplacements.includes(p),
-                  ).map((p) => {
-                    const current = view.stacks.find((s) => s.id === view.equipment[p])
-                    return (
-                      <label key={p}>
-                        <input
-                          type="checkbox"
-                          checked={extra.includes(p)}
-                          onChange={(e) =>
-                            setExtra(
-                              e.target.checked ? [...extra, p] : extra.filter((v) => v !== p),
-                            )
-                          }
-                        />
-                        {positionNames[p]} · {current?.item?.name ?? 'Unavailable Item'} ·{' '}
-                        {current?.item?.qualityPoints ?? '?'} QP
-                      </label>
-                    )
-                  })}
-                </fieldset>
-                {view.selectedSupport.kind === 'equipment' &&
-                proposal?.removals.includes(view.selectedSupport.position) ? (
-                  <p className={styles.warning}>
-                    This removes your selected Support source; your previous Basic Support Action
-                    will be restored.
-                  </p>
-                ) : null}
-                {proposal?.issue ? (
-                  <p role="status" className={styles.warning}>
-                    {proposal.issue}
-                  </p>
-                ) : null}
-                {view.equipmentIssue ? (
-                  <p className={styles.warning}>
-                    Resolve the current equipment issue before equipping. Unequip invalid pieces
-                    above.
-                  </p>
-                ) : null}
+            <div className={styles.equipmentActions}>
+              {EQUIPMENT_POSITIONS.filter((p) => view.equipment[p] === chosen.id).map((p) => (
                 <button
-                  className={styles.confirm}
-                  disabled={
-                    disabled ||
-                    !!proposal?.issue ||
-                    !!proposal?.shortage ||
-                    !!view.equipmentIssue ||
-                    view.equipment[position] === chosen.id
-                  }
-                  onClick={() =>
-                    void mutate({
-                      action: 'equip',
-                      stackId: chosen.id,
-                      position,
-                      replacePositions: proposal?.removals ?? [],
-                    })
-                  }
+                  className={styles.remove}
+                  key={p}
+                  disabled={disabled}
+                  onClick={() => void mutate({ action: 'unequip', position: p })}
                 >
-                  {proposal?.removals.length ? 'Confirm swap' : 'Equip'} · {positionNames[position]}
+                  Unequip {positionNames[p]}
                 </button>
-              </section>
-            ) : (
-              <p className={styles.muted}>
-                Flavor and future-purpose Item. No equipment or battle action.
-              </p>
-            )}
-            {error ? (
-              <p role="alert" className={styles.warning}>
-                {error}
-              </p>
-            ) : null}
-            {needsReload ? (
-              <button disabled={busy} onClick={() => void reload()}>
-                Reload Items
-              </button>
-            ) : null}
+              ))}
+              {chosen.item?.equipment && !equippedInspection ? (
+                <section className={styles.proposal} aria-label="Equipment comparison">
+                  <h3>Compare & equip</h3>
+                  <label>
+                    Equip position
+                    <select
+                      value={position}
+                      onChange={(e) => {
+                        setPosition(e.target.value as EquipmentPosition)
+                        setExtra([])
+                      }}
+                    >
+                      {itemPositions(chosen.item).map((p) => (
+                        <option key={p} value={p}>
+                          {positionNames[p]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p>
+                    {positionNames[position]}:{' '}
+                    {view.stacks.find((s) => s.id === view.equipment[position])?.item?.name ??
+                      (view.equipment[position] ? 'Unavailable Item' : 'Empty')}{' '}
+                    → {chosen.item.name}
+                  </p>
+                  {view.stacks.find((s) => s.id === view.equipment[position])?.item ? (
+                    <details>
+                      <summary>Compare currently equipped Item report</summary>
+                      <ItemDetails
+                        item={view.stacks.find((s) => s.id === view.equipment[position])!.item!}
+                      />
+                    </details>
+                  ) : null}
+                  <p>
+                    QP: {view.qualityPoints} → {proposal?.qualityPoints} / 100
+                  </p>
+                  {proposal?.removals.length ? (
+                    <p className={styles.warning}>
+                      Confirm replacement:{' '}
+                      {proposal.removals
+                        .map(
+                          (p) =>
+                            `${positionNames[p]} (${view.stacks.find((s) => s.id === view.equipment[p])?.item?.name ?? 'Unavailable Item'})`,
+                        )
+                        .join(', ')}{' '}
+                      will be unequipped.
+                    </p>
+                  ) : null}
+                  {proposal?.shortage ? (
+                    <p role="status" className={styles.warning}>
+                      Short by {proposal.shortage} QP. Choose equipment to remove below.
+                    </p>
+                  ) : null}
+                  <fieldset>
+                    <legend>Optional equipment to remove in this swap</legend>
+                    {EQUIPMENT_POSITIONS.filter(
+                      (p) =>
+                        view.equipment[p] &&
+                        p !== position &&
+                        !proposal?.requiredReplacements.includes(p),
+                    ).map((p) => {
+                      const current = view.stacks.find((s) => s.id === view.equipment[p])
+                      return (
+                        <label key={p}>
+                          <input
+                            type="checkbox"
+                            checked={extra.includes(p)}
+                            onChange={(e) =>
+                              setExtra(
+                                e.target.checked ? [...extra, p] : extra.filter((v) => v !== p),
+                              )
+                            }
+                          />
+                          {positionNames[p]} · {current?.item?.name ?? 'Unavailable Item'} ·{' '}
+                          {current?.item?.qualityPoints ?? '?'} QP
+                        </label>
+                      )
+                    })}
+                  </fieldset>
+                  {view.selectedSupport.kind === 'equipment' &&
+                  proposal?.removals.includes(view.selectedSupport.position) ? (
+                    <p className={styles.warning}>
+                      This removes your selected Support source; your previous Basic Support Action
+                      will be restored.
+                    </p>
+                  ) : null}
+                  {proposal?.issue ? (
+                    <p role="status" className={styles.warning}>
+                      {proposal.issue}
+                    </p>
+                  ) : null}
+                  {view.equipmentIssue ? (
+                    <p className={styles.warning}>
+                      Resolve the current equipment issue before equipping. Unequip invalid pieces
+                      above.
+                    </p>
+                  ) : null}
+                  <button
+                    className={styles.confirm}
+                    disabled={
+                      disabled ||
+                      !!proposal?.issue ||
+                      !!proposal?.shortage ||
+                      !!view.equipmentIssue ||
+                      view.equipment[position] === chosen.id
+                    }
+                    onClick={() =>
+                      void mutate({
+                        action: 'equip',
+                        stackId: chosen.id,
+                        position,
+                        replacePositions: proposal?.removals ?? [],
+                      })
+                    }
+                  >
+                    {proposal?.removals.length ? 'Confirm swap' : 'Equip'} ·{' '}
+                    {positionNames[position]}
+                  </button>
+                </section>
+              ) : !chosen.item?.equipment ? (
+                <p className={styles.muted}>
+                  Flavor and future-purpose Item. No equipment or battle action.
+                </p>
+              ) : null}
+              {error ? (
+                <p role="alert" className={styles.warning}>
+                  {error}
+                </p>
+              ) : null}
+              {needsReload ? (
+                <button disabled={busy} onClick={() => void reload()}>
+                  Reload Items
+                </button>
+              ) : null}
+            </div>
           </div>
         </CharacterDeletionDialog>
       ) : null}

@@ -42,7 +42,7 @@ describe('authoritative inherent action descriptors', () => {
     const attack = values('basic.attack.unarmed.basic')
     expect(attack['Skill Type']).toBe('Attack [Physical]')
     expect(attack.Effects).toContain('6 + floor(15% Physical Power)')
-    expect(attack.Effects).not.toMatch(/Instant|Immediate/)
+    expect(attack.Effects).toContain('[Instant]')
     expect(attack).not.toHaveProperty('Range')
     expect(attack.Effects).toContain('[Enemy]')
     expect(attack['Target Method']).toBe('Single [1]')

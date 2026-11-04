@@ -2,15 +2,11 @@
 
 import { battleControlledActionCostLabel } from './battle-captured-action-cost'
 
-import { MechanicTextView } from '../character/mechanic-text-view'
-
 import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
 import Image from 'next/image'
 import type { BattleBasicActionPresentation } from '@/lib/battle/battle-basic-actions'
-import {
-  CompactEffectSummary,
-  EffectExplanationNotes,
-} from '../character/compact-skill-effect-summary'
+import { CompactEffectSummary } from '../character/compact-skill-effect-summary'
+import { AbilityEffectExplanations } from '../character/ability-effect-explanations'
 import { MINIMUM_SKILL_INFORMATION_FIELDS } from '../character/skill-information-contract'
 
 import {
@@ -367,23 +363,19 @@ export function BattleSkillCommand({
               }
               effectSummary={
                 basicAction ? (
-                  <span>
+                  <div>
                     {reports.flatMap((behavior) =>
                       behavior.effects.map((effect, index) => (
-                        <span key={`${behavior.behaviorId}:${index}`}>
+                        <div key={`${behavior.behaviorId}:${index}`}>
                           {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
-                          <CompactEffectSummary parts={effect.parts} />
-                          {effect.recipient !== 'Self' || behavior.target.kind !== 'self'
-                            ? ` → ${effect.recipient}`
-                            : ''}
-                          {index < behavior.effects.length - 1 ||
-                          behavior !== reports[reports.length - 1]
-                            ? '; '
-                            : ''}
-                        </span>
+                          <CompactEffectSummary
+                            parts={effect.parts}
+                            tagPresentation={effect.tagPresentation}
+                          />
+                        </div>
                       )),
                     )}
-                  </span>
+                  </div>
                 ) : basicActionId ? (
                   <BasicActionEffectSummary id={basicActionId} stats={characterStats} />
                 ) : null
@@ -392,27 +384,27 @@ export function BattleSkillCommand({
           </dl>
           {basicAction ? (
             <>
-              <p>{basicAction.description}</p>
-              {basicAction.compactText ? <p>{basicAction.compactText}</p> : null}
-              <ul aria-label="Effect explanations">
-                {reports.flatMap((behavior) =>
-                  [...behavior.effectDescriptions, ...behavior.limits].map((description, index) => (
-                    <li key={`${behavior.behaviorId}:${index}`}>
-                      {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
-                      <MechanicTextView
-                        text={description}
-                        parts={behavior.effects[index]?.explanationParts}
-                      />
-                      {behavior.effects[index] ? (
-                        <EffectExplanationNotes
-                          parts={behavior.effects[index]!.parts}
-                          repeatsOnEntry={behavior.effects[index]!.repeatsOnEntry}
-                        />
-                      ) : null}
-                    </li>
-                  )),
-                )}
-              </ul>
+              {reports.map((report) => (
+                <div key={report.behaviorId}>
+                  {report.automaticActivation ? (
+                    <p>Automatic: {report.automaticActivation}</p>
+                  ) : null}
+                  {report.maintenance ? <p>{report.maintenance}</p> : null}
+                  {report.limits.some((limit) => limit !== 'Once per round') ? (
+                    <ul aria-label="Usage limits">
+                      {report.limits
+                        .filter((limit) => limit !== 'Once per round')
+                        .map((limit) => (
+                          <li key={limit}>
+                            {reports.length > 1 ? `${report.behaviorId}: ` : ''}
+                            {limit}
+                          </li>
+                        ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ))}
+              <AbilityEffectExplanations reports={reports} />
             </>
           ) : basicActionId ? (
             <BasicActionEffectExplanations id={basicActionId} />
@@ -427,7 +419,7 @@ export function BattleSkillCommand({
             <p>
               {slot === 'items'
                 ? (unavailableReason ??
-                  'Choose an equipped hand Item in the preview. Uses refill each battle.')
+                  'Choose an equipped consumable in the preview. Uses refill each battle.')
                 : slot === 'inspect'
                   ? 'Select a character or tile to inspect it for free.'
                   : slot === 'finish'

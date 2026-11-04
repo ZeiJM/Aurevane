@@ -1,7 +1,7 @@
 'use client'
 import { combatPercentageEditIsWithinBounds } from '@/lib/combat-percentage-authoring'
 
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useId } from 'react'
 import type { CombatTargetSpec } from '@aurevane/game-core/combat/actions'
 import {
   DEFAULT_SUMMON_CORE_ATTRIBUTES,
@@ -15,6 +15,8 @@ import styles from './combat-content-editor.module.css'
 import { SkillMediaEditor } from './skill-media-editor'
 import { FinalizedMediaEditor } from './finalized-media-editor'
 import { BattleFlavorTemplateHelp } from './battle-flavor-template-help'
+import { CONTENT_TEXT_GUIDANCE } from './content-text-guidance'
+import { MasterHelp } from '../master-help'
 import { SkillEffectListEditor } from './skill-effect-list-editor'
 import {
   deriveSharedEffectAim,
@@ -82,6 +84,7 @@ export function SummonProfileEditor({
   onChange,
   canonical = false,
 }: SummonProfileEditorProps) {
+  const textHintId = useId()
   const value = useMemo(() => currentSummonForAuthoring(captured), [captured])
   const latest = useRef(value)
   useEffect(() => {
@@ -409,6 +412,7 @@ export function SummonProfileEditor({
                 <span>Description</span>
                 <input
                   aria-label={`Summon ability ${index + 1} description`}
+                  aria-describedby={`${textHintId}-description-${index}`}
                   value={ability.description}
                   onChange={(event) =>
                     updateAbility(index, { ...ability, description: event.currentTarget.value })
@@ -416,10 +420,19 @@ export function SummonProfileEditor({
                 />
               </label>
 
+              <MasterHelp label={`Summon ability ${index + 1} description`}>
+                <p>{CONTENT_TEXT_GUIDANCE.summonDescription.hint}</p>
+                <p>{CONTENT_TEXT_GUIDANCE.summonDescription.help}</p>
+              </MasterHelp>
+              <small id={`${textHintId}-description-${index}`}>
+                {CONTENT_TEXT_GUIDANCE.summonDescription.hint}
+              </small>
+
               <label className={styles.field}>
                 <span>In-battle text</span>
                 <input
                   aria-label={`Summon ability ${index + 1} in-battle text`}
+                  aria-describedby={`${textHintId}-battle-text-${index}`}
                   maxLength={160}
                   placeholder="{actor} calls upon {ability}."
                   value={ability.battleText ?? ''}
@@ -433,10 +446,15 @@ export function SummonProfileEditor({
                 />
               </label>
               <BattleFlavorTemplateHelp
+                label={`Summon ability ${index + 1} in-battle text tags`}
+                guidance={CONTENT_TEXT_GUIDANCE.battleText}
                 value={ability.battleText ?? ''}
                 ability={ability.name}
                 onChange={(battleText) => updateAbility(index, { ...ability, battleText })}
               />
+              <small id={`${textHintId}-battle-text-${index}`}>
+                {CONTENT_TEXT_GUIDANCE.battleText.hint}
+              </small>
               <details className={styles.summonSection}>
                 <summary>Effects</summary>
                 <SkillEffectListEditor

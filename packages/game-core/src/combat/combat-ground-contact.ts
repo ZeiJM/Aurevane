@@ -1,5 +1,6 @@
 import { combatEffectTimingMode, type CombatEffectTimingPolicy } from './combat-effect-timing'
 import { combatEffectIdentity } from './combat-effect-identities'
+import { isCleanseChilledEffect } from './gameplay-tags'
 import type {
   CombatActionDefinition,
   CombatEffectDefinition,
@@ -29,8 +30,10 @@ export function combatGroundContactEffectKey(effect: CombatEffectDefinition): st
     case 'barrier-change':
       return 'barrier'
     case 'remove-status': {
+      // The display alias must not change already claimed historical contact keys.
+      if (isCleanseChilledEffect(effect)) return 'removal:cleanse'
       const id = combatEffectIdentity(effect).id
-      return `removal:${id === 'cleanse-chilled' ? 'cleanse' : id}`
+      return `removal:${id}`
     }
     case 'sensory':
       return 'reveal'

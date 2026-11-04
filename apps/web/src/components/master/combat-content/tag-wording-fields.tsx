@@ -4,6 +4,8 @@ import type { CombatContentDefinition } from '@aurevane/db/combat-content'
 import styles from './combat-content-editor.module.css'
 import layout from './tag-wording-fields.module.css'
 import { tagWordingDefaults } from './tag-wording-defaults'
+import { CONTENT_TEXT_GUIDANCE } from './content-text-guidance'
+import { MasterHelp } from '../master-help'
 
 export function TagWordingFields({
   value,
@@ -19,9 +21,16 @@ export function TagWordingFields({
   return (
     <div className={layout.editor}>
       <section className={layout.section}>
-        <label className={styles.field}>
-          <span>Skill Manager description</span>
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={`${hintId}-full-input`}>Skill Manager description</label>
+            <MasterHelp label="Skill Manager description">
+              <p>{CONTENT_TEXT_GUIDANCE.tagFull.hint}</p>
+              <p>{CONTENT_TEXT_GUIDANCE.tagFull.help}</p>
+            </MasterHelp>
+          </div>
           <textarea
+            id={`${hintId}-full-input`}
             aria-label="Skill Manager description"
             aria-describedby={`${hintId}-full ${hintId}-tokens`}
             rows={5}
@@ -37,14 +46,21 @@ export function TagWordingFields({
             }
           />
           <small id={`${hintId}-full`} className={styles.fieldHint}>
-            Shown below Effects in full ability details.
+            {CONTENT_TEXT_GUIDANCE.tagFull.hint}
           </small>
-        </label>
+        </div>
       </section>
       <section className={layout.section}>
-        <label className={styles.field}>
-          <span>Battle description</span>
+        <div className={styles.field}>
+          <div className={styles.fieldLabel}>
+            <label htmlFor={`${hintId}-short-input`}>Battle description</label>
+            <MasterHelp label="Battle description">
+              <p>{CONTENT_TEXT_GUIDANCE.tagCompact.hint}</p>
+              <p>{CONTENT_TEXT_GUIDANCE.tagCompact.help}</p>
+            </MasterHelp>
+          </div>
           <textarea
+            id={`${hintId}-short-input`}
             aria-label="Battle description"
             aria-describedby={`${hintId}-short ${hintId}-tokens`}
             rows={2}
@@ -61,7 +77,7 @@ export function TagWordingFields({
             }
           />
           <small id={`${hintId}-short`} className={styles.fieldHint}>
-            Shown when inspecting or hovering this tag in battle. Custom text:{' '}
+            {CONTENT_TEXT_GUIDANCE.tagCompact.hint} Custom text:{' '}
             {short === '{summary}' ? 0 : short.length}/240 characters.
             {short === '{summary}' && defaults.short.length > 240
               ? ' The automatic example is longer; select and replace or shorten it to customize.'
@@ -70,7 +86,7 @@ export function TagWordingFields({
               ? ' Shorten this description before saving.'
               : ''}
           </small>
-        </label>
+        </div>
       </section>
       <button
         type="button"

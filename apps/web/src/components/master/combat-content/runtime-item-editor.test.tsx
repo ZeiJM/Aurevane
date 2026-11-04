@@ -30,6 +30,7 @@ it('edits sanitized V2 inventory controls with the shared ability editor and rea
   expect(html).toContain('Quality Points')
   expect(html).toContain('Battle uses')
   expect(html).toContain('Use binding')
+  expect(html).toContain('Consumable 1 or Consumable 2')
   expect(html).not.toContain('Usage intent')
   expect(html).not.toContain('Equipment intent')
   const preview = renderToStaticMarkup(<ItemDetails item={presentItem(item)} />)

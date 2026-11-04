@@ -9,6 +9,7 @@ import {
   renderBattleFlavorTemplate,
 } from '@aurevane/game-core/combat/battle-narration'
 import { MasterHelp } from '../master-help'
+import type { ContentTextGuidance } from './content-text-guidance'
 import styles from './combat-content-editor.module.css'
 
 export function BattleFlavorTemplateHelp({
@@ -17,12 +18,16 @@ export function BattleFlavorTemplateHelp({
   onChange,
   context = { field: 'activation' },
   label = 'Writing tags',
+  guidance,
+  outsideBattle = false,
 }: {
   readonly context?: BattleTextReferenceContext
   readonly value: string
   readonly ability: string
   readonly onChange: (value: string) => void
   readonly label?: string
+  readonly guidance?: ContentTextGuidance
+  readonly outsideBattle?: boolean
 }) {
   const maximum = ABILITY_PRESENTATION_TEXT_LIMITS[context.field]
   const issues = value.trim() ? battleTextContextIssues(value, context, maximum) : []
@@ -44,6 +49,18 @@ export function BattleFlavorTemplateHelp({
   return (
     <>
       <MasterHelp label={label}>
+        {guidance ? (
+          <>
+            <p>{guidance.hint}</p>
+            <p>{guidance.help}</p>
+          </>
+        ) : null}
+        {outsideBattle ? (
+          <p>
+            Cards supply the ability name. Missing character names read as Combatant and pronouns
+            use they/them. The sample below illustrates battle identities.
+          </p>
+        ) : null}
         <p>
           Use these tags in your text. Character names and pronouns come from the battle; missing
           identity uses neutral wording. Existing brace tags still work. Only listed tags are
