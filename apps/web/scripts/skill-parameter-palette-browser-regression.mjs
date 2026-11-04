@@ -497,7 +497,8 @@ async function assertModularReport(panel, { resonance = false, expectedPalette =
   assert.equal(await groups.count(), 2)
   for (const group of await groups.all())
     assert.deepEqual(await group.locator('dt').allTextContents(), fields)
-  const text = await panel.innerText()
+  // Flex token rows serialize browser-dependent whitespace between their parts.
+  const text = (await panel.innerText()).replace(/\s+/gu, ' ')
   assert.match(text, /11 AP \/ 2 MP \/ 1 HP/)
   assert.match(text, /MP \[≥ 3\] \[Self\]/)
   assert.match(text, /Move \[2\] \[Instant\] \[Ground\]/)
@@ -647,7 +648,7 @@ async function verifyModularManual(page, viewport) {
   await article.waitFor({ state: 'visible' })
   const catalog = article.locator('#catalog')
   await catalog.locator('summary').click()
-  const text = await catalog.innerText()
+  const text = (await catalog.innerText()).replace(/\s+/gu, ' ')
   for (const value of [
     'Manual Action 1',
     'Ongoing Modifier 2',

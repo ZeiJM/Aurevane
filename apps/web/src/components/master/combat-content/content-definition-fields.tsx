@@ -1180,7 +1180,7 @@ function ContentDescriptionFields({
       <div className={styles.descriptionField}>
         <div>
           <label htmlFor={`${hintId}-description-input`}>Description</label>{' '}
-          <MasterHelp label="Description">
+          <MasterHelp field label="Description">
             <p>{descriptionGuidance.hint}</p>
             <p>{descriptionGuidance.help}</p>
           </MasterHelp>
@@ -1207,7 +1207,7 @@ function ContentDescriptionFields({
               onChange={(event) => set({ explanation: event.currentTarget.value })}
             />
           </label>
-          <MasterHelp label="Full Tag explanation">
+          <MasterHelp field label="Full Tag explanation">
             <p>{CONTENT_TEXT_GUIDANCE.tagFull.hint}</p>
             <p>{CONTENT_TEXT_GUIDANCE.tagFull.help}</p>
           </MasterHelp>

@@ -1043,21 +1043,22 @@ try {
               await gesture(page.getByRole('button', { name: 'About Targeting Test', exact: true }))
               const dialog = page.getByRole('dialog')
               await dialog.waitFor({ state: 'visible' })
-              if (scenario === 'controlled-price')
-                assert.match(await dialog.innerText(), /11 AP \/ 2 MP \/ 1 HP/)
+              // Flex token rows may serialize whitespace as line breaks in innerText.
+              // Match their semantic text; geometry is verified separately.
+              const reportText = (await dialog.innerText()).replace(/\s+/gu, ' ')
+              if (scenario === 'controlled-price') assert.match(reportText, /11 AP \/ 2 MP \/ 1 HP/)
               assert.match(
-                await dialog.innerText(),
+                reportText,
                 scenario === 'controlled-price' ? /Barrier \[10\]/ : /Dmg \[10\]/,
                 'the report uses the actual captured effect type and power',
               )
-              if (scenario === 'controlled-move')
-                assert.match(await dialog.innerText(), /Move \[2\]/)
+              if (scenario === 'controlled-move') assert.match(reportText, /Move \[2\]/)
               assert.doesNotMatch(
-                await dialog.innerText(),
+                reportText,
                 /Slow|Dmg \[9\]/,
                 'legacy envelope effects do not replace the captured group',
               )
-              assert.match(await dialog.innerText(), /\[Controlled\]/)
+              assert.match(reportText, /\[Controlled\]/)
               const tagColors = await dialog.evaluate((element) => ({
                 magnitude: getComputedStyle(
                   element.querySelector('[data-compact-effect-magnitude]'),

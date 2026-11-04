@@ -34,6 +34,7 @@ it.each(fixtures)(
     expect(html).toContain(`-description">${description.hint}</small>`)
     expect(html.split(description.hint)).toHaveLength(3)
     expect(html).toContain('aria-label="About Description"')
+    expect(html).toMatch(/<h3[^>]*>About Description<\/h3>/)
     const descriptionInput = html.match(
       /<textarea[^>]*aria-label="Description"[^>]*aria-describedby="([^"]+)"/,
     )
@@ -91,6 +92,8 @@ it('explains full Tag reports separately from compact tooltips, with persistent 
   }
   expect(html).toContain('aria-label="About Skill Manager description"')
   expect(html).toContain('aria-label="About Battle description"')
+  expect(html).toMatch(/<h3[^>]*>About Skill Manager description<\/h3>/)
+  expect(html).toMatch(/<h3[^>]*>About Battle description<\/h3>/)
   expect(html).toContain('battle Parameters')
   expect(html).toContain('Chronicle effect tooltips')
 })

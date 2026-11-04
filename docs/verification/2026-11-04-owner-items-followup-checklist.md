@@ -24,6 +24,7 @@ At 100% browser zoom, refresh the game. Start a new battle for newly captured eq
 - [ ] Weapon/Basic Attack and Support information use the current shared report style. No obsolete flavor paragraph or redundant target arrows appear.
 - [ ] Current Fire companions display Conditional Cleanse configured to Chilled. Cleanse Chilled is absent from new authoring choices.
 - [ ] Instant standard Damage explicitly shows [Instant]. Effect duration brackets consistently say Turns. Existing delayed/controlled effects retain their actual timing.
+- [ ] On a phone, the Techniques Manual stays inside the viewport when long formula effects are expanded.
 - [ ] Each ordinary effect heading and its brackets stay together on one line, including Barrier, on desktop and phone. Exceptionally long authored expressions remain readable without page overflow.
 - [ ] In Skill/Essence/Resonance/Support/Item/Tag editors, text fields have persistent guidance saying where their text appears. The information button matches that guidance.
 - [ ] Test Description, Flavor line, In-battle text and full/compact Tag wording separately against the named surfaces; do not expect a flavor field inside mechanics-only cockpit reports.

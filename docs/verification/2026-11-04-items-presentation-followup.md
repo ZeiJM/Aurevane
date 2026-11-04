@@ -42,6 +42,14 @@ Profile/battle parity tests prove Mystic Power20→32 with actual packet damage3
 
 Independent review executed243tests in16files, all passing, and inspected core/service authority, migration/metadata/transition logic, actual text consumers and shared CSS/mobile/accessibility boundaries. One important issue was repaired and independently verified: historical Chilled-only removal must select its exact pinned Tag wording before generic siblings, including pending battle tooltip projection. No unresolved important findings were reported within the reviewed scope.
 
+## CI followup
+
+The first review head `e5c47eb467dc8ef191c0ab2c187f19912fae430e` exposed browser assertions that treated flex-token `innerText` line breaks as semantic changes. The Controlled and modular-reader checks now normalize whitespace while retaining exact captured type/power, timing, cost and negative legacy-effect checks. Exact native buildcraft/Manual expectations include the requested Damage Instant label.
+
+Two actual presentation defects were also repaired: Manual grid/list tracks now shrink within the viewport rather than expanding to a long formula's minimum width; new editable-field help dialogs use distinct About names so a label resolves to its input rather than both an input and a hidden dialog. Other help dialogs retain their existing titles. Added regression assertions protect the distinct field-help titles. `AV_MASTER_TAGS_ONLY=1` supports a focused local operational run; the default full operational matrix is unchanged.
+
+Focused followup evidence:57 Controlled cases pass; complete modular reader/Manual/authoring browser run passes at1366/390; actual Tag commit controls pass desktop/mobile/150% zoom; all12 text-guidance cases pass with the new dialog names;34 affected unit tests and web typecheck pass. A focused diagnostic reproduced Manual width510px at viewport390 before the track fix and375px afterward; the full original no-page-overflow assertion remains in place. The final source production build passed after moving aside a corrupt disposable Turbopack persistence cache (`/tmp/aurevane-ci-followup-build-clean.log`). Scoped formatting, ESLint, web types and an additional independent13-test guidance review pass. Exact-head remote CI remains a separate gate below.
+
 ## Remaining gates
 
 Configured exact-head CI is required before integration/release. No Preview/Production deployment, hosted migration or current publication was performed. Git deployments remain disabled in `apps/web/vercel.json`. Owner visual acceptance, physical devices/screen readers, authenticated production flows and human multiplayer checks remain open. No Phase5 closure is claimed.

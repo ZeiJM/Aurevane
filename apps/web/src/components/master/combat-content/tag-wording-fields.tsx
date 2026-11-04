@@ -24,7 +24,7 @@ export function TagWordingFields({
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <label htmlFor={`${hintId}-full-input`}>Skill Manager description</label>
-            <MasterHelp label="Skill Manager description">
+            <MasterHelp field label="Skill Manager description">
               <p>{CONTENT_TEXT_GUIDANCE.tagFull.hint}</p>
               <p>{CONTENT_TEXT_GUIDANCE.tagFull.help}</p>
             </MasterHelp>
@@ -54,7 +54,7 @@ export function TagWordingFields({
         <div className={styles.field}>
           <div className={styles.fieldLabel}>
             <label htmlFor={`${hintId}-short-input`}>Battle description</label>
-            <MasterHelp label="Battle description">
+            <MasterHelp field label="Battle description">
               <p>{CONTENT_TEXT_GUIDANCE.tagCompact.hint}</p>
               <p>{CONTENT_TEXT_GUIDANCE.tagCompact.help}</p>
             </MasterHelp>

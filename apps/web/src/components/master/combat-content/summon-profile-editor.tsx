@@ -420,7 +420,7 @@ export function SummonProfileEditor({
                 />
               </label>
 
-              <MasterHelp label={`Summon ability ${index + 1} description`}>
+              <MasterHelp field label={`Summon ability ${index + 1} description`}>
                 <p>{CONTENT_TEXT_GUIDANCE.summonDescription.hint}</p>
                 <p>{CONTENT_TEXT_GUIDANCE.summonDescription.help}</p>
               </MasterHelp>
