@@ -1,15 +1,11 @@
 {
   "schemaVersion": 1,
-  "status": "application-promoted-admission-held-draining-not-complete",
+  "status": "verified-live-for-owner-testing",
   "sourceCommit": "0fd6cb6144da1624e88d3c58a24f224693f541b2",
   "sourceTree": "02f4e9429d466fad8a78f36efdf4f38d222b0a85",
   "testedFeatureHead": "657b10a87964fa9b7741504db2d24b0ab634c7ac",
   "testedFeatureTree": "85fc5b22b1f28f51b6701ea31721b95824f663ca",
-  "mergedPRs": [
-    1017,
-    1013,
-    1016
-  ],
+  "mergedPRs": [1017, 1013, 1016],
   "featureWorkflowsPassed": 19,
   "applicationChecksPassed": true,
   "supabaseIntegration": {
@@ -29,16 +25,12 @@
   "retirementVerifiedAt": "2026-11-05T14:57:00.345143Z",
   "drainNotBefore": "2026-11-05T15:29:30.345143Z",
   "holdRuleId": "45a07761-caca-49ad-9017-a665fb051017",
-  "routingVersion": "2ac40cc2-8731-4db7-affc-f426272b473e",
+  "routingVersion": "78132fc0-e779-4dda-bf7b-7ea8c5773e28",
   "retirementRules": 9,
-  "totalRulesWithHold": 10,
+  "totalRulesWithHold": 9,
   "autoAssignCustomDomains": false,
   "gitAutomaticDeployments": false,
-  "canonicalDomains": [
-    "aurevane.vercel.app",
-    "aurevane-rpg.com",
-    "www.aurevane-rpg.com"
-  ],
+  "canonicalDomains": ["aurevane.vercel.app", "aurevane-rpg.com", "www.aurevane-rpg.com"],
   "cutoverProbes": [
     {
       "url": "https://aurevane.vercel.app/",
@@ -73,14 +65,301 @@
       "expected": 503
     }
   ],
-  "databaseMigrationsApplied": [],
-  "sourceRegistrationDone": false,
-  "reviewedSuccessorsPublished": false,
-  "holdRemoved": false,
-  "remaining": "After the drain and zero pre-retirement transactions, apply only four reviewed migrations with exact predecessor, owner/ACL and durable preservation guards. Register exact three source v4 successors and use normal freshly guarded Commit if no Owner draft conflict. Read back exact publication bodies and preserved data; then remove only the temporary hold, verify canonical guest/authority/stock/requirements routes and bounded errors, finalize receipt and disable the existing watch.",
+  "databaseMigrationsApplied": [
+    {
+      "source": "20261105084236_item_type_search.sql",
+      "version": "20261105153401",
+      "name": "item_type_search"
+    },
+    {
+      "source": "20261105084250_targeted_item_grants.sql",
+      "version": "20261105153417",
+      "name": "targeted_item_grants"
+    },
+    {
+      "source": "20261105093356_consumable_item_stock_settlement.sql",
+      "version": "20261105163328",
+      "name": "consumable_item_stock_settlement"
+    },
+    {
+      "source": "20261105093948_item_equip_requirements.sql",
+      "version": "20261105163403",
+      "name": "item_equip_requirements"
+    }
+  ],
+  "sourceRegistrationDone": true,
+  "reviewedSuccessorsPublished": true,
+  "holdRemoved": true,
+  "remaining": "Owner gameplay acceptance; no further application deployment needed for this receipt.",
   "limitations": [
-    "No execution environment is currently available; connectors remain usable.",
-    "The attempted existing-battle unauthenticated probe was blocked by the fetch tool's share-link authentication; it is not reported as application verification.",
-    "No hosted Item grants or test inventory mutations performed."
+    "Production checks are public/guest and safe read-only SQL/pure capture checks; no signed-in hosted battle or human acceptance is claimed.",
+    "Initial connector existing-battle guest probe could not authenticate its share link; final direct HTTPS guest API probe returned the expected 401.",
+    "Two obsolete custom-domain header/query pins returned the verified current deployment rather than 503; neither returned the retired source. Old host and cookie pin return 503.",
+    "External Supabase Git migration-history mismatch is preserved, not claimed repaired."
+  ],
+  "sourceRegistration": "Ordinary application initializer had already registered the exact three reviewed v4 bodies before publication; all three were verified rather than seeded again.",
+  "publications": [
+    {
+      "itemId": "emberbrand",
+      "version": 5,
+      "exactReadback": true
+    },
+    {
+      "itemId": "vulnerability-oil",
+      "version": 5,
+      "exactReadback": true
+    },
+    {
+      "itemId": "ward-sigil-scroll",
+      "version": 5,
+      "exactReadback": true
+    }
+  ],
+  "preservation": {
+    "guardedTables": 12,
+    "allMigrationGuardsPassed": true,
+    "allPublicationGuardsPassed": true,
+    "priorVersionsPreserved": true,
+    "otherRecordsAndPublicationsPreserved": true,
+    "ownerDraftsPreserved": 3,
+    "inventoryAndCharactersPreserved": true,
+    "frozenBattlesPreserved": true,
+    "newConsumptionReceiptsFromReleaseTests": 0
+  },
+  "productionPostflight": {
+    "captureSchemaVersion": 2,
+    "consumptionPolicyVersion": 1,
+    "syntheticCaptureQuantity": 3,
+    "itemPublicationVersion": 5,
+    "configuredRequirementsFailClosed": true,
+    "browserGrantAPIsDenied": true,
+    "serviceGrantAPIsAllowed": true,
+    "privateHelpersDenied": true,
+    "stockTableRls": true,
+    "stockSettlementTrigger": true
+  },
+  "finalSmoke": {
+    "checkedAt": "2026-11-05T16:40:03.032365+00:00",
+    "cases": [
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/manual",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/master",
+        "headers": {},
+        "expected": 307,
+        "status": 307,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/game/arsenal",
+        "headers": {},
+        "expected": 307,
+        "status": 307,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/master/access",
+        "headers": {},
+        "expected": 401,
+        "status": 401,
+        "pass": true,
+        "source": null,
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/character/items",
+        "headers": {},
+        "expected": 401,
+        "status": 401,
+        "pass": true,
+        "source": null,
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/battles",
+        "headers": {},
+        "expected": 405,
+        "status": 405,
+        "pass": true,
+        "source": null,
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/battles/00000000-0000-4000-8000-000000000000",
+        "headers": {},
+        "expected": 401,
+        "status": 401,
+        "pass": true,
+        "source": null,
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-3bcyfzpnq-zeijms-projects.vercel.app/",
+        "headers": {},
+        "expected": 503,
+        "status": 503,
+        "pass": true,
+        "source": null,
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/?dpl=dpl_E9j4htHeNBGb5a385ea3H5TuhxJT",
+        "headers": {},
+        "expected": [503, 200],
+        "status": 200,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": false,
+        "retirementRequirement": "503 or verified current compatible deployment; never retired source",
+        "retirementOutcome": "Current compatible deployment returned"
+      },
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {
+          "x-deployment-id": "dpl_E9j4htHeNBGb5a385ea3H5TuhxJT"
+        },
+        "expected": [503, 200],
+        "status": 200,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": false,
+        "retirementRequirement": "503 or verified current compatible deployment; never retired source",
+        "retirementOutcome": "Current compatible deployment returned"
+      },
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {
+          "Cookie": "__vdpl=dpl_E9j4htHeNBGb5a385ea3H5TuhxJT"
+        },
+        "expected": 503,
+        "status": 503,
+        "pass": true,
+        "source": null,
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/?dpl=dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {
+          "x-deployment-id": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F"
+        },
+        "expected": 200,
+        "status": 200,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://aurevane.vercel.app/",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "pass": true,
+        "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "error": null,
+        "exactStatusMatched": true
+      },
+      {
+        "url": "https://www.aurevane-rpg.com/",
+        "headers": {},
+        "expected": 308,
+        "status": 308,
+        "pass": true,
+        "source": null,
+        "error": null,
+        "exactStatusMatched": true
+      }
+    ]
+  },
+  "runtimeErrorScan": {
+    "since": "2026-11-05T16:34:03Z",
+    "until": "2026-11-05T16:39:45.521Z",
+    "levels": ["error", "fatal"],
+    "results": 0
+  },
+  "operationalCorrections": [
+    "Two oversized stock-migration connector requests failed before execution; absence of migration, table and active request was checked before retry. Compact equivalent preservation guards passed positive/changed-row rollback tests; reviewed migration body remained byte-exact.",
+    "Publication guard variable/column ambiguity rolled back before publication; zero candidate versions were confirmed, alias qualified, and complete atomic publication retried successfully."
+  ],
+  "ownerAcceptance": "pending",
+  "migrationHashes": [
+    {
+      "index": 0,
+      "source": "20261105084236_item_type_search.sql",
+      "name": "item_type_search",
+      "sourceSha256": "c304743a2942cfcc194fba95bcd4e881000ba8fe8f4d5bbb6619da7ba55507f3",
+      "guardedSha256": "1b2628bdc8fc66feaa49e91a97da2e0bc1e1549f3b4114268d7fe38a58d79a5b",
+      "chars": 10572,
+      "receiptPath": "docs/verification/release-assets/2026-11-05-guarded-item_type_search.sql"
+    },
+    {
+      "index": 1,
+      "source": "20261105084250_targeted_item_grants.sql",
+      "name": "targeted_item_grants",
+      "sourceSha256": "6c9fa2098788b8fa28746d4d4cb4bab62847606bb3d83ccf70b0c9757b6c47be",
+      "guardedSha256": "44f10adc2c1233cfb555c71b359993ccd0ec9863eede350deb902952b320266a",
+      "chars": 14648,
+      "receiptPath": "docs/verification/release-assets/2026-11-05-guarded-targeted_item_grants.sql"
+    },
+    {
+      "index": 2,
+      "source": "20261105093356_consumable_item_stock_settlement.sql",
+      "name": "consumable_item_stock_settlement",
+      "sourceSha256": "6b256c78036b5200cfccf5b73c4d10ce081059949ddc20232eeed958dff7f028",
+      "guardedSha256": "4ec1c40058fa2ca019b47a3821d8bc3c03198cf9912718c3f00b0f1147564827",
+      "chars": 20284,
+      "receiptPath": "docs/verification/release-assets/2026-11-05-guarded-consumable_item_stock_settlement.sql"
+    },
+    {
+      "index": 3,
+      "source": "20261105093948_item_equip_requirements.sql",
+      "name": "item_equip_requirements",
+      "sourceSha256": "2e17530aae67fc7f06ed0eb5f66c300c870c3d16c363e3dcc93afdb405b3e7af",
+      "guardedSha256": "3e37e182f3e29462f571e0f018bd5021a9d57f33ce2fe43663f0a1e3e0a1e5a7",
+      "chars": 15006,
+      "receiptPath": "docs/verification/release-assets/2026-11-05-guarded-item_equip_requirements.sql"
+    }
   ]
 }
