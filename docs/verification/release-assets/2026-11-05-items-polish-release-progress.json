@@ -30,5 +30,14 @@
   "remaining": "Reassert automatic domain assignment lock, stage one production build, verify fresh DB floors/predecessors/drafts, apply protected hold/retirement and drain sequencing, exact source registration and ordinary Emberbrand publication, safe postflight/promote/reopen, complete receipt.",
   "deploymentUrl": "aurevane-jp4c5dae1-zeijms-projects.vercel.app",
   "autoAssignCustomDomains": false,
-  "buildState": "INITIALIZING"
+  "buildState": "BUILDING",
+  "readOnlyPreflight": {
+    "dbTime": "2026-11-05T23:53:28.420937Z",
+    "timingPolicyVersion": 11,
+    "tagAuthority": "global",
+    "maxItemVersionFloor": 5,
+    "emberbrandRevision": 7,
+    "emberbrandVersionFloor": 5,
+    "emberbrandBuiltinVersion": 4
+  }
 }
