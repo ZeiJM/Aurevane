@@ -1,5 +1,7 @@
 'use client'
 import { ItemMasterActions } from './item-master-actions'
+import { ItemImbuedTechniqueEditor } from './item-imbued-technique-editor'
+import type { RuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import { PendingMediaBoundary } from './pending-media-boundary'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { CombatTagPresentationSnapshot } from '@aurevane/game-core/combat/combat-tag-registry'
@@ -104,7 +106,7 @@ export function CombatContentAuthoringWorkspace({
   const [page, setPage] = useState(initialPage)
   const [search, setSearch] = useState('')
   const [sort, setSort] = useState<CombatContentSort>('name-asc')
-  const [tab, setTab] = useState<ContentEditorTab>('Parameters')
+  const [requestedTab, setTab] = useState<ContentEditorTab>('Parameters')
   const [working, setWorking] = useState(false)
   const [modalSaving, setModalSaving] = useState(0)
   const busy = working || modalSaving > 0
@@ -153,6 +155,11 @@ export function CombatContentAuthoringWorkspace({
     rawActiveDefinition && activeKind
       ? combatContentForAuthoring(activeKind, rawActiveDefinition)
       : rawActiveDefinition
+  const imbuedAvailable =
+    activeKind === 'item' &&
+    activeDefinition?.schemaVersion === 2 &&
+    activeDefinition.itemClass === 'weapon'
+  const tab = requestedTab === 'Imbued Technique' && !imbuedAvailable ? 'Parameters' : requestedTab
   const readOnly =
     !newDefinition && (!!record?.authoringBlocker || record?.lifecycle === 'archived')
   const dirty = !!record && !!definition && recordIsDirty(record, definition)
@@ -820,7 +827,10 @@ export function CombatContentAuthoringWorkspace({
             {!visibleRecords.length ? <p>No matching content.</p> : null}
           </nav>
         </aside>
-        <div className={styles.editor}>
+        <div
+          className={styles.editor}
+          data-item-editor={activeKind === 'item' ? 'true' : undefined}
+        >
           {activeDefinition ? (
             <>
               <header className={styles.recordHeading}>
@@ -863,6 +873,7 @@ export function CombatContentAuthoringWorkspace({
                 <ItemMasterActions
                   key={record.contentKey}
                   record={record}
+                  recoveryScope={legacyWordingRecoveryScope || recoveryScope}
                   disabled={
                     busy ||
                     restoring ||
@@ -919,6 +930,7 @@ export function CombatContentAuthoringWorkspace({
                   [
                     'Parameters',
                     ...(activeKind === 'discipline' ? ['Media', 'Skills', 'Resonances'] : []),
+                    ...(imbuedAvailable ? ['Imbued Technique'] : []),
                     'Usage & Balance',
                   ] as ContentEditorTab[]
                 ).map((section) => (
@@ -944,7 +956,16 @@ export function CombatContentAuthoringWorkspace({
                   scheduleRecovery()
                 }}
               >
-                {tab === 'Usage & Balance' ? (
+                {imbuedAvailable ? (
+                  <fieldset hidden={tab !== 'Imbued Technique'} disabled={restoring || readOnly}>
+                    <ItemImbuedTechniqueEditor
+                      key={String(activeDefinition.id)}
+                      value={activeDefinition as unknown as RuntimeItemDefinition}
+                      onChange={(next) => change(next as unknown as CombatContentDefinition)}
+                    />
+                  </fieldset>
+                ) : null}
+                {tab === 'Imbued Technique' ? null : tab === 'Usage & Balance' ? (
                   record ? (
                     <UsageBalancePanel contentKey={record.contentKey} />
                   ) : (

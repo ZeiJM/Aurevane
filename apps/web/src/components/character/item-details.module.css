@@ -33,6 +33,9 @@
   margin: 0;
   font-size: 0.73rem;
 }
+.facts .requirements {
+  grid-column: 1 / -1;
+}
 .facts dt {
   color: #c4b8a3;
 }
@@ -84,13 +87,14 @@
 }
 @media (max-width: 650px) {
   .summary {
-    grid-template-columns: 80px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
   .artwork {
     width: 80px;
   }
   .facts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    font-size: 0.7rem;
+    gap: 6px;
   }
 }

@@ -943,6 +943,7 @@ const PRIVATE_BATTLE_STATE_KEYS = [
   'nextReversalAttackCommandId',
   'capturedAbilitySources',
   'abilityRuntime',
+  'itemConsumptionState',
   'reversalState',
   'modifierSuppressions',
   'nativeBasicAttackCommand',

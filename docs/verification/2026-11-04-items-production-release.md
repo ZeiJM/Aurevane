@@ -1,0 +1,17 @@
+# November 4 Items and shared reports release
+
+Live for Owner testing at https://aurevane.vercel.app. Refresh and start a new battle for newly captured equipment. Use the [Owner checklist](2026-11-04-owner-items-followup-checklist.md); human acceptance remains open.
+
+PR #1011 merged as `121297dc4a0d564fac7348e6c9f999dff7efc53e`. All 18 configured workflows passed on `7f1a013035dc18aa97ba0650aaa5c7306d2faaf8`; the merge has the identical tested tree `672691fd89d9e861102127acb5ae57b664c37882`. Main had not advanced beyond the tested base before merge.
+
+Production `dpl_4oqVgUh9J6PJKEuw5NwepntitgS2` is READY, with actual Git source and canonical alias verified. The production build was staged, then promoted without rebuilding. An earlier staged deployment recorded in the progress file was not promoted. Git automatic deployments remain disabled; automatic domain assignment was disabled again after promotion. Nine original retirement rule identities remain, narrowed to the new host and deployment pins. Temporary maintenance was observed at 15:33:24Z and removed at 15:35:22Z (11:35 Trinidad).
+
+The exact guarded eight-slot migration was applied as hosted `20261104153336_eight_slot_item_equipment`; source file SHA-256 is `628852930ece675238cb6477b4595f46df62cee942683470db8ac7fe5b797314`. All five ownership/ACL/search-path/security-definer tuples are unchanged. The unambiguous held supply moved to Consumable 1; quantities, grant receipts and frozen captures were not rewritten.
+
+Thirteen reviewed source bodies were appended at source version 2, then committed through the ordinary trusted Commit operation at published version 3 (source version 2 is reserved). Each record was guarded by its current revision, lifecycle, absence of drafts/publications, fresh catalogue token and Owner authority. Every resulting body was read back exactly, apart from the assigned content version. The transaction verified all prior version/source/draft/stack/grant/publication rows were unchanged. The 1,472 old immutable versions and 47 old source rows retain their aggregate hashes; 13 new immutable publications produce 1,485 versions and 60 source rows. All three Owner drafts, 94 stacks and two grant receipts retain their hashes. Purifying Incense and unrelated content remain unchanged.
+
+Published: Clarity Draught, Emberbrand, Emberflask, Frostbind Powder, Ironbark Tonic, Mender Salve, Smoke Veil, Stormcaller Staff, Swiftleaf Tea, Twinfang Blade, Vulnerability Oil, Ward Sigil Scroll and Whetstone Charm.
+
+All 10 staged and 10 canonical probes passed: public home/Manual, guest redirects for Items/Master, three exact-source equipment artwork hashes, and unauthorized Items/Battle/Master API denials. Initial probe drafts used nonexistent login/register/command paths and an unsupported Battle GET; those diagnostic mistakes were corrected from the real route files before recording the final probes. These are public/guest checks, not signed-in live gameplay. The initial deployment-scoped warning/error/fatal scan from 15:20:34.691Z to 15:35:34.691Z returned no matching logs.
+
+The completed hourly PR watch is disabled. Seal remains separate and is not deployed. Physical-device, authenticated gameplay, multiplayer feel, visual preference and sustained-load acceptance remain open; no Phase 5 closure is claimed. Full machine-readable evidence: [release record](release-assets/2026-11-04-items-release-progress.json).

@@ -13,7 +13,8 @@
   gap: 0.2rem;
   min-width: 0;
 }
-.choice > button {
+.choice > button[data-item-action] {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -25,15 +26,8 @@
   background: #111b23;
   color: #f1e4c8;
 }
-.choice > button[data-item-action] {
-  flex: 1;
-}
 .choice > button[data-battle-info-trigger] {
   flex: none;
-  width: 1.6rem;
-  min-width: 1.6rem;
-  height: 2rem;
-  justify-content: center;
 }
 .choice > button:disabled {
   opacity: 0.55;
@@ -51,18 +45,6 @@
   overflow-wrap: anywhere;
   font-size: 0.7rem;
   line-height: 1.15;
-}
-.reportSummary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-.reportSummary img {
-  width: 48px;
-  height: 48px;
-  flex: none;
-  object-fit: contain;
 }
 :global([data-battle-preview-strip][data-battle-item-picker-open='true']) {
   grid-template-columns: minmax(0, 1fr) !important;

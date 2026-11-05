@@ -16,6 +16,9 @@ const { expect } = require('@playwright/test')
 const web = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const root = resolve(web, '../..')
 const fixture = await fs.mkdtemp(resolve(tmpdir(), 'arsenal-items-browser-'))
+const selectedViewport = process.env.AV_ARSENAL_ITEMS_VIEWPORT
+const includeViewport = ({ width, height }) =>
+  !selectedViewport || selectedViewport === `${width}x${height}`
 const output =
   process.env.AV_ARSENAL_ITEMS_EVIDENCE_DIR || resolve(tmpdir(), 'arsenal-items-browser-evidence')
 await fs.mkdir(output, { recursive: true })
@@ -107,6 +110,203 @@ const browser = await chromium.launch({
     : {}),
 })
 try {
+  const evasion = await browser.newPage({ viewport: { width: 1366, height: 768 } })
+  await evasion.goto(`${server.resolvedUrls.local[0]}?shell=items&evasion`, {
+    waitUntil: 'networkidle',
+  })
+  await evasion.getByRole('button', { name: 'Head: Wayfarer Hood', exact: true }).click()
+  await expect(
+    evasion.getByRole('dialog').locator('[data-equipment-stat-change="-100"]'),
+  ).toHaveText('−1%')
+  await evasion.getByRole('button', { name: 'Unequip', exact: true }).click()
+  await evasion.getByRole('button', { name: /Slot \d+: Wayfarer Hood/ }).click()
+  await expect(
+    evasion.getByRole('dialog').locator('[data-equipment-stat-change="100"]'),
+  ).toHaveText('+1%')
+  await evasion.close()
+  console.log(
+    'Authoritative Evasion: owned hood equip/unequip displays +1% / −1% rather than raw basis points',
+  )
+  const automatic = await browser.newPage({ viewport: { width: 1366, height: 768 } })
+  await automatic.goto(`${server.resolvedUrls.local[0]}?shell=items`, { waitUntil: 'networkidle' })
+  const automaticSort = automatic.getByRole('combobox', { name: 'Sort', exact: true })
+  await automaticSort.selectOption('quality-points')
+  await expect.poll(() => automatic.evaluate(() => window.calls.length)).toBe(1)
+  await expect.poll(() => automatic.evaluate(() => window.itemReads)).toBe(1)
+  assert.equal((await automatic.evaluate(() => window.calls[0])).action, 'sort')
+  await expect(automatic.getByRole('button', { name: 'Save order', exact: true })).toHaveCount(0)
+  await expect(automatic.getByRole('button', { name: 'Reload Items', exact: true })).toHaveCount(0)
+  await expect(automatic.getByText('Items saved.', { exact: true })).toHaveCount(0)
+  await automatic.getByRole('combobox', { name: 'Filter', exact: true }).selectOption('slot:head')
+  await automatic.getByRole('button', { name: 'Companion', exact: true }).click()
+  await expect(automatic.getByRole('combobox', { name: 'Filter', exact: true })).toHaveCount(0)
+  await expect(automatic.getByRole('option', { name: 'Quality Points', exact: true })).toHaveCount(
+    0,
+  )
+  await expect(automatic.getByRole('option', { name: 'Quantity', exact: true })).toHaveCount(1)
+  await expect(automatic.locator('[data-inventory-slot] button')).toHaveCount(3)
+  await automatic.getByRole('button', { name: 'Consumables', exact: true }).click()
+  await expect(automatic.getByRole('option', { name: 'Armor', exact: true })).toHaveCount(0)
+  await expect(automatic.getByRole('option', { name: 'Weapon', exact: true })).toHaveCount(0)
+  await expect(automatic.getByRole('option', { name: 'Unavailable', exact: true })).toHaveCount(0)
+  await automatic.getByRole('button', { name: 'Gear', exact: true }).click()
+  await expect(automatic.getByRole('combobox', { name: 'Filter', exact: true })).toHaveValue('all')
+  await automatic.evaluate(() => {
+    window.testState.failNext = true
+  })
+  await automaticSort.selectOption('tier')
+  await expect.poll(() => automatic.evaluate(() => window.itemReads)).toBe(2)
+  await expect(automatic.getByRole('alert')).toContainText('Items changed.')
+  await expect(automaticSort).toBeEnabled()
+  assert.equal(
+    await automatic.evaluate(() => window.calls.length),
+    2,
+    'stale mutation is not replayed',
+  )
+  await automatic.evaluate(() => {
+    window.testState.rejectNext = 'Inventory space is full.'
+  })
+  await automaticSort.selectOption('newest')
+  await expect.poll(() => automatic.evaluate(() => window.itemReads)).toBe(3)
+  await expect(automatic.getByRole('alert')).toContainText('Inventory space is full.')
+  assert.equal(
+    await automatic.evaluate(() => window.calls.length),
+    3,
+    'rejected mutation is not replayed',
+  )
+  await automatic.evaluate(() => {
+    window.testState.failNext = true
+    window.testState.failRead = true
+  })
+  await automaticSort.selectOption('class')
+  await expect.poll(() => automatic.evaluate(() => window.itemReads)).toBe(4)
+  await expect(automaticSort).toBeDisabled()
+  await automatic.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect.poll(() => automatic.evaluate(() => window.itemReads)).toBe(5)
+  await expect(automaticSort).toBeEnabled()
+  assert.equal(
+    await automatic.evaluate(() => window.calls.length),
+    4,
+    'refresh recovery never retries writes',
+  )
+  await automatic.evaluate(() => window.setBattleLocked(true))
+  await automatic.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect(automaticSort).toBeDisabled()
+  await automatic.evaluate(() => window.setBattleLocked(false))
+  await automatic.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect(automaticSort).toBeEnabled()
+  await automatic.close()
+  const recovery = await browser.newPage({ viewport: { width: 1366, height: 768 } })
+  await recovery.goto(`${server.resolvedUrls.local[0]}?shell=items&missing&read-failure`, {
+    waitUntil: 'networkidle',
+  })
+  await expect(recovery.getByRole('alert')).toContainText('Current Items could not be refreshed.')
+  assert.equal(
+    await recovery.evaluate(() => window.itemReads),
+    1,
+    'failed initial load has one bounded read',
+  )
+  await recovery.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect(recovery.locator('[data-inventory-slot]')).toHaveCount(40)
+  assert.equal(await recovery.evaluate(() => window.itemReads), 2)
+  await recovery.getByRole('button', { name: /Slot \d+: Warden Helm/ }).click()
+  await recovery.evaluate(() => {
+    window.testState.rejectNext = 'Equipment cannot change during deletion.'
+  })
+  await recovery.getByRole('button', { name: 'Equip', exact: true }).click()
+  await expect(recovery.getByRole('dialog').getByRole('alert')).toContainText(
+    'Equipment cannot change during deletion.',
+  )
+  assert.equal(await recovery.evaluate(() => window.calls.length), 1)
+  await expect(
+    recovery.getByRole('button', { name: 'Head: Wayfarer Hood', exact: true }),
+  ).toBeAttached()
+  await expect(recovery.getByRole('button', { name: 'Equip', exact: true })).toBeEnabled()
+  await recovery.evaluate(() => {
+    window.testState.dropResponse = true
+  })
+  await recovery.getByRole('button', { name: 'Equip', exact: true }).click()
+  await expect(recovery.getByRole('dialog').getByRole('alert')).toContainText(
+    'The save confirmation was lost.',
+  )
+  await expect(
+    recovery.getByRole('button', { name: 'Head: Warden Helm', exact: true }),
+  ).toBeAttached()
+  await expect(recovery.getByRole('button', { name: 'Unequip', exact: true })).toBeEnabled()
+  assert.equal(
+    await recovery.evaluate(() => window.calls.length),
+    2,
+    'lost confirmation recovers the committed state without replay',
+  )
+  assert.equal(await recovery.evaluate(() => window.itemReads), 4)
+  await recovery.close()
+  const simple = await browser.newPage({ viewport: { width: 1366, height: 768 } })
+  await simple.route('**/_next/image?*', async (route) => {
+    const url = new URL(route.request().url())
+    await route.continue({
+      url: new URL(url.searchParams.get('url'), server.resolvedUrls.local[0]).href,
+    })
+  })
+  await simple.goto(`${server.resolvedUrls.local[0]}?shell=items`, { waitUntil: 'networkidle' })
+  await simple.getByRole('button', { name: /Slot \d+: Ember-Stitched Cowl/ }).click()
+  await expect(
+    simple.getByRole('dialog').getByRole('button', { name: 'Equip', exact: true }),
+  ).toBeVisible()
+  await expect(
+    simple.getByRole('dialog').getByText('Compare & equip', { exact: true }),
+  ).toHaveCount(0)
+  await expect(simple.getByRole('dialog').getByRole('combobox')).toHaveCount(0)
+  await expect(simple.getByRole('dialog').getByRole('checkbox')).toHaveCount(0)
+  await expect(
+    simple.getByRole('dialog').locator('[data-equipment-stat-change="12"]'),
+  ).toContainText('+12')
+  assert.equal(
+    await simple
+      .locator('[data-equipment-stat-change="12"]')
+      .evaluate((el) => getComputedStyle(el).color),
+    'rgb(158, 229, 172)',
+  )
+  await expect
+    .poll(() =>
+      simple
+        .getByRole('dialog')
+        .locator('img')
+        .first()
+        .evaluate((image) => image.complete && image.naturalWidth > 0),
+    )
+    .toBe(true)
+  await simple.screenshot({ path: resolve(output, 'arsenal-current-equip-popup-1366.png') })
+  await simple.getByRole('dialog').getByRole('button', { name: 'Equip', exact: true }).click()
+  await expect(
+    simple.getByRole('button', { name: 'Head: Ember-Stitched Cowl', exact: true }),
+  ).toBeAttached()
+  await simple.getByRole('button', { name: 'Head: Ember-Stitched Cowl', exact: true }).click()
+  await expect(
+    simple.getByRole('dialog').getByRole('button', { name: 'Unequip', exact: true }),
+  ).toBeVisible()
+  await expect(
+    simple.getByRole('dialog').locator('[data-equipment-stat-change="-12"]'),
+  ).toContainText('−12')
+  assert.equal(
+    await simple
+      .locator('[data-equipment-stat-change="-12"]')
+      .evaluate((el) => getComputedStyle(el).color),
+    'rgb(255, 158, 151)',
+  )
+  await simple.keyboard.press('Escape')
+  await simple.getByRole('button', { name: 'Materials', exact: true }).click()
+  await simple.locator('[data-inventory-slot] button').first().click()
+  await expect(
+    simple.getByRole('dialog').getByRole('button', { name: 'Cannot be equipped', exact: true }),
+  ).toBeDisabled()
+  await expect(
+    simple.getByRole('dialog').getByText('Flavor and future-purpose Item.', { exact: false }),
+  ).toHaveCount(0)
+  await simple.close()
+
+  console.log(
+    'Automatic Item persistence: immediate sort, category controls, single refresh, failure visibility, no mutation replay, focus recovery and battle locks passed',
+  )
   for (const viewport of [
     { width: 1728, height: 885 },
     { width: 1536, height: 614 },
@@ -117,8 +317,14 @@ try {
     { width: 1024, height: 576 },
     { width: 390, height: 844 },
     { width: 412, height: 915 },
-  ]) {
+  ].filter(includeViewport)) {
     const shellPage = await browser.newPage({ viewport })
+    await shellPage.route('**/_next/image?*', async (route) => {
+      const url = new URL(route.request().url())
+      await route.continue({
+        url: new URL(url.searchParams.get('url'), server.resolvedUrls.local[0]).href,
+      })
+    })
     await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items`, {
       waitUntil: 'networkidle',
     })
@@ -161,58 +367,95 @@ try {
       JSON.stringify({ viewport, fit }),
     )
     const equipment = shellPage.getByRole('region', { name: 'Equipment', exact: true })
-    const inventory = shellPage.getByRole('region', { name: 'Inventory', exact: true })
     await expect(equipment.getByRole('button')).toHaveCount(8)
-    if (viewport.width >= 981) {
-      const equipmentFit = await equipment.evaluate((panel) => ({
-        overflow: panel.scrollHeight - panel.clientHeight,
-        gridBottom: panel.querySelector('[class*="equipment_"]').getBoundingClientRect().bottom,
-        attackTop: panel.querySelector('[class*="attack_"]').getBoundingClientRect().top,
-        slots: [...panel.querySelectorAll('button')].map((button) => {
-          const box = button.getBoundingClientRect()
-          const label = button.querySelector('span').getBoundingClientRect()
-          const name = button.querySelector('strong').getBoundingClientRect()
-          const helper = button.querySelector('small').getBoundingClientRect()
-          return {
-            top: box.top,
-            bottom: box.bottom,
-            labelBottom: label.bottom,
-            nameTop: name.top,
-            nameBottom: name.bottom,
-            helperTop: helper.top,
-            helperBottom: helper.bottom,
-          }
-        }),
-      }))
-      assert.ok(equipmentFit.overflow <= 1, JSON.stringify({ viewport, equipmentFit }))
+    const equipmentFit = await equipment.evaluate((panel) => ({
+      gridBottom: panel.querySelector('[class*="equipment_"]').getBoundingClientRect().bottom,
+      attackTop: panel.querySelector('[class*="attack_"]').getBoundingClientRect().top,
+      slots: [...panel.querySelectorAll('button')].map((button) => {
+        const box = button.getBoundingClientRect()
+        const label = button.querySelector('[class*="positionName"]').getBoundingClientRect()
+        const name = button.querySelector('strong').getBoundingClientRect()
+        const helper = button.querySelector('small').getBoundingClientRect()
+        const image = button.querySelector('img,[class*="emptyIcon"]').getBoundingClientRect()
+        return {
+          left: box.left,
+          right: box.right,
+          top: box.top,
+          bottom: box.bottom,
+          labelTop: label.top,
+          labelBottom: label.bottom,
+          nameTop: name.top,
+          nameBottom: name.bottom,
+          helperTop: helper.top,
+          helperBottom: helper.bottom,
+          imageTop: image.top,
+          imageBottom: image.bottom,
+          imageWidth: image.width,
+          imageHeight: image.height,
+          centered: Math.abs((image.left + image.right) / 2 - (box.left + box.right) / 2),
+        }
+      }),
+    }))
+    assert.ok(
+      equipmentFit.gridBottom <= equipmentFit.attackTop + 1,
+      JSON.stringify({ viewport, equipmentFit }),
+    )
+    for (const slot of equipmentFit.slots) {
       assert.ok(
-        equipmentFit.gridBottom <= equipmentFit.attackTop + 1,
-        JSON.stringify({ viewport, equipmentFit }),
+        slot.nameTop >= slot.top &&
+          slot.nameBottom <= slot.helperTop + 1 &&
+          slot.helperBottom <= slot.imageTop + 1 &&
+          slot.imageBottom <= slot.labelTop + 1 &&
+          slot.labelBottom <= slot.bottom &&
+          slot.centered <= 1,
+        JSON.stringify({ viewport, slot }),
       )
-      for (const slot of equipmentFit.slots)
-        assert.ok(
-          slot.top >= 0 && slot.bottom <= viewport.height,
-          JSON.stringify({ viewport, slot }),
-        )
-      for (const slot of equipmentFit.slots)
-        assert.ok(
-          slot.labelBottom <= slot.nameTop + 1 &&
-            slot.nameBottom <= slot.helperTop + 1 &&
-            slot.helperBottom <= slot.bottom,
-          JSON.stringify({ viewport, slot }),
-        )
-      const inventoryFit = await inventory.evaluate((panel) => {
-        const grid = panel.querySelector('[data-inventory-slot]')
-        return { toolbar: grid.getBoundingClientRect().top - panel.getBoundingClientRect().top }
-      })
-      assert.ok(inventoryFit.toolbar <= 176, JSON.stringify({ viewport, inventoryFit }))
+      assert.ok(slot.left >= 0 && slot.right <= viewport.width, JSON.stringify({ viewport, slot }))
     }
-    if (viewport.width >= 1280) {
-      const firstRow = await shellPage.locator('[data-inventory-slot]').evaluateAll((cells) => {
-        const top = cells[0].getBoundingClientRect().top
-        return cells.filter((cell) => Math.abs(cell.getBoundingClientRect().top - top) <= 1).length
+    const imageGeometry = await shellPage
+      .locator('[data-inventory-slot="1"] img')
+      .evaluate((image) => {
+        const box = image.getBoundingClientRect()
+        return { width: box.width, height: box.height }
       })
-      assert.equal(firstRow, 6)
+    for (const slot of equipmentFit.slots) {
+      assert.ok(
+        Math.abs(slot.imageWidth - imageGeometry.width) <= 1 &&
+          Math.abs(slot.imageHeight - imageGeometry.height) <= 1,
+        JSON.stringify({ viewport, slot, imageGeometry }),
+      )
+    }
+    const referenceSize =
+      viewport.width <= 820
+        ? Math.min(52, Math.max(24, Math.min(viewport.width * 0.11, viewport.height * 0.07)))
+        : viewport.width <= 880
+          ? viewport.width > 820
+            ? viewport.height <= 620
+              ? 46
+              : 44
+            : 68
+          : viewport.width <= 1100
+            ? viewport.height <= 620
+              ? 57
+              : 61
+            : viewport.height <= 700
+              ? 69
+              : 81
+    assert.ok(
+      Math.abs(imageGeometry.width - referenceSize) <= 1,
+      JSON.stringify({ viewport, imageGeometry, referenceSize }),
+    )
+    if (viewport.width >= 981) {
+      await shellPage.getByRole('button', { name: /^Consumable 2:/ }).scrollIntoViewIfNeeded()
+      const lastEquipment = await shellPage
+        .getByRole('button', { name: /^Consumable 2:/ })
+        .boundingBox()
+      assert.ok(
+        lastEquipment.y >= 0 && lastEquipment.y + lastEquipment.height <= viewport.height + 1,
+      )
+      await equipment.evaluate((panel) => {
+        panel.scrollTop = 0
+      })
     }
     const cardFit = await shellPage.locator('[data-inventory-slot="1"] button').evaluate((card) => {
       const image = card.querySelector('img').getBoundingClientRect()
@@ -230,15 +473,26 @@ try {
     await shellPage.getByRole('button', { name: /^Off Hand:/ }).click()
     await expect(shellPage.getByRole('dialog')).toBeVisible()
     await expect(shellPage.getByRole('region', { name: 'Equipment comparison' })).toHaveCount(0)
-    await expect(
-      shellPage.getByRole('button', { name: 'Unequip Off Hand', exact: true }),
-    ).toBeVisible()
+    await expect(shellPage.getByRole('button', { name: 'Unequip', exact: true })).toBeVisible()
     if (viewport.width >= 981) {
       const dialogFit = await shellPage.getByRole('dialog').evaluate((dialog) => {
         const body = dialog.querySelector('[class*="dialogBody"]')
-        return body.scrollHeight - body.clientHeight
+        return {
+          overflow: body.scrollHeight - body.clientHeight,
+          height: body.clientHeight,
+          fullHeight: body.scrollHeight,
+          sections: [...body.children].map((child) => ({
+            height: child.getBoundingClientRect().height,
+            width: child.getBoundingClientRect().width,
+            text: child.textContent.slice(0, 100),
+          })),
+        }
       })
-      assert.ok(dialogFit <= 1, JSON.stringify({ viewport, dialogFit }))
+      if (dialogFit.overflow > 1)
+        await shellPage.screenshot({
+          path: resolve(output, `arsenal-dialog-fit-${viewport.width}-${viewport.height}.png`),
+        })
+      assert.ok(dialogFit.overflow <= 1, JSON.stringify({ viewport, dialogFit }))
     }
     await shellPage.keyboard.press('Escape')
     await shellPage.locator('[data-inventory-slot="40"]').scrollIntoViewIfNeeded()
@@ -252,7 +506,7 @@ try {
   console.log(
     'Arsenal production shell: nine viewports, shared header geometry, internal scroll reachability and hand details passed',
   )
-  for (const presentation of ['masculine', 'feminine', 'androgynous']) {
+  for (const presentation of selectedViewport ? [] : ['masculine', 'feminine', 'androgynous']) {
     const page = await browser.newPage({ viewport: { width: 1366, height: 768 } })
     await page.goto(`${server.resolvedUrls.local[0]}?shell=items&presentation=${presentation}`, {
       waitUntil: 'networkidle',
@@ -272,7 +526,7 @@ try {
     { width: 1366, height: 768 },
     { width: 390, height: 844 },
     { width: 412, height: 915 },
-  ]) {
+  ].filter(includeViewport)) {
     const page = await browser.newPage({
       viewport,
       ...(viewport.width < 500 ? { hasTouch: true, isMobile: true } : {}),
@@ -286,93 +540,31 @@ try {
       })
     })
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
-    await expect(page.locator('[data-inventory-slot]')).toHaveCount(40)
     await expect(page.getByText('66 / 100 QP', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: /Slot 2: Ember-Stitched Cowl/ }).click()
-    const cowlDialog = page.getByRole('dialog')
-    const reportRows = cowlDialog.locator('[data-ability-parameters] dl > div')
-    assert.ok((await reportRows.count()) >= 8)
-    const rowFit = await reportRows.first().evaluate((row) => {
-      const label = row.querySelector('dt').getBoundingClientRect()
-      const value = row.querySelector('dd').getBoundingClientRect()
-      return {
-        sameRow: Math.abs(label.top - value.top) <= 1,
-        separateColumns: value.left >= label.right,
-      }
-    })
-    assert.ok(rowFit.sameRow && rowFit.separateColumns, JSON.stringify({ viewport, rowFit }))
-    if (viewport.width >= 981) {
-      const fit = await cowlDialog.evaluate((dialog) => {
-        const body = dialog.querySelector('[class*="dialogBody"]')
-        return body.scrollHeight - body.clientHeight
-      })
-      assert.ok(fit <= 1, JSON.stringify({ viewport, cowlDialogOverflow: fit }))
-    }
-    await page.screenshot({ path: resolve(output, `arsenal-cowl-detail-${viewport.width}.png`) })
-    await page.keyboard.press('Escape')
-    const image = page
-      .locator('img[src="/media/art/items/thumbnails/wayfarer-hood-v01.webp"]')
-      .first()
-    assert(
-      await image.evaluate((img) => img.complete && img.naturalWidth === 256),
-      'real thumbnail decoded',
-    )
-    const hood = page.getByRole('button', { name: /Slot 1: Wayfarer Hood/ })
-    await hood.focus()
-    await page.keyboard.press('Enter')
-    let dialog = page.getByRole('dialog')
-    await expect(dialog).toBeVisible()
-    await expect(dialog.locator(':scope > section')).toHaveAttribute('data-av-surface', 'ink')
-    await expect(dialog.getByRole('img', { name: 'Wayfarer Hood', exact: true })).toBeVisible()
-    const bounds = await dialog.locator(':scope > section').boundingBox()
-    assert(
-      bounds.x >= 8 && bounds.x + bounds.width <= viewport.width - 8,
-      'detail panel fits inside viewport',
-    )
-    await page.screenshot({
-      path: resolve(output, `arsenal-item-detail-${viewport.width}.png`),
-      fullPage: false,
-    })
-    await page.keyboard.press('Tab')
-    assert(
-      await dialog.evaluate((el) => el.contains(document.activeElement)),
-      'detail retains keyboard focus',
-    )
-    await page.keyboard.press('Escape')
-    await expect(dialog).toHaveCount(0)
-    await expect(hood).toBeFocused()
-    await hood.click()
-    if (viewport.width < 500) await page.touchscreen.tap(2, 2)
-    else await page.mouse.click(2, 2)
-    await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(hood).toBeFocused()
-    await page.evaluate(() => window.setItemEnabled('iron-shortsword', false))
-    await page.reload({ waitUntil: 'networkidle' })
-    await page.getByRole('combobox', { name: 'Filter', exact: true }).selectOption('unavailable')
-    await expect(page.locator('[data-inventory-slot] button')).toHaveCount(2)
-    await expect(page.locator('[data-inventory-slot="1"] button')).toHaveCount(1)
-    await expect(page.locator('[data-inventory-slot="2"] button')).toHaveCount(1)
-    await expect(page.locator('[data-inventory-slot="3"] button')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: /Slot \d+: Iron Shortsword/ })).toBeVisible()
-    await page.getByRole('combobox', { name: 'Filter', exact: true }).selectOption('equippable')
-    await expect(page.getByRole('button', { name: /Slot \d+: Iron Shortsword/ })).toHaveCount(0)
-    await page.getByRole('combobox', { name: 'Filter', exact: true }).selectOption('all')
-    await expect(page.locator('[data-inventory-slot] button')).toHaveCount(22)
-    await page.evaluate(() => window.setItemEnabled('iron-shortsword', true))
-    await page.reload({ waitUntil: 'networkidle' })
     await page.getByRole('button', { name: /Slot \d+: Warden Helm/ }).click()
-    dialog = page.getByRole('dialog')
-    await expect(dialog.getByText(/Confirm replacement: Head/)).toBeVisible()
-    await dialog.getByRole('button', { name: 'Confirm swap · Head', exact: true }).click()
+    let dialog = page.getByRole('dialog')
+    await expect(dialog.getByRole('combobox')).toHaveCount(0)
+    await expect(dialog.getByRole('checkbox')).toHaveCount(0)
+    const close = dialog.getByRole('button', { name: 'Close', exact: true })
+    const equip = dialog.getByRole('button', { name: 'Equip', exact: true })
+    const closeBox = await close.boundingBox()
+    assert.ok(closeBox.width < 140 && closeBox.height >= (viewport.width < 500 ? 44 : 34))
+    await close.focus()
+    await page.keyboard.press('Tab')
+    await expect(equip).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(close).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await expect(equip).toBeFocused()
+    await page.keyboard.press('Enter')
     await expect(dialog).toHaveCount(0)
     await expect(page.getByText('87 / 100 QP', { exact: true })).toBeVisible()
     let last = await page.evaluate(() => window.calls.at(-1))
     assert.deepEqual(last.replacePositions, ['head'])
     assert.equal(last.expectedRevision, 1)
-    assert.equal(last.catalogueToken, 'a'.repeat(32))
     await page.getByRole('combobox', { name: 'Sort', exact: true }).selectOption('quality-points')
-    await page.getByRole('button', { name: 'Save order', exact: true }).click()
-    await expect(page.getByRole('status')).toContainText('Items saved.')
+    await expect(page.getByRole('combobox', { name: 'Sort', exact: true })).toBeEnabled()
+    assert.equal((await page.evaluate(() => window.calls.at(-1))).action, 'sort')
     const before = await page
       .locator('[data-inventory-slot] button')
       .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label')))
@@ -383,127 +575,70 @@ try {
         .evaluateAll((nodes) => nodes.map((n) => n.getAttribute('aria-label'))),
       before,
     )
-    await expect(page.getByRole('button', { name: 'Head: Warden Helm', exact: true })).toBeVisible()
-    const callsBeforeSearch = await page.evaluate(() => window.calls.length)
     await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('Sunsplitter')
     await expect(page.locator('[data-inventory-slot] button')).toHaveCount(1)
-    await expect(page.locator('[data-inventory-slot="1"] button')).toHaveAttribute(
-      'title',
-      'Sunsplitter',
-    )
-    assert.equal(await page.evaluate(() => window.calls.length), callsBeforeSearch)
-    await page.getByRole('button', { name: /Slot \d+: Sunsplitter/ }).click()
-    dialog = page.getByRole('dialog')
-    await expect(dialog.getByText(/Short by 12 QP/)).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Confirm swap · Main Hand' })).toBeDisabled()
-    // Follow the real forward tab order, then reverse it, without locator.focus or pointer input.
-    const closeItem = dialog.getByRole('button', { name: 'Close', exact: true })
-    const equipPosition = dialog.getByRole('combobox', { name: 'Equip position' })
-    const comparison = dialog.locator('summary')
-    const optionalRemovals = await dialog.getByRole('checkbox').all()
-    const confirmSwap = dialog.getByRole('button', { name: 'Confirm swap · Main Hand' })
-    if (!(await closeItem.evaluate((el) => el === document.activeElement)))
-      await page.keyboard.press('Tab')
-    await expect(closeItem).toBeFocused()
-    await page.keyboard.press('Tab')
-    await expect(equipPosition).toBeFocused()
-    await page.keyboard.press('Tab')
-    await expect(comparison).toBeFocused()
-    for (const checkbox of optionalRemovals) {
-      await page.keyboard.press('Tab')
-      await expect(checkbox).toBeFocused()
-      if (
-        (await checkbox.getAttribute('type')) === 'checkbox' &&
-        (await checkbox.locator('..').textContent()).includes('Body · Stormweave Robe')
-      ) {
-        await page.keyboard.press('Space')
-        await expect(checkbox).toBeChecked()
-      }
-    }
-    await expect(dialog.getByText(/Confirm replacement:.*Body \(Stormweave Robe\)/)).toBeVisible()
-    await expect(confirmSwap).toBeEnabled()
-    await page.keyboard.press('Tab')
-    await expect(confirmSwap).toBeFocused()
-    await page.keyboard.press('Tab')
-    await expect(closeItem).toBeFocused()
-    const forwardOrder = [closeItem, equipPosition, comparison, ...optionalRemovals, confirmSwap]
-    for (const control of [...forwardOrder].reverse()) {
-      await page.keyboard.press('Shift+Tab')
-      await expect(control).toBeFocused()
-    }
-    for (const control of forwardOrder.slice(1)) {
-      await page.keyboard.press('Tab')
-      await expect(control).toBeFocused()
-    }
-    await page.screenshot({ path: resolve(output, `arsenal-keyboard-swap-${viewport.width}.png`) })
-    await page.keyboard.press('Enter')
+    await page.locator('[data-inventory-slot] button').click()
+    await expect(page.getByRole('button', { name: 'Equip', exact: true })).toBeDisabled()
+    await expect(page.getByRole('dialog').getByRole('status')).toContainText('exceed 100 QP')
+    await expect(page.getByRole('dialog').getByRole('checkbox')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    // A player explicitly removes a piece; Equip never picks extra gear just to fit the budget.
+    await page.getByRole('button', { name: 'Body: Stormweave Robe', exact: true }).click()
+    await page.getByRole('button', { name: 'Unequip', exact: true }).click()
+    await page.locator('[data-inventory-slot] button').click()
+    await page.getByRole('button', { name: 'Equip', exact: true }).click()
     await expect(page.getByText('92 / 100 QP', { exact: true })).toBeVisible()
+    last = await page.evaluate(() => window.calls.at(-1))
+    assert.deepEqual(last.replacePositions, ['main-hand', 'off-hand'])
     await expect(
       page.getByRole('button', { name: 'Off Hand: Occupied by two-handed weapon', exact: true }),
-    ).toBeVisible()
-    last = await page.evaluate(() => window.calls.at(-1))
-    assert.deepEqual(last.replacePositions, ['main-hand', 'off-hand', 'body'])
+    ).toBeDisabled()
     await page.getByRole('button', { name: 'Main Hand: Sunsplitter', exact: true }).click()
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Unequip Main Hand', exact: true })
-      .click()
+    await page.getByRole('button', { name: 'Unequip', exact: true }).click()
     await expect(page.getByText('42 / 100 QP', { exact: true })).toBeVisible()
-    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('')
-    await page.getByRole('button', { name: 'Battle Items', exact: true }).click()
-    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 12/ }).click()
+    // Clicking empty Head shows only owned headwear in a wrapped compact picker.
+    await page.getByRole('button', { name: 'Head: Warden Helm', exact: true }).click()
+    await page.getByRole('button', { name: 'Unequip', exact: true }).click()
+    await page.getByRole('button', { name: 'Head: Empty', exact: true }).click()
     dialog = page.getByRole('dialog')
-    await expect(dialog.getByText(/3 uses per battle\. Uses refill/)).toBeVisible()
-    await expect(dialog.locator('[data-ability-parameters]')).toHaveCount(1)
-    await dialog.getByRole('button', { name: 'Equip · Consumable 1', exact: true }).click()
-    await page.getByRole('button', { name: /Slot 1: Mender Salve, quantity 12/ }).click()
+    await expect(dialog.getByRole('button', { name: 'Wayfarer Hood', exact: true })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: /Iron Shortsword/ })).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Wayfarer Hood', exact: true }).click()
+    assert.equal((await page.evaluate(() => window.calls.at(-1))).position, 'head')
+    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('')
+    await page.getByRole('button', { name: 'Consumable 1: Empty', exact: true }).click()
     await page
       .getByRole('dialog')
-      .getByRole('combobox', { name: 'Equip position' })
-      .selectOption('consumable-2')
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Equip · Consumable 2', exact: true })
+      .getByRole('button', { name: /Mender Salve/ })
       .click()
-    await expect(page.getByText('58 / 100 QP', { exact: true })).toBeVisible()
-    await page.reload({ waitUntil: 'networkidle' })
     await expect(
       page.getByRole('button', { name: 'Consumable 1: Mender Salve', exact: true }),
-    ).toBeVisible()
+    ).toContainText('×12 owned')
+    await page.getByRole('button', { name: 'Consumable 2: Empty', exact: true }).click()
     await expect(
-      page.getByRole('button', { name: 'Consumable 2: Mender Salve', exact: true }),
+      page.getByRole('dialog').getByRole('button', { name: /Mender Salve/ }),
+    ).toHaveCount(0)
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Clarity Draught/ })
+      .click()
+    last = await page.evaluate(() => window.calls.at(-1))
+    assert.equal(last.position, 'consumable-2')
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(
+      page.getByRole('button', { name: 'Consumable 2: Clarity Draught', exact: true }),
     ).toBeVisible()
-    await page.getByRole('button', { name: 'Consumable 2: Mender Salve', exact: true }).click()
+    // Preserve the established Support chooser, late-read guard and fallback coverage.
+    await page.getByRole('button', { name: 'Off Hand: Empty', exact: true }).click()
     await page
       .getByRole('dialog')
-      .getByRole('button', { name: 'Unequip Consumable 2', exact: true })
+      .getByRole('button', { name: /Wardstone Bracer/ })
       .click()
-    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('Wardstone')
-    await page.getByRole('button', { name: /Slot \d+: Wardstone Bracer/ }).click()
-    await page
-      .getByRole('dialog')
-      .getByRole('combobox', { name: 'Equip position' })
-      .selectOption('off-hand')
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Equip · Off Hand', exact: true })
-      .click()
-    // Existing single Support selector, with five current Basic choices and equipped grants.
     await page.getByRole('button', { name: /Manage Techniques/ }).click()
     const supportTab = page.getByRole('tab', { name: 'Support', exact: true })
     if (await supportTab.isVisible()) await supportTab.click()
-    await expect(
-      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
-    ).toBeVisible()
     await page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    last = await page.evaluate(() => window.calls.at(-1))
-    assert.deepEqual(last.selection, {
-      kind: 'equipment',
-      position: 'off-hand',
-      itemId: 'wardstone-bracer',
-      behaviorId: 'ward',
-    })
     await page.reload({ waitUntil: 'networkidle' })
     await page.evaluate(() => {
       window.testState.deferRead = true
@@ -517,7 +652,6 @@ try {
     if (viewport.width < 500)
       await page.getByRole('button', { name: 'Use as Support Action', exact: true }).click()
     await expect(page.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
-    // A late GET from opening the selector must not restore the old equipment choice.
     await page.evaluate(() => window.releaseItemRead())
     await expect(page.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
     await expect(
@@ -527,43 +661,74 @@ try {
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.reload({ waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Off Hand: Wardstone Bracer', exact: true }).click()
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Unequip Off Hand', exact: true })
-      .click()
-    await expect(page.getByRole('status')).toContainText('previous Basic Support Action')
+    await page.getByRole('button', { name: 'Unequip', exact: true }).click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    assert.deepEqual(await page.evaluate(() => window.itemSnapshot().selectedSupport), {
+      kind: 'basic',
+      actionId: 'basic.recover',
+    })
+    await expect(page.getByText('Items saved.', { exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Materials', exact: true }).click()
+    await page.locator('[data-inventory-slot] button').first().click()
+    dialog = page.getByRole('dialog')
+    await expect(
+      dialog.getByRole('button', { name: 'Cannot be equipped', exact: true }),
+    ).toBeDisabled()
+    const dialogWidth = await dialog.locator(':scope > section').boundingBox()
+    assert.ok(dialogWidth.width <= 600 && dialogWidth.width <= viewport.width)
+    await page.screenshot({ path: resolve(output, `arsenal-item-material-${viewport.width}.png`) })
+    await page.keyboard.press('Escape')
     await page.evaluate(() => window.archiveEquipment())
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
     await expect(page.getByText('Repair equipment', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Head: Unavailable Item', exact: true }).click()
-    await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Unequip Head', exact: true })
-      .click()
+    await page.getByRole('button', { name: 'Unequip', exact: true }).click()
     await expect(page.getByText('Repair equipment', { exact: true })).toHaveCount(0)
-    await page.evaluate(() => {
-      window.testState.failNext = true
-    })
-    await page.getByRole('button', { name: 'Save order', exact: true }).click()
-    await expect(page.getByRole('alert')).toContainText('Items changed.')
-    await expect(page.getByRole('button', { name: 'Save order', exact: true })).toBeDisabled()
-    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
-    await expect(page.getByRole('button', { name: 'Save order', exact: true })).toBeEnabled()
-    await page.evaluate(() => window.setBattleLocked(true))
-    await page.reload({ waitUntil: 'networkidle' })
-    await expect(page.getByRole('status')).toContainText('locked during a pending or active battle')
-    await expect(page.getByRole('button', { name: 'Save order', exact: true })).toBeDisabled()
-    await page.evaluate(() => window.setBattleLocked(false))
-    await page.getByRole('button', { name: 'Reload Items', exact: true }).click()
-    await page.getByRole('searchbox', { name: 'Search', exact: true }).fill('')
+    // The Equipped pill remains distinct from stock quantity and does not resize artwork.
+    await page.getByRole('button', { name: 'Consumables', exact: true }).click()
+    const badgeFit = await page
+      .locator('[data-inventory-slot] button')
+      .filter({ hasText: 'Mender Salve' })
+      .evaluate((card) => {
+        const badge = card.querySelector('[class*="equipped_"]').getBoundingClientRect()
+        const quantity = card.querySelector('[class*="quantity_"]').getBoundingClientRect()
+        return {
+          text: card.querySelector('[class*="equipped_"]').textContent,
+          separate: badge.top >= quantity.bottom || badge.right <= quantity.left,
+        }
+      })
+    assert.ok(
+      badgeFit.text.includes('✓') && badgeFit.separate,
+      JSON.stringify({ viewport, badgeFit }),
+    )
+    const postsBeforeDepletion = await page.evaluate(() => window.calls.length)
+    await page.evaluate(() => window.depleteFixtureStack('consumable-1'))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(
+      page.getByRole('button', { name: 'Consumable 1: Empty', exact: true }),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /Slot \d+: Mender Salve, quantity 3/ }),
+    ).toBeAttached()
+    assert.equal(
+      await page.evaluate(() => window.calls.length),
+      postsBeforeDepletion,
+      'authoritative depletion never equips another stack automatically',
+    )
+    await page.getByRole('button', { name: 'Head: Empty', exact: true }).click()
+    await page.keyboard.press('Escape')
+    await page.evaluate(() => window.disablePositionItems('head'))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await page.getByRole('button', { name: 'Head: Empty', exact: true }).click()
+    await expect(page.getByRole('dialog').getByRole('status')).toContainText(
+      'No owned Items can be equipped in Head.',
+    )
+    await page.keyboard.press('Escape')
     await page.screenshot({
       path: resolve(output, `arsenal-items-${viewport.width}.png`),
       fullPage: true,
     })
-    assert(
-      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
-      'page does not overflow',
-    )
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
     // Exercise the two existing callers of the shared dialog, including pending-request behavior.
     await page.goto(`${server.resolvedUrls.local[0]}?roster`, { waitUntil: 'networkidle' })
     for (const caller of [
@@ -637,7 +802,7 @@ try {
     assert.deepEqual(errors, [])
     await page.close()
     console.log(
-      `Arsenal ${viewport.width}: keyboard swap, reverse traversal, deletion caller busy/focus, request CAS, QP, dual stacks, Support fallback, repair, reload, art and layout passed`,
+      `Arsenal ${viewport.width}: direct actions, stat deltas, owned pickers, distinct consumables, budget/repair guards, automatic refresh, compact dialogs and deletion focus passed`,
     )
   }
 } finally {

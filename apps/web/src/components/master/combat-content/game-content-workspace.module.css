@@ -670,3 +670,52 @@
   max-inline-size: 100%;
   box-sizing: border-box;
 }
+
+/* Item identity and long authored text share the available editor width. */
+.itemFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 0.75rem;
+  overflow-wrap: anywhere;
+}
+.itemFields > *,
+.itemFields .descriptionField,
+.itemFields .descriptionFields {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.itemFields .identityGroup {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.itemFields .identityGroup > :last-child {
+  grid-column: auto;
+}
+.itemFields :is(input, select, textarea) {
+  box-sizing: border-box;
+  min-inline-size: 0;
+  max-inline-size: 100%;
+}
+.itemFields textarea {
+  resize: vertical;
+}
+
+.itemFields .descriptionField > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Keep desktop Item authoring room above the shared scrolling body. */
+@media (min-width: 761px) {
+  .editor[data-item-editor='true'] {
+    gap: 0.3rem;
+    padding-block: 0.45rem;
+  }
+  .editor[data-item-editor='true'] .recordHeading {
+    padding-bottom: 0.2rem;
+  }
+  .editor[data-item-editor='true'] > .tabs {
+    padding-bottom: 0.15rem;
+  }
+}

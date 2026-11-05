@@ -1,0 +1,51 @@
+.actions {
+  min-width: 0;
+  padding: 0.4rem 0;
+}
+.actions .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.4rem 0.55rem;
+  min-width: 0;
+}
+.actions .toolbar > button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 2.2rem;
+}
+.actions .character {
+  flex: 1 1 11rem;
+  max-width: 17rem;
+  min-width: 0;
+}
+.actions .quantity {
+  flex: 0 0 6rem;
+  width: 6rem;
+  min-width: 0;
+}
+.actions .quantity input {
+  width: 100%;
+}
+.actions .recipient {
+  align-self: center;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 0.8rem;
+}
+.actions .matches {
+  margin-top: 0.4rem;
+  max-width: 32rem;
+}
+.actions .matches select {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+.actions .notice {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}

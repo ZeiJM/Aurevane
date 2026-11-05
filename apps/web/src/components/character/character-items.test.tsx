@@ -32,6 +32,33 @@ const stack = (id: string, value: ItemPresentation | null, quantity = 1) => ({
   quantity,
   item: value,
 })
+it('uses Gloves and a Basic Attack slot label without a template caption', () => {
+  const html = renderToStaticMarkup(<CharacterItems initialView={view} />)
+  const text = html.replace(/<[^>]+>/g, '')
+  expect(text).toContain('Gloves')
+  expect(text).not.toContain('hand armor')
+  expect(text).not.toContain('Template')
+  expect(text).toContain('Basic Attack slot: Unarmed')
+})
+it('names the equipped weapon in the Basic Attack slot independently of its technique name', () => {
+  const weapon = item({
+    id: 'sunsplitter',
+    name: 'Sunsplitter',
+    itemClass: 'weapon',
+    equipment: { slot: 'hand', hands: 2 },
+    actions: { attack: { behaviorId: 'attack', name: 'Solar Slash' } },
+  })
+  const html = renderToStaticMarkup(
+    <CharacterItems
+      initialView={{
+        ...view,
+        equipment: { 'main-hand': 'blade' },
+        stacks: [stack('blade', weapon)],
+      }}
+    />,
+  )
+  expect(html.replace(/<[^>]+>/g, '')).toContain('Basic Attack slot: Sunsplitter')
+})
 export const view: CharacterItemsView = {
   characterId: 'character',
   revision: 7,
@@ -49,7 +76,7 @@ it('renders six categories, forty addressable slots, real art and exactly eight 
   const html = renderToStaticMarkup(<CharacterItems initialView={view} />)
   for (const name of [
     'Gear',
-    'Battle Items',
+    'Consumables',
     'Materials',
     'General',
     'Event',
@@ -67,16 +94,44 @@ it('renders six categories, forty addressable slots, real art and exactly eight 
   expect(html.match(/data-inventory-slot=/g)).toHaveLength(40)
   expect(html).toContain('/media/art/items/thumbnails/wayfarer-hood-v01.webp')
   expect(html).toContain('8 / 100 QP')
+  expect(html).toContain('Wayfarer Hood, quantity 1, equipped')
   expect(html).not.toContain('Ready for the road')
   expect(html).not.toContain('Equip your discoveries.')
   expect(html).not.toContain('ARSENAL · ITEMS')
   expect(html).not.toContain('Reload Items')
 })
-it('keeps reload available when Items cannot load or equipment is battle locked', () => {
-  expect(renderToStaticMarkup(<CharacterItems initialView={null} />)).toContain('Reload Items')
+it('recovers loading and battle locks automatically without manual save or reload controls', () => {
+  expect(renderToStaticMarkup(<CharacterItems initialView={null} />)).not.toContain('Reload Items')
   expect(
     renderToStaticMarkup(<CharacterItems initialView={{ ...view, battleLocked: true }} />),
-  ).toContain('Reload Items')
+  ).not.toContain('Reload Items')
+  expect(renderToStaticMarkup(<CharacterItems initialView={view} />)).not.toContain('Save order')
+})
+it('omits the Unavailable filter while retaining unavailable owned Items for repair', () => {
+  const html = renderToStaticMarkup(
+    <CharacterItems initialView={{ ...view, stacks: [stack('old', null)] }} />,
+  )
+  expect(html).not.toContain('<option value="unavailable">')
+  expect(html).toContain('Unavailable Item')
+  expect(html).toContain('Head: Unavailable Item')
+})
+it('offers useful Gear controls with readable slots and no quantity sorting', () => {
+  const html = renderToStaticMarkup(<CharacterItems initialView={view} />)
+  expect(html).toContain('<option value="slot:main-hand">Main Hand</option>')
+  expect(html).toContain('<option value="slot:off-hand">Off Hand</option>')
+  expect(html).not.toContain('<option value="slot:hand">')
+  expect(html).not.toContain('<option value="quantity">')
+  expect(html).toContain('<option value="quality-points">Quality Points</option>')
+})
+it('places equipment names and QP above artwork and slot labels below it', () => {
+  const html = renderToStaticMarkup(<CharacterItems initialView={view} />)
+  const slot = html.slice(
+    html.indexOf('data-equipment-position="head"'),
+    html.indexOf('data-equipment-position="body"'),
+  )
+  expect(slot.indexOf('<strong>Wayfarer Hood</strong>')).toBeLessThan(slot.indexOf('<img'))
+  expect(slot.indexOf('<small>8 QP</small>')).toBeLessThan(slot.indexOf('<img'))
+  expect(slot.indexOf('>Head</span>')).toBeGreaterThan(slot.indexOf('<img'))
 })
 it('uses the saved presentation for neutral faceless equipment templates', () => {
   for (const presentationId of ['masculine', 'feminine', 'androgynous'] as const) {
@@ -120,7 +175,16 @@ it('previews explicit two-hand replacement once and shortage without silently re
   expect(result.removals).not.toContain('head')
   expect(itemPositions(weapon)).toEqual(['main-hand'])
 })
-it('allows the same battle stack in both consumable slots only with two owned copies and charges QP per slot', () => {
+it('keeps unmet authoritative character requirements visible in equipment proposals', () => {
+  const restricted = {
+    ...view.stacks[0]!,
+    unmetEquipRequirements: ['Level 10 required (current 2).'],
+  }
+  expect(equipmentProposal({ ...view, equipment: {} }, restricted, 'head', []).issue).toBe(
+    'Level 10 required (current 2).',
+  )
+})
+it('blocks the same Consumable identity in both positions regardless of owned quantity or separate stacks', () => {
   const potion = item({
     id: 'draught',
     inventoryCategory: 'battle-items',
@@ -131,15 +195,20 @@ it('allows the same battle stack in both consumable slots only with two owned co
   })
   const s = stack('potion', potion, 1),
     v = { ...view, qualityPoints: 7, equipment: { 'consumable-1': 'potion' }, stacks: [s] }
-  expect(equipmentProposal(v, s, 'consumable-2', []).issue).toMatch(/two owned/)
+  expect(equipmentProposal(v, s, 'consumable-2', []).issue).toMatch(/different Items/)
   expect(
     equipmentProposal(
       { ...v, stacks: [{ ...s, quantity: 2 }] },
       { ...s, quantity: 2 },
       'consumable-2',
       [],
-    ).qualityPoints,
-  ).toBe(14)
+    ).issue,
+  ).toMatch(/different Items/)
+  const second = { ...s, id: 'second-stack', quantity: 4 }
+  expect(
+    equipmentProposal({ ...v, stacks: [s, second] }, second, 'consumable-2', []).issue,
+  ).toMatch(/different Items/)
+  expect(equipmentProposal({ ...v, equipment: {} }, second, 'consumable-2', []).issue).toBeNull()
 })
 it('keeps unavailable owned equipment visible and marks partial QP as invalid', () => {
   const html = renderToStaticMarkup(
@@ -157,19 +226,21 @@ it('keeps unavailable owned equipment visible and marks partial QP as invalid', 
   expect(html).toContain('Repair equipment')
 })
 
-it('shows armor position without a hand count while preserving one/two-hand weapon information', async () => {
+it('shows actual armor and weapon positions without internal hand counts', async () => {
   const { ItemDetails } = await import('./item-details')
   for (const slot of ['head', 'body', 'pants', 'boots'] as const) {
     const html = renderToStaticMarkup(
       <ItemDetails item={item({ equipment: { slot, hands: 1 } })} />,
     )
-    expect(html).toContain(`<dd>${slot}</dd>`)
+    expect(html).toContain(`<dd>${slot[0]!.toUpperCase()}${slot.slice(1)}</dd>`)
     expect(html).not.toContain(`${slot} · 1 hand`)
   }
   for (const hands of [1, 2] as const)
     expect(
-      renderToStaticMarkup(<ItemDetails item={item({ equipment: { slot: 'hand', hands } })} />),
-    ).toContain(`hand · ${hands} hand`)
+      renderToStaticMarkup(
+        <ItemDetails item={item({ itemClass: 'weapon', equipment: { slot: 'hand', hands } })} />,
+      ),
+    ).toContain('<dd>Main Hand</dd>')
 })
 it('describes battle Items as consumables rather than hand equipment', async () => {
   const { ItemDetails } = await import('./item-details')
@@ -178,7 +249,7 @@ it('describes battle Items as consumables rather than hand equipment', async () 
       item={item({ itemClass: 'battle-item', equipment: { slot: 'hand', hands: 1 } })}
     />,
   )
-  expect(html).toContain('<dd>Consumable</dd>')
+  expect(html).toContain('<dd>Consumable 1 / Consumable 2</dd>')
   expect(html).not.toContain('hand · 1 hand')
 })
 it('shows why a starter grant is deferred without implying any quantity was granted', () => {

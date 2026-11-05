@@ -1,0 +1,510 @@
+{
+  "status": "live-for-owner-testing",
+  "authorized": "Owner explicitly requested PR #1011 be made live before continuing Seal, November 4, 2026.",
+  "pr": 1011,
+  "testedHead": "7f1a013035dc18aa97ba0650aaa5c7306d2faaf8",
+  "merge": "121297dc4a0d564fac7348e6c9f999dff7efc53e",
+  "tree": "672691fd89d9e861102127acb5ae57b664c37882",
+  "project": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "team": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "database": "luazfeupwfgnilohfsya",
+  "previousDeployment": "dpl_NJm2S94uxcVpPZRXgo5kdH39NoYy",
+  "stagedUrl": "https://aurevane-6xkck8928-zeijms-projects.vercel.app",
+  "routesBefore": {
+    "routes": [
+      {
+        "id": "bb343d6a-005e-41f5-96ff-33e15c2c04b3",
+        "name": "Retire incompatible deployment hosts",
+        "description": "Only the canonical domains and exact compatible deployment aliases may serve this project. Update allowed-host regex with every future approved production cutover.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "missing": [
+            {
+              "type": "host",
+              "value": "^(aurevane\\.vercel\\.app|aurevane-zeijms-projects\\.vercel\\.app|aurevane-4d0cw71h2-zeijms-projects\\.vercel\\.app)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "d53aa166-cf3f-42db-a6fd-1a27b3fe8298",
+        "name": "Retire incompatible header pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id"
+            }
+          ],
+          "missing": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "^(dpl_NJm2S94uxcVpPZRXgo5kdH39NoYy)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "04259482-8b0f-4b01-85bf-b5bd35dbb910",
+        "name": "Retire incompatible query pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "^(dpl_NJm2S94uxcVpPZRXgo5kdH39NoYy)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "66ba7749-1a6b-4ccd-9202-be7a7bb8ff76",
+        "name": "Retire incompatible cookie pins",
+        "description": "Reject existing deployment pins unless they name the current compatible deployment.",
+        "enabled": true,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl"
+            }
+          ],
+          "missing": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "^(dpl_NJm2S94uxcVpPZRXgo5kdH39NoYy)$"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "staged": false,
+        "routeType": "set_status"
+      },
+      {
+        "id": "1762a69d-d88b-464d-9986-a3885460cc13",
+        "name": "Retired Master baseline cookie",
+        "description": "Retire the old deployment cookie and clear its pin so a refresh can load the compatible production app.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store",
+            "Set-Cookie": "__vdpl=; Path=/; Max-Age=0; Secure; HttpOnly; SameSite=Lax"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "cookie",
+              "key": "__vdpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "301121a1-fbd1-41cf-a045-228548908639",
+        "name": "Retired Master baseline query",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "query",
+              "key": "dpl",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "49bed491-bc3d-4736-a8dc-9894c31f2b9e",
+        "name": "Retired Master baseline header",
+        "description": "Prevent fresh framework requests pinned to the retired baseline after cutover; refresh uses current production.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "header",
+              "key": "x-deployment-id",
+              "value": "dpl_2noMyXV766mtZwJtoGbWY4QXZxaE"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "fd8c5790-8c24-44fa-ae75-06f845fcf546",
+        "name": "Retired Master baseline 2",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-git-a759c6ea651a8e14dff0ec4cdc3-614017-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      },
+      {
+        "id": "aa0fbb3e-fad0-4071-9d3f-ba1befb4c00e",
+        "name": "Retired Master baseline 1",
+        "description": "Retire the previous baseline URL after the approved compatible production replacement.",
+        "enabled": true,
+        "staged": false,
+        "route": {
+          "src": "^/.*$",
+          "headers": {
+            "Cache-Control": "no-store"
+          },
+          "status": 503,
+          "has": [
+            {
+              "type": "host",
+              "value": "aurevane-fdhf3oe1n-zeijms-projects.vercel.app"
+            }
+          ]
+        },
+        "srcSyntax": "regex",
+        "routeType": "set_status"
+      }
+    ],
+    "version": {
+      "id": "ebfca0a6-186b-4253-ae71-a9a16f66e1cf",
+      "s3Key": "a1ab5eb301482f24",
+      "createdBy": "Nicholas JM",
+      "lastModified": 1793783425595,
+      "ruleCount": 9,
+      "alias": "aurevane-a6cff6-routes-zeijms-projects.vercel.app"
+    },
+    "limit": {
+      "maxRoutes": 100,
+      "currentRoutes": 9
+    }
+  },
+  "checks": [
+    {
+      "id": 41840907031,
+      "name": "CI",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907154,
+      "name": "UI layout review",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907235,
+      "name": "Skill Engine",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907065,
+      "name": "Attribute Allocation",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906903,
+      "name": "Modular ability readers browser",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906848,
+      "name": "Desktop page fit",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907213,
+      "name": "Controlled combat browser",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906871,
+      "name": "Essence Build",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906929,
+      "name": "Resonance Build",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907194,
+      "name": "Profile Skill Build",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906944,
+      "name": "Foundation Security DB",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907045,
+      "name": "Wayfarer's Practice DB",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906969,
+      "name": "Combat and mobile layout regressions",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906851,
+      "name": "Discipline Build DB",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906844,
+      "name": "Battle Session DB",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840906887,
+      "name": "Desktop experience",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907063,
+      "name": "Representative Buildcraft",
+      "conclusion": "success"
+    },
+    {
+      "id": 41840907044,
+      "name": "Browser smoke",
+      "conclusion": "success"
+    }
+  ],
+  "hourlyWatchDisabled": true,
+  "migration": {
+    "path": "supabase/migrations/20261104082325_eight_slot_item_equipment.sql",
+    "sha256": "628852930ece675238cb6477b4595f46df62cee942683470db8ac7fe5b797314",
+    "applied": true,
+    "hostedVersion": "20261104153336"
+  },
+  "itemsPublished": 13,
+  "maintenanceActive": false,
+  "canonicalPromoted": true,
+  "deployment": "dpl_4oqVgUh9J6PJKEuw5NwepntitgS2",
+  "url": "https://aurevane.vercel.app",
+  "routeVersion": "230dfad9-6a2b-4556-955b-064832c27d02",
+  "releasedAt": "2026-11-04T15:35:22Z",
+  "stagedSmoke": {
+    "base": "https://aurevane-6xkck8928-zeijms-projects.vercel.app",
+    "results": [
+      {
+        "path": "/",
+        "status": 200,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "path": "/manual",
+        "status": 200,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "path": "/game/loadout/items",
+        "status": 307,
+        "expected": 307,
+        "pass": true
+      },
+      {
+        "path": "/master",
+        "status": 307,
+        "expected": 307,
+        "pass": true
+      },
+      {
+        "path": "/media/art/items/equipment-androgynous-v01.webp",
+        "status": 200,
+        "expected": 200,
+        "pass": true,
+        "hash": "d26d3e357944930e2637e12b3d7b7e3ab822e63343bbf0b3b8019dad44796690"
+      },
+      {
+        "path": "/media/art/items/equipment-feminine-v01.webp",
+        "status": 200,
+        "expected": 200,
+        "pass": true,
+        "hash": "d5ba8083e5bd34ec696af2b31263c0711500c0d9223d9dacc4082de1047ee684"
+      },
+      {
+        "path": "/media/art/items/equipment-masculine-v01.webp",
+        "status": 200,
+        "expected": 200,
+        "pass": true,
+        "hash": "48fc54e08aa55aef5a180dee7e455ea839c594a1db091e992910380c2ddeba5f"
+      },
+      {
+        "path": "/api/character/items",
+        "status": 401,
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "path": "/api/battles",
+        "status": 401,
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "path": "/api/master/combat-content",
+        "status": 401,
+        "expected": 401,
+        "pass": true
+      }
+    ]
+  },
+  "productionSmoke": {
+    "base": "https://aurevane.vercel.app",
+    "results": [
+      {
+        "path": "/",
+        "status": 200,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "path": "/manual",
+        "status": 200,
+        "expected": 200,
+        "pass": true
+      },
+      {
+        "path": "/game/loadout/items",
+        "status": 307,
+        "expected": 307,
+        "pass": true
+      },
+      {
+        "path": "/master",
+        "status": 307,
+        "expected": 307,
+        "pass": true
+      },
+      {
+        "path": "/media/art/items/equipment-androgynous-v01.webp",
+        "status": 200,
+        "expected": 200,
+        "pass": true,
+        "hash": "d26d3e357944930e2637e12b3d7b7e3ab822e63343bbf0b3b8019dad44796690"
+      },
+      {
+        "path": "/media/art/items/equipment-feminine-v01.webp",
+        "status": 200,
+        "expected": 200,
+        "pass": true,
+        "hash": "d5ba8083e5bd34ec696af2b31263c0711500c0d9223d9dacc4082de1047ee684"
+      },
+      {
+        "path": "/media/art/items/equipment-masculine-v01.webp",
+        "status": 200,
+        "expected": 200,
+        "pass": true,
+        "hash": "48fc54e08aa55aef5a180dee7e455ea839c594a1db091e992910380c2ddeba5f"
+      },
+      {
+        "path": "/api/character/items",
+        "status": 401,
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "path": "/api/battles",
+        "status": 401,
+        "expected": 401,
+        "pass": true
+      },
+      {
+        "path": "/api/master/combat-content",
+        "status": 401,
+        "expected": 401,
+        "pass": true
+      }
+    ]
+  },
+  "preservation": {
+    "priorVersions": 1472,
+    "priorVersionsHash": "4f02298bc68a6fd13a611e916256dc54",
+    "priorSources": 47,
+    "priorSourcesHash": "8e4209c892640a4a288051be20b26d02",
+    "drafts": 3,
+    "draftsHash": "ca58b7dae40140b6367810bc59552e9d",
+    "stacks": 94,
+    "stacksHash": "f04ba39760979254eaf89f0c706fd533",
+    "grantReceipts": 2,
+    "grantReceiptsHash": "4fce210a54bb362cd3285c0b289d0da8",
+    "fiveFunctionSecurityTuplesUnchanged": true
+  },
+  "runtimeScan": "No warning/error/fatal logs 15:20:34.691Z\u201315:35:34.691Z",
+  "unusedEarlierStagedDeployment": "dpl_En5VhreW3zddoaXA6hw1cVfQhafx"
+}

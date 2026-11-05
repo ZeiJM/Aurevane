@@ -98,28 +98,29 @@ const browser = await chromium.launch({
   headless: true,
 })
 const geometryOnly = process.env.AV_ITEMS_GEOMETRY_ONLY === '1'
-async function assertCompactHeadingGeometry(page, report, width, requireFit = false) {
+async function assertCompactHeadingGeometry(page, report) {
   const headings = await report.locator('[data-compact-skill-effect]').evaluateAll((lines) =>
-    lines.map((line) => ({
-      text: line.textContent.replace(/\s+/gu, ' ').trim(),
-      renderedText: line.innerText.trim(),
-      tops: Array.from(
-        (line.querySelector('[data-compact-effect-phrase]') ?? line).children,
-        (token) => token.getBoundingClientRect().top,
-      ),
-      clientWidth: line.clientWidth,
-      scrollWidth: line.scrollWidth,
-      overflowX: getComputedStyle(line).overflowX,
-    })),
+    lines.map((line) => {
+      const field = line.closest('dd') ?? line.parentElement
+      const bounds = field.getBoundingClientRect()
+      const range = document.createRange()
+      range.selectNodeContents(line)
+      const fragments = [...range.getClientRects()].filter((rect) => rect.width > 0)
+      return {
+        text: line.textContent.replace(/\s+/gu, ' ').trim(),
+        renderedText: line.innerText.replace(/\s+/gu, ' ').trim(),
+        fragments: fragments.map((rect) => ({ left: rect.left, right: rect.right })),
+        contained: fragments.every(
+          (rect) => rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1,
+        ),
+      }
+    }),
   )
   assert.ok(headings.length > 0)
   for (const heading of headings) {
     assert.equal(heading.renderedText, heading.text, JSON.stringify(heading))
-    assert.ok(heading.tops.length >= 2, JSON.stringify(heading))
-    assert.ok(Math.max(...heading.tops) - Math.min(...heading.tops) <= 3, JSON.stringify(heading))
-    if (width >= 821 || requireFit)
-      assert.ok(heading.scrollWidth <= heading.clientWidth + 1, JSON.stringify(heading))
-    if (width < 821) assert.equal(heading.overflowX, 'auto', JSON.stringify(heading))
+    assert.ok(heading.fragments.length >= 2, JSON.stringify(heading))
+    assert.ok(heading.contained, JSON.stringify(heading))
   }
   assert.equal(
     await page.evaluate(
@@ -130,14 +131,30 @@ async function assertCompactHeadingGeometry(page, report, width, requireFit = fa
   )
   return headings
 }
+
 const errors = [],
   results = []
 try {
-  for (const mode of geometryOnly ? ['pve'] : ['pve', 'pvp', 'spectator'])
-    for (const width of [1366, 390, 412])
-      for (const scenario of geometryOnly
-        ? ['items', 'items-barrier']
-        : ['items', 'items-weapon', 'items-controlled', 'items-starter', 'items-two-handed']) {
+  for (const mode of process.env.AV_ITEMS_MODE
+    ? [process.env.AV_ITEMS_MODE]
+    : geometryOnly
+      ? ['pve']
+      : ['pve', 'pvp', 'spectator'])
+    for (const width of process.env.AV_ITEMS_WIDTH
+      ? [Number(process.env.AV_ITEMS_WIDTH)]
+      : [1366, 390, 412])
+      for (const scenario of process.env.AV_ITEMS_SCENARIO
+        ? [process.env.AV_ITEMS_SCENARIO]
+        : geometryOnly
+          ? ['items', 'items-barrier']
+          : [
+              'items',
+              'items-weapon',
+              'items-controlled',
+              'items-starter',
+              'items-two-handed',
+              'items-selected',
+            ]) {
         const page = await browser.newPage({
           viewport: { width, height: 915 },
           isMobile: width < 821,
@@ -152,7 +169,7 @@ try {
         )
         const serialized = await page.evaluate(() => JSON.stringify(window.fixtureBattle.snapshot))
         assert.ok(
-          !/private-salve-stack|private-sword|ownedStackId|inventoryRevision|capturedAbilitySources|abilityRuntime/.test(
+          !/private-salve-stack|private-sword|ownedStackId|inventoryRevision|capturedAbilitySources|abilityRuntime|ownedQuantity|itemConsumptionState/.test(
             serialized,
           ),
         )
@@ -207,17 +224,138 @@ try {
           await page.screenshot({
             path: resolve(output, `items-${mode}-${scenario}-${width}-choices.png`),
           })
+          assert.ok(!(await choices.innerText()).match(/Consumable [12]/))
+          if (scenario === 'items-consumption') {
+            assert.ok((await choices.innerText()).includes('Stock: 1'))
+            const before = await page.evaluate(() =>
+              window.fixtureBattle.snapshot.equipmentActions.filter((item) => item.role === 'use'),
+            )
+            await choices.locator('[data-item-action]').first().click()
+            assert.equal(
+              await page.evaluate(
+                () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+              ),
+              0,
+            )
+            await page
+              .locator('#battlefield')
+              .getByRole('button', { name: /^Tile 4, 4;/ })
+              .click()
+            await page.waitForFunction(() => window.fixtureBattle.battleVersion === 2)
+            const after = await page.evaluate(() =>
+              window.fixtureBattle.snapshot.equipmentActions.filter((item) => item.role === 'use'),
+            )
+            assert.equal(
+              after.find((item) => item.actionId === before[0].actionId).stockQuantity,
+              0,
+            )
+            assert.equal(
+              after.find((item) => item.actionId === before[0].actionId).remainingUses,
+              1,
+            )
+            assert.equal(
+              after.find((item) => item.actionId === before[1].actionId).stockQuantity,
+              5,
+            )
+            assert.equal(await itemCommand.locator('img').getAttribute('src'), before[1].artworkSrc)
+            await itemCommand.click()
+            await choices.waitFor()
+            assert.equal(await choices.locator('[data-item-action]').count(), 1)
+            assert.ok(!(await choices.innerText()).includes(before[0].name))
+            assert.ok((await choices.innerText()).includes('Stock: 5'))
+            assert.equal(
+              await page.evaluate(
+                () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+              ),
+              1,
+            )
+            assert.ok(
+              !/itemConsumptionState|ownedStackId|ownedQuantity|private-salve-stack/.test(
+                await page.evaluate(() => JSON.stringify(window.fixtureBattle.snapshot)),
+              ),
+            )
+            results.push({ mode, width, scenario, passed: true, exhaustedConsumableRemoved: true })
+            await page.close()
+            continue
+          }
+          if (scenario === 'items-selected') {
+            assert.ok((await choices.innerText()).includes('Stock: 5'))
+            const infoShape = await choices
+              .locator('[data-battle-info-trigger]')
+              .first()
+              .evaluate((element) => {
+                const style = getComputedStyle(element)
+                const box = element.getBoundingClientRect()
+                return {
+                  radius: style.borderRadius,
+                  width: box.width,
+                  height: box.height,
+                  border: style.borderColor,
+                }
+              })
+            assert.equal(infoShape.radius, '50%')
+            assert.ok(Math.abs(infoShape.width - infoShape.height) < 1)
+
+            const selected = await page.evaluate(
+              () =>
+                window.fixtureBattle.snapshot.equipmentActions.filter(
+                  (item) => item.role === 'use',
+                )[1],
+            )
+            await choices.locator('[data-item-action]').nth(1).click()
+            await choices.waitFor({ state: 'hidden' })
+            assert.equal(
+              await itemCommand.locator('img').getAttribute('src'),
+              selected.artworkSrc,
+              'Item artwork follows the selected captured consumable',
+            )
+            await page.getByRole('button', { name: 'About Item', exact: true }).click()
+            const reader = page.locator('[data-battle-info-panel]')
+            await reader.waitFor()
+            assert.equal(await reader.locator('header > strong').innerText(), selected.name)
+            assert.equal(await reader.locator('img').count(), 0)
+            assert.ok((await reader.innerText()).includes('Barrier'))
+            await page.keyboard.press('Escape')
+            await page.locator('[data-command-slot="move"]').click()
+            assert.equal(await itemCommand.locator('img').getAttribute('src'), selected.artworkSrc)
+            await itemCommand.click()
+            await choices.waitFor()
+            assert.equal(await itemCommand.locator('img').getAttribute('src'), selected.artworkSrc)
+            await page.reload()
+            await page.locator('#battlefield button').first().waitFor()
+            assert.equal(
+              await itemCommand.locator('img').getAttribute('src'),
+              selected.artworkSrc,
+              'Selected Item survives refresh within this actor and battle',
+            )
+            await page.goto(`${server.resolvedUrls.local[0]}?mode=${mode}&canonical=items-starter`)
+            await page.locator('#battlefield button').first().waitFor()
+            const fallbackArtwork = await page.evaluate(
+              () =>
+                window.fixtureBattle.snapshot.equipmentActions.find((item) => item.role === 'use')
+                  .artworkSrc,
+            )
+            assert.equal(
+              await itemCommand.locator('img').getAttribute('src'),
+              fallbackArtwork,
+              'Removed remembered Item falls back to the first currently equipped consumable',
+            )
+            assert.equal(
+              await page.evaluate(
+                () => window.calls.filter((call) => /\/(commit|intents)$/.test(call.path)).length,
+              ),
+              0,
+            )
+            results.push({ mode, width, scenario, passed: true, selectedItemArtAndReport: true })
+            await page.close()
+            continue
+          }
           const info = choices.getByRole('button', { name: /^Information about/ }).first()
           await info.click()
           await page.locator('[data-battle-info-panel]').waitFor()
           const report = page.locator('[data-battle-item-report]')
           await report.waitFor()
-          const headingGeometry = await assertCompactHeadingGeometry(
-            page,
-            report,
-            width,
-            scenario === 'items-barrier',
-          )
+          const headingGeometry = await assertCompactHeadingGeometry(page, report)
           const reportText = await report.innerText()
           assert.ok(reportText.includes('Parameters'))
           assert.ok(!/Tier|Maximum stack| → /.test(reportText))
@@ -240,11 +378,8 @@ try {
             tagLabels.every((label) => label.startsWith(expectedTag)),
             JSON.stringify({ mode, width, scenario, tagLabels, reportText }),
           )
-          const infoImage = report.locator('img')
-          await infoImage.evaluate((image) => image.decode())
-          const infoImageBounds = await infoImage.boundingBox()
-          assert.ok(infoImageBounds.width <= 48 && infoImageBounds.height <= 48)
-          assert.ok(infoImageBounds.width > 0 && infoImageBounds.height > 0)
+          assert.equal(await report.locator('img').count(), 0)
+          assert.ok(!/Consumable [12]|uses left|Uses refill|uses per battle/.test(reportText))
           const capturedDescription = await page.evaluate(
             () =>
               window.fixtureBattle.snapshot.equipmentActions.find((item) => item.role === 'use')
@@ -512,7 +647,7 @@ try {
           await page.evaluate(() => window.restoreCanonicalBattle())
           await itemCommand.click()
           await choices.waitFor()
-          assert.ok((await choices.innerText()).includes('1 uses left'))
+          assert.ok((await choices.innerText()).includes('1 / 2 uses left this battle'))
           await choices.locator('[data-item-action]').first().click()
           await page
             .locator('#battlefield')

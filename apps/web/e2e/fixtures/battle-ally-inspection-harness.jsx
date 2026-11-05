@@ -1291,6 +1291,8 @@ if (canonicalCase?.startsWith('items')) {
       canonicalCase.startsWith('items-global-'),
     canonicalCase === 'items-two-handed',
     canonicalCase === 'items-barrier',
+    ['items-selected', 'items-consumption'].includes(canonicalCase),
+    canonicalCase === 'items-consumption' ? 1 : 7,
   )
   canonicalState = reconcileCombatAbilitySources(
     preparePv1fTurnEconomy({

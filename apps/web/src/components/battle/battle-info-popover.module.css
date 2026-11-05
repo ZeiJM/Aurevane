@@ -89,11 +89,6 @@
   overflow-wrap: anywhere;
 }
 .panel [data-compact-skill-effect] {
-  display: flex;
-  width: max-content;
-  max-width: 100%;
-  overflow-x: auto;
-  white-space: nowrap;
   margin: 2px 0;
   background: transparent;
 }
