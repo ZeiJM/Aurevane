@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "status": "preflight-no-new-deployment",
+  "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
+  "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
+  "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
+  "pr": 1019,
+  "applicationChecksPassed": true,
+  "mainChecksPassed": true,
+  "supabaseIntegration": {
+    "conclusion": "failure",
+    "summary": "Remote migration versions not found in local migrations directory.",
+    "action": "Preserve history; no new migration required."
+  },
+  "projectId": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "teamId": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "supabaseProjectId": "luazfeupwfgnilohfsya",
+  "previousDeploymentId": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+  "deploymentId": null,
+  "promoted": false,
+  "sourceRegistrationDone": false,
+  "emberbrandPublicationDone": false,
+  "newMigrationsRequired": 0,
+  "sourceScope": "Exact20source6 reviewed successors in docs/verification/2026-11-05-items-polish-successors.json; only Emberbrand normal fresh-CAS publication if still required.",
+  "routingVersionBefore": "78132fc0-e779-4dda-bf7b-7ea8c5773e28",
+  "retirementRulesBefore": 9,
+  "holdRuleId": null,
+  "holdActive": false,
+  "gitDeploymentEnabled": false,
+  "remaining": "Reassert automatic domain assignment lock, stage one production build, verify fresh DB floors/predecessors/drafts, apply protected hold/retirement and drain sequencing, exact source registration and ordinary Emberbrand publication, safe postflight/promote/reopen, complete receipt."
+}
