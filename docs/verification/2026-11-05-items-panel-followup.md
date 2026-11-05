@@ -47,6 +47,16 @@ The final source review has no remaining Important/Critical findings. Consumptio
 - `pnpm build` passed both production Web and Worker builds (2/2 tasks); the compiled worker `check:boot` passed in one-shot mode with `worker.ready`. No hosted worker jobs ran.
 - The final focused native Arsenal rerun verifies decoded real artwork in the simplified popup and actual +1%/−1% Evasion Equip/Unequip at 1024×576. The image-loader adapter is confined to the disposable native fixture transport; no production image code changed.
 
+## First exact-head CI and compatibility correction
+
+On November 5, the initial exact head `e3b1590518a05b87fcba66cca0687d36019c3c16` completed 17 of 19 workflows successfully. [Quality job](https://github.com/ZeiJM/Aurevane/actions/runs/42018733405/job/127215891325) passed 632/633 DB cases; the historical 294-correction publication/rollback case **passed in 73.003 seconds**, resolving that prior local readiness uncertainty on CI without any timeout change. The sole failure was the predecessor-only Staff fixture, not the historical release test. [Browser job](https://github.com/ZeiJM/Aurevane/actions/runs/42018733521/job/127215877424) passed the new Item authoring/inventory/battle checks, then failed the retained guided reader's old position-suffixed information selector. Overall quality and browser workflows remain failed for that head and are not waived.
+
+Both failures were reproduced locally before repair. The Staff script looked up an optional private helper while executing as `service_role`, but the historical fixture intentionally denies private-schema usage. Optional module discovery now uses its public entrypoint. The privileged complete-module inventory and every public/private ACL assertion remain intact; the predecessor test explicitly asserts that private-schema usage stays denied. All 32 focused predecessor/full-chain/target-grant checks pass, followed by all 18 predecessor checks with that added assertion.
+
+The guided native reader now selects the exact current Item information label (first historical slot in the duplicate historical fixture), asserts that duplicate use prose and artwork are absent from the shared report, and verifies that remaining uses are visible in the preview. All 10 guided native desktop/mobile cases pass at 1366 and 390 pixels. Existing Controlled/Delayed, canonical reload and zero-mutation checks remain. No product code, schema, permission, test timeout or required gate changed. Formatting and targeted lint pass; scripts are checked with their actual Node/browser globals. The corrected head must complete configured CI before readiness.
+
+Nick subsequently authorized carrying this scoped change through a controlled production release after required verification. That supersedes the earlier source-only permission boundary, but does not authorize unrelated releases, broad publication, replacing drafts or rewriting inventory/history. Production remains unchanged at this checkpoint.
+
 ## Review findings
 
 Independent authority review found no search/grant SQL issue. UI review found that an uncertain grant could be lost on keyed remount and could be discarded after a retry authentication failure; both were reproduced RED and repaired with account-scoped durable session receipts, explicit same-request retry and native remount/reload coverage.

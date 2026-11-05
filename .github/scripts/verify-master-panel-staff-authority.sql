@@ -59,7 +59,9 @@ begin
   assert exists(select 1 from public.read_combat_content_draft_v1(staff_id,character_id,'native.staff.skill')), 'Selected protected consumer allow';
   assert exists(select 1 from public.read_combat_content_draft_v1(owner_id,'native.staff.skill')), 'Owner old signature/bootstrap allow';
   -- Active content staff retain self-test acquisition, never arbitrary recipients.
-  if to_regprocedure('app_private.assert_master_item_grant_owner_v1(uuid,uuid)') is not null then
+  -- Predecessor-only fixtures intentionally deny service_role private-schema usage.
+  -- Detect this optional module through its public entrypoint; keep private ACL probes below.
+  if to_regprocedure('public.search_master_item_grant_characters_v1(uuid,uuid,text)') is not null then
     foreach command in array array[
       'select public.search_master_item_grant_characters_v1($1,$2,''native'')',
       'select public.read_master_item_grant_target_v1($1,$2,$3)',
