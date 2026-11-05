@@ -1,3 +1,5 @@
+Current status: **LIVE for Owner testing** with both tags in PR #1015. The [joint production receipt](2026-11-04-seal-damage-up-production-release.md) supersedes the historical implementation checkpoints below. Owner acceptance remains open.
+
 # Damage Up scope verification
 
 Status: implemented on `agent/damage-up-types-20261104`, stacked on Seal head `8305ef5645163ef2ef06eb800fcb3cca5b1d475c`; not live. Owner approved the multi-selection design and one coordinated Seal/Damage Up production release after combined verification.
