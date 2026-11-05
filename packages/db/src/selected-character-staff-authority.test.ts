@@ -76,6 +76,13 @@ afterAll(async () => {
 })
 it('executes the native Staff gate SQL against the real predecessor authority and protected consumers', async () => {
   const other = '33333333-3333-4333-8333-333333333333'
+  expect(
+    (
+      await db.query<{ allowed: boolean }>(
+        "select has_schema_privilege('service_role','app_private','usage') allowed",
+      )
+    ).rows[0]!.allowed,
+  ).toBe(false)
   await db.exec('begin')
   try {
     await db.query('insert into auth.users values($1,$2,now())', [other, 'other@example.com'])

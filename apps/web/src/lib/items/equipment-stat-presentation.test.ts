@@ -16,7 +16,12 @@ import {
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { percentageDotEncounter } from '../../../../../packages/game-core/src/combat/combat-percentage-dots.test-utils'
 import { source } from '../../../../../packages/game-core/src/combat/combat-behavior.test-utils'
-import { equipmentStatBonuses, equippedStatValue } from './equipment-stat-presentation'
+import {
+  equipmentStatBonuses,
+  equippedStatValue,
+  equipmentStatChanges,
+} from './equipment-stat-presentation'
+import { presentItem } from './item-presentation'
 
 const catalogue = Object.fromEntries(starterItemDefinitions().map((item) => [item.id, item]))
 const snapshot: ItemInventorySnapshot = {
@@ -38,6 +43,105 @@ const snapshot: ItemInventorySnapshot = {
   previousBasicSupport: 'basic.recover',
   grants: [],
 }
+it('projects candidate passive stat atoms for exact inventory comparisons without private sources', () => {
+  expect(presentItem(catalogue['ember-stitched-cowl']!).statBonuses).toEqual([
+    { stat: 'mystic-power', amount: 12, conditional: false },
+  ])
+  expect(presentItem(catalogue['iron-shortsword']!).statBonuses).toBeUndefined()
+})
+it('subtracts replaced gear and shows only proven unconditional stat changes', () => {
+  const current = equipmentStatBonuses(snapshot, catalogue)
+  expect(
+    equipmentStatChanges(
+      current,
+      ['head'],
+      [{ stat: 'physical-defense', amount: 5, conditional: false }],
+    ),
+  ).toEqual([
+    { stat: 'mystic-power', amount: -12 },
+    { stat: 'physical-defense', amount: 5 },
+  ])
+  expect(equipmentStatChanges(current, ['boots'])).toEqual([{ stat: 'movement', amount: -2 }])
+  expect(
+    equipmentStatChanges(current, [], [{ stat: 'physical-power', amount: 999, conditional: true }]),
+  ).toEqual([])
+  expect(
+    equipmentStatChanges(
+      null,
+      ['head'],
+      [{ stat: 'physical-power', amount: 5, conditional: false }],
+    ),
+  ).toEqual([])
+})
+it('does not claim capped Evasion deltas without the actual character base', () => {
+  const source = {
+    itemId: 'boots',
+    itemName: 'Boots',
+    position: 'boots' as const,
+    stat: 'evasion' as const,
+    amount: 10000,
+    conditional: false,
+  }
+  expect(
+    equipmentStatChanges([source], [], [{ stat: 'evasion', amount: 10000, conditional: false }]),
+  ).toEqual([])
+  expect(equipmentStatChanges([source], ['boots'])).toEqual([])
+})
+it.each([
+  { current: [4900], remove: false, add: 500, expected: [{ stat: 'evasion', amount: 100 }] },
+  { current: [4000, 2000], remove: true, add: 0, expected: [{ stat: 'evasion', amount: -3000 }] },
+  { current: [6000], remove: false, add: 100, expected: [] },
+  { current: [6000], remove: true, add: 2000, expected: [{ stat: 'evasion', amount: -3000 }] },
+])(
+  'uses actual capped Evasion before and after a swap: $current / $add',
+  ({ current, remove, add, expected }) => {
+    const sources = current.map((amount, index) => ({
+      itemId: `gear-${index}`,
+      itemName: 'Gear',
+      position: index === 0 ? ('head' as const) : ('boots' as const),
+      stat: 'evasion' as const,
+      amount,
+      conditional: false,
+    }))
+    expect(
+      equipmentStatChanges(
+        sources,
+        remove ? ['head'] : [],
+        add ? [{ stat: 'evasion', amount: add, conditional: false }] : [],
+        5000,
+      ),
+    ).toEqual(expected)
+  },
+)
+it('excludes conditional Evasion and ignores invalid base facts', () => {
+  const conditional = {
+    itemId: 'gear',
+    itemName: 'Gear',
+    position: 'head' as const,
+    stat: 'evasion' as const,
+    amount: 9000,
+    conditional: true,
+  }
+  expect(
+    equipmentStatChanges(
+      [conditional],
+      [],
+      [{ stat: 'evasion', amount: 100, conditional: false }],
+      5000,
+    ),
+  ).toEqual([{ stat: 'evasion', amount: 100 }])
+  expect(
+    equipmentStatChanges([], [], [{ stat: 'evasion', amount: 100, conditional: true }], 5000),
+  ).toEqual([])
+  expect(
+    equipmentStatChanges(
+      [],
+      [],
+      [{ stat: 'evasion', amount: 100, conditional: false }],
+      Number.NaN,
+    ),
+  ).toEqual([])
+})
 it('projects only equipped ongoing bonuses by source and adds boots after base Movement caps', () => {
   const before = JSON.stringify(snapshot)
   const bonuses = equipmentStatBonuses(snapshot, catalogue)

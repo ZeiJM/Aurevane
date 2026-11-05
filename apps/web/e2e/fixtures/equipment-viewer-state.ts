@@ -30,6 +30,8 @@ export function equipmentFixtureSources(
   genuine = false,
   twoHanded = false,
   barrier = false,
+  different = false,
+  ownedQuantity = 7,
 ) {
   const ability = structuredClone(
     defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability,
@@ -97,15 +99,30 @@ export function equipmentFixtureSources(
   const capture: BattleEquipmentCapture = parseBattleEquipmentCapture({
     schemaVersion: 2,
     inventoryRevision: 1,
+    ...(different ? { consumptionPolicyVersion: 1 } : {}),
     selectedSupport:
       weapon && !genuine
         ? { kind: 'equipment', position: 'main-hand', itemId: sword.id, behaviorId: 'support' }
         : { kind: 'basic', actionId: 'basic.recover' },
     equipment: [
       ...(weapon ? [{ position: 'main-hand', ownedStackId: 'private-sword', item: sword }] : []),
-      { position: 'consumable-1', ownedStackId: 'private-salve-stack', item: tonic },
+      {
+        position: 'consumable-1',
+        ownedStackId: 'private-salve-stack',
+        item: tonic,
+        ...(different ? { ownedQuantity } : {}),
+      },
       ...(!weapon
-        ? [{ position: 'consumable-2', ownedStackId: 'private-salve-stack', item: tonic }]
+        ? [
+            {
+              position: 'consumable-2',
+              ownedStackId: different ? 'private-second-stack' : 'private-salve-stack',
+              ...(different ? { ownedQuantity: 5 } : {}),
+              item: different
+                ? starterItemDefinitions().find((item) => item.id === 'ward-sigil-scroll')!
+                : tonic,
+            },
+          ]
         : []),
     ],
   })

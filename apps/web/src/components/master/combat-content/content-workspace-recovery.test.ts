@@ -304,21 +304,24 @@ it.each([
     expect(normalizeContentRecoveryNavigation(saved, 'basic', selectedKey)).toBe(saved)
   },
 )
-it('accepts Artwork navigation in refresh recovery without dropping pending edits', () => {
-  const saved = {
-    schema: 1,
-    category: 'discipline',
-    selectedKey: 'aetherist',
-    tab: 'Media',
-    search: '',
-    sort: 'name-asc',
-    listScroll: 0,
-    editorScroll: 0,
-    edits: {},
-    newDefinition: null,
-  }
-  expect(parseWorkspaceRecovery(JSON.stringify(saved))).toEqual(saved)
-})
+it.each(['Media', 'Imbued Technique'])(
+  'accepts %s navigation in refresh recovery without dropping pending edits',
+  (tab) => {
+    const saved = {
+      schema: 1,
+      category: 'discipline',
+      selectedKey: 'aetherist',
+      tab,
+      search: '',
+      sort: 'name-asc',
+      listScroll: 0,
+      editorScroll: 0,
+      edits: {},
+      newDefinition: null,
+    }
+    expect(parseWorkspaceRecovery(JSON.stringify(saved))).toEqual(saved)
+  },
+)
 
 function legacyWordingStorage() {
   const snapshot = {

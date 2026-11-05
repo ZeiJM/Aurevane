@@ -90,7 +90,14 @@ export function parseWorkspaceRecovery(raw: string | null): WorkspaceRecovery | 
         (typeof v.selectedKey === 'string' && v.selectedKey.length <= 160)
       ) ||
       typeof v.tab !== 'string' ||
-      !['Parameters', 'Media', 'Skills', 'Resonances', 'Usage & Balance'].includes(v.tab) ||
+      ![
+        'Parameters',
+        'Media',
+        'Skills',
+        'Resonances',
+        'Imbued Technique',
+        'Usage & Balance',
+      ].includes(v.tab) ||
       (v.newRequestId !== undefined &&
         v.newRequestId !== null &&
         (typeof v.newRequestId !== 'string' || !/^[a-f0-9-]{36}$/iu.test(v.newRequestId))) ||

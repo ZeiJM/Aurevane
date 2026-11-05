@@ -1,5 +1,7 @@
 # November 3 starter Item reference
 
+**November 5 audit update:** the [47-Item description/engine audit](2026-11-05-item-description-audit.md) records the actual effective hosted catalogue, current costs/Supports, and three reviewed source successors. The table and release evidence below remain the dated November 3 baseline; they do not describe every later publication or the newly requested stock-consumption policy.
+
 **Live for Owner testing.** [Release receipt](2026-11-03-combat-items-release.md) and [96-case checklist](2026-11-03-owner-combat-items-checklist.md). This reference describes the genuine source defaults; a later Master publication can change the current catalogue while captured battles retain their exact definitions. Human balance and gameplay acceptance remain open.
 
 All 47 Items use their adopted immutable `item.<identity>.art.v1` image and thumbnail. Full artwork provenance: [47-image manifest](../artwork/2026-11-03-starter-items.json). The implementation source is `packages/game-core/src/content/starter-items.ts`.

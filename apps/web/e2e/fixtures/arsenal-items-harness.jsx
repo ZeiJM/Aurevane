@@ -66,17 +66,36 @@ const original = {
 const storage = 'arsenal-items-native-v1'
 let snapshot = JSON.parse(localStorage.getItem(storage) || 'null') ?? original
 window.calls = []
+window.itemReads = 0
 window.testState = { battleLocked: sessionStorage.getItem('arsenal-battle-locked') === 'true' }
+if (new URLSearchParams(location.search).has('read-failure')) window.testState.failRead = true
 window.setBattleLocked = (locked) => {
   window.testState.battleLocked = locked
   sessionStorage.setItem('arsenal-battle-locked', JSON.stringify(locked))
 }
 const state = () => ({
+  ...(new URLSearchParams(location.search).has('evasion')
+    ? {
+        equipContext: {
+          level: 1,
+          disciplineIds: ['vanguard'],
+          baseCoreStats: {
+            might: 6,
+            finesse: 6,
+            vitality: 6,
+            agility: 6,
+            intellect: 6,
+            resolve: 6,
+          },
+        },
+      }
+    : {}),
   snapshot,
   definitions,
   catalogueToken: 'a'.repeat(32),
   battleLocked: window.testState.battleLocked,
 })
+window.itemSnapshot = () => snapshot
 const save = () => localStorage.setItem(storage, JSON.stringify(snapshot))
 const repository = {
   read: async () => state(),
@@ -126,6 +145,14 @@ window.fetch = async (url, init = {}) => {
   }
   if (url === '/api/character/items') {
     if (!init.method) {
+      window.itemReads++
+      if (window.testState.failRead) {
+        window.testState.failRead = false
+        return Response.json(
+          { error: { message: 'Current Items could not be refreshed.' } },
+          { status: 503 },
+        )
+      }
       const view = characterItemsView(state())
       if (window.testState.deferRead) {
         window.testState.deferRead = false
@@ -137,6 +164,14 @@ window.fetch = async (url, init = {}) => {
     }
     const body = JSON.parse(init.body)
     window.calls.push(body)
+    if (window.testState.rejectNext) {
+      const rejection = window.testState.rejectNext
+      window.testState.rejectNext = null
+      return Response.json(
+        { error: { code: 'INVALID_REQUEST', message: rejection } },
+        { status: 400 },
+      )
+    }
     if (window.testState.failNext) {
       window.testState.failNext = false
       return Response.json(
@@ -151,9 +186,12 @@ window.fetch = async (url, init = {}) => {
     }
     const { characterId, ...intent } = body
     try {
-      return Response.json({
-        view: await mutateCharacterItems('owner', characterId, intent, repository),
-      })
+      const view = await mutateCharacterItems('owner', characterId, intent, repository)
+      if (window.testState.dropResponse) {
+        window.testState.dropResponse = false
+        return Promise.reject(new TypeError('The save confirmation was lost.'))
+      }
+      return Response.json({ view })
     } catch (error) {
       return Response.json(
         { error: { message: error.publicMessage ?? error.message } },
@@ -185,7 +223,40 @@ window.archiveEquipment = () => {
   }
   save()
 }
-const view = characterItemsView(state())
+window.disablePositionItems = (position) => {
+  for (const item of Object.values(definitions))
+    if (item.equipment?.slot === position) window.setItemEnabled(item.id, false)
+}
+window.depleteFixtureStack = (position) => {
+  const stackId = snapshot.equipment[position]
+  const used = snapshot.stacks.find((stack) => stack.id === stackId)
+  const remaining = snapshot.stacks.filter((stack) => stack.id !== stackId)
+  snapshot = {
+    ...snapshot,
+    revision: snapshot.revision + 1,
+    stacks: [
+      ...remaining,
+      {
+        ...used,
+        id: 'reserve-stack',
+        quantity: 3,
+        slotIndex:
+          Math.max(
+            ...remaining
+              .filter((stack) => stack.inventoryCategory === used.inventoryCategory)
+              .map((stack) => stack.slotIndex),
+          ) + 1,
+      },
+    ],
+    equipment: Object.fromEntries(
+      Object.entries(snapshot.equipment).filter(([, id]) => id !== stackId),
+    ),
+  }
+  save()
+}
+const view = new URLSearchParams(location.search).has('missing')
+  ? null
+  : characterItemsView(state())
 const presentationId = ['masculine', 'feminine', 'androgynous'].includes(
   new URLSearchParams(location.search).get('presentation'),
 )

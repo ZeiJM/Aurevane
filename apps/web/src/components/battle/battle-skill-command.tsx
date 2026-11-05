@@ -1,5 +1,7 @@
 'use client'
 
+import type { BattleItemPresentation } from '@/lib/battle/battle-item-presentation'
+import { BattleItemReport } from './battle-item-report'
 import { battleControlledActionCostLabel } from './battle-captured-action-cost'
 
 import { useSkillEffectTimingPolicy } from '../character/skill-effect-timing-context'
@@ -109,6 +111,7 @@ export function BattleSkillCommand({
   children,
   characterStats,
   basicAction,
+  itemAction,
   behaviorId,
   unavailableReason,
 }: {
@@ -128,6 +131,7 @@ export function BattleSkillCommand({
   tags?: readonly string[]
   characterStats?: BasicActionCharacterStats
   basicAction?: BattleBasicActionPresentation | null
+  itemAction?: BattleItemPresentation | null
   behaviorId?: string
   unavailableReason?: string | null
   children?: ReactNode
@@ -329,103 +333,108 @@ export function BattleSkillCommand({
         <BattleCockpitInfo
           selectionKey={slot}
           label={`About ${label}`}
-          title={label}
+          title={itemAction?.name ?? label}
           trigger="i"
           consumeOutsideClick
           className={styles.infoTrigger}
         >
-          <strong>Parameters</strong>
-          <dl>
-            <SkillCharacteristicRows
-              targetMethodExplanation={
-                reports
-                  .map((report) => report.targetMethodExplanation)
-                  .filter(Boolean)
-                  .join(' · ') || undefined
-              }
-              requirementParts={
-                reports.some((report) => report.requirementParts)
-                  ? reports.flatMap((report, index) => [
-                      ...(index ? ['; '] : []),
-                      ...(reports.length > 1 ? [`${report.behaviorId}: `] : []),
-                      ...(report.requirementParts ?? [
-                        String(
-                          report.rows.find(([field]) => field === 'Requirements')?.[1] ??
-                            'Unavailable',
-                        ),
-                      ]),
-                    ])
-                  : undefined
-              }
-              rows={
-                capturedRows ??
-                commandCharacteristicRows(slot, label, cost, timingPolicy, characterStats)
-              }
-              effectSummary={
-                basicAction ? (
-                  <div>
-                    {reports.flatMap((behavior) =>
-                      behavior.effects.map((effect, index) => (
-                        <div key={`${behavior.behaviorId}:${index}`}>
-                          {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
-                          <CompactEffectSummary
-                            parts={effect.parts}
-                            tagPresentation={effect.tagPresentation}
-                          />
-                        </div>
-                      )),
-                    )}
-                  </div>
-                ) : basicActionId ? (
-                  <BasicActionEffectSummary id={basicActionId} stats={characterStats} />
-                ) : null
-              }
-            />
-          </dl>
-          {basicAction ? (
-            <>
-              {reports.map((report) => (
-                <div key={report.behaviorId}>
-                  {report.automaticActivation ? (
-                    <p>Automatic: {report.automaticActivation}</p>
-                  ) : null}
-                  {report.maintenance ? <p>{report.maintenance}</p> : null}
-                  {report.limits.some((limit) => limit !== 'Once per round') ? (
-                    <ul aria-label="Usage limits">
-                      {report.limits
-                        .filter((limit) => limit !== 'Once per round')
-                        .map((limit) => (
-                          <li key={limit}>
-                            {reports.length > 1 ? `${report.behaviorId}: ` : ''}
-                            {limit}
-                          </li>
-                        ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ))}
-              <AbilityEffectExplanations reports={reports} />
-            </>
-          ) : basicActionId ? (
-            <BasicActionEffectExplanations id={basicActionId} />
-          ) : null}
-          {tags.length > 0 ? (
-            <div className={styles.tags} data-battle-skill-tags="details">
-              {tags.map((tag) => (
-                <span key={tag}>{tag}</span>
-              ))}
-            </div>
+          {itemAction ? (
+            <BattleItemReport item={itemAction} />
           ) : (
-            <p>
-              {slot === 'items'
-                ? (unavailableReason ??
-                  'Choose an equipped consumable in the preview. Uses refill each battle.')
-                : slot === 'inspect'
-                  ? 'Select a character or tile to inspect it for free.'
-                  : slot === 'finish'
-                    ? 'Choose your final facing on the map, then finish your turn.'
-                    : null}
-            </p>
+            <>
+              <strong>Parameters</strong>
+              <dl>
+                <SkillCharacteristicRows
+                  targetMethodExplanation={
+                    reports
+                      .map((report) => report.targetMethodExplanation)
+                      .filter(Boolean)
+                      .join(' · ') || undefined
+                  }
+                  requirementParts={
+                    reports.some((report) => report.requirementParts)
+                      ? reports.flatMap((report, index) => [
+                          ...(index ? ['; '] : []),
+                          ...(reports.length > 1 ? [`${report.behaviorId}: `] : []),
+                          ...(report.requirementParts ?? [
+                            String(
+                              report.rows.find(([field]) => field === 'Requirements')?.[1] ??
+                                'Unavailable',
+                            ),
+                          ]),
+                        ])
+                      : undefined
+                  }
+                  rows={
+                    capturedRows ??
+                    commandCharacteristicRows(slot, label, cost, timingPolicy, characterStats)
+                  }
+                  effectSummary={
+                    basicAction ? (
+                      <div>
+                        {reports.flatMap((behavior) =>
+                          behavior.effects.map((effect, index) => (
+                            <div key={`${behavior.behaviorId}:${index}`}>
+                              {reports.length > 1 ? `${behavior.behaviorId}: ` : ''}
+                              <CompactEffectSummary
+                                parts={effect.parts}
+                                tagPresentation={effect.tagPresentation}
+                              />
+                            </div>
+                          )),
+                        )}
+                      </div>
+                    ) : basicActionId ? (
+                      <BasicActionEffectSummary id={basicActionId} stats={characterStats} />
+                    ) : null
+                  }
+                />
+              </dl>
+              {basicAction ? (
+                <>
+                  {reports.map((report) => (
+                    <div key={report.behaviorId}>
+                      {report.automaticActivation ? (
+                        <p>Automatic: {report.automaticActivation}</p>
+                      ) : null}
+                      {report.maintenance ? <p>{report.maintenance}</p> : null}
+                      {report.limits.some((limit) => limit !== 'Once per round') ? (
+                        <ul aria-label="Usage limits">
+                          {report.limits
+                            .filter((limit) => limit !== 'Once per round')
+                            .map((limit) => (
+                              <li key={limit}>
+                                {reports.length > 1 ? `${report.behaviorId}: ` : ''}
+                                {limit}
+                              </li>
+                            ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  ))}
+                  <AbilityEffectExplanations reports={reports} />
+                </>
+              ) : basicActionId ? (
+                <BasicActionEffectExplanations id={basicActionId} />
+              ) : null}
+              {tags.length > 0 ? (
+                <div className={styles.tags} data-battle-skill-tags="details">
+                  {tags.map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+              ) : (
+                <p>
+                  {slot === 'items'
+                    ? (unavailableReason ?? 'Choose an equipped consumable in the preview.')
+                    : slot === 'inspect'
+                      ? 'Select a character or tile to inspect it for free.'
+                      : slot === 'finish'
+                        ? 'Choose your final facing on the map, then finish your turn.'
+                        : null}
+                </p>
+              )}
+            </>
           )}
         </BattleCockpitInfo>
         <span className={styles.hotkey} data-battle-command-hotkey="true">

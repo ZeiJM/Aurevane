@@ -23,7 +23,7 @@ const fixtures = [
 ] as const
 
 it.each(fixtures)(
-  'keeps accurate $kind guidance visible and repeats the same source in its information dialog',
+  'keeps accurate $kind guidance with a single Item description help source',
   ({ kind, value }) => {
     const before = JSON.stringify(value)
     const onChange = vi.fn()
@@ -31,15 +31,23 @@ it.each(fixtures)(
       <ContentDefinitionFields kind={kind} value={value} tab="Text" onChange={onChange} />,
     )
     const description = contentDescriptionGuidance(kind)
-    expect(html).toContain(`-description">${description.hint}</small>`)
-    expect(html.split(description.hint)).toHaveLength(3)
+    if (kind === 'item') {
+      expect(html).not.toContain(`-description">${description.hint}</small>`)
+      expect(html.split(description.hint)).toHaveLength(2)
+    } else {
+      expect(html).toContain(`-description">${description.hint}</small>`)
+      expect(html.split(description.hint)).toHaveLength(3)
+    }
     expect(html).toContain('aria-label="About Description"')
     expect(html).toMatch(/<h3[^>]*>About Description<\/h3>/)
     const descriptionInput = html.match(
       /<textarea[^>]*aria-label="Description"[^>]*aria-describedby="([^"]+)"/,
     )
-    expect(descriptionInput?.[1]).toBeTruthy()
-    expect(html).toContain(`<small id="${descriptionInput![1]}">`)
+    if (kind === 'item') expect(descriptionInput).toBeNull()
+    else {
+      expect(descriptionInput?.[1]).toBeTruthy()
+      expect(html).toContain(`<small id="${descriptionInput![1]}">`)
+    }
     if (kind !== 'item') {
       const flavor = contentFlavorGuidance(kind)
       expect(html).toContain(`-flavor">${flavor.hint}</small>`)

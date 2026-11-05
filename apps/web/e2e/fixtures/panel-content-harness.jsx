@@ -8,6 +8,8 @@ import { COMBAT_CONTENT_CATEGORIES } from '@/server/combat/combat-content-catego
 import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { currentEssenceDefinitions } from '@aurevane/game-core/combat/essence'
 import { currentResonanceDefinitions } from '@aurevane/game-core/combat/resonance'
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
+import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import { parseNoncombatContentDefinition } from '@aurevane/game-core/content/authored-content'
 import './production-styles'
 
@@ -73,6 +75,9 @@ function record(kind, definition, index = 0) {
 }
 const records = new Map(
   [
+    ...starterItemDefinitions()
+      .filter((item) => ['emberbrand', 'sunsplitter', 'wardstone-bracer'].includes(item.id))
+      .map((item) => record('item', { ...item, sortOrder: 317 })),
     record('discipline', discipline),
     record('skill', skill),
     record('skill', {
@@ -199,6 +204,7 @@ window.__contentFixture = {
   holdCommit: false,
   failCommit: false,
   failMedia: false,
+  failItemGrant: false,
   loseCreateResponse: false,
   creations: creationLedger,
   records,
@@ -209,6 +215,33 @@ window.__contentFixture = {
   resonanceId: resonance.id,
 }
 window.fetch = async (input, options) => {
+  if (input === '/api/master/combat-content/item-grant') {
+    const body = JSON.parse(options.body)
+    window.__contentRequests.push({ path: input, body })
+    const target = {
+      characterId: '22222222-2222-4222-8222-222222222222',
+      name: 'Aurelia The Very Long Named Recipient',
+    }
+    if (body.action === 'search') return Response.json({ characters: [target] })
+    if (body.action === 'read')
+      return Response.json({
+        target,
+        revision: 9,
+        catalogueToken: 'a'.repeat(32),
+        battleLocked: false,
+      })
+    if (body.action === 'grant') {
+      if (window.__contentFixture.failItemGrant) {
+        window.__contentFixture.failItemGrant = false
+        return Response.json(
+          { error: { message: 'Fixture uncertain grant outcome.' } },
+          { status: 503 },
+        )
+      }
+      return Response.json({ target, revision: 10 })
+    }
+    throw new Error('Unhandled Item grant fixture request')
+  }
   if (input === '/api/master/combat-content/media') {
     const body = options.body
     window.__contentRequests.push({
@@ -460,6 +493,7 @@ window.fetch = async (input, options) => {
         { error: { code: 'STALE_VERSION', message: 'Fixture stale revision.' } },
         { status: 409 },
       )
+    if (entry.contentKind === 'item') parseRuntimeItemDefinition(command.definition)
     const comparable = { ...command.definition, contentVersion: entry.current?.contentVersion }
     if (entry.contentKind === 'essence' && comparable.skill)
       comparable.skill = { ...comparable.skill, contentVersion: entry.current?.contentVersion }
@@ -514,6 +548,7 @@ const access = {
   ],
 }
 const players = new URLSearchParams(location.search).get('view') === 'players'
+const items = new URLSearchParams(location.search).get('view') === 'items'
 createRoot(document.getElementById('root')).render(
   <MasterPanelShell
     access={access}
@@ -529,8 +564,8 @@ createRoot(document.getElementById('root')).render(
           new URLSearchParams(location.search).get('actor') ?? 'fixture-owner:selected-character'
         }
         categories={categories}
-        initialPage={list({ kind: 'discipline' })}
-        initialRecord={records.get('bastion')}
+        initialPage={list({ kind: items ? 'item' : 'discipline' })}
+        initialRecord={records.get(items ? 'emberbrand' : 'bastion')}
         references={references}
       />
     )}

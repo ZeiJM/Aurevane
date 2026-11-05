@@ -662,7 +662,7 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('retains all 48 legacy actor contracts plus exactly 21 workspace contracts with private helpers inaccessible', async () => {
+it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private helpers inaccessible', async () => {
   const workspaceSignatures = [
     'public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)',
     'public.read_master_panel_navigation_v1(uuid,uuid)',
@@ -699,11 +699,47 @@ it('retains all 48 legacy actor contracts plus exactly 21 workspace contracts wi
       [workspaceSignatures],
     )
   ).rows
+  const ownerSignatures = [
+    'public.search_master_item_grant_characters_v1(uuid,uuid,text)',
+    'public.read_master_item_grant_target_v1(uuid,uuid,uuid)',
+    'public.grant_master_item_to_character_v1(uuid,uuid,uuid,text,integer,bigint,text,uuid)',
+  ]
+  const ownerHelper = 'app_private.assert_master_item_grant_owner_v1(uuid,uuid)'
+  const ownerContracts = (
+    await db.query<{
+      signature: string
+      selected_actor: boolean
+      anon_execute: boolean
+      authenticated_execute: boolean
+      service_execute: boolean
+    }>(
+      "select format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) signature,'p_actor_character_id'=any(p.proargnames) selected_actor,has_function_privilege('anon',p.oid,'execute') anon_execute,has_function_privilege('authenticated',p.oid,'execute') authenticated_execute,has_function_privilege('service_role',p.oid,'execute') service_execute from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid=any($1::regprocedure[])",
+      [ownerSignatures],
+    )
+  ).rows
   expect(legacyActorSignatures).toHaveLength(48)
   expect(workspaceContracts).toHaveLength(21)
+  expect(ownerContracts).toHaveLength(3)
   expect(await actorSignatures()).toEqual(
-    [...legacyActorSignatures, ...workspaceContracts.map((contract) => contract.signature)].sort(),
+    [
+      ...legacyActorSignatures,
+      ...workspaceContracts.map((contract) => contract.signature),
+      ...ownerContracts.map((contract) => contract.signature),
+      // Unlike the delegated workspace APIs, these share a protected Owner assertion.
+      (
+        await db.query<{ signature: string }>(
+          "select format('%I.%I(%s)',n.nspname,p.proname,oidvectortypes(p.proargtypes)) signature from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.oid=$1::regprocedure and 'p_actor_character_id'=any(p.proargnames)",
+          [ownerHelper],
+        )
+      ).rows[0]!.signature,
+    ].sort(),
   )
+  for (const contract of ownerContracts) {
+    expect(contract.selected_actor, contract.signature).toBe(true)
+    expect(contract.anon_execute, contract.signature).toBe(false)
+    expect(contract.authenticated_execute, contract.signature).toBe(false)
+    expect(contract.service_execute, contract.signature).toBe(true)
+  }
   for (const contract of workspaceContracts) {
     expect(contract.selected_actor, contract.signature).toBe(true)
     expect(contract.anon_execute, contract.signature).toBe(false)
@@ -720,6 +756,7 @@ it('retains all 48 legacy actor contracts plus exactly 21 workspace contracts wi
   ).rows
   expect(helpers.every((r) => !r.allowed)).toBe(true)
   const workspaceHelpers = [
+    ownerHelper,
     'app_private.guard_deleted_content_v1()',
     'app_private.discipline_deletion_keys_v1(text)',
     'app_private.discipline_deletion_impact_v1(text)',

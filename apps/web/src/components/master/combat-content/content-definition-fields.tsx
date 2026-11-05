@@ -71,6 +71,7 @@ export type ContentEditorTab =
   | 'History'
   | 'Identity & Relations'
   | 'Usage & Balance'
+  | 'Imbued Technique'
 export interface ContentReference {
   contentKey: string
   name: string
@@ -786,7 +787,7 @@ export function ContentDefinitionFields({
     return (
       <p>This retained record is read-only: no supported authoring schema or runtime adapter.</p>
     )
-  return (
+  const fields = (
     <>
       {details && (
         <fieldset className={styles.identityGroup}>
@@ -804,7 +805,7 @@ export function ContentDefinitionFields({
               onChange={(enabled) => set({ enabled })}
             />
           ) : null}
-          {!combat && kind !== 'status' ? (
+          {!combat && kind !== 'status' && kind !== 'item' ? (
             <AbilityNumber
               label="Display order"
               min={0}
@@ -1054,6 +1055,9 @@ export function ContentDefinitionFields({
         <RuntimeItemEditor
           key={String(value.id)}
           value={value as unknown as RuntimeItemDefinition}
+          disciplines={choices
+            .filter((choice) => choice.contentKind === 'discipline')
+            .map((choice) => ({ id: choice.contentKey, name: choice.name }))}
           onChange={(next) => onChange(asDefinition(next))}
         />
       ) : null}
@@ -1153,6 +1157,7 @@ export function ContentDefinitionFields({
         : null}
     </>
   )
+  return kind === 'item' ? <div className={styles.itemFields}>{fields}</div> : fields
 }
 
 function ContentDescriptionFields({
@@ -1188,13 +1193,15 @@ function ContentDescriptionFields({
         <textarea
           id={`${hintId}-description-input`}
           aria-label="Description"
-          aria-describedby={`${hintId}-description`}
+          aria-describedby={kind === 'item' ? undefined : `${hintId}-description`}
           value={text(value.description)}
           onChange={(event) =>
             onChange(withContentIdentityText(kind, value, 'description', event.currentTarget.value))
           }
         />
-        <small id={`${hintId}-description`}>{descriptionGuidance.hint}</small>
+        {kind !== 'item' ? (
+          <small id={`${hintId}-description`}>{descriptionGuidance.hint}</small>
+        ) : null}
       </div>
       {kind === 'tag' ? (
         <div className={styles.descriptionField}>

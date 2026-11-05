@@ -1,4 +1,5 @@
 import 'server-only'
+import { combatItemStock } from '@aurevane/game-core/combat/combat-item-consumption'
 import { equipmentActionId } from '@aurevane/game-core/combat/combat-equipment'
 import {
   combatAbilityRemainingUses,
@@ -99,6 +100,7 @@ export function projectBattleItems(
             item,
             maximumUsesPerBattle: behavior.maximumUsesPerBattle ?? null,
             remainingUses: combatAbilityRemainingUses(state, source, behavior),
+            ...(role === 'use' ? { stockQuantity: combatItemStock(state, source) } : {}),
             unavailableReason,
             behaviors: [
               {

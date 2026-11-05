@@ -108,6 +108,10 @@ import {
 } from './combat-native-mutations'
 import { validateCombatAbilityState, pruneCombatAbilityActionHistory } from './combat-ability-state'
 import {
+  validateCombatItemConsumptionState,
+  type CombatItemConsumptionState,
+} from './combat-item-consumption'
+import {
   committedCombatAttemptRecorded,
   type CommittedCombatExecution,
 } from './combat-committed-execution'
@@ -726,6 +730,7 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  itemConsumptionState?: CombatItemConsumptionState
   /** Private per-cast Endure damage ledger; never projected to clients. */
   endureState?: CombatEndureState
   reversalState?: CombatReversalState
@@ -3181,6 +3186,7 @@ export function validateCombatEncounterState(
 ): readonly CombatEncounterIssue[] {
   const issues: CombatEncounterIssue[] = [
     ...validateCombatAbilityState(state),
+    ...validateCombatItemConsumptionState(state),
     ...validateCombatEndureState(state),
     ...validateCombatReversalState(state),
     ...validateTerrainOverlays(state),

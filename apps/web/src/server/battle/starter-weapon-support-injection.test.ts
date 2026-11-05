@@ -62,7 +62,7 @@ it.each([
     expect(injected.find((option) => option.role === 'support')).toMatchObject({
       actionId: `item.${itemId}.main-hand.support`,
       behaviorId,
-      contentVersion: 2,
+      contentVersion: weapon.contentVersion,
       unavailableReason: null,
       behaviors: [{ costs: [{ resource: 'ap', amount: ap }] }],
     })

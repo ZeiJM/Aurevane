@@ -21,7 +21,7 @@ export const CONTENT_TEXT_GUIDANCE = {
   },
   itemDescription: {
     hint: 'Shown in inventory Item details and Master preview.',
-    help: 'Battle Item information shows Parameters and remaining uses. Chronicle uses a generated Item action sentence.',
+    help: 'Consumable information shows Parameters and remaining uses. Chronicle uses a generated Item action sentence.',
   },
   authoringDescription: {
     hint: 'Shown in Master preview.',
