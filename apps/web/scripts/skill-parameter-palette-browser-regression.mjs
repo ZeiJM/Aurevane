@@ -511,7 +511,8 @@ async function assertModularReport(panel, { resonance = false, expectedPalette =
   }
   assert.match(text, /Ongoing Modifier/)
   assert.match(text, /12\.5%/)
-  assert.match(text, /while Requirements are met/)
+  assert.match(text, /Ends when its source is removed/)
+  assert.doesNotMatch(text, /while Requirements are met/)
   assert.doesNotMatch(text, /71 AP|Wrong legacy|Dmg \[15\]/)
   const tagColors = await panel.evaluate((element) =>
     [...element.querySelectorAll('[data-compact-skill-effect]')].map((effect) => ({
@@ -658,7 +659,7 @@ async function verifyModularManual(page, viewport) {
     'MP [≥ 3] [Self]',
     'Once per battle',
     '12.5%',
-    'Active while Requirements are met',
+    'Ends when its source is removed',
   ])
     assert.ok(text.includes(value), `Manual catalogue lacks ${value}`)
   assert.doesNotMatch(text, /71 AP|Dmg \[15\]|accuracyRule|multiplierBasisPoints/)

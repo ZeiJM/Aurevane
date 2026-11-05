@@ -77,6 +77,39 @@ const browser = await chromium.launch({
     : {}),
 })
 try {
+  const passivePage = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  await passivePage.goto(`${server.resolvedUrls.local[0]}?item=wardstone-bracer&ability=missing`, {
+    waitUntil: 'networkidle',
+  })
+  await passivePage.getByRole('button', { name: 'Add behavior groups', exact: true }).click()
+  const added = await passivePage.evaluate(() => window.itemEditorValue)
+  assert.ok(
+    added.ability.behaviors.every(
+      (group) => group.activation === 'ongoing' && group.mode === 'modifier',
+    ),
+  )
+  assert.deepEqual(added.actions, {})
+  await passivePage.getByRole('button', { name: 'Save definition JSON' }).click()
+  await expect(passivePage.getByRole('alert')).toHaveCount(0)
+  await passivePage.close()
+  const repairPage = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  await repairPage.goto(`${server.resolvedUrls.local[0]}?item=wardstone-bracer&legacy-active`, {
+    waitUntil: 'networkidle',
+  })
+  const retained = await repairPage.evaluate(() => window.itemEditorValue)
+  await repairPage.getByRole('button', { name: 'Keep passive effects only', exact: true }).click()
+  const repaired = await repairPage.evaluate(() => window.itemEditorValue)
+  assert.deepEqual(repaired, {
+    ...retained,
+    actions: {},
+    ability: {
+      ...retained.ability,
+      behaviors: retained.ability.behaviors.filter((group) => group.activation === 'ongoing'),
+    },
+  })
+  await repairPage.getByRole('button', { name: 'Save definition JSON' }).click()
+  await expect(repairPage.getByRole('alert')).toHaveCount(0)
+  await repairPage.close()
   for (const viewport of [
     { width: 1440, height: 900 },
     { width: 1366, height: 768 },

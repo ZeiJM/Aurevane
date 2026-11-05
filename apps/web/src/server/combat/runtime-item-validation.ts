@@ -14,6 +14,22 @@ export function assertRuntimeItemPublication(value: unknown): RuntimeItemDefinit
   )
     throw new TypeError('Upgrade this retained draft to Item V2 before publication.')
   const definition = parseRuntimeItemDefinition(value)
+  const groups = definition.ability?.behaviors ?? []
+  if (
+    definition.itemClass === 'weapon' &&
+    groups.some((group) => group.activation !== 'manual' || group.mode !== 'action')
+  )
+    throw new TypeError(
+      'Weapons only provide Manual attacks and imbued techniques; remove passive groups.',
+    )
+  if (
+    ['armor', 'hand-armor'].includes(definition.itemClass) &&
+    (Object.keys(definition.actions ?? {}).length ||
+      groups.some((group) => group.activation === 'manual' || group.mode !== 'modifier'))
+  )
+    throw new TypeError(
+      'Armor and gloves only provide passive modifiers; remove active actions and bindings.',
+    )
   const result = validateCurrentCombatContent('item', definition, () => ({
     valid: true,
     issues: [],

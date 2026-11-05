@@ -37,6 +37,7 @@ export interface ProfileDetailContent {
   title: string
   eyebrow: string
   body: string
+  equipmentSources?: readonly string[]
 }
 
 type Detail = (ProfileDetailContent & { anchor: Element; focusPopover: boolean }) | null
@@ -368,13 +369,19 @@ export function CharacterProfileDetails({
                     const stat = equipment.stat
                     const formattedValue = formatDerivedStat(stat)
                     const delta = `${equipment.delta >= 0 ? '+' : ''}${formatDerivedStat({ ...stat, value: equipment.delta })}`
-                    const equipmentHelp = equipment.sources.length
-                      ? ` Base: ${formatDerivedStat(baseStat)}. Equipped total: ${formattedValue}. ${equipment.sources.map((source) => `${source.itemName} (${source.position.replaceAll('-', ' ')}): ${source.amount >= 0 ? '+' : ''}${formatDerivedStat({ ...stat, value: source.amount })}${source.conditional ? ' when its battle Requirements are met; excluded from this total' : ''}`).join('; ')}.`
-                      : ''
                     const content = {
                       eyebrow: `${attributeLabels[attributeId]} capability`,
                       title: stat.label,
-                      body: DERIVED_STAT_PROFILE_HELP[statId] + equipmentHelp,
+                      body: DERIVED_STAT_PROFILE_HELP[statId],
+                    }
+                    const equipmentContent = {
+                      eyebrow: '',
+                      title: '',
+                      body: '',
+                      equipmentSources: equipment.sources.map(
+                        (source) =>
+                          `${source.itemName}: ${source.amount >= 0 ? '+' : ''}${formatDerivedStat({ ...stat, value: source.amount })}`,
+                      ),
                     }
                     return (
                       <button
@@ -382,12 +389,13 @@ export function CharacterProfileDetails({
                         type="button"
                         data-testid={`derived-stat-${statId}`}
                         aria-label={`${stat.label}, ${formattedValue}. Select for details.`}
-                        onClick={(event) => openDetail(event.currentTarget, content)}
-                        onMouseEnter={
-                          equipment.sources.length
-                            ? (event) => openDetail(event.currentTarget, content, false)
-                            : undefined
-                        }
+                        onClick={(event) => {
+                          const bonus =
+                            event.target instanceof Element
+                              ? event.target.closest('[data-equipment-stat-delta]')
+                              : null
+                          openDetail(event.currentTarget, bonus ? equipmentContent : content)
+                        }}
                       >
                         <span aria-hidden="true">{statGlyphs[statId]}</span>
                         <span>{stat.label}</span>
@@ -401,6 +409,9 @@ export function CharacterProfileDetails({
                                   : styles.equipmentBonus
                               }
                               data-equipment-stat-delta={equipment.delta}
+                              onMouseEnter={(event) =>
+                                openDetail(event.currentTarget, equipmentContent, false)
+                              }
                             >
                               {' '}
                               (
@@ -442,17 +453,28 @@ export function CharacterProfileDetails({
               role="dialog"
               tabIndex={-1}
               aria-modal="false"
-              aria-labelledby="profile-detail-title"
-              aria-describedby="profile-detail-description"
+              aria-label={detail.equipmentSources ? 'Equipment sources' : undefined}
+              aria-labelledby={detail.equipmentSources ? undefined : 'profile-detail-title'}
+              aria-describedby={detail.equipmentSources ? undefined : 'profile-detail-description'}
               style={{
                 top: popoverPosition?.top ?? 0,
                 left: popoverPosition?.left ?? 0,
                 visibility: popoverPosition ? 'visible' : 'hidden',
               }}
             >
-              <span>{detail.eyebrow}</span>
-              <h2 id="profile-detail-title">{detail.title}</h2>
-              <p id="profile-detail-description">{detail.body}</p>
+              {detail.equipmentSources ? (
+                <ul aria-label="Equipment sources">
+                  {detail.equipmentSources.map((source, index) => (
+                    <li key={index}>{source}</li>
+                  ))}
+                </ul>
+              ) : (
+                <>
+                  <span>{detail.eyebrow}</span>
+                  <h2 id="profile-detail-title">{detail.title}</h2>
+                  <p id="profile-detail-description">{detail.body}</p>
+                </>
+              )}
             </section>,
             document.body,
           )

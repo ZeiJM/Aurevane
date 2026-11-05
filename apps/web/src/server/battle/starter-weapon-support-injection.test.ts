@@ -1,4 +1,6 @@
 import { expect, it, vi } from 'vitest'
+import audit from '../../../../../docs/verification/2026-11-05-items-polish-successors.json'
+import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 import { captureEquipmentAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
 import { activateCombatAbilitySources } from '@aurevane/game-core/combat/combat-ability-command'
@@ -13,16 +15,34 @@ vi.mock('server-only', () => ({}))
 import { projectBattleItems } from './battle-item-projection'
 import { deriveParticipantBattleViewerEntitlement } from './battle-viewer-entitlement'
 
-it.each([
+const weapons = [
   ['twinfang-blade', 'quickstep', 'Quickstep', 15],
   ['stormcaller-staff', 'storm-ward', 'Storm Ward', 25],
   ['emberbrand', 'kindle', 'Kindle', 20],
-] as const)(
-  'offers genuine %s Support in Skill Manager and injects only its selected battle role',
-  (itemId, behaviorId, name, ap) => {
+] as const
+
+it.each(
+  weapons.flatMap(([itemId, behaviorId, name, ap]) =>
+    (['current', 'retained'] as const).map((bracerVersion) => ({
+      itemId,
+      behaviorId,
+      name,
+      ap,
+      bracerVersion,
+    })),
+  ),
+)(
+  'offers $itemId Support with $bracerVersion armor and injects only its selected battle role',
+  ({ itemId, behaviorId, name, ap, bracerVersion }) => {
     const definitions = starterItemDefinitions()
     const weapon = definitions.find((item) => item.id === itemId)!
-    const bracer = definitions.find((item) => item.id === 'wardstone-bracer')!
+    const bracer =
+      bracerVersion === 'current'
+        ? definitions.find((item) => item.id === 'wardstone-bracer')!
+        : parseRuntimeItemDefinition(
+            audit.candidates.find((item) => item.itemId === 'wardstone-bracer')!.beforeDefinition,
+          )
+    expect(bracer.contentVersion).toBe(bracerVersion === 'current' ? 6 : 1)
     const view = {
       equipment: { 'main-hand': 'private-weapon', 'off-hand': 'private-bracer' },
       stacks: [
@@ -33,7 +53,7 @@ it.each([
     const choices = itemSupportOptions(view)
     expect(choices.map((choice) => choice.label)).toEqual([
       `${name} · Main Hand`,
-      'Warding Prayer · Off Hand',
+      ...(bracerVersion === 'retained' ? ['Warding Prayer · Off Hand'] : []),
     ])
     expect(JSON.stringify(choices.map((choice) => choice.selection))).not.toContain('private-')
     const capture: BattleEquipmentCapture = {
@@ -67,10 +87,19 @@ it.each([
       behaviors: [{ costs: [{ resource: 'ap', amount: ap }] }],
     })
     expect(injected.some((option) => option.role === 'attack')).toBe(true)
-    const competing = project({ ...capture, selectedSupport: choices[1]!.selection })
+    const competing = project({
+      ...capture,
+      selectedSupport: {
+        kind: 'equipment',
+        position: 'off-hand',
+        itemId: 'wardstone-bracer',
+        behaviorId: 'ward',
+      },
+    })
     expect(
       competing.filter((option) => option.role === 'support').map((option) => option.behaviorId),
-    ).toEqual(['ward'])
+    ).toEqual(bracerVersion === 'retained' ? ['ward'] : [])
+    expect(competing.some((option) => option.role === 'attack')).toBe(true)
     expect(
       project({ ...capture, selectedSupport: { kind: 'basic', actionId: 'basic.recover' } }).some(
         (option) => option.role === 'support',

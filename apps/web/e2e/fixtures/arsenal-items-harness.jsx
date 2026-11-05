@@ -1,5 +1,6 @@
 import './production-styles'
-import React from 'react'
+import React, { lazy, Suspense } from 'react'
+import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import { createRoot } from 'react-dom/client'
 import { CharacterSelectShell } from '@/components/character/character-select-shell'
 import { AuthenticatedShellPresentation } from '@/components/shell/authenticated-shell-presentation'
@@ -15,6 +16,11 @@ import {
 } from '@/server/character/character-items-service'
 import { starterItemDefinitions, starterItemGrant } from '@aurevane/game-core/content/starter-items'
 import { selectInventorySupport } from '@aurevane/game-core/character/item-inventory'
+const CharacterProfileDetails = lazy(() =>
+  import('@/components/character/character-profile-details').then((module) => ({
+    default: module.CharacterProfileDetails,
+  })),
+)
 const definitions = Object.fromEntries(starterItemDefinitions().map((item) => [item.id, item]))
 const availability = JSON.parse(sessionStorage.getItem('arsenal-item-availability') || '{}')
 for (const [id, enabled] of Object.entries(availability))
@@ -92,6 +98,11 @@ const state = () => ({
     : {}),
   snapshot,
   definitions,
+  timingPolicy: {
+    version: 11,
+    tagAuthority: 'global',
+    modes: { 'remove-status': 'instant', conductive: 'instant', 'barrier-change': 'instant' },
+  },
   catalogueToken: 'a'.repeat(32),
   battleLocked: window.testState.battleLocked,
 })
@@ -287,7 +298,21 @@ const rosterCharacter = {
   disciplines: { primary: { id: 'vanguard', name: 'Vanguard' }, secondary: null },
 }
 createRoot(document.getElementById('root')).render(
-  new URLSearchParams(location.search).has('shell') ? (
+  new URLSearchParams(location.search).has('profile') ? (
+    <Suspense fallback={<p>Loading Profile…</p>}>
+      <CharacterProfileDetails
+        attributes={{ might: 6, finesse: 6, vitality: 6, agility: 7, intellect: 6, resolve: 6 }}
+        derived={calculateDerivedStats({
+          attributes: { might: 6, finesse: 6, vitality: 6, agility: 7, intellect: 6, resolve: 6 },
+          level: 1,
+        })}
+        equipmentBonuses={view.statBonuses}
+        presentationLabel="Traveler"
+        buildTypeLabel="Essence Build"
+        cycleNumber={1}
+      />
+    </Suspense>
+  ) : new URLSearchParams(location.search).has('shell') ? (
     <AuthenticatedShellPresentation>
       {new URLSearchParams(location.search).get('shell') === 'nexus' ? (
         <div

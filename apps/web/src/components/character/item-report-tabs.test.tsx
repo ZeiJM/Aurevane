@@ -153,11 +153,10 @@ it('omits repeated ongoing maintenance prose while preserving the Item Requireme
       },
     }),
   )
-  expect(item.reports[0]!.maintenance).toBe(
-    'Active while Requirements are met. Ends when they are no longer met or its source is removed.',
-  )
+  expect(item.reports[0]!.maintenance).toBe('Ends when its source is removed.')
   const html = renderToStaticMarkup(ItemReportTabs({ itemId: item.id, reports: item.reports }))
-  expect(html).not.toContain('Active while Requirements are met.')
+  expect(html).not.toContain('Ends when its source is removed.')
+  expect(html).not.toContain('while Requirements are met')
   expect(html).toContain('Requirements')
   expect(html).toContain('Effects')
   expect(html).toContain('Power')

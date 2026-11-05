@@ -4,8 +4,9 @@ import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-acti
 import { itemFixture } from '../../../../../packages/game-core/src/content/items-test-fixtures'
 import { presentItem } from '@/lib/items/item-presentation'
 import { ItemDetails } from './item-details'
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 
-it('shows one Consumable uses field below Class and beside Maximum stack, retaining other limits', () => {
+it('shows the ordered two-row facts and one Consumable uses field, retaining other limits', () => {
   const ability = structuredClone(
     defaultBasicSkills().find((row) => row.id === 'basic.recover')!.ability!,
   )
@@ -28,9 +29,16 @@ it('shows one Consumable uses field below Class and beside Maximum stack, retain
   const before = JSON.stringify(presentation)
   const html = renderToStaticMarkup(<ItemDetails item={presentation} />)
   expect(html).toContain('<dt>Class</dt><dd>Consumables</dd>')
-  expect(html).toMatch(
-    /<dt>Maximum stack<\/dt><dd>99<\/dd><\/div><div><dt>Uses per battle<\/dt><dd>2<\/dd>/,
-  )
+  expect([...html.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 7).map((match) => match[1])).toEqual([
+    'Tier',
+    'Quality Points',
+    'Maximum stack',
+    'Class',
+    'Position',
+    'Type',
+    'Uses per battle',
+  ])
+  expect(html).toContain('<dt>Position</dt><dd>Consumable Slot</dd>')
   expect(html.match(/Uses per battle/g)).toHaveLength(1)
   expect(html).not.toMatch(/\d+ uses per battle|Uses refill each battle/)
   expect(html).toContain('Once per owner turn')
@@ -94,3 +102,37 @@ it('shows equip requirements separately from the ability activation Requirements
   expect(html).toContain('Discipline: Vanguard')
   expect(html).toContain('Base Might 20')
 })
+
+it.each([
+  ['evasion', 100, 'Evasion', '+1%'],
+  ['evasion', 250, 'Evasion', '+2.5%'],
+  ['initiative', 3, 'Initiative', '+3'],
+  ['movement', 2, 'Movement', '+2'],
+  ['jump', 1, 'Jump', '+1'],
+  ['physical-power', 12, 'Physical Power', '+12'],
+  ['mystic-defense', 16, 'Mystic Defense', '+16'],
+] as const)(
+  'reports %s bonuses with readable names and units',
+  (stat, amount, label, magnitude) => {
+    const item = starterItemDefinitions().find((row) => row.id === 'wayfarer-hood')!
+    const group = item.ability!.behaviors[0]!
+    const presentation = presentItem({
+      ...item,
+      ability: {
+        ...item.ability!,
+        behaviors: [
+          {
+            ...group,
+            effects: [
+              { id: 'bonus', payload: { type: 'stat-bonus', stat, amount, recipient: 'actor' } },
+            ],
+          },
+        ],
+      },
+    })
+    expect(presentation.reports[0]!.effects[0]!.parts).toMatchObject({ label, magnitude })
+    const html = renderToStaticMarkup(<ItemDetails item={presentation} />)
+    expect(html).toContain(`${label} ${magnitude}`)
+    expect(html).not.toMatch(/basis points|\(rating\)|while Requirements hold/)
+  },
+)

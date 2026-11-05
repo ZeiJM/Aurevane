@@ -110,23 +110,37 @@ const browser = await chromium.launch({
     : {}),
 })
 try {
+  const profile = await browser.newPage({ viewport: { width: 1366, height: 768 } })
+  await profile.goto(`${server.resolvedUrls.local[0]}?profile`, { waitUntil: 'networkidle' })
+  const evasionBonus = profile.locator('[data-equipment-stat-delta="100"]')
+  await evasionBonus.hover()
+  const sources = profile.getByTestId('profile-detail-popover')
+  await expect(sources).toContainText('Wayfarer Hood: +1%')
+  await expect(sources).not.toContainText('Base:')
+  await expect(sources).not.toContainText('Baseline ability')
+  await expect(sources.getByRole('listitem')).toHaveCount(1)
+  await profile.keyboard.press('Escape')
+  await evasionBonus.click()
+  await expect(sources).toContainText('Wayfarer Hood: +1%')
+  await profile.screenshot({ path: resolve(output, 'profile-equipment-bonus-sources.png') })
+  await profile.keyboard.press('Escape')
+  await profile.getByTestId('derived-stat-evasion').focus()
+  await profile.keyboard.press('Enter')
+  await expect(sources).toContainText('Baseline ability')
+  await profile.close()
+  console.log(
+    'Profile equipment bonuses: hover/click lists only equipment; keyboard stat help remains available',
+  )
   const evasion = await browser.newPage({ viewport: { width: 1366, height: 768 } })
   await evasion.goto(`${server.resolvedUrls.local[0]}?shell=items&evasion`, {
     waitUntil: 'networkidle',
   })
   await evasion.getByRole('button', { name: 'Head: Wayfarer Hood', exact: true }).click()
   await expect(
-    evasion.getByRole('dialog').locator('[data-equipment-stat-change="-100"]'),
-  ).toHaveText('−1%')
-  await evasion.getByRole('button', { name: 'Unequip', exact: true }).click()
-  await evasion.getByRole('button', { name: /Slot \d+: Wayfarer Hood/ }).click()
-  await expect(
-    evasion.getByRole('dialog').locator('[data-equipment-stat-change="100"]'),
-  ).toHaveText('+1%')
+    evasion.getByRole('dialog').getByRole('list', { name: 'Equipment stat changes' }),
+  ).toHaveCount(0)
   await evasion.close()
-  console.log(
-    'Authoritative Evasion: owned hood equip/unequip displays +1% / −1% rather than raw basis points',
-  )
+  console.log('Armor bonuses: effects remain visible without a duplicate stat footer')
   const automatic = await browser.newPage({ viewport: { width: 1366, height: 768 } })
   await automatic.goto(`${server.resolvedUrls.local[0]}?shell=items`, { waitUntil: 'networkidle' })
   const automaticSort = automatic.getByRole('combobox', { name: 'Sort', exact: true })
@@ -257,15 +271,7 @@ try {
   ).toHaveCount(0)
   await expect(simple.getByRole('dialog').getByRole('combobox')).toHaveCount(0)
   await expect(simple.getByRole('dialog').getByRole('checkbox')).toHaveCount(0)
-  await expect(
-    simple.getByRole('dialog').locator('[data-equipment-stat-change="12"]'),
-  ).toContainText('+12')
-  assert.equal(
-    await simple
-      .locator('[data-equipment-stat-change="12"]')
-      .evaluate((el) => getComputedStyle(el).color),
-    'rgb(158, 229, 172)',
-  )
+  await expect(simple.getByRole('dialog').locator('[data-equipment-stat-change]')).toHaveCount(0)
   await expect
     .poll(() =>
       simple
@@ -284,15 +290,7 @@ try {
   await expect(
     simple.getByRole('dialog').getByRole('button', { name: 'Unequip', exact: true }),
   ).toBeVisible()
-  await expect(
-    simple.getByRole('dialog').locator('[data-equipment-stat-change="-12"]'),
-  ).toContainText('−12')
-  assert.equal(
-    await simple
-      .locator('[data-equipment-stat-change="-12"]')
-      .evaluate((el) => getComputedStyle(el).color),
-    'rgb(255, 158, 151)',
-  )
+  await expect(simple.getByRole('dialog').locator('[data-equipment-stat-change]')).toHaveCount(0)
   await simple.keyboard.press('Escape')
   await simple.getByRole('button', { name: 'Materials', exact: true }).click()
   await simple.locator('[data-inventory-slot] button').first().click()
@@ -318,6 +316,7 @@ try {
     { width: 390, height: 844 },
     { width: 412, height: 915 },
   ].filter(includeViewport)) {
+    console.log(`Checking Items shell ${viewport.width}x${viewport.height}`)
     const shellPage = await browser.newPage({ viewport })
     await shellPage.route('**/_next/image?*', async (route) => {
       const url = new URL(route.request().url())
@@ -369,6 +368,8 @@ try {
     const equipment = shellPage.getByRole('region', { name: 'Equipment', exact: true })
     await expect(equipment.getByRole('button')).toHaveCount(8)
     const equipmentFit = await equipment.evaluate((panel) => ({
+      overflow: panel.scrollHeight - panel.clientHeight,
+      panelBottom: panel.getBoundingClientRect().bottom,
       gridBottom: panel.querySelector('[class*="equipment_"]').getBoundingClientRect().bottom,
       attackTop: panel.querySelector('[class*="attack_"]').getBoundingClientRect().top,
       slots: [...panel.querySelectorAll('button')].map((button) => {
@@ -388,6 +389,9 @@ try {
           nameBottom: name.bottom,
           helperTop: helper.top,
           helperBottom: helper.bottom,
+          imageLeft: image.left,
+          imageRight: image.right,
+          nameLeft: name.left,
           imageTop: image.top,
           imageBottom: image.bottom,
           imageWidth: image.width,
@@ -396,6 +400,13 @@ try {
         }
       }),
     }))
+    if (viewport.width >= 981) {
+      assert.ok(equipmentFit.overflow <= 1, JSON.stringify({ viewport, equipmentFit }))
+      assert.ok(
+        equipmentFit.slots.every((slot) => slot.bottom <= equipmentFit.panelBottom),
+        JSON.stringify({ viewport, equipmentFit }),
+      )
+    }
     assert.ok(
       equipmentFit.gridBottom <= equipmentFit.attackTop + 1,
       JSON.stringify({ viewport, equipmentFit }),
@@ -403,11 +414,15 @@ try {
     for (const slot of equipmentFit.slots) {
       assert.ok(
         slot.nameTop >= slot.top &&
-          slot.nameBottom <= slot.helperTop + 1 &&
-          slot.helperBottom <= slot.imageTop + 1 &&
-          slot.imageBottom <= slot.labelTop + 1 &&
           slot.labelBottom <= slot.bottom &&
-          slot.centered <= 1,
+          (viewport.width >= 981
+            ? slot.imageTop >= slot.top &&
+              slot.imageBottom <= slot.bottom &&
+              slot.nameLeft >= slot.imageRight + 2
+            : slot.nameBottom <= slot.helperTop + 1 &&
+              slot.helperBottom <= slot.imageTop + 1 &&
+              slot.imageBottom <= slot.labelTop + 1 &&
+              slot.centered <= 1),
         JSON.stringify({ viewport, slot }),
       )
       assert.ok(slot.left >= 0 && slot.right <= viewport.width, JSON.stringify({ viewport, slot }))
@@ -504,7 +519,7 @@ try {
     await shellPage.close()
   }
   console.log(
-    'Arsenal production shell: nine viewports, shared header geometry, internal scroll reachability and hand details passed',
+    'Arsenal production shell: nine viewports, shared header geometry, no-scroll equipment fit, inventory reachability and hand details passed',
   )
   for (const presentation of selectedViewport ? [] : ['masculine', 'feminine', 'androgynous']) {
     const page = await browser.newPage({ viewport: { width: 1366, height: 768 } })
@@ -634,10 +649,18 @@ try {
       .getByRole('dialog')
       .getByRole('button', { name: /Wardstone Bracer/ })
       .click()
+    await page.getByRole('button', { name: 'Main Hand: Empty', exact: true }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: /Emberbrand/ })
+      .click()
     await page.getByRole('button', { name: /Manage Techniques/ }).click()
     const supportTab = page.getByRole('tab', { name: 'Support', exact: true })
     if (await supportTab.isVisible()) await supportTab.click()
-    await page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }).click()
+    await expect(
+      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
+    ).toHaveCount(0)
+    await page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.reload({ waitUntil: 'networkidle' })
     await page.evaluate(() => {
@@ -645,9 +668,7 @@ try {
     })
     await page.getByRole('button', { name: /Manage Techniques/ }).click()
     if (await supportTab.isVisible()) await supportTab.click()
-    await expect(
-      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
-    ).toBeChecked()
+    await expect(page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true })).toBeChecked()
     await page.getByRole('radio', { name: 'HP Recovery', exact: true }).click()
     if (viewport.width < 500)
       await page.getByRole('button', { name: 'Use as Support Action', exact: true }).click()
@@ -655,12 +676,12 @@ try {
     await page.evaluate(() => window.releaseItemRead())
     await expect(page.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
     await expect(
-      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
+      page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true }),
     ).not.toBeChecked()
-    await page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }).click()
+    await page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.reload({ waitUntil: 'networkidle' })
-    await page.getByRole('button', { name: 'Off Hand: Wardstone Bracer', exact: true }).click()
+    await page.getByRole('button', { name: 'Main Hand: Emberbrand', exact: true }).click()
     await page.getByRole('button', { name: 'Unequip', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     assert.deepEqual(await page.evaluate(() => window.itemSnapshot().selectedSupport), {

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { starterItemDefinitions } from '../content/starter-items'
 import { parseRuntimeItemDefinition, type RuntimeItemDefinition } from '../content/items'
@@ -79,18 +80,27 @@ function damage(state: CombatEncounterState, effects?: readonly object[]) {
 }
 const emberbrand = () => starterItemDefinitions().find((item) => item.id === 'emberbrand')!
 
-it('casts actual equipped Kindle as Fire-only Damage Up, combines its passive once and retains scope after reload', () => {
+it('casts actual equipped Kindle as Fire-only Damage Up, has no held passive and retains scope after reload', () => {
   const state = ready(emberbrand())
   const buff = state.statusState
     .find((row) => row.combatantId === 'actor')!
     .statuses.find((row) => row.statusId === 'inspired')!
   expect(buff.damageTypes).toEqual(['fire'])
-  expect(damage(state)).toEqual([121, 100, 100, 100, 100, 100, 121])
-  expect(damage(JSON.parse(JSON.stringify(state)))).toEqual([121, 100, 100, 100, 100, 100, 121])
+  expect(damage(state)).toEqual([110, 100, 100, 100, 100, 100, 110])
+  expect(damage(JSON.parse(JSON.stringify(state)))).toEqual([110, 100, 100, 100, 100, 100, 110])
 })
 
 it('retains All Damage for an already captured absent-scope Kindle version', () => {
-  const current = emberbrand()
+  const current = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../../../docs/verification/2026-11-05-item-description-successors.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ).candidates.find((row: { itemId: string }) => row.itemId === 'emberbrand')
+    .reviewedSourceDefinition as RuntimeItemDefinition
   const old = parseRuntimeItemDefinition({
     ...current,
     contentVersion: 3,
@@ -112,7 +122,7 @@ it('retains All Damage for an already captured absent-scope Kindle version', () 
   expect(damage(JSON.parse(JSON.stringify(state)))).toEqual([121, 110, 110, 110, 110, 110, 121])
 })
 
-it('removes only Kindle boost through ordinary Dispel and two-turn expiry while equipped Fire passive remains', () => {
+it('removes only Kindle boost through ordinary Dispel and two-turn expiry without leaving an equipped Fire passive', () => {
   const state = ready(emberbrand())
   const removed = executeCombatAction(
     state,
@@ -128,12 +138,12 @@ it('removes only Kindle boost through ordinary Dispel and two-turn expiry while 
     { kind: 'unit', combatantId: 'enemy' },
     PV1F_COMBAT_CONTENT,
   ).state
-  expect(damage(removed)).toEqual([110, 100, 100, 100, 100, 100, 110])
+  expect(damage(removed)).toEqual([100, 100, 100, 100, 100, 100, 100])
   let expired = state
   for (let index = 0; index < 12; index++)
     expired = endCombatTurn(
       { ...expired, tactical: selectCurrentFinalFacing(expired.tactical, 'west').state },
       PV1F_COMBAT_CONTENT,
     ).state
-  expect(damage(expired)).toEqual([110, 100, 100, 100, 100, 100, 110])
+  expect(damage(expired)).toEqual([100, 100, 100, 100, 100, 100, 100])
 })
