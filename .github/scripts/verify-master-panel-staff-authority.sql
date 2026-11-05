@@ -12,6 +12,7 @@ declare
   alternate_id uuid := current_setting('task8.alternate')::uuid;
   identity jsonb;
   directory jsonb;
+  command text;
 begin
   assert (select roles = array['game-owner'] from public.read_master_panel_access_v1(owner_id)), 'Owner bootstrap';
   assert not exists(select 1 from public.read_master_panel_access_v1(staff_id)), 'Legacy account grant must deny';
@@ -57,6 +58,21 @@ begin
   end if;
   assert exists(select 1 from public.read_combat_content_draft_v1(staff_id,character_id,'native.staff.skill')), 'Selected protected consumer allow';
   assert exists(select 1 from public.read_combat_content_draft_v1(owner_id,'native.staff.skill')), 'Owner old signature/bootstrap allow';
+  -- Active content staff retain self-test acquisition, never arbitrary recipients.
+  if to_regprocedure('app_private.assert_master_item_grant_owner_v1(uuid,uuid)') is not null then
+    foreach command in array array[
+      'select public.search_master_item_grant_characters_v1($1,$2,''native'')',
+      'select public.read_master_item_grant_target_v1($1,$2,$3)',
+      'select public.grant_master_item_to_character_v1($1,$2,$3,''item.test'',1,0,''token'',gen_random_uuid())'
+    ] loop
+      begin execute command using staff_id,character_id,alternate_id; raise exception 'EXPECTED active content staff targeted Item denial';
+      exception when insufficient_privilege then assert sqlerrm='MASTER_ITEM_GRANT_OWNER_REQUIRED'; end;
+      begin execute command using owner_id,null::uuid,character_id; raise exception 'EXPECTED Owner missing selected actor denial';
+      exception when insufficient_privilege then assert sqlerrm='MASTER_ITEM_GRANT_OWNER_REQUIRED'; end;
+      begin execute command using owner_id,character_id,alternate_id; raise exception 'EXPECTED Owner unowned selected actor denial';
+      exception when insufficient_privilege then assert sqlerrm='MASTER_ITEM_GRANT_OWNER_REQUIRED'; end;
+    end loop;
+  end if;
   begin
     perform public.set_master_panel_character_access_v2(staff_id,other_id,alternate_id,array['event-staff'],array[]::text[],null,0,true);
     raise exception 'EXPECTED delegated management denial';
@@ -104,6 +120,8 @@ declare
   proc record;
   predecessor text;
   new_actor_signatures text[] := array[]::text[];
+  owner_actor_signatures text[] := array[]::text[];
+  owner_helper_signatures text[] := array[]::text[];
   expected_player_denial text := 'MASTER_PANEL_OWNER_REQUIRED';
   probe record;
 begin
@@ -156,13 +174,25 @@ begin
   if exists(select 1 from pg_attribute where attrelid=to_regclass('app_private.master_moderation_audit') and attname='reviewed_revision' and not attisdropped) then
     new_actor_signatures := new_actor_signatures || array['public.list_active_master_bans_v1(uuid,uuid,uuid)']::text[];
   end if;
+  -- Owner-only targeted Item APIs have no legacy overload and must not inherit
+  -- delegated page permissions. The private marker requires the entire module.
+  if to_regprocedure('app_private.assert_master_item_grant_owner_v1(uuid,uuid)') is not null then
+    owner_actor_signatures := array['public.search_master_item_grant_characters_v1(uuid,uuid,text)','public.read_master_item_grant_target_v1(uuid,uuid,uuid)','public.grant_master_item_to_character_v1(uuid,uuid,uuid,text,integer,bigint,text,uuid)'];
+    owner_helper_signatures := array['app_private.assert_master_item_grant_owner_v1(uuid,uuid)'];
+  end if;
+  foreach signature in array owner_actor_signatures || owner_helper_signatures loop
+    assert to_regprocedure(signature) is not null, 'Required Owner Item actor signature: '||signature;
+    assert (select 'p_actor_character_id'=any(proargnames) from pg_proc where oid=signature::regprocedure), 'Explicit Owner selected actor contract: '||signature;
+    assert not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Owner Item browser ACL: '||signature;
+    assert has_function_privilege('service_role',signature,'execute')=(signature=any(owner_actor_signatures)), 'Owner Item entrypoint/private-helper ACL: '||signature;
+  end loop;
   foreach signature in array new_actor_signatures loop
     assert to_regprocedure(signature) is not null, 'Required workspace actor signature: '||signature;
     assert (select 'p_actor_character_id'=any(proargnames) from pg_proc where oid=signature::regprocedure), 'Explicit selected actor contract: '||signature;
     assert not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Workspace actor browser ACL: '||signature;
     assert has_function_privilege('service_role',signature,'execute')=(signature<>'public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)'), 'Workspace actor service/private-helper ACL: '||signature;
   end loop;
-  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.oid<>all(array(select to_regprocedure(contract)::oid from unnest(new_actor_signatures) contract)) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1','read_event_workspace_catalogue_v1','list_event_workspace_runs_v1','commit_combat_content_record_v1']) loop
+  for proc in select p.oid,n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) identity from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames) and p.oid<>all(array(select to_regprocedure(contract)::oid from unnest(new_actor_signatures || owner_actor_signatures || owner_helper_signatures) contract)) and p.proname<>all(array['finalize_combat_content_media_v1','read_combat_content_media_v1','search_master_players_v1','read_master_player_v1','edit_master_player_v1','recover_master_player_battle_v1','read_combat_content_record_v1','list_combat_content_records_v1','write_combat_content_record_v1','publish_saved_combat_content_v1','read_event_workspace_catalogue_v1','list_event_workspace_runs_v1','commit_combat_content_record_v1']) loop
     checked := checked+1;
     assert not has_function_privilege('anon',proc.oid,'execute') and not has_function_privilege('authenticated',proc.oid,'execute'), 'Explicit actor browser denial: '||proc.proname;
     if proc.nspname='app_private' then
@@ -238,7 +268,7 @@ begin
       assert has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Stage B ordinary service RPC ACL: '||signature;
     end loop;
 
-    assert (select count(*)=41+case when to_regprocedure('public.commit_combat_content_record_v1(uuid,uuid,text,bigint,jsonb,text,integer)') is null then 0 else 1 end+case when to_regprocedure('public.read_master_panel_access_v2(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end+cardinality(new_actor_signatures) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Legacy actor contracts plus exact workspace actor inventory';
+    assert (select count(*)=41+case when to_regprocedure('public.commit_combat_content_record_v1(uuid,uuid,text,bigint,jsonb,text,integer)') is null then 0 else 1 end+case when to_regprocedure('public.read_master_panel_access_v2(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.read_event_workspace_catalogue_v1(uuid,uuid)') is null then 0 else 2 end+case when to_regprocedure('public.finalize_combat_content_media_v1(uuid,uuid,bytea,jsonb)') is null then 0 else 2 end+cardinality(new_actor_signatures)+cardinality(owner_actor_signatures)+cardinality(owner_helper_signatures) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname in ('public','app_private') and 'p_actor_character_id'=any(p.proargnames)), 'Legacy actor contracts plus exact workspace and Owner actor inventory';
     foreach signature in array array[
       'select public.read_combat_content_record_v1($1,$2,''native.staff.skill'')',
       'select public.list_combat_content_records_v1($1,$2,null,null,null,null,20)',
@@ -398,6 +428,9 @@ do $$ declare probe record; begin
       ('public.delete_discipline_v1(uuid,uuid,text,text)','select public.delete_discipline_v1($1,$2,''vanguard'',repeat(''a'',32))'),
       ('public.read_master_usage_balance_v1(uuid,uuid,text)','select public.read_master_usage_balance_v1($1,$2,''vanguard'')'),
       ('public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)','select public.grant_master_test_item_v1($1,$2,''item.test'',1,0,''token'',gen_random_uuid())'),
+      ('public.search_master_item_grant_characters_v1(uuid,uuid,text)','select public.search_master_item_grant_characters_v1($1,$2,''native'')'),
+      ('public.read_master_item_grant_target_v1(uuid,uuid,uuid)','select public.read_master_item_grant_target_v1($1,$2,$3)'),
+      ('public.grant_master_item_to_character_v1(uuid,uuid,uuid,text,integer,bigint,text,uuid)','select public.grant_master_item_to_character_v1($1,$2,$3,''item.test'',1,0,''token'',gen_random_uuid())'),
       ('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','select public.read_master_usage_balance_week_v1($1,$2,''vanguard'',null)'),
       ('public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v1($1,1,''{}'',null,$2)')
   ) contracts(signature,command) loop

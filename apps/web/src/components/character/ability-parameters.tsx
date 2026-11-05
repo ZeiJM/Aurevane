@@ -9,12 +9,14 @@ export function AbilityParameters({
   characteristicsClassName,
   effectExplanationsClassName,
   showActivationNotes = true,
+  showMaintenance = true,
   showEffectExplanations = true,
 }: {
   report: BattleAbilityBehaviorReport
   characteristicsClassName?: string
   effectExplanationsClassName?: string
   showActivationNotes?: boolean
+  showMaintenance?: boolean
   showEffectExplanations?: boolean
 }) {
   const visibleLimits = report.limits.filter((limit) => limit !== 'Once per round')
@@ -39,7 +41,7 @@ export function AbilityParameters({
       {showActivationNotes && report.automaticActivation ? (
         <p>Automatic: {report.automaticActivation}</p>
       ) : null}
-      {report.maintenance ? <p>{report.maintenance}</p> : null}
+      {showMaintenance && report.maintenance ? <p>{report.maintenance}</p> : null}
       {showEffectExplanations ? (
         <AbilityEffectExplanations reports={[report]} className={effectExplanationsClassName} />
       ) : null}

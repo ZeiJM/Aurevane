@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./combat/combat-item-consumption": "./src/combat/combat-item-consumption.ts",
     "./character/attribute-allocation": "./src/character/attribute-allocation.ts",
     "./character/creation": "./src/character/creation.ts",
     "./character/derived-stats": "./src/character/derived-stats.ts",
@@ -115,6 +116,7 @@
     "./combat/combat-reversal": "./src/combat/combat-reversal.ts",
     "./content/starter-items": "./src/content/starter-items.ts",
     "./content/items": "./src/content/items.ts",
+    "./character/item-equip-requirements": "./src/character/item-equip-requirements.ts",
     "./character/item-inventory": "./src/character/item-inventory.ts",
     "./combat/combat-equipment": "./src/combat/combat-equipment.ts",
     "./combat/combat-stat-bonuses": "./src/combat/combat-stat-bonuses.ts"

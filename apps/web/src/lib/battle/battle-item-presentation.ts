@@ -10,6 +10,7 @@ export interface BattleItemPresentation extends BattleBasicActionPresentation {
   readonly behaviorId: string
   readonly artworkSrc: string | null
   readonly item: ItemPresentation
+  readonly stockQuantity?: number | null
   readonly remainingUses: number | null
   readonly maximumUsesPerBattle: number | null
   readonly unavailableReason: string | null

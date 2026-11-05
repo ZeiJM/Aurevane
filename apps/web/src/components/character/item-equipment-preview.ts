@@ -43,6 +43,12 @@ export function equipmentProposal(
   const otherUses = Object.entries(equipment).filter(
     ([p, id]) => p !== position && id === stack.id,
   ).length
+  const duplicateConsumable =
+    item?.itemClass === 'battle-item' &&
+    Object.entries(equipment).some(
+      ([p, id]) =>
+        p !== position && view.stacks.find((other) => other.id === id)?.itemId === stack.itemId,
+    )
   const qualityPoints =
     view.qualityPoints -
     removals.reduce(
@@ -57,9 +63,13 @@ export function equipmentProposal(
       ? 'This current Item is unavailable for equipment.'
       : !itemPositions(item).includes(position)
         ? 'This Item does not fit this position.'
-        : otherUses && (item.itemClass !== 'battle-item' || stack.quantity < otherUses + 1)
-          ? 'Readying this stack in both consumable slots requires two owned copies of a Battle Item.'
-          : null
+        : duplicateConsumable
+          ? 'The two consumable positions must contain different Items. Unequip the other copy first.'
+          : stack.unmetEquipRequirements?.length
+            ? stack.unmetEquipRequirements.join(' ')
+            : otherUses && (item.itemClass !== 'battle-item' || stack.quantity < otherUses + 1)
+              ? 'Readying this stack in both consumable slots requires two owned copies of a Consumable.'
+              : null
   return {
     requiredReplacements,
     removals,

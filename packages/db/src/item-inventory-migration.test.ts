@@ -107,6 +107,7 @@ it('prepares exact versioned equipment and validates it inside the actual creati
   ).rows[0]!.value
   expect(captured).toEqual({
     schemaVersion: 2,
+    consumptionPolicyVersion: 1,
     inventoryRevision: 2,
     selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
     equipment: [{ position: 'head', ownedStackId: owned.stacks[0]!.id, item: helm }],
@@ -222,6 +223,13 @@ it('prepares exact versioned equipment and validates it inside the actual creati
   ])
   await fails(() => create(initial), 'ITEM_PREPARATION_STALE')
   await db.exec('rollback to savepoint catalogue_change; release savepoint catalogue_change')
+  await db.exec('savepoint equip_requirements_change')
+  await seed([{ ...helm, contentVersion: 2, equipRequirements: { minimumLevel: 2 } }])
+  await fails(() => create(initial), 'ITEM_EQUIP_REQUIREMENTS')
+  expect((await read()).equipment).toEqual({ head: owned.stacks[0]!.id })
+  await db.exec(
+    'rollback to savepoint equip_requirements_change; release savepoint equip_requirements_change',
+  )
   const admitted = await create(initial)
   expect(admitted.rows).toHaveLength(1)
   await fails(() => equip(2, {}, undefined, ['head']), 'ITEM_BATTLE_ACTIVE')
@@ -322,8 +330,11 @@ it('rejects unavailable or repeated foreign assignments and quantity-poor duplic
   )
   await fails(() => equip(1, { head: crypto.randomUUID() }), 'ITEM_OWNERSHIP')
   await grant('second', [{ itemId: potion.id, quantity: 1 }], 1)
-  await equip(2, { 'consumable-1': stack!.id, 'consumable-2': stack!.id })
-  expect((await read()).revision).toBe(3)
+  await fails(
+    () => equip(2, { 'consumable-1': stack!.id, 'consumable-2': stack!.id }),
+    'ITEM_DUPLICATE_CONSUMABLE',
+  )
+  expect((await read()).revision).toBe(2)
 })
 it('rolls back an entire full-category grant with no partial stacks or grant receipts', async () => {
   await grant('full', [{ itemId: material.id, quantity: 3960 }])

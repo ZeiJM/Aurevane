@@ -9,8 +9,10 @@ import {
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import { AbilityNumber, AbilitySelect, AbilityText } from './ability-editor-fields'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { ItemEquipRequirementsEditor } from './item-equip-requirements-editor'
 import { ItemDetails } from '@/components/character/item-details'
 import { presentItem } from '@/lib/items/item-presentation'
+import { itemCategoryLabel, itemClassLabel } from '@/lib/items/item-class-label'
 import styles from './combat-content-editor.module.css'
 const categories = {
   armor: 'gear',
@@ -22,7 +24,23 @@ const categories = {
   event: 'event',
   companion: 'companion',
 } as const
-const classes = Object.keys(categories) as ItemClass[]
+const inventoryClasses = [
+  'gear',
+  'battle-items',
+  'materials',
+  'general',
+  'event',
+  'companion',
+] as const
+const gearTypes = ['weapon', 'armor', 'hand-armor'] as const
+const defaultClassType: Record<RuntimeItemDefinition['inventoryCategory'], ItemClass> = {
+  gear: 'weapon',
+  'battle-items': 'battle-item',
+  materials: 'material',
+  general: 'general',
+  event: 'event',
+  companion: 'companion',
+}
 /** Explicit conversion preserves authored behavior and refuses unsupported wrapper prerequisites. */
 export function upgradeRetainedItem(value: AuthoredItem): RuntimeItemDefinition {
   if (value.requirements !== null)
@@ -120,8 +138,10 @@ function changeClass(value: RuntimeItemDefinition, itemClass: ItemClass): Runtim
         ? defaultBasicSkills().find((row) => row.id === 'basic.recover')!.ability
         : null
   const role = itemClass === 'weapon' ? 'attack' : 'use'
+  const { equipRequirements, ...identity } = value
   return {
-    ...value,
+    ...identity,
+    ...(equippable && equipRequirements ? { equipRequirements } : {}),
     itemClass,
     inventoryCategory: categories[itemClass],
     qualityPoints: equippable ? Math.max(1, value.qualityPoints) : 0,
@@ -142,9 +162,11 @@ function changeClass(value: RuntimeItemDefinition, itemClass: ItemClass): Runtim
 export function RuntimeItemEditor({
   value,
   onChange,
+  disciplines = [],
 }: {
   value: RuntimeItemDefinition
   onChange(value: RuntimeItemDefinition): void
+  disciplines?: readonly { id: string; name: string }[]
 }) {
   const [classChoice, setClassChoice] = useState(value.itemClass)
   const set = (patch: Partial<RuntimeItemDefinition>) => onChange({ ...value, ...patch })
@@ -154,7 +176,7 @@ export function RuntimeItemEditor({
     ) ?? []
   const roles =
     value.itemClass === 'weapon'
-      ? (['attack', 'support'] as const)
+      ? (['attack'] as const)
       : value.itemClass === 'battle-item'
         ? (['use'] as const)
         : value.equipment
@@ -172,11 +194,31 @@ export function RuntimeItemEditor({
       <fieldset className={styles.typedGroup}>
         <legend>Inventory</legend>
         <AbilitySelect
-          label="Item class"
-          value={classChoice}
-          options={classes}
-          onChange={setClassChoice}
+          label="Class"
+          value={categories[classChoice]}
+          options={inventoryClasses}
+          optionLabels={Object.fromEntries(
+            inventoryClasses.map((category) => [category, itemCategoryLabel(category)]),
+          )}
+          onChange={(category) =>
+            setClassChoice(
+              category === value.inventoryCategory ? value.itemClass : defaultClassType[category],
+            )
+          }
         />
+        {categories[classChoice] === 'gear' ? (
+          <AbilitySelect
+            label="Type"
+            value={classChoice as (typeof gearTypes)[number]}
+            options={gearTypes}
+            optionLabels={Object.fromEntries(
+              gearTypes.map((itemClass) => [itemClass, itemClassLabel(itemClass)]),
+            )}
+            onChange={setClassChoice}
+          />
+        ) : (
+          <p>Type: {classChoice === 'battle-item' ? 'Consumable' : 'N/A'}</p>
+        )}
         {classChoice !== value.itemClass ? (
           <>
             <p>
@@ -188,7 +230,6 @@ export function RuntimeItemEditor({
             </button>
           </>
         ) : null}
-        <p>Inventory category: {value.inventoryCategory.replaceAll('-', ' ')}</p>
         <AbilitySelect
           label="Tier"
           value={value.tier}
@@ -204,21 +245,28 @@ export function RuntimeItemEditor({
         />
         {value.equipment ? (
           <>
-            {value.itemClass === 'armor' ? (
+            {value.itemClass === 'armor' || value.itemClass === 'hand-armor' ? (
               <AbilitySelect
-                label="Equipment slot"
+                label="Position"
                 value={value.equipment.slot}
-                options={['head', 'body', 'pants', 'boots']}
-                onChange={(slot) => set({ equipment: { ...value.equipment!, slot } })}
+                options={['head', 'body', 'pants', 'boots', 'hand'] as const}
+                optionLabels={{
+                  head: 'Head',
+                  body: 'Body',
+                  pants: 'Pants',
+                  boots: 'Boots',
+                  hand: 'Off Hand (Gloves)',
+                }}
+                onChange={(slot) => {
+                  const itemClass = slot === 'hand' ? 'hand-armor' : 'armor'
+                  setClassChoice(itemClass)
+                  set({ itemClass, equipment: { slot, hands: 1 } })
+                }}
               />
             ) : (
               <p>
-                Equipment position:{' '}
-                {value.itemClass === 'weapon'
-                  ? 'Main Hand'
-                  : value.itemClass === 'hand-armor'
-                    ? 'Off Hand'
-                    : 'Consumable 1 or Consumable 2'}
+                Position:{' '}
+                {value.itemClass === 'weapon' ? 'Main Hand' : 'Consumable 1 or Consumable 2'}
               </p>
             )}
             {value.itemClass === 'weapon' ? (
@@ -237,7 +285,9 @@ export function RuntimeItemEditor({
               </p>
             ) : null}
           </>
-        ) : null}
+        ) : (
+          <p>Position: N/A</p>
+        )}
         <AbilityNumber
           label="Maximum stack"
           value={value.maximumStack}
@@ -255,6 +305,18 @@ export function RuntimeItemEditor({
           />
         ) : null}
       </fieldset>
+      {value.equipment ? (
+        <ItemEquipRequirementsEditor
+          value={value.equipRequirements}
+          disciplines={disciplines}
+          onChange={(equipRequirements) => {
+            const item = { ...value }
+            if (equipRequirements) item.equipRequirements = equipRequirements
+            else delete item.equipRequirements
+            onChange(item)
+          }}
+        />
+      ) : null}
       {value.equipment ? (
         <fieldset className={styles.typedGroup}>
           <legend>Behavior groups and bindings</legend>
@@ -279,34 +341,59 @@ export function RuntimeItemEditor({
               onChange={(ability) => set({ ability })}
             />
           )}
-          {roles.map((role) => (
-            <div key={role}>
-              <AbilitySelect
-                label={`${role[0]!.toUpperCase() + role.slice(1)} binding`}
-                value={value.actions?.[role]?.behaviorId ?? ''}
-                options={['', ...manuals.map((row) => row.id)]}
-                optionLabels={{ '': 'None' }}
-                onChange={(behaviorId) => {
-                  const actions = { ...value.actions }
-                  if (behaviorId)
-                    actions[role] = { behaviorId, name: value.actions?.[role]?.name ?? role }
-                  else delete actions[role]
-                  set({ actions })
-                }}
-              />
-              {value.actions?.[role] ? (
-                <AbilityText
-                  label={`${role} name`}
-                  value={value.actions[role]!.name}
-                  onChange={(name) =>
-                    set({
-                      actions: { ...value.actions, [role]: { ...value.actions![role]!, name } },
-                    })
-                  }
-                />
-              ) : null}
-            </div>
-          ))}
+          {roles.map((role) => {
+            const label =
+              role === 'attack' ? 'Basic Attack' : role === 'use' ? 'Consumable action' : 'Support'
+            const binding = value.actions?.[role]
+            const automatic =
+              role !== 'support' && manuals.length === 1 && binding?.behaviorId === manuals[0]!.id
+            const controls = (
+              <div>
+                {!automatic ? (
+                  <AbilitySelect
+                    label={role === 'use' ? label : `${label} action`}
+                    value={binding?.behaviorId ?? ''}
+                    options={['', ...manuals.map((row) => row.id)]}
+                    optionLabels={Object.fromEntries([
+                      ['', 'None'],
+                      ...manuals.map((row) => [
+                        row.id,
+                        `Behavior ${value.ability!.behaviors.indexOf(row) + 1} · ${row.classification[0]!.toUpperCase() + row.classification.slice(1)}`,
+                      ]),
+                      ...(binding && !manuals.some((row) => row.id === binding.behaviorId)
+                        ? [[binding.behaviorId, 'Unavailable action — choose a replacement']]
+                        : []),
+                    ])}
+                    onChange={(behaviorId) => {
+                      const actions = { ...value.actions }
+                      if (behaviorId) actions[role] = { behaviorId, name: binding?.name ?? label }
+                      else delete actions[role]
+                      set({ actions })
+                    }}
+                  />
+                ) : null}
+                {binding ? (
+                  <AbilityText
+                    label={`${label} name`}
+                    value={binding.name}
+                    onChange={(name) =>
+                      set({
+                        actions: { ...value.actions, [role]: { ...binding, name } },
+                      })
+                    }
+                  />
+                ) : null}
+              </div>
+            )
+            return role === 'support' && !binding ? (
+              <details key={role}>
+                <summary>Optional Support action</summary>
+                {controls}
+              </details>
+            ) : (
+              <div key={role}>{controls}</div>
+            )
+          })}
         </fieldset>
       ) : null}
       <details open>

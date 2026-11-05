@@ -252,38 +252,59 @@ it('sorts a complete owned category permutation and rejects foreign/repeated IDs
       issue: { code: 'permutation' },
     })
 })
-it('readies two units of one battle-item stack only with quantity two and charges QP for each slot', () => {
-  const ability = defaultBasicSkills().find((x) => x.id === 'basic.recover')!.ability!
-  const item = itemFixture({
-    inventoryCategory: 'battle-items',
-    itemClass: 'battle-item',
-    equipment: { slot: 'hand', hands: 1 },
-    maximumStack: 99,
-    qualityPoints: 51,
-    ability,
-    actions: { use: { behaviorId: ability.behaviors[0]!.id, name: 'Drink' } },
-    battleUses: 1,
-  })
-  const snapshot = {
-    ...owned([item]),
-    equipment: { 'consumable-1': 'stack-0', 'consumable-2': 'stack-0' },
+it('rejects duplicate consumable identity across one or separate stacks and permits repair', () => {
+  const item = starterItemDefinitions().find((x) => x.itemClass === 'battle-item')!
+  const s = owned([item, item]),
+    d = catalogue([item])
+  for (const other of ['stack-0', 'stack-1']) {
+    const invalid = {
+      ...s,
+      stacks: s.stacks.map((x) => ({ ...x, quantity: 2 })),
+      equipment: { 'consumable-1': 'stack-0', 'consumable-2': other },
+    }
+    expect(validateEquipmentLoadout(invalid, d)).toMatchObject({
+      ok: false,
+      issue: { code: 'duplicate-consumable' },
+    })
+    expect(unequipInventoryItem(invalid, d, 0, 'consumable-2').ok).toBe(true)
   }
-  expect(validateEquipmentLoadout(snapshot, catalogue([item]))).toMatchObject({
+  const distinct = { ...item, id: 'other.supply' }
+  expect(
+    validateEquipmentLoadout(
+      {
+        ...owned([item, distinct]),
+        equipment: { 'consumable-1': 'stack-0', 'consumable-2': 'stack-1' },
+      },
+      catalogue([item, distinct]),
+    ).ok,
+  ).toBe(true)
+})
+it('enforces authored equip requirements against base facts and allows removal after changes', () => {
+  const item = itemFixture({
+    equipRequirements: { minimumLevel: 4, minimumCoreStats: { might: 13 } },
+  })
+  const s = owned([item]),
+    d = catalogue([item])
+  const context = {
+    level: 4,
+    disciplineIds: ['vanguard'],
+    baseCoreStats: { might: 12, finesse: 4, vitality: 7, agility: 4, intellect: 3, resolve: 6 },
+  }
+  expect(equipInventoryItem(s, d, 0, 'stack-0', 'head')).toMatchObject({
     ok: false,
-    issue: { code: 'quantity' },
+    issue: { code: 'equip-requirements' },
+  })
+  expect(equipInventoryItem(s, d, 0, 'stack-0', 'head', [], context)).toMatchObject({
+    ok: false,
+    issue: { code: 'equip-requirements' },
   })
   expect(
-    validateEquipmentLoadout(
-      { ...snapshot, stacks: snapshot.stacks.map((x) => ({ ...x, quantity: 2 })) },
-      catalogue([item]),
-    ),
-  ).toMatchObject({ ok: false, issue: { code: 'overQP', qualityPoints: 102 } })
-  expect(
-    validateEquipmentLoadout(
-      { ...snapshot, stacks: snapshot.stacks.map((x) => ({ ...x, quantity: 2 })) },
-      catalogue([{ ...item, qualityPoints: 50 }]),
-    ),
-  ).toMatchObject({ ok: true, qualityPoints: 100 })
+    equipInventoryItem(s, d, 0, 'stack-0', 'head', [], {
+      ...context,
+      baseCoreStats: { ...context.baseCoreStats, might: 13 },
+    }).ok,
+  ).toBe(true)
+  expect(unequipInventoryItem({ ...s, equipment: { head: 'stack-0' } }, d, 0, 'head').ok).toBe(true)
 })
 it('rejects invalid current stack ceilings without unbounded grant arithmetic', () => {
   const item = itemFixture({ maximumStack: 0 })

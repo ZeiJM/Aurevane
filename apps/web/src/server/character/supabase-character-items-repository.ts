@@ -1,3 +1,5 @@
+import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
+import type { ItemEquipContext } from '@aurevane/game-core/character/item-equip-requirements'
 import 'server-only'
 import { starterItemDefinitions, starterItemGrant } from '@aurevane/game-core/content/starter-items'
 import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
@@ -35,6 +37,8 @@ export function throwItemRpcError(error: { code?: string; message?: string }): n
     )
   const messages: Record<string, string> = {
     ITEM_BATTLE_ACTIVE: 'Items cannot change during a pending or active battle.',
+    ITEM_EQUIP_REQUIREMENTS: 'This character does not meet the Item equip requirements.',
+    ITEM_DUPLICATE_CONSUMABLE: 'Consumable positions require different Items.',
     ITEM_CAPACITY: 'This inventory category is full.',
     ITEM_DELETION_PENDING: 'This character is pending deletion.',
     ITEM_GRANT_CONFLICT: 'This grant request has already been used for different Items.',
@@ -118,7 +122,26 @@ export function parseCharacterItemsState(value: unknown, characterId: string): C
   } catch {
     unavailable()
   }
+  const context = value.equipContext
+  if (
+    context !== undefined &&
+    (!object(context) ||
+      !integer(context.level, 1) ||
+      !Array.isArray(context.disciplineIds) ||
+      !context.disciplineIds.every((id) => typeof id === 'string') ||
+      !object(context.baseCoreStats) ||
+      CHARACTER_ATTRIBUTE_IDS.some(
+        (id) => !integer((context.baseCoreStats as Record<string, unknown>)[id], 1),
+      ) ||
+      (context.disciplineNames !== undefined &&
+        (!object(context.disciplineNames) ||
+          Object.values(context.disciplineNames).some((name) => typeof name !== 'string'))))
+  )
+    unavailable()
   return {
+    ...(context === undefined
+      ? {}
+      : { equipContext: structuredClone(context) as unknown as ItemEquipContext }),
     snapshot: structuredClone(s) as unknown as ItemInventorySnapshot,
     definitions,
     catalogueToken: value.catalogueToken,

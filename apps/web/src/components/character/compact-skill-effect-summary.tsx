@@ -78,7 +78,7 @@ export function CompactSkillEffectSummary({
   return <CompactEffectSummary parts={parts} count={count} tagPresentation={tagPresentation} />
 }
 
-/** Shared effect tokens stay one readable inline phrase inside the flex row. */
+/** Short effects stay inline; longer phrases wrap within their available value column. */
 export function CompactEffectSummary({
   parts,
   count = 1,

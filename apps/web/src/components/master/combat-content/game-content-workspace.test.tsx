@@ -277,3 +277,45 @@ it('hides internal categories and retired Tag Library rows while retaining curre
   expect(html).toContain('>Blindside<')
   expect(html).toContain('data-content-key="tag.damage"')
 })
+
+it.each(['weapon', 'armor'] as const)(
+  'offers Imbued Technique only for runtime %s Items',
+  async (itemClass) => {
+    const { itemFixture } =
+      await import('../../../../../../packages/game-core/src/content/items-test-fixtures')
+    const ability = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability!
+    const item = itemFixture({
+      itemClass,
+      ...(itemClass === 'weapon'
+        ? {
+            equipment: { slot: 'hand', hands: 1 },
+            ability,
+            actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Cut' } },
+          }
+        : {}),
+    })
+    const record = {
+      contentKey: item.id,
+      contentKind: 'item' as const,
+      lifecycle: 'active' as const,
+      revision: 1,
+      versionFloor: 1,
+      createdBy: null,
+      createdAt: null,
+      builtinDefinition: { ...item },
+      current: null,
+      draft: null,
+      history: [],
+      links: [],
+      usedBy: [],
+    }
+    const html = renderToStaticMarkup(
+      <CombatContentAuthoringWorkspace
+        initialRecord={record}
+        categories={COMBAT_CONTENT_CATEGORIES.map((row) => row.editor)}
+      />,
+    )
+    if (itemClass === 'weapon') expect(html).toContain('>Imbued Technique</button>')
+    else expect(html).not.toContain('>Imbued Technique</button>')
+  },
+)

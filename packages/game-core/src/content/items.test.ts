@@ -58,3 +58,26 @@ it.each([{ itemClass: ['armor'] }, { tier: ['D'] }, { equipment: { slot: ['head'
     expect(() => parseRuntimeItemDefinition({ ...itemFixture(), ...patch })).toThrow()
   },
 )
+
+it('preserves optional equip requirements independently of null legacy wrapper Requirements', () => {
+  const item = itemFixture({
+    equipRequirements: {
+      minimumLevel: 3,
+      disciplineIds: ['custom.flame'],
+      minimumCoreStats: { might: 12 },
+    },
+  })
+  expect(parseRuntimeItemDefinition(item)).toEqual(item)
+  expect(parseNoncombatContentDefinition('item', item)).toEqual(item)
+  expect(() => parseRuntimeItemDefinition({ ...item, equipRequirements: null })).toThrow()
+  expect(() => parseRuntimeItemDefinition({ ...item, requirements: { minimumLevel: 1 } })).toThrow()
+  expect(() =>
+    parseRuntimeItemDefinition({
+      ...item,
+      itemClass: 'material',
+      inventoryCategory: 'materials',
+      equipment: null,
+      qualityPoints: 0,
+    }),
+  ).toThrow(/equipRequirements/)
+})

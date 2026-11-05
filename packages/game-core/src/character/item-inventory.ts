@@ -1,3 +1,4 @@
+import { evaluateItemEquipRequirements, type ItemEquipContext } from './item-equip-requirements'
 import {
   parseCurrentSupportActionId,
   DEFAULT_SUPPORT_ACTION_ID,
@@ -68,6 +69,8 @@ export interface ItemInventorySnapshot {
   }[]
 }
 export type ItemInventoryIssueCode =
+  | 'equip-requirements'
+  | 'duplicate-consumable'
   | 'overQP'
   | 'hand-conflict'
   | 'slot'
@@ -168,11 +171,13 @@ function supportValid(
 export function validateEquipmentLoadout(
   s: ItemInventorySnapshot,
   d: ItemCatalogue,
+  context?: ItemEquipContext,
 ): EquipmentValidation {
   const stacks = validateStacks(s, d)
   if (!stacks.ok) return stacks
   let qualityPoints = 0
   const seen = new Map<string, number>()
+  const consumables = new Set<string>()
   for (const [position, id] of Object.entries(s.equipment)) {
     if (!EQUIPMENT_POSITIONS.includes(position as EquipmentPosition))
       return failure('slot', 'Unknown equipment position.')
@@ -184,6 +189,13 @@ export function validateEquipmentLoadout(
       return failure('definition', 'This Item cannot currently be equipped.')
     if (item.equipment.hands === 2 && (position !== 'main-hand' || s.equipment['off-hand']))
       return failure('hand-conflict', 'Two-handed weapons require Main Hand and an empty Off Hand.')
+    const unmet = evaluateItemEquipRequirements(item.equipRequirements, context)
+    if (unmet.length) return failure('equip-requirements', unmet.join(' '))
+    if (item.itemClass === 'battle-item') {
+      if (consumables.has(item.id))
+        return failure('duplicate-consumable', 'Consumable positions require different Items.')
+      consumables.add(item.id)
+    }
     const units = (seen.get(id) ?? 0) + 1
     if (units > stack.quantity)
       return failure('quantity', 'Each equipped slot requires an owned unit.')
@@ -223,6 +235,7 @@ function finish(
   equipment: EquipmentAssignments,
   selection = s.selectedSupport,
   removalOnly = false,
+  context?: ItemEquipContext,
 ): ItemInventoryResult {
   const draft = { ...s, equipment, selectedSupport: selection }
   const removed =
@@ -250,7 +263,7 @@ function finish(
       counts.set(id, units)
     }
   }
-  const result = removalOnly ? validateStacks(next, {}) : validateEquipmentLoadout(next, d)
+  const result = removalOnly ? validateStacks(next, {}) : validateEquipmentLoadout(next, d, context)
   return result.ok
     ? {
         ok: true,
@@ -266,6 +279,7 @@ export function equipInventoryItem(
   id: string,
   p: EquipmentPosition,
   replace: readonly EquipmentPosition[] = [],
+  context?: ItemEquipContext,
 ): ItemInventoryResult {
   const stale = revision(s, r)
   if (stale) return stale
@@ -280,7 +294,7 @@ export function equipInventoryItem(
   if (equipment[p] && equipment[p] !== id)
     return failure('slot-conflict', 'Explicitly replace the occupied position.')
   equipment[p] = id
-  return finish(s, d, equipment)
+  return finish(s, d, equipment, s.selectedSupport, false, context)
 }
 export function unequipInventoryItem(
   s: ItemInventorySnapshot,
@@ -301,6 +315,7 @@ export function selectInventorySupport(
   d: ItemCatalogue,
   r: number,
   selection: ItemSupportSelection,
+  context?: ItemEquipContext,
 ): ItemInventoryResult {
   const stale = revision(s, r)
   if (stale) return stale
@@ -315,6 +330,8 @@ export function selectInventorySupport(
     d,
     s.equipment,
     selection,
+    false,
+    context,
   )
 }
 export type ItemInventorySort = 'name' | 'tier' | 'quality-points' | 'quantity' | 'newest' | 'class'

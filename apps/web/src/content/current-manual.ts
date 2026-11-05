@@ -312,7 +312,7 @@ const battleHallArticle: ManualArticle = {
   title: 'Battle Hall & Action Economy',
   summary: 'How the current practice battles, AP spending, previews, facing, and combat log work.',
   category: 'Combat',
-  lastUpdated: '2026-11-02',
+  lastUpdated: '2026-11-05',
   rulesVersion: 'Current AP and character mobility rules',
   body: [
     {
@@ -320,6 +320,16 @@ const battleHallArticle: ManualArticle = {
       title: 'Entering Battle Hall',
       paragraphs: [
         'Battle Hall supports AI Sparring and direct player battles through lobbies, including team formats and spectation. Ranked matchmaking and seasons remain future work. Battles use committed build snapshots; changing Profile does not rewrite a battle already in progress.',
+      ],
+    },
+    {
+      id: 'items-equipment',
+      title: 'Items, equipment and consumables',
+      paragraphs: [
+        'Loadout → Items groups owned stock into Gear, Consumables, Materials, General, Event and Companion. Class identifies the group, Position identifies its legal equipment slots and Type describes Weapon, Armor, Gloves or Consumable; N/A means it does not apply. Sorting saves immediately, and clicking an empty equipment slot shows applicable owned Items.',
+        'Equipment has Head, Body, Pants, Boots, Main Hand, Off Hand and two consumable positions, with a combined limit of 100 QP. Two-handed Main Hand weapons block Off Hand only. The two consumable positions require different consumable Item identities, even when separate stacks are owned. Equip requirements can include minimum level, an allowed equipped Discipline and minimum base Core Stats; equipment bonuses cannot satisfy base-stat requirements.',
+        'Each accepted consumable use spends one unit from its equipped owned stack. Its uses-per-battle limit resets in each new battle, but does not refill owned stock. The Item stays equipped while copies remain. When that stack is exhausted its slot clears; manually equip another stack from inventory afterward. Another stack is never substituted automatically. Rejected commands and previews spend no stock, and retrying a command does not spend a second unit. Equipment cannot be changed during a pending or active battle. Historical battles retain their captured Item rules.',
+        'Weapons supply the Basic Attack slot. Some weapons also have an optional Imbued Technique, available as a Support choice in Skill Manager while equipped. Its own Item popup tab shows the technique. Unequipping the weapon removes that choice and restores the previous Basic Support.',
       ],
     },
     {
@@ -336,7 +346,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Targeting and named effects',
       paragraphs: [
         'New battles calibrate hostile direct damage for approximately twelve-round level-100 direct-pressure reference duels. Hit chance adds −5 percentage points against a target facing you, +5 from the side and +10 from behind before clamping to 0–100%. Builds, terrain, healing and tactics still change fight duration.',
-        'Items is the locked coming-soon slot before Inspect, default P. It does not execute a battle action. Existing custom hotkeys are preserved.',
+        'The cockpit begins Inspect → Item → Move → Basic Attack → Support. Item opens the equipped consumable choices; selecting one previews its real parameters before a legal activation. Existing custom hotkeys are preserved.',
         'New battles pin their effect timing. Effects default to the following global round; direct damage and HP/MP recovery happen instantly. Delayed icons appear immediately as Pending, then become Active. Ordinary non-instant statuses cover their full stated global rounds. Instant timing overrides retain their owner-turn lifetime, and DoTs retain their scheduled affected-turn-end ticks. Hover or select its icon for the meaning and turns remaining. Older battles keep their original timing.',
         'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Current attack-based Burn, Bleed and Poison deal their authored percentage of the original attack’s captured HP damage at affected turn end; Poison ticks once per affected turn, and traversing its configured number of tiles, including Push or Pull, resets its remaining duration to the recorded original duration without extra damage. Reapplication keeps the greater percentage and original duration independently, resets movement progress and restarts that full duration. Partial movement carries between turns; instantaneous relocation does not count. Historical fixed versions and battles retain their recorded damage and trigger rules; Repeated Heal effects restore HP at affected turn end. Slow raises movement AP cost; Rooted prevents movement while leaving other commands available. Cleanse removes all negative debuffs. Conditional Cleanse removes only the debuffs selected for that Skill.',
         'Marked increases its source’s Accuracy against the target by the saved potency. Taunt reduces damage dealt to anyone except its source. Burn Ward reduces damage from burning opponents. Reckless increases both damage dealt and damage taken. Fortified increases Physical and Mystic Defense and reduces outgoing damage by the same saved percentage. Each tradeoff expires or is removed as one effect.',

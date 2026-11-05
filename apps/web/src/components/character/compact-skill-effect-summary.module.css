@@ -1,16 +1,7 @@
 .effectLine {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.3em;
-  max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  white-space: nowrap;
-  vertical-align: bottom;
-  scrollbar-width: thin;
-}
-.effectLine > * {
-  flex: none;
+  display: inline;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .label,

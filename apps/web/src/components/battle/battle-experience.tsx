@@ -1,6 +1,7 @@
 'use client'
 
 import { BattleItemPicker } from './battle-item-picker'
+import { useSelectedBattleItem } from './use-selected-battle-item'
 
 import { BattleSummonPortrait } from './battle-summon-portrait'
 
@@ -750,9 +751,16 @@ function BattleExperienceContent({
   const equipmentActions = (battle.snapshot.equipmentActions ?? []).filter(
     (item) => item.ownerCombatantId === localCombatantId,
   )
-  const handItems = equipmentActions.filter((item) => item.role === 'use')
+  const handItems = equipmentActions.filter(
+    (item) => item.role === 'use' && item.stockQuantity !== 0,
+  )
+  const [selectedItem, rememberSelectedItem] = useSelectedBattleItem(
+    battle.battleSessionId,
+    localCombatantId,
+    handItems,
+  )
   const itemOptions = equipmentActions
-    .filter((item) => item.role !== 'attack')
+    .filter((item) => item.role !== 'attack' && item.stockQuantity !== 0)
     .map((item) => ({
       id: item.actionId,
       label: item.name,
@@ -765,9 +773,9 @@ function BattleExperienceContent({
     ? handItems.every((item) => item.unavailableReason !== null)
       ? handItems.map((item) => item.unavailableReason).join(' ')
       : null
-    : equipmentActions.some((item) => item.role === 'attack' && item.item.equipment?.hands === 2)
-      ? 'Your two-handed weapon occupies both hands.'
-      : 'Equip a Battle Item in a free hand before battle.'
+    : equipmentActions.some((item) => item.role === 'use' && item.stockQuantity === 0)
+      ? 'Consumable stock is exhausted. Equip another stack after battle.'
+      : 'Equip a Consumable before battle.'
   const basicMove = findBattleBasicAction(battle.snapshot, localCombatantId, 'basic.move')
   const basicAttack = findBattleBasicAction(battle.snapshot, localCombatantId, BASIC_ATTACK_ID)
   const attackLabel = basicAttack?.name ?? 'Basic Attack'
@@ -3590,7 +3598,8 @@ function BattleExperienceContent({
                 <BattleItemPicker
                   items={handItems}
                   disabled={planningDisabled}
-                  onSelect={(item) =>
+                  onSelect={(item) => {
+                    rememberSelectedItem(item.actionId)
                     selectAction(
                       item.actionId,
                       item.behaviors[0]?.classification === 'attack'
@@ -3599,7 +3608,7 @@ function BattleExperienceContent({
                           ? 'heal'
                           : 'defense',
                     )
-                  }
+                  }}
                 />
               ) : inspectedAbility ? (
                 <p data-battle-instruction-description="true">{inspectedAbility.caption}</p>
@@ -3705,7 +3714,9 @@ function BattleExperienceContent({
                     hotkey={formatCombatKeybind(bindings.items)}
                     label="Item"
                     cost={itemUnavailableReason ? 'Unavailable' : 'Choose Item'}
-                    artworkSrc={handItems[0]?.artworkSrc ?? BATTLE_MISSING_ARTWORK}
+                    artworkSrc={selectedItem?.artworkSrc ?? BATTLE_MISSING_ARTWORK}
+                    basicAction={selectedItem}
+                    itemAction={selectedItem}
                     active={
                       itemsOpen ||
                       handItems.some((item) => item.actionId === currentActionId && mode !== 'none')
