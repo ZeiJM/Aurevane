@@ -1,8 +1,10 @@
 import Image from 'next/image'
+import { itemEquipRequirementSummaries } from '@aurevane/game-core/character/item-equip-requirements'
 import type { ItemPresentation } from '@/lib/items/item-presentation'
-import { AbilityParameters } from './ability-parameters'
-import { AbilityEffectExplanations } from './ability-effect-explanations'
+import { itemClassLabel, itemCategoryLabel } from '@/lib/items/item-class-label'
+import { ItemReportTabs } from './item-report-tabs'
 import styles from './item-details.module.css'
+import { itemPositions, positionNames } from './item-equipment-preview'
 /** Shared public Item reader. No definition, inventory receipt or private source instance required. */
 export function ItemDetails({
   item,
@@ -11,6 +13,14 @@ export function ItemDetails({
   item: ItemPresentation
   showName?: boolean
 }) {
+  const battleUses =
+    item.battleUses === null
+      ? null
+      : Math.min(
+          item.battleUses,
+          item.reports.find((report) => report.behaviorId === item.actions.use?.behaviorId)
+            ?.maximumUsesPerBattle ?? item.battleUses,
+        )
   return (
     <article className={styles.details} aria-label={`${item.name} details`}>
       <div className={styles.summary}>
@@ -37,49 +47,68 @@ export function ItemDetails({
             </div>
             <div>
               <dt>Class</dt>
-              <dd>{item.itemClass.replaceAll('-', ' ')}</dd>
+              <dd>{itemCategoryLabel(item.inventoryCategory)}</dd>
             </div>
             <div>
-              <dt>Equipment</dt>
+              <dt>Position</dt>
               <dd>
-                {item.equipment
-                  ? item.itemClass === 'battle-item'
-                    ? 'Consumable'
-                    : item.equipment.slot === 'hand'
-                      ? `hand · ${item.equipment.hands} ${item.equipment.hands === 1 ? 'hand' : 'hands'}`
-                      : item.equipment.slot
-                  : 'None'}
+                {itemPositions(item)
+                  .map((position) => positionNames[position])
+                  .join(' / ') || 'N/A'}
               </dd>
             </div>
             <div>
               <dt>Maximum stack</dt>
               <dd>{item.maximumStack}</dd>
             </div>
+            {battleUses !== null ? (
+              <div>
+                <dt>Uses per battle</dt>
+                <dd>{battleUses}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt>Type</dt>
+              <dd>
+                {['armor', 'hand-armor', 'weapon', 'battle-item'].includes(item.itemClass)
+                  ? itemClassLabel(item.itemClass)
+                  : 'N/A'}
+              </dd>
+            </div>
+            {item.equipment && item.equipRequirements ? (
+              <div className={styles.requirements}>
+                <dt>Equip requirements</dt>
+                <dd>
+                  {(
+                    item.equipRequirementSummaries ??
+                    itemEquipRequirementSummaries(item.equipRequirements)
+                  ).join(' · ') || 'None'}
+                </dd>
+              </div>
+            ) : null}
           </dl>
         </div>
       </div>
-      {item.battleUses !== null ? (
-        <p>
-          {item.battleUses} uses per battle. Uses refill each battle; owned quantities are
-          unchanged.
-        </p>
-      ) : null}
       {!item.enabled ? (
         <p>This Item is currently unavailable for new equipment or battles.</p>
       ) : null}
-      <div className={styles.reports}>
-        {item.reports.map((report) => (
-          <section key={report.behaviorId}>
-            <h4>{report.name}</h4>
-            <AbilityParameters
-              report={report}
-              characteristicsClassName={styles.characteristics}
-              showEffectExplanations={false}
-            />
-          </section>
-        ))}
-      </div>
-      <AbilityEffectExplanations reports={item.reports} className={styles.explanations} />
+      <ItemReportTabs
+        itemId={item.id}
+        supportBehaviorId={
+          item.itemClass === 'weapon' ? item.actions.support?.behaviorId : undefined
+        }
+        reports={item.reports.map((report) =>
+          battleUses === null
+            ? report
+            : {
+                ...report,
+                limits: report.limits.filter(
+                  (limit) =>
+                    limit !== `${report.maximumUsesPerBattle ?? battleUses} uses per battle`,
+                ),
+              },
+        )}
+      />
     </article>
   )
 }

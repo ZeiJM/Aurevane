@@ -1,3 +1,4 @@
+import { combatSealBlocksNativeAction } from './combat-seal'
 import { effectiveCombatStatProfile, combatStatBonus } from './combat-stat-bonuses'
 import { validateSummonPotencyState } from './combat-summon-potency'
 import {
@@ -106,6 +107,10 @@ import {
   type CombatNativeMutationFacts,
 } from './combat-native-mutations'
 import { validateCombatAbilityState, pruneCombatAbilityActionHistory } from './combat-ability-state'
+import {
+  validateCombatItemConsumptionState,
+  type CombatItemConsumptionState,
+} from './combat-item-consumption'
 import {
   committedCombatAttemptRecorded,
   type CommittedCombatExecution,
@@ -541,6 +546,8 @@ export interface CombatActionDefinition {
   groundTargetedRecipientIds?: readonly string[]
   /** Private trusted composed Basic adapter; never authored or projected. */
   nativeBasicAttackCommand?: true
+  /** Trusted canonical adapter; activation is checked against each exact captured participant. */
+  canonicalAbilityAction?: true
   /** Private equipment adapter, preserving authored targeting and accuracy. */
   equipmentBasicAttackCommand?: true
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
@@ -723,6 +730,7 @@ export interface PendingCombatEffect {
 }
 
 export interface CombatEncounterState {
+  itemConsumptionState?: CombatItemConsumptionState
   /** Private per-cast Endure damage ledger; never projected to clients. */
   endureState?: CombatEndureState
   reversalState?: CombatReversalState
@@ -861,6 +869,7 @@ export type CombatActionIssueCode =
   | 'effect-target-missing'
   | 'self-damage-deferred'
   | 'endure-active'
+  | 'skill-sealed'
 
 export interface CombatActionIssue {
   code: CombatActionIssueCode
@@ -1449,6 +1458,11 @@ export function evaluateCombatAction(
     })
   }
 
+  if (combatSealBlocksNativeAction(state, actorId, action))
+    issues.push({
+      code: 'skill-sealed',
+      message: 'Seal prevents activating this discipline skill category.',
+    })
   const actor = getCombatant(battle, actorId)
   if (!executionActorId && combatEndureBlocksAction(state, actorId, action, content))
     issues.push({
@@ -3172,6 +3186,7 @@ export function validateCombatEncounterState(
 ): readonly CombatEncounterIssue[] {
   const issues: CombatEncounterIssue[] = [
     ...validateCombatAbilityState(state),
+    ...validateCombatItemConsumptionState(state),
     ...validateCombatEndureState(state),
     ...validateCombatReversalState(state),
     ...validateTerrainOverlays(state),
@@ -7278,6 +7293,7 @@ function resolveDamageAmount(
     elementalMultiplier,
     {
       packetElement: effect.element,
+      packetPiercing: effect.shattersBarrier === true || effect.piercing === true,
       ignoreIncomingMitigation: effect.piercing === true,
       outgoingState,
       commandDamageBonuses,
@@ -8930,6 +8946,7 @@ function resolveGroundAtPosition(
       cost: { spendsAction: false, mp: 0 },
       requirements: [],
       effects: area.entryEffects,
+      ...(area.commandDamageBonuses ? { commandDamageBonuses: area.commandDamageBonuses } : {}),
       ...(area.entryEffectTimingModes
         ? { effectTimingModes: area.entryEffectTimingModes.map((mode) => mode ?? undefined) }
         : {}),

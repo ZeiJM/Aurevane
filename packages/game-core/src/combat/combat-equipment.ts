@@ -9,11 +9,13 @@ import { parseCurrentSupportActionId } from './support-actions'
 import type { AbilityDefinition } from './combat-definition'
 
 export interface BattleEquipmentUnit {
+  readonly ownedQuantity?: number
   readonly position: EquipmentPosition
   readonly ownedStackId: string
   readonly item: RuntimeItemDefinition
 }
 export interface BattleEquipmentCapture {
+  readonly consumptionPolicyVersion?: 1
   readonly schemaVersion: 1 | 2
   readonly inventoryRevision: number
   readonly selectedSupport: ItemSupportSelection
@@ -96,8 +98,17 @@ export function parseBattleEquipmentCapture(value: unknown): BattleEquipmentCapt
     !Array.isArray(capture.equipment) ||
     capture.equipment.length > (capture.schemaVersion === 1 ? 6 : 8) ||
     Object.keys(capture).some(
-      (x) => !['schemaVersion', 'inventoryRevision', 'selectedSupport', 'equipment'].includes(x),
-    )
+      (x) =>
+        ![
+          'schemaVersion',
+          'inventoryRevision',
+          'selectedSupport',
+          'equipment',
+          'consumptionPolicyVersion',
+        ].includes(x),
+    ) ||
+    (capture.consumptionPolicyVersion !== undefined &&
+      (capture.consumptionPolicyVersion !== 1 || capture.schemaVersion !== 2))
   )
     throw new TypeError('Invalid equipment capture.')
   const seen = new Set<string>()
@@ -110,10 +121,21 @@ export function parseBattleEquipmentCapture(value: unknown): BattleEquipmentCapt
       seen.has(unit.position) ||
       typeof unit.ownedStackId !== 'string' ||
       !unit.ownedStackId.trim() ||
-      Object.keys(unit).some((x) => !['position', 'ownedStackId', 'item'].includes(x))
+      Object.keys(unit).some(
+        (x) => !['position', 'ownedStackId', 'item', 'ownedQuantity'].includes(x),
+      )
     )
       throw new TypeError('Invalid equipped unit.')
     const item = parseRuntimeItemDefinition(unit.item)
+    if (
+      capture.consumptionPolicyVersion === 1 && item.itemClass === 'battle-item'
+        ? !Number.isSafeInteger(unit.ownedQuantity) ||
+          unit.ownedQuantity! < 1 ||
+          unit.ownedQuantity! > 99 ||
+          capture.equipment.some((other) => other !== unit && other.item.id === item.id)
+        : unit.ownedQuantity !== undefined
+    )
+      throw new TypeError('Invalid captured consumable stock.')
     if (
       !item.enabled ||
       !item.equipment ||

@@ -1,3 +1,7 @@
+import {
+  parseItemEquipRequirements,
+  type ItemEquipRequirements,
+} from '../character/item-equip-requirements'
 import { parseAbilityDefinition, type AbilityDefinition } from '../combat/combat-definition'
 import { isFinalizedContentMedia, type FinalizedContentImage } from '../combat/content-media'
 import type { AuthoredItem } from './authored-content'
@@ -36,6 +40,7 @@ export interface RuntimeItemDefinition {
   } | null
   readonly maximumStack: number
   readonly requirements: null
+  readonly equipRequirements?: ItemEquipRequirements
   readonly ability: AbilityDefinition | null
   readonly actions?: {
     readonly attack?: ItemActionBinding
@@ -94,6 +99,7 @@ export function parseRuntimeItemDefinition(value: unknown): RuntimeItemDefinitio
     'equipment',
     'maximumStack',
     'requirements',
+    'equipRequirements',
     'ability',
     'actions',
     'battleUses',
@@ -154,6 +160,10 @@ export function parseRuntimeItemDefinition(value: unknown): RuntimeItemDefinitio
     } else if (equipment.slot !== 'hand' || (equipment.hands === 2 && row.itemClass !== 'weapon'))
       fail('equipment', 'Only weapons may occupy two hands.')
   } else if (row.equipment !== null) fail('equipment', 'Non-equippable items require null.')
+  if (row.equipRequirements !== undefined) {
+    if (!equippable) fail('equipRequirements', 'Only equippable Items have equip requirements.')
+    parseItemEquipRequirements(row.equipRequirements)
+  }
   if (row.requirements !== null)
     fail('requirements', 'Item wrapper Requirements must be null; use ability Requirements.')
   if (row.consumeOnUse !== false) fail('consumeOnUse', 'Persistent consumption is not implemented.')
@@ -195,8 +205,8 @@ export function parseRuntimeItemDefinition(value: unknown): RuntimeItemDefinitio
     fail('actions.attack', 'A weapon requires an attack.')
   if (row.itemClass === 'battle-item') {
     if (!actions.use || Object.keys(actions).length !== 1 || ability?.behaviors.length !== 1)
-      fail('actions.use', 'Battle items require exactly one Manual use behavior and no siblings.')
+      fail('actions.use', 'Consumables require exactly one Manual use behavior and no siblings.')
     integer(row.battleUses, 1, 99, 'battleUses')
-  } else if (row.battleUses !== null) fail('battleUses', 'Only battle items have per-battle uses.')
+  } else if (row.battleUses !== null) fail('battleUses', 'Only Consumables have per-battle uses.')
   return structuredClone({ ...row, ability }) as unknown as RuntimeItemDefinition
 }

@@ -174,3 +174,16 @@ it('describes current universal Support choices and retires Guard as a Skill', (
   expect(JSON.stringify(currentManualArticles)).not.toContain('Basic Attack and Guard cost')
   expect(JSON.stringify(currentManualArticles)).not.toContain('Guard has its own')
 })
+
+it('explains current Item readiness, real consumable stock and manual replacement', () => {
+  const text = articleText('battle-hall')
+  expect(text).not.toContain('Items is the locked coming-soon slot')
+  expect(text).toContain('Inspect → Item → Move → Basic Attack → Support')
+  expect(text).toContain('different consumable Item identities')
+  expect(text).toContain('Each accepted consumable use spends one unit')
+  expect(text).toContain('does not refill owned stock')
+  expect(text).toContain('manually equip another stack')
+  expect(text).toContain(
+    'minimum level, an allowed equipped Discipline and minimum base Core Stats',
+  )
+})

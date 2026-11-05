@@ -116,6 +116,7 @@ const revisedItemIds = new Set([
   'smoke-veil',
   'ward-sigil-scroll',
 ])
+const reviewedSuccessorIds = new Set(['emberbrand', 'vulnerability-oil', 'ward-sigil-scroll'])
 function item(
   key: string,
   name: string,
@@ -131,7 +132,7 @@ function item(
   return {
     schemaVersion: 2,
     id: key,
-    contentVersion: revisedItemIds.has(key) ? 2 : 1,
+    contentVersion: reviewedSuccessorIds.has(key) ? 4 : revisedItemIds.has(key) ? 2 : 1,
     name,
     description,
     sortOrder: 0,
@@ -480,7 +481,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       [damage(6, 1300, 'physical', 'fire'), fireCleanse],
       {
         supportName: 'Kindle',
-        support: action('kindle', 20, [status('inspired', 1000)], {
+        support: action('kindle', 20, [{ ...status('inspired', 1000), damageTypes: ['fire'] }], {
           cooldown: { key: 'kindle', ownerTurns: 2 },
         }),
         passives: [
@@ -609,7 +610,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
     supply(
       'vulnerability-oil',
       'Vulnerability Oil',
-      'A thrown coating exposes the next opening.',
+      'A thrown coating increases all qualifying damage taken by 15% for 2 turns.',
       'B',
       16,
       15,
@@ -641,7 +642,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
     supply(
       'ward-sigil-scroll',
       'Ward Sigil Scroll',
-      'A single-use battle ward unfolds from an old sigil.',
+      'An old sigil grants a battle ward once per battle. Its battle-use limit refreshes in a new battle; each use consumes one scroll.',
       'A',
       22,
       30,

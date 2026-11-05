@@ -66,5 +66,6 @@ it('reports an explicit finite limit and packet element without adding Skill usa
       onChange: () => {},
     }),
   )
-  expect(html).toContain('Direct damage element')
+  expect(html).toContain('Damage types')
+  expect(html).toMatch(/aria-label="Damage Up Fire"[^>]*checked/)
 })

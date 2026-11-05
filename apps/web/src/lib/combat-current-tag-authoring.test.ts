@@ -343,6 +343,15 @@ it('normalizes an edited historical All Debuffs without DoTs and preserves a nar
     durationPolicyVersion: 1,
     statusIds: selectableCombatStatusIds('copy-debuffs'),
   })
+  const beforeSeal = { ...historical, statusIds: [...historical.statusIds, 'blind'] }
+  expect(currentTagForAuthoring(beforeSeal)).toMatchObject({
+    statusIds: selectableCombatStatusIds('copy-debuffs'),
+  })
+  const narrowed = { ...beforeSeal, statusIds: beforeSeal.statusIds.filter((id) => id !== 'root') }
+  expect(currentTagForAuthoring(narrowed)).toMatchObject({
+    statusIds: narrowed.statusIds.filter((id) => !['burn', 'poison', 'bleed'].includes(id)),
+  })
+  expect(beforeSeal.statusIds).not.toContain('seal')
   expect(historical.statusIds).toContain('poison')
   expect(currentTagForAuthoring(current)).toEqual(current)
 })

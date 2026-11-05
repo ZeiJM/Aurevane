@@ -1,3 +1,5 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
+import { sealCategorySummary } from '@aurevane/game-core/combat/combat-seal'
 import { effectExplanationIdentity } from './effect-explanation-identity'
 import { withPairedCombatStatusDefaults } from '@aurevane/game-core/combat/combat-status-tuning'
 import { currentGroundNote, currentGroundPresentation } from '@/lib/combat-ground-presentation'
@@ -200,6 +202,8 @@ function statusPreview(
   const result: PreviewEffect = { label: details.name, explanation: details.description }
   // These gameplay-tag rules live in the damage/healing resolvers. Their shared
   // status descriptions are the public authority; avoid a second numeric constant.
+  if (id === 'seal' && tuning.sealedCategories)
+    result.magnitude = sealCategorySummary(tuning.sealedCategories)
   if (id === 'suppress') {
     result.magnitude = `${(potencyBasisPoints ?? 2500) / 100}%`
   } else if (['inspired', 'hexed', 'wet', 'conductive'].includes(id)) {
@@ -210,7 +214,7 @@ function statusPreview(
     if (percent)
       result.magnitude =
         id === 'inspired'
-          ? `+${percent} outgoing`
+          ? `+${percent} ${tuning.damageTypes ? damageUpTypeSummary(tuning.damageTypes) : 'outgoing'}`
           : id === 'hexed'
             ? `−${percent} ${legacyHealingDown ? 'healing' : 'HP/MP recovery'}`
             : `+${percent} Storm`

@@ -1,3 +1,4 @@
+import { validateDamageUpTypes, damageUpTypeSummary, type DamageUpType } from './combat-damage-up'
 import type { CombatElement } from './gameplay-tags'
 import {
   COMBAT_BONUS_STATS,
@@ -85,6 +86,7 @@ export type CombatTagPayload =
     }
   | {
       readonly type: 'damage-bonus'
+      readonly damageTypes?: readonly DamageUpType[]
       readonly elementFilter?: CombatElement
       readonly recipient: 'actor'
       readonly multiplierBasisPoints: number
@@ -129,6 +131,8 @@ const nativeFields = [
   'power',
   'potencyBasisPoints',
   'authoringLink',
+  'sealedCategories',
+  'damageTypes',
   'initiativeReductionBasisPoints',
   'defenseIncreaseBasisPoints',
   'movementApAdjustment',
@@ -142,6 +146,8 @@ const packetModifierCombinations = Object.freeze([
   { activation: 'automatic', mode: 'modifier' },
 ] as const)
 const nativeUnits = {
+  sealedCategories: 'identity',
+  damageTypes: 'identity',
   durationTurns: 'turns',
   power: 'power',
   potencyBasisPoints: 'basis-points',
@@ -439,7 +445,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     { multiplierBasisPoints: 'basis-points' },
     'A manual or automatic modifier increases the selected Attack’s direct damage. An ongoing modifier increases direct outgoing damage while its requirements hold. An element filter applies to each matching packet only.',
     {
-      payloadFields: ['type', 'recipient', 'multiplierBasisPoints', 'elementFilter'],
+      payloadFields: ['type', 'recipient', 'multiplierBasisPoints', 'elementFilter', 'damageTypes'],
       recipients: ['actor'],
       handler: 'damage-modifiers',
       stacking: 'source-owned',
@@ -603,6 +609,9 @@ export function validateCombatTagPayload(
       return issues
     }
     if (value.type === 'damage-bonus') {
+      validateDamageUpTypes(value.damageTypes)
+      if (value.damageTypes !== undefined && value.elementFilter !== undefined)
+        throw new TypeError('Conflicting Damage Up scope fields.')
       if (
         value.elementFilter !== undefined &&
         !['fire', 'water', 'ice', 'storm'].includes(value.elementFilter as string)
@@ -959,7 +968,7 @@ export function combatTagPayloadExplanation(payload: CombatTagPayload): {
       : payload.type === 'move'
         ? `Move · Maximum Tiles [${payload.maximumTiles}]`
         : payload.type === 'damage-bonus'
-          ? `Damage Up [${(payload.multiplierBasisPoints - 10000) / 100}%]`
+          ? `Damage Up [${(payload.multiplierBasisPoints - 10000) / 100}%${payload.damageTypes ? ` ${damageUpTypeSummary(payload.damageTypes)}` : ''}]`
           : payload.type === 'pierce'
             ? `Pierce [${payload.amount}] · Armor Ignored [${payload.armorIgnoredBasisPoints / 100}%]`
             : payload.type === 'summon'

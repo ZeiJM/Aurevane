@@ -81,6 +81,8 @@ const descriptions: Readonly<Record<string, string>> = {
     'Movement costs less AP per entered tile and can reach 0 AP. Movement allowance is unchanged.',
   'status:slow':
     'Increases movement AP cost per tile by the chosen amount. Movement allowance is unchanged.',
+  'status:seal':
+    'Blocks the selected categories of discipline skills while active. Essence, Resonance, Support, Severance and Ascension remain usable. Existing effects continue.',
   'status:blind':
     'Reduces the affected character’s Accuracy by the authored number of percentage points, to a minimum of 0%. Automatic Hit remains automatic.',
   'status:root': 'Prevents movement. Attacks, Skills and facing remain available.',

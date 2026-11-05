@@ -6,6 +6,7 @@ const root = fileURLToPath(new URL('../../../../supabase/migrations/', import.me
 
 export async function createCombatContentTestDatabase(
   beforeMigration?: (db: PGlite, name: string) => Promise<void>,
+  throughMigration?: string,
 ): Promise<PGlite> {
   const db = await PGlite.create()
   // Only Supabase's platform identity and unavailable scheduler are fixtures.
@@ -21,7 +22,8 @@ export async function createCombatContentTestDatabase(
     create function cron.schedule(text,text,text) returns bigint language sql as $$ insert into cron.job(jobname) values($1) returning jobid $$;
     create function cron.unschedule(bigint) returns boolean language sql as $$ delete from cron.job where jobid=$1 returning true $$;`)
   for (const name of readdirSync(root)
-    .filter((name) => name.endsWith('.sql'))
+    // A migration-isolation test must stop at its target; integration callers apply all.
+    .filter((name) => name.endsWith('.sql') && (!throughMigration || name <= throughMigration))
     .sort()) {
     await beforeMigration?.(db, name)
     // PGlite has no LZ4 codec; this storage-only setting does not alter authority.

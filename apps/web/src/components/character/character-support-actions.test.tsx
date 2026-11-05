@@ -3,6 +3,7 @@ import { beforeEach, afterEach, expect, it, vi } from 'vitest'
 import { CharacterSkillBuildPanel } from './character-skill-build-panel'
 import type { SupportActionId } from '@aurevane/game-core/combat/support-actions'
 
+vi.mock('server-only', () => ({}))
 const hooks = vi.hoisted(() => ({ index: 0, cells: [] as unknown[] }))
 vi.mock('react', async (original) => ({
   ...(await original<typeof import('react')>()),
@@ -217,4 +218,131 @@ it('keeps one equipment Support selected and lets the retained Basic choice repl
     supportActionId: 'basic.recover',
   })
   expect(radios().map((n) => n.props['aria-label'])).toContain('Warding Prayer · Off Hand')
+})
+
+it('offers an equipped weapon technique beside all Basic choices and restores the previous Basic Support after authoritative unequip', async () => {
+  const { defaultBasicSkills } = await import('@aurevane/game-core/combat/combat-basic-actions')
+  const { itemFixture } =
+    await import('../../../../../packages/game-core/src/content/items-test-fixtures')
+  const { equipInventoryItem, unequipInventoryItem, selectInventorySupport, grantInventoryItems } =
+    await import('@aurevane/game-core/character/item-inventory')
+  const { characterItemsView } = await import('@/server/character/character-items-service')
+  const attack = structuredClone(
+    defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability!.behaviors[0]!,
+  )
+  const technique = {
+    ...structuredClone(
+      defaultBasicSkills().find((skill) => skill.id === 'basic.recover')!.ability!.behaviors[0]!,
+    ),
+    id: 'prayer',
+  }
+  const weapon = itemFixture({
+    id: 'test.sword',
+    itemClass: 'weapon',
+    equipment: { slot: 'hand', hands: 1 },
+    ability: { schemaVersion: 1, behaviors: [attack, technique] },
+    actions: {
+      attack: { behaviorId: attack.id, name: 'Cut' },
+      support: { behaviorId: technique.id, name: 'Sunward Prayer' },
+    },
+  })
+  const definitions = { [weapon.id]: weapon }
+  const empty = {
+    characterId: 'character',
+    revision: 0,
+    stacks: [],
+    equipment: {},
+    selectedSupport: { kind: 'basic' as const, actionId: 'basic.pilfer' as const },
+    previousBasicSupport: 'basic.pilfer' as const,
+    grants: [],
+  }
+  const granted = grantInventoryItems(
+    empty,
+    definitions,
+    0,
+    'test',
+    [{ itemId: weapon.id, quantity: 1 }],
+    '2026-11-05T00:00:00Z',
+  )
+  expect(granted.ok).toBe(true)
+  if (!granted.ok) return
+  const equipped = equipInventoryItem(
+    granted.snapshot,
+    definitions,
+    granted.snapshot.revision,
+    granted.snapshot.stacks[0]!.id,
+    'main-hand',
+  )
+  expect(equipped.ok).toBe(true)
+  if (!equipped.ok) return
+  const selected = selectInventorySupport(
+    equipped.snapshot,
+    definitions,
+    equipped.snapshot.revision,
+    { kind: 'equipment', position: 'main-hand', itemId: weapon.id, behaviorId: technique.id },
+  )
+  expect(selected.ok).toBe(true)
+  if (!selected.ok) return
+  const choices = (snapshot: typeof selected.snapshot) => {
+    hooks.cells = []
+    hooks.index = 0
+    const view = characterItemsView({
+      snapshot,
+      definitions,
+      catalogueToken: 'a'.repeat(32),
+      battleLocked: false,
+    })
+    const tree = CharacterSkillBuildPanel({
+      characterId: 'character',
+      initialBuildVersion: 7,
+      initialSupportActionId: 'basic.pilfer',
+      initialItemsView: view,
+      primaryDiscipline: { id: 'vanguard', name: 'Vanguard' },
+      secondaryDiscipline: null,
+      initialCapacity: 4,
+      initialLearnedSkills: [],
+      initialEquippedSkills: [],
+      initialResonance: null,
+      initialEssence: null,
+    })
+    return nodes(tree).filter((row) => row.type === 'input' && row.props.type === 'radio')
+  }
+  expect(choices(selected.snapshot).map((row) => row.props['aria-label'])).toEqual([
+    'HP Recovery',
+    'MP Recovery',
+    'Pilfer',
+    'Fleetstep',
+    'Invocation',
+    'Sunward Prayer · Main Hand',
+  ])
+  expect(
+    choices(selected.snapshot)
+      .filter((row) => row.props.checked)
+      .map((row) => row.props['aria-label']),
+  ).toEqual(['Sunward Prayer · Main Hand'])
+  const removed = unequipInventoryItem(
+    selected.snapshot,
+    definitions,
+    selected.snapshot.revision,
+    'main-hand',
+  )
+  expect(removed.ok).toBe(true)
+  if (!removed.ok) return
+  expect(removed.snapshot.selectedSupport).toEqual({ kind: 'basic', actionId: 'basic.pilfer' })
+  expect(choices(removed.snapshot).map((row) => row.props['aria-label'])).not.toContain(
+    'Sunward Prayer · Main Hand',
+  )
+  expect(
+    choices(removed.snapshot)
+      .filter((row) => row.props.checked)
+      .map((row) => row.props['aria-label']),
+  ).toEqual(['Pilfer'])
+  expect(
+    selectInventorySupport(removed.snapshot, definitions, removed.snapshot.revision, {
+      kind: 'equipment',
+      position: 'main-hand',
+      itemId: weapon.id,
+      behaviorId: technique.id,
+    }).ok,
+  ).toBe(false)
 })

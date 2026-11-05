@@ -330,7 +330,7 @@ beforeAll(async () => {
     beforeFunctions = (await functions(database)).rows
     beforeImmutable = await immutable(database)
     beforeHistory = await history(database)
-  })
+  }, migration)
 }, 60000)
 afterAll(async () => db?.close())
 

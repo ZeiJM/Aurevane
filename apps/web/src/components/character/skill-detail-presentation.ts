@@ -1,3 +1,4 @@
+import { damageUpTypeSummary } from '@aurevane/game-core/combat/combat-damage-up'
 import { currentGroundPresentation } from '@/lib/combat-ground-presentation'
 import { attackTagDescription } from '@aurevane/game-core/combat/combat-attack-tags'
 import { isReversalPresentationEffect, reversalDescription } from '../../lib/reversal-presentation'
@@ -417,6 +418,12 @@ function compactMagnitude(
   if (effect.type === 'summon' || !magnitude) return null
   if (effect.type === 'apply-status' && /pp Accuracy$/u.test(magnitude))
     return `${magnitude.match(/\d+(?:\.\d+)?/u)![0]}%`
+  if (
+    effect.type === 'apply-status' &&
+    effect.statusId === 'inspired' &&
+    effect.damageTypes !== undefined
+  )
+    return `${(effect.potencyBasisPoints ?? 1000) / 100}% ${damageUpTypeSummary(effect.damageTypes)}`
   if (effect.type === 'apply-status' && magnitude.includes('%')) {
     const values = [...new Set(magnitude.match(/\d+(?:\.\d+)?%/gu) ?? [])]
     if (values.length) return values.join(' / ')

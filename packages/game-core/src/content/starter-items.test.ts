@@ -79,7 +79,7 @@ it('balances all eleven consumables between 10 and 30 AP in steps of five', () =
   })
 })
 
-it('publishes only changed Item sources as version two without changing the grant receipt', () => {
+it('retains unchanged version-two source successors and the original grant receipt', () => {
   expect(
     starterItemDefinitions()
       .filter((item) => item.contentVersion === 2)
@@ -89,17 +89,14 @@ it('publishes only changed Item sources as version two without changing the gran
     [
       'twinfang-blade',
       'stormcaller-staff',
-      'emberbrand',
       'mender-salve',
       'clarity-draught',
       'whetstone-charm',
       'ironbark-tonic',
       'swiftleaf-tea',
       'emberflask',
-      'vulnerability-oil',
       'frostbind-powder',
       'smoke-veil',
-      'ward-sigil-scroll',
     ].sort(),
   )
   expect(starterItemGrant.key).toBe('starter-items.2026-11-03.v1')
@@ -139,4 +136,98 @@ it('binds distinct selectable weapon Supports while preserving Tower Guard', () 
     emberbrand: 'Kindle',
     'tower-shield': 'Tower Guard',
   })
+})
+
+it('publishes reviewed successors above existing publication versions without changing other source definitions', () => {
+  const items = starterItemDefinitions()
+  expect(
+    items
+      .filter((item) => item.contentVersion === 4)
+      .map((item) => item.id)
+      .sort(),
+  ).toEqual(['emberbrand', 'vulnerability-oil', 'ward-sigil-scroll'])
+  const kindle = items
+    .find((item) => item.id === 'emberbrand')!
+    .ability!.behaviors.find((group) => group.id === 'kindle')!
+  expect(kindle.effects[0]!.payload).toMatchObject({
+    type: 'apply-status',
+    statusId: 'inspired',
+    damageTypes: ['fire'],
+    potencyBasisPoints: 1000,
+    durationTurns: 2,
+  })
+  expect(items.find((item) => item.id === 'vulnerability-oil')!.description).toContain('2 turns')
+  expect(items.find((item) => item.id === 'ward-sigil-scroll')!.description).toContain(
+    'once per battle',
+  )
+})
+
+it('matches the complete reviewed release candidates and preserves all 44 unaffected source bodies', () => {
+  const audit = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../../../docs/verification/2026-11-05-item-description-successors.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  ) as {
+    auditedCatalogue: { itemId: string; effectiveDefinition: Record<string, unknown> }[]
+    candidates: {
+      itemId: string
+      reviewedSourceDefinition: Record<string, unknown>
+      projectedNormalCommitDefinition: Record<string, unknown>
+    }[]
+  }
+  const items = starterItemDefinitions()
+  expect(audit.auditedCatalogue).toHaveLength(47)
+  expect(audit.candidates).toHaveLength(3)
+  for (const baseline of audit.auditedCatalogue) {
+    const item = items.find((row) => row.id === baseline.itemId)!
+    const candidate = audit.candidates.find((row) => row.itemId === item.id)
+    if (candidate) {
+      expect(parseRuntimeItemDefinition(candidate.reviewedSourceDefinition)).toEqual(item)
+      expect(parseRuntimeItemDefinition(candidate.projectedNormalCommitDefinition)).toEqual({
+        ...item,
+        contentVersion: 5,
+      })
+      const before = baseline.effectiveDefinition
+      if (item.id === 'emberbrand') {
+        const onlyScopeChanged = structuredClone(item)
+        const kindle = onlyScopeChanged.ability!.behaviors.find((row) => row.id === 'kindle')!
+        const payload = kindle.effects[0]!.payload
+        if (payload.type !== 'apply-status') throw new Error('Kindle must apply Damage Up')
+        const { damageTypes, ...historicalPayload } = payload
+        expect(damageTypes).toEqual(['fire'])
+        expect({
+          ...onlyScopeChanged,
+          contentVersion: before.contentVersion,
+          ability: {
+            ...onlyScopeChanged.ability,
+            behaviors: onlyScopeChanged.ability!.behaviors.map((group) =>
+              group.id === 'kindle'
+                ? {
+                    ...group,
+                    effects: group.effects.map((effect) => ({
+                      ...effect,
+                      payload: historicalPayload,
+                    })),
+                  }
+                : group,
+            ),
+          },
+        }).toEqual(before)
+      } else {
+        expect({
+          ...item,
+          contentVersion: before.contentVersion,
+          description: before.description,
+        }).toEqual(before)
+      }
+    } else {
+      expect({ ...item, contentVersion: baseline.effectiveDefinition.contentVersion }).toEqual(
+        baseline.effectiveDefinition,
+      )
+    }
+  }
 })

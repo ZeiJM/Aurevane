@@ -36,6 +36,7 @@ export type CombatModifierSuppressionReason =
   | 'participant-budget'
   | 'requirement-not-met'
   | 'root-incompatible'
+  | 'skill-sealed'
   | 'source-owner-mismatch'
   | 'cooldown-active'
   | 'activation-limit'
@@ -55,6 +56,7 @@ export interface CombatModifierSuppression {
 }
 function suppressionIssue(code: string): CombatModifierSuppressionReason {
   switch (code) {
+    case 'skill-sealed':
     case 'source-owner-mismatch':
     case 'cooldown-active':
     case 'activation-limit':
@@ -234,6 +236,7 @@ export function composeCombatModifiers(
             behaviorId: behavior.id,
             effectId: effect.id,
             multiplierBasisPoints: effect.payload.multiplierBasisPoints,
+            ...(effect.payload.damageTypes ? { damageTypes: [...effect.payload.damageTypes] } : {}),
             ...(effect.payload.elementFilter
               ? { elementFilter: effect.payload.elementFilter }
               : {}),

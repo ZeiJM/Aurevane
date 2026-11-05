@@ -1,4 +1,9 @@
+import {
+  evaluateItemEquipRequirements,
+  type ItemEquipContext,
+} from '@aurevane/game-core/character/item-equip-requirements'
 import 'server-only'
+import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import {
   EQUIPMENT_POSITIONS,
   equipInventoryItem,
@@ -30,6 +35,7 @@ import {
 export type StarterItemNotice =
   'starter-items-deferred-capacity' | 'starter-items-deferred-battle' | 'starter-items-unavailable'
 export interface CharacterItemsState {
+  readonly equipContext?: ItemEquipContext
   readonly starterNotice?: StarterItemNotice
   readonly snapshot: ItemInventorySnapshot
   readonly definitions: ItemCatalogue
@@ -67,6 +73,7 @@ export interface CharacterItemsRepository {
   ): Promise<void>
 }
 export interface CharacterItemsView {
+  readonly baseEvasion?: number
   readonly statBonuses?: readonly EquipmentStatBonus[] | null
   readonly characterId: string
   readonly revision: number
@@ -83,6 +90,7 @@ export interface CharacterItemsView {
     readonly inventoryCategory: ItemInventoryCategory
     readonly slotIndex: number
     readonly quantity: number
+    readonly unmetEquipRequirements?: readonly string[]
     readonly item: ItemPresentation | null
   }[]
   readonly notices: readonly ('equipment-support-removed' | StarterItemNotice)[]
@@ -92,13 +100,26 @@ export function characterItemsView(
   notices: CharacterItemsView['notices'] = [],
 ): CharacterItemsView {
   const { snapshot, definitions } = state
-  const validation = validateEquipmentLoadout(snapshot, definitions)
+  let baseEvasion: number | undefined
+  if (state.equipContext?.baseCoreStats) {
+    try {
+      baseEvasion = calculateDerivedStats({
+        attributes: state.equipContext.baseCoreStats,
+        level: state.equipContext.level,
+      }).stats.evasion.value
+    } catch (cause) {
+      // Missing or invalid legacy context must not prevent owned-Item repair.
+      if (!(cause instanceof RangeError || cause instanceof TypeError)) throw cause
+    }
+  }
+  const validation = validateEquipmentLoadout(snapshot, definitions, state.equipContext)
   const qualityPoints = Object.values(snapshot.equipment).reduce((sum, stackId) => {
     const stack = snapshot.stacks.find((row) => row.id === stackId)
     const definition = stack ? definitions[stack.itemId] : undefined
     return sum + (definition?.schemaVersion === 2 ? definition.qualityPoints : 0)
   }, 0)
   return {
+    ...(baseEvasion === undefined ? {} : { baseEvasion }),
     statBonuses: validation.ok ? equipmentStatBonuses(snapshot, definitions) : null,
     characterId: snapshot.characterId,
     revision: snapshot.revision,
@@ -118,7 +139,14 @@ export function characterItemsView(
         inventoryCategory: stack.inventoryCategory,
         slotIndex: stack.slotIndex,
         quantity: stack.quantity,
-        item: definition?.schemaVersion === 2 ? presentItem(definition) : null,
+        unmetEquipRequirements:
+          definition?.schemaVersion === 2
+            ? evaluateItemEquipRequirements(definition.equipRequirements, state.equipContext)
+            : [],
+        item:
+          definition?.schemaVersion === 2
+            ? presentItem(definition, { disciplineNames: state.equipContext?.disciplineNames })
+            : null,
       }
     }),
   }
@@ -224,6 +252,7 @@ export async function mutateCharacterItems(
         input.stackId,
         position(input.position),
         replacePositions,
+        current.equipContext,
       )
       break
     case 'unequip':
@@ -231,7 +260,13 @@ export async function mutateCharacterItems(
       result = unequipInventoryItem(snapshot, definitions, revision, replacePositions[0]!)
       break
     case 'support':
-      result = selectInventorySupport(snapshot, definitions, revision, selection(input.selection))
+      result = selectInventorySupport(
+        snapshot,
+        definitions,
+        revision,
+        selection(input.selection),
+        current.equipContext,
+      )
       break
     case 'sort': {
       if (!ITEM_INVENTORY_CATEGORIES.includes(input.category as ItemInventoryCategory))

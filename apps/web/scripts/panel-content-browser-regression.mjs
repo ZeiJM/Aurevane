@@ -126,6 +126,7 @@ const server = await createServer(config)
 await server.listen()
 const browser = await chromium.launch({
   headless: true,
+  args: ['--no-sandbox'],
   executablePath: process.env.AV_PANEL_CONTENT_BROWSER_EXECUTABLE || chromium.executablePath(),
 })
 const evidence = [],
@@ -133,6 +134,262 @@ const evidence = [],
 const { expect } = require('@playwright/test')
 try {
   const origin = server.resolvedUrls.local[0]
+  if (
+    !process.env.AV_PANEL_CONTENT_SCENARIO ||
+    process.env.AV_PANEL_CONTENT_SCENARIO === 'item-layout'
+  ) {
+    for (const viewport of [
+      { width: 1440, height: 900 },
+      { width: 1366, height: 768 },
+      { width: 390, height: 844 },
+      { width: 412, height: 915 },
+    ]) {
+      const page = await browser.newPage({ viewport })
+      const errors = []
+      page.on('pageerror', (error) => errors.push(error.message))
+      try {
+        await page.goto(origin + '?view=items', { waitUntil: 'networkidle' })
+        const workspace = page.getByRole('region', { name: 'Game Content workspace', exact: true })
+        const editor = workspace.locator('[data-item-editor="true"]')
+        const body = editor.locator('[class*="editorBody"]')
+        await expect(
+          workspace.getByRole('combobox', { name: 'Content category', exact: true }),
+        ).toHaveValue('item')
+        await expect(editor.getByRole('textbox', { name: 'Name', exact: true })).toBeEnabled()
+        await expect(
+          editor.getByRole('spinbutton', { name: 'Display order', exact: true }),
+        ).toHaveCount(0)
+        const actions = editor.getByRole('region', { name: 'Item authoring actions', exact: true })
+        await actions.getByRole('searchbox', { name: 'Character', exact: true }).fill('Aurelia')
+        await actions.getByRole('button', { name: 'Find', exact: true }).click()
+        await actions
+          .getByRole('combobox', { name: 'Matching characters', exact: true })
+          .selectOption('22222222-2222-4222-8222-222222222222')
+        await expect(actions).toContainText('To: Aurelia The Very Long Named Recipient')
+        await expect(
+          actions.getByRole('combobox', { name: 'Matching characters', exact: true }),
+        ).toHaveCount(0)
+        const quantityWidth = await actions
+          .getByRole('spinbutton', { name: 'Quantity', exact: true })
+          .evaluate((field) => field.getBoundingClientRect().width)
+        assert.ok(quantityWidth <= 110, 'Grant quantity stays bounded')
+        const geometry = await body.evaluate((element) => {
+          const editor = element.closest('[data-item-editor]')
+          const header = editor.querySelector('header')
+          return {
+            bodyHeight: element.clientHeight,
+            bodyScrollHeight: element.scrollHeight,
+            editorHeight: editor.clientHeight,
+            headerHeight: header.clientHeight,
+            bodyWidth: element.clientWidth,
+            bodyScrollWidth: element.scrollWidth,
+            documentWidth: document.documentElement.scrollWidth,
+            viewportWidth: innerWidth,
+          }
+        })
+        console.log('ITEM LAYOUT', viewport.width, JSON.stringify(geometry))
+        assert.ok(
+          geometry.bodyHeight >= 320,
+          'Item work area keeps at least 320px of editable content',
+        )
+        if (viewport.width > 760)
+          assert.ok(
+            geometry.bodyHeight >= geometry.editorHeight * 0.55,
+            'Most of the Item card remains available to authoring',
+          )
+        assert.ok(
+          geometry.bodyScrollWidth <= geometry.bodyWidth + 1,
+          'Item editor body has no horizontal overflow',
+        )
+        assert.ok(
+          geometry.documentWidth <= viewport.width + 1,
+          'Whole Item workspace fits the viewport',
+        )
+        await page.screenshot({
+          path: resolve(output, `item-parent-selected-${viewport.width}.png`),
+          fullPage: true,
+        })
+        await actions.getByRole('button', { name: 'Grant Item', exact: true }).click()
+        await expect(actions.getByRole('status')).toContainText(
+          'Aurelia The Very Long Named Recipient',
+        )
+        const grantRequest = await page.evaluate(
+          () =>
+            window.__contentRequests.findLast(
+              (request) =>
+                request.path === '/api/master/combat-content/item-grant' &&
+                request.body.action === 'grant',
+            ).body,
+        )
+        assert.equal(grantRequest.characterId, '22222222-2222-4222-8222-222222222222')
+        assert.equal(grantRequest.expectedRevision, 9)
+        assert.equal(grantRequest.quantity, 1)
+        assert.equal(grantRequest.itemId, 'emberbrand')
+        const savedBefore = await page.evaluate(() =>
+          structuredClone(window.__contentFixture.records.get('emberbrand').current.definition),
+        )
+        const name =
+          'An exceptionally long weapon name used to check the full Item editor header and grant toolbar'
+        await editor.getByRole('textbox', { name: 'Name', exact: true }).fill(name)
+        await editor
+          .getByRole('textbox', { name: 'Description', exact: true })
+          .fill('Long Item prose '.repeat(70).trim())
+        const dirtyGeometry = await body.evaluate((element) => ({
+          bodyHeight: element.clientHeight,
+          scrollWidth: element.scrollWidth,
+          clientWidth: element.clientWidth,
+        }))
+        if (viewport.width > 760)
+          assert.ok(
+            dirtyGeometry.bodyHeight >= 250,
+            'Long title and grant feedback keep a usable Item work area',
+          )
+        assert.ok(dirtyGeometry.scrollWidth <= dirtyGeometry.clientWidth + 1)
+        await page.screenshot({
+          path: resolve(output, `item-parent-long-fields-${viewport.width}.png`),
+          fullPage: true,
+        })
+        const fieldGeometry = await editor
+          .getByRole('textbox', { name: 'Description', exact: true })
+          .evaluate((element) => {
+            const field = element.getBoundingClientRect(),
+              parent = element.closest('[class*="editorBody"]').getBoundingClientRect()
+            return { left: field.left >= parent.left, right: field.right <= parent.right + 1 }
+          })
+        assert.deepEqual(fieldGeometry, { left: true, right: true })
+        await editor.getByRole('button', { name: 'About Description', exact: true }).click()
+        await expect(
+          page.getByRole('dialog', { name: 'About Description', exact: true }),
+        ).toContainText('Shown in inventory Item details and Master preview.')
+        await page.getByRole('button', { name: 'Close About Description', exact: true }).click()
+        await editor.getByRole('button', { name: 'Imbued Technique', exact: true }).click()
+        await expect(
+          editor.getByRole('checkbox', { name: 'Enable imbued technique', exact: true }),
+        ).toBeChecked()
+        await expect(
+          editor.getByRole('textbox', { name: 'Technique name', exact: true }),
+        ).toHaveValue('Kindle')
+        await editor.getByRole('button', { name: 'Item Details', exact: true }).click()
+        const commit = editor.getByRole('button', { name: 'Commit Now', exact: true })
+        await commit.scrollIntoViewIfNeeded()
+        await expect(commit).toBeInViewport()
+        await commit.click()
+        await expect(editor.getByRole('status', { name: 'Save status', exact: true })).toHaveText(
+          'Saved',
+        )
+        const savedAfter = await page.evaluate(() =>
+          structuredClone(window.__contentFixture.records.get('emberbrand').current.definition),
+        )
+        assert.deepEqual(savedAfter.actions, savedBefore.actions)
+        assert.deepEqual(savedAfter.ability, savedBefore.ability)
+        assert.equal(savedAfter.sortOrder, 317)
+        // A prepared uncertain grant must survive real keyed Item remount and browser reload.
+        await page.evaluate(() => {
+          window.__contentFixture.failItemGrant = true
+        })
+        await actions.getByRole('button', { name: 'Grant Item', exact: true }).click()
+        await expect(
+          actions.getByRole('button', { name: 'Retry grant', exact: true }),
+        ).toBeEnabled()
+        const pending = await page.evaluate(() => ({
+          receipt: JSON.parse(
+            sessionStorage.getItem(
+              'aurevane.master.item-grant.v1:fixture-owner:selected-character',
+            ),
+          ),
+          requests: window.__contentRequests.filter(
+            (request) => request.path === '/api/master/combat-content/item-grant',
+          ),
+        }))
+        assert.equal(pending.receipt.body.itemId, 'emberbrand')
+        assert.equal(pending.receipt.body.characterId, '22222222-2222-4222-8222-222222222222')
+        await workspace.locator('[data-content-key="sunsplitter"]').click()
+        await expect(editor.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(
+          'Sunsplitter',
+        )
+        await expect(
+          actions.getByRole('button', { name: 'Retry grant', exact: true }),
+        ).toBeEnabled()
+        await expect(actions).toContainText(`Pending: ${name}`)
+        assert.deepEqual(
+          await page.evaluate(() =>
+            window.__contentRequests.filter(
+              (request) => request.path === '/api/master/combat-content/item-grant',
+            ),
+          ),
+          pending.requests,
+        )
+        await page.reload({ waitUntil: 'networkidle' })
+        await expect(
+          actions.getByRole('button', { name: 'Retry grant', exact: true }),
+        ).toBeEnabled()
+        await expect(actions).toContainText(`Pending: ${name}`)
+        assert.deepEqual(
+          await page.evaluate(() =>
+            window.__contentRequests.filter(
+              (request) => request.path === '/api/master/combat-content/item-grant',
+            ),
+          ),
+          [],
+        )
+        assert.deepEqual(
+          await page.evaluate(() =>
+            JSON.parse(
+              sessionStorage.getItem(
+                'aurevane.master.item-grant.v1:fixture-owner:selected-character',
+              ),
+            ),
+          ),
+          pending.receipt,
+        )
+        await actions.getByRole('button', { name: 'Retry grant', exact: true }).click()
+        await expect(actions.getByRole('status')).toContainText('Item granted to Aurelia')
+        const retried = await page.evaluate(() =>
+          window.__contentRequests.filter(
+            (request) => request.path === '/api/master/combat-content/item-grant',
+          ),
+        )
+        assert.deepEqual(retried, [{ path: pending.receipt.endpoint, body: pending.receipt.body }])
+        assert.equal(
+          await page.evaluate(() =>
+            sessionStorage.getItem(
+              'aurevane.master.item-grant.v1:fixture-owner:selected-character',
+            ),
+          ),
+          null,
+        )
+        await expect
+          .poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1))
+          .toBe(true)
+        assert.deepEqual(errors, [])
+        await page.screenshot({
+          path: resolve(output, `item-parent-${viewport.width}.png`),
+          fullPage: true,
+        })
+        evidence.push({
+          scenario: 'item-layout',
+          viewport,
+          geometry,
+          dirtyGeometry,
+          longFields: 'contained',
+          popup: 'single source',
+          preservedActionsAndOrder: true,
+          footerReachable: true,
+          uncertainGrant: 'same exact request after keyed Item remount and full reload',
+        })
+      } catch (error) {
+        failures.push({ scenario: `item-layout-${viewport.width}`, message: String(error) })
+        console.error('ITEM LAYOUT FAILURE', viewport.width, String(error))
+        await page.screenshot({
+          path: resolve(output, `item-parent-failure-${viewport.width}.png`),
+          fullPage: true,
+        })
+      } finally {
+        await page.close()
+      }
+    }
+  }
+
   if (
     !process.env.AV_PANEL_CONTENT_SCENARIO ||
     process.env.AV_PANEL_CONTENT_SCENARIO === 'new-discipline-skill'

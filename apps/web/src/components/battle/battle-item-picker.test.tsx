@@ -29,6 +29,7 @@ it('renders each consumable slot with a compact captured Skill report and finite
     artworkSrc: '/media/art/items/mender-salve-v01.webp',
     item: presentItem(definition),
     remainingUses: 2,
+    stockQuantity: 7,
     maximumUsesPerBattle: 3,
     unavailableReason: null,
     behaviors: [
@@ -49,10 +50,14 @@ it('renders each consumable slot with a compact captured Skill report and finite
       onSelect={() => {}}
     />,
   )
-  expect(html).toContain('Use Mender Salve, Consumable 1')
-  expect(html).toContain('Use Mender Salve, Consumable 2')
-  expect(html).toContain('2 uses left of 3 per battle')
-  expect(html).toContain('width="48"')
+  expect(html).toContain('Use Mender Salve')
+  expect(html).not.toContain('Consumable 1')
+  expect(html).not.toContain('Consumable 2')
+  expect(html).toContain('2 / 3 uses left this battle')
+  expect(html).toContain('Stock: 7')
+  expect(html).not.toContain('width="48"')
+  expect(html).not.toContain('Uses refill')
+  expect(html).not.toContain('3 uses per battle')
   expect(html).toContain('/media/art/items/thumbnails/mender-salve-v01.webp')
   expect(html.match(/<dt>Cost<\/dt>/g)).toHaveLength(2)
   expect(html).toContain('aria-label="Effect explanations"')

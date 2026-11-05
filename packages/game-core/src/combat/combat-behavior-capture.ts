@@ -33,6 +33,7 @@ export interface CapturedCombatAbilitySource {
   readonly media?: FinalizedContentMediaSlots
   readonly basic?: BasicSkillDefinition
   readonly equipment?: {
+    readonly consumptionPolicyVersion?: 1
     readonly unit: BattleEquipmentUnit
     readonly roles: Partial<Record<EquipmentActionRole, string>>
   }
@@ -61,7 +62,13 @@ export function captureEquipmentAbilitySource(
     sourceKind: 'equipment',
     tags: unit.item.tags,
     definition,
-    equipment: { unit: structuredClone(unit), roles: equipmentRoles(capture, unit) },
+    equipment: {
+      unit: structuredClone(unit),
+      roles: equipmentRoles(capture, unit),
+      ...(capture.consumptionPolicyVersion === 1 && unit.item.itemClass === 'battle-item'
+        ? { consumptionPolicyVersion: 1 }
+        : {}),
+    },
     ...(unit.item.media.artwork ? { media: { artwork: unit.item.media.artwork } } : {}),
   })
 }
@@ -134,9 +141,21 @@ export function captureCombatAbilitySource(
     const { unit, roles } = result.equipment
     const item = parseRuntimeItemDefinition(unit.item)
     if (
-      Object.keys(result.equipment).some((key) => !['unit', 'roles'].includes(key)) ||
+      Object.keys(result.equipment).some(
+        (key) => !['unit', 'roles', 'consumptionPolicyVersion'].includes(key),
+      ) ||
+      (result.equipment.consumptionPolicyVersion !== undefined &&
+        (result.equipment.consumptionPolicyVersion !== 1 ||
+          item.itemClass !== 'battle-item' ||
+          !Number.isSafeInteger(unit.ownedQuantity) ||
+          unit.ownedQuantity! < 1 ||
+          unit.ownedQuantity! > 99)) ||
+      (result.equipment.consumptionPolicyVersion === undefined &&
+        unit.ownedQuantity !== undefined) ||
       !EQUIPMENT_POSITIONS.includes(unit.position) ||
-      Object.keys(unit).some((key) => !['position', 'ownedStackId', 'item'].includes(key)) ||
+      Object.keys(unit).some(
+        (key) => !['position', 'ownedStackId', 'item', 'ownedQuantity'].includes(key),
+      ) ||
       typeof unit.ownedStackId !== 'string' ||
       !unit.ownedStackId.trim() ||
       !roles ||

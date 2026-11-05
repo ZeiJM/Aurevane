@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./combat/combat-item-consumption": "./src/combat/combat-item-consumption.ts",
     "./character/attribute-allocation": "./src/character/attribute-allocation.ts",
     "./character/creation": "./src/character/creation.ts",
     "./character/derived-stats": "./src/character/derived-stats.ts",
@@ -82,6 +83,8 @@
     "./combat/terrain-overlays": "./src/combat/terrain-overlays.ts",
     "./combat/combat-skill-copy": "./src/combat/combat-skill-copy.ts",
     "./combat/combat-status-selection": "./src/combat/combat-status-selection.ts",
+    "./combat/combat-damage-up": "./src/combat/combat-damage-up.ts",
+    "./combat/combat-seal": "./src/combat/combat-seal.ts",
     "./combat/combat-status-tuning": "./src/combat/combat-status-tuning.ts",
     "./combat/combat-status-copy": "./src/combat/combat-status-copy.ts",
     "./events/persistent-event": "./src/events/persistent-event.ts",
@@ -113,6 +116,7 @@
     "./combat/combat-reversal": "./src/combat/combat-reversal.ts",
     "./content/starter-items": "./src/content/starter-items.ts",
     "./content/items": "./src/content/items.ts",
+    "./character/item-equip-requirements": "./src/character/item-equip-requirements.ts",
     "./character/item-inventory": "./src/character/item-inventory.ts",
     "./combat/combat-equipment": "./src/combat/combat-equipment.ts",
     "./combat/combat-stat-bonuses": "./src/combat/combat-stat-bonuses.ts"

@@ -1,3 +1,6 @@
+import type { DamageUpScope } from './combat-damage-up'
+import { combatItemStock, consumeCombatItemStock } from './combat-item-consumption'
+import { combatSealBlocksSkill } from './combat-seal'
 import type { CombatElement } from './gameplay-tags'
 import { captureCombatTurnMovementBonus } from './combat-stat-bonuses'
 import {
@@ -114,7 +117,7 @@ export interface ManualCombatModifierSelection {
   readonly sourceInstanceId: string
   readonly behaviorId: string
 }
-export interface CombatCommandDamageBonus {
+export interface CombatCommandDamageBonus extends DamageUpScope {
   readonly elementFilter?: CombatElement
   readonly sourceInstanceId: string
   readonly contentId: string
@@ -308,6 +311,11 @@ export function combatAbilityParticipantIssues(
   if (!participant.source || !participant.behavior) return issues
   const source = participant.source,
     behavior = participant.behavior
+  if (source.equipment?.roles.use === behavior.id && combatItemStock(input.state, source) === 0)
+    issues.push({
+      code: 'activation-limit',
+      message: 'Consumable stock is exhausted. Equip another stack after battle.',
+    })
   if (
     input.state.supportActionPolicyVersion === 1 &&
     (source.abilityId === 'basic.guard' ||
@@ -319,6 +327,11 @@ export function combatAbilityParticipantIssues(
     issues.push({
       code: 'source-disabled',
       message: 'Current Support Skills replace Guard and reserve Summon for Invocation.',
+    })
+  if (combatSealBlocksSkill(input.state, input.actorId, source.sourceKind, behavior.classification))
+    issues.push({
+      code: 'skill-sealed',
+      message: `Seal prevents activating ${behavior.classification} discipline skills.`,
     })
   if (source.basic?.enabled === false)
     issues.push({
@@ -960,6 +973,8 @@ export function commitCombatAbilityCommand(
     paid = armed.state
     paymentEvents.push(...armed.events)
   } else paid = recordCombatReversalOffense(paid, input.actorId, prepared.action)
+  if (rootParticipant.source && rootParticipant.behavior)
+    paid = consumeCombatItemStock(paid, rootParticipant.source, rootParticipant.behavior.id)
   const manual = prepared.participants[0]!.activation === 'manual'
   if (manual) paid = markPv1fTurnActivity(paid, input.actorId)
   if (prepared.action.cost.spendsAction) {

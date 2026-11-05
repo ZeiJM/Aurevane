@@ -30,7 +30,7 @@ await fs.writeFile(
 )
 await fs.writeFile(
   resolve(fixture, 'production-styles.js'),
-  "import '@aurevane/ui/styles.css';import '@/app/globals.css'",
+  "import '@aurevane/ui/styles.css';import '@/app/globals.css';import '@/app/approved-adventure.css'",
 )
 // next/image is reached by AbilityEffectEditor → SummonProfileEditor → SkillMediaEditor.
 // Next replaces these public build constants; this standalone Vite fixture must do so too.
@@ -78,6 +78,7 @@ const browser = await chromium.launch({
 })
 try {
   for (const viewport of [
+    { width: 1440, height: 900 },
     { width: 1366, height: 768 },
     { width: 390, height: 844 },
     { width: 412, height: 915 },
@@ -93,13 +94,88 @@ try {
     })
     await page.goto(server.resolvedUrls.local[0], { waitUntil: 'networkidle' })
     const editor = page.getByRole('region', { name: 'Master Item editor', exact: true })
+    const original = await page.evaluate(() => structuredClone(window.itemEditorValue))
+    await expect(
+      editor.getByRole('spinbutton', { name: 'Display order', exact: true }),
+    ).toHaveCount(0)
+    await editor.getByRole('textbox', { name: 'Description', exact: true }).fill('A'.repeat(1200))
+    await editor
+      .getByRole('textbox', { name: 'Name', exact: true })
+      .fill('A very long authored Item name that still fits inside its editor')
+    const geometry = await editor.evaluate((element) => {
+      const panel = element.getBoundingClientRect()
+      return [...element.querySelectorAll('input, select, textarea')]
+        .filter(
+          (field) =>
+            field.getClientRects().length &&
+            !field.closest('dialog:not([open]),details:not([open])'),
+        )
+        .map((field) => {
+          const bounds = field.getBoundingClientRect()
+          return {
+            label: field.getAttribute('aria-label') ?? field.type,
+            contained: bounds.left >= panel.left - 1 && bounds.right <= panel.right + 1,
+          }
+        })
+    })
+    assert.ok(geometry.length > 5)
+    assert.deepEqual(
+      geometry.filter((field) => !field.contained),
+      [],
+    )
+    await page.screenshot({
+      path: resolve(output, `item-editor-long-fields-${viewport.width}.png`),
+      fullPage: true,
+    })
+    const labelCenter = await editor
+      .locator('label')
+      .filter({ hasText: /^Description$/ })
+      .evaluate((element) => {
+        const bounds = element.getBoundingClientRect()
+        return bounds.y + bounds.height / 2
+      })
+    const helpCenter = await editor
+      .getByRole('button', { name: 'About Description', exact: true })
+      .evaluate((element) => {
+        const bounds = element.getBoundingClientRect()
+        return bounds.y + bounds.height / 2
+      })
+    assert.ok(
+      Math.abs(labelCenter - helpCenter) < 1,
+      'Description label and help stay on one compact row',
+    )
+    const descriptionHint = 'Shown in inventory Item details and Master preview.'
+    await expect(editor.getByText(descriptionHint, { exact: true })).toHaveCount(1)
+    await expect(editor.getByText(descriptionHint, { exact: true })).not.toBeVisible()
+    await editor.getByRole('button', { name: 'About Description', exact: true }).click()
+    await expect(
+      page.getByRole('dialog', { name: 'About Description', exact: true }),
+    ).toContainText(descriptionHint)
+    await page.getByRole('button', { name: 'Close About Description', exact: true }).click()
+    await expect(
+      editor.getByRole('combobox', { name: 'Consumable action', exact: true }),
+    ).toHaveCount(0)
+
     await editor.getByRole('spinbutton', { name: 'Quality Points', exact: true }).fill('21')
     await editor.getByRole('spinbutton', { name: 'Battle uses', exact: true }).fill('4')
-    await editor.getByRole('textbox', { name: 'use name', exact: true }).fill('Test Draught')
+    await editor
+      .getByRole('textbox', { name: 'Consumable action name', exact: true })
+      .fill('Test Draught')
     await editor.getByRole('button', { name: 'Save definition JSON' }).click()
     const reader = page.getByRole('region', { name: 'Saved player Item reader', exact: true })
+    const edited = await page.evaluate(() => window.itemEditorValue)
+    assert.equal(edited.sortOrder, 317)
+    assert.deepEqual(edited.actions, {
+      ...original.actions,
+      use: { ...original.actions.use, name: 'Test Draught' },
+    })
+    assert.deepEqual(edited.ability, original.ability)
+    assert.deepEqual(edited.media, original.media)
+
     await expect(reader.getByRole('heading', { name: 'Test Draught', exact: true })).toBeVisible()
-    await expect(reader.getByLabel('Usage limits')).toContainText('4 uses per battle')
+    await expect(
+      reader.getByText('Uses per battle', { exact: true }).locator('..').locator('dd'),
+    ).toHaveText('4')
     await page.reload({ waitUntil: 'networkidle' })
     await expect(
       editor.getByRole('spinbutton', { name: 'Quality Points', exact: true }),
@@ -107,17 +183,24 @@ try {
     await expect(editor.getByRole('spinbutton', { name: 'Battle uses', exact: true })).toHaveValue(
       '4',
     )
-    await editor.getByRole('combobox', { name: 'Item class', exact: true }).selectOption('weapon')
+    const beforeClassChoice = await page.evaluate(() => window.itemEditorValue)
+    await editor.getByRole('combobox', { name: 'Class', exact: true }).selectOption('gear')
+    await editor.getByRole('combobox', { name: 'Type', exact: true }).selectOption('weapon')
+    assert.deepEqual(await page.evaluate(() => window.itemEditorValue), beforeClassChoice)
     await expect(
       editor.getByRole('button', { name: 'Apply class and reset behaviors' }),
     ).toBeVisible()
     await editor.getByRole('button', { name: 'Apply class and reset behaviors' }).click()
     await editor.getByRole('combobox', { name: 'Hands', exact: true }).selectOption('2')
     await editor.getByRole('button', { name: 'Save definition JSON' }).click()
-    await expect(reader).toContainText('2 hands')
     await expect(
-      editor.getByRole('combobox', { name: 'Attack binding', exact: true }),
-    ).not.toHaveValue('')
+      reader.getByText('Position', { exact: true }).locator('..').locator('dd'),
+    ).toContainText('Main Hand')
+    await expect(
+      editor.getByRole('combobox', { name: 'Basic Attack action', exact: true }),
+    ).toHaveCount(0)
+    assert.equal(await page.evaluate(() => window.itemEditorValue.equipment.hands), 2)
+    assert.ok(await page.evaluate(() => window.itemEditorValue.actions.attack.behaviorId))
     await editor.getByRole('spinbutton', { name: 'Quality Points', exact: true }).fill('101')
     await editor.getByRole('button', { name: 'Save definition JSON' }).click()
     await expect(editor.getByRole('alert')).toContainText('1–100')
@@ -128,12 +211,110 @@ try {
       true,
     )
     assert.deepEqual(errors, [])
+
+    await page.goto(new URL('?item=emberbrand', server.resolvedUrls.local[0]).href, {
+      waitUntil: 'networkidle',
+    })
+    const imbuedWeapon = await page.evaluate(() => structuredClone(window.itemEditorValue))
+    await expect(editor.getByRole('combobox', { name: 'Support action', exact: true })).toHaveCount(
+      0,
+    )
+    await editor
+      .getByRole('textbox', { name: 'Basic Attack name', exact: true })
+      .fill('Preserved Strike')
+    assert.deepEqual(await page.evaluate(() => window.itemEditorValue), {
+      ...imbuedWeapon,
+      actions: {
+        ...imbuedWeapon.actions,
+        attack: { ...imbuedWeapon.actions.attack, name: 'Preserved Strike' },
+      },
+    })
+    await editor.getByRole('button', { name: 'Save definition JSON' }).click()
+    await page.goto(
+      new URL('?item=sunsplitter&binding=missing', server.resolvedUrls.local[0]).href,
+      { waitUntil: 'networkidle' },
+    )
+    const invalidWeapon = await page.evaluate(() => structuredClone(window.itemEditorValue))
+    const repair = editor.getByRole('combobox', { name: 'Basic Attack action', exact: true })
+    await expect(repair).toContainText('Unavailable action')
+    await expect(repair).toContainText('Behavior 1')
+    await repair.selectOption('attack')
+    assert.deepEqual(await page.evaluate(() => window.itemEditorValue), {
+      ...invalidWeapon,
+      actions: {
+        ...invalidWeapon.actions,
+        attack: { ...invalidWeapon.actions.attack, behaviorId: 'attack' },
+      },
+    })
+    await expect(repair).toHaveCount(0)
+    await editor.getByRole('button', { name: 'Save definition JSON' }).click()
+    await page.goto(new URL('?item=wardstone-bracer', server.resolvedUrls.local[0]).href, {
+      waitUntil: 'networkidle',
+    })
+    const passive = await page.evaluate(() => structuredClone(window.itemEditorValue))
+    await expect(editor.getByRole('combobox', { name: 'Hands', exact: true })).toHaveCount(0)
+    await expect(editor.getByRole('combobox', { name: 'Position', exact: true })).toHaveValue(
+      'hand',
+    )
+    await editor.getByRole('combobox', { name: 'Position', exact: true }).selectOption('body')
+    assert.deepEqual(await page.evaluate(() => window.itemEditorValue), {
+      ...passive,
+      itemClass: 'armor',
+      equipment: { slot: 'body', hands: 1 },
+    })
+    await expect(editor.getByRole('combobox', { name: 'Type', exact: true })).toHaveValue('armor')
+    await expect(
+      editor.getByRole('button', { name: 'Apply class and reset behaviors' }),
+    ).toHaveCount(0)
+    await editor.getByRole('combobox', { name: 'Position', exact: true }).selectOption('hand')
+    assert.deepEqual(await page.evaluate(() => window.itemEditorValue), passive)
+    await expect(editor.getByRole('combobox', { name: 'Type', exact: true })).toHaveValue(
+      'hand-armor',
+    )
+    await editor.getByRole('button', { name: 'Save definition JSON' }).click()
+    await page.reload({ waitUntil: 'networkidle' })
+    assert.deepEqual(await page.evaluate(() => window.itemEditorValue), passive)
+    await editor.getByRole('spinbutton', { name: 'Minimum level', exact: true }).fill('4')
+    await editor.getByRole('spinbutton', { name: 'Base Might', exact: true }).fill('13')
+    await editor.getByRole('checkbox', { name: 'Fixture Artificer', exact: true }).check()
+    const requirements = {
+      minimumLevel: 4,
+      minimumCoreStats: { might: 13 },
+      disciplineIds: ['discipline.fixture-artificer'],
+    }
+    assert.deepEqual(
+      await page.evaluate(() => window.itemEditorValue.equipRequirements),
+      requirements,
+    )
+    await editor.getByRole('button', { name: 'Save definition JSON' }).click()
+    await page.reload({ waitUntil: 'networkidle' })
+    assert.deepEqual(
+      await page.evaluate(() => window.itemEditorValue.equipRequirements),
+      requirements,
+    )
+    await expect(reader).toContainText('Level 4')
+    await expect(reader).toContainText('Base Might 13')
+    await editor
+      .getByRole('textbox', { name: 'Description', exact: true })
+      .fill('Preserves optional equip requirements.')
+    await editor.getByRole('button', { name: 'Save definition JSON' }).click()
+    await page.reload({ waitUntil: 'networkidle' })
+    assert.deepEqual(
+      await page.evaluate(() => window.itemEditorValue.equipRequirements),
+      requirements,
+    )
+    await editor.getByRole('spinbutton', { name: 'Minimum level', exact: true }).fill('')
+    await editor.getByRole('spinbutton', { name: 'Base Might', exact: true }).fill('')
+    await editor.getByRole('checkbox', { name: 'Fixture Artificer', exact: true }).uncheck()
+    await editor.getByRole('button', { name: 'Save definition JSON' }).click()
+    await page.reload({ waitUntil: 'networkidle' })
+    assert.equal(await page.evaluate(() => window.itemEditorValue.equipRequirements), undefined)
     await page.screenshot({
       path: resolve(output, `item-editor-${viewport.width}.png`),
       fullPage: true,
     })
     console.log(
-      `Item editor ${viewport.width}: controls, bound report, serialization, explicit class reset and limits passed.`,
+      `Item editor ${viewport.width}: field containment, single popup help, exact hidden-order/binding preservation, repair, armor positions, serialization, explicit class reset and limits passed.`,
     )
     await page.close()
   }

@@ -233,11 +233,16 @@ try {
       await page.goto(`${server.resolvedUrls.local[0]}?mode=pve&canonical=items-global-${timing}`)
       await page.locator('[data-command-slot="items"]').click()
       await page
-        .getByRole('button', { name: /^Information about Mender Salve, Consumable 1/ })
+        .getByRole('button', { name: 'Information about Mender Salve', exact: true })
+        .first()
         .click()
       const panel = page.locator('[data-battle-info-panel]')
       await expect(panel).toContainText(timing === 'controlled' ? 'Controlled' : 'Delayed')
-      await expect(panel).toContainText('3 uses per battle')
+      await expect(panel).not.toContainText('3 uses per battle')
+      await expect(panel.locator('img')).toHaveCount(0)
+      await expect(page.locator('[data-battle-item-choices]')).toContainText(
+        '3 / 3 uses left this battle',
+      )
       assert.equal(
         (
           await page.evaluate(() =>
@@ -254,7 +259,8 @@ try {
       await page.evaluate(() => window.restoreCanonicalBattle())
       await page.locator('[data-command-slot="items"]').click()
       await page
-        .getByRole('button', { name: /^Information about Mender Salve, Consumable 1/ })
+        .getByRole('button', { name: 'Information about Mender Salve', exact: true })
+        .first()
         .click()
       await expect(panel).toContainText(timing === 'controlled' ? 'Controlled' : 'Delayed')
       results.push({ timing, width, reader: 'pinned, no execution' })

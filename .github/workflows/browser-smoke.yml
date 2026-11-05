@@ -80,7 +80,10 @@ jobs:
       - name: Verify Item editor, Arsenal and battle actions across desktop and mobile
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}
         run: |
+          AV_PANEL_CONTENT_SCENARIO=item-layout pnpm --filter @aurevane/web exec node scripts/panel-content-browser-regression.mjs
           pnpm --filter @aurevane/web exec node scripts/runtime-item-editor-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/item-imbued-technique-browser-regression.mjs
+          pnpm --filter @aurevane/web exec node scripts/effect-summary-fit-browser-regression.mjs
           pnpm --filter @aurevane/web exec node scripts/arsenal-items-browser-regression.mjs
           pnpm --filter @aurevane/web exec node scripts/battle-items-browser-regression.mjs
           pnpm --filter @aurevane/web exec node scripts/guided-items-browser-regression.mjs
@@ -91,7 +94,10 @@ jobs:
         with:
           name: item-editor-and-arsenal-native
           path: |
+            /tmp/panel-content-evidence
             /tmp/runtime-item-editor-browser-evidence
+            /tmp/imbued-technique-browser-evidence
+            /tmp/effect-summary-fit-evidence
             /tmp/arsenal-items-browser-evidence
             /tmp/battle-items-browser-evidence
             /tmp/guided-items-browser-evidence
@@ -183,6 +189,13 @@ jobs:
         env:
           AV_SUPPRESS_EVIDENCE_DIR: /tmp/battle-suppress-review
         run: pnpm --filter @aurevane/web exec node scripts/battle-suppress-browser-regression.mjs
+      - name: Seal authoring and category reload regression
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        run: pnpm --filter @aurevane/web exec node scripts/seal-browser-regression.mjs
+
+      - name: Damage Up scope editor, reload and battle settlement
+        if: ${{ needs.verification-plan.outputs.battle == 'true' }}
+        run: pnpm --filter @aurevane/web exec node scripts/damage-up-browser-regression.mjs
 
       - name: Verify elevated rail effects and viewer privacy
         if: ${{ needs.verification-plan.outputs.battle == 'true' }}

@@ -36,7 +36,8 @@ it('explains the current Copy Buffs exception in Invisible help', () => {
 
 it('excludes persistent DoTs from current Copy Debuffs while retaining removal and captured selection support', () => {
   const ids = selectableCombatStatusIds('copy-debuffs')
-  expect(ids).toHaveLength(11)
+  expect(ids).toHaveLength(12)
+  expect(ids).toContain('seal')
   expect(ids).toContain('blind')
   expect(ids).toContain('slow')
   for (const id of ['burn', 'poison', 'bleed']) {

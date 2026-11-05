@@ -101,6 +101,7 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   'lowered-guard': 'Defenseless',
   root: 'Rooted',
   blind: 'Blind',
+  seal: 'Seal',
   'absorb-hp': 'HP Leech',
   'absorb-mp': 'MP Leech',
   reflect: 'Reflect',

@@ -1,6 +1,6 @@
 'use client'
 import Image from 'next/image'
-import { useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   EQUIPMENT_POSITIONS,
   type EquipmentPosition,
@@ -13,6 +13,9 @@ import type { CharacterItemsView } from '@/server/character/character-items-serv
 import type { CharacterPresentationId } from '@aurevane/game-core/character/creation'
 import { getImageAsset } from '@/media/registry'
 import { ItemDetails } from './item-details'
+import { equipmentStatChanges } from '@/lib/items/equipment-stat-presentation'
+import { COMBAT_BONUS_STAT_LABELS } from '@aurevane/game-core/combat/combat-stat-bonuses'
+import { itemCategoryLabel, itemClassLabel } from '@/lib/items/item-class-label'
 import { CharacterDeletionDialog } from './character-deletion-dialog'
 import {
   equipmentProposal,
@@ -22,21 +25,13 @@ import {
   type OwnedItem,
 } from './item-equipment-preview'
 import styles from './character-items.module.css'
-const categoryNames: Record<ItemInventoryCategory, string> = {
-  gear: 'Gear',
-  'battle-items': 'Battle Items',
-  materials: 'Materials',
-  general: 'General',
-  event: 'Event',
-  companion: 'Companion',
-}
 const sortNames = {
   name: 'Name',
   tier: 'Tier',
   'quality-points': 'Quality Points',
   quantity: 'Quantity',
   newest: 'Newest',
-  class: 'Class',
+  class: 'Type',
 }
 type Intent =
   | {
@@ -58,44 +53,76 @@ export function CharacterItems({
     [category, setCategory] = useState<ItemInventoryCategory>('gear'),
     [search, setSearch] = useState(''),
     [filter, setFilter] = useState('all'),
-    [sort, setSort] = useState('name'),
+    [sorts, setSorts] = useState<Partial<Record<ItemInventoryCategory, string>>>({}),
     [selected, setSelected] = useState<string | null>(null),
-    [equippedInspection, setEquippedInspection] = useState(false),
-    [position, setPosition] = useState<EquipmentPosition>('head'),
-    [extra, setExtra] = useState<EquipmentPosition[]>([]),
+    [inspectionPosition, setInspectionPosition] = useState<EquipmentPosition | null>(null),
+    [pickerPosition, setPickerPosition] = useState<EquipmentPosition | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<string | null>(
       initialView ? null : 'Your Items could not be loaded.',
     ),
-    [notice, setNotice] = useState<string | null>(null),
-    [needsReload, setNeedsReload] = useState(false)
+    [needsRefresh, setNeedsRefresh] = useState(!initialView)
   const equipmentArtwork = getImageAsset(`ui.equipment.${presentationId}.v1`)
   const pending = useRef(false)
-  async function reload() {
+  const mounted = useRef(true)
+  const readLatest = useCallback(async () => {
+    const response = await fetch('/api/character/items', { cache: 'no-store' })
+    const body = await response.json()
+    if (!response.ok || !body.view)
+      throw new Error(body.error?.message ?? 'Your Items could not be refreshed.')
+    if (mounted.current) {
+      setView(body.view)
+      setNeedsRefresh(false)
+    }
+  }, [])
+  const refresh = useCallback(async () => {
     if (pending.current) return
     pending.current = true
     setBusy(true)
     try {
-      const response = await fetch('/api/character/items', { cache: 'no-store' })
-      const body = await response.json()
-      if (!response.ok || !body.view)
-        throw new Error(body.error?.message ?? 'Your Items could not be loaded.')
-      setView(body.view)
+      await readLatest()
+      if (!mounted.current) return
       setError(null)
-      setNeedsReload(false)
     } catch (cause) {
+      if (!mounted.current) return
+      setNeedsRefresh(true)
       setError(cause instanceof Error ? cause.message : 'Your Items could not be loaded.')
     } finally {
       pending.current = false
-      setBusy(false)
+      if (mounted.current) setBusy(false)
     }
-  }
+  }, [readLatest])
+  useEffect(() => {
+    mounted.current = true
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refresh()
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      mounted.current = false
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [refresh])
+  useEffect(() => {
+    if (initialView) return
+    const timer = window.setTimeout(() => void refresh(), 0)
+    return () => window.clearTimeout(timer)
+  }, [initialView, refresh])
+  useEffect(() => {
+    if (!view?.battleLocked) return
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh()
+    }, 15000)
+    return () => window.clearInterval(timer)
+  }, [view?.battleLocked, refresh])
   async function mutate(intent: Intent) {
-    if (!view || pending.current || view.battleLocked || needsReload) return
+    if (!view || pending.current || view.battleLocked || needsRefresh) return
     pending.current = true
     setBusy(true)
     setError(null)
-    setNotice(null)
+    let failure: string | null = null
     try {
       const response = await fetch('/api/character/items', {
         method: 'POST',
@@ -108,50 +135,88 @@ export function CharacterItems({
         }),
       })
       const body = await response.json()
-      if (!response.ok || !body.view) {
-        setNeedsReload(true)
+      if (!response.ok || !body.view)
         throw new Error(
-          body.error?.message ?? 'The change could not be saved. Reload Items before trying again.',
+          body.error?.message ?? 'The change could not be saved. Review your Items and try again.',
         )
-      }
+      if (!mounted.current) return
       setView(body.view)
-      setExtra([])
-      setNotice(
-        body.view.notices.includes('equipment-support-removed')
-          ? 'Your equipment Support Action was removed. Your previous Basic Support Action is selected.'
-          : 'Items saved.',
-      )
-      if (intent.action !== 'sort') setSelected(null)
+      if (intent.action === 'sort')
+        setSorts((current) => ({ ...current, [intent.category]: intent.order }))
+      if (intent.action !== 'sort') {
+        setSelected(null)
+        setPickerPosition(null)
+      }
     } catch (cause) {
-      setNeedsReload(true)
-      setError(
+      failure =
         cause instanceof Error
           ? cause.message
-          : 'The save could not be confirmed. Reload Items before trying again.',
-      )
+          : 'The save could not be confirmed. Review your Items before trying again.'
     } finally {
+      // A response may be stale or lost after the server commits. Read once and
+      // never replay an equipment or inventory mutation automatically.
+      try {
+        await readLatest()
+      } catch (cause) {
+        if (mounted.current) setNeedsRefresh(true)
+        const message =
+          cause instanceof Error ? cause.message : 'Your Items could not be refreshed.'
+        failure = failure ? `${failure} ${message}` : message
+      }
       pending.current = false
-      setBusy(false)
+      if (mounted.current) {
+        setError(failure)
+        setBusy(false)
+      }
     }
   }
   function open(stack: OwnedItem, p?: EquipmentPosition) {
     setSelected(stack.id)
-    setEquippedInspection(p !== undefined)
-    setPosition(p ?? (stack.item ? itemPositions(stack.item)[0] : undefined) ?? 'head')
-    setExtra([])
+    setInspectionPosition(p ?? null)
+    setPickerPosition(null)
+    setError(null)
   }
   if (!view)
     return (
-      <section className={styles.workspace}>
+      <section className={styles.workspace} aria-label="Arsenal Items" aria-busy={busy}>
         <p role="alert">{error}</p>
-        <button disabled={busy} onClick={() => void reload()}>
-          Reload Items
-        </button>
       </section>
     )
-  const disabled = busy || view.battleLocked || needsReload
+  const disabled = busy || view.battleLocked || needsRefresh
   const chosen = view.stacks.find((s) => s.id === selected)
-  const proposal = chosen ? equipmentProposal(view, chosen, position, extra) : null
+  const assigned = chosen ? EQUIPMENT_POSITIONS.filter((p) => view.equipment[p] === chosen.id) : []
+  const candidatePositions = chosen?.item ? itemPositions(chosen.item) : []
+  const targetPosition = candidatePositions.find((p) => !view.equipment[p]) ?? candidatePositions[0]
+  const proposal =
+    chosen && targetPosition ? equipmentProposal(view, chosen, targetPosition, []) : null
+  const removals =
+    inspectionPosition && assigned.includes(inspectionPosition) ? [inspectionPosition] : assigned
+  const statChanges = chosen
+    ? equipmentStatChanges(
+        view.statBonuses,
+        removals.length ? removals : (proposal?.removals ?? []),
+        removals.length ? [] : (chosen.item?.statBonuses ?? []),
+        view.baseEvasion,
+      )
+    : []
+  const blockedReason =
+    proposal?.issue ??
+    (view.equipmentIssue
+      ? 'Repair your equipment before equipping another Item.'
+      : proposal?.shortage
+        ? 'This equipment would exceed 100 QP.'
+        : null)
+  const pickerChoices = pickerPosition
+    ? view.stacks.filter((stack) => {
+        if (!stack.item?.enabled || !itemPositions(stack.item).includes(pickerPosition))
+          return false
+        return !EQUIPMENT_POSITIONS.some(
+          (p) =>
+            p !== pickerPosition &&
+            view.stacks.find((other) => other.id === view.equipment[p])?.itemId === stack.itemId,
+        )
+      })
+    : []
   const categoryStacks = view.stacks.filter((s) => s.inventoryCategory === category)
   const bySlot = new Map(categoryStacks.map((s) => [s.slotIndex, s]))
   function matches(s: OwnedItem) {
@@ -162,8 +227,9 @@ export function CharacterItems({
           .includes(search.toLowerCase())) &&
       (filter === 'all' ||
         (filter === 'equippable' && s.item?.enabled && !!s.item.equipment) ||
-        (filter === 'unavailable' && (!s.item || !s.item.enabled)) ||
-        (filter.startsWith('slot:') && s.item?.equipment?.slot === filter.slice(5)) ||
+        (filter.startsWith('slot:') &&
+          !!s.item &&
+          itemPositions(s.item).includes(filter.slice(5) as EquipmentPosition)) ||
         filter === s.item?.itemClass)
     )
   }
@@ -175,24 +241,14 @@ export function CharacterItems({
   const attack = main?.itemClass === 'weapon' ? main : null
   return (
     <section className={styles.workspace} aria-label="Arsenal Items" aria-busy={busy}>
-      {error ? (
-        <p role="alert" className={styles.warning}>
-          {error}
-        </p>
-      ) : null}
-      {notice ? (
-        <p role="status" className={styles.notice}>
-          {notice}
-        </p>
-      ) : null}
       {view.notices.includes('starter-items-deferred-capacity') ? (
         <p role="status" className={styles.warning}>
           Starter Items have not been granted because there is not enough inventory space. Existing
-          Items are unchanged; the grant will be tried again on reload.
+          Items are unchanged; the grant will be checked again when your inventory updates.
         </p>
       ) : view.notices.includes('starter-items-deferred-battle') ? (
         <p role="status" className={styles.notice}>
-          Starter Items will be granted after the battle. Reload Items when it ends.
+          Starter Items will be checked automatically after the battle.
         </p>
       ) : view.notices.includes('starter-items-unavailable') ? (
         <p role="status" className={styles.notice}>
@@ -202,16 +258,8 @@ export function CharacterItems({
       {view.battleLocked ? (
         <p role="status" className={styles.warning}>
           Equipment, sorting and equipment Support changes are locked during a pending or active
-          battle. Reload Items after the battle ends.
+          battle. Your Items update automatically after the battle ends.
         </p>
-      ) : null}
-      {!selected &&
-      (needsReload ||
-        view.battleLocked ||
-        view.notices.some((message) => message.startsWith('starter-items-deferred-'))) ? (
-        <button className={styles.reload} disabled={busy} onClick={() => void reload()}>
-          Reload Items
-        </button>
       ) : null}
       <div className={styles.columns}>
         <section className={`${styles.panel} ${styles.equipmentPanel}`} aria-label="Equipment">
@@ -260,7 +308,6 @@ export function CharacterItems({
                   unoptimized
                 />
               ) : null}
-              <span className={styles.mannequinCaption}>Template</span>
             </div>
             {EQUIPMENT_POSITIONS.map((p) => {
               const s = view.stacks.find((s) => s.id === view.equipment[p])
@@ -270,11 +317,32 @@ export function CharacterItems({
                   key={p}
                   className={styles.equipmentSlot}
                   data-equipment-position={p}
-                  disabled={!s}
-                  onClick={() => s && open(s, p)}
+                  disabled={!s && blocked}
+                  onClick={() => {
+                    if (s) open(s, p)
+                    else {
+                      setPickerPosition(p)
+                      setSelected(null)
+                      setError(null)
+                    }
+                  }}
                   aria-label={`${positionNames[p]}: ${blocked ? 'Occupied by two-handed weapon' : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}`}
+                  aria-description={
+                    s?.item?.itemClass === 'battle-item' ? `${s.quantity} owned` : undefined
+                  }
                 >
-                  <span>{positionNames[p]}</span>
+                  <strong>
+                    {blocked ? 'Two-handed' : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}
+                  </strong>
+                  <small>
+                    {blocked
+                      ? 'Off Hand blocked'
+                      : s?.item
+                        ? `${s.item.qualityPoints} QP${s.item.itemClass === 'battle-item' ? ` · ×${s.quantity} owned` : ''}`
+                        : s
+                          ? 'Remove to repair'
+                          : 'Unequipped'}
+                  </small>
                   {s?.item?.artworkSrc ? (
                     <Image
                       src={itemThumbnail(s.item.artworkSrc)}
@@ -288,24 +356,13 @@ export function CharacterItems({
                       {blocked ? '◆' : '◇'}
                     </span>
                   )}
-                  <strong>
-                    {blocked ? 'Two-handed' : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}
-                  </strong>
-                  <small>
-                    {blocked
-                      ? 'Off Hand blocked'
-                      : s?.item
-                        ? `${s.item.qualityPoints} QP`
-                        : s
-                          ? 'Remove to repair'
-                          : 'Unequipped'}
-                  </small>
+                  <span className={styles.positionName}>{positionNames[p]}</span>
                 </button>
               )
             })}
           </div>
           <div className={styles.attack}>
-            <strong>Basic Attack · {attack?.actions.attack?.name ?? 'Unarmed'}</strong>
+            <strong>Basic Attack slot: {attack?.actions.attack ? attack.name : 'Unarmed'}</strong>
           </div>
         </section>
         <section className={styles.panel} aria-label="Inventory">
@@ -313,10 +370,17 @@ export function CharacterItems({
             <h3>Inventory</h3>
             <small>{categoryStacks.length} / 40 slots</small>
           </div>
-          <div className={styles.tabs} aria-label="Inventory categories">
+          <div className={styles.tabs} aria-label="Item classes">
             {ITEM_INVENTORY_CATEGORIES.map((c) => (
-              <button key={c} aria-pressed={category === c} onClick={() => setCategory(c)}>
-                {categoryNames[c]}
+              <button
+                key={c}
+                aria-pressed={category === c}
+                onClick={() => {
+                  setCategory(c)
+                  setFilter('all')
+                }}
+              >
+                {itemCategoryLabel(c)}
               </button>
             ))}
           </div>
@@ -330,61 +394,74 @@ export function CharacterItems({
                 placeholder="Name or tag"
               />
             </label>
-            <label>
-              Filter
-              <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-                <option value="all">All Items</option>
-                <option value="equippable">Equippable</option>
-                <option value="unavailable">Unavailable</option>
-                <optgroup label="Equipment slot">
-                  {['head', 'body', 'pants', 'boots', 'hand'].map((s) => (
-                    <option key={s} value={`slot:${s}`}>
-                      {s}
-                    </option>
-                  ))}
-                </optgroup>
-                <optgroup label="Class">
-                  {[
-                    'armor',
-                    'hand-armor',
-                    'weapon',
-                    'battle-item',
-                    'material',
-                    'general',
-                    'event',
-                    'companion',
-                  ].map((c) => (
-                    <option key={c} value={c}>
-                      {c.replaceAll('-', ' ')}
-                    </option>
-                  ))}
-                </optgroup>
-              </select>
-            </label>
+            {category === 'gear' || category === 'battle-items' ? (
+              <label>
+                Filter
+                <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+                  <option value="all">All Items</option>
+                  <option value="equippable">Equippable</option>
+                  {category === 'gear' ? (
+                    <>
+                      <optgroup label="Position">
+                        {(['head', 'body', 'pants', 'boots', 'main-hand', 'off-hand'] as const).map(
+                          (s) => (
+                            <option key={s} value={`slot:${s}`}>
+                              {positionNames[s]}
+                            </option>
+                          ),
+                        )}
+                      </optgroup>
+                      <optgroup label="Type">
+                        {['armor', 'hand-armor', 'weapon'].map((c) => (
+                          <option key={c} value={c}>
+                            {itemClassLabel(c)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    </>
+                  ) : null}
+                </select>
+              </label>
+            ) : null}
             <label>
               Sort
-              <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                {Object.entries(sortNames).map(([value, name]) => (
-                  <option key={value} value={value}>
-                    {name}
-                  </option>
-                ))}
+              <select
+                disabled={disabled}
+                value={sorts[category] ?? ''}
+                onChange={(e) => void mutate({ action: 'sort', category, order: e.target.value })}
+              >
+                <option value="" disabled>
+                  Saved order
+                </option>
+                {Object.entries(sortNames)
+                  .filter(
+                    ([value]) =>
+                      (value !== 'quantity' || category !== 'gear') &&
+                      (value !== 'class' || category === 'gear') &&
+                      (value !== 'quality-points' ||
+                        category === 'gear' ||
+                        category === 'battle-items'),
+                  )
+                  .map(([value, name]) => (
+                    <option key={value} value={value}>
+                      {name}
+                    </option>
+                  ))}
               </select>
             </label>
-            <button
-              disabled={disabled}
-              onClick={() => void mutate({ action: 'sort', category, order: sort })}
-            >
-              Save order
-            </button>
           </div>
+          {error && !chosen && !pickerPosition ? (
+            <p role="alert" className={styles.warning}>
+              {error}
+            </p>
+          ) : null}
           <p className={styles.muted}>
-            Search and filters show matches first. Only Save order changes saved slots.
+            Sorting saves automatically. Search and filters show matching Items.
           </p>
           <div className={styles.inventoryScroll}>
             <div
               className={styles.inventory}
-              aria-label={`${categoryNames[category]} inventory slots`}
+              aria-label={`${itemCategoryLabel(category)} inventory slots`}
             >
               {Array.from({ length: 40 }, (_, index) => {
                 const s = packedMatches ? packedMatches[index] : bySlot.get(index)
@@ -395,7 +472,7 @@ export function CharacterItems({
                         className={styles.item}
                         data-tier={s.item?.tier}
                         onClick={() => open(s)}
-                        aria-label={`Slot ${s.slotIndex + 1}: ${s.item?.name ?? 'Unavailable Item'}, quantity ${s.quantity}`}
+                        aria-label={`Slot ${s.slotIndex + 1}: ${s.item?.name ?? 'Unavailable Item'}, quantity ${s.quantity}${Object.values(view.equipment).includes(s.id) ? ', equipped' : ''}`}
                         title={s.item?.name ?? 'Unavailable Item'}
                       >
                         {s.item?.artworkSrc ? (
@@ -414,7 +491,9 @@ export function CharacterItems({
                           {s.item?.name ?? 'Unavailable Item'}
                         </span>
                         {Object.values(view.equipment).includes(s.id) ? (
-                          <span className={styles.equipped}>Equipped</span>
+                          <span className={styles.equipped}>
+                            <span aria-hidden="true">✓</span> Equipped
+                          </span>
                         ) : null}
                       </button>
                     ) : (
@@ -434,7 +513,7 @@ export function CharacterItems({
           titleId="item-dialog-title"
           busy={busy}
           onDismiss={() => setSelected(null)}
-          className={styles.dialog}
+          className={`${styles.dialog} ${!chosen.item?.equipment ? styles.compactDialog : ''}`}
           surface="ink"
         >
           <header className={styles.dialogHeading}>
@@ -443,162 +522,148 @@ export function CharacterItems({
               Close
             </button>
           </header>
-          <div className={styles.dialogBody} data-equipped-inspection={equippedInspection}>
+          <div className={styles.dialogBody}>
             {chosen.item ? (
               <ItemDetails item={chosen.item} showName={false} />
             ) : (
               <p className={styles.warning}>
-                This owned Item is unavailable in the current catalogue (archived, missing or no
-                longer a runtime Item). It remains in inventory. Remove its equipment assignment to
-                repair your loadout.
+                This owned Item is unavailable in the current catalogue. It remains in inventory.
+                Unequip it to repair your loadout.
               </p>
             )}
             <div className={styles.equipmentActions}>
-              {EQUIPMENT_POSITIONS.filter((p) => view.equipment[p] === chosen.id).map((p) => (
-                <button
-                  className={styles.remove}
-                  key={p}
-                  disabled={disabled}
-                  onClick={() => void mutate({ action: 'unequip', position: p })}
-                >
-                  Unequip {positionNames[p]}
-                </button>
-              ))}
-              {chosen.item?.equipment && !equippedInspection ? (
-                <section className={styles.proposal} aria-label="Equipment comparison">
-                  <h3>Compare & equip</h3>
-                  <label>
-                    Equip position
-                    <select
-                      value={position}
-                      onChange={(e) => {
-                        setPosition(e.target.value as EquipmentPosition)
-                        setExtra([])
-                      }}
+              <div className={styles.actionButtons}>
+                {removals.length ? (
+                  removals.map((p) => (
+                    <button
+                      key={p}
+                      disabled={disabled}
+                      onClick={() => void mutate({ action: 'unequip', position: p })}
                     >
-                      {itemPositions(chosen.item).map((p) => (
-                        <option key={p} value={p}>
-                          {positionNames[p]}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <p>
-                    {positionNames[position]}:{' '}
-                    {view.stacks.find((s) => s.id === view.equipment[position])?.item?.name ??
-                      (view.equipment[position] ? 'Unavailable Item' : 'Empty')}{' '}
-                    → {chosen.item.name}
-                  </p>
-                  {view.stacks.find((s) => s.id === view.equipment[position])?.item ? (
-                    <details>
-                      <summary>Compare currently equipped Item report</summary>
-                      <ItemDetails
-                        item={view.stacks.find((s) => s.id === view.equipment[position])!.item!}
-                      />
-                    </details>
-                  ) : null}
-                  <p>
-                    QP: {view.qualityPoints} → {proposal?.qualityPoints} / 100
-                  </p>
-                  {proposal?.removals.length ? (
-                    <p className={styles.warning}>
-                      Confirm replacement:{' '}
-                      {proposal.removals
-                        .map(
-                          (p) =>
-                            `${positionNames[p]} (${view.stacks.find((s) => s.id === view.equipment[p])?.item?.name ?? 'Unavailable Item'})`,
-                        )
-                        .join(', ')}{' '}
-                      will be unequipped.
-                    </p>
-                  ) : null}
-                  {proposal?.shortage ? (
-                    <p role="status" className={styles.warning}>
-                      Short by {proposal.shortage} QP. Choose equipment to remove below.
-                    </p>
-                  ) : null}
-                  <fieldset>
-                    <legend>Optional equipment to remove in this swap</legend>
-                    {EQUIPMENT_POSITIONS.filter(
-                      (p) =>
-                        view.equipment[p] &&
-                        p !== position &&
-                        !proposal?.requiredReplacements.includes(p),
-                    ).map((p) => {
-                      const current = view.stacks.find((s) => s.id === view.equipment[p])
-                      return (
-                        <label key={p}>
-                          <input
-                            type="checkbox"
-                            checked={extra.includes(p)}
-                            onChange={(e) =>
-                              setExtra(
-                                e.target.checked ? [...extra, p] : extra.filter((v) => v !== p),
-                              )
-                            }
-                          />
-                          {positionNames[p]} · {current?.item?.name ?? 'Unavailable Item'} ·{' '}
-                          {current?.item?.qualityPoints ?? '?'} QP
-                        </label>
-                      )
-                    })}
-                  </fieldset>
-                  {view.selectedSupport.kind === 'equipment' &&
-                  proposal?.removals.includes(view.selectedSupport.position) ? (
-                    <p className={styles.warning}>
-                      This removes your selected Support source; your previous Basic Support Action
-                      will be restored.
-                    </p>
-                  ) : null}
-                  {proposal?.issue ? (
-                    <p role="status" className={styles.warning}>
-                      {proposal.issue}
-                    </p>
-                  ) : null}
-                  {view.equipmentIssue ? (
-                    <p className={styles.warning}>
-                      Resolve the current equipment issue before equipping. Unequip invalid pieces
-                      above.
-                    </p>
-                  ) : null}
+                      {removals.length > 1 ? `Unequip ${positionNames[p]}` : 'Unequip'}
+                    </button>
+                  ))
+                ) : chosen.item?.equipment && targetPosition ? (
                   <button
-                    className={styles.confirm}
-                    disabled={
-                      disabled ||
-                      !!proposal?.issue ||
-                      !!proposal?.shortage ||
-                      !!view.equipmentIssue ||
-                      view.equipment[position] === chosen.id
-                    }
+                    disabled={disabled || !!blockedReason}
+                    title={blockedReason ?? undefined}
                     onClick={() =>
                       void mutate({
                         action: 'equip',
                         stackId: chosen.id,
-                        position,
-                        replacePositions: proposal?.removals ?? [],
+                        position: targetPosition,
+                        replacePositions: proposal?.requiredReplacements ?? [],
                       })
                     }
                   >
-                    {proposal?.removals.length ? 'Confirm swap' : 'Equip'} ·{' '}
-                    {positionNames[position]}
+                    Equip
                   </button>
-                </section>
-              ) : !chosen.item?.equipment ? (
-                <p className={styles.muted}>
-                  Flavor and future-purpose Item. No equipment or battle action.
-                </p>
-              ) : null}
-              {error ? (
-                <p role="alert" className={styles.warning}>
-                  {error}
-                </p>
-              ) : null}
-              {needsReload ? (
-                <button disabled={busy} onClick={() => void reload()}>
-                  Reload Items
-                </button>
+                ) : (
+                  <button disabled>Cannot be equipped</button>
+                )}
+              </div>
+              {statChanges.length ? (
+                <dl className={styles.statChanges} aria-label="Equipment stat changes">
+                  {statChanges.map(({ stat, amount }) => (
+                    <div key={stat}>
+                      <dt>{COMBAT_BONUS_STAT_LABELS[stat].replace(/ \(.*\)$/, '')}</dt>
+                      <dd
+                        className={amount > 0 ? styles.statIncrease : styles.statDecrease}
+                        data-equipment-stat-change={amount}
+                      >
+                        {amount > 0 ? '+' : '−'}
+                        {stat === 'evasion' ? `${Math.abs(amount) / 100}%` : Math.abs(amount)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
               ) : null}
             </div>
+            {!removals.length && blockedReason ? (
+              <p role="status" className={styles.muted}>
+                {blockedReason}
+              </p>
+            ) : null}
+            {error ? (
+              <p role="alert" className={styles.warning}>
+                {error}
+              </p>
+            ) : null}
+          </div>
+        </CharacterDeletionDialog>
+      ) : null}
+      {pickerPosition ? (
+        <CharacterDeletionDialog
+          titleId="item-picker-title"
+          busy={busy}
+          onDismiss={() => setPickerPosition(null)}
+          className={styles.dialog}
+          surface="ink"
+        >
+          <header className={styles.dialogHeading}>
+            <h2 id="item-picker-title">Equip {positionNames[pickerPosition]}</h2>
+            <button autoFocus disabled={busy} onClick={() => setPickerPosition(null)}>
+              Close
+            </button>
+          </header>
+          <div className={styles.dialogBody}>
+            {pickerChoices.length ? (
+              <div
+                className={styles.pickerChoices}
+                aria-label={`Owned Items for ${positionNames[pickerPosition]}`}
+              >
+                {pickerChoices.map((stack) => {
+                  const choice = equipmentProposal(view, stack, pickerPosition, [])
+                  const reason =
+                    choice.issue ??
+                    (choice.shortage
+                      ? 'This equipment would exceed 100 QP.'
+                      : view.equipmentIssue?.message)
+                  return (
+                    <button
+                      key={stack.id}
+                      disabled={disabled || !!reason}
+                      title={reason ?? undefined}
+                      onClick={() =>
+                        void mutate({
+                          action: 'equip',
+                          stackId: stack.id,
+                          position: pickerPosition,
+                          replacePositions: choice.requiredReplacements,
+                        })
+                      }
+                    >
+                      {stack.item?.artworkSrc ? (
+                        <Image
+                          src={itemThumbnail(stack.item.artworkSrc)}
+                          width={36}
+                          height={36}
+                          alt=""
+                          unoptimized
+                        />
+                      ) : null}
+                      <span>{stack.item?.name}</span>
+                      {stack.item?.itemClass === 'battle-item' ? (
+                        <small>×{stack.quantity}</small>
+                      ) : null}
+                      {reason ? <small>{reason}</small> : null}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <p role="status">
+                No owned Items can be equipped in {positionNames[pickerPosition]}.
+              </p>
+            )}
+            {view.battleLocked ? (
+              <p role="status">Equipment changes are locked during battle.</p>
+            ) : null}
+            {error ? (
+              <p role="alert" className={styles.warning}>
+                {error}
+              </p>
+            ) : null}
           </div>
         </CharacterDeletionDialog>
       ) : null}
