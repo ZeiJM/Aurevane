@@ -4,7 +4,9 @@ Status: implemented and independently reviewed; required verification remains bl
 
 The earlier Items release remains live on `dpl_D79wgdgrFWWjf3kom6sfypujPk6F`.
 This work starts from main `e4dd343b9c441fa65d50027b3b5df2f541a51e45` on an isolated
-`agent/equipment-fit-20261105` branch. It does not authorize another deployment or hosted publication.
+`agent/equipment-fit-20261105` branch. Nick subsequently authorized hourly checks and this scoped
+controlled production release once required verification passes (November 5). No new deployment
+or hosted publication has been performed yet.
 
 ## Owner direction and implementation
 
@@ -176,3 +178,42 @@ The three reconciled fast Item/wording expectations are recorded above and exclu
 | `src/server/battle/roster-legal-ranged-ai.test.ts` | '1:pvp' repositions for an affordable three-target Volley that improves paid value |
 | `src/server/battle/roster-legal-ranged-ai.test.ts` | '100:pve' repositions for an affordable three-target Volley that improves paid value |
 | `src/server/battle/roster-legal-ranged-ai.test.ts` | '100:pvp' repositions for an affordable three-target Volley that improves paid value |
+
+## Subsequent exact-head CI diagnosis and reviewed test reconciliation
+
+On `4bae94e962aaa322a608fac8a507a741baa664ee`, the complete central quality execution
+passed all 7,150 Core tests and all 633 DB tests at unchanged configured limits. This provides
+new passing CI evidence for the previously recorded local broad timeouts; it does not relabel
+the interrupted local runs as successful. Database Foundation also passes, so the prior-head
+Docker-port startup collision is no longer a current blocker.
+
+The Web suite completed: 8,892 passed and four failed in two files. Both red check names
+(`Execute Quality gates` and its final `Quality gates` result) represent this same execution,
+not two independent root causes. Source log:
+https://github.com/ZeiJM/Aurevane/actions/runs/42087416943/job/127456356506
+
+All four failures were reproduced locally before adjustment:
+
+- Three `starter-weapon-support-injection` cases still expected current Wardstone Bracer to
+  offer Warding Prayer, contrary to the approved passive-only armor rule. The matrix now
+  covers all three weapons with current source6 armor and genuine retained source1 armor
+  from the tracked before-definition audit. It proves only the selected Support is injected,
+  current armor cannot inject the removed action, retained armor still can, attacks remain
+  available, private stack IDs are excluded from selections, and Basic Support excludes
+  equipment Support. No historical parser or application source changes.
+- `passive-stat-authoring` still expected the player report to explain `100 = 1%`. It now
+  asserts exact `Evasion [+1%] [Self]` and `Evasion +1%.` reporting without internal units
+  or Requirements prose. The authoring editor's unit explanation remains asserted.
+
+The adjusted two-file run passes all eight cases at original limits; a four-file adjacent run
+passes 20 cases. Scoped Web ESLint, Web TypeScript and formatting pass. Independent review
+reports no findings and independently repeats the eight cases successfully. Fresh main remains
+`e4dd343b9c441fa65d50027b3b5df2f541a51e45`; Git deployment remains disabled. New exact-head
+configured results remain required. At the one status observation for the preceding head, all
+other completed application checks pass and responsive Browser Smoke is still running;
+Supabase Preview is intentionally skipped. No gate, timeout or assertion was weakened.
+
+The hourly release watch is enabled and must stop after verified canonical production release.
+No original-release migrations/publications/deployment may be replayed. This refinement adds
+no migration; its guarded source-registration/publication scope remains the exact audited
+20 successors and only the required ordinary Emberbrand publication after fresh checks.

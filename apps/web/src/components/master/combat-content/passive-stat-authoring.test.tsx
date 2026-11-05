@@ -36,7 +36,10 @@ it('authors a real ongoing flat stat bonus and reports its exact units', () => {
     requirements: null,
     effects: [effect],
   }
-  expect(JSON.stringify(abilityBehaviorInformation(behavior))).toContain('100 = 1%')
+  const report = abilityBehaviorInformation(behavior)
+  expect(report.rows).toContainEqual(['Effects', 'Evasion [+1%] [Self]'])
+  expect(report.effectDescriptions).toEqual(['Evasion +1%.'])
+  expect(JSON.stringify(report)).not.toMatch(/basis points|100 = 1%|Requirements hold/)
 })
 it('reports an explicit finite limit and packet element without adding Skill usage controls', () => {
   const behavior: AbilityBehavior = {
