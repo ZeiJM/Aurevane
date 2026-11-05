@@ -48,7 +48,10 @@
 }
 .columns {
   display: grid;
-  grid-template-columns: minmax(400px, 1fr) minmax(0, 1.6fr);
+  grid-template-columns: minmax(calc(var(--av-item-art-size) * 2.75 + 16.5rem), 1fr) minmax(
+      0,
+      1.6fr
+    );
   gap: 20px;
   align-items: start;
 }
@@ -510,11 +513,17 @@
 }
 @media (min-width: 981px) and (max-width: 1100px) {
   .columns {
-    grid-template-columns: minmax(400px, 1fr) minmax(0, 1.35fr);
+    grid-template-columns: minmax(calc(var(--av-item-art-size) * 2.75 + 16.5rem), 1fr) minmax(
+        0,
+        1.35fr
+      );
     gap: 12px;
   }
   .panel {
     padding: 12px;
+  }
+  .tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .workspace .tabs button {
     font-size: 0.66rem;
@@ -675,7 +684,7 @@
   .page .equipmentSlot strong {
     grid-row: 1;
     align-self: end;
-    font-size: 0.68rem;
+    font-size: 0.66rem;
   }
   .page .equipmentSlot small {
     grid-row: 2;

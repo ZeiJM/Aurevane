@@ -140,9 +140,7 @@ try {
     evasion.getByRole('dialog').getByRole('list', { name: 'Equipment stat changes' }),
   ).toHaveCount(0)
   await evasion.close()
-  console.log(
-    'Authoritative Evasion: owned hood equip/unequip displays +1% / −1% rather than raw basis points',
-  )
+  console.log('Armor bonuses: effects remain visible without a duplicate stat footer')
   const automatic = await browser.newPage({ viewport: { width: 1366, height: 768 } })
   await automatic.goto(`${server.resolvedUrls.local[0]}?shell=items`, { waitUntil: 'networkidle' })
   const automaticSort = automatic.getByRole('combobox', { name: 'Sort', exact: true })
@@ -318,6 +316,7 @@ try {
     { width: 390, height: 844 },
     { width: 412, height: 915 },
   ].filter(includeViewport)) {
+    console.log(`Checking Items shell ${viewport.width}x${viewport.height}`)
     const shellPage = await browser.newPage({ viewport })
     await shellPage.route('**/_next/image?*', async (route) => {
       const url = new URL(route.request().url())

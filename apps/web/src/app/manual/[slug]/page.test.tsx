@@ -139,7 +139,7 @@ it('renders the real current canonical catalogue and every edited Basic from one
     'Dmg [13] [Controlled]',
     'Once per battle',
     '12.5%',
-    'Active while Requirements are met',
+    'Ends when its source is removed',
   ])
     expect(text).toContain(value)
   expect(html).toContain('data-compact-effect-label="true"')

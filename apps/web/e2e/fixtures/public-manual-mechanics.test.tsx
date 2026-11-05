@@ -137,7 +137,7 @@ it('uses shared effect-name and value markup for separate Manual and Ongoing gro
   expect(html).toContain('[13]')
   expect(html).toContain('[12.5%]')
   expect(html).toContain('Once per battle')
-  expect(html).toContain('Active while Requirements are met')
+  expect(html).toContain('Ends when its source is removed')
 })
 it('renders all seven current Basics with actual structured effects and excludes retired Guard', () => {
   const value = article()
