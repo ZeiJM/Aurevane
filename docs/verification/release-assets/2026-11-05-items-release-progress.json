@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "status": "application-promoted-admission-held-draining-not-complete",
+  "sourceCommit": "0fd6cb6144da1624e88d3c58a24f224693f541b2",
+  "sourceTree": "02f4e9429d466fad8a78f36efdf4f38d222b0a85",
+  "testedFeatureHead": "657b10a87964fa9b7741504db2d24b0ab634c7ac",
+  "testedFeatureTree": "85fc5b22b1f28f51b6701ea31721b95824f663ca",
+  "mergedPRs": [
+    1017,
+    1013,
+    1016
+  ],
+  "featureWorkflowsPassed": 19,
+  "applicationChecksPassed": true,
+  "supabaseIntegration": {
+    "conclusion": "failure",
+    "summary": "Remote migration versions not found in local migrations directory.",
+    "newItemMigrationsInstalled": false,
+    "action": "Use reviewed guarded additive release path; do not rewrite migration history."
+  },
+  "projectId": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "teamId": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "supabaseProjectId": "luazfeupwfgnilohfsya",
+  "deploymentId": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+  "deploymentUrl": "aurevane-coznss4ds-zeijms-projects.vercel.app",
+  "state": "READY",
+  "promoted": true,
+  "previousDeploymentId": "dpl_E9j4htHeNBGb5a385ea3H5TuhxJT",
+  "retirementVerifiedAt": "2026-11-05T14:57:00.345143Z",
+  "drainNotBefore": "2026-11-05T15:29:30.345143Z",
+  "holdRuleId": "45a07761-caca-49ad-9017-a665fb051017",
+  "routingVersion": "2ac40cc2-8731-4db7-affc-f426272b473e",
+  "retirementRules": 9,
+  "totalRulesWithHold": 10,
+  "autoAssignCustomDomains": false,
+  "gitAutomaticDeployments": false,
+  "canonicalDomains": [
+    "aurevane.vercel.app",
+    "aurevane-rpg.com",
+    "www.aurevane-rpg.com"
+  ],
+  "cutoverProbes": [
+    {
+      "url": "https://aurevane.vercel.app/",
+      "status": 200,
+      "expected": 200,
+      "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F"
+    },
+    {
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "expected": 200,
+      "source": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F"
+    },
+    {
+      "url": "https://aurevane-3bcyfzpnq-zeijms-projects.vercel.app/",
+      "status": 503,
+      "expected": 503
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/battles",
+      "status": 503,
+      "expected": 503
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/character/items",
+      "status": 503,
+      "expected": 503
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/master/access",
+      "status": 503,
+      "expected": 503
+    }
+  ],
+  "databaseMigrationsApplied": [],
+  "sourceRegistrationDone": false,
+  "reviewedSuccessorsPublished": false,
+  "holdRemoved": false,
+  "remaining": "After the drain and zero pre-retirement transactions, apply only four reviewed migrations with exact predecessor, owner/ACL and durable preservation guards. Register exact three source v4 successors and use normal freshly guarded Commit if no Owner draft conflict. Read back exact publication bodies and preserved data; then remove only the temporary hold, verify canonical guest/authority/stock/requirements routes and bounded errors, finalize receipt and disable the existing watch.",
+  "limitations": [
+    "No execution environment is currently available; connectors remain usable.",
+    "The attempted existing-battle unauthenticated probe was blocked by the fetch tool's share-link authentication; it is not reported as application verification.",
+    "No hosted Item grants or test inventory mutations performed."
+  ]
+}
