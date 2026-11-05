@@ -1,5 +1,7 @@
 import './production-styles'
 import React from 'react'
+import { CharacterProfileDetails } from '@/components/character/character-profile-details'
+import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import { createRoot } from 'react-dom/client'
 import { CharacterSelectShell } from '@/components/character/character-select-shell'
 import { AuthenticatedShellPresentation } from '@/components/shell/authenticated-shell-presentation'
@@ -92,6 +94,11 @@ const state = () => ({
     : {}),
   snapshot,
   definitions,
+  timingPolicy: {
+    version: 11,
+    tagAuthority: 'global',
+    modes: { 'remove-status': 'instant', conductive: 'instant', 'barrier-change': 'instant' },
+  },
   catalogueToken: 'a'.repeat(32),
   battleLocked: window.testState.battleLocked,
 })
@@ -287,7 +294,19 @@ const rosterCharacter = {
   disciplines: { primary: { id: 'vanguard', name: 'Vanguard' }, secondary: null },
 }
 createRoot(document.getElementById('root')).render(
-  new URLSearchParams(location.search).has('shell') ? (
+  new URLSearchParams(location.search).has('profile') ? (
+    <CharacterProfileDetails
+      attributes={{ might: 6, finesse: 6, vitality: 6, agility: 7, intellect: 6, resolve: 6 }}
+      derived={calculateDerivedStats({
+        attributes: { might: 6, finesse: 6, vitality: 6, agility: 7, intellect: 6, resolve: 6 },
+        level: 1,
+      })}
+      equipmentBonuses={view.statBonuses}
+      presentationLabel="Traveler"
+      buildTypeLabel="Essence Build"
+      cycleNumber={1}
+    />
+  ) : new URLSearchParams(location.search).has('shell') ? (
     <AuthenticatedShellPresentation>
       {new URLSearchParams(location.search).get('shell') === 'nexus' ? (
         <div

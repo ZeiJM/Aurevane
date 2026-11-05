@@ -249,7 +249,7 @@ it('describes battle Items as consumables rather than hand equipment', async () 
       item={item({ itemClass: 'battle-item', equipment: { slot: 'hand', hands: 1 } })}
     />,
   )
-  expect(html).toContain('<dd>Consumable 1 / Consumable 2</dd>')
+  expect(html).toContain('<dd>Consumable Slot</dd>')
   expect(html).not.toContain('hand · 1 hand')
 })
 it('shows why a starter grant is deferred without implying any quantity was granted', () => {

@@ -1,5 +1,8 @@
 .details {
   min-width: 0;
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
   overflow-wrap: anywhere;
   font-size: 0.78rem;
   line-height: 1.35;
@@ -8,8 +11,10 @@
   display: grid;
   grid-template-columns: 112px minmax(0, 1fr);
   align-items: start;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #75613d44;
 }
 .summary h3 {
   font-size: 1rem;
@@ -59,7 +64,7 @@
 }
 .characteristics > div {
   display: grid;
-  grid-template-columns: minmax(90px, 0.9fr) minmax(0, 1.5fr);
+  grid-template-columns: minmax(90px, 9rem) minmax(0, 1fr);
   gap: 8px;
   padding: 3px 7px;
   border-bottom: 1px solid #75613d44;
@@ -73,7 +78,7 @@
 }
 .characteristics dd {
   margin: 0;
-  text-align: right;
+  text-align: left;
   font-weight: 600;
 }
 .explanations {

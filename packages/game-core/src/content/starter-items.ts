@@ -28,7 +28,7 @@ const enemy = (range = 1): AbilityTargeting => ({
   maximumElevationDifference: 1,
 })
 const effects = (...payloads: CombatTagPayload[]): AbilityEffect[] =>
-  payloads.map((payload, index) => ({ id: `effect-${index + 1}`, timing: 'instant', payload }))
+  payloads.map((payload, index) => ({ id: `effect-${index + 1}`, payload }))
 const passive = (...payloads: CombatTagPayload[]): AbilityBehavior => ({
   id: 'passive',
   activation: 'ongoing',
@@ -101,22 +101,6 @@ const fireCleanse: CombatTagPayload = {
   statusIds: ['frozen'],
 }
 /** Only changed defaults advance; distributed source bodies remain immutable. */
-const revisedItemIds = new Set([
-  'twinfang-blade',
-  'stormcaller-staff',
-  'emberbrand',
-  'mender-salve',
-  'clarity-draught',
-  'whetstone-charm',
-  'ironbark-tonic',
-  'swiftleaf-tea',
-  'emberflask',
-  'vulnerability-oil',
-  'frostbind-powder',
-  'smoke-veil',
-  'ward-sigil-scroll',
-])
-const reviewedSuccessorIds = new Set(['emberbrand', 'vulnerability-oil', 'ward-sigil-scroll'])
 function item(
   key: string,
   name: string,
@@ -132,7 +116,8 @@ function item(
   return {
     schemaVersion: 2,
     id: key,
-    contentVersion: reviewedSuccessorIds.has(key) ? 4 : revisedItemIds.has(key) ? 2 : 1,
+    contentVersion:
+      itemClass === 'weapon' || itemClass === 'battle-item' || key === 'wardstone-bracer' ? 6 : 1,
     name,
     description,
     sortOrder: 0,
@@ -182,7 +167,6 @@ function weapon(
     hands?: 1 | 2
     family?: 'physical' | 'mystic'
     range?: number
-    passives?: CombatTagPayload[]
     support?: AbilityBehavior
     supportName?: string
   } = {},
@@ -201,7 +185,6 @@ function weapon(
         attackFamily: options.family ?? 'physical',
         targeting: enemy(options.range),
       }),
-      ...(options.passives ? [passive(...options.passives)] : []),
       ...(options.support ? [options.support] : []),
     ],
     {
@@ -352,29 +335,12 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
     item(
       'wardstone-bracer',
       'Wardstone Bracer',
-      'A cool wardstone holds a small reserve of protection.',
+      'A cool wardstone shelters its wearer from mystic attacks.',
       'B',
       16,
       'hand-armor',
       { slot: 'hand', hands: 1 },
-      [
-        passive(stat('mystic-defense', 12)),
-        action(
-          'ward',
-          30,
-          [
-            {
-              type: 'barrier-change',
-              recipient: 'actor',
-              amount: 8,
-              basis: 'maximum-hp-percent',
-              durationTurns: 2,
-            },
-          ],
-          { cooldown: { key: 'ward', ownerTurns: 2 } },
-        ),
-      ],
-      { support: { behaviorId: 'ward', name: 'Warding Prayer' } },
+      [passive(stat('mystic-defense', 12))],
     ),
     weapon(
       'iron-shortsword',
@@ -430,13 +396,12 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
     weapon(
       'tower-shield',
       'Tower Shield',
-      'A heavy shield trades striking power for durable protection and a chosen Guard action.',
+      'A heavy shield delivers a restrained bash and offers the Tower Guard technique.',
       'A',
       30,
       30,
       [damage(3, 850)],
       {
-        passives: [stat('physical-defense', 18), stat('mystic-defense', 10)],
         supportName: 'Tower Guard',
         support: action('guard', 30, [status('guarded', 3000)], {
           cooldown: { key: 'guard', ownerTurns: 2 },
@@ -474,24 +439,16 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
     weapon(
       'emberbrand',
       'Emberbrand',
-      'A banked ember strengthens direct Fire damage while this blade is held.',
+      'A banked ember fuels fiery strikes; Kindle strengthens direct Fire damage for 2 turns.',
       'A',
       28,
       35,
-      [damage(6, 1300, 'physical', 'fire'), fireCleanse],
+      [damage(6, 1400, 'physical', 'fire'), fireCleanse],
       {
         supportName: 'Kindle',
         support: action('kindle', 20, [{ ...status('inspired', 1000), damageTypes: ['fire'] }], {
           cooldown: { key: 'kindle', ownerTurns: 2 },
         }),
-        passives: [
-          {
-            type: 'damage-bonus',
-            recipient: 'actor',
-            elementFilter: 'fire',
-            multiplierBasisPoints: 11000,
-          },
-        ],
       },
     ),
     weapon(

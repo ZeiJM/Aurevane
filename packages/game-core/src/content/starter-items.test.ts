@@ -79,47 +79,8 @@ it('balances all eleven consumables between 10 and 30 AP in steps of five', () =
   })
 })
 
-it('retains unchanged version-two source successors and the original grant receipt', () => {
-  expect(
-    starterItemDefinitions()
-      .filter((item) => item.contentVersion === 2)
-      .map((item) => item.id)
-      .sort(),
-  ).toEqual(
-    [
-      'twinfang-blade',
-      'stormcaller-staff',
-      'mender-salve',
-      'clarity-draught',
-      'whetstone-charm',
-      'ironbark-tonic',
-      'swiftleaf-tea',
-      'emberflask',
-      'frostbind-powder',
-      'smoke-veil',
-    ].sort(),
-  )
+it('keeps the original one-time starter grant receipt', () => {
   expect(starterItemGrant.key).toBe('starter-items.2026-11-03.v1')
-})
-
-it('uses explicit Chilled-only Conditional Cleanse for every starter Fire action', () => {
-  const fire = starterItemDefinitions()
-    .flatMap((item) => item.ability?.behaviors ?? [])
-    .filter((behavior) =>
-      behavior.effects.some(
-        ({ payload }) => payload.type === 'damage' && payload.element === 'fire',
-      ),
-    )
-  expect(fire).toHaveLength(2)
-  for (const behavior of fire)
-    expect(behavior.effects.map(({ payload }) => payload)).toContainEqual({
-      type: 'remove-status',
-      recipient: 'actor',
-      target: 'self',
-      statusIds: ['frozen'],
-      removalMode: 'specified',
-      selectionKind: 'debuffs',
-    })
 })
 
 it('binds distinct selectable weapon Supports while preserving Tower Guard', () => {
@@ -138,11 +99,15 @@ it('binds distinct selectable weapon Supports while preserving Tower Guard', () 
   })
 })
 
-it('publishes reviewed successors above existing publication versions without changing other source definitions', () => {
+it('retains the reviewed Fire-only Kindle scope and consumable description corrections', () => {
   const items = starterItemDefinitions()
   expect(
     items
-      .filter((item) => item.contentVersion === 4)
+      .filter(
+        (item) =>
+          ['emberbrand', 'vulnerability-oil', 'ward-sigil-scroll'].includes(item.id) &&
+          item.contentVersion === 6,
+      )
       .map((item) => item.id)
       .sort(),
   ).toEqual(['emberbrand', 'vulnerability-oil', 'ward-sigil-scroll'])
@@ -162,8 +127,17 @@ it('publishes reviewed successors above existing publication versions without ch
   )
 })
 
-it('matches the complete reviewed release candidates and preserves all 44 unaffected source bodies', () => {
+it('matches reviewed successors while preserving every unaffected source body', () => {
   const audit = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../../../docs/verification/2026-11-05-items-polish-successors.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
+  const before = JSON.parse(
     readFileSync(
       new URL(
         '../../../../docs/verification/2026-11-05-item-description-successors.json',
@@ -171,63 +145,37 @@ it('matches the complete reviewed release candidates and preserves all 44 unaffe
       ),
       'utf8',
     ),
-  ) as {
-    auditedCatalogue: { itemId: string; effectiveDefinition: Record<string, unknown> }[]
-    candidates: {
-      itemId: string
-      reviewedSourceDefinition: Record<string, unknown>
-      projectedNormalCommitDefinition: Record<string, unknown>
-    }[]
-  }
+  )
   const items = starterItemDefinitions()
-  expect(audit.auditedCatalogue).toHaveLength(47)
-  expect(audit.candidates).toHaveLength(3)
-  for (const baseline of audit.auditedCatalogue) {
-    const item = items.find((row) => row.id === baseline.itemId)!
-    const candidate = audit.candidates.find((row) => row.itemId === item.id)
+  expect(audit.candidates).toHaveLength(20)
+  for (const item of items) {
+    const candidate = audit.candidates.find((row: { itemId: string }) => row.itemId === item.id)
     if (candidate) {
-      expect(parseRuntimeItemDefinition(candidate.reviewedSourceDefinition)).toEqual(item)
-      expect(parseRuntimeItemDefinition(candidate.projectedNormalCommitDefinition)).toEqual({
-        ...item,
-        contentVersion: 5,
-      })
-      const before = baseline.effectiveDefinition
-      if (item.id === 'emberbrand') {
-        const onlyScopeChanged = structuredClone(item)
-        const kindle = onlyScopeChanged.ability!.behaviors.find((row) => row.id === 'kindle')!
-        const payload = kindle.effects[0]!.payload
-        if (payload.type !== 'apply-status') throw new Error('Kindle must apply Damage Up')
-        const { damageTypes, ...historicalPayload } = payload
-        expect(damageTypes).toEqual(['fire'])
-        expect({
-          ...onlyScopeChanged,
-          contentVersion: before.contentVersion,
-          ability: {
-            ...onlyScopeChanged.ability,
-            behaviors: onlyScopeChanged.ability!.behaviors.map((group) =>
-              group.id === 'kindle'
-                ? {
-                    ...group,
-                    effects: group.effects.map((effect) => ({
-                      ...effect,
-                      payload: historicalPayload,
-                    })),
-                  }
-                : group,
-            ),
-          },
-        }).toEqual(before)
-      } else {
-        expect({
-          ...item,
-          contentVersion: before.contentVersion,
-          description: before.description,
-        }).toEqual(before)
+      expect(parseRuntimeItemDefinition(candidate.sourceDefinition)).toEqual(item)
+      const normalized = structuredClone(candidate.beforeDefinition)
+      normalized.contentVersion = 6
+      for (const group of normalized.ability.behaviors)
+        for (const effect of group.effects) delete effect.timing
+      if (item.itemClass === 'weapon')
+        normalized.ability.behaviors = normalized.ability.behaviors.filter(
+          (group: { activation: string }) => group.activation === 'manual',
+        )
+      if (item.id === 'wardstone-bracer') {
+        normalized.ability.behaviors = normalized.ability.behaviors.filter(
+          (group: { activation: string }) => group.activation === 'ongoing',
+        )
+        delete normalized.actions
       }
+      if (item.id === 'emberbrand')
+        normalized.ability.behaviors[0].effects[0].payload.scaling.coefficientBasisPoints = 1400
+      if (['emberbrand', 'tower-shield', 'wardstone-bracer'].includes(item.id))
+        normalized.description = item.description
+      expect(item).toEqual(normalized)
     } else {
-      expect({ ...item, contentVersion: baseline.effectiveDefinition.contentVersion }).toEqual(
-        baseline.effectiveDefinition,
-      )
+      const baseline = before.auditedCatalogue.find(
+        (row: { itemId: string }) => row.itemId === item.id,
+      ).effectiveDefinition
+      expect({ ...item, contentVersion: baseline.contentVersion }).toEqual(baseline)
     }
   }
 })

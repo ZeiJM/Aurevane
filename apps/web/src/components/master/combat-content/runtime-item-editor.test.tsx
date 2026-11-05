@@ -125,7 +125,7 @@ it('offers every passive armor position with Gloves in Off Hand and no weapon-on
   expect(html).toContain('>Off Hand (Gloves)</option>')
   expect(html).toContain('>Gloves</option>')
   expect(html).not.toContain('aria-label="Hands"')
-  expect(html).toMatch(/<details[^>]*><summary>Optional Support action<\/summary>/)
+  expect(html).not.toContain('Optional Support action')
   expect(html).not.toContain('Support binding')
 })
 
@@ -195,4 +195,30 @@ it('offers six Classes and Gear-only Types while non-equippable Items show N/A',
       if (!item.equipment) expect(html).toContain('Position: N/A')
     }
   }
+})
+
+it('offers explicit passive-only repair for retained armor actions without silently changing the draft', () => {
+  const armor = starterItemDefinitions().find((item) => item.id === 'wardstone-bracer')!
+  const active = starterItemDefinitions()
+    .find((item) => item.id === 'emberbrand')!
+    .ability!.behaviors.find((group) => group.id === 'kindle')!
+  const draft = {
+    ...armor,
+    actions: { support: { behaviorId: active.id, name: 'Old Prayer' } },
+    ability: { ...armor.ability!, behaviors: [...armor.ability!.behaviors, active] },
+  }
+  const before = JSON.stringify(draft)
+  const html = renderToStaticMarkup(
+    <ContentDefinitionFields
+      kind="item"
+      tab="Parameters"
+      value={draft}
+      onChange={() => {
+        throw new Error('Rendering must not rewrite retained drafts')
+      }}
+    />,
+  )
+  expect(html).toContain('Keep passive effects only')
+  expect(html).not.toContain('Optional Support action')
+  expect(JSON.stringify(draft)).toBe(before)
 })

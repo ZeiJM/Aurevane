@@ -226,7 +226,7 @@ function AbilityGroupEditor({
   category,
   contentId,
 }: {
-  category?: 'manual' | 'passive'
+  category?: 'manual' | 'passive' | 'modifier'
   contentId?: string
   section?: AbilityEditorSection
   value: AbilityBehavior
@@ -291,7 +291,9 @@ function AbilityGroupEditor({
   const categoryMismatch =
     category === 'manual'
       ? value.activation !== 'manual' || value.mode !== 'action'
-      : category === 'passive' && value.activation === 'manual'
+      : category === 'modifier'
+        ? value.activation === 'manual' || value.mode !== 'modifier'
+        : category === 'passive' && value.activation === 'manual'
   return (
     <div className={styles.effectList}>
       {categoryMismatch ? (
@@ -310,6 +312,16 @@ function AbilityGroupEditor({
                 next.targeting ??= base().targeting
                 delete next.automaticTrigger
                 delete next.automaticTarget
+              } else if (category === 'modifier') {
+                next.activation = 'ongoing'
+                next.mode = 'modifier'
+                next.classification = 'utility'
+                delete next.attackFamily
+                delete next.automaticTrigger
+                delete next.automaticTarget
+                next.costs = []
+                next.cooldown = null
+                next.targeting = null
               } else {
                 next.activation = 'automatic'
                 if (next.mode === 'action') {
@@ -835,7 +847,7 @@ export function AbilityDefinitionEditor({
 }: {
   value: AbilityDefinition
   contentId?: string
-  category?: 'manual' | 'passive'
+  category?: 'manual' | 'passive' | 'modifier'
   section?: AbilityEditorSection
   allowEffectDescriptions?: boolean
   effectDescriptions?: readonly (string | null)[]

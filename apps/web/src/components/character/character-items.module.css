@@ -48,7 +48,7 @@
 }
 .columns {
   display: grid;
-  grid-template-columns: minmax(330px, 0.9fr) minmax(0, 1.6fr);
+  grid-template-columns: minmax(400px, 1fr) minmax(0, 1.6fr);
   gap: 20px;
   align-items: start;
 }
@@ -104,9 +104,9 @@
 }
 .equipment {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(64px, 0.8fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(72px, 1.05fr) minmax(0, 1fr);
   grid-template-rows: repeat(4, minmax(calc(var(--av-item-art-size) + 4rem), 1fr));
-  gap: 8px 5px;
+  gap: 8px 12px;
   isolation: isolate;
   position: relative;
   padding-block: 6px;
@@ -124,9 +124,10 @@
   min-height: 0;
   min-width: 0;
   align-self: stretch;
+  overflow: clip;
 }
 .mannequin img {
-  width: 220%;
+  width: 185%;
   max-width: none;
   height: 100%;
   object-fit: contain;
@@ -190,7 +191,7 @@
 .workspace .equipmentSlot {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: minmax(2.3em, max-content) max-content var(--av-item-art-size) max-content;
+  grid-template-rows: minmax(1.65rem, max-content) max-content var(--av-item-art-size) max-content;
   align-items: center;
   justify-items: center;
   align-content: center;
@@ -295,7 +296,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(calc(var(--av-item-art-size) + 12px), 1fr));
   gap: 8px;
-  grid-auto-rows: 1fr;
+  grid-auto-rows: max-content;
 }
 .inventoryCell {
   min-width: 0;
@@ -310,9 +311,9 @@
   height: 100%;
   padding: 4px;
   display: grid;
-  grid-template-rows: var(--av-item-art-size) minmax(2rem, auto);
+  grid-template-rows: var(--av-item-art-size) minmax(0, 1fr);
   justify-items: center;
-  align-content: start;
+  align-content: stretch;
   gap: 0;
   border: 0;
   border-radius: 4px;
@@ -347,10 +348,10 @@
 }
 .itemName {
   width: 100%;
-  min-height: 2.4em;
+  min-height: 0;
   text-align: center;
   overflow: hidden;
-  padding: 4px 2px 2px;
+  padding: 2px 0;
   font-size: 0.7rem;
   line-height: 1.2;
   align-self: center;
@@ -380,7 +381,7 @@
   display: grid;
   place-items: center;
   height: 100%;
-  min-height: calc(var(--av-item-art-size) + 2.4rem);
+  min-height: calc(var(--av-item-art-size) + 1.8rem);
   color: #5e645f;
   font-size: 0.75rem;
 }
@@ -509,7 +510,7 @@
 }
 @media (min-width: 981px) and (max-width: 1100px) {
   .columns {
-    grid-template-columns: minmax(330px, 0.85fr) minmax(0, 1.65fr);
+    grid-template-columns: minmax(400px, 1fr) minmax(0, 1.35fr);
     gap: 12px;
   }
   .panel {
@@ -610,13 +611,7 @@
   color: #a79b85;
 }
 
-@media (min-width: 981px) and (max-height: 660px) {
-  .equipment {
-    gap: 5px;
-  }
-}
-
-/* The ordinary desktop shell owns the viewport; each Items panel owns its content scroll. */
+/* Fit all equipment in the desktop shell; only the inventory needs an internal reader. */
 @media (min-width: 981px) {
   .page {
     display: grid;
@@ -654,7 +649,40 @@
   }
   .page .equipment {
     flex: 1;
-    min-height: min-content;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) minmax(80px, 0.72fr) minmax(0, 1fr);
+    grid-template-rows: repeat(4, calc(var(--av-item-art-size) + 10px));
+    align-content: center;
+  }
+  .page .equipmentSlot {
+    grid-template-columns: var(--av-item-art-size) minmax(0, 1fr);
+    grid-template-rows: max-content max-content max-content;
+    align-content: center;
+    column-gap: 5px;
+    row-gap: 2px;
+    padding: 4px;
+  }
+  .page .equipmentSlot img,
+  .page .equipmentSlot .emptyIcon {
+    grid-column: 1;
+    grid-row: 1 / 4;
+  }
+  .page .equipmentSlot strong,
+  .page .equipmentSlot small,
+  .page .equipmentSlot .positionName {
+    grid-column: 2;
+  }
+  .page .equipmentSlot strong {
+    grid-row: 1;
+    align-self: end;
+    font-size: 0.68rem;
+  }
+  .page .equipmentSlot small {
+    grid-row: 2;
+  }
+  .page .equipmentSlot .positionName {
+    grid-row: 3;
+    align-self: start;
   }
   .page .equipmentPanel > :not(.equipment) {
     flex-shrink: 0;
@@ -666,5 +694,15 @@
     min-height: 0;
     max-height: none;
     flex: 1;
+  }
+}
+
+@media (min-width: 981px) and (max-height: 660px) {
+  .page .equipment {
+    grid-template-rows: repeat(4, calc(var(--av-item-art-size) + 6px));
+    gap: 5px 12px;
+  }
+  .page .equipmentSlot {
+    padding: 2px;
   }
 }

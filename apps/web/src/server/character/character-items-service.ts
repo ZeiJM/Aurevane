@@ -1,3 +1,4 @@
+import type { CombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import {
   evaluateItemEquipRequirements,
   type ItemEquipContext,
@@ -35,6 +36,7 @@ import {
 export type StarterItemNotice =
   'starter-items-deferred-capacity' | 'starter-items-deferred-battle' | 'starter-items-unavailable'
 export interface CharacterItemsState {
+  readonly timingPolicy?: CombatEffectTimingPolicy
   readonly equipContext?: ItemEquipContext
   readonly starterNotice?: StarterItemNotice
   readonly snapshot: ItemInventorySnapshot
@@ -145,7 +147,10 @@ export function characterItemsView(
             : [],
         item:
           definition?.schemaVersion === 2
-            ? presentItem(definition, { disciplineNames: state.equipContext?.disciplineNames })
+            ? presentItem(definition, {
+                timingPolicy: state.timingPolicy,
+                disciplineNames: state.equipContext?.disciplineNames,
+              })
             : null,
       }
     }),

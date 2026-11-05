@@ -335,15 +335,14 @@ function effectPresentation(
       description += ` Move elevation: ${payload.maximumElevation}.`
     if (payload.requiresLineOfSight) description += ' Requires line of sight to each entered tile.'
   } else if (payload.type === 'stat-bonus') {
-    parts = {
-      label: COMBAT_BONUS_STAT_LABELS[payload.stat],
-      magnitude: `+${payload.amount}`,
-      duration: null,
-    }
+    const name = COMBAT_BONUS_STAT_LABELS[payload.stat].replace(/ \(.*\)$/, '')
+    const amount = payload.stat === 'evasion' ? payload.amount / 100 : payload.amount
+    const magnitude = `${amount >= 0 ? '+' : ''}${amount}${payload.stat === 'evasion' ? '%' : ''}`
+    parts = { label: name, magnitude, duration: null }
     description =
       payload.stat === 'movement'
-        ? 'Adds Movement at each own-turn start while Requirements hold; AP and terrain costs still apply.'
-        : `Adds ${payload.amount} to ${COMBAT_BONUS_STAT_LABELS[payload.stat]} while Requirements hold.`
+        ? `${name} ${magnitude} tiles at each own-turn start; AP and terrain costs still apply.`
+        : `${name} ${magnitude}${payload.stat === 'jump' ? ' elevation' : ''}.`
   } else if (payload.type === 'damage-bonus') {
     parts = {
       label: 'Damage Up',
@@ -759,8 +758,7 @@ export function abilityBehaviorInformation(
       : {}),
     ...(behavior.activation === 'ongoing'
       ? {
-          maintenance:
-            'Active while Requirements are met. Ends when they are no longer met or its source is removed.',
+          maintenance: 'Ends when its source is removed.',
         }
       : {}),
     rows: skillInformationRows({

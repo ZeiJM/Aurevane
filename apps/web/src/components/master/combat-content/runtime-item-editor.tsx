@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useSkillEffectTimingPolicy } from '@/components/character/skill-effect-timing-context'
 import type { AuthoredItem } from '@aurevane/game-core/content/authored-content'
 import {
   parseRuntimeItemDefinition,
@@ -168,24 +169,29 @@ export function RuntimeItemEditor({
   onChange(value: RuntimeItemDefinition): void
   disciplines?: readonly { id: string; name: string }[]
 }) {
+  const timingPolicy = useSkillEffectTimingPolicy()
   const [classChoice, setClassChoice] = useState(value.itemClass)
   const set = (patch: Partial<RuntimeItemDefinition>) => onChange({ ...value, ...patch })
   const manuals =
     value.ability?.behaviors.filter(
       (row) => row.activation === 'manual' && row.mode === 'action',
     ) ?? []
+  const passiveOnly = value.itemClass === 'armor' || value.itemClass === 'hand-armor'
+  const groups = value.ability?.behaviors ?? []
+  const needsPassiveRepair =
+    passiveOnly &&
+    (Object.keys(value.actions ?? {}).length > 0 ||
+      groups.some((group) => group.activation === 'manual' || group.mode !== 'modifier'))
   const roles =
     value.itemClass === 'weapon'
       ? (['attack'] as const)
       : value.itemClass === 'battle-item'
         ? (['use'] as const)
-        : value.equipment
-          ? (['support'] as const)
-          : []
+        : []
   let preview: ReturnType<typeof presentItem> | null = null
   let issue = ''
   try {
-    preview = presentItem(parseRuntimeItemDefinition(value))
+    preview = presentItem(parseRuntimeItemDefinition(value), { timingPolicy })
   } catch (cause) {
     issue = cause instanceof Error ? cause.message : 'Complete the Item fields.'
   }
@@ -320,14 +326,67 @@ export function RuntimeItemEditor({
       {value.equipment ? (
         <fieldset className={styles.typedGroup}>
           <legend>Behavior groups and bindings</legend>
+          {needsPassiveRepair ? (
+            <aside role="status">
+              <p>
+                Armor and gloves provide passive effects only. Remove active actions and their
+                bindings to continue.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const behaviors = groups.filter(
+                    (group) => group.activation !== 'manual' && group.mode === 'modifier',
+                  )
+                  set({
+                    actions: {},
+                    ability: behaviors.length ? { ...value.ability!, behaviors } : null,
+                  })
+                }}
+              >
+                Keep passive effects only
+              </button>
+            </aside>
+          ) : null}
           {!value.ability ? (
             <button
               type="button"
               onClick={() =>
                 set({
-                  ability: structuredClone(
-                    defaultBasicSkills().find((row) => row.id === 'basic.recover')!.ability,
-                  ),
+                  ability: passiveOnly
+                    ? {
+                        schemaVersion: 1,
+                        behaviors: [
+                          {
+                            id: 'passive',
+                            activation: 'ongoing',
+                            mode: 'modifier',
+                            classification: 'utility',
+                            targeting: null,
+                            costs: [],
+                            cooldown: null,
+                            requirements: null,
+                            effects: [
+                              {
+                                id: 'stat-bonus',
+                                payload: {
+                                  type: 'stat-bonus',
+                                  stat: 'physical-defense',
+                                  amount: 1,
+                                  recipient: 'actor',
+                                },
+                              },
+                            ],
+                          },
+                        ],
+                      }
+                    : structuredClone(
+                        defaultBasicSkills().find(
+                          (row) =>
+                            row.id ===
+                            (value.itemClass === 'weapon' ? 'unarmed.basic' : 'basic.recover'),
+                        )!.ability,
+                      ),
                 })
               }
             >
@@ -337,16 +396,19 @@ export function RuntimeItemEditor({
             <AbilityDefinitionEditor
               value={value.ability}
               contentId={value.id}
+              category={
+                value.itemClass === 'weapon' || value.itemClass === 'battle-item'
+                  ? 'manual'
+                  : 'modifier'
+              }
               allowEffectDescriptions={false}
               onChange={(ability) => set({ ability })}
             />
           )}
           {roles.map((role) => {
-            const label =
-              role === 'attack' ? 'Basic Attack' : role === 'use' ? 'Consumable action' : 'Support'
+            const label = role === 'attack' ? 'Basic Attack' : 'Consumable action'
             const binding = value.actions?.[role]
-            const automatic =
-              role !== 'support' && manuals.length === 1 && binding?.behaviorId === manuals[0]!.id
+            const automatic = manuals.length === 1 && binding?.behaviorId === manuals[0]!.id
             const controls = (
               <div>
                 {!automatic ? (
@@ -385,14 +447,7 @@ export function RuntimeItemEditor({
                 ) : null}
               </div>
             )
-            return role === 'support' && !binding ? (
-              <details key={role}>
-                <summary>Optional Support action</summary>
-                {controls}
-              </details>
-            ) : (
-              <div key={role}>{controls}</div>
-            )
+            return <div key={role}>{controls}</div>
           })}
         </fieldset>
       ) : null}

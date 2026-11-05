@@ -18,6 +18,17 @@ if (new URLSearchParams(location.search).get('binding') === 'missing')
     ...original.actions,
     attack: { ...original.actions.attack, behaviorId: 'missing-private-id' },
   }
+if (new URLSearchParams(location.search).get('ability') === 'missing') {
+  original.ability = null
+  original.actions = {}
+}
+if (new URLSearchParams(location.search).has('legacy-active')) {
+  const active = starterItemDefinitions()
+    .find((item) => item.id === 'emberbrand')
+    .ability.behaviors.find((group) => group.id === 'kindle')
+  original.actions = { support: { behaviorId: active.id, name: 'Old Prayer' } }
+  original.ability = { ...original.ability, behaviors: [...original.ability.behaviors, active] }
+}
 function App() {
   const [value, setValue] = useState(
     () => JSON.parse(localStorage.getItem(key) || 'null') ?? original,

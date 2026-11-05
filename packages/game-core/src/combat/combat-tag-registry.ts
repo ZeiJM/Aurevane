@@ -428,7 +428,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     'stat-bonus',
     ['stat', 'amount'],
     { stat: 'identity', amount: 'power' },
-    'Adds a flat Self stat bonus while Requirements hold. Movement is captured at own-turn start. Evasion uses basis points (100 = 1 percentage point).',
+    'Adds a flat Self stat bonus. Movement is captured at own-turn start. Evasion uses basis points (100 = 1 percentage point).',
     {
       payloadFields: ['type', 'recipient', 'target', 'stat', 'amount'],
       recipients: ['actor'],
@@ -443,7 +443,7 @@ export const COMBAT_TAG_REGISTRY: readonly CombatTagDefinition[] = Object.freeze
     'damage-bonus',
     ['multiplierBasisPoints'],
     { multiplierBasisPoints: 'basis-points' },
-    'A manual or automatic modifier increases the selected Attack’s direct damage. An ongoing modifier increases direct outgoing damage while its requirements hold. An element filter applies to each matching packet only.',
+    'A manual or automatic modifier increases the selected Attack’s direct damage. An ongoing modifier increases direct outgoing damage. An element filter applies to each matching packet only.',
     {
       payloadFields: ['type', 'recipient', 'multiplierBasisPoints', 'elementFilter', 'damageTypes'],
       recipients: ['actor'],

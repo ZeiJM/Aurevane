@@ -562,7 +562,8 @@ export function CharacterItems({
                   <button disabled>Cannot be equipped</button>
                 )}
               </div>
-              {statChanges.length ? (
+              {statChanges.length &&
+              !['armor', 'hand-armor'].includes(chosen.item?.itemClass ?? '') ? (
                 <dl className={styles.statChanges} aria-label="Equipment stat changes">
                   {statChanges.map(({ stat, amount }) => (
                     <div key={stat}>

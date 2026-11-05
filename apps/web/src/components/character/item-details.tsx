@@ -46,27 +46,23 @@ export function ItemDetails({
               <dd>{item.qualityPoints}</dd>
             </div>
             <div>
+              <dt>Maximum stack</dt>
+              <dd>{item.maximumStack}</dd>
+            </div>
+            <div>
               <dt>Class</dt>
               <dd>{itemCategoryLabel(item.inventoryCategory)}</dd>
             </div>
             <div>
               <dt>Position</dt>
               <dd>
-                {itemPositions(item)
-                  .map((position) => positionNames[position])
-                  .join(' / ') || 'N/A'}
+                {item.itemClass === 'battle-item'
+                  ? 'Consumable Slot'
+                  : itemPositions(item)
+                      .map((position) => positionNames[position])
+                      .join(' / ') || 'N/A'}
               </dd>
             </div>
-            <div>
-              <dt>Maximum stack</dt>
-              <dd>{item.maximumStack}</dd>
-            </div>
-            {battleUses !== null ? (
-              <div>
-                <dt>Uses per battle</dt>
-                <dd>{battleUses}</dd>
-              </div>
-            ) : null}
             <div>
               <dt>Type</dt>
               <dd>
@@ -75,6 +71,12 @@ export function ItemDetails({
                   : 'N/A'}
               </dd>
             </div>
+            {battleUses !== null ? (
+              <div>
+                <dt>Uses per battle</dt>
+                <dd>{battleUses}</dd>
+              </div>
+            ) : null}
             {item.equipment && item.equipRequirements ? (
               <div className={styles.requirements}>
                 <dt>Equip requirements</dt>

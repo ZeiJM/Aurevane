@@ -70,9 +70,9 @@ it('makes genuine sources editable in Master before any inventory is opened', as
   expect(list.records).toHaveLength(47)
   const record = await store.readRecord('iron-shortsword')
   expect(record).toMatchObject({
-    builtin: { contentVersion: 1 },
-    builtinRestoreVersion: 1,
-    builtinDefinition: { id: 'iron-shortsword', contentVersion: 1 },
+    builtin: { contentVersion: 6 },
+    builtinRestoreVersion: 6,
+    builtinDefinition: { id: 'iron-shortsword', contentVersion: 6 },
   })
   expect(record!.current).toBeNull()
   await db.exec('begin')
@@ -84,7 +84,7 @@ it('makes genuine sources editable in Master before any inventory is opened', as
     qualityPoints: 13,
   })
   expect(committed.current).toMatchObject({
-    contentVersion: 2,
+    contentVersion: 7,
     definition: { name: 'Owner Shortsword', qualityPoints: 13 },
   })
   const { createCombatContentResolver, RpcPublishedCombatContentSource } =
@@ -93,8 +93,8 @@ it('makes genuine sources editable in Master before any inventory is opened', as
   expect(await resolver.resolveCurrentItemDefinition!(source.id)).toEqual(
     committed.current!.definition,
   )
-  expect(await resolver.resolvePinnedItemDefinition!(source.id, 1)).toEqual(source)
-  expect((await store.readRecord(source.id))!.builtinRestoreVersion).toBe(1)
+  expect(await resolver.resolvePinnedItemDefinition!(source.id, 6)).toEqual(source)
+  expect((await store.readRecord(source.id))!.builtinRestoreVersion).toBe(6)
   await db.exec('rollback')
 })
 it('initializes all 47 current sources and grants once across first reads, refresh and a stale grant replay', async () => {

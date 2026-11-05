@@ -1,3 +1,4 @@
+import { COMBAT_EFFECT_TIMING_TAGS, type CombatEffectTimingPolicy } from './combat-effect-timing'
 import { writeFileSync } from 'node:fs'
 import { expect, it } from 'vitest'
 import { starterItemDefinitions } from '../content/starter-items'
@@ -34,10 +35,19 @@ const equipment = (ids: string[]): BattleEquipmentCapture => ({
     item: catalogue.find((x) => x.id === id)!,
   })),
 })
-function ready(ids: string[], power = 100, defense = 0) {
+// This mechanics matrix chooses Instant in the global panel policy; the separate
+// timing regression below exercises ordinary/delayed policy with the same source.
+const instantPolicy: CombatEffectTimingPolicy = {
+  version: 1,
+  tagAuthority: 'global',
+  modes: Object.fromEntries(
+    COMBAT_EFFECT_TIMING_TAGS.map((tag) => [tag, tag === 'reversal' ? 'controlled' : 'instant']),
+  ),
+}
+function ready(ids: string[], power = 100, defense = 0, policy = instantPolicy) {
   const raw = fixture([])
   const base = createCurrentStatDrivenCombatEncounterState(
-    { ...raw, abilityUsageLimitPolicyVersion: 1 },
+    { ...raw, effectTimingPolicy: policy, abilityUsageLimitPolicyVersion: 1 },
     raw.statBridge.combatants.map((p) => ({
       ...p,
       physicalPower: power,
@@ -136,7 +146,7 @@ it.each([100, 200])(
       )
   },
 )
-it('executes two distinct cuts, storm Conductive, Guard bash and defensive shield passives', () => {
+it('executes two distinct cuts, storm Conductive and Guard bash without held weapon passives', () => {
   const twins = ready(['twinfang-blade'])
   expect(
     damage(commitCombatAbilityCommand(input(twins.state, twins.sources[0]!)).events),
@@ -154,8 +164,8 @@ it('executes two distinct cuts, storm Conductive, Guard bash and defensive shiel
     ).toBe(true)
   }
   const tower = ready(['tower-shield'])
-  expect(combatStatBonus(tower.state, 'actor', 'physical-defense')).toBe(18)
-  expect(combatStatBonus(tower.state, 'actor', 'mystic-defense')).toBe(10)
+  expect(combatStatBonus(tower.state, 'actor', 'physical-defense')).toBe(0)
+  expect(combatStatBonus(tower.state, 'actor', 'mystic-defense')).toBe(0)
   expect(
     compileEquipmentAbility(tower.capture, tower.capture.equipment[0]!).behaviors.map((b) => b.id),
   ).not.toContain('guard')
@@ -262,7 +272,7 @@ it('uses Emberbrand only on matching direct packets and never reapplies it to ca
         PV1F_COMBAT_CONTENT,
       ).events,
     ),
-  ).toEqual([11, 10])
+  ).toEqual([10, 10])
   state = applyCurrentBurnState(state, 'actor', 'enemy', 'captured-burn', false, undefined, 2, {
     capturedDamage: 100,
     profile: { kind: 'attack-percentage', basisPoints: 1500 },
@@ -276,10 +286,7 @@ it('uses Emberbrand only on matching direct packets and never reapplies it to ca
   expect(damage(events)).toEqual([15])
 })
 it('executes selected genuine Support Actions with their AP, cooldown and protection', () => {
-  for (const [id, behaviorId] of [
-    ['wardstone-bracer', 'ward'],
-    ['tower-shield', 'guard'],
-  ] as const) {
+  for (const [id, behaviorId] of [['tower-shield', 'guard']] as const) {
     const r = ready([id])
     const capture: BattleEquipmentCapture = {
       ...r.capture,
@@ -302,13 +309,11 @@ it('executes selected genuine Support Actions with their AP, cooldown and protec
     expect(
       prepareCombatAbilityCommand(input(result.state, source, behaviorId)).evaluation.legal,
     ).toBe(false)
-    if (id === 'wardstone-bracer') expect(currentBarrierAmount(result.state, 'actor')).toBe(80)
-    else
-      expect(
-        result.state.statusState
-          .find((x) => x.combatantId === 'actor')!
-          .statuses.find((x) => x.statusId === 'guarded'),
-      ).toMatchObject({ potencyBasisPoints: 3000 })
+    expect(
+      result.state.statusState
+        .find((x) => x.combatantId === 'actor')!
+        .statuses.find((x) => x.statusId === 'guarded'),
+    ).toMatchObject({ potencyBasisPoints: 3000 })
   }
 })
 
@@ -430,3 +435,52 @@ it('Iron Shortsword reaches distance two where unarmed cannot attack', () => {
   expect(rejected.legal).toBe(false)
   expect(rejected.issues).toContainEqual(expect.objectContaining({ code: 'target-out-of-range' }))
 })
+
+it.each(['next-round', 'delayed', 'instant'] as const)(
+  'Kindle follows global %s timing through actual commit, persisted pending state and round activation',
+  async (mode) => {
+    const { finishPv1fTurn } = await import('./pv1f-action-economy')
+    const r = ready(['emberbrand'], 100, 0, {
+      version: 11,
+      tagAuthority: 'global',
+      modes: { inspired: mode },
+    })
+    const capture: BattleEquipmentCapture = {
+      ...r.capture,
+      selectedSupport: {
+        kind: 'equipment',
+        position: 'main-hand',
+        itemId: 'emberbrand',
+        behaviorId: 'kindle',
+      },
+    }
+    const source = captureEquipmentAbilitySource(capture, capture.equipment[0]!, 'actor')!
+    const state = activateCombatAbilitySources(
+      ready([], 100, 0, r.state.effectTimingPolicy!).state,
+      [source],
+      PV1F_COMBAT_CONTENT,
+      true,
+    ).state
+    const result = commitCombatAbilityCommand(input(state, source, 'kindle'))
+    const active = (value: typeof result.state) =>
+      value.statusState
+        .find((row) => row.combatantId === 'actor')!
+        .statuses.find((row) => row.statusId === 'inspired')
+    expect(ap(result.state)).toBe(80)
+    expect(!!active(result.state)).toBe(mode === 'instant')
+    let persisted = JSON.parse(JSON.stringify(result.state)) as typeof result.state
+    if (mode !== 'instant') {
+      expect(
+        persisted.pendingEffects?.some(
+          (pending) =>
+            pending.effect.type === 'apply-status' && pending.effect.statusId === 'inspired',
+        ),
+      ).toBe(true)
+      const activationRound = state.tactical.battle.round + (mode === 'delayed' ? 2 : 1)
+      for (let turns = 0; persisted.tactical.battle.round < activationRound && turns < 10; turns++)
+        persisted = finishPv1fTurn(persisted as ReturnType<typeof fixture>, 'east').state
+      expect(persisted.tactical.battle.round).toBe(activationRound)
+    }
+    expect(active(persisted)).toMatchObject({ potencyBasisPoints: 1000, damageTypes: ['fire'] })
+  },
+)

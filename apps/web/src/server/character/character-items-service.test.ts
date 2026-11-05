@@ -211,3 +211,45 @@ it('shows unmet equip conditions from server base facts and rejects equip withou
   ).rejects.toThrow('Base Might 13 required')
   expect(write).not.toHaveBeenCalled()
 })
+
+it('renders Item reports with the current panel timing instead of retained packet overrides', async () => {
+  const { starterItemDefinitions } = await import('@aurevane/game-core/content/starter-items')
+  const item = starterItemDefinitions().find((row) => row.id === 'emberbrand')!
+  const state = {
+    snapshot: {
+      characterId: 'hero',
+      revision: 1,
+      stacks: [
+        {
+          id: 'ember',
+          characterId: 'hero',
+          itemId: item.id,
+          inventoryCategory: 'gear' as const,
+          slotIndex: 0,
+          quantity: 1,
+          acquiredAt: '',
+          acquiredContentVersion: item.contentVersion,
+          provenance: 'test',
+        },
+      ],
+      equipment: {},
+      selectedSupport: { kind: 'basic' as const, actionId: 'basic.recover' as const },
+      previousBasicSupport: 'basic.recover' as const,
+      grants: [],
+    },
+    definitions: { [item.id]: item },
+    catalogueToken: 'token',
+    battleLocked: false,
+    timingPolicy: {
+      version: 7,
+      tagAuthority: 'global' as const,
+      modes: { inspired: 'delayed' as const },
+    },
+  }
+  const before = JSON.stringify(state)
+  const reports = characterItemsView(state).stacks[0]!.item!.reports
+  expect(reports.find((row) => row.behaviorId === 'kindle')!.effects[0]!.parts.timing).toBe(
+    'Delayed',
+  )
+  expect(JSON.stringify(state)).toBe(before)
+})

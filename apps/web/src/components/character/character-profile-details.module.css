@@ -818,3 +818,11 @@
 .equipmentPenalty {
   color: #a72e2a;
 }
+
+.detailPopover ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: #2d352d;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}

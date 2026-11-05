@@ -1,3 +1,4 @@
+import { parseStoredCombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
 import type { ItemEquipContext } from '@aurevane/game-core/character/item-equip-requirements'
 import 'server-only'
@@ -169,10 +170,22 @@ export function createRpcCharacterItemsRepository(
     if (error) throwItemRpcError(error)
     return data
   }
+  async function currentTiming() {
+    return parseStoredCombatEffectTimingPolicy(
+      await call('read_combat_effect_timing_policy_v1', {}),
+    )
+  }
+  async function stateWithTiming(
+    value: unknown,
+    characterId: string,
+  ): Promise<CharacterItemsState> {
+    const timingPolicy = await currentTiming()
+    return { ...parseCharacterItemsState(value, characterId), timingPolicy }
+  }
   return {
     async read(userId, characterId) {
-      return parseCharacterItemsState(
-        await call(
+      const [data, timingPolicy] = await Promise.all([
+        call(
           initializeStarters
             ? 'prepare_character_starter_items_v1'
             : 'read_character_items_view_v1',
@@ -188,8 +201,9 @@ export function createRpcCharacterItemsRepository(
             p_character_id: characterId,
           },
         ),
-        characterId,
-      )
+        currentTiming(),
+      ])
+      return { ...parseCharacterItemsState(data, characterId), timingPolicy }
     },
     async write(userId, characterId, expectedRevision, catalogueToken, command) {
       const data = await call('write_character_items_v1', {
@@ -206,7 +220,7 @@ export function createRpcCharacterItemsRepository(
       )
         unavailable()
       return {
-        state: parseCharacterItemsState(data.state, characterId),
+        state: await stateWithTiming(data.state, characterId),
         notices: data.notices as 'equipment-support-removed'[],
       }
     },
