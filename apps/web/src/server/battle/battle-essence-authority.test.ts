@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
 import { createGuidedTrainingCompletionService } from './guided-training-completion-service'
 import { presentItem } from '@/lib/items/item-presentation'
@@ -3050,11 +3051,33 @@ it.each(['weapon-recovery', 'empty-mp', 'passive-pilfer', 'equipment-support'] a
   },
 )
 
-it.each(['controlled', 'delayed'] as const)(
-  'pins genuine Item information to the captured global %s policy after current policy changes',
-  async (timing) => {
-    const salve = starterItemDefinitions().find((item) => item.id === 'mender-salve')!
-    expect(salve.ability!.behaviors[0]!.effects[0]!.timing).toBe('instant')
+it.each([
+  ['controlled', 'current'],
+  ['delayed', 'current'],
+  ['controlled', 'retained'],
+  ['delayed', 'retained'],
+] as const)(
+  'pins genuine Item information to the captured global %s policy for %s definitions after current policy changes',
+  async (timing, definitionKind) => {
+    const current = starterItemDefinitions().find((item) => item.id === 'mender-salve')!
+    expect(current.ability!.behaviors[0]!.effects[0]!.timing).toBeUndefined()
+    const salve =
+      definitionKind === 'current'
+        ? current
+        : (JSON.parse(
+            readFileSync(
+              new URL(
+                '../../../../../docs/verification/2026-11-05-item-description-successors.json',
+                import.meta.url,
+              ),
+              'utf8',
+            ),
+          ).auditedCatalogue.find((row: { itemId: string }) => row.itemId === 'mender-salve')
+            .effectiveDefinition as typeof current)
+    if (definitionKind === 'retained') {
+      expect(salve.contentVersion).toBe(3)
+      expect(salve.ability!.behaviors[0]!.effects[0]!.timing).toBe('instant')
+    }
     const capturedPolicy: CombatEffectTimingPolicy = {
       version: 12,
       tagAuthority: 'global',

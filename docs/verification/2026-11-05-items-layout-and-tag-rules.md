@@ -1,6 +1,6 @@
 # November 5 post-release Item layout and tag rules
 
-Status: source implementation and verification in progress; this refinement is not deployed.
+Status: implemented and independently reviewed; required verification remains blocked. Not deployed.
 
 The earlier Items release remains live on `dpl_D79wgdgrFWWjf3kom6sfypujPk6F`.
 This work starts from main `e4dd343b9c441fa65d50027b3b5df2f541a51e45` on an isolated
@@ -74,6 +74,105 @@ Focused and adjacent checks cover:
 - full native Items/Arsenal fixture with production CSS across nine existing shell sizes,
   actual static artwork, modal actions, keyboard/touch and retained Support chooser recovery.
 
-Final results, independent review and fresh-main reconciliation will be recorded after execution.
+## Recorded verification and remaining gates
+
+PR: https://github.com/ZeiJM/Aurevane/pull/1019 (draft). Application source
+`16316a9bbb8daf0a0bc422e029625233682fa490`, tree `5ffaf9be9e1375b07f60f9b6eafd12560b6984f7`,
+contains the final layout/role/timing changes. The following test reconciliation leaves that
+application code unchanged and expands current/retained Salve timing coverage.
+
+Passing local evidence:
+
+- Repository formatting, lint and all eight package typechecks. Latest adjusted reader/fixture
+  files also pass scoped lint. The optimized production build passes (Web and Worker, 2 tasks).
+- Focused Item authority/reader/editor/service/disposable-DB checks: 51 cases; subsequent
+  authoring/stat checks: 22 cases (overlapping coverage); shared Manual regressions: 23 cases.
+  These are separate runs, not a claimed unique total.
+- The Core broad run completed 7,150 cases: 7,147 passed and 3 timed out. All three failing
+  files then pass isolated with one worker, 44 cases at unchanged original limits:
+  `level-100-duel-balance`, `recruit-ai-manual-modifiers`, `starter-items-combat`.
+- All nine shell sizes pass no-scroll equipment geometry, shared image scale, header,
+  inventory reachability and hand popup checks: 1728×885, 1536×614, 1440×900, 1366×768,
+  1280×720, 1024×768, 1024×576, 390×844 and 412×915.
+- Separate unchanged interaction blocks pass at 1366, 390 and 412 widths: direct actions,
+  owned pickers, distinct consumables, QP/repair, automatic refresh, weapon technique selection,
+  late-read recovery, fallback, dialogs and deletion focus. All three presentation artworks decode.
+- Master editor checks pass at 1440, 1366, 390 and 412 widths. Passive initialization and
+  explicit retained-armor binding repair pass separately. Profile source-only hover/click
+  and keyboard stat help pass.
+- Independent role/timing/history review has no remaining findings. Its retained armor binding
+  repair finding was fixed explicitly. Final review confirms genuine published Salve v3 comes
+  unchanged from the prior tracked audit; current/retained × Controlled/Delayed retains all
+  capture/reload assertions. Focused reconciliation: 5 passed, 47 intentionally unselected by
+  the targeted filter. Normal configured coverage is unchanged.
+
+No monolithic `pnpm check` or complete native-runner success is claimed. A native full attempt
+hit a late 30-second development navigation timeout after eight shell sizes; the fixture now
+loads the unrelated Profile component lazily, and final nine-size/interaction blocks pass
+separately. Original navigation/assertion timeouts are unchanged. Evidence remains under
+`/tmp/items-polish-shell-final`, `/tmp/items-polish-interactions-final` and named local logs.
+Normal CI still runs the complete configured runner.
+
+Local broad blockers, deliberately not marked green:
+
+- Full database-package execution reported two 20-second timing-migration timeouts and was
+  interrupted after stalling. Its six-case file isolated at the original limits passes five;
+  `appends Delayed Rewind without mutating prior overrides...` still times out at 20 seconds.
+  No migration/history repair or timeout increase was made. There is no new passing evidence
+  for the previously documented historical modular publication/rollback case.
+- Broad Web execution was interrupted after reported slow/failing cases in authoring,
+  restore, World map, battle preview, summon, AI and payoff/ranged suites. Two genuine Item
+  timing assertions and one ItemReportTabs wording assertion were obsolete after the approved
+  source/wording changes; those now pass with stronger retained-history coverage. Other broad
+  failures remain unresolved. Full Web/DB evidence and green required CI remain gates.
+
+Exact-head CI was checked once per source head, without continuous polling. On
+`16316a9bbb8daf0a0bc422e029625233682fa490`, readers, Skill Engine, Controlled, Desktop Page Fit,
+Desktop Experience, Representative Buildcraft and Combat/Mobile workflows pass. Quality,
+Browser Smoke and UI Layout were still running; Supabase Preview was skipped.
+CI Database Foundation fails before tests start because Docker cannot bind host port 54322
+(`address already in use`):
+https://github.com/ZeiJM/Aurevane/actions/runs/42080812114/job/127433884260
+GitHub rejected a scoped retry with `The workflow run containing this job is already running`.
+Retry after the workflow finishes; do not cancel useful verification or bypass the gate.
+No workflow, required result or timeout was weakened.
+
+The PR remains draft. Do not merge or deploy from this partial verification checkpoint.
 No hosted grant, consumption, migration, source registration, publication or deployment is tested
 by issuing real writes. Existing Vercel Git deployment locks remain unchanged.
+
+## Unresolved observations from the interrupted broad Web run
+
+These are the observed case names, not a completed suite summary or a diagnosis.
+The three reconciled fast Item/wording expectations are recorded above and excluded here.
+
+| File | Observed case |
+| --- | --- |
+| `src/server/master/combat-content-authoring-service.test.ts` | saves, previews and publishes 'resonance' 'mystic' through the real shared service |
+| `src/server/battle/battle-essence-authority.test.ts` | practice termination ends an armed Reversal with its normal receipt and preserves paid resources |
+| `src/server/battle/battle-essence-authority.test.ts` | completes all Guided Fundamentals criteria through admitted passive-pilfer actions after reload |
+| `src/server/battle/battle-essence-authority.test.ts` | completes all Guided Fundamentals criteria through admitted equipment-support actions after reload |
+| `src/components/master/combat-content/basic-restore-interaction.test.tsx` | retains a newer relationship selection made after a new power Commit starts |
+| `src/components/master/combat-content/basic-restore-interaction.test.tsx` | authors basic.invocation current settings without an original-restore control or restore intent |
+| `src/components/master/combat-content/basic-restore-interaction.test.tsx` | retains the created Skill identity and inline edits after commit failure, then retries without recreating or losing its Source Discipline |
+| `src/components/world/map-renderer.test.ts` | retains cached water underpass material in verdant-expanse with paused motion |
+| `src/components/world/map-renderer.test.ts` | reuses warmed procedural terrain when camera visibility changes raster density |
+| `src/components/world/map-renderer.test.ts` | keeps your own portrait when other travellers share your tile |
+| `src/components/battle/battle-captured-preview-feedback.test.tsx` | pvp keeps All recovery recipient detection separate from a self Single aiming glow |
+| `src/components/battle/battle-captured-preview-feedback.test.tsx` | pvp lights only the current native primed Controlled Attack after its legal forecast |
+| `src/components/battle/battle-captured-preview-feedback.test.tsx` | pvp keeps the blocked response explanation and suppresses readiness |
+| `src/server/battle/roster-legal-summon-services.test.ts` | '1:pve' persists one earned summon across replay, reload and five real AI turns |
+| `src/server/battle/roster-legal-summon-services.test.ts` | '1:pvp' persists one earned summon across replay, reload and five real AI turns |
+| `src/server/battle/roster-legal-summon-services.test.ts` | '100:pve' persists one earned summon across replay, reload and five real AI turns |
+| `src/server/battle/roster-legal-summon-services.test.ts` | '100:pvp' persists one earned summon across replay, reload and five real AI turns |
+| `src/server/battle/battle-recruit-ai-build.test.ts` | returns a bounded committed page for 9 cheap Controlled actions without ending the turn early |
+| `src/server/battle/roster-legal-payoff-cycles.test.ts` | 'aetherist:100:pvp' exchanges an earned protection after paying for its real setup |
+| `src/server/battle/battle-recruit-ai-service.test.ts` | routes actual 'duel-yard' AI spawns into combat (+0 allies/5 enemies, map seed 1) |
+| `src/server/battle/battle-recruit-ai-service.test.ts` | routes actual 'terraced-yard' AI spawns into combat (+0 allies/5 enemies, map seed 1) |
+| `src/server/battle/battle-recruit-ai-service.test.ts` | routes actual 'terraced-yard' AI spawns into combat (2 allies/3 enemies, map seed 1) |
+| `src/server/battle/battle-recruit-ai-service.test.ts` | routes actual 'terraced-yard' AI spawns into combat (+0 allies/5 enemies, map seed 47399736) |
+| `src/server/battle/roster-legal-ranged-ai.test.ts` | '1:pve' preserves a feasible repeated Basic turn instead of a lower-value single-target walk and shot |
+| `src/server/battle/roster-legal-ranged-ai.test.ts` | '1:pve' repositions for an affordable three-target Volley that improves paid value |
+| `src/server/battle/roster-legal-ranged-ai.test.ts` | '1:pvp' repositions for an affordable three-target Volley that improves paid value |
+| `src/server/battle/roster-legal-ranged-ai.test.ts` | '100:pve' repositions for an affordable three-target Volley that improves paid value |
+| `src/server/battle/roster-legal-ranged-ai.test.ts` | '100:pvp' repositions for an affordable three-target Volley that improves paid value |
