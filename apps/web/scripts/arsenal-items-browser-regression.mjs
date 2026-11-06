@@ -421,6 +421,27 @@ try {
     }
     await shellPage.getByRole('button', { name: 'Gear', exact: true }).click()
     await expect(shellPage.locator('[aria-label="Gear inventory slots"]')).toBeVisible()
+    const tabFit = await shellPage
+      .locator('[aria-label="Item classes"] button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const box = button.getBoundingClientRect()
+          const range = document.createRange()
+          range.selectNodeContents(button)
+          const text = range.getBoundingClientRect()
+          return {
+            name: button.textContent,
+            left: text.left,
+            right: text.right,
+            buttonLeft: box.left,
+            buttonRight: box.right,
+          }
+        }),
+      )
+    assert.ok(
+      tabFit.every((tab) => tab.left >= tab.buttonLeft + 1 && tab.right <= tab.buttonRight - 1),
+      JSON.stringify({ viewport, tabFit }),
+    )
     const equipmentFit = await equipment.evaluate((panel) => ({
       overflow: panel.scrollHeight - panel.clientHeight,
       panelBottom: panel.getBoundingClientRect().bottom,
@@ -480,7 +501,7 @@ try {
           slot.labelBottom <= slot.cellBottom &&
           slot.labelBottom <= Math.min(equipmentFit.gridBottom, equipmentFit.attackTop) + 1 &&
           (viewport.width >= 981
-            ? viewport.height <= 660
+            ? viewport.height <= 760
               ? slot.imageTop >= slot.top &&
                 slot.imageBottom <= slot.bottom &&
                 slot.nameLeft >= slot.imageRight + 2 &&
