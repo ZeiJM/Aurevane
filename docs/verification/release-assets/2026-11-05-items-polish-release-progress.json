@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "hold-removed-final-smoke-pending",
+  "status": "retirement-pin-postflight-failed-hold-restored",
   "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
   "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
   "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
@@ -25,9 +25,9 @@
   "routingVersionBefore": "78132fc0-e779-4dda-bf7b-7ea8c5773e28",
   "retirementRulesBefore": 9,
   "holdRuleId": "45a07761-caca-49ad-9017-a665fb051019",
-  "holdActive": false,
+  "holdActive": true,
   "gitDeploymentEnabled": false,
-  "remaining": "After actual DB-clock deadline and zero older client transactions, perform guarded20source6 registration and only Emberbrand fresh-CAS successor publication; safe postflight, remove only hold, verify canonical release, receipt and stop watch.",
+  "remaining": "Resolve two obsolete custom-domain pins serving old deployment; no new build or content changes. Rerun retirement probes, remove only temporary hold and finalize.",
   "deploymentUrl": "aurevane-jp4c5dae1-zeijms-projects.vercel.app",
   "autoAssignCustomDomains": false,
   "buildState": "READY",
@@ -40,7 +40,7 @@
     "emberbrandVersionFloor": 5,
     "emberbrandBuiltinVersion": 4
   },
-  "routingVersion": "07e3b404-fe14-47d0-9f74-629832458de2",
+  "routingVersion": "69a34ee7-4b2c-4847-b3bf-4a973412d8fd",
   "predecessorsVerified": 20,
   "candidateOwnerDrafts": 0,
   "retirementVerifiedAt": "2026-11-06T01:02:38.425949Z",
@@ -81,7 +81,7 @@
   "guardedPreservationPassed": true,
   "olderClientTransactionsAtDrainCheck": 0,
   "executionCheckedAt": "2026-11-06T01:54:18.338008Z",
-  "holdRemoved": true,
+  "holdRemoved": false,
   "retirementRulesAfter": 9,
   "productionPostflight": {
     "stockRls": true,
@@ -114,5 +114,14 @@
     "wardstonePassiveOnly": true,
     "stockSettlementTrigger": true,
     "characterRequirementRejected": true
+  },
+  "retirementPinFailure": {
+    "observedAt": "2026-11-06T01:59:12.850080Z",
+    "oldDeployment": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+    "queryStatus": 200,
+    "headerStatus": 200,
+    "returnedSource": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+    "expected": "503 or verified new deployment; old source is failure",
+    "holdRestored": true
   }
 }
