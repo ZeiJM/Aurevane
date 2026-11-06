@@ -424,6 +424,8 @@ try {
     const equipmentFit = await equipment.evaluate((panel) => ({
       overflow: panel.scrollHeight - panel.clientHeight,
       panelBottom: panel.getBoundingClientRect().bottom,
+      budgetBottom: panel.querySelector('meter').getBoundingClientRect().bottom,
+      gridTop: panel.querySelector('[class*="equipment_"]').getBoundingClientRect().top,
       gridBottom: panel.querySelector('[class*="equipment_"]').getBoundingClientRect().bottom,
       attackTop: panel.querySelector('[class*="attack_"]').getBoundingClientRect().top,
       slots: [...panel.querySelectorAll('button')].map((button) => {
@@ -473,17 +475,27 @@ try {
     for (const slot of equipmentFit.slots) {
       assert.ok(
         slot.nameTop >= slot.top &&
+          slot.top >= Math.max(equipmentFit.gridTop, equipmentFit.budgetBottom) - 1 &&
           slot.labelTop >= slot.bottom &&
           slot.labelBottom <= slot.cellBottom &&
+          slot.labelBottom <= Math.min(equipmentFit.gridBottom, equipmentFit.attackTop) + 1 &&
           (viewport.width >= 981
-            ? slot.imageTop >= slot.top &&
-              slot.imageBottom <= slot.nameTop + 1 &&
-              slot.nameBottom <= slot.bottom &&
-              slot.helperTop >= slot.top &&
-              slot.helperBottom <= slot.nameTop + 1 &&
-              slot.helperLeft >= slot.left &&
-              slot.helperRight <= slot.right &&
-              slot.centered <= 1
+            ? viewport.height <= 660
+              ? slot.imageTop >= slot.top &&
+                slot.imageBottom <= slot.bottom &&
+                slot.nameLeft >= slot.imageRight + 2 &&
+                slot.nameBottom <= slot.helperTop + 1 &&
+                slot.helperBottom <= slot.bottom &&
+                slot.helperLeft >= slot.left &&
+                slot.helperRight <= slot.right
+              : slot.imageTop >= slot.top &&
+                slot.imageBottom <= slot.nameTop + 1 &&
+                slot.nameBottom <= slot.bottom &&
+                slot.helperTop >= slot.top &&
+                slot.helperBottom <= slot.nameTop + 1 &&
+                slot.helperLeft >= slot.left &&
+                slot.helperRight <= slot.right &&
+                slot.centered <= 1
             : slot.nameBottom <= slot.helperTop + 1 &&
               slot.helperBottom <= slot.imageTop + 1 &&
               slot.imageBottom <= slot.labelTop + 1 &&
