@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "content-applied-hold-awaiting-postflight",
+  "status": "hold-removed-final-smoke-pending",
   "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
   "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
   "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
@@ -25,7 +25,7 @@
   "routingVersionBefore": "78132fc0-e779-4dda-bf7b-7ea8c5773e28",
   "retirementRulesBefore": 9,
   "holdRuleId": "45a07761-caca-49ad-9017-a665fb051019",
-  "holdActive": true,
+  "holdActive": false,
   "gitDeploymentEnabled": false,
   "remaining": "After actual DB-clock deadline and zero older client transactions, perform guarded20source6 registration and only Emberbrand fresh-CAS successor publication; safe postflight, remove only hold, verify canonical release, receipt and stop watch.",
   "deploymentUrl": "aurevane-jp4c5dae1-zeijms-projects.vercel.app",
@@ -40,7 +40,7 @@
     "emberbrandVersionFloor": 5,
     "emberbrandBuiltinVersion": 4
   },
-  "routingVersion": "d0c5ff18-0d5d-4032-929e-cc326d262bcf",
+  "routingVersion": "07e3b404-fe14-47d0-9f74-629832458de2",
   "predecessorsVerified": 20,
   "candidateOwnerDrafts": 0,
   "retirementVerifiedAt": "2026-11-06T01:02:38.425949Z",
@@ -80,5 +80,39 @@
   "emberbrandPublicationVersion": 7,
   "guardedPreservationPassed": true,
   "olderClientTransactionsAtDrainCheck": 0,
-  "executionCheckedAt": "2026-11-06T01:54:18.338008Z"
+  "executionCheckedAt": "2026-11-06T01:54:18.338008Z",
+  "holdRemoved": true,
+  "retirementRulesAfter": 9,
+  "productionPostflight": {
+    "stockRls": true,
+    "exactSources": 20,
+    "stockCapture": {
+      "quantity": 3,
+      "schemaVersion": 2,
+      "consumptionPolicyVersion": 1
+    },
+    "timingPolicy": {
+      "modes": {
+        "summon": "instant",
+        "sensory": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "conductive": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "create-terrain": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 11,
+      "tagAuthority": "global"
+    },
+    "emberbrandExact7": true,
+    "seedBrowserDenied": true,
+    "seedServiceAllowed": true,
+    "towerNoHeldPassive": true,
+    "wardstonePassiveOnly": true,
+    "stockSettlementTrigger": true,
+    "characterRequirementRejected": true
+  }
 }
