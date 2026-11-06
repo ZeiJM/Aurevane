@@ -10,7 +10,8 @@ vi.mock('react', async () => {
   return {
     ...actual,
     useSyncExternalStore: () => true,
-    useState: (initial: unknown) => actual.useState(hooks.state++ === 13 ? hooks.touch : initial),
+    // Coarse-pointer state follows the new independent equipment-preview focus state.
+    useState: (initial: unknown) => actual.useState(hooks.state++ === 14 ? hooks.touch : initial),
   }
 })
 vi.mock('react-dom', async () => ({
@@ -77,6 +78,7 @@ it.each([false, true])(
       expect(html).toContain('Controlled')
       expect(html).toContain('Dmg')
       expect(html.includes('Equip technique')).toBe(touch)
+      expect(html.includes('data-technique-preview-actions="true"')).toBe(touch)
       expect(html).toContain('data-testid="technique-preview"')
     } finally {
       vi.unstubAllGlobals()
