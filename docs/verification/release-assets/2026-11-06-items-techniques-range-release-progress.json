@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "status": "verified-live-for-owner-testing",
+  "pr": 1021,
+  "receiptBranch": "agent/items-techniques-range-release-20261106",
+  "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
+  "sourceTree": "95c0ea4971336ec4afc6e0ac5d9d1d911ab4112a",
+  "testedHead": "a09c40a41c78e70629d997ad6f67728475136e6b",
+  "applicationChecksPassed": true,
+  "mainChecksPassed": true,
+  "supabaseIntegration": {
+    "conclusion": "failure",
+    "summary": "Remote migration versions not found in local migrations directory.",
+    "action": "Preserve history; reviewed additive controlled migration path only."
+  },
+  "projectId": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "teamId": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "supabaseProjectId": "luazfeupwfgnilohfsya",
+  "previousDeploymentId": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+  "deploymentId": "dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+  "promoted": true,
+  "holdActive": false,
+  "holdRemoved": true,
+  "migrationsApplied": [
+    "20261106100000_item_technique_media.sql",
+    "20261106110000_range_tags.sql"
+  ],
+  "sourceRegistrationDone": true,
+  "publicationsDone": true,
+  "sourceScope": "Exactly four reviewed source8 media successors from docs/verification/2026-11-06-item-technique-successors.json; preserve other43, all immutable history and Owner drafts; only necessary normal fresh-CAS publications after fresh audit.",
+  "migrationScope": [
+    "20261106100000_item_technique_media.sql",
+    "20261106110000_range_tags.sql"
+  ],
+  "gitDeploymentEnabled": false,
+  "requiredAutoAssignCustomDomains": false,
+  "retirementRulesToPreserve": 9,
+  "canonicalHosts": [
+    "aurevane.vercel.app",
+    "aurevane-rpg.com",
+    "www.aurevane-rpg.com"
+  ],
+  "remoteHistoryPreflight": "Latest5 deployments inspected; only prior release and older, no Nov6 deployment exists.",
+  "remaining": "Documentation-only receipt PR integration through configured checks, then disable this watch. No further production operations or checks required. Owner gameplay acceptance remains open.",
+  "autoAssignCustomDomains": false,
+  "buildIntent": {
+    "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
+    "requestedOnce": true,
+    "projectLockReasserted": true,
+    "retryPolicy": "Inspect actual deployment history after interruption; never blindly issue a second create.",
+    "completedCreate": true
+  },
+  "deploymentUrl": "aurevane-afhp3mc50-zeijms-projects.vercel.app",
+  "buildState": "READY",
+  "routingVersionBefore": "683ea355-d1a5-481a-ab58-ca0dad760c17",
+  "readOnlyPreflight": {
+    "dbTime": "2026-11-06T18:17:00.438253+00:00",
+    "timingPolicyVersion": 11,
+    "tagAuthority": "global",
+    "newMediaHelper": false,
+    "newSources8": 0,
+    "newMigrationsInstalled": false,
+    "targetOwnerDrafts": 0,
+    "targets": [
+      {
+        "id": "emberbrand",
+        "revision": 10,
+        "floor": 7,
+        "builtin": 6,
+        "published": 7
+      },
+      {
+        "id": "stormcaller-staff",
+        "revision": 5,
+        "floor": 6,
+        "builtin": 6,
+        "published": 3
+      },
+      {
+        "id": "tower-shield",
+        "revision": 2,
+        "floor": 6,
+        "builtin": 6,
+        "published": null
+      },
+      {
+        "id": "twinfang-blade",
+        "revision": 5,
+        "floor": 6,
+        "builtin": 6,
+        "published": 3
+      }
+    ]
+  },
+  "baselineAudit": "docs/verification/release-assets/2026-11-06-items-techniques-range-preflight.json",
+  "predecessorAudit": {
+    "exactFourSource6BodiesMatchReviewedBeforeDefinitions": true,
+    "emberbrandPublicationDifference": ["contentVersion"],
+    "stormcallerAndTwinfangPublicationDifferences": [
+      "contentVersion",
+      "explicit effect timing fields only"
+    ],
+    "towerShieldPublication": null,
+    "proposal": "Review three necessary normal fresh-CAS media publications for existing Emberbrand/Stormcaller/Twinfang current bodies; retain explicit timing fields and change only support media/version. TowerShield resolves new source8 without publication. No operation executed."
+  },
+  "retirementVerifiedAt": "2026-11-06T18:25:45.965590Z",
+  "drainNotBefore": "2026-11-06T18:58:15.965590Z",
+  "routingVersion": "e66b8ef2-5afd-41f8-ac02-b668a459bcdf",
+  "retirementRulesBefore": 9,
+  "retirementRulesWithHold": 10,
+  "cutoverProbes": [
+    {
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "newSource": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "status": 200,
+      "newSource": true
+    },
+    {
+      "url": "https://aurevane-jp4c5dae1-zeijms-projects.vercel.app/",
+      "status": 503,
+      "newSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles",
+      "status": 503,
+      "newSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/master/access",
+      "status": 503,
+      "newSource": false
+    }
+  ],
+  "preparedSql": {
+    "path": "docs/verification/release-assets/2026-11-06-items-techniques-range-register-and-publish.sql",
+    "commit": "a050e10ba00b852317d462996742ef6ee6b14fe7",
+    "sha256": "d3214f7b8583b879559b7d60b55a2a04723fe35e3b6a274dc19e4a93468aac9a",
+    "bytes": 40743,
+    "executed": true,
+    "independentReview": "No blocking findings; exact source4/media publication3 and preservation12/durable deadline verified.",
+    "reviewPath": "docs/verification/release-assets/2026-11-06-items-techniques-range-sql-review.md",
+    "disposableVerification": "2/2 pass at unchanged60s limit: baseline success exact4source8/3pub9 and stale revision rollback zero8/9. Only fixture in-memory deadline advanced to year2000; productionartifact exact18:58:15.965590Z unchanged.",
+    "result": "guarded-source4-media-publications3-preservation12"
+  },
+  "artworkProbes": [
+    {
+      "item": "twinfang-blade",
+      "status": 200,
+      "contentType": "image/webp"
+    },
+    {
+      "item": "tower-shield",
+      "status": 200,
+      "contentType": "image/webp"
+    },
+    {
+      "item": "stormcaller-staff",
+      "status": 200,
+      "contentType": "image/webp"
+    },
+    {
+      "item": "emberbrand",
+      "status": 200,
+      "contentType": "image/webp"
+    }
+  ],
+  "retirementPinProbes": [
+    {
+      "url": "https://aurevane-rpg.com/?dpl=dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+      "status": 200,
+      "newSource": true,
+      "oldSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles?dpl=dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/character/items",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/master/access",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
+    }
+  ],
+  "drainCheck": {
+    "dbTime": "2026-11-06T18:58:33.457491Z",
+    "deadlinePassed": true,
+    "olderClientTransactions": 0,
+    "mediaMigrationPresent": false,
+    "rangeRecords": 0,
+    "sources8": 0,
+    "targetDrafts": 0
+  },
+  "sourceVersion": 8,
+  "publicationVersions": {
+    "emberbrand": 9,
+    "stormcaller-staff": 9,
+    "twinfang-blade": 9
+  },
+  "towerShieldSourceFallbackOnly": true,
+  "guardedPreservationPassed": true,
+  "productionPostflight": {
+    "dbTime": "2026-11-06T18:59:42.383424+00:00",
+    "sources8": 4,
+    "stockRls": true,
+    "rangeTags": 2,
+    "currentItems": [
+      {
+        "id": "emberbrand",
+        "version": "9",
+        "supportMedia": "item.emberbrand.technique.art.v1"
+      },
+      {
+        "id": "stormcaller-staff",
+        "version": "9",
+        "supportMedia": "item.stormcaller-staff.technique.art.v1"
+      },
+      {
+        "id": "tower-shield",
+        "version": "8",
+        "supportMedia": "item.tower-shield.technique.art.v1"
+      },
+      {
+        "id": "twinfang-blade",
+        "version": "9",
+        "supportMedia": "item.twinfang-blade.technique.art.v1"
+      }
+    ],
+    "publication9": 3,
+    "targetDrafts": 0,
+    "timingPolicy": {
+      "version": 11,
+      "authority": "global"
+    },
+    "towerPublication": 0,
+    "serviceSeedAllowed": true,
+    "authenticatedSeedDenied": true,
+    "specifiedRangeUpRemoval": "dispel",
+    "historicalRangeUpRemoval": "cleanse"
+  },
+  "retirementRulesAfter": 9,
+  "verifiedAt": "2026-11-06T19:02:25.016Z",
+  "migrationReceipts": [
+    {
+      "source": "20261106100000_item_technique_media.sql",
+      "version": "20261106185845",
+      "name": "item_technique_media"
+    },
+    {
+      "source": "20261106110000_range_tags.sql",
+      "version": "20261106185855",
+      "name": "range_tags"
+    }
+  ],
+  "finalProbes": [
+    {
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane.vercel.app/manual",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/game/arsenal",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/master",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/master/access",
+      "status": 401
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/character/items",
+      "status": 401
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles",
+      "status": 405,
+      "newSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles/00000000-0000-4000-8000-000000000000",
+      "status": 401
+    },
+    {
+      "url": "https://www.aurevane-rpg.com/",
+      "status": 308,
+      "location": "https://aurevane-rpg.com/",
+      "newSource": false,
+      "contentType": "text/plain"
+    },
+    {
+      "url": "https://aurevane-jp4c5dae1-zeijms-projects.vercel.app/",
+      "status": 503,
+      "newSource": false,
+      "contentType": "text/plain; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/?dpl=dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/?dpl=dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    }
+  ],
+  "headerCookieProbes": [
+    {
+      "case": "old-header",
+      "status": 200,
+      "newSource": true,
+      "oldSource": false
+    },
+    {
+      "case": "old-cookie",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
+    },
+    {
+      "case": "new-header",
+      "status": 200,
+      "newSource": true,
+      "oldSource": false
+    }
+  ],
+  "errorScan": {
+    "from": "2026-11-06T18:59:00Z",
+    "until": "2026-11-06T19:02:25.016Z",
+    "levels": ["error", "fatal"],
+    "result": "No matching logs"
+  },
+  "limitations": "Full exact-source CI and safe hosted SQL/guest/source/asset/retirement probes; no signed-in hosted battle, human/device playtest, real grant/stock consumption, sustained load or Phase5 closure claimed."
+}
