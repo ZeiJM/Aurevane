@@ -1,29 +1,33 @@
-# Item refinements production cutover — blocked final retirement gate
+# Item refinements production release
 
-The application and reviewed Item content are installed, but the release is **not verified complete**. New admission, equipment/character changes and Master authoring remain held. Existing battle command routes do not match the hold. Do not rebuild, republish or replay the successful transaction.
+Verified live for Owner testing at https://aurevane-rpg.com on November 6, 2026 (04:12 Trinidad time). New battles, character/World operations, equipment and Master authoring are reopened. Refresh an older open page. Human gameplay acceptance remains open.
 
-## Verified source and completed work
+## Application and source
 
-PR #1019 merged as `a841b6bf39e4e59e6c0b2373d23f2635db9a359d`, tree `8de31980a118fa4eb1244d7ae205f60ee49aca2c`, equal to tested head `3dc080bd175b02fc168cc372927df0ac5a50bf77`. Required PR and main application checks passed. The external Supabase integration originally reported the preexisting remote/local migration-history mismatch; the latest observed check is skipped. No history repair or integration success is claimed.
+PR #1019 merged as `a841b6bf39e4e59e6c0b2373d23f2635db9a359d`, tree `8de31980a118fa4eb1244d7ae205f60ee49aca2c`, equal to tested head `3dc080bd175b02fc168cc372927df0ac5a50bf77`. Required PR/main application checks pass, including Quality, Database, Browser and Review. The earlier external Supabase migration-history mismatch was not repaired or represented as passing; its latest observed check is skipped.
 
-Exactly one new Production build, `dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC`, was verified READY and promoted. Canonical home/Manual identify that deployment. Git deployment and automatic domain assignment locks remain. No new migration was required.
+One production build `dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC` was built, verified READY and promoted. No second build, Preview or later promotion was needed. Canonical home and Manual identify this deployment. Git automatic deployment and custom-domain auto-assignment locks remain.
 
-Retirement DB clock was 2026-11-06T01:02:38.425949Z; the 1,950-second deadline was 01:35:08.425950Z. At 01:54:18.338008Z the deadline had passed, zero older client transactions existed, and no new sources/publications existed. All20 predecessors matched the tracked audit and no candidate Owner drafts existed.
+Equipment fits all8 positions with shared artwork size and avatar gutters. Popup facts read Tier/QP/Maximum stack, then Class/Position/Type; Uses per battle is seventh. Weapons have Manual attacks and optional imbued techniques without held passives; armor/gloves are passive-only. Current reports use global tag timing, readable stats and equipment-only contribution hover lists.
 
-The exact reviewed transaction registered20 immutable source6 bodies and committed only Emberbrand through normal fresh-CAS Commit, revision8/floor6 producing publication7. All12 table preservation guards and exact readback passed. Existing sources/versions, unrelated publications, drafts, inventory, grants, characters, builds, frozen battles and timing policy were preserved. No real grants or stock consumption were issued.
+## Guarded content installation
 
-Independent SQL review found no blocking issues. Disposable validation subsequently passed2 cases at unchanged limits: stale-predecessor rollback left zero new sources/versions; the exact unchanged SQL registered20 sources and ordinary Emberbrand7. Hosted execution returned `guarded-source20-emberbrand7-preservation12`. The [SQL](release-assets/2026-11-05-items-polish-register-and-publish.sql) SHA256 is `26f154763757a6655abe1cc3eec9001da2cca0545ab451d3b9e37783cb8e2b0f`.
+Retirement DB clock was2026-11-06T01:02:38.425949Z; the1950-second drain ended01:35:08.425950Z. At01:54:18.338008Z the deadline had passed and zero older client transactions existed. All20 current predecessors matched the reviewed audit; target Owner drafts were absent.
 
-Safe hosted postflight passes:20 exact sources, exact Emberbrand7, Wardstone passive-only, Tower Shield no held passive, unchanged global timing policy11, pure synthetic stock capture schema2/policy1/quantity3, stock RLS/settlement trigger, browser seed denial/service allowance, and configured equip requirements failing closed. No signed-in hosted battle, real stock mutation or human acceptance is claimed. An initial deployment error/fatal scan from01:54:18 to01:58:39.529Z found no matching logs.
+The exact independently reviewed transaction registered20 immutable source6 bodies and committed only Emberbrand through ordinary fresh-CAS Commit, revision8/floor6 producing publication7. All12 table preservation guards and exact readback passed. Existing source versions, historical publications, unrelated records/publications, all drafts, inventory, grants, characters, builds, frozen battles and timing policy were preserved. No new migration, real grant or stock consumption was issued.
 
-## Unresolved retirement failure and current hold
+The [guarded SQL](release-assets/2026-11-05-items-polish-register-and-publish.sql) SHA256 is `26f154763757a6655abe1cc3eec9001da2cca0545ab451d3b9e37783cb8e2b0f`. Disposable validation passed2 cases at unchanged limits: a stale predecessor rolled back without new sources/versions, and the unchanged SQL registered20 sources and ordinary Emberbrand7 successfully. Hosted execution returned `guarded-source20-emberbrand7-preservation12`.
 
-The final16-case smoke at01:59:12.850080Z passed14 cases but **failed2**: custom-domain `?dpl=dpl_D79wgdgrFWWjf3kom6sfypujPk6F` and `x-deployment-id: dpl_D79wgdgrFWWjf3kom6sfypujPk6F` returned200 with the **old** deployment source. This violates the gate, which accepts503 or200 only when the source is the new deployment. Normal canonical home/Manual, guest redirects/auth denials, unsupported battle GET405, old unique host503, old cookie503, new pins and www308 passed.
+Safe hosted postflight passes20 exact sources, exact Emberbrand7, Wardstone passive-only, Tower Shield without held passive, unchanged global timing policy11, pure synthetic stock capture schema2/policy1/quantity3, stock RLS/settlement trigger, browser seed denial/service allowance and configured equip requirements failing closed.
 
-The temporary hold was restored immediately. Two experimental exact old-pin project routes did not change the result and were removed. The original9 retirement rules remain intact, together with only temporary hold `45a07761-caca-49ad-9017-a665fb051019`, under final routing version `b756f9fc-842b-4992-9cb5-eb2f95d082e4`.
+## Retirement diagnosis and final reopening
 
-Vercel documents `skewProtectionBoundaryAt` as a millisecond cutoff disabling older deployments' Skew Protection. The narrow proposed boundary1793922776186 was independently reviewed, but the API rejected it with404 `Skew Protection not found`. It was **not applied**. A read-only active firewall lookup also returned404 `Seawall Config not found`. No plan upgrade, broad security change, deployment deletion, new build or test weakening was attempted.
+The initial16-case smoke passed14 and failed2: custom-domain old query/header pins returned200 with the retired D79 source. The temporary hold was restored. Two ineffective experimental routes were removed. A reviewed Skew Protection cutoff was rejected404 `Skew Protection not found`; a read-only firewall lookup returned404 `Seawall Config not found`. No plan upgrade, deployment deletion, broad security change or test weakening occurred.
 
-Vercel project configuration/support must make old-pin retirement possible before reopening. Automatic retries are paused because this provider blocker cannot be resolved by unchanged polling. Resume from the [durable receipt](release-assets/2026-11-05-items-polish-release-progress.json); do not repeat any completed operation. After a working retirement control is available, prove old pins return503 or the verified new source, remove only the temporary hold, repeat final source/authority/retirement probes, finalize this receipt PR and notify verified live.
+On the resumed release, fresh primary and independent probes found both old pins returning the exact new deployment. No further configuration change was needed. This is observed recovery; no unsupported claim about the provider's internal cause is made. Only the temporary hold was removed, preserving the original9 retirement rules and both custom hosts. Final routing version: `683ea355-d1a5-481a-ab58-ca0dad760c17`.
 
-Official API reference: https://vercel.com/docs/rest-api/projects/update-an-existing-project
+All16 final probes pass at2026-11-06T08:12:02.656222Z. Canonical home/Manual and new pins identify the new deployment; guest pages redirect and private APIs deny access; unsupported battle GET is405; old unique host/cookie are503; old query/header pins return200 only from the exact new deployment; www redirects308. The error/fatal scan08:11:00–08:12:11.086Z has no matching logs.
+
+The [durable receipt](release-assets/2026-11-05-items-polish-release-progress.json) contains exact probe results and completed-operation flags. Do not rerun registration/publication or deploy this documentation-only receipt. Automatic release checks are disabled after verified completion.
+
+These are source/CI, safe guest/read-only and pure-capture checks. No signed-in hosted battle, physical-device playtest, sustained-load acceptance, real test grant/consumption or Phase5 closure is claimed.
