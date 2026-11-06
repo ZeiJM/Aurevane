@@ -329,7 +329,7 @@
   height: 100%;
   padding: 4px;
   display: grid;
-  grid-template-rows: var(--av-item-art-size) minmax(0, 1fr);
+  grid-template-rows: var(--av-item-art-size) minmax(max-content, 1fr);
   justify-items: center;
   align-content: stretch;
   gap: 0;

@@ -388,6 +388,10 @@ try {
               : []
           return {
             name: name.textContent,
+            contentHeight: name.scrollHeight,
+            availableHeight: name.clientHeight,
+            contentWidth: name.scrollWidth,
+            availableWidth: name.clientWidth,
             clipped:
               name.scrollHeight > name.clientHeight + 1 ||
               name.scrollWidth > name.clientWidth + 1 ||
