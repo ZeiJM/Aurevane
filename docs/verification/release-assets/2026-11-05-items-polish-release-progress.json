@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "application-promoted-content-hold-draining",
+  "status": "content-applied-hold-awaiting-postflight",
   "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
   "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
   "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
@@ -18,8 +18,8 @@
   "previousDeploymentId": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
   "deploymentId": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
   "promoted": true,
-  "sourceRegistrationDone": false,
-  "emberbrandPublicationDone": false,
+  "sourceRegistrationDone": true,
+  "emberbrandPublicationDone": true,
   "newMigrationsRequired": 0,
   "sourceScope": "Exact20source6 reviewed successors in docs/verification/2026-11-05-items-polish-successors.json; only Emberbrand normal fresh-CAS publication if still required.",
   "routingVersionBefore": "78132fc0-e779-4dda-bf7b-7ea8c5773e28",
@@ -51,9 +51,10 @@
     "path": "docs/verification/release-assets/2026-11-05-items-polish-register-and-publish.sql",
     "sha256": "26f154763757a6655abe1cc3eec9001da2cca0545ab451d3b9e37783cb8e2b0f",
     "bytes": 40097,
-    "executed": false,
+    "executed": true,
     "independentReview": "No blocking findings; static review only. SQL parser/disposable execution not claimed: exec transport disconnected.",
-    "scope": "20 reviewed source6 registrations, ordinary Emberbrand publication7,12-table preservation"
+    "scope": "20 reviewed source6 registrations, ordinary Emberbrand publication7,12-table preservation",
+    "disposableVerification": "2 cases pass: stale-predecessor transaction rollback preserves zero new sources/versions; exact unchanged SQL registers20/ordinaryCommit7 successfully. Existing disposable helper/full real migrations, unchanged limits."
   },
   "cutoverVerification": {
     "stagedHome200": true,
@@ -73,5 +74,11 @@
     "source6Count": 0,
     "newEmberbrandVersions": 0,
     "observedAt": "2026-11-06T01:04:54.705995Z"
-  }
+  },
+  "sourceVersion": 6,
+  "registeredSources": 20,
+  "emberbrandPublicationVersion": 7,
+  "guardedPreservationPassed": true,
+  "olderClientTransactionsAtDrainCheck": 0,
+  "executionCheckedAt": "2026-11-06T01:54:18.338008Z"
 }
