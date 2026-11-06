@@ -349,6 +349,7 @@ export function CharacterArsenalShell({
               <span className={styles.overviewTechniqueArt} data-arsenal-media="true">
                 <Image
                   src={
+                    equipmentSupport?.item.actions.support?.artworkSrc ??
                     equipmentSupport?.item.artworkSrc ??
                     battleSkillArtwork(
                       supportActionId,

@@ -155,6 +155,7 @@ it('keeps one equipment Support selected and lets the retained Basic choice repl
     enabled: true,
     actions: { support: { behaviorId: 'prayer', name: 'Warding Prayer' } },
     artworkSrc: '/media/art/items/wardstone-bracer-v01.webp',
+    reports: [],
   }
   const initialItemsView = {
     characterId: 'character',
@@ -202,7 +203,7 @@ it('keeps one equipment Support selected and lets the retained Basic choice repl
     radios()
       .filter((n) => n.props.checked)
       .map((n) => n.props['aria-label']),
-  ).toEqual(['Warding Prayer · Off Hand'])
+  ).toEqual(['Warding Prayer'])
   ;(radios().find((n) => n.props['aria-label'] === 'HP Recovery')!.props.onChange as () => void)()
   await vi.waitFor(() => expect(commands).toHaveLength(1))
   await vi.waitFor(() =>
@@ -217,7 +218,7 @@ it('keeps one equipment Support selected and lets the retained Basic choice repl
     expectedBuildVersion: 11,
     supportActionId: 'basic.recover',
   })
-  expect(radios().map((n) => n.props['aria-label'])).toContain('Warding Prayer · Off Hand')
+  expect(radios().map((n) => n.props['aria-label'])).toContain('Warding Prayer')
 })
 
 it('offers an equipped weapon technique beside all Basic choices and restores the previous Basic Support after authoritative unequip', async () => {
@@ -313,13 +314,13 @@ it('offers an equipped weapon technique beside all Basic choices and restores th
     'Pilfer',
     'Fleetstep',
     'Invocation',
-    'Sunward Prayer · Main Hand',
+    'Sunward Prayer',
   ])
   expect(
     choices(selected.snapshot)
       .filter((row) => row.props.checked)
       .map((row) => row.props['aria-label']),
-  ).toEqual(['Sunward Prayer · Main Hand'])
+  ).toEqual(['Sunward Prayer'])
   const removed = unequipInventoryItem(
     selected.snapshot,
     definitions,
@@ -330,7 +331,7 @@ it('offers an equipped weapon technique beside all Basic choices and restores th
   if (!removed.ok) return
   expect(removed.snapshot.selectedSupport).toEqual({ kind: 'basic', actionId: 'basic.pilfer' })
   expect(choices(removed.snapshot).map((row) => row.props['aria-label'])).not.toContain(
-    'Sunward Prayer · Main Hand',
+    'Sunward Prayer',
   )
   expect(
     choices(removed.snapshot)
@@ -345,4 +346,84 @@ it('offers an equipped weapon technique beside all Basic choices and restores th
       behaviorId: technique.id,
     }).ok,
   ).toBe(false)
+})
+
+it('previews an imbued technique on hover and keyboard focus using the shared Support report', async () => {
+  const { starterItemDefinitions } = await import('@aurevane/game-core/content/starter-items')
+  const { presentItem } = await import('@/lib/items/item-presentation')
+  const { AbilityParameters } = await import('./ability-parameters')
+  const item = presentItem(starterItemDefinitions().find((row) => row.id === 'stormcaller-staff')!)
+  const props: Parameters<typeof CharacterSkillBuildPanel>[0] = {
+    characterId: 'character',
+    initialBuildVersion: 1,
+    initialSupportActionId: 'basic.recover',
+    primaryDiscipline: { id: 'vanguard', name: 'Vanguard' },
+    secondaryDiscipline: null,
+    initialCapacity: 4,
+    initialLearnedSkills: [],
+    initialEquippedSkills: [],
+    initialResonance: null,
+    initialEssence: null,
+    initialItemsView: {
+      characterId: 'character',
+      revision: 1,
+      catalogueToken: 'a'.repeat(32),
+      battleLocked: false,
+      qualityPoints: 22,
+      qualityPointLimit: 100,
+      equipmentIssue: null,
+      equipment: { 'main-hand': 'weapon' },
+      selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+      stacks: [
+        {
+          id: 'weapon',
+          itemId: item.id,
+          item,
+          inventoryCategory: 'gear',
+          slotIndex: 0,
+          quantity: 1,
+        },
+      ],
+      notices: [],
+    },
+  }
+  const render = () => {
+    hooks.index = 0
+    return CharacterSkillBuildPanel(props)
+  }
+  const article = () =>
+    nodes(render()).find(
+      (node) =>
+        node.type === 'article' &&
+        nodes(node).some(
+          (child) => child.type === 'input' && child.props['aria-label'] === 'Storm Ward',
+        ),
+    )!
+  const radio = nodes(article()).find(
+    (node) => node.type === 'input' && node.props.type === 'radio',
+  )!
+  expect(radio.props['aria-description']).toBeUndefined()
+  expect(radio.props['aria-describedby']).toEqual(expect.any(String))
+  const description = nodes(article()).find(
+    (node) => node.props.id === radio.props['aria-describedby'],
+  )!
+  expect(description.props.hidden).toBe(true)
+  expect(description.props.children).toBe('Stormcaller Staff, Main Hand')
+  expect(nodes(article()).some((node) => node.props.children === 'Details')).toBe(false)
+  ;(article().props.onMouseEnter as () => void)()
+  let report = nodes(render()).find((node) => node.type === AbilityParameters)!
+  expect(report.props.report).toMatchObject({ name: 'Storm Ward' })
+  expect(report.props.characteristicsClassName).toBeTruthy()
+  const native = nodes(render()).find(
+    (node) =>
+      node.type === 'article' &&
+      nodes(node).some(
+        (child) => child.type === 'input' && child.props['aria-label'] === 'Invocation',
+      ),
+  )!
+  ;(native.props.onMouseEnter as () => void)()
+  expect(nodes(render()).some((node) => node.type === AbilityParameters)).toBe(false)
+  ;(article().props.onFocusCapture as () => void)()
+  report = nodes(render()).find((node) => node.type === AbilityParameters)!
+  expect(report.props.report).toMatchObject({ name: 'Storm Ward' })
 })

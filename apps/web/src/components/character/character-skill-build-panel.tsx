@@ -53,8 +53,8 @@ import {
 import styles from './character-skill-build-panel.module.css'
 import type { CharacterItemsView } from '@/server/character/character-items-service'
 import { itemSupportOptions } from './item-support-options'
-import { ItemDetails } from './item-details'
-import { OperationalDialog } from '@/components/master/operational-dialog'
+import { positionNames } from './item-equipment-preview'
+import { AbilityParameters } from './ability-parameters'
 import {
   basicActionCharacteristicRows,
   type SkillCharacteristic,
@@ -203,13 +203,28 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
   const [committedSupportActionId, setCommittedSupportActionId] = useState(
     props.initialSupportActionId ?? DEFAULT_SUPPORT_ACTION_ID,
   )
-  const [focusedSupportActionId, setFocusedSupportActionId] = useState<SupportActionId | null>(null)
+  const [focusedSupportActionId, setNativeSupportFocus] = useState<SupportActionId | null>(null)
   const [itemSupportView, setItemSupportView] = useState<CharacterItemsView | null>(
     props.initialItemsView ?? null,
   )
   const [itemSupportError, setItemSupportError] = useState<string | null>(null)
   const [itemSupportLoading, setItemSupportLoading] = useState(false)
   const equipmentSupportSelected = itemSupportView?.selectedSupport.kind === 'equipment'
+  const [focusedEquipmentKey, setFocusedEquipmentKey] = useState<string | null>(null)
+  const equipmentOptions = itemSupportView ? itemSupportOptions(itemSupportView) : []
+  const focusedEquipment = equipmentOptions.find((option) => option.key === focusedEquipmentKey)
+  const focusedEquipmentReport = focusedEquipment?.item.reports.find(
+    (report) => report.behaviorId === focusedEquipment.selection.behaviorId,
+  )
+  function setFocusedSupportActionId(id: SupportActionId | null) {
+    setFocusedEquipmentKey(null)
+    setNativeSupportFocus(id)
+  }
+  function focusEquipment(key: string) {
+    setNativeSupportFocus(null)
+    setFocusedEquipmentKey(key)
+  }
+
   const [capacity, setCapacity] = useState(initialCapacity)
   const [learnedSkills, setLearnedSkills] =
     useState<readonly SkillCatalogEntryView[]>(initialLearnedSkills)
@@ -736,12 +751,15 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                     className={styles.skill}
                     key={option.key}
                     data-selected={selected ? 'true' : 'false'}
+                    onMouseEnter={() => focusEquipment(option.key)}
+                    onFocusCapture={() => focusEquipment(option.key)}
                   >
                     <label>
                       <input
                         type="radio"
                         name={`support-action-${props.characterId}`}
                         aria-label={option.label}
+                        aria-describedby={`support-source-${props.characterId}-${option.key}`}
                         checked={selected}
                         disabled={
                           pending ||
@@ -749,12 +767,24 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           itemSupportView.battleLocked ||
                           !!itemSupportView.equipmentIssue
                         }
-                        onChange={() => void commitItemSupport(option.selection)}
+                        onClick={(event) => {
+                          if (!coarsePointer) return
+                          event.preventDefault()
+                          focusEquipment(option.key)
+                        }}
+                        onChange={() => {
+                          if (!coarsePointer) void commitItemSupport(option.selection)
+                        }}
                       />
+                      <span id={`support-source-${props.characterId}-${option.key}`} hidden>
+                        {`${option.item.name}, ${positionNames[option.selection.position]}`}
+                      </span>
                       <span className={styles.skillArt}>
-                        {option.item.artworkSrc ? (
+                        {(option.item.actions.support?.artworkSrc ?? option.item.artworkSrc) ? (
                           <Image
-                            src={option.item.artworkSrc}
+                            src={
+                              (option.item.actions.support?.artworkSrc ?? option.item.artworkSrc)!
+                            }
                             width={160}
                             height={160}
                             unoptimized
@@ -764,22 +794,25 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                         {selected ? <b>✓</b> : null}
                       </span>
                       <strong>{option.label}</strong>
-                      <span className={styles.skillMeta}>{option.item.name}</span>
+                      <span className={styles.skillMeta}>
+                        {option.item.reports
+                          .find((report) => report.behaviorId === option.selection.behaviorId)
+                          ?.rows.find(([label]) => label === 'Skill Type')?.[1] ?? 'Utility'}
+                      </span>
                     </label>
-                    <OperationalDialog
-                      id={`support-${option.key}`}
-                      title={option.item.name}
-                      trigger="Details"
-                      triggerLabel={`Inspect ${option.label}`}
-                    >
-                      <ItemDetails item={option.item} />
-                    </OperationalDialog>
                   </article>
                 )
               })
             : null}
           {Array.from(
-            { length: TECHNIQUES_PER_DISCIPLINE - CURRENT_SUPPORT_ACTION_IDS.length },
+            {
+              length: Math.max(
+                0,
+                TECHNIQUES_PER_DISCIPLINE -
+                  CURRENT_SUPPORT_ACTION_IDS.length -
+                  equipmentOptions.length,
+              ),
+            },
             (_, index) => (
               <div
                 key={`support-empty-${index}`}
@@ -793,12 +826,6 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
             ),
           )}
         </div>
-        {equipmentSupportSelected ? (
-          <p>
-            Equipment supplies your one Support Action. Removing its source restores your previous
-            Basic choice.
-          </p>
-        ) : null}
         {itemSupportError ? <p role="alert">{itemSupportError}</p> : null}
         {itemSupportView?.battleLocked ? (
           <p role="status">Support changes are locked during a pending or active battle.</p>
@@ -1062,9 +1089,25 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                       data-technique-preview-details="true"
                     >
                       <span>
-                        {focusedSupportActionId ? 'Support Action Preview' : 'Technique Preview'}
+                        {focusedSupportActionId || focusedEquipment
+                          ? 'Support Action Preview'
+                          : 'Technique Preview'}
                       </span>
-                      {focusedSupportActionId ? (
+                      {focusedEquipment && focusedEquipmentReport ? (
+                        <>
+                          <div className={styles.selectedTechniqueHeading}>
+                            <div>
+                              <strong>{focusedEquipment.label}</strong>
+                            </div>
+                          </div>
+                          <AbilityParameters
+                            report={focusedEquipmentReport}
+                            characteristicsClassName={styles.characteristics}
+                            effectExplanationsClassName={styles.effectExplanations}
+                            showMaintenance={false}
+                          />
+                        </>
+                      ) : focusedSupportActionId ? (
                         <>
                           <div className={styles.selectedTechniqueHeading}>
                             <div>
@@ -1201,9 +1244,24 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                         <p>No Technique is available for this build.</p>
                       )}
                     </section>
-                    {coarsePointer && (focusedSupportActionId || focusedSkill) ? (
+                    {coarsePointer &&
+                    (focusedEquipment || focusedSupportActionId || focusedSkill) ? (
                       <div className={styles.previewActions} data-technique-preview-actions="true">
-                        {focusedSupportActionId ? (
+                        {focusedEquipment ? (
+                          <button
+                            type="button"
+                            className={styles.equipAction}
+                            disabled={
+                              pending ||
+                              itemSupportLoading ||
+                              itemSupportView?.battleLocked ||
+                              !!itemSupportView?.equipmentIssue
+                            }
+                            onClick={() => void commitItemSupport(focusedEquipment.selection)}
+                          >
+                            Use as Support Action
+                          </button>
+                        ) : focusedSupportActionId ? (
                           <button
                             type="button"
                             className={styles.equipAction}

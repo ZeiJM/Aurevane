@@ -59,7 +59,7 @@ const position = (state: CombatEncounterState, id: string) =>
 // by the separate modular correction cohort and combat-blindside.test.ts. Counter
 // and Endure are later authoring mechanics, verified by combat-counter.test.ts and
 // combat-endure.test.ts; Blind is covered by combat-mark-blind.contract.test.ts.
-// Seal is covered by combat-seal.test.ts. These later statuses have no application in the pinned October10 records.
+// Range tags are covered by combat-range.test.ts; Seal by combat-seal.test.ts. These later statuses have no application in the pinned October10 records.
 const outsideOctober10Roster = [
   'lowered-guard',
   'displaced',
@@ -68,6 +68,8 @@ const outsideOctober10Roster = [
   'endure',
   'blind',
   'seal',
+  'range-up',
+  'range-down',
 ]
 function current(ids: string[], otherOwners: Record<string, string[]> = {}) {
   const base = fixture(ids),

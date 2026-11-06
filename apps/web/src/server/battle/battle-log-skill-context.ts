@@ -1,3 +1,4 @@
+import { itemActionMedia } from '@aurevane/game-core/content/items'
 import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
 import 'server-only'
 
@@ -181,7 +182,14 @@ export async function attachRecordedBattleLogSkillContext(
           ),
       )
       if (equipment.length === 1) {
-        const item = equipment[0]!.equipment!.unit.item
+        const captured = equipment[0]!.equipment!
+        const item = captured.unit.item
+        const role = (['attack', 'support', 'use'] as const).find(
+          (role) =>
+            captured.roles[role] &&
+            equipmentBehaviorActionId(captured, captured.roles[role]!) === entry.actionId,
+        )
+        const media = itemActionMedia(item, role ?? 'attack')
         return {
           ...entry,
           actionContext: {
@@ -189,9 +197,9 @@ export async function attachRecordedBattleLogSkillContext(
             skillId: entry.actionId,
             contentId: item.id,
             contentVersion: item.contentVersion,
-            name: item.name,
-            ...(contentArtworkKey({ ...item.media, iconKey: item.media.artworkId })
-              ? { artworkKey: contentArtworkKey({ ...item.media, iconKey: item.media.artworkId })! }
+            name: role === 'support' ? item.actions!.support!.name : item.name,
+            ...(contentArtworkKey({ ...media, iconKey: media.artworkId })
+              ? { artworkKey: contentArtworkKey({ ...media, iconKey: media.artworkId })! }
               : {}),
             description: item.description,
             flavor: null,

@@ -141,6 +141,7 @@ export function combatEffectTimingMode(
   return (
     policy.modes[tag] ??
     (tag === 'push' || tag === 'pull' ? policy.modes.displace : undefined) ??
+    (['range-up', 'range-down'].includes(tag) ? 'delayed' : undefined) ??
     (['damage', 'healing', 'mp-recovery', 'blindside', 'endure', 'loot'].includes(tag)
       ? 'instant'
       : 'next-round')

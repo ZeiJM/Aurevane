@@ -13,7 +13,7 @@ it('offers only equipped enabled bound supports, distinguishes both hands withou
     stacks: [{ id: 'private-id', item }],
   } as unknown as CharacterItemsView
   const choices = itemSupportOptions(view)
-  expect(choices.map((c) => c.label)).toEqual(['Brace · Main Hand', 'Brace · Off Hand'])
+  expect(choices.map((c) => c.label)).toEqual(['Brace', 'Brace'])
   expect(JSON.stringify(choices)).not.toContain('private-id')
   expect(choices[0]!.selection).toEqual({
     kind: 'equipment',

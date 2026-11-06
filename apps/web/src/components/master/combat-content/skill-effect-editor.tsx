@@ -642,9 +642,17 @@ export function SkillEffectEditor({
       }
       controls = (
         <div className={styles.typedGrid}>
-          {!['covert', 'invisible', 'mark', 'marked', 'blind', 'root', 'seal'].includes(
-            value.statusId,
-          ) ? (
+          {![
+            'covert',
+            'invisible',
+            'mark',
+            'marked',
+            'blind',
+            'root',
+            'seal',
+            'range-up',
+            'range-down',
+          ].includes(value.statusId) ? (
             <label className={styles.field}>
               <span>Status stacks</span>
               <input
@@ -669,6 +677,15 @@ export function SkillEffectEditor({
                 void previous
                 onChange(damageTypes === undefined ? base : { ...base, damageTypes })
               }}
+            />
+          ) : null}
+          {['range-up', 'range-down'].includes(value.statusId) ? (
+            <AbilityNumber
+              label="Range strength (tiles)"
+              value={value.rangeTiles ?? 1}
+              min={1}
+              max={Number.MAX_SAFE_INTEGER}
+              onChange={(rangeTiles) => onChange({ ...value, rangeTiles })}
             />
           ) : null}
           {value.statusId === 'seal' ? (

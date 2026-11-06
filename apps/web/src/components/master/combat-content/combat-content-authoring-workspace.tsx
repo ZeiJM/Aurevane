@@ -948,136 +948,139 @@ export function CombatContentAuthoringWorkspace({
                   </button>
                 ))}
               </div>
-              <div
-                ref={editorRef}
-                className={styles.editorBody}
-                onScroll={(event) => {
-                  scroll.current.editorScroll = event.currentTarget.scrollTop
-                  scheduleRecovery()
-                }}
-              >
-                {imbuedAvailable ? (
-                  <fieldset hidden={tab !== 'Imbued Technique'} disabled={restoring || readOnly}>
-                    <ItemImbuedTechniqueEditor
-                      key={String(activeDefinition.id)}
-                      value={activeDefinition as unknown as RuntimeItemDefinition}
-                      onChange={(next) => change(next as unknown as CombatContentDefinition)}
-                    />
-                  </fieldset>
-                ) : null}
-                {tab === 'Imbued Technique' ? null : tab === 'Usage & Balance' ? (
-                  record ? (
-                    <UsageBalancePanel contentKey={record.contentKey} />
-                  ) : (
-                    <p>Commit the new item to see usage statistics.</p>
-                  )
-                ) : tab === 'Skills' ? (
-                  <>
-                    <NewDisciplineSkill
-                      key={record?.contentKey ?? 'new'}
-                      parent={newDefinition ? null : record}
-                      count={skills.length}
-                      choices={choices.filter(
-                        (row) =>
-                          row.contentKind === 'skill' &&
-                          !(BASIC_SKILL_IDS as readonly string[]).includes(row.contentKey),
-                      )}
-                      blank={
-                        categories.find((row) => row.category === 'skill')?.defaultDefinition ??
-                        null
-                      }
-                      disabled={restoring || busy || readOnly}
-                      recoveryScope={recoveryScope}
-                      onBusyChange={(active) =>
-                        setModalSaving((count) => Math.max(0, count + (active ? 1 : -1)))
-                      }
-                      onCreated={(child, parent) => {
-                        const body =
-                          pendingRef.current[parent.contentKey]?.definition ?? activeDefinition
-                        remember(child)
-                        if (body)
-                          pendingEdit(parent.contentKey, {
-                            revision: parent.revision,
-                            definition: withDisciplineSkill(body, child.contentKey, true),
-                          })
-                        accept(parent)
-                        setTab('Skills')
-                        setModalKey(child.contentKey)
-                        setModalRelationship(null)
-                      }}
-                    />
-                    <section className={styles.relatedList} aria-label="Discipline skills">
-                      {skills.map((key) => (
-                        <div key={key}>
-                          <button
-                            type="button"
-                            disabled={restoring || busy}
-                            onClick={() => {
-                              setModalRelationship(null)
-                              setModalKey(key)
-                            }}
-                          >
-                            {choices.find((row) => row.contentKey === key)?.name ?? key}
-                            <span aria-hidden="true">Edit →</span>
-                          </button>
-                          {activeDefinition &&
-                          !disciplineSkillIsAvailable(activeDefinition, key) ? (
-                            <small>Not available in this Discipline</small>
-                          ) : null}
-                          {pending[key] ? <small>Uncommitted skill changes</small> : null}
-                        </div>
-                      ))}
-                      {!skills.length ? <p>No Skills yet. Create the first Skill above.</p> : null}
-                    </section>
-                  </>
-                ) : tab === 'Resonances' ? (
-                  <section aria-label="Discipline relationships">
-                    <fieldset disabled={restoring || readOnly}>
-                      <RelationshipOverrideFields
-                        value={activeDefinition as unknown as AuthoredDiscipline}
+              <PendingMediaBoundary onChange={setPendingMedia}>
+                <div
+                  ref={editorRef}
+                  className={styles.editorBody}
+                  onScroll={(event) => {
+                    scroll.current.editorScroll = event.currentTarget.scrollTop
+                    scheduleRecovery()
+                  }}
+                >
+                  {imbuedAvailable ? (
+                    <fieldset hidden={tab !== 'Imbued Technique'} disabled={restoring || readOnly}>
+                      <ItemImbuedTechniqueEditor
+                        key={String(activeDefinition.id)}
+                        value={activeDefinition as unknown as RuntimeItemDefinition}
+                        onPendingMediaChange={setPendingMedia}
                         onChange={(next) => change(next as unknown as CombatContentDefinition)}
-                        choices={choices
-                          .filter((row) => row.contentKind === 'discipline')
-                          .map((row) => ({ id: row.contentKey, label: row.name }))}
                       />
                     </fieldset>
-                    <DisciplineRelationshipList
-                      value={activeDefinition as unknown as AuthoredDiscipline}
-                      choices={choices}
-                      onChange={(next) => change(next as unknown as CombatContentDefinition)}
-                      onEdit={(key, partner) => {
-                        setModalRelationship({ partner })
-                        setModalKey(key)
-                      }}
-                      renderCreate={(partner, close, directEditLabel) => (
-                        <NewRelationshipPower
-                          parent={newDefinition ? null : record}
-                          partner={partner}
-                          blank={
-                            categories.find(
-                              (row) =>
-                                row.category === (partner === null ? 'essence' : 'resonance'),
-                            )?.defaultDefinition ?? null
-                          }
-                          recoveryScope={recoveryScope}
-                          compact={!!directEditLabel}
-                          triggerLabel={directEditLabel}
-                          disabled={restoring || busy || readOnly}
-                          onBusyChange={setWorking}
-                          onCreated={(child) => {
-                            remember(child)
-                            close()
-                            setModalRelationship({ partner, attachOnCommit: true })
-                            setModalKey(child.contentKey)
-                          }}
+                  ) : null}
+                  {tab === 'Imbued Technique' ? null : tab === 'Usage & Balance' ? (
+                    record ? (
+                      <UsageBalancePanel contentKey={record.contentKey} />
+                    ) : (
+                      <p>Commit the new item to see usage statistics.</p>
+                    )
+                  ) : tab === 'Skills' ? (
+                    <>
+                      <NewDisciplineSkill
+                        key={record?.contentKey ?? 'new'}
+                        parent={newDefinition ? null : record}
+                        count={skills.length}
+                        choices={choices.filter(
+                          (row) =>
+                            row.contentKind === 'skill' &&
+                            !(BASIC_SKILL_IDS as readonly string[]).includes(row.contentKey),
+                        )}
+                        blank={
+                          categories.find((row) => row.category === 'skill')?.defaultDefinition ??
+                          null
+                        }
+                        disabled={restoring || busy || readOnly}
+                        recoveryScope={recoveryScope}
+                        onBusyChange={(active) =>
+                          setModalSaving((count) => Math.max(0, count + (active ? 1 : -1)))
+                        }
+                        onCreated={(child, parent) => {
+                          const body =
+                            pendingRef.current[parent.contentKey]?.definition ?? activeDefinition
+                          remember(child)
+                          if (body)
+                            pendingEdit(parent.contentKey, {
+                              revision: parent.revision,
+                              definition: withDisciplineSkill(body, child.contentKey, true),
+                            })
+                          accept(parent)
+                          setTab('Skills')
+                          setModalKey(child.contentKey)
+                          setModalRelationship(null)
+                        }}
+                      />
+                      <section className={styles.relatedList} aria-label="Discipline skills">
+                        {skills.map((key) => (
+                          <div key={key}>
+                            <button
+                              type="button"
+                              disabled={restoring || busy}
+                              onClick={() => {
+                                setModalRelationship(null)
+                                setModalKey(key)
+                              }}
+                            >
+                              {choices.find((row) => row.contentKey === key)?.name ?? key}
+                              <span aria-hidden="true">Edit →</span>
+                            </button>
+                            {activeDefinition &&
+                            !disciplineSkillIsAvailable(activeDefinition, key) ? (
+                              <small>Not available in this Discipline</small>
+                            ) : null}
+                            {pending[key] ? <small>Uncommitted skill changes</small> : null}
+                          </div>
+                        ))}
+                        {!skills.length ? (
+                          <p>No Skills yet. Create the first Skill above.</p>
+                        ) : null}
+                      </section>
+                    </>
+                  ) : tab === 'Resonances' ? (
+                    <section aria-label="Discipline relationships">
+                      <fieldset disabled={restoring || readOnly}>
+                        <RelationshipOverrideFields
+                          value={activeDefinition as unknown as AuthoredDiscipline}
+                          onChange={(next) => change(next as unknown as CombatContentDefinition)}
+                          choices={choices
+                            .filter((row) => row.contentKind === 'discipline')
+                            .map((row) => ({ id: row.contentKey, label: row.name }))}
                         />
-                      )}
-                      disabled={restoring || busy || readOnly}
-                    />
-                  </section>
-                ) : (
-                  <fieldset disabled={restoring || readOnly}>
-                    <PendingMediaBoundary onChange={setPendingMedia}>
+                      </fieldset>
+                      <DisciplineRelationshipList
+                        value={activeDefinition as unknown as AuthoredDiscipline}
+                        choices={choices}
+                        onChange={(next) => change(next as unknown as CombatContentDefinition)}
+                        onEdit={(key, partner) => {
+                          setModalRelationship({ partner })
+                          setModalKey(key)
+                        }}
+                        renderCreate={(partner, close, directEditLabel) => (
+                          <NewRelationshipPower
+                            parent={newDefinition ? null : record}
+                            partner={partner}
+                            blank={
+                              categories.find(
+                                (row) =>
+                                  row.category === (partner === null ? 'essence' : 'resonance'),
+                              )?.defaultDefinition ?? null
+                            }
+                            recoveryScope={recoveryScope}
+                            compact={!!directEditLabel}
+                            triggerLabel={directEditLabel}
+                            disabled={restoring || busy || readOnly}
+                            onBusyChange={setWorking}
+                            onCreated={(child) => {
+                              remember(child)
+                              close()
+                              setModalRelationship({ partner, attachOnCommit: true })
+                              setModalKey(child.contentKey)
+                            }}
+                          />
+                        )}
+                        disabled={restoring || busy || readOnly}
+                      />
+                    </section>
+                  ) : (
+                    <fieldset disabled={restoring || readOnly}>
                       <ContentDefinitionFields
                         key={String(
                           activeDefinition.id ??
@@ -1097,13 +1100,13 @@ export function CombatContentAuthoringWorkspace({
                         onPendingMediaChange={setPendingMedia}
                         choices={choices}
                       />
-                    </PendingMediaBoundary>
-                    {record?.contentKind === 'discipline' && tab === 'Parameters' ? (
-                      <DisciplinePlayerGrants disciplineId={record.contentKey} />
-                    ) : null}
-                  </fieldset>
-                )}
-              </div>
+                      {record?.contentKind === 'discipline' && tab === 'Parameters' ? (
+                        <DisciplinePlayerGrants disciplineId={record.contentKey} />
+                      ) : null}
+                    </fieldset>
+                  )}
+                </div>
+              </PendingMediaBoundary>
               <footer className={styles.editorFooter} role="group" aria-label="Save content">
                 <span className={styles.saveStatus} role="status" aria-label="Save status">
                   {pendingMedia

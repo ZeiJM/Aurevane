@@ -6,14 +6,18 @@ import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-acti
 import { AbilityDefinitionEditor } from './ability-definition-editor'
 import { AbilityEditorTabs, ABILITY_EDITOR_SECTIONS } from './ability-editor-tabs'
 import { AbilitySelect, AbilityText } from './ability-editor-fields'
+import { FinalizedMediaEditor } from './finalized-media-editor'
+import { itemTechniqueArtworkSrc } from '@/lib/items/item-presentation'
 import styles from './combat-content-editor.module.css'
 
 export function ItemImbuedTechniqueEditor({
   value,
   onChange,
+  onPendingMediaChange,
 }: {
   value: RuntimeItemDefinition
   onChange(value: RuntimeItemDefinition): void
+  onPendingMediaChange?(pending: boolean): void
 }) {
   const removed = useRef<{
     binding: ItemActionBinding
@@ -33,7 +37,7 @@ export function ItemImbuedTechniqueEditor({
       ...value,
       actions: {
         ...value.actions,
-        support: { behaviorId, name: support?.name ?? 'Imbued Technique' },
+        support: { ...support, behaviorId, name: support?.name ?? 'Imbued Technique' },
       },
     })
   }
@@ -100,7 +104,7 @@ export function ItemImbuedTechniqueEditor({
       },
       actions: {
         ...value.actions,
-        support: { behaviorId: id, name: support?.name ?? 'Imbued Technique' },
+        support: { ...support, behaviorId: id, name: support?.name ?? 'Imbued Technique' },
       },
     })
   }
@@ -148,7 +152,28 @@ export function ItemImbuedTechniqueEditor({
                 ABILITY_EDITOR_SECTIONS.map((section) => [
                   section.id,
                   section.id === 'media' ? (
-                    <p>The technique uses this Item’s artwork.</p>
+                    <FinalizedMediaEditor
+                      value={support.media ?? {}}
+                      allowAudio={false}
+                      fallbackArtwork={itemTechniqueArtworkSrc(value) ?? undefined}
+                      onPendingMediaChange={onPendingMediaChange}
+                      onChange={(media) => {
+                        const artworkId = support.media?.artworkId
+                        onChange({
+                          ...value,
+                          actions: {
+                            ...value.actions,
+                            support: {
+                              ...support,
+                              media: {
+                                ...(artworkId ? { artworkId } : {}),
+                                ...(media.artwork ? { artwork: media.artwork } : {}),
+                              },
+                            },
+                          },
+                        })
+                      }}
+                    />
                   ) : (
                     <AbilityDefinitionEditor
                       value={{

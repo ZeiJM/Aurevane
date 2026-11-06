@@ -27,6 +27,9 @@ export function narrateBattleEffect(
   switch (id) {
     case 'suppress':
       return reduce(label, 'direct damage', percent)
+    case 'range-up':
+    case 'range-down':
+      return `${label} ${verb(id === 'range-up' ? 'raises' : 'cuts', id === 'range-up' ? 'raise' : 'cut')} ${target}'s maximum target range${strength?.rangeTiles === undefined ? '' : ` by ${strength.rangeTiles} tiles`}`
     case 'seal':
       return `${label} ${verb('blocks', 'block')} ${target}'s ${strength?.sealedCategories ? sealCategorySummary(strength.sealedCategories) : 'selected'} discipline skills`
     case 'blind':

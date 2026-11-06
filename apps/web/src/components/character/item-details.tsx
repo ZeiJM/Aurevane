@@ -42,10 +42,6 @@ export function ItemDetails({
               <dd>{item.tier}</dd>
             </div>
             <div>
-              <dt>Quality Points</dt>
-              <dd>{item.qualityPoints}</dd>
-            </div>
-            <div>
               <dt>Maximum stack</dt>
               <dd>{item.maximumStack}</dd>
             </div>
@@ -96,6 +92,7 @@ export function ItemDetails({
       ) : null}
       <ItemReportTabs
         itemId={item.id}
+        itemCharacteristics={item}
         supportBehaviorId={
           item.itemClass === 'weapon' ? item.actions.support?.behaviorId : undefined
         }

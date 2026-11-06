@@ -1,3 +1,4 @@
+import { combatRangeTarget } from './combat-range'
 import { activeCombatEndure } from './combat-endure'
 import { combatReversalKnowledgeState, combatReversalPayload } from './combat-reversal'
 import { moveCurrentCombatant, type GridPosition } from './board'
@@ -10,6 +11,7 @@ import type { ManualCombatModifierSelection } from './combat-ability-command'
 import {
   combatAbilityCommandContext,
   combatAbilityBehavior,
+  materializeCombatAbilityAction,
   primeCombatControlledAbility,
   cancelCombatControlledAbility,
   combatManualModifierAvailability,
@@ -20,7 +22,6 @@ import { combatEffectTimingMode } from './combat-effect-timing'
 import type { CapturedCombatAbilitySource } from './combat-behavior-capture'
 import { outgoingSuppressionBasisPoints } from './combat-suppress'
 import {
-  canonicalAbilityTargetSpec,
   canonicalAbilitySupportsFireGroundIntent,
   enumerateCombatTargetSelections,
 } from './combat-targeting-shapes'
@@ -236,13 +237,22 @@ function rangedReposition(
   const origin = prepared.tactical.placements.find((row) => row.combatantId === actorId)!.position
   const actor = prepared.tactical.battle.combatants.find((row) => row.id === actorId)!
   const ready = sources.flatMap((source) =>
-    source.definition.behaviors.filter(
-      (behavior) =>
-        rangedAction(behavior) &&
-        (!behavior.cooldown ||
-          !readSkillCooldown(actor, combatAbilityCooldown(state, source, behavior.cooldown)!)
-            .active),
-    ),
+    source.definition.behaviors
+      .filter(
+        (behavior) =>
+          rangedAction(behavior) &&
+          (!behavior.cooldown ||
+            !readSkillCooldown(actor, combatAbilityCooldown(state, source, behavior.cooldown)!)
+              .active),
+      )
+      .map((behavior) => ({
+        ...behavior,
+        targeting: combatRangeTarget(
+          prepared,
+          actorId,
+          materializeCombatAbilityAction(source, behavior, prepared),
+        ),
+      })),
   )
   const minimumAp = Math.min(
     ...ready.map((behavior) =>
@@ -644,7 +654,11 @@ function canonicalSkillCandidates(
       if (behavior.activation !== 'manual' || behavior.mode !== 'action' || !behavior.targeting)
         return []
       if (rangedBudget && (rangedBudget.remaining <= 0 || !rangedAction(behavior))) return []
-      const targeting = canonicalAbilityTargetSpec(behavior.targeting)
+      const targeting = combatRangeTarget(
+        initial,
+        actorId,
+        materializeCombatAbilityAction(source, behavior, initial),
+      )
       const existingPrime = combatControlledPrime(initial, source, behavior)
       if (combatReversalPayload(behavior)) {
         if (existingPrime) return []

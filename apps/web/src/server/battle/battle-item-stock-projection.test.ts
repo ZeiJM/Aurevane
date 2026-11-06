@@ -72,3 +72,62 @@ it('projects current captured consumable stock only to its controlling owner and
   const historical = reattachStatDrivenCombatBridge(historicalActive, base.statBridge)
   expect(projectBattleItems(historical, owner)[0]).toMatchObject({ stockQuantity: null })
 })
+
+it.each([false, true])(
+  'projects role-specific weapon names and artwork with historical absence=%s',
+  (historical) => {
+    const current = starterItemDefinitions().find((row) => row.id === 'tower-shield')!
+    const item = historical
+      ? {
+          ...current,
+          contentVersion: 6,
+          actions: {
+            ...current.actions,
+            support: { behaviorId: current.actions!.support!.behaviorId, name: 'Tower Guard' },
+          },
+        }
+      : current
+    const capture = parseBattleEquipmentCapture({
+      schemaVersion: 2,
+      inventoryRevision: 1,
+      selectedSupport: {
+        kind: 'equipment',
+        position: 'main-hand',
+        itemId: item.id,
+        behaviorId: item.actions!.support!.behaviorId,
+      },
+      equipment: [{ position: 'main-hand', ownedStackId: 'private-shield', item }],
+    })
+    const source = captureEquipmentAbilitySource(capture, capture.equipment[0]!, 'actor')!
+    const base = fixture([])
+    const active = activateCombatAbilitySources(base, [source], PV1F_COMBAT_CONTENT, true).state
+    const state = reattachStatDrivenCombatBridge(active, base.statBridge)
+    const owner = deriveParticipantBattleViewerEntitlement(state.tactical.battle.combatants, [
+      'actor',
+    ])
+    const actions = projectBattleItems(state, owner)
+    expect(actions.find((a) => a.role === 'attack')).toMatchObject({
+      name: 'Tower Shield',
+      artworkSrc: '/media/art/items/tower-shield-v01.webp',
+      iconKey: 'item.tower-shield.art.v1',
+    })
+    expect(actions.find((a) => a.role === 'support')).toMatchObject({
+      name: 'Tower Guard',
+      artworkSrc: historical
+        ? '/media/art/items/tower-shield-v01.webp'
+        : '/media/art/items/techniques/tower-shield-technique-v01.webp',
+      iconKey: historical ? 'item.tower-shield.art.v1' : 'item.tower-shield.technique.art.v1',
+    })
+  },
+)
+it('keeps weapon and technique names/art distinct in the actual guided Support loadout', async () => {
+  const { createGuidedNativeFixture } =
+    await import('../../../e2e/fixtures/guided-training-service')
+  const { battle } = await (await createGuidedNativeFixture('equipment-support')).start()
+  const actions = battle.snapshot.equipmentActions ?? []
+  expect(actions.find((action) => action.role === 'attack')).toMatchObject({ name: 'Tower Shield' })
+  expect(actions.find((action) => action.role === 'support')).toMatchObject({
+    name: 'Tower Guard',
+    artworkSrc: '/media/art/items/techniques/tower-shield-technique-v01.webp',
+  })
+})

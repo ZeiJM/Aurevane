@@ -37,6 +37,20 @@ function status(
 /** Short names and descriptions are shared by Techniques, combat inspection and AI. */
 export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   status(
+    'range-up',
+    'Range Up',
+    'Buff',
+    'Increases maximum target range for Basic Attacks, Discipline Skills and weapon imbued techniques across Attack, Utility and Recovery. Excludes Target All, self-only actions, consumables, movement, area size and minimum range.',
+    { amplifyCopyable: true, reactionClass: 'ordinary' },
+  ),
+  status(
+    'range-down',
+    'Range Down',
+    'Debuff',
+    'Reduces maximum target range for Basic Attacks, Discipline Skills and weapon imbued techniques across Attack, Utility and Recovery, stopping at the targeting minimum. Excludes Target All, self-only actions, consumables, movement, area size and minimum range.',
+    { curseCopyable: true, reactionClass: 'ordinary' },
+  ),
+  status(
     'seal',
     'Seal',
     'Debuff',

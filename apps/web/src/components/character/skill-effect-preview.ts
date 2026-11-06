@@ -202,6 +202,8 @@ function statusPreview(
   const result: PreviewEffect = { label: details.name, explanation: details.description }
   // These gameplay-tag rules live in the damage/healing resolvers. Their shared
   // status descriptions are the public authority; avoid a second numeric constant.
+  if (tuning.rangeTiles !== undefined)
+    result.magnitude = `${id === 'range-up' ? '+' : '−'}${tuning.rangeTiles} tiles`
   if (id === 'seal' && tuning.sealedCategories)
     result.magnitude = sealCategorySummary(tuning.sealedCategories)
   if (id === 'suppress') {

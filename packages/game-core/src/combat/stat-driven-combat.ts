@@ -270,6 +270,7 @@ export function createStatBalancedCombatEncounterState(
       ...base,
       statBalancePolicyVersion: 1,
       displacementOriginPolicyVersion: 1,
+      rangeModifierPolicyVersion: 1,
       abilityCooldownScopeVersion: 1,
       reflectBarrierPolicyVersion: 1,
       barrierDamageEventPolicyVersion: 1,

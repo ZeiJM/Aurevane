@@ -5,17 +5,49 @@ import { AbilityParameters } from './ability-parameters'
 import { AbilityEffectExplanations } from './ability-effect-explanations'
 import reportStyles from './item-details.module.css'
 import styles from './item-report-tabs.module.css'
+import { itemClassLabel } from '@/lib/items/item-class-label'
+import { SkillCharacteristicRows } from './skill-characteristic-rows'
+import type { SkillCharacteristic } from './skill-information-contract'
 
 type Reports = ItemPresentation['reports']
-function ItemReports({ reports }: { reports: Reports }) {
+type ItemCharacteristics = Pick<ItemPresentation, 'itemClass' | 'qualityPoints' | 'actions'>
+function ItemReports({ reports, item }: { reports: Reports; item?: ItemCharacteristics }) {
   return (
     <>
       <div className={reportStyles.reports}>
+        {!reports.length && item ? (
+          <dl className={reportStyles.characteristics}>
+            <SkillCharacteristicRows
+              rows={[
+                ['Item Type', itemClassLabel(item.itemClass)],
+                ['Cost', `${item.qualityPoints} QP`],
+              ]}
+            />
+          </dl>
+        ) : null}
         {reports.map((report) => (
           <section key={report.behaviorId}>
             <h4>{report.name}</h4>
             <AbilityParameters
               report={report}
+              rows={
+                item
+                  ? report.rows.flatMap<SkillCharacteristic>(([label, value]) =>
+                      label === 'Skill Type'
+                        ? [['Item Type', itemClassLabel(item.itemClass)]]
+                        : label === 'Cost'
+                          ? [
+                              ['Cost', `${item.qualityPoints} QP`],
+                              ...(Object.values(item.actions).some(
+                                (action) => action.behaviorId === report.behaviorId,
+                              )
+                                ? [['Use Cost', value] as const]
+                                : []),
+                            ]
+                          : [[label, value]],
+                    )
+                  : undefined
+              }
               characteristicsClassName={reportStyles.characteristics}
               showEffectExplanations={false}
               showMaintenance={false}
@@ -33,10 +65,12 @@ export function ItemReportTabs({
   itemId,
   reports,
   supportBehaviorId,
+  itemCharacteristics,
 }: {
   itemId: string
   reports: Reports
   supportBehaviorId?: string
+  itemCharacteristics?: ItemCharacteristics
 }) {
   const id = useId()
   const technique = reports.find((report) => report.behaviorId === supportBehaviorId)
@@ -44,7 +78,7 @@ export function ItemReportTabs({
   const [selection, setSelection] = useState({ identity, index: 0 })
   if (selection.identity !== identity) setSelection({ identity, index: 0 })
   const active = selection.identity === identity ? selection.index : 0
-  if (!technique) return <ItemReports reports={reports} />
+  if (!technique) return <ItemReports reports={reports} item={itemCharacteristics} />
   const sections = [
     {
       label: 'Item Details',
@@ -94,7 +128,10 @@ export function ItemReportTabs({
           aria-labelledby={`${id}-${index}-tab`}
           hidden={active !== index}
         >
-          <ItemReports reports={section.reports} />
+          <ItemReports
+            reports={section.reports}
+            item={index === 0 ? itemCharacteristics : undefined}
+          />
         </div>
       ))}
     </>

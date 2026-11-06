@@ -31,18 +31,55 @@ it('shows the ordered two-row facts and one Consumable uses field, retaining oth
   expect(html).toContain('<dt>Class</dt><dd>Consumables</dd>')
   expect([...html.matchAll(/<dt>(.*?)<\/dt>/g)].slice(0, 7).map((match) => match[1])).toEqual([
     'Tier',
-    'Quality Points',
     'Maximum stack',
     'Class',
     'Position',
     'Type',
     'Uses per battle',
+    'Item Type',
   ])
   expect(html).toContain('<dt>Position</dt><dd>Consumable Slot</dd>')
   expect(html.match(/Uses per battle/g)).toHaveLength(1)
   expect(html).not.toMatch(/\d+ uses per battle|Uses refill each battle/)
   expect(html).toContain('Once per owner turn')
   expect(JSON.stringify(presentation)).toBe(before)
+})
+it('shows Item Type and QP cost in armor characteristics without top QP or a fictitious AP cost', () => {
+  const item = presentItem(starterItemDefinitions().find((row) => row.id === 'duskplate-cuirass')!)
+  const html = renderToStaticMarkup(<ItemDetails item={item} />)
+  expect(html).toContain('<dt>Item Type</dt><dd>Armor</dd>')
+  expect(html).toContain(`<dt>Cost</dt><dd>${item.qualityPoints} QP</dd>`)
+  expect(html).not.toContain('<dt>Quality Points</dt>')
+  expect(html).not.toContain('<dt>Skill Type</dt>')
+  expect(html).not.toContain('0 AP')
+})
+it.each(['sunsplitter', 'clarity-draught'])(
+  'keeps %s action costs separate from its QP cost',
+  (id) => {
+    const item = presentItem(starterItemDefinitions().find((row) => row.id === id)!)
+    const before = JSON.stringify(item)
+    const html = renderToStaticMarkup(<ItemDetails item={item} />)
+    const cost = item.reports[0]!.rows.find(([label]) => label === 'Cost')![1]
+    expect(html).toContain(`<dt>Cost</dt><dd>${item.qualityPoints} QP</dd>`)
+    expect(html).toContain(`<dt>Use Cost</dt><dd>${cost}</dd>`)
+    expect(JSON.stringify(item)).toBe(before)
+  },
+)
+it('still shows the Item type and QP cost for Items with no ability report', () => {
+  const item = presentItem(
+    itemFixture({
+      itemClass: 'material',
+      inventoryCategory: 'materials',
+      equipment: null,
+      qualityPoints: 0,
+      maximumStack: 99,
+      ability: null,
+      actions: undefined,
+    }),
+  )
+  const html = renderToStaticMarkup(<ItemDetails item={item} />)
+  expect(html).toContain('<dt>Item Type</dt><dd>Material</dd>')
+  expect(html).toContain('<dt>Cost</dt><dd>0 QP</dd>')
 })
 it('omits the uses field for passive equipment', () => {
   const html = renderToStaticMarkup(

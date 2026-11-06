@@ -2,10 +2,12 @@ import { AbilityEffectExplanations } from './ability-effect-explanations'
 import type { BattleAbilityBehaviorReport } from '@/lib/battle/battle-basic-actions'
 import { CompactEffectSummary } from './compact-skill-effect-summary'
 import { SkillCharacteristicRows } from './skill-characteristic-rows'
+import type { SkillCharacteristic } from './skill-information-contract'
 
 /** Render the shared public mechanics report without raw execution data or prose parsing. */
 export function AbilityParameters({
   report,
+  rows,
   characteristicsClassName,
   effectExplanationsClassName,
   showActivationNotes = true,
@@ -13,6 +15,7 @@ export function AbilityParameters({
   showEffectExplanations = true,
 }: {
   report: BattleAbilityBehaviorReport
+  rows?: readonly SkillCharacteristic[]
   characteristicsClassName?: string
   effectExplanationsClassName?: string
   showActivationNotes?: boolean
@@ -24,7 +27,7 @@ export function AbilityParameters({
     <div data-ability-parameters="true">
       <dl className={characteristicsClassName}>
         <SkillCharacteristicRows
-          rows={report.rows}
+          rows={rows ?? report.rows}
           targetMethodExplanation={report.targetMethodExplanation}
           requirementParts={report.requirementParts}
           effectSummary={

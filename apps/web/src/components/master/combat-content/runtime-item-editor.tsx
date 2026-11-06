@@ -243,7 +243,7 @@ export function RuntimeItemEditor({
           onChange={(tier) => set({ tier })}
         />
         <AbilityNumber
-          label="Quality Points"
+          label="Cost (QP)"
           value={value.qualityPoints}
           min={value.equipment ? 1 : 0}
           max={value.equipment ? 100 : 0}

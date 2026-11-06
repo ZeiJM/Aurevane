@@ -173,6 +173,15 @@ export function materializeCombatAbilityAction(
     throw new TypeError('canonical-specialized-tag-routing-required')
   return {
     canonicalAbilityAction: true,
+    rangeModifierEligible:
+      ['attack', 'utility', 'recovery'].includes(behavior.classification) &&
+      !behavior.effects.every((effect) => effect.payload.type === 'move') &&
+      (source.equipment
+        ? source.equipment.unit.item.itemClass === 'weapon' &&
+          (source.equipment.roles.attack === behavior.id ||
+            source.equipment.roles.support === behavior.id)
+        : source.sourceKind === 'discipline-skill' ||
+          source.basic?.execution.kind === 'basic-attack'),
     id: source.equipment
       ? equipmentBehaviorActionId(source.equipment, behavior.id)
       : source.abilityId,

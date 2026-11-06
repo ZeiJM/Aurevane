@@ -10,7 +10,16 @@ import {
 import { currentCombatTagName } from '@aurevane/game-core/combat/combat-effect-identities'
 import { assertTagPublicationReady } from '@aurevane/game-core/content/authored-content'
 it('supplies editable defaults for individual tags without creating publications on open', () => {
-  for (const id of ['dispel', 'copy-buffs', 'copy-debuffs', 'guarded', 'vengeance', 'counter']) {
+  for (const id of [
+    'dispel',
+    'copy-buffs',
+    'copy-debuffs',
+    'guarded',
+    'vengeance',
+    'counter',
+    'range-up',
+    'range-down',
+  ]) {
     const definition = builtinCombatContentDefinition('tag', `tag.${id}`)
     expect(definition).toMatchObject({
       id: `tag.${id}`,
@@ -51,6 +60,8 @@ it('builtin SQL identity/search/floor manifest exactly covers the current execut
     ['tag.loot', 'Loot', 'tag'],
     ['tag.stat-bonus', 'Stat Bonus', 'tag'],
     ['tag.seal', 'Seal', 'tag'],
+    ['tag.range-up', 'Range Up', 'tag'],
+    ['tag.range-down', 'Range Down', 'tag'],
   ])
     current.push({
       contentKey,

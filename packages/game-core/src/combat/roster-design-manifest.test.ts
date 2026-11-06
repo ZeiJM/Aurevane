@@ -273,9 +273,18 @@ it('classifies every status registered for the immutable October10 roster', () =
       'lowered-guard',
       'covert',
       'revealed',
-      // Later mechanics have separate Blindside, Counter, Endure, Mark/Blind and Seal contract suites.
+      // Later mechanics have separate Blindside, Counter, Endure, Mark/Blind Seal and Range contract suites.
       ...PHASE4_STATUSES.filter(
-        (s) => !['blindside-vulnerability', 'counter', 'endure', 'blind', 'seal'].includes(s.id),
+        (s) =>
+          ![
+            'blindside-vulnerability',
+            'counter',
+            'endure',
+            'blind',
+            'seal',
+            'range-up',
+            'range-down',
+          ].includes(s.id),
       ).map((s) => s.id),
     ]),
   ]
