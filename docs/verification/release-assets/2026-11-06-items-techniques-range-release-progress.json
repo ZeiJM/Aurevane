@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "staged-production-building-not-promoted",
+  "status": "staged-production-ready-content-pending",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -38,7 +38,7 @@
     "www.aurevane-rpg.com"
   ],
   "remoteHistoryPreflight": "Latest5 deployments inspected; only prior release and older, no Nov6 deployment exists.",
-  "remaining": "Inspect this existing build until READY; never create another. No hold/content/migration changes yet. Prepare/review guarded additive migrations and exact four successors, hold/retirement/drain, canonical source verification and postflight before reopening.",
+  "remaining": "Existing staged build READY, exact SHA verified, NOT PROMOTED. No hold/migrations/content operations yet. Prepare/review/test guarded additive migrations and four exact source8 registrations against freshly captured publication bodies, preserving existing mechanics/drafts/history. Fresh CAS only necessary publications for technique artwork, no blind broad republish. Then admission hold/retirement/drain/cutover/postflight. Do not build or duplicate receipt branch.",
   "autoAssignCustomDomains": false,
   "buildIntent": {
     "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -48,5 +48,46 @@
     "completedCreate": true
   },
   "deploymentUrl": "aurevane-afhp3mc50-zeijms-projects.vercel.app",
-  "buildState": "INITIALIZING"
+  "buildState": "READY",
+  "routingVersionBefore": "683ea355-d1a5-481a-ab58-ca0dad760c17",
+  "readOnlyPreflight": {
+    "dbTime": "2026-11-06T18:17:00.438253+00:00",
+    "timingPolicyVersion": 11,
+    "tagAuthority": "global",
+    "newMediaHelper": false,
+    "newSources8": 0,
+    "newMigrationsInstalled": false,
+    "targetOwnerDrafts": 0,
+    "targets": [
+      {
+        "id": "emberbrand",
+        "revision": 10,
+        "floor": 7,
+        "builtin": 6,
+        "published": 7
+      },
+      {
+        "id": "stormcaller-staff",
+        "revision": 5,
+        "floor": 6,
+        "builtin": 6,
+        "published": 3
+      },
+      {
+        "id": "tower-shield",
+        "revision": 2,
+        "floor": 6,
+        "builtin": 6,
+        "published": null
+      },
+      {
+        "id": "twinfang-blade",
+        "revision": 5,
+        "floor": 6,
+        "builtin": 6,
+        "published": 3
+      }
+    ]
+  },
+  "baselineAudit": "docs/verification/release-assets/2026-11-06-items-techniques-range-preflight.json"
 }
