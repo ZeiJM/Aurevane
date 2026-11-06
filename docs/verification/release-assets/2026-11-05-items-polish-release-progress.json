@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "ready-hold-live-preparing-promotion",
+  "status": "application-promoted-content-hold-draining",
   "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
   "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
   "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
@@ -17,7 +17,7 @@
   "supabaseProjectId": "luazfeupwfgnilohfsya",
   "previousDeploymentId": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
   "deploymentId": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
-  "promoted": false,
+  "promoted": true,
   "sourceRegistrationDone": false,
   "emberbrandPublicationDone": false,
   "newMigrationsRequired": 0,
@@ -27,7 +27,7 @@
   "holdRuleId": "45a07761-caca-49ad-9017-a665fb051019",
   "holdActive": true,
   "gitDeploymentEnabled": false,
-  "remaining": "Reassert automatic domain assignment lock, stage one production build, verify fresh DB floors/predecessors/drafts, apply protected hold/retirement and drain sequencing, exact source registration and ordinary Emberbrand publication, safe postflight/promote/reopen, complete receipt.",
+  "remaining": "After actual DB-clock deadline and zero older client transactions, perform guarded20source6 registration and only Emberbrand fresh-CAS successor publication; safe postflight, remove only hold, verify canonical release, receipt and stop watch.",
   "deploymentUrl": "aurevane-jp4c5dae1-zeijms-projects.vercel.app",
   "autoAssignCustomDomains": false,
   "buildState": "READY",
@@ -40,7 +40,11 @@
     "emberbrandVersionFloor": 5,
     "emberbrandBuiltinVersion": 4
   },
-  "routingVersion": "f4f7e1dd-5ab5-4f2d-bccc-2d824b761b85",
+  "routingVersion": "d0c5ff18-0d5d-4032-929e-cc326d262bcf",
   "predecessorsVerified": 20,
-  "candidateOwnerDrafts": 0
+  "candidateOwnerDrafts": 0,
+  "retirementVerifiedAt": "2026-11-06T01:02:38.425949Z",
+  "drainNotBefore": "2026-11-06T01:35:08.425950Z",
+  "canonicalSourceVerified": true,
+  "oldDeploymentHostStatus": 503
 }
