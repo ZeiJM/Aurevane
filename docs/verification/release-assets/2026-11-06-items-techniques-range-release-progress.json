@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "preflight-complete-build-not-requested",
+  "pr": 1021,
+  "receiptBranch": "agent/items-techniques-range-release-20261106",
+  "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
+  "sourceTree": "95c0ea4971336ec4afc6e0ac5d9d1d911ab4112a",
+  "testedHead": "a09c40a41c78e70629d997ad6f67728475136e6b",
+  "applicationChecksPassed": true,
+  "mainChecksPassed": true,
+  "supabaseIntegration": {
+    "conclusion": "failure",
+    "summary": "Remote migration versions not found in local migrations directory.",
+    "action": "Preserve history; reviewed additive controlled migration path only."
+  },
+  "projectId": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "teamId": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "supabaseProjectId": "luazfeupwfgnilohfsya",
+  "previousDeploymentId": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+  "deploymentId": null,
+  "promoted": false,
+  "holdActive": false,
+  "holdRemoved": false,
+  "migrationsApplied": [],
+  "sourceRegistrationDone": false,
+  "publicationsDone": false,
+  "sourceScope": "Exactly four reviewed source8 media successors from docs/verification/2026-11-06-item-technique-successors.json; preserve other43, all immutable history and Owner drafts; only necessary normal fresh-CAS publications after fresh audit.",
+  "migrationScope": [
+    "20261106100000_item_technique_media.sql",
+    "20261106110000_range_tags.sql"
+  ],
+  "gitDeploymentEnabled": false,
+  "requiredAutoAssignCustomDomains": false,
+  "retirementRulesToPreserve": 9,
+  "canonicalHosts": [
+    "aurevane.vercel.app",
+    "aurevane-rpg.com",
+    "www.aurevane-rpg.com"
+  ],
+  "remoteHistoryPreflight": "Latest5 deployments inspected; only prior release and older, no Nov6 deployment exists.",
+  "remaining": "Reassert domain auto-assignment false, create exactly one staged production build from exact source; inspect readiness. Prepare guarded hold/retirement/drain, reviewed additive migrations/content publication and postflight before reopening. Do not replay prior releases."
+}
