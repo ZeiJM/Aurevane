@@ -585,7 +585,7 @@
     grid-template-columns: repeat(auto-fill, minmax(calc(var(--av-item-art-size) + 12px), 1fr));
   }
 }
-@media (min-width: 1101px) and (max-width: 1350px) {
+@media (min-width: 1101px) and (max-width: 1400px) {
   .tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
