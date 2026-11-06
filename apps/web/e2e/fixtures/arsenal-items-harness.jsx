@@ -69,6 +69,11 @@ const original = {
   previousBasicSupport: 'basic.recover',
   grants: [],
 }
+// Exercise production-length names in the nine-viewport shell fit matrix.
+if (new URLSearchParams(location.search).has('shell')) {
+  original.equipment.head = 'owned-ember-stitched-cowl'
+  original.equipment['consumable-2'] = 'owned-vulnerability-oil'
+}
 const storage = 'arsenal-items-native-v1'
 let snapshot = JSON.parse(localStorage.getItem(storage) || 'null') ?? original
 window.calls = []

@@ -229,13 +229,15 @@
   border-radius: 4px;
 }
 .workspace .equipmentSlot strong {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
+  max-width: 100%;
+  min-width: 0;
   line-height: 1.15;
-  overflow-wrap: anywhere;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+  text-wrap: balance;
+  display: block;
 }
 .workspace .equipmentSlot small {
   color: #c4b8a3;
@@ -366,14 +368,15 @@
   width: 100%;
   min-height: 0;
   text-align: center;
-  overflow: hidden;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: manual;
+  text-wrap: balance;
   padding: 2px 0;
   font-size: 0.7rem;
   line-height: 1.2;
   align-self: center;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  display: block;
 }
 .equipped {
   position: absolute;
@@ -464,13 +467,25 @@
 .compactDialog.compactDialog {
   width: min(600px, calc(100% - 24px));
 }
+.statComparison {
+  margin-left: auto;
+  max-width: 75%;
+  text-align: right;
+}
+.statComparison h4 {
+  margin: 0 0 3px;
+  font-size: 0.72rem;
+}
+.replacedItems {
+  color: #c4b8a3;
+  font-size: 0.65rem;
+}
 .statChanges {
   display: flex;
   flex-wrap: wrap;
   gap: 4px 10px;
   margin: 0 0 0 auto;
   justify-content: flex-end;
-  max-width: 75%;
   font-size: 0.7rem;
 }
 .statChanges > div {
@@ -491,28 +506,45 @@
   color: #ff9e97;
 }
 .pickerChoices {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
   align-items: stretch;
-  gap: 8px;
-}
-.pickerChoices button {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
-  max-width: 100%;
-  overflow-wrap: anywhere;
+}
+.workspace .pickerChoices button {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 8px;
+  text-align: left;
+  font-size: 0.75rem;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 .pickerChoices img {
-  width: 36px;
-  height: 36px;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
   flex-shrink: 0;
 }
-.pickerChoices small {
-  flex-basis: 100%;
-  max-width: 240px;
+.pickerChoices button > span {
+  grid-column: 2;
+  flex: 1;
+  min-width: 0;
+}
+.pickerChoices small:not(.pickerQuantity) {
+  grid-column: 2;
+  display: block;
+  font-size: 0.65rem;
+}
+.pickerQuantity {
+  white-space: nowrap;
+  color: #c4b8a3;
+  font: inherit;
 }
 @media (max-width: 900px) {
   .columns {
@@ -700,7 +732,7 @@
   .page .equipmentSlot strong {
     grid-row: 1;
     align-self: end;
-    font-size: 0.66rem;
+    font-size: 0.6rem;
   }
   .page .equipmentSlot small {
     grid-row: 2;

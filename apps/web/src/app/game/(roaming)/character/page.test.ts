@@ -271,6 +271,8 @@ describe('Profile persistence recovery diagnostics', () => {
   it('carries current published Support artwork through Nexus and Arsenal to Skill Manager', async () => {
     const definitions = defaultBasicSkills().map((definition) => ({
       ...definition,
+      description:
+        definition.id === 'basic.invocation' ? 'Published summon purpose.' : definition.description,
       media:
         definition.id === 'basic.invocation'
           ? { ...definition.media, iconKey: 'skill.basic.pilfer.icon' }
@@ -282,17 +284,32 @@ describe('Profile persistence recovery diagnostics', () => {
     expect(shell.props.disciplineBuild.supportActionArtworkKeys['basic.invocation']).toBe(
       'skill.basic.pilfer.icon',
     )
+    expect(shell.props.disciplineBuild.supportActionDescriptions['basic.invocation']).toBe(
+      'Published summon purpose.',
+    )
+    const descriptions: unknown[] = []
     const panels: unknown[] = []
     function visit(node: ReactNode) {
       Children.forEach(node, (child) => {
-        if (!isValidElement<{ children?: ReactNode; supportActionArtworkKeys?: unknown }>(child))
+        if (
+          !isValidElement<{
+            children?: ReactNode
+            supportActionArtworkKeys?: unknown
+            supportActionDescriptions?: unknown
+          }>(child)
+        )
           return
-        if (child.type === CharacterSkillBuildPanel)
+        if (child.type === CharacterSkillBuildPanel) {
           panels.push(child.props.supportActionArtworkKeys)
+          descriptions.push(child.props.supportActionDescriptions)
+        }
         visit(child.props.children)
       })
     }
     visit(CharacterArsenalShell(shell.props))
+    expect(descriptions).toEqual([
+      expect.objectContaining({ 'basic.invocation': 'Published summon purpose.' }),
+    ])
     expect(panels).toEqual([
       expect.objectContaining({ 'basic.invocation': 'skill.basic.pilfer.icon' }),
     ])

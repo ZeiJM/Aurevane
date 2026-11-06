@@ -136,3 +136,71 @@ it('roundtrips strictly image-only weapon technique media and preserves historic
     }),
   ).toThrow()
 })
+
+it('roundtrips bounded weapon Support purpose text and preserves historical absence', () => {
+  const attack = structuredClone(
+    defaultBasicSkills().find((s) => s.id === 'unarmed.basic')!.ability!,
+  )
+  const support = {
+    ...structuredClone(
+      defaultBasicSkills().find((s) => s.id === 'basic.recover')!.ability!.behaviors[0]!,
+    ),
+    id: 'restore',
+  }
+  const item = itemFixture({
+    itemClass: 'weapon',
+    equipment: { slot: 'hand', hands: 1 },
+    ability: { ...attack, behaviors: [...attack.behaviors, support] },
+    actions: {
+      attack: { behaviorId: attack.behaviors[0]!.id, name: 'Strike' },
+      support: { behaviorId: support.id, name: 'Restore' },
+    },
+  })
+  const withDescription = (description: unknown) => ({
+    ...item,
+    actions: { ...item.actions, support: { ...item.actions!.support, description } },
+  })
+  expect(parseRuntimeItemDefinition(item).actions!.support).not.toHaveProperty('description')
+  for (const description of ['Restore some of your HP.', '😀'.repeat(400)])
+    expect(parseRuntimeItemDefinition(withDescription(description))).toEqual(
+      withDescription(description),
+    )
+  for (const description of [
+    null,
+    42,
+    {},
+    '',
+    ' ',
+    ' leading',
+    'trailing ',
+    'line\nbreak',
+    'tab\tbreak',
+    'delete\u007f',
+    'x'.repeat(401),
+    '😀'.repeat(401),
+  ])
+    expect(() => parseRuntimeItemDefinition(withDescription(description))).toThrow(/description/)
+  expect(() =>
+    parseRuntimeItemDefinition({
+      ...item,
+      actions: { ...item.actions, attack: { ...item.actions!.attack, description: 'Attack.' } },
+    }),
+  ).toThrow(/description/)
+  expect(() =>
+    parseRuntimeItemDefinition({
+      ...item,
+      itemClass: 'hand-armor',
+      actions: { support: { ...item.actions!.support, description: 'Restore.' } },
+      ability: { ...attack, behaviors: [support] },
+    }),
+  ).toThrow(/description/)
+  expect(() =>
+    parseRuntimeItemDefinition({
+      ...withDescription('Restore.'),
+      actions: {
+        ...item.actions,
+        support: { ...item.actions!.support, description: 'Restore.', extra: true },
+      },
+    }),
+  ).toThrow(/Unsupported/)
+})

@@ -2,7 +2,10 @@ import { expect, it, vi } from 'vitest'
 import { defaultBasicSkills } from '@aurevane/game-core/combat/combat-basic-actions'
 import type { FinalizedContentImage } from '@aurevane/game-core/combat/content-media'
 import { createCombatContentResolver } from '@/server/combat/combat-content-resolver'
-import { resolveCurrentSupportActionArtwork } from './current-support-action-artwork'
+import {
+  resolveCurrentSupportActionArtwork,
+  resolveCurrentSupportActionPresentation,
+} from './current-support-action-artwork'
 
 vi.mock('server-only', () => ({}))
 
@@ -22,6 +25,7 @@ it('prefers finalized published Invocation artwork while keeping native Support 
   const invocation = {
     ...defaultBasicSkills().find((row) => row.id === 'basic.invocation')!,
     contentVersion: 77,
+    description: 'Published summon purpose.',
     media: {
       ...defaultBasicSkills().find((row) => row.id === 'basic.invocation')!.media,
       artwork,
@@ -46,6 +50,10 @@ it('prefers finalized published Invocation artwork while keeping native Support 
       return null
     },
   })
+  const presentation = await resolveCurrentSupportActionPresentation(resolver)
+  expect(presentation.descriptions['basic.invocation']).toBe('Published summon purpose.')
+  expect(Object.keys(presentation.descriptions)).toHaveLength(5)
+  expect(JSON.stringify(presentation)).not.toMatch(/checksum|ability|execution|audio/)
   const keys = await resolveCurrentSupportActionArtwork(resolver)
   expect(keys['basic.invocation']).toBe('content-media.00000000-0000-4000-8000-000000000099')
   expect(keys['basic.recover']).toBeNull()

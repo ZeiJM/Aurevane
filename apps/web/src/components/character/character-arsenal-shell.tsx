@@ -383,6 +383,7 @@ export function CharacterArsenalShell({
             initialSupportActionId={supportActionId}
             initialItemsView={itemsView}
             supportActionArtworkKeys={disciplineBuild.supportActionArtworkKeys}
+            supportActionDescriptions={disciplineBuild.supportActionDescriptions}
             primaryDiscipline={{
               id: disciplineBuild.current.definition.id,
               name: disciplineBuild.current.definition.name,

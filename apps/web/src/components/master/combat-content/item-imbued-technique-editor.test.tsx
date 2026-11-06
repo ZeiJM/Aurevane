@@ -290,3 +290,31 @@ it('edits finalized image-only technique media, preserves it through selection a
   expect(withMedia.value().actions!.support!.media).toEqual({ artworkId: builtin })
   expect(withMedia.value().actions!.attack).toEqual(base.actions!.attack)
 })
+
+it('edits optional purpose text without inventing history and retains it through action selection and toggling', () => {
+  const form = editor()
+  form.toggle()
+  expect(form.value().actions!.support).not.toHaveProperty('description')
+  const descriptionField = () =>
+    nodes(form.render()).find(
+      (n) => n.type === AbilityText && n.props.label === 'Technique description',
+    )!
+  expect(descriptionField()).toBeDefined()
+  expect(descriptionField().props.value).toBe('')
+  expect(descriptionField().props.maxLength).toBe(400)
+  ;(descriptionField().props.onChange as (value: string) => void)('Recover some of your HP.')
+  expect(parseRuntimeItemDefinition(form.value()).actions!.support!.description).toBe(
+    'Recover some of your HP.',
+  )
+  const select = nodes(form.render()).find(
+    (n) => n.type === AbilitySelect && n.props.label === 'Technique action',
+  )!
+  ;(select.props.onChange as (id: string) => void)(form.value().actions!.support!.behaviorId)
+  form.toggle()
+  form.toggle()
+  expect(form.value().actions!.support!.description).toBe('Recover some of your HP.')
+  ;(descriptionField().props.onChange as (value: string) => void)('')
+  expect(parseRuntimeItemDefinition(form.value()).actions!.support).not.toHaveProperty(
+    'description',
+  )
+})

@@ -161,3 +161,33 @@ it('omits repeated ongoing maintenance prose while preserving the Item Requireme
   expect(html).toContain('Effects')
   expect(html).toContain('Power')
 })
+
+it.each(['stormcaller-staff', 'twinfang-blade', 'tower-shield', 'emberbrand'])(
+  'switches the %s popup header artwork with its active report and resets for another Item',
+  async (id) => {
+    const { ItemDetails } = await import('./item-details')
+    const { starterItemDefinitions } = await import('@aurevane/game-core/content/starter-items')
+    const item = presentItem(starterItemDefinitions().find((row) => row.id === id)!)
+    const before = JSON.stringify(item)
+    const render = (value = item) => {
+      const tabs = nodes(ItemDetails({ item: value })).find((node) => node.type === ItemReportTabs)!
+      return ItemReportTabs(tabs.props as Parameters<typeof ItemReportTabs>[0])
+    }
+    const image = (tree: ReactNode) =>
+      nodes(tree).find((node) => typeof node.props.src === 'string')!
+    const tabs = () => nodes(render()).filter((node) => node.props.role === 'tab')
+    expect(image(render()).props.src).toBe(item.artworkSrc)
+    ;(tabs()[1]!.props.onClick as () => void)()
+    expect(image(render()).props.src).toBe(item.actions.support!.artworkSrc)
+    expect(image(render()).props.alt).toBe(item.actions.support!.name)
+    ;(tabs()[1]!.props.onKeyDown as (event: unknown) => void)({
+      key: 'Home',
+      preventDefault() {},
+      currentTarget: {},
+    })
+    expect(image(render()).props.src).toBe(item.artworkSrc)
+    ;(tabs()[1]!.props.onClick as () => void)()
+    expect(image(render({ ...item, id: 'another-item' })).props.src).toBe(item.artworkSrc)
+    expect(JSON.stringify(item)).toBe(before)
+  },
+)

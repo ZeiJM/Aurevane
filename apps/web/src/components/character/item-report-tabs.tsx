@@ -1,5 +1,5 @@
 'use client'
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import type { ItemPresentation } from '@/lib/items/item-presentation'
 import { AbilityParameters } from './ability-parameters'
 import { AbilityEffectExplanations } from './ability-effect-explanations'
@@ -66,11 +66,15 @@ export function ItemReportTabs({
   reports,
   supportBehaviorId,
   itemCharacteristics,
+  itemSummary,
+  techniqueSummary,
 }: {
   itemId: string
   reports: Reports
   supportBehaviorId?: string
   itemCharacteristics?: ItemCharacteristics
+  itemSummary?: ReactNode
+  techniqueSummary?: ReactNode
 }) {
   const id = useId()
   const technique = reports.find((report) => report.behaviorId === supportBehaviorId)
@@ -78,7 +82,13 @@ export function ItemReportTabs({
   const [selection, setSelection] = useState({ identity, index: 0 })
   if (selection.identity !== identity) setSelection({ identity, index: 0 })
   const active = selection.identity === identity ? selection.index : 0
-  if (!technique) return <ItemReports reports={reports} item={itemCharacteristics} />
+  if (!technique)
+    return (
+      <>
+        {itemSummary}
+        <ItemReports reports={reports} item={itemCharacteristics} />
+      </>
+    )
   const sections = [
     {
       label: 'Item Details',
@@ -88,6 +98,7 @@ export function ItemReportTabs({
   ]
   return (
     <>
+      {active === 1 ? (techniqueSummary ?? itemSummary) : itemSummary}
       <div role="tablist" aria-label="Item information" className={styles.tabs}>
         {sections.map((section, index) => (
           <button

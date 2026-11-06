@@ -22,6 +22,7 @@ export interface ItemArtworkMedia {
   readonly artwork?: FinalizedContentImage
 }
 export interface ItemActionBinding {
+  readonly description?: string
   readonly media?: ItemArtworkMedia
   readonly behaviorId: string
   readonly name: string
@@ -186,7 +187,12 @@ export function parseRuntimeItemDefinition(value: unknown): RuntimeItemDefinitio
     row.actions === undefined ? {} : record(row.actions, 'actions', ['attack', 'support', 'use'])
   const bound = new Set<string>()
   for (const [role, value] of Object.entries(actions)) {
-    const binding = record(value, `actions.${role}`, ['behaviorId', 'name', 'media'])
+    const binding = record(value, `actions.${role}`, ['behaviorId', 'name', 'media', 'description'])
+    if (binding.description !== undefined) {
+      if (role !== 'support' || row.itemClass !== 'weapon')
+        fail(`actions.${role}.description`, 'Only weapon techniques have purpose descriptions.')
+      text(binding.description, `actions.${role}.description`, 400)
+    }
     if (binding.media !== undefined) {
       if (role !== 'support' || row.itemClass !== 'weapon')
         fail(`actions.${role}.media`, 'Only weapon techniques have independent artwork.')

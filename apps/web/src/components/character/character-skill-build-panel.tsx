@@ -88,6 +88,7 @@ interface CharacterSkillBuildPanelProps {
   disciplineNames?: Readonly<Record<string, string>>
   initialBuildVersion: number
   supportActionArtworkKeys?: Readonly<Partial<Record<SupportActionId, string | null>>>
+  supportActionDescriptions?: Readonly<Partial<Record<SupportActionId, string>>>
   initialSupportActionId?: SupportActionId
   initialItemsView?: CharacterItemsView | null
   primaryDiscipline: { id: string; name: string }
@@ -1098,6 +1099,10 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           <div className={styles.selectedTechniqueHeading}>
                             <div>
                               <strong>{focusedEquipment.label}</strong>
+                              <small>
+                                {focusedEquipment.item.actions.support?.description ??
+                                  'Technique description unavailable.'}
+                              </small>
                             </div>
                           </div>
                           <AbilityParameters
@@ -1112,7 +1117,13 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           <div className={styles.selectedTechniqueHeading}>
                             <div>
                               <strong>{pv1fSkillByActionId(focusedSupportActionId)!.name}</strong>
-                              <small>One Support Action, separate from Discipline Skills.</small>
+                              <small>
+                                {props.supportActionDescriptions?.[focusedSupportActionId] ??
+                                  defaultBasicSkills().find(
+                                    (skill) => skill.id === focusedSupportActionId,
+                                  )?.description ??
+                                  'Description unavailable.'}
+                              </small>
                             </div>
                           </div>
                           {(() => {

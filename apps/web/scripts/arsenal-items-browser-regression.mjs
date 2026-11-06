@@ -367,6 +367,44 @@ try {
     )
     const equipment = shellPage.getByRole('region', { name: 'Equipment', exact: true })
     await expect(equipment.getByRole('button')).toHaveCount(8)
+    const nameFit = await shellPage
+      .locator('[data-equipment-position] button strong, [data-inventory-slot] [class*="itemName"]')
+      .evaluateAll((names) =>
+        names.map((name) => {
+          const box = name.getBoundingClientRect()
+          const card = name.closest('button').getBoundingClientRect()
+          const text = name.firstChild
+          const wordRects =
+            text?.nodeType === Node.TEXT_NODE
+              ? [...text.textContent.matchAll(/[^\s-]+/gu)].map((word) => {
+                  const range = document.createRange()
+                  range.setStart(text, word.index)
+                  range.setEnd(text, word.index + word[0].length)
+                  return [...range.getClientRects()].map((rect) => ({
+                    left: rect.left,
+                    right: rect.right,
+                  }))
+                })
+              : []
+          return {
+            name: name.textContent,
+            clipped:
+              name.scrollHeight > name.clientHeight + 1 ||
+              name.scrollWidth > name.clientWidth + 1 ||
+              box.bottom > card.bottom + 1 ||
+              box.left < card.left - 1 ||
+              box.right > card.right + 1,
+            brokenWords: wordRects.some((rects) => rects.length > 1),
+            outside: wordRects
+              .flat()
+              .some((rect) => rect.left < box.left - 1 || rect.right > box.right + 1),
+          }
+        }),
+      )
+    assert.ok(
+      nameFit.every((name) => !name.clipped && !name.brokenWords && !name.outside),
+      JSON.stringify({ viewport, nameFit }),
+    )
     const equipmentFit = await equipment.evaluate((panel) => ({
       overflow: panel.scrollHeight - panel.clientHeight,
       panelBottom: panel.getBoundingClientRect().bottom,
@@ -514,6 +552,32 @@ try {
       assert.ok(dialogFit.overflow <= 1, JSON.stringify({ viewport, dialogFit }))
     }
     await shellPage.keyboard.press('Escape')
+    if ([1366, 390, 412].includes(viewport.width)) {
+      for (const [name, technique, artwork] of [
+        ['Stormcaller Staff', 'Storm Ward', 'stormcaller-staff'],
+        ['Twinfang Blade', 'Quickstep', 'twinfang-blade'],
+        ['Tower Shield', 'Tower Guard', 'tower-shield'],
+        ['Emberbrand', 'Kindle', 'emberbrand'],
+      ]) {
+        await shellPage
+          .getByRole('button', { name: new RegExp(`^Slot \\d+: ${name},`) })
+          .first()
+          .click()
+        const popup = shellPage.getByRole('dialog')
+        await expect(popup.getByRole('img', { name, exact: true })).toBeVisible()
+        await popup.getByRole('tab', { name: 'Imbued Technique', exact: true }).click()
+        const image = popup.getByRole('img', { name: technique, exact: true })
+        await expect(image).toBeVisible()
+        await expect
+          .poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0))
+          .toBe(true)
+        assert.ok((await image.getAttribute('src')).includes(`${artwork}-technique-v01.webp`))
+        await popup.getByRole('tab', { name: 'Imbued Technique', exact: true }).press('Home')
+        await expect(popup.getByRole('img', { name, exact: true })).toBeVisible()
+        await expect(popup.getByRole('img', { name: technique, exact: true })).toHaveCount(0)
+        await shellPage.keyboard.press('Escape')
+      }
+    }
     await shellPage.locator('[data-inventory-slot="40"]').scrollIntoViewIfNeeded()
     if (viewport.width >= 981) {
       assert.ok((await measure()).mainOverflowY <= 1)

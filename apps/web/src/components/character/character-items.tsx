@@ -223,6 +223,7 @@ export function CharacterItems({
     ? view.stacks.filter((stack) => {
         if (!stack.item?.enabled || !itemPositions(stack.item).includes(pickerPosition))
           return false
+        if (equipmentProposal(view, stack, pickerPosition, []).shortage) return false
         return !EQUIPMENT_POSITIONS.some(
           (p) =>
             p !== pickerPosition &&
@@ -587,35 +588,50 @@ export function CharacterItems({
                 )}
               </div>
               {!removals.length && proposal?.requiredReplacements.length ? (
-                <dl className={styles.statChanges} aria-label="Equipment stat changes">
-                  {!statChanges.length || comparisonUnavailable ? (
-                    <div className={styles.statNeutral}>
-                      {comparisonUnavailable
-                        ? evasionUnproven
-                          ? 'Evasion comparison unavailable'
-                          : 'Stat comparison unavailable'
-                        : 'No fixed stat change'}
-                    </div>
-                  ) : null}
-                  {statChanges.map(({ stat, amount }) => (
-                    <div key={stat}>
-                      <dt>{COMBAT_BONUS_STAT_LABELS[stat].replace(/ \(.*\)$/, '')}</dt>
-                      <dd
-                        className={
-                          amount > 0
-                            ? styles.statIncrease
-                            : amount < 0
-                              ? styles.statDecrease
-                              : styles.statNeutral
-                        }
-                        data-equipment-stat-change={amount}
-                      >
-                        {amount > 0 ? '+' : amount < 0 ? '−' : ''}
-                        {stat === 'evasion' ? `${Math.abs(amount) / 100}%` : Math.abs(amount)}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
+                <section className={styles.statComparison} aria-label="Equipment comparison">
+                  <h4>Stat changes if equipped</h4>
+                  <p className={styles.replacedItems}>
+                    Replacing:{' '}
+                    {[
+                      ...new Set(
+                        proposal.removals.map(
+                          (position) =>
+                            view.stacks.find((stack) => stack.id === view.equipment[position])?.item
+                              ?.name ?? 'Unavailable Item',
+                        ),
+                      ),
+                    ].join(' · ')}
+                  </p>
+                  <dl className={styles.statChanges} aria-label="Equipment stat changes">
+                    {!statChanges.length || comparisonUnavailable ? (
+                      <div className={styles.statNeutral}>
+                        {comparisonUnavailable
+                          ? evasionUnproven
+                            ? 'Evasion comparison unavailable'
+                            : 'Stat comparison unavailable'
+                          : 'No fixed stat change'}
+                      </div>
+                    ) : null}
+                    {statChanges.map(({ stat, amount }) => (
+                      <div key={stat}>
+                        <dt>{COMBAT_BONUS_STAT_LABELS[stat].replace(/ \(.*\)$/, '')}</dt>
+                        <dd
+                          className={
+                            amount > 0
+                              ? styles.statIncrease
+                              : amount < 0
+                                ? styles.statDecrease
+                                : styles.statNeutral
+                          }
+                          data-equipment-stat-change={amount}
+                        >
+                          {amount > 0 ? '+' : amount < 0 ? '−' : ''}
+                          {stat === 'evasion' ? `${Math.abs(amount) / 100}%` : Math.abs(amount)}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
               ) : null}
             </div>
             {!removals.length && blockedReason ? (
@@ -681,10 +697,12 @@ export function CharacterItems({
                           unoptimized
                         />
                       ) : null}
-                      <span>{stack.item?.name}</span>
-                      {stack.item?.itemClass === 'battle-item' ? (
-                        <small>×{stack.quantity}</small>
-                      ) : null}
+                      <span>
+                        {stack.item?.name}{' '}
+                        {stack.item?.itemClass === 'battle-item' ? (
+                          <small className={styles.pickerQuantity}>×{stack.quantity}</small>
+                        ) : null}
+                      </span>
                       {reason ? <small>{reason}</small> : null}
                     </button>
                   )

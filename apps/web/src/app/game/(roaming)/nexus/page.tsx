@@ -22,7 +22,7 @@ import { loadCharacterBuildContext } from '@/server/character/character-build-se
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { resolveCurrentCharacterSkillDetails } from '@/server/character/current-skill-detail-loader'
-import { resolveCurrentSupportActionArtwork } from '@/server/character/current-support-action-artwork'
+import { resolveCurrentSupportActionPresentation } from '@/server/character/current-support-action-artwork'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
@@ -99,11 +99,15 @@ export default async function CharacterNexusPage() {
   )
   const currentDisciplineSkillsPromise = disciplineBuildPromise.then(async (disciplineBuild) => {
     const contentResolver = createServerCombatContentResolver()
-    const [skills, supportActionArtworkKeys] = await Promise.all([
+    const [skills, supportPresentation] = await Promise.all([
       resolveCurrentCharacterSkillDetails(disciplineBuild.disciplineSkills, contentResolver),
-      resolveCurrentSupportActionArtwork(contentResolver),
+      resolveCurrentSupportActionPresentation(contentResolver),
     ])
-    return { ...skills, supportActionArtworkKeys }
+    return {
+      ...skills,
+      supportActionArtworkKeys: supportPresentation.artworkKeys,
+      supportActionDescriptions: supportPresentation.descriptions,
+    }
   })
 
   const [
@@ -195,6 +199,7 @@ export default async function CharacterNexusPage() {
           buildVersion: disciplineBuild.build.buildVersion,
           supportActionId: disciplineBuild.build.supportActionId,
           supportActionArtworkKeys: currentDisciplineSkills.supportActionArtworkKeys,
+          supportActionDescriptions: currentDisciplineSkills.supportActionDescriptions,
           current: disciplineBuild.current,
           currentSecondary: disciplineBuild.currentSecondary,
           availablePrimaries: disciplineBuild.availablePrimaries,
