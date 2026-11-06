@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "postflight-passed-removing-only-temporary-hold",
+  "status": "verified-live-for-owner-testing",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -19,8 +19,8 @@
   "previousDeploymentId": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
   "deploymentId": "dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
   "promoted": true,
-  "holdActive": true,
-  "holdRemoved": false,
+  "holdActive": false,
+  "holdRemoved": true,
   "migrationsApplied": [
     "20261106100000_item_technique_media.sql",
     "20261106110000_range_tags.sql"
@@ -41,7 +41,7 @@
     "www.aurevane-rpg.com"
   ],
   "remoteHistoryPreflight": "Latest5 deployments inspected; only prior release and older, no Nov6 deployment exists.",
-  "remaining": "WAIT until actualDBclock >=2026-11-06T18:58:15.965590Z AND zero older client transactions. Then refresh floors/revisions/predecessors/drafts/helper/migration installation and apply only reviewed two additive migrations if absent, execute exact guardedSQL once, safe postflight, removeONLYtemporaryhold, final canonicalprobes/receiptPRchecks. No source/pub/migration executed yet. ExistingonebuildalreadyPROMOTED; neverbuild/promoteagain.",
+  "remaining": "Documentation-only receipt PR integration through configured checks, then disable this watch. No further production operations or checks required. Owner gameplay acceptance remains open.",
   "autoAssignCustomDomains": false,
   "buildIntent": {
     "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -107,7 +107,7 @@
   },
   "retirementVerifiedAt": "2026-11-06T18:25:45.965590Z",
   "drainNotBefore": "2026-11-06T18:58:15.965590Z",
-  "routingVersion": "3fc32d5a-6152-4756-87f7-379380fdc4a9",
+  "routingVersion": "e66b8ef2-5afd-41f8-ac02-b668a459bcdf",
   "retirementRulesBefore": 9,
   "retirementRulesWithHold": 10,
   "cutoverProbes": [
@@ -251,5 +251,117 @@
     "authenticatedSeedDenied": true,
     "specifiedRangeUpRemoval": "dispel",
     "historicalRangeUpRemoval": "cleanse"
-  }
+  },
+  "retirementRulesAfter": 9,
+  "verifiedAt": "2026-11-06T19:02:25.016Z",
+  "migrationReceipts": [
+    {
+      "source": "20261106100000_item_technique_media.sql",
+      "version": "20261106185845",
+      "name": "item_technique_media"
+    },
+    {
+      "source": "20261106110000_range_tags.sql",
+      "version": "20261106185855",
+      "name": "range_tags"
+    }
+  ],
+  "finalProbes": [
+    {
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane.vercel.app/manual",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/game/arsenal",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/master",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/master/access",
+      "status": 401
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/character/items",
+      "status": 401
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles",
+      "status": 405,
+      "newSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles/00000000-0000-4000-8000-000000000000",
+      "status": 401
+    },
+    {
+      "url": "https://www.aurevane-rpg.com/",
+      "status": 308,
+      "location": "https://aurevane-rpg.com/",
+      "newSource": false,
+      "contentType": "text/plain"
+    },
+    {
+      "url": "https://aurevane-jp4c5dae1-zeijms-projects.vercel.app/",
+      "status": 503,
+      "newSource": false,
+      "contentType": "text/plain; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/?dpl=dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    },
+    {
+      "url": "https://aurevane-rpg.com/?dpl=dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+      "status": 200,
+      "newSource": true,
+      "contentType": "text/html; charset=utf-8"
+    }
+  ],
+  "headerCookieProbes": [
+    {
+      "case": "old-header",
+      "status": 200,
+      "newSource": true,
+      "oldSource": false
+    },
+    {
+      "case": "old-cookie",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
+    },
+    {
+      "case": "new-header",
+      "status": 200,
+      "newSource": true,
+      "oldSource": false
+    }
+  ],
+  "errorScan": {
+    "from": "2026-11-06T18:59:00Z",
+    "until": "2026-11-06T19:02:25.016Z",
+    "levels": [
+      "error",
+      "fatal"
+    ],
+    "result": "No matching logs"
+  },
+  "limitations": "Full exact-source CI and safe hosted SQL/guest/source/asset/retirement probes; no signed-in hosted battle, human/device playtest, real grant/stock consumption, sustained load or Phase5 closure claimed."
 }
