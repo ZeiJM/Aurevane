@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "retirement-pin-postflight-failed-hold-restored",
+  "status": "blocked-provider-retired-pin-routing-hold-active",
   "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
   "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
   "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
@@ -40,7 +40,7 @@
     "emberbrandVersionFloor": 5,
     "emberbrandBuiltinVersion": 4
   },
-  "routingVersion": "69a34ee7-4b2c-4847-b3bf-4a973412d8fd",
+  "routingVersion": "b756f9fc-842b-4992-9cb5-eb2f95d082e4",
   "predecessorsVerified": 20,
   "candidateOwnerDrafts": 0,
   "retirementVerifiedAt": "2026-11-06T01:02:38.425949Z",
@@ -123,5 +123,13 @@
     "returnedSource": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
     "expected": "503 or verified new deployment; old source is failure",
     "holdRestored": true
+  },
+  "blocker": {
+    "summary": "Retired custom-domain header/query pins still serve old dpl_D79, despite generic and experimental exact project routes. Skew Protection retirement cutoff API rejects404 not_found: Skew Protection not found. Firewall config inspection also404 Seawall Config not found.",
+    "attemptedBoundary": 1793922776186,
+    "boundaryApplied": false,
+    "experimentalRulesRemoved": true,
+    "requiredAction": "Configure/enable project Skew Protection retirement controls or obtain Vercel support resolution; no paid plan/upgrade or broad protection change made.",
+    "watchPaused": true
   }
 }
