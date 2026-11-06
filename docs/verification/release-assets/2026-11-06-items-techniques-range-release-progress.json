@@ -38,7 +38,7 @@
     "www.aurevane-rpg.com"
   ],
   "remoteHistoryPreflight": "Latest5 deployments inspected; only prior release and older, no Nov6 deployment exists.",
-  "remaining": "DO NOT register/publish/apply new grammar before durable DB drain deadline AND zero older client transactions. Prepare/review/disposable validate guarded SQL during drain. App promoted but new admission/authoring remain held; feature NOT reopened.",
+  "remaining": "WAIT until actualDBclock >=2026-11-06T18:58:15.965590Z AND zero older client transactions. Then refresh floors/revisions/predecessors/drafts/helper/migration installation and apply only reviewed two additive migrations if absent, execute exact guardedSQL once, safe postflight, removeONLYtemporaryhold, final canonicalprobes/receiptPRchecks. No source/pub/migration executed yet. ExistingonebuildalreadyPROMOTED; neverbuild/promoteagain.",
   "autoAssignCustomDomains": false,
   "buildIntent": {
     "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -132,6 +132,64 @@
       "url": "https://aurevane-rpg.com/api/master/access",
       "status": 503,
       "newSource": false
+    }
+  ],
+  "preparedSql": {
+    "path": "docs/verification/release-assets/2026-11-06-items-techniques-range-register-and-publish.sql",
+    "commit": "a050e10ba00b852317d462996742ef6ee6b14fe7",
+    "sha256": "d3214f7b8583b879559b7d60b55a2a04723fe35e3b6a274dc19e4a93468aac9a",
+    "bytes": 40743,
+    "executed": false,
+    "independentReview": "No blocking findings; exact source4/media publication3 and preservation12/durable deadline verified.",
+    "reviewPath": "docs/verification/release-assets/2026-11-06-items-techniques-range-sql-review.md",
+    "disposableVerification": "2/2 pass at unchanged60s limit: baseline success exact4source8/3pub9 and stale revision rollback zero8/9. Only fixture in-memory deadline advanced to year2000; productionartifact exact18:58:15.965590Z unchanged."
+  },
+  "artworkProbes": [
+    {
+      "item": "twinfang-blade",
+      "status": 200,
+      "contentType": "image/webp"
+    },
+    {
+      "item": "tower-shield",
+      "status": 200,
+      "contentType": "image/webp"
+    },
+    {
+      "item": "stormcaller-staff",
+      "status": 200,
+      "contentType": "image/webp"
+    },
+    {
+      "item": "emberbrand",
+      "status": 200,
+      "contentType": "image/webp"
+    }
+  ],
+  "retirementPinProbes": [
+    {
+      "url": "https://aurevane-rpg.com/?dpl=dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+      "status": 200,
+      "newSource": true,
+      "oldSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles?dpl=dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/character/items",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
+    },
+    {
+      "url": "https://aurevane.vercel.app/api/master/access",
+      "status": 503,
+      "newSource": false,
+      "oldSource": false
     }
   ]
 }
