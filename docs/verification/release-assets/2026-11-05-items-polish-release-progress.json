@@ -46,5 +46,32 @@
   "retirementVerifiedAt": "2026-11-06T01:02:38.425949Z",
   "drainNotBefore": "2026-11-06T01:35:08.425950Z",
   "canonicalSourceVerified": true,
-  "oldDeploymentHostStatus": 503
+  "oldDeploymentHostStatus": 503,
+  "preparedSql": {
+    "path": "docs/verification/release-assets/2026-11-05-items-polish-register-and-publish.sql",
+    "sha256": "26f154763757a6655abe1cc3eec9001da2cca0545ab451d3b9e37783cb8e2b0f",
+    "bytes": 40097,
+    "executed": false,
+    "independentReview": "No blocking findings; static review only. SQL parser/disposable execution not claimed: exec transport disconnected.",
+    "scope": "20 reviewed source6 registrations, ordinary Emberbrand publication7,12-table preservation"
+  },
+  "cutoverVerification": {
+    "stagedHome200": true,
+    "canonicalHome200NewSource": [
+      "aurevane.vercel.app",
+      "aurevane-rpg.com"
+    ],
+    "oldHost503": true,
+    "heldApis503": [
+      "/api/battles",
+      "/api/master/access",
+      "/api/character/items"
+    ],
+    "heldOnBothCanonicalHosts": true,
+    "holdPatternPositive": 7,
+    "existingRoutePatternUnmatched": 8,
+    "source6Count": 0,
+    "newEmberbrandVersions": 0,
+    "observedAt": "2026-11-06T01:04:54.705995Z"
+  }
 }
