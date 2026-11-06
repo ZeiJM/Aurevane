@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "blocked-provider-retired-pin-routing-hold-active",
+  "status": "hold-removed-final-verification",
   "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
   "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
   "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
@@ -25,9 +25,9 @@
   "routingVersionBefore": "78132fc0-e779-4dda-bf7b-7ea8c5773e28",
   "retirementRulesBefore": 9,
   "holdRuleId": "45a07761-caca-49ad-9017-a665fb051019",
-  "holdActive": true,
+  "holdActive": false,
   "gitDeploymentEnabled": false,
-  "remaining": "Resolve two obsolete custom-domain pins serving old deployment; no new build or content changes. Rerun retirement probes, remove only temporary hold and finalize.",
+  "remaining": "Verify final reopened source/authority/retirement routes; finalize and merge documentation receipt.",
   "deploymentUrl": "aurevane-jp4c5dae1-zeijms-projects.vercel.app",
   "autoAssignCustomDomains": false,
   "buildState": "READY",
@@ -40,7 +40,7 @@
     "emberbrandVersionFloor": 5,
     "emberbrandBuiltinVersion": 4
   },
-  "routingVersion": "b756f9fc-842b-4992-9cb5-eb2f95d082e4",
+  "routingVersion": "683ea355-d1a5-481a-ab58-ca0dad760c17",
   "predecessorsVerified": 20,
   "candidateOwnerDrafts": 0,
   "retirementVerifiedAt": "2026-11-06T01:02:38.425949Z",
@@ -81,7 +81,7 @@
   "guardedPreservationPassed": true,
   "olderClientTransactionsAtDrainCheck": 0,
   "executionCheckedAt": "2026-11-06T01:54:18.338008Z",
-  "holdRemoved": false,
+  "holdRemoved": true,
   "retirementRulesAfter": 9,
   "productionPostflight": {
     "stockRls": true,
@@ -130,6 +130,8 @@
     "boundaryApplied": false,
     "experimentalRulesRemoved": true,
     "requiredAction": "Configure/enable project Skew Protection retirement controls or obtain Vercel support resolution; no paid plan/upgrade or broad protection change made.",
-    "watchPaused": true
+    "watchPaused": true,
+    "resolvedAt": "2026-11-06T08:09:00Z",
+    "resolution": "Fresh primary and independent probes show both old pins now resolve to exact new deployment. No further Skew Protection or billing configuration change performed."
   }
 }
