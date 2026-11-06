@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "installing-reviewed-temporary-hold",
+  "status": "promoted-admission-held-draining",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -18,8 +18,8 @@
   "supabaseProjectId": "luazfeupwfgnilohfsya",
   "previousDeploymentId": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
   "deploymentId": "dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
-  "promoted": false,
-  "holdActive": false,
+  "promoted": true,
+  "holdActive": true,
   "holdRemoved": false,
   "migrationsApplied": [],
   "sourceRegistrationDone": false,
@@ -38,7 +38,7 @@
     "www.aurevane-rpg.com"
   ],
   "remoteHistoryPreflight": "Latest5 deployments inspected; only prior release and older, no Nov6 deployment exists.",
-  "remaining": "Existing staged build READY, exact SHA verified, NOT PROMOTED. No hold/migrations/content operations yet. Prepare/review/test guarded additive migrations and four exact source8 registrations against freshly captured publication bodies, preserving existing mechanics/drafts/history. Fresh CAS only necessary publications for technique artwork, no blind broad republish. Then admission hold/retirement/drain/cutover/postflight. Do not build or duplicate receipt branch.",
+  "remaining": "DO NOT register/publish/apply new grammar before durable DB drain deadline AND zero older client transactions. Prepare/review/disposable validate guarded SQL during drain. App promoted but new admission/authoring remain held; feature NOT reopened.",
   "autoAssignCustomDomains": false,
   "buildIntent": {
     "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -102,10 +102,36 @@
     "towerShieldPublication": null,
     "proposal": "Review three necessary normal fresh-CAS media publications for existing Emberbrand/Stormcaller/Twinfang current bodies; retain explicit timing fields and change only support media/version. TowerShield resolves new source8 without publication. No operation executed."
   },
-  "holdRuleId": "45a07761-caca-49ad-9017-a665fb051021",
-  "holdScopeVerified": {
-    "positive": 7,
-    "negative": 8,
-    "pattern": "^/(master(?:/.*)?|api/master(?:/.*)?|game/(?:arsenal|loadout/items)(?:/.*)?|api/character(?:/.*)?|api/battles/?|api/pvp/lobbies(?:/.*)?|api/world/?|api/wayfarers-practice(?:/.*)?)$"
-  }
+  "retirementVerifiedAt": "2026-11-06T18:25:45.965590Z",
+  "drainNotBefore": "2026-11-06T18:58:15.965590Z",
+  "routingVersion": "3fc32d5a-6152-4756-87f7-379380fdc4a9",
+  "retirementRulesBefore": 9,
+  "retirementRulesWithHold": 10,
+  "cutoverProbes": [
+    {
+      "url": "https://aurevane-rpg.com/",
+      "status": 200,
+      "newSource": true
+    },
+    {
+      "url": "https://aurevane.vercel.app/",
+      "status": 200,
+      "newSource": true
+    },
+    {
+      "url": "https://aurevane-jp4c5dae1-zeijms-projects.vercel.app/",
+      "status": 503,
+      "newSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/battles",
+      "status": 503,
+      "newSource": false
+    },
+    {
+      "url": "https://aurevane-rpg.com/api/master/access",
+      "status": 503,
+      "newSource": false
+    }
+  ]
 }
