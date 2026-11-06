@@ -21,7 +21,9 @@
   "promoted": true,
   "holdActive": true,
   "holdRemoved": false,
-  "migrationsApplied": [],
+  "migrationsApplied": [
+    "20261106100000_item_technique_media.sql"
+  ],
   "sourceRegistrationDone": false,
   "publicationsDone": false,
   "sourceScope": "Exactly four reviewed source8 media successors from docs/verification/2026-11-06-item-technique-successors.json; preserve other43, all immutable history and Owner drafts; only necessary normal fresh-CAS publications after fresh audit.",
