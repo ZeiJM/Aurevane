@@ -49,3 +49,9 @@ The source handoff includes exactly two reviewed additive migrations (`202611061
 Git CLI push cannot authenticate in this environment. Source is being published using the GitHub connection, with every blob and the complete tree checked against local Git object identities. This is one branch/PR/source, not an additional implementation or deployment.
 
 Final browser-script fix passes `node --check`, scoped Prettier and diff validation; native execution remains pending configured CI.
+
+## First exact-source CI diagnosis — 6de92266
+
+The first configured Quality execution failed at Web ESLint, before the broad type/test/build chain: `jsx-a11y/role-supports-aria-props` rejects `aria-description` on the imbued Support radio. The red execution and Quality summary are the same underlying failure. The warning was reproduced locally with zero-warning lint intact; a new real-component regression failed before the repair. The radio now uses `aria-describedby` with a linked hidden source/position description, retaining its short technique name. Its focused regression passes; no lint suppression or threshold change was introduced.
+
+The actual Browser Smoke execution passed the production nine-viewport Arsenal shell and desktop1366/mobile390/mobile412 inventory/equipment interactions, proving no-scroll equipment fit, shared image sizing, dialog/actions and source controls for those cases. It then failed `battle-items-browser-regression.mjs:691`, whose equipment Support assertion still expected `Iron Shortsword,` although the fixture's actual Support binding is `Mend`. The assertion now expects `Mend,`; the separate Attack assertion still requires `Iron Shortsword,`. All command, cost, persistence and settlement assertions remain. This is partial browser evidence, not a full native Browser Smoke pass. Complete exact-source CI must rerun after the fix.

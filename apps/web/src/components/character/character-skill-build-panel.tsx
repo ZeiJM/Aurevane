@@ -759,7 +759,7 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                         type="radio"
                         name={`support-action-${props.characterId}`}
                         aria-label={option.label}
-                        aria-description={`${option.item.name}, ${positionNames[option.selection.position]}`}
+                        aria-describedby={`support-source-${props.characterId}-${option.key}`}
                         checked={selected}
                         disabled={
                           pending ||
@@ -776,6 +776,9 @@ export function CharacterSkillBuildPanel(props: CharacterSkillBuildPanelProps) {
                           if (!coarsePointer) void commitItemSupport(option.selection)
                         }}
                       />
+                      <span id={`support-source-${props.characterId}-${option.key}`} hidden>
+                        {`${option.item.name}, ${positionNames[option.selection.position]}`}
+                      </span>
                       <span className={styles.skillArt}>
                         {(option.item.actions.support?.artworkSrc ?? option.item.artworkSrc) ? (
                           <Image

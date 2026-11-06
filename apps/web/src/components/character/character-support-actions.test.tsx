@@ -399,6 +399,16 @@ it('previews an imbued technique on hover and keyboard focus using the shared Su
           (child) => child.type === 'input' && child.props['aria-label'] === 'Storm Ward',
         ),
     )!
+  const radio = nodes(article()).find(
+    (node) => node.type === 'input' && node.props.type === 'radio',
+  )!
+  expect(radio.props['aria-description']).toBeUndefined()
+  expect(radio.props['aria-describedby']).toEqual(expect.any(String))
+  const description = nodes(article()).find(
+    (node) => node.props.id === radio.props['aria-describedby'],
+  )!
+  expect(description.props.hidden).toBe(true)
+  expect(description.props.children).toBe('Stormcaller Staff, Main Hand')
   expect(nodes(article()).some((node) => node.props.children === 'Details')).toBe(false)
   ;(article().props.onMouseEnter as () => void)()
   let report = nodes(render()).find((node) => node.type === AbilityParameters)!

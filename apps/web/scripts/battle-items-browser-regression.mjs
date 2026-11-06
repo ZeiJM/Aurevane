@@ -688,7 +688,7 @@ try {
           } else {
             assert.equal(await itemCommand.isDisabled(), true)
             const support = page.locator('[data-command-slot="guard"]')
-            assert.ok((await support.getAttribute('aria-label')).startsWith('Iron Shortsword,'))
+            assert.ok((await support.getAttribute('aria-label')).startsWith('Mend,'))
             await support.click()
             await page
               .locator('#battlefield')
