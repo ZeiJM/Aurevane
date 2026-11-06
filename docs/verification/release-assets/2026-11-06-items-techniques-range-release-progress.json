@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "staged-production-ready-content-pending",
+  "status": "installing-reviewed-temporary-hold",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -101,5 +101,11 @@
     ],
     "towerShieldPublication": null,
     "proposal": "Review three necessary normal fresh-CAS media publications for existing Emberbrand/Stormcaller/Twinfang current bodies; retain explicit timing fields and change only support media/version. TowerShield resolves new source8 without publication. No operation executed."
+  },
+  "holdRuleId": "45a07761-caca-49ad-9017-a665fb051021",
+  "holdScopeVerified": {
+    "positive": 7,
+    "negative": 8,
+    "pattern": "^/(master(?:/.*)?|api/master(?:/.*)?|game/(?:arsenal|loadout/items)(?:/.*)?|api/character(?:/.*)?|api/battles/?|api/pvp/lobbies(?:/.*)?|api/world/?|api/wayfarers-practice(?:/.*)?)$"
   }
 }
