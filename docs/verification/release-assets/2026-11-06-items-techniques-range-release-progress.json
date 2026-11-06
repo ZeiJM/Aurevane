@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "preflight-complete-build-not-requested",
+  "status": "single-staged-production-build-request-authorized",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -38,5 +38,12 @@
     "www.aurevane-rpg.com"
   ],
   "remoteHistoryPreflight": "Latest5 deployments inspected; only prior release and older, no Nov6 deployment exists.",
-  "remaining": "Reassert domain auto-assignment false, create exactly one staged production build from exact source; inspect readiness. Prepare guarded hold/retirement/drain, reviewed additive migrations/content publication and postflight before reopening. Do not replay prior releases."
+  "remaining": "Reassert domain auto-assignment false, create exactly one staged production build from exact source; inspect readiness. Prepare guarded hold/retirement/drain, reviewed additive migrations/content publication and postflight before reopening. Do not replay prior releases.",
+  "autoAssignCustomDomains": false,
+  "buildIntent": {
+    "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
+    "requestedOnce": true,
+    "projectLockReasserted": true,
+    "retryPolicy": "Inspect actual deployment history after interruption; never blindly issue a second create."
+  }
 }
