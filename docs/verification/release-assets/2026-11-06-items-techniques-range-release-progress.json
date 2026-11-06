@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "promoted-admission-held-draining",
+  "status": "drain-passed-applying-reviewed-migrations",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -191,5 +191,14 @@
       "newSource": false,
       "oldSource": false
     }
-  ]
+  ],
+  "drainCheck": {
+    "dbTime": "2026-11-06T18:58:33.457491Z",
+    "deadlinePassed": true,
+    "olderClientTransactions": 0,
+    "mediaMigrationPresent": false,
+    "rangeRecords": 0,
+    "sources8": 0,
+    "targetDrafts": 0
+  }
 }
