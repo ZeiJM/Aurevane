@@ -102,6 +102,8 @@ const STATUS_PRESENTATION_TAGS: Readonly<Record<string, string>> = {
   root: 'Rooted',
   blind: 'Blind',
   seal: 'Seal',
+  'range-up': 'Range Up',
+  'range-down': 'Range Down',
   'absorb-hp': 'HP Leech',
   'absorb-mp': 'MP Leech',
   reflect: 'Reflect',
@@ -129,6 +131,7 @@ const HISTORICAL_DISPEL_STATUS_IDS = new Set([
 const POSITIVE_STATUS_IDS = new Set([
   ...HISTORICAL_DISPEL_STATUS_IDS,
   'endure',
+  'range-up',
   'covert',
   'counter',
 ])
@@ -293,6 +296,12 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     throw new TypeError(
       'Independent Frozen Ground origin requires Ground-targeted Chilled on non-actor recipients.',
     )
+  if (
+    effect.type === 'apply-status' &&
+    ['range-up', 'range-down'].includes(effect.statusId) &&
+    effect.rangeTiles === undefined
+  )
+    throw new TypeError('Range tags require positive tile strength.')
   validateRecoveryEffect(effect)
   validateCombatEndureEffect(effect)
   validateCombatStatusTuning(effect, effect.type === 'apply-status' ? effect.statusId : effect.type)

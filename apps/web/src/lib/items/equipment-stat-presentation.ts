@@ -41,15 +41,17 @@ export function equipmentStatChanges(
   removals: readonly EquipmentPosition[],
   additions: readonly ItemStatBonus[] = [],
   baseEvasion?: number,
+  includeUnchanged = false,
 ): readonly { stat: CombatBonusStat; amount: number }[] {
   if (!current) return []
   const amounts = new Map<CombatBonusStat, number>()
-  for (const bonus of [
+  const affected = [
     ...current
       .filter((source) => removals.includes(source.position))
       .map((source) => ({ ...source, amount: -source.amount })),
     ...additions,
-  ]) {
+  ]
+  for (const bonus of affected) {
     // Evasion is compared as a capped total below rather than a raw contribution.
     if (bonus.conditional || bonus.stat === 'evasion') continue
     const amount = (amounts.get(bonus.stat) ?? 0) + bonus.amount
@@ -70,10 +72,11 @@ export function equipmentStatChanges(
     )
     if (!Number.isSafeInteger(after - before))
       throw new RangeError('Equipment stat change exceeds safe integer range.')
-    amounts.set('evasion', after - before)
+    if (affected.some((bonus) => bonus.stat === 'evasion' && !bonus.conditional))
+      amounts.set('evasion', after - before)
   }
   return [...amounts]
-    .filter(([, amount]) => amount !== 0)
+    .filter(([, amount]) => includeUnchanged || amount !== 0)
     .map(([stat, amount]) => ({ stat, amount }))
 }
 

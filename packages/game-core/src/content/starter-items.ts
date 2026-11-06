@@ -710,7 +710,24 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
     ).map(([key, name, itemClass, description]) =>
       item(key, name, description, 'D', 0, itemClass, null),
     ),
-  ].map((definition, sortOrder) => ({ ...definition, sortOrder }))
+  ].map((definition, sortOrder) => ({
+    ...definition,
+    sortOrder,
+    ...(['twinfang-blade', 'tower-shield', 'stormcaller-staff', 'emberbrand'].includes(
+      definition.id,
+    )
+      ? {
+          contentVersion: 8,
+          actions: {
+            ...definition.actions,
+            support: {
+              ...definition.actions!.support!,
+              media: { artworkId: `item.${definition.id}.technique.art.v1` },
+            },
+          },
+        }
+      : {}),
+  }))
 }
 
 export const starterItemGrant = {

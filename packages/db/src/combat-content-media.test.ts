@@ -1,3 +1,4 @@
+import { starterItemDefinitions } from '../../game-core/src/content/starter-items'
 import type { PGlite } from '@electric-sql/pglite'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
 import { beforeAll, afterAll, beforeEach, afterEach, expect, it } from 'vitest'
@@ -655,4 +656,68 @@ it('rejects a finalized image whose output is larger than its original crop', as
       },
     ]),
   ).rejects.toThrow(/CROP_INVALID/)
+})
+
+it('validates nested technique media grammar, finalized identities, source immutability and private ACLs', async () => {
+  const item = structuredClone(starterItemDefinitions().find((row) => row.id === 'twinfang-blade')!)
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADklEQVQImWNg+A+FMAYAQ84H+QDi4rkAAAAASUVORK5CYII=',
+    'base64',
+  )
+  const artwork = (
+    await db.query<{ media: Record<string, unknown> }>(
+      'select public.finalize_combat_content_media_v1($1,null,$2,$3) media',
+      [
+        owner,
+        png,
+        {
+          kind: 'image',
+          contentType: 'image/png',
+          width: 2,
+          height: 2,
+          sourceWidth: 2,
+          sourceHeight: 2,
+          crop: { x: 0, y: 0, size: 2 },
+        },
+      ],
+    )
+  ).rows[0]!.media
+  const make = (media: unknown, role = 'support') => ({
+    ...item,
+    actions: { ...item.actions, [role]: { ...item.actions![role as 'attack' | 'support'], media } },
+  })
+  const seed = (body: unknown) =>
+    db.query('select public.seed_runtime_item_sources_v1($1)', [JSON.stringify([body])])
+  const valid = make({ artworkId: 'item.twinfang-blade.technique.art.v1', artwork })
+  await seed(valid)
+  const authored = { ...valid, id: 'test.technique-media' }
+  const record = await writeMedia(authored.id, {
+    action: 'create',
+    requestId: crypto.randomUUID(),
+    contentKind: 'item',
+    definition: authored,
+  })
+  await publishMedia(authored.id, record)
+  const published = await db.query<{ media: { descriptor: unknown } }>(
+    'select public.read_published_combat_content_media_v1($1) media',
+    [artwork.id],
+  )
+  expect(published.rows[0]!.media.descriptor).toEqual(artwork)
+  for (const [body, message] of [
+    [make({ artwork: { ...artwork, checksum: 'f'.repeat(64) } }), 'ITEM_MEDIA_INVALID'],
+    [make({ artwork: { ...artwork, width: 3 } }), 'ITEM_MEDIA_INVALID'],
+    [make({ audio: artwork }), 'ITEM_MEDIA_INVALID'],
+    [make({ artwork }, 'attack'), 'ITEM_MEDIA_INVALID'],
+    [make({ artworkId: 'bad url' }), 'ITEM_MEDIA_INVALID'],
+    [make(null), 'ITEM_MEDIA_INVALID'],
+    [make({ artworkId: 'different.art' }), 'ITEM_SOURCE_CONFLICT'],
+  ] as const) {
+    await db.exec('savepoint media_rejected')
+    await expect(seed(body)).rejects.toThrow(message)
+    await db.exec('rollback to savepoint media_rejected; release savepoint media_rejected')
+  }
+  const acl = await db.query<{ browser: boolean; service: boolean }>(
+    "select has_function_privilege('authenticated','app_private.assert_item_technique_media_shape_v1(jsonb)','execute') browser, has_function_privilege('service_role','app_private.assert_item_technique_media_shape_v1(jsonb)','execute') service",
+  )
+  expect(acl.rows[0]).toEqual({ browser: false, service: false })
 })

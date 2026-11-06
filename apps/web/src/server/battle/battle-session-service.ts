@@ -945,6 +945,7 @@ export function createBattleSessionService({
       baseEncounter.skillPacketPolicyVersion = 1
       baseEncounter.displacementPolicyVersion = 1
       baseEncounter.displacementOriginPolicyVersion = 1
+      baseEncounter.rangeModifierPolicyVersion = 1
       baseEncounter.frozenGroundPolicyVersion = 1
       baseEncounter.airbornePolicyVersion = 1
       baseEncounter.airborneJumpPolicyVersion = 1

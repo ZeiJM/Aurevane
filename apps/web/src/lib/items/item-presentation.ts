@@ -1,10 +1,21 @@
-import type { RuntimeItemDefinition } from '@aurevane/game-core/content/items'
+import {
+  itemActionMedia,
+  type ItemActionBinding,
+  type RuntimeItemDefinition,
+} from '@aurevane/game-core/content/items'
 import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
 import { abilityBehaviorInformation } from '@/components/character/ability-detail-presentation'
 import { imageAssetRegistry } from '@/media/registry'
 import type { CombatEffectTimingPolicy } from '@aurevane/game-core/combat/combat-effect-timing'
 import { itemStatBonuses } from './equipment-stat-presentation'
 import { itemEquipRequirementSummaries } from '@aurevane/game-core/character/item-equip-requirements'
+
+export function itemTechniqueArtworkSrc(definition: RuntimeItemDefinition): string | null {
+  const media = itemActionMedia(definition, 'support')
+  return media.artwork
+    ? contentMediaSource(media.artwork)
+    : (imageAssetRegistry.get(media.artworkId ?? '')?.src ?? null)
+}
 
 /** Safe shared reader for inventory, Master previews and captured Item information. */
 export function presentItem(
@@ -18,6 +29,20 @@ export function presentItem(
     ? contentMediaSource(definition.media.artwork)
     : (imageAssetRegistry.get(definition.media.artworkId ?? '')?.src ?? null)
   const statBonuses = itemStatBonuses(definition)
+  const actions: {
+    attack?: ItemActionBinding
+    support?: ItemActionBinding & { artworkSrc: string | null }
+    use?: ItemActionBinding
+  } = {
+    ...structuredClone(definition.actions ?? {}),
+    support: definition.actions?.support
+      ? {
+          ...structuredClone(definition.actions.support),
+          artworkSrc: itemTechniqueArtworkSrc(definition),
+        }
+      : undefined,
+  }
+  if (!actions.support) delete actions.support
   return {
     ...(statBonuses.length ? { statBonuses } : {}),
     ...(definition.equipRequirements ? { equipRequirements: definition.equipRequirements } : {}),
@@ -44,7 +69,7 @@ export function presentItem(
     consumeOnUse: false as const,
     artworkSrc: image,
     tags: [...definition.tags],
-    actions: definition.actions ? structuredClone(definition.actions) : {},
+    actions,
     reports: (definition.ability?.behaviors ?? []).map((behavior) => ({
       behaviorId: behavior.id,
       maximumUsesPerBattle:

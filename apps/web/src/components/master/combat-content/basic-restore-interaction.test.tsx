@@ -1878,3 +1878,29 @@ it.each([false, true])(
     ])
   },
 )
+
+it('shares one pending-media guard across weapon artwork and imbued technique editors', async () => {
+  const { starterItemDefinitions } = await import('@aurevane/game-core/content/starter-items')
+  const { PendingMediaBoundary } = await import('./pending-media-boundary')
+  const { ItemImbuedTechniqueEditor } = await import('./item-imbued-technique-editor')
+  const item = starterItemDefinitions().find((row) => row.id === 'stormcaller-staff')!
+  const f = fixture('basic.guard', {
+    contentKey: item.id,
+    contentKind: 'item',
+    current: null,
+    history: [],
+    draft: {
+      definition: { ...item },
+      draftVersion: 1,
+      baseVersion: null,
+      updatedBy: 'editor',
+      updatedAt: '2026-11-06',
+      restoredFrom: null,
+      restoredBy: null,
+    },
+  })
+  const boundary = find(f.render(), (node) => node.type === PendingMediaBoundary)
+  expect(boundary).not.toBeNull()
+  expect(find(boundary, (node) => node.type === ItemImbuedTechniqueEditor)).not.toBeNull()
+  expect(find(boundary, (node) => node.type === ContentDefinitionFields)).not.toBeNull()
+})

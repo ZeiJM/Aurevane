@@ -40,6 +40,8 @@ const identifiers: Readonly<Record<string, string>> = {
   airborne: 'AIR',
   displaced: 'DIS',
   haste: 'HST',
+  'range-up': 'RNG+',
+  'range-down': 'RNG−',
   burn: 'BUR',
   bleed: 'BLE',
   poison: 'POI',

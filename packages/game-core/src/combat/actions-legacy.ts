@@ -70,6 +70,7 @@ import {
   type CombatEndureProfile,
   type CombatEndureState,
 } from './combat-endure'
+import { combatRangeTarget } from './combat-range'
 import {
   combatStatusTuning,
   withPairedCombatStatusDefaults,
@@ -548,6 +549,8 @@ export interface CombatActionDefinition {
   nativeBasicAttackCommand?: true
   /** Trusted canonical adapter; activation is checked against each exact captured participant. */
   canonicalAbilityAction?: true
+  /** Trusted canonical source/role eligibility; never authored. */
+  rangeModifierEligible?: boolean
   /** Private equipment adapter, preserving authored targeting and accuracy. */
   equipmentBasicAttackCommand?: true
   commandDamageBonuses?: readonly CombatCommandDamageBonus[]
@@ -752,6 +755,8 @@ export interface CombatEncounterState {
   displacementPolicyVersion?: 1
   /** Chosen Ground origins and facing-based Self recoil; absence preserves saved movement. */
   displacementOriginPolicyVersion?: 1
+  /** New encounters alone apply ordinary Range Up/Down maximum aim reach. */
+  rangeModifierPolicyVersion?: 1
   frozenGroundPolicyVersion?: 1
   /** New encounters: Airborne evades Ground Skills and grants Target Elevation 3. */
   airbornePolicyVersion?: 1
@@ -1501,6 +1506,7 @@ export function evaluateCombatAction(
     selection,
     actorId,
   )
+  action = { ...action, target: combatRangeTarget(state, actorId, action) }
   // Pure captured returns have already admitted their initial aim. Later release follows
   // those identities, even after they leave range or become hidden; landing legality stays live.
   const capturedReturns =
@@ -1901,6 +1907,7 @@ export function executeCombatAction(
 
   action = elementalActionIntent(state, action, selection, evaluation.actorId)
   const actorId = evaluation.actorId
+  action = { ...action, target: combatRangeTarget(state, actorId, action) }
   let nextState = state
   let events: CombatResolutionEvent[] = []
 
@@ -3267,6 +3274,7 @@ export function validateCombatEncounterState(
     'airborneJumpPolicyVersion',
     'displacementPolicyVersion',
     'displacementOriginPolicyVersion',
+    'rangeModifierPolicyVersion',
     'healingDownPolicyVersion',
     'conditionalDamageRoundingPolicyVersion',
     'pierceCriticalPolicyVersion',

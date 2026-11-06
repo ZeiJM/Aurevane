@@ -1,3 +1,4 @@
+import { ITEM_TECHNIQUE_ART } from './item-technique-art'
 import { ITEM_ART } from './item-art'
 import { EQUIPMENT_ART } from './equipment-art'
 import { WORLD_ART } from './world-art'
@@ -140,6 +141,7 @@ const IMAGE_ASSETS = [
   ...WORLD_ART,
   ...BATTLE_ART,
   ...ITEM_ART,
+  ...ITEM_TECHNIQUE_ART,
   ...SUPPORT_ACTION_ART.map((row) => ({
     ...row,
     kind: 'icon' as const,

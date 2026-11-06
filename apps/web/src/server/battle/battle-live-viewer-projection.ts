@@ -1,3 +1,4 @@
+import { combatRangeTarget } from '@aurevane/game-core/combat/combat-range'
 import { combatSealBlocksSkill } from '@aurevane/game-core/combat/combat-seal'
 import { equipmentBehaviorActionId } from '@aurevane/game-core/combat/combat-equipment'
 import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-stat-bonuses'
@@ -37,10 +38,7 @@ import {
   combatPrimedAbilityIds,
 } from '@aurevane/game-core/combat/combat-behavior-runtime'
 import 'server-only'
-import {
-  canonicalAbilityTargetSpec,
-  canonicalAbilitySupportsFireGroundIntent,
-} from '@aurevane/game-core/combat/combat-targeting-shapes'
+import { canonicalAbilitySupportsFireGroundIntent } from '@aurevane/game-core/combat/combat-targeting-shapes'
 import {
   combatCanonicalModifierRootFacts,
   combatModifierCompatibilityFacts,
@@ -175,7 +173,11 @@ export function projectBattleManualActionTargets(
             behaviorId: behavior.id,
             content: PV1F_COMBAT_CONTENT,
           })
-          const spec = canonicalAbilityTargetSpec(behavior.targeting!)
+          const spec = combatRangeTarget(
+            state,
+            source.ownerCombatantId,
+            materializeCombatAbilityAction(source, behavior, state),
+          )
           const move =
             source.basic?.execution.kind === 'basic-move' &&
             source.basic.execution.costBasis === 'per-terrain-point'
@@ -387,7 +389,13 @@ export function projectBattleBasicActions(
             modifierRoot: combatCanonicalModifierRootFacts(behavior),
             costs: behavior.costs.map((cost) => ({ ...cost })),
             cooldown: combatAbilityCooldown(state, source, behavior.cooldown),
-            target: structuredClone(canonicalAbilityTargetSpec(behavior.targeting!)),
+            target: structuredClone(
+              combatRangeTarget(
+                state,
+                source.ownerCombatantId,
+                materializeCombatAbilityAction(source, behavior, state),
+              ),
+            ),
             ...(move?.payload.type === 'move'
               ? {
                   move: {
@@ -947,6 +955,7 @@ const PRIVATE_BATTLE_STATE_KEYS = [
   'reversalState',
   'modifierSuppressions',
   'nativeBasicAttackCommand',
+  'rangeModifierEligible',
   'groundTargetedRecipientIds',
   'commandDamageBonuses',
   'effectEligibleRecipientIds',

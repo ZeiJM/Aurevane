@@ -106,7 +106,7 @@ it('retains the reviewed Fire-only Kindle scope and consumable description corre
       .filter(
         (item) =>
           ['emberbrand', 'vulnerability-oil', 'ward-sigil-scroll'].includes(item.id) &&
-          item.contentVersion === 6,
+          item.contentVersion === (item.id === 'emberbrand' ? 8 : 6),
       )
       .map((item) => item.id)
       .sort(),
@@ -151,9 +151,22 @@ it('matches reviewed successors while preserving every unaffected source body', 
   for (const item of items) {
     const candidate = audit.candidates.find((row: { itemId: string }) => row.itemId === item.id)
     if (candidate) {
-      expect(parseRuntimeItemDefinition(candidate.sourceDefinition)).toEqual(item)
+      const prior = parseRuntimeItemDefinition(candidate.sourceDefinition)
+      const successor = [
+        'twinfang-blade',
+        'tower-shield',
+        'stormcaller-staff',
+        'emberbrand',
+      ].includes(item.id)
+      expect(
+        successor
+          ? { ...item, contentVersion: prior.contentVersion, actions: prior.actions }
+          : item,
+      ).toEqual(prior)
       const normalized = structuredClone(candidate.beforeDefinition)
-      normalized.contentVersion = 6
+      normalized.contentVersion = item.contentVersion
+      if (item.contentVersion === 8)
+        normalized.actions.support.media = { artworkId: `item.${item.id}.technique.art.v1` }
       for (const group of normalized.ability.behaviors)
         for (const effect of group.effects) delete effect.timing
       if (item.itemClass === 'weapon')
@@ -178,4 +191,16 @@ it('matches reviewed successors while preserving every unaffected source body', 
       expect({ ...item, contentVersion: baseline.contentVersion }).toEqual(baseline)
     }
   }
+})
+
+it('adds exactly four immutable source8 artwork successors', () => {
+  const successors = starterItemDefinitions().filter((item) => item.contentVersion === 8)
+  expect(successors.map((item) => item.id).sort()).toEqual([
+    'emberbrand',
+    'stormcaller-staff',
+    'tower-shield',
+    'twinfang-blade',
+  ])
+  for (const item of successors)
+    expect(item.actions!.support!.media).toEqual({ artworkId: `item.${item.id}.technique.art.v1` })
 })

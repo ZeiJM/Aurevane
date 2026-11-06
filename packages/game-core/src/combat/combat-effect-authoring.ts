@@ -22,6 +22,7 @@ export function effectAuthoringTag(payload: CombatTagPayload | CombatEffectDefin
 }
 
 export const DEFAULT_DISPEL_STATUS_IDS = [
+  'range-up',
   'counter',
   'guarded',
   'inspired',
@@ -67,6 +68,7 @@ export function createAuthorableEffectPayload(
       ...(tag.statusId === 'seal'
         ? { sealedCategories: ['attack', 'recovery', 'utility'] as const }
         : {}),
+      ...(['range-up', 'range-down'].includes(tag.statusId!) ? { rangeTiles: 1 } : {}),
       ...(tag.statusId === 'blind' ? { potencyBasisPoints: 1500 } : {}),
       ...(tag.statusId === 'wet' ? { initiativeReductionBasisPoints: 1000 } : {}),
       ...(tag.statusId === 'fortified'

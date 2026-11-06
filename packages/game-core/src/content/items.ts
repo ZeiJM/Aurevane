@@ -17,7 +17,12 @@ export type ItemInventoryCategory = (typeof ITEM_INVENTORY_CATEGORIES)[number]
 export type ItemClass =
   'armor' | 'hand-armor' | 'weapon' | 'battle-item' | 'material' | 'general' | 'event' | 'companion'
 export type ItemTier = 'D' | 'C' | 'B' | 'A' | 'S'
+export interface ItemArtworkMedia {
+  readonly artworkId?: string
+  readonly artwork?: FinalizedContentImage
+}
 export interface ItemActionBinding {
+  readonly media?: ItemArtworkMedia
   readonly behaviorId: string
   readonly name: string
 }
@@ -29,7 +34,7 @@ export interface RuntimeItemDefinition {
   readonly description: string
   readonly sortOrder: number
   readonly enabled: boolean
-  readonly media: { readonly artworkId?: string; readonly artwork?: FinalizedContentImage }
+  readonly media: ItemArtworkMedia
   readonly inventoryCategory: ItemInventoryCategory
   readonly itemClass: ItemClass
   readonly tier: ItemTier
@@ -181,7 +186,19 @@ export function parseRuntimeItemDefinition(value: unknown): RuntimeItemDefinitio
     row.actions === undefined ? {} : record(row.actions, 'actions', ['attack', 'support', 'use'])
   const bound = new Set<string>()
   for (const [role, value] of Object.entries(actions)) {
-    const binding = record(value, `actions.${role}`, ['behaviorId', 'name'])
+    const binding = record(value, `actions.${role}`, ['behaviorId', 'name', 'media'])
+    if (binding.media !== undefined) {
+      if (role !== 'support' || row.itemClass !== 'weapon')
+        fail(`actions.${role}.media`, 'Only weapon techniques have independent artwork.')
+      const media = record(binding.media, `actions.${role}.media`, ['artworkId', 'artwork'])
+      if (media.artworkId !== undefined)
+        identity(media.artworkId, `actions.${role}.media.artworkId`)
+      if (
+        media.artwork !== undefined &&
+        (!isFinalizedContentMedia(media.artwork) || media.artwork.kind !== 'image')
+      )
+        fail(`actions.${role}.media.artwork`, 'Expected a finalized image.')
+    }
     identity(binding.behaviorId, `actions.${role}.behaviorId`)
     text(binding.name, `actions.${role}.name`, 120)
     const behavior = ability?.behaviors.find((b) => b.id === binding.behaviorId)
@@ -209,4 +226,13 @@ export function parseRuntimeItemDefinition(value: unknown): RuntimeItemDefinitio
     integer(row.battleUses, 1, 99, 'battleUses')
   } else if (row.battleUses !== null) fail('battleUses', 'Only Consumables have per-battle uses.')
   return structuredClone({ ...row, ability }) as unknown as RuntimeItemDefinition
+}
+
+/** Captured absence stays literal: never consult a newer catalogue definition. */
+export function itemActionMedia(
+  definition: RuntimeItemDefinition,
+  role: 'attack' | 'support' | 'use',
+): ItemArtworkMedia {
+  const technique = role === 'support' ? definition.actions?.support?.media : undefined
+  return technique?.artwork || technique?.artworkId ? technique : definition.media
 }

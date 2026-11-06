@@ -1,3 +1,9 @@
+import { starterItemDefinitions } from '@aurevane/game-core/content/starter-items'
+import { captureEquipmentAbilitySource } from '@aurevane/game-core/combat/combat-behavior-capture'
+import {
+  parseBattleEquipmentCapture,
+  equipmentActionId,
+} from '@aurevane/game-core/combat/combat-equipment'
 import { historicalBasicSkills } from '../../../../../packages/game-core/src/combat/combat-basic-history.test-utils'
 import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
@@ -1670,3 +1676,56 @@ it('projects admitted short status wording into sanitized history, retaining no 
   const legacy = await getLog(records, async () => null, { legacy: true })
   expect(legacy.entries[0]).not.toHaveProperty('battleTag')
 })
+
+it.each([false, true])(
+  'uses captured role-specific equipment log media with historical absence=%s',
+  async (historical) => {
+    const current = starterItemDefinitions().find((item) => item.id === 'stormcaller-staff')!
+    const item = historical
+      ? {
+          ...current,
+          contentVersion: 6,
+          actions: {
+            ...current.actions,
+            support: { behaviorId: current.actions!.support!.behaviorId, name: 'Storm Ward' },
+          },
+        }
+      : current
+    const capture = parseBattleEquipmentCapture({
+      schemaVersion: 2,
+      inventoryRevision: 1,
+      selectedSupport: {
+        kind: 'equipment',
+        position: 'main-hand',
+        itemId: item.id,
+        behaviorId: item.actions!.support!.behaviorId,
+      },
+      equipment: [{ position: 'main-hand', ownedStackId: 'private-staff', item }],
+    })
+    const source = captureEquipmentAbilitySource(capture, capture.equipment[0]!, ACTOR)!
+    const resolve = vi.fn(async () => null)
+    const records = (['attack', 'support'] as const).map((role, i) =>
+      record(
+        {
+          event: 'combat_action_used',
+          actorId: ACTOR,
+          actionId: equipmentActionId(capture.equipment[0]!, role),
+        },
+        i,
+      ),
+    )
+    const result = await getLog(records, resolve, { capturedAbilitySources: [source] })
+    const contexts = result.entries.map((entry) => entry.actionContext)
+    expect(contexts[0]).toMatchObject({
+      name: 'Stormcaller Staff',
+      artworkKey: 'item.stormcaller-staff.art.v1',
+    })
+    expect(contexts[1]).toMatchObject({
+      name: 'Storm Ward',
+      artworkKey: historical
+        ? 'item.stormcaller-staff.art.v1'
+        : 'item.stormcaller-staff.technique.art.v1',
+    })
+    expect(resolve).not.toHaveBeenCalled()
+  },
+)

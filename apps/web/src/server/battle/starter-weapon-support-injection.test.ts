@@ -52,8 +52,8 @@ it.each(
     } as unknown as CharacterItemsView
     const choices = itemSupportOptions(view)
     expect(choices.map((choice) => choice.label)).toEqual([
-      `${name} · Main Hand`,
-      ...(bracerVersion === 'retained' ? ['Warding Prayer · Off Hand'] : []),
+      name,
+      ...(bracerVersion === 'retained' ? ['Warding Prayer'] : []),
     ])
     expect(JSON.stringify(choices.map((choice) => choice.selection))).not.toContain('private-')
     const capture: BattleEquipmentCapture = {

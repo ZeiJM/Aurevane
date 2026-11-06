@@ -12,6 +12,7 @@ vi.mock('react', async (original) => ({
 vi.mock('server-only', () => ({}))
 import { ItemImbuedTechniqueEditor } from './item-imbued-technique-editor'
 import { AbilityDefinitionEditor } from './ability-definition-editor'
+import { FinalizedMediaEditor } from './finalized-media-editor'
 import { AbilityEditorTabs } from './ability-editor-tabs'
 import { AbilitySelect, AbilityText, AbilityNumber } from './ability-editor-fields'
 import { AbilityCostEditor } from './ability-cost-editor'
@@ -54,12 +55,13 @@ function weapon() {
     actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Cut' } },
   })
 }
-function editor(initial = weapon()) {
+function editor(initial = weapon(), onPendingMediaChange?: (pending: boolean) => void) {
   let value = initial
   const render = () => {
     hooks.index = 0
     return ItemImbuedTechniqueEditor({
       value,
+      onPendingMediaChange,
       onChange: (next) => {
         value = next
       },
@@ -91,7 +93,7 @@ it('starts optional, enables the actual shared editor, and restores same-session
   )!
   ;(name.props.onChange as (value: string) => void)('Sunward Prayer')
   const tabs = nodes(form.render()).find((n) => n.type === AbilityEditorTabs)!
-  const execution = (tabs.props.panels as Record<string, ReactElement>).execution
+  const execution = (tabs.props.panels as Record<string, ReactElement<Props>>).execution
   expect(execution.type).toBe(AbilityDefinitionEditor)
   const definition = AbilityDefinitionEditor(
     execution.props as Parameters<typeof AbilityDefinitionEditor>[0],
@@ -234,4 +236,57 @@ it('repairs a missing technique action directly without resetting its name or we
   expect(repaired.actions!.support!.behaviorId).not.toBe(initial.actions!.attack!.behaviorId)
   expect(repaired.actions!.attack).toEqual(initial.actions!.attack)
   expect(repaired.ability!.behaviors[0]).toEqual(initial.ability!.behaviors[0])
+})
+
+it('edits finalized image-only technique media, preserves it through selection and toggle, and removes only the upload', () => {
+  const form = editor()
+  form.toggle()
+  const binding = form.value().actions!.support!
+  const base = form.value()
+  const builtin = 'item.twinfang-blade.technique.art.v1'
+  const initial = {
+    ...base,
+    actions: { ...base.actions, support: { ...binding, media: { artworkId: builtin } } },
+  }
+  const pending = vi.fn()
+  const withMedia = editor(initial, pending)
+  const panel = () =>
+    (
+      nodes(withMedia.render()).find((n) => n.type === AbilityEditorTabs)!.props.panels as Record<
+        string,
+        ReactElement<Props>
+      >
+    ).media!
+  expect(panel().type).toBe(FinalizedMediaEditor)
+  expect(panel().props.allowAudio).toBe(false)
+  ;(panel().props.onPendingMediaChange as (value: boolean) => void)(true)
+  expect(pending).toHaveBeenLastCalledWith(true)
+  const artwork = {
+    id: '00000000-0000-4000-8000-000000000099',
+    kind: 'image' as const,
+    checksum: 'a'.repeat(64),
+    byteLength: 100,
+    contentType: 'image/png' as const,
+    width: 128,
+    height: 128,
+    sourceWidth: 128,
+    sourceHeight: 128,
+    crop: { x: 0, y: 0, size: 128 },
+  }
+  ;(panel().props.onChange as (v: object) => void)({ artwork })
+  expect(parseRuntimeItemDefinition(withMedia.value()).actions!.support!.media).toEqual({
+    artworkId: builtin,
+    artwork,
+  })
+  const select = nodes(withMedia.render()).find(
+    (n) => n.type === AbilitySelect && n.props.label === 'Technique action',
+  )!
+  ;(select.props.onChange as (id: string) => void)(binding.behaviorId)
+  expect(withMedia.value().actions!.support!.media?.artwork).toEqual(artwork)
+  withMedia.toggle()
+  withMedia.toggle()
+  expect(withMedia.value().actions!.support!.media?.artwork).toEqual(artwork)
+  ;(panel().props.onChange as (v: object) => void)({})
+  expect(withMedia.value().actions!.support!.media).toEqual({ artworkId: builtin })
+  expect(withMedia.value().actions!.attack).toEqual(base.actions!.attack)
 })

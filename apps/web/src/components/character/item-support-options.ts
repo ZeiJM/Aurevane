@@ -1,6 +1,5 @@
 import { EQUIPMENT_POSITIONS } from '@aurevane/game-core/character/item-inventory'
 import type { CharacterItemsView } from '@/server/character/character-items-service'
-import { positionNames } from './item-equipment-preview'
 export function itemSupportOptions(view: CharacterItemsView) {
   return EQUIPMENT_POSITIONS.flatMap((position) => {
     const stack = view.stacks.find((s) => s.id === view.equipment[position]),
@@ -10,7 +9,7 @@ export function itemSupportOptions(view: CharacterItemsView) {
     return [
       {
         key: `${position}.${item.id}.${binding.behaviorId}`,
-        label: `${binding.name} · ${positionNames[position]}`,
+        label: binding.name,
         item,
         selection: {
           kind: 'equipment' as const,

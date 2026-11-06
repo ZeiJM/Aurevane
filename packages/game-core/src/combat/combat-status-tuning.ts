@@ -10,6 +10,7 @@ export interface CombatStatusTuning extends DamageUpScope {
   readonly sealedCategories?: readonly SealCategory[]
   readonly initiativeReductionBasisPoints?: number
   readonly defenseIncreaseBasisPoints?: number
+  readonly rangeTiles?: number
   readonly movementApAdjustment?: number
   readonly damageTakenMultiplierBasisPoints?: number
   readonly increasedDamageTakenBasisPoints?: number
@@ -74,6 +75,7 @@ export function combatEffectStrength(
     100,
     CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS,
   )
+  numeric('rangeTiles', ['range-up', 'range-down'], 1, Number.MAX_SAFE_INTEGER)
   numeric('movementApAdjustment', ['haste', 'slow'], 0, 100)
   numeric('initiativeReductionBasisPoints', ['wet'], 0, CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS)
   numeric(
@@ -116,6 +118,7 @@ export function combatEffectStrength(
   return Object.keys(result).length ? (result as CombatEffectStrength) : undefined
 }
 export const COMBAT_STATUS_TUNING_FIELDS = [
+  'rangeTiles',
   'initiativeReductionBasisPoints',
   'defenseIncreaseBasisPoints',
   'movementApAdjustment',
@@ -145,6 +148,7 @@ export function validateCombatStatusTuning(value: CombatStatusTuning, statusId: 
     const amount = value[key]
     if (amount === undefined) continue
     const allowed = {
+      rangeTiles: ['range-up', 'range-down'],
       initiativeReductionBasisPoints: ['wet'],
       defenseIncreaseBasisPoints: ['fortified'],
       movementApAdjustment: ['haste', 'slow'],
@@ -152,15 +156,17 @@ export function validateCombatStatusTuning(value: CombatStatusTuning, statusId: 
       increasedDamageTakenBasisPoints: ['revealed', 'sensory'],
     }[key]
     const maximum =
-      key === 'movementApAdjustment'
-        ? 100
-        : ['initiativeReductionBasisPoints', 'defenseIncreaseBasisPoints'].includes(key)
-          ? CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
-          : Number.MAX_SAFE_INTEGER - 10000
+      key === 'rangeTiles'
+        ? Number.MAX_SAFE_INTEGER
+        : key === 'movementApAdjustment'
+          ? 100
+          : ['initiativeReductionBasisPoints', 'defenseIncreaseBasisPoints'].includes(key)
+            ? CURRENT_EFFECT_PERCENT_MAXIMUM_BASIS_POINTS
+            : Number.MAX_SAFE_INTEGER - 10000
     if (
       !allowed.includes(statusId) ||
       !Number.isSafeInteger(amount) ||
-      amount < 0 ||
+      amount < (key === 'rangeTiles' ? 1 : 0) ||
       amount > maximum
     )
       throw new RangeError(`Invalid ${key} for ${statusId}.`)

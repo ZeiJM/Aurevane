@@ -131,6 +131,7 @@ const nativeFields = [
   'power',
   'potencyBasisPoints',
   'authoringLink',
+  'rangeTiles',
   'sealedCategories',
   'damageTypes',
   'initiativeReductionBasisPoints',
@@ -146,6 +147,7 @@ const packetModifierCombinations = Object.freeze([
   { activation: 'automatic', mode: 'modifier' },
 ] as const)
 const nativeUnits = {
+  rangeTiles: 'tiles',
   sealedCategories: 'identity',
   damageTypes: 'identity',
   durationTurns: 'turns',

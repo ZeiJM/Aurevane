@@ -44,6 +44,8 @@ export function statusPotencyDescription(
 ): string {
   if (statusId === 'inspired' && options.damageTypes !== undefined)
     return `Deal ${(potencyBasisPoints ?? 1000) / 100}% more ${damageUpTypeSummary(options.damageTypes)} damage per application. Other damage types are unchanged.`
+  if (['range-up', 'range-down'].includes(statusId))
+    return `${statusId === 'range-up' ? 'Increases' : 'Reduces'} maximum target range${options.rangeTiles === undefined ? '' : ` by ${options.rangeTiles} tiles per application`} for Attack, Utility and Recovery Basic Attacks, Discipline Skills and weapon imbued techniques. Range Down stops at the targeting minimum. Target All, self-only actions, consumables, movement, area size and minimum range are unchanged.`
   if (statusId === 'seal')
     return `Prevents activating ${options.sealedCategories ? sealCategorySummary(options.sealedCategories) : 'selected'} discipline skills. Essence, Resonance, Support, Severance and Ascension remain usable. Existing effects continue.`
   if (statusId === 'fortified' && options.defenseIncreaseBasisPoints !== undefined)

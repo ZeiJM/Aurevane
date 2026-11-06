@@ -73,6 +73,24 @@ it('subtracts replaced gear and shows only proven unconditional stat changes', (
     ),
   ).toEqual([])
 })
+it('retains neutral affected stats for replacement comparisons without adding unrelated Evasion', () => {
+  const current = equipmentStatBonuses(snapshot, catalogue)
+  expect(
+    equipmentStatChanges(
+      current,
+      ['head'],
+      [
+        { stat: 'mystic-power', amount: 12, conditional: false },
+        { stat: 'physical-defense', amount: 5, conditional: false },
+      ],
+      437,
+      true,
+    ),
+  ).toEqual([
+    { stat: 'mystic-power', amount: 0 },
+    { stat: 'physical-defense', amount: 5 },
+  ])
+})
 it('does not claim capped Evasion deltas without the actual character base', () => {
   const source = {
     itemId: 'boots',

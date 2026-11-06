@@ -197,8 +197,21 @@ export function CharacterItems({
         removals.length ? removals : (proposal?.removals ?? []),
         removals.length ? [] : (chosen.item?.statBonuses ?? []),
         view.baseEvasion,
+        true,
       )
     : []
+  const replacedBonuses =
+    view.statBonuses?.filter((bonus) => proposal?.removals.includes(bonus.position)) ?? []
+  const evasionUnproven =
+    [...replacedBonuses, ...(chosen?.item?.statBonuses ?? [])].some(
+      (bonus) => bonus.stat === 'evasion' && !bonus.conditional,
+    ) &&
+    !(
+      Number.isSafeInteger(view.baseEvasion) &&
+      view.baseEvasion! >= 0 &&
+      view.baseEvasion! <= 10000
+    )
+  const comparisonUnavailable = !view.statBonuses || evasionUnproven
   const blockedReason =
     proposal?.issue ??
     (view.equipmentIssue
@@ -313,51 +326,62 @@ export function CharacterItems({
               const s = view.stacks.find((s) => s.id === view.equipment[p])
               const blocked = p === 'off-hand' && main?.equipment?.hands === 2
               return (
-                <button
-                  key={p}
-                  className={styles.equipmentSlot}
-                  data-equipment-position={p}
-                  disabled={!s && blocked}
-                  onClick={() => {
-                    if (s) open(s, p)
-                    else {
-                      setPickerPosition(p)
-                      setSelected(null)
-                      setError(null)
+                <div key={p} className={styles.equipmentCell} data-equipment-position={p}>
+                  <button
+                    className={styles.equipmentSlot}
+                    disabled={!s && blocked}
+                    onClick={() => {
+                      if (s) open(s, p)
+                      else {
+                        setPickerPosition(p)
+                        setSelected(null)
+                        setError(null)
+                      }
+                    }}
+                    aria-label={`${positionNames[p]}: ${blocked ? 'Occupied by two-handed weapon' : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}`}
+                    aria-description={
+                      s?.item?.itemClass === 'battle-item' ? `Quantity ${s.quantity}` : undefined
                     }
-                  }}
-                  aria-label={`${positionNames[p]}: ${blocked ? 'Occupied by two-handed weapon' : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}`}
-                  aria-description={
-                    s?.item?.itemClass === 'battle-item' ? `${s.quantity} owned` : undefined
-                  }
-                >
-                  <strong>
-                    {blocked ? 'Two-handed' : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}
-                  </strong>
-                  <small>
-                    {blocked
-                      ? 'Off Hand blocked'
-                      : s?.item
-                        ? `${s.item.qualityPoints} QP${s.item.itemClass === 'battle-item' ? ` · ×${s.quantity} owned` : ''}`
-                        : s
-                          ? 'Remove to repair'
-                          : 'Unequipped'}
-                  </small>
-                  {s?.item?.artworkSrc ? (
-                    <Image
-                      src={itemThumbnail(s.item.artworkSrc)}
-                      width={84}
-                      height={84}
-                      alt=""
-                      unoptimized
-                    />
-                  ) : (
-                    <span className={styles.emptyIcon} aria-hidden="true">
-                      {blocked ? '◆' : '◇'}
+                  >
+                    <strong>
+                      {blocked
+                        ? 'Two-handed'
+                        : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}
+                    </strong>
+                    <small>
+                      {blocked
+                        ? 'Off Hand blocked'
+                        : s?.item
+                          ? `${s.item.qualityPoints} QP`
+                          : s
+                            ? 'Remove to repair'
+                            : 'Unequipped'}
+                    </small>
+                    <span className={styles.equipmentArtwork}>
+                      {s?.item?.artworkSrc ? (
+                        <Image
+                          src={itemThumbnail(s.item.artworkSrc)}
+                          width={84}
+                          height={84}
+                          alt=""
+                          unoptimized
+                        />
+                      ) : (
+                        <span className={styles.emptyIcon} aria-hidden="true">
+                          {blocked ? '◆' : '◇'}
+                        </span>
+                      )}
+                      {s?.item?.itemClass === 'battle-item' ? (
+                        <span className={styles.quantity} aria-hidden="true">
+                          ×{s.quantity}
+                        </span>
+                      ) : null}
                     </span>
-                  )}
-                  <span className={styles.positionName}>{positionNames[p]}</span>
-                </button>
+                  </button>
+                  <span className={styles.positionName} aria-hidden="true">
+                    {positionNames[p]}
+                  </span>
+                </div>
               )
             })}
           </div>
@@ -562,17 +586,31 @@ export function CharacterItems({
                   <button disabled>Cannot be equipped</button>
                 )}
               </div>
-              {statChanges.length &&
-              !['armor', 'hand-armor'].includes(chosen.item?.itemClass ?? '') ? (
+              {!removals.length && proposal?.requiredReplacements.length ? (
                 <dl className={styles.statChanges} aria-label="Equipment stat changes">
+                  {!statChanges.length || comparisonUnavailable ? (
+                    <div className={styles.statNeutral}>
+                      {comparisonUnavailable
+                        ? evasionUnproven
+                          ? 'Evasion comparison unavailable'
+                          : 'Stat comparison unavailable'
+                        : 'No fixed stat change'}
+                    </div>
+                  ) : null}
                   {statChanges.map(({ stat, amount }) => (
                     <div key={stat}>
                       <dt>{COMBAT_BONUS_STAT_LABELS[stat].replace(/ \(.*\)$/, '')}</dt>
                       <dd
-                        className={amount > 0 ? styles.statIncrease : styles.statDecrease}
+                        className={
+                          amount > 0
+                            ? styles.statIncrease
+                            : amount < 0
+                              ? styles.statDecrease
+                              : styles.statNeutral
+                        }
                         data-equipment-stat-change={amount}
                       >
-                        {amount > 0 ? '+' : '−'}
+                        {amount > 0 ? '+' : amount < 0 ? '−' : ''}
                         {stat === 'evasion' ? `${Math.abs(amount) / 100}%` : Math.abs(amount)}
                       </dd>
                     </div>

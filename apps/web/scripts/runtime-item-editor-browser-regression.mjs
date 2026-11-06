@@ -189,7 +189,7 @@ try {
       editor.getByRole('combobox', { name: 'Consumable action', exact: true }),
     ).toHaveCount(0)
 
-    await editor.getByRole('spinbutton', { name: 'Quality Points', exact: true }).fill('21')
+    await editor.getByRole('spinbutton', { name: 'Cost (QP)', exact: true }).fill('21')
     await editor.getByRole('spinbutton', { name: 'Battle uses', exact: true }).fill('4')
     await editor
       .getByRole('textbox', { name: 'Consumable action name', exact: true })
@@ -210,9 +210,9 @@ try {
       reader.getByText('Uses per battle', { exact: true }).locator('..').locator('dd'),
     ).toHaveText('4')
     await page.reload({ waitUntil: 'networkidle' })
-    await expect(
-      editor.getByRole('spinbutton', { name: 'Quality Points', exact: true }),
-    ).toHaveValue('21')
+    await expect(editor.getByRole('spinbutton', { name: 'Cost (QP)', exact: true })).toHaveValue(
+      '21',
+    )
     await expect(editor.getByRole('spinbutton', { name: 'Battle uses', exact: true })).toHaveValue(
       '4',
     )
@@ -234,10 +234,10 @@ try {
     ).toHaveCount(0)
     assert.equal(await page.evaluate(() => window.itemEditorValue.equipment.hands), 2)
     assert.ok(await page.evaluate(() => window.itemEditorValue.actions.attack.behaviorId))
-    await editor.getByRole('spinbutton', { name: 'Quality Points', exact: true }).fill('101')
+    await editor.getByRole('spinbutton', { name: 'Cost (QP)', exact: true }).fill('101')
     await editor.getByRole('button', { name: 'Save definition JSON' }).click()
     await expect(editor.getByRole('alert')).toContainText('1–100')
-    await editor.getByRole('spinbutton', { name: 'Quality Points', exact: true }).fill('50')
+    await editor.getByRole('spinbutton', { name: 'Cost (QP)', exact: true }).fill('50')
     await editor.getByRole('button', { name: 'Save definition JSON' }).click()
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),

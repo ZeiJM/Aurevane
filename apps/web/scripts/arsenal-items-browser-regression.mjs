@@ -271,7 +271,7 @@ try {
   ).toHaveCount(0)
   await expect(simple.getByRole('dialog').getByRole('combobox')).toHaveCount(0)
   await expect(simple.getByRole('dialog').getByRole('checkbox')).toHaveCount(0)
-  await expect(simple.getByRole('dialog').locator('[data-equipment-stat-change]')).toHaveCount(0)
+  await expect(simple.getByRole('dialog').getByLabel('Equipment stat changes')).toBeVisible()
   await expect
     .poll(() =>
       simple
@@ -374,7 +374,9 @@ try {
       attackTop: panel.querySelector('[class*="attack_"]').getBoundingClientRect().top,
       slots: [...panel.querySelectorAll('button')].map((button) => {
         const box = button.getBoundingClientRect()
-        const label = button.querySelector('[class*="positionName"]').getBoundingClientRect()
+        const label = button.parentElement
+          .querySelector('[class*="positionName"]')
+          .getBoundingClientRect()
         const name = button.querySelector('strong').getBoundingClientRect()
         const helper = button.querySelector('small').getBoundingClientRect()
         const image = button.querySelector('img,[class*="emptyIcon"]').getBoundingClientRect()
@@ -383,6 +385,7 @@ try {
           right: box.right,
           top: box.top,
           bottom: box.bottom,
+          cellBottom: button.parentElement.getBoundingClientRect().bottom,
           labelTop: label.top,
           labelBottom: label.bottom,
           nameTop: name.top,
@@ -414,7 +417,8 @@ try {
     for (const slot of equipmentFit.slots) {
       assert.ok(
         slot.nameTop >= slot.top &&
-          slot.labelBottom <= slot.bottom &&
+          slot.labelTop >= slot.bottom &&
+          slot.labelBottom <= slot.cellBottom &&
           (viewport.width >= 981
             ? slot.imageTop >= slot.top &&
               slot.imageBottom <= slot.bottom &&
@@ -628,7 +632,7 @@ try {
       .click()
     await expect(
       page.getByRole('button', { name: 'Consumable 1: Mender Salve', exact: true }),
-    ).toContainText('×12 owned')
+    ).toContainText('×12')
     await page.getByRole('button', { name: 'Consumable 2: Empty', exact: true }).click()
     await expect(
       page.getByRole('dialog').getByRole('button', { name: /Mender Salve/ }),
@@ -657,10 +661,10 @@ try {
     await page.getByRole('button', { name: /Manage Techniques/ }).click()
     const supportTab = page.getByRole('tab', { name: 'Support', exact: true })
     if (await supportTab.isVisible()) await supportTab.click()
-    await expect(
-      page.getByRole('radio', { name: 'Warding Prayer · Off Hand', exact: true }),
-    ).toHaveCount(0)
-    await page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true }).click()
+    await expect(page.getByRole('radio', { name: 'Warding Prayer', exact: true })).toHaveCount(0)
+    await page.getByRole('radio', { name: 'Kindle', exact: true }).click()
+    if (viewport.width < 500)
+      await page.getByRole('button', { name: 'Use as Support Action', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.reload({ waitUntil: 'networkidle' })
     await page.evaluate(() => {
@@ -668,17 +672,17 @@ try {
     })
     await page.getByRole('button', { name: /Manage Techniques/ }).click()
     if (await supportTab.isVisible()) await supportTab.click()
-    await expect(page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true })).toBeChecked()
+    await expect(page.getByRole('radio', { name: 'Kindle', exact: true })).toBeChecked()
     await page.getByRole('radio', { name: 'HP Recovery', exact: true }).click()
     if (viewport.width < 500)
       await page.getByRole('button', { name: 'Use as Support Action', exact: true }).click()
     await expect(page.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
     await page.evaluate(() => window.releaseItemRead())
     await expect(page.getByRole('radio', { name: 'HP Recovery', exact: true })).toBeChecked()
-    await expect(
-      page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true }),
-    ).not.toBeChecked()
-    await page.getByRole('radio', { name: 'Kindle · Main Hand', exact: true }).click()
+    await expect(page.getByRole('radio', { name: 'Kindle', exact: true })).not.toBeChecked()
+    await page.getByRole('radio', { name: 'Kindle', exact: true }).click()
+    if (viewport.width < 500)
+      await page.getByRole('button', { name: 'Use as Support Action', exact: true }).click()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await page.reload({ waitUntil: 'networkidle' })
     await page.getByRole('button', { name: 'Main Hand: Emberbrand', exact: true }).click()

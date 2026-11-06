@@ -2453,3 +2453,56 @@ it('rebuilds visible Damage Up scope without inheriting a concealed stacked appl
     expect(JSON.stringify(state)).toBe(before)
   }
 })
+
+it('projects current Range Up/Down target reach without mutating frozen definitions or historical captures', () => {
+  const base = encounter()
+  const basic = defaultBasicSkills().find((row) => row.id === 'unarmed.basic')!.ability
+    .behaviors[0]!
+  const source = captureCombatAbilitySource({
+    schemaVersion: 1,
+    sourceInstanceId: 'range-projection-source',
+    ownerCombatantId: PLAYER,
+    abilityId: 'fixture.range',
+    contentVersion: 1,
+    sourceKind: 'discipline-skill',
+    sourceDisciplineId: 'vanguard',
+    tags: ['attack'],
+    definition: {
+      schemaVersion: 1,
+      behaviors: [
+        { ...basic, id: 'range-strike', targeting: { ...basic.targeting!, maximumRange: 2 } },
+      ],
+    },
+  })
+  const initial = reattachStatDrivenCombatBridge(
+    reconcileCombatAbilitySources(base, [source]),
+    base.statBridge,
+  )
+  const viewer = deriveParticipantBattleViewerEntitlement(initial.tactical.battle.combatants, [
+    PLAYER,
+  ])
+  const state = {
+    ...initial,
+    rangeModifierPolicyVersion: 1 as const,
+    statusState: initial.statusState.map((row) =>
+      row.combatantId === PLAYER
+        ? {
+            ...row,
+            statuses: [
+              { ...status('range-up', PLAYER), rangeTiles: 4 },
+              { ...status('range-down', PLAYER), rangeTiles: 1 },
+            ],
+          }
+        : row,
+    ),
+  }
+  const frozen = JSON.stringify(state.capturedAbilitySources)
+  expect(projectBattleManualActionTargets(state, viewer)[0]!.target.maximumRange).toBe(5)
+  expect(
+    projectBattleManualActionTargets(
+      { ...state, rangeModifierPolicyVersion: undefined },
+      viewer,
+    )[0]!.target.maximumRange,
+  ).toBe(2)
+  expect(JSON.stringify(state.capturedAbilitySources)).toBe(frozen)
+})

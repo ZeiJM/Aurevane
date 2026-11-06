@@ -123,7 +123,7 @@ it('offers useful Gear controls with readable slots and no quantity sorting', ()
   expect(html).not.toContain('<option value="quantity">')
   expect(html).toContain('<option value="quality-points">Quality Points</option>')
 })
-it('places equipment names and QP above artwork and slot labels below it', () => {
+it('places slot captions outside equipment buttons while retaining names, QP and accessible positions', () => {
   const html = renderToStaticMarkup(<CharacterItems initialView={view} />)
   const slot = html.slice(
     html.indexOf('data-equipment-position="head"'),
@@ -132,6 +132,38 @@ it('places equipment names and QP above artwork and slot labels below it', () =>
   expect(slot.indexOf('<strong>Wayfarer Hood</strong>')).toBeLessThan(slot.indexOf('<img'))
   expect(slot.indexOf('<small>8 QP</small>')).toBeLessThan(slot.indexOf('<img'))
   expect(slot.indexOf('>Head</span>')).toBeGreaterThan(slot.indexOf('<img'))
+  expect(slot.indexOf('>Head</span>')).toBeGreaterThan(slot.indexOf('</button>'))
+  expect(slot).toContain('aria-label="Head: Wayfarer Hood"')
+})
+it('shows consumable stock once on its image instead of beside the QP cost', () => {
+  const salve = item({
+    id: 'salve',
+    name: 'Mender Salve',
+    itemClass: 'battle-item',
+    inventoryCategory: 'battle-items',
+    artworkSrc: '/media/art/items/mender-salve-v01.webp',
+    qualityPoints: 5,
+    equipment: { slot: 'hand', hands: 1 },
+    maximumStack: 99,
+  })
+  const html = renderToStaticMarkup(
+    <CharacterItems
+      initialView={{
+        ...view,
+        equipment: { 'consumable-1': 'salve' },
+        stacks: [stack('salve', salve, 11)],
+      }}
+    />,
+  )
+  const slot = html.slice(
+    html.indexOf('data-equipment-position="consumable-1"'),
+    html.indexOf('data-equipment-position="consumable-2"'),
+  )
+  expect(slot).toContain('<small>5 QP</small>')
+  expect(slot).toContain('>×11</span>')
+  expect(slot).toContain('aria-description="Quantity 11"')
+  expect(slot).not.toContain('owned')
+  expect(slot.match(/×11/g)).toHaveLength(1)
 })
 it('uses the saved presentation for neutral faceless equipment templates', () => {
   for (const presentationId of ['masculine', 'feminine', 'androgynous'] as const) {

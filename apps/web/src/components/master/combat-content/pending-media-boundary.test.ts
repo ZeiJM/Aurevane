@@ -15,3 +15,14 @@ it('keeps Commit Now blocked until every summon Skill upload is finished or remo
   tracker.clear()
   expect(change.mock.calls).toEqual([[true], [false], [true], [false]])
 })
+
+it('keeps the Item commit guard active when Item artwork finishes before its technique artwork', () => {
+  const change = vi.fn()
+  const tracker = createPendingMediaTracker(change)
+  tracker.report('imbued-technique-artwork', true)
+  tracker.report('item-artwork', true)
+  tracker.report('item-artwork', false)
+  expect(change.mock.calls).toEqual([[true]])
+  tracker.report('imbued-technique-artwork', false)
+  expect(change.mock.calls).toEqual([[true], [false]])
+})

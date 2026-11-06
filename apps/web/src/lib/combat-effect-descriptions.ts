@@ -81,6 +81,10 @@ const descriptions: Readonly<Record<string, string>> = {
     'Movement costs less AP per entered tile and can reach 0 AP. Movement allowance is unchanged.',
   'status:slow':
     'Increases movement AP cost per tile by the chosen amount. Movement allowance is unchanged.',
+  'status:range-up':
+    'Increases maximum target range by authored tiles for Basic Attacks, Discipline Skills and weapon imbued techniques. Uses global Delayed timing by default. Excludes Target All, self-only actions, consumables, movement, area size and minimum range.',
+  'status:range-down':
+    'Reduces maximum target range by authored tiles for Basic Attacks, Discipline Skills and weapon imbued techniques, stopping at the targeting minimum. Uses global Delayed timing by default. Excludes Target All, self-only actions, consumables, movement and area size.',
   'status:seal':
     'Blocks the selected categories of discipline skills while active. Essence, Resonance, Support, Severance and Ascension remain usable. Existing effects continue.',
   'status:blind':

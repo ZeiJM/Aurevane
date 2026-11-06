@@ -1,3 +1,4 @@
+import { itemActionMedia } from '@aurevane/game-core/content/items'
 import 'server-only'
 import { combatItemStock } from '@aurevane/game-core/combat/combat-item-consumption'
 import { equipmentActionId } from '@aurevane/game-core/combat/combat-equipment'
@@ -92,11 +93,17 @@ export function projectBattleItems(
             role,
             position: unit.position,
             behaviorId: behavior.id,
-            name: unit.item.name,
+            name: role === 'support' ? unit.item.actions!.support!.name : unit.item.name,
             description: unit.item.description,
             enabled: true,
-            iconKey: contentArtworkKey({ ...unit.item.media, iconKey: unit.item.media.artworkId }),
-            artworkSrc: item.artworkSrc,
+            iconKey: contentArtworkKey({
+              ...itemActionMedia(unit.item, role),
+              iconKey: itemActionMedia(unit.item, role).artworkId,
+            }),
+            artworkSrc:
+              role === 'support'
+                ? (item.actions.support?.artworkSrc ?? item.artworkSrc)
+                : item.artworkSrc,
             item,
             maximumUsesPerBattle: behavior.maximumUsesPerBattle ?? null,
             remainingUses: combatAbilityRemainingUses(state, source, behavior),

@@ -32,7 +32,7 @@ it('edits sanitized V2 inventory controls with the shared ability editor and rea
   expect(html).toContain('aria-label="Class"')
   expect(html).not.toContain('aria-label="Type"')
   expect(html).toContain('Type: Consumable')
-  expect(html).toContain('Quality Points')
+  expect(html).toContain('Cost (QP)')
   expect(html).toContain('Battle uses')
   expect(html).not.toContain('aria-label="Consumable action"')
   expect(html).not.toContain('Use binding')
