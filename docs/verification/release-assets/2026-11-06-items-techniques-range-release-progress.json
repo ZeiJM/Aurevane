@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "content-installed-postflight-held",
+  "status": "postflight-passed-removing-only-temporary-hold",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -212,5 +212,44 @@
     "twinfang-blade": 9
   },
   "towerShieldSourceFallbackOnly": true,
-  "guardedPreservationPassed": true
+  "guardedPreservationPassed": true,
+  "productionPostflight": {
+    "dbTime": "2026-11-06T18:59:42.383424+00:00",
+    "sources8": 4,
+    "stockRls": true,
+    "rangeTags": 2,
+    "currentItems": [
+      {
+        "id": "emberbrand",
+        "version": "9",
+        "supportMedia": "item.emberbrand.technique.art.v1"
+      },
+      {
+        "id": "stormcaller-staff",
+        "version": "9",
+        "supportMedia": "item.stormcaller-staff.technique.art.v1"
+      },
+      {
+        "id": "tower-shield",
+        "version": "8",
+        "supportMedia": "item.tower-shield.technique.art.v1"
+      },
+      {
+        "id": "twinfang-blade",
+        "version": "9",
+        "supportMedia": "item.twinfang-blade.technique.art.v1"
+      }
+    ],
+    "publication9": 3,
+    "targetDrafts": 0,
+    "timingPolicy": {
+      "version": 11,
+      "authority": "global"
+    },
+    "towerPublication": 0,
+    "serviceSeedAllowed": true,
+    "authenticatedSeedDenied": true,
+    "specifiedRangeUpRemoval": "dispel",
+    "historicalRangeUpRemoval": "cleanse"
+  }
 }
