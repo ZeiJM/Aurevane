@@ -367,48 +367,60 @@ try {
     )
     const equipment = shellPage.getByRole('region', { name: 'Equipment', exact: true })
     await expect(equipment.getByRole('button')).toHaveCount(8)
-    const nameFit = await shellPage
-      .locator('[data-equipment-position] button strong, [data-inventory-slot] [class*="itemName"]')
-      .evaluateAll((names) =>
-        names.map((name) => {
-          const box = name.getBoundingClientRect()
-          const card = name.closest('button').getBoundingClientRect()
-          const text = name.firstChild
-          const wordRects =
-            text?.nodeType === Node.TEXT_NODE
-              ? [...text.textContent.matchAll(/[^\s-]+/gu)].map((word) => {
-                  const range = document.createRange()
-                  range.setStart(text, word.index)
-                  range.setEnd(text, word.index + word[0].length)
-                  return [...range.getClientRects()].map((rect) => ({
-                    left: rect.left,
-                    right: rect.right,
-                  }))
-                })
-              : []
-          return {
-            name: name.textContent,
-            contentHeight: name.scrollHeight,
-            availableHeight: name.clientHeight,
-            contentWidth: name.scrollWidth,
-            availableWidth: name.clientWidth,
-            clipped:
-              name.scrollHeight > name.clientHeight + 1 ||
-              name.scrollWidth > name.clientWidth + 1 ||
-              box.bottom > card.bottom + 1 ||
-              box.left < card.left - 1 ||
-              box.right > card.right + 1,
-            brokenWords: wordRects.some((rects) => rects.length > 1),
-            outside: wordRects
-              .flat()
-              .some((rect) => rect.left < box.left - 1 || rect.right > box.right + 1),
-          }
-        }),
+    for (const category of ['Gear', 'Consumables']) {
+      await shellPage.getByRole('button', { name: category, exact: true }).click()
+      await expect(shellPage.locator(`[aria-label="${category} inventory slots"]`)).toBeVisible()
+      const nameFit = await shellPage
+        .locator(
+          '[data-equipment-position] button strong, [data-inventory-slot] [class*="itemName"]',
+        )
+        .evaluateAll((names) =>
+          names.map((name) => {
+            const box = name.getBoundingClientRect()
+            const card = name.closest('button').getBoundingClientRect()
+            const text = name.firstChild
+            const wordRects =
+              text?.nodeType === Node.TEXT_NODE
+                ? [...text.textContent.matchAll(/[^\s-]+/gu)].map((word) => {
+                    const range = document.createRange()
+                    range.setStart(text, word.index)
+                    range.setEnd(text, word.index + word[0].length)
+                    return [...range.getClientRects()].map((rect) => ({
+                      left: rect.left,
+                      right: rect.right,
+                    }))
+                  })
+                : []
+            return {
+              name: name.textContent,
+              contentHeight: name.scrollHeight,
+              availableHeight: name.clientHeight,
+              contentWidth: name.scrollWidth,
+              availableWidth: name.clientWidth,
+              nameLeft: box.left,
+              nameRight: box.right,
+              cardLeft: card.left,
+              cardRight: card.right,
+              clipped:
+                name.scrollHeight > name.clientHeight + 1 ||
+                name.scrollWidth > name.clientWidth + 1 ||
+                box.bottom > card.bottom + 1 ||
+                box.left < card.left - 1 ||
+                box.right > card.right + 1,
+              brokenWords: wordRects.some((rects) => rects.length > 1),
+              outside: wordRects
+                .flat()
+                .some((rect) => rect.left < box.left - 1 || rect.right > box.right + 1),
+            }
+          }),
+        )
+      assert.ok(
+        nameFit.every((name) => !name.clipped && !name.brokenWords && !name.outside),
+        JSON.stringify({ viewport, category, nameFit }),
       )
-    assert.ok(
-      nameFit.every((name) => !name.clipped && !name.brokenWords && !name.outside),
-      JSON.stringify({ viewport, nameFit }),
-    )
+    }
+    await shellPage.getByRole('button', { name: 'Gear', exact: true }).click()
+    await expect(shellPage.locator('[aria-label="Gear inventory slots"]')).toBeVisible()
     const equipmentFit = await equipment.evaluate((panel) => ({
       overflow: panel.scrollHeight - panel.clientHeight,
       panelBottom: panel.getBoundingClientRect().bottom,
