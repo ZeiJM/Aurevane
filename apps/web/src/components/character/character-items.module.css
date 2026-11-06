@@ -714,28 +714,34 @@
     align-content: center;
   }
   .page .equipmentSlot {
-    grid-template-columns: var(--av-item-art-size) minmax(0, 1fr);
-    grid-template-rows: max-content max-content;
+    position: relative;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--av-item-art-size) max-content;
     align-content: center;
-    column-gap: 5px;
-    row-gap: 2px;
-    padding: 4px;
+    row-gap: 0;
+    padding: 1px 3px;
+  }
+  .page .equipmentCell {
+    gap: 1px;
   }
   .page .equipmentSlot .equipmentArtwork {
     grid-column: 1;
-    grid-row: 1 / 3;
-  }
-  .page .equipmentSlot strong,
-  .page .equipmentSlot small {
-    grid-column: 2;
+    grid-row: 1;
   }
   .page .equipmentSlot strong {
-    grid-row: 1;
-    align-self: end;
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
     font-size: 0.6rem;
   }
   .page .equipmentSlot small {
-    grid-row: 2;
+    position: absolute;
+    right: 3px;
+    bottom: calc(0.69rem + 3px);
+    padding: 1px 3px;
+    border-radius: 2px;
+    background: #182229e6;
+    font-size: 0.56rem;
   }
   .page .equipmentPanel > :not(.equipment) {
     flex-shrink: 0;
@@ -756,6 +762,13 @@
     gap: 5px 12px;
   }
   .page .equipmentSlot {
-    padding: 2px;
+    padding: 0 3px;
+  }
+  .page .equipmentCell {
+    gap: 0;
+  }
+  .page .positionName {
+    font-size: 0.6rem;
+    line-height: 1;
   }
 }

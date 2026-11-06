@@ -430,6 +430,8 @@ try {
           nameBottom: name.bottom,
           helperTop: helper.top,
           helperBottom: helper.bottom,
+          helperLeft: helper.left,
+          helperRight: helper.right,
           imageLeft: image.left,
           imageRight: image.right,
           nameLeft: name.left,
@@ -459,8 +461,13 @@ try {
           slot.labelBottom <= slot.cellBottom &&
           (viewport.width >= 981
             ? slot.imageTop >= slot.top &&
-              slot.imageBottom <= slot.bottom &&
-              slot.nameLeft >= slot.imageRight + 2
+              slot.imageBottom <= slot.nameTop + 1 &&
+              slot.nameBottom <= slot.bottom &&
+              slot.helperTop >= slot.top &&
+              slot.helperBottom <= slot.nameTop + 1 &&
+              slot.helperLeft >= slot.left &&
+              slot.helperRight <= slot.right &&
+              slot.centered <= 1
             : slot.nameBottom <= slot.helperTop + 1 &&
               slot.helperBottom <= slot.imageTop + 1 &&
               slot.imageBottom <= slot.labelTop + 1 &&
