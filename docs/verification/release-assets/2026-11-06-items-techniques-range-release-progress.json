@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "drain-passed-applying-reviewed-migrations",
+  "status": "migrations-complete-applying-reviewed-source4-publications3",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -22,7 +22,8 @@
   "holdActive": true,
   "holdRemoved": false,
   "migrationsApplied": [
-    "20261106100000_item_technique_media.sql"
+    "20261106100000_item_technique_media.sql",
+    "20261106110000_range_tags.sql"
   ],
   "sourceRegistrationDone": false,
   "publicationsDone": false,
