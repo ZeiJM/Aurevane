@@ -324,7 +324,7 @@ try {
         url: new URL(url.searchParams.get('url'), server.resolvedUrls.local[0]).href,
       })
     })
-    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items`, {
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items&longNames`, {
       waitUntil: 'networkidle',
     })
     await expect(shellPage.locator('[data-inventory-slot]')).toHaveCount(40)
@@ -335,7 +335,7 @@ try {
     const itemsHeader = await shellPage
       .getByRole('navigation', { name: 'Arsenal sections' })
       .boundingBox()
-    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=nexus`, {
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=nexus&longNames`, {
       waitUntil: 'networkidle',
     })
     const nexusHeader = await shellPage
@@ -347,7 +347,7 @@ try {
         JSON.stringify({ viewport, key, itemsHeader, nexusHeader }),
       )
     }
-    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items`, {
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items&longNames`, {
       waitUntil: 'networkidle',
     })
     const measure = () =>

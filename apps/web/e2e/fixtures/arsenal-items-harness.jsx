@@ -70,7 +70,7 @@ const original = {
   grants: [],
 }
 // Exercise production-length names in the nine-viewport shell fit matrix.
-if (new URLSearchParams(location.search).has('shell')) {
+if (new URLSearchParams(location.search).has('longNames')) {
   original.equipment.head = 'owned-ember-stitched-cowl'
   original.equipment['consumable-2'] = 'owned-vulnerability-oil'
 }

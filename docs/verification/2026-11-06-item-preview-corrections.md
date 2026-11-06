@@ -31,6 +31,8 @@ Full local broad suites were not repeated for these bounded presentation/descrip
 
 ## Source freshness and release boundary
 
+The first PR1023 Browser execution128119081107 failed before the nine-size matrix: the new long-name fixture had changed ordinary shell scenarios too, so an unchanged Evasion check could not find Wayfarer Hood. The fixture now requires an explicit `longNames` flag used only by the three matrix navigations. Six tests execute the actual initial-state fixture block; three reproduced the contamination before repair, then all six passed. The adjacent four-file run passed23 tests, script syntax/format/lint/diff checks passed, and independent review approved the isolation. Every native assertion and timeout is retained; this is not a claim that the corrected native suite has already passed. That first run did pass the existing Master Item layout/editor and imbued-technique edit/commit/reload checks before reaching the fixture defect.
+
 The isolated correction branch began at actual release merge `e6b63a9fe5803319a74c9242e0b4b76cc6f4a005` and fast-forwarded to receipt-only main `38631b7a930891954397a99585b165e2b7560837`. Its seven documentation paths do not overlap correction application changes; the combined Web/static checks were then run on the reconciled tree.
 
 The only prepared migration is `20261106143000_item_technique_descriptions.sql`, an additive grammar/validator extension with private ACLs and no content writes. The only prepared source successors are the four source8→10 bodies in `2026-11-06-item-purpose-successors.json`; all43 other source bodies and hashes are unchanged. Source10 avoids the known completed release's publication9 floor. These are prepared candidates, **not installed content**.
