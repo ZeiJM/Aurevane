@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "migrations-complete-applying-reviewed-source4-publications3",
+  "status": "content-installed-postflight-held",
   "pr": 1021,
   "receiptBranch": "agent/items-techniques-range-release-20261106",
   "sourceCommit": "e6b63a9fe5803319a74c9242e0b4b76cc6f4a005",
@@ -25,8 +25,8 @@
     "20261106100000_item_technique_media.sql",
     "20261106110000_range_tags.sql"
   ],
-  "sourceRegistrationDone": false,
-  "publicationsDone": false,
+  "sourceRegistrationDone": true,
+  "publicationsDone": true,
   "sourceScope": "Exactly four reviewed source8 media successors from docs/verification/2026-11-06-item-technique-successors.json; preserve other43, all immutable history and Owner drafts; only necessary normal fresh-CAS publications after fresh audit.",
   "migrationScope": [
     "20261106100000_item_technique_media.sql",
@@ -142,10 +142,11 @@
     "commit": "a050e10ba00b852317d462996742ef6ee6b14fe7",
     "sha256": "d3214f7b8583b879559b7d60b55a2a04723fe35e3b6a274dc19e4a93468aac9a",
     "bytes": 40743,
-    "executed": false,
+    "executed": true,
     "independentReview": "No blocking findings; exact source4/media publication3 and preservation12/durable deadline verified.",
     "reviewPath": "docs/verification/release-assets/2026-11-06-items-techniques-range-sql-review.md",
-    "disposableVerification": "2/2 pass at unchanged60s limit: baseline success exact4source8/3pub9 and stale revision rollback zero8/9. Only fixture in-memory deadline advanced to year2000; productionartifact exact18:58:15.965590Z unchanged."
+    "disposableVerification": "2/2 pass at unchanged60s limit: baseline success exact4source8/3pub9 and stale revision rollback zero8/9. Only fixture in-memory deadline advanced to year2000; productionartifact exact18:58:15.965590Z unchanged.",
+    "result": "guarded-source4-media-publications3-preservation12"
   },
   "artworkProbes": [
     {
@@ -203,5 +204,13 @@
     "rangeRecords": 0,
     "sources8": 0,
     "targetDrafts": 0
-  }
+  },
+  "sourceVersion": 8,
+  "publicationVersions": {
+    "emberbrand": 9,
+    "stormcaller-staff": 9,
+    "twinfang-blade": 9
+  },
+  "towerShieldSourceFallbackOnly": true,
+  "guardedPreservationPassed": true
 }
