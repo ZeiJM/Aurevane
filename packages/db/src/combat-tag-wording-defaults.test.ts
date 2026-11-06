@@ -198,6 +198,37 @@ it('keeps the SQL presentation identity vocabulary equal to the engine variants 
   ).toBe('conditional-cleanse')
 })
 
+it('captures Dispel wording for the new positive Range tag without relabeling historical removal', async () => {
+  const tag = defaultCombatTagDefinitions().find((row) => row.tagId === 'dispel')!
+  await commit(tag.id, 1, { ...tag, explanation: 'Captured positive-effect removal.' })
+  const payload = {
+    type: 'remove-status',
+    recipient: 'primary-unit',
+    statusIds: ['range-up'],
+    removalMode: 'specified',
+  }
+  const definition = {
+    ...resolveMatureSkillVersion('vanguard.forceful-strike')!,
+    effects: [payload],
+  }
+  const bound = (
+    await db.query<{ value: { tagPresentation: { tagId: string; full: string }[] } }>(
+      'select app_private.bind_content_tag_presentation_v1($1::jsonb,true,0) value',
+      [JSON.stringify(definition)],
+    )
+  ).rows[0]!.value
+  expect(bound.tagPresentation).toEqual([
+    expect.objectContaining({ tagId: 'dispel', full: 'Captured positive-effect removal.' }),
+  ])
+  expect(
+    (
+      await db.query<{ id: string }>(
+        `select app_private.content_effect_presentation_id_v1('{"type":"remove-status","statusIds":["range-up"]}'::jsonb) id`,
+      )
+    ).rows[0]!.id,
+  ).toBe('cleanse')
+})
+
 it('rejects unregistered placeholders through the database publication boundary', async () => {
   const definition = {
     ...defaultCombatTagDefinitions().find((row) => row.tagId === 'copy-buffs')!,

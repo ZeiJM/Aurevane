@@ -11,6 +11,7 @@ const outsider = '00000000-0000-4000-8000-000000000062'
 let db: PGlite
 let before: { identity: string; definition: string; acl: string | null; owner: number }[]
 let history: unknown[]
+let removalBefore: { definition: string; acl: string | null; owner: number }
 
 async function writers(database: PGlite) {
   return (
@@ -23,6 +24,13 @@ async function writers(database: PGlite) {
       `select p.oid::regprocedure::text identity, pg_get_functiondef(p.oid) definition, p.proacl::text acl, p.proowner owner from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='publish_combat_effect_timing_policy_v1' order by identity`,
     )
   ).rows
+}
+async function removalClassifier(database: PGlite) {
+  return (
+    await database.query<{ definition: string; acl: string | null; owner: number }>(
+      `select pg_get_functiondef(oid) definition, proacl::text acl, proowner owner from pg_proc where oid='app_private.content_effect_presentation_id_v1(jsonb)'::regprocedure`,
+    )
+  ).rows[0]!
 }
 beforeAll(async () => {
   db = await createCombatContentTestDatabase(async (database, migration) => {
@@ -41,6 +49,7 @@ beforeAll(async () => {
         execute replace(pg_get_functiondef(fn.oid), 'entry.key not in (', 'entry.key not in (''future-timing'',');
       end loop;
     end $$;`)
+    removalBefore = await removalClassifier(database)
     before = await writers(database)
     history = (
       await database.query(
@@ -71,6 +80,13 @@ it('changes only the current finite timing whitelist and leaves history, auth bo
       )
     ).rows,
   ).toEqual(history)
+})
+
+it('extends only explicit positive removal and retains every other classifier branch, ownership and ACL', async () => {
+  expect(await removalClassifier(db)).toEqual({
+    ...removalBefore,
+    definition: removalBefore.definition.replace('positive||array[', "positive||array['range-up',"),
+  })
 })
 
 it('publishes all Range timing modes through both real writers while retaining existing overrides and immutable history', async () => {
@@ -180,6 +196,7 @@ it('retains real publisher authorization, catalogue CAS and finite mode validati
 
 it('replays idempotently without changing installed writer definitions or policy history', async () => {
   const definitions = await writers(db)
+  const removalDefinition = await removalClassifier(db)
   const policies = (
     await db.query(
       'select * from app_private.combat_effect_timing_policy_versions order by version',
@@ -187,6 +204,7 @@ it('replays idempotently without changing installed writer definitions or policy
   ).rows
   await db.exec(sql)
   expect(await writers(db)).toEqual(definitions)
+  expect(await removalClassifier(db)).toEqual(removalDefinition)
   expect(
     (
       await db.query(
@@ -215,5 +233,29 @@ it.each(['missing', 'duplicate'] as const)(
       await db.exec('rollback')
     }
     expect(await writers(db)).toEqual(prior)
+  },
+)
+
+it.each(['missing', 'duplicate'] as const)(
+  'fails closed on a %s explicit positive removal anchor',
+  async (kind) => {
+    const prior = await removalClassifier(db)
+    const altered =
+      kind === 'missing'
+        ? removalBefore.definition.replace('positive||array[', 'positive || array[')
+        : removalBefore.definition.replace(
+            'positive||array[',
+            '/* positive||array[ */ positive||array[',
+          )
+    await db.exec('begin')
+    try {
+      await db.exec(altered)
+      await expect(db.exec(sql)).rejects.toThrow(
+        'Expected one explicit positive removal vocabulary',
+      )
+    } finally {
+      await db.exec('rollback')
+    }
+    expect(await removalClassifier(db)).toEqual(prior)
   },
 )

@@ -155,7 +155,7 @@ try {
       if (loadout === 'equipment-support') {
         await expect(page.locator('[data-command-slot="guard"]')).toHaveAttribute(
           'aria-label',
-          /^Tower Shield,/,
+          /^Tower Guard,/,
         )
         await expect(page.getByRole('button', { name: /^Practice HP Recovery/ })).toBeEnabled()
         await page.screenshot({

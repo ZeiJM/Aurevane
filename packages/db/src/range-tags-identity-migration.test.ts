@@ -12,6 +12,17 @@ const timingMigration = readFileSync(
   resolve(process.cwd(), '../../supabase/migrations/20261018141646_modular_global_tag_timing.sql'),
   'utf8',
 )
+const wordingMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    '../../supabase/migrations/20261028060810_master_effect_tag_wording_defaults.sql',
+  ),
+  'utf8',
+)
+const removalClassifier = wordingMigration.slice(
+  wordingMigration.indexOf('create function app_private.content_effect_presentation_id_v1'),
+  wordingMigration.indexOf('create function app_private.content_tag_text_valid_v1'),
+)
 const timingWriter = timingMigration.slice(
   timingMigration.indexOf(
     'create or replace function public.publish_combat_effect_timing_policy_v1',
@@ -45,6 +56,7 @@ it.each([false, true])(
       revoke all on function app_private.content_presentation_tag_ids_v1() from public,anon,authenticated,service_role;
     `)
       await db.exec(timingWriter)
+      await db.exec(removalClassifier)
       const before = (
         await db.query('select * from app_private.combat_content_records order by content_key')
       ).rows

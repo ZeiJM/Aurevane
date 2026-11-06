@@ -120,3 +120,14 @@ it.each([false, true])(
     })
   },
 )
+it('keeps weapon and technique names/art distinct in the actual guided Support loadout', async () => {
+  const { createGuidedNativeFixture } =
+    await import('../../../e2e/fixtures/guided-training-service')
+  const { battle } = await (await createGuidedNativeFixture('equipment-support')).start()
+  const actions = battle.snapshot.equipmentActions ?? []
+  expect(actions.find((action) => action.role === 'attack')).toMatchObject({ name: 'Tower Shield' })
+  expect(actions.find((action) => action.role === 'support')).toMatchObject({
+    name: 'Tower Guard',
+    artworkSrc: '/media/art/items/techniques/tower-shield-technique-v01.webp',
+  })
+})

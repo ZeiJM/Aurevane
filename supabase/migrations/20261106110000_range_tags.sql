@@ -24,6 +24,23 @@ begin
 end;
 $range_tag_identities$;
 
+-- Extend only explicit positive-status removal. Omitted removalMode retains its
+-- historical vocabulary, and immutable tag snapshots are never rebound.
+do $range_removal_identity$
+declare
+  definition text;
+  anchor constant text := 'positive||array[';
+begin
+  if app_private.content_effect_presentation_id_v1('{"type":"remove-status","statusIds":["range-up"],"removalMode":"specified"}'::jsonb) <> 'dispel' then
+    definition := pg_get_functiondef('app_private.content_effect_presentation_id_v1(jsonb)'::regprocedure);
+    if (length(definition) - length(replace(definition, anchor, ''))) <> length(anchor) then
+      raise exception 'Expected one explicit positive removal vocabulary';
+    end if;
+    execute replace(definition, anchor, anchor || quote_literal('range-up') || ',');
+  end if;
+end;
+$range_removal_identity$;
+
 -- Extend each installed Owner/delegated writer; preserve authorization, stale
 -- guards, same-value behavior, privileges and immutable timing history.
 do $range_timing_identities$
@@ -55,6 +72,6 @@ begin
 end;
 $range_timing_identities$;
 
-revoke all on function app_private.content_presentation_tag_ids_v1() from public, anon, authenticated, service_role;
+revoke all on function app_private.content_presentation_tag_ids_v1(), app_private.content_effect_presentation_id_v1(jsonb) from public, anon, authenticated, service_role;
 
 commit;

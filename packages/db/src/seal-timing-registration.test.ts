@@ -58,7 +58,11 @@ it('changes only the current finite timing whitelist and leaves history, auth bo
   expect(await writers(db)).toEqual(
     before.map((row) => ({
       ...row,
-      definition: row.definition.replace('entry.key not in (', "entry.key not in ('seal',"),
+      // Full integration fixture includes the later additive Range identities.
+      definition: row.definition.replace(
+        'entry.key not in (',
+        "entry.key not in ('range-down','range-up','seal',",
+      ),
     })),
   )
   expect(
