@@ -1,0 +1,316 @@
+{
+  "schemaVersion": 1,
+  "status": "verified-live-for-owner-testing",
+  "sourceCommit": "a841b6bf39e4e59e6c0b2373d23f2635db9a359d",
+  "sourceTree": "8de31980a118fa4eb1244d7ae205f60ee49aca2c",
+  "testedHead": "3dc080bd175b02fc168cc372927df0ac5a50bf77",
+  "pr": 1019,
+  "applicationChecksPassed": true,
+  "mainChecksPassed": true,
+  "supabaseIntegration": {
+    "conclusion": "failure",
+    "summary": "Remote migration versions not found in local migrations directory.",
+    "action": "Preserve history; no new migration required.",
+    "latestObservedConclusion": "skipped"
+  },
+  "projectId": "prj_ZmH66I1zyOARUt8OXdTl7CN9r18d",
+  "teamId": "team_oZRrN2ckoy5ge7NgZfp1B6de",
+  "supabaseProjectId": "luazfeupwfgnilohfsya",
+  "previousDeploymentId": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+  "deploymentId": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+  "promoted": true,
+  "sourceRegistrationDone": true,
+  "emberbrandPublicationDone": true,
+  "newMigrationsRequired": 0,
+  "sourceScope": "Exact20source6 reviewed successors in docs/verification/2026-11-05-items-polish-successors.json; only Emberbrand normal fresh-CAS publication if still required.",
+  "routingVersionBefore": "78132fc0-e779-4dda-bf7b-7ea8c5773e28",
+  "retirementRulesBefore": 9,
+  "holdRuleId": "45a07761-caca-49ad-9017-a665fb051019",
+  "holdActive": false,
+  "gitDeploymentEnabled": false,
+  "remaining": "Owner gameplay acceptance; documentation-only receipt integration requires no application deployment.",
+  "deploymentUrl": "aurevane-jp4c5dae1-zeijms-projects.vercel.app",
+  "autoAssignCustomDomains": false,
+  "buildState": "READY",
+  "readOnlyPreflight": {
+    "dbTime": "2026-11-05T23:53:28.420937Z",
+    "timingPolicyVersion": 11,
+    "tagAuthority": "global",
+    "maxItemVersionFloor": 5,
+    "emberbrandRevision": 7,
+    "emberbrandVersionFloor": 5,
+    "emberbrandBuiltinVersion": 4
+  },
+  "routingVersion": "683ea355-d1a5-481a-ab58-ca0dad760c17",
+  "predecessorsVerified": 20,
+  "candidateOwnerDrafts": 0,
+  "retirementVerifiedAt": "2026-11-06T01:02:38.425949Z",
+  "drainNotBefore": "2026-11-06T01:35:08.425950Z",
+  "canonicalSourceVerified": true,
+  "oldDeploymentHostStatus": 503,
+  "preparedSql": {
+    "path": "docs/verification/release-assets/2026-11-05-items-polish-register-and-publish.sql",
+    "sha256": "26f154763757a6655abe1cc3eec9001da2cca0545ab451d3b9e37783cb8e2b0f",
+    "bytes": 40097,
+    "executed": true,
+    "independentReview": "No blocking findings; static review only. SQL parser/disposable execution not claimed: exec transport disconnected.",
+    "scope": "20 reviewed source6 registrations, ordinary Emberbrand publication7,12-table preservation",
+    "disposableVerification": "2 cases pass: stale-predecessor transaction rollback preserves zero new sources/versions; exact unchanged SQL registers20/ordinaryCommit7 successfully. Existing disposable helper/full real migrations, unchanged limits."
+  },
+  "cutoverVerification": {
+    "stagedHome200": true,
+    "canonicalHome200NewSource": [
+      "aurevane.vercel.app",
+      "aurevane-rpg.com"
+    ],
+    "oldHost503": true,
+    "heldApis503": [
+      "/api/battles",
+      "/api/master/access",
+      "/api/character/items"
+    ],
+    "heldOnBothCanonicalHosts": true,
+    "holdPatternPositive": 7,
+    "existingRoutePatternUnmatched": 8,
+    "source6Count": 0,
+    "newEmberbrandVersions": 0,
+    "observedAt": "2026-11-06T01:04:54.705995Z"
+  },
+  "sourceVersion": 6,
+  "registeredSources": 20,
+  "emberbrandPublicationVersion": 7,
+  "guardedPreservationPassed": true,
+  "olderClientTransactionsAtDrainCheck": 0,
+  "executionCheckedAt": "2026-11-06T01:54:18.338008Z",
+  "holdRemoved": true,
+  "retirementRulesAfter": 9,
+  "productionPostflight": {
+    "stockRls": true,
+    "exactSources": 20,
+    "stockCapture": {
+      "quantity": 3,
+      "schemaVersion": 2,
+      "consumptionPolicyVersion": 1
+    },
+    "timingPolicy": {
+      "modes": {
+        "summon": "instant",
+        "sensory": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "conductive": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "create-terrain": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 11,
+      "tagAuthority": "global"
+    },
+    "emberbrandExact7": true,
+    "seedBrowserDenied": true,
+    "seedServiceAllowed": true,
+    "towerNoHeldPassive": true,
+    "wardstonePassiveOnly": true,
+    "stockSettlementTrigger": true,
+    "characterRequirementRejected": true
+  },
+  "retirementPinFailure": {
+    "observedAt": "2026-11-06T01:59:12.850080Z",
+    "oldDeployment": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+    "queryStatus": 200,
+    "headerStatus": 200,
+    "returnedSource": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+    "expected": "503 or verified new deployment; old source is failure",
+    "holdRestored": true
+  },
+  "blocker": {
+    "summary": "Retired custom-domain header/query pins still serve old dpl_D79, despite generic and experimental exact project routes. Skew Protection retirement cutoff API rejects404 not_found: Skew Protection not found. Firewall config inspection also404 Seawall Config not found.",
+    "attemptedBoundary": 1793922776186,
+    "boundaryApplied": false,
+    "experimentalRulesRemoved": true,
+    "requiredAction": "Configure/enable project Skew Protection retirement controls or obtain Vercel support resolution; no paid plan/upgrade or broad protection change made.",
+    "watchPaused": true,
+    "resolvedAt": "2026-11-06T08:12:02.656222Z",
+    "resolution": "Fresh primary and independent checks now return the exact new deployment for old pins. No additional Skew Protection setting, firewall rule, deployment, publication or migration required.",
+    "resolved": true
+  },
+  "verifiedLiveAt": "2026-11-06T08:12:02.656222Z",
+  "finalSmoke": {
+    "checkedAt": "2026-11-06T08:12:02.656222+00:00",
+    "cases": [
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/manual",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/master",
+        "headers": {},
+        "expected": 307,
+        "status": 307,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/game/arsenal",
+        "headers": {},
+        "expected": 307,
+        "status": 307,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/master/access",
+        "headers": {},
+        "expected": 401,
+        "status": 401,
+        "source": null,
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/character/items",
+        "headers": {},
+        "expected": 401,
+        "status": 401,
+        "source": null,
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/battles",
+        "headers": {},
+        "expected": 405,
+        "status": 405,
+        "source": null,
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/api/battles/00000000-0000-4000-8000-000000000000",
+        "headers": {},
+        "expected": 401,
+        "status": 401,
+        "source": null,
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-coznss4ds-zeijms-projects.vercel.app/",
+        "headers": {},
+        "expected": 503,
+        "status": 503,
+        "source": null,
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/?dpl=dpl_D79wgdgrFWWjf3kom6sfypujPk6F",
+        "headers": {},
+        "expected": [
+          503,
+          200
+        ],
+        "status": 200,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {
+          "x-deployment-id": "dpl_D79wgdgrFWWjf3kom6sfypujPk6F"
+        },
+        "expected": [
+          503,
+          200
+        ],
+        "status": 200,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {
+          "Cookie": "__vdpl=dpl_D79wgdgrFWWjf3kom6sfypujPk6F"
+        },
+        "expected": 503,
+        "status": 503,
+        "source": null,
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/?dpl=dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane-rpg.com/",
+        "headers": {
+          "x-deployment-id": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC"
+        },
+        "expected": 200,
+        "status": 200,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://aurevane.vercel.app/",
+        "headers": {},
+        "expected": 200,
+        "status": 200,
+        "source": "dpl_6pGx1VaoJydfdtbRBe9M13DkQcGC",
+        "passed": true,
+        "error": null
+      },
+      {
+        "url": "https://www.aurevane-rpg.com/",
+        "headers": {},
+        "expected": 308,
+        "status": 308,
+        "source": null,
+        "passed": true,
+        "error": null
+      }
+    ]
+  },
+  "ownerAcceptance": "pending",
+  "runtimeErrorScan": {
+    "since": "2026-11-06T08:11:00Z",
+    "until": "2026-11-06T08:12:11.086Z",
+    "levels": [
+      "error",
+      "fatal"
+    ],
+    "results": 0
+  },
+  "limitations": [
+    "Safe guest/read-only/pure-capture checks; no signed-in hosted battle, physical device or human acceptance claimed.",
+    "No real grants or stock consumption issued.",
+    "Prior Supabase integration history mismatch not repaired; latest observed check skipped."
+  ]
+}

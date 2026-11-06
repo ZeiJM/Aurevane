@@ -1,6 +1,6 @@
 # November 5 post-release Item layout and tag rules
 
-Status: implemented and independently reviewed; required verification remains blocked. Not deployed.
+Status: verified live for Owner testing on November 6, 2026. [Final production receipt](2026-11-05-items-polish-production-release.md). All required application checks and final16 safety probes pass; hold removed. Earlier verification and blocker statements below are retained historical checkpoints, superseded by the final receipt.
 
 The earlier Items release remains live on `dpl_D79wgdgrFWWjf3kom6sfypujPk6F`.
 This work starts from main `e4dd343b9c441fa65d50027b3b5df2f541a51e45` on an isolated
