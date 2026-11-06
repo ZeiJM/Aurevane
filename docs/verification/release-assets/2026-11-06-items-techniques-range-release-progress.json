@@ -95,9 +95,7 @@
   "baselineAudit": "docs/verification/release-assets/2026-11-06-items-techniques-range-preflight.json",
   "predecessorAudit": {
     "exactFourSource6BodiesMatchReviewedBeforeDefinitions": true,
-    "emberbrandPublicationDifference": [
-      "contentVersion"
-    ],
+    "emberbrandPublicationDifference": ["contentVersion"],
     "stormcallerAndTwinfangPublicationDifferences": [
       "contentVersion",
       "explicit effect timing fields only"
@@ -357,10 +355,7 @@
   "errorScan": {
     "from": "2026-11-06T18:59:00Z",
     "until": "2026-11-06T19:02:25.016Z",
-    "levels": [
-      "error",
-      "fatal"
-    ],
+    "levels": ["error", "fatal"],
     "result": "No matching logs"
   },
   "limitations": "Full exact-source CI and safe hosted SQL/guest/source/asset/retirement probes; no signed-in hosted battle, human/device playtest, real grant/stock consumption, sustained load or Phase5 closure claimed."
