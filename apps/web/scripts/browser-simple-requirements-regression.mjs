@@ -175,6 +175,12 @@ if (process.env.AV_SIMPLE_REQUIREMENTS_COMPILE_ONLY === '1') {
         .evaluateAll((nodes) =>
           nodes.map((node) => ({ value: node.value, text: node.textContent })),
         )
+      assert.equal(options[0].value, 'none')
+      const labels = options.slice(1).map(({ text }) => text)
+      assert.deepEqual(
+        labels,
+        labels.toSorted((a, b) => a.localeCompare(b, 'en')),
+      )
       for (const expected of [
         'None',
         'Burn',

@@ -123,19 +123,19 @@ it('offers useful Gear controls with readable slots and no quantity sorting', ()
   expect(html).not.toContain('<option value="quantity">')
   expect(html).toContain('<option value="quality-points">Quality Points</option>')
 })
-it('places slot captions outside equipment buttons while retaining names, QP and accessible positions', () => {
+it('places slot captions outside equipment buttons while retaining names and accessible positions without per-slot QP', () => {
   const html = renderToStaticMarkup(<CharacterItems initialView={view} />)
   const slot = html.slice(
     html.indexOf('data-equipment-position="head"'),
     html.indexOf('data-equipment-position="body"'),
   )
   expect(slot.indexOf('<strong>Wayfarer Hood</strong>')).toBeLessThan(slot.indexOf('<img'))
-  expect(slot.indexOf('<small>8 QP</small>')).toBeLessThan(slot.indexOf('<img'))
+  expect(slot).not.toContain('8 QP')
   expect(slot.indexOf('>Head</span>')).toBeGreaterThan(slot.indexOf('<img'))
   expect(slot.indexOf('>Head</span>')).toBeGreaterThan(slot.indexOf('</button>'))
   expect(slot).toContain('aria-label="Head: Wayfarer Hood"')
 })
-it('shows consumable stock once on its image instead of beside the QP cost', () => {
+it('shows consumable stock once on its image without a per-slot QP label', () => {
   const salve = item({
     id: 'salve',
     name: 'Mender Salve',
@@ -159,7 +159,7 @@ it('shows consumable stock once on its image instead of beside the QP cost', () 
     html.indexOf('data-equipment-position="consumable-1"'),
     html.indexOf('data-equipment-position="consumable-2"'),
   )
-  expect(slot).toContain('<small>5 QP</small>')
+  expect(slot).not.toContain('5 QP')
   expect(slot).toContain('>×11</span>')
   expect(slot).toContain('aria-description="Quantity 11"')
   expect(slot).not.toContain('owned')
