@@ -116,6 +116,14 @@ try {
       body.style.zoom = zoom
     }, viewport.zoom)
     await page.getByRole('heading', { name: 'Events & Live Ops', exact: true }).waitFor()
+    const categories = page.getByRole('navigation', { name: 'Event categories' })
+    const savedEvents = page.getByLabel('Saved events')
+    await expect(savedEvents.locator('option[value="event.ready"]')).toHaveCount(1)
+    await expect(savedEvents.locator('option[value="event.story"]')).toHaveCount(0)
+    await categories.getByRole('button', { name: 'Story Campaigns' }).click()
+    await expect(savedEvents.locator('option[value="event.ready"]')).toHaveCount(0)
+    await expect(savedEvents.locator('option[value="event.story"]')).toHaveCount(1)
+    await categories.getByRole('button', { name: 'World Events' }).click()
     const section = page.getByRole('navigation', { name: 'Event authoring sections' })
     const choose = async (name) => {
       const button = section.getByRole('button', { name, exact: true })

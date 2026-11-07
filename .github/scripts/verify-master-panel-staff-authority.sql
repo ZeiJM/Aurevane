@@ -176,6 +176,22 @@ begin
   if exists(select 1 from pg_attribute where attrelid=to_regclass('app_private.master_moderation_audit') and attname='reviewed_revision' and not attisdropped) then
     new_actor_signatures := new_actor_signatures || array['public.list_active_master_bans_v1(uuid,uuid,uuid)']::text[];
   end if;
+  if to_regclass('app_private.npc_designs') is not null then
+    new_actor_signatures := new_actor_signatures || array[
+      'public.read_master_panel_access_v3(uuid,uuid)',
+      'public.read_master_panel_navigation_v2(uuid,uuid)',
+      'public.save_master_panel_navigation_v2(uuid,bigint,jsonb,uuid)',
+      'public.read_master_npc_designs_v1(uuid,uuid)',
+      'public.write_master_npc_design_v1(uuid,uuid,uuid,bigint,text,jsonb)'
+    ]::text[];
+    assert not exists(select from public.read_master_panel_access_v3(staff_id,character_id)), 'V3 revoked actor denied';
+    assert not exists(select from public.read_master_panel_access_v3(staff_id,null)), 'V3 missing actor denied';
+    assert not exists(select from public.read_master_panel_access_v3(staff_id,current_setting('task8.alternate')::uuid)), 'V3 alternate actor denied';
+    assert not exists(select from public.read_master_panel_access_v3(other_id,character_id)), 'V3 unowned actor denied';
+  end if;
+  if exists(select 1 from pg_attribute where attrelid=to_regclass('app_private.npc_designs') and attname='story' and not attisdropped) then
+    new_actor_signatures := new_actor_signatures || array['public.read_master_story_npcs_v1(uuid,uuid,uuid)']::text[];
+  end if;
   -- Owner-only targeted Item APIs have no legacy overload and must not inherit
   -- delegated page permissions. The private marker requires the entire module.
   if to_regprocedure('app_private.assert_master_item_grant_owner_v1(uuid,uuid)') is not null then
@@ -321,6 +337,11 @@ begin
   for probe in select * from (values
       ('public.read_master_panel_navigation_v1(uuid,uuid)','select public.read_master_panel_navigation_v1($1,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.save_master_panel_navigation_v1(uuid,bigint,jsonb,uuid)','select public.save_master_panel_navigation_v1($1,1,''[]'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.read_master_panel_navigation_v2(uuid,uuid)','select public.read_master_panel_navigation_v2($1,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.save_master_panel_navigation_v2(uuid,bigint,jsonb,uuid)','select public.save_master_panel_navigation_v2($1,1,''[]'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.read_master_npc_designs_v1(uuid,uuid)','select public.read_master_npc_designs_v1($1,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.write_master_npc_design_v1(uuid,uuid,uuid,bigint,text,jsonb)','select public.write_master_npc_design_v1($1,$2,$3,0,''save'',''{}'')','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.read_master_story_npcs_v1(uuid,uuid,uuid)','select public.read_master_story_npcs_v1($1,$2,null)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','select public.read_master_panel_activity_v1($1,100,null,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.set_world_environment_v2(uuid,integer,jsonb,uuid)','select public.set_world_environment_v2($1,0,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v2($1,1,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),

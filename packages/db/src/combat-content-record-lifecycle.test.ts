@@ -662,7 +662,7 @@ it('every legacy mutation overload checks actual authority before its precise re
     await denied(() => db.query(sql, values), /OPERATOR_REQUIRED/)
   }
 })
-it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private helpers inaccessible', async () => {
+it('retains all 48 legacy, 27 workspace and 3 Owner actor contracts with private helpers inaccessible', async () => {
   const workspaceSignatures = [
     'public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)',
     'public.read_master_panel_navigation_v1(uuid,uuid)',
@@ -685,6 +685,12 @@ it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private
     'public.write_discipline_player_grants_v1(uuid,uuid,text,uuid[],text,text)',
     'public.read_master_usage_balance_v1(uuid,uuid,text)',
     'public.read_master_usage_balance_week_v1(uuid,uuid,text,date)',
+    'public.read_master_panel_access_v3(uuid,uuid)',
+    'public.read_master_panel_navigation_v2(uuid,uuid)',
+    'public.save_master_panel_navigation_v2(uuid,bigint,jsonb,uuid)',
+    'public.read_master_npc_designs_v1(uuid,uuid)',
+    'public.write_master_npc_design_v1(uuid,uuid,uuid,bigint,text,jsonb)',
+    'public.read_master_story_npcs_v1(uuid,uuid,uuid)',
   ]
   const workspaceContracts = (
     await db.query<{
@@ -718,7 +724,7 @@ it('retains all 48 legacy, 21 workspace and 3 Owner actor contracts with private
     )
   ).rows
   expect(legacyActorSignatures).toHaveLength(48)
-  expect(workspaceContracts).toHaveLength(21)
+  expect(workspaceContracts).toHaveLength(27)
   expect(ownerContracts).toHaveLength(3)
   expect(await actorSignatures()).toEqual(
     [
