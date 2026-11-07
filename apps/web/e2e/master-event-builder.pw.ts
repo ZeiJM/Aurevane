@@ -5,6 +5,7 @@ import { itemFixture } from '../../../packages/game-core/src/content/items-test-
 import { defaultBasicSkills } from '../../../packages/game-core/src/combat/combat-basic-actions'
 import { PV1F_ACTION_ECONOMY_RESOURCE_KEY } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { PV1F_BASIC_ATTACK_COST } from '@aurevane/game-core/combat/pv1f-skills'
+import { parseRuntimeItemDefinition } from '@aurevane/game-core/content/items'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 
 import { expect, test, type Page, type Response, type TestInfo } from '@playwright/test'
@@ -758,10 +759,14 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
     ...basic,
     behaviors: basic.behaviors.map((behavior) => ({
       ...behavior,
-      effects: behavior.effects.map((effect) =>
+      effects: behavior.effects.flatMap((effect) =>
         effect.payload.type === 'damage'
-          ? { ...effect, payload: { ...effect.payload, amount: 250 } }
-          : effect,
+          ? Array.from({ length: 8 }, (_, index) => ({
+              ...effect,
+              id: `${effect.id}-${index + 1}`,
+              payload: { ...effect.payload, amount: 20 },
+            }))
+          : [effect],
       ),
     })),
   }
@@ -770,6 +775,7 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
     name: 'Mythical Lava Golem Sword of Sanalex',
     itemClass: 'weapon',
     equipment: { slot: 'hand', hands: 1 },
+    media: { artworkId: 'item.iron-shortsword.art.v1' },
     ability,
     actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Restored Cut' } },
   })
@@ -779,6 +785,8 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
     name: 'Trial fixture blade',
     actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Fixture Trial Cut' } },
   })
+  parseRuntimeItemDefinition(sword)
+  parseRuntimeItemDefinition(trialWeapon)
   const filler = itemFixture({ id: `fixture.restoration-gear-${token}`, name: 'Spare forge helm' })
   await createAccountAndEnterCharacter({
     page,
