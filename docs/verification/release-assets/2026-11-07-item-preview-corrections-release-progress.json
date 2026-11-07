@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "promotion-requested-under-hold",
+  "status": "promoted-under-compatible-hold",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -124,7 +124,7 @@
     "verifiedSource": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2"
   },
   "holdActive": true,
-  "promoted": false,
+  "promoted": true,
   "migrationsApplied": [],
   "sourceRegistrationDone": false,
   "publicationsDone": false,
@@ -183,6 +183,27 @@
       "case": "existing-battle",
       "status": 401,
       "deployment": null,
+      "pass": true
+    }
+  ],
+  "autoAssignCustomDomains": false,
+  "aliasPromotionProbes": [
+    {
+      "i": 0,
+      "status": 200,
+      "id": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "i": 1,
+      "status": 200,
+      "id": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "i": 2,
+      "status": 200,
+      "id": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
       "pass": true
     }
   ]
