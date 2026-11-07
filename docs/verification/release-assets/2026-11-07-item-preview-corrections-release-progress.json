@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "retirement-verified-drain-running",
+  "status": "drain-complete-schema-install-intent",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -432,5 +432,12 @@
     "descriptionMigrationCount": 0
   },
   "releaseSqlPath": "docs/verification/release-assets/2026-11-07-item-preview-corrections-register-and-publish.sql",
-  "sqlReviewPath": "docs/verification/release-assets/2026-11-07-item-preview-corrections-sql-review.md"
+  "sqlReviewPath": "docs/verification/release-assets/2026-11-07-item-preview-corrections-sql-review.md",
+  "drainVerified": {
+    "db_time": "2026-11-07 10:32:44.443505+00",
+    "drain_complete": true,
+    "older_client_transactions": 0
+  },
+  "freshPredecessorsMatch": true,
+  "targetDraftCount": 0
 }
