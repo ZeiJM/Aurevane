@@ -133,7 +133,8 @@ export function WorldMissions({
           shownQuests.map((objective) => {
             const localReport = view.interactions.some(
               (interaction) =>
-                interaction.objectiveId === objective.id && interaction.actionId === 'report',
+                interaction.objectiveId === objective.id &&
+                (interaction.actionId === 'report' || interaction.actionId === 'hand-over'),
             )
             return (
               <div className={styles.quest} key={objective.id}>

@@ -173,6 +173,12 @@ function mapRpcError(error: RpcError): never {
       { cause: error },
     )
   }
+  if (message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose enabled Material, Event, or General stock to hand in and an enabled Event or General Item to receive.',
+      { cause: error },
+    )
   if (
     error.code === '22023' ||
     message.includes('EVENT_DEFINITION_') ||

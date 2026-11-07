@@ -529,6 +529,7 @@ export function createMapRenderer(
       pixels: number
     }
   >()
+  const biomeRasters = new Map<string, HTMLCanvasElement>()
   let wind: WorldWind | undefined
   let hitTargets: { id: string; self: boolean; x: number; y: number; radius: number }[] = []
   const frameTimes: number[] = []
@@ -655,6 +656,7 @@ export function createMapRenderer(
     rasterTile = tile
     rasterZoomAt = null
     clearCache()
+    biomeRasters.clear()
     requestDraw()
   }
   const observer = new ResizeObserver(resize)
@@ -1039,6 +1041,37 @@ export function createMapRenderer(
       timing.groundBuilds!++
       timing.groundBuildMs! += performance.now() - buildStarted
     }
+    return layer
+  }
+  function biomeRaster(item: Scenery) {
+    if (!item.source) return null
+    const pixelWidth = Math.ceil(item.width * ratio)
+    const pixelHeight = Math.ceil(item.height * ratio)
+    const key = `${item.source.join(',')}:${pixelWidth}:${pixelHeight}`
+    const cached = biomeRasters.get(key)
+    if (cached) return cached
+
+    // Pre-scale atlas crops that otherwise repeatedly resample large source
+    // images on zoomed-out phone views. Keep the original CSS size and anchor.
+    const layer = document.createElement('canvas')
+    layer.width = pixelWidth
+    layer.height = pixelHeight
+    const context = layer.getContext('2d')
+    if (!context) return null
+    sprite(
+      context,
+      item.image,
+      item.index,
+      item.columns,
+      item.rows,
+      0,
+      0,
+      pixelWidth,
+      pixelHeight,
+      item.source,
+    )
+    if (biomeRasters.size >= 64) biomeRasters.delete(biomeRasters.keys().next().value!)
+    biomeRasters.set(key, layer)
     return layer
   }
   function fitCachedGround() {
@@ -1824,6 +1857,7 @@ export function createMapRenderer(
         Math.round((top + fontSize + 2) * identityRatio) / identityRatio,
       )
     }
+    const cacheBiomeRasters = width < 600 && tile < 32 && ratio > 1 && rasterZoomAt === null
     let detailedScenery = 0
     for (const object of objects) {
       if (object.type === 'animal') {
@@ -1839,18 +1873,23 @@ export function createMapRenderer(
       const detailed = tile >= 32 && detailedScenery < 180
       if (detailed) detailedScenery++
       if (!detailed && !item.underpass && !item.mirror) {
-        sprite(
-          ctx,
-          item.image,
-          item.index,
-          item.columns,
-          item.rows,
-          p.x - item.width * (item.anchorX ?? 0.5),
-          p.y - item.height * (item.anchorY ?? 1),
-          item.width,
-          item.height,
-          item.source,
-        )
+        const x = p.x - item.width * (item.anchorX ?? 0.5)
+        const y = p.y - item.height * (item.anchorY ?? 1)
+        const raster = cacheBiomeRasters && item.image === biomes ? biomeRaster(item) : null
+        if (raster) ctx.drawImage(raster, x, y, item.width, item.height)
+        else
+          sprite(
+            ctx,
+            item.image,
+            item.index,
+            item.columns,
+            item.rows,
+            x,
+            y,
+            item.width,
+            item.height,
+            item.source,
+          )
         continue
       }
       ctx.save()
@@ -2663,6 +2702,7 @@ export function createMapRenderer(
       canvas.removeEventListener('wheel', wheel)
       pointers.clear()
       cache.clear()
+      biomeRasters.clear()
       portraits.clear()
       actorAssets.clear()
       actorPositions.clear()

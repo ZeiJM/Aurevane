@@ -6,6 +6,7 @@ import type {
   EventDefinitionPreview,
   EventWorkspaceCatalogue,
 } from '@/server/master/event-authoring-service'
+import { EventPhaseCast, isNpcCastEffect, type StoryNpcCatalogue } from './event-phase-cast'
 import { eventRuntimeBlockers } from './event-runtime-support'
 import { PersonalJourneyFields } from './personal-journey-fields'
 import { eventAudienceLabel } from './event-audience'
@@ -34,6 +35,7 @@ interface Props {
   canPublish: boolean
   canUseGlobalScope: boolean
   category: EventCategory
+  canManageNpcs: boolean
 }
 
 interface WorkspaceResponse {
@@ -134,9 +136,15 @@ function objective(index: number): EventObjectiveDefinition {
   }
 }
 
-export function EventBuilderClient({ canPublish, canUseGlobalScope, category }: Props) {
+export function EventBuilderClient({
+  canPublish,
+  canUseGlobalScope,
+  category,
+  canManageNpcs,
+}: Props) {
   const [tab, setTab] = useState('Setup')
   const [eventQuery, setEventQuery] = useState('')
+  const [storyNpcs, setStoryNpcs] = useState<StoryNpcCatalogue>(null)
   const [catalogue, setCatalogue] = useState<EventWorkspaceCatalogue>({ events: [], rewards: [] })
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const [definition, setDefinition] = useState<PersistentEventDefinition>(initialDefinition)
@@ -175,6 +183,32 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope, category }: 
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    if (tab !== 'Phases' || definition.personalJourney) return
+    let request: AbortController | undefined
+    async function loadStoryNpcs() {
+      request?.abort()
+      const next = new AbortController()
+      request = next
+      try {
+        const response = await fetch('/api/master/events/story-npcs', { signal: next.signal })
+        if (!response.ok) throw new Error('Story NPCs are unavailable.')
+        const { npcs } = (await response.json()) as {
+          npcs: Exclude<StoryNpcCatalogue, string | null>
+        }
+        if (!next.signal.aborted) setStoryNpcs(npcs)
+      } catch {
+        if (!next.signal.aborted) setStoryNpcs('unavailable')
+      }
+    }
+    void loadStoryNpcs()
+    window.addEventListener('focus', loadStoryNpcs)
+    return () => {
+      request?.abort()
+      window.removeEventListener('focus', loadStoryNpcs)
+    }
+  }, [tab, definition.personalJourney])
 
   const selectedPhase =
     definition.phases.find((phase) => phase.id === selectedPhaseId) ?? definition.phases[0]
@@ -1001,6 +1035,16 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope, category }: 
                   ))}
                 </div>
 
+                {!definition.personalJourney ? (
+                  <EventPhaseCast
+                    key={`${definition.eventKey}:${phase.id}`}
+                    phaseName={phase.name}
+                    effects={phase.effects}
+                    catalogue={storyNpcs}
+                    canManageNpcs={canManageNpcs}
+                    change={(effects) => patchPhase(phaseIndex, { effects })}
+                  />
+                ) : null}
                 {(['effects', 'cleanupEffects'] as const).map((list) => (
                   <div className={styles.compositionGroup} key={list}>
                     <div className={styles.sectionHeading}>
@@ -1014,54 +1058,58 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope, category }: 
                         Add effect
                       </button>
                     </div>
-                    {phase[list].map((entry, effectIndex) => (
-                      <div className={styles.row} key={effectIndex}>
-                        <select
-                          value={entry.type}
-                          onChange={(event) =>
-                            patchEffect(phaseIndex, list, effectIndex, {
-                              type: event.target.value as EventEffectReference['type'],
-                            })
-                          }
-                          aria-label="Effect type"
-                        >
-                          {EVENT_EFFECT_TYPES.map((type) => (
-                            <option key={type}>{type}</option>
-                          ))}
-                        </select>
-                        <input
-                          value={entry.referenceKey}
-                          onChange={(event) =>
-                            patchEffect(phaseIndex, list, effectIndex, {
-                              referenceKey: event.target.value,
-                            })
-                          }
-                          aria-label="Effect reference"
-                        />
-                        <label className={styles.checkbox}>
-                          <input
-                            type="checkbox"
-                            checked={entry.enabled}
+                    {phase[list].map((entry, effectIndex) =>
+                      list === 'effects' &&
+                      !definition.personalJourney &&
+                      isNpcCastEffect(entry) ? null : (
+                        <div className={styles.row} key={effectIndex}>
+                          <select
+                            value={entry.type}
                             onChange={(event) =>
                               patchEffect(phaseIndex, list, effectIndex, {
-                                enabled: event.target.checked,
+                                type: event.target.value as EventEffectReference['type'],
                               })
                             }
+                            aria-label="Effect type"
+                          >
+                            {EVENT_EFFECT_TYPES.map((type) => (
+                              <option key={type}>{type}</option>
+                            ))}
+                          </select>
+                          <input
+                            value={entry.referenceKey}
+                            onChange={(event) =>
+                              patchEffect(phaseIndex, list, effectIndex, {
+                                referenceKey: event.target.value,
+                              })
+                            }
+                            aria-label="Effect reference"
                           />
-                          enabled
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            patchPhase(phaseIndex, {
-                              [list]: phase[list].filter((_, index) => index !== effectIndex),
-                            })
-                          }
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
+                          <label className={styles.checkbox}>
+                            <input
+                              type="checkbox"
+                              checked={entry.enabled}
+                              onChange={(event) =>
+                                patchEffect(phaseIndex, list, effectIndex, {
+                                  enabled: event.target.checked,
+                                })
+                              }
+                            />
+                            enabled
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              patchPhase(phaseIndex, {
+                                [list]: phase[list].filter((_, index) => index !== effectIndex),
+                              })
+                            }
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ),
+                    )}
                   </div>
                 ))}
               </article>
@@ -1158,9 +1206,11 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope, category }: 
                 </select>
               </label>
               <p>
-                {definition.personalJourney
-                  ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
-                  : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
+                {definition.personalJourney?.type === 'item-exchange'
+                  ? 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
+                  : definition.personalJourney
+                    ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
+                    : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
               </p>
               <label>
                 Aftermath refs

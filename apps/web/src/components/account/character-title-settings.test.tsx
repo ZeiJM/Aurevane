@@ -27,7 +27,10 @@ describe('Portrait & Title settings', () => {
     )
     expect(markup).toContain('Confirm Default Portrait')
     expect(markup).toContain('name="default-portrait"')
-    expect(markup).toContain('Confirming replaces any custom image with the portrait you choose.')
+    expect(markup).toContain(
+      'Confirming replaces any custom portrait URL with the portrait you choose.',
+    )
+    expect(markup).toContain('A shared appearance takes precedence over your default portrait.')
     expect(markup).not.toContain('only once')
     const portraitDialog = markup.slice(markup.indexOf('<dialog'), markup.indexOf('</dialog>'))
     expect(portraitDialog).not.toContain('type="checkbox"')

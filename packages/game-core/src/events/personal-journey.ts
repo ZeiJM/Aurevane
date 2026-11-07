@@ -23,12 +23,24 @@ export function isPersonalQuestGiver(value: unknown): value is PersonalQuestGive
   return typeof value === 'string' && Object.hasOwn(PERSONAL_QUEST_GIVERS, value)
 }
 
-export interface PersonalTravelJourney {
-  readonly type: 'travel-and-report'
+interface PersonalJourneyDialogue {
   readonly giverId: PersonalQuestGiverId
-  readonly destination: PersonalJourneyPosition
   readonly offer: string
   readonly active: string
   readonly ready: string
   readonly completed: string
 }
+
+export interface PersonalTravelJourney extends PersonalJourneyDialogue {
+  readonly type: 'travel-and-report'
+  readonly destination: PersonalJourneyPosition
+}
+
+export interface PersonalItemExchange extends PersonalJourneyDialogue {
+  readonly type: 'item-exchange'
+  readonly inputItemId: string
+  readonly inputQuantity: number
+  readonly outputItemId: string
+}
+
+export type PersonalJourney = PersonalTravelJourney | PersonalItemExchange

@@ -116,6 +116,14 @@ try {
       body.style.zoom = zoom
     }, viewport.zoom)
     await page.getByRole('heading', { name: 'Events & Live Ops', exact: true }).waitFor()
+    const categories = page.getByRole('navigation', { name: 'Event categories' })
+    const savedEvents = page.getByLabel('Saved events')
+    await expect(savedEvents.locator('option[value="event.ready"]')).toHaveCount(1)
+    await expect(savedEvents.locator('option[value="event.story"]')).toHaveCount(0)
+    await categories.getByRole('button', { name: 'Story Campaigns' }).click()
+    await expect(savedEvents.locator('option[value="event.ready"]')).toHaveCount(0)
+    await expect(savedEvents.locator('option[value="event.story"]')).toHaveCount(1)
+    await categories.getByRole('button', { name: 'World Events' }).click()
     const section = page.getByRole('navigation', { name: 'Event authoring sections' })
     const choose = async (name) => {
       const button = section.getByRole('button', { name, exact: true })
@@ -330,6 +338,77 @@ try {
       .getByRole('button', { name: 'Schedule', exact: true })
       .click()
     await page.getByText(/Scheduled run 22222222/).waitFor()
+    await choose('Setup')
+    await page.getByLabel('Event key', { exact: true }).fill('event.cast-check')
+    await page.getByLabel('Title', { exact: true }).fill('An unsaved cast draft')
+    await choose('Phases')
+    await page.getByRole('button', { name: 'Add phase', exact: true }).click()
+    const cast = page.getByRole('group', { name: 'Phase 2 cast' })
+    await cast.getByLabel('Search NPCs').fill('keeper')
+    const castChoice = cast.getByLabel('Published Story NPC')
+    await expect(castChoice.getByRole('option', { name: 'Harbor Watch' })).toHaveCount(0)
+    await castChoice.selectOption({ label: 'Frostmere Keeper' })
+    await cast.getByRole('button', { name: 'Add NPC', exact: true }).click()
+    await expect(cast.getByRole('button', { name: 'Add NPC', exact: true })).toBeDisabled()
+    await expect(castChoice.getByRole('option', { name: 'Frostmere Keeper' })).toHaveCount(0)
+    await cast.getByText('Preview Frostmere Keeper', { exact: true }).click()
+    const npcPreview = cast.getByText('Published Story appearance', { exact: true })
+    await expect(npcPreview).toBeVisible()
+    const editorLink = cast.getByRole('link', { name: 'Open in NPC Design' })
+    await editorLink.scrollIntoViewIfNeeded()
+    await page.screenshot({
+      path: resolve(output, `story-cast-${viewport.width}-${viewport.zoom}.png`),
+      fullPage: true,
+    })
+    const scrollOffsets = () =>
+      editorLink.evaluate((element) => {
+        const offsets = []
+        for (
+          let node = element;
+          node && node !== document.scrollingElement;
+          node = node.parentElement
+        ) {
+          if (['auto', 'scroll'].includes(getComputedStyle(node).overflowY))
+            offsets.push(node.scrollTop)
+        }
+        return offsets
+      })
+    const draftScroll = await scrollOffsets()
+    assert.ok(
+      draftScroll.some((offset) => offset > 0),
+      'cast check starts with a scrolled editor',
+    )
+    const [editor] = await Promise.all([page.waitForEvent('popup'), editorLink.click()])
+    await editor.waitForURL('**/master/npc-design?npc=39076058-5dba-457a-899c-d57b958540ca')
+    await editor.close()
+    await expect(npcPreview).toBeVisible()
+    assert.deepEqual(await scrollOffsets(), draftScroll)
+    await choose('Preview')
+    await expect(page.getByLabel('Preview phase')).toHaveValue('phase-2')
+    await choose('Setup')
+    await expect(page.getByLabel('Title', { exact: true })).toHaveValue('An unsaved cast draft')
+    await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+    await page.getByText('Draft v1 saved.', { exact: true }).waitFor()
+    const castSave = await page.evaluate(
+      () => window.__eventRequests.filter((r) => r.body.operation === 'save-draft').at(-1).body,
+    )
+    assert.deepEqual(castSave.definition.phases[1].effects, [
+      {
+        type: 'npc-presentation',
+        referenceKey: '39076058-5dba-457a-899c-d57b958540ca',
+        enabled: true,
+      },
+    ])
+    await page.getByRole('button', { name: 'Load', exact: true }).click()
+    await page.getByText('Loaded draft v1.', { exact: true }).waitFor()
+    await choose('Phases')
+    await expect(cast.getByText('Preview Frostmere Keeper', { exact: true })).toBeVisible()
+    await page.evaluate(() => {
+      window.__retiredStoryNpc = '39076058-5dba-457a-899c-d57b958540ca'
+      window.dispatchEvent(new Event('focus'))
+    })
+    await expect(cast.getByText(/Missing or unpublished Story NPC/)).toBeVisible()
+    await expect(page.getByText(/Production unavailable/)).toBeVisible()
     await page
       .getByRole('navigation', { name: 'Events workspace' })
       .getByRole('button', { name: 'Live Operations' })
@@ -394,7 +473,7 @@ try {
       fullPage: true,
     })
     console.log(
-      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
+      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, published Story cast search/preview/draft restore, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
     )
     await page.close()
   }

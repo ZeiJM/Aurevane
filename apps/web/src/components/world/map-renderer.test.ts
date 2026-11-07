@@ -3055,6 +3055,43 @@ it('reduces phone cloud compositing by default and keeps Low identity sharp', ()
   }
 })
 
+it('reuses cropped scenery rasters across zoomed-out phone frames', () => {
+  const clock = vi.spyOn(performance, 'now').mockReturnValue(0)
+  const state = newWorldState()
+  state.position = { sectorId: 'aureth-crown', x: 6, y: 4 }
+  const s = scene(false, projectWorld(state, [], 1000))
+  try {
+    Object.assign(s.canvas, { clientWidth: 393, clientHeight: 851 })
+    window.devicePixelRatio = 2.75
+    s.resize()
+    s.renderer.settings({ animate: true, zoom: 0.35 })
+    s.frame(40)
+    const crop = s.draws.find(
+      (draw) => draw.src.endsWith('biomes-v02.webp') && draw.args[4] === 0 && draw.args[5] === 0,
+    )
+    expect(crop).toBeDefined()
+    const cachedDraw = s.draws.find(
+      ({ src, image, args }) =>
+        src === '' &&
+        args.length === 4 &&
+        image.width === crop!.args[6] &&
+        image.height === crop!.args[7],
+    )
+    expect(cachedDraw).toBeDefined()
+    expect(cachedDraw!.image.width).toBe(Math.ceil(cachedDraw!.args[2]! * 1.5))
+    expect(cachedDraw!.image.height).toBe(Math.ceil(cachedDraw!.args[3]! * 1.5))
+
+    s.draws.length = 0
+    s.frame(100)
+    expect(s.draws.some(({ src }) => src.endsWith('biomes-v02.webp'))).toBe(false)
+    expect(s.draws.some(({ image }) => image === cachedDraw!.image)).toBe(true)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+    clock.mockRestore()
+  }
+})
+
 it('uses distinct Frostmere building art at the existing public footprint anchors', () => {
   const state = newWorldState()
   state.position = { sectorId: 'frostmere', x: 6, y: 4 }

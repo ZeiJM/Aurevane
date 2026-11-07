@@ -228,7 +228,7 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
     try {
       const typed = structuredClone(definition) as unknown as PersistentEventDefinition
       validatePersistentEventDefinition(typed)
-      if (typed.personalJourney) {
+      if (typed.personalJourney?.type === 'travel-and-report') {
         const target = typed.personalJourney.destination
         const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
         if (!sector || !isWalkable(sector, target)) {

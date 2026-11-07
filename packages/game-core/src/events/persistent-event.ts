@@ -1,7 +1,7 @@
 import {
   PERSONAL_QUEST_GIVERS,
   isPersonalQuestGiver,
-  type PersonalTravelJourney,
+  type PersonalJourney,
 } from './personal-journey'
 
 export * from './personal-journey'
@@ -137,7 +137,7 @@ export interface PersistentEventDefinition {
   readonly internalNotes: string
   readonly family: EventFamily
   readonly category?: EventCategory
-  readonly personalJourney?: PersonalTravelJourney
+  readonly personalJourney?: PersonalJourney
   readonly scope: EventScope
   readonly phases: readonly PersistentEventPhaseDefinition[]
   readonly rewardPackageRefs: readonly string[]
@@ -316,13 +316,11 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     const journey = definition.personalJourney
     if (
       !journey ||
-      journey.type !== 'travel-and-report' ||
+      (journey.type !== 'travel-and-report' && journey.type !== 'item-exchange') ||
       !isPersonalQuestGiver(journey.giverId) ||
       resolveEventCategory(definition) !== 'story-campaigns'
     ) {
-      throw new TypeError(
-        'A personal travel journey needs a Story Campaign and a known quest giver.',
-      )
+      throw new TypeError('A personal journey needs a Story Campaign and a known quest giver.')
     }
     const giver = PERSONAL_QUEST_GIVERS[journey.giverId].position
     const { scope, phases, rewardPackageRefs } = definition
@@ -351,26 +349,50 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     ) {
       throw new TypeError('Choose at most eight distinct fixed XP reward packages.')
     }
-    const destination = journey.destination
-    if (
-      !destination ||
-      !Number.isInteger(destination.x) ||
-      destination.x < 0 ||
-      destination.x > 12 ||
-      !Number.isInteger(destination.y) ||
-      destination.y < 0 ||
-      destination.y > 8 ||
-      (destination.sectorId === giver.sectorId &&
-        destination.x === giver.x &&
-        destination.y === giver.y)
-    ) {
-      throw new TypeError('Choose a quest destination away from the giver.')
+    if (journey.type === 'travel-and-report') {
+      const destination = journey.destination
+      if (
+        !destination ||
+        !Number.isInteger(destination.x) ||
+        destination.x < 0 ||
+        destination.x > 12 ||
+        !Number.isInteger(destination.y) ||
+        destination.y < 0 ||
+        destination.y > 8 ||
+        (destination.sectorId === giver.sectorId &&
+          destination.x === giver.x &&
+          destination.y === giver.y)
+      ) {
+        throw new TypeError('Choose a quest destination away from the giver.')
+      }
+      identity(destination.sectorId, 'Quest destination sector')
+    } else {
+      const itemId = /^[a-z0-9]+([._-][a-z0-9]+)*$/
+      if (
+        typeof journey.inputItemId !== 'string' ||
+        typeof journey.outputItemId !== 'string' ||
+        journey.inputItemId.length > 160 ||
+        journey.outputItemId.length > 160 ||
+        !itemId.test(journey.inputItemId) ||
+        !itemId.test(journey.outputItemId) ||
+        journey.inputItemId === journey.outputItemId
+      ) {
+        throw new TypeError('Choose two different Items for the exchange.')
+      }
+      if (
+        !Number.isInteger(journey.inputQuantity) ||
+        journey.inputQuantity < 1 ||
+        journey.inputQuantity > 999
+      ) {
+        throw new TypeError('Choose an exchange quantity from 1 to 999.')
+      }
+      if (rewardPackageRefs.length)
+        throw new TypeError('An item exchange awards the selected Item and access.')
     }
-    identity(destination.sectorId, 'Quest destination sector')
     for (const [label, text] of [
       ['Offer', journey.offer],
-      ['Travel', journey.active],
-      ['Return', journey.ready],
+      ['In progress', journey.active],
+      ['Ready', journey.ready],
       ['Completion', journey.completed],
     ] as const) {
       shortText(text, `${label} dialogue`, 800)

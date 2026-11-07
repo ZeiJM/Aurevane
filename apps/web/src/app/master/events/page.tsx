@@ -16,6 +16,7 @@ export default async function MasterEventsPage() {
       description="Draft, validate, preview, publish, and schedule persistent Events through typed authoritative content."
     >
       <EventWorkspaceClient
+        canManageNpcs={hasMasterPanelCapability(access, 'npc.manage')}
         canPublish={hasMasterPanelCapability(access, 'events.production_publish')}
         canUseGlobalScope={hasMasterPanelCapability(access, 'events.global_scope')}
         canEmergencyStop={hasMasterPanelCapability(access, 'events.emergency_stop')}

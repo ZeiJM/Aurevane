@@ -1,8 +1,9 @@
 import { execFileSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import type { WorldView } from '../src/world/types'
+import { itemFixture } from '../../../packages/game-core/src/content/items-test-fixtures'
 
-import { expect, test, type Page, type Response } from '@playwright/test'
+import { expect, test, type Page, type Response, type TestInfo } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { createEventPageAccessFixture } from './event-page-access-fixture'
@@ -244,9 +245,11 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   await expect(page.getByText('Scheduled run is now cancelled.')).toBeVisible()
 })
 
-test('an authored Story Campaign persists accept, confirmed travel and report in the World', async ({
-  page,
-}, info) => {
+async function completeAuthoredStoryJourney(
+  page: Page,
+  info: TestInfo,
+  kind: 'travel-and-report' | 'item-exchange',
+) {
   test.skip(info.project.name !== 'desktop-chromium', 'Requires a disposable local staff account.')
   test.setTimeout(90_000)
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
@@ -256,7 +259,9 @@ test('an authored Story Campaign persists accept, confirmed travel and report in
 
   const token = randomUUID().replaceAll('-', '')
   const email = `story-staff-${token}@example.com`
-  const title = `Watch route ${token.slice(0, 8)}`
+  const title = `Watch ${kind} ${token.slice(0, 8)}`
+  const seedId = `fixture.emberseed-${token}`
+  const keyId = `fixture.realm-key-${token}`
   const eventKey = `event.browser-story-${token}`
   await createAccountAndEnterCharacter({
     page,
@@ -277,12 +282,43 @@ test('an authored Story Campaign persists accept, confirmed travel and report in
   await page.getByLabel('Region audience', { exact: true }).selectOption('verdant-expanse')
   await page.getByLabel('Title', { exact: true }).fill(title)
   await section('Journey')
-  await page.getByLabel('Enable a travel and report quest').check()
-  await page.getByLabel('Cell X', { exact: true }).fill('3')
-  await page.getByLabel('Offer the quest').fill('Check the nearby path and report to the Watch.')
-  await page.getByLabel('Explain where to travel').fill('Reach the next cell along the path.')
-  await page.getByLabel('Ask for the report').fill('What did you see on the path?')
-  await page.getByLabel('Confirm completion').fill('The Watch recorded your report.')
+  await page.getByLabel('Enable a personal quest').check()
+  if (kind === 'item-exchange') {
+    const seed = itemFixture({
+      id: seedId,
+      name: 'Emberseeds',
+      inventoryCategory: 'materials',
+      itemClass: 'material',
+      maximumStack: 5,
+      equipment: null,
+      qualityPoints: 0,
+    })
+    const key = itemFixture({
+      id: keyId,
+      name: 'Realm key',
+      inventoryCategory: 'event',
+      itemClass: 'event',
+      equipment: null,
+      qualityPoints: 0,
+    })
+    queryLocalDatabase(
+      `select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([seed, key]))}'::jsonb)`,
+    )
+    await page.getByLabel('Quest type').selectOption(kind)
+    await page.getByLabel('Item to hand in').fill(seedId)
+    await page.getByLabel('Quantity to hand in').fill('7')
+    await page.getByLabel('Item to receive').fill(keyId)
+    await page.getByLabel('Offer the quest').fill('The key opens the sealed realm.')
+    await page.getByLabel('Explain which items to bring').fill('Bring seven emberseeds.')
+    await page.getByLabel('Ask for the items').fill('Hand over seven emberseeds for the key.')
+    await page.getByLabel('Confirm completion').fill('The sealed realm is open to you.')
+  } else {
+    await page.getByLabel('Cell X', { exact: true }).fill('3')
+    await page.getByLabel('Offer the quest').fill('Check the nearby path and report to the Watch.')
+    await page.getByLabel('Explain where to travel').fill('Reach the next cell along the path.')
+    await page.getByLabel('Ask for the report').fill('What did you see on the path?')
+    await page.getByLabel('Confirm completion').fill('The Watch recorded your report.')
+  }
   await section('Schedule')
   await page.getByLabel('Event key').fill(eventKey)
   await page.getByLabel('Confirm publication or schedule for this audience').check()
@@ -308,10 +344,17 @@ test('an authored Story Campaign persists accept, confirmed travel and report in
   // Bring the disposable occurrence due without waiting an hour. Start still uses
   // the production operation RPC and character-specific staff authorization.
   queryLocalDatabase(`
-    update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id='${runId}';
-    select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
-  `)
+  update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id='${runId}';
+  select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
+`)
 
+  if (kind === 'item-exchange') {
+    queryLocalDatabase(`
+    select public.grant_character_items_v1('${userId}','${characterId}',
+      (public.read_character_item_inventory_v1('${userId}','${characterId}')->>'revision')::bigint,
+      'fixture:seeds:${token}',jsonb_build_array(jsonb_build_object('itemId','${seedId}','quantity',14)));
+  `)
+  }
   await page.goto('/world')
   const openMissions = async () => {
     const details = page.getByRole('button', { name: 'Details', exact: true })
@@ -347,21 +390,64 @@ test('an authored Story Campaign persists accept, confirmed travel and report in
   await talk()
   await expect(dialogue.getByRole('heading', { name: title, exact: true })).toBeVisible()
   await dialogue.getByRole('button', { name: 'Accept quest', exact: true }).click()
-  await expect.poll(progress).toBe('active')
-  await dialogue.getByRole('button', { name: 'End conversation' }).click()
-  await move(3)
-  await expect.poll(progress).toBe('ready')
-  await move(2)
-  await talk()
-  await dialogue.getByRole('button', { name: 'Report back', exact: true }).click()
-  await expect.poll(progress).toBe('completed')
-  await expect(
-    dialogue.getByText('The Watch recorded your report.', { exact: true }).first(),
-  ).toBeVisible()
+  if (kind === 'item-exchange') {
+    await expect.poll(progress).toBe('ready')
+    await expect(dialogue.getByRole('button', { name: 'Hand over 7 Emberseeds' })).toBeVisible()
+    const state = await readWorld()
+    const exchange = () =>
+      page.request.post('/api/world', {
+        data: {
+          characterId,
+          expectedVersion: state.version,
+          commandId: randomUUID(),
+          intent: {
+            kind: 'interact',
+            interactionId: `quest-run-${runId}`,
+            actionId: 'hand-over',
+          },
+        },
+      })
+    const replies = await Promise.all([exchange(), exchange()])
+    expect(replies.map((response) => response.status()).sort()).toEqual([200, 409])
+    const receipt = queryLocalDatabase(`
+    select jsonb_build_object(
+      'seed', (select sum(quantity) from app_private.character_item_stacks where character_id='${characterId}' and item_id='${seedId}'),
+      'key', (select sum(quantity) from app_private.character_item_stacks where character_id='${characterId}' and item_id='${keyId}'),
+      'access', app_private.has_personal_exchange_access_v1('${userId}','${characterId}','${eventKey}')
+    );
+  `)
+    expect(JSON.parse(receipt)).toEqual({ seed: 7, key: 1, access: true })
+    await page.reload()
+    await openMissions()
+    await talk()
+    await expect(
+      dialogue.getByText('The sealed realm is open to you.', { exact: true }),
+    ).toBeVisible()
+  } else {
+    await expect.poll(progress).toBe('active')
+    await dialogue.getByRole('button', { name: 'End conversation' }).click()
+    await move(3)
+    await expect.poll(progress).toBe('ready')
+    await move(2)
+    await talk()
+    await dialogue.getByRole('button', { name: 'Report back', exact: true }).click()
+    await expect.poll(progress).toBe('completed')
+    await expect(
+      dialogue.getByText('The Watch recorded your report.', { exact: true }).first(),
+    ).toBeVisible()
+  }
   await page.screenshot({
-    path: info.outputPath('authored-watch-quest-complete.png'),
+    path: info.outputPath(`authored-watch-${kind}-complete.png`),
     animations: 'disabled',
   })
   await page.reload()
   await expect.poll(progress).toBe('completed')
-})
+}
+
+test('an authored Story Campaign persists accept, confirmed travel and report in the World', async ({
+  page,
+}, info) => completeAuthoredStoryJourney(page, info, 'travel-and-report'))
+
+test('an authored item exchange settles once when two World requests race', async ({
+  page,
+}, info) => completeAuthoredStoryJourney(page, info, 'item-exchange'))

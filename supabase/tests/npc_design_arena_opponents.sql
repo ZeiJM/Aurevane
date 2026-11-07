@@ -106,4 +106,56 @@ begin
   assert public.read_master_panel_navigation_v2(owner_id,null)->'order'->>0='npc-design';
   assert not (public.read_master_panel_navigation_v1(owner_id,null)->'order' ? 'npc-design');
 end; $$;
+
+insert into auth.users(id,email_confirmed_at) values
+  ('94000000-0000-4000-8000-000000000011',now()),
+  ('94000000-0000-4000-8000-000000000012',now());
+insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
+values
+  ('94000000-0000-4000-8000-000000000021','94000000-0000-4000-8000-000000000011',0,1,'Event Tester','event-tester','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now()),
+  ('94000000-0000-4000-8000-000000000022','94000000-0000-4000-8000-000000000012',0,1,'NPC Tester','npc-tester','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());
+
+set local role service_role;
+do $$
+declare owner_id uuid := '94000000-0000-4000-8000-000000000001';
+declare npc_id uuid := '94000000-0000-4000-8000-000000000003';
+declare event_user uuid := '94000000-0000-4000-8000-000000000011';
+declare npc_user uuid := '94000000-0000-4000-8000-000000000012';
+declare event_actor uuid := '94000000-0000-4000-8000-000000000021';
+declare npc_actor uuid := '94000000-0000-4000-8000-000000000022';
+declare role_defaults jsonb;
+begin
+  role_defaults := public.read_master_panel_role_defaults_v2(owner_id);
+  perform public.save_master_panel_role_defaults_v2(owner_id,(role_defaults->>'revision')::bigint,
+    (role_defaults->'roles') || '{"event-staff":["events"],"content-staff":["npc-design"]}'::jsonb);
+  perform public.set_master_panel_character_access_v2(owner_id,event_user,event_actor,array['event-staff'],'{}',null,0,true);
+  perform public.set_master_panel_character_access_v2(owner_id,npc_user,npc_actor,array['content-staff'],'{}',null,0,true);
+  assert public.read_master_story_npcs_v1(event_user,event_actor,npc_id)->0->>'name'='Crossroads Story';
+  assert jsonb_array_length(public.read_master_npc_designs_v1(npc_user,npc_actor))>0;
+  assert public.read_master_panel_navigation_v2(event_user,event_actor)->'order' ? 'events';
+  begin
+    perform public.read_master_npc_designs_v1(event_user,event_actor);
+    raise exception 'Events-only staff read private NPC drafts';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.write_master_npc_design_v1(event_user,event_actor,npc_id,9,'commit-story',null);
+    raise exception 'Events-only staff committed an NPC';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.read_master_story_npcs_v1(npc_user,npc_actor,npc_id);
+    raise exception 'NPC-only staff read the Events workspace catalogue';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform public.save_master_panel_navigation_v2(npc_user,1,'[]',npc_actor);
+    raise exception 'Delegated NPC staff edited Owner navigation';
+  exception when insufficient_privilege then null;
+  end;
+  assert public.write_master_npc_design_v1(
+    npc_user,npc_actor,'94000000-0000-4000-8000-000000000023',0,'save',
+    '{"name":"Delegated NPC Draft","portraitRef":null,"uses":["story"],"arena":null}'::jsonb
+  )->>'revision'='1', 'NPC Design staff can save an NPC draft';
+end; $$;
 rollback;

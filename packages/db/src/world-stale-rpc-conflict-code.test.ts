@@ -26,7 +26,7 @@ beforeAll(async () => {
           [signature],
         )
       ).rows[0]!
-  })
+  }, migration)
   await db.exec(`insert into auth.users(id,email,email_confirmed_at) values('${owner}','owner@example.test',now());
  insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
  values('${character}','${owner}',0,1,'Test Player','test-player','default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());`)

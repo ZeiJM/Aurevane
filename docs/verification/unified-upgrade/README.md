@@ -47,4 +47,25 @@ For the UI review, run the Character Items and simple requirement component suit
 
 The checked-in atlas contains 1,870 charted sectors in eight regions and occupies a 1,664 × 576 tile address space. The charted atlas has 214,969 walkable cells. The compatibility test includes legacy and protected server sectors in the authority fingerprint. It separately checks three long routes, the east–west seam, and the existing frontier return. A loopback Chromium fixture using the production renderer and canonical world resolver traveled 150 steps through 19 sectors from Verdant Expanse to Hollow Coast in 30.004 seconds.
 
-The browser evidence also shows three distinct painted appearances walking and issuing real combat commands through the isolated game rules. The highest-load phone profile still misses the 30 FPS target. The desktop and mobile captures use isolated fixture peers. The repository's eight-session Playwright case exercises real Auth, PostgreSQL, Realtime, crossings, reload and battle admission when run on disposable CI. Passing renderer fixture results cannot establish supported authenticated capacity.
+The browser evidence also shows three distinct painted appearances walking and issuing real combat commands through the isolated game rules. The highest-load phone fixture misses the 30 FPS target. Its desktop and mobile captures use isolated fixture peers.
+
+The [authenticated Atlas run](https://github.com/ZeiJM/Aurevane/actions/runs/42372364205) on the visual draft `390df911` exercised eight concurrent sessions in disposable Auth, PostgreSQL and Realtime. Chromium emulated a 393 × 851 CSS-pixel phone viewport at DPR 2.75 without CPU throttling. Eight accounts joined World channels again after a reload burst, all eight saw the other seven in hotspot snapshots, one crossed a sector boundary and two opened separate battles concurrently.
+
+| Measurement | Dispersed p95 | Hotspot p95 |
+| --- | ---: | ---: |
+| Canvas ready | 5.11 s | 6.13 s |
+| Move approval round trip | 572 ms | 447 ms |
+| Arrival observed by polling | 3.61 s | 3.53 s |
+| Full World snapshot | 603,592 B | 619,443 B |
+
+The observer's renderer callback p95 was 117 ms. The eight-session capture recorded zero broadcasts and four socket errors. The same run's separate two-player test observed peer movement in 538 ms through presence-only authority while blocking the general World fallback read. The eight-session case establishes the tested gameplay behavior and snapshot timings at that load. Broadcast delivery across the full cohort and production capacity remain open.
+
+The zoomed-out Balanced phone renderer now caches display-sized biome crops after profiling repeated large atlas resamples. The fixture used Chromium at 393 × 851 CSS pixels, DPR 2.75 and 4× simulated CPU slowdown, sampled for six seconds per case. Peer markers, nameplates and ground anchors stayed visible.
+
+| Visible fixture peers | Previous callback p95 | Cached callback p95 |
+| ---: | ---: | ---: |
+| 25 | 77.0 ms | 17.9 ms |
+| 50 | 80.5 ms | 21.2 ms |
+| 100 | 73.7 ms | 22.1 ms |
+
+Browser frame interval p95 stayed near 100 ms in these runs. The 30 FPS goal remains open. The evidence records callback time, canvas draw time and browser frame interval separately.

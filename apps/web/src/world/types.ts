@@ -131,7 +131,7 @@ export interface WorldObjective {
   completed: boolean
   progress?: WorldObjectiveProgress
 }
-export type WorldInteractionActionId = 'accept' | 'report'
+export type WorldInteractionActionId = 'accept' | 'report' | 'hand-over' | 'claim-exchange'
 export interface WorldInteraction {
   id: string
   objectiveId: string

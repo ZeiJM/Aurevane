@@ -2,6 +2,8 @@
 
 import {
   PERSONAL_QUEST_GIVERS,
+  type PersonalItemExchange,
+  type PersonalJourney,
   type PersonalQuestGiverId,
   type PersonalTravelJourney,
 } from '@aurevane/game-core/events/persistent-event'
@@ -17,12 +19,37 @@ export const initialPersonalJourney: PersonalTravelJourney = {
   completed: '',
 }
 
+function toExchange(journey: PersonalTravelJourney): PersonalItemExchange {
+  return {
+    type: 'item-exchange',
+    giverId: journey.giverId,
+    inputItemId: '',
+    inputQuantity: 1,
+    outputItemId: '',
+    offer: journey.offer,
+    active: journey.active,
+    ready: journey.ready,
+    completed: journey.completed,
+  }
+}
+
+function toTravel(journey: PersonalItemExchange): PersonalTravelJourney {
+  return {
+    ...initialPersonalJourney,
+    giverId: journey.giverId,
+    offer: journey.offer,
+    active: journey.active,
+    ready: journey.ready,
+    completed: journey.completed,
+  }
+}
+
 export function PersonalJourneyFields({
   journey,
   change,
 }: {
-  journey?: PersonalTravelJourney
-  change: (next: PersonalTravelJourney | undefined) => void
+  journey?: PersonalJourney
+  change: (next: PersonalJourney | undefined) => void
 }) {
   return (
     <>
@@ -32,13 +59,30 @@ export function PersonalJourneyFields({
           checked={Boolean(journey)}
           onChange={(event) => change(event.target.checked ? initialPersonalJourney : undefined)}
         />
-        Enable a travel and report quest
+        Enable a personal quest
       </label>
       {journey && (
         <>
+          <label>
+            Quest type
+            <select
+              value={journey.type}
+              onChange={(event) => {
+                if (event.target.value === journey.type) return
+                change(
+                  journey.type === 'travel-and-report' ? toExchange(journey) : toTravel(journey),
+                )
+              }}
+            >
+              <option value="travel-and-report">Travel and report</option>
+              <option value="item-exchange">Hand in items</option>
+            </select>
+          </label>
           <p>
-            The player accepts from the giver, reaches the destination, and returns to report. Each
-            character can complete this quest once.
+            {journey.type === 'travel-and-report'
+              ? 'The player accepts, reaches the destination, and returns to report.'
+              : 'The player accepts, hands over carried items, and earns an item and access.'}{' '}
+            Each character can complete this quest once.
           </p>
           <label>
             Quest giver
@@ -58,49 +102,92 @@ export function PersonalJourneyFields({
               ))}
             </select>
           </label>
-          <fieldset>
-            <legend>Destination</legend>
-            <label>
-              Region
-              <select
-                value={journey.destination.sectorId}
-                onChange={(event) =>
-                  change({
-                    ...journey,
-                    destination: { ...journey.destination, sectorId: event.target.value },
-                  })
-                }
-              >
-                {WORLD_REGIONS.map((region) => (
-                  <option key={region.id} value={region.id}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {(['x', 'y'] as const).map((axis) => (
-              <label key={axis}>
-                Cell {axis.toUpperCase()}
-                <input
-                  type="number"
-                  min={0}
-                  max={axis === 'x' ? 12 : 8}
-                  value={journey.destination[axis]}
+          {journey.type === 'travel-and-report' ? (
+            <fieldset>
+              <legend>Destination</legend>
+              <label>
+                Region
+                <select
+                  value={journey.destination.sectorId}
                   onChange={(event) =>
                     change({
                       ...journey,
-                      destination: { ...journey.destination, [axis]: Number(event.target.value) },
+                      destination: { ...journey.destination, sectorId: event.target.value },
                     })
+                  }
+                >
+                  {WORLD_REGIONS.map((region) => (
+                    <option key={region.id} value={region.id}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {(['x', 'y'] as const).map((axis) => (
+                <label key={axis}>
+                  Cell {axis.toUpperCase()}
+                  <input
+                    type="number"
+                    min={0}
+                    max={axis === 'x' ? 12 : 8}
+                    value={journey.destination[axis]}
+                    onChange={(event) =>
+                      change({
+                        ...journey,
+                        destination: { ...journey.destination, [axis]: Number(event.target.value) },
+                      })
+                    }
+                  />
+                </label>
+              ))}
+            </fieldset>
+          ) : (
+            <fieldset>
+              <legend>Item exchange</legend>
+              <p>Use the IDs of enabled Items from Game Content.</p>
+              <label>
+                Item to hand in
+                <input
+                  value={journey.inputItemId}
+                  maxLength={160}
+                  onChange={(event) => change({ ...journey, inputItemId: event.target.value })}
+                />
+              </label>
+              <label>
+                Quantity to hand in
+                <input
+                  type="number"
+                  min={1}
+                  max={999}
+                  value={journey.inputQuantity}
+                  onChange={(event) =>
+                    change({ ...journey, inputQuantity: Number(event.target.value) })
                   }
                 />
               </label>
-            ))}
-          </fieldset>
+              <label>
+                Item to receive
+                <input
+                  value={journey.outputItemId}
+                  maxLength={160}
+                  onChange={(event) => change({ ...journey, outputItemId: event.target.value })}
+                />
+              </label>
+            </fieldset>
+          )}
           {(
             [
               ['offer', 'Offer the quest'],
-              ['active', 'Explain where to travel'],
-              ['ready', 'Ask for the report'],
+              [
+                'active',
+                journey.type === 'travel-and-report'
+                  ? 'Explain where to travel'
+                  : 'Explain which items to bring',
+              ],
+              [
+                'ready',
+                journey.type === 'travel-and-report' ? 'Ask for the report' : 'Ask for the items',
+              ],
               ['completed', 'Confirm completion'],
             ] as const
           ).map(([field, label]) => (

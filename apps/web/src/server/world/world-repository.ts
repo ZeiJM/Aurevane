@@ -31,7 +31,7 @@ import {
 
 export function worldRpcError(error: { message?: string; code?: string }): never {
   const message = error.message ?? ''
-  if (message.includes('WORLD_NOT_OWNED'))
+  if (message.includes('WORLD_NOT_OWNED') || message === 'ITEM_OWNERSHIP')
     throw new AurevaneError('FORBIDDEN', 'That character is unavailable.')
   if (message.includes('WORLD_STALE') || error.code === 'PT409' || error.code === '40001')
     throw new AurevaneError(
@@ -56,6 +56,20 @@ export function worldRpcError(error: { message?: string; code?: string }): never
       'INVALID_REQUEST',
       'Return to the quest giver and stop moving before replying.',
     )
+  if (message === 'WORLD_QUEST_ITEMS_MISSING')
+    throw new AurevaneError('INVALID_REQUEST', 'You no longer carry all of the required items.')
+  if (message === 'ITEM_CAPACITY')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Make room in your inventory before collecting this item.',
+    )
+  if (message === 'ITEM_BATTLE_ACTIVE')
+    throw new AurevaneError('INVALID_REQUEST', 'Return to your active battle.')
+  if (
+    message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE' ||
+    message === 'ITEM_DEFINITION_UNAVAILABLE'
+  )
+    throw new AurevaneError('INVALID_REQUEST', 'An item in this exchange is currently unavailable.')
   if (message.includes('WORLD_QUEST_ACTION_UNAVAILABLE'))
     throw new AurevaneError('INVALID_REQUEST', 'This quest response is no longer available.')
   if (message.includes('WORLD_FERRY_PORT'))

@@ -65,11 +65,33 @@ export function projectPersonalQuests(rows: unknown): {
       row.awardedXp > 0
         ? ` ${row.awardedXp} Character XP earned.`
         : ''
+    const inputQuantity = row.inputQuantity
+    const inputName = row.inputName
+    const outputName = row.outputName
+    const exchange =
+      typeof inputQuantity === 'number' &&
+      Number.isSafeInteger(inputQuantity) &&
+      inputQuantity >= 1 &&
+      inputQuantity <= 999 &&
+      typeof inputName === 'string' &&
+      typeof outputName === 'string'
+        ? { inputQuantity, inputName, outputName }
+        : null
+    let description = body + reward
+    if (exchange && progress === 'completed') {
+      description +=
+        row.itemClaimPending === true
+          ? ` Return to ${PERSONAL_QUEST_GIVERS[row.giverId].label} to collect ${exchange.outputName}.`
+          : ' Access granted.'
+    } else if (exchange) {
+      const owned = typeof row.inputOwned === 'number' ? row.inputOwned : 0
+      description += ` ${exchange.inputName}: ${owned} / ${exchange.inputQuantity}. Reward: ${exchange.outputName}.`
+    }
     const destination = position(row.destination)
     objectives.push({
       id,
       name: title,
-      description: body + reward,
+      description,
       kind: 'quest',
       authority: 'personal-quest',
       autoPath: destination !== null,
@@ -79,9 +101,21 @@ export function projectPersonalQuests(rows: unknown): {
       progress,
     })
     if (row.local !== true) continue
+    const handOver = exchange ? `Hand over ${exchange.inputQuantity} ${exchange.inputName}` : null
+    const responses = {
+      accept: 'Accept quest',
+      report: 'Report back',
+      'hand-over': handOver,
+      'claim-exchange': exchange ? `Collect ${exchange.outputName}` : null,
+    }
     const actionId =
       (progress === 'available' && row.action === 'accept') ||
-      (progress === 'ready' && row.action === 'report')
+      (progress === 'ready' &&
+        (row.action === 'report' || (exchange && row.action === 'hand-over'))) ||
+      (progress === 'completed' &&
+        exchange &&
+        row.itemClaimPending === true &&
+        row.action === 'claim-exchange')
         ? row.action
         : null
     interactions.push({
@@ -93,8 +127,10 @@ export function projectPersonalQuests(rows: unknown): {
       actionId,
       speakerId: row.giverId,
       speaker: PERSONAL_QUEST_GIVERS[row.giverId].speaker,
-      actionLabel:
-        actionId === 'accept' ? 'Accept quest' : actionId === 'report' ? 'Report back' : null,
+      actionLabel: actionId ? responses[actionId] : null,
+      ...(handOver && progress !== 'available'
+        ? { lastReply: progress === 'completed' ? handOver : responses.accept }
+        : {}),
     })
   }
   return { objectives, interactions }

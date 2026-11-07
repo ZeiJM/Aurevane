@@ -56,3 +56,13 @@ it('requires the character the command was prepared for', () => {
     parseWorldCommand({ expectedVersion: 1, commandId: base.commandId, intent: { kind: 'stop' } }),
   ).toBeNull()
 })
+
+it('allows a quest reply to name the exchange action without taking quantities or item IDs from the caller', () => {
+  const interactionId = 'quest-run-00000000-0000-4000-8000-000000000017'
+  for (const actionId of ['hand-over', 'claim-exchange']) {
+    const intent = { kind: 'interact', interactionId, actionId }
+    expect(
+      parseWorldCommand({ ...base, intent: { ...intent, itemId: 'forged.item', quantity: 999 } }),
+    ).toEqual({ ...base, intent })
+  }
+})

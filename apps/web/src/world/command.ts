@@ -40,7 +40,11 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
     input.kind === 'interact' &&
     typeof input.interactionId === 'string' &&
     /^[a-z0-9][a-z0-9-]{0,99}$/.test(input.interactionId) &&
-    (input.actionId === undefined || input.actionId === 'accept' || input.actionId === 'report')
+    (input.actionId === undefined ||
+      input.actionId === 'accept' ||
+      input.actionId === 'report' ||
+      input.actionId === 'hand-over' ||
+      input.actionId === 'claim-exchange')
   )
     intent = {
       kind: 'interact',

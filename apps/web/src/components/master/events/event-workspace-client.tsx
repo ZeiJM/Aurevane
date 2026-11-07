@@ -35,11 +35,13 @@ export function EventWorkspaceClient({
   canPublish,
   canUseGlobalScope,
   canEmergencyStop,
+  canManageNpcs = false,
   initialView = 'author',
 }: {
   canPublish: boolean
   canUseGlobalScope: boolean
   canEmergencyStop: boolean
+  canManageNpcs?: boolean
   initialView?: 'author' | 'live'
 }) {
   const [view, setView] = useState<'author' | 'live' | 'calendar'>(initialView)
@@ -88,6 +90,7 @@ export function EventWorkspaceClient({
       <div hidden={view !== 'author'}>
         <EventBuilderClient
           canPublish={canPublish}
+          canManageNpcs={canManageNpcs}
           canUseGlobalScope={canUseGlobalScope}
           category={category}
         />
