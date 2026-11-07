@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "promoted-under-compatible-hold",
+  "status": "old-deployment-retirement-active",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -206,5 +206,6 @@
       "id": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
       "pass": true
     }
-  ]
+  ],
+  "retirementRoutingVersion": "26102f0e-dfb9-4232-b589-8583a96a6c86"
 }
