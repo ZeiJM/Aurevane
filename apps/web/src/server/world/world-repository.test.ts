@@ -580,11 +580,38 @@ it.each(['42883', 'PGRST202'])(
   },
 )
 
+it('serves the owned scene without live presence when registration cannot lock the character', async () => {
+  const state = { ...newWorldState(), position: { sectorId: 'atlas:58:28', x: 12, y: 4 } }
+  rpc.mockResolvedValue({ data: { ...payload(), state } })
+  sceneRpc.mockImplementation(async (name: string) =>
+    name === 'read_world_scene_players_v2'
+      ? {
+          error: {
+            code: '55P03',
+            message: 'could not obtain lock on row in relation "characters"',
+          },
+        }
+      : { data: { version: state.version, players: [scenePlayer('neighbour', 'atlas:59:28')] } },
+  )
+
+  const { view } = await readWorld('owner', characterId)
+
+  expect(view.livePresence).toBe(false)
+  expect(view.players.map((player) => player.characterId)).toEqual(['neighbour'])
+  expect(sceneRpc).toHaveBeenNthCalledWith(2, 'read_world_scene_players_v1', {
+    p_user_id: 'owner',
+    p_character_id: characterId,
+    p_expected_version: state.version,
+    p_scene_sector_ids: view.sectors.map((sector) => sector.id),
+    p_initial_position: newWorldState().position,
+  })
+})
+
 it('never hides a permission error by falling back to the old reader', async () => {
   rpc.mockResolvedValue({ data: payload() })
-  sceneRpc.mockResolvedValueOnce({ error: { code: '42501', message: 'denied' } })
+  sceneRpc.mockResolvedValueOnce({ error: { code: '42501', message: 'WORLD_NOT_OWNED' } })
   await expect(readWorld('owner', characterId)).rejects.toMatchObject({
-    code: 'PERSISTENCE_UNAVAILABLE',
+    code: 'FORBIDDEN',
   })
   expect(sceneRpc).toHaveBeenCalledTimes(1)
 })
@@ -601,28 +628,37 @@ it('keeps unsurveyed players private even when returned by the scene read', asyn
   expect((await readWorld('owner', characterId)).view.players).toEqual([])
 })
 
-it('retries a raced scene registration instead of publishing its partial legacy peer list', async () => {
-  const state = {
-      ...newWorldState(),
-      version: 5,
-      position: { sectorId: 'atlas:58:28', x: 12, y: 4 },
-    },
-    next = { ...state, version: 6, position: { sectorId: 'atlas:59:28', x: 0, y: 4 } },
-    neighbour = scenePlayer('neighbour', 'atlas:58:28', 12, 4)
-  rpc
-    .mockResolvedValueOnce({ data: { ...payload(), state, players: [] } })
-    .mockResolvedValueOnce({ data: { ...payload(), state: next, players: [] } })
-  sceneRpc
-    .mockResolvedValueOnce({ data: { version: next.version, players: [] } })
-    .mockResolvedValueOnce({ data: { version: next.version, players: [neighbour] } })
-  const { view } = await readWorld('owner', characterId, { width: 2560, height: 1440 })
-  expect(view.version).toBe(next.version)
-  expect(view.position).toEqual(next.position)
-  expect(view.livePresence).toBe(true)
-  expect(view.players.map((player) => player.characterId)).toEqual(['neighbour'])
-  expect(view.scenery!.length).toBeGreaterThan(view.sectors.length)
-  expect(sceneRpc.mock.calls.map(([, args]) => args.p_expected_version)).toEqual([5, 6])
-})
+it.each([false, true])(
+  'retries with a fresh World version when a scene read races movement (lock fallback=%s)',
+  async (lockFallback) => {
+    const state = {
+        ...newWorldState(),
+        version: 5,
+        position: { sectorId: 'atlas:58:28', x: 12, y: 4 },
+      },
+      next = { ...state, version: 6, position: { sectorId: 'atlas:59:28', x: 0, y: 4 } },
+      neighbour = scenePlayer('neighbour', 'atlas:58:28', 12, 4)
+    rpc
+      .mockResolvedValueOnce({ data: { ...payload(), state, players: [] } })
+      .mockResolvedValueOnce({ data: { ...payload(), state: next, players: [] } })
+    if (lockFallback)
+      sceneRpc.mockResolvedValueOnce({ error: { code: '55P03', message: 'character row locked' } })
+    sceneRpc
+      .mockResolvedValueOnce({ data: { version: next.version, players: [] } })
+      .mockResolvedValueOnce({ data: { version: next.version, players: [neighbour] } })
+    const { view } = await readWorld('owner', characterId, { width: 2560, height: 1440 })
+    expect(view.version).toBe(next.version)
+    expect(view.position).toEqual(next.position)
+    expect(view.livePresence).toBe(true)
+    expect(view.players.map((player) => player.characterId)).toEqual(['neighbour'])
+    expect(view.scenery!.length).toBeGreaterThan(view.sectors.length)
+    expect(sceneRpc.mock.calls.map(([name, args]) => [name, args.p_expected_version])).toEqual([
+      ['read_world_scene_players_v2', 5],
+      ...(lockFallback ? [['read_world_scene_players_v1', 5]] : []),
+      ['read_world_scene_players_v2', 6],
+    ])
+  },
+)
 
 it('bounds scene registration retries and never publishes a mismatched peer snapshot', async () => {
   const state = newWorldState()

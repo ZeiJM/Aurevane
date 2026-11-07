@@ -310,7 +310,8 @@ async function presentWorldData(
       }
       const client = createSupabaseAdminClient()
       const result = await client.rpc('read_world_scene_players_v2', args)
-      if (result.error?.code === '42883' || result.error?.code === 'PGRST202')
+      const code = result.error?.code
+      if (code === '42883' || code === 'PGRST202' || code === '55P03')
         return { ...(await client.rpc('read_world_scene_players_v1', args)), live: false }
       return { ...result, live: true }
     })(),
