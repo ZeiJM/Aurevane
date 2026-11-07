@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "authorized-release-preflight-complete",
+  "status": "production-build-intent-recorded",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -117,8 +117,9 @@
   "requiredAutoAssignCustomDomains": false,
   "buildIntent": {
     "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
-    "requestedOnce": false,
-    "policy": "Inspect the actual deployment history after any interruption and reuse the matching build."
+    "requestedOnce": true,
+    "policy": "Inspect the actual deployment history after any interruption and reuse the matching build.",
+    "projectLockReasserted": true
   },
   "holdActive": false,
   "promoted": false,
