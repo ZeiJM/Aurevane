@@ -2,10 +2,15 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 
 import {
+  resolveEventCategory,
   validatePersistentEventDefinition,
+  type EventCategory,
   type PersistentEventDefinition,
 } from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
+
+import { CHARTED_SECTORS } from '@/world/catalog'
+import { isWalkable } from '@/world/travel'
 
 import type { MasterPanelAccess, MasterPanelStaffAccessService } from './staff-access'
 import { hasMasterPanelCapability } from './staff-access'
@@ -58,6 +63,7 @@ export interface EventDefinitionPreview {
   readonly eventKey: string
   readonly title: string
   readonly family: string
+  readonly category: EventCategory
   readonly scope: PersistentEventDefinition['scope']
   readonly phaseCount: number
   readonly selectedPhase: {
@@ -77,6 +83,7 @@ export interface EventWorkspaceCatalogue {
     eventKey: string
     title: string
     scope: PersistentEventDefinition['scope']
+    category: EventCategory
     draftVersion: number | null
     publishedVersion: number | null
   }>
@@ -219,9 +226,33 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
 
   if (issues.length === 0) {
     try {
-      validatePersistentEventDefinition(
-        structuredClone(definition) as unknown as PersistentEventDefinition,
-      )
+      const typed = structuredClone(definition) as unknown as PersistentEventDefinition
+      validatePersistentEventDefinition(typed)
+      if (typed.personalJourney) {
+        const target = typed.personalJourney.destination
+        const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
+        if (!sector || !isWalkable(sector, target)) {
+          issues.push({
+            path: 'personalJourney.destination',
+            code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+            message: 'Choose a walkable quest destination on the current World map.',
+          })
+        }
+      }
+      typed.phases.forEach((phase, phaseIndex) => {
+        phase.objectives.forEach((objective, objectiveIndex) => {
+          if (objective.completion !== 'world-arrival') return
+          const target = objective.worldNavigation!
+          const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
+          if (!sector || !isWalkable(sector, target)) {
+            issues.push({
+              path: `phases[${phaseIndex}].objectives[${objectiveIndex}].worldNavigation`,
+              code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
+              message: 'Choose a walkable destination on the current World map.',
+            })
+          }
+        })
+      })
     } catch (error) {
       issues.push({
         path: '$',
@@ -331,6 +362,7 @@ export function createEventAuthoringService({
         eventKey: definition.eventKey,
         title: definition.title,
         family: definition.family,
+        category: resolveEventCategory(definition),
         scope: definition.scope,
         phaseCount: definition.phases.length,
         selectedPhase: {

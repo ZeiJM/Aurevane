@@ -49,6 +49,7 @@ export const MASTER_PANEL_CAPABILITIES = [
   'music.manage',
   'world.manage',
   'activity.read',
+  'npc.manage',
   'content.combat.author',
   'events.author',
   'events.operate',

@@ -107,7 +107,7 @@ it('retains edits on a failed save and resets the order with an explicit save', 
 it('loads the persisted order after a fresh mount', () => {
   const fixture = mount(defaults.toReversed(), 4)
   expect(fixture.labels()).toEqual(MASTER_PANEL_NAVIGATION.map((p) => p.label).toReversed())
-  expect(fixture.button('Move Activity Log up').disabled).toBe(true)
+  expect(fixture.button('Move NPC Design up').disabled).toBe(true)
 })
 
 it.each([

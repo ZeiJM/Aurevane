@@ -2,6 +2,7 @@ import 'server-only'
 
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 
+import { resolveEventCategory } from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -127,6 +128,7 @@ function parseRunSummary(row: JsonObject): EventOperationRunSummary | null {
 
   return {
     title: text(row.title) ?? eventKey,
+    category: resolveEventCategory(row),
     participantCount:
       Number.isSafeInteger(row.participant_count) && Number(row.participant_count) >= 0
         ? Number(row.participant_count)

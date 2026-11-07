@@ -15,6 +15,8 @@ import type {
   WorldView,
 } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
+import { loadWorldNpcs, peekWorldNpcs, resetWorldNpcReadCache } from './world-npcs'
+import { personalQuestRunId, projectPersonalQuests } from './world-personal-quests'
 import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { resolveWorldEnvironment } from '@/world/environment'
@@ -48,6 +50,13 @@ export function worldRpcError(error: { message?: string; code?: string }): never
     throw new AurevaneError('INVALID_REQUEST', 'Leave spectating before travelling.')
   if (message.includes('WORLD_TARGET'))
     throw new AurevaneError('INVALID_REQUEST', 'That player is no longer within reach.')
+  if (message.includes('WORLD_QUEST_OUT_OF_RANGE'))
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Return to the quest giver and stop moving before replying.',
+    )
+  if (message.includes('WORLD_QUEST_ACTION_UNAVAILABLE'))
+    throw new AurevaneError('INVALID_REQUEST', 'This quest response is no longer available.')
   if (message.includes('WORLD_STEP_NOT_DUE'))
     throw new AurevaneError('INVALID_REQUEST', 'Your next step is not due yet.')
   throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'World travel is temporarily unavailable.')
@@ -67,6 +76,7 @@ async function readWorldData(
   players: WorldPlayer[]
   serverNow: number
   eventObjectives?: unknown
+  personalQuests?: unknown
   trainingExpired?: boolean
   blocked?: string
   battleSessionId?: string
@@ -136,6 +146,7 @@ async function cachedEnvironmentSettings() {
   return value
 }
 export function resetWorldReadCaches() {
+  resetWorldNpcReadCache()
   portraitCache = null
   environmentCache = null
 }
@@ -184,6 +195,7 @@ export async function settleWorldAttackAuthority(
   const next = resolveWorldIntent(state, intent, current.serverNow, [
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(current.eventObjectives),
+    ...projectPersonalQuests(current.personalQuests).objectives,
   ])
   const fingerprint = createHash('sha256')
     .update(JSON.stringify({ characterId, expectedVersion, intent }))
@@ -237,13 +249,19 @@ async function presentWorldData(
   data: Awaited<ReturnType<typeof readWorldData>>,
   viewport?: WorldSceneViewport,
 ) {
-  const objectives = [...WORLD_OBJECTIVES, ...eventWorldObjectives(data.eventObjectives)]
+  const quests = projectPersonalQuests(data.personalQuests)
+  const objectives = [
+    ...WORLD_OBJECTIVES,
+    ...eventWorldObjectives(data.eventObjectives),
+    ...quests.objectives,
+  ]
   const state = data.state as WorldState
   // Build the expensive terrain projection once. Only its server-derived scene IDs
   // can widen presence; unsurveyed cells are filtered before images or serialization.
   const view = projectWorld(state, [], data.serverNow, objectives, undefined, viewport)
+  view.interactions.push(...quests.interactions)
   const sceneSectorIds = view.sectors.map((sector) => sector.id)
-  const [presence, environmentSettings] = await Promise.all([
+  const [presence, environmentSettings, localNpcs] = await Promise.all([
     (async () => {
       const args = {
         p_user_id: userId,
@@ -259,6 +277,7 @@ async function presentWorldData(
       return { ...result, live: true }
     })(),
     cachedEnvironmentSettings(),
+    loadWorldNpcs(state),
   ])
   if (presence.error) worldRpcError(presence.error)
   const scene = presence.data
@@ -272,6 +291,8 @@ async function presentWorldData(
   if (scene.version !== state.version) throw new WorldSceneChanged()
   const players = projectWorldPlayers(state, scene.players, sceneSectorIds)
   view.players = await resolveWorldPlayerImages(players)
+  view.npcs = localNpcs.npcs
+  view.interactions.push(...localNpcs.interactions)
   view.livePresence = presence.live
   view.environment = resolveWorldEnvironment(data.serverNow, environmentSettings)
   view.characterId = characterId
@@ -343,9 +364,28 @@ export async function commitWorldCommand(
     )
   if (command.intent.kind === 'attack')
     throw new AurevaneError('INVALID_REQUEST', 'Use the encounter command for attacks.')
+  if (command.intent.kind === 'interact') {
+    const runId = personalQuestRunId(command.intent.interactionId)
+    if (runId) {
+      if (!command.intent.actionId)
+        throw new AurevaneError('INVALID_REQUEST', 'Choose an explicit quest response.')
+      const { error } = await createSupabaseAdminClient().rpc('commit_world_personal_quest_v1', {
+        p_user_id: userId,
+        p_character_id: characterId,
+        p_expected_version: command.expectedVersion,
+        p_command_id: command.commandId,
+        p_run_id: runId,
+        p_action: command.intent.actionId,
+        p_request_fingerprint: fingerprint,
+      })
+      if (error) worldRpcError(error)
+      return (await readWorld(userId, characterId)).view
+    }
+  }
   const next = resolveWorldIntent(state, command.intent, current.serverNow, [
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(current.eventObjectives),
+    ...projectPersonalQuests(current.personalQuests).objectives,
   ])
   const { data: committed, error } = await createSupabaseAdminClient().rpc(
     'commit_world_state_v1',
@@ -446,10 +486,12 @@ function movementReceipt(
       'PERSISTENCE_UNAVAILABLE',
       'Movement terrain could not be loaded safely.',
     )
+  const npcs = peekWorldNpcs(state)
   return {
     kind: 'movement',
     currentSector,
-    interactions: localWorldInteractions(state),
+    ...(npcs ? { npcs: npcs.npcs } : {}),
+    interactions: [...localWorldInteractions(state), ...(npcs?.interactions ?? [])],
     characterId,
     version: state.version,
     serverNow: data.serverNow,

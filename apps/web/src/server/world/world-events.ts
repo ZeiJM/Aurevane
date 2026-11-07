@@ -40,7 +40,7 @@ export function eventWorldObjectives(rows: unknown): WorldObjective[] {
           autoPath: n.autoPath,
           guidance: n.guidance as 'exact' | 'clue',
           destination: { sectorId: sector.id, x: n.x, y: n.y },
-          completed: false,
+          completed: row.completed === true,
         },
       ]
     })

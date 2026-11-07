@@ -1,4 +1,38 @@
+import {
+  PERSONAL_QUEST_GIVERS,
+  isPersonalQuestGiver,
+  type PersonalTravelJourney,
+} from './personal-journey'
+
+export * from './personal-journey'
+
 export const PERSISTENT_EVENT_SCHEMA_VERSION = 1 as const
+
+export const EVENT_CATEGORY_LABELS = {
+  'world-events': 'World Events',
+  'story-campaigns': 'Story Campaigns',
+  'repeatable-activities': 'Repeatable Activities',
+  'hidden-discoveries': 'Hidden Discoveries',
+} as const
+
+export type EventCategory = keyof typeof EVENT_CATEGORY_LABELS
+
+export const EVENT_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventCategory[]
+
+export function isEventCategory(value: unknown): value is EventCategory {
+  return typeof value === 'string' && Object.hasOwn(EVENT_CATEGORY_LABELS, value)
+}
+
+export function resolveEventCategory(definition: {
+  readonly category?: unknown
+  readonly family?: unknown
+}): EventCategory {
+  if (isEventCategory(definition.category)) return definition.category
+  // Legacy snapshots predate categories. Family remains the only categorization signal.
+  if (definition.family === 'narrative-event') return 'story-campaigns'
+  if (definition.family === 'lore-revelation') return 'hidden-discoveries'
+  return 'world-events'
+}
 
 export const EVENT_FAMILIES = [
   'world-crisis',
@@ -71,6 +105,7 @@ export interface EventWorldNavigation {
 
 export interface EventObjectiveDefinition {
   readonly worldNavigation?: EventWorldNavigation | null
+  readonly completion?: 'world-arrival'
   readonly id: string
   readonly type: EventObjectiveType
   readonly referenceKey: string
@@ -101,6 +136,8 @@ export interface PersistentEventDefinition {
   readonly summary: string
   readonly internalNotes: string
   readonly family: EventFamily
+  readonly category?: EventCategory
+  readonly personalJourney?: PersonalTravelJourney
   readonly scope: EventScope
   readonly phases: readonly PersistentEventPhaseDefinition[]
   readonly rewardPackageRefs: readonly string[]
@@ -134,13 +171,18 @@ const EVENT_RUN_TRANSITIONS: Readonly<Record<EventRunStatus, readonly EventRunSt
 }
 
 function identity(value: string, label: string): void {
-  if (!/^[a-z0-9][a-z0-9._:-]{1,159}$/.test(value)) {
+  if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9._:-]{1,159}$/.test(value)) {
     throw new TypeError(`${label} must be a stable lowercase identity.`)
   }
 }
 
 function shortText(value: string, label: string, max: number): void {
-  if (value.trim() !== value || value.length < 1 || value.length > max) {
+  if (
+    typeof value !== 'string' ||
+    value.trim() !== value ||
+    value.length < 1 ||
+    value.length > max
+  ) {
     throw new TypeError(`${label} must be 1–${max} characters with no outer whitespace.`)
   }
 }
@@ -169,6 +211,10 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
   }
   if (!(EVENT_FAMILIES as readonly string[]).includes(definition.family)) {
     throw new TypeError('Unknown event family.')
+  }
+
+  if (definition.category !== undefined && !isEventCategory(definition.category)) {
+    throw new TypeError('Unknown event category.')
   }
 
   if (!['global', 'region', 'node', 'cohort'].includes(definition.scope.type)) {
@@ -210,6 +256,25 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
           )
         }
       }
+      if (objective.completion !== undefined) {
+        const sectorId = objective.worldNavigation?.sectorId
+        const scope = definition.scope
+        const publicScope =
+          scope.type === 'global' ||
+          (scope.type === 'region' &&
+            (scope.key === sectorId || scope.key === `region.${sectorId}`))
+        if (
+          objective.completion !== 'world-arrival' ||
+          objective.type !== 'discover' ||
+          !sectorId ||
+          !publicScope ||
+          resolveEventCategory(definition) !== 'world-events'
+        ) {
+          throw new TypeError(
+            'Reach a location needs a map destination inside a public World Event audience.',
+          )
+        }
+      }
       identity(objective.id, 'Objective id')
       identity(objective.referenceKey, 'Objective reference')
       positiveSafeInteger(objective.target, 'Objective target')
@@ -244,6 +309,71 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
           'Objective-threshold transition must reference an objective in the same phase.',
         )
       }
+    }
+  }
+
+  if (definition.personalJourney !== undefined) {
+    const journey = definition.personalJourney
+    if (
+      !journey ||
+      journey.type !== 'travel-and-report' ||
+      !isPersonalQuestGiver(journey.giverId) ||
+      resolveEventCategory(definition) !== 'story-campaigns'
+    ) {
+      throw new TypeError(
+        'A personal travel journey needs a Story Campaign and a known quest giver.',
+      )
+    }
+    const giver = PERSONAL_QUEST_GIVERS[journey.giverId].position
+    const { scope, phases, rewardPackageRefs } = definition
+    if (
+      scope.type !== 'global' &&
+      (scope.type !== 'region' ||
+        (scope.key !== giver.sectorId && scope.key !== `region.${giver.sectorId}`))
+    ) {
+      throw new TypeError('The audience must include the quest giver’s region.')
+    }
+    if (
+      phases.length !== 1 ||
+      phases[0]?.transition.type !== 'manual' ||
+      phases[0].objectives.length ||
+      phases[0].effects.length ||
+      phases[0].cleanupEffects.length ||
+      definition.aftermathRefs.length
+    ) {
+      throw new TypeError(
+        'A personal journey uses one manual phase without shared objectives or effects.',
+      )
+    }
+    if (
+      rewardPackageRefs.length > 8 ||
+      new Set(rewardPackageRefs).size !== rewardPackageRefs.length
+    ) {
+      throw new TypeError('Choose at most eight distinct fixed XP reward packages.')
+    }
+    const destination = journey.destination
+    if (
+      !destination ||
+      !Number.isInteger(destination.x) ||
+      destination.x < 0 ||
+      destination.x > 12 ||
+      !Number.isInteger(destination.y) ||
+      destination.y < 0 ||
+      destination.y > 8 ||
+      (destination.sectorId === giver.sectorId &&
+        destination.x === giver.x &&
+        destination.y === giver.y)
+    ) {
+      throw new TypeError('Choose a quest destination away from the giver.')
+    }
+    identity(destination.sectorId, 'Quest destination sector')
+    for (const [label, text] of [
+      ['Offer', journey.offer],
+      ['Travel', journey.active],
+      ['Return', journey.ready],
+      ['Completion', journey.completed],
+    ] as const) {
+      shortText(text, `${label} dialogue`, 800)
     }
   }
 

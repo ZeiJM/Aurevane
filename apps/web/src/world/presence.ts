@@ -6,6 +6,7 @@ type WorldPresence = Pick<
   | 'version'
   | 'serverNow'
   | 'players'
+  | 'npcs'
   | 'movementBlocked'
   | 'battleSessionId'
   | 'environment'
@@ -84,6 +85,7 @@ export function worldRefreshResponse(view: WorldView, url: string): WorldView | 
     version: view.version,
     serverNow: view.serverNow,
     players: view.players,
+    ...(view.npcs ? { npcs: view.npcs } : {}),
     movementBlocked: view.movementBlocked,
     battleSessionId: view.battleSessionId,
     environment: view.environment,
@@ -101,6 +103,7 @@ export function mergeWorldRefresh(view: WorldView, receipt: WorldView | WorldPre
     ...view,
     serverNow: receipt.serverNow,
     players: receipt.players,
+    ...(receipt.npcs ? { npcs: receipt.npcs } : {}),
     movementBlocked: receipt.movementBlocked,
     battleSessionId: receipt.battleSessionId,
     environment: receipt.environment,

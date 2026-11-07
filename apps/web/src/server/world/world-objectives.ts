@@ -132,6 +132,7 @@ export function effectiveWorldObjectives(
   objectives: readonly WorldObjective[],
 ): WorldObjective[] {
   return objectives.map((objective) => {
+    if (objective.kind === 'event' || objective.authority === 'personal-quest') return objective
     const definition = interactionObjectiveDefinition(objective.id)
     if (!definition)
       return {

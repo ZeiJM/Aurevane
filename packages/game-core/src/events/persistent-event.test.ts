@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   assertEventRunTransition,
+  resolveEventCategory,
   validatePersistentEventDefinition,
   type PersistentEventDefinition,
 } from './persistent-event'
@@ -70,6 +71,25 @@ const validateMalformedFixture = (fixture: MalformedEventFixture): void =>
   validatePersistentEventDefinition(fixture as unknown as PersistentEventDefinition)
 
 describe('persistent event definition', () => {
+  it('keeps an explicit category independent of event family', () => {
+    const repeatable = { ...definition(), category: 'repeatable-activities' as const }
+    expect(() => validatePersistentEventDefinition(repeatable)).not.toThrow()
+    expect(resolveEventCategory(repeatable)).toBe('repeatable-activities')
+  })
+
+  it('classifies older saved definitions without rewriting their captures', () => {
+    expect(resolveEventCategory({ family: 'regional-event' })).toBe('world-events')
+    expect(resolveEventCategory({ family: 'narrative-event' })).toBe('story-campaigns')
+    expect(resolveEventCategory({ family: 'lore-revelation' })).toBe('hidden-discoveries')
+  })
+
+  it('rejects a status or a null category supplied as a category', () => {
+    for (const category of ['scheduled', null]) {
+      const malformed = { ...definition(), category } as unknown as PersistentEventDefinition
+      expect(() => validatePersistentEventDefinition(malformed)).toThrow(/category/i)
+    }
+  })
+
   it('accepts typed scoped multi-phase definitions', () => {
     expect(() => validatePersistentEventDefinition(definition())).not.toThrow()
   })

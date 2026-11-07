@@ -164,6 +164,8 @@ export function resolveWorldIntent(
   const completed = new Set(next.completedObjectives)
   for (const objective of effectiveWorldObjectives(next, objectives))
     if (
+      objective.kind !== 'event' &&
+      objective.authority !== 'personal-quest' &&
       !isInteractionWorldObjectiveId(objective.id) &&
       objective.destination &&
       samePosition(next.position, objective.destination)
@@ -463,7 +465,10 @@ export function projectWorld(
         o.guidance === 'exact' && o.destination && isKnown(state, o.destination)
           ? o.destination
           : null,
-      completed: o.completed || state.completedObjectives.includes(o.id),
+      completed:
+        o.kind === 'event' || o.authority === 'personal-quest'
+          ? o.completed
+          : o.completed || state.completedObjectives.includes(o.id),
     })),
     interactions: localWorldInteractions(state),
     anchors,

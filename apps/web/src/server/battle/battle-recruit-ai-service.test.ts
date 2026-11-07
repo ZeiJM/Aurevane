@@ -70,7 +70,8 @@ import {
   deriveRecruitTieBreakSeed,
   resolveRecruitDecisionWithFallback,
 } from './battle-recruit-ai-service'
-import { battleSparringTeamCounts } from '@/components/battle/battle-runtime'
+import { battleSparringTeamCounts, buildBattleViewModel } from '@/components/battle/battle-runtime'
+import type { ArenaNpc } from '@aurevane/validation/combat/npc-design'
 import { createBattleSessionService } from './battle-session-service'
 import { createBattleAbortService } from './battle-abort-service'
 import { buildBattlePrivacyJournalInput } from './battle-history-privacy'
@@ -123,6 +124,7 @@ function characterRepository(): CharacterRepository {
 async function initialEncounter(
   teams: { allyCount?: number; enemyCount?: number; arenaId?: TacticalHallArenaId } = {},
   mapSeed?: number,
+  arenaNpc?: ArenaNpc,
 ): Promise<StatDrivenCombatEncounterState> {
   // Pin the creation seed too: it now determines the saved initiative tie order.
   encounterSeed.value = mapSeed ?? 987_654_321
@@ -149,11 +151,13 @@ async function initialEncounter(
   const service = createBattleSessionService({
     characters: characterRepository(),
     battles: repository,
+    ...(arenaNpc ? { readArenaNpc: async () => arenaNpc } : {}),
   })
   await service.createSession({
     userId: USER_ID,
     characterId: CHARACTER_ID,
     idempotencyKey: '44444444-4444-4444-8444-444444444444',
+    ...(arenaNpc ? { arenaNpcId: arenaNpc.id } : {}),
     ...(Object.keys(teams).length ? { arenaId: 'duel-yard' as const, ...teams } : {}),
   })
   if (!initialSnapshot) throw new Error('Expected an initial battle snapshot.')
@@ -811,6 +815,54 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
       expect(JSON.stringify(decision)).not.toContain('rng')
       expect(commit.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
     }
+  })
+
+  it('admits the committed Arena NPC, persists its identity, and runs its legal AI decisions', async () => {
+    const arenaNpc: ArenaNpc = {
+      id: 'a89d93a2-9899-4d8a-8b99-afd4973d17aa',
+      revision: 4,
+      name: 'Arena Fixture',
+      portraitRef: 'portrait.starter.wayfarer-02',
+      lore: 'Arena card text.',
+      arenaId: 'crossroads-court',
+      aiDifficulty: 'standard',
+    }
+    const entered = await initialEncounter({ arenaId: 'duel-yard' }, undefined, arenaNpc)
+    expect(entered.tactical).toMatchObject({ width: 12, height: 7 })
+    const fixture = createStatefulRepository(advanceToRecruitTurn(entered))
+    const service = createBattleRecruitAiService(fixture.repository)
+    const result = await service.runTurn({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+    })
+    expect(result.decisions.length).toBeGreaterThan(0)
+    expect(result.snapshot.arenaNpc).toEqual({
+      id: arenaNpc.id,
+      revision: 4,
+      name: 'Arena Fixture',
+      portraitRef: arenaNpc.portraitRef,
+    })
+    expect(fixture.commits.flatMap((commit) => commit.events)).toContainEqual(
+      expect.objectContaining({ event: 'recruit_ai_decision', profileId: 'recruit-standard-v2' }),
+    )
+    const model = buildBattleViewModel(
+      { ...result, replayed: false },
+      {
+        kind: 'pve',
+        playerName: 'Wayfarer',
+        playerLevel: 1,
+        playerPortraitAssetId: 'character.creation.square-portrait-01',
+        playerProfileImageUrl: null,
+      },
+    )
+    expect(model.participants).toContainEqual(
+      expect.objectContaining({
+        name: 'Arena Fixture',
+        combatantId: 'recruit:p2-4-1',
+        portraitAssetId: 'character.creation.square-portrait-02',
+      }),
+    )
   })
 
   it('keeps active multi-turn DoTs in the real Recruit response and rendered rail after a tick', async () => {

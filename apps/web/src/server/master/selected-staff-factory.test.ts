@@ -64,7 +64,7 @@ beforeEach(() => {
     )
       return { data: [combatRow], error: null }
     if (name === 'read_current_event_definition_v1') return { data: [eventRow], error: null }
-    if (name === 'read_master_panel_access_v2')
+    if (name === 'read_master_panel_access_v3')
       return {
         data: [
           {
@@ -103,13 +103,13 @@ beforeEach(() => {
 it('the production Staff factory binds each RPC to the current verified selected character', async () => {
   const store = createSupabaseMasterPanelStaffAccessStore()
   await store.readAccess(state.userId)
-  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v2', {
+  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v3', {
     p_user_id: state.userId,
     p_actor_character_id: 'first',
   })
   state.characterId = 'alternate'
   await store.readAccess(state.userId)
-  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v2', {
+  expect(state.rpc).toHaveBeenLastCalledWith('read_master_panel_access_v3', {
     p_user_id: state.userId,
     p_actor_character_id: 'alternate',
   })
@@ -239,7 +239,7 @@ it('the production Staff factory preserves null selection for the SQL Owner boot
     roles: ['game-owner'],
     effectiveCapabilities: expect.arrayContaining(['staff.manage']),
   })
-  expect(state.rpc).toHaveBeenCalledExactlyOnceWith('read_master_panel_access_v2', {
+  expect(state.rpc).toHaveBeenCalledExactlyOnceWith('read_master_panel_access_v3', {
     p_user_id: 'verified-user',
     p_actor_character_id: null,
   })

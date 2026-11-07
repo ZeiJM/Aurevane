@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import type { WorldView } from '../src/world/types'
 
 import { expect, test, type Page, type Response } from '@playwright/test'
 
@@ -240,4 +242,126 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
   await page.getByLabel('Confirm publication or schedule for this audience').check()
   await runEventOperation(page, 'cancel-scheduled', 'Unschedule')
   await expect(page.getByText('Scheduled run is now cancelled.')).toBeVisible()
+})
+
+test('an authored Story Campaign persists accept, confirmed travel and report in the World', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Requires a disposable local staff account.')
+  test.setTimeout(90_000)
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host)) {
+    throw new Error('The Story Campaign browser fixture requires disposable local Supabase.')
+  }
+
+  const token = randomUUID().replaceAll('-', '')
+  const email = `story-staff-${token}@example.com`
+  const title = `Watch route ${token.slice(0, 8)}`
+  const eventKey = `event.browser-story-${token}`
+  await createAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Story-staff-browser-2026!',
+    characterName: `Story ${token.slice(0, 12).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
+  })
+  grantLocalEventStaff(email)
+  const userId = localUserId(email)
+  eventPageAccess = createEventPageAccessFixture(queryLocalDatabase)
+  eventPageAccess.set(true)
+
+  await page.goto('/master/events')
+  const sections = page.getByRole('navigation', { name: 'Event authoring sections' })
+  const section = (name: string) => sections.getByRole('button', { name, exact: true }).click()
+  await section('Setup')
+  await page.getByLabel('Category', { exact: true }).selectOption('story-campaigns')
+  await page.getByLabel('Region audience', { exact: true }).selectOption('verdant-expanse')
+  await page.getByLabel('Title', { exact: true }).fill(title)
+  await section('Journey')
+  await page.getByLabel('Enable a travel and report quest').check()
+  await page.getByLabel('Cell X', { exact: true }).fill('3')
+  await page.getByLabel('Offer the quest').fill('Check the nearby path and report to the Watch.')
+  await page.getByLabel('Explain where to travel').fill('Reach the next cell along the path.')
+  await page.getByLabel('Ask for the report').fill('What did you see on the path?')
+  await page.getByLabel('Confirm completion').fill('The Watch recorded your report.')
+  await section('Schedule')
+  await page.getByLabel('Event key').fill(eventKey)
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await runEventOperation(page, 'publish', 'Publish')
+  const start = new Date(Date.now() + 60 * 60 * 1000).toISOString().slice(0, 16)
+  const end = new Date(Date.now() + 120 * 60 * 1000).toISOString().slice(0, 16)
+  await page.getByRole('textbox', { name: 'Start', exact: true }).fill(start)
+  await page.getByRole('textbox', { name: 'End', exact: true }).fill(end)
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await runEventOperation(page, 'schedule', 'Schedule')
+
+  const readWorld = async (): Promise<WorldView> => {
+    const response = await page.request.get('/api/world')
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  const characterId = (await readWorld()).characterId
+  expect(characterId).toMatch(/^[0-9a-f-]{36}$/)
+  const runId = queryLocalDatabase(
+    `select id from app_private.event_runs where event_key='${eventKey}'`,
+  )
+  expect(runId).toMatch(/^[0-9a-f-]{36}$/)
+  // Bring the disposable occurrence due without waiting an hour. Start still uses
+  // the production operation RPC and character-specific staff authorization.
+  queryLocalDatabase(`
+    update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id='${runId}';
+    select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
+  `)
+
+  await page.goto('/world')
+  const openMissions = async () => {
+    const details = page.getByRole('button', { name: 'Details', exact: true })
+    if (await details.isVisible()) await details.click()
+    await page.getByRole('tab', { name: /Missions/ }).click()
+  }
+  const move = async (x: number) => {
+    const state = await readWorld()
+    const response = await page.request.post('/api/world', {
+      data: {
+        characterId,
+        expectedVersion: state.version,
+        commandId: randomUUID(),
+        intent: { kind: 'walk', destination: { sectorId: 'verdant-expanse', x, y: 4 } },
+      },
+    })
+    expect(response.ok()).toBe(true)
+    await page.reload()
+    await expect.poll(async () => (await readWorld()).position.x, { timeout: 15_000 }).toBe(x)
+    await openMissions()
+  }
+  await expect(page.locator('[data-world-workspace]')).toBeVisible()
+  expect((await readWorld()).interactions.some((entry) => entry.title === title)).toBe(false)
+  await move(2)
+  const interaction = page
+    .getByRole('region', { name: 'Local interaction' })
+    .getByRole('heading', { name: title, exact: true })
+    .locator('..')
+  const talk = () => interaction.getByRole('button', { name: 'Talk to Watch officer' }).click()
+  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  const progress = async () =>
+    (await readWorld()).objectives.find((entry) => entry.name === title)?.progress
+  await talk()
+  await expect(dialogue.getByRole('heading', { name: title, exact: true })).toBeVisible()
+  await dialogue.getByRole('button', { name: 'Accept quest', exact: true }).click()
+  await expect.poll(progress).toBe('active')
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
+  await move(3)
+  await expect.poll(progress).toBe('ready')
+  await move(2)
+  await talk()
+  await dialogue.getByRole('button', { name: 'Report back', exact: true }).click()
+  await expect.poll(progress).toBe('completed')
+  await expect(
+    dialogue.getByText('The Watch recorded your report.', { exact: true }).first(),
+  ).toBeVisible()
+  await page.screenshot({
+    path: info.outputPath('authored-watch-quest-complete.png'),
+    animations: 'disabled',
+  })
+  await page.reload()
+  await expect.poll(progress).toBe('completed')
 })

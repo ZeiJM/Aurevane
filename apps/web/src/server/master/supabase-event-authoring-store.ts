@@ -2,7 +2,10 @@ import 'server-only'
 
 import { createSelectedCharacterRpc } from './selected-character-rpc'
 
-import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
+import {
+  resolveEventCategory,
+  type PersistentEventDefinition,
+} from '@aurevane/game-core/events/persistent-event'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -12,6 +15,7 @@ import type {
   EventDefinitionDraftRecord,
   EventDefinitionVersionRecord,
   EventRunTransitionRecord,
+  EventWorkspaceCatalogue,
   ScheduledEventRunRecord,
 } from './event-authoring-service'
 
@@ -201,7 +205,11 @@ export class RpcEventAuthoringStore implements EventAuthoringStore {
     const catalogue = isObject(data) ? data : null
     if (!catalogue || !Array.isArray(catalogue.events) || !Array.isArray(catalogue.rewards))
       throw unavailable()
-    return catalogue as unknown as import('./event-authoring-service').EventWorkspaceCatalogue
+    const events = catalogue.events.map((entry: unknown) => {
+      if (!isObject(entry)) throw unavailable('The server returned an invalid Event catalogue.')
+      return { ...entry, category: resolveEventCategory(entry) }
+    })
+    return { events, rewards: catalogue.rewards } as unknown as EventWorkspaceCatalogue
   }
 
   async readDraft(eventKey: string): Promise<EventDefinitionDraftRecord | null> {

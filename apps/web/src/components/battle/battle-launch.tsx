@@ -1,5 +1,6 @@
 'use client'
 
+import type { ArenaNpc } from '@aurevane/validation/combat/npc-design'
 import type { TacticalHallArenaId } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import {
   getTacticalHallRecord,
@@ -22,12 +23,14 @@ import type { PvpLobbyView } from '@/server/battle/pvp-lobby-service'
 import { PVP_MAP_SIZES, pvpMapProfile } from '@/lib/battle/pvp-map-presentation'
 
 import styles from './battle-launch.module.css'
+import { ArenaNpcCard } from './arena-npc-card'
 import { PvpLobbyModal } from './pvp-lobby-modal'
 
 interface BattleLaunchProps {
   characterId: string
   characterName: string
   initialJoinKey?: string | null
+  arenaNpcs?: readonly ArenaNpc[]
   /** Opens a PVP popup on load (also used by tests, which cannot click). */
   initialPvpDialog?: 'create' | 'join' | null
 }
@@ -133,6 +136,7 @@ function isCompletePvpLobbyKey(value: string): boolean {
 export function BattleLaunch({
   characterId,
   initialJoinKey = null,
+  arenaNpcs = [],
   initialPvpDialog = null,
 }: BattleLaunchProps) {
   const router = useRouter()
@@ -147,6 +151,7 @@ export function BattleLaunch({
   )
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>('recruit-sparring')
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
+  const [arenaNpcId, setArenaNpcId] = useState('')
   const [allyCount, setAllyCount] = useState(0)
   const [enemyCount, setEnemyCount] = useState(1)
   const [pvpMode, setPvpMode] = useState<PvpMode | null>(DEFAULT_PVP_MODE)
@@ -163,6 +168,8 @@ export function BattleLaunch({
   const [error, setError] = useState<string | null>(null)
 
   const selectedRecord = recordId ? getTacticalHallRecord(recordId) : null
+  const arenaNpc =
+    recordId === 'recruit-sparring' ? arenaNpcs.find((npc) => npc.id === arenaNpcId) : undefined
 
   function chooseSection(next: HallSection) {
     setSection(next)
@@ -200,9 +207,13 @@ export function BattleLaunch({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           characterId,
-          arenaId,
+          arenaId: arenaNpc?.arenaId ?? arenaId,
           battleHallRecordId: selectedRecord.id,
-          ...(selectedRecord.id === 'recruit-sparring' ? { allyCount, enemyCount } : {}),
+          ...(arenaNpc
+            ? { arenaNpcId: arenaNpc.id }
+            : selectedRecord.id === 'recruit-sparring'
+              ? { allyCount, enemyCount }
+              : {}),
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -489,15 +500,37 @@ export function BattleLaunch({
           </div>
 
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
+            {recordId === 'recruit-sparring' && arenaNpcs.length > 0 ? (
+              <div className={styles.arenaControlRow}>
+                <label>
+                  <span>Opponent</span>
+                  <select
+                    value={arenaNpcId}
+                    disabled={pending}
+                    onChange={(event) => setArenaNpcId(event.target.value)}
+                  >
+                    <option value="">Battle Hall Recruit</option>
+                    {arenaNpcs.map((npc) => (
+                      <option key={npc.id} value={npc.id}>
+                        {npc.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            ) : null}
             <div className={styles.arenaControlRow}>
               <label>
                 <span>Field</span>
                 <select
                   aria-label="AI sparring arena"
-                  value={arenaId}
+                  value={arenaNpc?.arenaId ?? arenaId}
                   onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
                   disabled={
-                    pending || recordId === 'guided-fundamentals' || recordId === 'mastery-trial'
+                    pending ||
+                    Boolean(arenaNpc) ||
+                    recordId === 'guided-fundamentals' ||
+                    recordId === 'mastery-trial'
                   }
                 >
                   {(recordId === 'guided-fundamentals'
@@ -512,7 +545,7 @@ export function BattleLaunch({
                   ))}
                 </select>
               </label>
-              {recordId === 'recruit-sparring' ? (
+              {recordId === 'recruit-sparring' && !arenaNpc ? (
                 <fieldset className={styles.participants}>
                   <legend>Participants</legend>
                   <div>
@@ -618,6 +651,7 @@ export function BattleLaunch({
 
             {selectedRecord ? (
               <div className={styles.selectedPanel}>
+                {arenaNpc ? <ArenaNpcCard {...arenaNpc} /> : null}
                 <p className={styles.recordPurpose} id="ai-record-purpose">
                   {selectedRecord.purpose}
                 </p>

@@ -84,7 +84,7 @@ it('reads and saves authoritative role defaults through Owner-only revision RPCs
   const rpc = vi.fn(async () => ({ data: defaults, error: null }))
   const store = new RpcMasterPanelStaffAccessStore(rpc)
   expect(await store.readRoleDefaults('owner')).toEqual(defaults)
-  expect(rpc).toHaveBeenLastCalledWith('read_master_panel_role_defaults_v1', {
+  expect(rpc).toHaveBeenLastCalledWith('read_master_panel_role_defaults_v2', {
     p_actor_user_id: 'owner',
   })
   expect(
@@ -94,7 +94,7 @@ it('reads and saves authoritative role defaults through Owner-only revision RPCs
       roles: defaults.roles,
     }),
   ).toEqual(defaults)
-  expect(rpc).toHaveBeenLastCalledWith('save_master_panel_role_defaults_v1', {
+  expect(rpc).toHaveBeenLastCalledWith('save_master_panel_role_defaults_v2', {
     p_actor_user_id: 'owner',
     p_expected_revision: 2,
     p_roles: defaults.roles,

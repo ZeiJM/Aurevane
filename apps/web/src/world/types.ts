@@ -112,6 +112,7 @@ export interface WorldObjective {
   name: string
   description: string
   kind: 'quest' | 'event'
+  authority?: 'personal-quest'
   autoPath: boolean
   guidance: 'exact' | 'clue'
   destination: WorldPosition | null
@@ -192,6 +193,13 @@ export interface WorldSceneViewport {
   width: number
   height: number
 }
+export interface WorldNpcPresentation {
+  id: string
+  name: string
+  position: WorldPosition
+  imageUrl: string | null
+}
+
 export interface WorldView {
   /** Service registration and private receive capability are available for this scene. */
   livePresence?: boolean
@@ -209,6 +217,7 @@ export interface WorldView {
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
   atlas?: WorldAtlasCell[]
   players: WorldPlayer[]
+  npcs?: WorldNpcPresentation[]
   objectives: WorldObjective[]
   interactions: WorldInteraction[]
   anchors: WorldAnchorDiscovery[]

@@ -2,10 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import {
+  EVENT_CATEGORY_LABELS,
+  EVENT_RUN_STATUSES,
+  resolveEventCategory,
+  type EventCategory,
+} from '@aurevane/game-core/events/persistent-event'
 import styles from './event-operations.module.css'
 import { eventAudienceLabel } from './event-audience'
 
 interface RunSummary {
+  category?: EventCategory
   title?: string
   participantCount?: number
   runId: string
@@ -99,6 +106,8 @@ interface Dashboard {
 
 interface Props {
   canEmergencyStop: boolean
+  category: EventCategory
+  calendar: boolean
 }
 
 async function post(body: Record<string, unknown>): Promise<Record<string, unknown>> {
@@ -122,27 +131,31 @@ function when(value: string | null): string {
   return Number.isNaN(date.valueOf()) ? value : date.toLocaleString()
 }
 
-export function EventOperationsClient({ canEmergencyStop }: Props) {
+export function EventOperationsClient({ canEmergencyStop, category, calendar }: Props) {
   const dashboardRequest = useRef(0)
   const [tab, setTab] = useState('Overview')
   const [runs, setRuns] = useState<RunSummary[]>([])
   const [selectedRunId, setSelectedRunId] = useState('')
-  const [dashboard, setDashboard] = useState<Dashboard | null>(null)
+  const [loadedDashboard, setDashboard] = useState<Dashboard | null>(null)
   const [message, setMessage] = useState('Loading Event operations…')
   const [operationConfirmed, setOperationConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [runQuery, setRunQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
 
-  const selectedRun = useMemo(
-    () => runs.find((run) => run.runId === selectedRunId) ?? null,
-    [runs, selectedRunId],
+  const categoryRuns = useMemo(
+    () => runs.filter((run) => resolveEventCategory(run) === category),
+    [category, runs],
   )
+  const selectedRun = categoryRuns.find((run) => run.runId === selectedRunId) ?? null
+  const dashboard = loadedDashboard?.run.runId === selectedRun?.runId ? loadedDashboard : null
 
   const visibleRuns = useMemo(() => {
     const query = runQuery.trim().toLowerCase()
-    if (!query) return runs
-    return runs.filter((run) =>
-      [
+    return categoryRuns.filter((run) => {
+      if (statusFilter && run.lifecycleStatus !== statusFilter) return false
+      if (!query) return true
+      return [
         run.title ?? run.eventKey,
         run.eventKey,
         run.runId,
@@ -152,9 +165,9 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
       ]
         .join(' ')
         .toLowerCase()
-        .includes(query),
-    )
-  }, [runQuery, runs])
+        .includes(query)
+    })
+  }, [categoryRuns, runQuery, statusFilter])
 
   const operationReady = operationConfirmed
 
@@ -162,16 +175,17 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     const payload = await post({ operation: 'list' })
     const nextRuns = (payload.runs ?? []) as RunSummary[]
     setRuns(nextRuns)
+    const scoped = nextRuns.filter((run) => resolveEventCategory(run) === category)
     const nextSelected =
-      preferredRunId && nextRuns.some((run) => run.runId === preferredRunId)
+      preferredRunId && scoped.some((run) => run.runId === preferredRunId)
         ? preferredRunId
-        : selectedRunId && nextRuns.some((run) => run.runId === selectedRunId)
+        : selectedRunId && scoped.some((run) => run.runId === selectedRunId)
           ? selectedRunId
-          : (nextRuns[0]?.runId ?? '')
+          : (scoped[0]?.runId ?? '')
     setSelectedRunId(nextSelected)
     if (!nextSelected) {
       setDashboard(null)
-      setMessage('No Production Event Runs are available.')
+      setMessage('No runs are available in this category.')
     }
     return nextSelected
   }
@@ -289,12 +303,74 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
     ),
   )
 
+  const searchAndStatus = (
+    <div className={styles.runFilters}>
+      <label className={styles.runSearch}>
+        <span>Search runs</span>
+        <input
+          type="search"
+          value={runQuery}
+          onChange={(event) => setRunQuery(event.target.value)}
+          placeholder="Event, run, status…"
+        />
+      </label>
+      <label className={styles.runSelect}>
+        <span>Status</span>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="">All statuses</option>
+          {EVENT_RUN_STATUSES.map((entry) => (
+            <option key={entry}>{entry}</option>
+          ))}
+        </select>
+      </label>
+    </div>
+  )
+
+  if (calendar) {
+    const scheduledRuns = visibleRuns
+      .filter((run) => run.scheduledStartAt !== null)
+      .sort(
+        (left, right) => Date.parse(left.scheduledStartAt!) - Date.parse(right.scheduledStartAt!),
+      )
+    return (
+      <section className={styles.calendar} aria-label="Event calendar">
+        <header className={styles.navigatorHeader}>
+          <div>
+            <p className={styles.eyebrow}>Calendar</p>
+            <h2>{EVENT_CATEGORY_LABELS[category]}</h2>
+          </div>
+          <button type="button" onClick={() => void refresh()} disabled={busy}>
+            Refresh
+          </button>
+        </header>
+        {searchAndStatus}
+        <p>Times use {Intl.DateTimeFormat().resolvedOptions().timeZone}.</p>
+        {scheduledRuns.length ? (
+          <ul className={styles.calendarEntries}>
+            {scheduledRuns.map((run) => (
+              <li key={run.runId}>
+                <strong>{run.title ?? run.eventKey}</strong>
+                <time dateTime={run.scheduledStartAt!}>{when(run.scheduledStartAt)}</time>
+                <span>
+                  {run.scheduledEndAt ? `Ends ${when(run.scheduledEndAt)}` : 'No scheduled end'}
+                </span>
+                <span>{run.lifecycleStatus}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No scheduled runs match these filters.</p>
+        )}
+      </section>
+    )
+  }
+
   return (
     <section className={styles.operations}>
       <aside className={styles.runNavigator} aria-label="Live operations navigator">
         <header className={styles.navigatorHeader}>
           <div>
-            <p className={styles.eyebrow}>Operations console</p>
+            <p className={styles.eyebrow}>{EVENT_CATEGORY_LABELS[category]}</p>
             <h2>Event runs</h2>
           </div>
           <button type="button" onClick={() => void refresh()} disabled={busy}>
@@ -302,20 +378,13 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
           </button>
         </header>
 
-        <label className={styles.runSearch}>
-          <span>Search runs</span>
-          <input
-            value={runQuery}
-            onChange={(event) => setRunQuery(event.target.value)}
-            placeholder="Event, run, status…"
-          />
-        </label>
+        {searchAndStatus}
 
         <label className={styles.runSelect}>
           <span>Event Run</span>
           <select
             aria-label="Event Run"
-            value={selectedRunId}
+            value={selectedRun && visibleRuns.includes(selectedRun) ? selectedRun.runId : ''}
             onChange={(event) => {
               const runId = event.target.value
               setSelectedRunId(runId)
@@ -325,9 +394,12 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                 setMessage(error instanceof Error ? error.message : 'Unable to load this run.'),
               )
             }}
-            disabled={busy || runs.length === 0}
+            disabled={busy || visibleRuns.length === 0}
           >
-            {runs.map((run) => (
+            {(!selectedRun || !visibleRuns.includes(selectedRun)) && (
+              <option value="">Choose a run</option>
+            )}
+            {visibleRuns.map((run) => (
               <option key={run.runId} value={run.runId}>
                 {run.title ?? run.eventKey} · {run.lifecycleStatus} ·{' '}
                 {new Date(run.scheduledStartAt ?? run.startedAt ?? run.updatedAt).toLocaleString(
@@ -388,7 +460,7 @@ export function EventOperationsClient({ canEmergencyStop }: Props) {
                 ✦
               </div>
               <div className={styles.runHeaderIdentity}>
-                <p className={styles.eyebrow}>Authoritative Event Run</p>
+                <p className={styles.eyebrow}>{EVENT_CATEGORY_LABELS[category]} · Event run</p>
                 <h2>{dashboard.run.title ?? dashboard.run.eventKey}</h2>
                 <details>
                   <summary>Run identity</summary>

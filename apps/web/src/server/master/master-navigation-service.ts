@@ -27,7 +27,7 @@ export function createMasterNavigationService(
   return {
     async read(actorUserId: string) {
       await access.requireCapability(actorUserId, 'master.access')
-      return parse(await rpc('read_master_panel_navigation_v1', { p_actor_user_id: actorUserId }))
+      return parse(await rpc('read_master_panel_navigation_v2', { p_actor_user_id: actorUserId }))
     },
     async save(actorUserId: string, input: { expectedRevision: unknown; order: unknown }) {
       await access.requireCapability(actorUserId, 'staff.manage')
@@ -38,7 +38,7 @@ export function createMasterNavigationService(
       )
         throw new AurevaneError('INVALID_REQUEST', 'Choose each Master Panel tab once.')
       return parse(
-        await rpc('save_master_panel_navigation_v1', {
+        await rpc('save_master_panel_navigation_v2', {
           p_actor_user_id: actorUserId,
           p_expected_revision: input.expectedRevision,
           p_order: input.order,

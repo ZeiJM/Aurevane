@@ -1,3 +1,5 @@
+import type { ArenaNpc } from '@aurevane/validation/combat/npc-design'
+
 import type { CharacterIdentityCardProps } from '@/components/character/character-identity-card'
 import { CharacterIdentityCard } from '@/components/character/character-identity-card'
 import { CharacterRailSynchronizedLayout } from '@/components/character/character-rail-synchronized-layout'
@@ -11,6 +13,7 @@ interface BattleHallShellProps {
   characterId: string
   characterName: string
   initialJoinKey?: string | null
+  arenaNpcs?: readonly ArenaNpc[]
 }
 
 export function BattleHallShell({
@@ -18,6 +21,7 @@ export function BattleHallShell({
   characterId,
   characterName,
   initialJoinKey = null,
+  arenaNpcs,
 }: BattleHallShellProps) {
   return (
     <AuthenticatedShellFrame sessionLabel="Battle Hall">
@@ -27,6 +31,7 @@ export function BattleHallShell({
           characterId={characterId}
           characterName={characterName}
           initialJoinKey={initialJoinKey}
+          arenaNpcs={arenaNpcs}
         />
       </CharacterRailSynchronizedLayout>
     </AuthenticatedShellFrame>

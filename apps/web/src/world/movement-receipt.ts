@@ -17,10 +17,11 @@ export type WorldMovementReceipt = Pick<
   kind: 'movement'
   currentSector?: WorldView['sectors'][number]
   interactions?: WorldView['interactions']
+  npcs?: WorldView['npcs']
 }
 /** Supply the confirmed origin; retain the rest of the scene and public peer clocks. */
 export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceipt): WorldView {
-  const { kind, currentSector, interactions, ...owned } = receipt
+  const { kind, currentSector, interactions, npcs, ...owned } = receipt
   if (
     kind !== 'movement' ||
     receipt.characterId !== view.characterId ||
@@ -61,6 +62,7 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
     ...owned,
     sectors,
     players,
+    npcs: npcs ?? view.npcs?.filter((npc) => npc.position.sectorId === receipt.position.sectorId),
     interactions:
       interactions ?? (samePosition(view.position, receipt.position) ? view.interactions : []),
   })

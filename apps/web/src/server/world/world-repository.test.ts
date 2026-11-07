@@ -1,9 +1,10 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 import { createHash } from 'node:crypto'
 vi.mock('server-only', () => ({}))
-const { rpc, sceneRpc, lastRead, profileImages, environmentSettings } = vi.hoisted(() => ({
+const { rpc, sceneRpc, npcRpc, lastRead, profileImages, environmentSettings } = vi.hoisted(() => ({
   rpc: vi.fn(),
   sceneRpc: vi.fn(),
+  npcRpc: vi.fn(),
   lastRead: { value: null as { state: { version: number }; players: unknown[] } | null },
   environmentSettings: vi.fn(),
   profileImages: new Map<string, string>(),
@@ -13,6 +14,7 @@ vi.mock('@/lib/supabase/admin', () => ({
     rpc: async (name: string, args: unknown) => {
       if (name === 'read_world_scene_players_v1' || name === 'read_world_scene_players_v2')
         return sceneRpc(name, args)
+      if (name === 'read_published_world_npcs_v1') return npcRpc(name, args)
       const result = await rpc(name, args)
       if (name === 'read_world_state_v1' && result.data?.state) lastRead.value = result.data
       return result
@@ -63,9 +65,47 @@ beforeEach(() => {
   sceneRpc.mockReset().mockImplementation(async () => ({
     data: { version: lastRead.value!.state.version, players: lastRead.value!.players },
   }))
+  npcRpc.mockReset().mockResolvedValue({ data: [] })
   profileImages.clear()
   environmentSettings.mockReset().mockResolvedValue(DEFAULT_WORLD_ENVIRONMENT_SETTINGS)
   vi.mocked(loadPublicCharacterProfileImageMap).mockClear()
+})
+
+it('loads only local published NPCs and reuses the sector result between presentation reads', async () => {
+  rpc.mockResolvedValue({ data: payload() })
+  npcRpc.mockResolvedValue({
+    data: [
+      {
+        id: '50bcf54b-d667-4e03-af93-3457b0055a95',
+        name: 'World Fixture',
+        portraitRef: null,
+        revision: 2,
+        sectorId: 'verdant-expanse',
+        x: 5,
+        y: 4,
+        radius: 2,
+        greeting: 'Safe travels.',
+      },
+    ],
+  })
+  const results = await Promise.all([
+    readWorld('owner', characterId),
+    readWorld('owner', characterId),
+  ])
+  expect(npcRpc).toHaveBeenCalledExactlyOnceWith('read_published_world_npcs_v1', {
+    p_sector_id: 'verdant-expanse',
+  })
+  for (const { view } of results) {
+    expect(view.npcs).toHaveLength(1)
+    expect(view.players).toEqual([])
+    expect(view.interactions).toContainEqual(
+      expect.objectContaining({
+        speaker: 'World Fixture',
+        body: 'Safe travels.',
+        actionLabel: null,
+      }),
+    )
+  }
 })
 
 function deferred<T>() {
@@ -1106,3 +1146,62 @@ it.each(['ITEM_ADMISSION_RETRY', 'ITEM_CATALOGUE_RETRY', 'ITEM_PREPARATION_STALE
     )
   },
 )
+
+it('projects a personal quest from owned state and submits only explicit replies to quest authority', async () => {
+  const runId = '00000000-0000-4000-8000-000000000017'
+  const interactionId = `quest-run-${runId}`
+  const initial = payload()
+  const offer = {
+    runId,
+    title: 'A Watch report',
+    body: 'Take the trail and report back.',
+    giverId: 'eastern-watch-officer',
+    progress: 'available',
+    action: 'accept',
+    local: true,
+  }
+  let replyCommitted = false
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'commit_world_personal_quest_v1') {
+      replyCommitted = true
+      return { data: { ...initial.state, version: 2 } }
+    }
+    return {
+      data: {
+        ...initial,
+        state: { ...initial.state, version: replyCommitted ? 2 : 1 },
+        personalQuests: [
+          replyCommitted
+            ? { ...offer, body: 'Reach the trail.', progress: 'active', action: null }
+            : offer,
+        ],
+      },
+    }
+  })
+  const view = (await readWorld('owner', characterId)).view
+  expect(view.interactions).toContainEqual(
+    expect.objectContaining({ id: interactionId, actionId: 'accept' }),
+  )
+  await expect(
+    commitWorldCommand('owner', characterId, {
+      ...command,
+      intent: { kind: 'interact', interactionId },
+    }),
+  ).rejects.toThrow('Choose an explicit quest response')
+  expect(rpc.mock.calls.every(([name]) => name === 'read_world_state_v1')).toBe(true)
+
+  const active = await commitWorldCommand('owner', characterId, {
+    ...command,
+    intent: { kind: 'interact', interactionId, actionId: 'accept' },
+  })
+  expect(rpc).toHaveBeenCalledWith(
+    'commit_world_personal_quest_v1',
+    expect.objectContaining({ p_run_id: runId, p_action: 'accept', p_character_id: characterId }),
+  )
+  expect(active.objectives).toContainEqual(
+    expect.objectContaining({ id: interactionId, progress: 'active', completed: false }),
+  )
+  expect(active.interactions).toContainEqual(
+    expect.objectContaining({ id: interactionId, actionId: null }),
+  )
+})

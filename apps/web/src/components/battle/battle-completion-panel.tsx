@@ -174,6 +174,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           arenaId,
           aiDifficulty,
           battleHallRecordId: recordId,
+          ...(battle.snapshot.arenaNpc ? { arenaNpcId: battle.snapshot.arenaNpc.id } : {}),
           ...(recordId === 'recruit-sparring' ? battleSparringTeamCounts(battle) : {}),
           idempotencyKey: crypto.randomUUID(),
         }),
@@ -347,7 +348,13 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
             onClick={() => void retry()}
             disabled={retryPending || !characterId}
           >
-            {retryPending ? 'Preparing…' : guidedTraining ? 'Run Lesson Again' : 'Rematch Recruit'}
+            {retryPending
+              ? 'Preparing…'
+              : guidedTraining
+                ? 'Run Lesson Again'
+                : battle.snapshot.arenaNpc
+                  ? `Rematch ${battle.snapshot.arenaNpc.name}`
+                  : 'Rematch Recruit'}
           </button>
         </div>
       </section>

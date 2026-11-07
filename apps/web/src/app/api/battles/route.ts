@@ -1,3 +1,4 @@
+import { readPublishedArenaNpcs } from '@/server/master/npc-design-store'
 import { readBattlefieldElevationPolicy } from '@/server/master/battlefield-elevation-policy-store'
 import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timing-policy-store'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -52,10 +53,12 @@ export async function POST(request: Request) {
       combatContentResolver: createServerCombatContentResolver(),
       readEffectTimingPolicy: readCombatEffectTimingPolicy,
       readElevationPolicy: readBattlefieldElevationPolicy,
+      readArenaNpc: async (id) => (await readPublishedArenaNpcs(id))[0] ?? null,
     }).createSession({
       userId: actor.userId,
       characterId: parsed.characterId,
       arenaId: parsed.arenaId,
+      ...(parsed.arenaNpcId ? { arenaNpcId: parsed.arenaNpcId } : {}),
       aiDifficulty: parsed.aiDifficulty,
       battleHallRecordId: parsed.battleHallRecordId,
       allyCount: parsed.allyCount,

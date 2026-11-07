@@ -22,7 +22,7 @@ it('validates complete tab order, forbids delegated writes, and binds authentica
   })
   expect(calls).toEqual([
     [
-      'save_master_panel_navigation_v1',
+      'save_master_panel_navigation_v2',
       { p_actor_user_id: 'verified', p_expected_revision: 1, p_order: order },
     ],
   ])

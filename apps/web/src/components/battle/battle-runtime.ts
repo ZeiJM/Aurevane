@@ -1,5 +1,6 @@
 import { contentMediaSource } from '@aurevane/game-core/combat/content-media'
 import type { PublicCombat } from '@aurevane/game-core/combat/public-combat-presentation'
+import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type {
   CombatTargetKind,
@@ -198,19 +199,24 @@ function pveParticipants(
     const allied = allies.includes(profile),
       teamIndex = allied ? 0 : 1
     const index = (allied ? allies : enemies).indexOf(profile)
+    const npc = !allied && index === 0 ? battle.snapshot.arenaNpc : undefined
     participants.push({
       combatantId: profile.combatantId,
       characterId: null,
-      name: allied
-        ? `Ally ${index + 1}`
-        : enemies.length === 1
-          ? 'Recruit'
-          : `Recruit ${index + 1}`,
+      name:
+        npc?.name ??
+        (allied ? `Ally ${index + 1}` : enemies.length === 1 ? 'Recruit' : `Recruit ${index + 1}`),
       level: profile.level ?? 1,
       teamIndex,
       seatIndex: seats[teamIndex]++,
-      profileImageUrl: null,
-      portraitAssetId: null,
+      profileImageUrl: npc?.imageUrl ?? null,
+      portraitAssetId: npc
+        ? getStarterPortraitImageAssetId(
+            npc.portraitRef && isStarterCharacterPortraitRef(npc.portraitRef)
+              ? npc.portraitRef
+              : 'portrait.starter.wayfarer-01',
+          )
+        : null,
       local: false,
     })
   })

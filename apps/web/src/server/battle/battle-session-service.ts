@@ -4,6 +4,7 @@ import { effectiveCombatStatProfile } from '@aurevane/game-core/combat/combat-st
 import { airborneMovementTactical } from '@aurevane/game-core/combat/combat-airborne'
 import { SKILL_COOLDOWN_RESOURCE_PREFIX } from '@aurevane/game-core/combat/skill-cooldowns'
 import { createBattleUsageProvenance } from './usage-balance-provenance'
+import type { ArenaNpc, ArenaNpcIdentity } from '@aurevane/validation/combat/npc-design'
 import { assertPreparedBattleSource } from './battle-source-authority'
 import {
   projectPublicCombat,
@@ -145,6 +146,7 @@ const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
 
 export type BattleAuthoritativeEncounterState = StatDrivenCombatEncounterState & {
   buildAuthority?: BattleBuildAuthoritySnapshot
+  arenaNpc?: ArenaNpcIdentity
 }
 
 type ProjectedBattleState = Omit<BattleAuthoritativeEncounterState['tactical']['battle'], 'rng'>
@@ -188,6 +190,7 @@ export interface CreateBattleSessionCommand {
   userId: string
   characterId: string
   arenaId?: TacticalHallArenaId
+  arenaNpcId?: string
   aiDifficulty?: BattleAiDifficulty
   battleHallRecordId?: BattleHallRecordId
   allyCount?: number
@@ -216,6 +219,7 @@ interface Dependencies {
   combatContentResolver?: CombatContentResolver
   readEffectTimingPolicy?: () => Promise<CombatEffectTimingPolicy>
   readElevationPolicy?: () => Promise<BattlefieldElevationPolicy>
+  readArenaNpc?: (id: string) => Promise<ArenaNpc | null>
 }
 
 function battleIntentPrivacyKind(kind: BattleIntent['kind']): BattlePrivacyCommandKind {
@@ -814,6 +818,7 @@ export function createBattleSessionService({
   combatContentResolver,
   readEffectTimingPolicy,
   readElevationPolicy,
+  readArenaNpc,
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
@@ -833,23 +838,39 @@ export function createBattleSessionService({
         throw invalidBattleIntent('AI Sparring supports two teams and at most six participants.')
       }
 
-      const arenaId =
+      if (
+        command.arenaNpcId &&
+        (battleHallRecordId !== 'recruit-sparring' || allyCount !== 0 || enemyCount !== 1)
+      ) {
+        throw invalidBattleIntent('An Arena fighter can only be challenged in a duel.')
+      }
+
+      const requestedArenaId =
         battleHallRecordId === 'mastery-trial' || battleHallRecordId === 'guided-fundamentals'
           ? getTacticalHallRecord(battleHallRecordId).defaultArenaId
           : (command.arenaId ?? 'basic-training-floor')
       // Battle Hall difficulty is server-owned: full duels always use High AI,
       // while guided/legacy teaching records stay Easy regardless of client input.
-      const aiDifficulty = authoritativeBattleHallAiDifficulty(battleHallRecordId)
-      const requestFingerprint = fingerprint({
-        command: 'battle.create.v5',
-        userId: command.userId,
-        characterId: command.characterId,
-        arenaId,
-        aiDifficulty,
-        battleHallRecordId,
-        allyCount,
-        enemyCount,
-      })
+      const requestedDifficulty = authoritativeBattleHallAiDifficulty(battleHallRecordId)
+      const requestFingerprint = fingerprint(
+        command.arenaNpcId
+          ? {
+              command: 'battle.create.arena-npc.v1',
+              userId: command.userId,
+              characterId: command.characterId,
+              arenaNpcId: command.arenaNpcId,
+            }
+          : {
+              command: 'battle.create.v5',
+              userId: command.userId,
+              characterId: command.characterId,
+              arenaId: requestedArenaId,
+              aiDifficulty: requestedDifficulty,
+              battleHallRecordId,
+              allyCount,
+              enemyCount,
+            },
+      )
       const readCreationReplay = async (): Promise<BattleSessionView | null> => {
         const replay = await battles.findBattleCreationReplay?.({
           actorKey: command.userId,
@@ -883,6 +904,14 @@ export function createBattleSessionService({
       if (!character) {
         throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
       }
+      const arenaNpc = command.arenaNpcId ? await readArenaNpc?.(command.arenaNpcId) : null
+      if (command.arenaNpcId && !arenaNpc) {
+        const racedReplay = await readCreationReplay()
+        if (racedReplay) return racedReplay
+        throw invalidBattleIntent('That Arena fighter is unavailable.')
+      }
+      const arenaId = arenaNpc?.arenaId ?? requestedArenaId
+      const aiDifficulty = arenaNpc?.aiDifficulty ?? requestedDifficulty
       const [committedBuildResult, committedBuildSnapshotResult] = await Promise.allSettled([
         builds
           ? builds.findActiveBuild(command.userId, command.characterId)
@@ -997,6 +1026,13 @@ export function createBattleSessionService({
                   narratorIdentity: narratorIdentityForCharacter(character),
                 },
               ]),
+        }
+      }
+      if (arenaNpc) {
+        const { id, name, portraitRef, revision, imageUrl } = arenaNpc
+        encounter = {
+          ...encounter,
+          arenaNpc: { id, name, portraitRef, revision, ...(imageUrl ? { imageUrl } : {}) },
         }
       }
       let startup: CreateBattleSessionInput['startup']

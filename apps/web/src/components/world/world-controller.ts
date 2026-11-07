@@ -300,6 +300,7 @@ export class WorldController {
         environment: incoming.environment,
         ...(sameVersion
           ? {
+              npcs: incoming.npcs,
               objectives: incoming.objectives,
               interactions: incoming.interactions,
               anchors: incoming.anchors,

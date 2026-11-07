@@ -7,13 +7,19 @@ import type {
   EventWorkspaceCatalogue,
 } from '@/server/master/event-authoring-service'
 import { eventRuntimeBlockers } from './event-runtime-support'
+import { PersonalJourneyFields } from './personal-journey-fields'
 import { eventAudienceLabel } from './event-audience'
 import { WORLD_REGIONS } from '@/world/catalog'
 
 import {
+  EVENT_CATEGORIES,
+  EVENT_CATEGORY_LABELS,
   EVENT_EFFECT_TYPES,
   EVENT_FAMILIES,
   EVENT_OBJECTIVE_TYPES,
+  PERSONAL_QUEST_GIVERS,
+  resolveEventCategory,
+  type EventCategory,
   type EventEffectReference,
   type EventObjectiveDefinition,
   type EventPhaseTransition,
@@ -27,6 +33,7 @@ import styles from './event-builder.module.css'
 interface Props {
   canPublish: boolean
   canUseGlobalScope: boolean
+  category: EventCategory
 }
 
 interface WorkspaceResponse {
@@ -127,8 +134,9 @@ function objective(index: number): EventObjectiveDefinition {
   }
 }
 
-export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
+export function EventBuilderClient({ canPublish, canUseGlobalScope, category }: Props) {
   const [tab, setTab] = useState('Setup')
+  const [eventQuery, setEventQuery] = useState('')
   const [catalogue, setCatalogue] = useState<EventWorkspaceCatalogue>({ events: [], rewards: [] })
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const [definition, setDefinition] = useState<PersistentEventDefinition>(initialDefinition)
@@ -146,6 +154,13 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
   const [previewResult, setPreviewResult] = useState<EventDefinitionPreview | null>(null)
   const [busy, setBusy] = useState(false)
   const blockers = eventRuntimeBlockers(definition)
+  const eventCategory = resolveEventCategory(definition)
+  const query = eventQuery.trim().toLowerCase()
+  const visibleEvents = catalogue.events.filter(
+    (entry) =>
+      entry.category === category &&
+      (!query || `${entry.title} ${entry.eventKey}`.toLowerCase().includes(query)),
+  )
   useEffect(() => {
     let active = true
     void post({ operation: 'catalogue' })
@@ -312,6 +327,23 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
       setDraftVersion(draft.draftVersion)
       setBaseVersion(draft.baseVersion)
       setDefinition(draft.definition)
+      setCatalogue((current) => {
+        const entry = current.events.find((event) => event.eventKey === draft.definition.eventKey)
+        return {
+          ...current,
+          events: [
+            ...current.events.filter((event) => event !== entry),
+            {
+              eventKey: draft.definition.eventKey,
+              title: draft.definition.title,
+              scope: draft.definition.scope,
+              category: resolveEventCategory(draft.definition),
+              draftVersion: draft.draftVersion,
+              publishedVersion: entry?.publishedVersion ?? null,
+            },
+          ].sort((left, right) => left.title.localeCompare(right.title)),
+        }
+      })
       setMessage(`Draft v${draft.draftVersion} saved.`)
     })
   }
@@ -333,6 +365,25 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
       setBaseVersion(published.definitionVersion)
       setDefinition(published.definition)
       await loadWorkspace()
+      setCatalogue((current) => {
+        const previous = current.events.find(
+          (entry) => entry.eventKey === published.definition.eventKey,
+        )
+        const entry = {
+          eventKey: published.definition.eventKey,
+          title: published.definition.title,
+          scope: published.definition.scope,
+          category: resolveEventCategory(published.definition),
+          publishedVersion: published.definitionVersion,
+          draftVersion: previous?.draftVersion == null ? null : previous.draftVersion + 1,
+        }
+        return {
+          ...current,
+          events: [...current.events.filter((candidate) => candidate !== previous), entry].sort(
+            (left, right) => left.title.localeCompare(right.title),
+          ),
+        }
+      })
       setProductionConfirmed(false)
       setMessage(`Published Event definition v${published.definitionVersion}.`)
     })
@@ -380,7 +431,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
   }
 
   function startNewDefinition() {
-    const next = structuredClone(initialDefinition)
+    const next = { ...structuredClone(initialDefinition), category }
     replaceEventIdentity(next)
     setMessage('New Event workspace ready.')
     setDetails('')
@@ -396,7 +447,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           <div className={styles.navigatorHeading}>
             <div>
               <p className={styles.eyebrow}>Event definition</p>
-              <h2>Events</h2>
+              <h2>{EVENT_CATEGORY_LABELS[category]}</h2>
             </div>
             <span>{publicationState}</span>
           </div>
@@ -413,6 +464,15 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           </label>
 
           <label>
+            Search events
+            <input
+              type="search"
+              value={eventQuery}
+              onChange={(event) => setEventQuery(event.target.value)}
+              placeholder="Title or event key"
+            />
+          </label>
+          <label>
             Saved events
             <select
               value=""
@@ -422,7 +482,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
               }}
             >
               <option value="">Choose an event</option>
-              {catalogue.events.map((entry) => (
+              {visibleEvents.map((entry) => (
                 <option key={entry.eventKey} value={entry.eventKey}>
                   {entry.title} · {entry.draftVersion ? 'Draft' : 'Published'} ·{' '}
                   {eventAudienceLabel(
@@ -489,6 +549,7 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
             <div className={styles.eventIdentity}>
               <h2 className={styles.definitionHeading}>Persistent Event Definition</h2>
               <strong className={styles.eventTitle}>{definition.title}</strong>
+              <small>{EVENT_CATEGORY_LABELS[eventCategory]}</small>
               <p>
                 <code>{definition.eventKey}</code>
                 <span>{publicationState}</span>
@@ -500,7 +561,16 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
           </header>
 
           <nav className={styles.workspaceTabs} aria-label="Event authoring sections">
-            {['Setup', 'Phases', 'Rewards', 'Preview', 'Schedule'].map((name) => (
+            {[
+              'Setup',
+              ...(eventCategory === 'story-campaigns' || definition.personalJourney
+                ? ['Journey']
+                : []),
+              'Phases',
+              'Rewards',
+              'Preview',
+              'Schedule',
+            ].map((name) => (
               <button
                 key={name}
                 type="button"
@@ -565,6 +635,21 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                 />
               </label>
             </details>
+            <label>
+              Category
+              <select
+                value={eventCategory}
+                onChange={(event) =>
+                  patchDefinition({ category: event.target.value as EventCategory })
+                }
+              >
+                {EVENT_CATEGORIES.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {EVENT_CATEGORY_LABELS[entry]}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               Family
               <select
@@ -667,6 +752,26 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                 onChange={(event) => patchDefinition({ internalNotes: event.target.value })}
               />
             </label>
+          </section>
+
+          <section className={styles.card} hidden={tab !== 'Journey'} aria-label="Personal journey">
+            <h2>Personal journey</h2>
+            <PersonalJourneyFields
+              journey={definition.personalJourney}
+              change={(journey) =>
+                patchDefinition({
+                  personalJourney: journey,
+                  ...(journey && definition.scope.type === 'region'
+                    ? {
+                        scope: {
+                          type: 'region',
+                          key: PERSONAL_QUEST_GIVERS[journey.giverId].position.sectorId,
+                        },
+                      }
+                    : {}),
+                })
+              }
+            />
           </section>
 
           <section className={styles.phases} id="event-phases" hidden={tab !== 'Phases'}>
@@ -813,14 +918,37 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                         aria-label="Objective id"
                       />
                       <select
-                        value={entry.type}
-                        onChange={(event) =>
-                          patchObjective(phaseIndex, objectiveIndex, {
-                            type: event.target.value as EventObjectiveDefinition['type'],
-                          })
-                        }
+                        value={entry.completion ?? entry.type}
+                        onChange={(event) => {
+                          const selection = event.target.value
+                          if (selection === 'world-arrival') {
+                            patchObjective(phaseIndex, objectiveIndex, {
+                              type: 'discover',
+                              completion: 'world-arrival',
+                              worldNavigation: entry.worldNavigation ?? {
+                                sectorId:
+                                  definition.scope.type === 'region'
+                                    ? definition.scope.key.replace(/^region\./, '')
+                                    : 'verdant-expanse',
+                                x: 12,
+                                y: 4,
+                                guidance: 'exact',
+                                autoPath: true,
+                              },
+                            })
+                          } else {
+                            patchObjective(phaseIndex, objectiveIndex, {
+                              type: selection as EventObjectiveDefinition['type'],
+                              completion: undefined,
+                            })
+                          }
+                        }}
                         aria-label="Objective type"
                       >
+                        {eventCategory === 'world-events' ||
+                        entry.completion === 'world-arrival' ? (
+                          <option value="world-arrival">Reach a location</option>
+                        ) : null}
                         {EVENT_OBJECTIVE_TYPES.map((type) => (
                           <option key={type}>{type}</option>
                         ))}
@@ -845,6 +973,12 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                         }
                         aria-label="Objective target"
                       />
+                      {entry.completion === 'world-arrival' ? (
+                        <small>
+                          Each character adds one point on a confirmed arrival while this phase is
+                          live. Set the target to the number of distinct arrivals needed.
+                        </small>
+                      ) : null}
                       <EventNavigationFields
                         value={entry.worldNavigation}
                         onChange={(worldNavigation) =>
@@ -1024,9 +1158,9 @@ export function EventBuilderClient({ canPublish, canUseGlobalScope }: Props) {
                 </select>
               </label>
               <p>
-                Only immutable, budget-approved Character XP packages execute. A trusted service
-                must record participation and reserve eligible claims after the run ends. No reward
-                is earned by navigating or previewing.
+                {definition.personalJourney
+                  ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
+                  : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
               </p>
               <label>
                 Aftermath refs
