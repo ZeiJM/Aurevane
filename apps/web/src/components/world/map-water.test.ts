@@ -30,10 +30,13 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 
 describe('world-connected water presentation', () => {
   it('keeps Willow Cascades’ closed receiving pool free of channel glints', () => {
-    const { rows, roads: exits, ...willow } = atlasSectors().find(({ id }) => id === 'atlas:69:36')!
-    const view = {
+    const { rows, roads, landmarks, ...willow } = atlasSectors().find(
+      ({ id }) => id === 'atlas:69:36',
+    )!
+    const view: WorldSectorView = {
       ...willow,
-      exits,
+      exits: [...roads],
+      landmarks: [...landmarks],
       cells: rows.flatMap((row, y) =>
         [...row].map((terrain, x) => ({
           x,

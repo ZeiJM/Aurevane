@@ -261,3 +261,60 @@ it('reconciles a character again after staff resume and ignores inventory change
   expect((await read()).personalQuests).toEqual([visible])
   expect(await attempts()).toHaveLength(1)
 })
+
+it('reconciles again when the second fragment commits after the activation read', async () => {
+  await grant(0, [first.id])
+  await start()
+  expect((await read()).personalQuests).toEqual([])
+
+  // A single-connection fixture cannot hold the grant open across the read.
+  // Suppressing this one trigger reproduces its already-run, pre-Start view.
+  await db.exec(
+    'alter table app_private.character_item_stacks disable trigger observe_personal_inventory_discovery_added_v1',
+  )
+  await grant(1, [second.id])
+  await db.exec(
+    'alter table app_private.character_item_stacks enable trigger observe_personal_inventory_discovery_added_v1',
+  )
+  expect(await attempts()).toEqual([])
+  expect((await read()).personalQuests).toEqual([visible])
+  expect((await read()).personalQuests).toEqual([visible])
+  expect(await attempts()).toHaveLength(1)
+})
+
+it('evaluates a newly visible activation with the time of the revision read', async () => {
+  await grant(0, [first.id, second.id])
+  expect((await read()).personalQuests).toEqual([])
+  const earlier = (
+    await db.query<{ value: string }>("select (clock_timestamp()-interval '1 second')::text value")
+  ).rows[0]!.value
+  await start()
+  const reconciled = (
+    await db.query<{ quests: unknown[] }>(
+      'select app_private.read_world_personal_quests_v1($1,$1,$2,$3) quests',
+      [owner, position, earlier],
+    )
+  ).rows[0]!.quests
+  expect(reconciled).toEqual([visible])
+  expect((await read()).personalQuests).toEqual([visible])
+  expect(await attempts()).toHaveLength(1)
+})
+
+it('makes forged accepts of undiscovered hidden runs indistinguishable from unknown run IDs', async () => {
+  await start()
+  expect((await read()).personalQuests).toEqual([])
+  const accept = (id: string) =>
+    db.query('select public.commit_world_personal_quest_v1($1,$1,1,gen_random_uuid(),$2,$3,$4)', [
+      owner,
+      id,
+      'accept',
+      'fixture:forged-accept',
+    ])
+  await rejected(
+    () => accept('44444444-4444-4444-8444-444444444444'),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  await rejected(() => accept(runId), 'WORLD_QUEST_ACTION_UNAVAILABLE')
+  expect((await read()).personalQuests).toEqual([])
+  expect(await attempts()).toEqual([])
+})

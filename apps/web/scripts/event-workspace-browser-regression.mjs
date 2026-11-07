@@ -130,6 +130,35 @@ try {
       if (viewport.width === 390) await button.tap()
       else await button.click()
     }
+    await choose('Setup')
+    const starter = page.getByRole('combobox', { name: 'Starter template', exact: true })
+    await expect(starter).toHaveCSS('color', 'rgb(41, 51, 45)')
+    await expect(starter).toHaveCSS('background-color', 'rgb(222, 212, 191)')
+    await starter.selectOption('world-arrival')
+    await page.getByRole('button', { name: 'Start from template' }).click()
+    await choose('Phases')
+    await page.getByText('Phase path', { exact: true }).click()
+    await expect(page.getByText('After 1 confirmed arrival, open Wrap-up.')).toBeVisible()
+    const phase = page.getByRole('textbox', { name: 'Phase id', exact: true }).first()
+    await expect(phase).toHaveValue('reach-crossing')
+    await expect(phase).toHaveCSS('color', 'rgb(41, 51, 45)')
+    await expect(phase).toHaveCSS('background-color', 'rgb(222, 212, 191)')
+    assert.equal(
+      await page.evaluate(
+        () => window.__eventRequests.filter((r) => r.body.operation === 'save-draft').length,
+      ),
+      0,
+      'starting a template does not save it',
+    )
+    await page.screenshot({
+      path: resolve(output, `event-starter-${viewport.width}-${viewport.zoom}.png`),
+      fullPage: true,
+    })
+    await page.reload()
+    await page.locator('body').evaluate((body, zoom) => {
+      body.style.zoom = zoom
+    }, viewport.zoom)
+    await page.getByRole('heading', { name: 'Events & Live Ops', exact: true }).waitFor()
     // Event identity owns every approval, preview and scheduled-run handle.
     const confirmation = page.getByLabel('Confirm publication or schedule for this audience')
     const unschedule = page.getByRole('button', { name: 'Unschedule', exact: true })
@@ -166,6 +195,11 @@ try {
       if (replacement === 'new') {
         await page.getByRole('button', { name: 'New Event', exact: true }).click()
         await expect(page.getByLabel('Event key', { exact: true })).toHaveValue('event.new-event')
+        await expect(section.getByRole('button', { name: 'Setup', exact: true })).toHaveAttribute(
+          'aria-pressed',
+          'true',
+        )
+        await choose('Schedule')
       } else if (replacement === 'manual') {
         await page.getByLabel('Event key', { exact: true }).fill('event.manual-copy')
       } else {

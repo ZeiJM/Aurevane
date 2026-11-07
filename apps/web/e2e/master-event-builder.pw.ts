@@ -311,8 +311,12 @@ async function completeAuthoredStoryJourney(
   const sections = page.getByRole('navigation', { name: 'Event authoring sections' })
   const section = (name: string) => sections.getByRole('button', { name, exact: true }).click()
   await section('Setup')
-  await page.getByLabel('Category', { exact: true }).selectOption('story-campaigns')
-  await page.getByLabel('Region audience', { exact: true }).selectOption('verdant-expanse')
+  await page
+    .getByRole('combobox', { name: 'Category', exact: true })
+    .selectOption('story-campaigns')
+  await page
+    .getByRole('combobox', { name: 'Region audience', exact: true })
+    .selectOption('verdant-expanse')
   await page.getByLabel('Title', { exact: true }).fill(title)
   await section('Journey')
   await page.getByLabel('Enable a personal quest').check()
@@ -337,7 +341,9 @@ async function completeAuthoredStoryJourney(
     queryLocalDatabase(
       `select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([seed, key]))}'::jsonb)`,
     )
-    await page.getByLabel('Quest type').selectOption('item-exchange')
+    await page
+      .getByRole('combobox', { name: 'Quest type', exact: true })
+      .selectOption('item-exchange')
     await page.getByLabel('Item to hand in').fill(seedId)
     await page.getByLabel('Quantity to hand in').fill('7')
     await page.getByLabel('Item to receive').fill(keyId)
@@ -347,8 +353,8 @@ async function completeAuthoredStoryJourney(
     await page.getByLabel('Confirm completion').fill('The sealed realm is open to you.')
     if (realm) {
       await page.getByLabel('Add a sealed realm and guardian').check()
-      await page.getByLabel('Quest giver', { exact: true }).selectOption(joe)
-      await page.getByLabel('Guardian', { exact: true }).selectOption(guardian)
+      await page.getByRole('combobox', { name: 'Quest giver', exact: true }).selectOption(joe)
+      await page.getByRole('combobox', { name: 'Guardian', exact: true }).selectOption(guardian)
       await page
         .getByLabel('Explain the sealed realm', { exact: true })
         .fill('The harvest charm opens the old lock.')
@@ -360,7 +366,7 @@ async function completeAuthoredStoryJourney(
         .getByLabel('Offer a retry after battle')
         .fill('The key still works. Try again when ready.')
       await section('Rewards')
-      await page.getByLabel('Reward packages').selectOption(reward)
+      await page.getByRole('listbox', { name: 'Reward packages', exact: true }).selectOption(reward)
     }
   } else {
     await page.getByLabel('Cell X', { exact: true }).fill('3')
@@ -453,23 +459,33 @@ async function completeAuthoredStoryJourney(
   await dialogue.getByRole('button', { name: 'Accept quest', exact: true }).click()
   if (exchange) {
     await expect.poll(progress).toBe('ready')
-    await expect(dialogue.getByRole('button', { name: 'Hand over 7 Emberseeds' })).toBeVisible()
-    const state = await readWorld()
-    const handOver = () =>
-      page.request.post('/api/world', {
-        data: {
-          characterId,
-          expectedVersion: state.version,
-          commandId: randomUUID(),
-          intent: {
-            kind: 'interact',
-            interactionId: `quest-run-${runId}`,
-            actionId: 'hand-over',
-          },
-        },
+    const handOverButton = dialogue.getByRole('button', { name: 'Hand over 7 Emberseeds' })
+    await expect(handOverButton).toBeVisible()
+    const interactionId = `quest-run-${runId}`
+    if (realm) {
+      const completed = page.waitForResponse((response) => {
+        const request = response.request()
+        if (request.method() !== 'POST' || new URL(response.url()).pathname !== '/api/world')
+          return false
+        const intent = request.postDataJSON()?.intent
+        return intent?.interactionId === interactionId && intent.actionId === 'hand-over'
       })
-    const replies = await Promise.all([handOver(), handOver()])
-    expect(replies.map((response) => response.status()).sort()).toEqual([200, 409])
+      await handOverButton.click()
+      expect((await completed).status()).toBe(200)
+    } else {
+      const state = await readWorld()
+      const handOver = () =>
+        page.request.post('/api/world', {
+          data: {
+            characterId,
+            expectedVersion: state.version,
+            commandId: randomUUID(),
+            intent: { kind: 'interact', interactionId, actionId: 'hand-over' },
+          },
+        })
+      const replies = await Promise.all([handOver(), handOver()])
+      expect(replies.map((response) => response.status()).sort()).toEqual([200, 409])
+    }
     const receipt = queryLocalDatabase(`
     select jsonb_build_object(
       'seed', (select sum(quantity) from app_private.character_item_stacks where character_id='${characterId}' and item_id='${seedId}'),
@@ -618,22 +634,28 @@ test('an authored World NPC challenge admits a battle only within reach', async 
         intent,
       },
     })
+  const interactionId = `npc-challenge-${npcId}`
+  const denied = await command({ kind: 'interact', actionId: 'challenge-npc', interactionId })
+  expect(denied.status()).toBe(400)
+  expect((await denied.json()).error.message).toBe(
+    'Stop moving within reach of the NPC before challenging them.',
+  )
+  expect((await readWorld()).battleSessionId).toBeNull()
   expect(
-    (
-      await command({
-        kind: 'interact',
-        actionId: 'challenge-npc',
-        interactionId: `npc-challenge-${npcId}`,
-      })
-    ).status(),
-  ).toBe(400)
+    queryLocalDatabase(`
+      select count(*) from app_private.world_npc_battles
+      where character_id='${start.characterId}' and npc_id='${npcId}';
+    `),
+  ).toBe('0')
   expect((await command({ kind: 'walk', destination: position })).ok()).toBe(true)
 
   await page.goto('/world')
   await expect.poll(async () => (await readWorld()).position, { timeout: 15_000 }).toEqual(position)
   await expect
     .poll(async () =>
-      (await readWorld()).interactions.some((row) => row.actionId === 'challenge-npc'),
+      (await readWorld()).interactions.some(
+        (row) => row.id === interactionId && row.actionId === 'challenge-npc',
+      ),
     )
     .toBe(true)
   await page.reload()
