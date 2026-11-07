@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "production-build-created",
+  "status": "ready-for-compatible-hold",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -120,7 +120,8 @@
     "requestedOnce": true,
     "policy": "Inspect the actual deployment history after any interruption and reuse the matching build.",
     "projectLockReasserted": true,
-    "completedCreate": true
+    "completedCreate": true,
+    "verifiedSource": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2"
   },
   "holdActive": false,
   "promoted": false,
@@ -149,5 +150,6 @@
   },
   "deploymentId": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
   "deploymentUrl": "aurevane-kwzxxvap7-zeijms-projects.vercel.app",
-  "buildState": "INITIALIZING"
+  "buildState": "READY",
+  "holdRuleId": "45a07761-caca-49ad-9017-a665fb051023"
 }
