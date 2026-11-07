@@ -511,9 +511,7 @@
       }
     ],
     "grammarPrivate": true,
-    "migrationVersions": [
-      "20261107103304"
-    ]
+    "migrationVersions": ["20261107103304"]
   },
   "postMigrationControls": {
     "stockRls": {
@@ -725,5 +723,5 @@
     "id": "Automation_1343d4b26ad081919eb65e2273a3fe91",
     "enabled": false
   },
-  "remaining": "Merge the documentation-only release receipt through configured checks. Owner gameplay acceptance remains open."
+  "remaining": "Owner gameplay acceptance remains open."
 }
