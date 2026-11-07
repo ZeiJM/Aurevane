@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "drain-complete-schema-install-intent",
+  "status": "description-grammar-installed-content-intent",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -125,7 +125,13 @@
   },
   "holdActive": true,
   "promoted": true,
-  "migrationsApplied": [],
+  "migrationsApplied": [
+    {
+      "source": "20261106143000_item_technique_descriptions.sql",
+      "hostedVersion": "20261107103304",
+      "sha256": "1c42a1740e93b44e0df11b4da59dae58e49de031419e1ad0e1bf63c2a4b575d6"
+    }
+  ],
   "sourceRegistrationDone": false,
   "publicationsDone": false,
   "scope": {
@@ -439,5 +445,13 @@
     "older_client_transactions": 0
   },
   "freshPredecessorsMatch": true,
-  "targetDraftCount": 0
+  "targetDraftCount": 0,
+  "grammarVerification": {
+    "migration_version": "20261107103304",
+    "helper_exists": true,
+    "helper_invoker": true,
+    "helper_private": true,
+    "bound_to_validator": true
+  },
+  "contentWriteIntent": true
 }
