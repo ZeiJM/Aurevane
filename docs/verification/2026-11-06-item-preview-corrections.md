@@ -1,6 +1,6 @@
 # Item preview corrections — implementation evidence
 
-Status: implemented in the correction branch; configured exact-source CI and controlled release are pending. These corrections are **not live**. The preceding combined Item/Technique/Range release is already live and completed through PRs1021/1022; none of its operations should be replayed.
+Status: **verified live** for Owner testing on November 7. The [production release record](2026-11-07-item-preview-corrections-production-release.md) contains the final CI and production results. The development evidence below records the intermediate branch states.
 
 ## Reviewed behavior
 
