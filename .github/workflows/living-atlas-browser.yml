@@ -12,6 +12,7 @@ on:
       - 'apps/web/e2e/master-event-builder.pw.ts'
       - 'apps/web/e2e/world-*.ts'
       - 'supabase/migrations/*living_atlas*'
+      - 'supabase/migrations/*combat_discovery*'
       - 'supabase/migrations/*personal*'
       - 'supabase/migrations/*world*'
       - '.github/workflows/living-atlas-browser.yml'
@@ -71,8 +72,16 @@ jobs:
         run: |
           pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
             --project=desktop-chromium --project=mobile-chromium \
-            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Cinderwake (recovery|combat trial))|Farmer Joe dialogue' \
+            --grep 'an authored (Story Campaign|item exchange|World NPC|Alder Venn wolf hunt|Ashen Sentinel|Cinderwake (recovery|combat trial))|Farmer Joe dialogue' \
             --output=test-results-story --reporter=list,github
+      - name: Save authenticated story failure context
+        if: ${{ failure() && steps.story.outcome == 'failure' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: authenticated-story-failure
+          path: apps/web/test-results-story/**/error-context.md
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Verify authenticated Atlas and multiplayer
         if: ${{ !cancelled() && (steps.story.outcome == 'success' || steps.story.outcome == 'failure') }}
         run: pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts --reporter=list,github
@@ -137,6 +146,7 @@ jobs:
             apps/web/test-results-story/**/authored-world-npc-challenge.png
             apps/web/test-results-story/**/cinderwake-*.png
             apps/web/test-results-story/**/venn-hunt-*.png
+            apps/web/test-results-story/**/ashen-sentinel-*.png
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png

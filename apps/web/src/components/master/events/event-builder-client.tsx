@@ -18,6 +18,7 @@ import {
 import { PersonalJourneyFields } from './personal-journey-fields'
 import { RepeatableTravelFields } from './repeatable-travel-fields'
 import { InventoryRestorationFields } from './inventory-restoration-fields'
+import { CombatDiscoveryFields } from './combat-discovery-fields'
 import { eventAudienceLabel } from './event-audience'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { isWorldWeather, WORLD_WEATHER } from '@/world/environment'
@@ -153,6 +154,7 @@ export function EventBuilderClient({
   const blockers = eventRuntimeBlockers(definition)
   const eventCategory = resolveEventCategory(definition)
   const inventoryDiscovery = definition.inventoryDiscovery
+  const combatDiscovery = definition.combatDiscovery
   const hasInventoryRestoration = Boolean(inventoryDiscovery?.restoration)
   const query = eventQuery.trim().toLowerCase()
   const visibleEvents = catalogue.events.filter(
@@ -603,7 +605,7 @@ export function EventBuilderClient({
               definition.repeatableTravel
                 ? ['Journey']
                 : []),
-              ...(eventCategory === 'hidden-discoveries' || inventoryDiscovery
+              ...(eventCategory === 'hidden-discoveries' || inventoryDiscovery || combatDiscovery
                 ? ['Discovery']
                 : []),
               'Phases',
@@ -877,7 +879,7 @@ export function EventBuilderClient({
               <input
                 type="checkbox"
                 checked={Boolean(inventoryDiscovery)}
-                disabled={!canUseGlobalScope && !inventoryDiscovery}
+                disabled={(!canUseGlobalScope || Boolean(combatDiscovery)) && !inventoryDiscovery}
                 onChange={(event) =>
                   patchDefinition({
                     inventoryDiscovery: event.target.checked
@@ -937,6 +939,29 @@ export function EventBuilderClient({
                 />
               </>
             ) : null}
+          </section>
+
+          <section
+            className={styles.card}
+            hidden={tab !== 'Discovery'}
+            aria-label="Combat discovery"
+          >
+            <h2>Combat discovery</h2>
+            {inventoryDiscovery ? (
+              <p>Turn off the carried Item discovery to use this trigger.</p>
+            ) : null}
+            <CombatDiscoveryFields
+              key={definition.eventKey}
+              value={combatDiscovery}
+              rewards={catalogue.rewards}
+              canEnable={
+                canUseGlobalScope &&
+                !inventoryDiscovery &&
+                !definition.personalJourney &&
+                !definition.repeatableTravel
+              }
+              change={(next) => patchDefinition({ combatDiscovery: next })}
+            />
           </section>
 
           <section className={styles.phases} id="event-phases" hidden={tab !== 'Phases'}>
@@ -1362,15 +1387,17 @@ export function EventBuilderClient({
                 </select>
               </label>
               <p>
-                {definition.repeatableTravel?.journey.type === 'defeat-and-report'
-                  ? 'Choose the hunt’s Character XP package in Journey. Leave shared rewards and aftermath empty.'
-                  : definition.personalJourney?.type === 'item-exchange'
-                    ? definition.personalJourney.realm
-                      ? 'Choose an approved Character XP reward for the first guardian victory.'
-                      : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
-                    : definition.personalJourney
-                      ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
-                      : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
+                {combatDiscovery
+                  ? 'Choose the challenge’s Character XP packages in Discovery. Leave shared rewards and aftermath empty.'
+                  : definition.repeatableTravel?.journey.type === 'defeat-and-report'
+                    ? 'Choose the hunt’s Character XP package in Journey. Leave shared rewards and aftermath empty.'
+                    : definition.personalJourney?.type === 'item-exchange'
+                      ? definition.personalJourney.realm
+                        ? 'Choose an approved Character XP reward for the first guardian victory.'
+                        : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
+                      : definition.personalJourney
+                        ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
+                        : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
               </p>
               <label>
                 Aftermath refs

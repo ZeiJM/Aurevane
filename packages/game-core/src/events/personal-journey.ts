@@ -96,3 +96,16 @@ export interface PersonalInventoryDiscovery {
   readonly clue: string
   readonly restoration?: PersonalInventoryRestoration
 }
+
+export interface PersonalCombatDiscovery {
+  readonly npcTag: string
+  readonly requiredDefeats: number
+  readonly timeZone: string
+  readonly resetMinute: number
+  readonly opponentNpcId: string
+  readonly mode: 'evergreen' | 'seasonal'
+  readonly ready: string
+  readonly completed: string
+  readonly firstRewardPackageRef: string
+  readonly repeatRewardPackageRef?: string
+}

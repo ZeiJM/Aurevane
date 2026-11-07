@@ -319,6 +319,72 @@ describe('Event Builder authoring service', () => {
     ).resolves.toMatchObject({ draft: { definition: candidate } })
   })
 
+  it('previews and saves a combat discovery and requires an End for seasonal scheduling', async () => {
+    const { service } = serviceFor(access(OWNER, ['game-owner']))
+    const candidate = {
+      ...definition({ type: 'global' }),
+      eventKey: 'event.ashen-sentinel',
+      title: 'The Ashen Sentinel',
+      family: 'lore-revelation',
+      category: 'hidden-discoveries',
+      phases: [
+        {
+          id: 'discovery',
+          name: 'Discovery',
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+          transition: { type: 'manual' },
+        },
+      ],
+      combatDiscovery: {
+        npcTag: 'ashbound-raider',
+        requiredDefeats: 14,
+        timeZone: 'UTC',
+        resetMinute: 0,
+        opponentNpcId: '77777777-7777-4777-8777-777777777777',
+        mode: 'seasonal',
+        ready: 'The challenger is ready.',
+        completed: 'You have won the challenge.',
+        firstRewardPackageRef: 'reward.first',
+        repeatRewardPackageRef: 'reward.repeat',
+      },
+    } as const
+    await expect(
+      service.previewDefinition({ actorUserId: OWNER, definition: candidate }),
+    ).resolves.toMatchObject({ rewardPackageRefs: ['reward.first', 'reward.repeat'] })
+    await service.saveDraft({
+      actorUserId: OWNER,
+      definition: candidate,
+      baseVersion: null,
+      expectedDraftVersion: null,
+    })
+    await expect(
+      service.loadWorkspace({ actorUserId: OWNER, eventKey: candidate.eventKey }),
+    ).resolves.toMatchObject({ draft: { definition: candidate } })
+    await service.publish({
+      actorUserId: OWNER,
+      definition: candidate,
+      expectedBaseVersion: null,
+      correlationKey: '88888888-8888-4888-8888-888888888888',
+      confirmed: true,
+    })
+    const schedule = {
+      actorUserId: OWNER,
+      eventKey: candidate.eventKey,
+      idempotencyKey: '88888888-8888-4888-8888-888888888888',
+      scheduledStartAt: '2026-11-01T12:00:00.000Z',
+      confirmed: true,
+    }
+    await expect(service.schedule({ ...schedule, scheduledEndAt: null })).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
+      message: expect.stringMatching(/end time.*seasonal/i),
+    })
+    await expect(
+      service.schedule({ ...schedule, scheduledEndAt: '2026-11-02T12:00:00.000Z' }),
+    ).resolves.toMatchObject({ stateVersion: 1 })
+  })
+
   it('rejects arbitrary execution fields before persistence', () => {
     const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
     const invalid = {

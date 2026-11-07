@@ -233,6 +233,19 @@ function mapRpcError(error: RpcError): never {
       'Choose a tag used by a published World encounter.',
       { cause: error },
     )
+  const combatDiscoveryMessages: Readonly<Record<string, string>> = {
+    EVENT_COMBAT_DISCOVERY_INVALID:
+      'Complete the daily combat discovery using Global scope and one manual phase without shared rewards or effects.',
+    EVENT_COMBAT_DISCOVERY_TARGET_UNAVAILABLE: 'Choose a tag used by a published World encounter.',
+    EVENT_COMBAT_DISCOVERY_OPPONENT_UNAVAILABLE:
+      'Choose a published World encounter that does not share the qualifying tag.',
+    EVENT_COMBAT_DISCOVERY_REWARD_UNAVAILABLE:
+      'Choose an approved Character XP package for each configured discovery reward.',
+    EVENT_COMBAT_DISCOVERY_SEASON_END_REQUIRED: 'Choose an end time for a seasonal discovery.',
+  }
+  if (Object.hasOwn(combatDiscoveryMessages, message)) {
+    throw new AurevaneError('INVALID_REQUEST', combatDiscoveryMessages[message]!, { cause: error })
+  }
   if (
     error.code === '22023' ||
     message.includes('EVENT_DEFINITION_') ||

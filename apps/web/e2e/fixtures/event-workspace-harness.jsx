@@ -63,9 +63,15 @@ const run = {
 window.__eventRequests = []
 let castDraft = null
 let trialDraft = null
+let combatDraft = null
 const trialNpc = {
   id: 'ea82f11d-41df-4c5d-bba6-727904e95de8',
   name: 'Forge Sentinel',
+  sectorId: 'emberreach',
+}
+const challengeNpc = {
+  id: '7cc73d08-0742-4b08-8f96-8e56294073cb',
+  name: 'Ashen Sentinel',
   sectorId: 'emberreach',
 }
 window.fetch = async (input, options) => {
@@ -100,14 +106,16 @@ window.fetch = async (input, options) => {
         window.__releaseTrialNpcLookup = resolve
       })
     }
-    return Response.json({ npc: window.__retiredTrialNpc ? null : trialNpc })
+    const npcs = window.__retiredTrialNpc ? [challengeNpc] : [trialNpc, challengeNpc]
+    return Response.json({ npc: npcs.find((npc) => input.endsWith(`npcId=${npc.id}`)) ?? null })
   }
   if (input.startsWith('/api/master/events/restoration-trial-npcs?sectorId='))
     return Response.json({
-      npcs:
-        !window.__retiredTrialNpc && input.endsWith('sectorId=emberreach')
-          ? [{ id: trialNpc.id, name: trialNpc.name }]
-          : [],
+      npcs: input.endsWith('sectorId=emberreach')
+        ? (window.__retiredTrialNpc ? [challengeNpc] : [trialNpc, challengeNpc]).map(
+            ({ id, name }) => ({ id, name }),
+          )
+        : [],
     })
   const body = JSON.parse(options.body)
   window.__eventRequests.push({ path: input, body })
@@ -156,19 +164,20 @@ window.fetch = async (input, options) => {
           draft:
             body.eventKey === 'event.restoration-trial'
               ? trialDraft
-              : body.eventKey === 'event.cast-check'
-                ? castDraft
-                : body.eventKey === 'event.stale'
-                  ? {
-                      definition: { ...definition, eventKey: 'event.stale' },
-                      baseVersion: 2,
-                      draftVersion: 2,
-                    }
-                  : null,
-          current:
-            body.eventKey === 'event.restoration-trial'
-              ? null
-              : { definition, definitionVersion: 3 },
+              : body.eventKey === 'event.ashen-sentinel'
+                ? combatDraft
+                : body.eventKey === 'event.cast-check'
+                  ? castDraft
+                  : body.eventKey === 'event.stale'
+                    ? {
+                        definition: { ...definition, eventKey: 'event.stale' },
+                        baseVersion: 2,
+                        draftVersion: 2,
+                      }
+                    : null,
+          current: ['event.restoration-trial', 'event.ashen-sentinel'].includes(body.eventKey)
+            ? null
+            : { definition, definitionVersion: 3 },
           versions: [{ definitionVersion: 3, current: true, publishedAt: '2026-10-25T12:00:00Z' }],
         },
       })
@@ -185,6 +194,7 @@ window.fetch = async (input, options) => {
       }
       if (body.definition.eventKey === 'event.cast-check') castDraft = draft
       if (body.definition.eventKey === 'event.restoration-trial') trialDraft = draft
+      if (body.definition.eventKey === 'event.ashen-sentinel') combatDraft = draft
       return Response.json({ draft })
     }
     if (body.operation === 'validate')

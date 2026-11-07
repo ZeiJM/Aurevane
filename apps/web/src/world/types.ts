@@ -144,6 +144,8 @@ export type WorldInteractionActionId =
   | 'leave-realm'
   | 'challenge-realm'
   | 'challenge-npc'
+  | 'challenge-avenger'
+  | 'claim-avenger-reward'
 export interface WorldInteraction {
   id: string
   objectiveId: string

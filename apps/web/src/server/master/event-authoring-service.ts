@@ -371,6 +371,17 @@ export function createEventAuthoringService({
         ? validTimestamp(input.testClock, 'testClock')
         : new Date(0).toISOString()
       const repeatable = definition.repeatableTravel?.journey
+      const discovery = definition.combatDiscovery
+      const rewardPackageRefs = discovery
+        ? [
+            ...new Set([
+              discovery.firstRewardPackageRef,
+              ...(discovery.repeatRewardPackageRef ? [discovery.repeatRewardPackageRef] : []),
+            ]),
+          ]
+        : repeatable?.type === 'defeat-and-report'
+          ? [repeatable.rewardPackageRef]
+          : [...definition.rewardPackageRefs]
 
       return {
         testClock,
@@ -388,10 +399,7 @@ export function createEventAuthoringService({
           cleanupEffectCount: phase.cleanupEffects.length,
           transitionType: phase.transition.type,
         },
-        rewardPackageRefs:
-          repeatable?.type === 'defeat-and-report'
-            ? [repeatable.rewardPackageRef]
-            : [...definition.rewardPackageRefs],
+        rewardPackageRefs,
         aftermathRefs: [...definition.aftermathRefs],
       }
     },
@@ -453,6 +461,9 @@ export function createEventAuthoringService({
       }
       if (current.definition.scope.type === 'global') {
         requireCapability(access, 'events.global_scope')
+      }
+      if (current.definition.combatDiscovery?.mode === 'seasonal' && !end) {
+        throw new AurevaneError('INVALID_REQUEST', 'Choose an end time for a seasonal discovery.')
       }
 
       return store.schedule({

@@ -94,6 +94,90 @@ describe('persistent event definition', () => {
     expect(() => validatePersistentEventDefinition(definition())).not.toThrow()
   })
 
+  it('validates a private daily combat discovery and rejects invalid or mixed triggers', () => {
+    const candidate = {
+      ...definition(),
+      category: 'hidden-discoveries' as const,
+      scope: { type: 'global' as const },
+      phases: [
+        {
+          id: 'reveal',
+          name: 'Reveal',
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+          transition: { type: 'manual' as const },
+        },
+      ],
+      rewardPackageRefs: [],
+      aftermathRefs: [],
+      combatDiscovery: {
+        npcTag: 'ashbound-raider',
+        requiredDefeats: 14,
+        timeZone: 'America/Port_of_Spain',
+        resetMinute: 390,
+        opponentNpcId: '77777777-7777-4777-8777-777777777777',
+        mode: 'evergreen' as const,
+        ready: 'A challenger is waiting.',
+        completed: 'The challenge is over.',
+        firstRewardPackageRef: 'reward.first',
+      },
+    }
+    expect(() => validatePersistentEventDefinition(candidate)).not.toThrow()
+    for (const invalid of [
+      { npcTag: 'Ashbound-Raider' },
+      { requiredDefeats: 51 },
+      { timeZone: 'bad-timezone' },
+      { timeZone: '+06:30' },
+      { resetMinute: 1440 },
+      { opponentNpcId: 'a-public-label' },
+      { mode: 'unlimited' },
+      { ready: '' },
+      { firstRewardPackageRef: 'Reward.First' },
+      { repeatRewardPackageRef: '' },
+      { unexpected: true },
+    ]) {
+      expect(() =>
+        validatePersistentEventDefinition({
+          ...candidate,
+          combatDiscovery: { ...candidate.combatDiscovery, ...invalid },
+        } as unknown as PersistentEventDefinition),
+      ).toThrow()
+    }
+    expect(() =>
+      validatePersistentEventDefinition({
+        ...candidate,
+        scope: { type: 'region', key: 'region.frostmere' },
+      }),
+    ).toThrow(/global/i)
+    expect(() =>
+      validatePersistentEventDefinition({
+        ...candidate,
+        inventoryDiscovery: {
+          firstItemId: 'item.first',
+          secondItemId: 'item.second',
+          clue: 'A clue.',
+        },
+      }),
+    ).toThrow(/one.*discovery|other.*journey/i)
+    expect(() =>
+      validatePersistentEventDefinition({
+        ...candidate,
+        rewardPackageRefs: ['reward.shared'],
+      }),
+    ).toThrow(/shared/i)
+    expect(() =>
+      validatePersistentEventDefinition({
+        ...candidate,
+        combatDiscovery: {
+          ...candidate.combatDiscovery,
+          mode: 'seasonal',
+          repeatRewardPackageRef: 'reward.first',
+        },
+      } as PersistentEventDefinition),
+    ).not.toThrow()
+  })
+
   it('restricts weather to known conditions on real World Arrivals', () => {
     const event = definition()
     const first = event.phases[0]!

@@ -35,6 +35,21 @@ it('keeps the selected dialogue reply explicit at the command boundary', () => {
   expect(parseWorldCommand({ ...base, intent: { ...intent, actionId: 'continue' } })).toBeNull()
 })
 
+it.each(['challenge-avenger', 'claim-avenger-reward'])(
+  'allows %s only for an explicit private encounter ticket',
+  (actionId) => {
+    const ticket = '00000000-0000-4000-8000-000000000047'
+    const intent = { kind: 'interact', interactionId: `avenger-${ticket}`, actionId }
+    expect(parseWorldCommand({ ...base, intent: { ...intent, npcId: base.characterId } })).toEqual({
+      ...base,
+      intent,
+    })
+    expect(
+      parseWorldCommand({ ...base, intent: { ...intent, interactionId: `quest-run-${ticket}` } }),
+    ).toBeNull()
+  },
+)
+
 it('accepts hunt reward collection only for a repeatable attempt and ignores a caller-supplied reward', () => {
   const actionId = 'claim-hunt-reward'
   const intent = {

@@ -137,6 +137,8 @@ export function WorldMissions({
                 interaction.objectiveId === objective.id &&
                 (interaction.actionId === 'report' ||
                   interaction.actionId === 'hand-over' ||
+                  interaction.actionId === 'challenge-avenger' ||
+                  interaction.actionId === 'claim-avenger-reward' ||
                   ((isWorldRestorationAction(interaction.actionId) ||
                     interaction.actionId === 'claim-hunt-reward') &&
                     !!objective.destination &&

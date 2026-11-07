@@ -22,6 +22,7 @@ import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { projectWorldFerry } from './world-ferry'
 import {
+  avengerTicketReference,
   isWorldRestorationAction,
   isWorldUuid,
   personalQuestRunId,
@@ -425,6 +426,36 @@ export async function commitWorldCommand(
     )
     const { view } = await readWorld(userId, characterId)
     return { ...view, battleSessionId }
+  }
+  if (
+    command.intent.kind === 'interact' &&
+    (command.intent.actionId === 'challenge-avenger' ||
+      command.intent.actionId === 'claim-avenger-reward')
+  ) {
+    const ticketId = avengerTicketReference(command.intent.interactionId)
+    if (!ticketId) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid private challenge.')
+    if (command.intent.actionId === 'challenge-avenger') {
+      const { startWorldAvengerBattle } = await import('./world-npc-battle')
+      const battleSessionId = await startWorldAvengerBattle(
+        userId,
+        characterId,
+        ticketId,
+        command,
+        fingerprint,
+      )
+      const { view } = await readWorld(userId, characterId)
+      return { ...view, battleSessionId }
+    }
+    const { error } = await createSupabaseAdminClient().rpc('claim_world_avenger_reward_v1', {
+      p_user_id: userId,
+      p_character_id: characterId,
+      p_expected_version: command.expectedVersion,
+      p_command_id: command.commandId,
+      p_ticket_id: ticketId,
+      p_request_fingerprint: fingerprint,
+    })
+    if (error) worldRpcError(error)
+    return (await readWorld(userId, characterId)).view
   }
   const commitPersonalQuest = async (runId: string, actionId: WorldInteractionActionId) => {
     const { error } = await createSupabaseAdminClient().rpc('commit_world_personal_quest_v1', {

@@ -1343,6 +1343,70 @@ it.each(['report', 'claim-hunt-reward'] as const)(
   },
 )
 
+it('claims an Avenger reward through the owned ticket even on a replay after World movement', async () => {
+  const ticketId = '00000000-0000-4000-8000-000000000047'
+  const initial = payload()
+  const claim = {
+    ...command,
+    intent: {
+      kind: 'interact',
+      interactionId: `avenger-${ticketId}`,
+      actionId: 'claim-avenger-reward',
+    } as const,
+  }
+  let claimed = false
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'claim_world_avenger_reward_v1') {
+      claimed = true
+      return { data: { ...initial.state, version: 4 } }
+    }
+    return {
+      data: {
+        ...initial,
+        state: { ...initial.state, version: claimed ? 4 : 1 },
+        personalQuests: [
+          {
+            runId: ticketId,
+            title: 'The Ashen Sentinel',
+            body: 'The Sentinel has fallen. The gate is quiet again.',
+            avenger: true,
+            giverId: '55555555-5555-4555-8555-555555555555',
+            speaker: 'Ashen Sentinel',
+            progress: 'completed',
+            ...(claimed
+              ? { awardedXp: 19 }
+              : { rewardPending: true, action: 'claim-avenger-reward' }),
+            local: true,
+          },
+        ],
+      },
+    }
+  })
+  expect((await readWorld('owner', characterId)).view.interactions).toContainEqual(
+    expect.objectContaining({ id: claim.intent.interactionId, actionId: 'claim-avenger-reward' }),
+  )
+  await commitWorldCommand('owner', characterId, claim)
+  const replay = await commitWorldCommand('owner', characterId, claim)
+  expect(replay.version).toBe(4)
+  expect(replay.objectives).toContainEqual(
+    expect.objectContaining({ id: claim.intent.interactionId, completed: true }),
+  )
+  const writes = rpc.mock.calls.filter(([name]) => name === 'claim_world_avenger_reward_v1')
+  expect(writes).toHaveLength(2)
+  expect(writes[0]).toEqual([
+    'claim_world_avenger_reward_v1',
+    {
+      p_user_id: 'owner',
+      p_character_id: characterId,
+      p_expected_version: 1,
+      p_command_id: claim.commandId,
+      p_ticket_id: ticketId,
+      p_request_fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+    },
+  ])
+  expect(writes[1]).toEqual(writes[0])
+})
+
 it.each(['restore-item', 'choose-restoration-trial'] as const)(
   'routes %s retries through the durable quest receipt after later movement',
   async (actionId) => {

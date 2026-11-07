@@ -3,6 +3,7 @@ import {
   PERSONAL_QUEST_GIVERS,
   isPersonalQuestGiver,
   isPersonalJourneyNpcId,
+  type PersonalCombatDiscovery,
   type PersonalHuntJourney,
   type PersonalJourney,
   type PersonalInventoryDiscovery,
@@ -158,6 +159,7 @@ export interface PersistentEventDefinition {
   readonly category?: EventCategory
   readonly personalJourney?: PersonalJourney
   readonly inventoryDiscovery?: PersonalInventoryDiscovery
+  readonly combatDiscovery?: PersonalCombatDiscovery
   readonly repeatableTravel?: RepeatableTravel
   readonly scope: EventScope
   readonly phases: readonly PersistentEventPhaseDefinition[]
@@ -304,7 +306,10 @@ function isoTimestamp(value: string, label: string): void {
   if (!Number.isFinite(Date.parse(value))) throw new TypeError(`${label} must be an ISO timestamp.`)
 }
 
-function validatePrivateQuestPhase(definition: PersistentEventDefinition): void {
+function validatePrivateQuestPhase(
+  definition: PersistentEventDefinition,
+  subject = 'A personal journey',
+): void {
   const { phases, aftermathRefs } = definition
   if (
     phases.length !== 1 ||
@@ -314,10 +319,83 @@ function validatePrivateQuestPhase(definition: PersistentEventDefinition): void 
     phases[0].cleanupEffects.length ||
     aftermathRefs.length
   ) {
-    throw new TypeError(
-      'A personal journey uses one manual phase without shared objectives or effects.',
-    )
+    throw new TypeError(`${subject} uses one manual phase without shared objectives or effects.`)
   }
+}
+
+function validateCalendarReset(timeZone: string, resetMinute: number): void {
+  try {
+    if (typeof timeZone !== 'string' || !timeZone) throw new Error()
+    new Intl.DateTimeFormat('en', { timeZone })
+  } catch {
+    throw new TypeError('Choose a valid calendar timezone.')
+  }
+  if (!Number.isInteger(resetMinute) || resetMinute < 0 || resetMinute > 1439) {
+    throw new TypeError('Choose a calendar reset time from 00:00 to 23:59.')
+  }
+}
+
+function validateCombatDiscovery(definition: PersistentEventDefinition): void {
+  const {
+    combatDiscovery: discovery,
+    inventoryDiscovery,
+    personalJourney,
+    repeatableTravel,
+    scope,
+    rewardPackageRefs,
+  } = definition
+  if (
+    inventoryDiscovery !== undefined ||
+    personalJourney !== undefined ||
+    repeatableTravel !== undefined
+  )
+    throw new TypeError('Choose only one discovery or personal journey per Event.')
+  if (resolveEventCategory(definition) !== 'hidden-discoveries' || scope.type !== 'global')
+    throw new TypeError('A daily combat discovery requires a global Hidden Discovery.')
+  validatePrivateQuestPhase(definition, 'A daily combat discovery')
+  if (rewardPackageRefs.length)
+    throw new TypeError('Choose the combat discovery XP packages without shared Event rewards.')
+  const fields = [
+    'npcTag',
+    'requiredDefeats',
+    'timeZone',
+    'resetMinute',
+    'opponentNpcId',
+    'mode',
+    'ready',
+    'completed',
+    'firstRewardPackageRef',
+    'repeatRewardPackageRef',
+  ]
+  if (
+    !discovery ||
+    typeof discovery !== 'object' ||
+    Array.isArray(discovery) ||
+    Object.keys(discovery).some((field) => !fields.includes(field))
+  )
+    throw new TypeError('The daily combat discovery must contain only supported fields.')
+  if (typeof discovery.npcTag !== 'string' || !/^[a-z][a-z0-9-]{1,31}$/.test(discovery.npcTag))
+    throw new TypeError(
+      'Enter a World encounter tag with 2–32 lowercase letters, digits or hyphens, starting with a letter.',
+    )
+  if (
+    !Number.isInteger(discovery.requiredDefeats) ||
+    discovery.requiredDefeats < 1 ||
+    discovery.requiredDefeats > 50
+  )
+    throw new TypeError('Choose a required daily defeat count from 1 to 50.')
+  if (typeof discovery.timeZone !== 'string' || !/^[A-Za-z]/.test(discovery.timeZone))
+    throw new TypeError('Choose a valid calendar timezone.')
+  validateCalendarReset(discovery.timeZone, discovery.resetMinute)
+  if (!isPersonalJourneyNpcId(discovery.opponentNpcId))
+    throw new TypeError('Choose a published World encounter NPC for the challenge.')
+  if (discovery.mode !== 'evergreen' && discovery.mode !== 'seasonal')
+    throw new TypeError('Choose Evergreen or Seasonal challenge availability.')
+  shortText(discovery.ready, 'Challenge revealed dialogue', 800)
+  shortText(discovery.completed, 'Challenge completed dialogue', 800)
+  identity(discovery.firstRewardPackageRef, 'First-clear Character XP package')
+  if (discovery.repeatRewardPackageRef !== undefined)
+    identity(discovery.repeatRewardPackageRef, 'Repeat Character XP package')
 }
 
 function validateJourneyDialogue(journey: PersonalJourney | PersonalHuntJourney): void {
@@ -487,6 +565,8 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     }
   }
 
+  if (definition.combatDiscovery !== undefined) validateCombatDiscovery(definition)
+
   if (definition.inventoryDiscovery !== undefined) {
     const discovery = definition.inventoryDiscovery
     if (
@@ -540,21 +620,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     const policy = repeatable.recurrence
     if (!policy || !['rolling-24h', 'calendar-day', 'calendar-week'].includes(policy.mode))
       throw new TypeError('Choose a supported recurrence.')
-    if (policy.mode !== 'rolling-24h') {
-      try {
-        if (typeof policy.timeZone !== 'string' || !policy.timeZone) throw new Error()
-        new Intl.DateTimeFormat('en', { timeZone: policy.timeZone })
-      } catch {
-        throw new TypeError('Choose a valid calendar timezone.')
-      }
-      if (
-        !Number.isInteger(policy.resetMinute) ||
-        policy.resetMinute < 0 ||
-        policy.resetMinute > 1439
-      ) {
-        throw new TypeError('Choose a calendar reset time from 00:00 to 23:59.')
-      }
-    }
+    if (policy.mode !== 'rolling-24h') validateCalendarReset(policy.timeZone, policy.resetMinute)
     if (journey.type === 'defeat-and-report') validateRepeatableHunt(journey, definition)
     else
       validatePersistentEventDefinition({

@@ -15,6 +15,7 @@ import {
   parseBattleEventPersistenceRows,
   parseBattleSessionCommitPersistenceRow,
   parseBattleSessionCreationPersistenceRow,
+  parseBattleSessionId,
   parseBattleSessionPersistenceRow,
 } from '@aurevane/validation/combat/battle-session'
 
@@ -63,26 +64,72 @@ interface WorldBattleAdmissionContext {
   throwWorldError(error: { code?: string; message?: string }): never
 }
 
-type WorldBattleAdmission = WorldBattleAdmissionContext & ({ runId: string } | { npcId: string })
+type WorldBattleAdmission = WorldBattleAdmissionContext &
+  ({ runId: string } | { npcId: string; ticketId?: string })
+
+export type WorldNpcBattleTarget = { npcId: string } | { ticketId: string }
+
+export async function readWorldNpcBattleReplay(
+  client: ReturnType<typeof createSupabaseAdminClient>,
+  target: WorldNpcBattleTarget,
+  input: { userId: string; characterId: string; commandId: string; worldFingerprint: string },
+  throwWorldError: WorldBattleAdmissionContext['throwWorldError'],
+): Promise<string | null> {
+  const { data, error } = await client.rpc(
+    'ticketId' in target
+      ? 'read_world_avenger_battle_replay_v1'
+      : 'read_world_npc_battle_replay_v1',
+    {
+      p_user_id: input.userId,
+      p_character_id: input.characterId,
+      p_command_id: input.commandId,
+      p_world_fingerprint: input.worldFingerprint,
+      ...('ticketId' in target ? { p_ticket_id: target.ticketId } : { p_npc_id: target.npcId }),
+    },
+  )
+  if (error) throwWorldError(error)
+  if (data === null) return null
+  const battleSessionId = parseBattleSessionId(data)
+  if (!battleSessionId)
+    throw persistenceUnavailable('The server returned an invalid World battle receipt.')
+  return battleSessionId
+}
 
 export function createSupabaseBattleSessionRepository(
   world?: WorldBattleAdmission,
 ): BattleSessionRepository & BattleEventRepository & BattleHistoryPrivacyRepository {
   return {
     async findBattleCreationReplay(input) {
-      const { data, error } = await createSupabaseAdminClient().rpc(
-        'get_battle_creation_replay_v1',
-        {
-          p_user_id: input.userId,
-          p_idempotency_key: input.idempotencyKey,
-          p_request_fingerprint: input.requestFingerprint,
-        },
-      )
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_battle_creation_replay_v1', {
+        p_user_id: input.userId,
+        p_idempotency_key: input.idempotencyKey,
+        p_request_fingerprint: input.requestFingerprint,
+      })
       if (error) throwRpcError(error)
       if (Array.isArray(data) && data.length === 0) return null
       const row = parseBattleSessionCreationPersistenceRow(data)
       if (!row)
         throw persistenceUnavailable('The server returned an invalid battle-creation replay.')
+      if (world && 'npcId' in world) {
+        // A concurrent creation may share an NPC but belong to a different World command.
+        const receipt = await readWorldNpcBattleReplay(
+          supabase,
+          world.ticketId === undefined ? { npcId: world.npcId } : { ticketId: world.ticketId },
+          {
+            userId: input.userId,
+            characterId: world.characterId,
+            commandId: input.idempotencyKey,
+            worldFingerprint: world.worldFingerprint,
+          },
+          world.throwWorldError,
+        )
+        if (receipt !== row.battle_session_id)
+          throw new AurevaneError(
+            'IDEMPOTENCY_CONFLICT',
+            'That request key was already used for a different battle request.',
+          )
+      }
       return {
         battleSessionId: row.battle_session_id,
         battleVersion: row.battle_version,
@@ -112,14 +159,23 @@ export function createSupabaseBattleSessionRepository(
       }
       const { data, error } = world
         ? await supabase.rpc(
-            'runId' in world ? 'start_world_personal_realm_battle_v1' : 'start_world_npc_battle_v1',
+            'runId' in world
+              ? 'start_world_personal_realm_battle_v1'
+              : world.ticketId === undefined
+                ? 'start_world_npc_battle_v1'
+                : 'start_world_avenger_battle_v1',
             {
               ...common,
               ...startup,
               p_command_id: input.idempotencyKey,
               p_character_id: world.characterId,
               p_expected_version: world.expectedVersion,
-              ...('runId' in world ? { p_run_id: world.runId } : { p_npc_id: world.npcId }),
+              ...('runId' in world
+                ? { p_run_id: world.runId }
+                : {
+                    p_npc_id: world.npcId,
+                    ...(world.ticketId === undefined ? {} : { p_ticket_id: world.ticketId }),
+                  }),
               p_world_fingerprint: world.worldFingerprint,
             },
           )

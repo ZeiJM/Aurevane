@@ -33,6 +33,38 @@ it('projects a revealed inventory clue to the owned journal without offering an 
 const runId = '44444444-4444-4444-8444-444444444444'
 const giverId = '55555555-5555-4555-8555-555555555555'
 const giverPosition = { sectorId: 'verdant-expanse', x: 2, y: 4 }
+it('projects an earned Ashen Sentinel ticket as a distinct local challenge or pending reward', () => {
+  const challenge = {
+    runId,
+    title: 'The Ashen Sentinel',
+    body: 'The Ashen Sentinel waits beyond the ruined gate.',
+    avenger: true,
+    giverId,
+    speaker: 'Ashen Sentinel',
+    progress: 'ready',
+    destination: giverPosition,
+    local: true,
+    action: 'challenge-avenger',
+  }
+  const ticketId = `avenger-${runId}`
+  const ready = projectPersonalQuests([challenge])
+  expect(ready.objectives[0]).toMatchObject({ id: ticketId, progress: 'ready' })
+  expect(ready.interactions[0]).toMatchObject({
+    id: ticketId,
+    actionId: 'challenge-avenger',
+    actionLabel: 'Start challenge',
+  })
+  expect(projectPersonalQuests([{ ...challenge, local: false }]).interactions).toEqual([])
+  const earned = projectPersonalQuests([
+    { ...challenge, progress: 'completed', rewardPending: true, action: 'claim-avenger-reward' },
+  ])
+  expect(earned.objectives[0]).toMatchObject({ id: ticketId, completed: false, progress: 'ready' })
+  expect(earned.interactions[0]).toMatchObject({
+    id: ticketId,
+    actionId: 'claim-avenger-reward',
+    actionLabel: 'Collect Character XP',
+  })
+})
 it('shows owned hunt progress and keeps a pending XP reward visible alongside its cooldown', () => {
   const hunt = {
     runId,
@@ -87,6 +119,30 @@ const restoration = {
   local: true,
   action: 'choose-restoration',
 }
+
+it('keeps the existing personal quest allowance when combat discoveries are present', () => {
+  const stories = Array.from({ length: 49 }, (_, index) => ({
+    ...restoration,
+    runId: `44444444-4444-4444-8444-${String(index).padStart(12, '0')}`,
+    title: `Story ${index}`,
+  }))
+  const { objectives } = projectPersonalQuests([
+    {
+      runId,
+      title: 'The Ashen Sentinel',
+      body: 'The Sentinel waits beyond the gate.',
+      avenger: true,
+      giverId,
+      speaker: 'Ashen Sentinel',
+      progress: 'ready',
+    },
+    ...stories,
+  ])
+  expect(objectives.map(({ name }) => name)).toEqual([
+    'The Ashen Sentinel',
+    ...stories.slice(0, 48).map(({ title }) => title),
+  ])
+})
 
 it('shows the projected recovery choice only at the giver and follows the selected checkpoint', () => {
   const offer = projectPersonalQuests([restoration])

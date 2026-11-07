@@ -7,6 +7,7 @@ export const isWorldUuid = (v: unknown): v is string =>
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v)
 export const PERSONAL_QUEST_INTERACTION_PREFIX = 'quest-run-'
 export const REPEATABLE_ACTIVITY_INTERACTION_PREFIX = 'repeatable-travel-'
+export const AVENGER_INTERACTION_PREFIX = 'avenger-'
 export function personalQuestRunId(interactionId: string): string | null {
   if (!interactionId.startsWith(PERSONAL_QUEST_INTERACTION_PREFIX)) return null
   const runId = interactionId.slice(PERSONAL_QUEST_INTERACTION_PREFIX.length)
@@ -16,6 +17,11 @@ export function repeatableActivityReference(interactionId: string): string | nul
   if (!interactionId.startsWith(REPEATABLE_ACTIVITY_INTERACTION_PREFIX)) return null
   const reference = interactionId.slice(REPEATABLE_ACTIVITY_INTERACTION_PREFIX.length)
   return isWorldUuid(reference) ? reference : null
+}
+export function avengerTicketReference(interactionId: string): string | null {
+  if (!interactionId.startsWith(AVENGER_INTERACTION_PREFIX)) return null
+  const ticketId = interactionId.slice(AVENGER_INTERACTION_PREFIX.length)
+  return isWorldUuid(ticketId) ? ticketId : null
 }
 export function isWorldRestorationAction(value: unknown): value is WorldRestorationActionId {
   return (
@@ -69,6 +75,8 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
       input.actionId === 'leave-realm' ||
       input.actionId === 'challenge-realm' ||
       input.actionId === 'challenge-npc' ||
+      ((input.actionId === 'challenge-avenger' || input.actionId === 'claim-avenger-reward') &&
+        avengerTicketReference(input.interactionId) !== null) ||
       (input.actionId === 'claim-hunt-reward' &&
         repeatableActivityReference(input.interactionId) !== null) ||
       (isWorldRestorationAction(input.actionId) &&

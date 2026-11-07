@@ -757,16 +757,17 @@ async function challengeFixtureNpc(
   name: string,
   characterId: string,
   weaponName: string,
+  { title = 'Challenge', action = 'Start battle' } = {},
 ) {
   await page
     .getByRole('region', { name: 'Local interaction' })
-    .getByRole('heading', { name: 'Challenge', exact: true })
+    .getByRole('heading', { name: title, exact: true })
     .locator('..')
     .getByRole('button', { name: `Talk to ${name}`, exact: true })
     .click()
   await page
     .getByRole('dialog', { name })
-    .getByRole('button', { name: 'Start battle', exact: true })
+    .getByRole('button', { name: action, exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world/)
   const battleId = new URL(page.url()).pathname.split('/').at(-1)!
@@ -1386,6 +1387,233 @@ test('an authored Alder Venn wolf hunt credits five World victories and starts c
   await expect(dialogue.getByRole('button', { name: 'Accept activity', exact: true })).toHaveCount(
     0,
   )
+})
+
+test('an authored Ashen Sentinel discovery unlocks one private challenge after fourteen World wins', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Requires the disposable Owner fixture.')
+  test.setTimeout(480_000)
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host))
+    throw new Error('Combat discovery browser verification requires disposable local Supabase.')
+
+  const token = randomUUID().replaceAll('-', '')
+  const email = `avenger-owner-${token}@example.test`
+  const title = `The Ashen Sentinel ${token.slice(0, 8)}`
+  const eventKey = `event.browser-avenger-${token}`
+  const rewardRef = `reward.browser-avenger-${token}`
+  const budgetRef = `budget.browser-avenger-${token}`
+  const raiderId = randomUUID()
+  const championId = randomUUID()
+  const raider = 'Ashbound raider'
+  const champion = 'Ashen Sentinel'
+  const tag = `ashbound-raider-${token.slice(0, 12)}`
+  const championPosition = { sectorId: 'verdant-expanse', x: 2, y: 4 }
+  const raiderPosition = { ...championPosition, x: 5 }
+  const weapon = fixtureWeapon(
+    `fixture.avenger-blade-${token}`,
+    'Ashguard fixture blade',
+    'Trail Cut',
+  )
+  const draft = (name: string, position: typeof championPosition, tags: string[]) => ({
+    name,
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: {
+      ...position,
+      radius: 1,
+      greeting: 'A wary challenger watches you.',
+      encounter: { arenaId: 'duel-yard', aiDifficulty: 'easy', tags },
+    },
+  })
+  await createAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Avenger-browser-2026!',
+    characterName: `Ashguard ${token.slice(0, 12).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
+  })
+  const userId = localUserId(email)
+  fixtureEventOwner = userId
+  fixtureWorldNpc = raiderId
+  fixtureTrialNpc = championId
+  const readWorld = async (): Promise<WorldView> => {
+    const response = await page.request.get('/api/world')
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  const characterId = (await readWorld()).characterId
+  expect((await page.request.get('/api/character/items')).ok()).toBe(true)
+  queryLocalDatabase(`
+    begin;
+    insert into app_private.master_panel_role_assignments(user_id,role) values('${userId}','game-owner');
+    select public.write_master_npc_design_v1('${userId}',null,'${raiderId}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(draft(raider, raiderPosition, [tag])))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${raiderId}',1,'commit-world',null);
+    select public.write_master_npc_design_v1('${userId}',null,'${championId}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(draft(champion, championPosition, [])))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${championId}',1,'commit-world',null);
+    insert into app_private.event_reward_budget_policies values('${budgetRef}','character-xp',25,'${userId}',now());
+    insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
+      values('${rewardRef}',1,'character-xp',19,'${userId}','${budgetRef}');
+    select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([weapon]))}'::jsonb);
+    select public.grant_character_items_v1('${userId}','${characterId}',
+      (public.read_character_item_inventory_v1('${userId}','${characterId}')->>'revision')::bigint,
+      'fixture:avenger:${token}',jsonb_build_array(jsonb_build_object('itemId','${weapon.id}','quantity',1)));
+    commit;
+  `)
+  await page.goto('/game/loadout/items')
+  await page.getByRole('button', { name: /Slot \d+: Ashguard fixture blade/ }).click()
+  await page
+    .getByRole('dialog', { name: weapon.name })
+    .getByRole('button', { name: 'Equip', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', { name: `Main Hand: ${weapon.name}`, exact: true }),
+  ).toBeVisible()
+
+  await page.goto('/master/events')
+  await page
+    .getByRole('navigation', { name: 'Event categories' })
+    .getByRole('button', { name: 'Hidden Discoveries', exact: true })
+    .click()
+  const sections = page.getByRole('navigation', { name: 'Event authoring sections' })
+  const section = (name: string) => sections.getByRole('button', { name, exact: true }).click()
+  await section('Setup')
+  await page
+    .getByRole('combobox', { name: 'Category', exact: true })
+    .selectOption('hidden-discoveries')
+  await page.getByLabel(/^Family/).selectOption('lore-revelation')
+  await page.getByLabel(/^Scope/).selectOption('global')
+  await page.getByLabel('Title', { exact: true }).fill(title)
+  await section('Discovery')
+  await page.getByLabel('Enable a daily combat discovery', { exact: true }).check()
+  await page.getByLabel('Qualifying World encounter tag', { exact: true }).fill(tag)
+  await expect(page.getByLabel('Required daily defeats', { exact: true })).toHaveValue('14')
+  await page.getByLabel('Calendar timezone', { exact: true }).fill('UTC')
+  await page.getByLabel('Challenge availability', { exact: true }).selectOption('evergreen')
+  await page.getByLabel('Challenge sector', { exact: true }).selectOption(championPosition.sectorId)
+  await page.getByLabel('Challenge encounter NPC', { exact: true }).selectOption(championId)
+  await page
+    .getByLabel('Challenge revealed', { exact: true })
+    .fill('The Ashen Sentinel has emerged at the ruined gate.')
+  await page
+    .getByLabel('Challenge completed', { exact: true })
+    .fill('The Sentinel has fallen. The gate is quiet again.')
+  await page.getByLabel('First-clear Character XP package', { exact: true }).selectOption(rewardRef)
+  await page.screenshot({
+    path: info.outputPath('ashen-sentinel-authoring.png'),
+    animations: 'disabled',
+  })
+  await section('Schedule')
+  await page.getByLabel('Event key').fill(eventKey)
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await runEventOperation(page, 'publish', 'Publish')
+  await page
+    .getByRole('textbox', { name: 'Start', exact: true })
+    .fill(new Date(Date.now() + 3_600_000).toISOString().slice(0, 16))
+  await page
+    .getByRole('textbox', { name: 'End', exact: true })
+    .fill(new Date(Date.now() + 7_200_000).toISOString().slice(0, 16))
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  fixtureStoryEvent = { eventKey, userId }
+  await runEventOperation(page, 'schedule', 'Schedule')
+  const runId = queryLocalDatabase(
+    `select id from app_private.event_runs where event_key='${eventKey}'`,
+  )
+  expect(runId).toMatch(/^[0-9a-f-]{36}$/)
+  queryLocalDatabase(`
+    begin;
+    update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id='${runId}';
+    select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
+    commit;
+  `)
+
+  const openMissions = async () => {
+    const details = page.getByRole('button', { name: 'Details', exact: true })
+    if (await details.isVisible()) await details.click()
+    await page.getByRole('tab', { name: /Missions/ }).click()
+  }
+  const move = async (destination: typeof championPosition) => {
+    const current = await readWorld()
+    const response = await page.request.post('/api/world', {
+      data: {
+        characterId,
+        expectedVersion: current.version,
+        commandId: randomUUID(),
+        intent: { kind: 'walk', destination },
+      },
+    })
+    expect(response.ok()).toBe(true)
+    await expect
+      .poll(async () => (await readWorld()).position, { timeout: 15_000 })
+      .toEqual(destination)
+    await page.reload()
+    await openMissions()
+  }
+  const tickets = async () =>
+    (await readWorld()).objectives.filter((objective) => objective.name === title)
+  const returnToWorld = async () => {
+    await page.getByRole('button', { name: 'Return to World', exact: true }).click()
+    await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
+    await openMissions()
+  }
+  const xp = () =>
+    Number(queryLocalDatabase(`select xp from public.characters where id='${characterId}'`))
+  await page.goto('/game/world')
+  await move(raiderPosition)
+  expect(await tickets()).toEqual([])
+  let ticket: string | undefined
+  for (let count = 1; count <= 15; count++) {
+    await challengeFixtureNpc(page, raider, characterId, weapon.name)
+    await returnToWorld()
+    if (count < 14) {
+      expect(await tickets()).toEqual([])
+    } else {
+      await expect.poll(async () => (await tickets()).length).toBe(1)
+      const id = (await tickets())[0]!.id
+      expect(id).toMatch(/^avenger-[0-9a-f-]{36}$/)
+      ticket ??= id
+      expect(id).toBe(ticket)
+    }
+  }
+  await page.reload()
+  await openMissions()
+  expect((await tickets()).map((objective) => objective.id)).toEqual([ticket])
+  await move(championPosition)
+  const before = xp()
+  await challengeFixtureNpc(page, champion, characterId, weapon.name, {
+    title,
+    action: 'Start challenge',
+  })
+  await returnToWorld()
+  expect(xp()).toBe(before)
+  const reward = (await readWorld()).interactions.find(
+    (interaction) => interaction.id === ticket && interaction.actionId === 'claim-avenger-reward',
+  )
+  expect(reward).toBeDefined()
+  await page
+    .getByRole('region', { name: 'Local interaction' })
+    .getByRole('heading', { name: title, exact: true })
+    .locator('..')
+    .getByRole('button', { name: `Talk to ${champion}`, exact: true })
+    .click()
+  const dialogue = page.getByRole('dialog', { name: champion })
+  await expect(
+    dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }),
+  ).toBeVisible()
+  await page.screenshot({
+    path: info.outputPath('ashen-sentinel-earned.png'),
+    animations: 'disabled',
+  })
+  await dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }).click()
+  await expect.poll(xp).toBe(before + 19)
+  expect(
+    (await readWorld()).interactions.some(
+      (interaction) => interaction.actionId === 'claim-avenger-reward',
+    ),
+  ).toBe(false)
 })
 
 test('an authored World NPC challenge admits a battle only within reach', async ({

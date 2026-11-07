@@ -7,6 +7,7 @@ import {
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import {
+  AVENGER_INTERACTION_PREFIX,
   isWorldUuid,
   PERSONAL_QUEST_INTERACTION_PREFIX,
   REPEATABLE_ACTIVITY_INTERACTION_PREFIX,
@@ -44,7 +45,18 @@ export function projectPersonalQuests(
   const objectives: WorldObjective[] = []
   const interactions: WorldInteraction[] = []
   if (!Array.isArray(rows)) return { objectives, interactions }
-  for (const row of rows.slice(0, 48)) {
+  let personalRows = 0
+  let combatDiscoveryRows = 0
+  for (const row of rows) {
+    const avenger =
+      idPrefix === PERSONAL_QUEST_INTERACTION_PREFIX && object(row) && row.avenger === true
+    if (avenger) {
+      if (combatDiscoveryRows >= 24) continue
+      combatDiscoveryRows += 1
+    } else {
+      if (personalRows >= 48) continue
+      personalRows += 1
+    }
     if (
       !object(row) ||
       !isWorldUuid(row.runId) ||
@@ -52,7 +64,7 @@ export function projectPersonalQuests(
       typeof row.body !== 'string'
     )
       continue
-    const id = idPrefix + row.runId
+    const id = (avenger ? AVENGER_INTERACTION_PREFIX : idPrefix) + row.runId
     const title = row.title.slice(0, 120)
     const repeatable = idPrefix === REPEATABLE_ACTIVITY_INTERACTION_PREFIX
     const availableAt =
@@ -77,12 +89,12 @@ export function projectPersonalQuests(
       row.defeats <= row.requiredDefeats
         ? ` ${row.defeats} of ${row.requiredDefeats} qualifying defeats.`
         : ''
-    const huntRewardPending =
-      repeatable && row.progress === 'completed' && row.rewardPending === true
+    const xpPending =
+      (repeatable || avenger) && row.progress === 'completed' && row.rewardPending === true
     const body =
       row.body.slice(0, 800) +
       huntProgress +
-      (huntRewardPending ? ' Character XP is ready to collect.' : '') +
+      (xpPending ? ' Character XP is ready to collect.' : '') +
       availability
     const restoration =
       idPrefix === PERSONAL_QUEST_INTERACTION_PREFIX &&
@@ -187,7 +199,7 @@ export function projectPersonalQuests(
     }
     const destination = position(row.destination)
     // The exchange is settled, but keep its owed weapon in the active journal.
-    const displayedProgress = restoration?.claimPending || huntRewardPending ? 'ready' : progress
+    const displayedProgress = restoration?.claimPending || xpPending ? 'ready' : progress
     objectives.push({
       id,
       name: title,
@@ -206,11 +218,13 @@ export function projectPersonalQuests(
       accept: repeatable ? 'Accept activity' : 'Accept quest',
       report: 'Report back',
       'claim-hunt-reward': 'Collect Character XP',
+      'claim-avenger-reward': 'Collect Character XP',
       'hand-over': handOver,
       'claim-exchange': exchange ? `Collect ${exchange.outputName}` : null,
       'travel-realm': 'Travel to the realm',
       'leave-realm': 'Leave the realm',
       'challenge-realm': 'Challenge the guardian',
+      'challenge-avenger': 'Start challenge',
       'choose-restoration': 'Choose recovery route',
       'choose-restoration-trial': 'Choose trial route',
       'restore-item': restoration ? `Restore ${restoration.outputName}` : null,
@@ -222,7 +236,10 @@ export function projectPersonalQuests(
           (progress === 'ready' && row.action === 'restore-item') ||
           (restoration.claimPending && row.action === 'claim-restoration'))) ||
       (progress === 'available' && row.action === 'accept') ||
-      (huntRewardPending && row.action === 'claim-hunt-reward') ||
+      (xpPending &&
+        ((repeatable && row.action === 'claim-hunt-reward') ||
+          (avenger && row.action === 'claim-avenger-reward'))) ||
+      (avenger && progress === 'ready' && row.action === 'challenge-avenger') ||
       (progress === 'ready' &&
         (row.action === 'report' || (exchange && row.action === 'hand-over'))) ||
       (row.accessGranted === true &&

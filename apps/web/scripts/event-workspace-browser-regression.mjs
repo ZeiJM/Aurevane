@@ -494,7 +494,7 @@ try {
       fullPage: true,
     })
 
-    const saveTrial = async (version) => {
+    const saveDraft = async (version) => {
       await page.getByRole('button', { name: 'Save draft', exact: true }).click()
       await page.getByText(`Draft v${version} saved.`, { exact: true }).waitFor()
       return page.evaluate(
@@ -503,7 +503,7 @@ try {
             .definition,
       )
     }
-    const firstTrial = await saveTrial(1)
+    const firstTrial = await saveDraft(1)
     assert.deepEqual(firstTrial.rewardPackageRefs, [])
     assert.equal(
       firstTrial.inventoryDiscovery.restoration.recoveryRewardPackageRef,
@@ -551,10 +551,91 @@ try {
     await expect(trialNpc.locator('option:checked')).toHaveText(/Unavailable trial NPC/)
     await expect(trialNpc).toHaveValue('ea82f11d-41df-4c5d-bba6-727904e95de8')
     await trialToggle.uncheck()
-    const recoveryOnly = await saveTrial(2)
+    const recoveryOnly = await saveDraft(2)
     assert.equal('trial' in recoveryOnly.inventoryDiscovery.restoration, false)
     assert.equal('recoveryRewardPackageRef' in recoveryOnly.inventoryDiscovery.restoration, false)
     assert.equal(recoveryOnly.inventoryDiscovery.restoration.offer, 'Follow the old road.')
+
+    const challengeToggle = page.getByLabel('Enable a daily combat discovery')
+    await expect(challengeToggle).toBeDisabled()
+    await page.getByRole('button', { name: 'New Event', exact: true }).click()
+    await page
+      .getByRole('combobox', { name: 'Category', exact: true })
+      .selectOption('hidden-discoveries')
+    await page.getByLabel(/^Family/).selectOption('lore-revelation')
+    await page.getByLabel(/^Scope/).selectOption('global')
+    await page.getByLabel('Event key', { exact: true }).fill('event.ashen-sentinel')
+    await page.getByLabel('Title', { exact: true }).fill('The Ashen Sentinel')
+    await choose('Discovery')
+    await challengeToggle.check()
+    await expect(page.getByLabel('Enable a carried Item discovery')).toBeDisabled()
+    const challenge = page.getByRole('group', { name: 'Daily combat challenge' })
+    const challengeSeason = challenge.getByLabel('Challenge availability')
+    const challengeSector = challenge.getByLabel('Challenge sector')
+    const challengeNpc = challenge.getByLabel('Challenge encounter NPC')
+    const challengeRepeat = challenge.getByLabel('Repeat Character XP package')
+    await expect(challenge.getByLabel('Required daily defeats')).toHaveValue('14')
+    await expect(challenge.getByLabel('Calendar timezone')).toHaveValue('UTC')
+    await expect(challenge.getByLabel('Daily reset time')).toHaveValue('00:00')
+    await expect(challengeSeason).toHaveValue('evergreen')
+    await expect(
+      challenge.getByText('An unlocked challenge stays pending across the daily reset.'),
+    ).toBeVisible()
+    await challenge.getByLabel('Qualifying World encounter tag').fill('ashbound-raider')
+    await challenge.getByLabel('Calendar timezone').fill('America/Port_of_Spain')
+    await challenge.getByLabel('Daily reset time').fill('06:30')
+    await challengeSeason.selectOption('seasonal')
+    await expect(challenge.getByText(/Set an End in Schedule/)).toBeVisible()
+    await challengeSector.selectOption('emberreach')
+    await challengeNpc.selectOption({ label: 'Ashen Sentinel' })
+    await challenge.getByLabel('First-clear Character XP package').selectOption('reward.trial')
+    await challengeRepeat.selectOption('reward.recovery')
+    await challenge.getByLabel('Challenge revealed').fill('The Ashen Sentinel awaits.')
+    await challenge.getByLabel('Challenge completed').fill('The sentinel lowers its blade.')
+    await challenge.scrollIntoViewIfNeeded()
+    assert.ok(
+      await challenge.evaluate((group) => {
+        const { left, right } = group.getBoundingClientRect()
+        return left >= 0 && right <= innerWidth + 1
+      }),
+      'daily combat challenge stays inside the viewport',
+    )
+    await page.screenshot({
+      path: resolve(output, `daily-combat-challenge-${viewport.width}-${viewport.zoom}.png`),
+      fullPage: true,
+    })
+    const firstChallenge = await saveDraft(1)
+    assert.equal(firstChallenge.title, 'The Ashen Sentinel')
+    assert.deepEqual(firstChallenge.rewardPackageRefs, [])
+    assert.equal('inventoryDiscovery' in firstChallenge, false)
+    assert.deepEqual(firstChallenge.combatDiscovery, {
+      npcTag: 'ashbound-raider',
+      requiredDefeats: 14,
+      timeZone: 'America/Port_of_Spain',
+      resetMinute: 390,
+      opponentNpcId: '7cc73d08-0742-4b08-8f96-8e56294073cb',
+      mode: 'seasonal',
+      ready: 'The Ashen Sentinel awaits.',
+      completed: 'The sentinel lowers its blade.',
+      firstRewardPackageRef: 'reward.trial',
+      repeatRewardPackageRef: 'reward.recovery',
+    })
+    await page.getByRole('button', { name: 'New Event', exact: true }).click()
+    await page.getByLabel('Event key', { exact: true }).fill('event.ashen-sentinel')
+    await page.getByRole('button', { name: 'Load', exact: true }).click()
+    await page.getByText('Loaded draft v1.', { exact: true }).waitFor()
+    await choose('Discovery')
+    await expect(challengeToggle).toBeChecked()
+    await expect(challengeSector).toHaveValue('emberreach')
+    await expect(challengeNpc.locator('option:checked')).toHaveText('Ashen Sentinel')
+    await expect(challenge.getByLabel('Challenge revealed')).toHaveValue(
+      'The Ashen Sentinel awaits.',
+    )
+    await expect(challengeRepeat).toHaveValue('reward.recovery')
+    await challengeRepeat.selectOption('')
+    const firstClearOnly = await saveDraft(2)
+    assert.equal('repeatRewardPackageRef' in firstClearOnly.combatDiscovery, false)
+
     await categories.getByRole('button', { name: 'World Events', exact: true }).click()
     await page
       .getByRole('navigation', { name: 'Events workspace' })
@@ -624,7 +705,7 @@ try {
       fullPage: true,
     })
     console.log(
-      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, published Story cast search/preview/draft restore, private trial authoring and draft round trip, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
+      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, published Story cast search/preview/draft restore, private trial and daily combat discovery draft round trips, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
     )
     await page.close()
   }

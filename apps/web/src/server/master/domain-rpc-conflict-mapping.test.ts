@@ -50,6 +50,11 @@ it.each([
   ['EVENT_REPEATABLE_HUNT_GIVER_UNAVAILABLE', /Story NPC with a World placement/i],
   ['EVENT_REPEATABLE_HUNT_REWARD_UNAVAILABLE', /approved Character XP package/i],
   ['EVENT_REPEATABLE_HUNT_TARGET_UNAVAILABLE', /tag used by a published World encounter/i],
+  ['EVENT_COMBAT_DISCOVERY_INVALID', /daily combat discovery/i],
+  ['EVENT_COMBAT_DISCOVERY_TARGET_UNAVAILABLE', /tag used by a published World encounter/i],
+  ['EVENT_COMBAT_DISCOVERY_OPPONENT_UNAVAILABLE', /published World encounter.*qualifying tag/i],
+  ['EVENT_COMBAT_DISCOVERY_REWARD_UNAVAILABLE', /approved Character XP/i],
+  ['EVENT_COMBAT_DISCOVERY_SEASON_END_REQUIRED', /end time.*seasonal/i],
 ])('explains %s from the authoritative Event validator', async (message, expected) => {
   rpc.mockResolvedValue({ data: null, error: { code: '22023', message } })
   await expect(
