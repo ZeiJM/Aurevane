@@ -25,7 +25,14 @@ begin
   where global_revision.singleton and global_revision.revision > 0
     and (global_revision.revision > world.inventory_discovery_revision
       or coalesce(inventory.revision,0) is distinct from world.inventory_discovery_item_revision);
-  if found then
+  -- Recording a receipt or updating its scan marker can take a foreign-key
+  -- lock on the character. If an inventory writer already owns that row,
+  -- keep the current journal and leave both markers for the next World read.
+  if found and exists (
+    select 1 from public.characters character
+    where character.id = p_character_id and character.user_id = p_user_id
+    for key share skip locked
+  ) then
     perform app_private.record_personal_inventory_discoveries_v1(
       p_user_id,p_character_id,null,reconcile_at
     );
