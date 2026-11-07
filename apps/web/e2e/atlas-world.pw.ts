@@ -396,7 +396,10 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'The Eastern Watch' })).toBeVisible()
   await expect(interaction).toContainText('Watch officer')
-  const talk = interaction.getByRole('button', { name: 'Talk to Watch officer' })
+  const talk = interaction
+    .getByRole('heading', { name: 'The Eastern Watch', exact: true })
+    .locator('..')
+    .getByRole('button', { name: 'Talk to Watch officer', exact: true })
   await talk.click()
   const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
   await expect(

@@ -68,17 +68,14 @@ jobs:
         run: pnpm --filter @aurevane/web build
       - name: Verify authenticated quests and World NPC admission
         id: story
-        continue-on-error: true
         run: |
           pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
             --project=desktop-chromium --project=mobile-chromium \
             --grep 'an authored (Story Campaign|item exchange|World NPC)|Farmer Joe dialogue' \
             --output=test-results-story --reporter=list,github
       - name: Verify authenticated Atlas and multiplayer
+        if: ${{ !cancelled() && (steps.story.outcome == 'success' || steps.story.outcome == 'failure') }}
         run: pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts --reporter=list,github
-      - name: Require successful quests and World NPC admission
-        if: steps.story.outcome == 'failure'
-        run: exit 1
       - name: Capture safe Realtime failure diagnostics
         if: failure()
         continue-on-error: true

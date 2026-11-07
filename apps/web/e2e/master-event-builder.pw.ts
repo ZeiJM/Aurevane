@@ -10,14 +10,46 @@ import { createEventPageAccessFixture } from './event-page-access-fixture'
 
 let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
 let fixtureWorldNpc: string | undefined
+let fixtureStoryEvent: { eventKey: string; userId: string } | undefined
 test.afterEach(() => {
-  eventPageAccess?.restore()
-  eventPageAccess = undefined
-  if (fixtureWorldNpc) {
-    queryLocalDatabase(
-      `update app_private.npc_designs set world=null where id='${fixtureWorldNpc}'`,
-    )
-    fixtureWorldNpc = undefined
+  try {
+    if (fixtureStoryEvent) {
+      const { eventKey, userId } = fixtureStoryEvent
+      queryLocalDatabase(`
+        do $$
+        declare
+          run app_private.event_runs%rowtype;
+          actor_character_id uuid;
+          expected_version bigint;
+        begin
+          select id into strict actor_character_id from public.characters where user_id='${userId}';
+          select * into run from app_private.event_runs where event_key='${eventKey}' for update;
+          if run.lifecycle_status = 'scheduled' then
+            perform public.cancel_scheduled_event_run_v2('${userId}',actor_character_id,run.id,
+              run.state_version,gen_random_uuid(),null,true);
+          elsif run.lifecycle_status in ('live','paused','resolving') then
+            expected_version := run.state_version;
+            if run.lifecycle_status <> 'resolving' then
+              select operation.state_version into strict expected_version
+              from public.operate_event_run_v2('${userId}',actor_character_id,run.id,
+                expected_version,gen_random_uuid(),'stop',null,true) as operation;
+            end if;
+            perform public.operate_event_run_v2('${userId}',actor_character_id,run.id,
+              expected_version,gen_random_uuid(),'end',null,true);
+          end if;
+        end $$;
+      `)
+    }
+  } finally {
+    fixtureStoryEvent = undefined
+    eventPageAccess?.restore()
+    eventPageAccess = undefined
+    if (fixtureWorldNpc) {
+      queryLocalDatabase(
+        `update app_private.npc_designs set world=null where id='${fixtureWorldNpc}'`,
+      )
+      fixtureWorldNpc = undefined
+    }
   }
 })
 
@@ -113,8 +145,9 @@ async function runEventOperation(
     : page
   await controls.getByRole('button', { name: buttonName, exact: true }).click()
   const response = await pending
-  expect(response.status()).toBe(200)
-  return (await response.json()) as Record<string, unknown>
+  const result = (await response.json()) as Record<string, unknown>
+  expect(response.status(), `${operation}: ${JSON.stringify(result.error ?? null)}`).toBe(200)
+  return result
 }
 
 test('Event Staff uses structured Event Builder without preview state leakage', async ({
@@ -384,6 +417,7 @@ async function completeAuthoredStoryJourney(
   await page.getByRole('textbox', { name: 'Start', exact: true }).fill(start)
   await page.getByRole('textbox', { name: 'End', exact: true }).fill(end)
   await page.getByLabel('Confirm publication or schedule for this audience').check()
+  fixtureStoryEvent = { eventKey, userId }
   await runEventOperation(page, 'schedule', 'Schedule')
 
   const readWorld = async (): Promise<WorldView> => {
@@ -411,7 +445,7 @@ async function completeAuthoredStoryJourney(
       'fixture:seeds:${token}',jsonb_build_array(jsonb_build_object('itemId','${seedId}','quantity',14)));
   `)
   }
-  await page.goto('/world')
+  await page.goto('/game/world')
   const openMissions = async () => {
     const details = page.getByRole('button', { name: 'Details', exact: true })
     if (await details.isVisible()) await details.click()
@@ -527,7 +561,7 @@ async function completeAuthoredStoryJourney(
       await page.getByRole('button', { name: 'Surrender', exact: true }).click()
       await page.getByRole('button', { name: 'Confirm Surrender' }).click()
       await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
-      await page.goto('/world')
+      await page.goto('/game/world')
       await openMissions()
       await gate.click()
       await expect(
@@ -649,7 +683,7 @@ test('an authored World NPC challenge admits a battle only within reach', async 
   ).toBe('0')
   expect((await command({ kind: 'walk', destination: position })).ok()).toBe(true)
 
-  await page.goto('/world')
+  await page.goto('/game/world')
   await expect.poll(async () => (await readWorld()).position, { timeout: 15_000 }).toEqual(position)
   await expect
     .poll(async () =>
