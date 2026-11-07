@@ -10,6 +10,7 @@ import { createMapRenderer } from './map-renderer'
 import { MAP_X, MAP_Y, projectMapPoint, unprojectMapPoint } from './map-projection'
 import type { WorldView } from '@/world/types'
 import * as biomes from './map-biome-transitions'
+import { worldWindTarget } from './map-weather'
 import { worldRenderTerrain } from './map-render-terrain'
 
 type RecordedPath = { operation: 'M' | 'L' | 'C' | 'Z'; points: number[] }[]
@@ -2341,6 +2342,10 @@ describe('native map input and bounded lifecycle', () => {
     // exact lattice index down on some frames, selecting a different texture.
     s.frame(36066.66666663011)
     const first = shadows()
+    const regionId = initial.sectors.find(
+      (sector) => sector.id === initial.position.sectorId,
+    )!.regionId
+    const driftPerMs = worldWindTarget(initial.environment.weather, regionId) / 120
     expect(first.length).toBeGreaterThan(0)
     for (let i = 1; i <= 30; i++) {
       s.draws.length = 0
@@ -2349,8 +2354,8 @@ describe('native map input and bounded lifecycle', () => {
       expect(next.length).toBe(first.length)
       for (let j = 0; j < next.length; j++) {
         expect(next[j]!.image).toBe(first[j]!.image)
-        expect(next[j]!.args[0]! - first[j]!.args[0]!).toBeCloseTo((i * 34 * 64 * 0.85) / 18000)
-        expect(next[j]!.args[1]! - first[j]!.args[1]!).toBeCloseTo((i * 34 * 64 * 0.44) / 18000)
+        expect(next[j]!.args[0]! - first[j]!.args[0]!).toBeCloseTo(i * 34 * 64 * MAP_X * driftPerMs)
+        expect(next[j]!.args[1]! - first[j]!.args[1]!).toBeCloseTo(i * 34 * 64 * MAP_Y * driftPerMs)
       }
     }
     s.renderer.dispose()
@@ -2675,6 +2680,76 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+  it('keeps oversized visible portrait working sets stable across frames', () => {
+    const s = scene()
+    try {
+      const sector = s.view.sectors.find(({ id }) => id === s.view.position.sectorId)!
+      const players = sector.cells.map(({ x, y }, index) => ({
+        characterId: `crowd-${index}`,
+        name: `Crowd ${index}`,
+        level: 1,
+        portraitRef: '',
+        imageUrl: `/crowd-${index}.webp`,
+        online: true,
+        attackable: false,
+        position: { sectorId: sector.id, x, y },
+      }))
+      s.renderer.update({ ...s.view, players })
+      s.renderer.settings({ animate: true, zoom: 0.35 })
+      s.frame(40)
+      const requests = s.images.length
+      s.frame(100)
+      expect(s.images.length).toBe(requests)
+      expect(s.identityDraws.filter(({ src }) => src.startsWith('/crowd-')).length).toBeGreaterThan(
+        100,
+      )
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
+  it('keeps dense nameplates readable without removing visible players', () => {
+    const s = scene()
+    const players = Array.from({ length: 25 }, (_, index) => ({
+      characterId: `neighbor-${index}`,
+      name: `Neighbour ${index}`,
+      level: 1,
+      portraitRef: '',
+      imageUrl: '/peer.webp',
+      online: true,
+      attackable: false,
+      position: {
+        ...s.view.position,
+        x: 2 + (index % 6),
+        y: 2 + Math.floor(index / 6),
+      },
+    }))
+    s.renderer.update({ ...s.view, players })
+    s.renderer.settings({ animate: true, zoom: 0.65 })
+    s.frame(40)
+
+    const labels = s.texts.filter(({ text }) => text === 'You' || text.startsWith('Neighbour'))
+    expect(labels.some(({ text }) => text === 'You')).toBe(true)
+    expect(labels.length).toBeLessThanOrEqual(12)
+    expect(s.identityDraws.filter(({ src }) => src === '/peer.webp').length).toBeGreaterThan(12)
+    for (const [index, label] of labels.entries()) {
+      const fontSize = Number(/(\d+)px/.exec(label.font)![1])
+      const width = label.text.length * 7 + 12
+      expect(
+        labels.slice(0, index).some((other) => {
+          const otherWidth = other.text.length * 7 + 12
+          return (
+            Math.abs(label.y - other.y) < fontSize + 6 &&
+            label.x < other.x + otherWidth &&
+            label.x + width > other.x
+          )
+        }),
+      ).toBe(false)
+    }
+
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  })
   it.each([1, 2, 2.625, 3].flatMap((density) => [0.35, 1, 1.4].map((zoom) => ({ density, zoom }))))(
     'draws readable, uncompressed player labels at $zoom zoom and $density DPR',
     ({ density, zoom }) => {
@@ -2933,4 +3008,99 @@ describe('native map input and bounded lifecycle', () => {
       vi.unstubAllGlobals()
     },
   )
+})
+
+it('reduces cosmetic storm work in the Low tier while retaining movement input', () => {
+  const initial = projectWorld(newWorldState(), [], 1000)
+  const s = scene(false, { ...initial, environment: { ...initial.environment, weather: 'storm' } })
+  try {
+    s.frame(40)
+    expect(s.canvas.dataset.precipitationParticles).toBe('128')
+    s.renderer.settings({ animate: true, zoom: 1, quality: 'low' })
+    s.frame(100)
+    expect(Number(s.canvas.dataset.precipitationParticles)).toBeLessThan(64)
+    expect(s.canvas.dataset.clouds).toBe('0')
+    s.event('pointerdown', 400, 313)
+    s.event('pointerup', 400, 313)
+    expect(s.select).toHaveBeenCalledTimes(1)
+    expect(s.canvas.dataset.precipitation).toBe('rain')
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('reduces phone cloud compositing by default and keeps Low identity sharp', () => {
+  const s = scene()
+  try {
+    Object.assign(s.canvas, { clientWidth: 393, clientHeight: 851 })
+    window.devicePixelRatio = 2.75
+    s.resize()
+    s.frame(40)
+    expect(s.canvas.dataset.clouds).toBe('0')
+    expect(s.canvas.width).toBe(Math.round(393 * 1.5))
+
+    s.renderer.settings({ animate: true, zoom: 1, quality: 'high' })
+    s.frame(100)
+    expect(Number(s.canvas.dataset.clouds)).toBeGreaterThan(0)
+
+    s.renderer.settings({ animate: true, zoom: 1, quality: 'low' })
+    s.frame(160)
+    expect(s.canvas.width).toBe(393)
+    expect(s.identityCanvas.width).toBe(Math.round(393 * 2.75))
+    expect(s.canvas.dataset.clouds).toBe('0')
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('uses distinct Frostmere building art at the existing public footprint anchors', () => {
+  const state = newWorldState()
+  state.position = { sectorId: 'frostmere', x: 6, y: 4 }
+  const initial = projectWorld(state, [], 1000)
+  const s = scene(false, initial)
+  try {
+    const atlas = s.images.find((image) =>
+      (image as HTMLImageElement).src.endsWith('frostmere-v01.webp'),
+    )
+    expect(atlas).toBeDefined()
+    Object.assign(atlas!, { width: 1536, height: 336, naturalWidth: 1536 })
+    s.frame(40)
+    const buildings = s.draws.filter((draw) => draw.src.endsWith('frostmere-v01.webp'))
+    expect(buildings.some((draw) => draw.args[0] === 0)).toBe(true)
+    expect(buildings.some((draw) => draw.args[0] === 384)).toBe(true)
+    expect(buildings.some((draw) => draw.args[0] === 1152)).toBe(true)
+    const forge = buildings.find((draw) => draw.args[0] === 384)!
+    const foot = projectMapPoint(
+      {
+        x: mapPoint(state.position, initial.sectors).x + 2.5,
+        y: mapPoint(state.position, initial.sectors).y - 1.5,
+      },
+      mapPoint(state.position, initial.sectors),
+      { x: 0, y: 0 },
+      64,
+      800,
+      600,
+    )
+    expect(forge.matrix[4]).toBeCloseTo(foot.x * 1.5, 1)
+    expect(forge.matrix[5]).toBeCloseTo(foot.y * 1.5, 1)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
+})
+
+it('uses projected walkability for staff inspection without a player marker', () => {
+  const s = scene()
+  try {
+    s.renderer.settings({ animate: false, zoom: 1, preview: true, authorityOverlay: true })
+    s.frame(40)
+    expect(s.fills.some((fill) => fill.colour === 'rgba(129,38,122,.56)')).toBe(true)
+    expect(s.rectangles.some((rect) => rect.colour === '#f1ca62')).toBe(true)
+    expect(s.texts.some((text) => text.text === 'You')).toBe(false)
+  } finally {
+    s.renderer.dispose()
+    vi.unstubAllGlobals()
+  }
 })

@@ -6,13 +6,26 @@ import { useRouter } from 'next/navigation'
 import { WORLD_LAND_NAME } from '@/world/atlas'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { regionalWeatherLabel } from './map-weather'
+import {
+  defaultMapQuality,
+  readMapQuality,
+  saveMapQuality,
+  subscribeMapQuality,
+  type MapQuality,
+} from './map-quality'
 import { remainingTravelMs, worldSyncDelayMs } from '@/world/travel'
 import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import { WorldNearbyPlayer } from './world-nearby-player'
 import { WorldPlacePortrait } from './world-place-portrait'
 import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
-import type { WorldIntent, WorldPosition, WorldView } from '@/world/types'
+import type {
+  WorldIntent,
+  WorldInteraction,
+  WorldInteractionActionId,
+  WorldPosition,
+  WorldView,
+} from '@/world/types'
 import { WorldConflict, WorldController } from './world-controller'
 import { worldSceneCoversViewport } from './world-scene-coverage'
 import { WorldLivePresence } from './world-live-presence'
@@ -21,6 +34,8 @@ import { localRoute, mapPoint, prepareLocalRoute, WorldMotion } from './world-mo
 import { WorldMap } from './world-map'
 import { WorldGlobe } from './world-globe'
 import { WorldMissions } from './world-missions'
+import { dialogueSpeakerId, WorldDialogue } from './world-dialogue'
+import dialogueStyles from './world-dialogue.module.css'
 import { clampWorldZoom, WORLD_MIN_ZOOM, WORLD_MAX_ZOOM } from './world-zoom'
 import { battleSessionHref } from '@/components/battle/battle-return-navigation'
 import styles from './workspace.module.css'
@@ -89,6 +104,11 @@ export function WorldWorkspace({
   const [tab, setTab] = useState<'nearby' | 'places' | 'missions' | 'chat'>('nearby'),
     [panelOpen, setPanelOpen] = useState(false),
     [message, setMessage] = useState('')
+  const [conversation, setConversation] = useState<{
+    topic: WorldInteraction
+    opener: HTMLButtonElement
+  } | null>(null)
+  const openingConversation = useRef(false)
   const [active, setActive] = useState<WorldIntent | null>(null),
     [selectedPlayer, setSelectedPlayer] = useState<string | null>(null),
     [approachingPlayer, setApproachingPlayer] = useState<string | null>(null),
@@ -101,6 +121,7 @@ export function WorldWorkspace({
   const [motion] = useState(() => new WorldMotion(initialView, performance.now()))
   const [approvedPosition, setApprovedPosition] = useState(initialView.position)
   const zoomLocked = useSyncExternalStore(subscribeZoomLock, readZoomLock, () => false)
+  const mapQuality = useSyncExternalStore(subscribeMapQuality, readMapQuality, defaultMapQuality)
   const changeZoom = (value: number) =>
     (mode === 'global' ? setGlobeZoom : setZoom)(clampWorldZoom(value))
   const controller = useRef<WorldController | null>(null),
@@ -136,7 +157,8 @@ export function WorldWorkspace({
     const closeOnOutside = (event: PointerEvent) => {
       const target = event.target
       if (!(target instanceof Element)) return
-      if (target.closest('#world-panel') || target.closest('[aria-controls="world-panel"]')) return
+      if (target.closest('#world-panel, [aria-controls="world-panel"], [data-world-dialogue]'))
+        return
       setPanelOpen(false)
     }
     document.addEventListener('pointerdown', closeOnOutside, true)
@@ -169,10 +191,12 @@ export function WorldWorkspace({
     const accept = (next: WorldView, reconcile: boolean) => {
       if (!mounted) return
       if (next.battleSessionId) {
+        setView(next)
         router.replace(battleSessionHref(next.battleSessionId, 'world'))
         return
       }
       if (next.characterId !== initialView.characterId) {
+        setConversation(null)
         router.refresh()
         return
       }
@@ -430,6 +454,37 @@ export function WorldWorkspace({
     setApproachingPlayer(null)
     send({ kind: 'stop' })
   }
+  const openConversation = async (topic: WorldInteraction, opener: HTMLButtonElement) => {
+    const instance = controller.current
+    if (!instance || instance.attackPending || openingConversation.current) return
+    openingConversation.current = true
+    setMessage('')
+    setApproachingPlayer(null)
+    try {
+      if (instance.view.route.length || instance.movementPending) {
+        motion.stop(performance.now())
+        if (!(await instance.send({ kind: 'stop' })).applied) return
+        // A compact movement receipt can omit authored topics from the owned scene.
+        if (!instance.view.interactions.some((entry) => entry.id === topic.id))
+          await instance.refresh()
+      }
+      const current = instance.view
+      if (current.battleSessionId || current.movementBlocked) return
+      const localTopic = current.interactions.find((entry) => entry.id === topic.id)
+      if (!localTopic || current.route.length) {
+        setMessage('This speaker is no longer within reach.')
+        return
+      }
+      setConversation({ topic: localTopic, opener })
+    } finally {
+      openingConversation.current = false
+    }
+  }
+  const replyToConversation = async (interactionId: string, actionId: WorldInteractionActionId) => {
+    setMessage('')
+    const receipt = await controller.current?.send({ kind: 'interact', interactionId, actionId })
+    return receipt?.applied === true
+  }
   const currentSector = view.sectors.find((s) => s.id === approvedPosition.sectorId)
   const local = currentSector ?? view.sectors[0]!
   const currentCell = currentSector?.cells.find(
@@ -539,6 +594,7 @@ export function WorldWorkspace({
               motion={motion}
               portrait={character.portrait}
               animate={animate}
+              quality={mapQuality}
               paused={false}
               zoom={zoom}
               zoomLocked={zoomLocked}
@@ -568,7 +624,7 @@ export function WorldWorkspace({
         </div>
         <aside
           id="world-panel"
-          className={`${styles.sidebar} ${panelOpen ? styles.open : ''}`}
+          className={`${styles.sidebar} ${panelOpen ? styles.open : ''} ${conversation ? dialogueStyles.mapObstruction : ''}`}
           aria-label="World details"
         >
           <p className={styles.conditions} aria-label="World conditions">
@@ -635,6 +691,7 @@ export function WorldWorkspace({
                   disabled={disabled}
                   send={send}
                   stopMoving={stopMoving}
+                  openConversation={(topic, opener) => void openConversation(topic, opener)}
                 />
               </div>
             ) : mode === 'local' && tab === 'places' ? (
@@ -783,6 +840,29 @@ export function WorldWorkspace({
           ) : null}
         </div>
       ) : null}
+      {conversation ? (
+        <WorldDialogue
+          initialTopic={conversation.topic}
+          opener={conversation.opener}
+          topics={view.interactions.filter(
+            (topic) => dialogueSpeakerId(topic) === dialogueSpeakerId(conversation.topic),
+          )}
+          objectives={view.objectives}
+          interruption={
+            view.battleSessionId
+              ? 'Battle started. Your conversation ended.'
+              : view.movementBlocked ||
+                (view.route.length ? 'Travel interrupted the conversation.' : null)
+          }
+          error={message}
+          busy={active?.kind === 'interact'}
+          onReply={replyToConversation}
+          onClose={() => {
+            setConversation(null)
+            setMessage('')
+          }}
+        />
+      ) : null}
       {settings ? (
         <>
           <button
@@ -838,6 +918,17 @@ export function WorldWorkspace({
                 onChange={(event) => setAnimate(event.target.checked)}
               />{' '}
               Ambient animation
+            </label>
+            <label className={styles.mapQuality}>
+              Map detail
+              <select
+                value={mapQuality}
+                onChange={(event) => saveMapQuality(event.target.value as MapQuality)}
+              >
+                <option value="high">High</option>
+                <option value="balanced">Balanced</option>
+                <option value="low">Low · Battery-friendly</option>
+              </select>
             </label>
             <p>Reduced motion follows your device preference.</p>
             <button onClick={() => setSettings(false)}>Done</button>

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+import { appearanceManifestFromImageUrl } from '@/appearance/appearance-manifest'
 import { newWorldState } from '@/world/travel'
 import type { WorldObjective, WorldState } from '@/world/types'
 
@@ -113,6 +114,56 @@ describe('authored settlement interaction objectives', () => {
       completed: true,
       progress: 'completed',
     })
+  })
+
+  it('rejects a stale acceptance reply once the same topic is ready for reporting', () => {
+    const ready = {
+      ...at(VERDANT_SETTLEMENT),
+      objectiveProgress: { [EASTERN_WATCH_OBJECTIVE_ID]: 'ready' as const },
+    }
+    expect(localWorldInteractions(ready)[0]?.actionId).toBe('report')
+    expect(resolveWorldInteraction(ready, EASTERN_WATCH_INTERACTION_ID, 'accept')).toBeNull()
+    expect(
+      resolveWorldInteraction(ready, EASTERN_WATCH_INTERACTION_ID, 'report')?.completedObjectives,
+    ).toContain(EASTERN_WATCH_OBJECTIVE_ID)
+  })
+
+  it('projects a local topic using only the requesting player’s progress', () => {
+    const offer = at(VERDANT_SETTLEMENT)
+    const active = {
+      ...offer,
+      objectiveProgress: { [EASTERN_WATCH_OBJECTIVE_ID]: 'active' as const },
+    }
+    expect(localWorldInteractions(offer)[0]).toMatchObject({
+      progress: 'available',
+      actionId: 'accept',
+    })
+    expect(localWorldInteractions(active)[0]).toMatchObject({ progress: 'active', actionId: null })
+  })
+
+  it('restores the last committed Watch reply from the authoritative saved progress', () => {
+    const origin = at(VERDANT_SETTLEMENT)
+    const accepted = resolveWorldInteraction(origin, EASTERN_WATCH_INTERACTION_ID, 'accept')!
+    const ready = {
+      ...accepted,
+      objectiveProgress: { [EASTERN_WATCH_OBJECTIVE_ID]: 'ready' as const },
+    }
+    const completed = resolveWorldInteraction(ready, EASTERN_WATCH_INTERACTION_ID, 'report')!
+    expect(localWorldInteractions(origin)[0]?.lastReply).toBeUndefined()
+    expect(localWorldInteractions(structuredClone(accepted))[0]?.lastReply).toBe('Accept objective')
+    expect(localWorldInteractions(structuredClone(completed))[0]?.lastReply).toBe('Report back')
+  })
+
+  it('changes the speaker’s expression while keeping the same shared appearance', () => {
+    const offer = at(VERDANT_SETTLEMENT)
+    const completed = { ...offer, completedObjectives: [EASTERN_WATCH_OBJECTIVE_ID] }
+    const opening = localWorldInteractions(offer)[0]!
+    const ending = localWorldInteractions(completed)[0]!
+    const manifest = appearanceManifestFromImageUrl(opening.portraitUrl)
+    expect(manifest?.portraits.neutral).toBeTruthy()
+    expect(ending.portraitUrl).toBe(opening.portraitUrl)
+    expect(opening.expression).toBe('neutral')
+    expect(ending.expression).toBe('happy')
   })
 
   it('rejects the patrol interaction remotely or while travelling', () => {

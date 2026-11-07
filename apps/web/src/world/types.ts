@@ -1,3 +1,4 @@
+import type { AppearanceExpression } from '@/appearance/appearance-manifest'
 import type { WorldEnvironment } from './environment'
 
 export interface WorldPosition {
@@ -117,13 +118,20 @@ export interface WorldObjective {
   completed: boolean
   progress?: WorldObjectiveProgress
 }
+export type WorldInteractionActionId = 'accept' | 'report'
 export interface WorldInteraction {
   id: string
   objectiveId: string
   title: string
   speaker: string
+  /** Stable reusable identity when more than one local topic shares a speaker. */
+  speakerId?: string
+  portraitUrl?: string
+  expression?: AppearanceExpression
   body: string
+  actionId?: WorldInteractionActionId | null
   actionLabel: string | null
+  lastReply?: string
   progress: WorldObjectiveProgress
 }
 export interface WorldAnchorDiscovery {
@@ -216,7 +224,7 @@ export type WorldIntent =
   | { kind: 'stop' }
   | { kind: 'tick' }
   | { kind: 'cross' }
-  | { kind: 'interact'; interactionId: string }
+  | { kind: 'interact'; interactionId: string; actionId?: WorldInteractionActionId }
   | { kind: 'attack'; targetId: string }
 export interface WorldCommand {
   characterId: string

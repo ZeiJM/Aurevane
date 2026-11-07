@@ -45,7 +45,7 @@ it('rejects staff without the assigned World Environment page', async () => {
   expect((await POST(request({ expectedVersion: 0, change, reason: 'Owner test' }))).status).toBe(
     403,
   )
-  expect((await GET()).status).toBe(403)
+  expect((await GET(new Request('http://localhost/api/master/world-environment'))).status).toBe(403)
   expect(setEnvironment).not.toHaveBeenCalled()
   expect(readHistory).not.toHaveBeenCalled()
 })
@@ -69,4 +69,35 @@ it('rejects malformed JSON and maps stale versions to a conflict', async () => {
   setEnvironment.mockRejectedValueOnce(new AurevaneError('STALE_VERSION', 'Refresh'))
   const stale = await POST(request({ expectedVersion: 0, change, reason: 'Owner test' }))
   expect(stale.status).toBe(409)
+})
+
+it('returns a private, public-terrain-only region preview with no player session or mission data', async () => {
+  const response = await GET(
+    new Request('http://localhost/api/master/world-environment?previewRegion=frostmere'),
+  )
+  expect(response.status).toBe(200)
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store')
+  const { view } = await response.json()
+  expect(view.position.sectorId).toBe('frostmere')
+  expect(view.sectors[0]).toMatchObject({ id: 'frostmere', charted: true })
+  expect(view.sectors[0].cells.some((cell: { walkable: boolean }) => !cell.walkable)).toBe(true)
+  expect(view.sectors.every((sector: { charted: boolean }) => sector.charted)).toBe(true)
+  expect(view).toMatchObject({
+    characterId: '',
+    route: [],
+    players: [],
+    objectives: [],
+    interactions: [],
+    battleSessionId: null,
+  })
+  expect(readHistory).not.toHaveBeenCalled()
+  expect(setEnvironment).not.toHaveBeenCalled()
+})
+
+it('rejects forged preview region IDs and applies the same page access before projecting terrain', async () => {
+  const preview = (region: string) =>
+    new Request(`http://localhost/api/master/world-environment?previewRegion=${region}`)
+  expect((await GET(preview('hidden-frontier'))).status).toBe(400)
+  requireCapability.mockRejectedValueOnce(new AurevaneError('FORBIDDEN', 'Page access required.'))
+  expect((await GET(preview('frostmere'))).status).toBe(403)
 })

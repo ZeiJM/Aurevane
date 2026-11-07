@@ -29,6 +29,12 @@ it('accepts bounded local interaction intent', () => {
   })
 })
 
+it('keeps the selected dialogue reply explicit at the command boundary', () => {
+  const intent = { kind: 'interact', interactionId: 'eastern-watch-officer', actionId: 'accept' }
+  expect(parseWorldCommand({ ...base, intent })?.intent).toEqual(intent)
+  expect(parseWorldCommand({ ...base, intent: { ...intent, actionId: 'continue' } })).toBeNull()
+})
+
 it('rejects malformed and unbounded commands', () => {
   for (const input of [
     null,

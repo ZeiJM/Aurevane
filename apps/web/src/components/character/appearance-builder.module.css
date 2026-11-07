@@ -1,0 +1,171 @@
+.dialog {
+  width: min(52rem, calc(100vw - 1.5rem));
+  max-height: min(48rem, 90dvh);
+  padding: clamp(0.85rem, 3vw, 1.5rem);
+  border: 1px solid #a38758;
+  border-radius: 0.65rem;
+  background: #15242a;
+  color: #f4ecda;
+  overscroll-behavior: contain;
+}
+
+.dialog::backdrop {
+  background: rgb(7 13 17 / 76%);
+}
+
+.dialog h2 {
+  margin: 0;
+}
+
+.dialog button,
+.dialog select {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #a38758;
+  border-radius: 0.35rem;
+  background: #24373c;
+  color: #f4ecda;
+  font: inherit;
+}
+
+.dialog button:disabled {
+  opacity: 0.5;
+}
+
+.dialogHeader,
+.dialogFooter,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dialogHeader {
+  justify-content: space-between;
+}
+
+.dialogFooter {
+  margin-block-start: 1rem;
+  justify-content: end;
+}
+
+.builder {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(14rem, 2fr);
+  align-items: start;
+  gap: 1rem;
+  margin-block: 0.75rem;
+}
+
+.preview {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: stretch;
+  text-align: center;
+}
+
+.portrait {
+  display: block;
+  width: 100%;
+  max-width: 14rem;
+  height: auto;
+  margin-inline: auto;
+  border-radius: 0.35rem;
+}
+
+.poses {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.poses figure {
+  display: grid;
+  justify-items: center;
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+.icon img {
+  display: block;
+  border-radius: 50%;
+}
+
+.sprite {
+  display: block;
+  aspect-ratio: 3 / 4;
+  background-position: var(--x0) var(--y);
+}
+
+.sprite[data-walk] {
+  animation: walk-preview 0.65s step-end infinite;
+}
+
+@keyframes walk-preview {
+  0%,
+  50% {
+    background-position: var(--x0) var(--y);
+  }
+  25% {
+    background-position: var(--x1) var(--y);
+  }
+  75% {
+    background-position: var(--x2) var(--y);
+  }
+}
+
+.controls {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.controls fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0.55rem;
+  border: 1px solid #677470;
+  border-radius: 0.35rem;
+}
+
+.controls legend {
+  padding-inline: 0.25rem;
+  color: #e5c58b;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-block-end: 0.45rem;
+}
+
+.fields label {
+  display: grid;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 38rem) {
+  .builder {
+    grid-template-columns: 1fr;
+  }
+
+  .preview {
+    grid-template-columns: 5rem minmax(0, 1fr);
+    text-align: start;
+    align-items: center;
+  }
+
+  .poses {
+    grid-column: 2;
+    justify-content: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprite[data-walk] {
+    animation: none;
+  }
+}

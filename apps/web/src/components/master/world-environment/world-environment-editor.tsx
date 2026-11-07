@@ -13,6 +13,7 @@ import {
   type WorldWeather,
 } from '@/world/environment'
 import { MasterHelp } from '../master-help'
+import { WorldEnvironmentPreview } from './world-environment-preview'
 import styles from './world-environment-editor.module.css'
 const weatherLabels: Record<WorldWeather, string> = {
   clear: 'Clear',
@@ -221,6 +222,7 @@ export function WorldEnvironmentEditor({
           <small>Manual selections last until the next automatic roll.</small>
         </fieldset>
       </div>
+      <WorldEnvironmentPreview liveWeather={current?.weather} />
       <button type="submit" disabled={saving || !valid}>
         {saving ? 'Saving…' : 'Save Changes'}
       </button>

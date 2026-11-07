@@ -15,6 +15,7 @@ const render = (view: WorldView) =>
       disabled: false,
       send: vi.fn(),
       stopMoving: vi.fn(),
+      openConversation: vi.fn(),
     }),
   )
 describe('mission status and authoritative turn-in', () => {
@@ -28,14 +29,16 @@ describe('mission status and authoritative turn-in', () => {
     expect(markup).not.toContain('Tracked Quests')
     expect(markup).toContain('Hinterland Patrol')
   })
-  it('offers Complete quest only for a ready objective at its authoritative issuer', () => {
+  it('routes local quest actions through the conversation before any reply can be sent', () => {
     const state = {
       ...newWorldState(),
       position: VERDANT_SETTLEMENT,
       objectiveProgress: { 'eastern-watch': 'ready' as const },
     }
     const ready = projectWorld(state, [], 1000)
-    expect(render(ready)).toContain('Complete quest')
+    expect(render(ready)).toContain('Talk to Watch officer')
+    expect(render(ready)).not.toContain('Complete quest')
+    expect(render({ ...ready, interactions: [] })).not.toContain('Talk to Watch officer')
     expect(render({ ...ready, interactions: [] })).not.toContain('Complete quest')
     expect(render(projectWorld(newWorldState(), [], 1000))).not.toContain('Complete quest')
     expect(

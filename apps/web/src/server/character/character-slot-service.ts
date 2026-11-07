@@ -1,4 +1,9 @@
 import 'server-only'
+
+import {
+  compileAppearanceManifest,
+  parseAppearanceBlueprint,
+} from '@/appearance/appearance-manifest'
 import { throwCombatContentAdmissionError } from '../combat/combat-content-admission-error'
 
 import { createHash } from 'node:crypto'
@@ -155,6 +160,7 @@ export async function createCharacterInSlot(command: {
   idempotencyKey: string
   intent: CharacterCreationIntent
   expectedProfileVersion?: number
+  appearance?: unknown
 }): Promise<{ character: PersistedCharacter; replayed: boolean }> {
   if (!isCharacterSlotIndex(command.slotIndex)) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose character slot 1, 2, or 3.')
@@ -193,6 +199,11 @@ export async function createCharacterInSlot(command: {
     throw error
   }
 
+  const blueprint = parseAppearanceBlueprint(command.appearance)
+  if (command.appearance !== undefined && !blueprint) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose compatible appearance parts.')
+  }
+  const appearanceUrl = blueprint ? compileAppearanceManifest(blueprint).portraits.neutral : null
   const requestFingerprint = createHash('sha256')
     .update(
       JSON.stringify({
@@ -208,12 +219,13 @@ export async function createCharacterInSlot(command: {
         foundationDisciplineId: seed.foundationDisciplineId,
         attributeBonuses: command.intent.attributeBonuses,
         expectedProfileVersion: command.expectedProfileVersion ?? null,
+        ...(appearanceUrl ? { appearanceUrl } : {}),
       }),
     )
     .digest('hex')
 
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_character_v4', {
+  const args = {
     p_user_id: command.actor.userId,
     p_slot_index: command.slotIndex,
     p_idempotency_key: command.idempotencyKey,
@@ -233,9 +245,21 @@ export async function createCharacterInSlot(command: {
     p_bonus_intellect: command.intent.attributeBonuses.intellect,
     p_bonus_resolve: command.intent.attributeBonuses.resolve,
     p_expected_profile_version: command.expectedProfileVersion ?? null,
-  })
+  }
+  const { data, error } = appearanceUrl
+    ? await supabase.rpc('create_character_with_appearance_v1', {
+        ...args,
+        p_appearance_url: appearanceUrl,
+      })
+    : await supabase.rpc('create_character_v4', args)
 
   if (error) {
+    if (error.message.includes('CHARACTER_APPEARANCE_DUPLICATE')) {
+      throw new AurevaneError(
+        'STALE_VERSION',
+        'Another character already uses this look. Change one or more parts.',
+      )
+    }
     throwCombatContentAdmissionError(error)
     if (error.message.includes('CHARACTER_CORE_STALE'))
       throw new AurevaneError(

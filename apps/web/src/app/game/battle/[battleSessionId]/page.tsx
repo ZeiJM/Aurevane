@@ -39,6 +39,7 @@ import { createBattleSessionService } from '@/server/battle/battle-session-servi
 import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
+import { loadPinnedBattleCharacterImages } from '@/server/battle/battle-character-appearance'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 import { loadCurrentDisciplineNames } from '@/server/character/current-discipline-names'
 import { createServerCombatContentResolver } from '@/server/combat/combat-content-resolver'
@@ -311,11 +312,16 @@ export default async function BattleSessionPage({
         characters.findByOwnerId
           ? characters.findByOwnerId(actor.userId, characterId)
           : Promise.resolve(null),
-        loadCharacterProfileDisplay(actor.userId, characterId).then(
-          (display) => display.imageUrl,
+        loadPinnedBattleCharacterImages(battle.battleSessionId)
+          .then((pins) =>
+            pins.has(characterId)
+              ? (pins.get(characterId) ?? null)
+              : loadCharacterProfileDisplay(actor.userId, characterId).then(
+                  (display) => display.imageUrl,
+                ),
+          )
           // Cosmetic display failure falls back to the built-in portrait.
-          () => null,
-        ),
+          .catch(() => null),
       ])
     : [null, null]
   if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) redirect('/game/battle')

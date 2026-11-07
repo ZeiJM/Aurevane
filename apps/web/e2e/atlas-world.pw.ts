@@ -18,6 +18,7 @@ import { sectorMapOrigin, wrappedMapX } from '../src/world/topology'
 import { projectMapPoint } from '../src/components/world/map-projection'
 import { worldRenderTerrain } from '../src/components/world/map-render-terrain'
 import { registerWorldLandscapeCases } from './world-landscape-case'
+import { registerWorldMultiplayerLoadCase } from './world-multiplayer-load-case'
 import type { CharacterBuildContext } from '../src/server/character/character-build-service'
 
 const runtimeErrors = new WeakMap<Page, string[]>()
@@ -383,8 +384,8 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   page,
 }, info) => {
   test.skip(
-    info.project.name !== 'desktop-chromium',
-    'Objective authority is viewport independent.',
+    info.project.name === 'laptop-chromium',
+    'The same journey covers desktop and mobile dialogue layouts.',
   )
   test.setTimeout(60000)
   await enter(page)
@@ -395,7 +396,45 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'The Eastern Watch' })).toBeVisible()
   await expect(interaction).toContainText('Watch officer')
-  await page.getByRole('button', { name: 'Accept objective' }).click()
+  const talk = interaction.getByRole('button', { name: 'Talk to Watch officer' })
+  await talk.click()
+  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  await expect(
+    dialogue.getByText('The eastern tower has gone quiet.', { exact: false }),
+  ).toBeVisible()
+  await expect(page.locator('[data-world-stage]')).toBeVisible()
+  const portrait = dialogue.locator('img')
+  await expect(portrait).toHaveAttribute('src', /\/neutral\.svg$/)
+  await expect
+    .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0)
+  const dialogueBounds = (await dialogue.boundingBox())!
+  const viewport = page.viewportSize()!
+  expect(dialogueBounds.y).toBeGreaterThan(viewport.height / 2)
+  if (info.project.name === 'mobile-chromium') {
+    expect(dialogueBounds.width).toBe(viewport.width)
+    await expect(page.locator('#world-panel')).toBeHidden()
+  }
+  await expect(dialogue.getByRole('button', { name: 'End conversation' })).toBeFocused()
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialogue.getByRole('button', { name: 'History' })).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(dialogue.getByRole('button', { name: 'End conversation' })).toBeFocused()
+  await capture(page, info, 'eastern-watch-dialogue')
+  await page.keyboard.press('Escape')
+  await expect(dialogue).toHaveCount(0)
+  await expect(talk).toBeFocused()
+  expect(
+    (await world(page)).objectives.find((objective) => objective.id === 'eastern-watch')?.progress,
+  ).toBe('available')
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Accept objective' }).click()
+  await expect(dialogue.getByText('In progress', { exact: true })).toBeVisible()
+  await dialogue.getByRole('button', { name: 'History' }).click()
+  await expect(dialogue.getByRole('region', { name: 'Conversation history' })).toContainText(
+    'Accept objective',
+  )
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
   let state = await world(page)
   expect(state.objectives.find((objective) => objective.id === 'eastern-watch')).toMatchObject({
@@ -405,6 +444,12 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
 
   await reloadWorld(page)
   await expect(page.getByText('Reach the eastern watchtower across the river.')).toBeVisible()
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'History' }).click()
+  await expect(dialogue.getByRole('region', { name: 'Conversation history' })).toContainText(
+    'Your last reply: Accept objective',
+  )
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   place(initial.characterId, 'verdant-expanse', 12, 4, false)
   await reloadWorld(page)
   state = await world(page)
@@ -436,21 +481,35 @@ test('Eastern Watch objective persists accept, inspect and idempotent return com
       request.method() === 'POST' &&
       request.postDataJSON()?.intent?.kind === 'interact',
   )
-  await page.getByRole('button', { name: 'Complete quest' }).click()
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Report back' }).click()
+  await expect(dialogue.getByText('Completed', { exact: true })).toBeVisible()
+  await expect(portrait).toHaveAttribute('src', /\/happy\.svg$/)
+  await expect
+    .poll(() => portrait.evaluate((image) => (image as HTMLImageElement).naturalWidth))
+    .toBeGreaterThan(0)
+  await capture(page, info, 'eastern-watch-dialogue-completed')
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   const reportCommand = (await reportRequest).postDataJSON()
   await page.getByRole('tab', { name: 'Completed', exact: true }).click()
   await expect(page.getByText('The eastern route has been verified.')).toBeVisible()
   state = await world(page)
   const completed = state.objectives.find((objective) => objective.id === 'eastern-watch')!
   expect(completed).toMatchObject({ progress: 'completed', completed: true, destination: null })
-  expect(state.interactions[0]).toMatchObject({ progress: 'completed', actionLabel: null })
+  expect(state.interactions[0]).toMatchObject({
+    progress: 'completed',
+    actionId: null,
+    actionLabel: null,
+  })
   const version = state.version
 
   const replay = await page.request.post('/api/world', { data: reportCommand })
   expect(replay.ok()).toBe(true)
   expect((await replay.json()).version).toBe(version)
   await reloadWorld(page)
-  await expect(page.getByRole('button', { name: 'Complete quest' })).toHaveCount(0)
+  await talk.click()
+  await expect(dialogue.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   expect((await world(page)).version).toBe(version)
 })
 
@@ -470,7 +529,12 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
   const interaction = page.getByRole('region', { name: 'Local interaction' })
   await expect(interaction.getByRole('heading', { name: 'Hinterland Patrol' })).toBeVisible()
   await expect(interaction).toContainText('Watch officer')
-  await page.getByRole('button', { name: 'Accept objective' }).click()
+  const talk = interaction.getByRole('button', { name: 'Talk to Watch officer' })
+  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Accept objective' }).click()
+  await expect(dialogue.getByText('In progress', { exact: true })).toBeVisible()
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   await expect(page.getByText('Reach the central road in Crown Hinterland.')).toBeVisible()
   let state = await world(page)
   expect(
@@ -513,7 +577,10 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
       request.method() === 'POST' &&
       request.postDataJSON()?.intent?.kind === 'interact',
   )
-  await page.getByRole('button', { name: 'Complete quest' }).click()
+  await talk.click()
+  await dialogue.getByRole('button', { name: 'Report back' }).click()
+  await expect(dialogue.getByText('Completed', { exact: true })).toBeVisible()
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   const reportCommand = (await reportRequest).postDataJSON()
   await page.getByRole('tab', { name: 'Completed', exact: true }).click()
   await expect(page.getByText('The Crown Hinterland patrol has been recorded.')).toBeVisible()
@@ -529,7 +596,9 @@ test('Crown Hinterland patrol persists accept, field check and idempotent return
   expect(replay.ok()).toBe(true)
   expect((await replay.json()).version).toBe(version)
   await reloadWorld(page)
-  await expect(page.getByRole('button', { name: 'Complete quest' })).toHaveCount(0)
+  await talk.click()
+  await expect(dialogue.getByRole('button', { name: 'Report back' })).toHaveCount(0)
+  await dialogue.getByRole('button', { name: 'End conversation' }).click()
   expect((await world(page)).version).toBe(version)
 })
 
@@ -1655,6 +1724,7 @@ test('charted globe travel survives unrelated frontier discoveries and retains b
 
 registerWorldInputCases({ enter, world, place, stageWalk, capture, openJournal })
 registerWorldLandscapeCases({ enter, world, place, stageWalk, capture })
+registerWorldMultiplayerLoadCase({ enter, world, place, sql })
 
 test('known neighbouring players follow the visible viewport with service-only presence authority', async ({
   page,

@@ -47,6 +47,9 @@ export class WorldController {
   get attackPending() {
     return [this.currentJob, ...this.queue].some((job) => job?.intent.kind === 'attack')
   }
+  get movementPending() {
+    return [this.currentJob, ...this.queue].some((job) => job && movement(job.intent))
+  }
   get pending() {
     return this.running || this.queue.length > 0
   }

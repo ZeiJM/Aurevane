@@ -33,9 +33,14 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
   } else if (
     input.kind === 'interact' &&
     typeof input.interactionId === 'string' &&
-    /^[a-z0-9][a-z0-9-]{0,99}$/.test(input.interactionId)
+    /^[a-z0-9][a-z0-9-]{0,99}$/.test(input.interactionId) &&
+    (input.actionId === undefined || input.actionId === 'accept' || input.actionId === 'report')
   )
-    intent = { kind: 'interact', interactionId: input.interactionId }
+    intent = {
+      kind: 'interact',
+      interactionId: input.interactionId,
+      ...(input.actionId === undefined ? {} : { actionId: input.actionId }),
+    }
   else if (
     input.kind === 'autopath' &&
     typeof input.objectiveId === 'string' &&

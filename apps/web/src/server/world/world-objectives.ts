@@ -1,8 +1,10 @@
 import 'server-only'
 
+import { APPEARANCE_PRESETS, compileAppearanceManifest } from '@/appearance/appearance-manifest'
 import { samePosition } from '@/world/travel'
 import type {
   WorldInteraction,
+  WorldInteractionActionId,
   WorldObjective,
   WorldObjectiveProgress,
   WorldPosition,
@@ -42,6 +44,7 @@ interface InteractionObjectiveDefinition {
   target: WorldPosition
   title: string
   speaker: string
+  portraitUrl: string
   descriptions: Record<WorldObjectiveProgress, string>
   bodies: Record<WorldObjectiveProgress, string>
 }
@@ -54,6 +57,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     target: EASTERN_WATCH,
     title: 'The Eastern Watch',
     speaker: 'Watch officer',
+    portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[0].blueprint).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the protected settlement.',
       active: 'Reach the eastern watchtower across the river.',
@@ -75,6 +79,7 @@ const INTERACTION_OBJECTIVES: readonly InteractionObjectiveDefinition[] = [
     target: CROWN_HINTERLAND_PATROL,
     title: 'Hinterland Patrol',
     speaker: 'Watch officer',
+    portraitUrl: compileAppearanceManifest(APPEARANCE_PRESETS[1].blueprint).portraits.neutral,
     descriptions: {
       available: 'Speak with the watch officer at the Aureth Crown settlement.',
       active: 'Reach the central road in Crown Hinterland.',
@@ -186,6 +191,7 @@ export function advanceWorldObjectiveProgress(state: WorldState): WorldState {
 export function resolveWorldInteraction(
   state: WorldState,
   interactionId: string,
+  actionId?: WorldInteractionActionId,
 ): WorldState | null {
   const definition = INTERACTION_OBJECTIVES.find(
     (candidate) => candidate.interactionId === interactionId,
@@ -194,8 +200,9 @@ export function resolveWorldInteraction(
     return null
 
   const progress = worldObjectiveProgress(state, definition.objectiveId)
-  if (progress === 'available') return setObjectiveProgress(state, definition.objectiveId, 'active')
-  if (progress !== 'ready') return null
+  const action = worldInteractionAction(progress)
+  if (!action || (actionId !== undefined && actionId !== action.id)) return null
+  if (action.id === 'accept') return setObjectiveProgress(state, definition.objectiveId, 'active')
 
   const completedObjectives = new Set(state.completedObjectives)
   completedObjectives.add(definition.objectiveId)
@@ -205,25 +212,38 @@ export function resolveWorldInteraction(
   }
 }
 
+function worldInteractionAction(
+  progress: WorldObjectiveProgress,
+): { id: WorldInteractionActionId; label: string } | null {
+  if (progress === 'available') return { id: 'accept', label: 'Accept objective' }
+  if (progress === 'ready') return { id: 'report', label: 'Report back' }
+  return null
+}
+
 export function localWorldInteractions(state: WorldState): WorldInteraction[] {
   return INTERACTION_OBJECTIVES.flatMap<WorldInteraction>((definition) => {
     if (!samePosition(state.position, definition.origin)) return []
 
     const progress = worldObjectiveProgress(state, definition.objectiveId)
-    const base = {
-      id: definition.interactionId,
-      objectiveId: definition.objectiveId,
-      title: definition.title,
-      speaker: definition.speaker,
-      progress,
-    } as const
-
-    if (progress === 'available')
-      return [{ ...base, body: definition.bodies.available, actionLabel: 'Accept objective' }]
-    if (progress === 'active')
-      return [{ ...base, body: definition.bodies.active, actionLabel: null }]
-    if (progress === 'ready')
-      return [{ ...base, body: definition.bodies.ready, actionLabel: 'Report back' }]
-    return [{ ...base, body: definition.bodies.completed, actionLabel: null }]
+    const action = worldInteractionAction(progress)
+    const lastReply =
+      progress === 'available'
+        ? undefined
+        : worldInteractionAction(progress === 'completed' ? 'ready' : 'available')?.label
+    return [
+      {
+        id: definition.interactionId,
+        objectiveId: definition.objectiveId,
+        title: definition.title,
+        speaker: definition.speaker,
+        portraitUrl: definition.portraitUrl,
+        expression: progress === 'completed' ? 'happy' : 'neutral',
+        progress,
+        body: definition.bodies[progress],
+        actionId: action?.id ?? null,
+        actionLabel: action?.label ?? null,
+        ...(lastReply ? { lastReply } : {}),
+      },
+    ]
   })
 }

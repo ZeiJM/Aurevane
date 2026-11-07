@@ -1,8 +1,9 @@
 'use client'
 
-import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
+import { BattlefieldAppearanceToken } from './battlefield-appearance-token'
+import { useBattleAppearanceCues } from './use-battle-appearance-cues'
 
-import { BattleSummonPortrait } from './battle-summon-portrait'
+import { SkillEffectTimingProvider } from '../character/skill-effect-timing-context'
 
 import { useBattleMobileChronicle } from './use-battle-mobile-chronicle'
 import { useDesktopBattleLayout } from './battle-responsive-layout'
@@ -45,7 +46,6 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battle-combatant-inspect'
 import { PvpBattleChat } from '@/components/battle/pvp-battle-chat'
-import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
@@ -125,6 +125,7 @@ function PvpSpectatorExperienceContent({
   const [selectedPosition, setSelectedPosition] = useState<GridPosition | null>(null)
 
   const battle = spectator.battle
+  const appearanceCues = useBattleAppearanceCues(battle.battleSessionId, battle.battleVersion)
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const teamCount = spectator.mode === '1v1v1' ? 3 : 2
@@ -545,26 +546,16 @@ function PvpSpectatorExperienceContent({
                           data-desktop-inspect-combatant={placement.combatantId}
                           title={`${participant.name} · ${teamName(participant.teamIndex)}`}
                         >
-                          {participant.profileImageUrl && !participant.portraitAssetId ? (
-                            <BattleSummonPortrait
-                              src={participant.profileImageUrl}
-                              name={participant.name}
-                              fallbackClassName={styles.summonPortrait}
-                              className={styles.unitPortrait}
-                            />
-                          ) : participant.portraitAssetId ? (
-                            <CharacterPortraitImage
-                              imageUrl={participant.profileImageUrl}
-                              fallbackAssetId={participant.portraitAssetId}
-                              className={styles.unitPortrait}
-                              sizes="64px"
-                              alt=""
-                            />
-                          ) : (
-                            <span className={styles.summonPortrait} aria-hidden="true">
-                              {participant.name.charAt(0).toUpperCase()}
-                            </span>
-                          )}
+                          <BattlefieldAppearanceToken
+                            imageUrl={participant.profileImageUrl}
+                            portraitAssetId={participant.portraitAssetId}
+                            facing={placement.facing}
+                            defeated={combatant?.hp === 0}
+                            cue={appearanceCues.cues?.get(placement.combatantId)}
+                            name={participant.name}
+                            className={styles.unitPortrait}
+                            fallbackClassName={styles.summonPortrait}
+                          />
                         </span>
                       ) : null}
                     </button>
@@ -634,6 +625,7 @@ function PvpSpectatorExperienceContent({
             onToggleLog={toggleChronicle}
             logOpen={chronicleOpen}
             presentation="timeline"
+            onLogLoaded={appearanceCues.onLogLoaded}
             detailsHost={desktopLayout ? null : chronicleDetailsHost}
             onDetailsOpenChange={setChronicleDetailsOpen}
             battleSessionId={battle.battleSessionId}

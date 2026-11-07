@@ -113,7 +113,7 @@ export function resolveWorldIntent(
     }
   } else if (intent.kind === 'interact') {
     next =
-      resolveWorldInteraction(state, intent.interactionId) ??
+      resolveWorldInteraction(state, intent.interactionId, intent.actionId) ??
       invalid('That interaction is not available here.')
   } else {
     let destination: WorldPosition

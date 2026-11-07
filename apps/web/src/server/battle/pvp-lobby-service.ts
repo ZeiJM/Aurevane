@@ -8,6 +8,8 @@ import { readCombatEffectTimingPolicy } from '@/server/master/combat-effect-timi
 import { omitPendingBattlePayloads } from './battle-live-viewer-projection'
 import 'server-only'
 
+import { loadPinnedBattleCharacterImages } from './battle-character-appearance'
+
 import { randomInt, randomUUID } from 'node:crypto'
 
 import type { CharacterRecord } from '@aurevane/db/character'
@@ -233,19 +235,20 @@ async function decorateLobbyMembers(
 }
 
 async function decorateBattleParticipants(
+  battleSessionId: string,
   participants: Omit<PvpBattleParticipantView, 'profileImageUrl'>[],
 ): Promise<PvpBattleParticipantView[]> {
-  let images: ReadonlyMap<string, string> = new Map()
-  try {
-    images = await loadPublicCharacterProfileImageMap(
-      participants.map((participant) => participant.characterId),
-    )
-  } catch {
-    // Cosmetic image failure falls back to initials in the PvP surfaces.
-  }
+  const pins = await loadPinnedBattleCharacterImages(battleSessionId).catch(() => new Map())
+  const unpinned = participants
+    .map((participant) => participant.characterId)
+    .filter((characterId) => !pins.has(characterId))
+  const images = await loadPublicCharacterProfileImageMap(unpinned).catch(() => new Map())
   return participants.map((participant) => ({
     ...participant,
-    profileImageUrl: images.get(participant.characterId) ?? null,
+    profileImageUrl:
+      (pins.has(participant.characterId)
+        ? pins.get(participant.characterId)
+        : images.get(participant.characterId)) ?? null,
   }))
 }
 
@@ -755,7 +758,10 @@ export async function getPvpBattleMetadata(
     throw unavailable('The PvP battle metadata is invalid.')
   if (data.origin !== undefined && data.origin !== 'world' && data.origin !== 'battle-hall')
     throw unavailable('The PvP battle origin is invalid.')
-  const participants = await decorateBattleParticipants(parseParticipantRows(data.participants))
+  const participants = await decorateBattleParticipants(
+    battleSessionId,
+    parseParticipantRows(data.participants),
+  )
   return {
     lobbyId,
     mode: data.mode,
@@ -780,7 +786,10 @@ export async function getPvpSpectatorView(battleKey: string): Promise<PvpSpectat
   if (!battleSessionId || battleVersion === null || !resolvedBattleKey) {
     throw unavailable('The spectator view is invalid.')
   }
-  const participants = await decorateBattleParticipants(parseParticipantRows(data.participants))
+  const participants = await decorateBattleParticipants(
+    battleSessionId,
+    parseParticipantRows(data.participants),
+  )
   return {
     battle: {
       battleSessionId,

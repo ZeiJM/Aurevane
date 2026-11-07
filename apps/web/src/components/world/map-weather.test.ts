@@ -1,8 +1,33 @@
 import { describe, expect, it } from 'vitest'
-import { precipitationKind, precipitationParticle, terrainHeatEmitters } from './map-weather'
+import {
+  advanceWorldWind,
+  precipitationKind,
+  precipitationParticle,
+  terrainHeatEmitters,
+  worldWindTarget,
+} from './map-weather'
 import type { WorldSectorView } from '@/world/types'
 
 describe('bounded weather motion', () => {
+  it('responds to authoritative weather gradually and moves rain and snow with one wind', () => {
+    const clear = worldWindTarget('clear', 'frostmere')
+    const storm = worldWindTarget('storm', 'frostmere')
+    expect(Math.sign(clear)).toBe(Math.sign(storm))
+    expect(Math.abs(storm)).toBeGreaterThan(Math.abs(clear))
+
+    const first = advanceWorldWind({ speed: clear, offset: 0 }, storm, 16)
+    expect(Math.abs(first.speed)).toBeGreaterThan(Math.abs(clear))
+    expect(Math.abs(first.speed)).toBeLessThan(Math.abs(storm))
+    const later = advanceWorldWind(first, storm, 5000)
+    expect(later.speed).toBeCloseTo(storm, 2)
+
+    for (const kind of ['rain', 'snow'] as const) {
+      const west = precipitationParticle(kind, 4, 800, 600, 1000, -35)
+      const east = precipitationParticle(kind, 4, 800, 600, 1000, 35)
+      expect(east.x).toBeGreaterThan(west.x)
+      expect(east.y).toBe(west.y)
+    }
+  })
   it('anchors embers only to supplied lava and visible campfires', () => {
     const sector: WorldSectorView = {
       id: 'known',

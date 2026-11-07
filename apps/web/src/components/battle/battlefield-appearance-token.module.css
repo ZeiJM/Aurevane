@@ -1,0 +1,49 @@
+.actor {
+  position: absolute;
+  z-index: 2;
+  bottom: 8%;
+  left: 50%;
+  width: 94%;
+  aspect-ratio: 3 / 4;
+  transform: translateX(-50%);
+  background-image: var(--atlas);
+  background-size: var(--atlas-size);
+  background-position: var(--x0) var(--y);
+  pointer-events: none;
+}
+
+.actor:is(
+  [data-battle-appearance-pose='attack'],
+  [data-battle-appearance-pose='cast'],
+  [data-battle-appearance-pose='hit'],
+  [data-battle-appearance-pose='walk']
+) {
+  animation: actor-receipt 520ms step-end both;
+}
+
+@keyframes actor-receipt {
+  0% {
+    background-position: var(--x0) var(--y);
+  }
+  22% {
+    background-position: var(--x1) var(--y);
+  }
+  50% {
+    background-position: var(--x2) var(--y);
+  }
+  76% {
+    background-position: var(--x1) var(--y);
+  }
+  100% {
+    background-position: var(--x0) var(--idle-y);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actor[data-battle-appearance-pose] {
+    animation: none;
+  }
+  .actor:not([data-battle-appearance-pose='down']) {
+    background-position: var(--x0) var(--idle-y);
+  }
+}

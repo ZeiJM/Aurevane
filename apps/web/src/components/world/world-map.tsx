@@ -3,12 +3,14 @@ import { useEffect, useRef } from 'react'
 import type { WorldPosition, WorldView } from '@/world/types'
 import { createMapRenderer } from './map-renderer'
 import { WorldMotion } from './world-motion'
+import type { MapQuality } from './map-quality'
 import styles from './workspace.module.css'
 export function WorldMap({
   view,
   motion,
   portrait,
   animate,
+  quality,
   paused,
   zoom,
   zoomLocked,
@@ -22,6 +24,7 @@ export function WorldMap({
   motion: WorldMotion
   portrait: string
   animate: boolean
+  quality?: MapQuality
   paused: boolean
   zoom: number
   zoomLocked: boolean
@@ -58,8 +61,8 @@ export function WorldMap({
     renderer.current?.update(view)
   }, [view])
   useEffect(() => {
-    renderer.current?.settings({ animate, zoom, paused, zoomLocked })
-  }, [animate, zoom, paused, zoomLocked])
+    renderer.current?.settings({ animate, quality, zoom, paused, zoomLocked })
+  }, [animate, quality, zoom, paused, zoomLocked])
   return (
     <>
       <canvas

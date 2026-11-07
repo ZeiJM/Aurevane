@@ -1,4 +1,5 @@
 import { retainWorldSceneReferences } from './presence'
+import { samePosition } from './travel'
 import type { WorldView } from './types'
 export type WorldMovementReceipt = Pick<
   WorldView,
@@ -12,10 +13,14 @@ export type WorldMovementReceipt = Pick<
   | 'nextStepAt'
   | 'battleSessionId'
   | 'movementBlocked'
-> & { kind: 'movement'; currentSector?: WorldView['sectors'][number] }
+> & {
+  kind: 'movement'
+  currentSector?: WorldView['sectors'][number]
+  interactions?: WorldView['interactions']
+}
 /** Supply the confirmed origin; retain the rest of the scene and public peer clocks. */
 export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceipt): WorldView {
-  const { kind, currentSector, ...owned } = receipt
+  const { kind, currentSector, interactions, ...owned } = receipt
   if (
     kind !== 'movement' ||
     receipt.characterId !== view.characterId ||
@@ -51,5 +56,12 @@ export function mergeWorldMovement(view: WorldView, receipt: WorldMovementReceip
         ),
     )
     .map((player) => ({ ...player, attackable: false }))
-  return retainWorldSceneReferences(view, { ...view, ...owned, sectors, players })
+  return retainWorldSceneReferences(view, {
+    ...view,
+    ...owned,
+    sectors,
+    players,
+    interactions:
+      interactions ?? (samePosition(view.position, receipt.position) ? view.interactions : []),
+  })
 }

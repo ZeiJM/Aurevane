@@ -15,6 +15,7 @@ import type {
   WorldView,
 } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
+import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
@@ -448,6 +449,7 @@ function movementReceipt(
   return {
     kind: 'movement',
     currentSector,
+    interactions: localWorldInteractions(state),
     characterId,
     version: state.version,
     serverNow: data.serverNow,

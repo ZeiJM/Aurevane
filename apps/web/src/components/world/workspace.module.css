@@ -598,6 +598,17 @@
   gap: 9px;
   align-items: center;
 }
+.mapQuality {
+  margin-top: 12px;
+}
+.mapQuality select {
+  min-height: 40px;
+  max-width: 100%;
+  padding: 0 6px;
+  border: 1px solid #7c8e84;
+  background: #17333a;
+  color: inherit;
+}
 .settings p {
   font-size: 10px;
   line-height: 1.6;

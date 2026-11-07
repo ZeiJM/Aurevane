@@ -39,6 +39,16 @@ describe('scoped World presence refresh', () => {
       mergeWorldRefresh(previous, worldRefreshResponse(next, worldRefreshUrl(previous))).objectives,
     ).toEqual(next.objectives)
   })
+  it('refreshes local conversation availability without downloading unchanged terrain', () => {
+    const previous = { ...view, interactions: [{ id: 'local-topic' }] } as WorldView
+    const next = { ...previous, interactions: [] }
+    const refreshed = mergeWorldRefresh(
+      previous,
+      worldRefreshResponse(next, worldRefreshUrl(previous)),
+    )
+    expect(refreshed.interactions).toEqual([])
+    expect(refreshed.sectors).toBe(previous.sectors)
+  })
   it('observes the local scene promptly while preserving authored own-step deadlines', () => {
     const idle = {
       routeLength: 0,

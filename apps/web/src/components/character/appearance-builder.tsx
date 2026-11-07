@@ -1,0 +1,254 @@
+'use client'
+
+import { useMemo, useState, type CSSProperties } from 'react'
+import {
+  APPEARANCE_CATALOG,
+  APPEARANCE_EXPRESSIONS,
+  APPEARANCE_FRAME,
+  APPEARANCE_PRESETS,
+  appearanceFrameIndex,
+  compileAppearanceManifest,
+  parseAppearanceBlueprint,
+  type AppearanceBlueprint,
+  type AppearanceExpression,
+  type AppearanceManifest,
+} from '@/appearance/appearance-manifest'
+import styles from './appearance-builder.module.css'
+
+type Field = keyof typeof APPEARANCE_CATALOG
+
+const groups: readonly { name: string; fields: readonly Field[] }[] = [
+  { name: 'Identity', fields: ['body', 'complexion', 'hair', 'hairColor'] },
+  {
+    name: 'Clothing',
+    fields: ['coat', 'collar', 'sleeves', 'closure', 'hem', 'textile', 'accessory', 'palette'],
+  },
+]
+const labels: Partial<Record<Field, string>> = { hairColor: 'Hair color', coat: 'Silhouette' }
+const fields = groups.flatMap(({ fields }) => fields)
+const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
+
+function randomizeParts(value: AppearanceBlueprint, parts: readonly Field[]) {
+  return parts.reduce((next, part) => {
+    const choices = APPEARANCE_CATALOG[part]
+      .map((choice) => parseAppearanceBlueprint({ ...next, [part]: choice }))
+      .filter((candidate): candidate is AppearanceBlueprint => candidate !== null)
+    return choices[Math.floor(Math.random() * choices.length)] ?? next
+  }, value)
+}
+
+export function AppearanceBuilder({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: AppearanceBlueprint
+  onChange: (blueprint: AppearanceBlueprint) => void
+  disabled?: boolean
+}) {
+  const manifest = useMemo(() => compileAppearanceManifest(value), [value])
+  const [expression, setExpression] = useState<AppearanceExpression>('neutral')
+  const [initial] = useState(value)
+  const [history, setHistory] = useState<AppearanceBlueprint[]>([])
+  const [favorites, setFavorites] = useState<AppearanceBlueprint[]>([])
+  const update = (next: AppearanceBlueprint) => {
+    if (compileAppearanceManifest(next).id === manifest.id) return
+    setHistory((entries) => [...entries.slice(-23), value])
+    onChange(next)
+  }
+
+  return (
+    <div className={styles.builder}>
+      <div className={styles.preview}>
+        <AppearancePortraitPreview manifest={manifest} expression={expression} />
+        <label>
+          Expression
+          <select
+            value={expression}
+            onChange={(event) => setExpression(event.target.value as AppearanceExpression)}
+          >
+            {APPEARANCE_EXPRESSIONS.map((item) => (
+              <option key={item} value={item}>
+                {title(item)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className={styles.poses} aria-label="Appearance at gameplay sizes">
+          <figure>
+            <span className={styles.icon}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={manifest.icon} alt="" width={30} height={30} />
+            </span>
+            <figcaption>Icon</figcaption>
+          </figure>
+          <PosePreview manifest={manifest} size={44} walk label="Field walk" />
+          <PosePreview manifest={manifest} size={55} label="Battle" />
+        </div>
+      </div>
+      <div className={styles.controls}>
+        <fieldset className={styles.presets} disabled={disabled}>
+          <legend>Starting looks</legend>
+          <div className={styles.actions}>
+            {APPEARANCE_PRESETS.map((preset) => (
+              <button type="button" key={preset.name} onClick={() => update(preset.blueprint)}>
+                {preset.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        {groups.map(({ name, fields: parts }) => (
+          <fieldset key={name} disabled={disabled}>
+            <legend>{name}</legend>
+            <div className={styles.fields}>
+              {parts.map((field) => (
+                <label key={field}>
+                  {labels[field] ?? title(field)}
+                  <select
+                    value={value[field]}
+                    onChange={(event) => {
+                      const next = parseAppearanceBlueprint({
+                        ...value,
+                        [field]: event.target.value,
+                      })
+                      if (next) update(next)
+                    }}
+                  >
+                    {APPEARANCE_CATALOG[field].map((choice) => (
+                      <option
+                        key={choice}
+                        value={choice}
+                        disabled={!parseAppearanceBlueprint({ ...value, [field]: choice })}
+                      >
+                        {title(choice)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+            <button type="button" onClick={() => update(randomizeParts(value, parts))}>
+              Randomize {name.toLowerCase()}
+            </button>
+          </fieldset>
+        ))}
+        <small>Plate guards require close or split sleeves. Mantles cover satchel straps.</small>
+        <div className={styles.actions}>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => update(randomizeParts(value, fields))}
+          >
+            Randomize all
+          </button>
+          <button
+            type="button"
+            disabled={disabled || history.length === 0}
+            onClick={() => {
+              const previous = history.at(-1)
+              if (previous) onChange(previous)
+              setHistory((entries) => entries.slice(0, -1))
+            }}
+          >
+            Undo
+          </button>
+          <button type="button" disabled={disabled} onClick={() => update(initial)}>
+            Reset
+          </button>
+          <button
+            type="button"
+            disabled={disabled || favorites.length >= 6 || favorites.includes(value)}
+            onClick={() => setFavorites((entries) => [...entries, value])}
+          >
+            Favorite look
+          </button>
+        </div>
+        {favorites.length > 0 ? (
+          <div className={styles.actions} role="group" aria-label="Session favorites">
+            {favorites.map((favorite, index) => (
+              <button
+                key={index}
+                type="button"
+                disabled={disabled}
+                onClick={() => update(favorite)}
+              >
+                Look {index + 1}
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+export function AppearancePortraitPreview({
+  manifest,
+  expression = 'neutral',
+}: {
+  manifest: AppearanceManifest
+  expression?: AppearanceExpression
+}) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      className={styles.portrait}
+      src={manifest.portraits[expression]}
+      alt={`${title(expression)} appearance portrait`}
+      width={120}
+      height={120}
+    />
+  )
+}
+
+function PosePreview({
+  manifest,
+  size,
+  walk = false,
+  label,
+}: {
+  manifest: AppearanceManifest
+  size: number
+  walk?: boolean
+  label: string
+}) {
+  const { columns, rows } = APPEARANCE_FRAME
+  const { column, row } = appearanceFrameIndex(walk ? 'east' : 'south', walk ? 'walk' : 'idle', 0)
+  return (
+    <figure>
+      <span
+        aria-hidden="true"
+        className={styles.sprite}
+        data-walk={walk || undefined}
+        style={
+          {
+            width: size,
+            backgroundImage: `url("${manifest.atlas}")`,
+            backgroundSize: `${columns * 100}% ${rows * 100}%`,
+            '--x0': `${(100 * column) / (columns - 1)}%`,
+            '--x1': `${(100 * (column + 1)) / (columns - 1)}%`,
+            '--x2': `${(100 * (column + 2)) / (columns - 1)}%`,
+            '--y': `${(100 * row) / (rows - 1)}%`,
+          } as CSSProperties
+        }
+      />
+      <figcaption>{label}</figcaption>
+    </figure>
+  )
+}
+
+export async function loadAppearanceCandidate(blueprint: AppearanceBlueprint) {
+  const manifest = compileAppearanceManifest(blueprint)
+  await Promise.all(
+    [...Object.values(manifest.portraits), manifest.icon, manifest.atlas].map(
+      (src) =>
+        new Promise<void>((resolve, reject) => {
+          const image = new Image()
+          image.onload = () => resolve()
+          image.onerror = () => reject(new Error('The preview is incomplete. Try again.'))
+          image.src = src
+        }),
+    ),
+  )
+  return manifest
+}

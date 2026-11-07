@@ -21,6 +21,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
+import {
+  compileAppearanceManifest,
+  type AppearanceBlueprint,
+} from '@/appearance/appearance-manifest'
+import { AppearancePortraitPreview } from './appearance-builder'
+import { AppearanceBuilderDialog } from './appearance-builder-dialog'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
@@ -76,6 +82,7 @@ export function CharacterCreationExperience({
   const [name, setName] = useState('')
   const [presentationId, setPresentationId] = useState<CharacterPresentationId>('masculine')
   const [portraitRef, setPortraitRef] = useState(ADVENTURE_CHARACTER_PORTRAITS[0].ref)
+  const [manualLook, setManualLook] = useState<AppearanceBlueprint | null>(null)
   const [starterAppearanceRef, setStarterAppearanceRef] = useState(
     STARTER_CHARACTER_APPEARANCES[0].ref,
   )
@@ -194,6 +201,7 @@ export function CharacterCreationExperience({
           idempotencyKey: idempotencyKey.current,
           intent: creationIntent(),
           expectedProfileVersion: selectedDiscipline.profileVersion,
+          ...(manualLook ? { appearance: manualLook } : {}),
         }),
       })
       const payload = (await response.json()) as {
@@ -296,21 +304,31 @@ export function CharacterCreationExperience({
                 <p className={styles.choiceHint}>
                   {portraitChoices.length} portraits. Choose your likeness.
                 </p>
+                <AppearanceBuilderDialog
+                  label="Build my character"
+                  confirmLabel="Use this appearance"
+                  value={manualLook}
+                  onConfirm={(look) => {
+                    changed()
+                    setManualLook(look)
+                  }}
+                />
                 <div className={styles.portraitGrid} data-portrait-grid="true">
                   {portraitChoices.map((option) => (
                     <label
                       key={option.ref}
                       className={styles.portraitChoice}
-                      data-selected={portraitRef === option.ref}
+                      data-selected={!manualLook && portraitRef === option.ref}
                       title={option.label}
                     >
                       <input
                         aria-label={option.label}
-                        checked={portraitRef === option.ref}
+                        checked={!manualLook && portraitRef === option.ref}
                         name="portrait"
                         onChange={() => {
                           changed()
                           setPortraitRef(option.ref)
+                          setManualLook(null)
                         }}
                         type="radio"
                       />
@@ -326,13 +344,17 @@ export function CharacterCreationExperience({
               <aside className={styles.portraitPreview} aria-label="Selected portrait preview">
                 <span className={styles.previewLabel}>Your likeness</span>
                 <div className={styles.previewFrame}>
-                  <AurevaneImage
-                    assetId={getStarterPortraitImageAssetId(portraitRef)}
-                    sizes="(max-width: 760px) 7rem, (max-height: 800px) 16rem, 24rem"
-                  />
+                  {manualLook ? (
+                    <AppearancePortraitPreview manifest={compileAppearanceManifest(manualLook)} />
+                  ) : (
+                    <AurevaneImage
+                      assetId={getStarterPortraitImageAssetId(portraitRef)}
+                      sizes="(max-width: 760px) 7rem, (max-height: 800px) 16rem, 24rem"
+                    />
+                  )}
                 </div>
                 <div className={styles.previewCopy}>
-                  <span>{selectedPortrait.label}</span>
+                  <span>{manualLook ? 'Your custom look' : selectedPortrait.label}</span>
                   <small>
                     {CHARACTER_PRESENTATIONS.find((option) => option.id === presentationId)?.label}
                   </small>
@@ -568,10 +590,14 @@ export function CharacterCreationExperience({
             </p>
             <div className={styles.reviewWorkspace}>
               <div className={styles.reviewPortrait} data-testid="creation-confirm-portrait">
-                <AurevaneImage
-                  assetId={getStarterPortraitImageAssetId(portraitRef)}
-                  sizes="14rem"
-                />
+                {manualLook ? (
+                  <AppearancePortraitPreview manifest={compileAppearanceManifest(manualLook)} />
+                ) : (
+                  <AurevaneImage
+                    assetId={getStarterPortraitImageAssetId(portraitRef)}
+                    sizes="14rem"
+                  />
+                )}
               </div>
               <div className={styles.reviewSummary} data-testid="creation-confirm-summary">
                 <div

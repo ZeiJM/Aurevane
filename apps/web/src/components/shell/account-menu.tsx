@@ -31,6 +31,9 @@ export function AccountMenu({
   const [masterAccessResolved, setMasterAccessResolved] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const effectiveMasterPanelHref = masterPanelHref ?? resolvedMasterPanelHref
+  const canQueueAppearance =
+    activeSessionHref?.startsWith('/game/battle/') &&
+    !activeSessionHref.startsWith('/game/battle/spectate/')
 
   useEffect(() => {
     if (!open || masterPanelHref || masterAccessResolved) return
@@ -115,14 +118,14 @@ export function AccountMenu({
               Controls &amp; Keybinds
             </Link>
           ) : null}
-          {!activeSessionHref && pathname !== '/game/account/titles' ? (
+          {(!activeSessionHref || canQueueAppearance) && pathname !== '/game/account/titles' ? (
             <Link
               href="/game/account/titles"
               prefetch={false}
               role="menuitem"
               onClick={() => setOpen(false)}
             >
-              Titles &amp; Profile Display
+              {canQueueAppearance ? 'Character appearance' : 'Titles & Profile Display'}
             </Link>
           ) : null}
           {activeSessionHref ? (
