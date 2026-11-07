@@ -59,6 +59,13 @@ it('offers the predefined requirement tags and a single target without nested ru
   )
 })
 
+it('keeps None first and sorts the selectable requirement tags by displayed label', () => {
+  const { options, optionLabels } = select(editor(null), 'Requirement tag').props
+  expect(options[0]).toBe('none')
+  const labels = options.slice(1).map((id) => optionLabels?.[id] ?? id)
+  expect(labels).toEqual(labels.toSorted((a, b) => a.localeCompare(b, 'en')))
+})
+
 it('saves a tag and Target as the actual native status predicate', () => {
   const changed = vi.fn()
   select(editor(null, changed), 'Requirement tag').props.onChange('wet')
