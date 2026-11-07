@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "compatible-hold-active",
+  "status": "promotion-requested-under-hold",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -152,5 +152,38 @@
   "deploymentUrl": "aurevane-kwzxxvap7-zeijms-projects.vercel.app",
   "buildState": "READY",
   "holdRuleId": "45a07761-caca-49ad-9017-a665fb051023",
-  "compatibleRoutingVersion": "cd9d2a24-c185-437f-8d5f-ac28d90a5f49"
+  "compatibleRoutingVersion": "cd9d2a24-c185-437f-8d5f-ac28d90a5f49",
+  "promotionRequested": true,
+  "prePromotionProbe": [
+    {
+      "case": "canonical-home",
+      "status": 200,
+      "deployment": "dpl_DCs9PefFRMAawAX8JbXEWjQVmAZ6",
+      "pass": true
+    },
+    {
+      "case": "staged-home",
+      "status": 200,
+      "deployment": "dpl_CBPxHC4kMSnbSmRYsGNfKFTTexJT",
+      "pass": true
+    },
+    {
+      "case": "canonical-hold",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "staged-hold",
+      "status": 503,
+      "deployment": null,
+      "pass": true
+    },
+    {
+      "case": "existing-battle",
+      "status": 401,
+      "deployment": null,
+      "pass": true
+    }
+  ]
 }
