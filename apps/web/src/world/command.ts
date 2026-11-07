@@ -12,7 +12,12 @@ export function personalQuestRunId(interactionId: string): string | null {
   return isWorldUuid(runId) ? runId : null
 }
 export function isWorldRestorationAction(value: unknown): value is WorldRestorationActionId {
-  return value === 'choose-restoration' || value === 'restore-item' || value === 'claim-restoration'
+  return (
+    value === 'choose-restoration' ||
+    value === 'choose-restoration-trial' ||
+    value === 'restore-item' ||
+    value === 'claim-restoration'
+  )
 }
 export function parseWorldCommand(value: unknown): WorldCommand | null {
   if (

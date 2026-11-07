@@ -152,7 +152,12 @@ export function projectPersonalQuests(
       restoration && progress === 'active' && typeof row.discoveryClue === 'string'
         ? row.discoveryClue.slice(0, 800)
         : ''
+    const trialOffer =
+      restoration && progress === 'active' && typeof row.trialOffer === 'string'
+        ? row.trialOffer.trim().slice(0, 800)
+        : ''
     let description = (clue && clue !== body ? `${clue} ${body}` : body) + reward
+    if (trialOffer) description += ` ${trialOffer}`
     if (restoration?.claimPending) {
       description += ` ${restoration.outputName} is reserved. You need an open Gear slot to collect it from ${speaker}.`
     } else if (restoration && progress === 'ready') {
@@ -192,6 +197,7 @@ export function projectPersonalQuests(
       'leave-realm': 'Leave the realm',
       'challenge-realm': 'Challenge the guardian',
       'choose-restoration': 'Choose recovery route',
+      'choose-restoration-trial': 'Choose trial route',
       'restore-item': restoration ? `Restore ${restoration.outputName}` : null,
       'claim-restoration': restoration ? `Collect ${restoration.outputName}` : null,
     }
@@ -213,6 +219,7 @@ export function projectPersonalQuests(
         row.action === 'claim-exchange')
         ? row.action
         : null
+    const alternativeAction = row.alternativeAction
     interactions.push({
       id,
       objectiveId: id,
@@ -224,11 +231,13 @@ export function projectPersonalQuests(
       speaker,
       ...(portraitUrl ? { portraitUrl } : {}),
       ...(typeof row.lore === 'string' ? { lore: row.lore.slice(0, 800) } : {}),
-      ...(row.alternativeAction === 'leave-realm' || row.alternativeAction === 'travel-realm'
+      ...(alternativeAction === 'leave-realm' ||
+      alternativeAction === 'travel-realm' ||
+      (actionId === 'choose-restoration' && alternativeAction === 'choose-restoration-trial')
         ? {
             alternative: {
-              actionId: row.alternativeAction,
-              label: responses[row.alternativeAction],
+              actionId: alternativeAction,
+              label: responses[alternativeAction],
             },
           }
         : {}),

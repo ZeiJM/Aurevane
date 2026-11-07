@@ -192,6 +192,9 @@ begin
   if exists(select 1 from pg_attribute where attrelid=to_regclass('app_private.npc_designs') and attname='story' and not attisdropped) then
     new_actor_signatures := new_actor_signatures || array['public.read_master_story_npcs_v1(uuid,uuid,uuid)']::text[];
   end if;
+  if to_regprocedure('public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)']::text[];
+  end if;
   -- Owner-only targeted Item APIs have no legacy overload and must not inherit
   -- delegated page permissions. The private marker requires the entire module.
   if to_regprocedure('app_private.assert_master_item_grant_owner_v1(uuid,uuid)') is not null then
@@ -353,6 +356,7 @@ begin
       ('public.read_master_npc_designs_v1(uuid,uuid)','select public.read_master_npc_designs_v1($1,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.write_master_npc_design_v1(uuid,uuid,uuid,bigint,text,jsonb)','select public.write_master_npc_design_v1($1,$2,$3,0,''save'',''{}'')','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.read_master_story_npcs_v1(uuid,uuid,uuid)','select public.read_master_story_npcs_v1($1,$2,null)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)','select public.read_master_restoration_trial_npc_v1($1,$2,null)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.find_master_npc_appearance_conflicts_v1(uuid,uuid,text[])','select public.find_master_npc_appearance_conflicts_v1($1,$2,array[]::text[])','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.commit_master_npc_uniform_v1(uuid,uuid,uuid,bigint,text,text)','select public.commit_master_npc_uniform_v1($1,$2,$3,1,''story'',''CI denied probe'')','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','select public.read_master_panel_activity_v1($1,100,null,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),

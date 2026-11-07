@@ -3,6 +3,9 @@ import { randomUUID } from 'node:crypto'
 import type { WorldView } from '../src/world/types'
 import { itemFixture } from '../../../packages/game-core/src/content/items-test-fixtures'
 import { defaultBasicSkills } from '../../../packages/game-core/src/combat/combat-basic-actions'
+import { PV1F_ACTION_ECONOMY_RESOURCE_KEY } from '@aurevane/game-core/combat/pv1f-action-economy'
+import { PV1F_BASIC_ATTACK_COST } from '@aurevane/game-core/combat/pv1f-skills'
+import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 
 import { expect, test, type Page, type Response, type TestInfo } from '@playwright/test'
 
@@ -11,6 +14,7 @@ import { createEventPageAccessFixture } from './event-page-access-fixture'
 
 let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
 let fixtureWorldNpc: string | undefined
+let fixtureTrialNpc: string | undefined
 let fixtureStoryEvent: { eventKey: string; userId: string } | undefined
 let fixtureEventOwner: string | undefined
 test.afterEach(() => {
@@ -52,12 +56,12 @@ test.afterEach(() => {
       )
       fixtureEventOwner = undefined
     }
-    if (fixtureWorldNpc) {
-      queryLocalDatabase(
-        `update app_private.npc_designs set world=null where id='${fixtureWorldNpc}'`,
-      )
-      fixtureWorldNpc = undefined
+    for (const npcId of [fixtureWorldNpc, fixtureTrialNpc]) {
+      if (npcId)
+        queryLocalDatabase(`update app_private.npc_designs set world=null where id='${npcId}'`)
     }
+    fixtureWorldNpc = undefined
+    fixtureTrialNpc = undefined
   }
 })
 
@@ -615,23 +619,129 @@ test('Farmer Joe dialogue, realm travel and guardian challenge are separate Worl
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'))
 
-test('an authored Sanalex recovery consumes the fragments and lets a full Gear player equip the owed sword', async ({
-  page,
-}, info) => {
+async function winRestorationBattle(
+  page: Page,
+  battleId: string,
+  characterId: string,
+  weaponName: string,
+) {
+  const endpoint = `/api/battles/${battleId}`
+  const battlefield = page.locator('main[data-unified-battle="true"]')
+  const finish = battlefield.getByRole('button', { name: /^End Turn,/ })
+  const readBattle = async () => {
+    const response = await page.request.get(endpoint)
+    expect(response.ok()).toBe(true)
+    return ((await response.json()) as { battle: BattleSessionView }).battle.snapshot.tactical
+  }
+  const commit = async (target: ReturnType<Page['getByRole']>) => {
+    const pending = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === `${endpoint}/intents`,
+    )
+    await target.click()
+    const response = await pending
+    expect(response.ok(), await response.text()).toBe(true)
+  }
+
+  await expect(battlefield).toBeVisible()
+  const attack = battlefield.locator('[data-battle-command="attack"]')
+  await expect(attack).toHaveAccessibleName(new RegExp(`^${weaponName},`))
+  for (let command = 0; command < 30; command++) {
+    if ((await readBattle()).battle.lifecycle !== 'active') break
+    await expect(finish).toBeEnabled({ timeout: 20_000 })
+    const state = await readBattle()
+    const player = state.battle.combatants.find((unit) => unit.id === `character:${characterId}`)!
+    const enemy = state.battle.combatants.find((unit) => unit.teamId === 'opponents')!
+    const from = state.placements.find((entry) => entry.combatantId === player.id)!.position
+    const to = state.placements.find((entry) => entry.combatantId === enemy.id)!.position
+    const ap = player.temporaryResources.find(
+      (entry) => entry.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+    )!.current
+    const distance = Math.abs(from.x - to.x) + Math.abs(from.y - to.y)
+    await expect(
+      battlefield.getByRole('progressbar', { name: 'Action Economy remaining' }),
+    ).toHaveAttribute('aria-valuenow', String(ap))
+    if (distance === 1 && ap >= PV1F_BASIC_ATTACK_COST) {
+      await attack.click()
+      const target = battlefield.getByRole('button', {
+        name: new RegExp(`^Tile ${to.x + 1}, ${to.y + 1};.*occupied by`),
+      })
+      await expect(target).toHaveAttribute('data-target', 'enemy')
+      await commit(target)
+      continue
+    }
+    if (distance > 1 && ap >= 20 && state.battle.currentTurn!.movementRemaining > 0) {
+      await battlefield.locator('[data-battle-command="move"]').click()
+      const nearer = await battlefield
+        .locator('button[data-reachable]')
+        .evaluateAll((tiles, enemyPosition) => {
+          return (
+            tiles
+              .flatMap((tile) => {
+                const label = tile.getAttribute('aria-label') ?? ''
+                const coordinates = label.match(/^Tile (\d+), (\d+)/)
+                if (!coordinates || label.includes('occupied by')) return []
+                return [
+                  {
+                    label,
+                    distance:
+                      Math.abs(Number(coordinates[1]) - 1 - enemyPosition.x) +
+                      Math.abs(Number(coordinates[2]) - 1 - enemyPosition.y),
+                  },
+                ]
+              })
+              .sort((left, right) => left.distance - right.distance)[0] ?? null
+          )
+        }, to)
+      if (nearer && nearer.distance < distance) {
+        await commit(battlefield.getByRole('button', { name: nearer.label, exact: true }))
+        continue
+      }
+    }
+    const ended = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().endsWith(`${endpoint}/final-turn`),
+    )
+    const opponentTurn = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().endsWith(`${endpoint}/recruit-turn`),
+    )
+    await finish.click()
+    await finish.press('KeyD')
+    expect((await ended).ok()).toBe(true)
+    expect((await opponentTurn).ok()).toBe(true)
+  }
+  await expect(
+    page
+      .getByTestId('battle-result-overlay')
+      .getByRole('heading', { name: 'Victory', exact: true }),
+  ).toBeVisible()
+}
+
+async function completeSanalexRestoration(page: Page, info: TestInfo, route: 'recovery' | 'trial') {
   test.skip(info.project.name !== 'desktop-chromium', 'Requires the disposable Owner fixture.')
-  test.setTimeout(120_000)
+  test.setTimeout(180_000)
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['127.0.0.1', 'localhost'].includes(host))
     throw new Error('Sanalex browser verification requires disposable local Supabase.')
 
   const token = randomUUID().replaceAll('-', '')
   const email = `restoration-owner-${token}@example.test`
-  const title = `Sanalex Recovery ${token.slice(0, 8)}`
+  const title = `Sanalex ${route} ${token.slice(0, 8)}`
   const eventKey = `event.browser-restoration-${token}`
   const giver = randomUUID()
+  const opponent = randomUUID()
   const smith = 'Restoration smith'
+  const challenger = 'Trial challenger'
   const position = { sectorId: 'verdant-expanse', x: 2, y: 4 }
   const checkpoint = { ...position, x: 3 }
+  const encounterPosition = { ...position, x: 5 }
+  const recoveryReward = `reward.browser-recovery-${token}`
+  const trialReward = `reward.browser-trial-${token}`
+  const rewardBudget = `budget.browser-restoration-${token}`
+  const chosenXp = route === 'recovery' ? 7 : 13
   const first = itemFixture({
     id: `fixture.restoration-first-${token}`,
     name: 'Forge fragment',
@@ -641,14 +751,33 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
     qualityPoints: 0,
   })
   const second = { ...first, id: `fixture.restoration-second-${token}`, name: 'Hilt fragment' }
-  const ability = defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability!
+  const basic = defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability!
+  // Strong fixture weapons keep the real browser fights bounded without
+  // modifying the admitted battle state or bypassing its normal controls.
+  const ability = {
+    ...basic,
+    behaviors: basic.behaviors.map((behavior) => ({
+      ...behavior,
+      effects: behavior.effects.map((effect) =>
+        effect.payload.type === 'damage'
+          ? { ...effect, payload: { ...effect.payload, amount: 250 } }
+          : effect,
+      ),
+    })),
+  }
   const sword = itemFixture({
     id: `fixture.restoration-sword-${token}`,
-    name: 'Restored fixture sword',
+    name: 'Mythical Lava Golem Sword of Sanalex',
     itemClass: 'weapon',
     equipment: { slot: 'hand', hands: 1 },
     ability,
     actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Restored Cut' } },
+  })
+  const trialWeapon = itemFixture({
+    ...sword,
+    id: `fixture.trial-weapon-${token}`,
+    name: 'Trial fixture blade',
+    actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Fixture Trial Cut' } },
   })
   const filler = itemFixture({ id: `fixture.restoration-gear-${token}`, name: 'Spare forge helm' })
   await createAccountAndEnterCharacter({
@@ -660,12 +789,25 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
   const userId = localUserId(email)
   fixtureEventOwner = userId
   fixtureWorldNpc = giver
+  fixtureTrialNpc = opponent
   const draft = {
     name: smith,
     portraitRef: null,
     uses: ['world', 'story'],
     arena: null,
     world: { ...position, radius: 1, greeting: 'Welcome to the forge.' },
+  }
+  const encounterDraft = {
+    name: challenger,
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: {
+      ...encounterPosition,
+      radius: 1,
+      greeting: 'Enter the trial when ready.',
+      encounter: { arenaId: 'duel-yard', aiDifficulty: 'easy', tags: [] },
+    },
   }
   queryLocalDatabase(`
     begin;
@@ -674,7 +816,14 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
       '${escapeSqlLiteral(JSON.stringify(draft))}'::jsonb);
     select public.write_master_npc_design_v1('${userId}',null,'${giver}',1,'commit-story',null);
     select public.write_master_npc_design_v1('${userId}',null,'${giver}',2,'commit-world',null);
-    select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([first, second, sword, filler]))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${opponent}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(encounterDraft))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${opponent}',1,'commit-world',null);
+    insert into app_private.event_reward_budget_policies values('${rewardBudget}','character-xp',20,'${userId}',now());
+    insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
+      values('${recoveryReward}',1,'character-xp',7,'${userId}','${rewardBudget}'),
+        ('${trialReward}',1,'character-xp',13,'${userId}','${rewardBudget}');
+    select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([first, second, sword, filler, trialWeapon]))}'::jsonb);
     commit;
   `)
   const readWorld = async (): Promise<WorldView> => {
@@ -691,9 +840,9 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
       'fixture:restoration:${token}', jsonb_build_array(
         jsonb_build_object('itemId','${first.id}','quantity',1),
         jsonb_build_object('itemId','${second.id}','quantity',1),
-        jsonb_build_object('itemId','${filler.id}','quantity',40-(select count(*)
+        jsonb_build_object('itemId','${filler.id}','quantity',${route === 'trial' ? 39 : 40}-(select count(*)
           from app_private.character_item_stacks where character_id='${characterId}' and inventory_category='gear'))
-      ));
+      ) ${route === 'trial' ? `|| jsonb_build_array(jsonb_build_object('itemId','${trialWeapon.id}','quantity',1))` : ''});
   `)
   const stock = () =>
     JSON.parse(
@@ -744,8 +893,22 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
   await page
     .getByLabel('Restoration completion', { exact: true })
     .fill('The fixture blade is restored.')
+  await page.getByLabel('Enable a combat trial').check()
+  await page.getByLabel('Trial sector', { exact: true }).selectOption(encounterPosition.sectorId)
+  await page.getByLabel('Trial encounter NPC', { exact: true }).selectOption(opponent)
+  await page
+    .getByLabel('Recovery Character XP package', { exact: true })
+    .selectOption(recoveryReward)
+  await page.getByLabel('Trial Character XP package', { exact: true }).selectOption(trialReward)
+  await page.getByLabel('Trial offer', { exact: true }).fill('Or choose the combat trial.')
+  await page
+    .getByLabel('Trial guidance', { exact: true })
+    .fill('Defeat the challenger in the World.')
+  await page
+    .getByLabel('Trial ready to restore', { exact: true })
+    .fill('The trial is won. Bring both fragments to the forge.')
   await page.screenshot({
-    path: info.outputPath('sanalex-recovery-authoring.png'),
+    path: info.outputPath(`sanalex-${route}-authoring.png`),
     animations: 'disabled',
   })
   await section('Schedule')
@@ -800,6 +963,28 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
       .locator('..')
       .getByRole('button', { name: `Talk to ${smith}` })
       .click()
+  const challenge = async (weaponName: string) => {
+    await page.goto('/game/world')
+    await move(encounterPosition)
+    await page
+      .getByRole('region', { name: 'Local interaction' })
+      .getByRole('heading', { name: 'Challenge', exact: true })
+      .locator('..')
+      .getByRole('button', { name: `Talk to ${challenger}`, exact: true })
+      .click()
+    await page
+      .getByRole('dialog', { name: challenger })
+      .getByRole('button', { name: 'Start battle', exact: true })
+      .click()
+    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world/)
+    const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+    await winRestorationBattle(page, battleId, characterId, weaponName)
+    expect(
+      queryLocalDatabase(
+        `select outcome from app_private.world_npc_terminal_receipts where battle_session_id='${battleId}'`,
+      ),
+    ).toBe('victory')
+  }
   const dialogue = page.getByRole('dialog', { name: smith })
   await page.goto('/game/world')
   await openMissions()
@@ -807,11 +992,47 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
   expect(stock()).toEqual({ fragments: 2, swords: 0, gear: 40 })
   await move(position)
   await talk()
-  await dialogue.getByRole('button', { name: 'Choose recovery route', exact: true }).click()
+  await expect(dialogue.getByText('Or choose the combat trial.').first()).toBeVisible()
+  const chosenLabel = route === 'trial' ? 'Choose trial route' : 'Choose recovery route'
+  await dialogue.getByRole('button', { name: chosenLabel, exact: true }).click()
   await dialogue.getByRole('button', { name: 'End conversation' }).click()
   await move(checkpoint)
   await move(position)
   await talk()
+  if (route === 'trial') {
+    await expect(
+      dialogue.getByRole('button', { name: `Restore ${sword.name}`, exact: true }),
+    ).toHaveCount(0)
+    await expect(
+      dialogue.getByRole('button', { name: 'Choose recovery route', exact: true }),
+    ).toHaveCount(0)
+    await page.goto('/game/loadout/items')
+    await page.getByRole('button', { name: /Slot \d+: Trial fixture blade/ }).click()
+    await page
+      .getByRole('dialog', { name: trialWeapon.name })
+      .getByRole('button', { name: 'Equip', exact: true })
+      .click()
+    await expect(
+      page.getByRole('button', { name: `Main Hand: ${trialWeapon.name}`, exact: true }),
+    ).toBeVisible()
+    await challenge(trialWeapon.name)
+    await page.screenshot({
+      path: info.outputPath('sanalex-trial-victory.png'),
+      animations: 'disabled',
+    })
+    await page.getByRole('button', { name: 'Return to World', exact: true }).click()
+    await expect(page).toHaveURL(/\/game\/world/)
+    await move(position)
+    await talk()
+    await expect(
+      dialogue
+        .getByText('The trial is won. Bring both fragments to the forge.', { exact: true })
+        .first(),
+    ).toBeVisible()
+  }
+  const characterXp = () =>
+    Number(queryLocalDatabase(`select xp from public.characters where id='${characterId}'`))
+  const xpBeforeExchange = characterXp()
   await dialogue.getByRole('button', { name: `Restore ${sword.name}`, exact: true }).click()
   await expect(
     dialogue.getByText(`Hand over 1 ${first.name} and 1 ${second.name} to restore ${sword.name}?`, {
@@ -825,8 +1046,9 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
   await dialogue.getByRole('button', { name: 'Confirm restoration', exact: true }).click()
   await expect.poll(stock).toEqual({ fragments: 0, swords: 0, gear: 40 })
   await expect(dialogue.getByText(/You need an open Gear slot/)).toBeVisible()
+  expect(characterXp() - xpBeforeExchange).toBe(chosenXp)
   await page.screenshot({
-    path: info.outputPath('sanalex-recovery-owed.png'),
+    path: info.outputPath(`sanalex-${route}-owed.png`),
     animations: 'disabled',
   })
 
@@ -857,9 +1079,10 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
   expect(replay.ok()).toBe(true)
   expect((await replay.json()).position).toEqual(checkpoint)
   expect(stock()).toEqual({ fragments: 0, swords: 1, gear: 40 })
+  expect(characterXp() - xpBeforeExchange).toBe(chosenXp)
 
   await page.goto('/game/loadout/items')
-  await page.getByRole('button', { name: /Slot \d+: Restored fixture sword/ }).click()
+  await page.getByRole('button', { name: new RegExp(`^Slot \\d+: ${sword.name}`) }).click()
   await page
     .getByRole('dialog', { name: sword.name })
     .getByRole('button', { name: 'Equip', exact: true })
@@ -874,10 +1097,27 @@ test('an authored Sanalex recovery consumes the fragments and lets a full Gear p
   `)
   expect(equipped).toBe('Restored Cut')
   await page.screenshot({
-    path: info.outputPath('sanalex-recovery-equipped.png'),
+    path: info.outputPath(`sanalex-${route}-equipped.png`),
     animations: 'disabled',
   })
-})
+  if (route === 'recovery') {
+    await challenge(sword.name)
+    expect(characterXp() - xpBeforeExchange).toBe(chosenXp)
+    expect(stock()).toEqual({ fragments: 0, swords: 1, gear: 40 })
+    await page.screenshot({
+      path: info.outputPath('sanalex-recovery-restored-sword-victory.png'),
+      animations: 'disabled',
+    })
+  }
+}
+
+test('an authored Sanalex recovery consumes the fragments and lets a full Gear player wield the owed sword', async ({
+  page,
+}, info) => completeSanalexRestoration(page, info, 'recovery'))
+
+test('an authored Sanalex combat trial settles only after the canonical NPC victory and awards the trial package', async ({
+  page,
+}, info) => completeSanalexRestoration(page, info, 'trial'))
 
 test('an authored World NPC challenge admits a battle only within reach', async ({
   page,
@@ -993,6 +1233,14 @@ test('an authored World NPC challenge admits a battle only within reach', async 
   await page.getByRole('button', { name: 'Confirm Surrender' }).click()
   const returnToWorld = page.getByRole('button', { name: 'Return to World', exact: true })
   await expect(returnToWorld).toBeVisible()
+  expect(
+    queryLocalDatabase(`
+      select receipt.outcome
+      from app_private.world_npc_terminal_receipts receipt
+      join app_private.world_npc_battles battle using (battle_session_id)
+      where battle.character_id='${start.characterId}' and battle.npc_id='${npcId}';
+    `),
+  ).toBe('surrender')
   await expect(page.getByRole('button', { name: /Rematch/ })).toHaveCount(0)
   await returnToWorld.click()
   await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)

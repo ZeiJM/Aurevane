@@ -443,6 +443,119 @@ try {
     })
     await expect(cast.getByText(/Missing or unpublished Story NPC/)).toBeVisible()
     await expect(page.getByText(/Production unavailable/)).toBeVisible()
+    await categories.getByRole('button', { name: 'Hidden Discoveries', exact: true }).click()
+    await page.getByRole('button', { name: 'New Event', exact: true }).click()
+    await page
+      .getByRole('combobox', { name: 'Category', exact: true })
+      .selectOption('hidden-discoveries')
+    await page.getByLabel(/^Family/).selectOption('lore-revelation')
+    await page.getByLabel(/^Scope/).selectOption('global')
+    await page.getByLabel('Event key', { exact: true }).fill('event.restoration-trial')
+    await page.getByLabel('Title', { exact: true }).fill('Forge trial fixture')
+    await choose('Discovery')
+    await page.getByLabel('Enable a carried Item discovery').check()
+    await page.getByLabel('First carried Item ID').fill('fixture.fragment-one')
+    await page.getByLabel('Second carried Item ID').fill('fixture.fragment-two')
+    await page.getByLabel('Revealed clue').fill('The two fragments belong to the same blade.')
+    await page.getByLabel('Enable a recovery route').check()
+    await page.getByLabel('Restoration giver').selectOption({ label: 'Harbor Watch' })
+    await page.getByLabel('Restored weapon Item ID').fill('fixture.restored-sword')
+    await page.getByLabel('Recovery offer', { exact: true }).fill('Follow the old road.')
+    await page.getByLabel('Recovery guidance', { exact: true }).fill('Reach the marker and return.')
+    await page.getByLabel('Ready to restore', { exact: true }).fill('Hand over the fragments.')
+    await page.getByLabel('Restoration completion', { exact: true }).fill('The sword is restored.')
+
+    const trial = page.getByRole('group', { name: 'Combat trial', exact: true })
+    const trialToggle = page.getByLabel('Enable a combat trial')
+    await expect(trial).toHaveCount(0)
+    await trialToggle.check()
+    await trial.getByLabel('Trial sector', { exact: true }).selectOption('emberreach')
+    await trial
+      .getByLabel('Trial encounter NPC', { exact: true })
+      .selectOption({ label: 'Forge Sentinel' })
+    const recoveryXp = trial.getByLabel('Recovery Character XP package')
+    const trialXp = trial.getByLabel('Trial Character XP package')
+    await recoveryXp.selectOption('reward.recovery')
+    await expect(trialXp.locator('option[value="reward.recovery"]')).toHaveAttribute('disabled', '')
+    await trialXp.selectOption('reward.trial')
+    await trial.getByLabel('Trial offer', { exact: true }).fill('Challenge the sentinel.')
+    await trial.getByLabel('Trial guidance', { exact: true }).fill('Win the trial and return.')
+    await trial.getByLabel('Trial ready to restore', { exact: true }).fill('The forge is ready.')
+    await trial.scrollIntoViewIfNeeded()
+    assert.ok(
+      await trial.evaluate((group) => {
+        const { left, right } = group.getBoundingClientRect()
+        return left >= 0 && right <= innerWidth + 1
+      }),
+      'combat trial stays inside the viewport',
+    )
+    await page.screenshot({
+      path: resolve(output, `restoration-trial-${viewport.width}-${viewport.zoom}.png`),
+      fullPage: true,
+    })
+
+    const saveTrial = async (version) => {
+      await page.getByRole('button', { name: 'Save draft', exact: true }).click()
+      await page.getByText(`Draft v${version} saved.`, { exact: true }).waitFor()
+      return page.evaluate(
+        () =>
+          window.__eventRequests.filter((r) => r.body.operation === 'save-draft').at(-1).body
+            .definition,
+      )
+    }
+    const firstTrial = await saveTrial(1)
+    assert.deepEqual(firstTrial.rewardPackageRefs, [])
+    assert.equal(
+      firstTrial.inventoryDiscovery.restoration.recoveryRewardPackageRef,
+      'reward.recovery',
+    )
+    assert.deepEqual(firstTrial.inventoryDiscovery.restoration.trial, {
+      npcId: 'ea82f11d-41df-4c5d-bba6-727904e95de8',
+      offer: 'Challenge the sentinel.',
+      active: 'Win the trial and return.',
+      ready: 'The forge is ready.',
+      rewardPackageRef: 'reward.trial',
+    })
+    const reopenTrial = async () => {
+      await page.getByRole('button', { name: 'New Event', exact: true }).click()
+      await page.getByLabel('Event key', { exact: true }).fill('event.restoration-trial')
+      await page.getByRole('button', { name: 'Load', exact: true }).click()
+      await page.getByText('Loaded draft v1.', { exact: true }).waitFor()
+      await choose('Discovery')
+    }
+    const trialSector = trial.getByLabel('Trial sector', { exact: true })
+    const trialNpc = trial.getByLabel('Trial encounter NPC', { exact: true })
+    await reopenTrial()
+    await expect(trialToggle).toBeChecked()
+    await expect(trialXp).toHaveValue('reward.trial')
+    await expect(recoveryXp).toHaveValue('reward.recovery')
+    await expect(trialSector).toHaveValue('emberreach')
+    await expect(trialNpc.locator('option:checked')).toHaveText('Forge Sentinel')
+
+    await page.evaluate(() => {
+      window.__holdTrialNpcLookup = true
+    })
+    await reopenTrial()
+    await page.waitForFunction(() => typeof window.__releaseTrialNpcLookup === 'function')
+    await trialSector.selectOption('frostmere')
+    await page.evaluate(() => {
+      window.__holdTrialNpcLookup = false
+      window.__releaseTrialNpcLookup()
+    })
+    await expect(trialNpc.locator('option:checked')).toHaveText('Forge Sentinel')
+    await expect(trialSector).toHaveValue('frostmere')
+    await page.evaluate(() => {
+      window.__retiredTrialNpc = true
+      window.dispatchEvent(new Event('focus'))
+    })
+    await expect(trialNpc.locator('option:checked')).toHaveText(/Unavailable trial NPC/)
+    await expect(trialNpc).toHaveValue('ea82f11d-41df-4c5d-bba6-727904e95de8')
+    await trialToggle.uncheck()
+    const recoveryOnly = await saveTrial(2)
+    assert.equal('trial' in recoveryOnly.inventoryDiscovery.restoration, false)
+    assert.equal('recoveryRewardPackageRef' in recoveryOnly.inventoryDiscovery.restoration, false)
+    assert.equal(recoveryOnly.inventoryDiscovery.restoration.offer, 'Follow the old road.')
+    await categories.getByRole('button', { name: 'World Events', exact: true }).click()
     await page
       .getByRole('navigation', { name: 'Events workspace' })
       .getByRole('button', { name: 'Live Operations' })
@@ -511,7 +624,7 @@ try {
       fullPage: true,
     })
     console.log(
-      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, published Story cast search/preview/draft restore, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
+      `Passed Events actual components: ${viewport.width}x${viewport.height}, CSS zoom ${viewport.zoom}; identity/approval/preview/run isolation, fresh B cancel CAS, readable regions/custom scopes, published Story cast search/preview/draft restore, private trial authoring and draft round trip, keyboard/live CAS payload, navigation-only blockers, draft base preserved, reason-free requests.`,
     )
     await page.close()
   }

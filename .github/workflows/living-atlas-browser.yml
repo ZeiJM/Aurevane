@@ -71,7 +71,7 @@ jobs:
         run: |
           pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
             --project=desktop-chromium --project=mobile-chromium \
-            --grep 'an authored (Story Campaign|item exchange|World NPC|Sanalex recovery)|Farmer Joe dialogue' \
+            --grep 'an authored (Story Campaign|item exchange|World NPC|Sanalex (recovery|combat trial))|Farmer Joe dialogue' \
             --output=test-results-story --reporter=list,github
       - name: Verify authenticated Atlas and multiplayer
         if: ${{ !cancelled() && (steps.story.outcome == 'success' || steps.story.outcome == 'failure') }}
@@ -135,7 +135,7 @@ jobs:
             apps/web/test-results-story/**/authored-watch-*-complete.png
             apps/web/test-results-story/**/sealed-realm-challenge.png
             apps/web/test-results-story/**/authored-world-npc-challenge.png
-            apps/web/test-results-story/**/sanalex-recovery-*.png
+            apps/web/test-results-story/**/sanalex-*.png
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png

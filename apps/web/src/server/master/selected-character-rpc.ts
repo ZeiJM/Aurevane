@@ -39,6 +39,7 @@ const SELECTED_ACTOR_RPCS = new Set([
   'read_master_panel_access_v3',
   'read_master_npc_designs_v1',
   'read_master_story_npcs_v1',
+  'read_master_restoration_trial_npc_v1',
   'write_master_npc_design_v1',
   'find_master_npc_appearance_conflicts_v1',
   'commit_master_npc_uniform_v1',

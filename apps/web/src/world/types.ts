@@ -131,7 +131,8 @@ export interface WorldObjective {
   completed: boolean
   progress?: WorldObjectiveProgress
 }
-export type WorldRestorationActionId = 'choose-restoration' | 'restore-item' | 'claim-restoration'
+export type WorldRestorationActionId =
+  'choose-restoration' | 'choose-restoration-trial' | 'restore-item' | 'claim-restoration'
 export type WorldInteractionActionId =
   | WorldRestorationActionId
   | 'accept'

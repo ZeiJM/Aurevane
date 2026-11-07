@@ -41,3 +41,14 @@ it('unrelated SQL errors retain the existing persistence classification', async 
     new RpcEventAuthoringStore(rpc, 'owner').readDraft('event.test'),
   ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
 })
+
+it.each([
+  ['EVENT_INVENTORY_RESTORATION_TRIAL_INVALID', /complete the combat trial/i],
+  ['EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE', /published World encounter/i],
+  ['EVENT_INVENTORY_RESTORATION_REWARDS_INVALID', /different Character XP amounts/i],
+])('explains %s from the authoritative Event validator', async (message, expected) => {
+  rpc.mockResolvedValue({ data: null, error: { code: '22023', message } })
+  await expect(
+    new RpcEventAuthoringStore(rpc, 'owner').readDraft('event.test'),
+  ).rejects.toMatchObject({ code: 'INVALID_REQUEST', message: expect.stringMatching(expected) })
+})

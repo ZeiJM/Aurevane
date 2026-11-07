@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest'
-import { projectPersonalQuests } from './world-personal-quests'
+import { projectPersonalQuests, projectRepeatableTravel } from './world-personal-quests'
 
 vi.mock('server-only', () => ({}))
 
@@ -70,6 +70,75 @@ it('shows the projected recovery choice only at the giver and follows the select
   ])
   expect(travelling.objectives).toEqual([expect.objectContaining({ destination: checkpoint })])
   expect(travelling.interactions).toEqual([])
+})
+
+it('offers the trial as a distinct private choice while keeping recovery as the primary reply', () => {
+  const trialOffer = 'You may also prove your skill against the forge champion.'
+  const authored = {
+    ...restoration,
+    trialOffer,
+    alternativeAction: 'choose-restoration-trial',
+    trialNpcRevisionId: 'private revision',
+  }
+  const local = projectPersonalQuests([authored])
+  expect(local.interactions).toEqual([
+    expect.objectContaining({
+      actionId: 'choose-restoration',
+      actionLabel: 'Choose recovery route',
+      alternative: { actionId: 'choose-restoration-trial', label: 'Choose trial route' },
+    }),
+  ])
+  expect(local.objectives[0]?.description).toContain(trialOffer)
+  expect(JSON.stringify(local)).not.toContain(authored.trialNpcRevisionId)
+
+  const away = projectPersonalQuests([{ ...authored, local: false, action: null }])
+  expect(away.objectives[0]?.description).toContain(trialOffer)
+  expect(away.interactions).toEqual([])
+  for (const unqualified of [
+    projectPersonalQuests([{ ...authored, discovery: false }]),
+    projectRepeatableTravel([authored]),
+  ]) {
+    expect(JSON.stringify(unqualified)).not.toContain(trialOffer)
+    expect(JSON.stringify(unqualified)).not.toContain('choose-restoration-trial')
+  }
+})
+
+it('uses the projected trial opponent until an authoritative result returns the quest to the giver', () => {
+  const underway = projectPersonalQuests([
+    {
+      ...restoration,
+      body: 'Talk to the forge champion and choose Challenge.',
+      destination: checkpoint,
+      local: false,
+      action: null,
+    },
+  ])
+  expect(underway.objectives).toEqual([
+    expect.objectContaining({
+      description: expect.stringContaining('choose Challenge'),
+      destination: checkpoint,
+      autoPath: true,
+      progress: 'active',
+    }),
+  ])
+  expect(underway.interactions).toEqual([])
+
+  const won = projectPersonalQuests([
+    {
+      ...restoration,
+      body: 'Return to the smith with your fragments.',
+      progress: 'ready',
+      action: 'restore-item',
+    },
+  ])
+  expect(won.objectives).toEqual([
+    expect.objectContaining({ destination: giverPosition, progress: 'ready' }),
+  ])
+  expect(won.interactions[0]).toMatchObject({
+    actionId: 'restore-item',
+    confirmation: { label: 'Confirm restoration' },
+  })
+  expect(won.interactions[0]).not.toHaveProperty('alternative')
 })
 
 it('preserves the original discovery clue in the journal without replacing the giver dialogue', () => {

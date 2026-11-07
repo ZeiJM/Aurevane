@@ -62,6 +62,12 @@ const run = {
 }
 window.__eventRequests = []
 let castDraft = null
+let trialDraft = null
+const trialNpc = {
+  id: 'ea82f11d-41df-4c5d-bba6-727904e95de8',
+  name: 'Forge Sentinel',
+  sectorId: 'emberreach',
+}
 window.fetch = async (input, options) => {
   if (input === '/api/master/events/story-npcs')
     return Response.json({
@@ -79,6 +85,29 @@ window.fetch = async (input, options) => {
           revision: 2,
         },
       ].filter((npc) => npc.id !== window.__retiredStoryNpc),
+    })
+  if (input === '/api/master/events/restoration-trial-npcs')
+    return Response.json({
+      sectors: [
+        { id: 'verdant-expanse', name: 'Verdant Expanse' },
+        { id: 'emberreach', name: 'Emberreach' },
+        { id: 'frostmere', name: 'Frostmere' },
+      ],
+    })
+  if (input.startsWith('/api/master/events/restoration-trial-npcs?npcId=')) {
+    if (window.__holdTrialNpcLookup) {
+      await new Promise((resolve) => {
+        window.__releaseTrialNpcLookup = resolve
+      })
+    }
+    return Response.json({ npc: window.__retiredTrialNpc ? null : trialNpc })
+  }
+  if (input.startsWith('/api/master/events/restoration-trial-npcs?sectorId='))
+    return Response.json({
+      npcs:
+        !window.__retiredTrialNpc && input.endsWith('sectorId=emberreach')
+          ? [{ id: trialNpc.id, name: trialNpc.name }]
+          : [],
     })
   const body = JSON.parse(options.body)
   window.__eventRequests.push({ path: input, body })
@@ -114,23 +143,32 @@ window.fetch = async (input, options) => {
               draftVersion: 1,
             },
           ],
-          rewards: [{ key: 'reward.watch', label: '25 Character XP · v1', budget: 'budget.watch' }],
+          rewards: [
+            { key: 'reward.watch', label: '25 Character XP · v1', budget: 'budget.watch' },
+            { key: 'reward.recovery', label: '10 Character XP · v1', budget: 'budget.forge' },
+            { key: 'reward.trial', label: '40 Character XP · v1', budget: 'budget.forge' },
+          ],
         },
       })
     if (body.operation === 'load')
       return Response.json({
         workspace: {
           draft:
-            body.eventKey === 'event.cast-check'
-              ? castDraft
-              : body.eventKey === 'event.stale'
-                ? {
-                    definition: { ...definition, eventKey: 'event.stale' },
-                    baseVersion: 2,
-                    draftVersion: 2,
-                  }
-                : null,
-          current: { definition, definitionVersion: 3 },
+            body.eventKey === 'event.restoration-trial'
+              ? trialDraft
+              : body.eventKey === 'event.cast-check'
+                ? castDraft
+                : body.eventKey === 'event.stale'
+                  ? {
+                      definition: { ...definition, eventKey: 'event.stale' },
+                      baseVersion: 2,
+                      draftVersion: 2,
+                    }
+                  : null,
+          current:
+            body.eventKey === 'event.restoration-trial'
+              ? null
+              : { definition, definitionVersion: 3 },
           versions: [{ definitionVersion: 3, current: true, publishedAt: '2026-10-25T12:00:00Z' }],
         },
       })
@@ -146,6 +184,7 @@ window.fetch = async (input, options) => {
         draftVersion: (body.expectedDraftVersion ?? 0) + 1,
       }
       if (body.definition.eventKey === 'event.cast-check') castDraft = draft
+      if (body.definition.eventKey === 'event.restoration-trial') trialDraft = draft
       return Response.json({ draft })
     }
     if (body.operation === 'validate')

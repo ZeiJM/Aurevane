@@ -22,7 +22,7 @@ function invalidNpcResponse(): never {
   throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'NPC Design is unavailable right now.')
 }
 
-function staffRpc() {
+function staffRpc(forbiddenMessage = 'NPC Design page access is required.') {
   const client = createSupabaseAdminClient()
   return createSelectedCharacterRpc(async (name, parameters) => {
     const { data, error } = await client.rpc(name, parameters)
@@ -36,8 +36,7 @@ function staffRpc() {
         'INVALID_REQUEST',
         'This appearance does not need an exception. Use the normal Commit action.',
       )
-    if (error?.code === '42501')
-      throw new AurevaneError('FORBIDDEN', 'NPC Design page access is required.')
+    if (error?.code === '42501') throw new AurevaneError('FORBIDDEN', forbiddenMessage)
     if (error?.message === 'NPC_APPEARANCE_ALREADY_ACTIVE')
       throw new AurevaneError(
         'INVALID_REQUEST',
@@ -185,4 +184,32 @@ export async function readPublishedStoryNpcs(
     if (!npc || !validNpcPresentation(npc)) invalidNpcResponse()
     return npc
   })
+}
+
+type PublishedRestorationTrialNpc = Pick<PublishedWorldNpc, 'id' | 'name' | 'sectorId' | 'x' | 'y'>
+
+export async function readPublishedRestorationTrialNpc(
+  actorUserId: string,
+  npcId: string,
+): Promise<PublishedRestorationTrialNpc | null> {
+  const data = await staffRpc('Event authoring access is required.')(
+    'read_master_restoration_trial_npc_v1',
+    { p_actor_user_id: actorUserId, p_npc_id: npcId },
+  )
+  if (data === null) return null
+  if (typeof data !== 'object' || !data || Array.isArray(data)) invalidNpcResponse()
+  const { id, name, sectorId, x, y } = data as Partial<PublishedRestorationTrialNpc>
+  if (
+    id !== npcId ||
+    typeof name !== 'string' ||
+    !name ||
+    typeof sectorId !== 'string' ||
+    typeof x !== 'number' ||
+    typeof y !== 'number' ||
+    !Number.isInteger(x) ||
+    !Number.isInteger(y)
+  ) {
+    invalidNpcResponse()
+  }
+  return { id, name, sectorId, x, y }
 }

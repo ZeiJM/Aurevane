@@ -284,6 +284,62 @@ it.each([
   expect(() => validatePersistentEventDefinition(candidate)).toThrow(/restoration/i)
 })
 
+const trial = {
+  npcId: '88888888-8888-4888-8888-888888888888',
+  offer: 'Take on the forge sentinel.',
+  active: 'Defeat the sentinel and return.',
+  ready: 'You may now restore the sword.',
+  rewardPackageRef: 'reward.trial',
+}
+
+const trialRestoration = { ...recovery, trial, recoveryRewardPackageRef: 'reward.recovery' }
+
+function restorationWith(restoration: unknown): PersistentEventDefinition {
+  const event = hiddenDiscovery()
+  return {
+    ...event,
+    inventoryDiscovery: { ...event.inventoryDiscovery, restoration },
+  } as PersistentEventDefinition
+}
+
+it('accepts a private combat trial with separate recovery and trial XP references', () => {
+  expect(() => validatePersistentEventDefinition(restorationWith(trialRestoration))).not.toThrow()
+})
+
+it.each([
+  ['trial without a recovery reward', { ...recovery, trial }],
+  ['recovery reward without a trial', { ...recovery, recoveryRewardPackageRef: 'reward.recovery' }],
+  ['identical route rewards', { ...trialRestoration, recoveryRewardPackageRef: 'reward.trial' }],
+  [
+    'malformed recovery reward',
+    { ...trialRestoration, recoveryRewardPackageRef: 'reward Recovery' },
+  ],
+  ['null trial', { ...trialRestoration, trial: null }],
+  ['array trial', { ...trialRestoration, trial: [trial] }],
+  ['missing encounter NPC ID', { ...trialRestoration, trial: { ...trial, npcId: undefined } }],
+  ['untrimmed trial guidance', { ...trialRestoration, trial: { ...trial, active: ' Return ' } }],
+  ['missing trial ready dialogue', { ...trialRestoration, trial: { ...trial, ready: undefined } }],
+  ['overlong trial offer', { ...trialRestoration, trial: { ...trial, offer: 'x'.repeat(801) } }],
+  [
+    'missing trial reward',
+    { ...trialRestoration, trial: { ...trial, rewardPackageRef: undefined } },
+  ],
+  ['inline trial XP amount', { ...trialRestoration, trial: { ...trial, amount: 500 } }],
+])('rejects %s in a combat trial', (_label, candidate) => {
+  expect(() => validatePersistentEventDefinition(restorationWith(candidate))).toThrow(
+    /restoration.*(?:trial|reward)/i,
+  )
+})
+
+it('still forbids shared rewards on a private combat trial', () => {
+  expect(() =>
+    validatePersistentEventDefinition({
+      ...restorationWith(trialRestoration),
+      rewardPackageRefs: ['reward.shared'],
+    }),
+  ).toThrow('no shared effects or rewards')
+})
+
 it('preserves hidden scope and forbids shared phases or rewards for restoration', () => {
   const hidden = restorationDiscovery()
   for (const candidate of [

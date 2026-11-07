@@ -67,7 +67,7 @@ it('allows a quest reply to name the exchange action without taking quantities o
   }
 })
 
-it.each(['choose-restoration', 'restore-item', 'claim-restoration'])(
+it.each(['choose-restoration', 'choose-restoration-trial', 'restore-item', 'claim-restoration'])(
   'accepts %s only as a personal quest intent, never caller-chosen materials',
   (actionId) => {
     const interactionId = 'quest-run-00000000-0000-4000-8000-000000000017'
@@ -75,7 +75,13 @@ it.each(['choose-restoration', 'restore-item', 'claim-restoration'])(
     expect(
       parseWorldCommand({
         ...base,
-        intent: { ...intent, fragments: ['forged.item'], outputItemId: 'forged.sword' },
+        intent: {
+          ...intent,
+          fragments: ['forged.item'],
+          outputItemId: 'forged.sword',
+          battleSessionId: '00000000-0000-4000-8000-000000000044',
+          victory: true,
+        },
       }),
     ).toEqual({ ...base, intent })
     expect(

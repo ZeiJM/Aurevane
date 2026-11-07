@@ -1,6 +1,15 @@
 import type { PGlite } from '@electric-sql/pglite'
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from 'vitest'
 import type { ItemInventorySnapshot } from '../../game-core/src/character/item-inventory'
+import { createCombatEncounterState, executeCombatAction } from '../../game-core/src/combat/actions'
+import { createPendingBattle, startBattle } from '../../game-core/src/combat/battle-state'
+import { createTacticalBattleState } from '../../game-core/src/combat/board'
+import { surrenderPvpCombatant } from '../../game-core/src/combat/pvp-quality'
+import {
+  PV1F_COMBAT_CONTENT,
+  createPv1fTemporaryResources,
+} from '../../game-core/src/combat/pv1f-action-economy'
+import { createStatDrivenCombatEncounterState } from '../../game-core/src/combat/stat-driven-combat'
 import { defaultBasicSkills } from '../../game-core/src/combat/combat-basic-actions'
 import { itemFixture } from '../../game-core/src/content/items-test-fixtures'
 import { createCombatContentTestDatabase } from './test-support/combat-content-test-database'
@@ -13,6 +22,29 @@ const giver = '77777777-7777-4777-8777-777777777777'
 const position = { sectorId: 'verdant-expanse', x: 2, y: 4 }
 const initial = { version: 1, position, route: [], nextStepAt: null }
 const checkpoint = { ...position, x: 3 }
+const challenger = '55555555-5555-4555-8555-555555555555'
+const otherChallenger = '66666666-6666-4666-8666-666666666666'
+const challengerPosition = { ...position, x: 4 }
+const recoveryPackage = 'fixture.restoration-recovery'
+const trialPackage = 'fixture.restoration-trial'
+const trialDefinition = (key = 'event.fixture-restoration-trial') => ({
+  ...definition,
+  eventKey: key,
+  inventoryDiscovery: {
+    ...definition.inventoryDiscovery,
+    restoration: {
+      ...definition.inventoryDiscovery.restoration,
+      recoveryRewardPackageRef: recoveryPackage,
+      trial: {
+        npcId: challenger,
+        offer: 'Choose the trial to prove yourself.',
+        active: 'Challenge the field guardian.',
+        ready: 'Return to the forge after your victory.',
+        rewardPackageRef: trialPackage,
+      },
+    },
+  },
+})
 const first = itemFixture({
   id: 'fixture.fragment-one',
   name: 'First fragment',
@@ -121,6 +153,32 @@ beforeAll(async () => {
       value,
     ])
   }
+  for (const [id, name] of [
+    [challenger, 'Trial guardian'],
+    [otherChallenger, 'Ordinary challenger'],
+  ] as const) {
+    await saveChallenger(id, name)
+    await db.query("select public.write_master_npc_design_v1($1,null,$2,1,'commit-world',null)", [
+      owner,
+      id,
+    ])
+  }
+  await db.query(
+    `insert into app_private.event_reward_budget_policies(budget_ref,reward_kind,max_per_claim,approved_by)
+      values('fixture.restoration-budget','character-xp',100,$1)`,
+    [owner],
+  )
+  for (const [key, amount] of [
+    [recoveryPackage, 21],
+    [trialPackage, 47],
+    ['fixture.same-trial-amount', 47],
+  ] as const) {
+    await db.query(
+      `insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
+        values($1,1,'character-xp',$2,$3,'fixture.restoration-budget')`,
+      [key, amount, owner],
+    )
+  }
   await db.query('select public.seed_runtime_item_sources_v1($1::jsonb)', [
     JSON.stringify([first, second, sword, filler, capturedWeapon, publishedWeapon]),
   ])
@@ -166,7 +224,7 @@ const grant = (revision: number, itemIds: string[], userId = owner, characterId 
 const read = async (userId = owner, characterId = userId) =>
   (
     await db.query<{
-      result: { state: unknown; personalQuests: unknown[]; eventObjectives: unknown[] }
+      result: { state: { version: number }; personalQuests: unknown[]; eventObjectives: unknown[] }
     }>('select public.read_world_state_v1($1,$2,$3) result', [userId, characterId, initial])
   ).rows[0]!.result
 const carried = async () =>
@@ -571,4 +629,515 @@ it('requires a usable weapon and restricts direct World mutations to the service
   expect((await read()).personalQuests).toEqual([
     expect.objectContaining({ action: null, destination: checkpoint }),
   ])
+})
+
+function saveChallenger(id: string, name: string, revision = 0) {
+  return db.query("select public.write_master_npc_design_v1($1,null,$2,$3,'save',$4)", [
+    owner,
+    id,
+    revision,
+    {
+      name,
+      portraitRef: null,
+      uses: ['world'],
+      arena: null,
+      world: {
+        ...(id === challenger ? challengerPosition : checkpoint),
+        radius: 2,
+        greeting: 'The challenger is waiting.',
+        encounter: { arenaId: 'duel-yard', aiDifficulty: 'standard', tags: [] },
+      },
+    },
+  ])
+}
+
+async function prepareTrial(event = trialDefinition(), giveFragments = true, scheduleHours = 4) {
+  await publish(event)
+  runId = (
+    await db.query<{ run_id: string }>(
+      `select * from public.schedule_event_run_v2($1,null::uuid,$2,gen_random_uuid(),'schedule:trial',
+        clock_timestamp()+interval '1 hour' * $3::integer,
+        clock_timestamp()+interval '1 hour' * ($3::integer+1),null,true)`,
+      [owner, event.eventKey, scheduleHours],
+    )
+  ).rows[0]!.run_id
+  await start()
+  if (giveFragments) await grant(0, [first.id, second.id])
+  await read()
+}
+
+async function challenge(
+  version: number,
+  options: { npc?: string; character?: string; user?: string; startupWin?: boolean } = {},
+) {
+  const { npc = challenger, character = owner, user = owner, startupWin = false } = options
+  const battleId = `trial-fixture-${crypto.randomUUID()}`
+  const player = `character:${character}`
+  const opponent = 'recruit:fixture'
+  const combatants = [player, opponent].map((id, index) => ({
+    id,
+    teamId: index === 0 ? 'players' : 'opponents',
+    initiative: index === 0 ? 2 : 1,
+    baseMovementBudget: 2,
+    hp: 10,
+    maxHp: 10,
+    mp: 0,
+    maxMp: 0,
+    temporaryResources: createPv1fTemporaryResources(15),
+  }))
+  const battle = startBattle(
+    createPendingBattle({ battleId, rulesVersion: 1, contentVersion: 1, rngSeed: 100, combatants }),
+  ).state
+  const tactical = createTacticalBattleState({
+    battle,
+    width: 2,
+    height: 1,
+    terrains: [{ id: 'open', traversalCost: 1 }],
+    tiles: [0, 1].map((x) => ({ position: { x, y: 0 }, elevation: 0, terrainId: 'open' })),
+    movementProfiles: [{ id: 'ground', maxElevationStep: 1, terrainCostOverrides: [] }],
+    placements: combatants.map((unit, x) => ({
+      combatantId: unit.id,
+      position: { x, y: 0 },
+      facing: x === 0 ? 'east' : 'west',
+      movementProfileId: 'ground',
+    })),
+  })
+  const state = createStatDrivenCombatEncounterState(
+    createCombatEncounterState(tactical),
+    combatants.map((unit) => ({
+      combatantId: unit.id,
+      provenance: { kind: 'scenario', sourceId: 'scenario:trial-test', sourceRulesVersion: 1 },
+      accuracy: 10000,
+      evasion: 0,
+      armor: 0,
+      ward: 0,
+      jump: 1,
+    })),
+  )
+  const capture = (
+    await db.query<{ capture: object }>(
+      `select public.get_character_committed_build_snapshot_v2($1,$2) || jsonb_build_object('sourceHash',app_private.player_source_hash_v1($2)) capture`,
+      [user, character],
+    )
+  ).rows[0]!.capture
+  const arenaNpc = (
+    await db.query<{ value: object }>(
+      "select world - array['sectorId','x','y','radius','greeting','encounter'] value from app_private.npc_designs where id=$1",
+      [npc],
+    )
+  ).rows[0]!.value
+  const authority = {
+    worldBattleOrigin: 'npc',
+    arenaNpc,
+    buildAuthority: { combatants: [{ ...capture, characterId: character, combatantId: player }] },
+  }
+  const victory = executeCombatAction(
+    state,
+    {
+      id: 'world-fixture.strike',
+      version: 1,
+      sourceType: 'scenario',
+      tags: [],
+      target: {
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        shape: { kind: 'single' },
+        minimumRange: 1,
+        maximumRange: 1,
+        requiresLineOfSight: false,
+        maximumElevationDifference: null,
+        friendlyFire: 'enemies-only',
+      },
+      cost: { spendsAction: true, mp: 0 },
+      requirements: [],
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 15 }],
+    },
+    { kind: 'unit', combatantId: opponent },
+    PV1F_COMBAT_CONTENT,
+  )
+  const admitted = (
+    await db.query<{ battle_session_id: string }>(
+      `select * from public.start_world_npc_battle_v1($1,$2,$3,gen_random_uuid(),$4,$5,$6,$5,1,1,$7,$8,$9,$10,$11)`,
+      [
+        user,
+        character,
+        version,
+        npc,
+        battleId,
+        `canonical:${battleId}`,
+        { ...(startupWin ? victory.state : state), ...authority },
+        [
+          { combatant_id: player, participant_role: 'player', character_id: character },
+          { combatant_id: opponent, participant_role: 'opponent', character_id: null },
+        ],
+        startupWin ? { ...state, ...authority } : null,
+        startupWin ? victory.events : null,
+        startupWin
+          ? {
+              schemaVersion: 1,
+              commandVisibility: { kind: 'public' },
+              eventVisibilityOverrides: [],
+            }
+          : null,
+      ],
+    )
+  ).rows[0]!.battle_session_id
+  return {
+    admitted,
+    finish: async (surrender = false) => {
+      const result = surrender ? surrenderPvpCombatant(state, opponent) : victory
+      await db.query(
+        `select * from public.commit_battle_intent_v3($1::text,gen_random_uuid(),'fixture:trial-terminal',$1::uuid,$2,1,$3,$4,null)`,
+        [user, admitted, { ...result.state, ...authority }, result.events],
+      )
+    },
+  }
+}
+
+async function awardedAmounts() {
+  return (
+    await db.query<{ requested_amount: number }>(
+      'select requested_amount from app_private.character_xp_grants where character_id=$1',
+      [owner],
+    )
+  ).rows.map(({ requested_amount }) => requested_amount)
+}
+
+it('validates different budgeted XP rewards and a committed World encounter for two-route restoration', async () => {
+  for (const reward of [trialPackage, 'fixture.same-trial-amount', 'fixture.missing-package']) {
+    const draft = trialDefinition()
+    draft.inventoryDiscovery.restoration.recoveryRewardPackageRef = reward
+    await rejected(() => publish(draft), 'EVENT_INVENTORY_RESTORATION_REWARDS_INVALID')
+  }
+  const incomplete = trialDefinition()
+  Reflect.deleteProperty(incomplete.inventoryDiscovery.restoration, 'recoveryRewardPackageRef')
+  await rejected(() => publish(incomplete), 'EVENT_INVENTORY_RESTORATION_REWARDS_INVALID')
+  const noEncounter = trialDefinition()
+  noEncounter.inventoryDiscovery.restoration.trial.npcId = giver
+  await rejected(() => publish(noEncounter), 'EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE')
+  await publish(trialDefinition())
+})
+
+it('requires a fresh owned World trial victory, uses one route, and grants only trial XP at confirmed restoration', async () => {
+  await prepareTrial()
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({
+      action: 'choose-restoration',
+      alternativeAction: 'choose-restoration-trial',
+      trialOffer: 'Choose the trial to prove yourself.',
+    }),
+  ])
+  expect((await read(owner, sibling)).personalQuests).toEqual([])
+  const firstFight = await challenge(1)
+  await firstFight.finish()
+  const choice = crypto.randomUUID()
+  const choiceVersion = (await read()).state.version
+  await interact(choiceVersion, 'choose-restoration-trial', choice)
+  const chosenVersion = (await read()).state.version
+  await rejected(
+    () => interact(chosenVersion, 'choose-restoration'),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  await walk(chosenVersion, position, checkpoint)
+  await walk(chosenVersion + 2, checkpoint, position)
+  await rejected(
+    () => interact(chosenVersion + 4, 'restore-item'),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({
+      body: 'Challenge the field guardian.',
+      progress: 'active',
+      destination: challengerPosition,
+      action: null,
+    }),
+  ])
+  expect((await read()).personalQuests[0]).not.toHaveProperty('trialOffer')
+  await (await challenge(1, { character: sibling })).finish()
+  await (await challenge((await read()).state.version, { npc: otherChallenger })).finish()
+  const conceded = await challenge((await read()).state.version)
+  await conceded.finish(true)
+  expect(
+    (
+      await db.query(
+        'select outcome from app_private.world_npc_terminal_receipts where battle_session_id=$1',
+        [conceded.admitted],
+      )
+    ).rows,
+  ).toEqual([{ outcome: 'surrender' }])
+  const afterSurrender = (await read()).state.version
+  await rejected(() => interact(afterSurrender, 'restore-item'), 'WORLD_QUEST_ACTION_UNAVAILABLE')
+  const won = await challenge(afterSurrender, { startupWin: true })
+  expect(
+    (
+      await db.query(
+        'select outcome from app_private.world_npc_terminal_receipts where battle_session_id=$1',
+        [won.admitted],
+      )
+    ).rows,
+  ).toEqual([{ outcome: 'victory' }])
+  expect(await awardedAmounts()).toEqual([])
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({
+      body: 'Return to the forge after your victory.',
+      progress: 'ready',
+      destination: position,
+      action: 'restore-item',
+    }),
+  ])
+  const restore = crypto.randomUUID()
+  const restoreVersion = (await read()).state.version
+  await interact(restoreVersion, 'restore-item', restore)
+  await walk(restoreVersion + 1, position, checkpoint)
+  expect((await interact(choiceVersion, 'choose-restoration-trial', choice)).rows).toEqual([
+    { state: (await read()).state },
+  ])
+  expect((await interact(restoreVersion, 'restore-item', restore)).rows).toEqual([
+    { state: (await read()).state },
+  ])
+  await rejected(
+    () => interact(choiceVersion, 'choose-restoration', choice),
+    'WORLD_COMMAND_CONFLICT',
+  )
+  expect(await awardedAmounts()).toEqual([47])
+  expect(await carried()).toEqual([expect.objectContaining({ item_id: sword.id, quantity: 1 })])
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({ progress: 'completed', awardedXp: 47 }),
+  ])
+})
+
+it('converges on the same sword and grants only recovery XP when recovery was chosen', async () => {
+  await prepareTrial()
+  await interact(1, 'choose-restoration')
+  await rejected(() => interact(2, 'choose-restoration-trial'), 'WORLD_QUEST_ACTION_UNAVAILABLE')
+  await walk(2, position, checkpoint)
+  await walk(4, checkpoint, position)
+  await interact(6, 'restore-item')
+  expect(await awardedAmounts()).toEqual([21])
+  expect(await carried()).toEqual([expect.objectContaining({ item_id: sword.id, quantity: 1 })])
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({ progress: 'completed', awardedXp: 21 }),
+  ])
+})
+
+it('does not credit a replacement publication and lets a stranded trial switch to recovery once', async () => {
+  await prepareTrial()
+  await saveChallenger(challenger, 'Updated trial guardian', 2)
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({ alternativeAction: 'choose-restoration-trial' }),
+  ])
+  const trialChoice = crypto.randomUUID()
+  await interact(1, 'choose-restoration-trial', trialChoice)
+  await db.query("select public.write_master_npc_design_v1($1,null,$2,3,'commit-world',null)", [
+    owner,
+    challenger,
+  ])
+  await (await challenge(2)).finish()
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({
+      body: 'The trial opponent is no longer available. Return to the smith to choose the recovery route.',
+      destination: position,
+      action: 'choose-restoration',
+      progress: 'active',
+    }),
+  ])
+  const afterBattle = (await read()).state.version
+  await rejected(() => interact(afterBattle, 'restore-item'), 'WORLD_QUEST_ACTION_UNAVAILABLE')
+  expect(await awardedAmounts()).toEqual([])
+  expect((await carried()).map(({ item_id }) => item_id)).toEqual([first.id, second.id])
+
+  const recoveryChoice = crypto.randomUUID()
+  await interact(afterBattle, 'choose-restoration', recoveryChoice)
+  await rejected(
+    () => interact(afterBattle + 1, 'choose-restoration'),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  await rejected(
+    () => interact(afterBattle + 1, 'choose-restoration-trial'),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  await walk(afterBattle + 1, position, checkpoint)
+  await walk(afterBattle + 3, checkpoint, position)
+  await interact(afterBattle + 5, 'restore-item')
+  const state = (await read()).state
+  expect((await interact(1, 'choose-restoration-trial', trialChoice)).rows).toEqual([{ state }])
+  expect((await interact(afterBattle, 'choose-restoration', recoveryChoice)).rows).toEqual([
+    { state },
+  ])
+  expect(await awardedAmounts()).toEqual([21])
+  expect(await carried()).toEqual([expect.objectContaining({ item_id: sword.id, quantity: 1 })])
+})
+
+it('retains a qualified battle and its victory when the opponent retires after admission', async () => {
+  await prepareTrial()
+  await interact(1, 'choose-restoration-trial')
+  const fight = await challenge(2)
+  await db.query("select public.write_master_npc_design_v1($1,null,$2,2,'retire-world',null)", [
+    owner,
+    challenger,
+  ])
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({
+      body: 'Challenge the field guardian.',
+      progress: 'active',
+      action: null,
+    }),
+  ])
+  await fight.finish()
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({ progress: 'ready', action: 'restore-item' }),
+  ])
+  await interact((await read()).state.version, 'restore-item')
+  expect(await awardedAmounts()).toEqual([47])
+})
+
+it('keeps the trial sword owed when Gear is full and grants XP only at settlement', async () => {
+  await prepareTrial()
+  await db.query('select public.grant_character_items_v1($1,$1,1,$2,$3::jsonb)', [
+    owner,
+    'fixture:fill-trial-gear',
+    [{ itemId: filler.id, quantity: 40 }],
+  ])
+  await interact(1, 'choose-restoration-trial')
+  await challenge(2, { startupWin: true })
+  await interact((await read()).state.version, 'restore-item')
+  expect(await awardedAmounts()).toEqual([47])
+  expect(await carried()).toHaveLength(40)
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({ action: 'claim-restoration', itemClaimPending: true, awardedXp: 47 }),
+  ])
+  await db.query(
+    "update app_private.event_runs set scheduled_end_at=clock_timestamp()-interval '1 millisecond' where id=$1",
+    [runId],
+  )
+  const gear = await inventory()
+  await discard(gear, gear.discardableStackIds[0]!)
+  const claim = crypto.randomUUID()
+  const version = (await read()).state.version
+  await interact(version, 'claim-restoration', claim)
+  await interact(version, 'claim-restoration', claim)
+  expect(await awardedAmounts()).toEqual([47])
+  expect((await carried()).filter(({ item_id }) => item_id === sword.id)).toHaveLength(1)
+  expect((await read()).personalQuests).toEqual([
+    expect.objectContaining({ progress: 'completed', itemClaimPending: false, awardedXp: 47 }),
+  ])
+})
+
+it('reports the actual restoration date and sword in staff reward history', async () => {
+  await prepareTrial()
+  const dashboard = async () =>
+    (
+      await db.query<{ value: { personalRewards: unknown[] } }>(
+        'select public.read_event_operation_dashboard_v1($1,null::uuid,$2) value',
+        [owner, runId],
+      )
+    ).rows[0]!.value
+  expect((await dashboard()).personalRewards).toEqual([])
+  await interact(1, 'choose-restoration-trial')
+  await challenge(2, { startupWin: true })
+  await interact((await read()).state.version, 'restore-item')
+  const receipt = (
+    await db.query<{ discovery: string; restoration: string }>(
+      `select to_jsonb(completed_at) discovery,to_jsonb(restoration_settled_at) restoration
+        from app_private.event_personal_quest_attempts where run_id=$1 and character_id=$2`,
+      [runId, owner],
+    )
+  ).rows[0]!
+  expect(receipt.restoration).not.toBe(receipt.discovery)
+  expect((await dashboard()).personalRewards).toEqual([
+    expect.objectContaining({
+      characterId: owner,
+      completedAt: receipt.restoration,
+      itemName: sword.name,
+      awardedXp: 47,
+      itemClaimPending: false,
+    }),
+  ])
+})
+
+it('preserves an admitted victory across event pause, expiry, and giver retirement', async () => {
+  await prepareTrial()
+  await interact(1, 'choose-restoration-trial')
+  const operate = (revision: number, action: string) =>
+    db.query(
+      'select * from public.operate_event_run_v2($1,null::uuid,$2,$3,gen_random_uuid(),$4,null,true)',
+      [owner, runId, revision, action],
+    )
+  await operate(2, 'pause')
+  const tooLate = await challenge(2)
+  await tooLate.finish()
+  const afterPause = (await read()).state.version
+  await rejected(() => interact(afterPause, 'restore-item'), 'WORLD_QUEST_ACTION_UNAVAILABLE')
+  await operate(3, 'resume')
+
+  const admitted = await challenge(afterPause)
+  await operate(4, 'pause')
+  await admitted.finish()
+  await db.query(
+    "update app_private.event_runs set scheduled_end_at=clock_timestamp()-interval '1 millisecond' where id=$1",
+    [runId],
+  )
+  await db.query("select public.write_master_npc_design_v1($1,null,$2,3,'retire-world',null)", [
+    owner,
+    giver,
+  ])
+  const afterWin = await read()
+  expect(afterWin.personalQuests).toEqual([
+    expect.objectContaining({
+      body: 'Return to the forge after your victory.',
+      speaker: 'Restoration smith',
+      progress: 'ready',
+      destination: position,
+      action: 'restore-item',
+      local: true,
+    }),
+  ])
+  await interact(afterWin.state.version, 'restore-item')
+  expect(await awardedAmounts()).toEqual([47])
+  expect(await carried()).toEqual([expect.objectContaining({ item_id: sword.id, quantity: 1 })])
+})
+
+it('reserves a selected current opponent for one unresolved trial at a time', async () => {
+  await prepareTrial()
+  const firstRun = runId
+  const secondEvent = trialDefinition('event.fixture-second-trial')
+  secondEvent.inventoryDiscovery.restoration.outputItemId = capturedWeapon.id
+  await prepareTrial(secondEvent, false, 6)
+  const secondRun = runId
+  await interact(1, 'choose-restoration-trial', null, { run: firstRun })
+  const quests = (await read()).personalQuests
+  expect(quests).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ runId: firstRun, body: 'Challenge the field guardian.' }),
+      expect.objectContaining({ runId: secondRun, action: 'choose-restoration' }),
+    ]),
+  )
+  expect(quests.find((row) => (row as { runId: string }).runId === secondRun)).not.toHaveProperty(
+    'alternativeAction',
+  )
+  await rejected(
+    () => interact(2, 'choose-restoration-trial', null, { run: secondRun }),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  const operateFirst = (revision: number, action: string) =>
+    db.query(
+      'select * from public.operate_event_run_v2($1,null::uuid,$2,$3,gen_random_uuid(),$4,null,true)',
+      [owner, firstRun, revision, action],
+    )
+  await operateFirst(2, 'pause')
+  expect(
+    (await read()).personalQuests.find((row) => (row as { runId: string }).runId === secondRun),
+  ).not.toHaveProperty('alternativeAction')
+  await rejected(
+    () => interact(2, 'choose-restoration-trial', null, { run: secondRun }),
+    'WORLD_QUEST_ACTION_UNAVAILABLE',
+  )
+  await operateFirst(3, 'resume')
+  await challenge(2, { startupWin: true })
+  expect((await read()).personalQuests).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ runId: firstRun, action: 'restore-item' }),
+      expect.objectContaining({ runId: secondRun, alternativeAction: 'choose-restoration-trial' }),
+    ]),
+  )
 })

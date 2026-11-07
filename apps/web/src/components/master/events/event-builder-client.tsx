@@ -923,8 +923,10 @@ export function EventBuilderClient({
                   />
                 </label>
                 <InventoryRestorationFields
+                  key={definition.eventKey}
                   value={inventoryDiscovery.restoration}
                   storyNpcs={storyNpcs}
+                  rewards={catalogue.rewards}
                   canUseGlobalScope={canUseGlobalScope}
                   change={(restoration) =>
                     patchDefinition({ inventoryDiscovery: { ...inventoryDiscovery, restoration } })

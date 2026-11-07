@@ -62,6 +62,14 @@ export interface PersonalItemExchange extends PersonalJourneyDialogue {
 
 export type PersonalJourney = PersonalTravelJourney | PersonalItemExchange
 
+export interface PersonalInventoryRestorationTrial {
+  readonly npcId: string
+  readonly offer: string
+  readonly active: string
+  readonly ready: string
+  readonly rewardPackageRef: string
+}
+
 export interface PersonalInventoryRestoration {
   readonly giverNpcId: string
   readonly checkpoint: PersonalJourneyPosition
@@ -70,6 +78,8 @@ export interface PersonalInventoryRestoration {
   readonly travel: string
   readonly ready: string
   readonly completed: string
+  readonly trial?: PersonalInventoryRestorationTrial
+  readonly recoveryRewardPackageRef?: string
 }
 
 export interface PersonalInventoryDiscovery {

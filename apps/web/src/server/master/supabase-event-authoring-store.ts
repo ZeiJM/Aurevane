@@ -185,6 +185,24 @@ function mapRpcError(error: RpcError): never {
       'Choose two enabled Material, Event, or General Items for this discovery.',
       { cause: error },
     )
+  if (message === 'EVENT_INVENTORY_RESTORATION_TRIAL_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Complete the combat trial and choose Character XP packages for both restoration routes.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a published World encounter NPC for the restoration trial.',
+      { cause: error },
+    )
+  if (message === 'EVENT_INVENTORY_RESTORATION_REWARDS_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose approved reward packages with different Character XP amounts for the two restoration routes.',
+      { cause: error },
+    )
   if (message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE')
     throw new AurevaneError(
       'INVALID_REQUEST',

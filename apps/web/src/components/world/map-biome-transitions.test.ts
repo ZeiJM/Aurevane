@@ -234,3 +234,51 @@ describe('four-sector biome corners', () => {
     for (const entry of buildBiomeTransitions(polar).values()) expect(entry.corners).toEqual([])
   })
 })
+
+describe('Frostmere–Starfall vegetation', () => {
+  const frost = () => sector('atlas:56:14', 56, 14, 'frostmere')
+  const highlands = () => sector('atlas:56:15', 56, 15, 'starfall-highlands')
+  const withTrees = (entry: WorldSectorView) => ({
+    ...entry,
+    cells: entry.cells.map((cell) => ({ ...cell, terrain: 't' })),
+  })
+  const mixedTrees = (entry: WorldSectorView, entries: WorldSectorView[]) =>
+    [...(buildBiomeTransitions(entries).get(entry.id)?.treeRegions ?? [])].map(
+      ([cell, region]) => [cell.x, cell.y, region] as const,
+    )
+
+  it('fades foreign trees inland, mixing the supplied cells deterministically after reload', () => {
+    const snowy = withTrees(frost())
+    const high = withTrees(highlands())
+    const mixed = mixedTrees(snowy, [snowy, high])
+    const rows = [8, 7, 6].map((row) => mixed.filter(([, y]) => y === row).length)
+    expect(rows[0]).toBeGreaterThan(rows[1]!)
+    expect(rows[1]).toBeGreaterThan(rows[2]!)
+    expect(mixed.every(([, y, region]) => y >= 6 && region === high.regionId)).toBe(true)
+    expect(mixed).toContainEqual([5, 8, high.regionId])
+    expect(mixedTrees(high, [snowy, high])).toContainEqual([0, 0, snowy.regionId])
+    expect(mixedTrees(snowy, structuredClone([high, snowy]))).toEqual(mixed)
+  })
+
+  it('keeps original trees at unknown, wet, town and authored boundaries', () => {
+    const snowy = withTrees(frost())
+    const high = highlands()
+    const liquidGap = {
+      ...high,
+      cells: high.cells.map((cell) =>
+        cell.x === 5 && cell.y === 0 ? { ...cell, terrain: '~' } : cell,
+      ),
+    }
+    expect(mixedTrees(snowy, [snowy, liquidGap])).not.toContainEqual([5, 8, high.regionId])
+    for (const neighbors of [
+      [],
+      [{ ...high, charted: false }],
+      [{ ...high, townId: high.regionId }],
+      [{ ...high, landscape: 'autumn' as const }],
+      [{ ...high, regionId: 'verdant-expanse' }],
+    ]) {
+      expect(mixedTrees(snowy, [snowy, ...neighbors])).toEqual([])
+    }
+    expect(mixedTrees(frost(), [frost(), high])).toEqual([])
+  })
+})

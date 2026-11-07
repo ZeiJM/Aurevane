@@ -1,8 +1,13 @@
 'use client'
 
-import type { PersonalInventoryRestoration } from '@aurevane/game-core/events/persistent-event'
+import type {
+  PersonalInventoryRestoration,
+  PersonalInventoryRestorationTrial,
+} from '@aurevane/game-core/events/persistent-event'
+import type { EventWorkspaceCatalogue } from '@/server/master/event-authoring-service'
 import { CHARTED_SECTORS, GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
 import type { StoryNpcCatalogue } from './event-phase-cast'
+import { InventoryRestorationTrialFields } from './inventory-restoration-trial-fields'
 import styles from './event-builder.module.css'
 
 const initialRestoration: PersonalInventoryRestoration = {
@@ -15,14 +20,24 @@ const initialRestoration: PersonalInventoryRestoration = {
   completed: '',
 }
 
+const initialTrial: PersonalInventoryRestorationTrial = {
+  npcId: '',
+  offer: '',
+  active: '',
+  ready: '',
+  rewardPackageRef: '',
+}
+
 export function InventoryRestorationFields({
   value,
   storyNpcs,
+  rewards,
   canUseGlobalScope,
   change,
 }: {
   value?: PersonalInventoryRestoration
   storyNpcs: StoryNpcCatalogue
+  rewards: readonly EventWorkspaceCatalogue['rewards'][number][]
   canUseGlobalScope: boolean
   change: (next: PersonalInventoryRestoration | undefined) => void
 }) {
@@ -151,6 +166,33 @@ export function InventoryRestorationFields({
               </label>
             ))}
           </div>
+          <label className={styles.checkbox}>
+            <input
+              type="checkbox"
+              checked={Boolean(value.trial)}
+              disabled={!canUseGlobalScope && !value.trial}
+              onChange={(event) =>
+                change({
+                  ...value,
+                  trial: event.target.checked ? initialTrial : undefined,
+                  recoveryRewardPackageRef: event.target.checked ? '' : undefined,
+                })
+              }
+            />
+            Enable a combat trial
+          </label>
+          {value.trial ? (
+            <InventoryRestorationTrialFields
+              trial={value.trial}
+              recoveryReward={value.recoveryRewardPackageRef ?? ''}
+              recoverySectorId={value.checkpoint.sectorId}
+              rewards={rewards}
+              changeTrial={(trial) => change({ ...value, trial })}
+              changeRecoveryReward={(recoveryRewardPackageRef) =>
+                change({ ...value, recoveryRewardPackageRef })
+              }
+            />
+          ) : null}
         </fieldset>
       )}
     </>

@@ -130,6 +130,15 @@ begin
     (role_defaults->'roles') || '{"event-staff":["events"],"content-staff":["npc-design"]}'::jsonb);
   perform public.set_master_panel_character_access_v2(owner_id,event_user,event_actor,array['event-staff'],'{}',null,0,true);
   perform public.set_master_panel_character_access_v2(owner_id,npc_user,npc_actor,array['content-staff'],'{}',null,0,true);
+  assert not has_function_privilege('anon','public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)','execute');
+  assert not has_function_privilege('authenticated','public.read_master_restoration_trial_npc_v1(uuid,uuid,uuid)','execute');
+  assert public.read_master_restoration_trial_npc_v1(event_user,event_actor,npc_id) is null,
+    'a committed talker without a World encounter is ineligible';
+  begin
+    perform public.read_master_restoration_trial_npc_v1(npc_user,npc_actor,npc_id);
+    raise exception 'NPC-only staff read a restoration trial NPC';
+  exception when insufficient_privilege then null;
+  end;
   assert public.read_master_story_npcs_v1(event_user,event_actor,npc_id)->0->>'name'='Crossroads Story';
   assert jsonb_array_length(public.read_master_npc_designs_v1(npc_user,npc_actor))>0;
   assert public.read_master_panel_navigation_v2(event_user,event_actor)->'order' ? 'events';
@@ -157,6 +166,24 @@ begin
     npc_user,npc_actor,'94000000-0000-4000-8000-000000000023',0,'save',
     '{"name":"Delegated NPC Draft","portraitRef":null,"uses":["story"],"arena":null}'::jsonb
   )->>'revision'='1', 'NPC Design staff can save an NPC draft';
+
+  declare
+    trial_id uuid := '94000000-0000-4000-8000-000000000026';
+    trial_draft jsonb := '{"name":"Forge Sentinel","portraitRef":null,"uses":["world"],"arena":null,"world":{"sectorId":"emberreach","x":3,"y":4,"radius":1,"greeting":"Challenge me.","encounter":{"arenaId":"duel-yard","aiDifficulty":"high","tags":[]}}}';
+  begin
+    perform public.write_master_npc_design_v1(npc_user,npc_actor,trial_id,0,'save',trial_draft);
+    assert public.read_master_restoration_trial_npc_v1(event_user,event_actor,trial_id) is null,
+      'an uncommitted encounter is ineligible';
+    perform public.write_master_npc_design_v1(npc_user,npc_actor,trial_id,1,'commit-world',null);
+    perform public.write_master_npc_design_v1(npc_user,npc_actor,trial_id,2,'save',
+      jsonb_set(jsonb_set(trial_draft,'{world,sectorId}','"verdant-expanse"'),'{name}','"Draft rename"'));
+    assert public.read_master_restoration_trial_npc_v1(event_user,event_actor,trial_id)
+      = jsonb_build_object('id',trial_id,'name','Forge Sentinel','sectorId','emberreach','x',3,'y',4),
+      'lookup uses only the committed identity and location';
+    perform public.write_master_npc_design_v1(npc_user,npc_actor,trial_id,3,'retire-world',null);
+    assert public.read_master_restoration_trial_npc_v1(event_user,event_actor,trial_id) is null,
+      'a retired encounter is ineligible';
+  end;
 end; $$;
 
 do $$

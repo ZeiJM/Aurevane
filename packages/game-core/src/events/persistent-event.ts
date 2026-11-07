@@ -217,7 +217,14 @@ function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): vo
   const { restoration } = discovery
   if (restoration === undefined) return
   const dialogueFields = ['offer', 'travel', 'ready', 'completed'] as const
-  const allowedFields = ['giverNpcId', 'checkpoint', 'outputItemId', ...dialogueFields]
+  const allowedFields = [
+    'giverNpcId',
+    'checkpoint',
+    'outputItemId',
+    'trial',
+    'recoveryRewardPackageRef',
+    ...dialogueFields,
+  ]
   if (
     !restoration ||
     typeof restoration !== 'object' ||
@@ -254,6 +261,35 @@ function validateInventoryRestoration(discovery: PersonalInventoryDiscovery): vo
   identity(checkpoint.sectorId, 'Restoration checkpoint sector')
   for (const field of dialogueFields) {
     shortText(restoration[field], `Restoration ${field} dialogue`, 800)
+  }
+
+  const { trial, recoveryRewardPackageRef } = restoration
+  if (trial === undefined && recoveryRewardPackageRef === undefined) return
+  if (trial === undefined || recoveryRewardPackageRef === undefined) {
+    throw new TypeError(
+      'Restoration trial and recovery Character XP packages must be set together.',
+    )
+  }
+  const trialDialogueFields = ['offer', 'active', 'ready'] as const
+  const trialFields = ['npcId', 'rewardPackageRef', ...trialDialogueFields]
+  if (
+    !trial ||
+    typeof trial !== 'object' ||
+    Array.isArray(trial) ||
+    Object.keys(trial).some((key) => !trialFields.includes(key))
+  ) {
+    throw new TypeError('The restoration trial must contain only supported fields.')
+  }
+  if (!isPersonalJourneyNpcId(trial.npcId)) {
+    throw new TypeError('For the restoration trial, choose a published World encounter NPC.')
+  }
+  for (const field of trialDialogueFields) {
+    shortText(trial[field], `Restoration trial ${field} dialogue`, 800)
+  }
+  identity(recoveryRewardPackageRef, 'Restoration recovery reward package')
+  identity(trial.rewardPackageRef, 'Restoration trial reward package')
+  if (recoveryRewardPackageRef === trial.rewardPackageRef) {
+    throw new TypeError('Restoration trial and recovery require different Character XP packages.')
   }
 }
 

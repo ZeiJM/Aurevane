@@ -206,10 +206,21 @@
   min-width: 0;
 }
 
-.restorationFields > p {
+.restorationFields > p,
+.restorationTrial > p {
   margin: 0;
   font-size: 0.8rem;
   line-height: 1.45;
+}
+
+.restorationTrial {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.5rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
 }
 
 .restorationCheckpoint {
@@ -1136,6 +1147,14 @@
 }
 :global(.av-master) .builder :is(label, input, select, textarea, button) {
   font-size: 0.85rem;
+}
+:global(.av-master) .builder .restorationTrial textarea {
+  min-height: 3.65rem;
+}
+@media (min-width: 1100px) {
+  :global(.av-master) .builder .restorationTrialDialogue {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 :global(.av-master) .builder button {
   background: #e8dfcc;

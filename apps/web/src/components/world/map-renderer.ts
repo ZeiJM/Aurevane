@@ -112,6 +112,14 @@ const palettes: Record<string, [string, number, number]> = {
   'starfall-highlands': ['#7c7c77', 7, 1],
   'umbral-march': ['#384e48', 1, 0],
 }
+const regionalTrees: Readonly<Partial<Record<string, number>>> = {
+  'aureth-crown': 6,
+  'hollow-coast': 5,
+  'glasswind-desert': 0,
+  emberreach: 4,
+  'starfall-highlands': 4,
+  'umbral-march': 7,
+}
 interface BridgeStrip {
   x: number
   y: number
@@ -1368,7 +1376,7 @@ export function createMapRenderer(
         ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
         ctx.restore()
       }
-      const palette = palettes[sector.regionId] ?? palettes['verdant-expanse']!
+      const mixedTreeRegions = biomeField.get(sector.id)?.treeRegions
       const fogCells = warpedFog.get(sector.id)?.cells
       if (!sector.id.startsWith('ferry:') && nature?.complete && nature.naturalWidth)
         for (const cell of sector.cells) {
@@ -1392,20 +1400,19 @@ export function createMapRenderer(
             })
           }
           if (cell.terrain !== 't' && cell.terrain !== '#') continue
-          const variant: Record<string, number> = {
-            'aureth-crown': 6,
-            'hollow-coast': 5,
-            'glasswind-desert': 0,
-            emberreach: 4,
-            'starfall-highlands': 4,
-            'umbral-march': 7,
-          }
           const rock = cell.terrain === '#'
+          const mixedTreeRegion = mixedTreeRegions?.get(cell)
+          const treeRegion = mixedTreeRegion ?? sector.regionId
           const warpedRock =
             rock && sector.warpedTheme ? hashString(`${sector.id}:${cell.x}:${cell.y}:rock`) : null
           const fogMask = warpedRock === null ? 0 : fogCells?.get(`${cell.x}:${cell.y}`)
           if (warpedRock !== null && (fogMask ? warpedRock % 5 !== 0 : warpedRock % 5 > 2)) continue
-          const rockScale = warpedRock === null ? 1 : 0.63 + (warpedRock % 6) * 0.095
+          // Fringe trees are younger, but still use their supplied foot anchors.
+          const scale = mixedTreeRegion
+            ? 0.84
+            : warpedRock === null
+              ? 1
+              : 0.63 + (warpedRock % 6) * 0.095
           // Rock floors require their measured biome crop; a tree-sheet fallback
           // includes neighbouring canopies and empty padding beneath its roots.
           if (rock && (!biomes?.complete || !biomes.naturalWidth)) continue
@@ -1415,7 +1422,7 @@ export function createMapRenderer(
               : 3
             : sector.landscape === 'willow'
               ? 5
-              : variant[sector.regionId]
+              : regionalTrees[treeRegion]
           const scenicTree =
             !rock && beauties?.complete && beauties.naturalWidth
               ? sector.landscape === 'sakura'
@@ -1435,14 +1442,18 @@ export function createMapRenderer(
                 ? biomes
                 : nature
           const rockPlacement = rock && asset === biomes ? rockArt[special!] : undefined
-          const index = scenicTree ?? (asset === biomes ? special! : palette[2])
+          const index =
+            scenicTree ??
+            (asset === biomes
+              ? special!
+              : (palettes[treeRegion] ?? palettes['verdant-expanse']!)[2])
           const family = asset === beauties ? 'beauties' : asset === biomes ? 'biomes' : 'nature'
           const artPlacement = rockPlacement ?? (!rock ? treeArt[family]?.[index] : undefined)
           addScenery({
             x: origin.x + cell.x + 0.5,
             y: origin.y + cell.y + (rock ? 0.5 : 0.75),
-            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)) * rockScale,
-            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)) * rockScale,
+            width: tile * (artPlacement?.width ?? (rock ? 1.8 : 1.65)) * scale,
+            height: tile * (artPlacement?.height ?? (rock ? 1.7 : 2.55)) * scale,
             image: asset,
             index,
             columns: 4,
