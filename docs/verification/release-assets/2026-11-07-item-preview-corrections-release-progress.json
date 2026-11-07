@@ -430,5 +430,7 @@
     },
     "enabledOwners": 1,
     "descriptionMigrationCount": 0
-  }
+  },
+  "releaseSqlPath": "docs/verification/release-assets/2026-11-07-item-preview-corrections-register-and-publish.sql",
+  "sqlReviewPath": "docs/verification/release-assets/2026-11-07-item-preview-corrections-sql-review.md"
 }
