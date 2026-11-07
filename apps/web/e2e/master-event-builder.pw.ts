@@ -1394,6 +1394,7 @@ test('an authored Ashen Sentinel discovery unlocks one private challenge after f
 }, info) => {
   test.skip(info.project.name !== 'desktop-chromium', 'Requires the disposable Owner fixture.')
   test.setTimeout(480_000)
+  page.setDefaultTimeout(20_000)
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['127.0.0.1', 'localhost'].includes(host))
     throw new Error('Combat discovery browser verification requires disposable local Supabase.')
@@ -1492,16 +1493,18 @@ test('an authored Ashen Sentinel discovery unlocks one private challenge after f
   await page.getByLabel('Qualifying World encounter tag', { exact: true }).fill(tag)
   await expect(page.getByLabel('Required daily defeats', { exact: true })).toHaveValue('14')
   await page.getByLabel('Calendar timezone', { exact: true }).fill('UTC')
-  await page.getByLabel('Challenge availability', { exact: true }).selectOption('evergreen')
-  await page.getByLabel('Challenge sector', { exact: true }).selectOption(championPosition.sectorId)
-  await page.getByLabel('Challenge encounter NPC', { exact: true }).selectOption(championId)
+  const challenge = page.getByRole('group', { name: 'Daily combat challenge' })
+  const challengeSelect = (name: string) => challenge.getByRole('combobox', { name, exact: true })
+  await expect(challengeSelect('Challenge availability')).toHaveValue('evergreen')
+  await challengeSelect('Challenge sector').selectOption(championPosition.sectorId)
+  await challengeSelect('Challenge encounter NPC').selectOption(championId)
   await page
     .getByLabel('Challenge revealed', { exact: true })
     .fill('The Ashen Sentinel has emerged at the ruined gate.')
   await page
     .getByLabel('Challenge completed', { exact: true })
     .fill('The Sentinel has fallen. The gate is quiet again.')
-  await page.getByLabel('First-clear Character XP package', { exact: true }).selectOption(rewardRef)
+  await challengeSelect('First-clear Character XP package').selectOption(rewardRef)
   await page.screenshot({
     path: info.outputPath('ashen-sentinel-authoring.png'),
     animations: 'disabled',
