@@ -721,6 +721,14 @@ test('an authored World NPC challenge admits a battle only within reach', async 
   await page.getByRole('button', { name: 'Confirm Surrender' }).click()
   const returnToWorld = page.getByRole('button', { name: 'Return to World', exact: true })
   await expect(returnToWorld).toBeVisible()
+  expect(
+    queryLocalDatabase(`
+      select receipt.outcome
+      from app_private.world_npc_terminal_receipts receipt
+      join app_private.world_npc_battles battle using (battle_session_id)
+      where battle.character_id='${start.characterId}' and battle.npc_id='${npcId}';
+    `),
+  ).toBe('surrender')
   await expect(page.getByRole('button', { name: /Rematch/ })).toHaveCount(0)
   await returnToWorld.click()
   await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)

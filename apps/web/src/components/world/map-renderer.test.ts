@@ -1852,6 +1852,67 @@ describe('native map input and bounded lifecycle', () => {
     s.renderer.dispose()
     vi.unstubAllGlobals()
   })
+  it('mixes both native tree silhouettes at their supplied snowline anchors', () => {
+    const position = { sectorId: 'atlas:56:14', x: 5, y: 7 }
+    const view = projectWorld({ ...newWorldState(), position }, [], 1000)
+    const s = scene(true, view)
+    try {
+      for (const image of s.images as HTMLImageElement[]) {
+        if (image.src.endsWith('nature-v02.webp'))
+          Object.assign(image, { width: 1514, height: 1039, naturalWidth: 1514 })
+        if (image.src.endsWith('biomes-v02.webp'))
+          Object.assign(image, { width: 1774, height: 887, naturalWidth: 1774 })
+      }
+      s.frame(40)
+      const camera = mapPoint(position, view.sectors)
+      for (const [sectorId, x, y, sheet, cropX, floorX, floorY] of [
+        ['atlas:56:14', 5, 8, 'biomes', 0, 252, 867],
+        ['atlas:56:15', 0, 0, 'nature', 443, 599, 596],
+      ] as const) {
+        const sector = view.sectors.find((sector) => sector.id === sectorId)!
+        expect(sector.cells.find((cell) => cell.x === x && cell.y === y)?.terrain).toBe('t')
+        const point = mapPoint({ sectorId, x, y }, view.sectors)
+        const anchor = projectMapPoint(
+          { x: point.x, y: point.y + 0.25 },
+          camera,
+          { x: 0, y: 0 },
+          64,
+          800,
+          600,
+        )
+        expect(
+          s.draws.some(({ src, args, matrix: m }) => {
+            if (
+              !src.endsWith(`${sheet}-v02.webp`) ||
+              args.length !== 8 ||
+              Math.abs(args[0]! - cropX) > 0.001
+            )
+              return false
+            const [sx, sy, sw, sh, dx, dy, dw, dh] = args as [
+              number,
+              number,
+              number,
+              number,
+              number,
+              number,
+              number,
+              number,
+            ]
+            const ax = dx + ((floorX - sx) / sw) * dw
+            const ay = dy + ((floorY - sy) / sh) * dh
+            return (
+              Math.abs(m[0]! * ax + m[2]! * ay + m[4]! - anchor.x * 1.5) < 0.1 &&
+              Math.abs(m[1]! * ax + m[3]! * ay + m[5]! - anchor.y * 1.5) < 0.1
+            )
+          }),
+          `expected ${sheet} tree at ${sectorId} (${x}, ${y})`,
+        ).toBe(true)
+      }
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('reuses warmed procedural terrain when camera visibility changes raster density', () => {
     const initial = projectWorld(newWorldState(), [], 1000)
     const sectors = Array.from({ length: 25 }, (_, index) => {

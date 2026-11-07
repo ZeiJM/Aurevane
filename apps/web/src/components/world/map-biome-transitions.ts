@@ -1,6 +1,7 @@
 import { GRID_HEIGHT, GRID_WIDTH } from '@/world/catalog'
+import { seeded } from '@/world/terrain-gen'
 import { atlasNeighbor } from '@/world/topology'
-import type { WorldSectorView } from '@/world/types'
+import type { WorldCell, WorldSectorView } from '@/world/types'
 
 export interface BiomeTransitionEdge {
   regionId: string
@@ -18,6 +19,49 @@ export interface BiomeTransitionCorner {
   verticalRegionId: string
   diagonalRegionId: string
   width: 3
+}
+
+function isSnowline(own: WorldSectorView, other: WorldSectorView) {
+  // Keep designed groves and settled districts in their authored art families.
+  if (own.townId || other.townId || own.landscape || other.landscape) return false
+  return (
+    (own.regionId === 'frostmere' && other.regionId === 'starfall-highlands') ||
+    (own.regionId === 'starfall-highlands' && other.regionId === 'frostmere')
+  )
+}
+
+const foreignTreeShare = [0.5, 0.32, 0.13] as const
+
+function mixSnowlineTrees(sector: WorldSectorView, edges: readonly BiomeTransitionEdge[]) {
+  const treeRegions = new Map<WorldCell, string>()
+  for (const cell of sector.cells) {
+    if (cell.terrain !== 't') continue
+    let nearest: BiomeTransitionEdge | undefined
+    let distance = Infinity
+    for (const edge of edges) {
+      const vertical = edge.side % 2 === 1
+      const along = vertical ? cell.y : cell.x
+      if (along < edge.from || along >= edge.to) continue
+      const across =
+        edge.side === 0
+          ? cell.y
+          : edge.side === 1
+            ? GRID_WIDTH - 1 - cell.x
+            : edge.side === 2
+              ? GRID_HEIGHT - 1 - cell.y
+              : cell.x
+      if (across < edge.width && across < distance) {
+        nearest = edge
+        distance = across
+      }
+    }
+    if (
+      nearest &&
+      seeded(`snowline:${sector.id}:${cell.x}:${cell.y}`)() < foreignTreeShare[distance]!
+    )
+      treeRegions.set(cell, nearest.regionId)
+  }
+  return treeRegions
 }
 
 export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
@@ -43,6 +87,7 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
     sectors.map((sector) => {
       const edges: BiomeTransitionEdge[] = []
       const corners: BiomeTransitionCorner[] = []
+      const snowlineEdges: BiomeTransitionEdge[] = []
       const neighbors: unknown[] = []
       const diagonals: unknown[] = []
       if (boundaries.has(sector.id)) {
@@ -56,6 +101,7 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
           }
           const ownCells = boundaries.get(sector.id)!
           const otherCells = boundaries.get(neighbor.id)!
+          const mixTrees = isSnowline(sector, neighbor)
           const pairedTerrain: (string | undefined)[][] = []
           const length = side % 2 === 0 ? GRID_WIDTH : GRID_HEIGHT
           let from: number | null = null
@@ -86,8 +132,17 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
             }
             if (dry && from === null) from = index
             if (!dry && from !== null) {
-              if (neighbor.regionId !== sector.regionId)
-                edges.push({ regionId: neighbor.regionId, side, from, to: index, width: 3 })
+              if (neighbor.regionId !== sector.regionId) {
+                const edge = {
+                  regionId: neighbor.regionId,
+                  side,
+                  from,
+                  to: index,
+                  width: 3,
+                } as const
+                edges.push(edge)
+                if (mixTrees) snowlineEdges.push(edge)
+              }
               from = null
             }
           }
@@ -142,6 +197,7 @@ export function buildBiomeTransitions(sectors: readonly WorldSectorView[]) {
           key: JSON.stringify([sector.regionId, neighbors, edges, diagonals, corners]),
           edges,
           corners,
+          treeRegions: snowlineEdges.length ? mixSnowlineTrees(sector, snowlineEdges) : undefined,
         },
       ] as const
     }),
