@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "status": "description-grammar-installed-content-intent",
+  "status": "content-installed-and-verified-under-hold",
   "pr": 1023,
   "receiptBranch": "agent/item-preview-corrections-release-20261107",
   "sourceCommit": "3efadd14ff7bb17d9b4dc4beb1990e8e7040dad2",
@@ -132,8 +132,8 @@
       "sha256": "1c42a1740e93b44e0df11b4da59dae58e49de031419e1ad0e1bf63c2a4b575d6"
     }
   ],
-  "sourceRegistrationDone": false,
-  "publicationsDone": false,
+  "sourceRegistrationDone": true,
+  "publicationsDone": true,
   "scope": {
     "migration": "20261106143000_item_technique_descriptions.sql",
     "audit": "docs/verification/2026-11-06-item-purpose-successors.json",
@@ -453,5 +453,96 @@
     "helper_private": true,
     "bound_to_validator": true
   },
-  "contentWriteIntent": true
+  "contentWriteIntent": true,
+  "preservationDigestsPassed": 12,
+  "readback": {
+    "items": [
+      {
+        "id": "emberbrand",
+        "qp": 28,
+        "name": "Kindle",
+        "artworkId": "item.emberbrand.technique.art.v1",
+        "description": "Increase your direct Fire damage for 2 turns.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 11,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      },
+      {
+        "id": "stormcaller-staff",
+        "qp": 22,
+        "name": "Storm Ward",
+        "artworkId": "item.stormcaller-staff.technique.art.v1",
+        "description": "Gain a Barrier equal to 8% of your maximum HP for 2 turns.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 11,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      },
+      {
+        "id": "tower-shield",
+        "qp": 30,
+        "name": "Tower Guard",
+        "artworkId": "item.tower-shield.technique.art.v1",
+        "description": "Reduce incoming damage with Guarded for 2 turns.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 10,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      },
+      {
+        "id": "twinfang-blade",
+        "qp": 20,
+        "name": "Quickstep",
+        "artworkId": "item.twinfang-blade.technique.art.v1",
+        "description": "Reduce the AP cost of your movement for 1 turn.",
+        "draftAbsent": true,
+        "sourceExact": true,
+        "currentExact": true,
+        "currentVersion": 11,
+        "oldSourceExact": true,
+        "oldPublicationExact": true
+      }
+    ],
+    "grammarPrivate": true,
+    "migrationVersions": [
+      "20261107103304"
+    ]
+  },
+  "postMigrationControls": {
+    "stockRls": {
+      "character_item_grants": true,
+      "character_item_stacks": true,
+      "character_item_inventory": true
+    },
+    "seedAccess": {
+      "anon": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    "timingPolicy": {
+      "modes": {
+        "summon": "instant",
+        "sensory": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "conductive": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "create-terrain": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 11,
+      "tagAuthority": "global"
+    },
+    "enabledOwners": 1,
+    "descriptionMigrationCount": 1
+  }
 }
