@@ -40,6 +40,36 @@ export const SURVEY_SECTOR: WorldSector = {
     },
   ],
 }
+const SEALED_REALM_ID =
+  /^sealed-realm:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
+
+function sealedRealmSector(id: string): WorldSector | null {
+  if (!SEALED_REALM_ID.test(id)) return null
+  return {
+    id,
+    name: 'Sealed realm',
+    coordinate: 'Private realm',
+    regionId: 'umbral-march',
+    art: null,
+    east: 0,
+    north: 0,
+    charted: false,
+    rows: [
+      '#############',
+      '#############',
+      '####sssss####',
+      '###sssssss###',
+      '###sssssss###',
+      '###sssssss###',
+      '####sssss####',
+      '#############',
+      '#############',
+    ],
+    landmarks: [],
+    roads: [],
+  }
+}
+
 const atlas = atlasSectors().map((sector) => ({
   ...sector,
   roads: [
@@ -60,6 +90,7 @@ export function resolveSector(id: string): WorldSector | null {
   return (
     AUTHORED_BY_ID.get(id) ??
     ferryDeckSector(id) ??
+    sealedRealmSector(id) ??
     (isWildSectorId(id) ? resolveWildSector(id) : null)
   )
 }
@@ -74,6 +105,7 @@ function discovered(state: WorldState, p: WorldPosition) {
 export function isKnownCell(state: WorldState, p: WorldPosition) {
   const sector = resolveSector(p.sectorId)
   if (!sector) return false
+  if (SEALED_REALM_ID.test(p.sectorId)) return p.sectorId === state.position.sectorId
   const warped = isWarpedContinentSector(p.sectorId)
   if (warped && !isWarpedContinentSector(state.position.sectorId)) return false
   if (sector.charted || discovered(state, p)) return true
@@ -92,6 +124,8 @@ export function visibleSectors(state: WorldState): WorldSector[] {
   const onWarpedContinent = isWarpedContinentSector(state.position.sectorId)
   const deck = state.ferry ? ferryDeckSector(state.position.sectorId) : null
   if (deck) visible.set(deck.id, deck)
+  const realm = sealedRealmSector(state.position.sectorId)
+  if (realm) visible.set(realm.id, realm)
   const legacyJourney = legacy.some(
     (s) =>
       s.id === state.position.sectorId ||

@@ -198,11 +198,22 @@ begin
     owner_actor_signatures := array['public.search_master_item_grant_characters_v1(uuid,uuid,text)','public.read_master_item_grant_target_v1(uuid,uuid,uuid)','public.grant_master_item_to_character_v1(uuid,uuid,uuid,text,integer,bigint,text,uuid)'];
     owner_helper_signatures := array['app_private.assert_master_item_grant_owner_v1(uuid,uuid)'];
   end if;
+  if to_regclass('app_private.npc_appearance_uniform_approvals') is not null then
+    new_actor_signatures := new_actor_signatures || array['public.find_master_npc_appearance_conflicts_v1(uuid,uuid,text[])']::text[];
+    owner_actor_signatures := owner_actor_signatures || array['public.commit_master_npc_uniform_v1(uuid,uuid,uuid,bigint,text,text)']::text[];
+    foreach signature in array array['app_private.sync_npc_appearance_claims_v2(uuid,text[],text,boolean)','app_private.write_master_npc_design_v2(uuid,uuid,uuid,bigint,text,jsonb,text)'] loop
+      assert not has_function_privilege('service_role',signature,'execute') and not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'NPC appearance private helper ACL: '||signature;
+    end loop;
+    foreach table_name in array array['npc_appearance_claims','npc_appearance_claim_keys','npc_appearance_uniform_approvals'] loop
+      assert (select relrowsecurity from pg_class where oid=('app_private.'||table_name)::regclass), 'NPC appearance private RLS: '||table_name;
+      assert not has_table_privilege('service_role','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('anon','app_private.'||table_name,'select,insert,update,delete') and not has_table_privilege('authenticated','app_private.'||table_name,'select,insert,update,delete'), 'NPC appearance private table ACL: '||table_name;
+    end loop;
+  end if;
   foreach signature in array owner_actor_signatures || owner_helper_signatures loop
-    assert to_regprocedure(signature) is not null, 'Required Owner Item actor signature: '||signature;
+    assert to_regprocedure(signature) is not null, 'Required Owner actor signature: '||signature;
     assert (select 'p_actor_character_id'=any(proargnames) from pg_proc where oid=signature::regprocedure), 'Explicit Owner selected actor contract: '||signature;
-    assert not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Owner Item browser ACL: '||signature;
-    assert has_function_privilege('service_role',signature,'execute')=(signature=any(owner_actor_signatures)), 'Owner Item entrypoint/private-helper ACL: '||signature;
+    assert not has_function_privilege('anon',signature,'execute') and not has_function_privilege('authenticated',signature,'execute'), 'Owner browser ACL: '||signature;
+    assert has_function_privilege('service_role',signature,'execute')=(signature=any(owner_actor_signatures)), 'Owner entrypoint/private-helper ACL: '||signature;
   end loop;
   foreach signature in array new_actor_signatures loop
     assert to_regprocedure(signature) is not null, 'Required workspace actor signature: '||signature;
@@ -342,6 +353,8 @@ begin
       ('public.read_master_npc_designs_v1(uuid,uuid)','select public.read_master_npc_designs_v1($1,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.write_master_npc_design_v1(uuid,uuid,uuid,bigint,text,jsonb)','select public.write_master_npc_design_v1($1,$2,$3,0,''save'',''{}'')','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.read_master_story_npcs_v1(uuid,uuid,uuid)','select public.read_master_story_npcs_v1($1,$2,null)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.find_master_npc_appearance_conflicts_v1(uuid,uuid,text[])','select public.find_master_npc_appearance_conflicts_v1($1,$2,array[]::text[])','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
+      ('public.commit_master_npc_uniform_v1(uuid,uuid,uuid,bigint,text,text)','select public.commit_master_npc_uniform_v1($1,$2,$3,1,''story'',''CI denied probe'')','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.read_master_panel_activity_v1(uuid,integer,bigint,uuid)','select public.read_master_panel_activity_v1($1,100,null,$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.set_world_environment_v2(uuid,integer,jsonb,uuid)','select public.set_world_environment_v2($1,0,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
       ('public.publish_battlefield_elevation_policy_v2(uuid,integer,jsonb,uuid)','select public.publish_battlefield_elevation_policy_v2($1,1,''{}'',$2)','MASTER_PANEL_PAGE_ACCESS_REQUIRED'),
@@ -361,7 +374,7 @@ begin
       ('public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)','select public.grant_master_test_item_v1($1,$2,''item.test'',1,0,''token'',gen_random_uuid())','MASTER_PANEL_OPERATOR_REQUIRED'),
       ('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','select public.read_master_usage_balance_week_v1($1,$2,''vanguard'',null)','MASTER_PANEL_OPERATOR_REQUIRED')
   ) contracts(signature,command,denial) loop
-    if not probe.signature=any(new_actor_signatures) then continue; end if;
+    if not probe.signature=any(new_actor_signatures || owner_actor_signatures) then continue; end if;
     begin execute probe.command using staff_id,character_id,other_id; raise exception 'EXPECTED revoked workspace denial: %',probe.signature;
     exception when insufficient_privilege then assert sqlerrm=probe.denial; end;
     begin execute probe.command using staff_id,null::uuid,other_id; raise exception 'EXPECTED missing selection workspace denial: %',probe.signature;
@@ -453,6 +466,8 @@ do $$ declare probe record; begin
       ('public.grant_master_test_item_v1(uuid,uuid,text,integer,bigint,text,uuid)','select public.grant_master_test_item_v1($1,$2,''item.test'',1,0,''token'',gen_random_uuid())'),
       ('public.search_master_item_grant_characters_v1(uuid,uuid,text)','select public.search_master_item_grant_characters_v1($1,$2,''native'')'),
       ('public.read_master_item_grant_target_v1(uuid,uuid,uuid)','select public.read_master_item_grant_target_v1($1,$2,$3)'),
+      ('public.find_master_npc_appearance_conflicts_v1(uuid,uuid,text[])','select public.find_master_npc_appearance_conflicts_v1($1,$2,array[]::text[])'),
+      ('public.commit_master_npc_uniform_v1(uuid,uuid,uuid,bigint,text,text)','select public.commit_master_npc_uniform_v1($1,$2,$3,1,''story'',''CI denied probe'')'),
       ('public.grant_master_item_to_character_v1(uuid,uuid,uuid,text,integer,bigint,text,uuid)','select public.grant_master_item_to_character_v1($1,$2,$3,''item.test'',1,0,''token'',gen_random_uuid())'),
       ('public.read_master_usage_balance_week_v1(uuid,uuid,text,date)','select public.read_master_usage_balance_week_v1($1,$2,''vanguard'',null)'),
       ('public.publish_combat_effect_timing_policy_v1(uuid,integer,jsonb,text,uuid)','select public.publish_combat_effect_timing_policy_v1($1,1,''{}'',null,$2)')

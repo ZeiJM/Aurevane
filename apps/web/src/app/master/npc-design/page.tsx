@@ -23,7 +23,12 @@ export default async function NpcDesignPage({
       title="NPC Design"
       description="Create reusable characters and assign published fighters to the Battle Hall."
     >
-      <NpcDesignEditor initialRecords={records} initialNpcId={params.npc} sectors={sectors} />
+      <NpcDesignEditor
+        initialRecords={records}
+        initialNpcId={params.npc}
+        sectors={sectors}
+        canApproveUniforms={access.roles.includes('game-owner')}
+      />
     </MasterPanelShell>
   )
 }

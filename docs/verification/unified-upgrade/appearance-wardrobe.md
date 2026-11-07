@@ -1,0 +1,26 @@
+# Shared appearance wardrobe review
+
+This slice extends the manual rig from four to 24 cuts. Twenty original vector outfits use separately authored silhouettes, garment shells and overlapping panels: cropped tailoring, broad shoulder layers, robes and skirts, workwear and different armor constructions. All use the same recipe for the portrait, five expressions, compact icon and four-facing gameplay atlas. The shared creator lets a person vary just the silhouette and disables cut/sleeve/accessory conflicts with a reason. NPC and player readers keep their existing recipe contract. Sampled old painted and manual URLs still return byte-for-byte identical art; no existing record or stored URL is rewritten.
+
+## Results
+
+| Requirement | Evidence | Status |
+| --- | --- | --- |
+| CHR-03 | 20 additional cuts with original shells, overlaps and optional fittings; the comparison fixes identity, fabric palette and fittings so garment geometry is the only variable. | Partial. This is the manual vector rig. Independently adjustable lining, cuffs, layer order, additional body/face controls, and production painted modular coverage are still missing. |
+| CHR-04 | 648 four-field recipes attempted, 603 compatible with the actual parser, 603 exact cropped sprite outputs, **570** retained by the more conservative pairwise visual threshold. | Partial. 9,430 below the 10,000 target even if this vector evidence is accepted. The three existing painted presets are unchanged; do not report this as a painted production garment inventory. |
+| CHR-05 | 20 controlled outfits and 120 seeded complete looks. 1,001 route checks across the two cohorts and three original painted presets. 0 exact recipe duplicates, 0 exact gameplay pixel duplicates, 9 of 7,140 pairs flagged by the feature proxy (17 of 120 looks), 0 pixel-near pairs at the threshold below. One-click variation on Seed 038 changed the tailed frock to belted overalls, increased its distance from Seed 008 from 1 to 5 and changed 700 gameplay pixels. | Verified for the local manual catalog review. No live or Owner art acceptance claimed. |
+
+Field review uses the east-facing walking atlas frame at 45.6 × 60.8 CSS px (64 px projected tile × runtime scale), and battle uses a south-facing casting frame at 57.53 × 76.70 CSS px (72 px representative battle cell × token and actor factors). The 120 px portrait is the builder's reference rendering size. Browser captures use Chromium 151 at DPR 1. These are representative sizes, since world zoom and battle board cell size vary. The same-palette controlled sheet's closest pair still differed by 410 material/edge pixels in the two gameplay crops combined; the closest outlines differed by 79 alpha-mask pixels. The controlled sheet and seeded pages show original outlines, interior layers and pattern contrast at both scales. The seeded sampler rejects incompatible inputs only; it does not resample duplicates or favor different cuts.
+
+The counter varies only cut, collar, sleeves and hem. It fixes body, hair, palette, closure, pattern and accessories. It rasterizes the garment area (y=19–57 of the rig) from the real gameplay atlas in both representative views and collapses byte-identical raster pairs. In stable catalog order, a recipe is retained only if it differs from *every* previously retained recipe by at least 16 material or edge pixels across the two views. A material difference requires at least 34/255 channel change with both pixels mostly opaque; an edge difference requires at least 34/255 alpha change. This is a reproducible lower bound for the scoped structural inputs, not a combinatorial estimate or a guarantee of human-perceived uniqueness. Closure, pattern, accessory and palette permutations receive no structural count credit. The feature proxy sums the weights of mismatched cut (4), hair (3), dominant palette (3), accessory (2), and textile (1); scores of 2 or less are flagged. Pixel-near pairs differ by fewer than 16 qualifying pixels across the two complete sprites. Both are screening methods; CHR-06's active-identity warning, uniform exception and race acceptance remain outside this slice.
+
+## Reproduce
+
+With repository dependencies and a compatible local Playwright Chromium installed, run from repository root:
+
+```sh
+AV_CHROMIUM_EXECUTABLE=/path/to/chromium \
+  node apps/web/scripts/appearance-catalog-review.mjs . /tmp/aurevane-wardrobe-review
+```
+
+The directory contains `wardrobe-comparison.png`, six `catalog-*.png` sheets, `catalog-samples.json` (seed, exact recipes, asset/count receipts, comparison and variation measures), and desktop/mobile screenshots of the shared dialog. The dialog fixture exercises disabled incompatible choices, variation, undo, preloading the complete image set, confirmation and reopening the chosen design. The callback is isolated and does not write an account or change production state.

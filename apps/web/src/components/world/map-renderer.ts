@@ -530,6 +530,13 @@ export function createMapRenderer(
     }
   >()
   const biomeRasters = new Map<string, HTMLCanvasElement>()
+  let stationaryGround: {
+    camera: MapPoint
+    ambient: boolean
+    layer: HTMLCanvasElement | null
+    start: number
+    end: number
+  } | null = null
   let wind: WorldWind | undefined
   let hitTargets: { id: string; self: boolean; x: number; y: number; radius: number }[] = []
   const frameTimes: number[] = []
@@ -548,6 +555,7 @@ export function createMapRenderer(
   let cachedPixels = 0
   let visibleGroundIds = new Set<string>()
   function indexTerrain() {
+    stationaryGround = null
     waterField = buildWaterField(renderSectors)
     biomeField = buildBiomeTransitions(renderSectors)
     featurePlacements = indexFeaturePlacements(renderSectors)
@@ -586,6 +594,7 @@ export function createMapRenderer(
   const clearCache = () => {
     cache.clear()
     cachedPixels = 0
+    stationaryGround = null
   }
   const load = (name: string, version = 'v02', format = 'webp') => {
     const image = new Image()
@@ -1113,6 +1122,68 @@ export function createMapRenderer(
       Object.assign(entry, { ground, surfaces, pixels, scale: groundScale })
     }
   }
+  const liquidVisible = (point: MapPoint) =>
+    point.x >= -tile * 2 &&
+    point.x <= width + tile * 2 &&
+    point.y >= -tile &&
+    point.y <= height + tile
+
+  function stationaryGroundLayer(visible: readonly WorldSectorView[], ambient: boolean) {
+    if (
+      stationaryGround?.camera.x === camera.x &&
+      stationaryGround.camera.y === camera.y &&
+      stationaryGround.ambient === ambient
+    )
+      return stationaryGround
+
+    // Only combine a consecutive run. Animated water and shore must remain in
+    // their original order against neighboring ground, including at subpixel seams.
+    let start = 0,
+      end = 0,
+      runStart = 0
+    visible.forEach((sector, index) => {
+      const origin = sectorOrigin(sector)
+      if (
+        coastField.get(sector.id)?.length ||
+        (ambient &&
+          sector.cells.some(
+            ({ terrain, x, y }) =>
+              (terrain === '~' || terrain === 'l') &&
+              liquidVisible(screen({ x: origin.x + x, y: origin.y + y })),
+          ))
+      )
+        runStart = index + 1
+      else if (index + 1 - runStart > end - start) {
+        start = runStart
+        end = index + 1
+      }
+    })
+
+    // One backing-size bitmap replaces several transformed draws; keep the
+    // existing sector path when there is little ground to combine.
+    const projection = { camera, ambient, layer: null as HTMLCanvasElement | null, start, end }
+    stationaryGround = projection
+    if (end - start < 4) return projection
+    const layer = document.createElement('canvas')
+    layer.width = canvas.width
+    layer.height = canvas.height
+    const target = layer.getContext('2d')
+    if (!target) return projection
+    for (const sector of visible.slice(start, end)) {
+      const p = screen(sectorOrigin(sector))
+      target.setTransform(
+        ratio * MAP_X,
+        ratio * MAP_Y,
+        -ratio * MAP_X,
+        ratio * MAP_Y,
+        p.x * ratio,
+        p.y * ratio,
+      )
+      target.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+    }
+    projection.layer = layer
+    return projection
+  }
   const portrait = (src: string | null) => {
     if (!src) return null
     let image = portraits.get(src)
@@ -1224,6 +1295,23 @@ export function createMapRenderer(
     groundScale = Math.min(ratio, Math.floor(budgetScale * 10) / 10)
     visibleGroundIds = new Set(visible.map((sector) => sector.id))
     fitCachedGround()
+    const backingPixels = canvas.width * canvas.height
+    const cacheStationaryGround =
+      width < 600 &&
+      tile < 32 &&
+      ratio > 1 &&
+      backingPixels > 0 &&
+      backingPixels <= 1_000_000 &&
+      rasterZoomAt === null &&
+      !sample.moving &&
+      camera.x === sample.point.x &&
+      camera.y === sample.point.y
+    if (!cacheStationaryGround) stationaryGround = null
+    const projection = cacheStationaryGround ? stationaryGroundLayer(visible, ambient) : null
+    if (timing) {
+      timing.projectedGroundSectors = projection?.layer ? projection.end - projection.start : 0
+      timing.projectedGroundPixels = projection?.layer ? backingPixels : 0
+    }
     if (timing) {
       const ended = performance.now()
       timing.prepareMs = ended - phaseAt
@@ -1253,23 +1341,32 @@ export function createMapRenderer(
       wildlifeCount = 0,
       coastEdges = 0,
       wildlifeWalking = 0
-    for (const sector of visible) {
+    for (const [index, sector] of visible.entries()) {
       const origin = sectorOrigin(sector),
         p = screen(origin)
-      ctx.save()
-      ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, p.x, p.y)
-      coastEdges += paintCoastSea(
-        ctx,
-        coastField.get(sector.id) ?? [],
-        tile,
-        now,
-        ambient,
-        16 - coastEdges,
-        sector.regionId,
-        budget.surf,
-      )
-      ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
-      ctx.restore()
+      if (projection?.layer && index >= projection.start && index < projection.end) {
+        if (index === projection.start) {
+          ctx.save()
+          ctx.setTransform(1, 0, 0, 1, 0, 0)
+          ctx.drawImage(projection.layer, 0, 0)
+          ctx.restore()
+        }
+      } else {
+        ctx.save()
+        ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, p.x, p.y)
+        coastEdges += paintCoastSea(
+          ctx,
+          coastField.get(sector.id) ?? [],
+          tile,
+          now,
+          ambient,
+          16 - coastEdges,
+          sector.regionId,
+          budget.surf,
+        )
+        ctx.drawImage(ground(sector), 0, 0, GRID_WIDTH * tile, GRID_HEIGHT * tile)
+        ctx.restore()
+      }
       const palette = palettes[sector.regionId] ?? palettes['verdant-expanse']!
       const fogCells = warpedFog.get(sector.id)?.cells
       if (!sector.id.startsWith('ferry:') && nature?.complete && nature.naturalWidth)
@@ -1509,18 +1606,11 @@ export function createMapRenderer(
         for (const cell of sector.cells)
           if ((cell.terrain === '~' || cell.terrain === 'l') && waterCells < budget.water) {
             const point = screen({ x: origin.x + cell.x, y: origin.y + cell.y })
-            if (
-              point.x < -tile * 2 ||
-              point.x > width + tile * 2 ||
-              point.y < -tile ||
-              point.y > height + tile
-            )
-              continue
+            if (!liquidVisible(point)) continue
             waterCells++
-            const at = screen({ x: origin.x + cell.x, y: origin.y + cell.y }),
-              liquidWorldX = origin.x + cell.x
+            const liquidWorldX = origin.x + cell.x
             ctx.save()
-            ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, at.x, at.y)
+            ctx.transform(MAP_X, MAP_Y, -MAP_X, MAP_Y, point.x, point.y)
             if (cell.terrain === '~') {
               const profile = waterField.get(sector.id)?.cells.get(`${cell.x}:${cell.y}`)
               if (profile)

@@ -9,8 +9,10 @@ on:
       - 'apps/web/src/app/game/**/world/**'
       - 'apps/web/src/app/api/world/**'
       - 'apps/web/e2e/atlas-world.pw.ts'
+      - 'apps/web/e2e/master-event-builder.pw.ts'
       - 'apps/web/e2e/world-*.ts'
       - 'supabase/migrations/*living_atlas*'
+      - 'supabase/migrations/*personal*'
       - 'supabase/migrations/*world*'
       - '.github/workflows/living-atlas-browser.yml'
   workflow_dispatch:
@@ -38,7 +40,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
-      - name: Build and exercise authenticated Atlas
+      - name: Build and exercise authenticated story journeys and Atlas
         shell: bash
         run: |
           set -euo pipefail
@@ -56,7 +58,13 @@ jobs:
             select public.activate_phase4_combat_interactions_v2();
             select public.activate_phase4_discipline_rebalance_v1();
           "
+          story_result=0
+          pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
+            --project=desktop-chromium --project=mobile-chromium \
+            --grep 'an authored (Story Campaign|item exchange)|Farmer Joe dialogue' \
+            --output=test-results-story --reporter=list,github || story_result=$?
           pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts --reporter=list,github
+          exit "$story_result"
       - name: Capture safe Realtime failure diagnostics
         if: failure()
         continue-on-error: true
@@ -113,6 +121,8 @@ jobs:
             apps/web/test-results/**/world-live-peer-delivery.json
             apps/web/test-results/**/world-multiplayer-load.json
             apps/web/test-results/**/world-multiplayer-hotspot.png
+            apps/web/test-results-story/**/authored-watch-*-complete.png
+            apps/web/test-results-story/**/sealed-realm-challenge.png
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png

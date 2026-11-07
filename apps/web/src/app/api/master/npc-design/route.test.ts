@@ -54,3 +54,21 @@ it('rejects caller-provided actor identity and malformed arena assignments', asy
   expect((await POST(request({ ...body, draft: { ...body.draft, arena: null } }))).status).toBe(400)
   expect(mocks.writeNpcDesign).not.toHaveBeenCalled()
 })
+
+it('requires explicit approval from the Game Owner to publish an exact copy', async () => {
+  const command = {
+    kind: 'commit-uniform',
+    id: body.id,
+    revision: 1,
+    use: 'arena',
+    reason: 'Ceremonial doubles',
+  }
+  mocks.requireCapability.mockResolvedValue({ roles: ['content-staff'] })
+  expect((await POST(request(command))).status).toBe(403)
+  expect(mocks.writeNpcDesign).not.toHaveBeenCalled()
+  mocks.requireCapability.mockResolvedValue({ roles: ['game-owner'] })
+  expect((await POST(request({ ...command, reason: '  ' }))).status).toBe(400)
+  expect((await POST(request({ ...command, use: 'arena-and-world' }))).status).toBe(400)
+  expect((await POST(request(command))).status).toBe(200)
+  expect(mocks.writeNpcDesign).toHaveBeenCalledExactlyOnceWith('verified', command)
+})

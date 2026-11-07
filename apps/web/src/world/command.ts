@@ -44,7 +44,10 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
       input.actionId === 'accept' ||
       input.actionId === 'report' ||
       input.actionId === 'hand-over' ||
-      input.actionId === 'claim-exchange')
+      input.actionId === 'claim-exchange' ||
+      input.actionId === 'travel-realm' ||
+      input.actionId === 'leave-realm' ||
+      input.actionId === 'challenge-realm')
   )
     intent = {
       kind: 'interact',

@@ -1,3 +1,5 @@
+import { WARDROBE_CUTS, appearanceClothingConflict } from './appearance-wardrobe-catalog'
+
 export const APPEARANCE_EXPRESSIONS = ['neutral', 'happy', 'angry', 'sad', 'surprised'] as const
 export const APPEARANCE_FACINGS = ['south', 'east', 'north', 'west'] as const
 export const APPEARANCE_POSES = ['idle', 'walk', 'attack', 'cast', 'hit', 'down'] as const
@@ -7,7 +9,7 @@ export const APPEARANCE_CATALOG = {
   complexion: ['light', 'tan', 'brown', 'deep'],
   hair: ['crop', 'swept', 'braid', 'curls'],
   hairColor: ['onyx', 'oak', 'copper', 'silver'],
-  coat: ['tunic', 'longcoat', 'mantle', 'plate'],
+  coat: ['tunic', 'longcoat', 'mantle', 'plate', ...WARDROBE_CUTS],
   collar: ['open', 'standing', 'fur'],
   sleeves: ['close', 'puffed', 'split'],
   closure: ['buttons', 'lacing', 'clasps'],
@@ -106,10 +108,20 @@ export function parseAppearanceBlueprint(input: unknown): AppearanceBlueprint | 
     const choices: readonly unknown[] = APPEARANCE_CATALOG[field]
     if (!choices.includes(values[field])) return null
   }
-  // The mantle covers the satchel's shoulder strap. Plate shoulder guards cover puffed sleeves.
-  if (values.coat === 'mantle' && values.accessory === 'satchel') return null
-  if (values.coat === 'plate' && values.sleeves === 'puffed') return null
-  return Object.freeze({ ...values }) as AppearanceBlueprint
+  const blueprint = values as AppearanceBlueprint
+  if (appearanceClothingConflict(blueprint)) return null
+  return Object.freeze({ ...blueprint })
+}
+
+export function varyAppearanceOutfit(blueprint: AppearanceBlueprint): AppearanceBlueprint {
+  const cuts = APPEARANCE_CATALOG.coat
+  const index = cuts.indexOf(blueprint.coat)
+  for (let offset = 1; offset < cuts.length; offset++) {
+    const coat = cuts[(index + offset) % cuts.length]
+    const candidate = parseAppearanceBlueprint({ ...blueprint, coat })
+    if (candidate) return candidate
+  }
+  return blueprint
 }
 
 export function compileAppearanceManifest(input: AppearanceBlueprint) {

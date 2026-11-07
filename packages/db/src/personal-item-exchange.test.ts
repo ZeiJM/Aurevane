@@ -26,6 +26,7 @@ const key = itemFixture({
   qualityPoints: 0,
 })
 const filler = { ...key, id: 'fixture.inventory-filler' }
+const futureInput = { ...filler, id: 'fixture.future-input' }
 const journey = {
   type: 'item-exchange',
   giverId: 'eastern-watch-officer',
@@ -88,7 +89,7 @@ beforeAll(async () => {
     [actor],
   )
   await db.query('select public.seed_runtime_item_sources_v1($1::jsonb)', [
-    JSON.stringify([seed, key, filler]),
+    JSON.stringify([seed, key, filler, futureInput]),
   ])
 }, 60000)
 afterAll(async () => db?.close())
@@ -155,11 +156,63 @@ const access = async (id = actor) =>
     )
   ).rows[0]!.value
 
+type RecoveryView = {
+  catalogueToken: string
+  discardableStackIds: string[]
+  snapshot: { revision: number; stacks: { id: string; itemId: string; slotIndex: number }[] }
+}
+const inventory = async (id = actor) =>
+  (
+    await db.query<{ value: RecoveryView }>(
+      'select public.read_character_items_view_v1($1,$1) value',
+      [id],
+    )
+  ).rows[0]!.value
+const discard = (view: RecoveryView, stackId: string, id = actor) =>
+  db.query('select public.write_character_items_v1($1,$1,$2,$3,$4)', [
+    id,
+    view.snapshot.revision,
+    view.catalogueToken,
+    { action: 'discard', stackId },
+  ])
+
+const eventDashboard = (userId: string) =>
+  db.query<{ value: { personalRewards: unknown[]; personalRewardsPendingCount: number } }>(
+    'select public.read_event_operation_dashboard_v1($1,null::uuid,$2) value',
+    [userId, runId],
+  )
+
 async function rejected(call: () => Promise<unknown>, message: string) {
   await db.exec('savepoint rejected_exchange')
   await expect(call()).rejects.toThrow(message)
   await db.exec('rollback to savepoint rejected_exchange; release savepoint rejected_exchange')
 }
+
+it('protects an exchange input as soon as its definition is published', async () => {
+  const futureKey = 'event.fixture-future-exchange'
+  await grant(0, 'fixture:future-input', [{ itemId: futureInput.id, quantity: 1 }])
+  const before = await inventory()
+  const stack = before.snapshot.stacks.find((row) => row.itemId === futureInput.id)!
+  expect(before.discardableStackIds).toContain(stack.id)
+  await db.query(
+    'select * from public.publish_event_definition_v2($1,null::uuid,$2,$3::jsonb,null,gen_random_uuid(),null,true)',
+    [
+      actor,
+      futureKey,
+      {
+        ...definition,
+        eventKey: futureKey,
+        personalJourney: { ...journey, inputItemId: futureInput.id, inputQuantity: 1 },
+      },
+    ],
+  )
+  expect(
+    (await db.query('select id from app_private.event_runs where event_key=$1', [futureKey])).rows,
+  ).toEqual([])
+  const after = await inventory()
+  expect(after.discardableStackIds).not.toContain(stack.id)
+  await rejected(() => discard(after, stack.id), 'ITEM_DISCARD_PROTECTED')
+})
 
 it('consumes seven previously carried seeds once across two tabs and records a private key and access', async () => {
   await grant(0, 'fixture:seeds-before-acceptance', [{ itemId: seed.id, quantity: 14 }])
@@ -201,6 +254,26 @@ it('keeps an earned key claim after the occurrence expires when the reward categ
   await action(2, 'hand-over')
   expect(await access()).toBe(true)
   expect(await owned()).toEqual([])
+  const pendingRewards = (await eventDashboard(actor)).rows[0]!.value
+  expect(pendingRewards.personalRewardsPendingCount).toBe(1)
+  expect(pendingRewards.personalRewards).toEqual([
+    expect.objectContaining({
+      characterId: actor,
+      itemName: 'Realm key',
+      itemClaimPending: true,
+      awardedXp: 0,
+    }),
+  ])
+  await rejected(() => eventDashboard(other), 'EVENT_STAFF_REQUIRED')
+  await db.exec('savepoint orphaned_reward')
+  await db.query(
+    'update app_private.event_personal_quest_attempts set character_id=gen_random_uuid() where run_id=$1',
+    [runId],
+  )
+  const orphaned = (await eventDashboard(actor)).rows[0]!.value
+  expect(orphaned.personalRewards).toEqual([])
+  expect(orphaned.personalRewardsPendingCount).toBe(0)
+  await db.exec('rollback to savepoint orphaned_reward; release savepoint orphaned_reward')
   const disableKey = () =>
     db.query('select public.seed_runtime_item_sources_v1($1::jsonb)', [
       JSON.stringify([{ ...key, contentVersion: 3, enabled: false }]),
@@ -242,14 +315,40 @@ it('keeps an earned key claim after the occurrence expires when the reward categ
     }),
   ])
   await rejected(() => action(3, 'claim-exchange'), 'ITEM_CAPACITY')
-  await db.query(
-    'delete from app_private.character_item_stacks where character_id=$1 and slot_index=0 and item_id=$2',
-    [actor, filler.id],
+  const fullInventory = await inventory()
+  const fillerStack = fullInventory.snapshot.stacks.find(
+    (stack) => stack.itemId === filler.id && stack.slotIndex === 0,
+  )!
+  expect(fullInventory.discardableStackIds).toContain(fillerStack.id)
+  const otherInventory = await inventory(other)
+  await rejected(() => discard(otherInventory, fillerStack.id, other), 'ITEM_DISCARD_PROTECTED')
+  await discard(fullInventory, fillerStack.id)
+  const recovered = await inventory()
+  expect(recovered.snapshot.revision).toBe(fullInventory.snapshot.revision + 1)
+  expect(recovered.snapshot.stacks.map((stack) => stack.id)).toEqual(
+    fullInventory.snapshot.stacks
+      .filter((stack) => stack.id !== fillerStack.id)
+      .map((stack) => stack.id),
   )
+  await rejected(() => discard(fullInventory, fillerStack.id), 'ITEM_STALE_')
   await db.query('select public.seed_runtime_item_sources_v1($1::jsonb)', [
     JSON.stringify([{ ...key, contentVersion: 2, name: 'Realm Key' }]),
   ])
   await action(3, 'claim-exchange')
+  const claimed = await inventory()
+  const claimedKey = claimed.snapshot.stacks.find((stack) => stack.itemId === key.id)!
+  expect(claimed.discardableStackIds).not.toContain(claimedKey.id)
+  await rejected(() => discard(claimed, claimedKey.id), 'ITEM_DISCARD_PROTECTED')
+
+  const delivered = (await eventDashboard(actor)).rows[0]!.value
+  expect(delivered.personalRewardsPendingCount).toBe(0)
+  expect(delivered.personalRewards).toEqual([
+    expect.objectContaining({
+      characterId: actor,
+      itemName: 'Realm key',
+      itemClaimPending: false,
+    }),
+  ])
   expect(
     (
       await db.query(

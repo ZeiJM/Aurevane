@@ -104,3 +104,86 @@
 .rehearsal :is(ol, ul, p) {
   margin: 0;
 }
+
+.variantBatch {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+  padding: 0.7rem;
+}
+
+.variantBatch summary {
+  width: fit-content;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.variantForm,
+.variantResults {
+  display: grid;
+  gap: 0.65rem;
+  margin-block-start: 0.65rem;
+}
+
+.variantForm fieldset {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.6rem;
+}
+
+.variantForm > button {
+  justify-self: start;
+}
+
+.variantBatch :is(button, input[type='number']) {
+  min-height: 2.6rem;
+}
+
+.variantControls,
+.variantFields,
+.variantArt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.8rem;
+}
+
+.variantControls input[type='number'] {
+  max-width: 5rem;
+  margin-inline-start: 0.4rem;
+}
+
+.variantResults p {
+  margin: 0;
+}
+
+.variantCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.25rem), 1fr));
+  gap: 0.55rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.variantCards li {
+  display: grid;
+  justify-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 0.4rem;
+}
+
+.variantArt {
+  gap: 0.35rem;
+}
+
+.variantSprite {
+  display: inline-block;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+}

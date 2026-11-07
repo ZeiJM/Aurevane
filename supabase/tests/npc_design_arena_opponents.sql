@@ -158,4 +158,74 @@ begin
     '{"name":"Delegated NPC Draft","portraitRef":null,"uses":["story"],"arena":null}'::jsonb
   )->>'revision'='1', 'NPC Design staff can save an NPC draft';
 end; $$;
+
+do $$
+declare owner_id uuid := '94000000-0000-4000-8000-000000000001';
+declare original_id uuid := '94000000-0000-4000-8000-000000000003';
+declare npc_user uuid := '94000000-0000-4000-8000-000000000012';
+declare npc_actor uuid := '94000000-0000-4000-8000-000000000022';
+declare clone_id uuid := '94000000-0000-4000-8000-000000000024';
+declare other_id uuid := '94000000-0000-4000-8000-000000000025';
+declare active_url text := '/api/media/appearance/1/slight.tan.braid.copper.tunic.open.split.lacing.pointed.linen.satchel.pine/neutral.svg';
+declare unused_url text := '/api/media/appearance/1/broad.deep.crop.onyx.plate.fur.close.clasps.split.quilt.brooch.indigo/neutral.svg';
+declare draft jsonb;
+declare clone jsonb;
+begin
+  assert not has_function_privilege('authenticated','public.commit_master_npc_uniform_v1(uuid,uuid,uuid,bigint,text,text)','execute');
+  assert not has_function_privilege('authenticated','public.find_master_npc_appearance_conflicts_v1(uuid,uuid,text[])','execute');
+  assert public.find_master_npc_appearance_conflicts_v1(npc_user,npc_actor,array[unused_url,active_url,active_url])=jsonb_build_array(active_url);
+  begin
+    perform public.find_master_npc_appearance_conflicts_v1(npc_user,npc_actor,array_fill(active_url,array[65]));
+    raise exception 'oversized lookup reached the active appearance registry';
+  exception when invalid_parameter_value then null;
+  end;
+  draft := jsonb_build_object('name','Deliberate copy','portraitRef',null,'uses',jsonb_build_array('story'),'arena',null,'imageUrl',active_url);
+  perform public.write_master_npc_design_v1(npc_user,npc_actor,clone_id,0,'save',draft);
+  perform public.write_master_npc_design_v1(npc_user,npc_actor,other_id,0,'save',draft);
+  begin
+    perform public.commit_master_npc_uniform_v1(npc_user,npc_actor,clone_id,1,'story','Intentional ceremonial double');
+    raise exception 'delegated NPC Design staff approved an exact copy';
+  exception when insufficient_privilege then null;
+  end;
+  assert public.read_master_story_npcs_v1(owner_id,null,clone_id)='[]'::jsonb;
+  begin
+    perform public.commit_master_npc_uniform_v1(owner_id,null,clone_id,1,'story',E' \t\n ');
+    raise exception 'an empty approval reason was accepted';
+  exception when invalid_parameter_value then null;
+  end;
+  clone := public.commit_master_npc_uniform_v1(owner_id,null,clone_id,1,'story','Intentional ceremonial double');
+  assert clone->>'revision'='2';
+  assert clone->'story'->>'imageUrl'=active_url and clone->'world'='null'::jsonb and clone->'arena'='null'::jsonb;
+  assert not ((clone->'story') ?| array['uniformReason','approvedBy']);
+  assert public.read_master_story_npcs_v1(owner_id,null,clone_id)->0=clone->'story';
+
+  perform public.write_master_npc_design_v1(owner_id,null,original_id,9,'retire-story',null);
+  perform public.write_master_npc_design_v1(owner_id,null,original_id,10,'retire-world',null);
+  begin
+    perform public.write_master_npc_design_v1(npc_user,npc_actor,other_id,1,'commit-story',null);
+    raise exception 'retiring the original released the active copy’s claim';
+  exception when sqlstate 'PT409' then
+    assert sqlerrm='NPC_APPEARANCE_ALREADY_ACTIVE';
+  end;
+  perform public.write_master_npc_design_v1(npc_user,npc_actor,clone_id,2,'save',jsonb_set(draft,'{imageUrl}',to_jsonb(unused_url)));
+  begin
+    perform public.commit_master_npc_uniform_v1(owner_id,null,clone_id,3,'story','Not actually a copy');
+    raise exception 'an unrelated look received a reusable exception';
+  exception when invalid_parameter_value then
+    assert sqlerrm='NPC_UNIFORM_NOT_A_DUPLICATE';
+  end;
+  perform public.write_master_npc_design_v1(npc_user,npc_actor,clone_id,3,'commit-story',null);
+  assert public.find_master_npc_appearance_conflicts_v1(npc_user,npc_actor,array[unused_url,active_url])=jsonb_build_array(unused_url);
+  assert public.write_master_npc_design_v1(npc_user,npc_actor,other_id,1,'commit-story',null)->'story'->>'imageUrl'=active_url;
+end; $$;
+
+reset role;
+do $$
+begin
+  assert not has_table_privilege('authenticated','app_private.npc_appearance_uniform_approvals','select');
+  assert (select count(*) from app_private.npc_appearance_uniform_approvals)=1;
+  assert exists (select 1 from app_private.npc_appearance_uniform_approvals
+    where npc_id='94000000-0000-4000-8000-000000000024' and revision=2 and approved_use='story'
+      and approved_by='94000000-0000-4000-8000-000000000001' and reason='Intentional ceremonial double');
+end; $$;
 rollback;

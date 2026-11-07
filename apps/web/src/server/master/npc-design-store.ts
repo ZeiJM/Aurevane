@@ -26,19 +26,29 @@ function staffRpc() {
   const client = createSupabaseAdminClient()
   return createSelectedCharacterRpc(async (name, parameters) => {
     const { data, error } = await client.rpc(name, parameters)
+    if (error?.message === 'NPC_UNIFORM_OWNER_REQUIRED')
+      throw new AurevaneError(
+        'FORBIDDEN',
+        'Only the Game Owner may approve an exact NPC appearance copy.',
+      )
+    if (error?.message === 'NPC_UNIFORM_NOT_A_DUPLICATE')
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'This appearance does not need an exception. Use the normal Commit action.',
+      )
     if (error?.code === '42501')
       throw new AurevaneError('FORBIDDEN', 'NPC Design page access is required.')
     if (error?.message === 'NPC_APPEARANCE_ALREADY_ACTIVE')
       throw new AurevaneError(
         'INVALID_REQUEST',
-        'Another published NPC already uses this generated look. Change the appearance first.',
+        'Another published NPC already uses this generated look. Change the appearance or ask the Game Owner to approve an intentional copy.',
       )
     if (error?.code === '23505')
       throw new AurevaneError(
         'INVALID_REQUEST',
         'A published NPC already occupies that world position.',
       )
-    if (error?.code === 'PT409')
+    if (error?.code === 'PT409' || error?.code === '40001')
       throw new AurevaneError('STALE_VERSION', 'This NPC changed. Refresh before editing again.')
     if (error?.message === 'NPC_WORLD_NOT_READY')
       throw new AurevaneError(
@@ -82,6 +92,16 @@ export async function readNpcDesigns(actorUserId: string): Promise<NpcDesignReco
   return data.map(parseRecord)
 }
 
+export async function findNpcAppearanceConflicts(actorUserId: string, imageUrls: string[]) {
+  const data = await staffRpc()('find_master_npc_appearance_conflicts_v1', {
+    p_actor_user_id: actorUserId,
+    p_image_urls: imageUrls,
+  })
+  if (!Array.isArray(data) || !data.every((url): url is string => imageUrls.includes(url)))
+    invalidNpcResponse()
+  return data
+}
+
 export async function writeNpcDesign(actorUserId: string, command: NpcDesignCommand) {
   if (command.kind === 'save') {
     if (!validNpcPresentation(command.draft)) {
@@ -102,10 +122,22 @@ export async function writeNpcDesign(actorUserId: string, command: NpcDesignComm
       }
     }
   }
-  const data = await staffRpc()('write_master_npc_design_v1', {
+  const rpc = staffRpc()
+  const identity = {
     p_actor_user_id: actorUserId,
     p_id: command.id,
     p_expected_revision: command.revision,
+  }
+  if (command.kind === 'commit-uniform') {
+    const data = await rpc('commit_master_npc_uniform_v1', {
+      ...identity,
+      p_use: command.use,
+      p_reason: command.reason,
+    })
+    return parseRecord(data)
+  }
+  const data = await rpc('write_master_npc_design_v1', {
+    ...identity,
     p_kind: command.kind,
     p_draft: command.kind === 'save' ? command.draft : null,
   })

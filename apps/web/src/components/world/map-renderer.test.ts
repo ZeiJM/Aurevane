@@ -2965,6 +2965,46 @@ describe('native map input and bounded lifecycle', () => {
     expect(s.identityCanvas.height).toBe(0)
     vi.unstubAllGlobals()
   })
+  it('reuses stationary phone terrain without freezing water or reusing a stale camera projection', () => {
+    const position = { sectorId: 'aureth-crown', x: 6, y: 4 }
+    const view = projectWorld({ ...newWorldState(), position }, [], 1000)
+    const s = scene(false, view)
+    try {
+      Object.assign(s.canvas, { clientWidth: 393, clientHeight: 851 })
+      s.resize()
+      s.renderer.settings({ animate: true, zoom: 0.35 })
+      const projectedGround = () =>
+        s.draws.find(
+          ({ image, args }) => image.width === 590 && image.height === 1277 && args.length === 2,
+        )
+      const liquidStrokes = () =>
+        s.strokes.filter(({ colour }) => colour === '#bbded0' || colour === '#82c6c7')
+      s.frame(40)
+      const firstGround = projectedGround()?.image
+      expect(firstGround).toBeDefined()
+      const firstWater = liquidStrokes()
+      expect(firstWater.length).toBeGreaterThan(0)
+      s.draws.length = 0
+      s.strokes.length = 0
+      s.frame(80)
+      expect(projectedGround()?.image).toBe(firstGround)
+      expect(liquidStrokes()).not.toEqual(firstWater)
+      expect(liquidStrokes().length).toBe(firstWater.length)
+      s.images[0]!.onload?.()
+      s.draws.length = 0
+      s.frame(120)
+      expect(projectedGround()?.image).toBeDefined()
+      expect(projectedGround()?.image).not.toBe(firstGround)
+      s.motion.plan([{ position: { ...position, x: 7 }, durationMs: 200 }], view.sectors, 120)
+      s.draws.length = 0
+      s.frame(160)
+      expect(projectedGround()).toBeUndefined()
+      expect(s.draws.some(({ matrix }) => matrix[1] === 1.5 * MAP_Y)).toBe(true)
+    } finally {
+      s.renderer.dispose()
+      vi.unstubAllGlobals()
+    }
+  })
   it('does not keep an idle animation loop when ambient effects are disabled', () => {
     const s = scene()
     s.renderer.settings({ animate: false, zoom: 1 })

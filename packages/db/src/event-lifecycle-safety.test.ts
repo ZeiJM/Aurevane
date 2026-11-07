@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { PGlite } from '@electric-sql/pglite'
 import { beforeAll, beforeEach, afterAll, afterEach, expect, it } from 'vitest'
+import { weatherAtHour } from '../../game-core/src/world/weather'
 
 const sql = (name: string) =>
   readFileSync(resolve(process.cwd(), '../../supabase/migrations', name), 'utf8')
@@ -69,10 +70,13 @@ async function database() {
     '20261019003429_selected_character_staff_access.sql',
     '20261025064638_event_workspace_lifecycle_safety.sql',
     '20261107114816_unified_event_categories.sql',
+    '20261011030821_world_environment_controls.sql',
     '20261011115701_world_open_ground_idle_timeout.sql',
     '20261011161830_world_multistep_pacing.sql',
     '20261107115437_authoritative_world_event_arrival.sql',
     '20261107120135_personal_event_travel_quest.sql',
+    '20261107123900_world_ferry_passages.sql',
+    '20261107130600_event_world_weather.sql',
   ])
     await db.exec(
       sql(name).replace('create extension if not exists pg_cron with schema pg_catalog;', ''),
@@ -487,7 +491,7 @@ it('unrelated_progress_preserved: whole real grant + cancellation rollback leave
   expect(await snapshot()).toEqual(before)
 })
 
-it('credits a confirmed intermediate arrival once per player and only projects their own credit', async () => {
+async function verifySharedArrival(requiredWeather?: 'storm') {
   const eventKey = 'event.reach-watch'
   const position = (x: number) => ({ sectorId: 'verdant-expanse', x, y: 4 })
   const definition = {
@@ -510,6 +514,7 @@ it('credits a confirmed intermediate arrival once per player and only projects t
             id: 'visit',
             type: 'discover',
             completion: 'world-arrival',
+            ...(requiredWeather ? { requiredWeather } : {}),
             referenceKey: 'objective.watchtower',
             target: 3,
             worldNavigation: { ...position(6), autoPath: true, guidance: 'exact' },
@@ -523,13 +528,28 @@ it('credits a confirmed intermediate arrival once per player and only projects t
     rewardPackageRefs: [],
     aftermathRefs: [],
   }
-  await db.query(
-    'select * from public.publish_event_definition_v2($1,null::uuid,$2,$3::jsonb,null,gen_random_uuid(),null,true)',
-    [actor, eventKey, definition],
-  )
+  const publish = (payload: unknown) =>
+    db.query(
+      'select * from public.publish_event_definition_v2($1,null::uuid,$2,$3::jsonb,null,gen_random_uuid(),null,true)',
+      [actor, eventKey, payload],
+    )
+  if (requiredWeather) {
+    for (const invalid of [
+      { requiredWeather: 'snow' },
+      { requiredWeather: null },
+      { completion: undefined },
+    ]) {
+      await db.exec('savepoint reject_weather')
+      const payload = structuredClone(definition)
+      Object.assign(payload.phases[0]!.objectives[0]!, invalid)
+      await expect(publish(payload)).rejects.toThrow('EVENT_WORLD_ARRIVAL_WEATHER_INVALID')
+      await db.exec('rollback to savepoint reject_weather')
+    }
+  }
+  await publish(definition)
   const scheduled = await db.query<{ run_id: string }>(
     `select * from public.schedule_event_run_v2($1,null::uuid,$2,gen_random_uuid(),'schedule:arrival',
-      clock_timestamp()+interval '1 minute',clock_timestamp()+interval '1 hour',null,true)`,
+    clock_timestamp()+interval '1 minute',clock_timestamp()+interval '1 hour',null,true)`,
     [actor, eventKey],
   )
   const runId = scheduled.rows[0]!.run_id
@@ -545,6 +565,47 @@ it('credits a confirmed intermediate arrival once per player and only projects t
     "update app_private.event_runs set started_at=clock_timestamp()-interval '2 seconds' where id=$1",
     [runId],
   )
+  const override = async (weather: string, base: number) => {
+    await db.query(
+      `select public.set_world_environment_v1($1,$2,jsonb_build_object(
+      'timeOffsetMinutes',0,'frozenMinuteOfDay',null,'weatherOverride',$3::text,
+      'weatherOverrideUntilMs',floor(extract(epoch from (clock_timestamp()+interval '1 hour'))*1000)::bigint
+    ),'Weather arrival fixture')`,
+      [actor, base, weather],
+    )
+  }
+  const progress = async () =>
+    (
+      await db.query(
+        'select progress from app_private.event_run_objectives where run_id=$1 and objective_id=$2',
+        [runId, 'visit'],
+      )
+    ).rows
+  if (requiredWeather) await override('clear', 0)
+  // A generic writer cannot preempt the real source key by attaching it to a
+  // different objective, or credit the arrival directly using a generic source.
+  await db.query(
+    `insert into app_private.event_run_objectives(run_id,phase_id,objective_id,objective_status,target)
+      values($1,'watch','unrelated','active',10)`,
+    [runId],
+  )
+  const forgedCredit = (objective: string, source: string) =>
+    db.query(
+      `select public.record_event_contribution_v1(
+        'system:fixture',gen_random_uuid(),'fake',$1,$2,$2,'watch',$3,$4,
+        md5(jsonb_build_array('watch','visit',$2::uuid)::text),1,
+        '{"weather":{"type":"storm","source":"master","settingsVersion":2}}'
+      )`,
+      [runId, actor, objective, source],
+    )
+  for (const [objective, source, error] of [
+    ['unrelated', 'world-arrival', 'EVENT_WORLD_ARRIVAL_SOURCE_RESERVED'],
+    ['visit', 'community', 'EVENT_CONTRIBUTION_REQUIRES_CONFIRMED_WORLD_ARRIVAL'],
+  ] as const) {
+    await db.exec('savepoint reject_generic_credit; set local role service_role')
+    await expect(forgedCredit(objective, source)).rejects.toThrow(error)
+    await db.exec('rollback to savepoint reject_generic_credit')
+  }
   const nextCharacter = '99999999-9999-4999-8999-999999999999'
   await db.query('insert into public.characters(id,user_id,name) values($1,$2,$3)', [
     nextCharacter,
@@ -559,13 +620,15 @@ it('credits a confirmed intermediate arrival once per player and only projects t
     )
   await read(actor)
   await read(nextCharacter)
-  // The route comes from the ordinary trusted command, and SQL decides when
-  // the committed prefix is due. Use the database clock to make both steps due.
-  const time = (
-    await db.query<{ ms: number }>(
-      'select floor(extract(epoch from clock_timestamp())*1000)::bigint ms',
-    )
-  ).rows[0]!.ms
+  const clockMs = async () =>
+    (
+      await db.query<{ ms: number }>(
+        'select floor(extract(epoch from clock_timestamp())*1000)::bigint ms',
+      )
+    ).rows[0]!.ms
+  // Place both steps in the past but after the first weather override took effect.
+  if (requiredWeather) await db.exec('select pg_sleep(0.35)')
+  const time = await clockMs()
   const move = (version: number, kind: string, state: unknown, command: string | null = null) =>
     db.query('select public.commit_world_state_v1($1,$1,$2,coalesce($3,gen_random_uuid()),$4,$5)', [
       actor,
@@ -579,30 +642,85 @@ it('credits a confirmed intermediate arrival once per player and only projects t
     nextStepAt: time - 300,
     route: [6, 7].map((x) => ({ position: position(x), durationMs: 275 })),
   })
+  if (requiredWeather) await override('storm', 1)
   const landed = { ...initial, position: position(7) }
   const command = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
-  await move(2, 'tick', landed, command)
-  await move(2, 'tick', landed, command)
+  await move(2, 'tick', { ...landed, ...(requiredWeather ? { weather: 'storm' } : {}) }, command)
+  await move(2, 'tick', { ...landed, ...(requiredWeather ? { weather: 'storm' } : {}) }, command)
+  expect(await progress()).toEqual([{ progress: requiredWeather ? 0 : 1 }])
+  const { rows: weatherLocks } = await db.query(`select mode from pg_locks
+    where locktype = 'advisory' and granted and objsubid = 1 and mode = 'ShareLock'
+      and classid::bigint = ((hashtextextended('world-environment', 0) >> 32) & 4294967295)
+      and objid::bigint = (hashtextextended('world-environment', 0) & 4294967295)`)
+  expect(weatherLocks).toEqual(requiredWeather ? [{ mode: 'ShareLock' }] : [])
+
+  if (requiredWeather) {
+    expect((await read(actor)).rows[0]!.world.eventObjectives).toEqual([
+      expect.objectContaining({ objectiveId: 'visit', completed: false, requiredWeather }),
+    ])
+    await db.exec('select pg_sleep(0.35)')
+  }
   await move(3, 'walk', {
     ...landed,
-    nextStepAt: time - 300,
+    nextStepAt: (await clockMs()) - 300,
     route: [{ position: position(6), durationMs: 275 }],
   })
+  if (requiredWeather) await override('fog', 2)
   await move(4, 'tick', { ...initial, position: position(6) })
 
-  expect(
-    (
-      await db.query('select progress from app_private.event_run_objectives where run_id=$1', [
-        runId,
-      ])
-    ).rows,
-  ).toEqual([{ progress: 1 }])
+  expect(await progress()).toEqual([{ progress: 1 }])
+  if (requiredWeather) {
+    expect(
+      (
+        await db.query(
+          "select provenance->'weather' weather from app_private.event_contributions where run_id=$1",
+          [runId],
+        )
+      ).rows,
+    ).toEqual([{ weather: { type: 'storm', source: 'master', settingsVersion: 2 } }])
+  }
   expect((await read(actor)).rows[0]!.world.eventObjectives).toEqual([
     expect.objectContaining({ objectiveId: 'visit', completed: true }),
   ])
   expect((await read(nextCharacter)).rows[0]!.world.eventObjectives).toEqual([
     expect.objectContaining({ objectiveId: 'visit', completed: false }),
   ])
+}
+
+it('credits a confirmed intermediate arrival once per player and only projects their own credit', () =>
+  verifySharedArrival())
+
+it('checks the arrival weather before crediting the confirmed route step', () =>
+  verifySharedArrival('storm'))
+
+it('resolves the same rolled weather as World, including expired overrides and custom cadence', async () => {
+  const { rows } = await db.query<{
+    index: number
+    fact: { type: string; source: string; settingsVersion: number }
+  }>(`select i as index,
+    app_private.world_weather_fact_v1(
+      i * 60000 * 11,
+      '{"version":4,"weatherRollMinutes":11,"weatherOverride":"storm","weatherOverrideUntilMs":0}'
+    ) fact
+    from unnest(array[0::bigint,1,2,3,2147483647,2147483648,4294967295,4294967296] ||
+      array(select generate_series(29500000::bigint,29500100))) i`)
+  expect(rows.map((row) => row.fact)).toEqual(
+    rows.map((row) => ({ type: weatherAtHour(row.index), source: 'live', settingsVersion: 4 })),
+  )
+  const previous = (
+    await db.query<{ fact: unknown }>(`select
+    app_private.world_weather_fact_v1(-1, '{"version":3,"weatherOverride":"storm","weatherOverrideUntilMs":0}') fact`)
+  ).rows[0]!.fact
+  expect(previous).toEqual({ type: 'storm', source: 'master', settingsVersion: 3 })
+})
+
+it('keeps weather credit and the weather fact resolver out of the client role', async () => {
+  const { rows } = await db.query(`select
+    has_function_privilege('authenticated','public.record_event_contribution_v1(text,uuid,text,uuid,uuid,uuid,text,text,text,text,bigint,jsonb)','execute') as ledger,
+    has_function_privilege('authenticated','public.commit_world_state_v1(uuid,uuid,bigint,uuid,text,jsonb,text)','execute') as move,
+    has_function_privilege('authenticated','app_private.world_weather_at_v1(timestamptz)','execute') as weather,
+    has_function_privilege('service_role','app_private.record_world_event_arrivals_v1(uuid,uuid,jsonb,bigint,bigint)','execute') as raw_arrival`)
+  expect(rows).toEqual([{ ledger: false, move: false, weather: false, raw_arrival: false }])
 })
 
 it('pins and completes a personal travel quest through explicit world commands with one XP grant', async () => {

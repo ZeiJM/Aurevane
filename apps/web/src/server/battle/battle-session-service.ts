@@ -191,6 +191,8 @@ export interface CreateBattleSessionCommand {
   characterId: string
   arenaId?: TacticalHallArenaId
   arenaNpcId?: string
+  /** Server-only context; the public Battle Hall parser cannot set it. */
+  realmRunId?: string
   aiDifficulty?: BattleAiDifficulty
   battleHallRecordId?: BattleHallRecordId
   allyCount?: number
@@ -861,6 +863,7 @@ export function createBattleSessionService({
               userId: command.userId,
               characterId: command.characterId,
               arenaNpcId: command.arenaNpcId,
+              ...(command.realmRunId ? { realmRunId: command.realmRunId } : {}),
             }
           : {
               command: 'battle.create.v5',
@@ -1069,7 +1072,9 @@ export function createBattleSessionService({
           }
       }
       const battle = encounter.tactical.battle
-      const usageBalance = await readUsageProvenance('pve-recruit', [command.userId])
+      const usageBalance = command.realmRunId
+        ? undefined
+        : await readUsageProvenance('pve-recruit', [command.userId])
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,

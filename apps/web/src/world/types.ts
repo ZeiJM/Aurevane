@@ -131,7 +131,14 @@ export interface WorldObjective {
   completed: boolean
   progress?: WorldObjectiveProgress
 }
-export type WorldInteractionActionId = 'accept' | 'report' | 'hand-over' | 'claim-exchange'
+export type WorldInteractionActionId =
+  | 'accept'
+  | 'report'
+  | 'hand-over'
+  | 'claim-exchange'
+  | 'travel-realm'
+  | 'leave-realm'
+  | 'challenge-realm'
 export interface WorldInteraction {
   id: string
   objectiveId: string
@@ -144,6 +151,9 @@ export interface WorldInteraction {
   body: string
   actionId?: WorldInteractionActionId | null
   actionLabel: string | null
+  alternative?: { actionId: WorldInteractionActionId; label: string }
+  lore?: string
+  declineLabel?: string
   lastReply?: string
   progress: WorldObjectiveProgress
 }

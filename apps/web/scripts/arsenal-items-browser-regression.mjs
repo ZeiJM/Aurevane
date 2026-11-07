@@ -210,6 +210,50 @@ try {
   await automatic.evaluate(() => window.dispatchEvent(new Event('focus')))
   await expect(automaticSort).toBeEnabled()
   await automatic.close()
+  for (const viewport of [
+    { width: 1366, height: 768 },
+    { width: 390, height: 844 },
+  ].filter(includeViewport)) {
+    const discard = await browser.newPage({ viewport })
+    await discard.goto(`${server.resolvedUrls.local[0]}?shell=items&discard`, {
+      waitUntil: 'networkidle',
+    })
+    await discard.getByRole('button', { name: 'Event', exact: true }).click()
+    await discard.getByRole('button', { name: /Letter of Introduction, quantity 1/ }).click()
+    const dialog = discard.getByRole('dialog')
+    await expect(dialog.getByRole('button', { name: 'Discard stack' })).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    await discard.getByRole('button', { name: 'General', exact: true }).click()
+    const stack = discard.getByRole('button', { name: /Rope Coil, quantity 1/ })
+    await stack.click()
+    const choose = dialog.getByRole('button', { name: 'Discard stack' })
+    await choose.click()
+    await expect(dialog.getByRole('region', { name: 'Confirm discard' })).toContainText(
+      'Permanently discard 1 × Rope Coil?',
+    )
+    await expect(dialog.getByRole('button', { name: 'Keep stack' })).toBeFocused()
+    await dialog.getByRole('button', { name: 'Keep stack' }).click()
+    assert.equal(await discard.evaluate(() => window.calls.length), 0)
+    await choose.click()
+    await dialog.getByRole('button', { name: 'Confirm discard' }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(stack).toHaveCount(0)
+    assert.equal(await discard.evaluate(() => window.calls.length), 1)
+    assert.deepEqual(await discard.evaluate(() => window.calls[0]), {
+      characterId: 'native',
+      expectedRevision: 1,
+      catalogueToken: 'a'.repeat(32),
+      action: 'discard',
+      stackId: 'owned-rope-coil',
+    })
+    await discard.reload({ waitUntil: 'networkidle' })
+    await discard.getByRole('button', { name: 'General', exact: true }).click()
+    await expect(stack).toHaveCount(0)
+    await discard.close()
+    console.log(
+      `Inventory capacity recovery: explicit confirmation at ${viewport.width}×${viewport.height}`,
+    )
+  }
   const recovery = await browser.newPage({ viewport: { width: 1366, height: 768 } })
   await recovery.goto(`${server.resolvedUrls.local[0]}?shell=items&missing&read-failure`, {
     waitUntil: 'networkidle',

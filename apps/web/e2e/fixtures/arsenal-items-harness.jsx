@@ -103,6 +103,13 @@ const state = () => ({
     : {}),
   snapshot,
   definitions,
+  ...(new URLSearchParams(location.search).has('discard')
+    ? {
+        discardableStackIds: snapshot.stacks
+          .filter((stack) => stack.itemId === 'rope-coil')
+          .map((stack) => stack.id),
+      }
+    : {}),
   timingPolicy: {
     version: 11,
     tagAuthority: 'global',
@@ -127,6 +134,12 @@ const repository = {
             ? { ...s, slotIndex: command.stackIds.indexOf(s.id) }
             : s,
         ),
+      }
+    else if (command.action === 'discard')
+      snapshot = {
+        ...snapshot,
+        revision: revision + 1,
+        stacks: snapshot.stacks.filter((stack) => stack.id !== command.stackId),
       }
     else {
       const invalidSupport =

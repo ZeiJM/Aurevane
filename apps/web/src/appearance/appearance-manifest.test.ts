@@ -1,7 +1,11 @@
+import { createHash } from 'node:crypto'
+
 import { describe, expect, it } from 'vitest'
 
 import * as appearance from './appearance-manifest'
 import { renderAppearanceAsset } from './appearance-svg'
+
+const sha256 = (data: string) => createHash('sha256').update(data).digest('hex')
 
 describe('manual appearance manifests', () => {
   it('compiles a portable manifest with exactly five expressions and stable immutable paths', () => {
@@ -46,5 +50,71 @@ describe('manual appearance manifests', () => {
     expect(new Set(atlases).size).toBe(3)
     expect(atlases[0]).toContain('viewBox="0 0 576 384"')
     expect(appearance.appearanceFrameIndex('west', 'down', 2)).toEqual({ column: 11, row: 5 })
+  })
+  it('preserves immutable bytes for existing painted and manual recipes', () => {
+    const painted = appearance.APPEARANCE_PRESETS[0]!.blueprint
+    const manual = { ...painted, palette: 'ivory' } as const
+    expect(sha256(renderAppearanceAsset(painted, 'neutral'))).toBe(
+      'e435fc52ceeb54a1b0627a6554c648a34dae6a8bcf1f6cb4315685de5525bcc5',
+    )
+    expect(sha256(renderAppearanceAsset(painted, 'atlas'))).toBe(
+      '0676824bf50a1209a16604c117c686318a93d6f8b653e39fd5a028ac3d1c29eb',
+    )
+    expect(sha256(renderAppearanceAsset(manual, 'neutral'))).toBe(
+      'dd7d99690022f832abee3dff57b9ce5090427a54110bf3f0a6285c2c3590c079',
+    )
+    expect(sha256(renderAppearanceAsset(manual, 'atlas'))).toBe(
+      'c4a16487be5583617eb8d5232569fc9601cce502c98b30f5d05fb9feaaa36279',
+    )
+  })
+
+  it('accepts new wardrobe geometry without changing the v1 persisted recipe shape', () => {
+    const base = appearance.APPEARANCE_PRESETS[0]!.blueprint
+    const first = appearance.parseAppearanceBlueprint({ ...base, coat: 'bolero' })
+    const second = appearance.parseAppearanceBlueprint({ ...base, coat: 'kaftan' })
+    expect(first).not.toBeNull()
+    expect(second).not.toBeNull()
+    const manifest = appearance.compileAppearanceManifest(first!)
+    expect(manifest.portraits.neutral).toMatch(
+      /^\/api\/media\/appearance\/1\/[a-z]+(\.[a-z]+){11}\/neutral\.svg$/,
+    )
+    expect(appearance.appearanceManifestFromImageUrl(manifest.portraits.neutral)).toEqual(manifest)
+    expect(renderAppearanceAsset(first!, 'neutral')).not.toEqual(
+      renderAppearanceAsset(second!, 'neutral'),
+    )
+    expect(renderAppearanceAsset(first!, 'atlas')).not.toEqual(
+      renderAppearanceAsset(second!, 'atlas'),
+    )
+  })
+
+  it('rejects choices whose geometry would hide the selected part', () => {
+    const base = appearance.APPEARANCE_PRESETS[0]!.blueprint
+    expect(
+      appearance.parseAppearanceBlueprint({ ...base, coat: 'greatcloak', accessory: 'satchel' }),
+    ).toBeNull()
+    expect(
+      appearance.parseAppearanceBlueprint({ ...base, coat: 'cuirass', sleeves: 'puffed' }),
+    ).toBeNull()
+    expect(
+      appearance.parseAppearanceBlueprint({
+        ...base,
+        coat: 'greatcloak',
+        sleeves: 'close',
+        accessory: 'brooch',
+      }),
+    ).not.toBeNull()
+  })
+  it('varies the silhouette without changing identity, palette, or other compatible parts', () => {
+    const base = appearance.APPEARANCE_PRESETS[0]!.blueprint
+    const before = appearance.parseAppearanceBlueprint({
+      ...base,
+      coat: 'brigandine',
+      accessory: 'satchel',
+    })!
+    const after = appearance.varyAppearanceOutfit(before)
+    expect(after.coat).not.toBe(before.coat)
+    expect(after.coat).not.toBe('poncho')
+    expect({ ...after, coat: before.coat }).toEqual(before)
+    expect(appearance.parseAppearanceBlueprint(after)).toEqual(after)
   })
 })

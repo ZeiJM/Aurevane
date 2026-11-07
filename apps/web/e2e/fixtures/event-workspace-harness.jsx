@@ -210,6 +210,17 @@ window.fetch = async (input, options) => {
             executedAt: '2026-10-25T12:00:00Z',
           },
         ],
+        personalRewardsPendingCount: 1,
+        personalRewards: [
+          {
+            attemptId: 'fixture-attempt',
+            characterId: 'fixture-character',
+            completedAt: '2026-10-25T12:00:00Z',
+            awardedXp: 0,
+            itemName: 'Realm key',
+            itemClaimPending: true,
+          },
+        ],
         cleanupRequirements: [],
         chronicle: null,
       },

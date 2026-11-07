@@ -56,9 +56,17 @@ function throwRpcError(error: { code?: string; message?: string }): never {
   throw persistenceUnavailable('The server could not persist the battle right now.')
 }
 
-export function createSupabaseBattleSessionRepository(): BattleSessionRepository &
-  BattleEventRepository &
-  BattleHistoryPrivacyRepository {
+interface WorldRealmBattleAdmission {
+  characterId: string
+  expectedVersion: number
+  runId: string
+  worldFingerprint: string
+  throwWorldError(error: { code?: string; message?: string }): never
+}
+
+export function createSupabaseBattleSessionRepository(
+  realm?: WorldRealmBattleAdmission,
+): BattleSessionRepository & BattleEventRepository & BattleHistoryPrivacyRepository {
   return {
     async findBattleCreationReplay(input) {
       const { data, error } = await createSupabaseAdminClient().rpc(
@@ -83,33 +91,48 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
     },
     async createBattleSession(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc(
-        input.startup ? 'create_battle_session_v2' : 'create_battle_session_v1',
-        {
-          p_actor_key: input.actorKey,
-          p_idempotency_key: input.idempotencyKey,
-          p_request_fingerprint: input.requestFingerprint,
-          p_user_id: input.userId,
-          p_battle_id: input.battleId,
-          p_rules_version: input.rulesVersion,
-          p_content_version: input.contentVersion,
-          p_initial_snapshot: input.initialSnapshot,
-          ...(input.startup
-            ? {
-                p_start_snapshot: input.startup.startSnapshot,
-                p_initial_events: input.startup.events,
-                p_privacy_journal: input.startup.privacyJournal,
-              }
-            : {}),
-          p_participants: input.participants.map((participant) => ({
-            combatant_id: participant.combatantId,
-            participant_role: participant.participantRole,
-            character_id: participant.characterId,
-          })),
-        },
-      )
+      const common = {
+        p_request_fingerprint: input.requestFingerprint,
+        p_user_id: input.userId,
+        p_battle_id: input.battleId,
+        p_rules_version: input.rulesVersion,
+        p_content_version: input.contentVersion,
+        p_initial_snapshot: input.initialSnapshot,
+        p_participants: input.participants.map((participant) => ({
+          combatant_id: participant.combatantId,
+          participant_role: participant.participantRole,
+          character_id: participant.characterId,
+        })),
+      }
+      const startup = {
+        p_start_snapshot: input.startup?.startSnapshot ?? null,
+        p_initial_events: input.startup?.events ?? null,
+        p_privacy_journal: input.startup?.privacyJournal ?? null,
+      }
+      const { data, error } = realm
+        ? await supabase.rpc('start_world_personal_realm_battle_v1', {
+            ...common,
+            ...startup,
+            p_command_id: input.idempotencyKey,
+            p_character_id: realm.characterId,
+            p_expected_version: realm.expectedVersion,
+            p_run_id: realm.runId,
+            p_world_fingerprint: realm.worldFingerprint,
+          })
+        : await supabase.rpc(
+            input.startup ? 'create_battle_session_v2' : 'create_battle_session_v1',
+            {
+              ...common,
+              p_actor_key: input.actorKey,
+              p_idempotency_key: input.idempotencyKey,
+              ...(input.startup ? startup : {}),
+            },
+          )
 
-      if (error) throwRpcError(error)
+      if (error) {
+        if (realm && error.message?.startsWith('WORLD_')) realm.throwWorldError(error)
+        throwRpcError(error)
+      }
       const row = parseBattleSessionCreationPersistenceRow(data)
       if (!row) {
         throw persistenceUnavailable('The server returned an invalid battle-creation result.')

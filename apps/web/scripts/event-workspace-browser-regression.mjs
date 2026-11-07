@@ -440,6 +440,10 @@ try {
       .getByRole('button', { name: 'Rewards', exact: true })
       .click()
     await page.getByText('reward.watch', { exact: true }).waitFor()
+    await expect(page.getByRole('heading', { name: 'Personal journey rewards' })).toBeVisible()
+    await expect(page.getByText('Realm key', { exact: true })).toBeVisible()
+    await expect(page.getByText('Awaiting collection · character fixture-')).toBeVisible()
+    await expect(page.getByText('1 awaiting collection for this run.')).toBeVisible()
     const bodies = await page.evaluate(() => window.__eventRequests.map((r) => r.body))
     assert.ok(bodies.every((b) => !('reason' in b) && !('requestFingerprint' in b)))
     assert.deepEqual(

@@ -24,7 +24,6 @@ export function isPersonalQuestGiver(value: unknown): value is PersonalQuestGive
 }
 
 interface PersonalJourneyDialogue {
-  readonly giverId: PersonalQuestGiverId
   readonly offer: string
   readonly active: string
   readonly ready: string
@@ -33,11 +32,29 @@ interface PersonalJourneyDialogue {
 
 export interface PersonalTravelJourney extends PersonalJourneyDialogue {
   readonly type: 'travel-and-report'
+  readonly giverId: PersonalQuestGiverId
   readonly destination: PersonalJourneyPosition
+}
+
+export interface PersonalSealedRealm {
+  readonly guardianNpcId: string
+  readonly lore: string
+  readonly access: string
+  readonly challenge: string
+  readonly retry: string
+}
+
+export function isPersonalJourneyNpcId(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value)
+  )
 }
 
 export interface PersonalItemExchange extends PersonalJourneyDialogue {
   readonly type: 'item-exchange'
+  readonly giverId: string
+  readonly realm?: PersonalSealedRealm
   readonly inputItemId: string
   readonly inputQuantity: number
   readonly outputItemId: string

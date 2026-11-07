@@ -58,7 +58,7 @@ The [authenticated Atlas run](https://github.com/ZeiJM/Aurevane/actions/runs/423
 | Arrival observed by polling | 3.61 s | 3.53 s |
 | Full World snapshot | 603,592 B | 619,443 B |
 
-The observer's renderer callback p95 was 117 ms. The eight-session capture recorded zero broadcasts and four socket errors. The same run's separate two-player test observed peer movement in 538 ms through presence-only authority while blocking the general World fallback read. The eight-session case establishes the tested gameplay behavior and snapshot timings at that load. Broadcast delivery across the full cohort and production capacity remain open.
+The observer's renderer callback p95 was 117 ms. The eight-session capture recorded zero broadcasts and four socket errors, but the sampler discarded binary frames and the test allowed fallback polling. The same run's separate two-player test observed peer movement in 538 ms through presence-only authority while blocking the general World fallback read. The eight-session case establishes the tested gameplay behavior and snapshot timings at that load. [The revised cohort gate](world-multiplayer-evidence.md) checks private delivery separately. Its native run and production capacity remain open.
 
 The zoomed-out Balanced phone renderer now caches display-sized biome crops after profiling repeated large atlas resamples. The fixture used Chromium at 393 × 851 CSS pixels, DPR 2.75 and 4× simulated CPU slowdown, sampled for six seconds per case. Peer markers, nameplates and ground anchors stayed visible.
 
@@ -69,3 +69,9 @@ The zoomed-out Balanced phone renderer now caches display-sized biome crops afte
 | 100 | 73.7 ms | 22.1 ms |
 
 Browser frame interval p95 stayed near 100 ms in these runs. The 30 FPS goal remains open. The evidence records callback time, canvas draw time and browser frame interval separately.
+
+The later [stationary phone ground benchmark](stationary-phone-ground.md) reduced browser frame interval p95 to about 50 ms for 25, 50 and 100 fixture peers. This was an A/B run on the same emulated phone with a 4× CPU slowdown. Stable 30 FPS and a real-device result still need verification.
+
+The isolated Farmer Joe database fixture uses a published World and Story NPC as the giver and a captured Story combat preset as the guardian. It exercises the seven-seed hand-over, a separate private realm trip, admission, loss recovery, and an exactly-once linked victory reward. The Living Atlas workflow includes authenticated desktop and mobile browser cases for dialogue, realm travel, battle admission and loss recovery.
+
+For owed personal items, the isolated player flow frees an ordinary inventory stack through the confirmed Discard action before collecting the reward. In Master Events, Live Ops can show pending and delivered personal rewards for the selected run. Review both paths with a full inventory and a role restricted to NPC Design to verify the visibility boundary.

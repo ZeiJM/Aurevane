@@ -92,6 +92,15 @@ export interface EventOperationDashboard {
     readonly executedAt: string | null
     readonly appliedAmount: number | null
   }[]
+  readonly personalRewards?: readonly {
+    readonly attemptId: string
+    readonly characterId: string
+    readonly completedAt: string
+    readonly awardedXp: number
+    readonly itemName: string | null
+    readonly itemClaimPending: boolean
+  }[]
+  readonly personalRewardsPendingCount?: number
   readonly cleanupRequirements: readonly {
     readonly phaseId: string
     readonly effectOrdinal: number

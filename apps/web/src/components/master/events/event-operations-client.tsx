@@ -8,6 +8,7 @@ import {
   resolveEventCategory,
   type EventCategory,
 } from '@aurevane/game-core/events/persistent-event'
+import type { EventOperationDashboard } from '@/server/master/event-operations-service'
 import styles from './event-operations.module.css'
 import { eventAudienceLabel } from './event-audience'
 
@@ -91,6 +92,8 @@ interface Dashboard {
     executedAt: string | null
     appliedAmount: number | null
   }>
+  personalRewards?: EventOperationDashboard['personalRewards']
+  personalRewardsPendingCount?: number
   cleanupRequirements: Array<{
     phaseId: string
     effectOrdinal: number
@@ -633,7 +636,7 @@ export function EventOperationsClient({ canEmergencyStop, category, calendar }: 
                 </div>
                 <span>{dashboard.claims.length}</span>
               </div>
-              {dashboard.claims.length === 0 ? <p>No reward claims reserved.</p> : null}
+              {dashboard.claims.length === 0 ? <p>No shared reward claims reserved.</p> : null}
               <div className={styles.itemList}>
                 {dashboard.claims.map((claim) => (
                   <div key={claim.reservationId}>
@@ -648,6 +651,31 @@ export function EventOperationsClient({ canEmergencyStop, category, calendar }: 
                   </div>
                 ))}
               </div>
+              {dashboard.personalRewards?.length ? (
+                <>
+                  <h3>Personal journey rewards</h3>
+                  <p>
+                    Showing up to 40 rewards, with pending pickups first.
+                    {dashboard.personalRewardsPendingCount === undefined
+                      ? ''
+                      : ` ${dashboard.personalRewardsPendingCount} awaiting collection for this run.`}
+                  </p>
+                  <div className={styles.itemList}>
+                    {dashboard.personalRewards.map((reward) => (
+                      <div key={reward.attemptId} className={styles.personalReward}>
+                        <strong>
+                          {reward.itemName ?? `${reward.awardedXp.toLocaleString()} XP`}
+                        </strong>
+                        <span>
+                          {reward.itemClaimPending ? 'Awaiting collection' : 'Delivered'} ·
+                          character {reward.characterId.slice(0, 8)}
+                        </span>
+                        <small>{when(reward.completedAt)}</small>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : null}
             </section>
 
             <section className={styles.card} id="event-cleanup" hidden={tab !== 'Closure'}>

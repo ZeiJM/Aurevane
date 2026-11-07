@@ -3,6 +3,7 @@ import { battleAiDifficultySchema } from './battle-session'
 
 export const NPC_ARENA_LORE_LIMIT = 700
 export const NPC_GREETING_LIMIT = 900
+export const NPC_UNIFORM_REASON_LIMIT = 240
 export const NPC_ARENA_IDS = ['duel-yard', 'crossroads-court', 'terraced-yard'] as const
 export const NPC_USES = ['arena', 'world', 'story'] as const
 
@@ -94,6 +95,15 @@ const npcDesignCommand = z.discriminatedUnion('kind', [
       ]),
       id: npcId,
       revision,
+    })
+    .strict(),
+  z
+    .object({
+      kind: z.literal('commit-uniform'),
+      id: npcId,
+      revision,
+      use: z.enum(NPC_USES),
+      reason: z.string().trim().min(1).max(NPC_UNIFORM_REASON_LIMIT),
     })
     .strict(),
 ])

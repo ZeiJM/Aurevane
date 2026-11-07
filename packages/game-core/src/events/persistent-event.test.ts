@@ -94,6 +94,27 @@ describe('persistent event definition', () => {
     expect(() => validatePersistentEventDefinition(definition())).not.toThrow()
   })
 
+  it('restricts weather to known conditions on real World Arrivals', () => {
+    const event = definition()
+    const first = event.phases[0]!
+    const original = first.objectives[0]!
+    const validate = (objective: object) =>
+      validatePersistentEventDefinition({
+        ...event,
+        phases: [{ ...first, objectives: [{ ...original, ...objective }] }, event.phases[1]!],
+      })
+    const arrival = {
+      completion: 'world-arrival',
+      worldNavigation: { sectorId: 'frostmere', x: 3, y: 4, autoPath: true, guidance: 'exact' },
+    }
+    expect(() => validate({ ...arrival, requiredWeather: 'snow' })).toThrow(/weather/i)
+    expect(() => validate({ ...arrival, requiredWeather: null })).toThrow(/weather/i)
+    expect(() => validate({ ...arrival, requiredWeather: ['rain'] })).toThrow(/weather/i)
+    expect(() => validate({ requiredWeather: 'rain' })).toThrow(/weather/i)
+    expect(() => validate({ ...arrival, requiredWeather: 'rain' })).not.toThrow()
+    expect(() => validate(arrival)).not.toThrow()
+  })
+
   it('rejects arbitrary effect kinds and unknown objective transition references', () => {
     const invalidEffect = cloneDefinition()
     invalidEffect.phases[0].effects[0].type = 'script'

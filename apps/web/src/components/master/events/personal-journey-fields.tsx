@@ -2,12 +2,14 @@
 
 import {
   PERSONAL_QUEST_GIVERS,
+  isPersonalQuestGiver,
   type PersonalItemExchange,
   type PersonalJourney,
   type PersonalQuestGiverId,
   type PersonalTravelJourney,
 } from '@aurevane/game-core/events/persistent-event'
 import { WORLD_REGIONS } from '@/world/catalog'
+import type { StoryNpcCatalogue } from './event-phase-cast'
 
 export const initialPersonalJourney: PersonalTravelJourney = {
   type: 'travel-and-report',
@@ -36,7 +38,9 @@ function toExchange(journey: PersonalTravelJourney): PersonalItemExchange {
 function toTravel(journey: PersonalItemExchange): PersonalTravelJourney {
   return {
     ...initialPersonalJourney,
-    giverId: journey.giverId,
+    giverId: isPersonalQuestGiver(journey.giverId)
+      ? journey.giverId
+      : initialPersonalJourney.giverId,
     offer: journey.offer,
     active: journey.active,
     ready: journey.ready,
@@ -47,8 +51,10 @@ function toTravel(journey: PersonalItemExchange): PersonalTravelJourney {
 export function PersonalJourneyFields({
   journey,
   change,
+  storyNpcs,
 }: {
   journey?: PersonalJourney
+  storyNpcs: StoryNpcCatalogue
   change: (next: PersonalJourney | undefined) => void
 }) {
   return (
@@ -84,24 +90,122 @@ export function PersonalJourneyFields({
               : 'The player accepts, hands over carried items, and earns an item and access.'}{' '}
             Each character can complete this quest once.
           </p>
-          <label>
-            Quest giver
-            <select
-              value={journey.giverId}
-              onChange={(event) =>
-                change({
-                  ...journey,
-                  giverId: event.target.value as PersonalQuestGiverId,
-                })
-              }
-            >
-              {Object.entries(PERSONAL_QUEST_GIVERS).map(([id, giver]) => (
-                <option key={id} value={id}>
-                  {giver.label}
-                </option>
+          {journey.type === 'item-exchange' ? (
+            <label>
+              <input
+                type="checkbox"
+                checked={Boolean(journey.realm)}
+                onChange={(event) =>
+                  change(
+                    event.target.checked
+                      ? {
+                          ...journey,
+                          giverId: '',
+                          realm: {
+                            guardianNpcId: '',
+                            lore: '',
+                            access: '',
+                            challenge: '',
+                            retry: '',
+                          },
+                        }
+                      : { ...journey, giverId: initialPersonalJourney.giverId, realm: undefined },
+                  )
+                }
+              />
+              Add a sealed realm and guardian
+            </label>
+          ) : null}
+          {journey.type === 'item-exchange' && journey.realm ? (
+            <fieldset>
+              <legend>Sealed realm</legend>
+              <p>
+                The giver needs a published World placement and Story use. The guardian needs Story
+                use and fights a high difficulty duel.
+              </p>
+              {storyNpcs === 'unavailable' ? (
+                <p role="status">Story NPCs could not be loaded.</p>
+              ) : null}
+              {(['giverId', 'guardianNpcId'] as const).map((field) => {
+                const realm = journey.realm!
+                const value = field === 'giverId' ? journey.giverId : realm.guardianNpcId
+                const npcs = Array.isArray(storyNpcs) ? storyNpcs : []
+                return (
+                  <label key={field}>
+                    {field === 'giverId' ? 'Quest giver' : 'Guardian'}
+                    <select
+                      value={value}
+                      onChange={(event) =>
+                        change(
+                          field === 'giverId'
+                            ? { ...journey, giverId: event.target.value }
+                            : {
+                                ...journey,
+                                realm: { ...realm, guardianNpcId: event.target.value },
+                              },
+                        )
+                      }
+                    >
+                      <option value="">
+                        {storyNpcs === null
+                          ? 'Loading Story NPCs…'
+                          : 'Choose a published Story NPC'}
+                      </option>
+                      {value && !npcs.some((npc) => npc.id === value) ? (
+                        <option value={value}>Unavailable NPC</option>
+                      ) : null}
+                      {npcs.map((npc) => (
+                        <option key={npc.id} value={npc.id}>
+                          {npc.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )
+              })}
+              {(
+                [
+                  ['lore', 'Explain the sealed realm'],
+                  ['access', 'Confirm access after hand-in'],
+                  ['challenge', 'Introduce the guardian challenge'],
+                  ['retry', 'Offer a retry after battle'],
+                ] as const
+              ).map(([field, label]) => (
+                <label key={field}>
+                  {label}
+                  <textarea
+                    maxLength={800}
+                    value={journey.realm![field]}
+                    onChange={(event) =>
+                      change({
+                        ...journey,
+                        realm: { ...journey.realm!, [field]: event.target.value },
+                      })
+                    }
+                  />
+                </label>
               ))}
-            </select>
-          </label>
+            </fieldset>
+          ) : (
+            <label>
+              Quest giver
+              <select
+                value={journey.giverId}
+                onChange={(event) =>
+                  change({
+                    ...journey,
+                    giverId: event.target.value as PersonalQuestGiverId,
+                  })
+                }
+              >
+                {Object.entries(PERSONAL_QUEST_GIVERS).map(([id, giver]) => (
+                  <option key={id} value={id}>
+                    {giver.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {journey.type === 'travel-and-report' ? (
             <fieldset>
               <legend>Destination</legend>

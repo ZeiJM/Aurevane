@@ -9,9 +9,14 @@ import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { createEventPageAccessFixture } from './event-page-access-fixture'
 
 let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
+let realmGiver: string | undefined
 test.afterEach(() => {
   eventPageAccess?.restore()
   eventPageAccess = undefined
+  if (realmGiver) {
+    queryLocalDatabase(`update app_private.npc_designs set world=null where id='${realmGiver}'`)
+    realmGiver = undefined
+  }
 })
 
 function escapeSqlLiteral(value: string): string {
@@ -248,9 +253,14 @@ test('Event Staff uses structured Event Builder without preview state leakage', 
 async function completeAuthoredStoryJourney(
   page: Page,
   info: TestInfo,
-  kind: 'travel-and-report' | 'item-exchange',
+  kind: 'travel-and-report' | 'item-exchange' | 'sealed-realm',
 ) {
-  test.skip(info.project.name !== 'desktop-chromium', 'Requires a disposable local staff account.')
+  const realm = kind === 'sealed-realm'
+  const exchange = kind !== 'travel-and-report'
+  test.skip(
+    info.project.name !== 'desktop-chromium' && (!realm || info.project.name !== 'mobile-chromium'),
+    'Requires a disposable local staff account.',
+  )
   test.setTimeout(90_000)
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['127.0.0.1', 'localhost'].includes(host)) {
@@ -263,6 +273,10 @@ async function completeAuthoredStoryJourney(
   const seedId = `fixture.emberseed-${token}`
   const keyId = `fixture.realm-key-${token}`
   const eventKey = `event.browser-story-${token}`
+  const joe = randomUUID()
+  const guardian = randomUUID()
+  const reward = `reward.browser-realm-${token}`
+  const budget = `budget.browser-realm-${token}`
   await createAccountAndEnterCharacter({
     page,
     email,
@@ -274,6 +288,23 @@ async function completeAuthoredStoryJourney(
   eventPageAccess = createEventPageAccessFixture(queryLocalDatabase)
   eventPageAccess.set(true)
 
+  if (realm) {
+    // Fixtures are confined to disposable Supabase. The player and Event UI
+    // still use real session authorization, command RPCs and combat admission.
+    realmGiver = joe
+    queryLocalDatabase(`
+      insert into app_private.event_reward_budget_policies values('${budget}','character-xp',100,'${userId}',now());
+      insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
+        values('${reward}',1,'character-xp',25,'${userId}','${budget}');
+      insert into app_private.npc_designs(id,revision,draft,world,story) values
+        ('${joe}',1,'{"name":"Farmer Joe","portraitRef":null,"uses":["world","story"],"arena":null}',
+         '{"id":"${joe}","revision":1,"name":"Farmer Joe","portraitRef":null,"sectorId":"verdant-expanse","x":2,"y":4,"radius":1,"greeting":"Welcome to the farm."}',
+         '{"id":"${joe}","revision":1,"name":"Farmer Joe","portraitRef":null}'),
+        ('${guardian}',1,'{"name":"Aurevane","portraitRef":null,"uses":["story"],"arena":null}',null,
+         '{"id":"${guardian}","revision":1,"name":"Aurevane","portraitRef":null}');
+    `)
+  }
+
   await page.goto('/master/events')
   const sections = page.getByRole('navigation', { name: 'Event authoring sections' })
   const section = (name: string) => sections.getByRole('button', { name, exact: true }).click()
@@ -283,7 +314,7 @@ async function completeAuthoredStoryJourney(
   await page.getByLabel('Title', { exact: true }).fill(title)
   await section('Journey')
   await page.getByLabel('Enable a personal quest').check()
-  if (kind === 'item-exchange') {
+  if (exchange) {
     const seed = itemFixture({
       id: seedId,
       name: 'Emberseeds',
@@ -304,7 +335,7 @@ async function completeAuthoredStoryJourney(
     queryLocalDatabase(
       `select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([seed, key]))}'::jsonb)`,
     )
-    await page.getByLabel('Quest type').selectOption(kind)
+    await page.getByLabel('Quest type').selectOption('item-exchange')
     await page.getByLabel('Item to hand in').fill(seedId)
     await page.getByLabel('Quantity to hand in').fill('7')
     await page.getByLabel('Item to receive').fill(keyId)
@@ -312,6 +343,23 @@ async function completeAuthoredStoryJourney(
     await page.getByLabel('Explain which items to bring').fill('Bring seven emberseeds.')
     await page.getByLabel('Ask for the items').fill('Hand over seven emberseeds for the key.')
     await page.getByLabel('Confirm completion').fill('The sealed realm is open to you.')
+    if (realm) {
+      await page.getByLabel('Add a sealed realm and guardian').check()
+      await page.getByLabel('Quest giver', { exact: true }).selectOption(joe)
+      await page.getByLabel('Guardian', { exact: true }).selectOption(guardian)
+      await page
+        .getByLabel('Explain the sealed realm', { exact: true })
+        .fill('The harvest charm opens the old lock.')
+      await page
+        .getByLabel('Confirm access after hand-in')
+        .fill('You have the key. Travel when ready.')
+      await page.getByLabel('Introduce the guardian challenge').fill('The guardian waits inside.')
+      await page
+        .getByLabel('Offer a retry after battle')
+        .fill('The key still works. Try again when ready.')
+      await section('Rewards')
+      await page.getByLabel('Reward packages').selectOption(reward)
+    }
   } else {
     await page.getByLabel('Cell X', { exact: true }).fill('3')
     await page.getByLabel('Offer the quest').fill('Check the nearby path and report to the Watch.')
@@ -348,7 +396,7 @@ async function completeAuthoredStoryJourney(
   select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
 `)
 
-  if (kind === 'item-exchange') {
+  if (exchange) {
     queryLocalDatabase(`
     select public.grant_character_items_v1('${userId}','${characterId}',
       (public.read_character_item_inventory_v1('${userId}','${characterId}')->>'revision')::bigint,
@@ -383,18 +431,29 @@ async function completeAuthoredStoryJourney(
     .getByRole('region', { name: 'Local interaction' })
     .getByRole('heading', { name: title, exact: true })
     .locator('..')
-  const talk = () => interaction.getByRole('button', { name: 'Talk to Watch officer' }).click()
-  const dialogue = page.getByRole('dialog', { name: 'Watch officer' })
+  const giver = realm ? 'Farmer Joe' : 'Watch officer'
+  const talk = () => interaction.getByRole('button', { name: `Talk to ${giver}` }).click()
+  const dialogue = page.getByRole('dialog', { name: giver })
   const progress = async () =>
     (await readWorld()).objectives.find((entry) => entry.name === title)?.progress
   await talk()
   await expect(dialogue.getByRole('heading', { name: title, exact: true })).toBeVisible()
+  if (realm) {
+    const before = (await readWorld()).version
+    await dialogue.getByRole('button', { name: 'About the sealed realm' }).click()
+    await expect(
+      dialogue.getByText('The harvest charm opens the old lock.', { exact: true }),
+    ).toBeVisible()
+    expect((await readWorld()).version).toBe(before)
+    await dialogue.getByRole('button', { name: 'Not now' }).click()
+    await talk()
+  }
   await dialogue.getByRole('button', { name: 'Accept quest', exact: true }).click()
-  if (kind === 'item-exchange') {
+  if (exchange) {
     await expect.poll(progress).toBe('ready')
     await expect(dialogue.getByRole('button', { name: 'Hand over 7 Emberseeds' })).toBeVisible()
     const state = await readWorld()
-    const exchange = () =>
+    const handOver = () =>
       page.request.post('/api/world', {
         data: {
           characterId,
@@ -407,7 +466,7 @@ async function completeAuthoredStoryJourney(
           },
         },
       })
-    const replies = await Promise.all([exchange(), exchange()])
+    const replies = await Promise.all([handOver(), handOver()])
     expect(replies.map((response) => response.status()).sort()).toEqual([200, 409])
     const receipt = queryLocalDatabase(`
     select jsonb_build_object(
@@ -420,6 +479,46 @@ async function completeAuthoredStoryJourney(
     await page.reload()
     await openMissions()
     await talk()
+    if (realm) {
+      await expect(
+        dialogue.getByRole('button', { name: 'Travel to the realm', exact: true }),
+      ).toBeVisible()
+      expect((await readWorld()).position.sectorId).toBe('verdant-expanse')
+      await dialogue.getByRole('button', { name: "I'll return later" }).click()
+      await talk()
+      await dialogue.getByRole('button', { name: 'Travel to the realm', exact: true }).click()
+      await expect.poll(async () => (await readWorld()).position.sectorId).toMatch(/^sealed-realm:/)
+      await page.reload()
+      await openMissions()
+      const gate = page.getByRole('button', { name: 'Talk to Sealed realm gate' })
+      await gate.click()
+      const realmDialog = page.getByRole('dialog', { name: 'Sealed realm gate' })
+      const challenge = realmDialog.getByRole('button', { name: 'Challenge the guardian' })
+      await expect(challenge).toBeVisible()
+      await expect(realmDialog.getByRole('button', { name: 'Leave the realm' })).toBeVisible()
+      expect((await readWorld()).battleSessionId).toBeNull()
+      await page.screenshot({
+        path: info.outputPath('sealed-realm-challenge.png'),
+        animations: 'disabled',
+      })
+      await challenge.click()
+      await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world/)
+      const battle = page.locator('main[data-unified-battle="true"]')
+      await expect(battle).toHaveAttribute('data-local-turn', 'true', { timeout: 20_000 })
+      await expect(battle).not.toHaveAttribute('aria-busy', 'true')
+      await page.getByRole('button', { name: 'Surrender', exact: true }).click()
+      await page.getByRole('button', { name: 'Confirm Surrender' }).click()
+      await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
+      await page.goto('/world')
+      await openMissions()
+      await gate.click()
+      await expect(
+        realmDialog.getByText('The key still works. Try again when ready.', { exact: true }),
+      ).toBeVisible()
+      await expect(challenge).toBeEnabled()
+      await expect.poll(progress).toBe('active')
+      return
+    }
     await expect(
       dialogue.getByText('The sealed realm is open to you.', { exact: true }),
     ).toBeVisible()
@@ -451,3 +550,7 @@ test('an authored Story Campaign persists accept, confirmed travel and report in
 test('an authored item exchange settles once when two World requests race', async ({
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'item-exchange'))
+
+test('Farmer Joe dialogue, realm travel and guardian challenge are separate World actions', async ({
+  page,
+}, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'))

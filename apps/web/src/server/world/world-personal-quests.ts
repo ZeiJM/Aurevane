@@ -4,6 +4,8 @@ import {
   isPersonalQuestGiver,
   PERSONAL_QUEST_GIVERS,
 } from '@aurevane/game-core/events/persistent-event'
+import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
+import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
 import { isWorldUuid } from '@/world/command'
 import { validCell } from '@/world/travel'
 import type { WorldInteraction, WorldObjective, WorldPosition } from '@/world/types'
@@ -43,7 +45,8 @@ export function projectPersonalQuests(rows: unknown): {
       !isWorldUuid(row.runId) ||
       typeof row.title !== 'string' ||
       typeof row.body !== 'string' ||
-      !isPersonalQuestGiver(row.giverId)
+      (!isPersonalQuestGiver(row.giverId) &&
+        (!isWorldUuid(row.giverId) || typeof row.speaker !== 'string'))
     )
       continue
     const progress = row.progress
@@ -56,6 +59,20 @@ export function projectPersonalQuests(rows: unknown): {
       continue
 
     const id = prefix + row.runId
+    const giver = isPersonalQuestGiver(row.giverId) ? PERSONAL_QUEST_GIVERS[row.giverId] : null
+    const speaker = typeof row.speaker === 'string' ? row.speaker.slice(0, 60) : giver?.speaker
+    if (!speaker) continue
+    const portraitRef =
+      typeof row.portraitRef === 'string' && isStarterCharacterPortraitRef(row.portraitRef)
+        ? row.portraitRef
+        : null
+    const portraitUrl =
+      typeof row.speaker === 'string' && row.speaker !== 'Sealed realm gate'
+        ? resolvePublicCharacterImageUrl(
+            typeof row.portraitUrl === 'string' ? row.portraitUrl : null,
+            portraitRef ?? 'portrait.starter.wayfarer-01',
+          )
+        : undefined
     const title = row.title.slice(0, 120)
     const body = row.body.slice(0, 800)
     const reward =
@@ -78,10 +95,10 @@ export function projectPersonalQuests(rows: unknown): {
         ? { inputQuantity, inputName, outputName }
         : null
     let description = body + reward
-    if (exchange && progress === 'completed') {
+    if (exchange && row.accessGranted === true) {
       description +=
         row.itemClaimPending === true
-          ? ` Return to ${PERSONAL_QUEST_GIVERS[row.giverId].label} to collect ${exchange.outputName}.`
+          ? ` Return to ${giver?.label ?? speaker} to collect ${exchange.outputName}.`
           : ' Access granted.'
     } else if (exchange) {
       const owned = typeof row.inputOwned === 'number' ? row.inputOwned : 0
@@ -107,12 +124,19 @@ export function projectPersonalQuests(rows: unknown): {
       report: 'Report back',
       'hand-over': handOver,
       'claim-exchange': exchange ? `Collect ${exchange.outputName}` : null,
+      'travel-realm': 'Travel to the realm',
+      'leave-realm': 'Leave the realm',
+      'challenge-realm': 'Challenge the guardian',
     }
     const actionId =
       (progress === 'available' && row.action === 'accept') ||
       (progress === 'ready' &&
         (row.action === 'report' || (exchange && row.action === 'hand-over'))) ||
-      (progress === 'completed' &&
+      (row.accessGranted === true &&
+        (row.action === 'travel-realm' ||
+          row.action === 'leave-realm' ||
+          row.action === 'challenge-realm')) ||
+      (row.accessGranted === true &&
         exchange &&
         row.itemClaimPending === true &&
         row.action === 'claim-exchange')
@@ -126,10 +150,27 @@ export function projectPersonalQuests(rows: unknown): {
       progress,
       actionId,
       speakerId: row.giverId,
-      speaker: PERSONAL_QUEST_GIVERS[row.giverId].speaker,
+      speaker,
+      ...(portraitUrl ? { portraitUrl } : {}),
+      ...(typeof row.lore === 'string' ? { lore: row.lore.slice(0, 800) } : {}),
+      ...(row.alternativeAction === 'leave-realm' || row.alternativeAction === 'travel-realm'
+        ? {
+            alternative: {
+              actionId: row.alternativeAction,
+              label: responses[row.alternativeAction],
+            },
+          }
+        : {}),
+      ...(actionId === 'accept' && row.lore
+        ? { declineLabel: 'Not now' }
+        : actionId === 'hand-over' && row.lore
+          ? { declineLabel: 'Keep them for now' }
+          : actionId === 'travel-realm' || row.alternativeAction === 'travel-realm'
+            ? { declineLabel: "I'll return later" }
+            : {}),
       actionLabel: actionId ? responses[actionId] : null,
       ...(handOver && progress !== 'available'
-        ? { lastReply: progress === 'completed' ? handOver : responses.accept }
+        ? { lastReply: row.accessGranted === true ? handOver : responses.accept }
         : {}),
     })
   }

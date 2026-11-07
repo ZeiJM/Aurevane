@@ -1016,6 +1016,13 @@
   grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.5fr) auto;
 }
 
+.operationWorkspace .itemList > .personalReward {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  overflow-wrap: anywhere;
+}
+
 .operationDock {
   display: grid;
   align-content: start;

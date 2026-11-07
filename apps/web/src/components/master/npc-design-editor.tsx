@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
 import { getTacticalHallArena } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import {
   NPC_ARENA_IDS,
   NPC_ARENA_LORE_LIMIT,
   NPC_GREETING_LIMIT,
+  NPC_UNIFORM_REASON_LIMIT,
   NPC_USES,
   type NpcDesignCommand,
   type NpcDesignDraft,
@@ -21,6 +22,7 @@ import {
 import { AppearanceBuilderDialog } from '@/components/character/appearance-builder-dialog'
 import { ArenaNpcCard } from '@/components/battle/arena-npc-card'
 import type { NpcArenaRehearsal } from '@/server/master/npc-arena-rehearsal'
+import { NpcAppearanceBatch } from './npc-appearance-batch'
 import styles from './npc-design-editor.module.css'
 
 const DEFAULT_ARENA = { arenaId: 'duel-yard', aiDifficulty: 'high', lore: '' } as const
@@ -52,10 +54,12 @@ export function NpcDesignEditor({
   initialRecords,
   initialNpcId,
   sectors,
+  canApproveUniforms = false,
 }: {
   initialRecords: NpcDesignRecord[]
   initialNpcId?: string
   sectors: { id: string; name: string }[]
+  canApproveUniforms?: boolean
 }) {
   const initialRecord = initialRecords.find((record) => record.id === initialNpcId)
   const [records, setRecords] = useState(initialRecords)
@@ -67,6 +71,9 @@ export function NpcDesignEditor({
   const [error, setError] = useState('')
   const [rehearsal, setRehearsal] = useState<NpcArenaRehearsal | null>(null)
   const [retirePrompt, setRetirePrompt] = useState<NpcUse | null>(null)
+  const [uniformPrompt, setUniformPrompt] = useState<NpcUse | null>(null)
+  const [uniformReason, setUniformReason] = useState('')
+  const nameInput = useRef<HTMLInputElement>(null)
   const current = records.find((record) => record.id === selectedId)
   const dirty = JSON.stringify(draft) !== JSON.stringify(current?.draft ?? INITIAL_DRAFT)
   const arena = draft.uses.includes('arena') ? draft.arena : null
@@ -89,6 +96,16 @@ export function NpcDesignEditor({
     setError('')
     setRetirePrompt(null)
     setRehearsal(null)
+    setUniformPrompt(null)
+    setUniformReason('')
+  }
+
+  function reviewCandidate(imageUrl: string) {
+    if (dirty || busy) return
+    select()
+    setDraft({ ...INITIAL_DRAFT, imageUrl })
+    window.history.replaceState(window.history.state, '', window.location.pathname)
+    nameInput.current?.focus()
   }
 
   function toggleUse(use: NpcUse) {
@@ -131,7 +148,9 @@ export function NpcDesignEditor({
       setNotice(
         command.kind === 'save'
           ? 'Draft saved.'
-          : `${USE_LABELS[command.kind.split('-')[1] as NpcUse]} ${command.kind.startsWith('commit-') ? 'committed.' : 'retired.'}`,
+          : command.kind === 'commit-uniform'
+            ? `${USE_LABELS[command.use]} committed with an approved exact appearance copy.`
+            : `${USE_LABELS[command.kind.split('-')[1] as NpcUse]} ${command.kind.startsWith('commit-') ? 'committed.' : 'retired.'}`,
       )
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Unable to save the NPC.')
@@ -177,6 +196,11 @@ export function NpcDesignEditor({
 
   return (
     <div className={styles.workspace}>
+      <NpcAppearanceBatch
+        canApproveUniforms={canApproveUniforms}
+        reviewDisabled={dirty || busy}
+        onReview={reviewCandidate}
+      />
       <aside className={styles.roster} aria-label="Reusable NPCs">
         <label>
           Search NPCs
@@ -228,6 +252,7 @@ export function NpcDesignEditor({
           <label>
             Name
             <input
+              ref={nameInput}
               value={draft.name}
               maxLength={60}
               onChange={(event) => setDraft({ ...draft, name: event.target.value })}
@@ -466,6 +491,24 @@ export function NpcDesignEditor({
                       {draft.uses.length === 1 ? 'Commit now' : `Commit ${USE_LABELS[use]}`}
                     </button>
                   ) : null}
+                  {canApproveUniforms &&
+                  draft.imageUrl &&
+                  draft.uses.includes(use) &&
+                  ![current.arena, current.world, current.story].some(
+                    (published) => published?.imageUrl === draft.imageUrl,
+                  ) ? (
+                    <button
+                      type="button"
+                      disabled={busy || dirty || !ready[use]}
+                      onClick={() => {
+                        setUniformPrompt(uniformPrompt === use ? null : use)
+                        setUniformReason('')
+                        setRetirePrompt(null)
+                      }}
+                    >
+                      Approve exact copy for {USE_LABELS[use]}
+                    </button>
+                  ) : null}
                   {current[use] ? (
                     <button
                       type="button"
@@ -482,6 +525,39 @@ export function NpcDesignEditor({
               </section>
             ))
           : null}
+        {uniformPrompt && current ? (
+          <fieldset disabled={busy || dirty}>
+            <legend>Approve an exact appearance copy</legend>
+            <p className={styles.hint}>
+              Use this only when another published NPC intentionally shares this look. The reason is
+              recorded privately.
+            </p>
+            <label>
+              Reason for the exact copy
+              <textarea
+                rows={2}
+                value={uniformReason}
+                maxLength={NPC_UNIFORM_REASON_LIMIT}
+                onChange={(event) => setUniformReason(event.target.value)}
+              />
+            </label>
+            <button
+              type="button"
+              disabled={!uniformReason.trim() || !ready[uniformPrompt]}
+              onClick={() =>
+                void submit({
+                  kind: 'commit-uniform',
+                  id: current.id,
+                  revision: current.revision,
+                  use: uniformPrompt,
+                  reason: uniformReason.trim(),
+                })
+              }
+            >
+              Approve copy and commit {USE_LABELS[uniformPrompt]}
+            </button>
+          </fieldset>
+        ) : null}
         {retirePrompt && current ? (
           <p className={styles.hint}>
             Retirement removes this published use. Active battles keep their captured opponent.{' '}

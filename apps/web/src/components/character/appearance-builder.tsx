@@ -9,10 +9,15 @@ import {
   appearanceFrameIndex,
   compileAppearanceManifest,
   parseAppearanceBlueprint,
+  varyAppearanceOutfit,
   type AppearanceBlueprint,
   type AppearanceExpression,
   type AppearanceManifest,
 } from '@/appearance/appearance-manifest'
+import {
+  appearanceClothingConflict,
+  WARDROBE_CUT_LABELS,
+} from '@/appearance/appearance-wardrobe-catalog'
 import styles from './appearance-builder.module.css'
 
 type Field = keyof typeof APPEARANCE_CATALOG
@@ -27,6 +32,9 @@ const groups: readonly { name: string; fields: readonly Field[] }[] = [
 const labels: Partial<Record<Field, string>> = { hairColor: 'Hair color', coat: 'Silhouette' }
 const fields = groups.flatMap(({ fields }) => fields)
 const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
+const partLabel = (field: Field, value: string) =>
+  (field === 'coat' ? WARDROBE_CUT_LABELS[value as keyof typeof WARDROBE_CUT_LABELS] : undefined) ??
+  title(value)
 
 function randomizeParts(value: AppearanceBlueprint, parts: readonly Field[]) {
   return parts.reduce((next, part) => {
@@ -51,6 +59,16 @@ export function AppearanceBuilder({
   const [initial] = useState(value)
   const [history, setHistory] = useState<AppearanceBlueprint[]>([])
   const [favorites, setFavorites] = useState<AppearanceBlueprint[]>([])
+  const clothingConflicts = Array.from(
+    new Set(
+      (['coat', 'sleeves', 'accessory'] as const).flatMap((field) =>
+        APPEARANCE_CATALOG[field].flatMap((choice) => {
+          const conflict = appearanceClothingConflict({ ...value, [field]: choice })
+          return conflict ? [conflict] : []
+        }),
+      ),
+    ),
+  )
   const update = (next: AppearanceBlueprint) => {
     if (compileAppearanceManifest(next).id === manifest.id) return
     setHistory((entries) => [...entries.slice(-23), value])
@@ -120,19 +138,28 @@ export function AppearanceBuilder({
                         value={choice}
                         disabled={!parseAppearanceBlueprint({ ...value, [field]: choice })}
                       >
-                        {title(choice)}
+                        {partLabel(field, choice)}
                       </option>
                     ))}
                   </select>
                 </label>
               ))}
             </div>
-            <button type="button" onClick={() => update(randomizeParts(value, parts))}>
-              Randomize {name.toLowerCase()}
-            </button>
+            <div className={styles.actions}>
+              <button type="button" onClick={() => update(randomizeParts(value, parts))}>
+                Randomize {name.toLowerCase()}
+              </button>
+              {name === 'Clothing' ? (
+                <button type="button" onClick={() => update(varyAppearanceOutfit(value))}>
+                  Vary silhouette
+                </button>
+              ) : null}
+            </div>
+            {name === 'Clothing' && clothingConflicts.length > 0 ? (
+              <small>{clothingConflicts.join(' ')}</small>
+            ) : null}
           </fieldset>
         ))}
-        <small>Plate guards require close or split sleeves. Mantles cover satchel straps.</small>
         <div className={styles.actions}>
           <button
             type="button"

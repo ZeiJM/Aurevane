@@ -11,6 +11,7 @@ import { eventRuntimeBlockers } from './event-runtime-support'
 import { PersonalJourneyFields } from './personal-journey-fields'
 import { eventAudienceLabel } from './event-audience'
 import { WORLD_REGIONS } from '@/world/catalog'
+import { isWorldWeather, WORLD_WEATHER } from '@/world/environment'
 
 import {
   EVENT_CATEGORIES,
@@ -19,6 +20,7 @@ import {
   EVENT_FAMILIES,
   EVENT_OBJECTIVE_TYPES,
   PERSONAL_QUEST_GIVERS,
+  isPersonalQuestGiver,
   resolveEventCategory,
   type EventCategory,
   type EventEffectReference,
@@ -185,7 +187,7 @@ export function EventBuilderClient({
   }, [])
 
   useEffect(() => {
-    if (tab !== 'Phases' || definition.personalJourney) return
+    if (tab !== 'Phases' && tab !== 'Journey') return
     let request: AbortController | undefined
     async function loadStoryNpcs() {
       request?.abort()
@@ -208,7 +210,7 @@ export function EventBuilderClient({
       request?.abort()
       window.removeEventListener('focus', loadStoryNpcs)
     }
-  }, [tab, definition.personalJourney])
+  }, [tab])
 
   const selectedPhase =
     definition.phases.find((phase) => phase.id === selectedPhaseId) ?? definition.phases[0]
@@ -792,10 +794,13 @@ export function EventBuilderClient({
             <h2>Personal journey</h2>
             <PersonalJourneyFields
               journey={definition.personalJourney}
+              storyNpcs={storyNpcs}
               change={(journey) =>
                 patchDefinition({
                   personalJourney: journey,
-                  ...(journey && definition.scope.type === 'region'
+                  ...(journey &&
+                  definition.scope.type === 'region' &&
+                  isPersonalQuestGiver(journey.giverId)
                     ? {
                         scope: {
                           type: 'region',
@@ -974,6 +979,7 @@ export function EventBuilderClient({
                             patchObjective(phaseIndex, objectiveIndex, {
                               type: selection as EventObjectiveDefinition['type'],
                               completion: undefined,
+                              requiredWeather: undefined,
                             })
                           }
                         }}
@@ -1008,10 +1014,32 @@ export function EventBuilderClient({
                         aria-label="Objective target"
                       />
                       {entry.completion === 'world-arrival' ? (
-                        <small>
-                          Each character adds one point on a confirmed arrival while this phase is
-                          live. Set the target to the number of distinct arrivals needed.
-                        </small>
+                        <>
+                          <label>
+                            Required weather
+                            <select
+                              value={entry.requiredWeather ?? ''}
+                              onChange={(event) => {
+                                const weather = event.target.value
+                                patchObjective(phaseIndex, objectiveIndex, {
+                                  requiredWeather: isWorldWeather(weather) ? weather : undefined,
+                                })
+                              }}
+                            >
+                              <option value="">Any weather</option>
+                              {WORLD_WEATHER.map((weather) => (
+                                <option key={weather} value={weather}>
+                                  {weather[0]!.toUpperCase() + weather.slice(1)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <small>
+                            Each character adds one point on a confirmed arrival while this phase is
+                            live and the required World weather is present. Set the target to the
+                            number of distinct arrivals needed.
+                          </small>
+                        </>
                       ) : null}
                       <EventNavigationFields
                         value={entry.worldNavigation}
@@ -1207,7 +1235,9 @@ export function EventBuilderClient({
               </label>
               <p>
                 {definition.personalJourney?.type === 'item-exchange'
-                  ? 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
+                  ? definition.personalJourney.realm
+                    ? 'Choose an approved Character XP reward for the first guardian victory.'
+                    : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
                   : definition.personalJourney
                     ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
                     : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}

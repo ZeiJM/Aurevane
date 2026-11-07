@@ -402,6 +402,18 @@ export async function commitWorldCommand(
     if (runId) {
       if (!command.intent.actionId)
         throw new AurevaneError('INVALID_REQUEST', 'Choose an explicit quest response.')
+      if (command.intent.actionId === 'challenge-realm') {
+        const { startPersonalRealmBattle } = await import('./world-realm-battle')
+        const battle = await startPersonalRealmBattle(
+          userId,
+          characterId,
+          runId,
+          command,
+          fingerprint,
+        )
+        const { view } = await readWorld(userId, characterId)
+        return { ...view, battleSessionId: battle.battleSessionId }
+      }
       const { error } = await createSupabaseAdminClient().rpc('commit_world_personal_quest_v1', {
         p_user_id: userId,
         p_character_id: characterId,
@@ -414,6 +426,8 @@ export async function commitWorldCommand(
       if (error) worldRpcError(error)
       return (await readWorld(userId, characterId)).view
     }
+    if (command.intent.actionId?.endsWith('-realm'))
+      throw new AurevaneError('INVALID_REQUEST', 'Choose a valid realm interaction.')
   }
   const next = resolveWorldIntent(state, command.intent, current.serverNow, [
     ...WORLD_OBJECTIVES,

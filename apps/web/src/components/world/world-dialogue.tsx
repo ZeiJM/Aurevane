@@ -9,7 +9,7 @@ const MAX_HISTORY = 12
 const progressLabel: Record<WorldInteraction['progress'], string> = {
   available: 'Available',
   active: 'In progress',
-  ready: 'Ready to report',
+  ready: 'Ready',
   completed: 'Completed',
 }
 
@@ -45,6 +45,7 @@ export function WorldDialogue({
   const responding = useRef(false)
   const [topicId, setTopicId] = useState<string | null>(initialTopic.id)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [loreTopic, setLoreTopic] = useState<string | null>(null)
   const [history, setHistory] = useState<{ speaker: string; body: string }[]>([])
   const [failedPortraits, setFailedPortraits] = useState(() => new Set<string>())
   const [ended, setEnded] = useState<string | null>(null)
@@ -76,16 +77,18 @@ export function WorldDialogue({
     if (busy) dialog.current?.focus({ preventScroll: true })
   }, [busy])
 
-  const reply = async () => {
-    if (!topic?.actionId || !topic.actionLabel || busy || responding.current) return
+  const reply = async (actionId: WorldInteractionActionId, label: string) => {
+    if (!topic || busy || responding.current) return
     responding.current = true
     try {
-      if (await onReply(topic.id, topic.actionId)) {
+      if (await onReply(topic.id, actionId)) {
+        setLoreTopic(null)
+        if (actionId === 'travel-realm' || actionId === 'leave-realm') onClose()
         setHistory((entries) =>
           [
             ...entries,
             { speaker: topic.speaker, body: topic.body },
-            { speaker: 'You', body: topic.actionLabel! },
+            { speaker: 'You', body: label },
           ].slice(-MAX_HISTORY),
         )
       }
@@ -187,7 +190,7 @@ export function WorldDialogue({
         ) : topic ? (
           <>
             <p className={styles.speech} aria-live="polite">
-              {topic.body}
+              {loreTopic === topic.id ? topic.lore : topic.body}
             </p>
             {objective ? (
               <section className={styles.context} aria-label="Quest details">
@@ -227,10 +230,36 @@ export function WorldDialogue({
           <button
             type="button"
             className={styles.primary}
-            onClick={() => void reply()}
+            onClick={() => void reply(topic.actionId!, topic.actionLabel!)}
             disabled={busy}
           >
             {busy ? 'Sending reply…' : topic.actionLabel}
+          </button>
+        ) : null}
+        {!ended && !historyOpen && topic?.alternative ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              const alternative = topic.alternative!
+              void reply(alternative.actionId, alternative.label)
+            }}
+          >
+            {topic.alternative.label}
+          </button>
+        ) : null}
+        {!ended && !historyOpen && topic?.lore ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setLoreTopic(loreTopic === topic.id ? null : topic.id)}
+          >
+            {loreTopic === topic.id ? 'Back to the quest' : 'About the sealed realm'}
+          </button>
+        ) : null}
+        {!ended && !historyOpen && topic?.declineLabel ? (
+          <button type="button" disabled={busy} onClick={onClose}>
+            {topic.declineLabel}
           </button>
         ) : null}
         {!ended && !historyOpen && topic && topics.length > 1 ? (

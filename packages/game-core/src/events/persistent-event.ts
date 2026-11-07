@@ -1,6 +1,8 @@
+import { isWorldWeather, type WorldWeather } from '../world/weather'
 import {
   PERSONAL_QUEST_GIVERS,
   isPersonalQuestGiver,
+  isPersonalJourneyNpcId,
   type PersonalJourney,
 } from './personal-journey'
 
@@ -106,6 +108,7 @@ export interface EventWorldNavigation {
 export interface EventObjectiveDefinition {
   readonly worldNavigation?: EventWorldNavigation | null
   readonly completion?: 'world-arrival'
+  readonly requiredWeather?: WorldWeather
   readonly id: string
   readonly type: EventObjectiveType
   readonly referenceKey: string
@@ -256,6 +259,12 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
           )
         }
       }
+      if (
+        objective.requiredWeather !== undefined &&
+        (objective.completion !== 'world-arrival' || !isWorldWeather(objective.requiredWeather))
+      ) {
+        throw new TypeError('Choose a supported World weather condition for a confirmed arrival.')
+      }
       if (objective.completion !== undefined) {
         const sectorId = objective.worldNavigation?.sectorId
         const scope = definition.scope
@@ -317,17 +326,30 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     if (
       !journey ||
       (journey.type !== 'travel-and-report' && journey.type !== 'item-exchange') ||
-      !isPersonalQuestGiver(journey.giverId) ||
       resolveEventCategory(definition) !== 'story-campaigns'
     ) {
       throw new TypeError('A personal journey needs a Story Campaign and a known quest giver.')
     }
-    const giver = PERSONAL_QUEST_GIVERS[journey.giverId].position
+    const realm = journey.type === 'item-exchange' ? journey.realm : undefined
+    if (
+      realm === undefined
+        ? !isPersonalQuestGiver(journey.giverId)
+        : !isPersonalJourneyNpcId(journey.giverId)
+    ) {
+      throw new TypeError(
+        'Choose a published World and Story NPC for a realm, or a known Watch officer for a basic quest.',
+      )
+    }
+    const giver = isPersonalQuestGiver(journey.giverId)
+      ? PERSONAL_QUEST_GIVERS[journey.giverId].position
+      : null
     const { scope, phases, rewardPackageRefs } = definition
     if (
       scope.type !== 'global' &&
       (scope.type !== 'region' ||
-        (scope.key !== giver.sectorId && scope.key !== `region.${giver.sectorId}`))
+        (giver !== null &&
+          scope.key !== giver.sectorId &&
+          scope.key !== `region.${giver.sectorId}`))
     ) {
       throw new TypeError('The audience must include the quest giver’s region.')
     }
@@ -359,7 +381,8 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
         !Number.isInteger(destination.y) ||
         destination.y < 0 ||
         destination.y > 8 ||
-        (destination.sectorId === giver.sectorId &&
+        (giver &&
+          destination.sectorId === giver.sectorId &&
           destination.x === giver.x &&
           destination.y === giver.y)
       ) {
@@ -386,7 +409,26 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       ) {
         throw new TypeError('Choose an exchange quantity from 1 to 999.')
       }
-      if (rewardPackageRefs.length)
+      if (realm !== undefined) {
+        if (
+          !realm ||
+          !isPersonalJourneyNpcId(realm.guardianNpcId) ||
+          realm.guardianNpcId === journey.giverId
+        ) {
+          throw new TypeError('Choose a distinct published Story NPC as the realm guardian.')
+        }
+        if (!rewardPackageRefs.length)
+          throw new TypeError(
+            'Choose at least one approved Character XP reward for the guardian victory.',
+          )
+        for (const [label, text] of [
+          ['Realm lore', realm.lore],
+          ['Access', realm.access],
+          ['Challenge', realm.challenge],
+          ['Retry', realm.retry],
+        ] as const)
+          shortText(text, `${label} dialogue`, 800)
+      } else if (rewardPackageRefs.length)
         throw new TypeError('An item exchange awards the selected Item and access.')
     }
     for (const [label, text] of [

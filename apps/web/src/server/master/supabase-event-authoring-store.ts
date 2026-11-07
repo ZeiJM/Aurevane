@@ -173,6 +173,12 @@ function mapRpcError(error: RpcError): never {
       { cause: error },
     )
   }
+  if (message === 'EVENT_PERSONAL_REALM_NPCS_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a published Story NPC with a World placement in the selected audience and a different published Story NPC as guardian.',
+      { cause: error },
+    )
   if (message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE')
     throw new AurevaneError(
       'INVALID_REQUEST',

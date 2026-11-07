@@ -12,6 +12,7 @@ import {
 } from './appearance-manifest'
 import { PAINTED_PRESET_PORTRAITS } from './appearance-painted-portraits.generated'
 import { PAINTED_PRESET_SPRITES } from './appearance-painted-sprites.generated'
+import { garmentFor, wardrobeArms, wardrobeBody, wardrobeLegs } from './appearance-wardrobe-art'
 
 const palettes = {
   pine: ['#344e44', '#22332d', '#678777', '#d4a866'],
@@ -115,7 +116,10 @@ function portrait(blueprint: AppearanceBlueprint, mood: AppearanceExpression, ic
     standing: 'M36 77l15 30 8-16 8 16 16-30',
     fur: 'M35 78l4 9 5-4 5 11 5-5 5 10 6-10 5 5 5-11 5 4 4-9',
   }[blueprint.collar]
-  const clothes = `
+  const garment = garmentFor(blueprint.coat)
+  const clothes = garment
+    ? `<g transform="translate(-26.4 10) scale(3.6)">${wardrobeArms(garment, blueprint, palettes[blueprint.palette], skin, 0, 0, false)}${wardrobeBody(garment, blueprint, palettes[blueprint.palette], false, true)}</g>`
+    : `
     <path fill="url(#coat)" stroke="#231e24" stroke-width="2" d="M${shoulder} 120L${shoulder + 5} 103Q${shoulder + 9} 85 41 78L76 78Q${113 - shoulder} 85 ${117 - shoulder} 103L${120 - shoulder} 120Z"/>
     <path fill="none" stroke="${trim}" stroke-width="1.7" d="${collar}"/>
     ${blueprint.coat === 'plate' ? `<path fill="${light}" stroke="${trim}" d="M13 112l6-17 17-5 7 14-8 14zm94 0-6-17-17-5-7 14 8 14z"/>` : ''}
@@ -161,7 +165,14 @@ function sprite(
   const back = facing === 'north'
   const profile = facing === 'east' || facing === 'west'
   const shoulder = { slight: 6, average: 8, broad: 10 }[blueprint.body]
-  const hemY = { tunic: 39, longcoat: 48, mantle: 43, plate: 40 }[blueprint.coat]
+  const legacyHems: Partial<Record<AppearanceBlueprint['coat'], number>> = {
+    tunic: 39,
+    longcoat: 48,
+    mantle: 43,
+    plate: 40,
+  }
+  const hemY = legacyHems[blueprint.coat] ?? 40
+  const garment = garmentFor(blueprint.coat)
   const walk = pose === 'walk' ? [0, 4, -4][frame]! : 0
   const rise = pose === 'walk' && frame !== 0 ? 1 : 0
   const arm =
@@ -178,10 +189,17 @@ function sprite(
     <ellipse cx="24" cy="58" rx="${pose === 'down' ? 16 : 12}" ry="3" fill="#171d23" fill-opacity=".42"/>
     <g transform="translate(${pose === 'down' ? 12 : 0} ${-rise}) rotate(${tilt} 24 53)">
       <g transform="translate(24 0) scale(${look} 1) translate(-24 0)">
-        <path fill="none" stroke="#28242a" stroke-width="7" stroke-linecap="round" d="M21 40l${-walk - 1} 15m7-15 ${walk + 1} 15"/>
+        ${
+          garment
+            ? wardrobeLegs(palettes[blueprint.palette], walk)
+            : `<path fill="none" stroke="#28242a" stroke-width="7" stroke-linecap="round" d="M21 40l${-walk - 1} 15m7-15 ${walk + 1} 15"/>
         <path fill="none" stroke="${shade}" stroke-width="4" stroke-linecap="round" d="M21 40l${-walk - 1} 12m7-12 ${walk + 1} 12"/>
-        <path fill="#392d31" stroke="#211f25" d="M${18 - walk} 53h6v5h-8v-2Zm${13 + 2 * walk} 0h6l2 3v2h-8Z"/>
-        ${blueprint.coat === 'mantle' ? `<path fill="${shade}" stroke="${trim}" d="M${24 - shoulder} 24q-3 12-5 23l8-2 5 3 9-3-4-21Z"/>` : ''}
+        <path fill="#392d31" stroke="#211f25" d="M${18 - walk} 53h6v5h-8v-2Zm${13 + 2 * walk} 0h6l2 3v2h-8Z"/>`
+        }
+        ${
+          garment
+            ? `<g transform="translate(24 0) scale(${profile ? '.84' : '1'} 1) translate(-24 0)">${wardrobeArms(garment, blueprint, palettes[blueprint.palette], skin, walk, arm, profile)}${wardrobeBody(garment, blueprint, palettes[blueprint.palette], back)}</g>`
+            : `${blueprint.coat === 'mantle' ? `<path fill="${shade}" stroke="${trim}" d="M${24 - shoulder} 24q-3 12-5 23l8-2 5 3 9-3-4-21Z"/>` : ''}
         <path fill="none" stroke="#25222a" stroke-width="${cuff * 2 + 1}" stroke-linecap="round" d="M${24 - shoulder} 26l${-2 + walk / 2} 9m${2 * shoulder + 2 - walk / 2}-9 ${2 + arm} ${9 - arm / 1.4}"/>
         <path fill="none" stroke="${fabric}" stroke-width="${cuff * 2}" stroke-linecap="round" d="M${24 - shoulder} 26l${-2 + walk / 2} 9m${2 * shoulder + 2 - walk / 2}-9 ${2 + arm} ${9 - arm / 1.4}"/>
         <circle cx="${22 - shoulder + walk / 2}" cy="37" r="2.2" fill="${skin}"/>
@@ -198,7 +216,8 @@ function sprite(
         ${blueprint.textile === 'quilt' ? `<path fill="none" stroke="${light}" stroke-width=".7" d="m17 28 5 5m1-5 5 5m1-5 4 4"/>` : ''}
         ${blueprint.accessory === 'satchel' ? `<path fill="none" stroke="${trim}" stroke-width="1.4" d="m30 23-12 13"/><path fill="#886445" stroke="#3a2930" d="M16 34h6v6h-6Z"/>` : ''}
         ${blueprint.accessory === 'scarf' ? `<path fill="none" stroke="${light}" stroke-width="2.4" d="M18 22q6 4 12 0l${3 + walk / 2} 11"/>` : ''}
-        ${blueprint.accessory === 'brooch' ? `<path fill="${trim}" d="m28 24 2 2-2 2-2-2Z"/>` : ''}
+        ${blueprint.accessory === 'brooch' ? `<path fill="${trim}" d="m28 24 2 2-2 2-2-2Z"/>` : ''}`
+        }
         ${blueprint.hair === 'braid' ? `<path fill="none" stroke="${hair}" stroke-width="3.7" d="M19 14q-6 6-3 14t-2 8"/><path stroke="${trim}" d="m14 31 3 1"/>` : ''}
         <path fill="${skin}" stroke="${skinShade}" d="M18 12q7-5 12 0l${profile ? 2 : 0} 4-2 1-1 5q-5 4-10-1Z"/>
         <path fill="${hair}" stroke="${hairLight}" stroke-width=".8" d="${
