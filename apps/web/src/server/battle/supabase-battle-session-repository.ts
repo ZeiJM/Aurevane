@@ -56,16 +56,17 @@ function throwRpcError(error: { code?: string; message?: string }): never {
   throw persistenceUnavailable('The server could not persist the battle right now.')
 }
 
-interface WorldRealmBattleAdmission {
+interface WorldBattleAdmissionContext {
   characterId: string
   expectedVersion: number
-  runId: string
   worldFingerprint: string
   throwWorldError(error: { code?: string; message?: string }): never
 }
 
+type WorldBattleAdmission = WorldBattleAdmissionContext & ({ runId: string } | { npcId: string })
+
 export function createSupabaseBattleSessionRepository(
-  realm?: WorldRealmBattleAdmission,
+  world?: WorldBattleAdmission,
 ): BattleSessionRepository & BattleEventRepository & BattleHistoryPrivacyRepository {
   return {
     async findBattleCreationReplay(input) {
@@ -109,16 +110,19 @@ export function createSupabaseBattleSessionRepository(
         p_initial_events: input.startup?.events ?? null,
         p_privacy_journal: input.startup?.privacyJournal ?? null,
       }
-      const { data, error } = realm
-        ? await supabase.rpc('start_world_personal_realm_battle_v1', {
-            ...common,
-            ...startup,
-            p_command_id: input.idempotencyKey,
-            p_character_id: realm.characterId,
-            p_expected_version: realm.expectedVersion,
-            p_run_id: realm.runId,
-            p_world_fingerprint: realm.worldFingerprint,
-          })
+      const { data, error } = world
+        ? await supabase.rpc(
+            'runId' in world ? 'start_world_personal_realm_battle_v1' : 'start_world_npc_battle_v1',
+            {
+              ...common,
+              ...startup,
+              p_command_id: input.idempotencyKey,
+              p_character_id: world.characterId,
+              p_expected_version: world.expectedVersion,
+              ...('runId' in world ? { p_run_id: world.runId } : { p_npc_id: world.npcId }),
+              p_world_fingerprint: world.worldFingerprint,
+            },
+          )
         : await supabase.rpc(
             input.startup ? 'create_battle_session_v2' : 'create_battle_session_v1',
             {
@@ -130,7 +134,7 @@ export function createSupabaseBattleSessionRepository(
           )
 
       if (error) {
-        if (realm && error.message?.startsWith('WORLD_')) realm.throwWorldError(error)
+        if (world && error.message?.startsWith('WORLD_')) world.throwWorldError(error)
         throwRpcError(error)
       }
       const row = parseBattleSessionCreationPersistenceRow(data)

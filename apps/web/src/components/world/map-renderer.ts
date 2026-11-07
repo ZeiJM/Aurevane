@@ -1,4 +1,5 @@
 import {
+  APPEARANCE_ASSET_PREFIX,
   APPEARANCE_FRAME,
   appearanceFrameIndex,
   appearanceManifestFromImageUrl,
@@ -1718,7 +1719,7 @@ export function createMapRenderer(
     let requestedActors = 0
     let embodiedActors = 0
     const manifestFor = (image: string | null) => {
-      if (!image?.startsWith('/api/media/appearance/1/')) return null
+      if (!image?.startsWith(APPEARANCE_ASSET_PREFIX)) return null
       if (!actorAssets.has(image)) {
         actorAssets.set(image, appearanceManifestFromImageUrl(image))
         if (actorAssets.size > 256) actorAssets.delete(actorAssets.keys().next().value!)

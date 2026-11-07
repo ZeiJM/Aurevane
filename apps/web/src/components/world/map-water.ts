@@ -199,17 +199,15 @@ export function buildWaterField(sectors: readonly WorldSectorView[]): Map<string
           shallow: bankCurves(side as Side, wx, wy, true),
         })
       })
+      const connected = neighbours.map((material) => material === '~')
+      const connectionCount = connected.filter(Boolean).length
       cells.set(cellKey(cell.x, cell.y), {
         x: cell.x,
         y: cell.y,
         seed: hashString(`${namespace(sector)}:${wx}:${wy}:water`),
-        channel: neighbours.filter((material) => material === '~').length <= 2,
+        channel: connectionCount > 0 && connectionCount <= 2,
         banks,
-        flow: currentCurve(
-          wx,
-          wy,
-          neighbours.map((material) => material === '~'),
-        ),
+        flow: currentCurve(wx, wy, connected),
       })
     }
     // Adjacent changes must invalidate a cached bank even when its own cells are identical.
@@ -367,7 +365,7 @@ export function paintWaterGround(
   context.restore()
 }
 
-/** Four short travelling glints follow the cached current; work stays capped by the caller. */
+/** A clipped pool ripple or four short channel glints, capped by the caller. */
 export function paintWaterMotion(
   context: CanvasRenderingContext2D,
   cell: WaterCell,
@@ -377,6 +375,18 @@ export function paintWaterMotion(
 ) {
   context.save()
   clipCell(context, tile)
+  if (!cell.channel) {
+    const phase = (now / (4200 + (cell.seed % 1800)) + (cell.seed % 997) / 997) % 1
+    const radius = tile * (0.13 + phase * 0.29)
+    context.strokeStyle = amethyst ? '#e0c5f1' : '#bbded0'
+    context.globalAlpha = Math.sin(phase * Math.PI) * 0.16
+    context.lineWidth = tile * 0.012
+    context.beginPath()
+    context.ellipse(tile / 2, tile / 2, radius, radius * 0.86, 0, 0, Math.PI * 2)
+    context.stroke()
+    context.restore()
+    return
+  }
   const speed = 8500 + (cell.seed % 3500)
   for (let i = 0; i < 4; i++) {
     const phase = (now / speed + i * 0.25 + (cell.seed % 997) / 997) % 1

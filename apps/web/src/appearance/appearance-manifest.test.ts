@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import * as appearance from './appearance-manifest'
 import { renderAppearanceAsset } from './appearance-svg'
+import { GET } from '@/app/api/media/appearance/[version]/[blueprint]/[asset]/route'
 
 const sha256 = (data: string) => createHash('sha256').update(data).digest('hex')
 
@@ -116,5 +117,56 @@ describe('manual appearance manifests', () => {
     expect(after.coat).not.toBe('poncho')
     expect({ ...after, coat: before.coat }).toEqual(before)
     expect(appearance.parseAppearanceBlueprint(after)).toEqual(after)
+  })
+  it('versions a compatible lower garment without changing the original outfit recipe or face', () => {
+    const base = appearance.parseAppearanceBlueprint({
+      ...appearance.APPEARANCE_PRESETS[0].blueprint,
+      coat: 'bolero',
+    })!
+    const changed = appearance.withLowerGarment(base, 'kilt')!
+    expect(changed).toEqual({ ...base, v: 2, lower: 'kilt' })
+    const manifest = appearance.compileAppearanceManifest(changed)
+    expect(manifest.id).toMatch(/^2\/.+\.kilt$/)
+    expect(appearance.appearanceManifestFromImageUrl(manifest.portraits.neutral)).toEqual(manifest)
+    expect(
+      appearance.appearanceManifestFromImageUrl(manifest.portraits.neutral.replace('/2/', '/1/')),
+    ).toBeNull()
+    expect(appearance.withLowerGarment(changed, 'original')).toEqual(base)
+    expect(renderAppearanceAsset(changed, 'neutral')).toBe(renderAppearanceAsset(base, 'neutral'))
+    expect(renderAppearanceAsset(changed, 'atlas')).not.toBe(renderAppearanceAsset(base, 'atlas'))
+  })
+
+  it('rejects hidden geometry and aliases at the persisted recipe boundary', () => {
+    const base = appearance.APPEARANCE_PRESETS[0].blueprint
+    expect(appearance.withLowerGarment(base, 'kilt')).toBeNull()
+    expect(
+      appearance.parseAppearanceBlueprint({ ...base, coat: 'greatcloak', v: 2, lower: 'kilt' }),
+    ).toBeNull()
+    expect(
+      appearance.parseAppearanceBlueprint({ ...base, coat: 'bolero', v: 2, lower: 'original' }),
+    ).toBeNull()
+    expect(
+      appearance.parseAppearanceBlueprint({ ...base, coat: 'bolero', v: 1, lower: 'kilt' }),
+    ).toBeNull()
+  })
+  it('serves the v2 atlas only through the exact versioned media path', async () => {
+    const base = appearance.parseAppearanceBlueprint({
+      ...appearance.APPEARANCE_PRESETS[0].blueprint,
+      coat: 'bolero',
+    })!
+    const manifest = appearance.compileAppearanceManifest(
+      appearance.withLowerGarment(base, 'divided')!,
+    )
+    const [version, blueprint] = manifest.id.split('/') as [string, string]
+    const request = new Request(`https://example.test${manifest.atlas}`)
+    const get = (v: string, id = blueprint) =>
+      GET(request, { params: Promise.resolve({ version: v, blueprint: id, asset: 'atlas.svg' }) })
+    const response = await get(version)
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Cache-Control')).toContain('immutable')
+    expect(await response.text()).toBe(renderAppearanceAsset(manifest.blueprint, 'atlas'))
+    expect((await get('1')).status).toBe(404)
+    expect((await get('02')).status).toBe(404)
+    expect((await get('2', blueprint.replace('.bolero.', '.greatcloak.'))).status).toBe(404)
   })
 })

@@ -40,31 +40,43 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
-      - name: Build and exercise authenticated story journeys and Atlas
+      - name: Configure disposable World services
         shell: bash
         run: |
           set -euo pipefail
           status_env="$(pnpm exec supabase status -o env)"
           eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
-          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
-          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
-          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
-          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
-          test -n "$SUPABASE_SECRET_KEY"
-          pnpm --filter @aurevane/web build
+          local_secret="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$ANON_KEY"
+          test -n "$local_secret"
+          printf '::add-mask::%s\n' "$ANON_KEY" "$local_secret"
+          {
+            printf '%s\n' AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+            printf '%s\n' NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+            printf 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=%s\n' "$ANON_KEY"
+            printf 'SUPABASE_SECRET_KEY=%s\n' "$local_secret"
+          } >> "$GITHUB_ENV"
           db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
           docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
             set role service_role;
             select public.activate_phase4_combat_interactions_v2();
             select public.activate_phase4_discipline_rebalance_v1();
           "
-          story_result=0
+      - name: Build the production web bundle
+        run: pnpm --filter @aurevane/web build
+      - name: Verify authenticated quests and World NPC admission
+        id: story
+        continue-on-error: true
+        run: |
           pnpm --filter @aurevane/web exec playwright test e2e/master-event-builder.pw.ts \
             --project=desktop-chromium --project=mobile-chromium \
-            --grep 'an authored (Story Campaign|item exchange)|Farmer Joe dialogue' \
-            --output=test-results-story --reporter=list,github || story_result=$?
-          pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts --reporter=list,github
-          exit "$story_result"
+            --grep 'an authored (Story Campaign|item exchange|World NPC)|Farmer Joe dialogue' \
+            --output=test-results-story --reporter=list,github
+      - name: Verify authenticated Atlas and multiplayer
+        run: pnpm --filter @aurevane/web exec playwright test e2e/atlas-world.pw.ts --reporter=list,github
+      - name: Require successful quests and World NPC admission
+        if: steps.story.outcome == 'failure'
+        run: exit 1
       - name: Capture safe Realtime failure diagnostics
         if: failure()
         continue-on-error: true
@@ -123,6 +135,7 @@ jobs:
             apps/web/test-results/**/world-multiplayer-hotspot.png
             apps/web/test-results-story/**/authored-watch-*-complete.png
             apps/web/test-results-story/**/sealed-realm-challenge.png
+            apps/web/test-results-story/**/authored-world-npc-challenge.png
             apps/web/test-results/**/world-realtime-diagnostics.json
             apps/web/test-results/**/portrait-zoom-*.png
             apps/web/test-results/**/world-refined-controls.png

@@ -18,7 +18,12 @@ import type { WorldAttackReceipt } from '@/world/attack-receipt'
 import type { WorldMovementReceipt } from '@/world/movement-receipt'
 import { WorldNearbyPlayer } from './world-nearby-player'
 import { WorldPlacePortrait } from './world-place-portrait'
-import { mergeWorldRefresh, worldRefreshUrl } from '@/world/presence'
+import {
+  mergeWorldRefresh,
+  readWorldSceneRefresh,
+  WORLD_ATLAS_HEADER,
+  worldRefreshUrl,
+} from '@/world/presence'
 import type {
   WorldIntent,
   WorldInteraction,
@@ -252,21 +257,21 @@ export function WorldWorkspace({
           canvas && canvas.clientWidth > 0 && canvas.clientHeight > 0
             ? { width: canvas.clientWidth, height: canvas.clientHeight }
             : undefined
-        const response = await fetch(
-            fullScene
-              ? viewport
-                ? worldRefreshUrl(previous, viewport)
-                : '/api/world'
-              : worldRefreshUrl(previous),
-            {
-              cache: 'no-store',
-              signal,
-            },
-          ),
-          body = await response.json()
-        if (!response.ok)
-          throw new Error(body.error?.message ?? 'The world could not be refreshed.')
-        return mergeWorldRefresh(previous, body)
+        const url = fullScene && !viewport ? '/api/world' : worldRefreshUrl(previous, viewport)
+        const read = async (knownAtlas?: string) => {
+          const response = await fetch(url, {
+            cache: 'no-store',
+            signal,
+            ...(knownAtlas ? { headers: { [WORLD_ATLAS_HEADER]: knownAtlas } } : {}),
+          })
+          const body = await response.json()
+          if (!response.ok)
+            throw new Error(body.error?.message ?? 'The world could not be refreshed.')
+          return body
+        }
+        return fullScene
+          ? readWorldSceneRefresh(previous, () => instance.view, read)
+          : mergeWorldRefresh(previous, await read())
       },
       accept,
       confirmMovement: (next) => {

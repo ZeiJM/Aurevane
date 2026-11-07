@@ -139,6 +139,7 @@ export type WorldInteractionActionId =
   | 'travel-realm'
   | 'leave-realm'
   | 'challenge-realm'
+  | 'challenge-npc'
 export interface WorldInteraction {
   id: string
   objectiveId: string
@@ -239,6 +240,8 @@ export interface WorldView {
   scenery?: WorldScenerySector[]
   /** Compact overview; private terrain and undiscovered landmarks never enter this list. */
   atlas?: WorldAtlasCell[]
+  /** Opt-in scene transport receipt for this character's exact atlas projection. */
+  atlasToken?: string
   players: WorldPlayer[]
   npcs?: WorldNpcPresentation[]
   objectives: WorldObjective[]

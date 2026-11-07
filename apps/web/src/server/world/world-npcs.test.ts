@@ -47,3 +47,18 @@ it('does not project another sector or a placement on invalid ground', () => {
     ]),
   ).toEqual({ npcs: [], interactions: [] })
 })
+
+it('offers an explicit local challenge for a published World encounter without exposing its tags', () => {
+  const state = newWorldState()
+  const fighter: PublishedWorldNpc = {
+    ...npc,
+    encounter: { arenaId: 'duel-yard', aiDifficulty: 'standard', tags: ['private-fixture-tag'] },
+  }
+  const view = projectLocalWorldNpcs(state, [fighter])
+  expect(view.interactions.map((entry) => entry.actionId)).toEqual([null, 'challenge-npc'])
+  expect(JSON.stringify(view)).not.toContain('private-fixture-tag')
+  expect(
+    projectLocalWorldNpcs({ ...state, position: { ...state.position, x: 2 } }, [fighter])
+      .interactions,
+  ).toEqual([])
+})

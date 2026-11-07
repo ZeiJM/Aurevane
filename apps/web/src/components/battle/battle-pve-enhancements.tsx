@@ -30,7 +30,9 @@ export function BattlePveEnhancements({
   const battleHallRecord = scenario
     ? getTacticalHallRecordFromScenarioSourceId(scenario.provenance.sourceId)
     : null
-  const lessonActive = initialBattle.snapshot.tactical.battle.lifecycle === 'active'
+  const worldEncounter = initialBattle.snapshot.worldBattleOrigin !== undefined
+  const lessonActive =
+    !worldEncounter && initialBattle.snapshot.tactical.battle.lifecycle === 'active'
 
   return (
     <>
@@ -53,7 +55,7 @@ export function BattlePveEnhancements({
         playerPortraitAssetId={runtime.playerPortraitAssetId}
         playerProfileImageUrl={runtime.playerProfileImageUrl}
       />
-      <BattleRecruitRecoveryAssist />
+      {worldEncounter ? null : <BattleRecruitRecoveryAssist />}
       <BattleFeedbackAssist
         playerName={runtime.playerName}
         playerProfileImageUrl={runtime.playerProfileImageUrl}

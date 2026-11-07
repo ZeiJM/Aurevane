@@ -61,3 +61,9 @@ export interface PersonalItemExchange extends PersonalJourneyDialogue {
 }
 
 export type PersonalJourney = PersonalTravelJourney | PersonalItemExchange
+
+export interface PersonalInventoryDiscovery {
+  readonly firstItemId: string
+  readonly secondItemId: string
+  readonly clue: string
+}

@@ -16,10 +16,16 @@ import type {
 } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { loadWorldNpcs, peekWorldNpcs, resetWorldNpcReadCache } from './world-npcs'
-import { personalQuestRunId, projectPersonalQuests } from './world-personal-quests'
+import {
+  personalQuestRunId,
+  projectPersonalQuests,
+  projectRepeatableTravel,
+  repeatableTravelReference,
+} from './world-personal-quests'
 import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { projectWorldFerry } from './world-ferry'
+import { isWorldUuid } from '@/world/command'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
 import {
@@ -49,6 +55,13 @@ export function worldRpcError(error: { message?: string; code?: string }): never
     throw new AurevaneError('INVALID_REQUEST', 'Return to your active battle.')
   if (message.includes('WORLD_SPECTATING'))
     throw new AurevaneError('INVALID_REQUEST', 'Leave spectating before travelling.')
+  if (message === 'WORLD_NPC_CHALLENGE_UNAVAILABLE')
+    throw new AurevaneError('INVALID_REQUEST', 'This NPC challenge is no longer available.')
+  if (message === 'WORLD_NPC_CHALLENGE_OUT_OF_RANGE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Stop moving within reach of the NPC before challenging them.',
+    )
   if (message.includes('WORLD_TARGET'))
     throw new AurevaneError('INVALID_REQUEST', 'That player is no longer within reach.')
   if (message.includes('WORLD_QUEST_OUT_OF_RANGE'))
@@ -98,6 +111,7 @@ async function readWorldData(
   serverNow: number
   eventObjectives?: unknown
   personalQuests?: unknown
+  repeatableActivities?: unknown
   trainingExpired?: boolean
   blocked?: string
   battleSessionId?: string
@@ -217,6 +231,7 @@ export async function settleWorldAttackAuthority(
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(current.eventObjectives),
     ...projectPersonalQuests(current.personalQuests).objectives,
+    ...projectRepeatableTravel(current.repeatableActivities).objectives,
   ])
   const fingerprint = createHash('sha256')
     .update(JSON.stringify({ characterId, expectedVersion, intent }))
@@ -271,16 +286,18 @@ async function presentWorldData(
   viewport?: WorldSceneViewport,
 ) {
   const quests = projectPersonalQuests(data.personalQuests)
+  const activities = projectRepeatableTravel(data.repeatableActivities)
   const objectives = [
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(data.eventObjectives),
     ...quests.objectives,
+    ...activities.objectives,
   ]
   const state = data.state as WorldState
   // Build the expensive terrain projection once. Only its server-derived scene IDs
   // can widen presence; unsurveyed cells are filtered before images or serialization.
   const view = projectWorld(state, [], data.serverNow, objectives, undefined, viewport)
-  view.interactions.push(...quests.interactions)
+  view.interactions.push(...quests.interactions, ...activities.interactions)
   const sceneSectorIds = view.sectors.map((sector) => sector.id)
   const [presence, environmentSettings, localNpcs] = await Promise.all([
     (async () => {
@@ -384,6 +401,41 @@ export async function commitWorldCommand(
     if (error) worldRpcError(error)
     return (await readWorld(userId, characterId)).view
   }
+  if (command.intent.kind === 'interact' && command.intent.actionId === 'challenge-npc') {
+    const npcId = command.intent.interactionId.startsWith('npc-challenge-')
+      ? command.intent.interactionId.slice('npc-challenge-'.length)
+      : null
+    if (!isWorldUuid(npcId) || npcId !== npcId.toLowerCase())
+      throw new AurevaneError('INVALID_REQUEST', 'Choose a valid World NPC challenge.')
+    const { startWorldNpcBattle } = await import('./world-npc-battle')
+    const battleSessionId = await startWorldNpcBattle(
+      userId,
+      characterId,
+      npcId,
+      command,
+      fingerprint,
+    )
+    const { view } = await readWorld(userId, characterId)
+    return { ...view, battleSessionId }
+  }
+  if (command.intent.kind === 'interact') {
+    const referenceId = repeatableTravelReference(command.intent.interactionId)
+    if (referenceId) {
+      if (command.intent.actionId !== 'accept' && command.intent.actionId !== 'report')
+        throw new AurevaneError('INVALID_REQUEST', 'Choose an explicit activity response.')
+      const { error } = await createSupabaseAdminClient().rpc('commit_world_repeatable_travel_v1', {
+        p_user_id: userId,
+        p_character_id: characterId,
+        p_expected_version: command.expectedVersion,
+        p_command_id: command.commandId,
+        p_reference_id: referenceId,
+        p_action: command.intent.actionId,
+        p_request_fingerprint: fingerprint,
+      })
+      if (error) worldRpcError(error)
+      return (await readWorld(userId, characterId)).view
+    }
+  }
   if (current.lastCommandId === command.commandId) {
     if (current.lastCommandFingerprint !== fingerprint)
       throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That travel command was already used.')
@@ -433,6 +485,7 @@ export async function commitWorldCommand(
     ...WORLD_OBJECTIVES,
     ...eventWorldObjectives(current.eventObjectives),
     ...projectPersonalQuests(current.personalQuests).objectives,
+    ...projectRepeatableTravel(current.repeatableActivities).objectives,
   ])
   const { data: committed, error } = await createSupabaseAdminClient().rpc(
     'commit_world_state_v1',

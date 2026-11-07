@@ -60,13 +60,17 @@ const {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
   varyAppearanceOutfit,
+  withLowerGarment,
 } = await server.ssrLoadModule('/src/appearance/appearance-manifest.ts')
 const { WARDROBE_CUTS, WARDROBE_CUT_LABELS } = await server.ssrLoadModule(
   '/src/appearance/appearance-wardrobe-catalog.ts',
 )
+const { LOWER_GARMENTS, LOWER_GARMENT_LABELS } = await server.ssrLoadModule(
+  '/src/appearance/appearance-lower-catalog.ts',
+)
 const { renderAppearanceAsset } = await server.ssrLoadModule('/src/appearance/appearance-svg.ts')
 const { GET } = await server.ssrLoadModule(
-  '/src/app/api/media/appearance/1/[blueprint]/[asset]/route.ts',
+  '/src/app/api/media/appearance/[version]/[blueprint]/[asset]/route.ts',
 )
 
 const seed = 0x41565245
@@ -97,6 +101,10 @@ const row = (name, blueprint) => {
 }
 const controlled = WARDROBE_CUTS.map((coat) =>
   row(WARDROBE_CUT_LABELS[coat], parseAppearanceBlueprint({ ...structuralBase, coat })),
+)
+const lowerBase = parseAppearanceBlueprint({ ...structuralBase, coat: 'bolero' })
+const lowerComparison = ['original', ...LOWER_GARMENTS].map((lower) =>
+  row(LOWER_GARMENT_LABELS[lower], withLowerGarment(lowerBase, lower)),
 )
 
 function sampleLooks() {
@@ -172,10 +180,10 @@ function gallery(subset, title, description, controlledComparison = false) {
 server.middlewares.use(async (req, res, next) => {
   try {
     const url = new URL(req.url, 'http://127.0.0.1')
-    const match = url.pathname.match(/^\/api\/media\/appearance\/1\/([^/]+)\/([^/]+)$/)
+    const match = url.pathname.match(/^\/api\/media\/appearance\/([^/]+)\/([^/]+)\/([^/]+)$/)
     if (match) {
       const response = await GET(new Request(url), {
-        params: Promise.resolve({ blueprint: match[1], asset: match[2] }),
+        params: Promise.resolve({ version: match[1], blueprint: match[2], asset: match[3] }),
       })
       res.writeHead(response.status, Object.fromEntries(response.headers))
       res.end(await response.text())
@@ -185,6 +193,18 @@ server.middlewares.use(async (req, res, next) => {
       res.setHeader('Content-Type', 'text/html; charset=utf-8')
       res.end(
         `<!DOCTYPE html><html lang="en"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Appearance builder review</title><div id="root"></div><script type="module" src="${fixtureModule}"></script></html>`,
+      )
+      return
+    }
+    if (url.pathname === '/lower-comparison') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      res.end(
+        gallery(
+          lowerComparison,
+          'Independent lower garments',
+          'One identity, top and palette. The lower garment changes at field and battle scale.',
+          true,
+        ),
       )
       return
     }
@@ -270,11 +290,15 @@ async function enumerateStructure() {
         }
     }
   const valid = raw.map(parseAppearanceBlueprint).filter(Boolean)
+  const lowerCandidates = raw.flatMap((blueprint) =>
+    LOWER_GARMENTS.map((lower) => ({ ...blueprint, v: 2, lower })),
+  )
+  const validLower = lowerCandidates.map(parseAppearanceBlueprint).filter(Boolean)
   const exact = new Set()
   const counted = []
   // A stable greedy lower bound: every retained pair clears the pixel threshold.
   // Putting the canonical cuts first ensures that small fitting variants cannot crowd them out.
-  const ordered = [...controlled.map(({ blueprint }) => blueprint), ...valid]
+  const ordered = [...controlled.map(({ blueprint }) => blueprint), ...valid, ...validLower]
   for (const blueprint of ordered) {
     const pixels = await spritePixels(blueprint, true)
     const key = pixelKey(pixels)
@@ -291,8 +315,12 @@ async function enumerateStructure() {
     }
   }
   return {
-    attempted: raw.length,
-    compatible: valid.length,
+    attempted: raw.length + lowerCandidates.length,
+    compatible: valid.length + validLower.length,
+    v1Counted: counted.filter(({ blueprint }) => blueprint.v === 1).length,
+    v2Attempted: lowerCandidates.length,
+    v2Compatible: validLower.length,
+    v2Counted: counted.filter(({ blueprint }) => blueprint.v === 2).length,
     uniquePixelOutputs: exact.size,
     counted: counted.length,
     countedByCut: Object.fromEntries(
@@ -374,13 +402,13 @@ async function measureDiversity() {
   }
 }
 
-async function compareCuts() {
-  const pixels = await Promise.all(controlled.map(({ blueprint }) => spritePixels(blueprint, true)))
+async function compareCuts(looks) {
+  const pixels = await Promise.all(looks.map(({ blueprint }) => spritePixels(blueprint, true)))
   let closest = { pixels: Infinity }
   let closestSilhouette = { pixels: Infinity }
-  for (let left = 0; left < controlled.length; left++)
-    for (let right = left + 1; right < controlled.length; right++) {
-      const pair = { left: controlled[left].name, right: controlled[right].name }
+  for (let left = 0; left < looks.length; left++)
+    for (let right = left + 1; right < looks.length; right++) {
+      const pair = { left: looks[left].name, right: looks[right].name }
       const distance = differingPixels(pixels[left], pixels[right])
       const outlineDistance = differingPixels(pixels[left], pixels[right], Infinity, true)
       if (distance < closest.pixels) closest = { ...pair, pixels: distance }
@@ -389,7 +417,7 @@ async function compareCuts() {
     }
   assert(closest.pixels >= minimumStructuralDistance)
   assert(closestSilhouette.pixels >= 8)
-  return { total: controlled.length, closest, closestSilhouette }
+  return { total: looks.length, closest, closestSilhouette }
 }
 
 async function reviewBuilder(browser, origin) {
@@ -411,14 +439,28 @@ async function reviewBuilder(browser, origin) {
     await open.click()
     const dialog = page.getByRole('dialog')
     const silhouette = dialog.getByLabel('Silhouette')
+    const lower = dialog.getByLabel('Lower garment')
+    const optionDisabled = (select, value) =>
+      select.locator(`option[value="${value}"]`).evaluate((option) => option.disabled)
     const portrait = dialog.getByAltText('Neutral appearance portrait')
     const src = () => portrait.getAttribute('src')
     const initial = await src()
+    assert(await optionDisabled(lower, 'kilt'))
     assert(
       await silhouette.locator('option[value="greatcloak"]').evaluate((option) => option.disabled),
     )
     await silhouette.selectOption('bolero')
     assert.notEqual(await src(), initial)
+    assert.equal(await optionDisabled(lower, 'kilt'), false)
+    await lower.selectOption('kilt')
+    assert.match(await src(), /appearance\/2\/.+\.kilt\/neutral\.svg$/)
+    assert(await optionDisabled(silhouette, 'gown'))
+    await dialog.getByRole('button', { name: 'Vary silhouette' }).click()
+    assert.equal(await silhouette.inputValue(), 'brigandine')
+    assert.equal(await lower.inputValue(), 'kilt')
+    await lower.selectOption('original')
+    assert.match(await src(), /appearance\/1\//)
+    await silhouette.selectOption('bolero')
     await dialog.getByRole('button', { name: 'Vary silhouette' }).click()
     assert.equal(await silhouette.inputValue(), 'gown')
     await silhouette.selectOption('cuirass')
@@ -437,7 +479,8 @@ async function reviewBuilder(browser, origin) {
     await silhouette.selectOption('greatcloak')
     await dialog.getByRole('button', { name: 'Undo' }).click()
     assert.equal(await silhouette.inputValue(), 'cuirass')
-    await silhouette.selectOption('greatcloak')
+    await silhouette.selectOption('bolero')
+    await lower.selectOption('divided')
     const chosen = await src()
     const bounds = await dialog.evaluate((element) => {
       const box = element.getBoundingClientRect()
@@ -466,12 +509,14 @@ async function reviewBuilder(browser, origin) {
     await dialog.waitFor({ state: 'hidden' })
     await open.click()
     assert.equal(await src(), chosen)
+    assert.equal(await lower.inputValue(), 'divided')
     assert.deepEqual(errors, [])
     await page.close()
     receipts.push({
       mode,
       viewport,
-      rules: 'incompatible options, variation, undo, asset validation, confirm and reopen',
+      rules:
+        'incompatible options, v1/v2 lower selection and restore, variation, undo, asset validation, confirm and reopen',
     })
   }
   return receipts
@@ -500,6 +545,7 @@ try {
     await page.screenshot({ path: resolve(output, filename), fullPage: true })
   }
   await capture('/comparison', 'wardrobe-comparison.png')
+  await capture('/lower-comparison', 'lower-garment-comparison.png')
   for (let start = 0; start < samples.length; start += 20) {
     await capture(`/review?start=${start}`, `catalog-${String(start + 1).padStart(3, '0')}.png`)
   }
@@ -507,6 +553,7 @@ try {
   let validAssets = 0
   for (const { manifest } of [
     ...controlled,
+    ...lowerComparison,
     ...samples,
     ...APPEARANCE_PRESETS.map(({ name, blueprint }) => row(name, blueprint)),
   ]) {
@@ -517,6 +564,7 @@ try {
     ]) {
       const response = await GET(new Request(origin + asset), {
         params: Promise.resolve({
+          version: String(manifest.blueprint.v),
           blueprint: manifest.id.slice(2),
           asset: asset.split('/').at(-1),
         }),
@@ -526,8 +574,9 @@ try {
       validAssets++
     }
   }
-  const [comparison, structure, diversity, builder] = await Promise.all([
-    compareCuts(),
+  const [comparison, lowerGarments, structure, diversity, builder] = await Promise.all([
+    compareCuts(controlled),
+    compareCuts(lowerComparison),
     enumerateStructure(),
     measureDiversity(),
     reviewBuilder(browser, origin),
@@ -539,6 +588,7 @@ try {
     chromium: browser.version(),
     views,
     comparison,
+    lowerGarments,
     structure,
     diversity,
     builder,

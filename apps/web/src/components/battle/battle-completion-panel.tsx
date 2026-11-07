@@ -87,6 +87,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   }
   const player = battleState.combatants.find((combatant) => combatant.teamId === 'players')
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
+  const worldEncounter = battle.snapshot.worldBattleOrigin !== undefined
   const guidedTraining = recordId === 'guided-fundamentals'
   const guidedTrainingSucceeded = Boolean(guidedTraining && player && player.hp > 0)
   const headline = guidedTrainingSucceeded ? 'Training Complete' : result
@@ -222,12 +223,14 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
               </svg>
             </span>
             <p className={styles.eyebrow}>
-              Battle Hall ·{' '}
-              {guidedTraining
-                ? guidedTrainingSucceeded
-                  ? 'Guided Exercise Complete'
-                  : 'Guided Exercise Result'
-                : 'Practice Result'}
+              {worldEncounter
+                ? 'World encounter · Result'
+                : 'Battle Hall · ' +
+                  (guidedTraining
+                    ? guidedTrainingSucceeded
+                      ? 'Guided Exercise Complete'
+                      : 'Guided Exercise Result'
+                    : 'Practice Result')}
             </p>
             <h2 id="battle-hall-result-title">{headline}</h2>
             <p>
@@ -235,19 +238,24 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
                 ? `All Guided Fundamentals criteria were verified from the committed battle record in Round ${battleState.round}.`
                 : guidedTraining
                   ? `The Wayfarer was defeated in Round ${battleState.round}, so the Guided Fundamentals exercise ended in defeat.`
-                  : `The exercise concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
+                  : `${worldEncounter ? 'The encounter' : 'The exercise'} concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
             </p>
           </div>
 
-          <dl className={styles.record} aria-label="Battle Hall practice result">
+          <dl
+            className={styles.record}
+            aria-label={worldEncounter ? 'World encounter result' : 'Battle Hall practice result'}
+          >
             <div>
-              <dt>Exercise</dt>
+              <dt>{worldEncounter ? 'Opponent' : 'Exercise'}</dt>
               <dd>
-                {guidedTraining
-                  ? 'Guided Fundamentals'
-                  : recordId === 'mastery-trial'
-                    ? 'Discipline Mastery Trial'
-                    : 'AI Sparring'}
+                {worldEncounter
+                  ? battle.snapshot.arenaNpc?.name
+                  : guidedTraining
+                    ? 'Guided Fundamentals'
+                    : recordId === 'mastery-trial'
+                      ? 'Discipline Mastery Trial'
+                      : 'AI Sparring'}
               </dd>
             </div>
             <div>
@@ -261,7 +269,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
               <dd>{player ? `${player.hp}/${player.maxHp}` : '—'}</dd>
             </div>
             <div>
-              <dt>Recruit HP</dt>
+              <dt>{worldEncounter ? 'Opponent HP' : 'Recruit HP'}</dt>
               <dd>{recruit ? `${recruit.hp}/${recruit.maxHp}` : '—'}</dd>
             </div>
           </dl>
@@ -275,15 +283,17 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
                 : 'Practice battle concluded'}
             </strong>
             <p>
-              {recordId === 'mastery-trial'
-                ? 'A qualifying victory awards up to 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
-                : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
+              {worldEncounter
+                ? 'You can review the committed battle history before returning to the World.'
+                : recordId === 'mastery-trial'
+                  ? 'A qualifying victory awards up to 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
+                  : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
             </p>
           </div>
         </div>
 
         <div className={styles.logActions}>
-          {recordId === 'mastery-trial' && result === 'Victory' ? (
+          {!worldEncounter && recordId === 'mastery-trial' && result === 'Victory' ? (
             <>
               <button
                 type="button"
@@ -338,24 +348,26 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           <button
             type="button"
             className={styles.primary}
-            onClick={() => router.push('/game/battle')}
+            onClick={() => router.push(worldEncounter ? '/game/world' : '/game/battle')}
           >
-            Return to Battle Hall
+            {worldEncounter ? 'Return to World' : 'Return to Battle Hall'}
           </button>
-          <button
-            type="button"
-            className={styles.secondary}
-            onClick={() => void retry()}
-            disabled={retryPending || !characterId}
-          >
-            {retryPending
-              ? 'Preparing…'
-              : guidedTraining
-                ? 'Run Lesson Again'
-                : battle.snapshot.arenaNpc
-                  ? `Rematch ${battle.snapshot.arenaNpc.name}`
-                  : 'Rematch Recruit'}
-          </button>
+          {!worldEncounter ? (
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => void retry()}
+              disabled={retryPending || !characterId}
+            >
+              {retryPending
+                ? 'Preparing…'
+                : guidedTraining
+                  ? 'Run Lesson Again'
+                  : battle.snapshot.arenaNpc
+                    ? `Rematch ${battle.snapshot.arenaNpc.name}`
+                    : 'Rematch Recruit'}
+            </button>
+          ) : null}
         </div>
       </section>
     </div>

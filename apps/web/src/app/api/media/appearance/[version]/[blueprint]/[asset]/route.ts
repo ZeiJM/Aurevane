@@ -3,10 +3,11 @@ import { renderAppearanceAsset } from '@/appearance/appearance-svg'
 
 export async function GET(
   _request: Request,
-  { params }: { params: Promise<{ blueprint: string; asset: string }> },
+  { params }: { params: Promise<{ version: string; blueprint: string; asset: string }> },
 ) {
-  const { blueprint: id, asset: filename } = await params
-  const blueprint = appearanceBlueprintFromId(id)
+  const { version, blueprint: id, asset: filename } = await params
+  if (version !== '1' && version !== '2') return new Response(null, { status: 404 })
+  const blueprint = appearanceBlueprintFromId(id, version === '1' ? 1 : 2)
   const asset = filename.endsWith('.svg') ? filename.slice(0, -4) : ''
   if (!blueprint || !isAppearanceAsset(asset)) return new Response(null, { status: 404 })
 

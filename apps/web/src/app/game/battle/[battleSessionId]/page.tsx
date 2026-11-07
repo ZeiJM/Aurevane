@@ -272,7 +272,12 @@ export default async function BattleSessionPage({
   }
 
   if (battle.snapshot.tactical.battle.lifecycle === 'abandoned')
-    redirect(battleReturnNavigation(pvpMetadata?.origin ?? 'battle-hall', returnTo).href)
+    redirect(
+      battleReturnNavigation(
+        pvpMetadata?.origin ?? (battle.snapshot.worldBattleOrigin ? 'world' : 'battle-hall'),
+        returnTo,
+      ).href,
+    )
 
   if (pvpMetadata) {
     const localParticipant = pvpMetadata.participants.find(

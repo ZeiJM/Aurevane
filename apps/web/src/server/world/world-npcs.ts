@@ -45,6 +45,20 @@ export function projectLocalWorldNpcs(state: WorldState, rows: readonly Publishe
       actionId: null,
       progress: 'completed',
     })
+    if (row.encounter && state.route.length === 0) {
+      interactions.push({
+        id: `npc-challenge-${row.id}`,
+        objectiveId: `npc-challenge-${row.id}`,
+        speakerId: row.id,
+        speaker: row.name,
+        title: 'Challenge',
+        body: row.greeting,
+        ...(imageUrl ? { portraitUrl: imageUrl } : {}),
+        actionLabel: 'Start battle',
+        actionId: 'challenge-npc',
+        progress: 'available',
+      })
+    }
   }
   return { npcs, interactions }
 }

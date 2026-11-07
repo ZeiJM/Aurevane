@@ -24,3 +24,13 @@ AV_CHROMIUM_EXECUTABLE=/path/to/chromium \
 ```
 
 The directory contains `wardrobe-comparison.png`, six `catalog-*.png` sheets, `catalog-samples.json` (seed, exact recipes, asset/count receipts, comparison and variation measures), and desktop/mobile screenshots of the shared dialog. The dialog fixture exercises disabled incompatible choices, variation, undo, preloading the complete image set, confirmation and reopening the chosen design. The callback is isolated and does not write an account or change production state.
+
+## Independent lower garments
+
+Seven short vector tops now support eight independently selected lower constructions. The options include wrapped leggings, cuffed breeches, wide-leg trousers, a pleated kilt, an asymmetric apron, a divided overskirt, armored greaves, and shorts with tall boots. Long and integrated tops cover the layer, so the builder and persisted recipe validator reject those combinations. The builder keeps the lower garment while varying compatible tops. Selecting Original trousers restores the v1 recipe. The new choice is visible in the atlas. Its bust portraits, five expressions and icon use the same pixels as the corresponding upper outfit.
+
+The new v2 recipe appends one lower-garment ID. Both media versions use the same asset reader, and an isolated database run checked the existing approval functions with each version. A v1 look was pinned on admission. A v2 candidate queued during the fight and activated after completion, with the prior battle's pin preserved. The NPC validator accepted the same v2 recipe and rejected an incompatible top. The database rejected a v2 alias for Original trousers. The builder was exercised at 1280 × 860 and 390 × 844, including incompatible options, switching between versions, undo, image loading, confirmation and reopening the chosen recipe.
+
+`lower-garment-comparison.png` holds identity, color, top and fittings constant across eight new choices and the original. The closest pair differed by 305 material or edge pixels across the two gameplay crops. The closest silhouette pair differed by 104 opaque outline pixels. The same command above now includes that sheet, the original 120 seeded looks, and 1,064 route responses.
+
+The expanded inventory uses the prior threshold and preserves the v1 enumeration order. It rasterized 1,827 compatible constructions from 5,832 attempted recipes. The pairwise filter retained **1,794**, comprising 570 v1 and 1,224 v2 constructions. Each retained v2 recipe cleared the same threshold against all earlier v1 and v2 selections. This leaves 8,206 constructions to the 10,000 target. The count covers the vector rig. Independent cuff and lining choices, further layering, and production painted coverage remain open.

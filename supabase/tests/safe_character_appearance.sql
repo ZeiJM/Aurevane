@@ -32,10 +32,17 @@ declare
   v_character uuid := '84000000-0000-4000-8000-000000000011';
   v_battle uuid := '84000000-0000-4000-8000-000000000021';
   v_first text := '/api/media/appearance/1/slight.tan.braid.copper.tunic.open.split.lacing.pointed.linen.satchel.pine/neutral.svg';
-  v_next text := '/api/media/appearance/1/broad.deep.crop.onyx.plate.fur.close.clasps.split.quilt.brooch.indigo/neutral.svg';
+  v_next text := '/api/media/appearance/2/broad.deep.crop.onyx.cuirass.fur.close.clasps.split.quilt.brooch.indigo.greaves/neutral.svg';
   v_receipt jsonb;
   v_snapshot jsonb;
 begin
+  assert app_private.valid_npc_appearance_v1(to_jsonb(v_next)), 'NPC contract accepts a compatible new recipe';
+  assert not app_private.valid_npc_appearance_v1(to_jsonb(replace(v_next,'.cuirass.','.greatcloak.'))), 'NPC rejects a lower layer hidden by its top';
+  begin
+    perform public.commit_character_appearance_v2(v_user,v_character,0,replace(v_next,'.greaves/','.original/'));
+    raise exception 'alias for original v1 look accepted';
+  exception when sqlstate '22023' then null;
+  end;
   v_receipt := public.commit_character_appearance_v2(v_user,v_character,0,v_first);
   assert v_receipt = jsonb_build_object('revision',1,'imageUrl',v_first,'pendingImageUrl',null), 'safe immediate activation';
   v_snapshot := '{"tactical":{"battle":{"battleId":"appearance-regression","rulesVersion":1,"contentVersion":1,"lifecycle":"active","combatants":[{},{}],"rng":{}}}}'::jsonb ||

@@ -179,6 +179,12 @@ function mapRpcError(error: RpcError): never {
       'Choose a published Story NPC with a World placement in the selected audience and a different published Story NPC as guardian.',
       { cause: error },
     )
+  if (message === 'EVENT_INVENTORY_DISCOVERY_ITEM_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose two enabled Material, Event, or General Items for this discovery.',
+      { cause: error },
+    )
   if (message === 'EVENT_PERSONAL_EXCHANGE_ITEMS_UNAVAILABLE')
     throw new AurevaneError(
       'INVALID_REQUEST',

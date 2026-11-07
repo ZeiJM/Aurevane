@@ -5,9 +5,10 @@ import { assertGameplayMutationAllowed } from '@/server/account/active-game-sess
 import { SELECTED_CHARACTER_COOKIE } from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
 import { attackWorldPlayer } from '@/server/world/world-battle'
+import { worldAtlasReceipt } from '@/server/world/world-atlas-receipt'
 import { commitWorldCommand, readWorld } from '@/server/world/world-repository'
 import { isWorldUuid, parseWorldCommand } from '@/world/command'
-import { worldRefreshResponse } from '@/world/presence'
+import { WORLD_ATLAS_HEADER, worldRefreshResponse } from '@/world/presence'
 
 export const dynamic = 'force-dynamic'
 let lastSlowApprovalAt = -Infinity
@@ -38,7 +39,12 @@ export async function GET(request?: Request) {
         ? readWorld(actor.userId, actor.characterId, viewport)
         : readWorld(actor.userId, actor.characterId))
     ).view
-    return json(worldRefreshResponse(view, request?.url ?? '/api/world'))
+    const receipt = worldRefreshResponse(view, request?.url ?? '/api/world')
+    return json(
+      'kind' in receipt
+        ? receipt
+        : worldAtlasReceipt(receipt, request?.headers.get(WORLD_ATLAS_HEADER) ?? null),
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }

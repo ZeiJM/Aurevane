@@ -4,6 +4,8 @@ import {
   isPersonalQuestGiver,
   isPersonalJourneyNpcId,
   type PersonalJourney,
+  type PersonalInventoryDiscovery,
+  type PersonalTravelJourney,
 } from './personal-journey'
 
 export * from './personal-journey'
@@ -130,6 +132,19 @@ export interface PersistentEventPhaseDefinition {
   readonly transition: EventPhaseTransition
 }
 
+export type EventRecurrence =
+  | { readonly mode: 'rolling-24h' }
+  | {
+      readonly mode: 'calendar-day' | 'calendar-week'
+      readonly timeZone: string
+      readonly resetMinute: number
+    }
+
+export interface RepeatableTravel {
+  readonly journey: PersonalTravelJourney
+  readonly recurrence: EventRecurrence
+}
+
 export interface PersistentEventDefinition {
   readonly schemaVersion: typeof PERSISTENT_EVENT_SCHEMA_VERSION
   readonly eventKey: string
@@ -141,6 +156,8 @@ export interface PersistentEventDefinition {
   readonly family: EventFamily
   readonly category?: EventCategory
   readonly personalJourney?: PersonalJourney
+  readonly inventoryDiscovery?: PersonalInventoryDiscovery
+  readonly repeatableTravel?: RepeatableTravel
   readonly scope: EventScope
   readonly phases: readonly PersistentEventPhaseDefinition[]
   readonly rewardPackageRefs: readonly string[]
@@ -177,6 +194,12 @@ function identity(value: string, label: string): void {
   if (typeof value !== 'string' || !/^[a-z0-9][a-z0-9._:-]{1,159}$/.test(value)) {
     throw new TypeError(`${label} must be a stable lowercase identity.`)
   }
+}
+
+function isPersonalItemIdentity(value: unknown): value is string {
+  return (
+    typeof value === 'string' && value.length <= 160 && /^[a-z0-9]+([._-][a-z0-9]+)*$/.test(value)
+  )
 }
 
 function shortText(value: string, label: string, max: number): void {
@@ -321,6 +344,80 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     }
   }
 
+  if (definition.inventoryDiscovery !== undefined) {
+    const discovery = definition.inventoryDiscovery
+    if (
+      !discovery ||
+      typeof discovery !== 'object' ||
+      Object.keys(discovery).some(
+        (key) => !['firstItemId', 'secondItemId', 'clue'].includes(key),
+      ) ||
+      !isPersonalItemIdentity(discovery.firstItemId) ||
+      !isPersonalItemIdentity(discovery.secondItemId) ||
+      discovery.firstItemId === discovery.secondItemId
+    ) {
+      throw new TypeError('Choose two different carried Item identities for the discovery.')
+    }
+    const { scope, phases, personalJourney, rewardPackageRefs, aftermathRefs } = definition
+    if (
+      resolveEventCategory(definition) !== 'hidden-discoveries' ||
+      scope.type !== 'global' ||
+      personalJourney !== undefined ||
+      phases.length !== 1 ||
+      phases[0]?.transition.type !== 'manual' ||
+      phases[0].objectives.length ||
+      phases[0].effects.length ||
+      phases[0].cleanupEffects.length ||
+      rewardPackageRefs.length ||
+      aftermathRefs.length
+    ) {
+      throw new TypeError(
+        'Carried Item discovery requires a global Hidden Discovery with one manual phase and no shared effects or rewards.',
+      )
+    }
+    shortText(discovery.clue, 'Revealed clue', 800)
+  }
+
+  if (definition.repeatableTravel !== undefined) {
+    const repeatable = definition.repeatableTravel
+    if (
+      repeatable?.journey?.type !== 'travel-and-report' ||
+      definition.personalJourney !== undefined ||
+      resolveEventCategory(definition) !== 'repeatable-activities'
+    ) {
+      throw new TypeError(
+        'Repeatable travel requires a Repeatable Activity with one travel journey.',
+      )
+    }
+    if (definition.rewardPackageRefs.length || definition.aftermathRefs.length) {
+      throw new TypeError('Repeatable travel does not grant rewards.')
+    }
+    const policy = repeatable.recurrence
+    if (!policy || !['rolling-24h', 'calendar-day', 'calendar-week'].includes(policy.mode))
+      throw new TypeError('Choose a supported recurrence.')
+    if (policy.mode !== 'rolling-24h') {
+      try {
+        if (typeof policy.timeZone !== 'string' || !policy.timeZone) throw new Error()
+        new Intl.DateTimeFormat('en', { timeZone: policy.timeZone })
+      } catch {
+        throw new TypeError('Choose a valid calendar timezone.')
+      }
+      if (
+        !Number.isInteger(policy.resetMinute) ||
+        policy.resetMinute < 0 ||
+        policy.resetMinute > 1439
+      ) {
+        throw new TypeError('Choose a calendar reset time from 00:00 to 23:59.')
+      }
+    }
+    validatePersistentEventDefinition({
+      ...definition,
+      category: 'story-campaigns',
+      personalJourney: repeatable.journey,
+      repeatableTravel: undefined,
+    })
+  }
+
   if (definition.personalJourney !== undefined) {
     const journey = definition.personalJourney
     if (
@@ -390,14 +487,9 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       }
       identity(destination.sectorId, 'Quest destination sector')
     } else {
-      const itemId = /^[a-z0-9]+([._-][a-z0-9]+)*$/
       if (
-        typeof journey.inputItemId !== 'string' ||
-        typeof journey.outputItemId !== 'string' ||
-        journey.inputItemId.length > 160 ||
-        journey.outputItemId.length > 160 ||
-        !itemId.test(journey.inputItemId) ||
-        !itemId.test(journey.outputItemId) ||
+        !isPersonalItemIdentity(journey.inputItemId) ||
+        !isPersonalItemIdentity(journey.outputItemId) ||
         journey.inputItemId === journey.outputItemId
       ) {
         throw new TypeError('Choose two different Items for the exchange.')

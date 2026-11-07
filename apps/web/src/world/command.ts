@@ -47,7 +47,8 @@ export function parseWorldCommand(value: unknown): WorldCommand | null {
       input.actionId === 'claim-exchange' ||
       input.actionId === 'travel-realm' ||
       input.actionId === 'leave-realm' ||
-      input.actionId === 'challenge-realm')
+      input.actionId === 'challenge-realm' ||
+      input.actionId === 'challenge-npc')
   )
     intent = {
       kind: 'interact',

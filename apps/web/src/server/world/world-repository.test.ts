@@ -1205,3 +1205,96 @@ it('projects a personal quest from owned state and submits only explicit replies
     expect.objectContaining({ id: interactionId, actionId: null }),
   )
 })
+
+it('replays the exact NPC challenge binding through the normal World command', async () => {
+  const npcId = '50bcf54b-d667-4e03-af93-3457b0055a95'
+  const battleId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  rpc.mockImplementation(async (name: string) => ({
+    data: name === 'read_world_npc_battle_replay_v1' ? battleId : payload(),
+  }))
+  const challenge = {
+    ...command,
+    intent: {
+      kind: 'interact',
+      interactionId: `npc-challenge-${npcId}`,
+      actionId: 'challenge-npc',
+    },
+  } as const
+  const view = await commitWorldCommand('owner', characterId, challenge)
+  expect(view.battleSessionId).toBe(battleId)
+  expect(rpc).toHaveBeenCalledWith('read_world_npc_battle_replay_v1', {
+    p_user_id: 'owner',
+    p_character_id: characterId,
+    p_npc_id: npcId,
+    p_command_id: command.commandId,
+    p_world_fingerprint: expect.stringMatching(/^[a-f0-9]{64}$/),
+  })
+  expect(rpc.mock.calls.map(([name]) => name)).not.toContain('read_world_npc_battle_v1')
+})
+
+it('sends repeatable reports by attempt identity through the normal World interaction', async () => {
+  const attemptId = '00000000-0000-4000-8000-000000000047'
+  const interactionId = `repeatable-travel-${attemptId}`
+  const initial = payload()
+  const ready = {
+    runId: attemptId,
+    title: 'Trail survey',
+    body: 'Report back.',
+    giverId: 'eastern-watch-officer',
+    progress: 'ready',
+    action: 'report',
+    local: true,
+  }
+  let settled = false
+  rpc.mockImplementation(async (name: string) => {
+    if (name === 'commit_world_repeatable_travel_v1') {
+      settled = true
+      return { data: { ...initial.state, version: 2 } }
+    }
+    return {
+      data: {
+        ...initial,
+        state: { ...initial.state, version: settled ? 2 : 1 },
+        repeatableActivities: [
+          settled
+            ? {
+                ...ready,
+                progress: 'completed',
+                action: null,
+                nextAvailableAt: '2026-11-08T00:00:00Z',
+              }
+            : ready,
+        ],
+      },
+    }
+  })
+  const { view } = await readWorld('owner', characterId)
+  expect(view.interactions).toContainEqual(
+    expect.objectContaining({ id: interactionId, actionId: 'report' }),
+  )
+  const report = {
+    ...command,
+    intent: { kind: 'interact', interactionId, actionId: 'report' } as const,
+  }
+  const complete = await commitWorldCommand('owner', characterId, report)
+  expect(complete.objectives).toContainEqual(
+    expect.objectContaining({
+      id: interactionId,
+      completed: true,
+      description: expect.stringContaining('Available again'),
+    }),
+  )
+  // After the World version changes, the durable receipt still handles a retry.
+  await commitWorldCommand('owner', characterId, report)
+  expect(
+    rpc.mock.calls.filter(([name]) => name === 'commit_world_repeatable_travel_v1'),
+  ).toHaveLength(2)
+  expect(rpc).toHaveBeenCalledWith(
+    'commit_world_repeatable_travel_v1',
+    expect.objectContaining({
+      p_reference_id: attemptId,
+      p_action: 'report',
+      p_character_id: characterId,
+    }),
+  )
+})

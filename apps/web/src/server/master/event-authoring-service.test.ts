@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
+import { createEventStarter } from '@/components/master/events/event-authoring-assists'
+import { eventRuntimeBlockers } from '@/components/master/events/event-runtime-support'
 import type { PersistentEventDefinition } from '@aurevane/game-core/events/persistent-event'
 
 import {
@@ -181,6 +183,29 @@ function serviceFor(record: MasterPanelAccessRecord) {
 }
 
 describe('Event Builder authoring service', () => {
+  it.each(['timed-world', 'world-arrival', 'travel-and-report'] as const)(
+    'validates, saves and reloads the %s starter as a private draft',
+    async (starter) => {
+      const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
+      const prepared = createEventStarter(starter, `event.test-${starter}`)
+      expect(eventRuntimeBlockers(prepared)).toEqual([])
+      expect(service.validateDefinition(prepared)).toEqual({ valid: true, issues: [] })
+      await service.saveDraft({
+        actorUserId: EVENT_STAFF,
+        definition: prepared,
+        baseVersion: null,
+        expectedDraftVersion: null,
+      })
+      await expect(
+        service.loadWorkspace({ actorUserId: EVENT_STAFF, eventKey: prepared.eventKey }),
+      ).resolves.toMatchObject({
+        draft: { definition: prepared, draftVersion: 1 },
+        current: null,
+        versions: [],
+      })
+    },
+  )
+
   it('allows Event Staff to validate, preview and save private typed drafts', async () => {
     const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
 

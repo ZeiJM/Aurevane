@@ -147,6 +147,7 @@ const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
 export type BattleAuthoritativeEncounterState = StatDrivenCombatEncounterState & {
   buildAuthority?: BattleBuildAuthoritySnapshot
   arenaNpc?: ArenaNpcIdentity
+  worldBattleOrigin?: 'npc' | 'realm'
 }
 
 type ProjectedBattleState = Omit<BattleAuthoritativeEncounterState['tactical']['battle'], 'rng'>
@@ -193,6 +194,7 @@ export interface CreateBattleSessionCommand {
   arenaNpcId?: string
   /** Server-only context; the public Battle Hall parser cannot set it. */
   realmRunId?: string
+  worldNpcEncounter?: true
   aiDifficulty?: BattleAiDifficulty
   battleHallRecordId?: BattleHallRecordId
   allyCount?: number
@@ -864,6 +866,7 @@ export function createBattleSessionService({
               characterId: command.characterId,
               arenaNpcId: command.arenaNpcId,
               ...(command.realmRunId ? { realmRunId: command.realmRunId } : {}),
+              ...(command.worldNpcEncounter ? { worldNpcEncounter: true } : {}),
             }
           : {
               command: 'battle.create.v5',
@@ -1034,10 +1037,16 @@ export function createBattleSessionService({
         }
       }
       if (arenaNpc) {
+        const worldBattleOrigin = command.worldNpcEncounter
+          ? 'npc'
+          : command.realmRunId
+            ? 'realm'
+            : undefined
         const { id, name, portraitRef, revision, imageUrl } = arenaNpc
         encounter = {
           ...encounter,
           arenaNpc: { id, name, portraitRef, revision, ...(imageUrl ? { imageUrl } : {}) },
+          ...(worldBattleOrigin ? { worldBattleOrigin } : {}),
         }
       }
       let startup: CreateBattleSessionInput['startup']
@@ -1072,9 +1081,10 @@ export function createBattleSessionService({
           }
       }
       const battle = encounter.tactical.battle
-      const usageBalance = command.realmRunId
-        ? undefined
-        : await readUsageProvenance('pve-recruit', [command.userId])
+      const usageBalance =
+        command.realmRunId || command.worldNpcEncounter
+          ? undefined
+          : await readUsageProvenance('pve-recruit', [command.userId])
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,

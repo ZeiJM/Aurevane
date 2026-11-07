@@ -115,6 +115,54 @@ describe('persistent event definition', () => {
     expect(() => validate(arrival)).not.toThrow()
   })
 
+  it('allows a reward-free repeatable travel journey only with explicit supported recurrence', () => {
+    const base = definition()
+    const repeatable = {
+      ...base,
+      category: 'repeatable-activities',
+      scope: { type: 'region', key: 'verdant-expanse' },
+      phases: [
+        {
+          id: 'trail',
+          name: 'Trail',
+          transition: { type: 'manual' },
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+        },
+      ],
+      rewardPackageRefs: [],
+      aftermathRefs: [],
+      repeatableTravel: {
+        journey: {
+          type: 'travel-and-report',
+          giverId: 'eastern-watch-officer',
+          destination: { sectorId: 'verdant-expanse', x: 3, y: 4 },
+          offer: 'Walk there.',
+          active: 'Continue.',
+          ready: 'Report.',
+          completed: 'Thank you.',
+        },
+        recurrence: { mode: 'calendar-day', timeZone: 'America/Port_of_Spain', resetMinute: 240 },
+      },
+    } as const
+    const validate = (patch: object) =>
+      validatePersistentEventDefinition({ ...repeatable, ...patch })
+    expect(() => validate({})).not.toThrow()
+    expect(() => validate({ category: 'story-campaigns' })).toThrow(/repeatable/i)
+    expect(() => validate({ rewardPackageRefs: ['reward.unsupported'] })).toThrow(/reward/i)
+    expect(() =>
+      validate({
+        repeatableTravel: { ...repeatable.repeatableTravel, recurrence: { mode: 'calendar-day' } },
+      }),
+    ).toThrow(/timezone/i)
+    expect(() =>
+      validate({
+        repeatableTravel: { ...repeatable.repeatableTravel, recurrence: { mode: 'rolling-24h' } },
+      }),
+    ).not.toThrow()
+  })
+
   it('rejects arbitrary effect kinds and unknown objective transition references', () => {
     const invalidEffect = cloneDefinition()
     invalidEffect.phases[0].effects[0].type = 'script'
@@ -140,4 +188,45 @@ describe('persistent event definition', () => {
     expect(() => assertEventRunTransition('ended', 'emergency-stopped')).not.toThrow()
     expect(() => assertEventRunTransition('archived', 'live')).toThrow(/cannot transition/i)
   })
+})
+
+it('validates a private carried-Item discovery without enabling rewards or public phases', () => {
+  const hidden: PersistentEventDefinition = {
+    ...definition(),
+    category: 'hidden-discoveries',
+    scope: { type: 'global' },
+    phases: [
+      {
+        id: 'discover',
+        name: 'Discovery',
+        objectives: [],
+        effects: [],
+        cleanupEffects: [],
+        transition: { type: 'manual' },
+      },
+    ],
+    rewardPackageRefs: [],
+    aftermathRefs: [],
+    inventoryDiscovery: {
+      firstItemId: 'fixture.fragment-one',
+      secondItemId: 'fixture.fragment-two',
+      clue: 'The fragments fit together.',
+    },
+  }
+  expect(() => validatePersistentEventDefinition(hidden)).not.toThrow()
+  expect(() =>
+    validatePersistentEventDefinition({
+      ...hidden,
+      inventoryDiscovery: { ...hidden.inventoryDiscovery!, secondItemId: 'fixture.fragment-one' },
+    }),
+  ).toThrow('Choose two different carried Item identities')
+  expect(() =>
+    validatePersistentEventDefinition({
+      ...hidden,
+      scope: { type: 'region', key: 'verdant-expanse' },
+    }),
+  ).toThrow('requires a global Hidden Discovery')
+  expect(() =>
+    validatePersistentEventDefinition({ ...hidden, rewardPackageRefs: ['reward.fixture'] }),
+  ).toThrow('no shared effects or rewards')
 })

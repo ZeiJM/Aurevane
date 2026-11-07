@@ -16,9 +16,21 @@ const portraitRef = z
 const name = z.string().trim().max(60)
 const imageUrl = z
   .string()
-  .regex(/^\/api\/media\/appearance\/1\/[a-z0-9.]{1,140}\/neutral\.svg$/u)
+  .regex(
+    /^\/api\/media\/appearance\/(?:1\/[a-z0-9.]{1,140}|2\/[a-z]+(?:\.[a-z]+){12})\/neutral\.svg$/u,
+  )
   .nullable()
   .optional()
+const worldEncounter = z
+  .object({
+    arenaId: z.enum(NPC_ARENA_IDS),
+    aiDifficulty: battleAiDifficultySchema,
+    tags: z
+      .array(z.string().regex(/^[a-z][a-z0-9-]{1,31}$/u))
+      .max(8)
+      .refine((tags) => new Set(tags).size === tags.length),
+  })
+  .strict()
 const world = z
   .object({
     sectorId: z.string().regex(/^[a-z0-9:-]{1,100}$/u),
@@ -26,6 +38,7 @@ const world = z
     y: z.number().int().min(0).max(8),
     radius: z.number().int().min(1).max(3),
     greeting: z.string().trim().max(NPC_GREETING_LIMIT),
+    encounter: worldEncounter.nullable().optional(),
   })
   .strict()
 const publishedIdentity = z

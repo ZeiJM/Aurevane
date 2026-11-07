@@ -1,14 +1,22 @@
 'use client'
 import { EventNavigationFields } from '@/components/world/event-navigation-fields'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   EventDefinitionPreview,
   EventWorkspaceCatalogue,
 } from '@/server/master/event-authoring-service'
 import { EventPhaseCast, isNpcCastEffect, type StoryNpcCatalogue } from './event-phase-cast'
 import { eventRuntimeBlockers } from './event-runtime-support'
+import {
+  blankPhase,
+  createEventStarter,
+  EventPhasePath,
+  EventStarterPicker,
+  initialDefinition,
+} from './event-authoring-assists'
 import { PersonalJourneyFields } from './personal-journey-fields'
+import { RepeatableTravelFields } from './repeatable-travel-fields'
 import { eventAudienceLabel } from './event-audience'
 import { WORLD_REGIONS } from '@/world/catalog'
 import { isWorldWeather, WORLD_WEATHER } from '@/world/environment'
@@ -61,30 +69,6 @@ interface ScheduledRun {
   eventKey: string
   runId: string
   stateVersion: number
-}
-
-const blankPhase = (index: number): PersistentEventPhaseDefinition => ({
-  id: `phase-${index + 1}`,
-  name: `Phase ${index + 1}`,
-  objectives: [],
-  effects: [],
-  cleanupEffects: [],
-  transition: { type: 'manual' },
-})
-
-const initialDefinition: PersistentEventDefinition = {
-  schemaVersion: 1,
-  eventKey: 'event.new-event',
-  templateKey: 'template.live-event',
-  contentVersion: 1,
-  title: 'New Event',
-  summary: 'Describe the player-facing purpose of this event.',
-  internalNotes: '',
-  family: 'regional-event',
-  scope: { type: 'region', key: 'frostmere' },
-  phases: [blankPhase(0)],
-  rewardPackageRefs: [],
-  aftermathRefs: [],
 }
 
 function csv(value: readonly string[]): string {
@@ -145,11 +129,13 @@ export function EventBuilderClient({
   canManageNpcs,
 }: Props) {
   const [tab, setTab] = useState('Setup')
+  const authoringTabs = useRef<HTMLElement>(null)
   const [eventQuery, setEventQuery] = useState('')
   const [storyNpcs, setStoryNpcs] = useState<StoryNpcCatalogue>(null)
   const [catalogue, setCatalogue] = useState<EventWorkspaceCatalogue>({ events: [], rewards: [] })
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
   const [definition, setDefinition] = useState<PersistentEventDefinition>(initialDefinition)
+  const [freshWorkspace, setFreshWorkspace] = useState(true)
   const [baseVersion, setBaseVersion] = useState<number | null>(null)
   const [draftVersion, setDraftVersion] = useState<number | null>(null)
   const [versions, setVersions] = useState<WorkspaceResponse['versions']>([])
@@ -165,6 +151,7 @@ export function EventBuilderClient({
   const [busy, setBusy] = useState(false)
   const blockers = eventRuntimeBlockers(definition)
   const eventCategory = resolveEventCategory(definition)
+  const inventoryDiscovery = definition.inventoryDiscovery
   const query = eventQuery.trim().toLowerCase()
   const visibleEvents = catalogue.events.filter(
     (entry) =>
@@ -235,6 +222,7 @@ export function EventBuilderClient({
 
   function replaceEventIdentity(next: PersistentEventDefinition) {
     clearEventActions()
+    setFreshWorkspace(false)
     setDefinition(next)
     setBaseVersion(null)
     setDraftVersion(null)
@@ -244,6 +232,7 @@ export function EventBuilderClient({
   }
 
   function patchDefinition(patch: Partial<PersistentEventDefinition>) {
+    setFreshWorkspace(false)
     setDefinition((current) => ({ ...current, ...patch }))
     setProductionConfirmed(false)
     setPreviewResult(null)
@@ -469,6 +458,8 @@ export function EventBuilderClient({
   function startNewDefinition() {
     const next = { ...structuredClone(initialDefinition), category }
     replaceEventIdentity(next)
+    setFreshWorkspace(true)
+    setTab('Setup')
     setMessage('New Event workspace ready.')
     setDetails('')
   }
@@ -596,11 +587,21 @@ export function EventBuilderClient({
             </div>
           </header>
 
-          <nav className={styles.workspaceTabs} aria-label="Event authoring sections">
+          <nav
+            ref={authoringTabs}
+            className={styles.workspaceTabs}
+            aria-label="Event authoring sections"
+          >
             {[
               'Setup',
-              ...(eventCategory === 'story-campaigns' || definition.personalJourney
+              ...(eventCategory === 'story-campaigns' ||
+              eventCategory === 'repeatable-activities' ||
+              definition.personalJourney ||
+              definition.repeatableTravel
                 ? ['Journey']
+                : []),
+              ...(eventCategory === 'hidden-discoveries' || inventoryDiscovery
+                ? ['Discovery']
                 : []),
               'Phases',
               'Rewards',
@@ -661,6 +662,25 @@ export function EventBuilderClient({
               </div>
             </div>
 
+            {freshWorkspace && baseVersion === null && draftVersion === null ? (
+              <EventStarterPicker
+                category={category}
+                start={(starter) => {
+                  const next = createEventStarter(
+                    starter,
+                    `event.${starter}-${crypto.randomUUID()}`,
+                  )
+                  replaceEventIdentity(next)
+                  setTab(next.personalJourney ? 'Journey' : 'Phases')
+                  requestAnimationFrame(() =>
+                    authoringTabs.current
+                      ?.querySelector<HTMLElement>('[aria-pressed="true"]')
+                      ?.focus(),
+                  )
+                  setMessage('Starter loaded into a new workspace. Save it as a draft when ready.')
+                }}
+              />
+            ) : null}
             <details>
               <summary>Template identity</summary>
               <label>
@@ -791,26 +811,116 @@ export function EventBuilderClient({
           </section>
 
           <section className={styles.card} hidden={tab !== 'Journey'} aria-label="Personal journey">
-            <h2>Personal journey</h2>
-            <PersonalJourneyFields
-              journey={definition.personalJourney}
-              storyNpcs={storyNpcs}
-              change={(journey) =>
-                patchDefinition({
-                  personalJourney: journey,
-                  ...(journey &&
-                  definition.scope.type === 'region' &&
-                  isPersonalQuestGiver(journey.giverId)
-                    ? {
-                        scope: {
-                          type: 'region',
-                          key: PERSONAL_QUEST_GIVERS[journey.giverId].position.sectorId,
-                        },
+            <h2>
+              {eventCategory === 'repeatable-activities' || definition.repeatableTravel
+                ? 'Repeatable travel'
+                : 'Personal journey'}
+            </h2>
+            {eventCategory === 'repeatable-activities' || definition.repeatableTravel ? (
+              <RepeatableTravelFields
+                value={definition.repeatableTravel}
+                change={(repeatableTravel) =>
+                  patchDefinition({
+                    repeatableTravel,
+                    ...(repeatableTravel && definition.scope.type === 'region'
+                      ? {
+                          scope: {
+                            type: 'region',
+                            key: PERSONAL_QUEST_GIVERS[repeatableTravel.journey.giverId].position
+                              .sectorId,
+                          },
+                        }
+                      : {}),
+                  })
+                }
+              />
+            ) : (
+              <PersonalJourneyFields
+                journey={definition.personalJourney}
+                storyNpcs={storyNpcs}
+                change={(journey) =>
+                  patchDefinition({
+                    personalJourney: journey,
+                    ...(journey &&
+                    definition.scope.type === 'region' &&
+                    isPersonalQuestGiver(journey.giverId)
+                      ? {
+                          scope: {
+                            type: 'region',
+                            key: PERSONAL_QUEST_GIVERS[journey.giverId].position.sectorId,
+                          },
+                        }
+                      : {}),
+                  })
+                }
+              />
+            )}
+          </section>
+
+          <section
+            className={styles.card}
+            hidden={tab !== 'Discovery'}
+            aria-label="Inventory discovery"
+          >
+            <h2>Inventory discovery</h2>
+            <p>
+              The journal reveals the clue when a character carries both Items. Discovery keeps both
+              Items in inventory.
+            </p>
+            <label>
+              <input
+                type="checkbox"
+                checked={Boolean(inventoryDiscovery)}
+                disabled={!canUseGlobalScope && !inventoryDiscovery}
+                onChange={(event) =>
+                  patchDefinition({
+                    inventoryDiscovery: event.target.checked
+                      ? { firstItemId: '', secondItemId: '', clue: '' }
+                      : undefined,
+                  })
+                }
+              />
+              Enable a carried Item discovery
+            </label>
+            <p>Requires a global Hidden Discovery with one manual phase.</p>
+            {inventoryDiscovery ? (
+              <>
+                {(
+                  [
+                    ['firstItemId', 'First carried Item ID'],
+                    ['secondItemId', 'Second carried Item ID'],
+                  ] as const
+                ).map(([field, label]) => (
+                  <label key={field}>
+                    {label}
+                    <input
+                      value={inventoryDiscovery[field]}
+                      maxLength={160}
+                      onChange={(event) =>
+                        patchDefinition({
+                          inventoryDiscovery: {
+                            ...inventoryDiscovery,
+                            [field]: event.target.value,
+                          },
+                        })
                       }
-                    : {}),
-                })
-              }
-            />
+                    />
+                  </label>
+                ))}
+                <label>
+                  Revealed clue
+                  <textarea
+                    value={inventoryDiscovery.clue}
+                    maxLength={800}
+                    onChange={(event) =>
+                      patchDefinition({
+                        inventoryDiscovery: { ...inventoryDiscovery, clue: event.target.value },
+                      })
+                    }
+                  />
+                </label>
+              </>
+            ) : null}
           </section>
 
           <section className={styles.phases} id="event-phases" hidden={tab !== 'Phases'}>
@@ -830,6 +940,8 @@ export function EventBuilderClient({
                 Add phase
               </button>
             </div>
+
+            <EventPhasePath phases={definition.phases} />
 
             {definition.phases.map((phase, phaseIndex) => (
               <article className={styles.phaseCard} key={phaseIndex}>

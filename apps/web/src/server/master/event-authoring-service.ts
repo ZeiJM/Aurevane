@@ -228,12 +228,17 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
     try {
       const typed = structuredClone(definition) as unknown as PersistentEventDefinition
       validatePersistentEventDefinition(typed)
-      if (typed.personalJourney?.type === 'travel-and-report') {
-        const target = typed.personalJourney.destination
+      const travelJourney =
+        typed.repeatableTravel?.journey ??
+        (typed.personalJourney?.type === 'travel-and-report' ? typed.personalJourney : undefined)
+      if (travelJourney) {
+        const target = travelJourney.destination
         const sector = CHARTED_SECTORS.find((candidate) => candidate.id === target.sectorId)
         if (!sector || !isWalkable(sector, target)) {
           issues.push({
-            path: 'personalJourney.destination',
+            path: typed.repeatableTravel
+              ? 'repeatableTravel.journey.destination'
+              : 'personalJourney.destination',
             code: 'EVENT_ARRIVAL_DESTINATION_UNWALKABLE',
             message: 'Choose a walkable quest destination on the current World map.',
           })

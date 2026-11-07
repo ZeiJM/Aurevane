@@ -9,13 +9,15 @@ import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 import { createEventPageAccessFixture } from './event-page-access-fixture'
 
 let eventPageAccess: ReturnType<typeof createEventPageAccessFixture> | undefined
-let realmGiver: string | undefined
+let fixtureWorldNpc: string | undefined
 test.afterEach(() => {
   eventPageAccess?.restore()
   eventPageAccess = undefined
-  if (realmGiver) {
-    queryLocalDatabase(`update app_private.npc_designs set world=null where id='${realmGiver}'`)
-    realmGiver = undefined
+  if (fixtureWorldNpc) {
+    queryLocalDatabase(
+      `update app_private.npc_designs set world=null where id='${fixtureWorldNpc}'`,
+    )
+    fixtureWorldNpc = undefined
   }
 })
 
@@ -291,7 +293,7 @@ async function completeAuthoredStoryJourney(
   if (realm) {
     // Fixtures are confined to disposable Supabase. The player and Event UI
     // still use real session authorization, command RPCs and combat admission.
-    realmGiver = joe
+    fixtureWorldNpc = joe
     queryLocalDatabase(`
       insert into app_private.event_reward_budget_policies values('${budget}','character-xp',100,'${userId}',now());
       insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
@@ -554,3 +556,116 @@ test('an authored item exchange settles once when two World requests race', asyn
 test('Farmer Joe dialogue, realm travel and guardian challenge are separate World actions', async ({
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'))
+
+test('an authored World NPC challenge admits a battle only within reach', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Uses a disposable World NPC publication.')
+  test.setTimeout(90_000)
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host))
+    throw new Error('The World NPC browser fixture requires disposable local Supabase.')
+
+  const npcId = randomUUID()
+  const token = npcId.replaceAll('-', '')
+  const email = `world-opponent-${token}@example.com`
+  const name = 'Field opponent'
+  const position = { sectorId: 'verdant-expanse', x: 2, y: 4 }
+  await createAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'World-opponent-browser-2026!',
+    characterName: `Field ${token.slice(0, 12).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
+  })
+  const userId = localUserId(email)
+  fixtureWorldNpc = npcId
+  const draft = {
+    name,
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: {
+      ...position,
+      radius: 1,
+      greeting: 'The challenger is waiting.',
+      encounter: { arenaId: 'duel-yard', aiDifficulty: 'standard', tags: ['wolf'] },
+    },
+  }
+  queryLocalDatabase(`
+    begin;
+    insert into app_private.master_panel_role_assignments(user_id,role)
+      values('${userId}','game-owner');
+    select public.write_master_npc_design_v1('${userId}',null,'${npcId}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(draft))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${npcId}',1,'commit-world',null);
+    delete from app_private.master_panel_role_assignments
+      where user_id='${userId}' and role='game-owner';
+    commit;
+  `)
+
+  const readWorld = async (): Promise<WorldView> => {
+    const response = await page.request.get('/api/world')
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  const start = await readWorld()
+  const command = (intent: unknown) =>
+    page.request.post('/api/world', {
+      data: {
+        characterId: start.characterId,
+        expectedVersion: start.version,
+        commandId: randomUUID(),
+        intent,
+      },
+    })
+  expect(
+    (
+      await command({
+        kind: 'interact',
+        actionId: 'challenge-npc',
+        interactionId: `npc-challenge-${npcId}`,
+      })
+    ).status(),
+  ).toBe(400)
+  expect((await command({ kind: 'walk', destination: position })).ok()).toBe(true)
+
+  await page.goto('/world')
+  await expect.poll(async () => (await readWorld()).position, { timeout: 15_000 }).toEqual(position)
+  await expect
+    .poll(async () =>
+      (await readWorld()).interactions.some((row) => row.actionId === 'challenge-npc'),
+    )
+    .toBe(true)
+  await page.reload()
+  await page.getByRole('tab', { name: /Missions/ }).click()
+  await page
+    .getByRole('region', { name: 'Local interaction' })
+    .getByRole('heading', { name: 'Challenge', exact: true })
+    .locator('..')
+    .getByRole('button', { name: `Talk to ${name}` })
+    .click()
+  const dialogue = page.getByRole('dialog', { name })
+  await expect(dialogue.getByRole('button', { name: 'Start battle', exact: true })).toBeVisible()
+  await page.screenshot({
+    path: info.outputPath('authored-world-npc-challenge.png'),
+    animations: 'disabled',
+  })
+  await dialogue.getByRole('button', { name: 'Start battle', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world/)
+  const battle = page.locator('main[data-unified-battle="true"]')
+  await expect(battle).toHaveAttribute('data-local-turn', 'true', { timeout: 20_000 })
+  await expect(battle).not.toHaveAttribute('aria-busy', 'true')
+  const captured = queryLocalDatabase(`
+    select jsonb_build_object('placement',b.placement,'tags',b.tags,'arenaOnly',n.arena is not null)
+    from app_private.world_npc_battles b join app_private.npc_designs n on n.id=b.npc_id
+    where b.character_id='${start.characterId}' and b.npc_id='${npcId}';
+  `)
+  expect(JSON.parse(captured)).toEqual({ placement: position, tags: ['wolf'], arenaOnly: false })
+  await page.getByRole('button', { name: 'Surrender', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirm Surrender' }).click()
+  const returnToWorld = page.getByRole('button', { name: 'Return to World', exact: true })
+  await expect(returnToWorld).toBeVisible()
+  await expect(page.getByRole('button', { name: /Rematch/ })).toHaveCount(0)
+  await returnToWorld.click()
+  await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
+})

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useId, useMemo, useState, type CSSProperties } from 'react'
 import {
   APPEARANCE_CATALOG,
   APPEARANCE_EXPRESSIONS,
@@ -10,6 +10,7 @@ import {
   compileAppearanceManifest,
   parseAppearanceBlueprint,
   varyAppearanceOutfit,
+  withLowerGarment,
   type AppearanceBlueprint,
   type AppearanceExpression,
   type AppearanceManifest,
@@ -18,6 +19,12 @@ import {
   appearanceClothingConflict,
   WARDROBE_CUT_LABELS,
 } from '@/appearance/appearance-wardrobe-catalog'
+import {
+  LOWER_GARMENTS,
+  LOWER_GARMENT_LABELS,
+  supportsLowerGarment,
+  type LowerGarmentChoice,
+} from '@/appearance/appearance-lower-catalog'
 import styles from './appearance-builder.module.css'
 
 type Field = keyof typeof APPEARANCE_CATALOG
@@ -31,6 +38,7 @@ const groups: readonly { name: string; fields: readonly Field[] }[] = [
 ]
 const labels: Partial<Record<Field, string>> = { hairColor: 'Hair color', coat: 'Silhouette' }
 const fields = groups.flatMap(({ fields }) => fields)
+const lowerChoices = ['original', ...LOWER_GARMENTS] as const
 const title = (value: string) => value.charAt(0).toUpperCase() + value.slice(1)
 const partLabel = (field: Field, value: string) =>
   (field === 'coat' ? WARDROBE_CUT_LABELS[value as keyof typeof WARDROBE_CUT_LABELS] : undefined) ??
@@ -45,6 +53,13 @@ function randomizeParts(value: AppearanceBlueprint, parts: readonly Field[]) {
   }, value)
 }
 
+function randomizeOutfit(value: AppearanceBlueprint, parts: readonly Field[]) {
+  const next = randomizeParts(withLowerGarment(value, 'original') ?? value, parts)
+  if (!supportsLowerGarment(next.coat)) return next
+  const lower = lowerChoices[Math.floor(Math.random() * lowerChoices.length)] ?? 'original'
+  return withLowerGarment(next, lower) ?? next
+}
+
 export function AppearanceBuilder({
   value,
   onChange,
@@ -55,6 +70,8 @@ export function AppearanceBuilder({
   disabled?: boolean
 }) {
   const manifest = useMemo(() => compileAppearanceManifest(value), [value])
+  const lowerHint = useId()
+  const hasSeparateLowerLayer = supportsLowerGarment(value.coat)
   const [expression, setExpression] = useState<AppearanceExpression>('neutral')
   const [initial] = useState(value)
   const [history, setHistory] = useState<AppearanceBlueprint[]>([])
@@ -144,9 +161,41 @@ export function AppearanceBuilder({
                   </select>
                 </label>
               ))}
+              {name === 'Clothing' ? (
+                <label>
+                  Lower garment
+                  <select
+                    aria-describedby={lowerHint}
+                    value={value.v === 2 ? value.lower : 'original'}
+                    onChange={(event) => {
+                      const next = withLowerGarment(value, event.target.value as LowerGarmentChoice)
+                      if (next) update(next)
+                    }}
+                  >
+                    {lowerChoices.map((choice) => (
+                      <option
+                        key={choice}
+                        value={choice}
+                        disabled={choice !== 'original' && !hasSeparateLowerLayer}
+                      >
+                        {LOWER_GARMENT_LABELS[choice]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
             </div>
             <div className={styles.actions}>
-              <button type="button" onClick={() => update(randomizeParts(value, parts))}>
+              <button
+                type="button"
+                onClick={() =>
+                  update(
+                    name === 'Clothing'
+                      ? randomizeOutfit(value, parts)
+                      : randomizeParts(value, parts),
+                  )
+                }
+              >
                 Randomize {name.toLowerCase()}
               </button>
               {name === 'Clothing' ? (
@@ -155,8 +204,15 @@ export function AppearanceBuilder({
                 </button>
               ) : null}
             </div>
-            {name === 'Clothing' && clothingConflicts.length > 0 ? (
-              <small>{clothingConflicts.join(' ')}</small>
+            {name === 'Clothing' ? (
+              <small id={lowerHint}>
+                {clothingConflicts.join(' ')}{' '}
+                {!hasSeparateLowerLayer
+                  ? 'Choose a compatible short top to use a separate lower garment.'
+                  : value.v === 2
+                    ? 'Select original trousers to unlock tops that cover this layer.'
+                    : 'The lower garment is visible in the field and battle previews.'}
+              </small>
             ) : null}
           </fieldset>
         ))}
@@ -164,7 +220,7 @@ export function AppearanceBuilder({
           <button
             type="button"
             disabled={disabled}
-            onClick={() => update(randomizeParts(value, fields))}
+            onClick={() => update(randomizeOutfit(value, fields))}
           >
             Randomize all
           </button>

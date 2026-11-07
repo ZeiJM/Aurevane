@@ -296,6 +296,7 @@ export class WorldController {
         sectors: incoming.sectors,
         scenery: incoming.scenery,
         atlas: incoming.atlas,
+        atlasToken: incoming.atlasToken,
         players,
         environment: incoming.environment,
         ...(sameVersion

@@ -52,9 +52,11 @@ export function PersonalJourneyFields({
   journey,
   change,
   storyNpcs,
+  repeatable = false,
 }: {
   journey?: PersonalJourney
   storyNpcs: StoryNpcCatalogue
+  repeatable?: boolean
   change: (next: PersonalJourney | undefined) => void
 }) {
   return (
@@ -65,30 +67,34 @@ export function PersonalJourneyFields({
           checked={Boolean(journey)}
           onChange={(event) => change(event.target.checked ? initialPersonalJourney : undefined)}
         />
-        Enable a personal quest
+        {repeatable ? 'Enable repeatable travel' : 'Enable a personal quest'}
       </label>
       {journey && (
         <>
-          <label>
-            Quest type
-            <select
-              value={journey.type}
-              onChange={(event) => {
-                if (event.target.value === journey.type) return
-                change(
-                  journey.type === 'travel-and-report' ? toExchange(journey) : toTravel(journey),
-                )
-              }}
-            >
-              <option value="travel-and-report">Travel and report</option>
-              <option value="item-exchange">Hand in items</option>
-            </select>
-          </label>
+          {!repeatable && (
+            <label>
+              Quest type
+              <select
+                value={journey.type}
+                onChange={(event) => {
+                  if (event.target.value === journey.type) return
+                  change(
+                    journey.type === 'travel-and-report' ? toExchange(journey) : toTravel(journey),
+                  )
+                }}
+              >
+                <option value="travel-and-report">Travel and report</option>
+                <option value="item-exchange">Hand in items</option>
+              </select>
+            </label>
+          )}
           <p>
             {journey.type === 'travel-and-report'
               ? 'The player accepts, reaches the destination, and returns to report.'
               : 'The player accepts, hands over carried items, and earns an item and access.'}{' '}
-            Each character can complete this quest once.
+            {repeatable
+              ? 'The activity awards no XP or Items.'
+              : 'Each character can complete this quest once.'}
           </p>
           {journey.type === 'item-exchange' ? (
             <label>

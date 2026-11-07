@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { atlasSectors } from '@/world/atlas'
+import { terrainWalkable } from '@/world/terrain'
 import type { WorldSectorView } from '@/world/types'
-import { buildWaterField, waterfallHighlights } from './map-water'
+import { buildWaterField, paintWaterMotion, waterfallHighlights } from './map-water'
 
 function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []): WorldSectorView {
   return {
@@ -27,6 +29,49 @@ function sector(id: string, atlasRow = 0, cells: [number, number, string][] = []
 }
 
 describe('world-connected water presentation', () => {
+  it('keeps Willow Cascades’ closed receiving pool free of channel glints', () => {
+    const { rows, roads: exits, ...willow } = atlasSectors().find(({ id }) => id === 'atlas:69:36')!
+    const view = {
+      ...willow,
+      exits,
+      cells: rows.flatMap((row, y) =>
+        [...row].map((terrain, x) => ({
+          x,
+          y,
+          terrain,
+          walkable: terrainWalkable(terrain),
+          safe: false,
+        })),
+      ),
+    }
+    const receivingPool = buildWaterField([view]).get(view.id)!.cells.get('9:2')!
+    expect(view.cells.find(({ x, y }) => x === 9 && y === 2)).toMatchObject({
+      terrain: '~',
+      walkable: false,
+    })
+    expect(receivingPool.banks.map(({ side }) => side)).toEqual([0, 1, 2, 3])
+    expect(receivingPool.channel).toBe(false)
+
+    const ellipse = vi.fn(),
+      bezierCurveTo = vi.fn(),
+      rect = vi.fn()
+    const canvas = {
+      ellipse,
+      bezierCurveTo,
+      rect,
+      save: vi.fn(),
+      restore: vi.fn(),
+      beginPath: vi.fn(),
+      clip: vi.fn(),
+      moveTo: vi.fn(),
+      stroke: vi.fn(),
+    }
+    paintWaterMotion(canvas as unknown as CanvasRenderingContext2D, receivingPool, 48, 1200)
+    expect(rect).toHaveBeenCalledWith(0, 0, 48, 48)
+    expect(ellipse).toHaveBeenCalledOnce()
+    expect(bezierCurveTo).not.toHaveBeenCalled()
+  })
+
   it('moves waterfall highlights down its fixed painted channels without moving the rocks', () => {
     const first = waterfallHighlights(0),
       second = waterfallHighlights(120)

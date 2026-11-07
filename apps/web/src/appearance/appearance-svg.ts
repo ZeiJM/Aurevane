@@ -10,6 +10,7 @@ import {
   type AppearanceFacing,
   type AppearancePose,
 } from './appearance-manifest'
+import { renderLowerGarment } from './appearance-lower-art'
 import { PAINTED_PRESET_PORTRAITS } from './appearance-painted-portraits.generated'
 import { PAINTED_PRESET_SPRITES } from './appearance-painted-sprites.generated'
 import { garmentFor, wardrobeArms, wardrobeBody, wardrobeLegs } from './appearance-wardrobe-art'
@@ -190,9 +191,17 @@ function sprite(
     <g transform="translate(${pose === 'down' ? 12 : 0} ${-rise}) rotate(${tilt} 24 53)">
       <g transform="translate(24 0) scale(${look} 1) translate(-24 0)">
         ${
-          garment
-            ? wardrobeLegs(palettes[blueprint.palette], walk)
-            : `<path fill="none" stroke="#28242a" stroke-width="7" stroke-linecap="round" d="M21 40l${-walk - 1} 15m7-15 ${walk + 1} 15"/>
+          blueprint.v === 2
+            ? renderLowerGarment(
+                blueprint.lower,
+                palettes[blueprint.palette],
+                skin,
+                walk,
+                (profile ? 0.88 : 1) * { slight: 0.94, average: 1, broad: 1.06 }[blueprint.body],
+              )
+            : garment
+              ? wardrobeLegs(palettes[blueprint.palette], walk)
+              : `<path fill="none" stroke="#28242a" stroke-width="7" stroke-linecap="round" d="M21 40l${-walk - 1} 15m7-15 ${walk + 1} 15"/>
         <path fill="none" stroke="${shade}" stroke-width="4" stroke-linecap="round" d="M21 40l${-walk - 1} 12m7-12 ${walk + 1} 12"/>
         <path fill="#392d31" stroke="#211f25" d="M${18 - walk} 53h6v5h-8v-2Zm${13 + 2 * walk} 0h6l2 3v2h-8Z"/>`
         }

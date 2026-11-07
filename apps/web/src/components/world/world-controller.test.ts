@@ -82,6 +82,7 @@ it('retains scene hydration and peer clocks accepted during a pending compact co
   } as unknown as WorldView
   const scene = {
     ...initial,
+    atlasToken: 'a'.repeat(64),
     scenery: [['new']] as unknown as WorldView['scenery'],
     players: [
       { characterId: 'peer', attackable: true, movement: { version: 4 } },
@@ -99,6 +100,7 @@ it('retains scene hydration and peer clocks accepted during a pending compact co
   const pending = controller.send({ kind: 'tick' })
   await controller.hydrate()
   expect(controller.view.scenery).toBe(scene.scenery)
+  expect(controller.view.atlasToken).toBe(scene.atlasToken)
   held.resolve({
     kind: 'movement',
     characterId: 'owner',
@@ -113,6 +115,7 @@ it('retains scene hydration and peer clocks accepted during a pending compact co
   await pending
   expect(controller.view.version).toBe(2)
   expect(controller.view.scenery).toBe(scene.scenery)
+  expect(controller.view.atlasToken).toBe(scene.atlasToken)
   expect(controller.view.players[0]?.movement).toEqual({ version: 4 })
   expect(controller.view.players[0]?.attackable).toBe(false)
   controller.dispose()

@@ -79,6 +79,8 @@ export function NpcDesignEditor({
   const arena = draft.uses.includes('arena') ? draft.arena : null
   const world = draft.uses.includes('world') ? draft.world : null
   const story = draft.uses.includes('story')
+  const worldEncounter = world?.encounter
+  const [worldEncounterTags, setWorldEncounterTags] = useState<string | null>(null)
   const ready = {
     arena: Boolean(arena && draft.name.trim()),
     world: Boolean(world?.greeting.trim() && draft.name.trim()),
@@ -98,6 +100,7 @@ export function NpcDesignEditor({
     setRehearsal(null)
     setUniformPrompt(null)
     setUniformReason('')
+    setWorldEncounterTags(null)
   }
 
   function reviewCandidate(imageUrl: string) {
@@ -451,6 +454,98 @@ export function NpcDesignEditor({
             <p className={styles.hint}>
               Players can speak to this NPC from the selected distance on charted ground.
             </p>
+            <label>
+              <input
+                type="checkbox"
+                checked={Boolean(worldEncounter)}
+                onChange={(event) => {
+                  setWorldEncounterTags(null)
+                  setDraft({
+                    ...draft,
+                    world: {
+                      ...world,
+                      encounter: event.target.checked
+                        ? { arenaId: 'duel-yard', aiDifficulty: 'standard', tags: [] }
+                        : null,
+                    },
+                  })
+                }}
+              />{' '}
+              Let players challenge this NPC
+            </label>
+            {worldEncounter ? (
+              <>
+                <label>
+                  World battle board
+                  <select
+                    value={worldEncounter.arenaId}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        world: {
+                          ...world,
+                          encounter: {
+                            ...worldEncounter,
+                            arenaId: event.target.value as typeof worldEncounter.arenaId,
+                          },
+                        },
+                      })
+                    }
+                  >
+                    {NPC_ARENA_IDS.map((id) => (
+                      <option key={id} value={id}>
+                        {getTacticalHallArena(id).name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  World battle behavior
+                  <select
+                    value={worldEncounter.aiDifficulty}
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        world: {
+                          ...world,
+                          encounter: {
+                            ...worldEncounter,
+                            aiDifficulty: event.target.value as typeof worldEncounter.aiDifficulty,
+                          },
+                        },
+                      })
+                    }
+                  >
+                    <option value="easy">Training</option>
+                    <option value="standard">Balanced</option>
+                    <option value="high">Advanced</option>
+                  </select>
+                </label>
+                <label>
+                  Encounter tags
+                  <input
+                    value={worldEncounterTags ?? worldEncounter.tags.join(', ')}
+                    maxLength={272}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setWorldEncounterTags(value)
+                      const tags = value
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .filter(Boolean)
+                      setDraft({
+                        ...draft,
+                        world: { ...world, encounter: { ...worldEncounter, tags } },
+                      })
+                    }}
+                  />
+                </label>
+                <p className={styles.hint}>
+                  Optional staff tags. Use up to eight lowercase identifiers separated by commas.
+                  This uses the standard one-opponent build.
+                </p>
+              </>
+            ) : null}
           </fieldset>
         ) : null}
         {story ? (
