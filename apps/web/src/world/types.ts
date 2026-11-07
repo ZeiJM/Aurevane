@@ -137,6 +137,7 @@ export type WorldInteractionActionId =
   | WorldRestorationActionId
   | 'accept'
   | 'report'
+  | 'claim-hunt-reward'
   | 'hand-over'
   | 'claim-exchange'
   | 'travel-realm'

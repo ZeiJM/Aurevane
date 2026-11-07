@@ -273,6 +273,52 @@ describe('Event Builder authoring service', () => {
     ).resolves.toMatchObject({ draftVersion: 1, baseVersion: null })
   })
 
+  it('saves and reloads a repeatable hunt without requiring a travel destination', async () => {
+    const { service } = serviceFor(access(OWNER, ['game-owner']))
+    const candidate = {
+      ...definition({ type: 'global' }),
+      eventKey: 'event.alder-venn-hunt',
+      category: 'repeatable-activities',
+      phases: [
+        {
+          id: 'hunt',
+          name: 'Hunt',
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+          transition: { type: 'manual' },
+        },
+      ],
+      repeatableTravel: {
+        journey: {
+          type: 'defeat-and-report',
+          giverId: '77777777-7777-4777-8777-777777777777',
+          npcTag: 'wolf',
+          requiredDefeats: 5,
+          rewardPackageRef: 'reward.alder-venn-hunt',
+          offer: 'Drive the wolves off the pasture.',
+          active: 'Defeat five wolves and return.',
+          ready: 'Tell me how the hunt went.',
+          completed: 'The pasture is safe again.',
+        },
+        recurrence: { mode: 'rolling-24h' },
+      },
+    } as const
+    expect(service.validateDefinition(candidate)).toEqual({ valid: true, issues: [] })
+    await expect(
+      service.previewDefinition({ actorUserId: OWNER, definition: candidate }),
+    ).resolves.toMatchObject({ rewardPackageRefs: ['reward.alder-venn-hunt'] })
+    await service.saveDraft({
+      actorUserId: OWNER,
+      definition: candidate,
+      baseVersion: null,
+      expectedDraftVersion: null,
+    })
+    await expect(
+      service.loadWorkspace({ actorUserId: OWNER, eventKey: candidate.eventKey }),
+    ).resolves.toMatchObject({ draft: { definition: candidate } })
+  })
+
   it('rejects arbitrary execution fields before persistence', () => {
     const { service } = serviceFor(access(EVENT_STAFF, ['event-staff']))
     const invalid = {

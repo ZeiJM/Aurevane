@@ -61,14 +61,16 @@ export function PersonalJourneyFields({
 }) {
   return (
     <>
-      <label>
-        <input
-          type="checkbox"
-          checked={Boolean(journey)}
-          onChange={(event) => change(event.target.checked ? initialPersonalJourney : undefined)}
-        />
-        {repeatable ? 'Enable repeatable travel' : 'Enable a personal quest'}
-      </label>
+      {!repeatable && (
+        <label>
+          <input
+            type="checkbox"
+            checked={Boolean(journey)}
+            onChange={(event) => change(event.target.checked ? initialPersonalJourney : undefined)}
+          />
+          Enable a personal quest
+        </label>
+      )}
       {journey && (
         <>
           {!repeatable && (

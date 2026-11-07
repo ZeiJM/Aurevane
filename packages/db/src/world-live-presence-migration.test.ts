@@ -106,6 +106,7 @@ beforeAll(async () => {
   )
   await db.exec(existing('20261011161830_world_multistep_pacing.sql'))
   await db.exec(sql)
+  await db.exec(existing('20261107165921_world_scene_registration_lock_nowait.sql'))
 }, 30000)
 beforeEach(async () => {
   await db.exec('begin')

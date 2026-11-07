@@ -46,6 +46,10 @@ it.each([
   ['EVENT_INVENTORY_RESTORATION_TRIAL_INVALID', /complete the combat trial/i],
   ['EVENT_INVENTORY_RESTORATION_TRIAL_NPC_UNAVAILABLE', /published World encounter/i],
   ['EVENT_INVENTORY_RESTORATION_REWARDS_INVALID', /different Character XP amounts/i],
+  ['EVENT_REPEATABLE_HUNT_INVALID', /complete the hunt/i],
+  ['EVENT_REPEATABLE_HUNT_GIVER_UNAVAILABLE', /Story NPC with a World placement/i],
+  ['EVENT_REPEATABLE_HUNT_REWARD_UNAVAILABLE', /approved Character XP package/i],
+  ['EVENT_REPEATABLE_HUNT_TARGET_UNAVAILABLE', /tag used by a published World encounter/i],
 ])('explains %s from the authoritative Event validator', async (message, expected) => {
   rpc.mockResolvedValue({ data: null, error: { code: '22023', message } })
   await expect(

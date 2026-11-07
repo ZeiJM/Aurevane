@@ -12,6 +12,14 @@ import {
 import { AbilityNumber, AbilitySelect } from './ability-editor-fields'
 import styles from './combat-content-editor.module.css'
 
+const requirementTags = SIMPLE_REQUIREMENT_TAG_OPTIONS.filter(({ id }) => id !== 'none').sort(
+  (a, b) => a.label.localeCompare(b.label, 'en'),
+)
+const requirementTagIds = ['none', ...requirementTags.map(({ id }) => id)]
+const requirementTagLabels = Object.fromEntries(
+  SIMPLE_REQUIREMENT_TAG_OPTIONS.map(({ id, label }) => [id, label]),
+)
+
 /** The tag is executable configuration; the target identifies whose state is checked. */
 export function SimpleAbilityRequirementEditor({
   value,
@@ -37,10 +45,8 @@ export function SimpleAbilityRequirementEditor({
         <AbilitySelect
           label="Requirement tag"
           value={selected?.tagId ?? 'unsupported'}
-          options={SIMPLE_REQUIREMENT_TAG_OPTIONS.map(({ id }) => id)}
-          optionLabels={Object.fromEntries(
-            SIMPLE_REQUIREMENT_TAG_OPTIONS.map(({ id, label }) => [id, label]),
-          )}
+          options={requirementTagIds}
+          optionLabels={requirementTagLabels}
           onChange={(tagId) =>
             onChange(
               createSimpleRequirement(

@@ -40,6 +40,7 @@ def verify():
         where role='game-owner' and enabled;
     """))
     player = uuid.uuid4()
+    visible_peer, outside_peer = uuid.uuid4(), uuid.uuid4()
     event = f"event.native-discovery-{player}"
     tag = f"discovery-grant-{player}"
     first, second = (f"fixture.native-discovery-{player}.{part}" for part in ("first", "second"))
@@ -63,13 +64,21 @@ def verify():
     }
     initial = {"version": 1, "position": {"sectorId": "verdant-expanse", "x": 2, "y": 4},
                "route": [], "nextStepAt": None}
+    world_version = initial["version"]
+    scene_sector = initial["position"]["sectorId"]
+    outside = {**initial, "position": {**initial["position"], "sectorId": "aureth-crown"}}
     sql(f"""
-        insert into auth.users(id,email,email_confirmed_at) values('{player}','{player}@example.test',now());
+        insert into auth.users(id,email,email_confirmed_at) values
+          ('{player}','{player}@example.test',now()),('{visible_peer}','{visible_peer}@example.test',now());
         insert into public.characters(id,user_id,slot_index,rules_version,name,name_key,
           presentation_id,pronoun_preset_id,portrait_ref,starter_appearance_ref,foundation_discipline_id,
           might,finesse,vitality,agility,intellect,resolve,level,xp,progression_cycle,created_at,cycle_started_at,last_active_at)
-        values('{player}','{player}',0,1,'Discovery fixture','discovery-{player}',
-          'default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now());
+        select actor.id,actor.user_id,actor.slot,1,'Discovery fixture','discovery-'||actor.id,
+          'default','they','portrait','appearance','vanguard',12,4,7,4,3,6,1,0,1,now(),now(),now()
+        from (values ('{player}'::uuid,'{player}'::uuid,0),
+          ('{visible_peer}','{visible_peer}',0),('{outside_peer}','{visible_peer}',1)) actor(id,user_id,slot);
+        insert into app_private.character_world_state(character_id,state) values
+          ('{visible_peer}',{json_sql(initial)}),('{outside_peer}',{json_sql(outside)});
         set role service_role;
         select public.seed_runtime_item_sources_v1({json_sql(json.loads(items))});
         select * from public.publish_event_definition_v2('{owner}',null::uuid,'{event}',
@@ -87,10 +96,25 @@ def verify():
             'fixture:grant:{revision}',{json_sql([{'itemId': item, 'quantity': 1}])});"""
 
     def quests():
-        return json.loads(sql(f"""
+        world = json.loads(sql(f"""
             set role service_role;
-            select public.read_world_state_v1('{player}','{player}',{json_sql(initial)})->'personalQuests';
+            select public.read_world_state_v1('{player}','{player}',{json_sql(initial)});
         """))
+        assert world["state"]["version"] == world_version, "Discovery must preserve the World version"
+        return world["personalQuests"]
+
+    def scene_call(version):
+        return f"""public.read_world_scene_players_v{version}('{player}','{player}',{world_version},
+            array[{quote(scene_sector)}],{json_sql(initial['position'])})"""
+
+    def assert_scene(version):
+        scene = json.loads(sql(f"set role service_role; select {scene_call(version)};"))
+        assert scene["version"] == world_version, "Scene must match the requested World version"
+        peers = {peer["characterId"] for peer in scene["players"]}
+        assert str(visible_peer) in peers, "Scene must return a peer in the requested sector"
+        assert str(outside_peer) not in peers and all(
+            peer["position"]["sectorId"] == scene_sector for peer in scene["players"]
+        ), "Scene must exclude peers outside the requested sector"
 
     sql(f"set role service_role; {grant(0, first)}")
     assert quests() == [], "A scheduled discovery must stay hidden"
@@ -124,6 +148,21 @@ def verify():
                   gen_random_uuid(),'start',null,true);
                 commit;""")
             assert quests() == [], "World must not reveal an uncommitted fragment"
+            sql(f"""
+                set role service_role;
+                do $contention$
+                begin
+                  perform {scene_call(2)};
+                  raise exception 'Scene registration unexpectedly succeeded while the grant held the character';
+                exception when sqlstate '55P03' then
+                  null;
+                end;
+                $contention$;
+            """)
+            assert_scene(1)
+            assert sql(f"""
+                select count(*) from app_private.world_scene_subscriptions where character_id='{player}';
+            """) == "0", "The fallback scene must not register live presence"
             holder.communicate("commit;\n", timeout=15)
             assert holder.returncode == 0, "Fragment grant failed to commit"
         finally:
@@ -137,6 +176,11 @@ def verify():
 
     clue = {"runId": str(run), "title": "The fragment mystery", "body": "The fragments fit.", "discovery": True}
     assert quests() == [clue], "World missed the committed fragment after activation reconciliation"
+    assert_scene(2)
+    assert json.loads(sql(f"""
+        select jsonb_build_object('version',registered_version,'sectors',scene_sector_ids)
+        from app_private.world_scene_subscriptions where character_id='{player}' and user_id='{player}';
+    """)) == {"version": world_version, "sectors": [scene_sector]}, "Post-commit live registration must match the owned scene"
     assert quests() == [clue], "Refreshing must retain a single discovery"
     assert sql(f"""
         select count(*) from app_private.event_personal_quest_attempts where run_id='{run}';
@@ -145,7 +189,7 @@ def verify():
         select item_id || ':' || quantity from app_private.character_item_stacks
         where character_id='{player}' order by item_id;
     """).splitlines() == [f"{first}:1", f"{second}:1"], "Discovery must leave both fragments carried"
-    print("PASS two PostgreSQL sessions reconciled the committed fragments exactly once")
+    print("PASS fragment reconciliation and World scene fallback across two PostgreSQL sessions")
 
 
 if __name__ == "__main__":

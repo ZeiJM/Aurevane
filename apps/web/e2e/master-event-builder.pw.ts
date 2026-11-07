@@ -620,7 +620,7 @@ test('Farmer Joe dialogue, realm travel and guardian challenge are separate Worl
   page,
 }, info) => completeAuthoredStoryJourney(page, info, 'sealed-realm'))
 
-async function winRestorationBattle(
+async function winFixtureBattle(
   page: Page,
   battleId: string,
   characterId: string,
@@ -721,16 +721,77 @@ async function winRestorationBattle(
   ).toBeVisible()
 }
 
-async function completeSanalexRestoration(page: Page, info: TestInfo, route: 'recovery' | 'trial') {
+function fixtureWeapon(id: string, name: string, attackName: string) {
+  const basic = defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability!
+  // Keep real browser fights bounded with legal authored damage packets.
+  const ability = {
+    ...basic,
+    behaviors: basic.behaviors.map((behavior) => ({
+      ...behavior,
+      effects: behavior.effects.flatMap((effect) =>
+        effect.payload.type === 'damage'
+          ? Array.from({ length: 8 }, (_, index) => ({
+              ...effect,
+              id: `${effect.id}-${index + 1}`,
+              payload: { ...effect.payload, amount: 20 },
+            }))
+          : [effect],
+      ),
+    })),
+  }
+  return parseRuntimeItemDefinition(
+    itemFixture({
+      id,
+      name,
+      itemClass: 'weapon',
+      equipment: { slot: 'hand', hands: 1 },
+      media: { artworkId: 'item.iron-shortsword.art.v1' },
+      ability,
+      actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: attackName } },
+    }),
+  )
+}
+
+async function challengeFixtureNpc(
+  page: Page,
+  name: string,
+  characterId: string,
+  weaponName: string,
+) {
+  await page
+    .getByRole('region', { name: 'Local interaction' })
+    .getByRole('heading', { name: 'Challenge', exact: true })
+    .locator('..')
+    .getByRole('button', { name: `Talk to ${name}`, exact: true })
+    .click()
+  await page
+    .getByRole('dialog', { name })
+    .getByRole('button', { name: 'Start battle', exact: true })
+    .click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world/)
+  const battleId = new URL(page.url()).pathname.split('/').at(-1)!
+  await winFixtureBattle(page, battleId, characterId, weaponName)
+  expect(
+    queryLocalDatabase(
+      `select outcome from app_private.world_npc_terminal_receipts where battle_session_id='${battleId}'`,
+    ),
+  ).toBe('victory')
+}
+
+async function completeCinderwakeRestoration(
+  page: Page,
+  info: TestInfo,
+  route: 'recovery' | 'trial',
+) {
   test.skip(info.project.name !== 'desktop-chromium', 'Requires the disposable Owner fixture.')
   test.setTimeout(180_000)
   const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
   if (!['127.0.0.1', 'localhost'].includes(host))
-    throw new Error('Sanalex browser verification requires disposable local Supabase.')
+    throw new Error('Cinderwake browser verification requires disposable local Supabase.')
 
   const token = randomUUID().replaceAll('-', '')
   const email = `restoration-owner-${token}@example.test`
-  const title = `Sanalex ${route} ${token.slice(0, 8)}`
+  const title = `Reforging Cinderwake ${token.slice(0, 8)}`
   const eventKey = `event.browser-restoration-${token}`
   const giver = randomUUID()
   const opponent = randomUUID()
@@ -752,41 +813,12 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
     qualityPoints: 0,
   })
   const second = { ...first, id: `fixture.restoration-second-${token}`, name: 'Hilt fragment' }
-  const basic = defaultBasicSkills().find((skill) => skill.id === 'unarmed.basic')!.ability!
-  // Strong fixture weapons keep the real browser fights bounded without
-  // modifying the admitted battle state or bypassing its normal controls.
-  const ability = {
-    ...basic,
-    behaviors: basic.behaviors.map((behavior) => ({
-      ...behavior,
-      effects: behavior.effects.flatMap((effect) =>
-        effect.payload.type === 'damage'
-          ? Array.from({ length: 8 }, (_, index) => ({
-              ...effect,
-              id: `${effect.id}-${index + 1}`,
-              payload: { ...effect.payload, amount: 20 },
-            }))
-          : [effect],
-      ),
-    })),
-  }
-  const sword = itemFixture({
-    id: `fixture.restoration-sword-${token}`,
-    name: 'Mythical Lava Golem Sword of Sanalex',
-    itemClass: 'weapon',
-    equipment: { slot: 'hand', hands: 1 },
-    media: { artworkId: 'item.iron-shortsword.art.v1' },
-    ability,
-    actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Restored Cut' } },
-  })
-  const trialWeapon = itemFixture({
-    ...sword,
-    id: `fixture.trial-weapon-${token}`,
-    name: 'Trial fixture blade',
-    actions: { attack: { behaviorId: ability.behaviors[0]!.id, name: 'Fixture Trial Cut' } },
-  })
-  parseRuntimeItemDefinition(sword)
-  parseRuntimeItemDefinition(trialWeapon)
+  const sword = fixtureWeapon(`fixture.restoration-sword-${token}`, 'Cinderwake', 'Restored Cut')
+  const trialWeapon = fixtureWeapon(
+    `fixture.trial-weapon-${token}`,
+    'Trial fixture blade',
+    'Fixture Trial Cut',
+  )
   const filler = itemFixture({ id: `fixture.restoration-gear-${token}`, name: 'Spare forge helm' })
   await createAccountAndEnterCharacter({
     page,
@@ -916,7 +948,7 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
     .getByLabel('Trial ready to restore', { exact: true })
     .fill('The trial is won. Bring both fragments to the forge.')
   await page.screenshot({
-    path: info.outputPath(`sanalex-${route}-authoring.png`),
+    path: info.outputPath(`cinderwake-${route}-authoring.png`),
     animations: 'disabled',
   })
   await section('Schedule')
@@ -974,24 +1006,7 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
   const challenge = async (weaponName: string) => {
     await page.goto('/game/world')
     await move(encounterPosition)
-    await page
-      .getByRole('region', { name: 'Local interaction' })
-      .getByRole('heading', { name: 'Challenge', exact: true })
-      .locator('..')
-      .getByRole('button', { name: `Talk to ${challenger}`, exact: true })
-      .click()
-    await page
-      .getByRole('dialog', { name: challenger })
-      .getByRole('button', { name: 'Start battle', exact: true })
-      .click()
-    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}\?returnTo=world/)
-    const battleId = new URL(page.url()).pathname.split('/').at(-1)!
-    await winRestorationBattle(page, battleId, characterId, weaponName)
-    expect(
-      queryLocalDatabase(
-        `select outcome from app_private.world_npc_terminal_receipts where battle_session_id='${battleId}'`,
-      ),
-    ).toBe('victory')
+    await challengeFixtureNpc(page, challenger, characterId, weaponName)
   }
   const dialogue = page.getByRole('dialog', { name: smith })
   await page.goto('/game/world')
@@ -1025,7 +1040,7 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
     ).toBeVisible()
     await challenge(trialWeapon.name)
     await page.screenshot({
-      path: info.outputPath('sanalex-trial-victory.png'),
+      path: info.outputPath('cinderwake-trial-victory.png'),
       animations: 'disabled',
     })
     await page.getByRole('button', { name: 'Return to World', exact: true }).click()
@@ -1056,7 +1071,7 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
   await expect(dialogue.getByText(/You need an open Gear slot/)).toBeVisible()
   expect(characterXp() - xpBeforeExchange).toBe(chosenXp)
   await page.screenshot({
-    path: info.outputPath(`sanalex-${route}-owed.png`),
+    path: info.outputPath(`cinderwake-${route}-owed.png`),
     animations: 'disabled',
   })
 
@@ -1105,7 +1120,7 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
   `)
   expect(equipped).toBe('Restored Cut')
   await page.screenshot({
-    path: info.outputPath(`sanalex-${route}-equipped.png`),
+    path: info.outputPath(`cinderwake-${route}-equipped.png`),
     animations: 'disabled',
   })
   if (route === 'recovery') {
@@ -1113,19 +1128,265 @@ async function completeSanalexRestoration(page: Page, info: TestInfo, route: 're
     expect(characterXp() - xpBeforeExchange).toBe(chosenXp)
     expect(stock()).toEqual({ fragments: 0, swords: 1, gear: 40 })
     await page.screenshot({
-      path: info.outputPath('sanalex-recovery-restored-sword-victory.png'),
+      path: info.outputPath('cinderwake-recovery-restored-sword-victory.png'),
       animations: 'disabled',
     })
   }
 }
 
-test('an authored Sanalex recovery consumes the fragments and lets a full Gear player wield the owed sword', async ({
+test('an authored Cinderwake recovery consumes the fragments and lets a full Gear player wield the owed sword', async ({
   page,
-}, info) => completeSanalexRestoration(page, info, 'recovery'))
+}, info) => completeCinderwakeRestoration(page, info, 'recovery'))
 
-test('an authored Sanalex combat trial settles only after the canonical NPC victory and awards the trial package', async ({
+test('an authored Cinderwake combat trial settles only after the canonical NPC victory and awards the trial package', async ({
   page,
-}, info) => completeSanalexRestoration(page, info, 'trial'))
+}, info) => completeCinderwakeRestoration(page, info, 'trial'))
+
+test('an authored Alder Venn wolf hunt credits five World victories and starts cooldown before collection', async ({
+  page,
+}, info) => {
+  test.skip(info.project.name !== 'desktop-chromium', 'Requires the disposable Owner fixture.')
+  test.setTimeout(300_000)
+  const host = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://invalid').hostname
+  if (!['127.0.0.1', 'localhost'].includes(host))
+    throw new Error('Hunt browser verification requires disposable local Supabase.')
+
+  const token = randomUUID().replaceAll('-', '')
+  const email = `hunt-owner-${token}@example.test`
+  const title = `Alder Venn’s Wolf Hunt ${token.slice(0, 8)}`
+  const eventKey = `event.browser-venn-hunt-${token}`
+  const rewardRef = `reward.browser-venn-${token}`
+  const budgetRef = `budget.browser-venn-${token}`
+  const giverId = randomUUID()
+  const wolfId = randomUUID()
+  const giver = 'Alder Venn'
+  const wolf = 'Duskridge wolf'
+  const tag = `wolf-${token.slice(0, 12)}`
+  const origin = { sectorId: 'verdant-expanse', x: 2, y: 4 }
+  const trail = { ...origin, x: 5 }
+  const weapon = fixtureWeapon(`fixture.hunt-blade-${token}`, 'Hunt fixture blade', 'Trail Cut')
+  const giverDraft = {
+    name: giver,
+    portraitRef: null,
+    uses: ['world', 'story'],
+    arena: null,
+    world: { ...origin, radius: 1, greeting: 'The trail starts beyond the fields.' },
+  }
+  const wolfDraft = {
+    name: wolf,
+    portraitRef: null,
+    uses: ['world'],
+    arena: null,
+    world: {
+      ...trail,
+      radius: 1,
+      greeting: 'A wolf circles the broken fence.',
+      encounter: { arenaId: 'duel-yard', aiDifficulty: 'easy', tags: [tag] },
+    },
+  }
+  await createAccountAndEnterCharacter({
+    page,
+    email,
+    password: 'Venn-hunt-browser-2026!',
+    characterName: `Hunt ${token.slice(0, 12).replace(/\d/g, (d) => String.fromCharCode(65 + Number(d)))}`,
+  })
+  const userId = localUserId(email)
+  fixtureEventOwner = userId
+  fixtureWorldNpc = giverId
+  fixtureTrialNpc = wolfId
+  const readWorld = async (): Promise<WorldView> => {
+    const response = await page.request.get('/api/world')
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  const characterId = (await readWorld()).characterId
+  expect((await page.request.get('/api/character/items')).ok()).toBe(true)
+  queryLocalDatabase(`
+    begin;
+    insert into app_private.master_panel_role_assignments(user_id,role) values('${userId}','game-owner');
+    select public.write_master_npc_design_v1('${userId}',null,'${giverId}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(giverDraft))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${giverId}',1,'commit-story',null);
+    select public.write_master_npc_design_v1('${userId}',null,'${giverId}',2,'commit-world',null);
+    select public.write_master_npc_design_v1('${userId}',null,'${wolfId}',0,'save',
+      '${escapeSqlLiteral(JSON.stringify(wolfDraft))}'::jsonb);
+    select public.write_master_npc_design_v1('${userId}',null,'${wolfId}',1,'commit-world',null);
+    insert into app_private.event_reward_budget_policies values('${budgetRef}','character-xp',20,'${userId}',now());
+    insert into app_private.event_reward_packages(reward_package_ref,package_version,reward_kind,amount,published_by,budget_ref)
+      values('${rewardRef}',1,'character-xp',17,'${userId}','${budgetRef}');
+    select public.seed_runtime_item_sources_v1('${escapeSqlLiteral(JSON.stringify([weapon]))}'::jsonb);
+    select public.grant_character_items_v1('${userId}','${characterId}',
+      (public.read_character_item_inventory_v1('${userId}','${characterId}')->>'revision')::bigint,
+      'fixture:hunt:${token}',jsonb_build_array(jsonb_build_object('itemId','${weapon.id}','quantity',1)));
+    commit;
+  `)
+  await page.goto('/game/loadout/items')
+  await page.getByRole('button', { name: /Slot \d+: Hunt fixture blade/ }).click()
+  await page
+    .getByRole('dialog', { name: weapon.name })
+    .getByRole('button', { name: 'Equip', exact: true })
+    .click()
+  await expect(
+    page.getByRole('button', { name: `Main Hand: ${weapon.name}`, exact: true }),
+  ).toBeVisible()
+
+  await page.goto('/master/events')
+  await page
+    .getByRole('navigation', { name: 'Event categories' })
+    .getByRole('button', { name: 'Repeatable Activities', exact: true })
+    .click()
+  const sections = page.getByRole('navigation', { name: 'Event authoring sections' })
+  const section = (name: string) => sections.getByRole('button', { name, exact: true }).click()
+  await section('Setup')
+  await page
+    .getByRole('combobox', { name: 'Category', exact: true })
+    .selectOption('repeatable-activities')
+  await page.getByLabel(/^Scope/).selectOption('global')
+  await page.getByLabel('Title', { exact: true }).fill(title)
+  await section('Journey')
+  await page.getByLabel('Enable repeatable activity', { exact: true }).check()
+  await page.getByLabel('Activity type', { exact: true }).selectOption('defeat-and-report')
+  await page.getByLabel('Quest giver', { exact: true }).selectOption(giverId)
+  await page.getByLabel('World encounter tag', { exact: true }).fill(tag)
+  await page.getByLabel('Required defeats', { exact: true }).fill('5')
+  await page.getByLabel('Character XP reward', { exact: true }).selectOption(rewardRef)
+  await page.getByLabel('Recurrence', { exact: true }).selectOption('rolling-24h')
+  await page
+    .getByLabel('Offer the quest', { exact: true })
+    .fill('Drive the wolves away from the fields.')
+  await page.getByLabel('Explain what to defeat', { exact: true }).fill('Follow the wolf tracks.')
+  await page
+    .getByLabel('Ask for the report', { exact: true })
+    .fill('Tell me what happened on the trail.')
+  await page.getByLabel('Confirm completion', { exact: true }).fill('The fields are safe tonight.')
+  await page.screenshot({
+    path: info.outputPath('venn-hunt-authoring.png'),
+    animations: 'disabled',
+  })
+  await section('Schedule')
+  await page.getByLabel('Event key').fill(eventKey)
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  await runEventOperation(page, 'publish', 'Publish')
+  await page
+    .getByRole('textbox', { name: 'Start', exact: true })
+    .fill(new Date(Date.now() + 3_600_000).toISOString().slice(0, 16))
+  await page
+    .getByRole('textbox', { name: 'End', exact: true })
+    .fill(new Date(Date.now() + 7_200_000).toISOString().slice(0, 16))
+  await page.getByLabel('Confirm publication or schedule for this audience').check()
+  fixtureStoryEvent = { eventKey, userId }
+  await runEventOperation(page, 'schedule', 'Schedule')
+  const runId = queryLocalDatabase(
+    `select id from app_private.event_runs where event_key='${eventKey}'`,
+  )
+  expect(runId).toMatch(/^[0-9a-f-]{36}$/)
+  queryLocalDatabase(`
+    begin;
+    update app_private.event_runs set scheduled_start_at=clock_timestamp()-interval '1 second' where id='${runId}';
+    select * from public.operate_event_run_v2('${userId}','${characterId}','${runId}',1,gen_random_uuid(),'start',null,true);
+    commit;
+  `)
+
+  const openMissions = async () => {
+    const details = page.getByRole('button', { name: 'Details', exact: true })
+    if (await details.isVisible()) await details.click()
+    await page.getByRole('tab', { name: /Missions/ }).click()
+  }
+  const move = async (destination: typeof origin) => {
+    const current = await readWorld()
+    const response = await page.request.post('/api/world', {
+      data: {
+        characterId,
+        expectedVersion: current.version,
+        commandId: randomUUID(),
+        intent: { kind: 'walk', destination },
+      },
+    })
+    expect(response.ok()).toBe(true)
+    await expect
+      .poll(async () => (await readWorld()).position, { timeout: 15_000 })
+      .toEqual(destination)
+    await page.reload()
+    await openMissions()
+  }
+  const talk = () =>
+    page
+      .getByRole('region', { name: 'Local interaction' })
+      .getByRole('heading', { name: title, exact: true })
+      .locator('..')
+      .getByRole('button', { name: `Talk to ${giver}`, exact: true })
+      .click()
+  const dialogue = page.getByRole('dialog', { name: giver })
+  const readObjective = async () =>
+    (await readWorld()).objectives.find((objective) => objective.name === title)
+  const xp = () =>
+    Number(queryLocalDatabase(`select xp from public.characters where id='${characterId}'`))
+
+  await page.goto('/game/world')
+  await move(origin)
+  await talk()
+  await dialogue.getByRole('button', { name: 'Accept activity', exact: true }).click()
+  await expect
+    .poll(async () => (await readObjective())?.description)
+    .toContain('0 of 5 qualifying defeats.')
+  await move(trail)
+  for (let count = 1; count <= 5; count++) {
+    await challengeFixtureNpc(page, wolf, characterId, weapon.name)
+    await page.getByRole('button', { name: 'Return to World', exact: true }).click()
+    await expect(page).toHaveURL(/\/game\/world(?:\?|$)/)
+    await openMissions()
+    await expect
+      .poll(async () => (await readObjective())?.description)
+      .toContain(`${count} of 5 qualifying defeats.`)
+  }
+  expect(
+    queryLocalDatabase(`select count(*) from app_private.world_npc_terminal_receipts terminal
+      join app_private.world_npc_battles battle using(battle_session_id)
+      where terminal.outcome='victory' and battle.character_id='${characterId}' and battle.npc_id='${wolfId}'`),
+  ).toBe('5')
+  await move(origin)
+  await talk()
+  const beforeReport = xp()
+  await expect(dialogue.getByRole('button', { name: 'Report back', exact: true })).toBeVisible()
+  const ready = await readWorld()
+  const report = ready.interactions.find((row) => row.title === title && row.actionId === 'report')
+  expect(report).toBeDefined()
+  const turnIn = () =>
+    page.request.post('/api/world', {
+      data: {
+        characterId,
+        expectedVersion: ready.version,
+        commandId: randomUUID(),
+        intent: { kind: 'interact', interactionId: report!.id, actionId: 'report' },
+      },
+    })
+  const turnIns = await Promise.all([turnIn(), turnIn()])
+  expect(turnIns.map((response) => response.status()).sort()).toEqual([200, 409])
+  await page.reload()
+  await openMissions()
+  await talk()
+  await expect(
+    dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }),
+  ).toBeVisible()
+  expect(xp()).toBe(beforeReport)
+  const cooldown = () =>
+    queryLocalDatabase(`
+    select next_available_at::text from app_private.event_repeatable_travel_attempts
+    where run_id='${runId}' and character_id='${characterId}'
+      and next_available_at - completed_at = interval '24 hours';`)
+  const nextAvailableAt = cooldown()
+  expect(nextAvailableAt).toBeTruthy()
+  await page.screenshot({ path: info.outputPath('venn-hunt-owed.png'), animations: 'disabled' })
+  await page.reload()
+  await openMissions()
+  await talk()
+  await dialogue.getByRole('button', { name: 'Collect Character XP', exact: true }).click()
+  await expect.poll(xp).toBe(beforeReport + 17)
+  expect(cooldown()).toBe(nextAvailableAt)
+  await expect(dialogue.getByRole('button', { name: 'Accept activity', exact: true })).toHaveCount(
+    0,
+  )
+})
 
 test('an authored World NPC challenge admits a battle only within reach', async ({
   page,

@@ -36,6 +36,14 @@ export interface PersonalTravelJourney extends PersonalJourneyDialogue {
   readonly destination: PersonalJourneyPosition
 }
 
+export interface PersonalHuntJourney extends PersonalJourneyDialogue {
+  readonly type: 'defeat-and-report'
+  readonly giverId: string
+  readonly npcTag: string
+  readonly requiredDefeats: number
+  readonly rewardPackageRef: string
+}
+
 export interface PersonalSealedRealm {
   readonly guardianNpcId: string
   readonly lore: string

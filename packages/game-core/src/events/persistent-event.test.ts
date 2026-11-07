@@ -163,6 +163,62 @@ describe('persistent event definition', () => {
     ).not.toThrow()
   })
 
+  it('accepts a personal defeat objective and validates its giver, tag, quota and XP package', () => {
+    const hunt = {
+      ...definition(),
+      title: 'Alder Venn’s Wolf Hunt',
+      category: 'repeatable-activities',
+      scope: { type: 'global' },
+      phases: [
+        {
+          id: 'hunt',
+          name: 'Hunt',
+          transition: { type: 'manual' },
+          objectives: [],
+          effects: [],
+          cleanupEffects: [],
+        },
+      ],
+      rewardPackageRefs: [],
+      aftermathRefs: [],
+      repeatableTravel: {
+        journey: {
+          type: 'defeat-and-report',
+          giverId: '77777777-7777-4777-8777-777777777777',
+          npcTag: 'wolf',
+          requiredDefeats: 5,
+          rewardPackageRef: 'reward.alder-venn-hunt',
+          offer: 'Drive the wolves off the pasture.',
+          active: 'Defeat five wolves and return.',
+          ready: 'Tell me how the hunt went.',
+          completed: 'The pasture is safe again.',
+        },
+        recurrence: { mode: 'rolling-24h' },
+      },
+    } as const
+    const validate = (journey: object = {}, fields: object = {}) =>
+      validatePersistentEventDefinition({
+        ...hunt,
+        ...fields,
+        repeatableTravel: {
+          ...hunt.repeatableTravel,
+          journey: { ...hunt.repeatableTravel.journey, ...journey },
+        },
+      } as unknown as PersistentEventDefinition)
+    expect(() => validate()).not.toThrow()
+    expect(() => validate({ giverId: 'eastern-watch-officer' })).toThrow(/published/i)
+    expect(() => validate({ npcTag: 'Wolf' })).toThrow(/tag/i)
+    expect(() => validate({ requiredDefeats: 26 })).toThrow(/1 to 25/)
+    expect(() => validate({ requiredDefeats: 2.5 })).toThrow(/1 to 25/)
+    expect(() => validate({ rewardPackageRef: '' })).toThrow(/XP reward/i)
+    expect(() => validate({ ready: '   ' })).toThrow(/dialogue/i)
+    expect(() => validate({ destination: { x: 1 } })).toThrow(/hunt field/i)
+    expect(() => validate({}, { rewardPackageRefs: ['reward.shared'] })).toThrow(/reward/i)
+    expect(() => validate({}, { scope: { type: 'region', key: 'verdant-expanse' } })).toThrow(
+      /Global audience/i,
+    )
+  })
+
   it('rejects arbitrary effect kinds and unknown objective transition references', () => {
     const invalidEffect = cloneDefinition()
     invalidEffect.phases[0].effects[0].type = 'script'

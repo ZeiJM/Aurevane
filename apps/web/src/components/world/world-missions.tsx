@@ -137,7 +137,8 @@ export function WorldMissions({
                 interaction.objectiveId === objective.id &&
                 (interaction.actionId === 'report' ||
                   interaction.actionId === 'hand-over' ||
-                  (isWorldRestorationAction(interaction.actionId) &&
+                  ((isWorldRestorationAction(interaction.actionId) ||
+                    interaction.actionId === 'claim-hunt-reward') &&
                     !!objective.destination &&
                     samePosition(view.position, objective.destination))),
             )

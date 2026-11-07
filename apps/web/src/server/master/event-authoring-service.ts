@@ -234,10 +234,11 @@ function validateDefinition(definition: unknown): EventDefinitionValidationResul
     try {
       const typed = structuredClone(definition) as unknown as PersistentEventDefinition
       validatePersistentEventDefinition(typed)
-      const travelJourney =
-        typed.repeatableTravel?.journey ??
-        (typed.personalJourney?.type === 'travel-and-report' ? typed.personalJourney : undefined)
-      if (travelJourney && !isWalkableEventDestination(travelJourney.destination)) {
+      const journey = typed.repeatableTravel?.journey ?? typed.personalJourney
+      if (
+        journey?.type === 'travel-and-report' &&
+        !isWalkableEventDestination(journey.destination)
+      ) {
         issues.push({
           path: typed.repeatableTravel
             ? 'repeatableTravel.journey.destination'
@@ -369,6 +370,7 @@ export function createEventAuthoringService({
       const testClock = input.testClock
         ? validTimestamp(input.testClock, 'testClock')
         : new Date(0).toISOString()
+      const repeatable = definition.repeatableTravel?.journey
 
       return {
         testClock,
@@ -386,7 +388,10 @@ export function createEventAuthoringService({
           cleanupEffectCount: phase.cleanupEffects.length,
           transitionType: phase.transition.type,
         },
-        rewardPackageRefs: [...definition.rewardPackageRefs],
+        rewardPackageRefs:
+          repeatable?.type === 'defeat-and-report'
+            ? [repeatable.rewardPackageRef]
+            : [...definition.rewardPackageRefs],
         aftermathRefs: [...definition.aftermathRefs],
       }
     },

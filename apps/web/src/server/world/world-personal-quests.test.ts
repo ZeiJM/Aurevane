@@ -33,6 +33,42 @@ it('projects a revealed inventory clue to the owned journal without offering an 
 const runId = '44444444-4444-4444-8444-444444444444'
 const giverId = '55555555-5555-4555-8555-555555555555'
 const giverPosition = { sectorId: 'verdant-expanse', x: 2, y: 4 }
+it('shows owned hunt progress and keeps a pending XP reward visible alongside its cooldown', () => {
+  const hunt = {
+    runId,
+    title: 'Alder Venn’s Wolf Hunt',
+    body: 'Follow the tracks beyond the farms.',
+    giverId,
+    speaker: 'Alder Venn',
+    progress: 'active',
+    defeats: 3,
+    requiredDefeats: 5,
+    local: true,
+  }
+  const active = projectRepeatableTravel([hunt])
+  expect(active.objectives[0]?.description).toContain('3 of 5 qualifying defeats.')
+  expect(active.interactions[0]?.body).toContain('3 of 5 qualifying defeats.')
+  const pending = projectRepeatableTravel([
+    {
+      ...hunt,
+      progress: 'completed',
+      defeats: 5,
+      action: 'claim-hunt-reward',
+      rewardPending: true,
+      destination: giverPosition,
+      nextAvailableAt: '2026-11-08T00:00:00Z',
+    },
+  ])
+  expect(pending.objectives[0]).toMatchObject({
+    progress: 'ready',
+    destination: giverPosition,
+    description: expect.stringContaining('Available again'),
+  })
+  expect(pending.interactions[0]).toMatchObject({
+    actionId: 'claim-hunt-reward',
+    actionLabel: 'Collect Character XP',
+  })
+})
 const checkpoint = { sectorId: 'verdant-expanse', x: 3, y: 4 }
 const restoration = {
   runId,
@@ -44,7 +80,7 @@ const restoration = {
   speaker: 'Restoration Smith',
   firstName: 'First Fragment',
   secondName: 'Second Fragment',
-  outputName: 'Sanalex Sword',
+  outputName: 'Cinderwake',
   itemClaimPending: false,
   destination: giverPosition,
   progress: 'active',
@@ -158,9 +194,9 @@ it('offers a named and deliberate two-fragment hand-in only when the server says
   expect(ready.interactions).toEqual([
     expect.objectContaining({
       actionId: 'restore-item',
-      actionLabel: 'Restore Sanalex Sword',
+      actionLabel: 'Restore Cinderwake',
       confirmation: {
-        prompt: 'Hand over 1 First Fragment and 1 Second Fragment to restore Sanalex Sword?',
+        prompt: 'Hand over 1 First Fragment and 1 Second Fragment to restore Cinderwake?',
         label: 'Confirm restoration',
         cancelLabel: 'Keep them for now',
       },
@@ -178,7 +214,7 @@ it('keeps an earned sword visible for collection until it is delivered', () => {
       autoPath: true,
       progress: 'ready',
       completed: false,
-      description: expect.stringContaining('Sanalex Sword is reserved'),
+      description: expect.stringContaining('Cinderwake is reserved'),
     }),
   ])
   expect(away.interactions).toEqual([])
@@ -186,7 +222,7 @@ it('keeps an earned sword visible for collection until it is delivered', () => {
   expect(local.interactions).toEqual([
     expect.objectContaining({
       actionId: 'claim-restoration',
-      actionLabel: 'Collect Sanalex Sword',
+      actionLabel: 'Collect Cinderwake',
     }),
   ])
   const delivered = projectPersonalQuests([

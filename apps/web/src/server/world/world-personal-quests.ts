@@ -6,20 +6,16 @@ import {
 } from '@aurevane/game-core/events/persistent-event'
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import { resolvePublicCharacterImageUrl } from '@/media/public-character-portrait'
-import { isWorldUuid, PERSONAL_QUEST_INTERACTION_PREFIX } from '@/world/command'
+import {
+  isWorldUuid,
+  PERSONAL_QUEST_INTERACTION_PREFIX,
+  REPEATABLE_ACTIVITY_INTERACTION_PREFIX,
+} from '@/world/command'
 import { validCell } from '@/world/travel'
 import type { WorldInteraction, WorldObjective, WorldPosition } from '@/world/types'
 
-const repeatablePrefix = 'repeatable-travel-'
-function interactionReference(interactionId: string, idPrefix: string): string | null {
-  const reference = interactionId.slice(idPrefix.length)
-  return interactionId.startsWith(idPrefix) && isWorldUuid(reference) ? reference : null
-}
-export function repeatableTravelReference(interactionId: string): string | null {
-  return interactionReference(interactionId, repeatablePrefix)
-}
 export function projectRepeatableTravel(rows: unknown) {
-  return projectPersonalQuests(rows, repeatablePrefix)
+  return projectPersonalQuests(rows, REPEATABLE_ACTIVITY_INTERACTION_PREFIX)
 }
 
 function object(value: unknown): value is Record<string, unknown> {
@@ -58,10 +54,9 @@ export function projectPersonalQuests(
       continue
     const id = idPrefix + row.runId
     const title = row.title.slice(0, 120)
+    const repeatable = idPrefix === REPEATABLE_ACTIVITY_INTERACTION_PREFIX
     const availableAt =
-      idPrefix === repeatablePrefix && typeof row.nextAvailableAt === 'string'
-        ? Date.parse(row.nextAvailableAt)
-        : NaN
+      repeatable && typeof row.nextAvailableAt === 'string' ? Date.parse(row.nextAvailableAt) : NaN
     const availability = Number.isFinite(availableAt)
       ? ` Available again ${new Intl.DateTimeFormat('en', {
           dateStyle: 'medium',
@@ -69,7 +64,26 @@ export function projectPersonalQuests(
           timeZone: 'UTC',
         }).format(availableAt)} UTC.`
       : ''
-    const body = row.body.slice(0, 800) + availability
+    const huntProgress =
+      repeatable &&
+      (row.progress === 'active' || row.progress === 'ready') &&
+      typeof row.requiredDefeats === 'number' &&
+      Number.isSafeInteger(row.requiredDefeats) &&
+      row.requiredDefeats >= 1 &&
+      row.requiredDefeats <= 25 &&
+      typeof row.defeats === 'number' &&
+      Number.isSafeInteger(row.defeats) &&
+      row.defeats >= 0 &&
+      row.defeats <= row.requiredDefeats
+        ? ` ${row.defeats} of ${row.requiredDefeats} qualifying defeats.`
+        : ''
+    const huntRewardPending =
+      repeatable && row.progress === 'completed' && row.rewardPending === true
+    const body =
+      row.body.slice(0, 800) +
+      huntProgress +
+      (huntRewardPending ? ' Character XP is ready to collect.' : '') +
+      availability
     const restoration =
       idPrefix === PERSONAL_QUEST_INTERACTION_PREFIX &&
       row.discovery === true &&
@@ -173,7 +187,7 @@ export function projectPersonalQuests(
     }
     const destination = position(row.destination)
     // The exchange is settled, but keep its owed weapon in the active journal.
-    const displayedProgress = restoration?.claimPending ? 'ready' : progress
+    const displayedProgress = restoration?.claimPending || huntRewardPending ? 'ready' : progress
     objectives.push({
       id,
       name: title,
@@ -189,8 +203,9 @@ export function projectPersonalQuests(
     if (row.local !== true) continue
     const handOver = exchange ? `Hand over ${exchange.inputQuantity} ${exchange.inputName}` : null
     const responses = {
-      accept: idPrefix === repeatablePrefix ? 'Accept activity' : 'Accept quest',
+      accept: repeatable ? 'Accept activity' : 'Accept quest',
       report: 'Report back',
+      'claim-hunt-reward': 'Collect Character XP',
       'hand-over': handOver,
       'claim-exchange': exchange ? `Collect ${exchange.outputName}` : null,
       'travel-realm': 'Travel to the realm',
@@ -207,6 +222,7 @@ export function projectPersonalQuests(
           (progress === 'ready' && row.action === 'restore-item') ||
           (restoration.claimPending && row.action === 'claim-restoration'))) ||
       (progress === 'available' && row.action === 'accept') ||
+      (huntRewardPending && row.action === 'claim-hunt-reward') ||
       (progress === 'ready' &&
         (row.action === 'report' || (exchange && row.action === 'hand-over'))) ||
       (row.accessGranted === true &&

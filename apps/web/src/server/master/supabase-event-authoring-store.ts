@@ -209,6 +209,30 @@ function mapRpcError(error: RpcError): never {
       'Choose enabled Material, Event, or General stock to hand in and an enabled Event or General Item to receive.',
       { cause: error },
     )
+  if (message === 'EVENT_REPEATABLE_HUNT_INVALID')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Complete the hunt details and use one manual phase with no shared objectives or effects.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_GIVER_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose Global audience and a published Story NPC with a World placement.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_REWARD_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose an approved Character XP package for the hunt.',
+      { cause: error },
+    )
+  if (message === 'EVENT_REPEATABLE_HUNT_TARGET_UNAVAILABLE')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose a tag used by a published World encounter.',
+      { cause: error },
+    )
   if (
     error.code === '22023' ||
     message.includes('EVENT_DEFINITION_') ||

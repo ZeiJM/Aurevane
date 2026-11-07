@@ -17,15 +17,16 @@ import type {
 } from '@/world/types'
 import { eventWorldObjectives } from './world-events'
 import { loadWorldNpcs, peekWorldNpcs, resetWorldNpcReadCache } from './world-npcs'
-import {
-  projectPersonalQuests,
-  projectRepeatableTravel,
-  repeatableTravelReference,
-} from './world-personal-quests'
+import { projectPersonalQuests, projectRepeatableTravel } from './world-personal-quests'
 import { localWorldInteractions } from './world-objectives'
 import { WORLD_OBJECTIVES, resolveSector } from './world-content'
 import { projectWorldFerry } from './world-ferry'
-import { isWorldRestorationAction, isWorldUuid, personalQuestRunId } from '@/world/command'
+import {
+  isWorldRestorationAction,
+  isWorldUuid,
+  personalQuestRunId,
+  repeatableActivityReference,
+} from '@/world/command'
 import { resolveWorldEnvironment } from '@/world/environment'
 import { readWorldEnvironmentSettings } from './world-environment-store'
 import {
@@ -314,7 +315,8 @@ async function presentWorldData(
       }
       const client = createSupabaseAdminClient()
       const result = await client.rpc('read_world_scene_players_v2', args)
-      if (result.error?.code === '42883' || result.error?.code === 'PGRST202')
+      const code = result.error?.code
+      if (code === '42883' || code === 'PGRST202' || code === '55P03')
         return { ...(await client.rpc('read_world_scene_players_v1', args)), live: false }
       return { ...result, live: true }
     })(),
@@ -360,6 +362,7 @@ export function commitWorldCommand(
   characterId: string,
   command: WorldCommand,
   compactMovement?: false,
+  receivedAt?: string,
 ): Promise<WorldView>
 export function commitWorldCommand(
   userId: string,
@@ -378,6 +381,7 @@ export async function commitWorldCommand(
   characterId: string,
   command: WorldCommand,
   compactMovement = false,
+  receivedAt?: string,
 ) {
   // Intent resolution needs authority, not terrain/scene/portrait/environment presentation.
   // Keep training materialization in this read and blocking/version checks in the commit RPC.
@@ -442,11 +446,15 @@ export async function commitWorldCommand(
     return commitPersonalQuest(runId, command.intent.actionId)
   }
   if (command.intent.kind === 'interact') {
-    const referenceId = repeatableTravelReference(command.intent.interactionId)
+    const referenceId = repeatableActivityReference(command.intent.interactionId)
     if (referenceId) {
-      if (command.intent.actionId !== 'accept' && command.intent.actionId !== 'report')
+      if (
+        command.intent.actionId !== 'accept' &&
+        command.intent.actionId !== 'report' &&
+        command.intent.actionId !== 'claim-hunt-reward'
+      )
         throw new AurevaneError('INVALID_REQUEST', 'Choose an explicit activity response.')
-      const { error } = await createSupabaseAdminClient().rpc('commit_world_repeatable_travel_v1', {
+      const params = {
         p_user_id: userId,
         p_character_id: characterId,
         p_expected_version: command.expectedVersion,
@@ -454,7 +462,15 @@ export async function commitWorldCommand(
         p_reference_id: referenceId,
         p_action: command.intent.actionId,
         p_request_fingerprint: fingerprint,
-      })
+      }
+      const client = createSupabaseAdminClient()
+      const { error } =
+        command.intent.actionId === 'report' && receivedAt
+          ? await client.rpc('commit_world_repeatable_activity_v2', {
+              ...params,
+              p_received_at: receivedAt,
+            })
+          : await client.rpc('commit_world_repeatable_travel_v1', params)
       if (error) worldRpcError(error)
       return (await readWorld(userId, characterId)).view
     }

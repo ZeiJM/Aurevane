@@ -216,6 +216,45 @@ it('opts only authenticated movement commands into compact approval without chan
   expect((await POST(request(false))).status).toBe(200)
   expect(commitWorldCommand).toHaveBeenLastCalledWith('owner', id, body, false)
 })
+
+it('anchors a repeatable report to the server receipt before session verification', async () => {
+  const receivedAt = '2026-11-08T05:59:59.000Z'
+  const body = {
+    characterId: view.characterId,
+    expectedVersion: view.version,
+    commandId: '00000000-0000-4000-8000-000000000099',
+    intent: {
+      kind: 'interact',
+      interactionId: 'repeatable-travel-00000000-0000-4000-8000-000000000047',
+      actionId: 'report',
+    },
+  }
+  vi.useFakeTimers({ toFake: ['Date'] })
+  try {
+    vi.setSystemTime(new Date(receivedAt))
+    actor.mockImplementationOnce(async () => {
+      vi.setSystemTime(new Date('2026-11-08T06:00:01.000Z'))
+      return { userId: 'owner' }
+    })
+    const response = await POST(
+      new Request('https://example.test/api/world', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...body, receivedAt: '2000-01-01T00:00:00.000Z' }),
+      }),
+    )
+    expect(response.status).toBe(200)
+    expect(commitWorldCommand).toHaveBeenCalledExactlyOnceWith(
+      'owner',
+      view.characterId,
+      body,
+      false,
+      receivedAt,
+    )
+  } finally {
+    vi.useRealTimers()
+  }
+})
 it('opts compact attacks into committed identity while preserving complete legacy responses', async () => {
   const { attackWorldPlayer } = await import('@/server/world/world-battle')
   const id = '00000000-0000-4000-8000-000000000011',

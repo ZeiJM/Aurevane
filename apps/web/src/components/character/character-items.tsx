@@ -358,15 +358,11 @@ export function CharacterItems({
                         ? 'Two-handed'
                         : (s?.item?.name ?? (s ? 'Unavailable Item' : 'Empty'))}
                     </strong>
-                    <small>
-                      {blocked
-                        ? 'Off Hand blocked'
-                        : s?.item
-                          ? `${s.item.qualityPoints} QP`
-                          : s
-                            ? 'Remove to repair'
-                            : 'Unequipped'}
-                    </small>
+                    {blocked || !s?.item ? (
+                      <small>
+                        {blocked ? 'Off Hand blocked' : s ? 'Remove to repair' : 'Unequipped'}
+                      </small>
+                    ) : null}
                     <span className={styles.equipmentArtwork}>
                       {s?.item?.artworkSrc ? (
                         <Image

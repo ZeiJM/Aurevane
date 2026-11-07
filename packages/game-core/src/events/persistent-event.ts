@@ -3,6 +3,7 @@ import {
   PERSONAL_QUEST_GIVERS,
   isPersonalQuestGiver,
   isPersonalJourneyNpcId,
+  type PersonalHuntJourney,
   type PersonalJourney,
   type PersonalInventoryDiscovery,
   type PersonalTravelJourney,
@@ -141,7 +142,7 @@ export type EventRecurrence =
     }
 
 export interface RepeatableTravel {
-  readonly journey: PersonalTravelJourney
+  readonly journey: PersonalTravelJourney | PersonalHuntJourney
   readonly recurrence: EventRecurrence
 }
 
@@ -303,6 +304,68 @@ function isoTimestamp(value: string, label: string): void {
   if (!Number.isFinite(Date.parse(value))) throw new TypeError(`${label} must be an ISO timestamp.`)
 }
 
+function validatePrivateQuestPhase(definition: PersistentEventDefinition): void {
+  const { phases, aftermathRefs } = definition
+  if (
+    phases.length !== 1 ||
+    phases[0]?.transition.type !== 'manual' ||
+    phases[0].objectives.length ||
+    phases[0].effects.length ||
+    phases[0].cleanupEffects.length ||
+    aftermathRefs.length
+  ) {
+    throw new TypeError(
+      'A personal journey uses one manual phase without shared objectives or effects.',
+    )
+  }
+}
+
+function validateJourneyDialogue(journey: PersonalJourney | PersonalHuntJourney): void {
+  for (const [label, text] of [
+    ['Offer', journey.offer],
+    ['In progress', journey.active],
+    ['Ready', journey.ready],
+    ['Completion', journey.completed],
+  ] as const)
+    shortText(text, `${label} dialogue`, 800)
+}
+
+function validateRepeatableHunt(
+  journey: PersonalHuntJourney,
+  definition: PersistentEventDefinition,
+): void {
+  const fields = [
+    'type',
+    'giverId',
+    'npcTag',
+    'requiredDefeats',
+    'rewardPackageRef',
+    'offer',
+    'active',
+    'ready',
+    'completed',
+  ]
+  if (Object.keys(journey).some((field) => !fields.includes(field)))
+    throw new TypeError('Unknown hunt field.')
+  if (!isPersonalJourneyNpcId(journey.giverId))
+    throw new TypeError('Choose a published World and Story NPC as the hunt giver.')
+  if (typeof journey.npcTag !== 'string' || !/^[a-z][a-z0-9-]{1,31}$/.test(journey.npcTag))
+    throw new TypeError(
+      'Enter a World encounter tag with 2–32 lowercase letters, digits or hyphens, starting with a letter.',
+    )
+  if (
+    !Number.isInteger(journey.requiredDefeats) ||
+    journey.requiredDefeats < 1 ||
+    journey.requiredDefeats > 25
+  )
+    throw new TypeError('Choose a required defeat count from 1 to 25.')
+  identity(journey.rewardPackageRef, 'Hunt Character XP reward')
+  if (definition.scope.type !== 'global')
+    throw new TypeError('Choose Global audience in Setup for a World hunt.')
+  validatePrivateQuestPhase(definition)
+  validateJourneyDialogue(journey)
+}
+
 export function validatePersistentEventDefinition(definition: PersistentEventDefinition): void {
   if (definition.schemaVersion !== PERSISTENT_EVENT_SCHEMA_VERSION) {
     throw new TypeError('Unsupported persistent event schema version.')
@@ -461,17 +524,18 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
 
   if (definition.repeatableTravel !== undefined) {
     const repeatable = definition.repeatableTravel
+    const journey = repeatable?.journey
     if (
-      repeatable?.journey?.type !== 'travel-and-report' ||
+      (journey?.type !== 'travel-and-report' && journey?.type !== 'defeat-and-report') ||
       definition.personalJourney !== undefined ||
       resolveEventCategory(definition) !== 'repeatable-activities'
     ) {
       throw new TypeError(
-        'Repeatable travel requires a Repeatable Activity with one travel journey.',
+        'A repeatable journey requires a Repeatable Activity with one travel or defeat objective.',
       )
     }
     if (definition.rewardPackageRefs.length || definition.aftermathRefs.length) {
-      throw new TypeError('Repeatable travel does not grant rewards.')
+      throw new TypeError('Repeatable journeys cannot use shared rewards or aftermath.')
     }
     const policy = repeatable.recurrence
     if (!policy || !['rolling-24h', 'calendar-day', 'calendar-week'].includes(policy.mode))
@@ -491,12 +555,14 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
         throw new TypeError('Choose a calendar reset time from 00:00 to 23:59.')
       }
     }
-    validatePersistentEventDefinition({
-      ...definition,
-      category: 'story-campaigns',
-      personalJourney: repeatable.journey,
-      repeatableTravel: undefined,
-    })
+    if (journey.type === 'defeat-and-report') validateRepeatableHunt(journey, definition)
+    else
+      validatePersistentEventDefinition({
+        ...definition,
+        category: 'story-campaigns',
+        personalJourney: journey,
+        repeatableTravel: undefined,
+      })
   }
 
   if (definition.personalJourney !== undefined) {
@@ -521,7 +587,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     const giver = isPersonalQuestGiver(journey.giverId)
       ? PERSONAL_QUEST_GIVERS[journey.giverId].position
       : null
-    const { scope, phases, rewardPackageRefs } = definition
+    const { scope, rewardPackageRefs } = definition
     if (
       scope.type !== 'global' &&
       (scope.type !== 'region' ||
@@ -531,18 +597,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
     ) {
       throw new TypeError('The audience must include the quest giver’s region.')
     }
-    if (
-      phases.length !== 1 ||
-      phases[0]?.transition.type !== 'manual' ||
-      phases[0].objectives.length ||
-      phases[0].effects.length ||
-      phases[0].cleanupEffects.length ||
-      definition.aftermathRefs.length
-    ) {
-      throw new TypeError(
-        'A personal journey uses one manual phase without shared objectives or effects.',
-      )
-    }
+    validatePrivateQuestPhase(definition)
     if (
       rewardPackageRefs.length > 8 ||
       new Set(rewardPackageRefs).size !== rewardPackageRefs.length
@@ -604,14 +659,7 @@ export function validatePersistentEventDefinition(definition: PersistentEventDef
       } else if (rewardPackageRefs.length)
         throw new TypeError('An item exchange awards the selected Item and access.')
     }
-    for (const [label, text] of [
-      ['Offer', journey.offer],
-      ['In progress', journey.active],
-      ['Ready', journey.ready],
-      ['Completion', journey.completed],
-    ] as const) {
-      shortText(text, `${label} dialogue`, 800)
-    }
+    validateJourneyDialogue(journey)
   }
 
   for (const ref of [...definition.rewardPackageRefs, ...definition.aftermathRefs]) {

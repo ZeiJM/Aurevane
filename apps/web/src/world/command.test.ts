@@ -35,6 +35,25 @@ it('keeps the selected dialogue reply explicit at the command boundary', () => {
   expect(parseWorldCommand({ ...base, intent: { ...intent, actionId: 'continue' } })).toBeNull()
 })
 
+it('accepts hunt reward collection only for a repeatable attempt and ignores a caller-supplied reward', () => {
+  const actionId = 'claim-hunt-reward'
+  const intent = {
+    kind: 'interact',
+    interactionId: 'repeatable-travel-00000000-0000-4000-8000-000000000047',
+    actionId,
+  }
+  expect(parseWorldCommand({ ...base, intent: { ...intent, awardedXp: 999 } })).toEqual({
+    ...base,
+    intent,
+  })
+  expect(
+    parseWorldCommand({
+      ...base,
+      intent: { ...intent, interactionId: 'quest-run-00000000-0000-4000-8000-000000000047' },
+    }),
+  ).toBeNull()
+})
+
 it('rejects malformed and unbounded commands', () => {
   for (const input of [
     null,

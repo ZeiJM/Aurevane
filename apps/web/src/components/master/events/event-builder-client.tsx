@@ -816,16 +816,19 @@ export function EventBuilderClient({
           <section className={styles.card} hidden={tab !== 'Journey'} aria-label="Personal journey">
             <h2>
               {eventCategory === 'repeatable-activities' || definition.repeatableTravel
-                ? 'Repeatable travel'
+                ? 'Repeatable activity'
                 : 'Personal journey'}
             </h2>
             {eventCategory === 'repeatable-activities' || definition.repeatableTravel ? (
               <RepeatableTravelFields
                 value={definition.repeatableTravel}
+                storyNpcs={storyNpcs}
+                rewards={catalogue.rewards}
                 change={(repeatableTravel) =>
                   patchDefinition({
                     repeatableTravel,
-                    ...(repeatableTravel && definition.scope.type === 'region'
+                    ...(repeatableTravel?.journey.type === 'travel-and-report' &&
+                    definition.scope.type === 'region'
                       ? {
                           scope: {
                             type: 'region',
@@ -1359,13 +1362,15 @@ export function EventBuilderClient({
                 </select>
               </label>
               <p>
-                {definition.personalJourney?.type === 'item-exchange'
-                  ? definition.personalJourney.realm
-                    ? 'Choose an approved Character XP reward for the first guardian victory.'
-                    : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
-                  : definition.personalJourney
-                    ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
-                    : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
+                {definition.repeatableTravel?.journey.type === 'defeat-and-report'
+                  ? 'Choose the hunt’s Character XP package in Journey. Leave shared rewards and aftermath empty.'
+                  : definition.personalJourney?.type === 'item-exchange'
+                    ? definition.personalJourney.realm
+                      ? 'Choose an approved Character XP reward for the first guardian victory.'
+                      : 'The item and access are set in Personal journey. Leave Character XP rewards empty.'
+                    : definition.personalJourney
+                      ? 'Approved Character XP is granted once when the player returns and reports. Active attempts keep their original rewards.'
+                      : 'Only budget-approved Character XP packages are listed. Shared events currently have no live reward producer.'}
               </p>
               <label>
                 Aftermath refs

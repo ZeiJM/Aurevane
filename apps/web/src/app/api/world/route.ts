@@ -7,7 +7,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 import { attackWorldPlayer } from '@/server/world/world-battle'
 import { worldAtlasReceipt } from '@/server/world/world-atlas-receipt'
 import { commitWorldCommand, readWorld } from '@/server/world/world-repository'
-import { isWorldUuid, parseWorldCommand } from '@/world/command'
+import { isWorldUuid, parseWorldCommand, repeatableActivityReference } from '@/world/command'
 import { WORLD_ATLAS_HEADER, worldRefreshResponse } from '@/world/presence'
 
 export const dynamic = 'force-dynamic'
@@ -50,6 +50,7 @@ export async function GET(request?: Request) {
   }
 }
 export async function POST(request: Request) {
+  const receivedAt = Date.now()
   const startedAt = performance.now()
   let identityAt: number | null = null
   let intentKind: string | null = null
@@ -113,17 +114,26 @@ export async function POST(request: Request) {
         ),
       )
     }
-    return finish(
-      json(
-        await commitWorldCommand(
+    const repeatableReport =
+      command.intent.kind === 'interact' &&
+      command.intent.actionId === 'report' &&
+      repeatableActivityReference(command.intent.interactionId) !== null
+    const result = repeatableReport
+      ? await commitWorldCommand(
+          actor.userId,
+          actor.characterId,
+          command,
+          false,
+          new Date(receivedAt).toISOString(),
+        )
+      : await commitWorldCommand(
           actor.userId,
           actor.characterId,
           command,
           request.headers.get('x-world-response') === 'movement' &&
             ['walk', 'autopath', 'tick', 'stop'].includes(command.intent.kind),
-        ),
-      ),
-    )
+        )
+    return finish(json(result))
   } catch (error) {
     return finish(toServerErrorResponse(error))
   }
