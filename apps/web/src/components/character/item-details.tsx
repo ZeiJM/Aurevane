@@ -21,76 +21,88 @@ export function ItemDetails({
           item.reports.find((report) => report.behaviorId === item.actions.use?.behaviorId)
             ?.maximumUsesPerBattle ?? item.battleUses,
         )
+  const summary = (artworkSrc: string | null, artworkName: string, description: string | null) => (
+    <div className={styles.summary}>
+      {artworkSrc ? (
+        <Image
+          className={styles.artwork}
+          src={artworkSrc}
+          width={160}
+          height={160}
+          alt={artworkName}
+        />
+      ) : null}
+      <div>
+        {showName ? <h3>{item.name}</h3> : null}
+        {description ? <p>{description}</p> : null}
+        <dl className={styles.facts}>
+          <div>
+            <dt>Tier</dt>
+            <dd>{item.tier}</dd>
+          </div>
+          <div>
+            <dt>Maximum stack</dt>
+            <dd>{item.maximumStack}</dd>
+          </div>
+          <div>
+            <dt>Class</dt>
+            <dd>{itemCategoryLabel(item.inventoryCategory)}</dd>
+          </div>
+          <div>
+            <dt>Position</dt>
+            <dd>
+              {item.itemClass === 'battle-item'
+                ? 'Consumable Slot'
+                : itemPositions(item)
+                    .map((position) => positionNames[position])
+                    .join(' / ') || 'N/A'}
+            </dd>
+          </div>
+          <div>
+            <dt>Type</dt>
+            <dd>
+              {['armor', 'hand-armor', 'weapon', 'battle-item'].includes(item.itemClass)
+                ? itemClassLabel(item.itemClass)
+                : 'N/A'}
+            </dd>
+          </div>
+          {battleUses !== null ? (
+            <div>
+              <dt>Uses per battle</dt>
+              <dd>{battleUses}</dd>
+            </div>
+          ) : null}
+          {item.equipment && item.equipRequirements ? (
+            <div className={styles.requirements}>
+              <dt>Equip requirements</dt>
+              <dd>
+                {(
+                  item.equipRequirementSummaries ??
+                  itemEquipRequirementSummaries(item.equipRequirements)
+                ).join(' · ') || 'None'}
+              </dd>
+            </div>
+          ) : null}
+        </dl>
+      </div>
+    </div>
+  )
   return (
     <article className={styles.details} aria-label={`${item.name} details`}>
-      <div className={styles.summary}>
-        {item.artworkSrc ? (
-          <Image
-            className={styles.artwork}
-            src={item.artworkSrc}
-            width={160}
-            height={160}
-            alt={item.name}
-          />
-        ) : null}
-        <div>
-          {showName ? <h3>{item.name}</h3> : null}
-          <p>{item.description}</p>
-          <dl className={styles.facts}>
-            <div>
-              <dt>Tier</dt>
-              <dd>{item.tier}</dd>
-            </div>
-            <div>
-              <dt>Maximum stack</dt>
-              <dd>{item.maximumStack}</dd>
-            </div>
-            <div>
-              <dt>Class</dt>
-              <dd>{itemCategoryLabel(item.inventoryCategory)}</dd>
-            </div>
-            <div>
-              <dt>Position</dt>
-              <dd>
-                {item.itemClass === 'battle-item'
-                  ? 'Consumable Slot'
-                  : itemPositions(item)
-                      .map((position) => positionNames[position])
-                      .join(' / ') || 'N/A'}
-              </dd>
-            </div>
-            <div>
-              <dt>Type</dt>
-              <dd>
-                {['armor', 'hand-armor', 'weapon', 'battle-item'].includes(item.itemClass)
-                  ? itemClassLabel(item.itemClass)
-                  : 'N/A'}
-              </dd>
-            </div>
-            {battleUses !== null ? (
-              <div>
-                <dt>Uses per battle</dt>
-                <dd>{battleUses}</dd>
-              </div>
-            ) : null}
-            {item.equipment && item.equipRequirements ? (
-              <div className={styles.requirements}>
-                <dt>Equip requirements</dt>
-                <dd>
-                  {(
-                    item.equipRequirementSummaries ??
-                    itemEquipRequirementSummaries(item.equipRequirements)
-                  ).join(' · ') || 'None'}
-                </dd>
-              </div>
-            ) : null}
-          </dl>
-        </div>
-      </div>
       {!item.enabled ? (
         <p>This Item is currently unavailable for new equipment or battles.</p>
       ) : null}
       <ItemReportTabs
+        itemSummary={summary(item.artworkSrc, item.name, item.description)}
+        techniqueSummary={
+          item.itemClass === 'weapon' && item.actions.support?.artworkSrc
+            ? summary(
+                item.actions.support.artworkSrc,
+                item.actions.support.name,
+                item.actions.support.description ?? null,
+              )
+            : undefined
+        }
         itemId={item.id}
         itemCharacteristics={item}
         supportBehaviorId={

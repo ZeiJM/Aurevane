@@ -43,3 +43,28 @@ it('prefers exact finalized technique artwork over built-in and weapon artwork',
   expect(presentItem(current).actions.support?.artworkSrc).toBe(`/api/content-media/${artwork.id}`)
   expect(presentItem(current).artworkSrc).toBe('/media/art/items/emberbrand-v01.webp')
 })
+
+it('projects exact authored purpose text and leaves absent captured purpose unavailable', () => {
+  const item = starterItemDefinitions().find((row) => row.id === 'stormcaller-staff')!
+  const current = {
+    ...item,
+    actions: {
+      ...item.actions,
+      support: { ...item.actions!.support!, description: 'Gain a protective Barrier.' },
+    },
+  }
+  expect(presentItem(current).actions.support?.description).toBe('Gain a protective Barrier.')
+  const binding = { ...item.actions!.support! }
+  delete binding.description
+  const historical = { ...current, actions: { ...current.actions, support: binding } }
+  expect(presentItem(historical).actions.support).not.toHaveProperty('description')
+  expect(
+    presentItem({
+      ...current,
+      actions: {
+        ...current.actions,
+        support: { ...current.actions.support, description: 'Captured custom purpose.' },
+      },
+    }).actions.support?.description,
+  ).toBe('Captured custom purpose.')
+})

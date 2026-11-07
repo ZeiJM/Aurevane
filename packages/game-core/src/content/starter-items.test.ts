@@ -106,7 +106,7 @@ it('retains the reviewed Fire-only Kindle scope and consumable description corre
       .filter(
         (item) =>
           ['emberbrand', 'vulnerability-oil', 'ward-sigil-scroll'].includes(item.id) &&
-          item.contentVersion === (item.id === 'emberbrand' ? 8 : 6),
+          item.contentVersion === (item.id === 'emberbrand' ? 10 : 6),
       )
       .map((item) => item.id)
       .sort(),
@@ -165,8 +165,7 @@ it('matches reviewed successors while preserving every unaffected source body', 
       ).toEqual(prior)
       const normalized = structuredClone(candidate.beforeDefinition)
       normalized.contentVersion = item.contentVersion
-      if (item.contentVersion === 8)
-        normalized.actions.support.media = { artworkId: `item.${item.id}.technique.art.v1` }
+      if (successor) normalized.actions.support = item.actions!.support
       for (const group of normalized.ability.behaviors)
         for (const effect of group.effects) delete effect.timing
       if (item.itemClass === 'weapon')
@@ -193,8 +192,8 @@ it('matches reviewed successors while preserving every unaffected source body', 
   }
 })
 
-it('adds exactly four immutable source8 artwork successors', () => {
-  const successors = starterItemDefinitions().filter((item) => item.contentVersion === 8)
+it('retains four independent technique artworks on purpose successors', () => {
+  const successors = starterItemDefinitions().filter((item) => item.contentVersion === 10)
   expect(successors.map((item) => item.id).sort()).toEqual([
     'emberbrand',
     'stormcaller-staff',
@@ -203,4 +202,72 @@ it('adds exactly four immutable source8 artwork successors', () => {
   ])
   for (const item of successors)
     expect(item.actions!.support!.media).toEqual({ artworkId: `item.${item.id}.technique.art.v1` })
+})
+
+it('adds exactly four source10 purpose successors without changing captured mechanics or historical source8 bodies', () => {
+  const prior = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../../../docs/verification/2026-11-06-item-technique-successors.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
+  const purpose = {
+    'twinfang-blade': 'Reduce the AP cost of your movement for 1 turn.',
+    'tower-shield': 'Reduce incoming damage with Guarded for 2 turns.',
+    'stormcaller-staff': 'Gain a Barrier equal to 8% of your maximum HP for 2 turns.',
+    emberbrand: 'Increase your direct Fire damage for 2 turns.',
+  }
+  const items = starterItemDefinitions()
+  expect(
+    items
+      .filter((row) => row.contentVersion === 10)
+      .map((row) => row.id)
+      .sort(),
+  ).toEqual(Object.keys(purpose).sort())
+  for (const candidate of prior.candidates) {
+    const source8 = parseRuntimeItemDefinition(candidate.afterDefinition)
+    expect(source8.actions!.support).not.toHaveProperty('description')
+    expect(items.find((row) => row.id === source8.id)).toEqual({
+      ...source8,
+      contentVersion: 10,
+      actions: {
+        ...source8.actions,
+        support: {
+          ...source8.actions!.support!,
+          description: purpose[source8.id as keyof typeof purpose],
+        },
+      },
+    })
+  }
+})
+
+it('matches every reviewed purpose successor audit body and permits only purpose/version differences', () => {
+  const audit = JSON.parse(
+    readFileSync(
+      new URL(
+        '../../../../docs/verification/2026-11-06-item-purpose-successors.json',
+        import.meta.url,
+      ),
+      'utf8',
+    ),
+  )
+  expect(audit.candidates).toHaveLength(4)
+  expect(audit.unchangedSources).toHaveLength(43)
+  for (const candidate of audit.candidates) {
+    const current = starterItemDefinitions().find((row) => row.id === candidate.itemId)!
+    expect(current).toEqual(parseRuntimeItemDefinition(candidate.afterDefinition))
+    expect({
+      ...current,
+      contentVersion: candidate.beforeContentVersion,
+      actions: { ...current.actions, support: candidate.beforeDefinition.actions.support },
+    }).toEqual(candidate.beforeDefinition)
+    expect(candidate.changedPaths).toEqual(['actions.support.description', 'contentVersion'])
+  }
+  for (const unchanged of audit.unchangedSources)
+    expect(
+      starterItemDefinitions().find((row) => row.id === unchanged.itemId)?.contentVersion,
+    ).toBe(unchanged.contentVersion)
 })

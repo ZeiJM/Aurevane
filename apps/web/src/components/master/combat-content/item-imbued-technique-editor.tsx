@@ -130,6 +130,17 @@ export function ItemImbuedTechniqueEditor({
               onChange({ ...value, actions: { ...value.actions, support: { ...support, name } } })
             }
           />
+          <AbilityText
+            label="Technique description"
+            value={support.description ?? ''}
+            maxLength={400}
+            onChange={(description) => {
+              const binding = { ...support }
+              if (description) binding.description = description
+              else delete binding.description
+              onChange({ ...value, actions: { ...value.actions, support: binding } })
+            }}
+          />
           <AbilitySelect
             label="Technique action"
             value={support.behaviorId}

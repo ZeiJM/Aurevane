@@ -394,3 +394,38 @@ it('uses the off-hand weapon only when the main hand has no weapon', () => {
     'passive',
   ])
 })
+
+it('pins technique purpose in equipment sources and preserves absent historical purpose literally', () => {
+  const current = starterItemDefinitions().find((item) => item.id === 'stormcaller-staff')!
+  const currentBinding = current.actions!.support!
+  const historicalBinding = { ...currentBinding }
+  delete historicalBinding.description
+  for (const item of [
+    current,
+    { ...current, contentVersion: 8, actions: { ...current.actions, support: historicalBinding } },
+    {
+      ...current,
+      actions: {
+        ...current.actions,
+        support: { ...currentBinding, description: 'A captured custom ward.' },
+      },
+    },
+  ]) {
+    const captured = parseBattleEquipmentCapture({
+      schemaVersion: 2,
+      inventoryRevision: 1,
+      selectedSupport: {
+        kind: 'equipment',
+        position: 'main-hand',
+        itemId: item.id,
+        behaviorId: currentBinding.behaviorId,
+      },
+      equipment: [{ position: 'main-hand', ownedStackId: 'owned-staff', item }],
+    })
+    const source = captureEquipmentAbilitySource(captured, captured.equipment[0]!, 'actor')!
+    expect(source.equipment!.unit.item.actions!.support).toEqual(item.actions!.support)
+    expect(source.equipment!.unit.item.actions!.support).not.toBe(item.actions!.support)
+    if (!('description' in item.actions!.support!))
+      expect(source.equipment!.unit.item.actions!.support).not.toHaveProperty('description')
+  }
+})

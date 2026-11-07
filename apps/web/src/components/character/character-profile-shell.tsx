@@ -59,6 +59,7 @@ export interface CharacterWorkspaceProps {
     disciplineNames?: Readonly<Record<string, string>>
     supportActionId?: SupportActionId
     supportActionArtworkKeys?: Readonly<Partial<Record<SupportActionId, string | null>>>
+    supportActionDescriptions?: Readonly<Partial<Record<SupportActionId, string>>>
     buildVersion: number
     current: PrimaryDisciplinePreview
     currentSecondary: DisciplineDefinition | null

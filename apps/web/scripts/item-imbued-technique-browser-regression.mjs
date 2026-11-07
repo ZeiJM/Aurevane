@@ -105,6 +105,9 @@ try {
     await page
       .getByRole('textbox', { name: 'Technique name', exact: true })
       .fill('Native Sunward Prayer')
+    const purpose = 'Restore a portion of your HP.'
+    const description = page.getByRole('textbox', { name: 'Technique description', exact: true })
+    await description.fill(purpose)
     await page.getByRole('tab', { name: 'Execution Characteristics', exact: true }).click()
     await page.getByRole('spinbutton', { name: 'AP cost', exact: true }).fill('37')
     await page.getByRole('button', { name: 'Commit Now', exact: true }).click()
@@ -112,6 +115,7 @@ try {
     const saved = await page.evaluate(() => window.imbuedSaved)
     const original = await page.evaluate(() => window.imbuedOriginal)
     assert.equal(saved.actions.support.name, 'Native Sunward Prayer')
+    assert.equal(saved.actions.support.description, purpose)
     assert.deepEqual(saved.actions.attack, original.actions.attack)
     assert.deepEqual(
       saved.ability.behaviors.find((group) => group.id === saved.actions.attack.behaviorId),
@@ -124,6 +128,7 @@ try {
     await expect(page.getByRole('textbox', { name: 'Technique name', exact: true })).toHaveValue(
       'Native Sunward Prayer',
     )
+    await expect(description).toHaveValue(purpose)
     await page.getByRole('tab', { name: 'Execution Characteristics', exact: true }).click()
     await expect(page.getByRole('spinbutton', { name: 'AP cost', exact: true })).toHaveValue('37')
     const reader = page.getByRole('region', { name: 'Saved Item reader', exact: true })
@@ -135,6 +140,7 @@ try {
       reader.getByRole('heading', { name: 'Native Sunward Prayer', exact: true }),
     ).not.toBeVisible()
     await reader.getByRole('tab', { name: 'Imbued Technique', exact: true }).click()
+    await expect(reader.getByText(purpose, { exact: true })).toBeVisible()
     await expect(
       reader.getByRole('heading', { name: 'Native Sunward Prayer', exact: true }),
     ).toBeVisible()
@@ -155,6 +161,7 @@ try {
     await expect(page.getByRole('textbox', { name: 'Technique name', exact: true })).toHaveValue(
       'Native Sunward Prayer',
     )
+    await expect(description).toHaveValue(purpose)
     await enable.uncheck()
     await page.getByRole('button', { name: 'Commit Now', exact: true }).click()
     await expect(page.getByRole('status', { name: 'Save status', exact: true })).toHaveText('Saved')

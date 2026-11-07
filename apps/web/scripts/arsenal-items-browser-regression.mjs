@@ -324,7 +324,7 @@ try {
         url: new URL(url.searchParams.get('url'), server.resolvedUrls.local[0]).href,
       })
     })
-    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items`, {
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items&longNames`, {
       waitUntil: 'networkidle',
     })
     await expect(shellPage.locator('[data-inventory-slot]')).toHaveCount(40)
@@ -335,7 +335,7 @@ try {
     const itemsHeader = await shellPage
       .getByRole('navigation', { name: 'Arsenal sections' })
       .boundingBox()
-    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=nexus`, {
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=nexus&longNames`, {
       waitUntil: 'networkidle',
     })
     const nexusHeader = await shellPage
@@ -347,7 +347,7 @@ try {
         JSON.stringify({ viewport, key, itemsHeader, nexusHeader }),
       )
     }
-    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items`, {
+    await shellPage.goto(`${server.resolvedUrls.local[0]}?shell=items&longNames`, {
       waitUntil: 'networkidle',
     })
     const measure = () =>
@@ -367,9 +367,86 @@ try {
     )
     const equipment = shellPage.getByRole('region', { name: 'Equipment', exact: true })
     await expect(equipment.getByRole('button')).toHaveCount(8)
+    for (const category of ['Gear', 'Consumables']) {
+      await shellPage.getByRole('button', { name: category, exact: true }).click()
+      await expect(shellPage.locator(`[aria-label="${category} inventory slots"]`)).toBeVisible()
+      const nameFit = await shellPage
+        .locator(
+          '[data-equipment-position] button strong, [data-inventory-slot] [class*="itemName"]',
+        )
+        .evaluateAll((names) =>
+          names.map((name) => {
+            const box = name.getBoundingClientRect()
+            const card = name.closest('button').getBoundingClientRect()
+            const text = name.firstChild
+            const wordRects =
+              text?.nodeType === Node.TEXT_NODE
+                ? [...text.textContent.matchAll(/[^\s-]+/gu)].map((word) => {
+                    const range = document.createRange()
+                    range.setStart(text, word.index)
+                    range.setEnd(text, word.index + word[0].length)
+                    return [...range.getClientRects()].map((rect) => ({
+                      left: rect.left,
+                      right: rect.right,
+                    }))
+                  })
+                : []
+            return {
+              name: name.textContent,
+              contentHeight: name.scrollHeight,
+              availableHeight: name.clientHeight,
+              contentWidth: name.scrollWidth,
+              availableWidth: name.clientWidth,
+              nameLeft: box.left,
+              nameRight: box.right,
+              cardLeft: card.left,
+              cardRight: card.right,
+              clipped:
+                name.scrollHeight > name.clientHeight + 1 ||
+                name.scrollWidth > name.clientWidth + 1 ||
+                box.bottom > card.bottom + 1 ||
+                box.left < card.left - 1 ||
+                box.right > card.right + 1,
+              brokenWords: wordRects.some((rects) => rects.length > 1),
+              outside: wordRects
+                .flat()
+                .some((rect) => rect.left < box.left - 1 || rect.right > box.right + 1),
+            }
+          }),
+        )
+      assert.ok(
+        nameFit.every((name) => !name.clipped && !name.brokenWords && !name.outside),
+        JSON.stringify({ viewport, category, nameFit }),
+      )
+    }
+    await shellPage.getByRole('button', { name: 'Gear', exact: true }).click()
+    await expect(shellPage.locator('[aria-label="Gear inventory slots"]')).toBeVisible()
+    const tabFit = await shellPage
+      .locator('[aria-label="Item classes"] button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const box = button.getBoundingClientRect()
+          const range = document.createRange()
+          range.selectNodeContents(button)
+          const text = range.getBoundingClientRect()
+          return {
+            name: button.textContent,
+            left: text.left,
+            right: text.right,
+            buttonLeft: box.left,
+            buttonRight: box.right,
+          }
+        }),
+      )
+    assert.ok(
+      tabFit.every((tab) => tab.left >= tab.buttonLeft + 1 && tab.right <= tab.buttonRight - 1),
+      JSON.stringify({ viewport, tabFit }),
+    )
     const equipmentFit = await equipment.evaluate((panel) => ({
       overflow: panel.scrollHeight - panel.clientHeight,
       panelBottom: panel.getBoundingClientRect().bottom,
+      budgetBottom: panel.querySelector('meter').getBoundingClientRect().bottom,
+      gridTop: panel.querySelector('[class*="equipment_"]').getBoundingClientRect().top,
       gridBottom: panel.querySelector('[class*="equipment_"]').getBoundingClientRect().bottom,
       attackTop: panel.querySelector('[class*="attack_"]').getBoundingClientRect().top,
       slots: [...panel.querySelectorAll('button')].map((button) => {
@@ -392,6 +469,8 @@ try {
           nameBottom: name.bottom,
           helperTop: helper.top,
           helperBottom: helper.bottom,
+          helperLeft: helper.left,
+          helperRight: helper.right,
           imageLeft: image.left,
           imageRight: image.right,
           nameLeft: name.left,
@@ -417,12 +496,27 @@ try {
     for (const slot of equipmentFit.slots) {
       assert.ok(
         slot.nameTop >= slot.top &&
+          slot.top >= Math.max(equipmentFit.gridTop, equipmentFit.budgetBottom) - 1 &&
           slot.labelTop >= slot.bottom &&
           slot.labelBottom <= slot.cellBottom &&
+          slot.labelBottom <= Math.min(equipmentFit.gridBottom, equipmentFit.attackTop) + 1 &&
           (viewport.width >= 981
-            ? slot.imageTop >= slot.top &&
-              slot.imageBottom <= slot.bottom &&
-              slot.nameLeft >= slot.imageRight + 2
+            ? viewport.height <= 760
+              ? slot.imageTop >= slot.top &&
+                slot.imageBottom <= slot.bottom &&
+                slot.nameLeft >= slot.imageRight + 2 &&
+                slot.nameBottom <= slot.helperTop + 1 &&
+                slot.helperBottom <= slot.bottom &&
+                slot.helperLeft >= slot.left &&
+                slot.helperRight <= slot.right
+              : slot.imageTop >= slot.top &&
+                slot.imageBottom <= slot.nameTop + 1 &&
+                slot.nameBottom <= slot.bottom &&
+                slot.helperTop >= slot.top &&
+                slot.helperBottom <= slot.nameTop + 1 &&
+                slot.helperLeft >= slot.left &&
+                slot.helperRight <= slot.right &&
+                slot.centered <= 1
             : slot.nameBottom <= slot.helperTop + 1 &&
               slot.helperBottom <= slot.imageTop + 1 &&
               slot.imageBottom <= slot.labelTop + 1 &&
@@ -514,6 +608,32 @@ try {
       assert.ok(dialogFit.overflow <= 1, JSON.stringify({ viewport, dialogFit }))
     }
     await shellPage.keyboard.press('Escape')
+    if ([1366, 390, 412].includes(viewport.width)) {
+      for (const [name, technique, artwork] of [
+        ['Stormcaller Staff', 'Storm Ward', 'stormcaller-staff'],
+        ['Twinfang Blade', 'Quickstep', 'twinfang-blade'],
+        ['Tower Shield', 'Tower Guard', 'tower-shield'],
+        ['Emberbrand', 'Kindle', 'emberbrand'],
+      ]) {
+        await shellPage
+          .getByRole('button', { name: new RegExp(`^Slot \\d+: ${name},`) })
+          .first()
+          .click()
+        const popup = shellPage.getByRole('dialog')
+        await expect(popup.getByRole('img', { name, exact: true })).toBeVisible()
+        await popup.getByRole('tab', { name: 'Imbued Technique', exact: true }).click()
+        const image = popup.getByRole('img', { name: technique, exact: true })
+        await expect(image).toBeVisible()
+        await expect
+          .poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0))
+          .toBe(true)
+        assert.ok((await image.getAttribute('src')).includes(`${artwork}-technique-v01.webp`))
+        await popup.getByRole('tab', { name: 'Imbued Technique', exact: true }).press('Home')
+        await expect(popup.getByRole('img', { name, exact: true })).toBeVisible()
+        await expect(popup.getByRole('img', { name: technique, exact: true })).toHaveCount(0)
+        await shellPage.keyboard.press('Escape')
+      }
+    }
     await shellPage.locator('[data-inventory-slot="40"]').scrollIntoViewIfNeeded()
     if (viewport.width >= 981) {
       assert.ok((await measure()).mainOverflowY <= 1)

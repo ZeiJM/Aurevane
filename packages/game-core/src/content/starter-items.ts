@@ -169,6 +169,7 @@ function weapon(
     range?: number
     support?: AbilityBehavior
     supportName?: string
+    supportDescription?: string
   } = {},
 ) {
   return item(
@@ -190,7 +191,13 @@ function weapon(
     {
       attack: { behaviorId: 'attack', name },
       ...(options.support
-        ? { support: { behaviorId: options.support.id, name: options.supportName ?? name } }
+        ? {
+            support: {
+              behaviorId: options.support.id,
+              name: options.supportName ?? name,
+              ...(options.supportDescription ? { description: options.supportDescription } : {}),
+            },
+          }
         : {}),
     },
   )
@@ -380,6 +387,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       [damage(3, 850), damage(3, 850)],
       {
         supportName: 'Quickstep',
+        supportDescription: 'Reduce the AP cost of your movement for 1 turn.',
         support: action(
           'quickstep',
           15,
@@ -403,6 +411,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       [damage(3, 850)],
       {
         supportName: 'Tower Guard',
+        supportDescription: 'Reduce incoming damage with Guarded for 2 turns.',
         support: action('guard', 30, [status('guarded', 3000)], {
           cooldown: { key: 'guard', ownerTurns: 2 },
         }),
@@ -420,6 +429,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
         family: 'mystic',
         range: 3,
         supportName: 'Storm Ward',
+        supportDescription: 'Gain a Barrier equal to 8% of your maximum HP for 2 turns.',
         support: action(
           'storm-ward',
           25,
@@ -446,6 +456,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       [damage(6, 1400, 'physical', 'fire'), fireCleanse],
       {
         supportName: 'Kindle',
+        supportDescription: 'Increase your direct Fire damage for 2 turns.',
         support: action('kindle', 20, [{ ...status('inspired', 1000), damageTypes: ['fire'] }], {
           cooldown: { key: 'kindle', ownerTurns: 2 },
         }),
@@ -717,7 +728,7 @@ export function starterItemDefinitions(): readonly RuntimeItemDefinition[] {
       definition.id,
     )
       ? {
-          contentVersion: 8,
+          contentVersion: 10,
           actions: {
             ...definition.actions,
             support: {

@@ -66,5 +66,52 @@ it('shows the actual capped Evasion delta when its authoritative base is known',
   const html = comparison(437)
   expect(html).toContain('data-equipment-stat-change="400"')
   expect(html).toContain('+4%')
+  expect(html).toContain('Stat changes if equipped')
+  expect(html).toContain('Replacing: Wayfarer Hood')
   expect(html).not.toContain('comparison unavailable')
+})
+
+it('explains two-handed weapon losses as replaced glove bonuses, without inventing weapon passives', () => {
+  const definitions = starterItemDefinitions()
+  const blade = presentItem(definitions.find((item) => item.id === 'sunsplitter')!)
+  const staff = presentItem(definitions.find((item) => item.id === 'stormcaller-staff')!)
+  const glove = presentItem(definitions.find((item) => item.id === 'quickdraw-glove')!)
+  expect(blade.statBonuses ?? []).toEqual([])
+  const stacks = [staff, glove, blade].map((item, index) => ({
+    id: index === 2 ? 'candidate' : item.id,
+    itemId: item.id,
+    quantity: 1,
+    slotIndex: index,
+    inventoryCategory: 'gear' as const,
+    item,
+  }))
+  const html = renderToStaticMarkup(
+    <CharacterItems
+      initialView={{
+        characterId: 'character',
+        revision: 1,
+        catalogueToken: 'a'.repeat(32),
+        battleLocked: false,
+        equipmentIssue: null,
+        qualityPoints: 30,
+        qualityPointLimit: 100,
+        equipment: { 'main-hand': staff.id, 'off-hand': glove.id },
+        selectedSupport: { kind: 'basic', actionId: 'basic.recover' },
+        notices: [],
+        stacks,
+        statBonuses: glove.statBonuses!.map((bonus) => ({
+          ...bonus,
+          itemId: glove.id,
+          itemName: glove.name,
+          position: 'off-hand' as const,
+        })),
+      }}
+    />,
+  )
+  expect(html).toContain('Stat changes if equipped')
+  expect(html).toContain('Replacing: Stormcaller Staff · Quickdraw Glove')
+  expect(html).toContain('data-equipment-stat-change="-6"')
+  expect(html).toContain('data-equipment-stat-change="-4"')
+  expect(html).not.toContain('data-equipment-stat-change="6"')
+  expect(html).not.toContain('data-equipment-stat-change="4"')
 })

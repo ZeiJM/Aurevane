@@ -352,8 +352,19 @@ it('previews an imbued technique on hover and keyboard focus using the shared Su
   const { starterItemDefinitions } = await import('@aurevane/game-core/content/starter-items')
   const { presentItem } = await import('@/lib/items/item-presentation')
   const { AbilityParameters } = await import('./ability-parameters')
-  const item = presentItem(starterItemDefinitions().find((row) => row.id === 'stormcaller-staff')!)
+  const base = starterItemDefinitions().find((row) => row.id === 'stormcaller-staff')!
+  const item = presentItem({
+    ...base,
+    actions: {
+      ...base.actions,
+      support: {
+        ...base.actions!.support!,
+        description: 'Raise a barrier to absorb incoming damage.',
+      },
+    },
+  })
   const props: Parameters<typeof CharacterSkillBuildPanel>[0] = {
+    supportActionDescriptions: { 'basic.invocation': 'Published invocation purpose.' },
     characterId: 'character',
     initialBuildVersion: 1,
     initialSupportActionId: 'basic.recover',
@@ -413,6 +424,11 @@ it('previews an imbued technique on hover and keyboard focus using the shared Su
   ;(article().props.onMouseEnter as () => void)()
   let report = nodes(render()).find((node) => node.type === AbilityParameters)!
   expect(report.props.report).toMatchObject({ name: 'Storm Ward' })
+  expect(
+    nodes(render()).some(
+      (node) => node.props.children === 'Raise a barrier to absorb incoming damage.',
+    ),
+  ).toBe(true)
   expect(report.props.characteristicsClassName).toBeTruthy()
   const native = nodes(render()).find(
     (node) =>
@@ -423,6 +439,14 @@ it('previews an imbued technique on hover and keyboard focus using the shared Su
   )!
   ;(native.props.onMouseEnter as () => void)()
   expect(nodes(render()).some((node) => node.type === AbilityParameters)).toBe(false)
+  expect(
+    nodes(render()).some((node) => node.props.children === 'Published invocation purpose.'),
+  ).toBe(true)
+  expect(
+    nodes(render()).some(
+      (node) => node.props.children === 'One Support Action, separate from Discipline Skills.',
+    ),
+  ).toBe(false)
   ;(article().props.onFocusCapture as () => void)()
   report = nodes(render()).find((node) => node.type === AbilityParameters)!
   expect(report.props.report).toMatchObject({ name: 'Storm Ward' })
