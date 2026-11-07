@@ -77,7 +77,7 @@ function gallery(start, end) {
   const subset = rows.slice(start, end)
   const cards = subset
     .map(
-      ({ name, manifest, blueprint, painted }, i) => `
+      ({ name, manifest, blueprint, painted }) => `
   <article><header><strong>${escape(name)}</strong><small>${painted ? 'Painted preset' : 'Manual rig'}</small></header>
     <div class="preview">
       <figure><img class="portrait" src="${manifest.portraits.neutral}" alt=""><figcaption>Portrait</figcaption></figure>
