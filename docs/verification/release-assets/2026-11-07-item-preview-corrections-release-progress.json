@@ -387,5 +387,48 @@
       "deployment": null,
       "pass": true
     }
-  ]
+  ],
+  "releaseSqlSha256": "023407adf08789294eb9e8a1710cf2dabd7842a581246044d642f1e314a9b269",
+  "migrationSha256": "1c42a1740e93b44e0df11b4da59dae58e49de031419e1ad0e1bf63c2a4b575d6",
+  "executableReview": {
+    "approved": true,
+    "conditions": [
+      "Fresh DB clock at or beyond deadline",
+      "Zero older client transactions",
+      "Unchanged retirement and hold",
+      "Fresh exact predecessor and no targeted Owner drafts",
+      "Reviewed grammar installed"
+    ],
+    "preservationDigests": 12
+  },
+  "preMigrationControls": {
+    "stockRls": {
+      "character_item_grants": true,
+      "character_item_stacks": true,
+      "character_item_inventory": true
+    },
+    "seedAccess": {
+      "anon": false,
+      "service_role": true,
+      "authenticated": false
+    },
+    "timingPolicy": {
+      "modes": {
+        "summon": "instant",
+        "sensory": "instant",
+        "displace": "instant",
+        "mp-drain": "instant",
+        "blindside": "instant",
+        "conductive": "instant",
+        "remove-status": "instant",
+        "barrier-change": "instant",
+        "create-terrain": "instant",
+        "return-to-turn-start": "controlled"
+      },
+      "version": 11,
+      "tagAuthority": "global"
+    },
+    "enabledOwners": 1,
+    "descriptionMigrationCount": 0
+  }
 }
